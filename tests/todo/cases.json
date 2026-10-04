@@ -1,0 +1,404 @@
+[
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "next",
+  "expected": "* DONE a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "next",
+  "expected": "* TODO a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO¦\n",
+  "command": "next",
+  "expected": "* DONE \n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE a¦\n",
+  "command": "next",
+  "expected": "* a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE¦",
+  "command": "next",
+  "expected": "* "
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "*  TODO   a  :tag:¦\n",
+  "command": "next",
+  "expected": "* DONE a                                                                :tag:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nbody ¦text\n** child\n",
+  "command": "next",
+  "expected": "* TODO a\nbody text\n** child\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "previous",
+  "expected": "* a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "previous",
+  "expected": "* DONE a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE a¦\n",
+  "command": "previous",
+  "expected": "* TODO a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": {
+   "state": "DONE"
+  },
+  "expected": "* DONE a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a :t1:t2:¦   \n",
+  "command": "next",
+  "expected": "* DONE a                                                              :t1:t2:   \n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\ttab :tag:¦\n",
+  "command": "next",
+  "expected": "* DONE a\ttab                                                     :tag:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a very long headline that reaches far beyond the column where tags usually go :tag:¦\n",
+  "command": "next",
+  "expected": "* DONE a very long headline that reaches far beyond the column where tags usually go :tag:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦ :tag:\n",
+  "command": "next",
+  "options": {
+   "tagsColumn": 40
+  },
+  "expected": "* DONE a                                :tag:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦ :tag:\n",
+  "command": "next",
+  "options": {
+   "tagsColumn": 0
+  },
+  "expected": "* DONE a :tag:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a :t1:t2:¦\n",
+  "command": "next",
+  "options": {
+   "logDone": "time"
+  },
+  "expected": "* DONE a                                                              :t1:t2:\nCLOSED: [2026-05-18 Mon 10:30]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun>\nbody\n",
+  "command": "next",
+  "options": {
+   "logDone": "time"
+  },
+  "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30] SCHEDULED: <2026-05-10 Sun>\nbody\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n  DEADLINE: <2026-05-10 Sun>\n",
+  "command": "next",
+  "options": {
+   "logDone": "time"
+  },
+  "expected": "* DONE a\n  CLOSED: [2026-05-18 Mon 10:30] DEADLINE: <2026-05-10 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE a¦\nCLOSED: [2026-05-10 Sun 10:00] SCHEDULED: <2026-05-10 Sun>\nbody\n",
+  "command": "next",
+  "options": {
+   "logDone": "time"
+  },
+  "expected": "* a\nSCHEDULED: <2026-05-10 Sun>\nbody\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE a¦\nCLOSED: [2026-05-10 Sun 10:00]\nbody\n",
+  "command": "next",
+  "options": {
+   "logDone": "time"
+  },
+  "expected": "* a\nbody\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE a¦\nSCHEDULED: <2026-05-10 Sun> CLOSED: [2026-05-10 Sun 10:00]\n",
+  "command": "previous",
+  "options": {
+   "logDone": "time"
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-10 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE a¦\nCLOSED: [2026-05-10 Sun 10:00]\n",
+  "command": "next",
+  "expected": "* a\nCLOSED: [2026-05-10 Sun 10:00]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦",
+  "command": "next",
+  "options": {
+   "logDone": "time"
+  },
+  "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "next",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>\nbody\n",
+  "command": "next",
+  "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\nbody\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun ++1w>\n:PROPERTIES:\n:ID: x\n:END:\nbody\n",
+  "command": "next",
+  "expected": "* TODO a\nSCHEDULED: <2026-05-24 Sun ++1w>\n:PROPERTIES:\n:ID: x\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\nbody\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun .+2d> SCHEDULED: <2026-05-11 Mon>\n- old note\n",
+  "command": "next",
+  "expected": "* TODO a\nDEADLINE: <2026-05-20 Wed .+2d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n- old note\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n",
+  "command": "next",
+  "options": {
+   "logIntoDrawer": true
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n:LOGBOOK:\n- old\n:END:\n",
+  "command": "next",
+  "options": {
+   "logIntoDrawer": true
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n- old\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n",
+  "command": "next",
+  "options": {
+   "logRepeat": false
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n<2026-05-10 Sun 10:00-11:00 +1m -2d>\n",
+  "command": "next",
+  "expected": "* TODO a\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n<2026-06-10 Wed 10:00-11:00 +1m -2d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-01-31 Sat +1m>\n",
+  "command": "next",
+  "expected": "* TODO a\nSCHEDULED: <2026-03-03 Tue +1m>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2024-02-29 Thu +1y>\n",
+  "command": "next",
+  "expected": "* TODO a\nSCHEDULED: <2025-03-01 Sat +1y>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-18 Mon 9:00 ++3h>\n",
+  "command": "next",
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon 12:00 ++3h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-18 Mon 9:00 .+3h>\n",
+  "command": "next",
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon 13:30 .+3h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w --2d>\n",
+  "command": "next",
+  "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +0d>\n",
+  "command": "next",
+  "expected": "* DONE a\nSCHEDULED: <2026-05-10 Sun +0d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n  SCHEDULED: <2026-05-10 Sun +1w>\n  :PROPERTIES:\n  :LAST_REPEAT: [2026-05-01 Fri 09:00]\n  :END:\n\n  Body text.\n",
+  "command": "next",
+  "expected": "* TODO a\n  SCHEDULED: <2026-05-17 Sun +1w>\n  :PROPERTIES:\n  :LAST_REPEAT: [2026-05-18 Mon 10:30]\n  :END:\n\n  - State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n  Body text.\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n:PROPERTIES:\n:REPEAT_TO_STATE: NEXT\n:END:\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "todoKeywords": [
+    "TODO",
+    "NEXT",
+    "|",
+    "DONE"
+   ]
+  },
+  "expected": "* NEXT a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:REPEAT_TO_STATE: NEXT\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE\n* NEXT a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n",
+  "command": {
+   "state": "DONE"
+  },
+  "expected": "#+TODO: TODO NEXT | DONE\n* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"NEXT\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE\n* NEXT a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "todoRepeatToState": true
+  },
+  "expected": "#+TODO: TODO NEXT | DONE\n* NEXT a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"NEXT\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n",
+  "command": {
+   "state": "DONE"
+  },
+  "expected": "* a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"\"           [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n* next\n",
+  "command": "next",
+  "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n* next\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n\n\nbody after blank lines\n",
+  "command": "next",
+  "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n\n\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\nbody after blank lines\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>",
+  "command": "next",
+  "options": {
+   "logDone": "time"
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Parent [0/2] [0%] :tag:\n** TODO a¦\n** TODO b\n",
+  "command": "next",
+  "expected": "* Parent [1/2] [50%]                                                    :tag:\n** DONE a\n** TODO b\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Parent [/] [%]\n** DONE a¦\n** TODO b\n*** TODO deeper\n** c\n",
+  "command": "next",
+  "expected": "* Parent [0/1] [0%]\n** a\n** TODO b\n*** TODO deeper\n** c\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Parent [1/1]\n:PROPERTIES:\n:COOKIE_DATA: checkbox\n:END:\n** TODO a¦\n",
+  "command": "next",
+  "expected": "* Parent [1/1]\n:PROPERTIES:\n:COOKIE_DATA: checkbox\n:END:\n** DONE a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Top [0/1]\n** Parent\n*** TODO a¦\n",
+  "command": "next",
+  "expected": "* Top [0/1]\n** Parent\n*** DONE a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t!) WAIT(w@/!) | DONE(d!)\n* TODO a¦\n",
+  "command": "next",
+  "expected": "#+TODO: TODO(t!) WAIT(w@/!) | DONE(d!)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t!) WAIT(w@/!) | DONE(d!)\n* WAIT a¦\n",
+  "command": "next",
+  "expected": "#+TODO: TODO(t!) WAIT(w@/!) | DONE(d!)\n* DONE a\n- State \"DONE\"       from \"WAIT\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t!) WAIT(w@/!) | DONE(d!)\n* a¦\nbody\n",
+  "command": "next",
+  "expected": "#+TODO: TODO(t!) WAIT(w@/!) | DONE(d!)\n* TODO a\n- State \"TODO\"       from              [2026-05-18 Mon 10:30]\nbody\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t!) WAIT(w@/!) | DONE(d!)\n* WAIT a¦\n",
+  "command": "previous",
+  "expected": "#+TODO: TODO(t!) WAIT(w@/!) | DONE(d!)\n* TODO a\n- State \"TODO\"       from \"WAIT\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t!) WAIT(w@/!) | DONE(d!)\n* DONE a¦\nCLOSED: [2026-05-10 Sun 10:00]\n",
+  "command": "next",
+  "expected": "#+TODO: TODO(t!) WAIT(w@/!) | DONE(d!)\n* a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO | DONE(d!)\n* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n",
+  "command": "next",
+  "options": {
+   "logDone": "time"
+  },
+  "expected": "#+TODO: TODO | DONE(d!)\n* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ }
+]

@@ -25,8 +25,10 @@ use lsp_types::{
     TextDocumentSyncOptions, TextDocumentSyncSaveOptions, TextEdit, Uri, WorkspaceEdit,
 };
 use org_core::agenda::{self, Config as AgendaConfig, Now, Span};
+use org_core::date::DateTime;
 use org_core::outline::Outline;
-use org_syntax::{ast, Parse, TextSize, TodoKeywords};
+use org_core::todo::{Settings as TodoSettings, Target};
+use org_syntax::{Parse, TextSize, TodoKeywords};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -100,6 +102,7 @@ struct Server {
     pending: HashMap<RequestId, Pending>,
     todo: TodoKeywords,
     agenda: AgendaConfig,
+    todo_settings: TodoSettings,
     /// A fixed clock, for tests.
     clock: Option<Now>,
     documents: HashMap<String, Document>,
@@ -172,6 +175,7 @@ pub fn run(connection: Connection) -> Result<()> {
         pending: HashMap::new(),
         todo,
         agenda: options.agenda.to_config(),
+        todo_settings: options.todo_settings(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
         documents: HashMap::new(),
         workspace: Workspace::new(options.agenda_files, folders),
@@ -261,6 +265,12 @@ impl Server {
 
     fn now(&self) -> Now {
         self.clock.unwrap_or_else(cli::now)
+    }
+
+    /// The current local time, for timestamps the server writes.
+    fn date_time(&self) -> DateTime {
+        let now = self.now();
+        DateTime { day: now.today, minute: now.minute }
     }
 
     // ----- messages to the client
@@ -433,19 +443,19 @@ impl Server {
 
     /// The edit as a workspace edit: versioned when the client supports
     /// that form, which lets it reject an edit to text that has changed.
-    fn workspace_edit(&self, uri: &Uri, version: Option<i32>, edit: TextEdit) -> WorkspaceEdit {
+    fn workspace_edit(&self, uri: &Uri, version: Option<i32>, edits: Vec<TextEdit>) -> WorkspaceEdit {
         if self.client.document_changes {
             WorkspaceEdit {
                 document_changes: Some(lsp_types::DocumentChanges::Edits(vec![TextDocumentEdit {
                     text_document: OptionalVersionedTextDocumentIdentifier { uri: uri.clone(), version },
-                    edits: vec![OneOf::Left(edit)],
+                    edits: edits.into_iter().map(OneOf::Left).collect(),
                 }])),
                 ..Default::default()
             }
         } else {
             #[allow(clippy::mutable_key_type)]
             let mut changes = HashMap::new();
-            changes.insert(uri.clone(), vec![edit]);
+            changes.insert(uri.clone(), edits);
             WorkspaceEdit { changes: Some(changes), ..Default::default() }
         }
     }
@@ -480,11 +490,25 @@ impl Server {
         let document = self.document(uri)?;
         let encoding = self.client.encoding;
         let offset = document.index.offset(&document.text, params.range.start, encoding);
-        let found =
-            actions::actions(&document.syntax(), document.parse.todo_keywords(), TextSize::new(offset as u32), only);
+        let found = actions::actions(
+            &document.syntax(),
+            &document.text,
+            document.parse.todo_keywords(),
+            TextSize::new(offset as u32),
+            only,
+            &self.todo_settings,
+            self.date_time(),
+        );
         let to_lsp = |action: &actions::Action| {
-            let range = document.index.range(&document.text, action.edit.range, encoding);
-            let edit = self.workspace_edit(uri, Some(document.version), action.edit.to_lsp(range));
+            let edits = action
+                .edits
+                .iter()
+                .map(|edit| TextEdit {
+                    range: document.index.range(&document.text, edit.range, encoding),
+                    new_text: edit.new_text.clone(),
+                })
+                .collect();
+            let edit = self.workspace_edit(uri, Some(document.version), edits);
             CodeActionOrCommand::CodeAction(action.to_lsp(edit))
         };
         Some(found.iter().map(to_lsp).collect())
@@ -750,26 +774,38 @@ impl Server {
     /// in an Org file or a line of the agenda.
     fn cycle_todo(&mut self, context: &Context, kind: &str) -> std::result::Result<(), String> {
         let encoding = self.client.encoding;
-        let uri = &context.text_document.uri;
-        let (target, found) = if self.is_view(uri) {
+        let target = if kind == commands::TODO_NEXT { Target::Next } else { Target::Previous };
+        let (settings, now) = (self.todo_settings.clone(), self.date_time());
+        let uri = context.text_document.uri.clone();
+        // The file to edit and the place of the entry in it.
+        let (file, reference) = if self.is_view(&uri) {
             let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
-            let found = self.with_source(&reference.uri, |text, index, parse, outline, version| {
-                let entry = &outline.entries[views::resolve(&reference, outline)?];
-                let edit = todo_edit(parse, entry.offset, kind)?;
-                Some((index.range(text, edit.range, encoding), edit.new_text, version))
-            });
-            (reference.uri, found.flatten())
+            (reference.uri.clone(), Some(reference))
         } else {
-            let position = context.position;
-            let found = self.with_source(uri, |text, index, parse, _, version| {
-                let edit = todo_edit(parse, index.offset(text, position, encoding), kind)?;
-                Some((index.range(text, edit.range, encoding), edit.new_text, version))
-            });
-            (uri.clone(), found.flatten())
+            (uri, None)
         };
-        let (range, new_text, version) = found.ok_or("There is no entry here")?;
-        let edit = self.workspace_edit(&target, version, TextEdit { range, new_text });
-        self.edited.insert(target.as_str().to_string());
+        let position = context.position;
+        let found = self.with_source(&file, |text, index, parse, outline, version| {
+            let offset = match &reference {
+                Some(reference) => {
+                    let entry = views::resolve(reference, outline).ok_or("The entry is gone; rebuild the agenda")?;
+                    outline.entries[entry].offset
+                }
+                None => index.offset(text, position, encoding),
+            };
+            let edits = actions::todo_edits(text, parse.todo_keywords(), offset, &target, &settings, now)?;
+            let edits: Vec<TextEdit> = edits
+                .into_iter()
+                .map(|edit| TextEdit { range: index.range(text, edit.range, encoding), new_text: edit.new_text })
+                .collect();
+            Ok::<_, String>((edits, version))
+        });
+        let (edits, version) = found.ok_or("Cannot read the file of this entry")??;
+        if edits.is_empty() {
+            return Ok(());
+        }
+        let edit = self.workspace_edit(&file, version, edits);
+        self.edited.insert(file.as_str().to_string());
         let params = lsp_types::ApplyWorkspaceEditParams { label: Some(command_title(kind).to_string()), edit };
         self.send_request::<ApplyWorkspaceEdit>(params, Some(Pending::Edit));
         Ok(())
@@ -778,17 +814,4 @@ impl Server {
 
 fn command_title(id: &str) -> &'static str {
     commands::COMMANDS.iter().find(|command| command.id == id).map_or("", |command| command.title)
-}
-
-/// The edit that moves the entry containing `offset` to its next or
-/// previous TODO state.
-fn todo_edit(parse: &Parse, offset: usize, kind: &str) -> Option<actions::Edit> {
-    let only =
-        [CodeActionKind::new(if kind == commands::TODO_NEXT { actions::TODO_NEXT } else { actions::TODO_PREVIOUS })];
-    let root = parse.syntax();
-    ast::headline_at(&root, TextSize::new(offset as u32))?;
-    actions::actions(&root, parse.todo_keywords(), TextSize::new(offset as u32), Some(&only))
-        .into_iter()
-        .next()
-        .map(|action| action.edit)
 }

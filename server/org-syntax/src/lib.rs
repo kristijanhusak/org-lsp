@@ -24,7 +24,7 @@ mod kind;
 mod objects;
 mod parser;
 
-pub use config::TodoKeywords;
+pub use config::{Logging, TodoKeywords};
 pub use kind::{OrgLanguage, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
 pub use rowan::{TextRange, TextSize, TokenAtOffset};
 

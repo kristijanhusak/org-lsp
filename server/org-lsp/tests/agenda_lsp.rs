@@ -144,22 +144,26 @@ fn methods(requests: &[Request]) -> Vec<&str> {
     requests.iter().map(|request| request.method.as_str()).collect()
 }
 
-/// The single text edit of a `workspace/applyEdit` request, with its file.
-fn edit_of(request: &Request) -> (String, Value) {
+/// The file and the text edits of a `workspace/applyEdit` request.
+fn edits_of(request: &Request) -> (String, Vec<Value>) {
     assert_eq!(request.method, "workspace/applyEdit");
     let change = &request.params["edit"]["documentChanges"][0];
-    (change["textDocument"]["uri"].as_str().unwrap().to_string(), change["edits"][0].clone())
+    (change["textDocument"]["uri"].as_str().unwrap().to_string(), change["edits"].as_array().unwrap().clone())
 }
 
-/// Apply an edit that stays on one line to `text`.
-fn apply(text: &str, edit: &Value) -> String {
-    let (start, end) = (&edit["range"]["start"], &edit["range"]["end"]);
-    assert_eq!(start["line"], end["line"]);
-    let line = start["line"].as_u64().unwrap() as usize;
-    let mut lines: Vec<String> = text.split('\n').map(str::to_string).collect();
-    let (from, to) = (start["character"].as_u64().unwrap() as usize, end["character"].as_u64().unwrap() as usize);
-    lines[line].replace_range(from..to, edit["newText"].as_str().unwrap());
-    lines.join("\n")
+/// Apply edits to `text`. Positions count bytes, as the test client asks.
+fn apply(text: &str, edits: &[Value]) -> String {
+    let offset = |position: &Value| {
+        let line = position["line"].as_u64().unwrap() as usize;
+        let start: usize = text.split_inclusive('\n').take(line).map(str::len).sum();
+        start + position["character"].as_u64().unwrap() as usize
+    };
+    let mut out = text.to_string();
+    for edit in edits.iter().rev() {
+        let (start, end) = (offset(&edit["range"]["start"]), offset(&edit["range"]["end"]));
+        out.replace_range(start..end, edit["newText"].as_str().unwrap());
+    }
+    out
 }
 
 #[test]
@@ -325,17 +329,20 @@ fn changes_an_entry_from_the_agenda() {
     // Line 2 is "TODO Call the client".
     let requests = client.command("org.todo.next", VIEW, 2);
     assert_eq!(methods(&requests), ["workspace/applyEdit"]);
-    let (uri, edit) = edit_of(&requests[0]);
+    let (uri, edits) = edits_of(&requests[0]);
     assert_eq!(uri, "file:///org/work.org");
     assert_eq!(requests[0].params["edit"]["documentChanges"][0]["textDocument"]["version"], 1);
+    // Only the keyword changes, so the cursor in the file stays put.
     assert_eq!(
-        edit,
-        json!({ "range": { "start": { "line": 3, "character": 2 }, "end": { "line": 3, "character": 6 } }, "newText": "DONE" })
+        edits,
+        [
+            json!({ "range": { "start": { "line": 3, "character": 2 }, "end": { "line": 3, "character": 6 } }, "newText": "DONE" })
+        ]
     );
 
     // The editor applies the edit; the agenda follows.
     client.received.clear();
-    let changed = apply(WORK, &edit);
+    let changed = apply(WORK, &edits);
     client.notify(
         "textDocument/didChange",
         json!({ "textDocument": { "uri": uri, "version": 2 }, "contentChanges": [{ "text": changed }] }),
@@ -349,10 +356,11 @@ fn changes_an_entry_from_the_agenda() {
     .assert_eq(&client.view_text(VIEW));
 
     // The same command in the Org file itself.
+    // Org also puts the tags back in their column.
     let requests = client.command("org.todo.previous", "file:///org/work.org", 1);
-    let (_, edit) = edit_of(&requests[0]);
-    assert_eq!(edit["newText"], "");
-    assert_eq!(edit["range"]["start"], json!({ "line": 1, "character": 2 }));
+    let (_, edits) = edits_of(&requests[0]);
+    let headline = apply(&changed, &edits).lines().nth(1).unwrap().to_string();
+    assert_eq!(headline, format!("* [#A] Write report{}:office:", " ".repeat(50)));
 
     // Go to the entry of a line.
     let requests = client.command("org.agenda.goto", VIEW, 1);
@@ -421,19 +429,34 @@ fn reads_agenda_files_from_the_workspace() {
     "#]]
     .assert_eq(&listed);
 
-    // An edit to a file that is not open carries no version.
+    // "Water plants" repeats every week. Marking it done moves it to the
+    // next week and leaves it open, as `org-todo` does. The file is not
+    // open in the editor, so the edit carries no version.
     let requests = client.command("org.todo.next", VIEW, 2);
-    let (uri, edit) = edit_of(&requests[0]);
+    let (uri, edits) = edits_of(&requests[0]);
     assert_eq!(uri, format!("{root_uri}/sub/home.org"));
     assert_eq!(requests[0].params["edit"]["documentChanges"][0]["textDocument"]["version"], Value::Null);
+    let repeated = apply(HOME, &edits);
+    expect![[r#"
+        * TODO Water plants
+        SCHEDULED: <2026-05-23 Sat +1w>
+        :PROPERTIES:
+        :LAST_REPEAT: [2026-05-18 Mon 10:30]
+        :END:
+        - State "DONE"       from "TODO"       [2026-05-18 Mon 10:30]
+        * DONE Buy milk
+    "#]]
+    .assert_eq(&repeated);
 
-    // The editor opens the file to apply it. What it holds now counts,
-    // not what is on disk.
-    client.open(&uri, &apply(HOME, &edit));
-    client.command("org.agenda.redo", VIEW, 0);
-    assert!(!client.view_text(VIEW).contains("Water plants"));
+    // The editor opens the file to apply the edit. What it holds now
+    // counts, not what is on disk.
+    client.open(&uri, &repeated);
+    client.command("org.agenda.list", VIEW, 0);
+    let agenda = client.view_text(VIEW);
+    assert!(!agenda.contains("Sched. 2x"), "{agenda}");
+    assert!(agenda.contains("Saturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\n"), "{agenda}");
     client.notify("textDocument/didClose", json!({ "textDocument": { "uri": uri } }));
-    client.command("org.agenda.redo", VIEW, 0);
+    client.command("org.agenda.todos", VIEW, 0);
     assert_eq!(client.view_text(VIEW), listed);
 
     // A change on disk shows after the next rebuild.

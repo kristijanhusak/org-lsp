@@ -3,6 +3,8 @@
 //! without the `org-agenda-` prefix.
 
 use org_core::agenda::{Config as AgendaConfig, FutureRepeats, Span, TimeGrid};
+use org_core::todo::{RepeatTo, Settings as TodoSettings};
+use org_syntax::Logging;
 use serde::Deserialize;
 
 #[derive(Debug, Default, Deserialize)]
@@ -14,12 +16,85 @@ pub struct Options {
     /// Files, directories and glob patterns the agenda is built from.
     pub agenda_files: Vec<String>,
     pub agenda: AgendaOptions,
+    /// `org-log-done`: `false`, `"time"` or `"note"`.
+    pub log_done: Option<LogOption>,
+    /// `org-log-repeat`: `false`, `"time"` or `"note"`.
+    pub log_repeat: Option<LogOption>,
+    /// `org-log-into-drawer`: `true` for `LOGBOOK`, or a drawer name.
+    pub log_into_drawer: Option<DrawerOption>,
+    /// `org-tags-column`
+    pub tags_column: Option<i64>,
+    /// `org-todo-repeat-to-state`: a keyword, or `true` for the state the
+    /// entry had before it was marked done.
+    pub todo_repeat_to_state: Option<RepeatToOption>,
     /// Whether the client fetches the agenda from the server as a virtual
     /// document. Clients that announce LSP 3.18's `textDocumentContent`
     /// need not say so.
     pub virtual_documents: Option<bool>,
     /// A fixed date and time, for tests.
     pub clock: Option<ClockOption>,
+}
+
+/// `false`, `true`, `"time"` or `"note"`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum LogOption {
+    Flag(bool),
+    Name(String),
+}
+
+impl LogOption {
+    fn to_logging(&self) -> Option<Logging> {
+        match self {
+            LogOption::Flag(false) => None,
+            LogOption::Flag(true) => Some(Logging::Time),
+            LogOption::Name(name) if name == "note" => Some(Logging::Note),
+            LogOption::Name(name) if name == "time" => Some(Logging::Time),
+            LogOption::Name(_) => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum DrawerOption {
+    Flag(bool),
+    Name(String),
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum RepeatToOption {
+    Flag(bool),
+    State(String),
+}
+
+impl Options {
+    /// The settings for changing TODO states: Org's defaults with the
+    /// given options applied.
+    pub fn todo_settings(&self) -> TodoSettings {
+        let mut settings = TodoSettings::default();
+        if let Some(option) = &self.log_done {
+            settings.log_done = option.to_logging();
+        }
+        if let Some(option) = &self.log_repeat {
+            settings.log_repeat = option.to_logging();
+        }
+        settings.log_into_drawer = match &self.log_into_drawer {
+            Some(DrawerOption::Flag(true)) => Some("LOGBOOK".to_string()),
+            Some(DrawerOption::Name(name)) if !name.is_empty() => Some(name.clone()),
+            _ => None,
+        };
+        if let Some(column) = self.tags_column {
+            settings.tags_column = column;
+        }
+        settings.repeat_to_state = match &self.todo_repeat_to_state {
+            Some(RepeatToOption::Flag(true)) => RepeatTo::Previous,
+            Some(RepeatToOption::State(state)) => RepeatTo::State(state.clone()),
+            _ => RepeatTo::Head,
+        };
+        settings
+    }
 }
 
 /// `{ "today": "2026-05-18", "now": "10:30" }`
