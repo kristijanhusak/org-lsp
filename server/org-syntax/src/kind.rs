@@ -18,6 +18,8 @@ pub enum SyntaxKind {
     STARS,
     TODO_KEYWORD,
     PRIORITY,
+    /// `COMMENT` at the start of a headline's title.
+    COMMENT_KEYWORD,
     COLON,
     TAG,
 

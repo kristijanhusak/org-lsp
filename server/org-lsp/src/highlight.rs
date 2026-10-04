@@ -169,7 +169,7 @@ impl Walker<'_> {
         match kind {
             TODO_KEYWORD => Some((TokenType::TodoKeyword, if self.todo.is_done(text) { modifier::DONE } else { 0 })),
             PRIORITY => plain(TokenType::Priority),
-            PLANNING_KEYWORD | CLOCK_KEYWORD => plain(TokenType::Planning),
+            PLANNING_KEYWORD | CLOCK_KEYWORD | COMMENT_KEYWORD => plain(TokenType::Planning),
             DRAWER_BEGIN | DRAWER_END => plain(TokenType::Drawer),
             PROPERTY_KEY => plain(TokenType::Property),
             KEYWORD_KEY => plain(TokenType::Keyword),

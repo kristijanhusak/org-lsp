@@ -83,7 +83,7 @@ impl Chars {
 
 fn reference_rows(dump: &str, chars: &Chars) -> BTreeSet<Row> {
     let mut rows = BTreeSet::new();
-    for line in dump.lines() {
+    for line in dump.lines().filter(|line| !line.starts_with('@')) {
         let fields: Vec<&str> = line.split(' ').collect();
         let ty = fields[0];
         if NOT_PARSED_YET.contains(&ty) {
@@ -222,6 +222,49 @@ fn parser_rows(text: &str, chars: &Chars) -> BTreeSet<Row> {
     rows
 }
 
+/// What the two parsers say about one headline: keyword, priority, tags
+/// joined by colons, title.
+type HeadlineFields = (String, String, String, String);
+
+/// The `@headline` lines of a dump, by character offset.
+fn reference_headlines(dump: &str) -> Vec<(usize, HeadlineFields)> {
+    dump.lines()
+        .filter_map(|line| line.strip_prefix("@headline "))
+        .map(|line| {
+            let fields: Vec<&str> = line.splitn(5, '\t').collect();
+            let priority = match fields[2].parse::<u32>() {
+                Ok(code) => char::from_u32(code).unwrap().to_string(),
+                Err(_) => String::new(),
+            };
+            let fields = (fields[1].to_string(), priority, fields[3].to_string(), fields[4].to_string());
+            (line.split('\t').next().unwrap().parse().unwrap(), fields)
+        })
+        .collect()
+}
+
+fn parser_headline(headline: &ast::Headline) -> HeadlineFields {
+    let keyword = headline.todo_keyword().map(|token| token.text().to_string()).unwrap_or_default();
+    let priority = headline.priority().map(|token| token.text()[2..token.text().len() - 1].to_string());
+    (keyword, priority.unwrap_or_default(), headline.tags().join(":"), headline.title_text())
+}
+
+/// Whether the fields agree, allowing for two deliberate differences.
+fn same_headline(expected: &HeadlineFields, actual: &HeadlineFields) -> bool {
+    if expected == actual {
+        return true;
+    }
+    // A keyword that ends the line: a keyword here, a title in org-element.
+    if expected.0.is_empty() && !actual.0.is_empty() && expected.3 == actual.0 && actual.3.is_empty() {
+        return (&expected.1, &expected.2) == (&actual.1, &actual.2);
+    }
+    // `COMMENTARY`: org-element 9.6 drops the first seven letters.
+    if let Some(rest) = actual.3.strip_prefix("COMMENT") {
+        return (&expected.0, &expected.1, &expected.2) == (&actual.0, &actual.1, &actual.2)
+            && rest.trim_matches([' ', '\t']) == expected.3;
+    }
+    false
+}
+
 fn fixtures() -> Vec<PathBuf> {
     // `ORG_FIXTURES` points the tests at another directory, which is how
     // `scripts/fuzz-against-emacs.py` feeds them generated documents.
@@ -257,10 +300,29 @@ fn matches_org_element() {
         compared += 1;
         let missing: Vec<_> = expected.difference(&actual).collect();
         let extra: Vec<_> = actual.difference(&expected).collect();
-        if missing.is_empty() && extra.is_empty() {
+
+        // Headline fields, for the headlines both parsers found.
+        let root = parse(&text, &TodoKeywords::default()).syntax();
+        let ours: Vec<(usize, HeadlineFields)> = root
+            .descendants()
+            .filter_map(ast::Headline::cast)
+            .map(|headline| (chars.by_byte[usize::from(headline.syntax().text_range().start())], headline))
+            .map(|(begin, headline)| (begin, parser_headline(&headline)))
+            .collect();
+        let mut field_failures = String::new();
+        for (begin, wanted) in reference_headlines(&dump) {
+            let Some((_, found)) = ours.iter().find(|(offset, _)| *offset == begin) else { continue };
+            if !same_headline(&wanted, found) {
+                field_failures
+                    .push_str(&format!("headline at {begin}: org-element {wanted:?}, org-syntax {found:?}\n"));
+            }
+        }
+
+        if missing.is_empty() && extra.is_empty() && field_failures.is_empty() {
             continue;
         }
         failures.push_str(&format!("\n{}\n", path.file_name().unwrap().to_string_lossy()));
+        failures.push_str(&field_failures);
         for row in missing {
             failures.push_str(&format!("only in org-element:{}\n", describe(&chars, row)));
         }

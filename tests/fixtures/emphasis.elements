@@ -14,8 +14,10 @@ bold 155 160 0 156 159
 bold 162 167 0 163 166
 bold 169 174 0 170 173
 headline 176 1045 0 241 1045
+@headline 176		-1		not bold* and *not bold * either. *bold * still* closes later.
 bold 192 227 1 193 225
 headline 241 1045 0 300 1045
+@headline 241		-1		stars alone ** and * * and *** and *a* *b* and *a*-*b*.
 bold 256 275 1 257 273
 bold 279 283 1 280 281
 bold 283 287 1 284 285

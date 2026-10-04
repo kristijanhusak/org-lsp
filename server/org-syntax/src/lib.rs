@@ -26,7 +26,7 @@ mod parser;
 
 pub use config::TodoKeywords;
 pub use kind::{OrgLanguage, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
-pub use rowan::{TextRange, TextSize};
+pub use rowan::{TextRange, TextSize, TokenAtOffset};
 
 /// The result of parsing a document.
 #[derive(Debug, Clone)]

@@ -1,0 +1,13 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    { "view": "agenda", "span": "week" },
+    { "view": "agenda", "span": "day" },
+    { "view": "agenda", "span": "day", "start": "2026-10-06" },
+    { "view": "agenda", "span": 3, "start": "2026-10-03" },
+    { "view": "agenda", "span": "fortnight", "start": "2026-10-20" },
+    { "view": "agenda", "span": "month", "start": "2026-11-01" },
+    { "view": "todo" }
+  ]
+}

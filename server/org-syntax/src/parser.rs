@@ -137,13 +137,18 @@ fn is_tag_char(c: char) -> bool {
     c.is_alphanumeric() || matches!(c, '_' | '@' | '#' | '%')
 }
 
-/// Split the text after stars, keyword and priority into
-/// `(title, gap, tags, trailing whitespace)`.
+/// Split a headline line from `pos` (after stars, keyword and priority)
+/// into `(title, gap, tags, trailing whitespace)`.
 ///
-/// Tags are a final `:a:b:` group that follows whitespace or starts the text.
-fn split_tags(rest: &str) -> (&str, &str, &str, &str) {
-    let trimmed = trim_end(rest);
-    let trailing = &rest[trimmed.len()..];
+/// Tags are a final `:a:b:` group with at least one blank before it, and
+/// that blank must lie at or after `search_start`. This is how
+/// `org-element-headline-parser` searches: after a keyword or a priority
+/// the blanks are already consumed, so `* TODO :a:` has the title `:a:` and
+/// no tags, while `* :a:` has a tag.
+fn split_tags(text: &str, pos: usize, search_start: usize) -> (&str, &str, &str, &str) {
+    let trimmed_end = trim_end(text).len();
+    let trailing = &text[trimmed_end.max(pos)..];
+    let trimmed = &text[..trimmed_end];
     if trimmed.ends_with(':') {
         let start = trimmed
             .char_indices()
@@ -152,14 +157,14 @@ fn split_tags(rest: &str) -> (&str, &str, &str, &str) {
             .last()
             .map_or(trimmed.len(), |(index, _)| index);
         let tags = &trimmed[start..];
-        let after_space = start == 0 || trimmed[..start].ends_with([' ', '\t']);
-        if tags.starts_with(':') && tags.len() >= 3 && after_space {
-            let before = &trimmed[..start];
+        let after_blank = start > search_start && trimmed[..start].ends_with([' ', '\t']);
+        if tags.starts_with(':') && tags.len() >= 3 && after_blank {
+            let before = &trimmed[pos.min(start)..start];
             let title = trim_end(before);
             return (title, &before[title.len()..], tags, trailing);
         }
     }
-    (trimmed, "", "", trailing)
+    (&trimmed[pos.min(trimmed_end)..], "", "", trailing)
 }
 
 struct ItemPrefix {
@@ -600,11 +605,17 @@ impl<'a> Parser<'a> {
         self.token(STARS, &text[..level]);
         let mut pos = self.whitespace_at(text, level);
 
+        // A keyword needs a space after it, as in `org-element`. A keyword
+        // that ends the line counts too: that is what `org-todo` and the
+        // fontification see while the headline is being typed.
+        let mut consumed = false;
         let word_len = text[pos..].find([' ', '\t']).unwrap_or(text.len() - pos);
         let word = &text[pos..pos + word_len];
-        if self.todo.contains(word) {
+        let after_word = &text[pos + word_len..];
+        if self.todo.contains(word) && (after_word.starts_with(' ') || trim_end(after_word).is_empty()) {
             self.token(TODO_KEYWORD, word);
             pos = self.whitespace_at(text, pos + word_len);
+            consumed = true;
         }
 
         // `[#A]`: any single character is accepted as the priority.
@@ -614,11 +625,22 @@ impl<'a> Parser<'a> {
                     let len = 2 + c.len_utf8() + 1;
                     self.token(PRIORITY, &text[pos..pos + len]);
                     pos = self.whitespace_at(text, pos + len);
+                    consumed = true;
                 }
             }
         }
 
-        let (title, gap, tags, trailing) = split_tags(&text[pos..]);
+        // Where the search for tags starts: after `COMMENT`, after the
+        // blanks that follow a keyword or priority, or right after the stars.
+        let mut search_start = if consumed { pos } else { level };
+        if let Some(after) = text[pos..].strip_prefix("COMMENT") {
+            search_start = pos + "COMMENT".len();
+            if after.is_empty() || after.starts_with([' ', '\t']) {
+                self.token(COMMENT_KEYWORD, "COMMENT");
+                pos = self.whitespace_at(text, search_start);
+            }
+        }
+        let (title, gap, tags, trailing) = split_tags(text, pos, search_start);
         if !title.is_empty() {
             self.start(TITLE);
             self.objects(title, Mode::STANDARD);

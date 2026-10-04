@@ -1,0 +1,13 @@
+[package]
+name = "org-core"
+description = "Org mode logic on top of the parser: dates, the outline model, the agenda"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+org-syntax = { path = "../org-syntax" }
+unicode-width = "0.2"
+
+[dev-dependencies]
+expect-test = "1.5"

@@ -39,25 +39,27 @@ impl Headline {
         self.token(PRIORITY)
     }
 
+    /// Whether the title starts with `COMMENT`, which hides the subtree
+    /// from export and the agenda.
+    pub fn is_commented(&self) -> bool {
+        self.token(COMMENT_KEYWORD).is_some()
+    }
+
     pub fn title(&self) -> Option<SyntaxNode> {
         self.0.children().find(|child| child.kind() == TITLE)
     }
 
-    /// The title as written, without keyword, priority or tags.
+    /// The title as written, without keyword, priority, `COMMENT` or tags.
     pub fn title_text(&self) -> String {
         self.title().map(|title| title.text().to_string()).unwrap_or_default()
     }
 
+    /// The tags, split the way Org splits them: `:a::b:` has an empty tag
+    /// between `a` and `b`.
     pub fn tags(&self) -> Vec<String> {
-        self.0
-            .children()
-            .find(|child| child.kind() == TAGS)
-            .into_iter()
-            .flat_map(|tags| tags.children_with_tokens())
-            .filter_map(|child| child.into_token())
-            .filter(|token| token.kind() == TAG)
-            .map(|token| token.text().to_string())
-            .collect()
+        let Some(tags) = self.0.children().find(|child| child.kind() == TAGS) else { return Vec::new() };
+        let text = tags.text().to_string();
+        text[1..text.len() - 1].split(':').map(str::to_string).collect()
     }
 
     pub fn section(&self) -> Option<SyntaxNode> {

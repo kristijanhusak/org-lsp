@@ -1,0 +1,5 @@
+* TODO Plain todo in b
+* Event range
+<2026-10-07 Wed>--<2026-10-09 Fri>
+* TODO Timed today
+SCHEDULED: <2026-10-05 Mon 16:15>

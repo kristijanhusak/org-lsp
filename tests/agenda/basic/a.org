@@ -1,0 +1,16 @@
+#+CATEGORY: work
+#+FILETAGS: :office:
+* TODO Scheduled today :tag1:
+SCHEDULED: <2026-10-05 Mon>
+* TODO [#A] Scheduled in the past with time
+SCHEDULED: <2026-10-01 Thu 09:00>
+* TODO Deadline soon
+DEADLINE: <2026-10-08 Thu>
+* DONE Finished thing
+CLOSED: [2026-10-04 Sun 12:00] SCHEDULED: <2026-10-05 Mon>
+* Meeting <2026-10-06 Tue 14:00-15:30> :meet:
+* TODO Repeating weekly
+SCHEDULED: <2026-09-01 Tue 08:00 +1w>
+* NEXT not a keyword here
+** TODO Child with inherited tags :child:
+DEADLINE: <2026-10-03 Sat>

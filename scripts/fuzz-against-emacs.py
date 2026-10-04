@@ -42,6 +42,8 @@ LINE_STARTS = [
     "#+begin_src ", "#+end_src", "#+begin_quote", "#+end_quote", "#+begin_example", "#+end_example", "#+BEGIN: x ",
     "#+END:", ":DRAWER:", ":END:", ":PROPERTIES:", ":ID: ", "SCHEDULED: ", "DEADLINE: ", "CLOSED: ", "CLOCK: ",
     "[fn:1] ", "[fn:b] ", "-----", "%%(", "\\begin{x}", "\\end{x}", "*", "+-+", "- a :: ", "*bold* ",
+    "* TODO", "* TODO\t", "*  TODO  ", "* \tDONE ", "* [#A]", "* [#B]\t", "* [#AB] ", "* TODO [#C]", "* COMMENT ",
+    "* COMMENT\n", "* TODO COMMENT ", "* DONE [#A] COMMENT\t", "*  ", "* \t", "* TODOX ",
 ]
 
 INDENTS = ["", "", "", "", " ", "  ", "  ", "   ", "    ", "\t"]

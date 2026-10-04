@@ -1,0 +1,17 @@
+Day-agenda (W41):
+Monday      5 October 2026 W41
+               8:00...... ----------------
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+  b:          16:15...... Scheduled:  TODO Timed today
+              18:00...... ----------------
+              20:00...... ----------------
+  work:       Sched. 4x:  TODO [#A] Scheduled in the past with time    :office::
+  work:       Sched.34x:  TODO Repeating weekly                        :office::
+  work:       Scheduled:  TODO Scheduled today                    :office::tag1:
+  work:       Scheduled:  DONE Finished thing                          :office::
+  work:        2 d. ago:  TODO Child with inherited tags         :office::child:
+  work:       In   3 d.:  TODO Deadline soon                           :office::

@@ -3,3 +3,4 @@ node_modules
 /editors/vscode/dist
 /editors/vscode/server
 *.vsix
+__pycache__/

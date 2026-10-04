@@ -6,6 +6,8 @@
 //! code action kinds editors can bind keys to.
 
 pub mod actions;
+pub mod cli;
+pub mod config;
 pub mod document;
 pub mod folding;
 pub mod highlight;

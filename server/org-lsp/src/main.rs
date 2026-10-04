@@ -4,12 +4,26 @@ const USAGE: &str = "\
 org-lsp: a language server for Org mode
 
 Usage: org-lsp [--stdio]
+       org-lsp agenda [OPTIONS] FILE...
        org-lsp --version
 
 The server communicates over standard input and output.";
 
 fn main() -> ExitCode {
-    for argument in std::env::args().skip(1) {
+    let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments.first().is_some_and(|argument| argument == "agenda") {
+        return match org_lsp::cli::agenda(&arguments[1..]) {
+            Ok(output) => {
+                print!("{output}");
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("org-lsp agenda: {error}\n\n{}", org_lsp::cli::USAGE);
+                ExitCode::from(2)
+            }
+        };
+    }
+    for argument in arguments {
         match argument.as_str() {
             // Accepted for compatibility with clients that always pass it.
             "--stdio" => {}
