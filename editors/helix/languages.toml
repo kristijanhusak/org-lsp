@@ -1,0 +1,11 @@
+# Add this to ~/.config/helix/languages.toml. Helix already knows the `org`
+# language; this only attaches the server to it. `org-lsp` must be on PATH.
+
+[language-server.org-lsp]
+command = "org-lsp"
+# Optional: the default TODO sequence.
+# config = { todoKeywords = ["TODO", "NEXT", "|", "DONE"] }
+
+[[language]]
+name = "org"
+language-servers = ["org-lsp"]

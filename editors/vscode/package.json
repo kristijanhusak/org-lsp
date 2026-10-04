@@ -1,0 +1,179 @@
+{
+  "name": "org-lsp",
+  "displayName": "Org (org-lsp)",
+  "description": "Org mode support through the org-lsp language server: highlighting, folding, outline and TODO cycling.",
+  "version": "0.1.0",
+  "publisher": "org-lsp",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kristijanhusak/org-lsp.git",
+    "directory": "editors/vscode"
+  },
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "org",
+        "aliases": [
+          "Org",
+          "org"
+        ],
+        "extensions": [
+          ".org",
+          ".org_archive"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "org-lsp.todoNext",
+        "title": "Next TODO State",
+        "category": "Org",
+        "enablement": "editorLangId == org"
+      },
+      {
+        "command": "org-lsp.todoPrevious",
+        "title": "Previous TODO State",
+        "category": "Org",
+        "enablement": "editorLangId == org"
+      },
+      {
+        "command": "org-lsp.restartServer",
+        "title": "Restart Language Server",
+        "category": "Org"
+      }
+    ],
+    "configuration": {
+      "title": "Org (org-lsp)",
+      "properties": {
+        "org-lsp.server.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "Path to the `org-lsp` server binary. When empty, the binary bundled with the extension is used, or else `org-lsp` from `PATH`."
+        },
+        "org-lsp.todoKeywords": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "TODO",
+            "|",
+            "DONE"
+          ],
+          "markdownDescription": "The default TODO sequence, written like Org's `#+TODO:` line; `|` separates the states that count as done. A file can override this with its own `#+TODO:` lines."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[org]": {
+        "editor.semanticHighlighting.enabled": true,
+        "editor.lightbulb.enabled": "off"
+      }
+    },
+    "semanticTokenTypes": [
+      { "id": "headline", "description": "The title text of an Org headline" },
+      { "id": "stars", "description": "The stars that start an Org headline" },
+      { "id": "todoKeyword", "description": "A TODO keyword" },
+      { "id": "priority", "description": "A priority cookie such as [#A]" },
+      { "id": "tag", "description": "Headline tags" },
+      { "id": "planning", "description": "SCHEDULED:, DEADLINE:, CLOSED: and CLOCK: keywords" },
+      { "id": "timestamp", "description": "A timestamp" },
+      { "id": "drawer", "description": "The opening or closing line of a drawer" },
+      { "id": "block", "description": "The opening or closing line of a block" },
+      { "id": "bullet", "description": "A list bullet" },
+      { "id": "checkbox", "description": "A list checkbox" },
+      { "id": "link", "description": "A link" },
+      { "id": "code", "description": "Inline code" },
+      { "id": "verbatim", "description": "Verbatim text" },
+      { "id": "text", "description": "Text that carries emphasis" },
+      { "id": "tableDelimiter", "description": "Table borders and rules" },
+      { "id": "footnote", "description": "A footnote reference or label" },
+      { "id": "cookie", "description": "A statistics cookie such as [1/3]" },
+      { "id": "target", "description": "A link target" },
+      { "id": "latex", "description": "A LaTeX fragment or environment" },
+      { "id": "entity", "description": "An entity such as \\alpha" }
+    ],
+    "semanticTokenModifiers": [
+      { "id": "level1", "description": "Headline level 1" },
+      { "id": "level2", "description": "Headline level 2" },
+      { "id": "level3", "description": "Headline level 3" },
+      { "id": "level4", "description": "Headline level 4" },
+      { "id": "level5", "description": "Headline level 5" },
+      { "id": "level6", "description": "Headline level 6" },
+      { "id": "level7", "description": "Headline level 7" },
+      { "id": "level8", "description": "Headline level 8" },
+      { "id": "done", "description": "A TODO keyword that marks the entry as finished" },
+      { "id": "inactive", "description": "An inactive timestamp" },
+      { "id": "checked", "description": "A ticked checkbox" },
+      { "id": "partial", "description": "A partially ticked checkbox" },
+      { "id": "bold", "description": "Bold text" },
+      { "id": "italic", "description": "Italic text" },
+      { "id": "underline", "description": "Underlined text" },
+      { "id": "strikethrough", "description": "Struck-through text" }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "org",
+        "scopes": {
+          "headline": ["markup.heading.org", "entity.name.section"],
+          "stars": ["punctuation.definition.heading.org", "markup.heading.org"],
+          "todoKeyword": ["keyword.other.todo.org", "markup.deleted", "keyword.control"],
+          "todoKeyword.done": ["keyword.other.done.org", "markup.inserted", "string"],
+          "priority": ["constant.other.priority.org", "constant.numeric"],
+          "tag": ["entity.name.tag.org", "entity.name.tag"],
+          "planning": ["keyword.other.planning.org", "keyword.other"],
+          "timestamp": ["constant.other.timestamp.org", "constant.numeric"],
+          "timestamp.inactive": ["comment.timestamp.org", "comment"],
+          "drawer": ["meta.preprocessor.drawer.org", "meta.preprocessor"],
+          "property": ["variable.other.property.org", "variable.other.property"],
+          "keyword": ["meta.preprocessor.keyword.org", "meta.preprocessor"],
+          "block": ["punctuation.definition.block.org", "comment"],
+          "bullet": ["punctuation.definition.list.begin.org", "punctuation.definition.list.begin.markdown", "keyword.operator"],
+          "checkbox": ["markup.list.unchecked.org", "keyword.operator"],
+          "checkbox.checked": ["markup.list.checked.org", "markup.inserted"],
+          "link": ["markup.underline.link.org", "markup.underline.link", "string.other.link"],
+          "code": ["markup.inline.raw.org", "markup.inline.raw"],
+          "verbatim": ["markup.inline.raw.org", "markup.inline.raw"],
+          "tableDelimiter": ["punctuation.separator.table.org", "punctuation.definition.table", "comment"],
+          "footnote": ["markup.underline.link.footnote.org", "markup.underline.link"],
+          "cookie": ["constant.numeric.cookie.org", "constant.numeric"],
+          "target": ["entity.name.label.org", "entity.name.label"],
+          "latex": ["markup.math.org", "support.function"],
+          "entity": ["constant.character.entity.org", "constant.character.entity"],
+          "macro": ["entity.name.function.macro.org", "entity.name.function.preprocessor"],
+          "*.bold": ["markup.bold.org", "markup.bold"],
+          "*.italic": ["markup.italic.org", "markup.italic"],
+          "*.underline": ["markup.underline.org", "markup.underline"],
+          "*.strikethrough": ["markup.strikethrough.org", "markup.strikethrough"]
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "node scripts/build.mjs",
+    "bundle-server": "node scripts/bundle-server.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "package": "npm run build && vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "~1.91.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^5.9.0"
+  }
+}
