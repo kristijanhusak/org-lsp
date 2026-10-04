@@ -1,0 +1,45 @@
+Timestamps: <2026-01-01 +1d> <2026-01-01+1d> <2026-01-01x> <2026-01-01 >
+[2026-01-01 Thu]--<2026-01-02 Fri> <2026-01-01 Thu>--[2026-01-02 Fri] <2026-01-01 Thu>--<bad>
+<2026-01-01 Thu 10:00-11:00>--<2026-01-02 Fri> <2026-01-01]> [2026-01-01>]
+<2026-01-01 Thu>--<2026-01-02 Fri>--<2026-01-03 Sat>
+
+Angle: <https://example.com/a
+  continues> <http://x
+> <http://y
+
+> <file:a b c> <https:> <http:x>y>
+
+Plain: id:a id:ab http://a) http://(a) http://a(b)c http://a(b(c)d)e http://a(b http://a.b/c.
+http://a。http://ünï.cödé/päth — x_http://a.b 1http://a.b _http://a.b http://a_b/c_d
+https://example.com/a*b*c https://example.com/~user/ file:a::b
+
+Links: [[a][*bold* [1/2] https://not.a.link <2026-01-01> [fn:1] <<t>>]] [[a]
+b]] [[a][b
+c]] [[a\\]] [[a\\\]b]] [[a][]] x]] [[ a ]] [[a]]]
+
+Footnotes: [fn:a:b [[link]] c] [fn:a:*b*] [fn::] [fn:a:] a[fn:1]b [fn:é-1_x]
+
+Emphasis and objects: *[[a][b]]* /<2026-01-01>/ _[fn:1]_ +<<t>>+ *a [1/2] b*
+Edge: a =b= c~d~ ~e~f *g*, *h*; *i*: *j*! *k*? '*l*' "*m*" (*n*) {*o*} [*p*] <*q*>
+Cookies: [1/2][3/4] [5%]x x[6/7]
+
+| *a* | [1/2] | [[l]] | <2026-01-01> | [fn:1] | <<t>> | https://a.b |
+
+Scripts: a_b a^b a_{b c} a^{b {c} d} a_(b c) a^(b (c) d) a_* a^* a_+1 a^-x a_1,000.5, a_b.c. a_.
+x_y_ _a_b_ a_ b a^ b a__b a_^b a_{unclosed a_(unclosed a_{{{{too deep}}}} a_{*bold* /it/}
+snake_case_name CO_2 x^2+y^2 a_\alpha a_b_c a^b^c é_é 日_本 a_é
+* headline_title with a_b :tag_x:
+
+* Entities, LaTeX and inline code
+Entities: \alpha \alpha{} \alphabet \to x \sup1 \sup1x \frac12 \there4 \nosuch \_ x \_   y \Alpha. \pi\rho \AA
+LaTeX: \foo \foo{a} \foo[b]{c} \foo* \(x + y\) \[z\] \(unclosed \begin{x}[fn:1] \end{x}[1/2] \a{b{c}} \a{b
+c}
+Math: $x$ $$y$$ $1 and $2 a$b$c $x$, ($y$) $ z$ $z $ $a$b $, $ $$unclosed $日本$ $x$y
+Snippets: @@html:<b>@@ @@latex:x@@ @@:x@@ @@a b:x@@ @@html:unclosed
+Macros: {{{title}}} {{{m(a, b)}}} {{{1bad}}} {{{m(unclosed}}} {{{m}}}} {{{m(a)(b)}}} {{{m()}}}
+Inline: src_sh{echo} src_sh[:exports code]{echo {nested}} src_sh{unclosed src_{x} xsrc_sh{y} src_sh x
+call_f(x) call_f[h](x)[e] call_f[h] call_f(un xcall_f(y) call_(x) SRC_sh{no} CALL_f(no)
+Cites: [cite:@key] [cite/t:see @a; @b p. 3] [cite:nokey] [cite/:@k] [cite:@k [nested]] [cite:@unclosed
+Case: HTTP://example.com <HTTPS://a.b> [FN:1] File:x.org 'http://a.b $http://a.b %http://a.b
+* Trailing entity in a title is trimmed \_  
+Trailing entity in a paragraph keeps its spaces \_  

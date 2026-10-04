@@ -1,0 +1,66 @@
+# comment first
+
+:PROPERTIES:
+:ID: zeroth
+:END:
+Zeroth text.
+:PROPERTIES:
+:ID: second-is-a-plain-drawer
+:END:
+
+* Planning then drawer
+SCHEDULED: <2026-01-01 Thu>
+:PROPERTIES:
+:A: 1
+:B+: 2
+:C:
+:END:
+Body.
+* Drawer directly
+:PROPERTIES:
+:A: 1
+:END:
+* Blank line before drawer
+
+:PROPERTIES:
+:A: 1
+:END:
+* Planning not first
+Text first.
+SCHEDULED: <2026-01-01 Thu>
+* Planning variants
+  DEADLINE: <2026-01-01 Thu> SCHEDULED: <2026-01-02 Fri> CLOSED: [2026-01-03 Sat]
+* Planning with junk
+SCHEDULED: nothing here DEADLINE:
+* Invalid property drawer
+:PROPERTIES:
+not a property
+:END:
+* Unclosed property drawer
+:PROPERTIES:
+:A: 1
+* Lowercase
+:properties:
+:a: 1
+:end:
+* Only blank lines below
+
+
+
+* Paragraph breaks
+First paragraph
+continues.
+
+Second paragraph
+| table ends paragraph |
+after table
+#+KEY: keyword ends paragraph
+- list ends paragraph
+after list is not in the list
+: fixed ends paragraph
+# comment ends paragraph
+:DRAWER:
+:END:
+#+begin_unclosed does not end paragraph
+-----
+[fn:1] footnote ends paragraph

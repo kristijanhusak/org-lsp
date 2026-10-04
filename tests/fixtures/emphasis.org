@@ -1,0 +1,23 @@
+Plain *bold* text. *bold*s is not bold. a*b*c is not bold. *a*b* is bold through b.
+(*paren*) "*quote*" '*single*' {*brace*} -*dash*- *end*. *end*, *end*; *end*: *end*! *end*?
+* not bold* and *not bold * either. *bold * still* closes later.
+** stars alone ** and * * and *** and *a* *b* and *a*-*b*.
+/italic/ and /usr/bin/ and a/b/c and /a/ /b/.
+_under_ and snake_case_name and _a_b_ and x_y.
++strike+ and 1 + 2 + 3 and +a+ +b+.
+=verb= and =a=b= and ==a== and = a = and =*not bold*=.
+~code~ and ~a~~ and ~~ and ~ a ~ and ~/italic/~.
+*/_+all four+_/* and */bold italic/ bold* and /*italic bold*/.
+*line one
+line two* and *three
+lines
+here* done.
+
+*Start of paragraph* and end of *paragraph*
+
+Markers at*wrong*places and pre:*colon* and pre.*dot* and pre[*bracket*].
+Post chars: *a*\ *b*[ *c*) *d*} *e*' *f*"
+Unicode: *žćč* and /日本語/ and é*not*é and 😀 *after emoji* and *😀*.
+Unclosed *bold and /italic and _under and +strike and =verb and ~code here.
+Mixed unclosed *a /b* c/ and /x *y/ z*.
+Empty ** // __ ++ == ~~ and single * / _ + = ~ markers.

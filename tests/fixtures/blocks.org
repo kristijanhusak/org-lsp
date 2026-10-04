@@ -1,0 +1,86 @@
+#+BEGIN_SRC
+no language
+#+END_SRC
+#+begin_src emacs-lisp :results silent
+(message "hi")
+#+end_src
+  #+BEGIN_EXAMPLE
+  indented block
+  #+END_EXAMPLE
+#+BEGIN_QUOTE
+#+BEGIN_CENTER
+nested *greater* blocks
+#+END_CENTER
+#+END_QUOTE
+#+BEGIN_SRC mismatched
+text
+#+END_EXAMPLE
+#+BEGIN_special
+special block
+#+END_special
+#+BEGIN_VERSE
+ verse /line/
+#+END_VERSE
+#+BEGIN_COMMENT
+comment block
+#+END_COMMENT
+#+BEGIN_EXPORT html
+<b>raw</b>
+#+END_EXPORT
+#+BEGIN_SRC
+#+END_SRC
+#+begin_src x
+#+end_src trailing text means not an end
+#+end_src
+
+#+KEY: value
+#+KEY:
+#+KEY:no space
+#+ATTR_HTML: :width 100
+#+key with space: no
+#+: empty key
+#+BEGIN: clocktable :maxlevel 2
+| a |
+#+END:
+#+BEGIN: unclosed dynamic block
+# comment
+#
+#not a comment
+  # indented comment
+# second comment line
+: fixed
+:
+:not fixed
+  : indented fixed
+-----
+----
+------------
+- ----- item not rule
+:DRAWER:
+contents
+:END:
+:UNCLOSED:
+text
+:not a drawer:
+:END:
+:A-b_c:
+:END:
+:PROPERTIES:
+:not: at headline start, so a plain drawer
+:END:
+CLOCK: [2026-01-01 Thu 10:00]
+CLOCK: [2026-01-01 Thu 10:00]--[2026-01-01 Thu 11:00] =>  1:00
+  CLOCK: indented
+CLOCK:
+clock: lowercase
+[fn:1] definition one
+[fn:2] definition two
+with second line
+
+[fn:3] after one blank
+
+
+text after two blanks
+ [fn:4] indented is not a definition
+[fn:5]
+[fn:bad label] not a definition

@@ -1,0 +1,47 @@
+- item with block
+#+begin_src sh
+  less indented block content stays in the item
+#+end_src
+  still in item
+- item with drawer
+  :LOG:
+out-dented drawer content
+  :END:
+  tail
+- item with unclosed block
+  #+begin_src sh
+out-dented text ends the list
+- dyn
+  #+BEGIN: clocktable
+x
+  #+END:
+  tail
+- a
+    - deep
+  - mid
+- b
+  text
+
+  after blank
+
+    deeper para
+- c
+ text at indent 1
+- [@start:3] counter
+- [@a] alpha counter
+- [@x1] not counter
+- [X] done
+- [ ] todo
+- [x] lower
+- [-]
+- [ ]x
+3. [@7] seven
+4. term :: not tag in ordered
+- tag one :: tag two :: desc
+-  :: double space empty tag
+- *bold tag* :: desc with [[link]]
+- no::tag
+- trailing ::
+	- tab item
+	  cont
+        - eight spaces is same indent as tab

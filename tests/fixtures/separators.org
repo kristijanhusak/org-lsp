@@ -1,0 +1,65 @@
+Paragraph one
+*
+star alone above splits
+*	tab star
++-+-+
+table el rule splits
++--+
+\begin{equation}
+x = 1
+\end{equation}
+after latex
+\begin{unclosed}
+not an environment
+\begin{align*}  y \end{align*}
+same line env
+%%(diary-anniversary 1 1 2000) Birthday
+after diary
+ %%(indented is text)
+#+BEGIN: unclosed dblock
+splits paragraph
+#+BEGIN:
+empty dblock name is a keyword
+#+begin:x
+#+begin:  clocktable
+| a |
+#+end
+#+BEGIN: closed
+#+END:
+text
+CLOCK: [2026-01-01 Thu 10:00]--[2026-01-01 Thu 11:00] =>  1:00
+text
+clock: [2026-01-01 Thu 10:00]
+text
+CLOCK: [2026-01-01 Thu 10:00]--[2026-01-01 Thu 11:00]
+CLOCK: [2026-01-01 Thu 10:00]--[2026-01-01 Thu 11:00] => 1:0
+CLOCK: [2026-01-01 Thu 10:00] trailing
+CLOCK:  [2026-01-01 Thu 10:00]
+CLOCK: <2026-01-01 Thu 10:00>
+CLOCK: [2026-01-01]
+text
+:drawer:
+unclosed drawer does not split
+1.
+ordered empty splits
+1 not
+a) not alpha
+- 
+-
++
+#+a:b:c d
+#+: x
+#+:: y
+#+CALL: fn(x=1)
+#+call: lower()
+text
+#+TBLFM: orphan formula
+| a |
+#+TBLFM: $1=1
+#+TBLFM:no-space
+#+tblfm: second
+: fixed
+:nofixed
+:
+#
+#comment-not

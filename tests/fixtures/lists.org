@@ -1,0 +1,55 @@
+- one
+- two
+  continued
+ still two (indent 1 > 0)
+- three
+
+  paragraph in three
+
+- four
+
+
+- new list after two blank lines
++ plus bullet
+1. ordered
+2) paren
+10. ten
+1.not an item
+-not an item
+- 
+-
+  - nested a
+    - nested b
+      text b
+    back in a
+  - nested a2
+back at zero ends list
+ * star bullet needs indent
+ * second star
+   1. [@5] counter set
+   2. [ ] unchecked
+   3. [X] checked
+   4. [-] partial
+   5. [x] lowercase is not a checkbox
+   6. [ ]no space after
+- term :: description
+- a :: b :: c
+- no separator::here
+- trailing separator ::
+- :: empty term
+- [ ] checkbox term :: desc
+1. ordered :: no tag
+- item with block
+  #+begin_src sh
+  echo hi
+  #+end_src
+  after block
+- item with table
+  | a | b |
+- item with drawer
+  :NOTE:
+  inside
+  :END:
+	- tab indented item
+	  tab continued
+- last

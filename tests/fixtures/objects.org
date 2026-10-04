@@ -1,0 +1,29 @@
+Links: [[target]] [[file:a.org][desc]] [[a][b [c] d]] [[a\]b]] [[]] [[a] [[a][]] [[a][b]
+[[https://example.com/x?a=1&b=2][with *bold* and /italic/]] [[id:abc-123]]
+[[file:~/notes.org::*Heading][spans
+two lines]] and [[a]]b and x[[a]].
+
+Plain: https://example.com. http://a.b/c, (https://a.b/c) https://en.wikipedia.org/wiki/Org_(software)
+mailto:user@example.com! file:~/x.org::*Heading id:abc xhttps://not.a.link https:/// https:
+file+sys:/tmp/x doi:10.1000/182 unknown:proto and http://a.b/c/ and http://a.b/c?d=e#f.
+Angle: <https://example.com/a b> <mailto:a@b.c> <notaproto:x> <https://unclosed
+
+Targets: <<target>> <<<radio target>>> << bad>> <<bad >> <<>> <<a<b>> <<multi
+line>> <<ok>>> <<<a>>
+
+Footnotes: text[fn:1] text[fn:name-with_chars] [fn:] [fn::anon def] [fn:lbl:inline *def*]
+[fn:x:nested [brackets] here] [fn:x:unclosed and [fn:bad label]
+
+Cookies: [1/2] [/] [50%] [%] [1/] [/2] [a/b] [1/2/3] [100%] [ 1/2] [1 /2]
+
+Timestamps: <2026-01-01> <2026-01-01 Thu> <2026-01-01 Thu 10:00> <2026-01-01 Thu 10:00-11:30>
+<2026-01-01 Thu +1w> <2026-01-01 Thu 10:00 .+1d -2h> [2026-01-01 Thu] [2026-01-01]
+<2026-01-01 Thu>--<2026-01-02 Fri> [2026-01-01 Thu 10:00]--[2026-01-01 Thu 11:00]
+<2026-01-01 Thu>-<2026-01-02 Fri> <2026-01-01 Thu>---<2026-01-02 Fri> <2026-01-01 Thu>--x
+<2026-1-1> <20260101> <2026-01-01 unclosed [2026-01-01 Thu> <2026-01-01 Thu] <2026-01-01
+Thu> date-2026-01-01 a<2026-01-01>b
+
+| cell *bold* | [[a][b]] | <2026-01-01 Thu> |
+| a | b
+|---+---|
+||empty||

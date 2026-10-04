@@ -1,0 +1,56 @@
+#+NAME: table-one
+#+CAPTION: A table
+| a | b |
+
+#+NAME: orphan
+
+#+ATTR_HTML: :width 100
+#+CAPTION[Short one]: Long *caption*
+A paragraph with affiliated keywords.
+
+#+NAME: src
+#+HEADER: :var x=1
+#+begin_src sh
+echo $x
+#+end_src
+
+#+RESULTS: src
+: 1
+
+#+RESULTS[abc123]: hashed
+- list item
+
+#+name: lowercase
+#+KEY: a keyword with an affiliated keyword
+#+NAME: before-comment
+# comment line
+#+NAME: before-clock
+CLOCK: [2026-01-01 Thu 10:00]
+#+NAME: before-drawer
+:DRAWER:
+x
+:END:
+#+NAME: before-rule
+-----
+#+NAME: unclosed
+#+begin_src
+text
+#+NAMEX: not affiliated
+#+ATTR_: not affiliated either
+#+ATTR_x-y_1: affiliated
+[fn:1] footnote with affiliated
+#+NAME: belongs-to-next-footnote
+[fn:2] second
+#+CAPTION[unclosed: no
+paragraph
+#+foo[bar]: not a separator
+#+CAPTION[bar]: a separator
+still
+#+NAME: at-end-of-section
+* Headline
+#+NAME: in-headline
+Paragraph.
+- item
+  #+NAME: in-item
+  | t |
+#+NAME: last-line
