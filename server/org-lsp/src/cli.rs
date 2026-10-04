@@ -30,7 +30,7 @@ Options:
   --now HH:MM          pretend this is the current time
   --options JSON       agenda settings, as in the server's `agenda` option";
 
-fn parse_date(text: &str) -> Result<Day, String> {
+pub fn parse_date(text: &str) -> Result<Day, String> {
     let parts: Vec<i64> = text.split('-').filter_map(|part| part.parse().ok()).collect();
     match parts[..] {
         [year, month, day] if Date::new(year, month, day).is_valid() => Ok(Date::new(year, month, day).to_day()),
@@ -38,7 +38,7 @@ fn parse_date(text: &str) -> Result<Day, String> {
     }
 }
 
-fn parse_time(text: &str) -> Result<i64, String> {
+pub fn parse_time(text: &str) -> Result<i64, String> {
     let parsed =
         text.split_once(':').and_then(|(hour, minute)| Some((hour.parse::<i64>().ok()?, minute.parse::<i64>().ok()?)));
     match parsed {

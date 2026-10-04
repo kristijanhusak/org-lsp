@@ -13,6 +13,7 @@ path = "src/main.rs"
 org-syntax = { path = "../org-syntax" }
 org-core = { path = "../org-core" }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
+crossbeam-channel = "0.5"
 lsp-server = "0.10"
 lsp-types = "0.97"
 serde = { version = "1", features = ["derive"] }

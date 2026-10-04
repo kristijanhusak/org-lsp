@@ -5,6 +5,7 @@ org-lsp: a language server for Org mode
 
 Usage: org-lsp [--stdio]
        org-lsp agenda [OPTIONS] FILE...
+       org-lsp manifest
        org-lsp --version
 
 The server communicates over standard input and output.";
@@ -22,6 +23,11 @@ fn main() -> ExitCode {
                 ExitCode::from(2)
             }
         };
+    }
+    if arguments.first().is_some_and(|argument| argument == "manifest") {
+        // The command table, for building editor integrations.
+        println!("{:#}", org_lsp::commands::manifest());
+        return ExitCode::SUCCESS;
     }
     for argument in arguments {
         match argument.as_str() {

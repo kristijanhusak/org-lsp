@@ -14,6 +14,30 @@ pub struct Options {
     /// Files, directories and glob patterns the agenda is built from.
     pub agenda_files: Vec<String>,
     pub agenda: AgendaOptions,
+    /// Whether the client fetches the agenda from the server as a virtual
+    /// document. Clients that announce LSP 3.18's `textDocumentContent`
+    /// need not say so.
+    pub virtual_documents: Option<bool>,
+    /// A fixed date and time, for tests.
+    pub clock: Option<ClockOption>,
+}
+
+/// `{ "today": "2026-05-18", "now": "10:30" }`
+#[derive(Debug, Clone, Deserialize)]
+pub struct ClockOption {
+    pub today: String,
+    pub now: Option<String>,
+}
+
+impl ClockOption {
+    pub fn to_now(&self) -> Option<org_core::agenda::Now> {
+        let today = crate::cli::parse_date(&self.today).ok()?;
+        let minute = match &self.now {
+            Some(now) => crate::cli::parse_time(now).ok()?,
+            None => 0,
+        };
+        Some(org_core::agenda::Now { today, minute })
+    }
 }
 
 /// A span given as a name or as a number of days.

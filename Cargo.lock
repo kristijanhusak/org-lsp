@@ -258,6 +258,7 @@ name = "org-lsp"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "crossbeam-channel",
  "expect-test",
  "lsp-server",
  "lsp-types",

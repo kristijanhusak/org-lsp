@@ -8,9 +8,11 @@
 //! enough structure for an editor to highlight it and to find the entry
 //! behind each line.
 
+mod display;
 mod item;
 
 pub use crate::text::tag_group;
+pub use display::{display, Displayed, Link, Segment, Style};
 pub use item::{align_tags, display_column, hidden_ranges, Face, Item, ItemKind, Source};
 
 use item::{format_item, normalise_keyword, priority, Dotime, FormatInput, Prefix};
@@ -617,6 +619,21 @@ pub fn span_start(day: Day, span: Span, config: &Config) -> Day {
             day - back
         }
         _ => day,
+    }
+}
+
+/// `org-agenda-compute-starting-span`: the first day of the `span` that
+/// contains `day`, used when the span of an open agenda changes.
+pub fn starting_day(day: Day, span: Span, config: &Config) -> Day {
+    let date = Date::from_day(day);
+    match span {
+        Span::Day | Span::Days(_) => day,
+        Span::Week | Span::Fortnight => match config.start_on_weekday {
+            Some(first) => day - (weekday(day) as i64 - first as i64).rem_euclid(7),
+            None => day,
+        },
+        Span::Month => Date::new(date.year, date.month, 1).to_day(),
+        Span::Year => Date::new(date.year, 1, 1).to_day(),
     }
 }
 

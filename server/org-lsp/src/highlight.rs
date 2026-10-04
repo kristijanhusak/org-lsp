@@ -53,6 +53,13 @@ token_types! {
     Latex => "latex",
     Entity => "entity",
     Macro => "macro",
+    AgendaStructure => "agendaStructure",
+    AgendaDate => "agendaDate",
+    AgendaScheduled => "agendaScheduled",
+    AgendaDeadline => "agendaDeadline",
+    AgendaEvent => "agendaEvent",
+    AgendaDone => "agendaDone",
+    AgendaTimeGrid => "agendaTimeGrid",
 }
 
 /// Token modifiers, in legend order; each is one bit.
@@ -74,6 +81,13 @@ pub mod modifier {
         "italic",
         "underline",
         "strikethrough",
+        "today",
+        "weekend",
+        "past",
+        "imminent",
+        "distant",
+        "range",
+        "current",
     ];
 
     pub const DONE: u32 = 1 << 8;
@@ -84,6 +98,13 @@ pub mod modifier {
     pub const ITALIC: u32 = 1 << 13;
     pub const UNDERLINE: u32 = 1 << 14;
     pub const STRIKETHROUGH: u32 = 1 << 15;
+    pub const TODAY: u32 = 1 << 16;
+    pub const WEEKEND: u32 = 1 << 17;
+    pub const PAST: u32 = 1 << 18;
+    pub const IMMINENT: u32 = 1 << 19;
+    pub const DISTANT: u32 = 1 << 20;
+    pub const RANGE: u32 = 1 << 21;
+    pub const CURRENT: u32 = 1 << 22;
 
     /// Headline levels repeat after eight, like Org's level faces.
     pub fn level(level: usize) -> u32 {
