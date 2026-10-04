@@ -1,0 +1,68 @@
+# Builds the server for each platform when a version tag is pushed, and
+# attaches the binaries and a VS Code package per platform to the release.
+#
+# Not exercised yet: review the first run before relying on it.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  build:
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux-x86_64
+            vscode: linux-x64
+            exe: org-lsp
+          - os: macos-latest
+            name: macos-arm64
+            vscode: darwin-arm64
+            exe: org-lsp
+          - os: windows-latest
+            name: windows-x86_64
+            vscode: win32-x64
+            exe: org-lsp.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - run: cargo build --release -p org-lsp
+
+      - name: Archive the server
+        shell: bash
+        run: tar -czf "org-lsp-${{ matrix.name }}.tar.gz" -C target/release "${{ matrix.exe }}"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Package the VS Code extension
+        shell: bash
+        working-directory: editors/vscode
+        run: |
+          npm ci
+          npm run build
+          npm run bundle-server
+          npx vsce package --no-dependencies --target "${{ matrix.vscode }}" --out "../../org-lsp-${{ matrix.vscode }}.vsix"
+
+      - name: Upload
+        shell: bash
+        run: gh release upload "$GITHUB_REF_NAME" "org-lsp-${{ matrix.name }}.tar.gz" "org-lsp-${{ matrix.vscode }}.vsix"
+        env:
+          GH_TOKEN: ${{ github.token }}
