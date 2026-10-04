@@ -87,6 +87,7 @@ const LINK_TYPES: &[&str] = &[
     "docview",
     "w3m",
     "eww",
+    "shortdoc",
 ];
 
 enum Match {
@@ -350,7 +351,8 @@ impl<'t> Scanner<'t> {
                 }
                 None
             }
-            b'_' | b'^' if mode.minimal => self.match_script(i).or_else(|| self.match_emphasis(i)),
+            b'_' if mode.minimal => self.match_emphasis(i).or_else(|| self.match_script(i)),
+            b'^' if mode.minimal => self.match_script(i),
             b'*' | b'/' | b'+' | b'=' | b'~' if mode.minimal => self.match_emphasis(i),
             b'\\' if mode.minimal => match_entity(text, i)
                 .map(Match::leaf(ENTITY, TEXT))
@@ -804,51 +806,65 @@ fn link_type_at(text: &str, i: usize) -> Option<usize> {
         .map(|ty| i + ty.len() + 1)
 }
 
+/// A character a plain link's path may contain outside brackets.
+fn is_link_char(c: char) -> bool {
+    !c.is_whitespace() && !matches!(c, '[' | ']' | '(' | ')' | '<' | '>')
+}
+
+/// A bracketed group in a plain link's path: an opening bracket of any
+/// kind, link characters and groups nested one level deep, a closing bracket
+/// of any kind. Returns where it ends.
+fn link_group_end(text: &str, start: usize) -> Option<usize> {
+    let mut pos = start + 1;
+    loop {
+        let c = text[pos..].chars().next()?;
+        match c {
+            ']' | ')' | '>' => return Some(pos + 1),
+            '[' | '(' | '<' => {
+                let inner: usize = text[pos + 1..].chars().take_while(|c| is_link_char(*c)).map(char::len_utf8).sum();
+                let close = pos + 1 + inner;
+                if !matches!(text.as_bytes().get(close), Some(b']' | b')' | b'>')) {
+                    return None;
+                }
+                pos = close + 1;
+            }
+            c if is_link_char(c) => pos += c.len_utf8(),
+            _ => return None,
+        }
+    }
+}
+
 /// `TYPE:PATH` in running text, such as `https://example.com`.
+///
+/// The path is a run of link characters and bracketed groups. It ends in a
+/// group, a slash, a dash or a character that is not punctuation, and holds
+/// at least one unit before that.
 fn match_plain_link(text: &str, i: usize) -> Option<usize> {
     if !at_word_start(text, i) {
         return None;
     }
-    let path_start = link_type_at(text, i)?;
-    let mut depth = 0usize;
-    let mut end = path_start;
-    for (offset, c) in text[path_start..].char_indices() {
-        if c.is_whitespace() {
-            break;
-        }
-        match c {
-            '(' => {
-                if depth >= 2 {
-                    break;
-                }
-                depth += 1;
+    let mut pos = link_type_at(text, i)?;
+    let mut units = 0;
+    let mut end = None;
+    while let Some(c) = text[pos..].chars().next() {
+        let (next, may_end) = if matches!(c, '[' | '(' | '<') {
+            match link_group_end(text, pos) {
+                Some(next) => (next, true),
+                None => break,
             }
-            ')' => {
-                if depth == 0 {
-                    break;
-                }
-                depth -= 1;
-            }
-            '<' | '>' | '[' | ']' => break,
-            _ => {}
-        }
-        if depth == 0 {
-            end = path_start + offset + c.len_utf8();
-        }
-    }
-    // The path cannot end in punctuation, except for a slash or a closing
-    // parenthesis that balances one inside the path.
-    while end > path_start {
-        let last = prev_char(text, end)?;
-        let punctuation = if last.is_ascii() { last.is_ascii_punctuation() } else { !last.is_alphanumeric() };
-        if punctuation && last != '/' && last != ')' {
-            end -= last.len_utf8();
+        } else if is_link_char(c) {
+            let punctuation = if c.is_ascii() { c.is_ascii_punctuation() } else { !c.is_alphanumeric() };
+            (pos + c.len_utf8(), !punctuation || c == '-' || c == '/')
         } else {
             break;
+        };
+        units += 1;
+        if may_end && units >= 2 {
+            end = Some(next);
         }
+        pos = next;
     }
-    // Org requires at least two characters after the colon.
-    (text[path_start..end].chars().nth(1).is_some()).then_some(end)
+    end
 }
 
 // ----- timestamps
@@ -886,31 +902,22 @@ fn first_closer(bytes: &[u8], from: usize) -> Option<usize> {
     None
 }
 
-/// `<DATE…+N[dwmy]>`: an active timestamp with a repeater glued to the date.
-/// Org only recognises this form when the repeater ends the timestamp.
-fn match_repeater_timestamp(text: &str, i: usize) -> Option<usize> {
+/// `<%%(SEXP)…>`: a diary timestamp. The object ends at the first closing
+/// bracket of either kind.
+fn match_diary_timestamp(text: &str, i: usize) -> Option<usize> {
     let bytes = text.as_bytes();
-    if bytes.get(i) != Some(&b'<') || !is_date_at(bytes, i + 1) {
+    let inner_start = i + text[i..].starts_with("<%%(").then_some(4)?;
+    let close = inner_start + bytes[inner_start..].iter().position(|b| matches!(b, b'>' | b'\n'))?;
+    let closes_sexp = bytes[inner_start..close].iter().skip(1).any(|b| *b == b')');
+    if bytes[close] != b'>' || !closes_sexp {
         return None;
     }
-    let close = i + 11 + bytes[i + 11..].iter().position(|b| matches!(b, b'>' | b'\n'))?;
-    let inner = &bytes[i + 11..close];
-    let unit = inner.len().checked_sub(1)?;
-    if bytes[close] != b'>' || !matches!(inner[unit], b'd' | b'w' | b'm' | b'y') {
-        return None;
-    }
-    let digits = inner[..unit].iter().rev().take_while(|b| b.is_ascii_digit()).count();
-    let plus = unit.checked_sub(digits + 1)?;
-    if digits == 0 || inner[plus] != b'+' {
-        return None;
-    }
-    // The object itself ends at the first closing bracket of either kind.
     first_closer(bytes, i + 1)
 }
 
 /// A timestamp, optionally followed by `--` and a second one.
 fn match_timestamp(text: &str, i: usize) -> Option<usize> {
-    let end = match_single_timestamp(text, i).or_else(|| match_repeater_timestamp(text, i))?;
+    let end = match_single_timestamp(text, i).or_else(|| match_diary_timestamp(text, i))?;
     if text[end..].starts_with("--") {
         if let Some(range_end) = match_single_timestamp(text, end + 2) {
             return Some(range_end);

@@ -1,0 +1,63 @@
+
+# a comment, then blank lines
+
+:PROPERTIES:
+:ID: top
+:END:
+Text <%%(diary-float t 4 2) 10:00> and <%%(x)> and <%%()> and <2026-01-01+1d>.
+Links https://example.com/a[b](c)<d> and file:x[1] and id:abc[fn:1] and http://a.b/c_.
+* Planning, blank line, drawer
+SCHEDULED: <2026-01-01 Thu>
+
+:PROPERTIES:
+:ID: after-blank
+:END:
+* Blank line, then planning
+ 
+SCHEDULED: <2026-01-01 Thu>
+:PROPERTIES:
+:ID: not-a-property-drawer
+:END:
+* Planning, text, drawer
+DEADLINE: <2026-01-01 Thu>
+text
+:PROPERTIES:
+:ID: plain-drawer
+:END:
+* Drawer, then planning
+:PROPERTIES:
+:ID: first
+:END:
+CLOSED: [2026-01-01 Thu]
+* foo [#A] bar :tag:
+* TODO [#10] numeric
+* TODO [#65] too large
+* Clocks
+CLOCK: => 1:00
+CLOCK:  [2026-01-01 Thu 10:00]
+CLOCK: [2026-01-01 Thu 10:00]--[2026-01-01 Thu 11:00] =>  1:00
+CLOCK: [2026-01-01 Thu 10:00] trailing
+clock: [2026-01-01 Thu 10:00]
+#+NAME: before-clock
+CLOCK: [2026-01-01 Thu 10:00]
+#+NAME: before-comment
+# comment
+#+NAME: before-not-a-clock
+CLOCK: x
+A paragraph
+:END:
+goes on. -_under_ and (_under_) and a_sub and x^sup.
+- \_  :: term
+* table.el tables
++---+---+
+| a | b |
++---+---+
+#+TBLFM: $1=1
+A single rule is text:
++---+
+text
+  +-+
+  +-+
+x
++-+
+| no closing rule

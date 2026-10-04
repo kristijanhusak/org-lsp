@@ -6,7 +6,7 @@
 //! `Scheduled:`, then the headline with its tags.
 
 use crate::outline::Tag;
-use crate::text::{pad_left, pad_right, trim, width};
+use crate::text::{pad_left, pad_right, tag_group, trim, width};
 use crate::timestr::{plain_time_range, stamp_time_range, time_of_day, TimeOfDay};
 
 /// How an agenda line is styled. The names follow the Emacs faces.
@@ -23,13 +23,15 @@ pub enum Face {
     DeadlineUpcoming,
     /// A deadline in the first half of its warning period.
     DeadlineDistant,
-    /// A plain timestamp: an appointment.
+    /// A plain timestamp, or a range within one day: an appointment.
     CalendarEvent,
+    /// A date range of several days.
+    CalendarDateRange,
     /// The entry is done.
     Done,
     TimeGrid,
     CurrentTime,
-    /// A date range or a line of the TODO list.
+    /// A line of the TODO list.
     Default,
 }
 
@@ -111,28 +113,12 @@ pub struct Formatted {
     pub time_of_day: Option<i64>,
 }
 
-/// Whether `c` may appear in a tag.
-fn is_tag_char(c: char) -> bool {
-    c.is_alphanumeric() || matches!(c, '_' | '@' | '#' | '%')
-}
-
-/// `org-tag-group-re`: a tag group at the end of `text`, with the blanks
-/// before it. Returns where the blanks start and where the tags start.
-pub fn tag_group(text: &str) -> Option<(usize, usize)> {
-    let body = text.trim_end_matches([' ', '\t']);
-    let run: usize = body.chars().rev().take_while(|c| *c == ':' || is_tag_char(*c)).map(char::len_utf8).sum();
-    let tags_start = body.len() - run;
-    let tags = &body[tags_start..];
-    let preceded_by_blank = body[..tags_start].ends_with([' ', '\t']);
-    if !preceded_by_blank || tags.len() < 3 || !tags.starts_with(':') || !tags.ends_with(':') {
-        return None;
-    }
-    let blanks = body[..tags_start].len() - body[..tags_start].trim_end_matches([' ', '\t']).len();
-    Some((tags_start - blanks, tags_start))
-}
-
 /// `org-agenda-fix-displayed-tags`: replace the tags written in the
 /// headline by the full list, inherited ones first and set off by `::`.
+///
+/// Org marks a tag as inherited with a text property, which an empty tag
+/// (`:a::b:`) cannot carry. So an empty tag always looks like the entry's
+/// own, and the separator lands in front of it.
 fn fix_displayed_tags(text: &str, tags: &[Tag]) -> String {
     let mut out = match tag_group(text) {
         Some((blanks, _)) => text[..blanks].to_string(),
@@ -141,13 +127,14 @@ fn fix_displayed_tags(text: &str, tags: &[Tag]) -> String {
     if tags.is_empty() {
         return out;
     }
+    let looks_inherited = |tag: &Tag| tag.inherited && !tag.name.is_empty();
     out.push_str(" :");
-    let mut in_inherited = tags[0].inherited;
+    let mut in_inherited = looks_inherited(&tags[0]);
     for (index, tag) in tags.iter().enumerate() {
         if index > 0 {
             out.push(':');
         }
-        if in_inherited && !tag.inherited {
+        if in_inherited && !looks_inherited(tag) {
             in_inherited = false;
             out.push(':');
         }
@@ -169,6 +156,24 @@ fn overtime_text(time: TimeOfDay) -> String {
     } else {
         clock_text(time)
     }
+}
+
+/// Remove every timestamp, active or not (`org-ts-regexp-both`), from `text`.
+fn remove_timestamps(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut at = 0;
+    while let Some(open) = text[at..].find(['<', '[']).map(|index| at + index) {
+        out.push_str(&text[at..open]);
+        match crate::outline::timestamp_end(text, open) {
+            Some(end) => at = end,
+            None => {
+                out.push_str(&text[open..open + 1]);
+                at = open + 1;
+            }
+        }
+    }
+    out.push_str(&text[at..]);
+    out
 }
 
 /// Remove every active timestamp (`org-ts-regexp`) from `text`.
@@ -193,11 +198,12 @@ fn remove_active_timestamps(text: &str) -> String {
 pub fn format_item(input: &FormatInput<'_>) -> Formatted {
     let mut txt = fix_displayed_tags(trim(input.head), input.tags);
 
-    // The text searched for a time: the given one, then the headline.
+    // The text searched for a time: the given one, then the headline
+    // without its timestamps.
     let searched = match input.dotime {
         Dotime::No => None,
-        Dotime::Headline => Some(txt.clone()),
-        Dotime::Text(text) => Some(format!("{text}{txt}")),
+        Dotime::Headline => Some(remove_timestamps(&txt)),
+        Dotime::Text(text) => Some(format!("{text}{}", remove_timestamps(&txt))),
     };
     let found = searched.as_deref().and_then(|ts| time_of_day(ts).map(|time| (ts, time)));
     let mut time = String::new();
@@ -261,30 +267,24 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
     Formatted { text, heading, time_of_day: time_of_day_value }
 }
 
-/// `org-get-priority`: the value of the first `[#X]` cookie in `text`,
+/// `org-get-priority`: the value of the first priority cookie in `text`,
 /// or the default priority. Higher is more urgent.
+///
+/// A cookie holds one capital letter or a number from 0 to 64.
 pub fn priority(text: &str) -> i64 {
     const LOWEST: i64 = b'C' as i64;
     const DEFAULT: i64 = b'B' as i64;
     let bytes = text.as_bytes();
-    let cookie = text.match_indices("[#").find_map(|(at, _)| {
-        let value: usize = bytes[at + 2..].iter().take_while(|b| b.is_ascii_uppercase() || b.is_ascii_digit()).count();
-        (value > 0 && bytes.get(at + 2 + value) == Some(&b']')).then(|| &text[at + 2..at + 2 + value])
-    });
-    let value = match cookie {
-        None => DEFAULT,
-        Some(cookie) => {
-            // Digits anywhere make it a numeric priority.
-            let digits: String =
-                cookie.chars().skip_while(|c| !c.is_ascii_digit()).take_while(char::is_ascii_digit).collect();
-            match digits.parse::<i64>() {
-                Ok(number) => number,
-                Err(_) if digits.is_empty() => i64::from(cookie.as_bytes()[0]),
-                Err(_) => i64::MAX / 2000,
-            }
+    let digit = |b: u8| i64::from(b - b'0');
+    let value = text.match_indices("[#").find_map(|(at, _)| match bytes[at + 2..] {
+        [letter, b']', ..] if letter.is_ascii_uppercase() => Some(i64::from(letter)),
+        [ones, b']', ..] if ones.is_ascii_digit() => Some(digit(ones)),
+        [tens @ b'1'..=b'5', ones @ b'0'..=b'9', b']', ..] | [tens @ b'6', ones @ b'0'..=b'4', b']', ..] => {
+            Some(10 * digit(tens) + digit(ones))
         }
-    };
-    1000 * (LOWEST - value)
+        _ => None,
+    });
+    1000 * (LOWEST - value.unwrap_or(DEFAULT))
 }
 
 /// `org-agenda-highlight-todo`: find the keyword at the start of the
@@ -306,14 +306,78 @@ pub fn normalise_keyword<'k>(
     Some(keyword.len())
 }
 
+/// The parts of `text` Org does not display in the agenda: of a link
+/// `[[target][description]]` everything but the description, and of
+/// `[[target]]` the brackets. Returned as byte ranges in order.
+pub fn hidden_ranges(text: &str) -> Vec<(usize, usize)> {
+    let bytes = text.as_bytes();
+    let mut hidden = Vec::new();
+    let mut at = 0;
+    while let Some(open) = text[at..].find("[[").map(|index| at + index) {
+        at = open + 1;
+        // The target: anything but brackets, which a backslash escapes.
+        let mut end = open + 2;
+        while end < bytes.len() && !matches!(bytes[end], b'[' | b']') {
+            if bytes[end] == b'\\' {
+                let slashes = bytes[end..].iter().take_while(|b| **b == b'\\').count();
+                let escapes = slashes % 2 == 1 && matches!(bytes.get(end + slashes), Some(b'[' | b']'));
+                end += slashes + usize::from(escapes);
+            } else {
+                end += 1;
+            }
+        }
+        if end == open + 2 || bytes.get(end) != Some(&b']') {
+            continue;
+        }
+        match bytes.get(end + 1) {
+            Some(b']') => {
+                hidden.push((open, open + 2));
+                hidden.push((end, end + 2));
+                at = end + 2;
+            }
+            Some(b'[') => {
+                // The description: at least one character, up to the first `]]`.
+                let description = end + 2;
+                let after_first = description + text[description..].chars().next().map_or(0, char::len_utf8);
+                let Some(close) = text.get(after_first..).and_then(|rest| rest.find("]]")) else { continue };
+                hidden.push((open, description));
+                hidden.push((after_first + close, after_first + close + 2));
+                at = after_first + close + 2;
+            }
+            _ => {}
+        }
+    }
+    hidden
+}
+
+/// The column the agenda display reaches after `text`, which starts a
+/// line: links are folded and a tab moves to the next multiple of eight.
+pub fn display_column(text: &str) -> usize {
+    const TAB_WIDTH: usize = 8;
+    let hidden = hidden_ranges(text);
+    let mut hidden = hidden.iter().peekable();
+    let mut column = 0;
+    for (at, c) in text.char_indices() {
+        while hidden.peek().is_some_and(|(_, end)| *end <= at) {
+            hidden.next();
+        }
+        if hidden.peek().is_some_and(|(start, _)| *start <= at) {
+            continue;
+        }
+        column = if c == '\t' { (column / TAB_WIDTH + 1) * TAB_WIDTH } else { column + crate::text::char_width(c) };
+    }
+    column
+}
+
 /// `org-agenda-align-tags` for one line: put the tag group so that it
 /// ends at column `-column`, or starts at `column` when that is positive.
+/// Columns are counted the way the agenda displays the line.
 pub fn align_tags(text: &str, column: i64) -> String {
     let Some((blanks, tags_start)) = tag_group(text) else { return text.to_string() };
     let tags_end = text.trim_end_matches([' ', '\t']).len();
     let tags = &text[tags_start..tags_end];
     let target = if column < 0 { -column - width(tags) as i64 } else { column };
-    let current = width(&text[..blanks]) as i64;
+    let current = display_column(&text[..blanks]) as i64;
     let padding = (target - current).max(1) as usize;
     format!("{}{}{}", &text[..blanks], " ".repeat(padding), &text[tags_start..])
 }
@@ -359,6 +423,11 @@ mod tests {
         assert_eq!(fix_displayed_tags("Title", &both[..2]), "Title :file:p::");
         assert_eq!(fix_displayed_tags("Title :own:", &both[2..]), "Title :own:");
         assert_eq!(fix_displayed_tags("Title :gone:", &[]), "Title");
+        // An empty tag never looks inherited.
+        let with_empty = [tag("a", true), tag("", true), tag("b", true), tag("own", false)];
+        assert_eq!(fix_displayed_tags("Title", &with_empty[..3]), "Title :a:::b:");
+        assert_eq!(fix_displayed_tags("Title", &with_empty), "Title :a:::b:own:");
+        assert_eq!(fix_displayed_tags("Title", &with_empty[1..3]), "Title ::b:");
     }
 
     #[test]
@@ -391,6 +460,8 @@ mod tests {
         assert_eq!(priority("x [#a] y"), 1000);
         assert_eq!(priority("x [#Z] y"), -23000);
         assert_eq!(priority("x [#5] y"), 62000);
+        assert_eq!(priority("x [#64] y"), 3000);
+        assert_eq!(priority("x [#65] [#05] y"), 1000);
         assert_eq!(priority("[#] [#B]"), 1000);
     }
 
@@ -413,5 +484,20 @@ mod tests {
         assert_eq!(align_tags("ab   :t:", 4), "ab  :t:");
         assert_eq!(align_tags("日本 :t:", -10), "日本   :t:");
         assert_eq!(align_tags("no tags", -10), "no tags");
+        // Folded links do not count.
+        assert_eq!(align_tags("[[a][b]] :t:", -10), "[[a][b]]      :t:");
+        // A tab reaches the next tab stop.
+        assert_eq!(align_tags("a\tb :t:", -14), "a\tb  :t:");
+        assert_eq!(display_column("ab\t[[x][日本]]\t"), 16);
+    }
+
+    #[test]
+    fn hidden_link_parts() {
+        fn hidden(text: &str) -> Vec<&str> {
+            hidden_ranges(text).into_iter().map(|(start, end)| &text[start..end]).collect()
+        }
+        assert_eq!(hidden("a [[link][desc]] b [[plain]] c"), ["[[link][", "]]", "[[", "]]"]);
+        assert_eq!(hidden("[[a\\]b][d]] [[]] [[a][]] [[x]"), ["[[a\\]b][", "]]"]);
+        assert_eq!(hidden("[[a][b] c]] [[[x]]"), ["[[a][", "]]", "[[", "]]"]);
     }
 }

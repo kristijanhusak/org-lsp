@@ -1,9 +1,9 @@
-section 0 111 1 0 110
+section 0 111 0 0 111
 comment 0 17 1 -1 -1
-drawer 17 48 0 30 42
-paragraph 30 42 0 30 42
+property-drawer 17 48 0 30 42
+node-property 30 42 0 -1 -1
 paragraph 48 61 0 48 61
-drawer 61 110 0 74 104
+drawer 61 111 1 74 104
 paragraph 74 104 0 74 104
 headline 111 204 0 134 204
 @headline 111		-1		Planning then drawer
@@ -67,7 +67,7 @@ plain-list 820 842 0 820 842
 item 820 842 0 822 842
 paragraph 822 842 0 822 842
 paragraph 842 872 0 842 872
-fixed-width 872 895 1 -1 -1
+fixed-width 872 895 0 -1 -1
 comment 895 920 0 -1 -1
 drawer 920 935 0 -1 -1
 paragraph 935 975 0 935 975

@@ -1,0 +1,50 @@
+Week-agenda (W21):
+Monday     18 May 2026 W21
+  top:         7:00...... But in tables, lists and quotes                :file::
+  top:         7:30...... But in tables, lists and quotes                :file::
+  top:         7:45...... But in tables, lists and quotes                :file::
+               8:00...... ----------------
+               8:20...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+  top:         9:00...... A tab	in the title	moves the tags       :file::tag:
+  top:        10:00-11:00 One day                                        :file::
+              10:00...... ----------------
+              12:00...... ----------------
+  top:        13:00...... In a property drawer                           :file::
+              14:00...... ----------------
+  top:        15:00...... Repeating  and time in the title               :file::
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  top:        Scheduled:  TODO [#7] number                               :file::
+  top:        Scheduled:  TODO [#A]                            :file::cookietag:
+  top:        Scheduled:  TODO [#A] capital                              :file::
+  top:        Scheduled:  TODO Empty tag between two                :file::a::b:
+  top:        Scheduled:  TODO                                   :file::onlytag:
+  top:        Scheduled:  TODO [#a] small letter is no priority          :file::
+  top:        Scheduled:  COMMENTARY is shown                            :file::
+  top:        Scheduled:  TODO planning range                            :file::
+  top:        (1/3):  TODO planning range                                :file::
+  top:        (2/3):  A range starts at the first timestamp on the line  :file::
+  top:        (1/2):  Three dashes <2026-05-18 Mon>---<2026-05-19 Tue> and one <2026-05-18 Mon>-<2026-05-19 Tue> :file::
+  top:        (1/2):  Three dashes <2026-05-18 Mon>---<2026-05-19 Tue> and one <2026-05-18 Mon>-<2026-05-19 Tue> :file::
+  top:        Links fold: [[https://example.com][site]] and [[plain]]                             :file::tag:
+  top:        TODO not directly below the headline                       :file::
+  ???:        No category                                                :file::
+  top more:   Appended                                                   :file::
+              Empty                                                      :file::
+  top:        In   2 d.:  NEXT Child inherits them, the empty one looks local :file:a:::b:
+  top:        In   3 d.:  TODO last keyword wins                         :file::
+  top:        Scheduled:  TODO cookie [#C] in the middle                 :file::
+Tuesday    19 May 2026
+  top:         8:00-9:00  (3/3):  A range starts at the first timestamp on the line :file::
+  top:        (2/3):  TODO planning range                                :file::
+  top:        (2/2):  Three dashes <2026-05-18 Mon>---<2026-05-19 Tue> and one <2026-05-18 Mon>-<2026-05-19 Tue> :file::
+  top:        (2/2):  Three dashes <2026-05-18 Mon>---<2026-05-19 Tue> and one <2026-05-18 Mon>-<2026-05-19 Tue> :file::
+Wednesday  20 May 2026
+  top:        Deadline:   NEXT Child inherits them, the empty one looks local :file:a:::b:
+  top:        (3/3):  TODO planning range                                :file::
+Thursday   21 May 2026
+  top:        Deadline:   TODO last keyword wins                         :file::
+Friday     22 May 2026
+Saturday   23 May 2026
+Sunday     24 May 2026

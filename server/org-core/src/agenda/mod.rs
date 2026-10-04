@@ -10,7 +10,8 @@
 
 mod item;
 
-pub use item::{align_tags, tag_group, Face, Item, ItemKind, Source};
+pub use crate::text::tag_group;
+pub use item::{align_tags, display_column, hidden_ranges, Face, Item, ItemKind, Source};
 
 use item::{format_item, normalise_keyword, priority, Dotime, FormatInput, Prefix};
 
@@ -265,7 +266,8 @@ impl Builder<'_> {
     fn deadlines(&self, file: usize, current: Day, out: &mut Vec<Item>) {
         let is_today = current == self.today;
         for (index, entry) in self.files[file].entries.iter().enumerate() {
-            let Some(planning) = entry.deadline.as_ref().filter(|planning| planning.active && !entry.skip) else {
+            let found = entry.deadline.as_ref().filter(|planning| planning.active && planning.searchable);
+            let Some(planning) = found.filter(|_| !entry.skip) else {
                 continue;
             };
             let raw = planning.raw.as_str();
@@ -311,7 +313,8 @@ impl Builder<'_> {
     fn scheduled(&self, file: usize, current: Day, out: &mut Vec<Item>) {
         let is_today = current == self.today;
         for (index, entry) in self.files[file].entries.iter().enumerate() {
-            let Some(planning) = entry.scheduled.as_ref().filter(|planning| planning.active && !entry.skip) else {
+            let found = entry.scheduled.as_ref().filter(|planning| planning.active && planning.searchable);
+            let Some(planning) = found.filter(|_| !entry.skip) else {
                 continue;
             };
             let raw = planning.raw.as_str();
@@ -358,22 +361,20 @@ impl Builder<'_> {
             if current < first || current > last || (entry.done && self.config.skip_timestamp_if_done) {
                 continue;
             }
-            let extra =
-                if first == last { String::new() } else { format!("({}/{}): ", 1 + current - first, 1 + last - first) };
-            // Times count on the first and last day; when both halves name
-            // the same time (or none), on every day.
-            let dotime =
-                if clock_part(&block.first) == clock_part(&block.second) || (first == current && last == current) {
-                    Some(format!("<{}>--<{}>", block.first, block.second))
-                } else if first == current {
-                    Some(format!("<{}>", block.first))
-                } else if last == current {
-                    Some(format!("<{}>", block.second))
-                } else {
-                    None
-                };
+            let (extra, face) = if first == last {
+                (String::new(), Face::CalendarEvent)
+            } else {
+                (format!("({}/{}): ", 1 + current - first, 1 + last - first), Face::CalendarDateRange)
+            };
+            // Times count on the first and on the last day.
+            let dotime = match (first == current, last == current) {
+                (true, true) => Some(format!("<{}>--<{}>", block.first, block.second)),
+                (true, false) => Some(format!("<{}>", block.first)),
+                (false, true) => Some(format!("<{}>", block.second)),
+                (false, false) => None,
+            };
             let dotime = dotime.as_deref().map_or(Dotime::No, Dotime::Text);
-            out.push(self.item(file, block.entry, ItemKind::Block, Face::Default, &extra, dotime));
+            out.push(self.item(file, block.entry, ItemKind::Block, face, &extra, dotime));
         }
     }
 
@@ -381,31 +382,42 @@ impl Builder<'_> {
     fn timestamps(&self, file: usize, current: Day, out: &mut Vec<Item>) {
         let outline = self.files[file];
         let current_date = Date::from_day(current);
+        // Org scans the text once per day and stops where today's date
+        // or a repeater stands; the next stop comes after the last one.
+        let mut scanned_to = 0;
         for stamp in &outline.stamps {
-            let entry = &outline.entries[stamp.entry];
-            if entry.skip || (entry.done && self.config.skip_timestamp_if_done) {
+            if stamp.offset < scanned_to {
                 continue;
             }
-            let on_its_date = stamp.date == current_date;
-            if !on_its_date {
-                if !stamp.repeats {
-                    continue;
-                }
+            let (shown, repeats) = if stamp.date == Some(current_date) {
+                scanned_to = stamp.offset + 11;
+                (&stamp.on_date, false)
+            } else if let Some(end) = stamp.repeat_end {
+                scanned_to = end;
+                (&stamp.on_repeat, true)
+            } else {
+                continue;
+            };
+            let Some(shown) = shown else { continue };
+            if outline.entries[shown.entry].done && self.config.skip_timestamp_if_done {
+                continue;
+            }
+            if repeats {
                 // Past occurrences show up to today, future ones after it.
                 let base = if current > self.today { self.today } else { current };
-                let Some(past) = closest_date(&stamp.text, base, Prefer::Past) else { continue };
-                let future = self.future_repeat(&stamp.text, past, current);
+                let Some(past) = closest_date(&shown.text, base, Prefer::Past) else { continue };
+                let future = self.future_repeat(&shown.text, past, current);
                 if current != past && current != future {
                     continue;
                 }
             }
             out.push(self.item(
                 file,
-                stamp.entry,
+                shown.entry,
                 ItemKind::Timestamp,
                 Face::CalendarEvent,
                 "",
-                Dotime::Text(&stamp.text),
+                Dotime::Text(&shown.text),
             ));
         }
     }
@@ -511,33 +523,6 @@ fn planning_time(raw: &str, reminder: bool) -> PlanningTime {
         Some(at) => PlanningTime::Text(format!("{} ", &raw[at + 1..])),
         None => PlanningTime::Headline,
     }
-}
-
-/// Group 6 of `org-ts-regexp1`: the ` H:MM` directly after the date and
-/// the optional day name.
-fn clock_part(stamp: &str) -> Option<&str> {
-    let bytes = stamp.as_bytes();
-    let mut at = 10;
-    if bytes.len() < at {
-        return None;
-    }
-    // ` *\([^]+0-9>\r\n -]+\)`: an optional day name.
-    let blanks = bytes[at..].iter().take_while(|b| **b == b' ').count();
-    let name = stamp[at + blanks..]
-        .char_indices()
-        .find(|(_, c)| matches!(c, ']' | '+' | '0'..='9' | '>' | '\r' | '\n' | ' ' | '-'))
-        .map_or(stamp.len() - at - blanks, |(index, _)| index);
-    if name > 0 {
-        at += blanks + name;
-    }
-    let rest = &bytes[at..];
-    let hour = match rest {
-        [b' ', b'0'..=b'9', b'0'..=b'9', b':', ..] => 2,
-        [b' ', b'0'..=b'9', b':', ..] => 1,
-        _ => return None,
-    };
-    let end = 1 + hour + 3;
-    matches!(rest.get(hour + 2..end), Some([b'0'..=b'9', b'0'..=b'9'])).then(|| &stamp[at..at + end])
 }
 
 /// `org-entries-lessp` with the default strategies: by time (lines

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Regenerate server/org-syntax/src/entities.rs from the Org shipped with Emacs.
+# Regenerate server/org-syntax/src/entities.rs from Org: the version bundled
+# with Emacs, or the checkout whose `lisp` directory ORG_LISP_DIR names.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-version=$(emacs --batch -Q --eval '(progn (require (quote org)) (princ (org-version)))' 2>/dev/null)
-emacs --batch -Q --eval '
+version=$(emacs --batch -Q ${ORG_LISP_DIR:+-L "$ORG_LISP_DIR"} --eval '(progn (require (quote org)) (princ (org-version)))' 2>/dev/null)
+emacs --batch -Q ${ORG_LISP_DIR:+-L "$ORG_LISP_DIR"} --eval '
 (progn
   (require (quote org))
   (require (quote org-entities))

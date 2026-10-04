@@ -69,6 +69,26 @@ pub fn char_offset(text: &str, n: usize) -> usize {
     text.char_indices().nth(n).map_or(text.len(), |(index, _)| index)
 }
 
+/// Whether `c` may appear in a tag.
+fn is_tag_char(c: char) -> bool {
+    c.is_alphanumeric() || matches!(c, '_' | '@' | '#' | '%')
+}
+
+/// `org-tag-group-re`: a tag group at the end of `text`, with the blanks
+/// before it. Returns where the blanks start and where the tags start.
+pub fn tag_group(text: &str) -> Option<(usize, usize)> {
+    let body = text.trim_end_matches([' ', '\t']);
+    let run: usize = body.chars().rev().take_while(|c| *c == ':' || is_tag_char(*c)).map(char::len_utf8).sum();
+    let tags_start = body.len() - run;
+    let tags = &body[tags_start..];
+    let preceded_by_blank = body[..tags_start].ends_with([' ', '\t']);
+    if !preceded_by_blank || tags.len() < 3 || !tags.starts_with(':') || !tags.ends_with(':') {
+        return None;
+    }
+    let blanks = body[..tags_start].len() - body[..tags_start].trim_end_matches([' ', '\t']).len();
+    Some((tags_start - blanks, tags_start))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

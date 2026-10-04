@@ -1,9 +1,9 @@
-section 0 231 1 0 230
+section 0 231 0 0 231
 comment 0 20 0 -1 -1
 keyword 20 42 0 -1 -1
 keyword 42 84 0 -1 -1
 keyword 84 107 1 -1 -1
-paragraph 107 230 0 107 230
+paragraph 107 231 1 107 230
 bold 144 150 0 145 149
 italic 152 160 0 153 159
 underline 162 173 0 163 172
@@ -12,10 +12,10 @@ verbatim 185 196 1 -1 -1
 code 200 206 0 -1 -1
 bold 210 221 1 211 219
 italic 211 219 0 212 218
-headline 231 1647 1 282 1646
+headline 231 1647 0 282 1647
 @headline 231	TODO	65	work:urgent	Top level headline [1/3]
 statistics-cookie 262 267 0 -1 -1
-section 282 780 1 282 779
+section 282 780 0 282 780
 planning 282 347 0 -1 -1
 property-drawer 347 400 0 360 394
 node-property 360 378 0 -1 -1
@@ -26,7 +26,7 @@ plain-list 473 535 0 473 535
 item 473 535 0 475 535
 paragraph 475 535 0 475 535
 timestamp 512 534 0 -1 -1
-paragraph 542 779 0 542 779
+paragraph 542 780 1 542 779
 link 561 599 0 584 597
 bold 592 597 0 593 596
 link 608 636 0 -1 -1
@@ -36,9 +36,9 @@ footnote-reference 706 724 0 711 723
 bold 717 723 0 718 722
 target 728 739 1 -1 -1
 timestamp 761 777 0 -1 -1
-headline 780 1012 1 794 1011
+headline 780 1012 0 794 1012
 @headline 780	NEXT	-1		Lists
-section 794 1012 1 794 1011
+section 794 1012 0 794 1012
 plain-list 794 978 2 794 976
 item 794 810 0 800 810
 paragraph 800 810 0 800 810
@@ -58,12 +58,12 @@ paragraph 919 930 1 919 929
 paragraph 930 952 0 930 952
 item 953 976 0 955 976
 paragraph 955 976 0 955 976
-paragraph 978 1011 0 978 1011
+paragraph 978 1012 1 978 1011
 headline 1012 1188 0 1027 1188
 @headline 1012	DONE	-1		Tables
-section 1027 1157 1 1027 1156
+section 1027 1157 0 1027 1157
 planning 1027 1058 0 -1 -1
-table 1058 1156 0 1058 1130
+table 1058 1157 1 1058 1130
 table-row 1058 1076 0 1059 1075
 table-cell 1059 1067 0 1060 1064
 table-cell 1067 1075 0 1068 1073
@@ -77,9 +77,9 @@ bold 1114 1117 0 1115 1116
 table-cell 1121 1129 0 1126 1127
 headline 1157 1188 0 -1 -1
 @headline 1157		-1		Deep headline without body
-headline 1188 1647 1 1218 1646
+headline 1188 1647 0 1218 1647
 @headline 1188	CANCELLED	-1	archive	Blocks
-section 1218 1647 1 1218 1646
+section 1218 1647 0 1218 1647
 src-block 1218 1339 1 -1 -1
 quote-block 1339 1415 1 1353 1402
 paragraph 1353 1388 1 1353 1387
@@ -90,19 +90,19 @@ paragraph 1390 1402 0 1390 1402
 example-block 1415 1471 1 -1 -1
 paragraph 1471 1551 1 1471 1550
 subscript 1478 1483 1 1479 1482
-fixed-width 1551 1580 2 -1 -1
+fixed-width 1551 1580 1 -1 -1
 horizontal-rule 1580 1587 1 -1 -1
-dynamic-block 1587 1646 0 1619 1639
+dynamic-block 1587 1647 1 1619 1639
 table 1619 1639 0 1619 1639
 table-row 1619 1639 0 1620 1638
 table-cell 1620 1631 0 1621 1629
 table-cell 1631 1638 0 1632 1636
-headline 1647 1736 1 1664 1735
+headline 1647 1736 0 1664 1736
 @headline 1647		-1		Plain headline
-section 1664 1736 1 1664 1735
+section 1664 1736 0 1664 1736
 footnote-definition 1664 1712 1 1671 1711
 paragraph 1671 1711 0 1671 1711
-footnote-definition 1712 1735 0 1722 1735
+footnote-definition 1712 1736 1 1722 1735
 paragraph 1722 1735 0 1722 1735
 headline 1736 1855 0 1784 1855
 @headline 1736		-1	tag_1:@home	Unicode žćč ünïcödé 日本語

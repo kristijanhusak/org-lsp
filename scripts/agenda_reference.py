@@ -16,6 +16,8 @@ A case is a directory with Org files and a `case.json`:
 
 `reference(cases)` writes `expected-N.txt` next to each `case.json`, one
 per run. Emacs runs under faketime, so both programs see the same clock.
+Set ORG_LISP_DIR to the `lisp` directory of an Org checkout to use that
+version instead of the one bundled with Emacs.
 """
 
 import json
@@ -108,6 +110,7 @@ def reference(directories):
             case = json.load(handle)
         by_clock.setdefault((case["today"], case["now"]), []).append((directory, case))
 
+    org_path = ["-L", os.environ["ORG_LISP_DIR"]] if os.environ.get("ORG_LISP_DIR") else []
     for (today, now), cases in by_clock.items():
         forms = [PRELUDE]
         outputs = []
@@ -125,7 +128,7 @@ def reference(directories):
             driver.write("\n".join(forms))
         try:
             subprocess.run(
-                ["faketime", f"{today} {now}:00", "emacs", "--batch", "-Q", "-l", driver.name],
+                ["faketime", f"{today} {now}:00", "emacs", "--batch", "-Q", *org_path, "-l", driver.name],
                 check=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,

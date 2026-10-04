@@ -137,15 +137,38 @@ fn is_tag_char(c: char) -> bool {
     c.is_alphanumeric() || matches!(c, '_' | '@' | '#' | '%')
 }
 
-/// Split a headline line from `pos` (after stars, keyword and priority)
-/// into `(title, gap, tags, trailing whitespace)`.
+const COMMENT_KEYWORD_TEXT: &str = "COMMENT";
+
+/// Whether `text` starts with `COMMENT` followed by a space or nothing.
+fn is_comment_keyword(text: &str) -> bool {
+    text.strip_prefix(COMMENT_KEYWORD_TEXT).is_some_and(|after| after.is_empty() || after.starts_with(' '))
+}
+
+/// The first priority cookie in `text`: its offset and length.
 ///
-/// Tags are a final `:a:b:` group with at least one blank before it, and
-/// that blank must lie at or after `search_start`. This is how
-/// `org-element-headline-parser` searches: after a keyword or a priority
-/// the blanks are already consumed, so `* TODO :a:` has the title `:a:` and
-/// no tags, while `* :a:` has a tag.
-fn split_tags(text: &str, pos: usize, search_start: usize) -> (&str, &str, &str, &str) {
+/// The value is one capital letter or a number from 0 to 64 without a
+/// leading zero (`org-priority-regexp`). Org's regular expression also
+/// takes a small letter wherever it happens to run with case folding on,
+/// which the agenda does not; here a small letter never counts.
+fn priority_cookie(text: &str) -> Option<(usize, usize)> {
+    let bytes = text.as_bytes();
+    text.match_indices("[#").find_map(|(at, _)| {
+        let value = &bytes[at + 2..];
+        let len = match value {
+            [a, b']', ..] if a.is_ascii_uppercase() || a.is_ascii_digit() => 1,
+            [b'1'..=b'5', b'0'..=b'9', b']', ..] | [b'6', b'0'..=b'4', b']', ..] => 2,
+            _ => return None,
+        };
+        Some((at, 2 + len + 1))
+    })
+}
+
+/// Split a headline line from `pos` (after stars, keyword, priority and
+/// `COMMENT`) into `(title, gap, tags, trailing whitespace)`.
+///
+/// Tags are a final `:a:b:` group that starts at or after `pos` and has a
+/// blank before it.
+fn split_tags(text: &str, pos: usize) -> (&str, &str, &str, &str) {
     let trimmed_end = trim_end(text).len();
     let trailing = &text[trimmed_end.max(pos)..];
     let trimmed = &text[..trimmed_end];
@@ -157,9 +180,9 @@ fn split_tags(text: &str, pos: usize, search_start: usize) -> (&str, &str, &str,
             .last()
             .map_or(trimmed.len(), |(index, _)| index);
         let tags = &trimmed[start..];
-        let after_blank = start > search_start && trimmed[..start].ends_with([' ', '\t']);
+        let after_blank = start >= pos && trimmed[..start].ends_with([' ', '\t']);
         if tags.starts_with(':') && tags.len() >= 3 && after_blank {
-            let before = &trimmed[pos.min(start)..start];
+            let before = &trimmed[pos..start];
             let title = trim_end(before);
             return (title, &before[title.len()..], tags, trailing);
         }
@@ -330,28 +353,40 @@ fn is_inactive_timestamp(text: &str) -> bool {
     bytes[0] == b'[' && is_date && text.ends_with(']') && (bytes.len() == 12 || bytes[11] == b' ')
 }
 
-/// `CLOCK: [TIMESTAMP]`, optionally followed by `--[TIMESTAMP] => H:MM`.
+/// A clock line: `CLOCK:`, then a timestamp, a timestamp range with its
+/// duration (`[…]--[…] => H:MM`), or a duration alone.
 fn is_clock_line(text: &str) -> bool {
     let text = trim_start(text);
-    if !starts_with_ignore_case(text, "CLOCK: ") {
+    if !starts_with_ignore_case(text, "CLOCK:") {
         return false;
     }
-    let body = trim_end(&text[7..]);
+    let rest = &text["CLOCK:".len()..];
+    if !rest.starts_with([' ', '\t']) {
+        return false;
+    }
+    let body = trim(rest);
     if is_inactive_timestamp(body) {
         return true;
     }
-    // Otherwise the line must end in `=> H:MM` after a timestamp range.
+    // Otherwise the line ends in `=> H:MM`, after a range or after nothing.
     let Some((range, duration)) = body.rsplit_once("=>") else { return false };
     let digits = |text: &str| !text.is_empty() && text.bytes().all(|b| b.is_ascii_digit());
     let duration_ok = duration.starts_with([' ', '\t'])
         && trim_start(duration)
             .split_once(':')
             .is_some_and(|(hours, minutes)| digits(hours) && digits(minutes) && minutes.len() == 2);
-    let range_ok = range.ends_with([' ', '\t'])
-        && trim_end(range).match_indices("]--[").any(|(index, _)| {
-            is_inactive_timestamp(&range[..index + 1]) && is_inactive_timestamp(trim_end(&range[index + 3..]))
-        });
+    let range_ok = range.is_empty()
+        || (range.ends_with([' ', '\t'])
+            && trim_end(range).match_indices("]--[").any(|(index, _)| {
+                is_inactive_timestamp(&range[..index + 1]) && is_inactive_timestamp(trim_end(&range[index + 3..]))
+            }));
     duration_ok && range_ok
+}
+
+/// Whether the line starts with `CLOCK:`, which is enough to keep
+/// affiliated keywords from attaching to it.
+fn starts_clock(text: &str) -> bool {
+    starts_with_ignore_case(trim_start(text), "CLOCK:")
 }
 
 /// Start of the whitespace before a description separator (`TERM :: text`).
@@ -385,6 +420,7 @@ enum Start {
     Rule,
     DiarySexp,
     Table,
+    TableEl { end: usize },
     List,
     FootnoteDefinition,
 }
@@ -605,42 +641,42 @@ impl<'a> Parser<'a> {
         self.token(STARS, &text[..level]);
         let mut pos = self.whitespace_at(text, level);
 
-        // A keyword needs a space after it, as in `org-element`. A keyword
-        // that ends the line counts too: that is what `org-todo` and the
-        // fontification see while the headline is being typed.
-        let mut consumed = false;
+        // A keyword is followed by a space or ends the line.
         let word_len = text[pos..].find([' ', '\t']).unwrap_or(text.len() - pos);
         let word = &text[pos..pos + word_len];
         let after_word = &text[pos + word_len..];
-        if self.todo.contains(word) && (after_word.starts_with(' ') || trim_end(after_word).is_empty()) {
+        if self.todo.contains(word) && (after_word.is_empty() || after_word.starts_with(' ')) {
             self.token(TODO_KEYWORD, word);
             pos = self.whitespace_at(text, pos + word_len);
-            consumed = true;
         }
 
-        // `[#A]`: any single character is accepted as the priority.
-        if let Some(rest) = text[pos..].strip_prefix("[#") {
-            if let Some(c) = rest.chars().next() {
-                if rest[c.len_utf8()..].starts_with(']') {
-                    let len = 2 + c.len_utf8() + 1;
-                    self.token(PRIORITY, &text[pos..pos + len]);
-                    pos = self.whitespace_at(text, pos + len);
-                    consumed = true;
-                }
+        // The first priority cookie on the line counts, wherever it is.
+        // Org drops what stands before it from the title; here it stays
+        // in the tree as plain text.
+        if let Some((start, len)) = priority_cookie(&text[pos..]) {
+            if start > 0 {
+                let before = &text[pos..pos + start];
+                let kept = trim_end(before);
+                self.token(TEXT, kept);
+                self.token(WHITESPACE, &before[kept.len()..]);
+            }
+            let cookie_end = pos + start + len;
+            self.token(PRIORITY, &text[pos + start..cookie_end]);
+            // One space belongs to the cookie; `COMMENT` must follow at once.
+            let after_cookie = cookie_end + usize::from(text[cookie_end..].starts_with(' '));
+            if is_comment_keyword(&text[after_cookie..]) {
+                self.token(WHITESPACE, &text[cookie_end..after_cookie]);
+                pos = after_cookie;
+            } else {
+                pos = self.whitespace_at(text, cookie_end);
             }
         }
 
-        // Where the search for tags starts: after `COMMENT`, after the
-        // blanks that follow a keyword or priority, or right after the stars.
-        let mut search_start = if consumed { pos } else { level };
-        if let Some(after) = text[pos..].strip_prefix("COMMENT") {
-            search_start = pos + "COMMENT".len();
-            if after.is_empty() || after.starts_with([' ', '\t']) {
-                self.token(COMMENT_KEYWORD, "COMMENT");
-                pos = self.whitespace_at(text, search_start);
-            }
+        if is_comment_keyword(&text[pos..]) {
+            self.token(COMMENT_KEYWORD, COMMENT_KEYWORD_TEXT);
+            pos = self.whitespace_at(text, pos + COMMENT_KEYWORD_TEXT.len());
         }
-        let (title, gap, tags, trailing) = split_tags(text, pos, search_start);
+        let (title, gap, tags, trailing) = split_tags(text, pos);
         if !title.is_empty() {
             self.start(TITLE);
             self.objects(title, Mode::STANDARD);
@@ -666,8 +702,8 @@ impl<'a> Parser<'a> {
         self.newline(line);
     }
 
-    /// The lines between a headline and the next one. Planning and the
-    /// property drawer are only valid directly below the headline.
+    /// The lines between a headline and the next one. Planning is only
+    /// valid directly below the headline, the property drawer after either.
     fn headline_section(&mut self, lines: &[Line]) {
         self.start(SECTION);
         let mut i = 0;
@@ -676,8 +712,14 @@ impl<'a> Parser<'a> {
             self.planning(lines[0]);
             i = 1;
         }
-        if let Some(end) = self.property_drawer_end(lines, i) {
-            self.drawer(&lines[i..=end], PROPERTY_DRAWER);
+        // The drawer comes directly after the headline, or after the
+        // planning line, where blank lines may come between.
+        let drawer_at = if i == 1 { i + lines[i..].iter().take_while(|line| line.blank).count() } else { 0 };
+        if let Some(end) = self.property_drawer_end(lines, drawer_at) {
+            for line in &lines[i..drawer_at] {
+                self.blank_line(*line);
+            }
+            self.drawer(&lines[drawer_at..=end], PROPERTY_DRAWER);
             i = end + 1;
         }
         self.elements(&lines[i..], false, false);
@@ -775,7 +817,7 @@ impl<'a> Parser<'a> {
                 i += 1;
                 continue;
             }
-            if top != Top::No && (i == 0 || !lines[i - 1].blank) {
+            if top != Top::No {
                 if let Some(end) = self.property_drawer_end(lines, i) {
                     self.drawer(&lines[i..=end], PROPERTY_DRAWER);
                     i = end + 1;
@@ -795,13 +837,18 @@ impl<'a> Parser<'a> {
                 i += 1;
                 continue;
             }
-            // Affiliated keywords attach to the element below, unless a
-            // blank line or the end of the container follows them.
+            // Affiliated keywords attach to the element below, unless what
+            // follows is a blank line, a comment, a clock line or the end
+            // of the container.
             let mut at = i;
             while at < lines.len() && is_affiliated(self.text(lines[at])) {
                 at += 1;
             }
-            if at > i && at < lines.len() && !lines[at].blank {
+            let orphaned = at == lines.len() || lines[at].blank || {
+                let next = self.text(lines[at]);
+                is_comment(trim_start(next)) || starts_clock(next)
+            };
+            if at > i && !orphaned {
                 self.affiliated = lines[i..at].to_vec();
             } else {
                 at = i;
@@ -842,6 +889,7 @@ impl<'a> Parser<'a> {
             b'-' if is_rule(text) => Some(Start::Rule),
             b'%' if full.starts_with("%%(") => Some(Start::DiarySexp),
             b'|' => Some(Start::Table),
+            b'+' if is_table_el_rule(text) => self.table_el_end(lines, i).map(|end| Start::TableEl { end }),
             b'-' | b'+' | b'*' | b'0'..=b'9' => item_prefix(full).map(|_| Start::List),
             _ => None,
         }
@@ -873,12 +921,9 @@ impl<'a> Parser<'a> {
                 }
                 word.rfind(':').is_some_and(|colon| colon > 0)
             }
-            // Org looks for `:END:` from the drawer line itself, so a stray
-            // `:END:` always ends the paragraph above it.
-            b':' => {
-                is_fixed_width(text)
-                    || (is_drawer_begin(text) && (is_drawer_end(text) || self.closing_line(lines, j).is_some()))
-            }
+            // A drawer line needs an `:END:` below it, and so does a stray
+            // `:END:`, which looks like a drawer.
+            b':' => is_fixed_width(text) || (is_drawer_begin(text) && self.closing_line(lines, j).is_some()),
             b'\\' => self.latex_environment_end(lines, j).is_some(),
             b'C' | b'c' => is_clock_line(text),
             b'-' if is_rule(text) => true,
@@ -936,6 +981,7 @@ impl<'a> Parser<'a> {
                 i + 1
             }
             Start::Table => self.table(lines, i),
+            Start::TableEl { end } => self.table_el(lines, i, end),
             Start::List => self.list(lines, i),
             Start::FootnoteDefinition => self.footnote_definition(lines, i),
         }
@@ -1102,6 +1148,31 @@ impl<'a> Parser<'a> {
         j
     }
 
+    /// Where the table.el table whose first rule is `lines[i]` ends, if it
+    /// is one. Org has no strict definition; it wants a full rule first, a
+    /// full rule last, and more than that one line.
+    fn table_el_end(&self, lines: &[Line], i: usize) -> Option<usize> {
+        let is_table_line = |line: &Line| trim_start(self.text(*line)).starts_with(['+', '|']);
+        let end =
+            lines[i + 1..].iter().position(|line| !is_table_line(line)).map_or(lines.len(), |offset| i + 1 + offset);
+        (end > i + 1 && is_table_el_rule(trim_start(self.text(lines[end - 1])))).then_some(end)
+    }
+
+    /// A table.el table: its lines are kept as text.
+    fn table_el(&mut self, lines: &[Line], i: usize, end: usize) -> usize {
+        self.start_element(TABLE);
+        for line in &lines[i..end] {
+            self.simple_line(*line, TEXT);
+        }
+        let mut j = end;
+        while j < lines.len() && starts_with_ignore_case(trim_start(self.text(lines[j])), "#+tblfm: ") {
+            self.keyword(lines[j]);
+            j += 1;
+        }
+        self.finish();
+        j
+    }
+
     fn table_row(&mut self, line: Line) {
         self.start(TABLE_ROW);
         let text = self.text(line);
@@ -1224,7 +1295,13 @@ impl<'a> Parser<'a> {
         // `TERM :: description`, in unordered lists only.
         if !prefix.ordered {
             if let Some(separator) = find_tag_separator(&text[pos..]) {
-                let tag = trim_end(&text[pos..pos + separator]);
+                let region = &text[pos..pos + separator];
+                let mut tag = trim_end(region);
+                // Org keeps all but the last blank in the tag, which only
+                // matters for the entity `\_ `, whose name ends in spaces.
+                if tag.ends_with("\\_") && region.len() > tag.len() + 1 {
+                    tag = &region[..region.len() - 1];
+                }
                 if !tag.is_empty() {
                     self.start(ITEM_TAG);
                     self.objects(tag, Mode::STANDARD);

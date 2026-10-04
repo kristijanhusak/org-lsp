@@ -80,15 +80,18 @@ class Generator:
             elif roll < 0.9:
                 parts.append(self.range())
             else:
-                parts.append(self.pick(["[#A]", "[#C]", "[1/2]", "[[link][desc]]", "*bold*", "COMMENT", "::", "[#1]"]))
+                parts.append(self.pick(["[#A]", "[#C]", "[1/2]", "[[link][desc]]", "*bold*", "COMMENT", "::", "[#1]",
+                                        "[#a]", "[#64]", "[#65]", "[[plain]]", "https://example.com/x"]))
         return " ".join(parts)
 
     def headline(self, keywords):
         line = "*" * self.pick([1, 1, 1, 2, 2, 3])
         if self.chance(0.6):
-            line += " " + self.pick(keywords)
+            line += self.pick([" ", " ", " ", " ", "  ", " \t"]) + self.pick(keywords)
+            if self.chance(0.03):
+                line += "\t"
         if self.chance(0.2):
-            line += self.pick([" [#A]", " [#B]", " [#C]", " [#Z]", "  [#A]"])
+            line += self.pick([" [#A]", " [#B]", " [#C]", " [#Z]", "  [#A]", " [#a]", " [#7]", " [#40]", "\t[#A]"])
         if self.chance(0.06):
             line += " COMMENT"
         title = self.title()
@@ -105,7 +108,7 @@ class Generator:
             stamp = self.stamp(active=(keyword != "CLOSED:") == self.chance(0.93), planning=True)
             if self.chance(0.04):
                 stamp = self.range()
-            parts.append(keyword + self.pick([" ", " ", " ", "  ", ""]) + stamp)
+            parts.append(keyword + self.pick([" ", " ", " ", " ", " ", "  ", "", "\t"]) + stamp)
         return self.pick(["", "", "", "  "]) + " ".join(parts)
 
     def body_line(self):
@@ -148,6 +151,8 @@ class Generator:
             lines.append("#+FILETAGS: " + self.pick([":file:", ":f1:f2:", "f3 :f4:", ":a:"]))
         if self.chance(0.03):
             lines.append("#+FILETAGS: :ARCHIVE:")
+        if self.chance(0.1):
+            lines = [":PROPERTIES:", ":CATEGORY: " + self.pick(["top", "nil", ""]), ":END:"] + lines
         if self.chance(0.2):
             lines.append(self.body_line())
         for _ in range(self.rng.randint(1, 12)):
@@ -157,7 +162,8 @@ class Generator:
             if self.chance(0.2):
                 drawer = [":PROPERTIES:"]
                 if self.chance(0.6):
-                    drawer.append(":CATEGORY: " + self.pick(["prop", "nil", "cat2", ""]))
+                    drawer.append(self.pick([":CATEGORY: ", ":CATEGORY: ", ":CATEGORY: ", ":category: ", ":CATEGORY+: "])
+                                  + self.pick(["prop", "nil", "cat2", ""]))
                 if self.chance(0.5):
                     drawer.append(":WHEN: " + self.stamp(active=self.chance(0.8)))
                 drawer.append(":END:")

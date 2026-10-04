@@ -9,8 +9,6 @@
 
 use org_syntax::{ast, ast::Headline, Parse, SyntaxKind, SyntaxKind::*, SyntaxNode, TodoKeywords, TokenAtOffset};
 
-use crate::timestr;
-
 /// A tag on an entry, and whether it comes from a parent or the file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tag {
@@ -27,6 +25,9 @@ pub struct Planning {
     pub offset: usize,
     /// `<…>` rather than `[…]`.
     pub active: bool,
+    /// The agenda's own search (`KEYWORD: *<…>`) finds something on the
+    /// planning line. Without that the agenda never looks at the entry.
+    pub searchable: bool,
 }
 
 /// One headline.
@@ -40,12 +41,13 @@ pub struct Entry {
     pub parent: Option<usize>,
     /// The line after the stars, trimmed: keyword, priority, title and tags.
     pub head: String,
-    /// The TODO keyword, as `org-get-todo-state` sees it.
+    /// The TODO keyword, as `org-get-todo-state` sees it: spaces after the
+    /// stars, the keyword, then a space or only blanks.
     pub todo: Option<String>,
     /// Whether `todo` is a done state.
     pub done: bool,
-    /// Whether the element parser sees a done keyword. It wants a blank
-    /// after the keyword, so `* DONE` alone does not count.
+    /// Whether the syntax tree has a done keyword. The two views differ
+    /// when tabs surround the keyword.
     pub element_done: bool,
     /// File tags, then tags of parents, then the entry's own. A tag that
     /// appears more than once is kept at its most local position.
@@ -69,26 +71,41 @@ impl Entry {
     }
 }
 
-/// An active timestamp outside planning lines.
+/// A place where the agenda's scan for plain timestamps can stop: `<`
+/// followed by a date.
+///
+/// The scan stops in one of two ways. On the day the date names it stops
+/// right after the date. On other days it stops only at the repeater form,
+/// `<… +1w>`, and then after the closing bracket. What it finds there
+/// decides whether the timestamp counts, so both outcomes are recorded.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Stamp {
     pub offset: usize,
-    /// The timestamp with its brackets, up to the first closing one.
-    pub text: String,
-    pub entry: usize,
-    /// The date as written. It may be out of range (`2026-02-30`).
-    pub date: crate::date::Date,
-    /// The text ends in a repeater, which is the only place the agenda
-    /// recognises one in a plain timestamp.
-    pub repeats: bool,
+    /// The date after the bracket, as written. It may be out of range
+    /// (`2026-02-30`), and then no day matches it.
+    pub date: Option<crate::date::Date>,
+    /// What shows when the scan stops here on that date.
+    pub on_date: Option<Shown>,
+    /// Byte offset just past the repeater form, when the text has it.
+    pub repeat_end: Option<usize>,
+    /// What shows when the scan stops at the repeater form.
+    pub on_repeat: Option<Shown>,
 }
 
-/// A date range, `<…>--<…>`.
+/// The entry a timestamp belongs to, and the timestamp as the agenda reads it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Shown {
+    pub entry: usize,
+    pub text: String,
+}
+
+/// A date range, `<…>--<…>`, that the agenda shows.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Block {
     /// Byte offset just past the range.
     pub offset: usize,
-    /// The two timestamps without their brackets.
+    /// The two timestamps without their brackets. The first reaches back
+    /// to the first timestamp on the line that leads up to the dashes.
     pub first: String,
     pub second: String,
     pub entry: usize,
@@ -121,17 +138,21 @@ impl Outline {
             .and_then(|section| section.children().find(|child| child.kind() == PROPERTY_DRAWER))
             .map(|drawer| properties(&drawer))
             .unwrap_or_default();
-        let category = property(&top_properties, "CATEGORY")
-            .map(str::to_string)
-            .or_else(|| last_keyword_value(&root, "CATEGORY"))
-            .unwrap_or_else(|| name.to_string());
+        let from_file = last_keyword_value(&root, "CATEGORY").unwrap_or_else(|| name.to_string());
+        let category = category_values(&top_properties, &from_file);
 
-        let mut outline =
-            Outline { category, file_tags, todo, entries: Vec::new(), stamps: Vec::new(), blocks: Vec::new() };
+        let mut outline = Outline {
+            category: shown_category(&category),
+            file_tags,
+            todo,
+            entries: Vec::new(),
+            stamps: Vec::new(),
+            blocks: Vec::new(),
+        };
         let file_archived = outline.file_tags.iter().any(|tag| tag == ARCHIVE_TAG);
         let inherited = Inherited {
             tags: outline.file_tags.iter().map(|name| Tag { name: name.clone(), inherited: true }).collect(),
-            category: outline.category.clone(),
+            category,
             skip: file_archived,
         };
         for headline in ast::headlines(&root) {
@@ -154,29 +175,32 @@ impl Outline {
         let level = headline.level();
         let head = crate::text::trim(&line[level..]).to_string();
 
-        // `org-todo-line-regexp`: blanks, a keyword, then blanks or the end.
-        let first_word = head.split([' ', '\t']).next().unwrap_or("");
-        let after_word = &head[first_word.len()..];
-        let has_keyword = line.as_bytes().get(level) == Some(&b' ')
-            && self.todo.contains(first_word)
-            && (after_word.is_empty() || after_word.starts_with(' '));
-        let todo = has_keyword.then(|| first_word.to_string());
+        // `org-todo-line-regexp`: spaces, a keyword, then a space or only
+        // blanks up to the end of the line.
+        let spaces = line[level..].bytes().take_while(|b| *b == b' ').count();
+        let after_spaces = &line[level + spaces..];
+        let todo = self
+            .todo
+            .names()
+            .find(|name| {
+                after_spaces
+                    .strip_prefix(name)
+                    .is_some_and(|rest| rest.starts_with(' ') || rest.trim_matches([' ', '\t']).is_empty())
+            })
+            .map(str::to_string);
         let done = todo.as_deref().is_some_and(|word| self.todo.is_done(word));
-        // The element parser needs a space after the keyword.
-        let element_keyword = self.todo.contains(first_word) && after_word.starts_with(' ');
-        let element_done = element_keyword && self.todo.is_done(first_word);
+        let element_done = headline.todo_keyword().is_some_and(|token| self.todo.is_done(token.text()));
 
         let own_tags = headline.tags();
-        let commented = is_commented(&head, element_keyword.then_some(first_word));
         let archived = own_tags.iter().any(|tag| tag == ARCHIVE_TAG);
-        let skip = inherited.skip || commented || archived;
+        let skip = inherited.skip || headline.is_commented() || archived;
 
         let section = headline.section();
         let planning = section.as_ref().and_then(|section| section.children().find(|child| child.kind() == PLANNING));
         let drawer =
             section.as_ref().and_then(|section| section.children().find(|child| child.kind() == PROPERTY_DRAWER));
         let properties = drawer.map(|drawer| properties(&drawer)).unwrap_or_default();
-        let category = property(&properties, "CATEGORY").map_or_else(|| inherited.category.clone(), str::to_string);
+        let category = category_values(&properties, &inherited.category);
 
         // Inherited tags first, the entry's own last; of duplicates the
         // most local one stays.
@@ -203,7 +227,7 @@ impl Outline {
             done,
             element_done,
             tags: deduped,
-            category: category.clone(),
+            category: shown_category(&category),
             skip,
             scheduled: planning.as_ref().and_then(|planning| planning_time(planning, "SCHEDULED:")),
             deadline: planning.as_ref().and_then(|planning| planning_time(planning, "DEADLINE:")),
@@ -219,70 +243,93 @@ impl Outline {
         }
     }
 
-    /// Active timestamps the agenda's plain-timestamp scan accepts: real
-    /// timestamp objects outside planning and clock lines, and anything
-    /// shaped like one in a property value.
+    /// Every place the agenda's scan for plain timestamps can stop, with
+    /// what `org-agenda-get-timestamps` makes of it there.
     fn collect_stamps(&mut self, root: &SyntaxNode, text: &str) {
-        let mut found = Vec::new();
-        for node in root.descendants() {
-            match node.kind() {
-                TIMESTAMP => {
-                    let in_planning = node.parent().is_some_and(|parent| matches!(parent.kind(), PLANNING | CLOCK));
-                    let range = node.text_range();
-                    let (start, end) = (usize::from(range.start()), usize::from(range.end()));
-                    if !in_planning && text.as_bytes()[start] == b'<' {
-                        found.push((start, end));
-                    }
-                }
-                NODE_PROPERTY => {
-                    let value = node
-                        .children_with_tokens()
-                        .filter_map(|child| child.into_token())
-                        .find(|token| token.kind() == PROPERTY_VALUE);
-                    if let Some(value) = value {
-                        let base = usize::from(value.text_range().start());
-                        found.extend(active_timestamps(value.text()).into_iter().map(|(a, b)| (base + a, base + b)));
-                    }
-                }
-                _ => {}
-            }
-        }
-        found.sort_unstable();
-        for (start, end) in found {
-            let Some(entry) = self.entry_at(start) else { continue };
-            // A range is shown as a block, never as a timestamp.
-            if in_date_range(text, start) {
+        let bytes = text.as_bytes();
+        let mut from = 0;
+        while let Some(offset) = text[from..].find('<').map(|index| from + index) {
+            from = offset + 1;
+            let date = is_date_at(bytes, offset + 1).then(|| parse_date(&text[offset + 1..offset + 11]));
+            let repeat_end = repeater_form_end(text, offset);
+            if date.is_none() && repeat_end.is_none() {
                 continue;
             }
-            // Up to the first closing bracket, as `org-ts-regexp-both` reads it.
-            let close = text[start..end].find(['>', ']']).map_or(end, |index| start + index + 1);
-            let stamp_text = &text[start..close];
-            let Some(parsed) = timestr::parse_time_string(stamp_text) else { continue };
-            self.stamps.push(Stamp {
-                offset: start,
-                text: stamp_text.to_string(),
-                entry,
-                date: parsed.date,
-                repeats: ends_in_repeater(stamp_text),
+            // On its date the timestamp is read up to its first closing
+            // bracket; the scan itself stops right after the date.
+            let on_date = date.and_then(|_| {
+                let end = timestamp_end(text, offset)?;
+                let entry = self.stamp_entry(root, text, offset + 11, offset + 11, end)?;
+                Some(Shown { entry, text: text[offset..end].to_string() })
             });
+            let on_repeat = repeat_end.and_then(|end| {
+                let entry = self.stamp_entry(root, text, end, end - 1, end)?;
+                Some(Shown { entry, text: text[offset..end].to_string() })
+            });
+            self.stamps.push(Stamp { offset, date, on_date, repeat_end, on_repeat });
         }
     }
 
-    /// Date ranges, found the way the agenda finds them: by scanning the
-    /// text, wherever they are, except in comments and source blocks.
+    /// The entry a timestamp counts for when the scan stops at `point`, or
+    /// `None` when Org skips it there: in a date range, on a planning
+    /// line, before the first headline, where the text is not a timestamp
+    /// to Org, or in an archived or commented subtree.
+    ///
+    /// `inside` is a byte of the timestamp, used to look at its context;
+    /// `end` is where the timestamp text ends.
+    fn stamp_entry(&self, root: &SyntaxNode, text: &str, point: usize, inside: usize, end: usize) -> Option<usize> {
+        let entry = self.entry_at(point)?;
+        if self.entries[entry].skip || at_date_range(text, point) {
+            return None;
+        }
+        let token = token_at(root, inside)?;
+        let mut in_property = false;
+        let mut timestamp = false;
+        for node in token.parent_ancestors() {
+            match node.kind() {
+                PLANNING => return None,
+                TIMESTAMP => timestamp = !node.parent().is_some_and(|parent| parent.kind() == CLOCK),
+                NODE_PROPERTY => in_property = true,
+                _ => {}
+            }
+        }
+        // In a headline, Org looks for objects in the title as its
+        // commands delimit it, which is not always the parser's title.
+        let headline = &self.entries[entry];
+        if inside < headline.line_end {
+            let line = &text[headline.offset..headline.line_end];
+            let (start, title_end) = complex_heading_title(line, headline.level, &self.todo)?;
+            let start = start + if line[start..].starts_with("COMMENT") { "COMMENT".len() } else { 0 };
+            let (start, title_end) = (headline.offset + start, headline.offset + title_end);
+            return (start <= inside && inside < title_end && (timestamp || end <= title_end)).then_some(entry);
+        }
+        // In a property drawer anything shaped like a timestamp counts.
+        let line_end = text[inside..].find('\n').map_or(text.len(), |index| inside + index);
+        (timestamp || (in_property && end <= line_end)).then_some(entry)
+    }
+
+    /// Date ranges, found the way `org-agenda-get-blocks` finds them: by
+    /// scanning the text, wherever they are, except in comments, source
+    /// blocks and skipped subtrees.
     fn collect_blocks(&mut self, root: &SyntaxNode, text: &str) {
         let mut at = 0;
-        while let Some((start, first, second, end)) = next_date_range(text, at) {
-            at = end;
-            let line_start = text[..start].rfind('\n').map_or(0, |index| index + 1);
-            if text[line_start..].trim_start_matches([' ', '\t']).starts_with('#') {
+        while let Some(range) = next_date_range(text, at) {
+            at = range.end;
+            let line_start = text[..range.end].rfind('\n').map_or(0, |index| index + 1);
+            let line = text[line_start..].trim_start_matches([' ', '\t']);
+            if line.strip_prefix('#').is_some_and(|rest| rest.is_empty() || rest.starts_with([' ', '\n'])) {
                 continue;
             }
-            let Some(entry) = self.entry_at(end) else { continue };
-            if self.entries[entry].skip || in_source_block(root, start) {
+            let Some(entry) = self.entry_at(range.end) else { continue };
+            if self.entries[entry].skip || in_source_block(root, range.end - 1) {
                 continue;
             }
-            self.blocks.push(Block { offset: end, first: first.to_string(), second: second.to_string(), entry });
+            self.blocks.push(Block {
+                offset: range.end,
+                first: text[range.first.0..range.first.1].to_string(),
+                second: text[range.second.0..range.second.1].to_string(),
+                entry,
+            });
         }
     }
 }
@@ -294,22 +341,6 @@ struct Inherited {
     skip: bool,
 }
 
-/// Whether the title starts with `COMMENT`, after keyword and priority.
-fn is_commented(head: &str, keyword: Option<&str>) -> bool {
-    let mut rest = head;
-    if let Some(keyword) = keyword {
-        rest = rest[keyword.len()..].trim_start_matches([' ', '\t']);
-    }
-    // `[#A]`: any single character between the brackets.
-    if let Some(after) = rest.strip_prefix("[#") {
-        let mut chars = after.chars();
-        if chars.next().is_some() && chars.next() == Some(']') {
-            rest = chars.as_str().trim_start_matches([' ', '\t']);
-        }
-    }
-    rest.strip_prefix("COMMENT").is_some_and(|after| after.is_empty() || after.starts_with([' ', '\t']))
-}
-
 fn token_text(node: &SyntaxNode, kind: SyntaxKind) -> Option<String> {
     node.children_with_tokens()
         .filter_map(|child| child.into_token())
@@ -317,8 +348,47 @@ fn token_text(node: &SyntaxNode, kind: SyntaxKind) -> Option<String> {
         .map(|token| token.text().to_string())
 }
 
+/// The title of a headline line as `org-complex-heading-regexp` delimits
+/// it (its fourth group), as a byte range of `line`.
+///
+/// Org's commands use this expression rather than the parser. It wants
+/// spaces, not tabs, before the keyword and the priority, takes any single
+/// character as a priority, and only sees a cookie right after the keyword.
+fn complex_heading_title(line: &str, level: usize, todo: &TodoKeywords) -> Option<(usize, usize)> {
+    // What may end the line after any of the parts: blanks, with tags or without.
+    let is_tail = |rest: &str| {
+        let trimmed = rest.trim_end_matches([' ', '\t']);
+        trimmed.is_empty() || crate::text::tag_group(rest).is_some_and(|(blanks, _)| blanks == 0)
+    };
+    let follows = |rest: &str| rest.starts_with(' ') || is_tail(rest);
+    let spaces = |at: usize| line[at..].bytes().take_while(|b| *b == b' ').count();
+
+    let mut pos = level;
+    let word = pos + spaces(pos);
+    if let Some(keyword) = todo.names().find(|name| line[word..].strip_prefix(name).is_some_and(follows)) {
+        pos = word + keyword.len();
+    }
+    let cookie = pos + spaces(pos);
+    if cookie > pos {
+        if let Some(rest) = line[cookie..].strip_prefix("[#") {
+            let mut chars = rest.chars();
+            if chars.next().is_some() && chars.next() == Some(']') && follows(chars.as_str()) {
+                pos = line.len() - chars.as_str().len();
+            }
+        }
+    }
+    if is_tail(&line[pos..]) {
+        return None;
+    }
+    let start = pos + spaces(pos);
+    let end = match crate::text::tag_group(&line[start..]) {
+        Some((blanks, _)) => start + blanks,
+        None => line.trim_end_matches([' ', '\t']).len(),
+    };
+    (end > start).then_some((start, end))
+}
+
 /// The properties of a drawer, keys without colons and in upper case.
-/// A value of `nil` means the property is not set.
 fn properties(drawer: &SyntaxNode) -> Vec<(String, String)> {
     drawer
         .children()
@@ -331,8 +401,19 @@ fn properties(drawer: &SyntaxNode) -> Vec<(String, String)> {
         .collect()
 }
 
-fn property<'a>(properties: &'a [(String, String)], key: &str) -> Option<&'a str> {
-    properties.iter().find(|(name, value)| name == key && value != "nil").map(|(_, value)| value.as_str())
+/// The `CATEGORY` value a drawer leads to: its own value, or the inherited
+/// one, with any `CATEGORY+` values appended.
+fn category_values(properties: &[(String, String)], inherited: &str) -> String {
+    let own = properties.iter().find(|(name, _)| name == "CATEGORY").map(|(_, value)| value.as_str());
+    let mut values = vec![own.unwrap_or(inherited)];
+    values.extend(properties.iter().filter(|(name, _)| name == "CATEGORY+").map(|(_, value)| value.as_str()));
+    values.join(" ")
+}
+
+/// The category as the agenda shows it. The value `nil` unsets the
+/// property, and Org then has no category at all.
+fn shown_category(value: &str) -> String {
+    if value == "nil" { "???" } else { value }.to_string()
 }
 
 /// Stand-alone keyword lines with the given key, in document order.
@@ -378,35 +459,83 @@ fn planning_time(planning: &SyntaxNode, keyword: &str) -> Option<Planning> {
                 raw: text[1..text.len() - 1].to_string(),
                 offset: node.text_range().start().into(),
                 active: text.starts_with('<'),
+                searchable: false,
             }
         });
     }
-    found
+    let line = planning.text().to_string();
+    found.map(|planning| Planning { searchable: keyword_search_matches(&line, keyword), ..planning })
 }
 
-/// `\+[0-9]+[hdwmy]>` at the end: the only repeater the agenda's scan for
-/// plain timestamps recognises.
-fn ends_in_repeater(stamp: &str) -> bool {
-    let Some(body) = stamp.strip_suffix('>') else { return false };
-    let Some(body) = body.strip_suffix(['h', 'd', 'w', 'm', 'y']) else { return false };
+/// `\<KEYWORD *<[^>]+>` somewhere in `line`: what `org-deadline-time-regexp`
+/// and `org-scheduled-time-regexp` look for.
+fn keyword_search_matches(line: &str, keyword: &str) -> bool {
+    line.match_indices(keyword).any(|(at, _)| {
+        let rest = line[at + keyword.len()..].trim_start_matches(' ');
+        crate::text::word_start(line, at)
+            && rest.strip_prefix('<').is_some_and(|inner| inner.find('>').is_some_and(|close| close > 0))
+    })
+}
+
+fn is_date_at(bytes: &[u8], at: usize) -> bool {
+    bytes.get(at..at + 10).is_some_and(|date| {
+        date.iter().enumerate().all(|(index, b)| match index {
+            4 | 7 => *b == b'-',
+            _ => b.is_ascii_digit(),
+        })
+    })
+}
+
+/// The date in ten bytes that `is_date_at` accepted.
+fn parse_date(text: &str) -> crate::date::Date {
+    let number = |range: std::ops::Range<usize>| text[range].parse().unwrap_or(0);
+    crate::date::Date::new(number(0..4), number(5..7), number(8..10))
+}
+
+/// Where the timestamp that opens at `start` ends (`org-ts-regexp-both`):
+/// a bracket, a date, then the closing bracket or a space and anything up
+/// to the first closing bracket of either kind on the line.
+pub(crate) fn timestamp_end(text: &str, start: usize) -> Option<usize> {
+    let bytes = text.as_bytes();
+    if !matches!(bytes.get(start), Some(b'<' | b'[')) || !is_date_at(bytes, start + 1) {
+        return None;
+    }
+    match bytes.get(start + 11)? {
+        b'>' | b']' => Some(start + 12),
+        b' ' => {
+            let close = bytes[start + 12..].iter().position(|b| matches!(b, b'>' | b']' | b'\n'))?;
+            (bytes[start + 12 + close] != b'\n').then_some(start + 12 + close + 1)
+        }
+        _ => None,
+    }
+}
+
+/// `<[0-9]+-[0-9]+-[0-9]+[^>\n]+?\+[0-9]+[hdwmy]>` at `start`: the only
+/// form in which the agenda's scan recognises a repeating timestamp.
+/// Returns where it ends.
+fn repeater_form_end(text: &str, start: usize) -> Option<usize> {
+    let bytes = text.as_bytes();
+    let mut at = start + 1;
+    for part in 0..3 {
+        let digits = bytes[at..].iter().take_while(|b| b.is_ascii_digit()).count();
+        if digits == 0 || (part < 2 && bytes.get(at + digits) != Some(&b'-')) {
+            return None;
+        }
+        at += digits + usize::from(part < 2);
+    }
+    let close = at + bytes[at..].iter().position(|b| matches!(b, b'>' | b'\n'))?;
+    let body = text[at..close].strip_suffix(['h', 'd', 'w', 'm', 'y'])?;
     let digits = body.bytes().rev().take_while(u8::is_ascii_digit).count();
-    digits > 0 && body[..body.len() - digits].ends_with('+')
+    let before_plus = body.len().checked_sub(digits + 1)?;
+    // At least one character stands between the date and the repeater.
+    (bytes[close] == b'>' && digits > 0 && body.as_bytes()[before_plus] == b'+' && before_plus > 0).then_some(close + 1)
 }
 
 /// Length of `<DATE>` or `<DATE REST>` at the start of `text`
-/// (`org-ts-regexp`): the date, then the closing bracket or a space and
-/// anything up to the first closing bracket on the line.
+/// (`org-ts-regexp`), read as shortly as possible: up to the first `>`.
 pub(crate) fn active_timestamp_len(text: &str) -> Option<usize> {
     let bytes = text.as_bytes();
-    if bytes.first() != Some(&b'<') {
-        return None;
-    }
-    let date = bytes.get(1..11)?;
-    let is_date = date.iter().enumerate().all(|(index, b)| match index {
-        4 | 7 => *b == b'-',
-        _ => b.is_ascii_digit(),
-    });
-    if !is_date {
+    if bytes.first() != Some(&b'<') || !is_date_at(bytes, 1) {
         return None;
     }
     match bytes.get(11)? {
@@ -419,76 +548,101 @@ pub(crate) fn active_timestamp_len(text: &str) -> Option<usize> {
     }
 }
 
-/// Every active timestamp in `text`, as byte ranges.
-fn active_timestamps(text: &str) -> Vec<(usize, usize)> {
-    let mut found = Vec::new();
-    let mut at = 0;
-    while let Some(open) = text[at..].find('<').map(|index| at + index) {
-        match active_timestamp_len(&text[open..]) {
-            Some(len) => {
-                found.push((open, open + len));
-                at = open + len;
-            }
-            None => at = open + 1,
-        }
-    }
-    found
+/// A date range as a regular expression search finds it.
+struct DateRange {
+    /// The two timestamps without their brackets.
+    first: (usize, usize),
+    second: (usize, usize),
+    end: usize,
 }
 
-/// The next `<…>--<…>` at or after `from` (`org-tr-regexp`), with one to
-/// three dashes: its start, the two timestamps without brackets, its end.
-fn next_date_range(text: &str, from: usize) -> Option<(usize, &str, &str, usize)> {
-    let mut at = from;
-    while let Some(open) = text[at..].find('<').map(|index| at + index) {
-        at = open + 1;
-        let Some(first_len) = active_timestamp_len(&text[open..]) else { continue };
-        let rest = &text[open + first_len..];
-        let dashes = rest.bytes().take_while(|b| *b == b'-').count();
-        if !(1..=3).contains(&dashes) {
+/// A date range that starts exactly at `start`: two timestamps joined by
+/// one to three dashes (`org-tr-regexp`, or `org-tr-regexp-both` when
+/// `inactive` also allows square brackets).
+///
+/// Org lets the first timestamp run on, past closing brackets, until one
+/// is followed by dashes and a second timestamp. So in `<A> <B>--<C>` the
+/// range starts at `<A>`.
+fn date_range_at(text: &str, start: usize, inactive: bool) -> Option<DateRange> {
+    let bytes = text.as_bytes();
+    let opens = |b: Option<&u8>| matches!(b, Some(b'<')) || (inactive && matches!(b, Some(b'[')));
+    let closes = |b: u8| b == b'>' || (inactive && b == b']');
+    if !opens(bytes.get(start)) || !is_date_at(bytes, start + 1) {
+        return None;
+    }
+    let line_end = text[start..].find('\n').map_or(text.len(), |index| start + index);
+    // Where the first timestamp may close.
+    let closers: Vec<usize> = match bytes.get(start + 11) {
+        Some(b) if closes(*b) => vec![start + 11],
+        Some(b' ') => (start + 12..line_end).filter(|at| closes(bytes[*at])).collect(),
+        _ => return None,
+    };
+    for close in closers {
+        let dashes = bytes[close + 1..].iter().take_while(|b| **b == b'-').count();
+        let second = close + 1 + dashes;
+        if !(1..=3).contains(&dashes) || !opens(bytes.get(second)) || !is_date_at(bytes, second + 1) {
             continue;
         }
-        let second_start = open + first_len + dashes;
-        let Some(second_len) = active_timestamp_len(&text[second_start..]) else { continue };
-        let first = &text[open + 1..open + first_len - 1];
-        let second = &text[second_start + 1..second_start + second_len - 1];
-        return Some((open, first, second, second_start + second_len));
+        let second_close = match bytes.get(second + 11) {
+            Some(b) if closes(*b) => Some(second + 11),
+            Some(b' ') => (second + 12..line_end).find(|at| closes(bytes[*at])),
+            _ => None,
+        };
+        if let Some(second_close) = second_close {
+            return Some(DateRange {
+                first: (start + 1, close),
+                second: (second + 1, second_close),
+                end: second_close + 1,
+            });
+        }
     }
     None
 }
 
-/// `org-at-date-range-p` for the timestamp starting at `start`: whether it
-/// is the first or the second half of a date range.
-fn in_date_range(text: &str, start: usize) -> bool {
-    if next_date_range(text, start).is_some_and(|(found, ..)| found == start) {
-        return true;
-    }
-    // The second half: look for a range that begins earlier on this line
-    // and whose second timestamp is this one.
-    let line_start = text[..start].rfind('\n').map_or(0, |index| index + 1);
-    let mut at = line_start;
-    while let Some((found, first, _, end)) = next_date_range(text, at) {
-        if found >= start {
-            break;
+/// The next active date range that starts at or after `from`.
+fn next_date_range(text: &str, from: usize) -> Option<DateRange> {
+    let mut at = from;
+    while let Some(open) = text[at..].find('<').map(|index| at + index) {
+        if let Some(range) = date_range_at(text, open, false) {
+            return Some(range);
         }
-        let second_start =
-            found + first.len() + 2 + text[found + first.len() + 2..].bytes().take_while(|b| *b == b'-').count();
-        if second_start == start {
+        at = open + 1;
+    }
+    None
+}
+
+/// `org-at-date-range-p` with inactive ranges allowed: whether `point`
+/// lies in a date range that starts at one of the two brackets before it.
+fn at_date_range(text: &str, point: usize) -> bool {
+    let bytes = text.as_bytes();
+    let mut at = point;
+    for _ in 0..2 {
+        while at > 0 && !matches!(bytes[at - 1], b'[' | b'<' | b'\r' | b'\n') {
+            at -= 1;
+        }
+        while at > 0 && matches!(bytes[at - 1], b'[' | b'<') {
+            at -= 1;
+        }
+        if date_range_at(text, at, true).is_some_and(|range| range.end >= point) {
             return true;
         }
-        at = end.max(found + 1);
     }
     false
 }
 
-/// Whether `offset` lies in the body of a source block.
+/// The token that holds byte `offset`.
+fn token_at(root: &SyntaxNode, offset: usize) -> Option<org_syntax::SyntaxToken> {
+    match root.token_at_offset((offset as u32).into()) {
+        TokenAtOffset::None => None,
+        TokenAtOffset::Single(token) => Some(token),
+        TokenAtOffset::Between(_, right) => Some(right),
+    }
+}
+
+/// Whether byte `offset` lies in the body of a source block.
 fn in_source_block(root: &SyntaxNode, offset: usize) -> bool {
-    let token = match root.token_at_offset((offset as u32).into()) {
-        TokenAtOffset::None => return false,
-        TokenAtOffset::Single(token) => token,
-        TokenAtOffset::Between(_, right) => right,
-    };
-    let in_body = token.kind() == TEXT;
-    in_body
+    let Some(token) = token_at(root, offset) else { return false };
+    token.kind() == TEXT
         && token.parent_ancestors().any(|node| {
             node.kind() == BLOCK
                 && token_text(&node, BLOCK_BEGIN).is_some_and(|begin| begin.eq_ignore_ascii_case("#+begin_src"))
@@ -539,8 +693,7 @@ mod tests {
         assert_eq!(entries[1].category, "sub");
         assert_eq!(entries[2].category, "sub");
         assert!(entries[1].done && entries[1].element_done);
-        // A keyword with nothing after it: a state for Org, not for the element parser.
-        assert!(entries[3].done && !entries[3].element_done);
+        assert!(entries[3].done && entries[3].element_done);
         assert!(entries[4].is_open_todo());
         assert_eq!(entries[5].todo, None);
         assert_eq!(outline.entry_at(0), None);
@@ -552,8 +705,9 @@ mod tests {
         assert_eq!(outline("* a\n").entries[0].category, "notes");
         let with_drawer = outline(":PROPERTIES:\n:CATEGORY: top\n:END:\n#+CATEGORY: kw\n* a\n");
         assert_eq!(with_drawer.entries[0].category, "top");
-        let nil = outline("#+CATEGORY: kw\n* a\n:PROPERTIES:\n:CATEGORY: nil\n:END:\n");
-        assert_eq!(nil.entries[0].category, "kw");
+        let nil = outline("#+CATEGORY: kw\n* a\n:PROPERTIES:\n:CATEGORY: nil\n:END:\n** b\n* c\n:PROPERTIES:\n:CATEGORY+: more\n:END:\n");
+        let categories: Vec<&str> = nil.entries.iter().map(|entry| entry.category.as_str()).collect();
+        assert_eq!(categories, ["???", "???", "kw more"]);
     }
 
     #[test]
@@ -587,8 +741,30 @@ SCHEDULED: <2026-10-05 Mon> SCHEDULED: <2026-10-06 Tue>
         assert_eq!(b.scheduled, None);
         assert_eq!(outline.entries[2].scheduled, None);
         assert_eq!(outline.entries[3].scheduled.as_ref().map(|p| p.raw.as_str()), Some("2026-10-06 Tue"));
+        assert!(a.scheduled.as_ref().is_some_and(|p| p.searchable));
         // Nothing on a planning line is a plain timestamp; `c`'s line is body text.
-        assert_eq!(outline.stamps.iter().map(|s| s.entry).collect::<Vec<_>>(), [2]);
+        let shown: Vec<usize> =
+            outline.stamps.iter().filter_map(|stamp| stamp.on_date.as_ref()).map(|shown| shown.entry).collect();
+        assert_eq!(shown, [2]);
+    }
+
+    #[test]
+    fn keyword_states_follow_org_todo_line_regexp() {
+        let outline = outline("* TODO\n* DONE\t\n* \tDONE x\n* DONE\tx\n*  DONE  x\n");
+        let states: Vec<(Option<&str>, bool)> =
+            outline.entries.iter().map(|entry| (entry.todo.as_deref(), entry.element_done)).collect();
+        assert_eq!(
+            states,
+            [(Some("TODO"), false), (Some("DONE"), false), (None, true), (None, false), (Some("DONE"), true)]
+        );
+    }
+
+    #[test]
+    fn planning_the_agenda_cannot_find() {
+        let outline = outline("* a\nSCHEDULED:\t<2026-10-05 Mon>\n* b\nSCHEDULED:  <2026-10-05 Mon>\n");
+        let searchable: Vec<bool> =
+            outline.entries.iter().map(|entry| entry.scheduled.as_ref().is_some_and(|p| p.searchable)).collect();
+        assert_eq!(searchable, [false, true]);
     }
 
     #[test]
@@ -611,8 +787,12 @@ Body <2026-10-07 Wed +1w> and [2026-10-08 Thu] and <2026-10-09 Fri .+2d -1d>.
 #+end_example
 ";
         let outline = outline(text);
-        let stamps: Vec<(&str, usize, bool)> =
-            outline.stamps.iter().map(|stamp| (stamp.text.as_str(), stamp.entry, stamp.repeats)).collect();
+        let stamps: Vec<(&str, usize, bool)> = outline
+            .stamps
+            .iter()
+            .filter_map(|stamp| Some((stamp.on_date.as_ref()?, stamp.on_repeat.is_some())))
+            .map(|(shown, repeats)| (shown.text.as_str(), shown.entry, repeats))
+            .collect();
         assert_eq!(
             stamps,
             [
@@ -622,6 +802,8 @@ Body <2026-10-07 Wed +1w> and [2026-10-08 Thu] and <2026-10-09 Fri .+2d -1d>.
                 ("<2026-10-09 Fri .+2d -1d>", 0, false),
             ]
         );
+        // The scan also stops at the others, and finds nothing to show.
+        assert_eq!(outline.stamps.len(), 14);
         let blocks: Vec<(&str, &str, usize)> =
             outline.blocks.iter().map(|block| (block.first.as_str(), block.second.as_str(), block.entry)).collect();
         assert_eq!(
@@ -632,5 +814,18 @@ Body <2026-10-07 Wed +1w> and [2026-10-08 Thu] and <2026-10-09 Fri .+2d -1d>.
                 ("2026-10-19 Mon", "2026-10-20 Tue", 1),
             ]
         );
+    }
+
+    #[test]
+    fn a_range_starts_at_the_first_timestamp_on_the_way() {
+        let text = "* a\n<2026-05-17 Sun +1y> <2025-10-13 Mon>--<2026-05-19 Tue 8:00-9:00> x <2026-05-20 Wed>\n";
+        let outline = outline(text);
+        assert_eq!(outline.blocks.len(), 1);
+        assert_eq!(outline.blocks[0].first, "2026-05-17 Sun +1y> <2025-10-13 Mon");
+        assert_eq!(outline.blocks[0].second, "2026-05-19 Tue 8:00-9:00");
+        // Everything inside the range is skipped; what follows it is not.
+        let shown: Vec<&str> =
+            outline.stamps.iter().filter_map(|stamp| stamp.on_date.as_ref()).map(|shown| shown.text.as_str()).collect();
+        assert_eq!(shown, ["<2026-05-20 Wed>"]);
     }
 }
