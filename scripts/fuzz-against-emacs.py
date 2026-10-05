@@ -19,6 +19,9 @@ import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# ORG_LISP_DIR selects an Org checkout instead of the bundled version.
+EMACS = ["emacs", "--batch", "-Q"] + (["-L", os.environ["ORG_LISP_DIR"]] if os.environ.get("ORG_LISP_DIR") else [])
+
 WORDS = ["alpha", "beta", "x", "y_z", "a/b", "foo.", "bar,", "(baz)", "žć", "日本", "1", "2.5", "it's", '"q"']
 
 INLINE = [
@@ -42,6 +45,8 @@ LINE_STARTS = [
     "#+begin_src ", "#+end_src", "#+begin_quote", "#+end_quote", "#+begin_example", "#+end_example", "#+BEGIN: x ",
     "#+END:", ":DRAWER:", ":END:", ":PROPERTIES:", ":ID: ", "SCHEDULED: ", "DEADLINE: ", "CLOSED: ", "CLOCK: ",
     "[fn:1] ", "[fn:b] ", "-----", "%%(", "\\begin{x}", "\\end{x}", "*", "+-+", "- a :: ", "*bold* ",
+    "* TODO", "* TODO\t", "*  TODO  ", "* \tDONE ", "* [#A]", "* [#B]\t", "* [#AB] ", "* TODO [#C]", "* COMMENT ",
+    "* COMMENT\n", "* TODO COMMENT ", "* DONE [#A] COMMENT\t", "*  ", "* \t", "* TODOX ",
 ]
 
 INDENTS = ["", "", "", "", " ", "  ", "  ", "   ", "    ", "\t"]
@@ -90,7 +95,7 @@ def main():
 
     dump = os.path.join(ROOT, "scripts", "org-element-dump.el")
     for start in range(0, len(paths), 200):
-        subprocess.run(["emacs", "--batch", "-Q", "-l", dump, *paths[start : start + 200]], check=True,
+        subprocess.run([*EMACS, "-l", dump, *paths[start : start + 200]], check=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     rejected = [path for path in paths if not os.path.exists(path[:-4] + ".elements")]
     for path in rejected:

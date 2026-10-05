@@ -1,6 +1,6 @@
 //! Names of the entities Org knows (`\alpha`, `\to` …), from `org-entities`.
 //!
-//! Generated from Org 9.6.15; regenerate with `scripts/update-entities.sh`.
+//! Generated from Org 9.8.10; regenerate with `scripts/update-entities.sh`.
 
 /// Sorted for binary search.
 pub(crate) const ENTITIES: &[&str] = &[
@@ -54,6 +54,7 @@ pub(crate) const ENTITIES: &[&str] = &[
     "Oslash",
     "Otilde",
     "Ouml",
+    "P",
     "Phi",
     "Pi",
     "Pr",

@@ -1,0 +1,15 @@
+Global list of TODO items of type: ALL
+  top:        TODO [#7] number                                           :file::
+  top:        TODO [#A]                                        :file::cookietag:
+  top:        TODO [#A] capital                                          :file::
+  top:        TODO Empty tag between two                            :file::a::b:
+  top:        NEXT Child inherits them, the empty one looks local   :file:a:::b:
+  top:        TODO Tags right after the keyword                          :file::
+  top:        TODO                                               :file::onlytag:
+  top:        TODO [#a] small letter is no priority                      :file::
+  top:        TODO last keyword wins                                     :file::
+  top:        TODO inactive is ignored                                   :file::
+  top:        TODO not directly below the headline                       :file::
+  top:        TODO planning range                                        :file::
+  ???:        TODO Child of no category                                  :file::
+  top:        TODO cookie [#C] in the middle                             :file::

@@ -20,9 +20,9 @@ paragraph 668 700 0 668 700
 comment 700 712 0 -1 -1
 paragraph 712 727 0 712 727
 comment 727 770 0 -1 -1
-fixed-width 770 780 1 -1 -1
+fixed-width 770 780 0 -1 -1
 paragraph 780 791 0 780 791
-fixed-width 791 810 1 -1 -1
+fixed-width 791 810 0 -1 -1
 horizontal-rule 810 816 0 -1 -1
 paragraph 816 821 0 816 821
 horizontal-rule 821 834 0 -1 -1

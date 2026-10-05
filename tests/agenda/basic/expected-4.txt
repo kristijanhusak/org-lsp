@@ -1,0 +1,17 @@
+Fortnight-agenda (W43-W44):
+Monday     19 October 2026 W43
+Tuesday    20 October 2026
+  work:        8:00...... Scheduled:  TODO Repeating weekly            :office::
+Wednesday  21 October 2026
+Thursday   22 October 2026
+Friday     23 October 2026
+Saturday   24 October 2026
+Sunday     25 October 2026
+Monday     26 October 2026 W44
+Tuesday    27 October 2026
+  work:        8:00...... Scheduled:  TODO Repeating weekly            :office::
+Wednesday  28 October 2026
+Thursday   29 October 2026
+Friday     30 October 2026
+Saturday   31 October 2026
+Sunday      1 November 2026

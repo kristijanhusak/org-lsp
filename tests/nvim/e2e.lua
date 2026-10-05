@@ -30,6 +30,11 @@ local function press(keys)
   vim.api.nvim_feedkeys(vim.keycode(keys), 'mx', false)
 end
 
+--- A headline with its tags where `org-todo` puts them: ending at column 77.
+local function tagged(headline, tags)
+  return headline .. (' '):rep(77 - vim.fn.strdisplaywidth(headline) - #tags) .. tags
+end
+
 local function line(number)
   return vim.api.nvim_buf_get_lines(0, number - 1, number, false)[1]
 end
@@ -114,24 +119,24 @@ eq(vim.fn.foldclosed(2), -1, 'S-TAB again unfolds it')
 vim.api.nvim_win_set_cursor(0, { 3, 10 })
 press('cit')
 wait('TODO -> DONE', function()
-  return line(2) == '* DONE First *bold* :tag:'
+  return line(2) == tagged('* DONE First *bold*', ':tag:')
 end)
 eq(vim.api.nvim_win_get_cursor(0), { 3, 10 }, 'the cursor does not move')
 -- `.` repeats the action.
 press('.')
 wait('DONE -> none', function()
-  return line(2) == '* First *bold* :tag:'
+  return line(2) == tagged('* First *bold*', ':tag:')
 end)
 press('ciT')
 wait('none -> DONE (backward)', function()
-  return line(2) == '* DONE First *bold* :tag:'
+  return line(2) == tagged('* DONE First *bold*', ':tag:')
 end)
 -- On an empty line, where `g@l` cannot run.
 vim.api.nvim_win_set_cursor(0, { 4, 0 })
 eq(line(4), '', 'line 4 is empty')
 press('cit')
 wait('DONE -> none from an empty line', function()
-  return line(2) == '* First *bold* :tag:'
+  return line(2) == tagged('* First *bold*', ':tag:')
 end)
 -- A headline with wide characters, to exercise position encoding in edits.
 vim.api.nvim_win_set_cursor(0, { 10, 0 })

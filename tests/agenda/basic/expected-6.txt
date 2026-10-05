@@ -1,0 +1,8 @@
+Global list of TODO items of type: ALL
+  work:       TODO [#A] Scheduled in the past with time                :office::
+  work:       TODO Scheduled today                                :office::tag1:
+  work:       TODO Deadline soon                                       :office::
+  work:       TODO Repeating weekly                                    :office::
+  work:       TODO Child with inherited tags                     :office::child:
+  b:          TODO Plain todo in b
+  b:          TODO Timed today

@@ -1,0 +1,32 @@
+*** TODO  :1:
+* TODO :2:
+* :3:
+*  :4:
+* [#A] :5:
+* TODO [#A]  :6:
+* COMMENT :7:
+* TODO
+* TODO	x
+* DONE 
+* [#A]
+* x :a: 
+*  	 :8:
+* COMMENT	:9:
+* COMMENT
+* COMMENT  x
+* TODO [#A] COMMENT z :t:
+* [#A]:a:
+* [#A]x
+* [#AB] x
+* [#	] x
+* 	TODO x
+*  TODO  [#B]  x  
+* TODO
+* TODO 
+* TODO	
+* TODO	x
+* x :a: :b:
+* x :a:b
+* x	:a:	
+* :a: :b:
+*  [#A]

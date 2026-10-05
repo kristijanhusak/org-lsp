@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+"""Differential fuzzing of the agenda against Emacs.
+
+Generates random agenda files, has Emacs print the agenda for them under a
+fixed clock, and runs the agenda test over the same cases. Cases the two
+disagree on stay in the output directory.
+
+    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR]
+
+Requires Emacs, faketime and cargo.
+"""
+
+import argparse
+import datetime
+import json
+import os
+import random
+import subprocess
+import sys
+import tempfile
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from agenda_reference import ROOT, reference  # noqa: E402
+
+WORDS = ["alpha", "beta", "Call", "review", "x", "the", "report", "žć", "日本", "a.b", "(c)", "it's", "100%", "$5"]
+TIMES = ["10:00", "9:30", "09:30", "3pm", "8am-10am", "14:00-15:30", "8:15pm", "24:30", "12am", "7:5", "at 6", "13:00--14:00"]
+TAGS = [":a:", ":work:home:", ":ARCHIVE:", ":x_y:@z:", ":a::b:", ":日本:", ":1:", " :spaced: ", ":a-b:"]
+REPEATERS = ["+1d", "+2d", "+1w", "+2w", "+1m", "+3m", "+1y", "++1w", ".+3d", "+5h", "+30h", "+0d", ".+1m", "++2y"]
+WARNINGS = ["-3d", "-0d", "-2w", "--2d", "-1m", "-10d", "--1w"]
+DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+
+class Generator:
+    def __init__(self, rng, today):
+        self.rng = rng
+        self.today = today
+
+    def pick(self, items):
+        return self.rng.choice(items)
+
+    def chance(self, probability):
+        return self.rng.random() < probability
+
+    def date(self):
+        spread = self.pick([3, 3, 10, 10, 40, 400])
+        day = self.today + datetime.timedelta(days=self.rng.randint(-spread, spread))
+        text = day.strftime("%Y-%m-%d")
+        if self.chance(0.85):
+            # Org does not check the day name, so a wrong one must not matter.
+            text += " " + (day.strftime("%a") if self.chance(0.9) else self.pick(DAY_NAMES))
+        return text
+
+    def stamp(self, active=True, planning=False):
+        body = self.date()
+        if self.chance(0.4):
+            body += " " + self.pick(["10:00", "09:30", "9:30", "14:00-15:30", "23:45", "00:00", "25:00", "8:00-9:00"])
+        if self.chance(0.35):
+            body += " " + self.pick(REPEATERS)
+        if self.chance(0.25 if planning else 0.1):
+            body += " " + self.pick(WARNINGS)
+        if self.chance(0.05):
+            body += self.pick([" ", "  x", " +1w -2d +3d"])
+        open_, close = ("<", ">") if active else ("[", "]")
+        return open_ + body + close
+
+    def range(self):
+        first = self.stamp()
+        return first + self.pick(["--", "--", "-", "---"]) + self.stamp()
+
+    def title(self):
+        parts = []
+        for _ in range(self.rng.randint(0, 4)):
+            roll = self.rng.random()
+            if roll < 0.6:
+                parts.append(self.pick(WORDS))
+            elif roll < 0.75:
+                parts.append(self.pick(TIMES))
+            elif roll < 0.85:
+                parts.append(self.stamp(active=self.chance(0.8)))
+            elif roll < 0.9:
+                parts.append(self.range())
+            else:
+                parts.append(self.pick(["[#A]", "[#C]", "[1/2]", "[[link][desc]]", "*bold*", "COMMENT", "::", "[#1]",
+                                        "[#a]", "[#64]", "[#65]", "[[plain]]", "https://example.com/x"]))
+        return " ".join(parts)
+
+    def headline(self, keywords):
+        line = "*" * self.pick([1, 1, 1, 2, 2, 3])
+        if self.chance(0.6):
+            line += self.pick([" ", " ", " ", " ", "  ", " \t"]) + self.pick(keywords)
+            if self.chance(0.03):
+                line += "\t"
+        if self.chance(0.2):
+            line += self.pick([" [#A]", " [#B]", " [#C]", " [#Z]", "  [#A]", " [#a]", " [#7]", " [#40]", "\t[#A]"])
+        if self.chance(0.06):
+            line += " COMMENT"
+        title = self.title()
+        if title or self.chance(0.9):
+            line += " " + title
+        if self.chance(0.3):
+            line += self.pick([" ", "   ", "\t"]) + self.pick(TAGS)
+        return line
+
+    def planning(self):
+        parts = []
+        for _ in range(self.pick([1, 1, 1, 2, 2, 3])):
+            keyword = self.pick(["SCHEDULED:", "SCHEDULED:", "DEADLINE:", "DEADLINE:", "CLOSED:"])
+            stamp = self.stamp(active=(keyword != "CLOSED:") == self.chance(0.93), planning=True)
+            if self.chance(0.04):
+                stamp = self.range()
+            parts.append(keyword + self.pick([" ", " ", " ", " ", " ", "  ", "", "\t"]) + stamp)
+        return self.pick(["", "", "", "  "]) + " ".join(parts)
+
+    def body_line(self):
+        roll = self.rng.random()
+        if roll < 0.25:
+            return self.pick(WORDS) + " " + self.stamp(active=self.chance(0.8)) + " " + self.pick(WORDS)
+        if roll < 0.35:
+            return self.range() + " " + self.pick(WORDS)
+        if roll < 0.45:
+            return "- " + self.pick(WORDS) + " " + self.stamp()
+        if roll < 0.5:
+            return "# " + self.stamp()
+        if roll < 0.56:
+            return "#+begin_src org\n" + self.stamp() + "\n" + self.range() + "\n#+end_src"
+        if roll < 0.6:
+            return "#+begin_example\n" + self.stamp() + " " + self.range() + "\n#+end_example"
+        if roll < 0.65:
+            return "| " + self.stamp() + " | " + self.pick(WORDS) + " |"
+        if roll < 0.7:
+            return ":LOGBOOK:\n- note " + self.stamp(active=False) + " " + self.stamp() + "\n:END:"
+        if roll < 0.74:
+            return "#+KEY: " + self.stamp()
+        if roll < 0.78:
+            return ": " + self.stamp()
+        if roll < 0.82:
+            return self.planning()
+        if roll < 0.86:
+            return ""
+        return " ".join(self.pick(WORDS) for _ in range(self.rng.randint(1, 4)))
+
+    def document(self):
+        lines = []
+        keywords = ["TODO", "DONE"]
+        if self.chance(0.3):
+            lines.append("#+TODO: TODO NEXT(n) WAIT | DONE CANCELLED")
+            keywords = ["TODO", "NEXT", "WAIT", "DONE", "CANCELLED"]
+        if self.chance(0.3):
+            lines.append("#+CATEGORY: " + self.pick(["work", "home", "日本語", "a-very-long-category", "x"]))
+        if self.chance(0.25):
+            lines.append("#+FILETAGS: " + self.pick([":file:", ":f1:f2:", "f3 :f4:", ":a:"]))
+        if self.chance(0.03):
+            lines.append("#+FILETAGS: :ARCHIVE:")
+        if self.chance(0.1):
+            lines = [":PROPERTIES:", ":CATEGORY: " + self.pick(["top", "nil", ""]), ":END:"] + lines
+        if self.chance(0.2):
+            lines.append(self.body_line())
+        for _ in range(self.rng.randint(1, 12)):
+            lines.append(self.headline(keywords + ["TODO", "TODO"]))
+            if self.chance(0.6):
+                lines.append(self.planning())
+            if self.chance(0.2):
+                drawer = [":PROPERTIES:"]
+                if self.chance(0.6):
+                    drawer.append(self.pick([":CATEGORY: ", ":CATEGORY: ", ":CATEGORY: ", ":category: ", ":CATEGORY+: "])
+                                  + self.pick(["prop", "nil", "cat2", ""]))
+                if self.chance(0.5):
+                    drawer.append(":WHEN: " + self.stamp(active=self.chance(0.8)))
+                drawer.append(":END:")
+                lines.extend(drawer)
+            for _ in range(self.pick([0, 0, 0, 1, 1, 2, 3])):
+                lines.append(self.body_line())
+            if self.chance(0.1):
+                lines.append("#+CATEGORY: " + self.pick(["late", "work"]))
+        return "\n".join(lines) + ("\n" if self.chance(0.95) else "")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--count", type=int, default=200)
+    parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--out", default=None)
+    args = parser.parse_args()
+
+    out = args.out or tempfile.mkdtemp(prefix="org-agenda-fuzz-")
+    os.makedirs(out, exist_ok=True)
+    rng = random.Random(args.seed)
+    # One clock per invocation: Emacs is started once for all cases.
+    today = datetime.date(2026, 1, 1) + datetime.timedelta(days=rng.randint(0, 800))
+    now = f"{rng.randint(0, 23):02}:{rng.randint(0, 59):02}"
+    generator = Generator(rng, today)
+
+    directories = []
+    for index in range(args.count):
+        directory = os.path.join(out, f"case-{args.seed}-{index:04}")
+        os.makedirs(directory, exist_ok=True)
+        for name in rng.sample(["a.org", "b.org", "notes.org"], rng.randint(1, 3)):
+            with open(os.path.join(directory, name), "w", encoding="utf-8") as handle:
+                handle.write(generator.document())
+        offset = rng.randint(-12, 12)
+        other = (today + datetime.timedelta(days=offset)).isoformat()
+        case = {
+            "today": today.isoformat(),
+            "now": now,
+            "runs": [
+                {"view": "agenda", "span": "week"},
+                {"view": "agenda", "span": "day"},
+                {"view": "agenda", "span": rng.choice(["day", "week", 3, "fortnight"]), "start": other},
+                {"view": "todo"},
+            ],
+        }
+        with open(os.path.join(directory, "case.json"), "w", encoding="utf-8") as handle:
+            json.dump(case, handle)
+        directories.append(directory)
+
+    reference(directories)
+    result = subprocess.run(
+        ["cargo", "test", "-q", "-p", "org-lsp", "--test", "agenda"],
+        cwd=ROOT,
+        env=dict(os.environ, ORG_AGENDA_CASES=out),
+        capture_output=True,
+        text=True,
+    )
+    print(f"{args.count} cases, clock {today} {now}; files in {out}")
+    if result.returncode != 0:
+        report = result.stdout + result.stderr
+        start = report.find(" agenda runs differ")
+        start = report.rfind("\n", 0, start) + 1 if start >= 0 else 0
+        end = report.find("stack backtrace", start)
+        print(report[start:end if end >= 0 else None].rstrip())
+    return result.returncode
+
+
+if __name__ == "__main__":
+    sys.exit(main())

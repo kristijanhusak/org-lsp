@@ -1,0 +1,89 @@
+:PROPERTIES:
+:CATEGORY: top
+:END:
+#+FILETAGS: :file:
+#+TODO: TODO NEXT | DONE
+<2026-05-18 Mon> before the first headline is ignored
+* TODO Empty tag between two :a::b:
+SCHEDULED: <2026-05-18 Mon>
+** NEXT Child inherits them, the empty one looks local
+DEADLINE: <2026-05-20 Wed>
+* TODO Tags right after the keyword
+** TODO :onlytag:
+SCHEDULED: <2026-05-18 Mon>
+** TODO [#A] :cookietag:
+SCHEDULED: <2026-05-18 Mon>
+* Links fold: [[https://example.com][site]] and [[plain]] :tag:
+<2026-05-18 Mon>
+* A tab	in the title	moves the tags :tag:
+<2026-05-18 Mon 9:00>
+* Priorities
+** TODO [#A] capital
+SCHEDULED: <2026-05-18 Mon>
+** TODO [#a] small letter is no priority
+SCHEDULED: <2026-05-18 Mon>
+** TODO [#7] number
+SCHEDULED: <2026-05-18 Mon>
+** TODO cookie [#C] in the middle
+SCHEDULED: <2026-05-18 Mon>
+* Commented and archived
+** COMMENT hidden
+SCHEDULED: <2026-05-18 Mon>
+*** TODO hidden with its parent
+** TODO COMMENT hidden too
+SCHEDULED: <2026-05-18 Mon>
+** COMMENTARY is shown
+SCHEDULED: <2026-05-18 Mon>
+** TODO archived :ARCHIVE:
+SCHEDULED: <2026-05-18 Mon>
+* Planning lines
+** TODO last keyword wins
+DEADLINE: <2026-05-19 Tue> DEADLINE: <2026-05-21 Thu>
+** TODO inactive is ignored
+SCHEDULED: [2026-05-18 Mon]
+** TODO not directly below the headline
+
+SCHEDULED: <2026-05-18 Mon>
+** TODO planning range
+SCHEDULED: <2026-05-18 Mon>--<2026-05-20 Wed>
+* Ranges
+** A range starts at the first timestamp on the line
+<2026-05-17 Sun> then <2026-01-01 Thu>--<2026-05-19 Tue 8:00-9:00>
+** One day <2026-05-18 Mon 10:00>--<2026-05-18 Mon 11:00>
+** Three dashes <2026-05-18 Mon>---<2026-05-19 Tue> and one <2026-05-18 Mon>-<2026-05-19 Tue>
+* Timestamps
+** In a property drawer
+:PROPERTIES:
+:WHEN: <2026-05-18 Mon 13:00>
+:END:
+** Repeating <2026-05-11 Mon +1w> and time 3pm in the title
+** Not in comments, keywords, blocks
+# <2026-05-18 Mon>
+#+KEY: <2026-05-18 Mon>
+#+begin_src org
+<2026-05-18 Mon>
+#+end_src
+: <2026-05-18 Mon>
+** But in tables, lists and quotes
+| <2026-05-18 Mon 07:00> |
+- item <2026-05-18 Mon 07:30>
+#+begin_quote
+<2026-05-18 Mon 07:45>
+#+end_quote
+* Categories
+** No category
+:PROPERTIES:
+:CATEGORY: nil
+:END:
+<2026-05-18 Mon>
+*** TODO Child of no category
+** Appended
+:PROPERTIES:
+:CATEGORY+: more
+:END:
+<2026-05-18 Mon>
+** Empty
+:PROPERTIES:
+:CATEGORY:
+:END:
+<2026-05-18 Mon>

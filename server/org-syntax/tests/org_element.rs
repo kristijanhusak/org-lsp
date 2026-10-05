@@ -83,7 +83,7 @@ impl Chars {
 
 fn reference_rows(dump: &str, chars: &Chars) -> BTreeSet<Row> {
     let mut rows = BTreeSet::new();
-    for line in dump.lines() {
+    for line in dump.lines().filter(|line| !line.starts_with('@')) {
         let fields: Vec<&str> = line.split(' ').collect();
         let ty = fields[0];
         if NOT_PARSED_YET.contains(&ty) {
@@ -222,6 +222,33 @@ fn parser_rows(text: &str, chars: &Chars) -> BTreeSet<Row> {
     rows
 }
 
+/// What the two parsers say about one headline: keyword, priority, tags
+/// joined by colons, title.
+type HeadlineFields = (String, i64, String, String);
+
+/// The `@headline` lines of a dump, by character offset.
+fn reference_headlines(dump: &str) -> Vec<(usize, HeadlineFields)> {
+    dump.lines()
+        .filter_map(|line| line.strip_prefix("@headline "))
+        .map(|line| {
+            let fields: Vec<&str> = line.splitn(5, '\t').collect();
+            let headline =
+                (fields[1].to_string(), fields[2].parse().unwrap(), fields[3].to_string(), fields[4].to_string());
+            (fields[0].parse().unwrap(), headline)
+        })
+        .collect()
+}
+
+fn parser_headline(headline: &ast::Headline) -> HeadlineFields {
+    let keyword = headline.todo_keyword().map(|token| token.text().to_string()).unwrap_or_default();
+    // A letter counts as its character code, a number as itself.
+    let priority = headline.priority().map_or(-1, |token| {
+        let value = &token.text()[2..token.text().len() - 1];
+        value.parse().unwrap_or_else(|_| i64::from(value.as_bytes()[0]))
+    });
+    (keyword, priority, headline.tags().join(":"), headline.title_text())
+}
+
 fn fixtures() -> Vec<PathBuf> {
     // `ORG_FIXTURES` points the tests at another directory, which is how
     // `scripts/fuzz-against-emacs.py` feeds them generated documents.
@@ -257,10 +284,29 @@ fn matches_org_element() {
         compared += 1;
         let missing: Vec<_> = expected.difference(&actual).collect();
         let extra: Vec<_> = actual.difference(&expected).collect();
-        if missing.is_empty() && extra.is_empty() {
+
+        // Headline fields, for the headlines both parsers found.
+        let root = parse(&text, &TodoKeywords::default()).syntax();
+        let ours: Vec<(usize, HeadlineFields)> = root
+            .descendants()
+            .filter_map(ast::Headline::cast)
+            .map(|headline| (chars.by_byte[usize::from(headline.syntax().text_range().start())], headline))
+            .map(|(begin, headline)| (begin, parser_headline(&headline)))
+            .collect();
+        let mut field_failures = String::new();
+        for (begin, wanted) in reference_headlines(&dump) {
+            let Some((_, found)) = ours.iter().find(|(offset, _)| *offset == begin) else { continue };
+            if wanted != *found {
+                field_failures
+                    .push_str(&format!("headline at {begin}: org-element {wanted:?}, org-syntax {found:?}\n"));
+            }
+        }
+
+        if missing.is_empty() && extra.is_empty() && field_failures.is_empty() {
             continue;
         }
         failures.push_str(&format!("\n{}\n", path.file_name().unwrap().to_string_lossy()));
+        failures.push_str(&field_failures);
         for row in missing {
             failures.push_str(&format!("only in org-element:{}\n", describe(&chars, row)));
         }

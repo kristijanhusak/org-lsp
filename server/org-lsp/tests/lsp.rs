@@ -265,9 +265,10 @@ fn todo_cycle_round_trip() {
     assert_eq!(actions.len(), 1);
     assert_eq!(actions[0].title, "Cycle TODO state forward (→ DONE)");
     assert_eq!(actions[0].kind, Some(CodeActionKind::new("org.todo.next")));
+    // The keyword changes and, as in Org, the tags move to their column.
     let edit = &edits(&actions[0])[0];
-    assert_eq!(edit.range, Range::new(Position::new(1, 2), Position::new(1, 6)));
-    assert_eq!(edit.new_text, "DONE");
+    assert_eq!(edit.range, Range::new(Position::new(1, 2), Position::new(1, 12)));
+    assert_eq!(edit.new_text, format!("DONE First{}", " ".repeat(59)));
     // Without `documentChanges` support the plain `changes` form is used.
     assert!(actions[0].edit.as_ref().unwrap().document_changes.is_none());
 
@@ -283,8 +284,8 @@ fn todo_cycle_round_trip() {
     let actions = client.code_actions(&uri(), cursor, "org.todo.next");
     assert_eq!(actions[0].title, "Cycle TODO state forward (→ none)");
     let edit = &edits(&actions[0])[0];
-    assert_eq!(edit.range, Range::new(Position::new(1, 2), Position::new(1, 7)));
-    assert_eq!(edit.new_text, "");
+    assert_eq!(edit.range, Range::new(Position::new(1, 2), Position::new(1, 12)));
+    assert_eq!(edit.new_text, format!("First{}", " ".repeat(5)));
 
     // Asking for every Org action returns both directions.
     assert_eq!(client.code_actions(&uri(), cursor, "org").len(), 2);

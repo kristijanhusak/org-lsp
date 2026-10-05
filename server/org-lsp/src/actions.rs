@@ -1,11 +1,13 @@
 //! Code actions: Org commands that edit the document.
 //!
-//! Each action has a stable kind (`org.todo.next`, …) so that editors can
-//! bind a key to it: they request code actions with `only` set to that kind
-//! and apply the single result. The kinds are listed in `docs/protocol.md`.
+//! Each action has a stable kind (`org.todo.next`, …), which is also the
+//! name of the command that does the same through
+//! `workspace/executeCommand`. The kinds are listed in `docs/protocol.md`.
 
-use lsp_types::{CodeAction, CodeActionKind, TextEdit};
-use org_syntax::{ast, ast::Headline, SyntaxKind, SyntaxNode, TextRange, TextSize, TodoKeywords};
+use lsp_types::{CodeAction, CodeActionKind};
+use org_core::date::DateTime;
+use org_core::todo::{self, Settings, Target};
+use org_syntax::{ast, SyntaxNode, TextRange, TextSize, TodoKeywords};
 
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
@@ -35,15 +37,60 @@ pub struct Edit {
 pub struct Action {
     pub kind: &'static str,
     pub title: String,
-    pub edit: Edit,
+    /// In document order, without overlap.
+    pub edits: Vec<Edit>,
+}
+
+/// The edits that change the TODO state of the entry containing `offset`,
+/// with everything `org-todo` does around it: logging, repeaters, tags,
+/// statistics cookies.
+pub fn todo_edits(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    target: &Target,
+    settings: &Settings,
+    now: DateTime,
+) -> Result<Vec<Edit>, String> {
+    let changed = todo::change_state(text, keywords, offset, target, settings, now)?;
+    // Line edits to byte ranges of the old text.
+    let mut starts: Vec<usize> = vec![0];
+    starts.extend(text.match_indices('\n').map(|(index, _)| index + 1));
+    let offset_of = |line: usize| starts.get(line).copied().unwrap_or(text.len()).min(text.len());
+    let edits = todo::edits(text, &changed)
+        .into_iter()
+        .map(|edit| {
+            // Narrow the edit to what really changes, so that the cursor
+            // and marks around it stay where they are.
+            let (start, end) = (offset_of(edit.start), offset_of(edit.end));
+            let (old, new) = (&text[start..end], edit.text.as_str());
+            let prefix: usize =
+                old.chars().zip(new.chars()).take_while(|(a, b)| a == b).map(|(a, _)| a.len_utf8()).sum();
+            let suffix: usize = old[prefix..]
+                .chars()
+                .rev()
+                .zip(new[prefix..].chars().rev())
+                .take_while(|(a, b)| a == b)
+                .map(|(a, _)| a.len_utf8())
+                .sum();
+            Edit {
+                range: TextRange::new(TextSize::new((start + prefix) as u32), TextSize::new((end - suffix) as u32)),
+                new_text: new[prefix..new.len() - suffix].to_string(),
+            }
+        })
+        .collect();
+    Ok(edits)
 }
 
 /// The actions available with the cursor at `offset`.
 pub fn actions(
     root: &SyntaxNode,
+    text: &str,
     todo: &TodoKeywords,
     offset: TextSize,
     only: Option<&[CodeActionKind]>,
+    settings: &Settings,
+    now: DateTime,
 ) -> Vec<Action> {
     let Some(headline) = ast::headline_at(root, offset) else { return Vec::new() };
     let mut out = Vec::new();
@@ -52,48 +99,22 @@ pub fn actions(
     }
     let current = headline.todo_keyword();
     let current = current.as_ref().map(|token| token.text());
-    for (kind, direction, target) in
-        [(TODO_NEXT, "forward", todo.next(current)), (TODO_PREVIOUS, "backward", todo.previous(current))]
-    {
-        if requested(kind, only) {
+    for (kind, direction, target, to) in [
+        (TODO_NEXT, "forward", Target::Next, todo.next(current)),
+        (TODO_PREVIOUS, "backward", Target::Previous, todo.previous(current)),
+    ] {
+        if !requested(kind, only) {
+            continue;
+        }
+        if let Ok(edits) = todo_edits(text, todo, offset.into(), &target, settings, now) {
             out.push(Action {
                 kind,
-                title: format!("Cycle TODO state {direction} (→ {})", target.unwrap_or("none")),
-                edit: set_todo_keyword(&headline, target),
+                title: format!("Cycle TODO state {direction} (→ {})", to.unwrap_or("none")),
+                edits,
             });
         }
     }
     out
-}
-
-/// The edit that gives `headline` the keyword `target`, or removes its keyword.
-fn set_todo_keyword(headline: &Headline, target: Option<&str>) -> Edit {
-    match (headline.todo_keyword(), target) {
-        (Some(current), Some(target)) => Edit { range: current.text_range(), new_text: target.to_string() },
-        (Some(current), None) => {
-            // Remove the keyword together with the blanks that follow it.
-            let end = match current.next_token() {
-                Some(next) if next.kind() == SyntaxKind::WHITESPACE => next.text_range().end(),
-                _ => current.text_range().end(),
-            };
-            Edit { range: TextRange::new(current.text_range().start(), end), new_text: String::new() }
-        }
-        (None, target) => {
-            // Insert after the stars and their blank, before whatever follows.
-            let stars = headline.stars();
-            let at = match stars.next_token() {
-                Some(next) if next.kind() == SyntaxKind::WHITESPACE => next.text_range().end(),
-                _ => stars.text_range().end(),
-            };
-            let line_end = headline.line_range().end();
-            let new_text = match target {
-                Some(target) if at == line_end => target.to_string(),
-                Some(target) => format!("{target} "),
-                None => String::new(),
-            };
-            Edit { range: TextRange::empty(at), new_text }
-        }
-    }
 }
 
 impl Action {
@@ -111,14 +132,10 @@ impl Action {
     }
 }
 
-impl Edit {
-    pub fn to_lsp(&self, range: lsp_types::Range) -> TextEdit {
-        TextEdit { range, new_text: self.new_text.clone() }
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use org_core::date::Date;
+
     use super::*;
 
     /// Apply the action of `kind` with the cursor at `¦` and return the new text.
@@ -127,14 +144,22 @@ mod tests {
         let text = marked.replacen('¦', "", 1);
         let parse = org_syntax::parse(&text, &TodoKeywords::default());
         let only = [CodeActionKind::from(kind.to_string())];
-        let found = actions(&parse.syntax(), parse.todo_keywords(), TextSize::new(offset as u32), Some(&only));
+        let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);
+        let found = actions(
+            &parse.syntax(),
+            &text,
+            parse.todo_keywords(),
+            TextSize::new(offset as u32),
+            Some(&only),
+            &Settings::default(),
+            now,
+        );
         assert!(found.len() <= 1);
         let action = found.into_iter().next()?;
         let mut text = text;
-        text.replace_range(
-            usize::from(action.edit.range.start())..usize::from(action.edit.range.end()),
-            &action.edit.new_text,
-        );
+        for edit in action.edits.iter().rev() {
+            text.replace_range(usize::from(edit.range.start())..usize::from(edit.range.end()), &edit.new_text);
+        }
         Some(text)
     }
 
@@ -161,20 +186,18 @@ mod tests {
     }
 
     #[test]
-    fn keeps_priority_tags_and_spacing() {
-        assert_eq!(next("** [#A] Title¦   :tag:\n"), "** TODO [#A] Title   :tag:\n");
-        assert_eq!(next("** TODO   [#A] Title :tag:¦\n"), "** DONE   [#A] Title :tag:\n");
-        assert_eq!(next("** DONE   [#A] Title :tag:¦\n"), "** [#A] Title :tag:\n");
-        assert_eq!(next("* ¦:tag:\n"), "* TODO :tag:\n");
+    fn keeps_the_priority_and_realigns_tags() {
+        // Tags end at column 77, as `org-tags-column` asks.
+        assert_eq!(next("** [#A] Title¦   :tag:\n"), format!("** TODO [#A] Title{}:tag:\n", " ".repeat(54)));
+        assert_eq!(next("** TODO   [#A] Title :tag:¦\n"), format!("** DONE [#A] Title{}:tag:\n", " ".repeat(54)));
     }
 
     #[test]
     fn empty_and_keyword_only_headlines() {
-        assert_eq!(next("* ¦"), "* TODO");
-        assert_eq!(next("* ¦\n"), "* TODO\n");
-        assert_eq!(next("* TODO¦\n"), "* DONE\n");
+        // Org leaves a blank after the keyword.
+        assert_eq!(next("* ¦"), "* TODO ");
+        assert_eq!(next("* TODO¦\n"), "* DONE \n");
         assert_eq!(next("* DONE¦\n"), "* \n");
-        // The result is still a headline with the expected keyword.
         let text = next("* ¦\n");
         let parse = org_syntax::parse(&text, &TodoKeywords::default());
         let headline = ast::headlines(&parse.syntax()).next().unwrap();
@@ -205,14 +228,42 @@ mod tests {
     }
 
     #[test]
+    fn a_repeating_entry_moves_on_and_its_parent_counts() {
+        // As in Org, a note written at the very end gets no line break.
+        let text = "* Project [0/1]\n** TODO Water plants¦\nSCHEDULED: <2026-05-16 Sat +1w>\n";
+        assert_eq!(
+            next(text),
+            "\
+* Project [0/1]
+** TODO Water plants
+SCHEDULED: <2026-05-23 Sat +1w>
+:PROPERTIES:
+:LAST_REPEAT: [2026-05-18 Mon 10:30]
+:END:
+- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+        );
+        let done = next("* Project [0/2]\n** TODO a¦\n** TODO b\n");
+        assert_eq!(done, "* Project [1/2]\n** DONE a\n** TODO b\n");
+    }
+
+    #[test]
     fn only_filters_by_kind_prefix() {
         let kinds = |only: &[&str]| -> Vec<&'static str> {
             let only: Vec<CodeActionKind> = only.iter().map(|kind| CodeActionKind::from(kind.to_string())).collect();
             let parse = org_syntax::parse("* a\n", &TodoKeywords::default());
-            actions(&parse.syntax(), parse.todo_keywords(), TextSize::new(0), Some(&only))
-                .into_iter()
-                .map(|action| action.kind)
-                .collect()
+            let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);
+            actions(
+                &parse.syntax(),
+                "* a\n",
+                parse.todo_keywords(),
+                TextSize::new(0),
+                Some(&only),
+                &Settings::default(),
+                now,
+            )
+            .into_iter()
+            .map(|action| action.kind)
+            .collect()
         };
         assert_eq!(kinds(&["org"]), [TODO_NEXT, TODO_PREVIOUS]);
         assert_eq!(kinds(&["org.todo"]), [TODO_NEXT, TODO_PREVIOUS]);

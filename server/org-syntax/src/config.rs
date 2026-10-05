@@ -1,12 +1,32 @@
 //! Parse configuration: the TODO keywords that are valid in a document.
 
+/// Whether a state change is recorded, as the keyword's definition asks:
+/// `WAIT(w@/!)` records a note on entering and a time on leaving.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Logging {
+    /// `!`: a line with the time.
+    Time,
+    /// `@`: a line with the time and a note.
+    Note,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Keyword {
+    name: String,
+    done: bool,
+    /// Index of the first keyword of the sequence this one belongs to.
+    head: usize,
+    on_entering: Option<Logging>,
+    on_leaving: Option<Logging>,
+}
+
 /// An ordered set of TODO keywords, each marked as "done" or not.
 ///
 /// The order is the cycling order. With several sequences (several `#+TODO:`
 /// lines) the keywords are concatenated, matching `org-todo-keywords-1`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TodoKeywords {
-    keywords: Vec<(String, bool)>,
+    keywords: Vec<Keyword>,
 }
 
 impl Default for TodoKeywords {
@@ -15,11 +35,36 @@ impl Default for TodoKeywords {
     }
 }
 
+/// Split `WAIT(w@/!)` into the name and what to log on entering and on
+/// leaving the state.
+fn keyword_definition(word: &str) -> (&str, Option<Logging>, Option<Logging>) {
+    let Some(open) = word.find('(').filter(|_| word.ends_with(')')) else { return (word, None, None) };
+    let options = &word[open + 1..word.len() - 1];
+    let logging = |c: Option<char>| match c {
+        Some('!') => Some(Logging::Time),
+        Some('@') => Some(Logging::Note),
+        _ => None,
+    };
+    // An optional selection key, then `!` or `@`, then `/` and the same
+    // for leaving.
+    let mut chars = options.chars().peekable();
+    if chars.peek().is_some_and(|c| !matches!(c, '!' | '@' | '/')) {
+        chars.next();
+    }
+    let entering = logging(chars.peek().copied());
+    if entering.is_some() {
+        chars.next();
+    }
+    let leaving = if chars.next() == Some('/') { logging(chars.next()) } else { None };
+    (&word[..open], entering, leaving)
+}
+
 impl TodoKeywords {
     /// Build from one sequence written the Org way: `["TODO", "NEXT", "|", "DONE"]`.
     ///
     /// Without a `|` separator the last keyword is the only "done" state.
-    /// Fast-access suffixes such as `TODO(t)` or `WAIT(w@/!)` are stripped.
+    /// A keyword may carry a selection key and logging marks, as in
+    /// `TODO(t)` or `WAIT(w@/!)`.
     pub fn from_sequence<I, S>(words: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -35,19 +80,27 @@ impl TodoKeywords {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let words: Vec<String> =
-            words.into_iter().map(|w| strip_fast_key(w.as_ref()).to_string()).filter(|w| !w.is_empty()).collect();
-        let separator = words.iter().position(|w| w == "|");
-        let names: Vec<&String> = words.iter().filter(|w| *w != "|").collect();
+        let words: Vec<String> = words.into_iter().map(|w| w.as_ref().to_string()).collect();
+        let definitions: Vec<(&str, Option<Logging>, Option<Logging>)> =
+            words.iter().map(|word| keyword_definition(word)).filter(|(name, ..)| !name.is_empty()).collect();
+        let separator = definitions.iter().position(|(name, ..)| *name == "|");
+        let names: Vec<_> = definitions.iter().filter(|(name, ..)| *name != "|").collect();
         let first_done = match separator {
             Some(index) => index,
             None => names.len().saturating_sub(1),
         };
-        for (index, name) in names.into_iter().enumerate() {
-            if self.keywords.iter().any(|(existing, _)| existing == name) {
+        let head = self.keywords.len();
+        for (index, (name, on_entering, on_leaving)) in names.into_iter().enumerate() {
+            if self.contains(name) {
                 continue;
             }
-            self.keywords.push((name.clone(), index >= first_done));
+            self.keywords.push(Keyword {
+                name: name.to_string(),
+                done: index >= first_done,
+                head,
+                on_entering: *on_entering,
+                on_leaving: *on_leaving,
+            });
         }
     }
 
@@ -82,44 +135,63 @@ impl TodoKeywords {
 
     /// All keywords in cycling order.
     pub fn names(&self) -> impl Iterator<Item = &str> {
-        self.keywords.iter().map(|(name, _)| name.as_str())
+        self.keywords.iter().map(|keyword| keyword.name.as_str())
+    }
+
+    fn get(&self, word: &str) -> Option<&Keyword> {
+        self.keywords.iter().find(|keyword| keyword.name == word)
     }
 
     pub fn contains(&self, word: &str) -> bool {
-        self.keywords.iter().any(|(name, _)| name == word)
+        self.get(word).is_some()
     }
 
     /// Whether `word` is a keyword that marks an entry as finished.
     pub fn is_done(&self, word: &str) -> bool {
-        self.keywords.iter().any(|(name, done)| *done && name == word)
+        self.get(word).is_some_and(|keyword| keyword.done)
+    }
+
+    /// The first keyword of the sequence `word` belongs to.
+    pub fn head(&self, word: &str) -> Option<&str> {
+        let keyword = self.get(word)?;
+        self.keywords.get(keyword.head).map(|head| head.name.as_str())
+    }
+
+    /// What to record when an entry enters the state `word`.
+    pub fn logs_entering(&self, word: &str) -> Option<Logging> {
+        self.get(word)?.on_entering
+    }
+
+    /// What to record when an entry leaves the state `word`, unless the
+    /// new state records something itself.
+    pub fn logs_leaving(&self, word: &str) -> Option<Logging> {
+        self.get(word)?.on_leaving
+    }
+
+    /// Whether any keyword asks for state changes to be recorded.
+    pub fn logs_any(&self) -> bool {
+        self.keywords.iter().any(|keyword| keyword.on_entering.is_some() || keyword.on_leaving.is_some())
     }
 
     /// The state after `current` when cycling forward; `None` means "no keyword".
     pub fn next(&self, current: Option<&str>) -> Option<&str> {
         match current.and_then(|word| self.position(word)) {
-            None => self.keywords.first().map(|(name, _)| name.as_str()),
-            Some(index) => self.keywords.get(index + 1).map(|(name, _)| name.as_str()),
+            None => self.keywords.first().map(|keyword| keyword.name.as_str()),
+            Some(index) => self.keywords.get(index + 1).map(|keyword| keyword.name.as_str()),
         }
     }
 
     /// The state before `current` when cycling backward; `None` means "no keyword".
     pub fn previous(&self, current: Option<&str>) -> Option<&str> {
         match current.and_then(|word| self.position(word)) {
-            None => self.keywords.last().map(|(name, _)| name.as_str()),
+            None => self.keywords.last().map(|keyword| keyword.name.as_str()),
             Some(0) => None,
-            Some(index) => self.keywords.get(index - 1).map(|(name, _)| name.as_str()),
+            Some(index) => self.keywords.get(index - 1).map(|keyword| keyword.name.as_str()),
         }
     }
 
     fn position(&self, word: &str) -> Option<usize> {
-        self.keywords.iter().position(|(name, _)| name == word)
-    }
-}
-
-fn strip_fast_key(word: &str) -> &str {
-    match word.find('(') {
-        Some(index) if word.ends_with(')') => &word[..index],
-        _ => word,
+        self.keywords.iter().position(|keyword| keyword.name == word)
     }
 }
 
@@ -162,5 +234,21 @@ mod tests {
         assert!(!kw.is_done("A"));
         assert!(kw.is_done("B"));
         assert_eq!(TodoKeywords::from_document("* TODO x\n"), None);
+    }
+
+    #[test]
+    fn logging_marks_and_sequence_heads() {
+        let text = "#+TODO: TODO(t) WAIT(w@/!) | DONE(d!) GONE(@)\n#+TODO: A(!/@) | B(/!)\n";
+        let kw = TodoKeywords::from_document(text).unwrap();
+        assert_eq!((kw.logs_entering("TODO"), kw.logs_leaving("TODO")), (None, None));
+        assert_eq!((kw.logs_entering("WAIT"), kw.logs_leaving("WAIT")), (Some(Logging::Note), Some(Logging::Time)));
+        assert_eq!(kw.logs_entering("DONE"), Some(Logging::Time));
+        assert_eq!(kw.logs_entering("GONE"), Some(Logging::Note));
+        assert_eq!((kw.logs_entering("A"), kw.logs_leaving("A")), (Some(Logging::Time), Some(Logging::Note)));
+        assert_eq!((kw.logs_entering("B"), kw.logs_leaving("B")), (None, Some(Logging::Time)));
+        assert_eq!(kw.head("GONE"), Some("TODO"));
+        assert_eq!(kw.head("B"), Some("A"));
+        assert_eq!(kw.head("nope"), None);
+        assert!(kw.logs_any() && !TodoKeywords::default().logs_any());
     }
 }

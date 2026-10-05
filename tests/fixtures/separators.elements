@@ -29,10 +29,11 @@ paragraph 504 509 0 504 509
 clock 509 539 0 -1 -1
 paragraph 539 544 0 539 544
 clock 544 598 0 -1 -1
-paragraph 598 759 0 598 759
+paragraph 598 698 0 598 698
 timestamp 605 652 1 -1 -1
 timestamp 666 689 1 -1 -1
-timestamp 706 728 0 -1 -1
+clock 698 729 0 -1 -1
+paragraph 729 759 0 729 759
 timestamp 736 758 0 -1 -1
 clock 759 779 0 -1 -1
 paragraph 779 824 0 779 824
@@ -55,8 +56,8 @@ table-row 958 964 0 959 963
 table-cell 959 963 0 960 961
 keyword 978 995 0 -1 -1
 keyword 995 1011 0 -1 -1
-fixed-width 1011 1019 1 -1 -1
+fixed-width 1011 1019 0 -1 -1
 paragraph 1019 1028 0 1019 1028
-fixed-width 1028 1030 1 -1 -1
+fixed-width 1028 1030 0 -1 -1
 comment 1030 1032 0 -1 -1
 paragraph 1032 1045 0 1032 1045

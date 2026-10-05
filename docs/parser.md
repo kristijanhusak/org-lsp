@@ -28,30 +28,40 @@ The document is reparsed in full on every change. In a release build, a
 
 ## Conformance
 
+The reference is Org 9.8.10, the latest release, not the older Org bundled
+with Emacs. Set `ORG_LISP_DIR` to the `lisp` directory of an Org checkout
+and the scripts below use that version.
+
 `tests/fixtures/*.org` are parsed by both this parser and Emacs
-(`scripts/org-element-dump.el`, Org 9.6.15). The test
+(`scripts/org-element-dump.el`). The test
 `server/org-syntax/tests/org_element.rs` requires the same set of elements
-and objects, with the same types, at the same positions.
+and objects, with the same types, at the same positions, and for every
+headline the same keyword, priority, tags and title.
 
 `scripts/fuzz-against-emacs.py` does the same for randomly generated
 documents. Several thousand have been compared.
 
 Known differences from `org-element`:
 
-- `* TODO` with nothing after the keyword. Org 9.6's parser wants a space
-  after the keyword and reads `TODO` as the title; the rest of Org treats it
-  as a keyword, and so does this parser.
+- A priority cookie holds a capital letter or a number. Org's expression
+  also takes a small letter (`[#a]`) when it runs with case folding on,
+  which depends on the command: the parser does, the agenda does not. Here
+  a small letter is never a priority.
+- Org takes the first priority cookie on the headline, wherever it is, and
+  drops what stands before it from the title (`* foo [#A] bar` has the title
+  `bar`). The cookie is a priority here too; the text before it stays in the
+  tree as plain text.
 - Radio links (text that matches a `<<<radio target>>>` elsewhere) are not
   recognised.
-- `table.el` tables and inline tasks are not recognised; they parse as
-  paragraphs and headlines.
+- Inline tasks are not recognised; they parse as headlines.
 - Line breaks (`\\` at the end of a line) are not a separate node.
-- Citations are a single node; their references are not split out.
+- Citations are a single node: their references are not split out, and
+  objects in their prefixes and suffixes are not parsed.
 - A `#+TBLFM:` line that follows a table inside a list item, but is indented
   less than the item, ends the item here. In Org the table reaches past the
   end of the item that contains it.
-- Timestamps that make Org itself signal an error, such as
-  `<2026-1-1 Thu +1w>`, are plain text.
+- A document that is nothing but blanks without a line end has no paragraph
+  here; Org makes one.
 
 ## Limits
 
