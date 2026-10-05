@@ -21,6 +21,7 @@ All commands are in the Command Palette under **Org**.
 | `Org: Change the TODO state` | Org's `C-c C-t` (`t` in the agenda): with keys on the keywords (`TODO(t)`), pick one from a list; else the next state. A state with `@` asks for its note |
 | `Org: Cycle TODO state forward` / `backward` | Changes the entry under the cursor, in an Org file or on an agenda line |
 | `Org: Raise the priority` / `Lower the priority` | The same, for the priority |
+| `Org: Capture` | Org's `org-capture`: pick a template, answer its prompts, and edit the entry in a capture buffer; `Ctrl+C Ctrl+C` there files it, `Ctrl+C Ctrl+K` gives up, `Ctrl+C Ctrl+W` refiles it. Templates are `org-lsp.settings.captureTemplates` |
 | `Org: Refile the entry` | Org's `C-c C-w` (also in the agenda): pick a target from a list; see `refileTargets` |
 | `Org: Set the priority` | Asks for it, as Org's `C-c ,` does (`,` in the agenda); a space removes it |
 | `Org: Increase` / `Decrease the part of the timestamp at the cursor` | The year, month, day, hour or minute under the cursor, as Org's `S-<up>` / `S-<down>` |
@@ -46,31 +47,21 @@ with the day you moved to, if you did), `q` or `Ctrl+G` to give up.
 
 ## Keys
 
-The agenda is read-only, so it has Org's single-letter keys:
+Emacs's keys are bound where they take nothing from the editor: in the
+agenda (`f`, `b`, `t`, `+`, `Enter`, …), in the date prompt, and in capture
+buffers (`Ctrl+C Ctrl+C`). After a change of priority or date in the
+agenda, the cursor goes with the entry to its new line.
 
-| Key | In the agenda |
-| --- | --- |
-| `f` / `b` | Later / earlier |
-| `.` | Today |
-| `d`, `w`, `v d`, `v w`, `v t`, `v m`, `v y` | Day, week, fortnight, month, year |
-| `r` or `g` | Rebuild |
-| `t` | Next TODO state of the entry |
-| `+` / `-`, `Shift+Up` / `Shift+Down` | Raise / lower the entry's priority |
-| `Shift+Right` / `Shift+Left` | Move the entry's date a day later / earlier |
-| `Enter` or `Tab` | Go to the entry |
-| `s` or `Ctrl+X Ctrl+S` | Save all Org files with changes |
-
-After a change of priority or date, the cursor goes with the entry to
-its new line.
-
-No keys are bound in Org files: Emacs's keys there (`C-c C-t`,
-`S-<right>`) would take over copying and selecting. Add your own in
-`keybindings.json`:
+Org files get no keys, because Emacs's keys there (`C-c C-t`, `S-<right>`)
+would take over copying and selecting. Add your own in `keybindings.json`:
 
 ```json
-{ "key": "alt+t", "command": "org.todo.next", "when": "editorTextFocus && editorLangId == 'org'" },
+{ "key": "alt+t", "command": "org.todo", "when": "editorTextFocus && editorLangId == 'org'" },
 { "key": "alt+up", "command": "org.shift.up", "when": "editorTextFocus && editorLangId == 'org'" }
 ```
+
+[docs/keys/vscode.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/keys/vscode.md) lists every key and
+command, and how to add, change and remove keys.
 
 ## Settings
 

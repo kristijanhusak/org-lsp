@@ -32,12 +32,17 @@ writeFileSync(
   join(workspace, 'home.org'),
   ['* TODO Water plants', 'SCHEDULED: <2026-05-16 Sat +1w>', '* DONE Buy milk', ''].join('\n'),
 );
+// Captures go to a file outside the workspace, so that the agenda does not see them.
+const captured = join(mkdtempSync(join(tmpdir(), 'org-lsp-vscode-capture-')), 'inbox.org');
 mkdirSync(join(workspace, '.vscode'));
 writeFileSync(
   join(workspace, '.vscode', 'settings.json'),
   JSON.stringify({
     'org-lsp.server.path': server,
-    'org-lsp.settings': { clock: { today: '2026-05-18', now: '10:30' } },
+    'org-lsp.settings': {
+      clock: { today: '2026-05-18', now: '10:30' },
+      captureTemplates: [{ key: 't', description: 'Task', target: ['file', captured], template: '* TODO %?' }],
+    },
   }),
 );
 
@@ -46,7 +51,7 @@ try {
     vscodeExecutablePath: process.env.VSCODE_EXECUTABLE || undefined,
     extensionDevelopmentPath: resolve('.'),
     extensionTestsPath: resolve('test', 'suite.cjs'),
-    extensionTestsEnv: { ORG_LSP_TEST_WORKSPACE: workspace },
+    extensionTestsEnv: { ORG_LSP_TEST_WORKSPACE: workspace, ORG_LSP_TEST_CAPTURED: captured },
     launchArgs: [workspace, '--disable-extensions', '--disable-gpu', '--no-sandbox', '--disable-workspace-trust'],
   });
 } catch (error) {

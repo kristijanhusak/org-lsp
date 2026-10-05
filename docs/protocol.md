@@ -57,6 +57,9 @@ camel case; the agenda's lose their `org-agenda-` prefix and live under
 | `refileTargets` | `object[]` | the top-level headlines of the entry's file | `org-refile-targets`: each `{ "files": "current" \| "agenda" \| path \| paths, and one of "level", "maxLevel", "tag", "todo", "regexp" (the Rust `regex` crate's syntax), "all": true }`. |
 | `refileUseOutlinePath` | `boolean \| string` | `false` | `org-refile-use-outline-path`: `true`, `"file"`, `"full-file-path"` or `"title"` name targets by their outline path (`Projects/Alpha/`); the last three start with the file and offer the file itself, for the top level. |
 | `reverseNoteOrder` | `boolean` | `false` | `org-reverse-note-order`: a refiled entry goes first under its target, not last. |
+| `captureTemplates` | `object[]` | Org's default: a TODO under "Tasks" in `defaultNotesFile` | `org-capture-templates`: each `{ "key", "description", "type": "entry" \| "plain", "target": ["file", path] \| ["file+headline", path, headline] \| ["file+olp", path, headline…], "template": text or lines, "prepend", "emptyLines", "emptyLinesBefore", "emptyLinesAfter", "immediateFinish" }`; one with only a key and a description groups the keys that start with it. |
+| `orgDirectory` | `string` | `~/org` | `org-directory`: where relative capture targets are. |
+| `defaultNotesFile` | `string` | `~/.notes` | `org-default-notes-file`: the target of a template whose file is empty. |
 | `cycleSeparatorLines` | `number` | `2` | `org-cycle-separator-lines`: with at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. Blank lines at the end of the file are never folded. |
 | `agenda` | object | | See below. |
 | `virtualDocuments` | `boolean` | from capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
@@ -136,6 +139,10 @@ number.
 | `org.todo` | `org-todo`: when the keywords have keys (`TODO(t)`), asks for one (`org-fast-todo-selection`) and sets the state it selects, a space clearing it; without keys, the next state. In an Org file or on an agenda line. |
 | `org.todo.next`, `org.todo.previous` | Changes the TODO state of the entry at the cursor, in an Org file or on an agenda line. |
 | `org.priority.up`, `org.priority.down` | Raises or lowers the priority of the entry at the cursor, in an Org file or on an agenda line. |
+| `org.capture` | `org-capture`: asks for a template's key (input kind `key`, groups one key at a time), then for what its `%^{…}` and `%^t` escapes want (kinds `text` and `date`), with `context` carrying the keys and answers so far. It then writes the filled template, as it will stand in its target, to a capture buffer (a file named `CAPTURE-<target>` in a directory of the server's own) and shows it with the cursor where `%?` was. |
+| `org.capture.finish` | `org-capture-finalize` (`C-c C-c` in the capture buffer): the buffer's text goes into the target file, and the result `{ "close": uri }` asks the editor to close the buffer (saving it first). A target that does not exist yet is written by the server. |
+| `org.capture.abort` | `org-capture-kill` (`C-c C-k`): closes the capture buffer; nothing changes. |
+| `org.capture.refile` | `org-capture-refile` (`C-c C-w`): the entry goes to its target and from there under a refile target picked as for `org.refile`. |
 | `org.refile` | `org-refile` (`org-agenda-refile` on an agenda line): offers the targets (an input of kind `choice`), named as Emacs names them (`Projects`, `Home (other.org)`, `Projects/Alpha/`), and moves the subtree under the one picked, as its last child, promoted or demoted to fit, into another file if need be (one `workspace/applyEdit` over both). |
 | `org.priority` | Asks for a priority (`Priority A-C, SPC to remove`, an input of kind `priority`) and sets it, or removes it for a space; in an Org file or on an agenda line. |
 | `org.timestamp.up`, `org.timestamp.down` | Changes the part of the timestamp the cursor is on. Org files only. |
@@ -275,6 +282,7 @@ time.
     "languageId": "org-agenda"
   },
   "datePrompt": { "scheme": "org-agenda", "uri": "org-agenda:/Org%20Date", "languageId": "org-date" },
+  "capture": { "prefix": "CAPTURE-" },
   "tokenTypes": [{ "id": "headline", "description": "The title text of a headline", "standard": false }],
   "tokenModifiers": [{ "id": "level1", "description": "Headline level 1" }],
   "highlights": [

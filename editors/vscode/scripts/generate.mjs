@@ -66,17 +66,22 @@ const commands = manifest.commands.map((command) => ({
   category: 'Org',
 }));
 
-// Keys are bound in the agenda and the date prompt only. Both are
-// read-only, so plain letters are free there; in Org files Emacs's keys
-// would take over Ctrl+C and Shift+arrows.
-const scopeLanguages = { agenda: AGENDA, calendar: DATE };
+// Keys are bound in the agenda, the date prompt and capture buffers only.
+// The first two are read-only, so plain letters are free there; in Org
+// files Emacs's keys would take over Ctrl+C and Shift+arrows. A capture
+// buffer is short-lived, and `C-c C-c` is how it is finished.
+const scopeWhen = {
+  agenda: `editorLangId == '${AGENDA}'`,
+  calendar: `editorLangId == '${DATE}'`,
+  capture: `editorLangId == '${ORG}' && resourceFilename =~ /^${manifest.capture.prefix}/`,
+};
 const keybindings = manifest.commands.flatMap((command) =>
   command.keys
-    .filter((binding) => binding.preset === 'emacs' && scopeLanguages[binding.in])
+    .filter((binding) => binding.preset === 'emacs' && scopeWhen[binding.in])
     .map((binding) => ({
       command: command.command,
       key: key(binding.key),
-      when: `editorTextFocus && editorLangId == '${scopeLanguages[binding.in]}'`,
+      when: `editorTextFocus && ${scopeWhen[binding.in]}`,
     })),
 );
 

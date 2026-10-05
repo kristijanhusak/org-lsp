@@ -150,6 +150,11 @@
         "category": "Org"
       },
       {
+        "command": "org.priority.down",
+        "title": "Lower the priority",
+        "category": "Org"
+      },
+      {
         "command": "org.priority",
         "title": "Set the priority",
         "category": "Org"
@@ -160,8 +165,23 @@
         "category": "Org"
       },
       {
-        "command": "org.priority.down",
-        "title": "Lower the priority",
+        "command": "org.capture",
+        "title": "Capture",
+        "category": "Org"
+      },
+      {
+        "command": "org.capture.finish",
+        "title": "Capture: finish",
+        "category": "Org"
+      },
+      {
+        "command": "org.capture.abort",
+        "title": "Capture: abort",
+        "category": "Org"
+      },
+      {
+        "command": "org.capture.refile",
+        "title": "Capture: refile the entry",
         "category": "Org"
       },
       {
@@ -1376,6 +1396,16 @@
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
       },
       {
+        "command": "org.priority.down",
+        "key": "-",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.down",
+        "key": "shift+down",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
         "command": "org.priority",
         "key": ",",
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
@@ -1386,14 +1416,19 @@
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
       },
       {
-        "command": "org.priority.down",
-        "key": "-",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "command": "org.capture.finish",
+        "key": "ctrl+c ctrl+c",
+        "when": "editorTextFocus && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
       },
       {
-        "command": "org.priority.down",
-        "key": "shift+down",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "command": "org.capture.abort",
+        "key": "ctrl+c ctrl+k",
+        "when": "editorTextFocus && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+      },
+      {
+        "command": "org.capture.refile",
+        "key": "ctrl+c ctrl+w",
+        "when": "editorTextFocus && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
       },
       {
         "command": "org.date.later",

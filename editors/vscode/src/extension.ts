@@ -84,7 +84,11 @@ function closeAsked(result: unknown): void {
   const tabs = vscode.window.tabGroups.all
     .flatMap((group) => group.tabs)
     .filter((tab) => tab.input instanceof vscode.TabInputText && sameUri(tab.input.uri.toString(), close));
-  void vscode.window.tabGroups.close(tabs);
+  // A file of the server's own, such as a capture buffer, is saved first,
+  // so that closing it asks nothing: the server has its text already.
+  const document = vscode.workspace.textDocuments.find((open) => sameUri(open.uri.toString(), close));
+  const saved = document?.isDirty && document.uri.scheme === 'file' ? document.save() : Promise.resolve(true);
+  void saved.then(() => vscode.window.tabGroups.close(tabs));
 }
 
 /** What a command asks for before it runs, when its result says so. */

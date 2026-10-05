@@ -19,6 +19,8 @@ pub enum Scope {
     Agenda,
     /// In the date prompt.
     Calendar,
+    /// In a capture buffer.
+    Capture,
 }
 
 impl Scope {
@@ -28,6 +30,7 @@ impl Scope {
             Scope::Org => "org",
             Scope::Agenda => "agenda",
             Scope::Calendar => "calendar",
+            Scope::Capture => "capture",
         }
     }
 }
@@ -96,6 +99,10 @@ pub const PRIORITY_UP: &str = "org.priority.up";
 pub const PRIORITY_DOWN: &str = "org.priority.down";
 pub const PRIORITY: &str = "org.priority";
 pub const REFILE: &str = "org.refile";
+pub const CAPTURE: &str = "org.capture";
+pub const CAPTURE_FINISH: &str = "org.capture.finish";
+pub const CAPTURE_ABORT: &str = "org.capture.abort";
+pub const CAPTURE_REFILE: &str = "org.capture.refile";
 pub const TIMESTAMP_UP: &str = "org.timestamp.up";
 pub const TIMESTAMP_DOWN: &str = "org.timestamp.down";
 pub const DATE_LATER: &str = "org.date.later";
@@ -126,7 +133,7 @@ pub const CALENDAR_SELECT: &str = "org.calendar.select";
 pub const CALENDAR_TYPE: &str = "org.calendar.type";
 pub const CALENDAR_CANCEL: &str = "org.calendar.cancel";
 
-use Scope::{Agenda, Calendar, Global, Org};
+use Scope::{Agenda, Calendar, Capture, Global, Org};
 
 const fn command(id: &'static str, title: &'static str) -> Command {
     Command { id, title, edits: false, emacs: &[], vim: &[], input: None }
@@ -208,6 +215,11 @@ pub const COMMANDS: &[Command] = &[
         ..edit(PRIORITY_UP, "Raise the priority")
     },
     Command {
+        emacs: &[key(Agenda, "-"), key(Agenda, "S-<down>")],
+        vim: &[key(Org, "cir"), key(Agenda, "-")],
+        ..edit(PRIORITY_DOWN, "Lower the priority")
+    },
+    Command {
         emacs: &[key(Org, "C-c ,"), key(Agenda, ",")],
         vim: &[key(Org, "<Leader>o,"), key(Agenda, "<Leader>o,")],
         input: Some(Input { kind: "priority", prompt: "Priority" }),
@@ -220,9 +232,26 @@ pub const COMMANDS: &[Command] = &[
         ..edit(REFILE, "Refile the entry")
     },
     Command {
-        emacs: &[key(Agenda, "-"), key(Agenda, "S-<down>")],
-        vim: &[key(Org, "cir"), key(Agenda, "-")],
-        ..edit(PRIORITY_DOWN, "Lower the priority")
+        emacs: &[key(Global, "C-c c")],
+        vim: &[key(Global, "<Leader>oc")],
+        input: Some(Input { kind: "key", prompt: "Select a capture template" }),
+        ..command(CAPTURE, "Capture")
+    },
+    Command {
+        emacs: &[key(Capture, "C-c C-c")],
+        vim: &[key(Capture, "<C-c>")],
+        ..command(CAPTURE_FINISH, "Capture: finish")
+    },
+    Command {
+        emacs: &[key(Capture, "C-c C-k")],
+        vim: &[key(Capture, "<Leader>ok")],
+        ..command(CAPTURE_ABORT, "Capture: abort")
+    },
+    Command {
+        emacs: &[key(Capture, "C-c C-w")],
+        vim: &[key(Capture, "<Leader>or")],
+        input: Some(Input { kind: "choice", prompt: "Refile to" }),
+        ..command(CAPTURE_REFILE, "Capture: refile the entry")
     },
     Command { vim: &[native(Org, "<C-a>")], ..edit(TIMESTAMP_UP, "Increase the part of the timestamp at the cursor") },
     Command {

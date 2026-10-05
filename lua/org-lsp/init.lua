@@ -23,7 +23,7 @@ local SERVER = 'org_lsp'
 ---@field startup_folded 'showeverything'|'overview' Fold state of a newly opened file.
 ---@field folding boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
----@field mappings table|false Keys by scope (`global`, `org`, `agenda`, `calendar`). In a scope, a command maps to a key, a list of keys, or `false`; commands that are not listed keep the server's default keys. `false` instead of the table sets no keys at all.
+---@field mappings table|false Keys by scope (`global`, `org`, `agenda`, `calendar`, `capture`). In a scope, a command maps to a key, a list of keys, or `false`; commands that are not listed keep the server's default keys. `false` instead of a scope's table sets no keys in that scope, and instead of the whole table no keys at all. See docs/keys/neovim.md.
 local defaults = {
   cmd = nil,
   settings = {},
@@ -31,8 +31,8 @@ local defaults = {
   folding = true,
   replace_syntax = true,
   mappings = {
-    -- The one key that must work before the server has said anything.
-    global = { ['org.agenda.dispatch'] = '<Leader>oa' },
+    -- The keys that must work before the server has said anything.
+    global = { ['org.agenda.dispatch'] = '<Leader>oa', ['org.capture'] = '<Leader>oc' },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>' },
     agenda = { quit = 'q' },
   },
@@ -266,11 +266,11 @@ end
 
 --- The keys of a scope: the server's defaults for modal editors, with the
 --- configuration's entries taking their place command by command.
----@param scope 'global'|'org'|'agenda'|'calendar'
+---@param scope 'global'|'org'|'agenda'|'calendar'|'capture'
 ---@return table<string, string[]> # command to keys
 ---@return table<string, boolean> # the keys that keep a meaning of their own
 local function keys_in(scope)
-  if not M.config.mappings then
+  if not M.config.mappings or M.config.mappings[scope] == false then
     return {}, {}
   end
   local keys, native = {}, {}
@@ -293,7 +293,7 @@ end
 --- them back.
 local global_keys = {}
 
----@param scope 'global'|'org'|'agenda'|'calendar'
+---@param scope 'global'|'org'|'agenda'|'calendar'|'capture'
 ---@param bufnr? integer the buffer the keys are for; none for global keys
 local function set_keys(scope, bufnr)
   if scope == 'global' then
@@ -378,6 +378,11 @@ local function on_attach(client, bufnr)
     return set_keys('calendar', bufnr)
   end
   set_keys('org', bufnr)
+  -- A capture buffer is an Org file with keys of its own on top.
+  local prefix = M.manifest.capture and M.manifest.capture.prefix
+  if prefix and vim.startswith(vim.fs.basename(vim.api.nvim_buf_get_name(bufnr)), prefix) then
+    set_keys('capture', bufnr)
+  end
   if M.config.replace_syntax and client:supports_method('textDocument/semanticTokens/full') then
     replace_syntax(bufnr)
   end

@@ -46,17 +46,18 @@ others), as close to Emacs Org mode as it can get.
 | 4d.3 | Set a priority by name (`org-priority`, `org-agenda-priority`) | #12 |
 | 4e.1 | Fast TODO selection (`org-fast-todo-selection`) and the text of state notes (`@`) | #13 |
 | 4e.2 | Refile (`org-refile`, `org-agenda-refile`) | #14 |
+| 4e.3 | Capture (`org-capture`) | #15 |
 
 ### Where to pick up
 
-Asked for next (2026-10-05), in this order; see milestone 4e below:
+Milestone 4e (TODO selection, refile, capture), asked for on
+2026-10-05, is done. Next, any of:
 
-1. Done: fast TODO selection, and the text of state notes.
-2. Done: refile.
-3. Capture: next.
-
-Then the opt-in autosave option (open question 3) and the Vim plugin
-(open question 4) are free to take whenever.
+- The rest of capture (see 4e.3 below): item and checkitem templates,
+  date trees, `%^g` tags, `%a` from the agenda.
+- The opt-in autosave option (open question 3).
+- The Vim plugin (open question 4).
+- Milestone 5 onwards.
 
 ### Milestone 3, merged: priorities and dates
 
@@ -247,13 +248,31 @@ show one. In four pull requests:
    `org-log-refile`, creating parent nodes, refiling a region, the
    prefix arguments (go to the target, copy), `org-refile-target-
    verify-function`; a `regexp` target uses the `regex` crate's syntax.
-3. **Capture** (`org-capture`, `C-c c`; `<Leader>oc`). Templates as a
-   server option (`captureTemplates`: key, description, type `entry`,
-   target `file`/`file+headline`, template text with `%?`, `%U`, `%t`,
-   `%i`, `%a`); pick one from a menu, open a server-owned capture
-   document (like the date prompt) with the expanded template, and on
-   finish (`C-c C-c`) insert it at the target; abort with `C-c C-k`.
-   Refile from the capture buffer (`C-c C-w`) reuses 2.
+3. **Done: capture** (`<Leader>oc`, `C-c c` where the editor allows).
+   `org-core/src/capture.rs` ports `org-capture-fill-template` (the
+   time escapes, `%<format>`, `%f`, `%F`, `%a`, `%i`, `%n`, `%^{prompt
+   |default|choices}`, `%^t` `%^T` `%^u` `%^U`, `%\N`, `%\*N`, escaped
+   `%`, the tidying of blank lines and tabs) and the placing of `entry`
+   and `plain` templates (`org-capture-place-entry`,
+   `org-capture-place-plain-text`: targets `file`, `file+headline`,
+   `file+olp`; `:prepend`, `:empty-lines*`; `org-blank-before-new-entry`
+   as Org sets it). The capture buffer is a file `CAPTURE-<target>` in a
+   directory of the server's own; it shows the region Emacs narrows to,
+   and finishing puts it back (or places it again if the target changed
+   meanwhile). `C-c C-c` / `<C-c>` finishes, `C-c C-k` / `<Leader>ok`
+   aborts, `C-c C-w` / `<Leader>or` refiles. Options `captureTemplates`,
+   `orgDirectory`, `defaultNotesFile`. Checked by
+   `tests/capture/cases.json` and `scripts/fuzz-capture.py` (seeds 1 to
+   5, 1,900 cases, no difference). Not yet: `item`, `checkitem` and
+   `table-line` templates; `id`, `file+regexp`, `file+olp+datetree`,
+   `function` and `clock` targets; `%^g`, `%^G`, `%^p`, `%^C`, `%^L`;
+   `%(…)` and `%[file]`; `%c`, `%x`, `%k`, `%K` and `%:keyword` are
+   empty; templates' contexts; `:jump-to-captured`, `:clock-in` and the
+   like. Differences: the target is not saved (as for every edit here;
+   see the autosave question); a `file+headline` headline that is not
+   there is added when the capture finishes, not when it starts, so
+   aborting leaves no trace; the date prompts are input boxes, without
+   the calendar.
 
 Differences from Emacs in 4a, both deliberate:
 

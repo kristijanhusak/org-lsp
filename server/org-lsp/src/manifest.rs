@@ -31,6 +31,9 @@ pub fn manifest() -> Value {
             "uri": prompt::URI,
             "languageId": prompt::LANGUAGE,
         },
+        // A capture buffer is an Org file whose name starts with this. Its
+        // keys are the commands' keys `in` the `capture` scope.
+        "capture": { "prefix": crate::server::CAPTURE_PREFIX },
     });
     if let (Some(manifest), Value::Object(legend)) = (manifest.as_object_mut(), legend::manifest()) {
         manifest.extend(legend);
@@ -45,7 +48,7 @@ mod tests {
     #[test]
     fn has_every_section() {
         let manifest = manifest();
-        for section in ["commands", "agenda", "datePrompt", "tokenTypes", "tokenModifiers", "highlights"] {
+        for section in ["commands", "agenda", "datePrompt", "capture", "tokenTypes", "tokenModifiers", "highlights"] {
             assert!(!manifest[section].is_null(), "missing `{section}`");
         }
         assert_eq!(manifest["agenda"]["scheme"], "org-agenda");

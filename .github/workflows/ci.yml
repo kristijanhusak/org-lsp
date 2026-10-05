@@ -73,6 +73,8 @@ jobs:
       - run: npm ci
       # package.json must match what the server announces.
       - run: npm run generate -- --check
+      # So must the key tables in docs/keys.
+      - run: node ../../scripts/generate-key-docs.mjs ../../target/debug/org-lsp --check
       - run: npm run check
       - run: npm run build
       - run: npm run smoke -- ../../target/debug/org-lsp

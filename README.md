@@ -28,6 +28,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Agenda: day, week, fortnight, month and year views, going to a date | yes | yes | no³ |
 | Agenda: list of all TODO entries | yes | yes | no³ |
 | Refile, as `org-refile` does it, between files too | `<Leader>or` | command | no⁴ |
+| Capture, as `org-capture` does it: templates, prompts, a capture buffer | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | commands; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | no⁴ |
 | Agenda: change an entry's state, priority or date, schedule it or set its deadline, go to its entry | yes | yes | no³ |
 
 ¹ Helix does not consume semantic tokens; it highlights Org with its own grammar.
@@ -79,24 +80,15 @@ agenda from anywhere. `:checkhealth org-lsp` reports what the plugin found.
 The plugin sets buffer-local keys in Org files, so it is meant to be used
 instead of nvim-orgmode for those buffers, not next to it.
 
-| Where | Keys |
-| --- | --- |
-| Anywhere | `<Leader>oa` agenda commands; `:Org agenda`, `:Org agenda list`, `:Org agenda todos` |
-| Org files | `cit` change the TODO state (one key when the keywords have keys, else the next), `ciT` previous TODO state, `ciR` / `cir` priority up / down, `<Leader>o,` set the priority, `<Leader>or` refile, `<C-a>` / `<C-x>` the part of the timestamp under the cursor, `<S-Up>` / `<S-Down>` the date a day later / earlier, `<Leader>ois` / `<Leader>oid` schedule / deadline, `<Leader>oi.` / `<Leader>oi!` insert an active / inactive timestamp, `<Tab>` / `<S-Tab>` fold cycling |
-| Agenda | `f` / `b` later / earlier, `.` today, `J` go to a date, `vd` `vw` `vt` `vm` `vy` span, `r` rebuild, `t` TODO state, `+` / `-` priority, `<Leader>o,` set the priority, `<S-Right>` / `<S-Left>` date later / earlier, `<Leader>ois` / `<Leader>oid` schedule / deadline, `<CR>` or `<Tab>` go to the entry, `q` close; `:Org agenda save` saves all Org files with changes |
-
-These are nvim-orgmode's defaults. A count works as in Vim (`3<C-a>`,
-`2<S-Right>`), the editing keys repeat with `.`, and off a timestamp
-`<C-a>`, `<C-x>`, `<S-Up>` and `<S-Down>` do what they do in any buffer.
-The commands that need a date ask with `vim.ui.input`; the answer is read
-as Org's date prompt reads it (`fri 10:00`, `+2d`, `2/15`, `++1w`). As in
-Emacs, they show a calendar first, at the bottom: `h` `l` `j` `k` (or the
-shifted arrows) move by day and week, `<M-S-Left>` `<M-S-Right>` by month,
-`<M-S-Up>` `<M-S-Down>` by year, `<` `>` show other months, `.` goes to
-today, `<CR>` takes the day under the cursor, `i` asks for the answer
-(read with the day you moved to, if you did), `q` gives up. Apart from fold cycling, `q` and
-`<Leader>oa`, the plugin does not list them: the server announces its
-commands with their keys, and the plugin binds what it is told.
+The plugin binds nvim-orgmode's default keys: `cit` changes the TODO
+state, `ciR` / `cir` change the priority, `<C-a>` / `<C-x>` the part of
+the timestamp under the cursor, `<Leader>ois` schedules, `<Leader>or`
+refiles, `<Tab>` / `<S-Tab>` cycle folds, and in the agenda `f` / `b`,
+`t`, `+` / `-` and `<CR>` do what they do in Emacs. Counts work, and the
+editing keys repeat with `.`. Dates are asked for with Emacs's calendar,
+or typed as at Org's prompt (`fri 10:00`, `+2d`, `2/15`, `++1w`).
+[docs/keys/neovim.md](docs/keys/neovim.md) lists every key, what it does
+and how to change it.
 
 Options, with their defaults:
 
@@ -108,7 +100,7 @@ require('org-lsp').setup({
   folding = true,                     -- fold with the server's ranges
   replace_syntax = true,              -- turn off regex syntax once tokens arrive
   mappings = {                        -- false sets no keys at all
-    global = { ['org.agenda.dispatch'] = '<Leader>oa' },
+    global = { ['org.agenda.dispatch'] = '<Leader>oa', ['org.capture'] = '<Leader>oc' },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>' },
     agenda = { quit = 'q' },
   },
@@ -128,7 +120,8 @@ settings = {
 ```
 
 In `mappings`, a scope maps a command to a key, a list of keys, or `false`.
-Commands you do not list keep the server's keys:
+Commands you do not list keep the server's keys, and `false` for a scope
+sets none in it. See [docs/keys/neovim.md](docs/keys/neovim.md):
 
 ```lua
 mappings = {
@@ -152,7 +145,8 @@ npm run package        # writes org-lsp-0.1.0.vsix
 code --install-extension org-lsp-0.1.0.vsix
 ```
 
-See `editors/vscode/README.md` for the commands, keys and settings.
+See `editors/vscode/README.md` for the commands and settings, and
+[docs/keys/vscode.md](docs/keys/vscode.md) for the keys and how to change them.
 
 ### Helix
 
@@ -162,6 +156,8 @@ cargo install --path server/org-lsp
 
 Then add the contents of `editors/helix/languages.toml` to your
 `languages.toml`.
+[docs/keys/helix.md](docs/keys/helix.md) says what is available from
+the code action menu.
 
 ### Other editors
 
@@ -186,7 +182,7 @@ server/org-core/     dates, the outline model, the agenda, TODO state changes
 server/org-lsp/      the language server and command line
 editors/vscode/      VS Code extension
 editors/helix/       Helix configuration
-docs/                protocol and parser notes
+docs/                protocol and parser notes, the keys of each editor
 tests/               Org files and what Emacs makes of them
 scripts/             reference, fuzzing and test helpers
 ```
@@ -200,6 +196,7 @@ cd editors/vscode
 npm run check && npm run smoke  # types, and the protocol through VS Code's library
 xvfb-run -a npm test            # the extension inside VS Code
 npm run generate                # after the server's commands or tokens change
+node ../../scripts/generate-key-docs.mjs   # the key tables in docs/keys
 ```
 
 Everything is checked against Emacs. The files under `tests/` come with
