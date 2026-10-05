@@ -204,11 +204,12 @@ scripts/update-agenda-fixtures.py
 scripts/update-todo-fixtures.py
 scripts/update-shift-fixtures.py           # priorities and timestamps
 scripts/update-agenda-action-fixtures.py   # the same, from the agenda
+scripts/update-fold-fixtures.py            # what folding a subtree hides
 ```
 
-`scripts/fuzz-against-emacs.py`, `fuzz-agenda.py`, `fuzz-todo.py` and
-`fuzz-shift.py` generate random documents and compare both programs on
-them. See
+`scripts/fuzz-against-emacs.py`, `fuzz-agenda.py`, `fuzz-todo.py`,
+`fuzz-shift.py` and `fuzz-fold.py` generate random documents and compare
+both programs on them. See
 `docs/parser.md`.
 
 ## Not done yet

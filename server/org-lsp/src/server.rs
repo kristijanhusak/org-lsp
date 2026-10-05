@@ -175,6 +175,8 @@ struct Server {
     todo: TodoKeywords,
     agenda: AgendaConfig,
     edit_settings: EditSettings,
+    /// `org-cycle-separator-lines`
+    separator_lines: i64,
     /// A fixed clock, for tests.
     clock: Option<Now>,
     documents: HashMap<String, Document>,
@@ -256,6 +258,7 @@ pub fn run(connection: Connection) -> Result<()> {
         todo,
         agenda: options.agenda_config(),
         edit_settings: options.edit_settings(),
+        separator_lines: options.cycle_separator_lines.unwrap_or(folding::SEPARATOR_LINES),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
         documents: HashMap::new(),
         workspace: Workspace::new(options.agenda_files, folders),
@@ -565,7 +568,7 @@ impl Server {
 
     fn folding_ranges(&mut self, params: FoldingRangeParams) -> Option<Vec<lsp_types::FoldingRange>> {
         let document = self.document(&params.text_document.uri)?;
-        Some(folding::folding_ranges(&document.syntax(), &document.text, &document.index))
+        Some(folding::folding_ranges(&document.syntax(), &document.text, &document.index, self.separator_lines))
     }
 
     fn document_symbols(&mut self, params: DocumentSymbolParams) -> Option<DocumentSymbolResponse> {

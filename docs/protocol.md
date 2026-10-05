@@ -10,7 +10,7 @@ the agenda document and the semantic tokens.
 | --- | --- |
 | `textDocument/didOpen`, `didChange`, `didSave`, `didClose` | Incremental sync. A save rebuilds an open agenda. |
 | `textDocument/semanticTokens/full`, `/range` | For Org files and the agenda. See [Semantic tokens](#semantic-tokens). No deltas. |
-| `textDocument/foldingRange` | Subtrees, drawers, blocks, LaTeX environments and multi-line list items. Whole lines only. |
+| `textDocument/foldingRange` | Subtrees, drawers, blocks, LaTeX environments and multi-line list items. Whole lines only. A subtree takes the blank lines before the next headline along, as Emacs hides them; see `cycleSeparatorLines`. |
 | `textDocument/documentSymbol` | The outline of headlines. Hierarchical when the client supports it, flat otherwise. |
 | `textDocument/codeAction` | The commands that apply at the cursor. See [Commands](#commands). |
 | `workspace/executeCommand` | Every command. See [Commands](#commands). |
@@ -51,6 +51,7 @@ camel case; the agenda's lose their `org-agenda-` prefix and live under
 | `priorityDefault` | letter or `0`–`64` | `"B"` | `org-priority-default`: the priority of an entry without a cookie. |
 | `priorityStartCycleWithDefault` | `boolean` | `true` | `org-priority-start-cycle-with-default`: raising or lowering an entry without a priority starts at the default. |
 | `timestampRoundingMinutes` | `number` | `5` | The second number of `org-time-stamp-rounding-minutes`: the step in which the minutes of a timestamp change. |
+| `cycleSeparatorLines` | `number` | `2` | `org-cycle-separator-lines`: with at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. Blank lines at the end of the file are never folded. |
 | `agenda` | object | | See below. |
 | `virtualDocuments` | `boolean` | from capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
 

@@ -40,6 +40,9 @@ pub struct Options {
     /// The step in which the minutes of a timestamp change: the second
     /// number of `org-time-stamp-rounding-minutes`.
     pub timestamp_rounding_minutes: Option<i64>,
+    /// `org-cycle-separator-lines`: how many blank lines after a subtree
+    /// keep one of them visible when it is folded.
+    pub cycle_separator_lines: Option<i64>,
     /// Whether the client fetches the agenda from the server as a virtual
     /// document. Clients that announce LSP 3.18's `textDocumentContent`
     /// need not say so.
