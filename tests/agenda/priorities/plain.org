@@ -1,0 +1,8 @@
+* TODO [#C] plain C
+SCHEDULED: <2026-05-18 Mon>
+* TODO plain default
+SCHEDULED: <2026-05-18 Mon>
+* TODO [#A] plain A
+SCHEDULED: <2026-05-18 Mon>
+* TODO [#E] plain E, out of range
+SCHEDULED: <2026-05-18 Mon>

@@ -46,11 +46,18 @@ camel case; the agenda's lose their `org-agenda-` prefix and live under
 | `logIntoDrawer` | `boolean`, `string` | `false` | `org-log-into-drawer`: `true` for `LOGBOOK`, or a drawer name. |
 | `tagsColumn` | `number` | `-77` | `org-tags-column`: where tags are aligned after a TODO change. |
 | `todoRepeatToState` | `string`, `true` | first keyword | `org-todo-repeat-to-state`: the state a repeating entry returns to; `true` for the state it had. |
+| `priorityHighest` | letter or `0`–`64` | `"A"` | `org-priority-highest` |
+| `priorityLowest` | letter or `0`–`64` | `"C"` | `org-priority-lowest` |
+| `priorityDefault` | letter or `0`–`64` | `"B"` | `org-priority-default`: the priority of an entry without a cookie. |
+| `priorityStartCycleWithDefault` | `boolean` | `true` | `org-priority-start-cycle-with-default`: raising or lowering an entry without a priority starts at the default. |
+| `timestampRoundingMinutes` | `number` | `5` | The second number of `org-time-stamp-rounding-minutes`: the step in which the minutes of a timestamp change. |
 | `agenda` | object | | See below. |
 | `virtualDocuments` | `boolean` | from capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
 
 A document that has `#+TODO:`, `#+SEQ_TODO:` or `#+TYP_TODO:` lines uses
-those keywords instead of `todoKeywords`.
+those keywords instead of `todoKeywords`, and one with a `#+PRIORITIES:`
+line uses its priorities instead of the three `priority…` options; the
+agenda sorts each entry by the priorities of its own file.
 
 Without `agendaFiles`, the agenda is built from the Org files under the
 workspace folders (hidden directories, `node_modules` and `target`
@@ -91,10 +98,21 @@ where the cursor is, in a document the server knows:
 }
 ```
 
-This is `TextDocumentPositionParams`. Commands that open a view work
-without it. A command that cannot run answers with error code -32803
+This is `TextDocumentPositionParams`, with one optional field more:
+`count`, a number the user typed before the key (Emacs's prefix argument,
+Vim's count). The commands that move something by steps take it as the
+number of steps; the others ignore it. Commands that open a view work
+without the argument.
+
+A command that cannot run answers with error code -32803
 (`RequestFailed`) and a message meant for the user, such as
-`No agenda is open`.
+`No agenda is open`. When the command means nothing at the cursor (a
+timestamp key off a timestamp, a headline command before the first
+headline), the error's `data` is `{ "notApplicable": true }`. An editor
+that bound the command to a key with a meaning of its own (see `native`
+in [The manifest](#the-manifest)) then lets the key do that instead:
+Vim's `<C-a>` on a timestamp changes the date and elsewhere increments a
+number.
 
 | Command | Does |
 | --- | --- |
@@ -107,6 +125,10 @@ without it. A command that cannot run answers with error code -32803
 | `org.agenda.redo` | Rebuilds the agenda. |
 | `org.agenda.goto` | Shows the entry of the agenda line under the cursor. |
 | `org.todo.next`, `org.todo.previous` | Changes the TODO state of the entry at the cursor, in an Org file or on an agenda line. |
+| `org.priority.up`, `org.priority.down` | Raises or lowers the priority of the entry at the cursor, in an Org file or on an agenda line. |
+| `org.timestamp.up`, `org.timestamp.down` | Changes the part of the timestamp the cursor is on. Org files only. |
+| `org.date.later`, `org.date.earlier` | Moves a date by days: in an Org file the timestamp at the cursor, on an agenda line the date the line is listed for. |
+| `org.shift.up`, `.down`, `.left`, `.right` | Org's shifted cursor keys in an Org file: on a timestamp they change it, on a headline they change its priority (up, down) or TODO state (left, right). |
 
 **TODO state changes** do what Org's `org-todo` does. The cycle runs
 through "no keyword" between the last and first states. The tags of the
@@ -120,6 +142,23 @@ that is marked done moves to its next date and is open again, with
 The entry is the innermost headline whose subtree contains the cursor, so
 the cursor may be anywhere in the entry's body.
 
+**Priorities** change as `org-priority-up` and `-down` do them, within
+the file's priorities. Past the highest or lowest the cookie is removed;
+the same key pressed again goes on from the other end. "Pressed again"
+means the same command on the same entry with no other command in
+between; the server cannot see the cursor move, as Emacs can.
+
+**Timestamps** change as `org-timestamp-up` and `-down` do them
+(`S-<up>`, `S-<down>` in Emacs): the year, month, day, hour or minute
+the cursor is on, the end of a time range together with its start, a
+repeater or warning period, or, on a bracket, active against inactive.
+Minutes move in steps of `timestampRoundingMinutes` unless a count is
+given. On a `CLOCK:` line the duration is recomputed. In a file,
+`org.date.later` and `-earlier` are `org-timestamp-up-day` and
+`-down-day`. On an agenda line they are `org-agenda-date-later` and
+`-earlier`: the first step forward takes a date that has passed to
+today, and a date range moves as a whole.
+
 **Code actions.** The commands that apply at the cursor are also offered
 as code actions, with the command name as the action's kind. In an Org
 file the actions carry their edit (versioned when the client supports
@@ -132,6 +171,12 @@ every action.
 the entry's file with `workspace/applyEdit`. Editors apply such an edit to
 a buffer and leave saving to the user, as Emacs does. The agenda follows
 the edit at once and again when the file is saved.
+
+**Reporting edits at once.** The server builds on the text it was last
+told about. A key held down sends the next command before an editor that
+batches its `didChange` notifications (Neovim waits 150 ms) has reported
+the previous edit, and that press is lost. An integration should send the
+change as soon as it has applied a `workspace/applyEdit`.
 
 ## The manifest
 
@@ -174,7 +219,10 @@ time.
   last change. A key applies `in` Org files (`org`), the agenda (`agenda`)
   or everywhere (`global`). There are two presets: `emacs` has Org's own
   keys in Emacs notation (`C-c C-t`, `RET`, `v d`), `vim` has
-  nvim-orgmode's defaults in Vim notation (`cit`, `<CR>`, `vd`).
+  nvim-orgmode's defaults in Vim notation (`cit`, `<CR>`, `vd`). A key
+  marked `"native": true` keeps its own meaning where the command does
+  not apply, such as `<C-a>` or `S-<up>`; see `notApplicable` under
+  [Commands](#commands).
 - **`agenda`**: how the agenda document is named; see below.
 - **`tokenTypes`**, **`tokenModifiers`**: the semantic token legend with
   descriptions. `standard` types are LSP's own.
@@ -219,6 +267,19 @@ For step 3 the client must sync the agenda document like any other:
 `didOpen` when it shows it, `didChange` when it replaces the text,
 `didClose` when it closes it. After `didClose` the server stops rebuilding
 the view.
+
+**The cursor follows an entry.** A change of priority or date can move an
+entry to another line, or another day. The server then moves the cursor
+to the entry's new line the same way, once the client shows the new text,
+so that the next press of the key reaches the same entry. Emacs instead
+leaves the line where it is until the agenda is rebuilt. A TODO change
+leaves the cursor where it is, as in Emacs.
+
+**Lines of a view the client still shows.** A key pressed before the
+client has fetched the new text names a line of the old one. The server
+keeps the old view until the client's copy has changed, and resolves the
+line against it. Likewise, while the cursor is on its way to an entry's
+new line, a command from the line it is leaving is meant for the entry.
 
 ## Semantic tokens
 

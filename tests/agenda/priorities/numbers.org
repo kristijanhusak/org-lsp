@@ -1,0 +1,14 @@
+#+PRIORITIES: 1 9 5
+#+PRIORITIES: 1 3 2
+* TODO [#9] nine
+SCHEDULED: <2026-05-18 Mon>
+* TODO [#1] one
+SCHEDULED: <2026-05-18 Mon>
+* TODO five by default
+SCHEDULED: <2026-05-18 Mon>
+* TODO [#6] six
+SCHEDULED: <2026-05-18 Mon>
+* TODO [#12] twelve, out of range
+SCHEDULED: <2026-05-18 Mon>
+* TODO [#A] a letter among numbers
+SCHEDULED: <2026-05-18 Mon>

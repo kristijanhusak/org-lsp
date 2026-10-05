@@ -1,6 +1,7 @@
 # org-lsp: plan
 
-Written on 2026-10-05, when work was paused in the middle of milestone 3.
+Written on 2026-10-05, when work was paused in the middle of milestone 3;
+updated the same day when milestone 3 was finished.
 It records where the project stands, what is half done and how to finish
 it, and what comes after. The default branch is `main`.
 
@@ -34,9 +35,11 @@ others), as close to Emacs Org mode as it can get.
 | 2a | Agenda in the server: dates, repeaters, warning periods, week/day/month views, TODO list, `org-todo` port with logging and repeaters | #1 |
 | 2b | Agenda in editors: server-owned document over `workspace/textDocumentContent`, manifest (commands, keys, highlight links) that drives the Neovim plugin and generates the VS Code `package.json`, in-editor tests for both | #2 |
 
-### Milestone 3, in progress: priorities and dates
+### Milestone 3, finished, waiting to be merged: priorities and dates
 
-Branch `shift-commands`, three commits, **no pull request yet**.
+Branch `claude/elegant-meitner-ggxbid` (it carries `shift-commands`
+merged in, plus the work below). All of it is checked; what is left is
+the pull request and its CI.
 
 Done and checked:
 
@@ -57,57 +60,34 @@ Done and checked:
   nothing here" (`notApplicable`), so `<C-a>` still increments a number;
   code actions for all of them; in the agenda the cursor follows an entry
   that moves to another line.
-- Compared with Emacs:
-  - `tests/shift/cases.json`: 337 cases, text and cursor.
-  - `scripts/fuzz-shift.py`: last six seeds, 4,200 cases, no difference.
-  - `tests/agenda-actions/cases.json`: 70 cases run through Emacs's own
-    agenda commands (`org-agenda-todo`, `-priority-up/down`,
-    `-do-date-later/earlier`); all match.
-  - `tests/agenda/priorities`: agenda order with per-file priorities.
-- The last full run of the Rust tests was green with 151 tests, at commit
-  `989f0ee`. Tests added after that were run on their own.
-
-Saved unfinished in the last commit (`1c55605`, marked WIP):
-
-- Neovim glue: counts (`3<C-a>`, `2.`), keys that fall through, and
-  reporting a server edit back at once (Neovim otherwise waits 150 ms,
-  and a held key loses presses). `tests/nvim/e2e.lua` passed with 68
-  checks. `tests/nvim/agenda.lua` passed with 70 checks before the
-  held-key test was added to it.
 - Server: a command on an agenda line is resolved against the view the
   editor still shows (`OpenView::shown`), or against the line the cursor
-  is being moved to (`Server::moving`). Without this, a key pressed
-  before the agenda is redrawn can change a different entry than the one
-  under the cursor. Rust test
-  `a_command_from_a_stale_agenda_reaches_its_entry` passes.
+  is being moved to (`Server::moving`). A pending cursor move to a line
+  lapses when the view changes again before the editor fetched it
+  (`Reveal::At`); the move to today in a new view is recomputed
+  (`Reveal::Home`).
+- Neovim: counts (`3<C-a>`, `2.`), keys that fall through, and reporting
+  a server edit back at once (Neovim otherwise waits 150 ms, and a held
+  key loses presses).
+- VS Code: shifted symbols translate to VS Code's notation (`+` is
+  `shift+=`); tests for a timestamp command in a file and for priority
+  and date from the agenda. VS Code passes no count; left that way.
+- Documentation: `docs/protocol.md`, `README.md`,
+  `editors/vscode/README.md`.
+- Compared with Emacs:
+  - `tests/shift/cases.json`: 337 cases, text and cursor.
+  - `tests/agenda-actions/cases.json`: 70 cases run through Emacs's own
+    agenda commands; all match.
+  - `tests/agenda/priorities`: agenda order with per-file priorities.
+  - The committed references regenerate byte for byte.
+  - Fuzzing after the last change: `fuzz-shift.py` seeds 2001 and 2002
+    (1,400 cases), `fuzz-todo.py`, `fuzz-agenda.py` and
+    `fuzz-against-emacs.py` seed 2001: no difference.
+- Last full run: 154 Rust tests, clippy and fmt clean; Neovim 0.11.0 and
+  0.12.5 (68 + 73 checks); VS Code 12 tests in VSCodium 1.135.
 
-To finish milestone 3, in this order:
-
-1. Fix the one failing Rust test: in `changes_dates_from_the_agenda`
-   (`server/org-lsp/tests/agenda_lsp.rs`) add `client.refetch_view();`
-   after `client.command("org.agenda.todos", VIEW, 0);`. The test acted on
-   a view the client had not fetched, which now rightly means the old one.
-2. Run everything again: `cargo test --workspace`, `cargo clippy
-   --workspace --all-targets -- -D warnings`, `scripts/test-nvim.sh`
-   (Neovim 0.11.0 and stable). The Neovim tests have not run since the
-   server change in the WIP commit.
-3. VS Code, not started:
-   - `editors/vscode/scripts/generate.mjs`: translate the new agenda keys
-     (`+` is `shift+=` in VS Code's notation; `S-<up>` and the like already
-     work), then `npm run generate`. CI checks that `package.json` is up
-     to date and fails until this is done.
-   - Tests in `editors/vscode/test/extension.test.cjs` for priority and
-     date from the agenda and for a timestamp command in a file.
-   - VS Code passes no count. Leave it, or add it to the middleware.
-4. Documentation: `docs/protocol.md` (new commands; `count`;
-   `notApplicable`; `native` keys; the options `priorityHighest`,
-   `priorityLowest`, `priorityDefault`, `priorityStartCycleWithDefault`,
-   `timestampRoundingMinutes`; cursor following; lines of a stale view),
-   `README.md`, `editors/vscode/README.md`.
-5. Fuzz once more after the last changes: `scripts/fuzz-shift.py`,
-   `scripts/fuzz-todo.py`, `scripts/fuzz-agenda.py`,
-   `scripts/fuzz-against-emacs.py`.
-6. Open PR #3 from `shift-commands`, wait for the four CI jobs, merge.
+To finish milestone 3: open the pull request from
+`claude/elegant-meitner-ggxbid`, wait for the four CI jobs, merge.
 
 Differences from Emacs in this milestone, all deliberate:
 
@@ -247,7 +227,8 @@ previews.
   | Priorities, timestamps | `tests/shift/cases.json` | `scripts/update-shift-fixtures.py` | `scripts/fuzz-shift.py` |
   | Agenda commands | `tests/agenda-actions/cases.json` | `scripts/update-agenda-action-fixtures.py` | |
 
-  The last two rows exist on `shift-commands` only, until PR #3 is merged.
+  The last two rows exist on the milestone 3 branch only, until it is
+  merged.
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.
 - VS Code: in `editors/vscode`, `npm run generate -- --check`, `npm run
@@ -259,7 +240,13 @@ previews.
 
 - The work so far was done in a cloud workspace that is thrown away when
   idle. Everything that matters is pushed; the tools (Emacs, an Org
-  checkout, Neovim, VSCodium) have to be installed again.
+  checkout, Neovim, VSCodium) have to be installed again. What worked
+  there: `apt-get install emacs-nox faketime`; Org from the GitHub mirror
+  (`git clone --depth 1 --branch release_9.8.10
+  https://github.com/bzg/org-mode`, then `make autoloads`), since
+  savannah.gnu.org is blocked; Neovim and VSCodium from their GitHub
+  release downloads (find VSCodium's latest tag with `git ls-remote
+  --tags`), since VS Code's own download host is blocked.
 - From that workspace `gh` only works through the REST API (`gh api`),
   CI logs cannot be downloaded (read check-run annotations instead), and
   remote branches cannot be deleted. The merged branches `agenda` and

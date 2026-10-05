@@ -6,7 +6,7 @@
 //! its file. Highlighting comes from semantic tokens, as for Org files.
 
 use lsp_types::Uri;
-use org_core::agenda::{self, Config, Face, LineKind, Now, Span, Style};
+use org_core::agenda::{self, Config, Face, ItemKind, LineKind, Now, Span, Style};
 use org_core::date::Day;
 use org_core::outline::Outline;
 use org_syntax::{TextRange, TextSize};
@@ -40,11 +40,16 @@ pub struct EntryRef {
     pub offset: usize,
     /// The headline text, to find the entry again if it has moved.
     pub head: String,
+    /// Byte offset of the timestamp the line stands for, when the view
+    /// was built: its opening bracket, or the end of a date range.
+    pub marker: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ViewLine {
     pub entry: Option<EntryRef>,
+    /// What made the entry show up on this line.
+    pub kind: Option<ItemKind>,
     /// The day the line stands under, in an agenda.
     pub day: Option<Day>,
 }
@@ -125,11 +130,17 @@ pub fn render(query: Query, files: &[(Uri, &Outline)], now: Now, config: &Config
         }
         text.push_str(&shown.text);
         text.push('\n');
-        let entry = line.item.as_ref().and_then(|item| item.source).map(|source| {
+        let entry = line.item.as_ref().and_then(|item| Some((item, item.source?))).map(|(item, source)| {
             let entry = agenda::entry(&outlines, source);
-            EntryRef { uri: files[source.file].0.clone(), offset: entry.offset, head: entry.head.clone() }
+            EntryRef {
+                uri: files[source.file].0.clone(),
+                offset: entry.offset,
+                head: entry.head.clone(),
+                marker: item.marker,
+            }
         });
-        lines.push(ViewLine { entry, day: if line.kind == LineKind::Header { None } else { day } });
+        let kind = line.item.as_ref().map(|item| item.kind);
+        lines.push(ViewLine { entry, kind, day: if line.kind == LineKind::Header { None } else { day } });
     }
     View { query, start: rendered.start, index: LineIndex::new(&text), text, lines, tokens, today_line }
 }
@@ -137,6 +148,23 @@ pub fn render(query: Query, files: &[(Uri, &Outline)], now: Now, config: &Config
 impl View {
     pub fn line(&self, line: u32) -> Option<&ViewLine> {
         self.lines.get(line as usize)
+    }
+
+    /// The line that shows the entry at `offset` of `uri` the way line
+    /// `from` did before the view was rebuilt: for the same reason and
+    /// under the same day if there is such a line, or else the nearest
+    /// one.
+    pub fn line_of(&self, uri: &Uri, offset: usize, from: (u32, &ViewLine)) -> Option<u32> {
+        let (number, old) = from;
+        let shows =
+            |line: &ViewLine| line.entry.as_ref().is_some_and(|entry| entry.uri == *uri && entry.offset == offset);
+        let candidates = || self.lines.iter().enumerate().filter(|(_, line)| shows(line));
+        let nearest = |lines: &mut dyn Iterator<Item = (usize, &ViewLine)>| {
+            lines.min_by_key(|(index, _)| index.abs_diff(number as usize)).map(|(index, _)| index as u32)
+        };
+        nearest(&mut candidates().filter(|(_, line)| line.kind == old.kind && line.day == old.day))
+            .or_else(|| nearest(&mut candidates().filter(|(_, line)| line.kind == old.kind)))
+            .or_else(|| nearest(&mut candidates()))
     }
 
     /// The line the cursor should go to when the view is first shown:
@@ -194,6 +222,8 @@ mod tests {
         assert_eq!(view.lines[1].day, Some(now.today));
         let entry = view.lines[2].entry.as_ref().unwrap();
         assert_eq!((entry.uri.as_str(), entry.offset), (uri.as_str(), 0));
+        // The line stands for the `SCHEDULED:` timestamp.
+        assert_eq!((view.lines[2].kind, entry.marker), (Some(ItemKind::Scheduled), text.find('<')));
         assert_eq!(view.lines[2].day, Some(now.today));
 
         let described: Vec<(&str, TokenType, u32)> = view
@@ -220,7 +250,8 @@ mod tests {
     #[test]
     fn finds_an_entry_again_after_edits() {
         let before = outline("* a\n* TODO b\n* c\n");
-        let reference = EntryRef { uri: "file:///x.org".parse().unwrap(), offset: 4, head: "TODO b".to_string() };
+        let reference =
+            EntryRef { uri: "file:///x.org".parse().unwrap(), offset: 4, head: "TODO b".to_string(), marker: None };
         assert_eq!(resolve(&reference, &before), Some(1));
         // Lines were added above it.
         assert_eq!(resolve(&reference, &outline("* new\n* a\n* TODO b\n* c\n")), Some(2));

@@ -182,5 +182,72 @@ wait('the configured key to work', function()
   return line(1) == '* DONE other'
 end)
 
+-- 9. Priorities, with `.` to go on.
+local dated = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* TODO Call them', 'SCHEDULED: <2026-05-18 Mon 10:58 +1w>', 'Version 7 of the plan.', '', '* Next' }, dated)
+vim.cmd.edit(dated)
+wait('the server to attach to the dated file', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+local function becomes(number, text, message)
+  wait(message .. ': `' .. text .. '`', function()
+    -- Run keys that were fed while waiting, as the editor's main loop
+    -- does when it is not busy running this script.
+    vim.api.nvim_feedkeys('', 'x', false)
+    return line(number) == text
+  end)
+end
+vim.api.nvim_win_set_cursor(0, { 2, 3 })
+press('ciR')
+becomes(1, '* TODO [#B] Call them', 'priority from anywhere in the entry')
+press('.')
+becomes(1, '* TODO [#A] Call them', '`.` raises it again')
+press('cir')
+becomes(1, '* TODO [#B] Call them', 'and down')
+
+-- 10. Timestamps: the part under the cursor, with counts and `.`.
+vim.api.nvim_win_set_cursor(0, { 2, 21 })
+press('<C-a>')
+becomes(2, 'SCHEDULED: <2026-05-19 Tue 10:58 +1w>', 'the day')
+eq(vim.api.nvim_win_get_cursor(0), { 2, 21 }, 'the cursor stays on the day')
+press('3<C-a>')
+becomes(2, 'SCHEDULED: <2026-05-22 Fri 10:58 +1w>', 'a count')
+press('.')
+becomes(2, 'SCHEDULED: <2026-05-25 Mon 10:58 +1w>', '`.` repeats with the count')
+press('2.')
+becomes(2, 'SCHEDULED: <2026-05-27 Wed 10:58 +1w>', 'a count before `.` replaces it')
+press('<C-x>')
+becomes(2, 'SCHEDULED: <2026-05-26 Tue 10:58 +1w>', 'down')
+vim.api.nvim_win_set_cursor(0, { 2, 30 })
+press('<C-a>')
+becomes(2, 'SCHEDULED: <2026-05-26 Tue 11:00 +1w>', 'minutes go to the next step of five')
+vim.api.nvim_win_set_cursor(0, { 2, 34 })
+press('<C-a>')
+becomes(2, 'SCHEDULED: <2026-05-26 Tue 11:00 +2w>', 'the repeater')
+vim.api.nvim_win_set_cursor(0, { 2, 13 })
+press('<S-Up>')
+becomes(2, 'SCHEDULED: <2026-05-27 Wed 11:00 +2w>', 'a day later from anywhere in the timestamp')
+press('<S-Down>')
+becomes(2, 'SCHEDULED: <2026-05-26 Tue 11:00 +2w>', 'and a day earlier')
+
+-- 11. Away from a timestamp the keys keep their own meaning.
+local warnings = {}
+local notify = vim.notify
+vim.notify = function(message)
+  table.insert(warnings, message)
+end
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+press('<C-a>')
+becomes(3, 'Version 8 of the plan.', 'Ctrl-A still increments a number')
+press('5<C-a>')
+becomes(3, 'Version 13 of the plan.', 'with its count')
+press('<C-x>')
+becomes(3, 'Version 12 of the plan.', 'Ctrl-X still decrements')
+press('.')
+becomes(3, 'Version 11 of the plan.', 'and `.` repeats that')
+eq(line(2), 'SCHEDULED: <2026-05-26 Tue 11:00 +2w>', 'the timestamp is left alone')
+eq(warnings, {}, 'without a complaint from the server')
+vim.notify = notify
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

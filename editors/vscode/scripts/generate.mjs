@@ -28,6 +28,12 @@ const AGENDA = manifest.agenda.languageId;
 function key(emacs) {
   const names = { RET: 'enter', TAB: 'tab', SPC: 'space', DEL: 'backspace', ESC: 'escape' };
   const modifiers = { C: 'ctrl', M: 'alt', S: 'shift' };
+  // VS Code names a symbol by the key it is typed with, as on a US
+  // keyboard, and `+` separates keys there.
+  const shifted = {
+    '+': '=', '_': '-', '<': ',', '>': '.', '?': '/', ':': ';', '"': "'", '{': '[', '}': ']', '|': '\\',
+    '~': '`', '!': '1', '@': '2', '#': '3', $: '4', '%': '5', '^': '6', '&': '7', '*': '8', '(': '9', ')': '0',
+  };
   return emacs
     .split(' ')
     .map((stroke) => {
@@ -35,6 +41,10 @@ function key(emacs) {
       let rest = stroke;
       for (let match; (match = /^([CMS])-(.+)$/.exec(rest)); rest = match[2]) {
         parts.push(modifiers[match[1]]);
+      }
+      if (shifted[rest]) {
+        parts.push('shift');
+        rest = shifted[rest];
       }
       const named = /^<(.+)>$/.exec(rest);
       const base = names[rest] ?? (named ? named[1] : rest);
