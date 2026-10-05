@@ -246,7 +246,15 @@ An input may say more:
   not made until the note's text comes: it asks with kind `note`
   (`Note for state change from "TODO" to "WAIT"`) and `"context": {
   "state": "WAIT" }`, and the answer then sets that state and writes the
-  note under the heading line, as `org-store-log-note` does.
+  note under the heading line, as `org-store-log-note` does. A client
+  that announces `experimental.orgDatePrompt` (one of this project's
+  integrations) gets a note buffer instead, as Emacs's `*Org Note*`: a
+  file named like a capture buffer (`CAPTURE-Note.org`), shown with
+  `window/showDocument`, which starts with `# Insert note for state
+  change from "TODO" to "WAIT".` and has the cursor on its third line.
+  `org.capture.finish` there makes the change with the text below the
+  comment lines as the note, and `org.capture.abort` makes it without
+  any (Emacs's `C-c C-k`); both return `{ "close": uri }`.
 
 An answer may lead to another question; the editor asks again until the
 command asks for nothing more.

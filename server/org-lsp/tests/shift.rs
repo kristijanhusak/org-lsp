@@ -66,6 +66,7 @@ fn priority_and_timestamp_changes_match_emacs() {
             now: clock(case["clock"].as_str().unwrap()),
             // Emacs writes the notes of these cases without text.
             note: Some(String::new()),
+            skip_note: false,
         };
         let name = case["command"].as_str().unwrap();
         let settings = options.edit_settings();

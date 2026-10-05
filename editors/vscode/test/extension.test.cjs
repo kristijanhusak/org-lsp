@@ -160,29 +160,34 @@ describe('Org files', () => {
     });
     const editor = await vscode.window.showTextDocument(keyed);
     const offered = [];
-    const notes = [];
     const showQuickPick = vscode.window.showQuickPick;
-    const showInputBox = vscode.window.showInputBox;
     vscode.window.showQuickPick = async (items) => {
       offered.push(...items.map((item) => item.label));
       return items.find((item) => item.key === 'w');
     };
-    vscode.window.showInputBox = async (options) => {
-      notes.push(options.prompt);
-      return 'Waiting for Bob';
-    };
     try {
       editor.selection = new vscode.Selection(1, 2, 1, 2);
       await vscode.commands.executeCommand('org.todo');
+      // The note is written in a buffer of its own, as Emacs's `*Org Note*`.
+      const note = await until('the note buffer', () => {
+        const active = vscode.window.activeTextEditor;
+        return active && path.basename(active.document.uri.fsPath) === 'CAPTURE-Note.org' && active;
+      });
+      assert.equal(note.document.lineAt(0).text, '# Insert note for state change from "TODO" to "WAIT".');
+      await until('the cursor on the third line', () => note.selection.active.line === 2);
+      await note.edit((edit) => edit.insert(note.selection.active, 'Waiting for Bob'));
+      await vscode.commands.executeCommand('org.capture.finish');
       await until('the state and its note', () => keyed.lineCount > 3 && keyed.lineAt(3).text === '  Waiting for Bob');
       assert.equal(keyed.lineAt(1).text, '* WAIT Call them');
       assert.match(keyed.lineAt(2).text, /^- State "WAIT" {7}from "TODO" {7}\[.*\] \\\\$/);
       assert.deepEqual(offered, ['[t] TODO', '[w] WAIT', '[d] DONE', '[SPC] clear']);
-      assert.deepEqual(notes, ['Note for state change from "TODO" to "WAIT"']);
+      await until('the note buffer to close', () =>
+        vscode.window.tabGroups.all.flatMap((group) => group.tabs).every((tab) => tab.label !== 'CAPTURE-Note.org'),
+      );
     } finally {
       vscode.window.showQuickPick = showQuickPick;
-      vscode.window.showInputBox = showInputBox;
     }
+    await vscode.window.showTextDocument(keyed);
     await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
     await vscode.window.showTextDocument(document);
   });

@@ -150,7 +150,10 @@ subtree at the cursor.
     choices listed in a window at the bottom; `<Esc>` gives up;
   - a choice from a list (refile targets) goes through `vim.ui.select`,
     so a picker plugin that replaces it is used;
-  - text (a state note, a capture prompt) goes through `vim.ui.input`.
+  - text (a capture prompt) goes through `vim.ui.input`;
+  - a state note (a keyword with `@`, as `WAIT(w@)`) is written in a note
+    buffer that opens like a capture buffer, as Emacs's `*Org Note*`:
+    `<C-c>` stores it, `<Leader>ok` changes the state without it.
 - **Messages**: what Emacs says when a command is done (`Priority of
   current item set to B`, `Scheduled to <2026-05-22 Fri>`, `Refile to
   "Projects" in file …: done`) goes through `vim.notify`, and so do

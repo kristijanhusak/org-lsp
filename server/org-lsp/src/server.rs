@@ -127,7 +127,7 @@ impl OpenView {
 }
 
 /// Where a command was invoked: a document and a place in it.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Context {
     text_document: lsp_types::TextDocumentIdentifier,
@@ -182,6 +182,18 @@ struct Capturing {
     spec: (capture::Target, capture::Kind, capture::Properties),
 }
 
+/// A note being written for a TODO state change (`org-add-note`), in a
+/// buffer of its own like a capture's: the change it is for waits for it.
+struct Noting {
+    /// The note buffer, a file of its own.
+    uri: Uri,
+    /// The command that changes the state, where it was run.
+    id: String,
+    context: Context,
+    /// The state the note is for; empty for none.
+    state: String,
+}
+
 /// The notification that asks the editor to save files, `{ "uris": [...] }`.
 pub const SAVE: &str = "org-lsp/save";
 
@@ -211,6 +223,8 @@ fn capture_spec(template: &CaptureTemplateOption) -> std::result::Result<(captur
 struct Extra {
     /// The text of the note a TODO state change wants.
     note: Option<String>,
+    /// The note was cancelled: change the state and log nothing.
+    skip_note: bool,
     /// The key that selects the new TODO state.
     key: Option<String>,
 }
@@ -295,6 +309,8 @@ struct Server {
     default_notes_file: String,
     /// The capture whose buffer the editor shows.
     capture: Option<Capturing>,
+    /// The note being written for a TODO state change, if one is.
+    note: Option<Noting>,
     /// How many captures there were.
     captures: u32,
     /// The date prompt that waits for an answer, in clients that show it.
@@ -407,6 +423,7 @@ pub fn run(connection: Connection) -> Result<()> {
         org_directory: options.org_directory(),
         default_notes_file: options.default_notes_file(),
         capture: None,
+        note: None,
         captures: 0,
         date_prompt: None,
         prompt_copy: None,
@@ -1272,6 +1289,16 @@ impl Server {
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
             commands::CAPTURE => self.capture(context.as_ref()),
+            // In a note buffer, the keys of a capture store or cancel the
+            // note.
+            commands::CAPTURE_FINISH | commands::CAPTURE_ABORT
+                if self.note.as_ref().is_some_and(|note| {
+                    context.as_ref().is_none_or(|context| context.text_document.uri == note.uri)
+                }) =>
+            {
+                let note = self.note.take().expect("a note");
+                self.finish_note(note, params.command == commands::CAPTURE_ABORT)
+            }
             commands::CAPTURE_FINISH => self.finish_capture(),
             commands::CAPTURE_ABORT => {
                 let capture = self.capture.take().ok_or("No capture is going on")?;
@@ -2069,6 +2096,60 @@ impl Server {
         Ok(Value::Null)
     }
 
+    /// `org-add-log-note`: a buffer of its own for the note a TODO state
+    /// change wants, which `org.capture.finish` stores and
+    /// `org.capture.abort` cancels. Its name starts as a capture buffer's,
+    /// so editors treat it as one.
+    fn open_note(
+        &mut self,
+        context: &Context,
+        id: &str,
+        wanted: org_core::todo::WantedNote,
+    ) -> std::result::Result<Value, Refusal> {
+        self.captures += 1;
+        let directory = capture_directory().join(self.captures.to_string());
+        std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+        let buffer = directory.join(format!("{CAPTURE_PREFIX}Note.org"));
+        // The note goes on the third line, as in Emacs; an editor that takes
+        // the last newline for the end of the file still has that line.
+        let text = format!("# Insert note for {}.\n\n\n", wanted.purpose);
+        std::fs::write(&buffer, &text).map_err(|error| error.to_string())?;
+        let uri = uri::from_path(&buffer).ok_or("Cannot name the note buffer")?;
+        self.note = Some(Noting {
+            uri: uri.clone(),
+            id: id.to_string(),
+            context: context.clone(),
+            state: wanted.state.unwrap_or_default(),
+        });
+        let end = Position::new(2, 0);
+        let params =
+            ShowDocumentParams { uri, external: None, take_focus: Some(true), selection: Some(Range::new(end, end)) };
+        self.send_request::<ShowDocument>(params, None);
+        Ok(Value::Null)
+    }
+
+    /// `org-store-log-note`: the state change with the note written in its
+    /// buffer, or without any (cancelled), and the buffer closed.
+    fn finish_note(&mut self, note: Noting, cancelled: bool) -> std::result::Result<Value, Refusal> {
+        let written = match self.document(&note.uri) {
+            Some(document) => document.text.clone(),
+            None => uri::to_path(&note.uri).and_then(|path| std::fs::read_to_string(path).ok()).unwrap_or_default(),
+        };
+        // The comment lines at the top go, and blanks at the end.
+        let mut text = written.as_str();
+        while text.starts_with("# ") {
+            text = text.split_once('\n').map_or("", |(_, rest)| rest);
+            text = text.trim_start_matches([' ', '\t', '\n']);
+        }
+        let text = text.trim_end();
+        let target = TodoTarget::State((!note.state.is_empty()).then(|| note.state.clone()));
+        let extra = Extra { note: Some(text.to_string()), skip_note: cancelled, ..Extra::default() };
+        // The change is the file's, as if made where it was asked for.
+        self.origin = Some(note.context.text_document.uri.as_str().to_string());
+        self.edit_with(&note.context, &note.id, Some(EditCommand::Todo(target)), &extra)?;
+        Ok(json!({ "close": note.uri }))
+    }
+
     /// A link to the place `position` of `uri` (`org-store-link`): to its
     /// headline when it has one.
     fn link_to(&mut self, uri: &Uri, position: Position) -> String {
@@ -2292,7 +2373,13 @@ impl Server {
                 }
                 None => command.clone(),
             };
-            let call = Call { count, repeated: previous.as_ref() == Some(&last), now, note: extra.note.clone() };
+            let call = Call {
+                count,
+                repeated: previous.as_ref() == Some(&last),
+                now,
+                note: extra.note.clone(),
+                skip_note: extra.skip_note,
+            };
             let explicit = matches!(command, EditCommand::Todo(TodoTarget::State(_)));
             let outcome = edit::run(&command, text, parse, offset, &call, &settings).map(|outcome| {
                 let edits: Vec<TextEdit> = actions::edits_between(text, &outcome.text)
@@ -2313,8 +2400,12 @@ impl Server {
         let Some(outcome) = outcome else { return Ok(Value::Null) };
         let (edits, version, new_text, wanted, message) = outcome?;
         // The change wants a note: ask for its text, and make the change
-        // once it comes, with the state it is about.
+        // once it comes, with the state it is about. An editor of this
+        // project shows a note buffer, as Emacs does (`*Org Note*`).
         if let Some(wanted) = wanted {
+            if self.client.date_prompt && self.client.show_document {
+                return self.open_note(context, id, wanted);
+            }
             return Ok(json!({ "input": {
                 "kind": "note",
                 "prompt": format!("Note for {}", wanted.purpose),
@@ -2354,7 +2445,7 @@ impl Server {
         let context = context.ok_or("This command needs the cursor position")?;
         if let Some(state) = &context.state {
             let target = TodoTarget::State((!state.is_empty()).then(|| state.clone()));
-            let extra = Extra { note: Some(context.input.clone().unwrap_or_default()), key: None };
+            let extra = Extra { note: Some(context.input.clone().unwrap_or_default()), ..Extra::default() };
             return self.edit_with(&context, id, Some(EditCommand::Todo(target)), &extra);
         }
         if id != commands::TODO {
@@ -2377,7 +2468,7 @@ impl Server {
                 "choices": choices,
             } }));
         };
-        let extra = Extra { note: None, key: Some(answer.clone()) };
+        let extra = Extra { key: Some(answer.clone()), ..Extra::default() };
         self.edit_with(&context, id, Some(EditCommand::Todo(TodoTarget::Next)), &extra)
     }
 

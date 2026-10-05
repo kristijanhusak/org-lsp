@@ -403,21 +403,28 @@ plugin.read_key = function(prompt, choices)
   end, choices)
   return 'w'
 end
-local noted
-vim.ui.input = function(opts, on_confirm)
-  noted = opts.prompt
-  on_confirm('Waiting for Bob')
-end
+local keyed_buf = vim.api.nvim_get_current_buf()
 vim.api.nvim_win_set_cursor(0, { 2, 0 })
 press('gt')
-becomes(2, '* WAIT Call them', 'the state picked by its key')
-wait('the note under it', function()
-  return (line(3) or ''):match('^%- State "WAIT"       from "TODO"       %[.*%] \\\\$') ~= nil
+-- The note is written in a buffer of its own, as in Emacs's `*Org Note*`.
+wait('the note buffer', function()
+  return vim.fs.basename(vim.api.nvim_buf_get_name(0)) == 'CAPTURE-Note.org'
 end)
-eq(line(4), '  Waiting for Bob', 'with its text')
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '# Insert note for state change from "TODO" to "WAIT".', '', '' }, 'what the note is for')
+eq(vim.api.nvim_win_get_cursor(0), { 3, 0 }, 'the note goes on the third line')
+vim.api.nvim_buf_set_lines(0, 2, 3, false, { 'Waiting for Bob' })
+press('<C-c>')
+wait('the note under the headline', function()
+  local lines = vim.api.nvim_buf_get_lines(keyed_buf, 0, -1, false)
+  return lines[2] == '* WAIT Call them'
+    and (lines[3] or ''):match('^%- State "WAIT"       from "TODO"       %[.*%] \\\\$') ~= nil
+end)
+eq(vim.api.nvim_buf_get_lines(keyed_buf, 3, 4, false), { '  Waiting for Bob' }, 'with its text')
+wait('the note buffer to close', function()
+  return vim.api.nvim_get_current_buf() == keyed_buf
+end)
 eq(shown, 'Select a TODO state', 'what is asked')
 eq(offered, { 't TODO', 'w WAIT', 'd DONE', '  clear' }, 'the keys offered')
-eq(noted, 'Note for state change from "TODO" to "WAIT": ', 'what the note is for')
 -- A key that selects nothing changes nothing.
 plugin.read_key = function()
   return 'x'
@@ -426,7 +433,6 @@ press('gt')
 vim.wait(200)
 eq(line(2), '* WAIT Call them', 'an unknown key quits')
 plugin.read_key = read_key
-vim.ui.input = input
 
 -- 15. `<Leader>or` refiles the subtree under a target picked from a list.
 local refiled = vim.fn.tempname() .. '.org'

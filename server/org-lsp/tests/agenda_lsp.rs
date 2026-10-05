@@ -692,6 +692,57 @@ fn says_what_it_did_and_saves_what_it_changed_elsewhere() {
     client.shutdown();
 }
 
+/// The note a TODO state wants is written in a buffer of its own, as
+/// Emacs's `*Org Note*`: finished, it is logged with the change;
+/// cancelled, the state changes and nothing is logged.
+#[test]
+fn writes_a_state_note_in_a_buffer_of_its_own() {
+    let mut options = clock();
+    options["todoKeywords"] = json!(["TODO(t)", "WAIT(w@)", "|", "DONE(d)"]);
+    let mut client = Client::with_date_prompt(options);
+    let note_for = |client: &mut Client, file: &str| {
+        client.open(file, "* TODO Call\n");
+        client.received.clear();
+        let context =
+            json!({ "textDocument": { "uri": file }, "position": { "line": 0, "character": 0 }, "input": "w" });
+        let result = client
+            .request("workspace/executeCommand", json!({ "command": "org.todo", "arguments": [context] }))
+            .unwrap();
+        assert_eq!(result, Value::Null);
+        client.settle();
+        assert!(client.received.iter().all(|request| request.method != "workspace/applyEdit"), "nothing changes yet");
+        let show =
+            client.received.iter().find(|request| request.method == "window/showDocument").expect("the note buffer");
+        assert_eq!(show.params["selection"]["start"], json!({ "line": 2, "character": 0 }));
+        let buffer = show.params["uri"].as_str().unwrap().to_string();
+        assert!(buffer.ends_with("/CAPTURE-Note.org"), "{buffer}");
+        let text = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
+        assert_eq!(text, "# Insert note for state change from \"TODO\" to \"WAIT\".\n\n\n");
+        buffer
+    };
+    let finish = |client: &mut Client, command: &str, buffer: &str| {
+        client.received.clear();
+        let context = json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } });
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        assert_eq!(result["close"], buffer);
+        client.settle();
+        let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the change");
+        apply("* TODO Call\n", &edits_of(edit).1)
+    };
+
+    let buffer = note_for(&mut client, "file:///org/a.org");
+    client.open(&buffer, "# Insert note for state change from \"TODO\" to \"WAIT\".\n\nWaiting for Bob\n\n");
+    assert_eq!(
+        finish(&mut client, "org.capture.finish", &buffer),
+        "* WAIT Call\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  Waiting for Bob"
+    );
+
+    let buffer = note_for(&mut client, "file:///org/b.org");
+    assert_eq!(finish(&mut client, "org.capture.abort", &buffer), "* WAIT Call\n");
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

@@ -80,6 +80,8 @@ pub struct Call {
     /// The text of the note a TODO state change wants. Without it, such a
     /// change is not made: the outcome says that it wants a note.
     pub note: Option<String>,
+    /// The note was cancelled: the change is made, and no note is logged.
+    pub skip_note: bool,
 }
 
 /// The priorities a document declares with `#+PRIORITIES:`. Only the
@@ -126,8 +128,12 @@ pub fn run(
     match command {
         Command::Todo(target) => {
             let keywords = parse.todo_keywords();
-            let note = call.note.as_deref();
-            todo::change_state_with_note(text, keywords, offset, target, &settings.todo, call.now, note)
+            let note = match (&call.note, call.skip_note) {
+                (_, true) => todo::NoteText::Skip,
+                (Some(note), false) => todo::NoteText::Write(note),
+                (None, false) => todo::NoteText::Ask,
+            };
+            todo::change_state_noted(text, keywords, offset, target, &settings.todo, call.now, note)
                 .map(|changed| Outcome { text: changed.text, cursor: None, note: changed.wants_note })
                 .map_err(|message| {
                     if message == "Before first headline" {

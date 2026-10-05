@@ -156,8 +156,10 @@ asked in VS Code's own way:
   narrow the list, then press `Enter`.
 - **A choice from a list**, such as a refile target, is picked from a
   list.
-- **Text**, such as a state note or a capture prompt, is typed in an input
-  box.
+- **Text**, such as a capture prompt, is typed in an input box.
+- **A state note** (a keyword with `@`, as `WAIT(w@)`) is written in a note
+  buffer that opens like a capture buffer, as Emacs's `*Org Note*`:
+  `Ctrl+C Ctrl+C` stores it, `Ctrl+C Ctrl+K` changes the state without it.
 
 What Emacs says when a command is done (`Priority of current item set to
 B`, `Scheduled to <2026-05-22 Fri>`) shows in the status bar for a few
