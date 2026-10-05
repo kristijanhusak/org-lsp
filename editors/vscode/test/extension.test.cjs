@@ -285,11 +285,11 @@ describe('The agenda', () => {
     const lines = activeText().split('\n');
     moveTo(lines.findIndex((line) => line.includes('Write report')));
     await vscode.commands.executeCommand('org.agenda.goto');
-    const editor = await until('the file of the entry', () => {
+    // The editor may show the file before it moves the cursor there.
+    await until('the cursor on the entry in its file', () => {
       const active = vscode.window.activeTextEditor;
-      return active?.document.uri.toString() === workUri.toString() && active;
+      return active?.document.uri.toString() === workUri.toString() && active.selection.active.line === 1;
     });
-    assert.equal(editor.selection.active.line, 1);
   });
 
   it('lists TODO entries and refuses what makes no sense there', async () => {
