@@ -1371,6 +1371,16 @@
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
       },
       {
+        "command": "org.schedule",
+        "key": "ctrl+c ctrl+s",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.deadline",
+        "key": "ctrl+c ctrl+d",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
         "command": "org.calendar.day.later",
         "key": "shift+right",
         "when": "editorTextFocus && editorLangId == 'org-date'"

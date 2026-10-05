@@ -40,19 +40,15 @@ others), as close to Emacs Org mode as it can get.
 | — | The calendar comes first; `i` asks for the answer; Neovim leaves insert mode there | #6 |
 | — | `org.agenda.save` (`org-save-all-org-buffers`, `s` and `C-x C-s` in the agenda) | #7 |
 | 11 (part) | Completion of TODO keywords and tags in headlines | #8 |
+| — | Outline symbols keep their selection inside their range (VS Code refused them while typing) | #9 |
+| 4d.1 | Schedule and deadline from an agenda line (`org-agenda-schedule`, `org-agenda-deadline`) | #10 |
 
 ### Where to pick up
 
-Milestone 4d, step 1 (scheduling from the agenda), as described under
-milestone 4 below. Then the opt-in autosave option (open question 3) and
-the Vim plugin (open question 4) are free to take whenever.
-
-Fixed: VS Code failed `textDocument/documentSymbol` while typing with
-"selectionRange must be contained in fullRange". The symbol's range drops
-the blanks it ends in, but the title's range did not, e.g. `* ` or
-`* foo ` at the end of the file. The selection is now trimmed the same
-way and kept inside the range; `symbols.rs` checks this for every prefix
-of a few documents, as they are met while typing.
+Milestone 4d, step 2 (`j` in the agenda, `org-agenda-goto-date`), as
+described under milestone 4 below. Then the opt-in autosave option (open
+question 3) and the Vim plugin (open question 4) are free to take
+whenever.
 
 ### Milestone 3, merged: priorities and dates
 
@@ -173,26 +169,23 @@ show one. In four pull requests:
   the document. Neovim shows it in a window at the bottom, VS Code beside
   the file; others keep the plain input box.
 - **4d, next:** in this order, each small.
-  1. Schedule and deadline from an agenda line (Emacs: `C-c C-s`,
-     `C-c C-d` in the agenda; nvim-orgmode: `<Leader>ois`, `<Leader>oid`
-     there too). `org-agenda-schedule` only runs `org-schedule` at the
-     entry's headline in its file, so the prompt starts from the entry's
-     own date. In the server: `ask_date` and `apply_date` work on open
-     documents only (`Server::place`). For an agenda line, resolve the
-     entry (`entry_at`, then `views::resolve` as `edit()` does) and read
-     the file with `with_source`, which also covers files that are not
-     open; send the edit with `Pending::Edit` so the agenda is rebuilt,
-     and let the cursor follow the entry (`followed`, as `edit()` does).
-     The `DatePrompt` then has to remember the entry rather than a
-     position in a file. Add the keys to the agenda scope, an Emacs
-     reference case (run `org-agenda-schedule` in an agenda, like
-     `scripts/agenda_action_reference.py` does), and tests in both
-     editors.
+  1. Done: schedule and deadline from an agenda line (`C-c C-s`,
+     `C-c C-d`; `<Leader>ois`, `<Leader>oid`). `org-agenda-schedule` runs
+     `org-schedule` where the line's marker points (its timestamp, or the
+     headline), in the entry's file, so the prompt starts from the
+     entry's own date. In the server a `prompt::Target` is a place in a
+     file or the entry of an agenda line; `Server::date_source` reads the
+     entry's file with `with_source`, which covers files that are not
+     open. The agenda is rebuilt and its cursor follows the entry, as
+     after the agenda's other commands (Emacs only marks the line with
+     ` S => <date>` and rebuilds on `r`). Checked by 34 cases in
+     `tests/agenda-actions/cases.json`: the files after the command and
+     what the prompt starts with, every line kind, both views.
   2. `j` in the agenda (`org-agenda-goto-date`): ask a date (prompt
      "Date"), then `open_view(Query::Agenda { start: Some(day), .. })`.
      `DatePrompt` finishes with `apply_date` today; give it what to do at
-     the end as an enum (a planning command on a place or entry, or going
-     to a date in the agenda).
+     the end as an enum (a planning command on a `Target`, or going to a
+     date in the agenda).
   3. Set a priority by name (`org-priority` with a character; an input of
      kind `text`) and text for state notes (`org-add-note`; now written
      empty). Both need an input `kind` other than `date`: the editors

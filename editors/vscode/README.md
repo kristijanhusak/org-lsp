@@ -23,7 +23,7 @@ All commands are in the Command Palette under **Org**.
 | `Org: Increase` / `Decrease the part of the timestamp at the cursor` | The year, month, day, hour or minute under the cursor, as Org's `S-<up>` / `S-<down>` |
 | `Org: Move the date one day later` / `earlier` | The timestamp under the cursor, or the date of an agenda line |
 | `Org: Increase the timestamp part or raise the priority`, and the three like it | Org's `S-<up>`, `S-<down>`, `S-<left>`, `S-<right>`: what they do depends on where the cursor is |
-| `Org: Schedule the entry`, `Org: Set the deadline of the entry` | Ask for a date and set it |
+| `Org: Schedule the entry`, `Org: Set the deadline of the entry` | Ask for a date and set it, in an Org file or on an agenda line (`Ctrl+C Ctrl+S`, `Ctrl+C Ctrl+D` there) |
 | `Org: Insert or change a timestamp` / `an inactive timestamp` | Ask for a date and insert it at the cursor, or change the timestamp there |
 | `Org: Agenda: …` | Move through time, change the span, rebuild, go to the entry |
 
