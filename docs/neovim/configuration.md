@@ -78,7 +78,11 @@ require('org-lsp').setup({
 
   -- Keys by scope; see keys.md. `false` sets no keys at all.
   mappings = {
-    global = { ['org.agenda.dispatch'] = '<Leader>oa', ['org.capture'] = '<Leader>oc' },
+    global = {
+      ['org.agenda.dispatch'] = '<Leader>oa',
+      ['org.capture'] = '<Leader>oc',
+      ['org.clock.goto'] = '<Leader>oxj',
+    },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>' },
     agenda = { quit = 'q' },
   },
@@ -121,6 +125,24 @@ opened for it; with `'current'`, the window goes back to the buffer it
 showed before. Going to an entry from the agenda opens the entry's file in
 the agenda's window, or, from a floating window, in the window under it.
 The date prompt's calendar always opens at the bottom.
+
+## The clock in the statusline
+
+While a clock runs, `require('org-lsp').clock_status()` returns what
+Emacs's mode line shows: the time clocked on the entry, its effort, and its
+headline, as in `[0:25/1:00] (Write the report)`. Without a clock it
+returns an empty string. The plugin redraws the statusline every minute
+while a clock runs, and fires the `User OrgLspClock` autocommand when the
+clock starts or stops.
+
+```lua
+vim.o.statusline = '%f %h%m%r%=%{v:lua.require("org-lsp").clock_status()}  %l,%c'
+
+-- lualine
+require('lualine').setup({
+  sections = { lualine_x = { function() return require('org-lsp').clock_status() end } },
+})
+```
 
 ## The server's options
 
@@ -180,6 +202,19 @@ require('org-lsp').setup({
     -- Where tags are aligned after a change to a headline. Negative: they end
     -- at that column. (org-tags-column)
     tagsColumn = -77,
+
+    -- Where `CLOCK:` lines go: `true` for the drawer of `logIntoDrawer`
+    -- (`LOGBOOK` when that is not a name), the name of a drawer, or `false`
+    -- for the entry itself. (org-clock-into-drawer)
+    clockIntoDrawer = true,
+
+    -- Clocking out after less than a minute removes the `CLOCK:` line.
+    -- (org-clock-out-remove-zero-time-clocks)
+    clockOutRemoveZeroTimeClocks = false,
+
+    -- Marking the clocked entry done stops the clock.
+    -- (org-clock-out-when-done)
+    clockOutWhenDone = true,
 
     -- Completing a tag offers the tags of every agenda file, after those of
     -- the file. Off, only the file's own.
@@ -365,6 +400,33 @@ require('org-lsp').setup({
       -- The days drawn as the weekend (0 is Sunday).
       -- (org-agenda-weekend-days)
       weekendDays = { 6, 0 },
+
+      -- Start the agenda in log mode, which shows what was closed and clocked
+      -- each day (`l` toggles it). (org-agenda-start-with-log-mode)
+      startWithLogMode = false,
+
+      -- Start the agenda with the clock report under it (`R` toggles it).
+      -- (org-agenda-start-with-clockreport-mode)
+      startWithClockreportMode = false,
+
+      -- What log mode shows: `closed` entries, `clock` lines and `state`
+      -- changes. (org-agenda-log-mode-items)
+      logModeItems = { 'closed', 'clock' },
+
+      -- The day the agenda starts from, as the date prompt reads it: `-1d`,
+      -- `+2d`, `2026-10-01`. (org-agenda-start-day)
+      -- startDay = nil, -- unset: today
+
+      -- Commands of the agenda menu. Each has a `key` and a `description`,
+      -- and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or
+      -- `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`,
+      -- a match string such as `work-home` or `PRIORITY="A"` for `tags`), or
+      -- `blocks`, a list of such views shown one after the other. `header`
+      -- replaces a view's header (empty: none), and `settings` holds agenda
+      -- options for the command or a block (`span`, `startDay`…). A command
+      -- with only a key and a description groups the commands whose keys
+      -- start with its key. (org-agenda-custom-commands)
+      customCommands = {},
     },
   },
 })

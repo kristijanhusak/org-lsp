@@ -18,8 +18,13 @@ apply at the cursor:
 | `org.timestamp.down` | Decrease the part of the timestamp at the cursor |
 | `org.date.later` | Move the date one day later |
 | `org.date.earlier` | Move the date one day earlier |
+| `org.clock.in` | Clock in on the entry (a clock that runs elsewhere stops) |
+| `org.clock.out` | Clock out, while a clock runs |
+| `org.clock.cancel` | Cancel the clock, while one runs |
 
-The menu shows only those that would change something. Helix cannot ask
+The menu shows only those that would change something. Helix has no
+status line for the clock; `org-lsp agenda --log` in a terminal shows what
+was clocked. Helix cannot ask
 for text on a server's behalf, so a TODO state that is set up to take a
 note (`WAIT(w@)`) gets its note line without text, and scheduling,
 deadlines, refile and capture are not available in Helix.

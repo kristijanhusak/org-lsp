@@ -116,14 +116,14 @@ struct Note {
     text: bool,
 }
 
-struct Editor<'a> {
-    text: String,
+pub(crate) struct Editor<'a> {
+    pub(crate) text: String,
     keywords: &'a TodoKeywords,
     settings: &'a Settings,
     now: DateTime,
     /// Byte offset of the entry's headline. It moves when text before it
     /// changes.
-    heading: usize,
+    pub(crate) heading: usize,
     note: Option<Note>,
 }
 
@@ -241,15 +241,19 @@ fn repeater_parts(stamp: &str) -> Option<(Option<char>, i64, char)> {
     })
 }
 
-impl Editor<'_> {
-    fn replace(&mut self, start: usize, end: usize, new: &str) {
+impl<'a> Editor<'a> {
+    pub(crate) fn new(text: &str, keywords: &'a TodoKeywords, settings: &'a Settings, now: DateTime) -> Editor<'a> {
+        Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None }
+    }
+
+    pub(crate) fn replace(&mut self, start: usize, end: usize, new: &str) {
         self.text.replace_range(start..end, new);
         if end <= self.heading {
             self.heading = self.heading + new.len() - (end - start);
         }
     }
 
-    fn line_start(&self, at: usize) -> usize {
+    pub(crate) fn line_start(&self, at: usize) -> usize {
         self.text[..at].rfind('\n').map_or(0, |index| index + 1)
     }
 
@@ -260,17 +264,17 @@ impl Editor<'_> {
 
     /// The start of the line after the one holding `at`, or the end of
     /// the text.
-    fn next_line(&self, at: usize) -> usize {
+    pub(crate) fn next_line(&self, at: usize) -> usize {
         (self.line_end(at) + 1).min(self.text.len())
     }
 
-    fn line(&self, start: usize) -> &str {
+    pub(crate) fn line(&self, start: usize) -> &str {
         &self.text[start..self.line_end(start)]
     }
 
     /// The start of the first headline after the line holding `at`, or
     /// the end of the text.
-    fn next_heading(&self, at: usize) -> usize {
+    pub(crate) fn next_heading(&self, at: usize) -> usize {
         let mut line = self.next_line(at);
         while line < self.text.len() {
             if (line == 0 || self.text.as_bytes()[line - 1] == b'\n') && headline_level(self.line(line)).is_some() {
@@ -286,7 +290,7 @@ impl Editor<'_> {
     }
 
     /// `org-entry-end-position`
-    fn entry_end(&self) -> usize {
+    pub(crate) fn entry_end(&self) -> usize {
         // A headline that ends the text without a line break has no body.
         if self.line_end(self.heading) == self.text.len() {
             return self.text.len();
@@ -340,7 +344,7 @@ impl Editor<'_> {
     /// `org-end-of-meta-data`: the start of the line after the headline,
     /// its planning line and its property drawer; the end of the text
     /// when nothing follows.
-    fn end_of_meta_data(&self) -> usize {
+    pub(crate) fn end_of_meta_data(&self) -> usize {
         let mut last = self.planning_line().unwrap_or(self.heading);
         if let Some((_, drawer_end)) = self.property_drawer() {
             last = drawer_end;
@@ -351,7 +355,7 @@ impl Editor<'_> {
     // ----- the headline
 
     /// Make the headline at or above byte `offset` the entry's.
-    fn go_to_heading(&mut self, offset: usize) -> Result<(), String> {
+    pub(crate) fn go_to_heading(&mut self, offset: usize) -> Result<(), String> {
         let mut line = self.line_start(offset.min(self.text.len()));
         while headline_level(self.line(line)).is_none() {
             if line == 0 {
@@ -611,7 +615,7 @@ impl Editor<'_> {
 
     /// The indentation `org-indent-line` gives a new line after the
     /// entry's planning line and drawer: that of the element before it.
-    fn indentation_after(&self, line: usize) -> String {
+    pub(crate) fn indentation_after(&self, line: usize) -> String {
         let headline_end = self.next_line(self.heading);
         if line <= headline_end {
             return String::new();
@@ -720,7 +724,7 @@ impl Editor<'_> {
     }
 
     /// The indentation of a new line at `at`, as `org-indent-line` sets it.
-    fn indentation_at(&self, at: usize) -> String {
+    pub(crate) fn indentation_at(&self, at: usize) -> String {
         // Inside a drawer: like the drawer.
         if let Some(drawer) = self.settings.log_into_drawer.as_ref() {
             let mut line = at;
@@ -753,7 +757,7 @@ impl Editor<'_> {
     /// `org-log-beginning` with a drawer: the line below the drawer's
     /// first line. The drawer is created after the entry's planning line
     /// and property drawer when it does not exist.
-    fn log_drawer(&mut self, name: &str) -> usize {
+    pub(crate) fn log_drawer(&mut self, name: &str) -> usize {
         let meta = self.end_of_meta_data();
         let end = self.entry_end();
         let opening = format!(":{name}:");
@@ -789,7 +793,7 @@ impl Editor<'_> {
     }
 
     /// Whether the drawer opening at `line` has its `:END:` before `end`.
-    fn drawer_closes(&self, line: usize, end: usize) -> bool {
+    pub(crate) fn drawer_closes(&self, line: usize, end: usize) -> bool {
         let mut at = self.next_line(line);
         while at < end && at > line {
             if self.line(at).trim_matches([' ', '\t']).eq_ignore_ascii_case(":END:") {

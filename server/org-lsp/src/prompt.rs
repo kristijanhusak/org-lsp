@@ -45,7 +45,7 @@ pub enum Target {
     Entry { view: Uri, line: u32, character: u32, row: ViewLine },
     /// The agenda `view` itself: the answer is the day to show
     /// (`org-agenda-goto-date`).
-    Agenda { view: Uri },
+    Agenda { view: Uri, line: u32 },
 }
 
 impl Target {
@@ -53,7 +53,7 @@ impl Target {
     pub fn from(&self) -> &Uri {
         match self {
             Target::Place { uri, .. } => uri,
-            Target::Entry { view, .. } | Target::Agenda { view } => view,
+            Target::Entry { view, .. } | Target::Agenda { view, .. } => view,
         }
     }
 }

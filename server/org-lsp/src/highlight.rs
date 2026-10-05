@@ -60,6 +60,7 @@ token_types! {
     AgendaEvent => "agendaEvent",
     AgendaDone => "agendaDone",
     AgendaTimeGrid => "agendaTimeGrid",
+    AgendaClocking => "agendaClocking",
     CalendarHeader => "calendarHeader",
     CalendarWeekday => "calendarWeekday",
     CalendarSelected => "calendarSelected",
@@ -93,6 +94,7 @@ pub mod modifier {
         "range",
         "current",
         "hidden",
+        "clocking",
     ];
 
     pub const DONE: u32 = 1 << 8;
@@ -113,6 +115,8 @@ pub mod modifier {
     /// Text Org hides: link brackets and targets, emphasis markers. An
     /// editor that can conceal text conceals it.
     pub const HIDDEN: u32 = 1 << 23;
+    /// Agenda: the entry the clock runs on (`org-agenda-clocking`).
+    pub const CLOCKING: u32 = 1 << 24;
 
     /// Headline levels repeat after eight, like Org's level faces.
     pub fn level(level: usize) -> u32 {

@@ -25,6 +25,11 @@ mod objects;
 mod parser;
 
 pub use config::{Logging, TodoKeywords};
+
+/// The names of the entities Org knows (`org-entities`), sorted.
+pub fn entity_names() -> &'static [&'static str] {
+    entities::ENTITIES
+}
 pub use kind::{OrgLanguage, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
 pub use rowan::{TextRange, TextSize, TokenAtOffset};
 

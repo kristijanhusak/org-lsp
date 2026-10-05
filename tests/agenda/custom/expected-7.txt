@@ -1,0 +1,6 @@
+Headlines with TAGS match: -work
+  b:          TODO Water plants                                           :home:
+  b:          NEXT [#B] Buy groceries                              :home:errand:
+  projects:   Projects
+  projects:   TODO Learn Rust                                         :learning:
+  projects:   NEXT Read the book                              :learning:reading:

@@ -25,17 +25,20 @@ still missing; see [Not done yet](#not-done-yet).
 | Priorities, as `org-priority` changes them | `ciR` / `cir`, `<Leader>o,` | commands, `Ctrl+.` | `Space a` |
 | Timestamps: the part at the cursor, or the date by days | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>`, with counts | commands, `Ctrl+.` | `Space a` |
 | Schedule, deadline, insert a timestamp: dates typed as at Org's prompt, or picked in Emacs's calendar | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!` | commands, with a preview of the date | no⁴ |
-| Completion of TODO keywords and tags in headlines | with an LSP completion plugin | yes | yes |
+| Completion: TODO keywords and tags in headlines, `#+` keywords and `#+STARTUP:` values, drawers and property names, entities, and in links file names, headlines and custom IDs | with an LSP completion plugin | yes | yes |
 | Agenda: day, week, fortnight, month and year views, going to a date | yes | yes | no³ |
-| Agenda: list of all TODO entries | yes | yes | no³ |
+| Agenda: list of all TODO entries, tags and property searches (`m`, `M`), custom commands and block agendas (`org-agenda-custom-commands`) | yes | yes | no³ |
 | Refile, as `org-refile` does it, between files too | `<Leader>or` | command | no⁴ |
 | Capture, as `org-capture` does it: templates, prompts, a capture buffer | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | commands; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | no⁴ |
 | Agenda: change an entry's state, priority or date, schedule it or set its deadline, go to its entry | yes | yes | no³ |
+| Clocking, as `org-clock-in` and `org-clock-out` do it, with the clock in the status line | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`; `clock_status()` | commands; the status bar | `Space a`⁵ |
+| Agenda: the clocked entry highlighted, log mode (what was closed and clocked each day), the clock report | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | no³ |
 
 ¹ Helix does not consume semantic tokens; it highlights Org with its own grammar.
 ² Helix has no folding.
 ³ Helix cannot open a document on a server's request. `org-lsp agenda FILE...` prints the agenda in a terminal.
 ⁴ Helix has no way to ask for text on a server's behalf.
+⁵ Through the commands Helix lists; it has no status line for the clock.
 
 Tested with Neovim 0.11.0 and 0.12.5, VSCodium 1.135 and Helix 25.07.1.
 
@@ -215,17 +218,12 @@ both programs on them. See
 
 ## Not done yet
 
-- Agenda: tag and property matches, text search, filters, custom commands,
-  the clock report, habits, diary entries and bulk actions.
-- Capture, refile, archiving, clocking, tables, completion, following
-  links, export.
-- Commands that ask for input (a date, a note, a tag): LSP has no prompt
-  for free text. Dates are asked for (scheduling, deadlines, timestamps),
-  with Emacs's calendar, but not yet from the agenda. State notes are
-  written without their text.
+- Agenda: text search, stuck projects, filters, habits, diary entries and
+  bulk actions; custom commands of those types.
+- Archiving, tables, following links, setting tags with a command, export.
 - The shifted cursor keys do nothing yet on list items, in tables and on
   property lines.
 - Fold cycling is still done by the Neovim plugin, not by the server.
-- No prebuilt binaries, and no Vim or Zed integration.
+- No Vim or Zed integration.
 - Source blocks get no highlighting of their own; that needs editor support
   for embedded languages.

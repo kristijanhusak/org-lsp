@@ -1,0 +1,163 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "todo",
+      "match": "NEXT|WAIT"
+    },
+    {
+      "view": "tags",
+      "match": "work-home"
+    },
+    {
+      "view": "tags",
+      "match": "PRIORITY=\"A\"|LEVEL>2"
+    },
+    {
+      "view": "tags",
+      "match": "OWNER={^al}"
+    },
+    {
+      "view": "tags",
+      "match": "/NEXT"
+    },
+    {
+      "view": "tags",
+      "match": "work/!"
+    },
+    {
+      "view": "tags",
+      "match": "EFFORT>1"
+    },
+    {
+      "view": "tags",
+      "match": "-work"
+    },
+    {
+      "view": "tags",
+      "match": "learning+OWNER=\"alice\""
+    },
+    {
+      "view": "tags-todo",
+      "match": "work"
+    },
+    {
+      "view": "tags-todo",
+      "match": "home|learning"
+    },
+    {
+      "view": "custom",
+      "key": "h"
+    },
+    {
+      "view": "custom",
+      "key": "w"
+    },
+    {
+      "view": "custom",
+      "key": "n"
+    },
+    {
+      "view": "custom",
+      "key": "c"
+    },
+    {
+      "view": "custom",
+      "key": "d"
+    },
+    {
+      "view": "custom",
+      "key": "e"
+    },
+    {
+      "view": "custom",
+      "key": "g"
+    }
+  ],
+  "options": {
+    "customCommands": [
+      {
+        "key": "h",
+        "description": "Home",
+        "type": "tags",
+        "match": "home"
+      },
+      {
+        "key": "w",
+        "description": "Work todos",
+        "type": "tags-todo",
+        "match": "work-email"
+      },
+      {
+        "key": "n",
+        "description": "Next",
+        "type": "todo",
+        "match": "NEXT|WAIT"
+      },
+      {
+        "key": "c",
+        "description": "Combined",
+        "blocks": [
+          {
+            "type": "agenda",
+            "settings": {
+              "span": "day"
+            }
+          },
+          {
+            "type": "tags-todo",
+            "match": "+home"
+          },
+          {
+            "type": "todo",
+            "match": "NEXT",
+            "header": "Next actions"
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "description": "Three days",
+        "type": "agenda",
+        "header": "Three days",
+        "settings": {
+          "span": 3,
+          "startDay": "-1d"
+        }
+      },
+      {
+        "key": "e",
+        "description": "No header",
+        "blocks": [
+          {
+            "type": "tags",
+            "match": "OWNER=\"alice\"",
+            "header": ""
+          },
+          {
+            "type": "alltodo"
+          }
+        ]
+      },
+      {
+        "key": "g",
+        "description": "Settings for all",
+        "settings": {
+          "span": "day",
+          "useTimeGrid": false
+        },
+        "blocks": [
+          {
+            "type": "agenda"
+          },
+          {
+            "type": "tags",
+            "match": "phone"
+          }
+        ]
+      }
+    ]
+  },
+  "emacs": "(setq org-agenda-custom-commands\n '((\"h\" \"Home\" tags \"home\")\n   (\"w\" \"Work todos\" tags-todo \"work-email\")\n   (\"n\" \"Next\" todo \"NEXT|WAIT\")\n   (\"c\" \"Combined\" ((agenda \"\" ((org-agenda-span 'day))) (tags-todo \"+home\") (todo \"NEXT\" ((org-agenda-overriding-header \"Next actions\")))))\n   (\"d\" \"Three days\" agenda \"\" ((org-agenda-span 3) (org-agenda-start-day \"-1d\") (org-agenda-overriding-header \"Three days\")))\n   (\"e\" \"No header\" ((tags \"OWNER=\\\"alice\\\"\" ((org-agenda-overriding-header \"\"))) (alltodo \"\")))\n   (\"g\" \"Settings for all\" ((agenda \"\") (tags \"phone\")) ((org-agenda-span 'day) (org-agenda-use-time-grid nil)))))"
+}

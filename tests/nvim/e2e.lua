@@ -503,6 +503,33 @@ wait('the link to be concealed', function()
 end)
 eq(concealed(), { '[[https://example.org][', ']]' }, 'the brackets and the target are concealed')
 
+-- 19. Clocking: `<Leader>oxi` writes the clock line in a drawer, the
+-- statusline shows the clock as Emacs's mode line does, `<Leader>oxo`
+-- stops it.
+local clocked = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* TODO Write it', ':PROPERTIES:', ':EFFORT: 1:00', ':END:' }, clocked)
+vim.cmd.edit(clocked)
+wait('the server to attach to the file to clock', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+eq(require('org-lsp').clock_status(), '', 'no clock runs')
+press('<Leader>oxi')
+wait('the clock line in its drawer', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return line(5) == ':LOGBOOK:' and (line(6) or ''):match('^CLOCK: %[%d+%-%d+%-%d+ %a+ %d+:%d+%]$') ~= nil
+end)
+wait('the clock in the statusline', function()
+  return require('org-lsp').clock_status():match('^%[0:0%d/1:00%] %(Write it%)$') ~= nil
+end)
+press('<Leader>oxo')
+wait('the clock to stop', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return (line(6) or ''):match('%]%-%-%[.*%] =>%s+%d+:%d%d$') ~= nil
+end)
+wait('the statusline to drop the clock', function()
+  return require('org-lsp').clock_status() == ''
+end)
+
 -- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'

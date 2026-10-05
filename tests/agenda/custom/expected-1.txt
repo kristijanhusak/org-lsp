@@ -1,0 +1,9 @@
+Headlines with TAGS match: work-home
+  a:          TODO [#A] Write the report                          :work::office:
+  a:          NEXT Outline the sections                           :work:office::
+  a:          WAIT Numbers from finance                     :work:office::email:
+  a:          NEXT Call the client                                 :work::phone:
+  a:          DONE Book the room                                  :work::office:
+  a:          Meeting notes                                      :work::meeting:
+  a:          CANCELLED Old idea                                 :work:meeting::
+  a:          TODO [#C] Low priority chore                               :work::

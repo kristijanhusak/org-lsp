@@ -51,7 +51,11 @@ local defaults = {
   win_split_mode = 'split',
   mappings = {
     -- The keys that must work before the server has said anything.
-    global = { ['org.agenda.dispatch'] = '<Leader>oa', ['org.capture'] = '<Leader>oc' },
+    global = {
+      ['org.agenda.dispatch'] = '<Leader>oa',
+      ['org.capture'] = '<Leader>oc',
+      ['org.clock.goto'] = '<Leader>oxj',
+    },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>' },
     agenda = { quit = 'q' },
   },
@@ -574,6 +578,17 @@ local function complete_user_command(lead)
 end
 
 local started = false
+
+--- What Emacs's mode line shows while a clock runs, for the statusline:
+--- `[0:25/1:00] (Write the report)`, or an empty string.
+---
+--- ```lua
+--- vim.o.statusline = '%f %=%{v:lua.require("org-lsp").clock_status()}'
+--- ```
+---@return string
+function M.clock_status()
+  return require('org-lsp.clock').status()
+end
 
 --- Called once by plugin/org-lsp.lua.
 function M.start()

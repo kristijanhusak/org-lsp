@@ -11,6 +11,7 @@ pub mod cli;
 pub mod commands;
 pub mod completion;
 pub mod config;
+pub mod custom;
 pub mod document;
 pub mod folding;
 pub mod highlight;

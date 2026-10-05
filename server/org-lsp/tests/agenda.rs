@@ -47,6 +47,16 @@ fn arguments(directory: &Path, case: &Value, run: &Value) -> Vec<String> {
             arguments.extend(["--start".to_string(), text(start)]);
         }
     }
+    for (name, flag) in [("match", "--match"), ("key", "--key")] {
+        if let Some(value) = run.get(name) {
+            arguments.extend([flag.to_string(), text(value)]);
+        }
+    }
+    for flag in ["log", "clockreport"] {
+        if run.get(flag).and_then(Value::as_bool) == Some(true) {
+            arguments.push(format!("--{flag}"));
+        }
+    }
     if let Some(options) = case.get("options") {
         arguments.extend(["--options".to_string(), options.to_string()]);
     }
@@ -76,6 +86,7 @@ fn agenda_matches_emacs() {
         .unwrap_or_else(|error| panic!("{}: {error}", root.display()))
         .map(|entry| entry.unwrap().path())
         .filter(|path| path.join("case.json").exists())
+        .map(|path| path.canonicalize().unwrap())
         .collect();
     directories.sort();
     assert!(!directories.is_empty(), "no cases in {}", root.display());
@@ -93,6 +104,8 @@ fn agenda_matches_emacs() {
             }
             let arguments = arguments(directory, &case, run);
             let actual = org_lsp::cli::agenda(&arguments).unwrap_or_else(|error| format!("ERROR: {error}\n"));
+            // The clock report links to the files: by where the case is.
+            let actual = actual.replace(&format!("{}/", directory.display()), "{dir}/");
             compared += 1;
             if actual != expected {
                 failed += 1;

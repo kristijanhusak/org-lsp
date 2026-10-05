@@ -1,0 +1,6 @@
+Headlines with TAGS match: work
+  a:          TODO [#A] Write the report                          :work::office:
+  a:          NEXT Outline the sections                           :work:office::
+  a:          WAIT Numbers from finance                     :work:office::email:
+  a:          NEXT Call the client                                 :work::phone:
+  a:          TODO [#C] Low priority chore                               :work::

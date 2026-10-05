@@ -59,6 +59,24 @@
       "description": "Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`)",
       "default": -77
     },
+    "clockIntoDrawer": {
+      "type": [
+        "boolean",
+        "string"
+      ],
+      "description": "Where `CLOCK:` lines go: `true` for the drawer of `logIntoDrawer` (`LOGBOOK` when that is not a name), the name of a drawer, or `false` for the entry itself. (`org-clock-into-drawer`)",
+      "default": true
+    },
+    "clockOutRemoveZeroTimeClocks": {
+      "type": "boolean",
+      "description": "Clocking out after less than a minute removes the `CLOCK:` line. (`org-clock-out-remove-zero-time-clocks`)",
+      "default": false
+    },
+    "clockOutWhenDone": {
+      "type": "boolean",
+      "description": "Marking the clocked entry done stops the clock. (`org-clock-out-when-done`)",
+      "default": true
+    },
     "completeTagsAlwaysOfferAllAgendaTags": {
       "type": "boolean",
       "description": "Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. (`org-complete-tags-always-offer-all-agenda-tags`)",
@@ -514,6 +532,115 @@
             6,
             0
           ]
+        },
+        "startWithLogMode": {
+          "type": "boolean",
+          "description": "Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it). (`org-agenda-start-with-log-mode`)",
+          "default": false
+        },
+        "startWithClockreportMode": {
+          "type": "boolean",
+          "description": "Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)",
+          "default": false
+        },
+        "logModeItems": {
+          "items": {
+            "enum": [
+              "closed",
+              "clock",
+              "state"
+            ]
+          },
+          "type": "array",
+          "description": "What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`)",
+          "default": [
+            "closed",
+            "clock"
+          ]
+        },
+        "startDay": {
+          "type": "string",
+          "description": "The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)"
+        },
+        "customCommands": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "blocks": {
+                "description": "Views shown one after the other",
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "header": {
+                      "description": "Replaces the view's header; empty for none",
+                      "type": "string"
+                    },
+                    "match": {
+                      "description": "For todo, keywords; for tags, a match string",
+                      "type": "string"
+                    },
+                    "settings": {
+                      "description": "Agenda options for this block: span, startDay…",
+                      "type": "object"
+                    },
+                    "type": {
+                      "description": "The view",
+                      "enum": [
+                        "agenda",
+                        "alltodo",
+                        "todo",
+                        "tags",
+                        "tags-todo"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "description": {
+                "description": "What the menu shows",
+                "type": "string"
+              },
+              "header": {
+                "description": "Replaces the view's header; empty for none",
+                "type": "string"
+              },
+              "key": {
+                "description": "The keys that pick the command in the agenda menu",
+                "type": "string"
+              },
+              "match": {
+                "description": "For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY=\"A\")",
+                "type": "string"
+              },
+              "settings": {
+                "description": "Agenda options for this command: span, startDay…",
+                "type": "object"
+              },
+              "type": {
+                "description": "The view",
+                "enum": [
+                  "agenda",
+                  "alltodo",
+                  "todo",
+                  "tags",
+                  "tags-todo"
+                ]
+              }
+            },
+            "required": [
+              "key",
+              "description"
+            ],
+            "type": "object"
+          },
+          "type": "array",
+          "description": "Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY=\"A\"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`span`, `startDay`…). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)",
+          "default": []
         }
       },
       "additionalProperties": false

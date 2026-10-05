@@ -101,6 +101,28 @@ pub const SETTINGS: &[Setting] = &[
         "Where tags are aligned after a change to a headline. Negative: they end at that column.",
     ),
     setting(
+        "clockIntoDrawer",
+        "boolean, string",
+        "true",
+        "org-clock-into-drawer",
+        "Where `CLOCK:` lines go: `true` for the drawer of `logIntoDrawer` (`LOGBOOK` when that is not a name), \
+         the name of a drawer, or `false` for the entry itself.",
+    ),
+    setting(
+        "clockOutRemoveZeroTimeClocks",
+        "boolean",
+        "false",
+        "org-clock-out-remove-zero-time-clocks",
+        "Clocking out after less than a minute removes the `CLOCK:` line.",
+    ),
+    setting(
+        "clockOutWhenDone",
+        "boolean",
+        "true",
+        "org-clock-out-when-done",
+        "Marking the clocked entry done stops the clock.",
+    ),
+    setting(
         "completeTagsAlwaysOfferAllAgendaTags",
         "boolean",
         "false",
@@ -383,6 +405,50 @@ pub const SETTINGS: &[Setting] = &[
         "org-agenda-weekend-days",
         "The days drawn as the weekend (0 is Sunday).",
     ),
+    setting(
+        "agenda.startWithLogMode",
+        "boolean",
+        "false",
+        "org-agenda-start-with-log-mode",
+        "Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it).",
+    ),
+    setting(
+        "agenda.startWithClockreportMode",
+        "boolean",
+        "false",
+        "org-agenda-start-with-clockreport-mode",
+        "Start the agenda with the clock report under it (`R` toggles it).",
+    ),
+    setting(
+        "agenda.logModeItems",
+        "string[]",
+        r#"["closed", "clock"]"#,
+        "org-agenda-log-mode-items",
+        "What log mode shows: `closed` entries, `clock` lines and `state` changes.",
+    ),
+    Setting {
+        default: None,
+        unset: "today",
+        ..setting(
+            "agenda.startDay",
+            "string",
+            "",
+            "org-agenda-start-day",
+            "The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`.",
+        )
+    },
+    setting(
+        "agenda.customCommands",
+        "object[]",
+        "[]",
+        "org-agenda-custom-commands",
+        "Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, \
+         `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, \
+         a match string such as `work-home` or `PRIORITY=\"A\"` for `tags`), or `blocks`, a list of such \
+         views shown one after the other. `header` replaces a view's header (empty: none), and `settings` \
+         holds agenda options for the command or a block (`span`, `startDay`…). A command with only a key \
+         and a description groups the commands whose keys start with its key.",
+    ),
     Setting {
         default: None,
         unset: "from the client's capabilities",
@@ -411,6 +477,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("logIntoDrawer", r#"{ "type": ["boolean", "string"] }"#),
     ("tagsColumn", r#"{ "type": "integer" }"#),
     ("completeTagsAlwaysOfferAllAgendaTags", BOOLEAN),
+    ("clockIntoDrawer", r#"{ "type": ["boolean", "string"] }"#),
+    ("clockOutRemoveZeroTimeClocks", BOOLEAN),
+    ("clockOutWhenDone", BOOLEAN),
     ("todoRepeatToState", r#"{ "anyOf": [{ "type": "string" }, { "const": true }] }"#),
     ("priorityHighest", PRIORITY),
     ("priorityLowest", PRIORITY),
@@ -486,6 +555,27 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("agenda.timeGrid.now", STRING),
     ("agenda.showCurrentTimeInGrid", BOOLEAN),
     ("agenda.weekendDays", r#"{ "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 6 } }"#),
+    ("agenda.startDay", STRING),
+    ("agenda.startWithLogMode", BOOLEAN),
+    ("agenda.startWithClockreportMode", BOOLEAN),
+    ("agenda.logModeItems", r#"{ "type": "array", "items": { "enum": ["closed", "clock", "state"] } }"#),
+    (
+        "agenda.customCommands",
+        r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaCommand", "required": ["key", "description"], "additionalProperties": false, "properties": {
+            "key": { "type": "string", "description": "The keys that pick the command in the agenda menu" },
+            "description": { "type": "string", "description": "What the menu shows" },
+            "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo"], "description": "The view" },
+            "match": { "type": "string", "description": "For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY=\"A\")" },
+            "header": { "type": "string", "description": "Replaces the view's header; empty for none" },
+            "settings": { "type": "object", "description": "Agenda options for this command: span, startDay…" },
+            "blocks": { "type": "array", "description": "Views shown one after the other", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaBlock", "required": ["type"], "additionalProperties": false, "properties": {
+                "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo"], "description": "The view" },
+                "match": { "type": "string", "description": "For todo, keywords; for tags, a match string" },
+                "header": { "type": "string", "description": "Replaces the view's header; empty for none" },
+                "settings": { "type": "object", "description": "Agenda options for this block: span, startDay…" }
+            } } }
+        } } }"#,
+    ),
     ("virtualDocuments", BOOLEAN),
 ];
 

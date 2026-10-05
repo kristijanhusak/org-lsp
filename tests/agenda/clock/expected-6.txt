@@ -1,0 +1,5 @@
+Day-agenda (W40):
+Thursday    1 October 2026
+| File | Headline         | Time   |
+|------+------------------+--------|
+|      | ALL *Total time* | *0:00* |

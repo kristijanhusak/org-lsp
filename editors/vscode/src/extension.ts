@@ -293,6 +293,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     // Files the server changed from elsewhere (the agenda, a capture, a
     // refile), to save now that the change is made: `autoSave`.
     client.onNotification('org-lsp/save', (params: { uris?: string[] }) => saveAsked({ save: params.uris ?? [] }));
+    // The clock that runs, for the status bar.
+    client.onNotification('org-lsp/clock', (params: ClockReport | null) => showClock(params));
   } catch (error) {
     client = undefined;
     const message = error instanceof Error ? error.message : String(error);
@@ -307,6 +309,57 @@ async function stopClient(): Promise<void> {
   const running = client;
   client = undefined;
   await running?.stop();
+}
+
+// ----- the clock
+
+/** What the server says about the clock that runs (`org-lsp/clock`). */
+interface ClockReport {
+  heading: string;
+  /** Minutes clocked on the entry when the report was sent. */
+  minutes: number;
+  /** The entry's effort, in minutes. */
+  effort: number | null;
+}
+
+let clockItem: vscode.StatusBarItem | undefined;
+let clockTimer: NodeJS.Timeout | undefined;
+let clockState: (ClockReport & { received: number }) | undefined;
+
+function duration(minutes: number): string {
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+/**
+ * What Emacs's mode line shows while a clock runs, such as
+ * `[0:25/1:00] (Write the report)`; empty when none does.
+ */
+function clockText(): string {
+  if (!clockState) {
+    return '';
+  }
+  const minutes = clockState.minutes + Math.floor((Date.now() - clockState.received) / 60000);
+  const time = clockState.effort == null ? duration(minutes) : `${duration(minutes)}/${duration(clockState.effort)}`;
+  return `[${time}] (${clockState.heading})`;
+}
+
+function updateClockItem(): void {
+  if (!clockItem) {
+    return;
+  }
+  if (!clockState) {
+    clockItem.hide();
+    return;
+  }
+  clockItem.text = `$(clock) ${clockText()}`;
+  clockItem.show();
+}
+
+function showClock(report: ClockReport | null): void {
+  clockState = report && typeof report.heading === 'string' ? { ...report, received: Date.now() } : undefined;
+  clearInterval(clockTimer);
+  clockTimer = clockState ? setInterval(updateClockItem, 30000) : undefined;
+  updateClockItem();
 }
 
 // ----- concealing
@@ -408,6 +461,8 @@ function watchConcealing(context: vscode.ExtensionContext): void {
 export interface Api {
   /** The text hidden in `editor` now. */
   concealed(editor: vscode.TextEditor): string[];
+  /** What the status bar shows for the clock: empty when none runs. */
+  clock(): string;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
@@ -424,10 +479,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
       }
     }),
   );
+  clockItem = vscode.window.createStatusBarItem('org-lsp.clock', vscode.StatusBarAlignment.Left, 50);
+  clockItem.name = 'Org clock';
+  clockItem.tooltip = 'Org: the clock runs on this entry. Click to go to it.';
+  clockItem.command = 'org.clock.goto';
+  context.subscriptions.push(clockItem, { dispose: () => clearInterval(clockTimer) });
   await startClient(context);
   watchConcealing(context);
   concealVisible();
-  return { concealed: (editor) => concealedText.get(editor) ?? [] };
+  return { concealed: (editor) => concealedText.get(editor) ?? [], clock: clockText };
 }
 
 export function deactivate(): Promise<void> {

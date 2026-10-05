@@ -1,0 +1,13 @@
+* TODO Water plants :home:
+SCHEDULED: <2026-10-03 Sat +1w>
+* NEXT [#B] Buy groceries :home:errand:
+* Projects
+:PROPERTIES:
+:CATEGORY: projects
+:END:
+** TODO Learn Rust :learning:
+:PROPERTIES:
+:OWNER:    alice
+:LEVEL_HINT: x
+:END:
+*** NEXT Read the book :learning:reading:

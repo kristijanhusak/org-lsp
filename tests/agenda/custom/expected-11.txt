@@ -1,0 +1,3 @@
+Headlines with TAGS match: home
+  b:          TODO Water plants                                           :home:
+  b:          NEXT [#B] Buy groceries                              :home:errand:

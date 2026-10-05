@@ -169,7 +169,7 @@ impl Stamp {
 
 /// `[2026-05-18 Mon 10:30]` or `<2026-05-18 Mon>`, with `extra` before
 /// the closing bracket.
-pub(crate) fn format_timestamp(time: DateTime, with_time: bool, inactive: bool, extra: &str) -> String {
+pub fn format_timestamp(time: DateTime, with_time: bool, inactive: bool, extra: &str) -> String {
     let date = time.date();
     let (open, close) = if inactive { ('[', ']') } else { ('<', '>') };
     let name = WEEKDAY_ABBREVIATIONS[weekday(time.day)];

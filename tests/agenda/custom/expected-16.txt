@@ -1,0 +1,12 @@
+  a:          TODO [#A] Write the report                          :work::office:
+  projects:   TODO Learn Rust                                         :learning:
+
+===============================================================================
+Global list of TODO items of type: ALL
+  a:          TODO [#A] Write the report                          :work::office:
+  a:          NEXT Outline the sections                           :work:office::
+  a:          WAIT Numbers from finance                     :work:office::email:
+  a:          NEXT Call the client                                 :work::phone:
+  b:          TODO Water plants                                           :home:
+  projects:   TODO Learn Rust                                         :learning:
+  a:          TODO [#C] Low priority chore                               :work::

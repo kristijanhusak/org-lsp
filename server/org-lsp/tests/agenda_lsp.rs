@@ -447,6 +447,7 @@ fn opens_the_agenda_from_open_documents() {
             "org.priority.down",
             "org.date.later",
             "org.date.earlier",
+            "org.clock.in",
             "org.agenda.goto"
         ]
     );
@@ -599,7 +600,9 @@ fn the_dispatcher_asks_which_view() {
         asked["input"]["choices"],
         json!([
             { "key": "a", "label": "Agenda for the current week or day" },
-            { "key": "t", "label": "List of all TODO entries" }
+            { "key": "t", "label": "List of all TODO entries" },
+            { "key": "m", "label": "Match a TAGS/PROP/TODO query" },
+            { "key": "M", "label": "Like m, but only TODO entries" }
         ])
     );
     client.received.clear();
@@ -613,6 +616,194 @@ fn the_dispatcher_asks_which_view() {
         json!({ "command": "org.agenda.dispatch", "arguments": [{ "input": "a" }] }),
     );
     assert_eq!(answer, Ok(Value::Null));
+    client.shutdown();
+}
+
+/// `org-agenda-custom-commands`: a group of commands under a prefix key,
+/// a block agenda whose agenda block moves on its own (`f`), and the
+/// built-in tags search (`m`).
+#[test]
+fn runs_custom_agenda_commands() {
+    let mut options = clock();
+    options["agenda"] = json!({ "customCommands": [
+        { "key": "x", "description": "Mine" },
+        { "key": "xb", "description": "Day and office", "blocks": [
+            { "type": "agenda", "settings": { "span": "day" } },
+            { "type": "tags", "match": "office", "header": "At the office" }
+        ] }
+    ] });
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    let run = |client: &mut Client, command: &str, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let asked = run(&mut client, "org.agenda.dispatch", json!({})).unwrap();
+    let keys: Vec<&str> =
+        asked["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
+    assert_eq!(keys, ["a", "t", "m", "M", "x"]);
+    assert_eq!(asked["input"]["choices"][4]["label"], "+Mine");
+    let asked = run(&mut client, "org.agenda.dispatch", json!({ "input": "x" })).unwrap();
+    assert_eq!(asked["input"]["choices"], json!([{ "key": "b", "label": "Day and office" }]));
+    assert_eq!(asked["input"]["context"], json!({ "keys": "x" }));
+    assert_eq!(run(&mut client, "org.agenda.dispatch", json!({ "keys": "x", "input": "b" })), Ok(Value::Null));
+    let text = client.view_text(VIEW);
+    let lines: Vec<&str> = text.lines().collect();
+    assert_eq!(lines[0], "Day-agenda (W21):");
+    assert_eq!(lines[1], "Monday     18 May 2026 W21");
+    let separator = lines.iter().position(|line| line.starts_with("====")).unwrap();
+    assert_eq!(lines[separator - 1], "");
+    assert_eq!(lines[separator + 1], "At the office");
+    assert!(lines[separator + 2].contains("Write report"), "{text}");
+
+    // `f` on the agenda block moves it a day; the other block stays.
+    run(&mut client, "org.agenda.later", json!({ "position": { "line": 1, "character": 0 } })).unwrap();
+    let text = client.view_text(VIEW);
+    assert_eq!(text.lines().nth(1), Some("Tuesday    19 May 2026"));
+    assert!(text.contains("At the office"));
+    let on_tags = text.lines().position(|line| line == "At the office").unwrap() as u32;
+    let refused = run(&mut client, "org.agenda.later", json!({ "position": { "line": on_tags, "character": 0 } }));
+    assert_eq!(refused, Err("This block has no dates to move through".to_string()));
+    // Rebuilding keeps the moved block where it is.
+    run(&mut client, "org.agenda.redo", json!({})).unwrap();
+    assert_eq!(client.view_text(VIEW).lines().nth(1), Some("Tuesday    19 May 2026"));
+
+    // `m`: a match string, then the tags view.
+    let asked = run(&mut client, "org.agenda.dispatch", json!({ "input": "m" })).unwrap();
+    assert_eq!((asked["input"]["kind"].as_str(), asked["input"]["prompt"].as_str()), (Some("text"), Some("Match")));
+    let context = asked["input"]["context"].clone();
+    assert_eq!(context, json!({ "keys": "m", "ask": "match" }));
+    run(&mut client, "org.agenda.dispatch", json!({ "keys": "m", "ask": "match", "input": "office" })).unwrap();
+    let text = client.view_text(VIEW);
+    assert!(text.starts_with("Headlines with TAGS match: office\n"), "{text}");
+    assert!(text.contains("Write report"));
+    client.shutdown();
+}
+
+/// `org-clock-in` and its relatives: the `CLOCK:` line in its drawer, the
+/// clock's status for the editor (`org-lsp/clock`), switching to another
+/// entry, clocking out, cancelling, and a done state stopping the clock.
+#[test]
+fn clocks_in_and_out() {
+    const URI: &str = "file:///org/clock.org";
+    let mut text = "* TODO Write\n:PROPERTIES:\n:EFFORT: 1:00\n:END:\n* Other\n".to_string();
+    let mut client = Client::editor(clock(), None);
+    client.open(URI, &text);
+    let mut version = 1;
+    // Run a command; apply its edit as the editor would, and return what
+    // it said and the clock's last status.
+    let mut run = |client: &mut Client, text: &mut String, command: &str, line: u32| {
+        client.received.clear();
+        client.notifications.clear();
+        let at = json!({ "textDocument": { "uri": URI }, "position": { "line": line, "character": 0 } });
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
+        client.settle();
+        if let Some(edit) = client.received.iter().find(|request| request.method == "workspace/applyEdit") {
+            let (_, edits) = edits_of(edit);
+            *text = apply(text, &edits);
+            version += 1;
+            client.notify(
+                "textDocument/didChange",
+                json!({ "textDocument": { "uri": URI, "version": version }, "contentChanges": [{ "text": text }] }),
+            );
+            client.settle();
+        }
+        let status = client
+            .notifications
+            .iter()
+            .rev()
+            .find(|notification| notification.method == "org-lsp/clock")
+            .map(|notification| notification.params.clone());
+        (result, status)
+    };
+
+    let (result, status) = run(&mut client, &mut text, "org.clock.in", 0);
+    assert_eq!(result.unwrap()["message"], "Clock starts at [2026-05-18 Mon 10:30] - showing entire task time.");
+    assert_eq!(
+        text,
+        "* TODO Write\n:PROPERTIES:\n:EFFORT: 1:00\n:END:\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* Other\n"
+    );
+    let status = status.unwrap();
+    assert_eq!((status["text"].as_str(), status["minutes"].as_i64()), (Some("[0:00/1:00] (Write)"), Some(0)));
+    // Again on the same entry: it goes on.
+    let (result, _) = run(&mut client, &mut text, "org.clock.in", 1);
+    assert_eq!(result.unwrap()["message"], "Clock continues in \"Write\"");
+
+    // Another entry: the first clock stops, in the same edit.
+    let (_, status) = run(&mut client, &mut text, "org.clock.in", 7);
+    assert_eq!(
+        text,
+        "* TODO Write\n:PROPERTIES:\n:EFFORT: 1:00\n:END:\n:LOGBOOK:\n\
+         CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n\
+         * Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+    );
+    assert_eq!(status.unwrap()["text"], "[0:00] (Other)");
+    let (result, status) = run(&mut client, &mut text, "org.clock.out", 0);
+    assert_eq!(result.unwrap()["message"], "Clock stopped at [2026-05-18 Mon 10:30] after 0:00");
+    assert_eq!(status, Some(Value::Null));
+    assert!(
+        text.ends_with("* Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n")
+    );
+    let (result, _) = run(&mut client, &mut text, "org.clock.out", 0);
+    assert_eq!(result, Err("No active clock".to_string()));
+
+    // Cancelled: the line goes.
+    let before = text.clone();
+    run(&mut client, &mut text, "org.clock.in", 0).0.unwrap();
+    let (result, _) = run(&mut client, &mut text, "org.clock.cancel", 0);
+    assert_eq!(result.unwrap()["message"], "Clock canceled");
+    assert_eq!(text, before);
+
+    // Going to the clocked entry; and with none, to the last one.
+    run(&mut client, &mut text, "org.clock.in", 0).0.unwrap();
+    run(&mut client, &mut text, "org.clock.goto", 8).0.unwrap();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").unwrap();
+    assert_eq!(shown.params["selection"]["start"], json!({ "line": 0, "character": 0 }));
+
+    // Done: the clock stops with it.
+    let (_, status) = run(&mut client, &mut text, "org.todo.next", 0);
+    assert_eq!(status, Some(Value::Null));
+    assert!(text.starts_with("* DONE Write\n"), "{text}");
+    assert!(!text.contains("CLOCK: [2026-05-18 Mon 10:30]\n"), "{text}");
+    let (result, _) = run(&mut client, &mut text, "org.clock.goto", 3);
+    assert_eq!(result.unwrap()["message"], "No running clock, this is the most recently clocked task");
+    client.shutdown();
+}
+
+/// The agenda: the clocked entry's line highlighted; `l` and `R`.
+#[test]
+fn shows_the_clock_in_the_agenda() {
+    const URI: &str = "file:///org/work.org";
+    let text = "* TODO Write\nSCHEDULED: <2026-05-18 Mon>\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 09:30] =>  0:30\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n";
+    let mut client = Client::editor(clock(), None);
+    client.open(URI, text);
+    let run = |client: &mut Client, command: &str| {
+        let at = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 } });
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
+        client.settle();
+        result
+    };
+    run(&mut client, "org.agenda.list").unwrap();
+    let tokens =
+        client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": VIEW } })).unwrap();
+    let legend = &client.initialize["capabilities"]["semanticTokensProvider"]["legend"];
+    let bit = legend["tokenModifiers"].as_array().unwrap().iter().position(|name| name == "clocking").unwrap();
+    let data = tokens["data"].as_array().unwrap();
+    assert!(data.chunks(5).any(|token| token[4].as_u64().unwrap() & (1 << bit) != 0), "a token is marked clocking");
+
+    assert_eq!(run(&mut client, "org.agenda.log").unwrap()["message"], "Log mode is on");
+    let view = client.view_text(VIEW);
+    assert!(view.contains("Clocked:   (0:30) TODO Write"), "{view}");
+    assert!(view.contains("Clocked:   (-) TODO Write"), "{view}");
+    assert_eq!(run(&mut client, "org.agenda.clockreport").unwrap()["message"], "Clocktable mode is on");
+    let view = client.view_text(VIEW);
+    assert!(view.contains("| work.org | *File time*      | *0:30* |"), "{view}");
+    assert!(view.contains("| Write            | 0:30   |"), "the links show as their descriptions: {view}");
     client.shutdown();
 }
 
@@ -1109,7 +1300,14 @@ fn changes_dates_from_the_agenda() {
     let kinds: Vec<&str> = actions.as_array().unwrap().iter().map(|action| action["kind"].as_str().unwrap()).collect();
     assert_eq!(
         kinds,
-        ["org.todo.next", "org.todo.previous", "org.priority.up", "org.priority.down", "org.agenda.goto"]
+        [
+            "org.todo.next",
+            "org.todo.previous",
+            "org.priority.up",
+            "org.priority.down",
+            "org.clock.in",
+            "org.agenda.goto"
+        ]
     );
     client.shutdown();
 }
@@ -1561,8 +1759,45 @@ fn completes_keywords_and_tags_in_a_headline() {
     };
     assert_eq!(complete(&mut client, 1, 3), [(json!("DONE"), json!(2))]);
     assert_eq!(complete(&mut client, 2, 6), [(json!("work"), json!(5))]);
-    assert_eq!(client.initialize["capabilities"]["completionProvider"]["triggerCharacters"], json!([":"]));
+    assert_eq!(
+        client.initialize["capabilities"]["completionProvider"]["triggerCharacters"],
+        json!([":", "+", "[", "/", "*", "#", "\\"])
+    );
     client.shutdown();
+}
+
+/// File names in a link, from the directory of the file, and the
+/// headlines of the file named.
+#[test]
+fn completes_file_names_in_links() {
+    let root = workspace("complete-files");
+    let uri = format!("file://{}/c.org", root.display());
+    let mut client = Client::editor(clock(), None);
+    client.open(&uri, "[[file:\n[[file:sub/\n[[file:work.org::*\n");
+    let complete = |client: &mut Client, line: u32, character: u32| {
+        let params = json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": character } });
+        let items = client.request("textDocument/completion", params).unwrap();
+        items
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| (item["textEdit"]["newText"].as_str().unwrap().to_string(), item["kind"].as_u64().unwrap()))
+            .collect::<Vec<_>>()
+    };
+    const FILE: u64 = 17;
+    const FOLDER: u64 = 19;
+    assert_eq!(
+        complete(&mut client, 0, 7),
+        [("notes.txt".to_string(), FILE), ("sub/".to_string(), FOLDER), ("work.org".to_string(), FILE)]
+    );
+    assert_eq!(complete(&mut client, 1, 11), [("home.org".to_string(), FILE)]);
+    let headlines: Vec<String> = complete(&mut client, 2, 19).into_iter().map(|(text, _)| text).collect();
+    assert_eq!(
+        headlines,
+        ["Write report", "Call [[https://example.com][the client]]", "Meeting <2026-05-19 Tue 14:00-15:00>"]
+    );
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 /// With `completeTagsAlwaysOfferAllAgendaTags`, a tag is completed from

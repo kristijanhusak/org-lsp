@@ -1,0 +1,3 @@
+Headlines with TAGS match: PRIORITY="A"|LEVEL>2
+  a:          TODO [#A] Write the report                          :work::office:
+  projects:   NEXT Read the book                              :learning:reading:
