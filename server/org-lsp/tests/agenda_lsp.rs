@@ -995,6 +995,21 @@ fn agenda_actions_match_emacs() {
             context["count"] = count.clone();
         }
         let command = format!("org.{}", case["command"].as_str().unwrap().replace('-', "."));
+        // A command that asks for a date first says what the prompt
+        // starts with, and then runs with the answer.
+        if let Some(answer) = case.get("answer") {
+            let asked =
+                client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+            if let (Ok(asked), Value::Object(_)) = (&asked, &case["expected"]) {
+                if asked["input"]["value"] != case["prompt"] {
+                    failures.push_str(&format!(
+                        "\ncase {index}: {command} on `{needle}` offers {} where Emacs offers {}\n",
+                        asked["input"]["value"], case["prompt"]
+                    ));
+                }
+            }
+            context["input"] = answer.clone();
+        }
         client.received.clear();
         let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
         client.settle();
@@ -1298,4 +1313,72 @@ fn completes_keywords_and_tags_in_a_headline() {
     assert_eq!(complete(&mut client, 2, 6), [(json!("work"), json!(5))]);
     assert_eq!(client.initialize["capabilities"]["completionProvider"]["triggerCharacters"], json!([":"]));
     client.shutdown();
+}
+
+/// `C-c C-s` on an agenda line (`org-agenda-schedule`): the calendar
+/// opens on the entry's date, and the day picked there goes to the
+/// entry's file, which need not be open in the editor. The agenda's
+/// cursor then follows the entry.
+#[test]
+fn schedules_from_the_agenda() {
+    const PROMPT: &str = "org-agenda:/Org%20Date";
+    let root = workspace("schedule");
+    let mut options = clock();
+    options["agendaFiles"] = json!([format!("{}/sub", root.display())]);
+    let mut client = Client::with_date_prompt(options);
+    client.command("org.agenda.list", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Water plants")).unwrap() as u32;
+
+    // Commands that insert a timestamp have no place in the agenda.
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 4 } });
+    let refused = client
+        .request_raw("workspace/executeCommand", json!({ "command": "org.timestamp.insert", "arguments": [context] }));
+    assert!(refused.is_err());
+    let header = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 } });
+    let refused =
+        client.request("workspace/executeCommand", json!({ "command": "org.schedule", "arguments": [header] }));
+    assert_eq!(refused, Err("No entry on this line".to_string()));
+
+    // What an answer means, for an input box, as in a file.
+    let mut preview = context.clone();
+    preview["command"] = json!("org.schedule");
+    preview["input"] = json!("+2d");
+    let shown =
+        client.request("workspace/executeCommand", json!({ "command": "org.date.preview", "arguments": [preview] }));
+    assert_eq!(shown, Ok(json!({ "timestamp": "<2026-05-20 Wed>" })));
+
+    let requests = client.command("org.schedule", VIEW, line);
+    assert_eq!(methods(&requests), ["window/showDocument"]);
+    assert_eq!(requests[0].params["uri"], PROMPT);
+    let text = client.view_text(PROMPT);
+    assert!(text.ends_with("SCHEDULED Date+time [2026-05-16]:    => <2026-05-16 Sat>\n"), "{text}");
+
+    // A week later, and pick it.
+    client.command("org.calendar.week.later", PROMPT, 0);
+    let requests = client.command("org.calendar.select", PROMPT, 0);
+    let edit = requests.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (uri, edits) = edits_of(edit);
+    assert_eq!(uri, format!("file://{}/sub/home.org", root.display()));
+    assert_eq!(edit.params["edit"]["documentChanges"][0]["textDocument"]["version"], Value::Null);
+    let scheduled = apply(HOME, &edits);
+    assert_eq!(scheduled, "* TODO Water plants\nSCHEDULED: <2026-05-23 Sat +1w>\n* DONE Buy milk\n");
+
+    // The editor opens the file to apply the edit, and then changes it;
+    // the agenda shows the entry on Saturday, and its cursor goes there.
+    client.open(&uri, HOME);
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": 2 }, "contentChanges": [{ "text": scheduled }] }),
+    );
+    client.settle();
+    client.received.clear();
+    let view = client.refetch_view();
+    client.settle();
+    let saturday = view.lines().position(|line| line.contains("Scheduled:  TODO Water plants")).unwrap();
+    assert!(view.lines().nth(saturday - 1).unwrap().starts_with("Saturday   23 May 2026"), "{view}");
+    let reveal = client.received.iter().find(|request| request.method == "window/showDocument").expect("a reveal");
+    assert_eq!(reveal.params["selection"]["start"]["line"], saturday as u64);
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
 }

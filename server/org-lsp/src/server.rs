@@ -39,7 +39,7 @@ use serde_json::{json, Value};
 use crate::config::Options;
 use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
-use crate::prompt::{self, DatePrompt};
+use crate::prompt::{self, DatePrompt, Target};
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
 use crate::{actions, cli, commands, completion, folding, highlight, manifest, symbols, uri};
@@ -156,6 +156,18 @@ struct Follow {
     /// The line the cursor is on now.
     from: u32,
     position: Position,
+}
+
+/// The file a command that asks for a date changes.
+struct DateSource {
+    file: Uri,
+    text: String,
+    /// Where the command acts.
+    offset: usize,
+    /// The version of the editor's copy, when the file is open there.
+    version: Option<i32>,
+    /// The headline of the entry, for a command run from the agenda.
+    heading: Option<usize>,
 }
 
 /// Where the agenda's cursor goes once the client shows the current view.
@@ -1020,16 +1032,55 @@ impl Server {
         }
     }
 
-    /// The document of `context` and the byte offset of its position,
-    /// for the commands that ask for a date. They work in Org files.
-    fn place(&self, context: &Context) -> std::result::Result<(String, usize, i32), Refusal> {
+    /// Where the command `id`, which asks for a date, acts when run at
+    /// `context`: there in an Org file, or on the entry of an agenda line
+    /// (`org-agenda-schedule`, `org-agenda-deadline`).
+    fn date_target(&self, id: &str, context: &Context) -> std::result::Result<Target, Refusal> {
         let uri = &context.text_document.uri;
-        if self.is_view(uri) {
+        if !self.is_view(uri) {
+            return Ok(Target::Place { uri: uri.clone(), position: context.position });
+        }
+        if !matches!(id, commands::SCHEDULE | commands::DEADLINE) {
             return Err(Refusal::NotHere("This command works in Org files".to_string()));
         }
-        let document = self.document(uri).ok_or("The document is not open")?;
-        let offset = document.index.offset(&document.text, context.position, self.client.encoding);
-        Ok((document.text.clone(), offset, document.version))
+        let (line, row) = self.view_line(uri, context.position.line).ok_or("No entry on this line")?;
+        row.entry.as_ref().ok_or("No entry on this line")?;
+        Ok(Target::Entry { view: uri.clone(), line, character: context.position.character, row: row.clone() })
+    }
+
+    /// The file a command that asks for a date changes, as it reads now.
+    fn date_source(&mut self, target: &Target) -> std::result::Result<DateSource, Refusal> {
+        match target {
+            Target::Place { uri, position } => {
+                let document = self.document(uri).ok_or("The document is not open")?;
+                Ok(DateSource {
+                    file: uri.clone(),
+                    text: document.text.clone(),
+                    offset: document.index.offset(&document.text, *position, self.client.encoding),
+                    version: Some(document.version),
+                    heading: None,
+                })
+            }
+            Target::Entry { row, .. } => {
+                let reference = row.entry.as_ref().ok_or("No entry on this line")?;
+                self.with_source(&reference.uri, |text, _, _, outline, version| {
+                    let entry = views::resolve(reference, outline).ok_or("The entry is gone; rebuild the agenda")?;
+                    let heading = outline.entries[entry].offset;
+                    // Where the line's marker points: the timestamp it
+                    // stands for, seen from the headline, or the headline.
+                    let offset =
+                        reference.marker.map_or(heading, |marker| heading + marker.saturating_sub(reference.offset));
+                    Ok(DateSource {
+                        file: reference.uri.clone(),
+                        text: text.to_string(),
+                        offset,
+                        version,
+                        heading: Some(heading),
+                    })
+                })
+                .ok_or("Cannot read the file of this entry")?
+            }
+        }
     }
 
     /// A command that asks for a date. Without an answer it says what to
@@ -1037,24 +1088,17 @@ impl Server {
     /// the text the prompt starts with. With `input` it runs.
     fn ask_date(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
         let command = planning_command(id).ok_or("Unknown command")?;
-        let (text, offset, _) = self.place(context)?;
         let Some(answer) = &context.input else {
-            let prompt = planning::prompt(command, &text, offset)?;
+            let target = self.date_target(id, context)?;
+            let source = self.date_source(&target)?;
+            let prompt = planning::prompt(command, &source.text, source.offset)?;
             let input = commands::input(id).ok_or("Unknown command")?;
             // In a client that shows it, the calendar opens instead; the
             // answer is typed there once asked for (`org.calendar.type`).
             if self.client.date_prompt {
-                let (uri, position, now) = (context.text_document.uri.clone(), context.position, self.date_time());
-                let open = DatePrompt::new(
-                    id,
-                    command,
-                    uri,
-                    position,
-                    prompt.default,
-                    prompt.value.clone(),
-                    now,
-                    &self.read_date,
-                );
+                let now = self.date_time();
+                let open =
+                    DatePrompt::new(id, command, target, prompt.default, prompt.value.clone(), now, &self.read_date);
                 self.open_date_prompt(open);
                 return Ok(Value::Null);
             }
@@ -1062,35 +1106,27 @@ impl Server {
         };
         // The answer typed while the calendar was open ends with the day
         // that was moved to there.
-        let pending = self.date_prompt.take_if(|open| open.id == id && open.file == context.text_document.uri);
+        let pending =
+            self.date_prompt.take_if(|open| open.id == id && open.target.from() == &context.text_document.uri);
         let answer = match &pending {
             Some(open) if open.moved => format!("{answer} {}", Date::from_day(open.selected)),
             _ => answer.clone(),
         };
-        self.apply_date(id, &context.text_document.uri, context.position, &answer)?;
+        // The prompt knows the entry even when the agenda changed since.
+        let target = match &pending {
+            Some(open) => open.target.clone(),
+            None => self.date_target(id, context)?,
+        };
+        self.apply_date(id, &target, &answer)?;
         Ok(if pending.is_some() { json!({ "close": prompt::URI }) } else { Value::Null })
     }
 
-    /// Run the command `id` that asked for a date, at `position` of `uri`,
-    /// with `answer`.
-    fn apply_date(
-        &mut self,
-        id: &str,
-        uri: &Uri,
-        position: Position,
-        answer: &str,
-    ) -> std::result::Result<(), Refusal> {
+    /// Run the command `id` that asked for a date, at `target`, with
+    /// `answer`.
+    fn apply_date(&mut self, id: &str, target: &Target, answer: &str) -> std::result::Result<(), Refusal> {
         let command = planning_command(id).ok_or("Unknown command")?;
-        let context = Context {
-            text_document: lsp_types::TextDocumentIdentifier { uri: uri.clone() },
-            position,
-            count: None,
-            input: None,
-            command: None,
-        };
-        let (text, offset, version) = self.place(&context)?;
-        let uri = uri.clone();
-        let key = uri.as_str().to_string();
+        let source = self.date_source(target)?;
+        let key = source.file.as_str().to_string();
         // A timestamp right after another one makes a date range.
         let repeated = self.last.take().is_some_and(|last| {
             last.file == key
@@ -1098,24 +1134,33 @@ impl Server {
         });
         self.last = Some(Last { command: id.to_string(), file: key.clone(), heading: None });
         let now = self.date_time();
-        let outcome = planning::run(command, &text, offset, answer, repeated, now, &self.read_date)?;
+        let text = &source.text;
+        let outcome = planning::run(command, text, source.offset, answer, repeated, now, &self.read_date)?;
         let encoding = self.client.encoding;
-        let index = LineIndex::new(&text);
-        let edits: Vec<TextEdit> = actions::edits_between(&text, &outcome.text)
+        let index = LineIndex::new(text);
+        let edits: Vec<TextEdit> = actions::edits_between(text, &outcome.text)
             .into_iter()
-            .map(|edit| TextEdit { range: index.range(&text, edit.range, encoding), new_text: edit.new_text })
+            .map(|edit| TextEdit { range: index.range(text, edit.range, encoding), new_text: edit.new_text })
             .collect();
         if edits.is_empty() {
             return Ok(());
         }
-        let pending = match outcome.cursor {
-            Some(cursor) => {
-                let position = LineIndex::new(&outcome.text).position(&outcome.text, cursor, encoding);
-                Pending::EditAndMove { uri: uri.clone(), position }
+        let pending = match (target, outcome.cursor) {
+            // From the agenda, its cursor follows the entry, as after the
+            // agenda's other commands.
+            (Target::Entry { line, character, row, .. }, _) => {
+                let from = (Position::new(*line, *character), row);
+                self.follow =
+                    source.heading.and_then(|heading| self.followed(&source.file, &outcome.text, heading, from));
+                Pending::Edit
             }
-            None => Pending::Edit,
+            (Target::Place { .. }, Some(cursor)) => {
+                let position = LineIndex::new(&outcome.text).position(&outcome.text, cursor, encoding);
+                Pending::EditAndMove { uri: source.file.clone(), position }
+            }
+            (Target::Place { .. }, None) => Pending::Edit,
         };
-        let edit = self.workspace_edit(&uri, Some(version), edits);
+        let edit = self.workspace_edit(&source.file, source.version, edits);
         self.edited.insert(key);
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
         self.send_request::<ApplyWorkspaceEdit>(params, Some(pending));
@@ -1253,8 +1298,8 @@ impl Server {
     /// Run the command the date prompt answers, and close the prompt.
     fn finish_date_prompt(&mut self, answer: &str) -> std::result::Result<Value, Refusal> {
         let open = self.date_prompt.as_ref().ok_or("No date prompt is open")?;
-        let (id, file, position) = (open.id.clone(), open.file.clone(), open.position);
-        self.apply_date(&id, &file, position, answer)?;
+        let (id, target) = (open.id.clone(), open.target.clone());
+        self.apply_date(&id, &target, answer)?;
         self.date_prompt = None;
         Ok(json!({ "close": prompt::URI }))
     }
@@ -1276,8 +1321,9 @@ impl Server {
             return Ok(json!({ "timestamp": stamp }));
         }
         let command = planning_command(id).ok_or("Unknown command")?;
-        let (text, offset, _) = self.place(context)?;
-        let stamp = planning::preview(command, &text, offset, answer, now, &settings)?;
+        let target = self.date_target(id, context)?;
+        let source = self.date_source(&target)?;
+        let stamp = planning::preview(command, &source.text, source.offset, answer, now, &settings)?;
         Ok(json!({ "timestamp": stamp }))
     }
 

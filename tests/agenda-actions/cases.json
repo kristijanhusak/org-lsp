@@ -909,5 +909,517 @@
    "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* DONE Pay rent                                                       :money:\nCLOSED: [2026-05-18 Mon 10:30] DEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
    "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
   }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Sched. 2x:  TODO Water plants",
+  "command": "schedule",
+  "answer": "fri",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-22 Fri +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Sched. 2x:  TODO Water plants",
+  "command": "deadline",
+  "answer": "+2d",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nDEADLINE: <2026-05-20 Wed> SCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Scheduled:  TODO [#A] Write report",
+  "command": "schedule",
+  "answer": "10:00",
+  "prompt": "09:00",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 10:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Scheduled:  TODO [#A] Write report",
+  "command": "deadline",
+  "answer": "",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "In   2 d.:  TODO Call the client",
+  "command": "schedule",
+  "answer": "2026-06-01 9:00-10:30",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nSCHEDULED: <2026-06-01 Mon 09:00-10:30> DEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "In   2 d.:  TODO Call the client",
+  "command": "deadline",
+  "answer": "+1w",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-25 Mon>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Deadline:   TODO Call the client",
+  "command": "schedule",
+  "answer": "fri",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nSCHEDULED: <2026-05-22 Fri> DEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Deadline:   TODO Call the client",
+  "command": "deadline",
+  "answer": "+2d",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "14:00-15:00 Meeting",
+  "command": "schedule",
+  "answer": "10:00",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\nSCHEDULED: <2026-05-18 Mon 10:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "14:00-15:00 Meeting",
+  "command": "deadline",
+  "answer": "",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\nDEADLINE: <2026-05-18 Mon>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "(1/2):  Conference",
+  "command": "schedule",
+  "answer": "2026-06-01 9:00-10:30",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\nSCHEDULED: <2026-06-01 Mon 09:00-10:30>\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "(1/2):  Conference",
+  "command": "deadline",
+  "answer": "+1w",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\nDEADLINE: <2026-05-25 Mon>\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "(2/2):  Conference",
+  "command": "schedule",
+  "answer": "fri",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\nSCHEDULED: <2026-05-22 Fri>\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "(2/2):  Conference",
+  "command": "deadline",
+  "answer": "+2d",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\nDEADLINE: <2026-05-20 Wed>\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": " 8 d. ago:  TODO Old deadline",
+  "command": "schedule",
+  "answer": "10:00",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nSCHEDULED: <2026-05-18 Mon 10:00> DEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": " 8 d. ago:  TODO Old deadline",
+  "command": "deadline",
+  "answer": "",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Standup",
+  "command": "schedule",
+  "answer": "2026-06-01 9:00-10:30",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\nSCHEDULED: <2026-06-01 Mon 09:00-10:30>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Standup",
+  "command": "deadline",
+  "answer": "+1w",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\nDEADLINE: <2026-05-25 Mon>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Scheduled:  TODO Holiday",
+  "command": "schedule",
+  "answer": "fri",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-22 Fri>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Scheduled:  TODO Holiday",
+  "command": "deadline",
+  "answer": "+2d",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nDEADLINE: <2026-05-20 Wed> SCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Deadline:   TODO Pay rent",
+  "command": "schedule",
+  "answer": "10:00",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nSCHEDULED: <2026-05-15 Fri 10:00> DEADLINE: <2026-05-18 Mon>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Deadline:   TODO Pay rent",
+  "command": "deadline",
+  "answer": "",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Sched. 3x:  TODO Pay rent",
+  "command": "schedule",
+  "answer": "2026-06-01 9:00-10:30",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nSCHEDULED: <2026-06-01 Mon 09:00-10:30> DEADLINE: <2026-05-18 Mon>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Sched. 3x:  TODO Pay rent",
+  "command": "deadline",
+  "answer": "+1w",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-25 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "view": "todo",
+  "line": "TODO [#A] Write report",
+  "command": "schedule",
+  "answer": "fri",
+  "prompt": "09:00",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-22 Fri>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "view": "todo",
+  "line": "TODO [#A] Write report",
+  "command": "deadline",
+  "answer": "+2d",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nDEADLINE: <2026-05-20 Wed> SCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "view": "todo",
+  "line": "TODO Water plants",
+  "command": "schedule",
+  "answer": "10:00",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat 10:00 +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "view": "todo",
+  "line": "TODO Water plants",
+  "command": "deadline",
+  "answer": "",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "view": "todo",
+  "line": "TODO Pay rent",
+  "command": "schedule",
+  "answer": "2026-06-01 9:00-10:30",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nSCHEDULED: <2026-06-01 Mon 09:00-10:30> DEADLINE: <2026-05-18 Mon>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "view": "todo",
+  "line": "TODO Pay rent",
+  "command": "deadline",
+  "answer": "+1w",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-25 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "view": "todo",
+  "line": "TODO Holiday",
+  "command": "schedule",
+  "answer": "fri",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-22 Fri>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "view": "todo",
+  "line": "TODO Holiday",
+  "command": "deadline",
+  "answer": "+2d",
+  "prompt": "",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nDEADLINE: <2026-05-20 Wed> SCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Monday     18 May 2026",
+  "command": "schedule",
+  "answer": "fri",
+  "prompt": "",
+  "expected": "ERROR: (user-error \"Command not allowed in this line\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "10:00...... ----------------",
+  "command": "schedule",
+  "answer": "fri",
+  "prompt": "",
+  "expected": "ERROR: (user-error \"Command not allowed in this line\")"
  }
 ]

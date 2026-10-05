@@ -134,7 +134,7 @@ number.
 | `org.timestamp.up`, `org.timestamp.down` | Changes the part of the timestamp the cursor is on. Org files only. |
 | `org.date.later`, `org.date.earlier` | Moves a date by days: in an Org file the timestamp at the cursor, on an agenda line the date the line is listed for. |
 | `org.shift.up`, `.down`, `.left`, `.right` | Org's shifted cursor keys in an Org file: on a timestamp they change it, on a headline they change its priority (up, down) or TODO state (left, right). |
-| `org.schedule`, `org.deadline` | Asks for a date and sets the entry's `SCHEDULED:` or `DEADLINE:`. Org files only, for now. |
+| `org.schedule`, `org.deadline` | Asks for a date and sets the entry's `SCHEDULED:` or `DEADLINE:`, in an Org file or on an agenda line (`org-agenda-schedule`, `org-agenda-deadline`). |
 | `org.timestamp.insert`, `org.timestamp.insert.inactive` | Asks for a date and inserts a timestamp at the cursor, or changes the one there. Org files only. |
 | `org.date.preview` | Not for users: what an answer to a date prompt means; see below. Not in the manifest. |
 | `org.calendar.day.later`, `.day.earlier`, `.week.later`, `.week.earlier`, `.month.later`, `.month.earlier`, `.year.later`, `.year.earlier` | In the date prompt: move the selected day. |

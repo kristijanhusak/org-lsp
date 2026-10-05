@@ -25,6 +25,7 @@ use org_core::read_date::Settings;
 use org_syntax::{TextRange, TextSize};
 
 use crate::highlight::{modifier, Token, TokenType};
+use crate::views::ViewLine;
 
 /// The prompt document. It shares the agenda's scheme, so that clients
 /// fetch it the same way.
@@ -32,14 +33,35 @@ pub const URI: &str = "org-agenda:/Org%20Date";
 /// The language of the prompt document.
 pub const LANGUAGE: &str = "org-date";
 
+/// Where the command that asked for a date acts.
+#[derive(Debug, Clone)]
+pub enum Target {
+    /// A place in an Org file.
+    Place { uri: Uri, position: Position },
+    /// The entry of a line of the agenda `view`, as `org-agenda-schedule`
+    /// finds it: the command runs in the entry's file, where the line's
+    /// marker points. `line` and `character` are where the cursor was, so
+    /// that it can follow the entry.
+    Entry { view: Uri, line: u32, character: u32, row: ViewLine },
+}
+
+impl Target {
+    /// The document the command was run from.
+    pub fn from(&self) -> &Uri {
+        match self {
+            Target::Place { uri, .. } => uri,
+            Target::Entry { view, .. } => view,
+        }
+    }
+}
+
 /// A date prompt that waits for its answer.
 pub struct DatePrompt {
     /// The command that asked.
     pub id: String,
     pub command: Command,
-    /// Where the command ran.
-    pub file: Uri,
-    pub position: Position,
+    /// Where the command acts.
+    pub target: Target,
     /// The date the answer is read against (DEFAULT-TIME).
     pub default: Option<DateTime>,
     pub label: String,
@@ -61,8 +83,7 @@ impl DatePrompt {
     pub fn new(
         id: &str,
         command: Command,
-        file: Uri,
-        position: Position,
+        target: Target,
         default: Option<DateTime>,
         typed: String,
         now: DateTime,
@@ -72,8 +93,7 @@ impl DatePrompt {
         let mut prompt = DatePrompt {
             id: id.to_string(),
             command,
-            file,
-            position,
+            target,
             default,
             label: planning::label(command, default, now),
             typed,
@@ -228,8 +248,7 @@ mod tests {
         DatePrompt::new(
             "org.schedule",
             Command::Schedule,
-            file,
-            Position::new(0, 0),
+            Target::Place { uri: file, position: Position::new(0, 0) },
             default,
             "10:00".to_string(),
             now(),

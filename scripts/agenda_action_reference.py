@@ -9,11 +9,13 @@ A case is a JSON object:
       "span": "week",                     for the agenda: day, week, …
       "line": "Sched. 2x:  TODO a",       text of the agenda line to act on
       "command": "date-later",            see COMMANDS below
-      "count": 2                          optional: the prefix argument
+      "count": 2,                         optional: the prefix argument
+      "answer": "fri"                     for commands that ask for a date
     }
 
 `reference(cases)` adds `expected`: the files after the command, or
-`ERROR: …` when Emacs refuses. Emacs runs under faketime, so both programs
+`ERROR: …` when Emacs refuses. A case with an answer also gets `prompt`,
+the text the date prompt offered before the answer replaced it. Emacs runs under faketime, so both programs
 see the same clock. Set ORG_LISP_DIR to the `lisp` directory of an Org
 checkout to use that version instead of the one bundled with Emacs.
 """
@@ -34,6 +36,8 @@ COMMANDS = {
     "priority-down": "(call-interactively 'org-agenda-priority-down)",
     "date-later": "(call-interactively 'org-agenda-do-date-later)",
     "date-earlier": "(call-interactively 'org-agenda-do-date-earlier)",
+    "schedule": "(call-interactively 'org-agenda-schedule)",
+    "deadline": "(call-interactively 'org-agenda-deadline)",
 }
 
 DRIVER = r"""
@@ -44,9 +48,11 @@ DRIVER = r"""
 (setq org-agenda-tags-column -80
       org-agenda-window-setup 'current-window
       org-agenda-sticky nil)
-(defun org-lsp-agenda-case (files out view span needle count form)
+(defvar org-lsp-prompt nil)
+(defun org-lsp-agenda-case (files out view span needle count form answer)
   (remove-hook 'post-command-hook 'org-add-log-note)
   (setq org-log-setup nil)
+  (setq org-lsp-prompt "")
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer)
       (with-current-buffer buffer (set-buffer-modified-p nil))
@@ -62,8 +68,13 @@ DRIVER = r"""
                  (beginning-of-line)
                  (let ((current-prefix-arg count)
                        (this-command 'org-lsp-command)
-                       (last-command 'ignore))
-                   (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
+                       (last-command 'ignore)
+                       (org-read-date-popup-calendar nil))
+                   (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t))
+                             ((symbol-function 'read-string)
+                              (lambda (_prompt &optional initial &rest _)
+                                (setq org-lsp-prompt (or initial ""))
+                                answer)))
                      (eval form)
                      (org-lsp-finish-notes))))
                (mapconcat
@@ -74,7 +85,8 @@ DRIVER = r"""
                     (concat (file-name-nondirectory file) "\0" (buffer-string))))
                 files "\0"))
            (error (format "ERROR: %S" err)))))
-    (with-temp-file out (insert result))))
+    (with-temp-file out (insert result))
+    (with-temp-file (concat out ".prompt") (insert org-lsp-prompt))))
 """
 
 
@@ -105,7 +117,7 @@ def reference(cases):
                     f"  (org-lsp-agenda-case (list {' '.join(lisp_string(path) for path in paths)}) {lisp_string(target)}"
                     f" {lisp_string(case.get('view', 'agenda'))} {span if isinstance(span, int) else chr(39) + span}"
                     f" {lisp_string(case['line'])} {'nil' if count is None else count}"
-                    f" '{COMMANDS[case['command']]}))"
+                    f" '{COMMANDS[case['command']]} {lisp_string(case.get('answer', ''))}))"
                 )
             driver = os.path.join(directory, "driver.el")
             with open(driver, "w", encoding="utf-8") as handle:
@@ -121,6 +133,9 @@ def reference(cases):
             for case, target in outputs:
                 with open(target, encoding="utf-8") as handle:
                     result = handle.read()
+                if "answer" in case:
+                    with open(target + ".prompt", encoding="utf-8") as handle:
+                        case["prompt"] = handle.read()
                 if result.startswith("ERROR:"):
                     case["expected"] = result
                 else:

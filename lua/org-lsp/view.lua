@@ -27,7 +27,14 @@ local function prompt_window(bufnr)
   if not win then
     vim.cmd('botright split')
     win = vim.api.nvim_get_current_win()
+    -- The split takes the folding of the window it came from. The calendar
+    -- has nothing to fold, and asking the server for folds of a buffer
+    -- that is about to go trips an assertion in Neovim 0.11.0: turn it
+    -- off before the calendar is loaded here.
+    vim.wo[win].foldmethod = 'manual'
+    vim.wo[win].foldenable = false
     vim.api.nvim_win_set_buf(win, bufnr)
+    vim.fn.bufload(bufnr)
   end
   vim.api.nvim_win_set_height(win, vim.api.nvim_buf_line_count(bufnr))
   vim.wo[win][0].winfixheight = true
@@ -133,7 +140,6 @@ M.handlers = {
     local bufnr = vim.uri_to_bufnr(params.uri)
     local win
     if documents.datePrompt and params.uri == documents.datePrompt.uri then
-      vim.fn.bufload(bufnr)
       win = prompt_window(bufnr)
     else
       vim.cmd("normal! m'")

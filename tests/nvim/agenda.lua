@@ -289,6 +289,66 @@ wait('the priority to be gone', function()
 end)
 wait_for_cursor('  home:       Sched. 2x:  TODO Water plants')
 
+-- 6b. Scheduling from the agenda (`org-agenda-schedule`) opens the
+-- calendar on the entry's date; the day taken there goes to its file, and
+-- the cursor follows the entry.
+local function prompt_window()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'org-date' then
+      return win
+    end
+  end
+end
+local function in_calendar_on(day)
+  return function()
+    vim.api.nvim_feedkeys('', 'x', false)
+    local win = prompt_window()
+    if not win or vim.api.nvim_get_current_win() ~= win then
+      return false
+    end
+    local col = vim.api.nvim_win_get_cursor(win)[2]
+    return vim.api.nvim_get_current_line():sub(col, col + 1) == day
+  end
+end
+press('<Leader>ois')
+wait('the calendar on the scheduled day', in_calendar_on('16'))
+eq(vim.api.nvim_buf_get_lines(0, -2, -1, false), { 'SCHEDULED Date+time [2026-05-16]:    => <2026-05-16 Sat>' }, 'the minibuffer')
+press('j')
+wait('a week later', in_calendar_on('23'))
+press('<CR>')
+wait('the new date in the file', function()
+  return home_line(2) == 'SCHEDULED: <2026-05-23 Sat +1w>'
+end)
+wait('the calendar to close and the cursor to follow the entry to Saturday', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  local row = vim.api.nvim_win_get_cursor(0)[1]
+  return prompt_window() == nil
+    and line(row) == '  home:       Scheduled:  TODO Water plants'
+    and line(row - 1) == 'Saturday   23 May 2026'
+end)
+-- Typed in the minibuffer, back to where it was.
+local input = vim.ui.input
+vim.ui.input = function(_, on_confirm)
+  on_confirm('2026-05-16')
+end
+press('<Leader>ois')
+wait('the calendar on Saturday', in_calendar_on('23'))
+press('i')
+wait('the old date in the file again', function()
+  return home_line(2) == 'SCHEDULED: <2026-05-16 Sat +1w>'
+end)
+-- The entry repeats weekly, so Saturday still shows it: the cursor stays.
+wait('the agenda to show the entry today again', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return prompt_window() == nil and vim.tbl_contains(lines(), '  home:       Sched. 2x:  TODO Water plants')
+end)
+wait('the cursor to stay on the entry on Saturday', function()
+  local row = vim.api.nvim_win_get_cursor(0)[1]
+  return line(row) == '  home:       Scheduled:  TODO Water plants' and line(row - 1) == 'Saturday   23 May 2026'
+end)
+vim.api.nvim_win_set_cursor(0, { find('  home:       Sched. 2x:  TODO Water plants'), 14 })
+vim.ui.input = input
+
 -- 7. Enter goes to the entry.
 vim.api.nvim_win_set_cursor(0, { 16, 0 })
 press('<CR>')

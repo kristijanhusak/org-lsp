@@ -230,13 +230,13 @@ pub const COMMANDS: &[Command] = &[
         ..edit(SHIFT_RIGHT, "Move the date a day later or cycle the TODO state forward")
     },
     Command {
-        emacs: &[key(Org, "C-c C-s")],
-        vim: &[key(Org, "<Leader>ois")],
+        emacs: &[key(Org, "C-c C-s"), key(Agenda, "C-c C-s")],
+        vim: &[key(Org, "<Leader>ois"), key(Agenda, "<Leader>ois")],
         ..ask_date(SCHEDULE, "Schedule the entry", "Schedule")
     },
     Command {
-        emacs: &[key(Org, "C-c C-d")],
-        vim: &[key(Org, "<Leader>oid")],
+        emacs: &[key(Org, "C-c C-d"), key(Agenda, "C-c C-d")],
+        vim: &[key(Org, "<Leader>oid"), key(Agenda, "<Leader>oid")],
         ..ask_date(DEADLINE, "Set the deadline of the entry", "Deadline")
     },
     Command {

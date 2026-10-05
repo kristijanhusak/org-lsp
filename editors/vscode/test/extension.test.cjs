@@ -288,6 +288,48 @@ describe('The agenda', () => {
     await until('no priority', () => home.lineAt(0).text === '* TODO Water plants');
   });
 
+  it('schedules the entry of a line with the calendar', async () => {
+    const home = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspace, 'home.org')));
+    const calendar = () => vscode.window.visibleTextEditors.find((editor) => editor.document.languageId === 'org-date');
+    const showInputBox = vscode.window.showInputBox;
+    vscode.window.showInputBox = async () => '2026-05-23';
+    try {
+      // The agenda may not show the last change of the test before yet.
+      const entry = await until('the entry in the agenda', () => {
+        const line = activeText().split('\n').findIndex((text) => text.endsWith('Scheduled:  TODO Water plants'));
+        return line >= 0 && line + 1;
+      });
+      moveTo(entry - 1);
+      // The calendar opens on the entry's date; RET takes the day a week
+      // earlier.
+      await vscode.commands.executeCommand('org.schedule');
+      const editor = await until('the calendar', () => vscode.window.activeTextEditor?.document.languageId === 'org-date' && vscode.window.activeTextEditor);
+      const day = () => {
+        const cursor = editor.selection.active;
+        return editor.document.lineAt(cursor.line).text.slice(cursor.character - 1, cursor.character + 1);
+      };
+      await until('the cursor on the scheduled day', () => editor.document.getText().includes('[2026-05-23]') && day() === '23');
+      await vscode.commands.executeCommand('org.calendar.week.earlier');
+      await until('a week earlier', () => day() === '16');
+      await vscode.commands.executeCommand('org.calendar.select');
+      await until('the date in the file', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-16 Sat +1w>');
+      await until('the calendar to close', () => !calendar());
+      await agenda('Week-agenda (W21):');
+      await until('the agenda to show it today', () => activeText().includes('Sched. 2x:  TODO Water plants'));
+      // Typed in the minibuffer, back to Saturday.
+      moveTo(activeText().split('\n').findIndex((text) => text.endsWith('Sched. 2x:  TODO Water plants')));
+      await vscode.commands.executeCommand('org.schedule');
+      await until('the calendar again', () => vscode.window.activeTextEditor?.document.languageId === 'org-date');
+      await vscode.commands.executeCommand('org.calendar.type');
+      await until('the old date in the file', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-23 Sat +1w>');
+      await until('the calendar to close again', () => !calendar());
+    } finally {
+      vscode.window.showInputBox = showInputBox;
+    }
+    await agenda('Week-agenda (W21):');
+    await until('the agenda without the old date', () => !activeText().includes('Sched. 2x:'));
+  });
+
   it('goes to the entry of a line', async () => {
     const lines = activeText().split('\n');
     moveTo(lines.findIndex((line) => line.includes('Write report')));
