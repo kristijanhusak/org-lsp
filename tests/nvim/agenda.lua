@@ -263,7 +263,10 @@ wait('the cursor to follow the entry to Sunday', function()
 end)
 press('5<S-Left>')
 wait('back on Tuesday', function()
-  return home_line(2) == 'SCHEDULED: <2026-05-19 Tue +1w>' and cursor_line() == '  home:       Scheduled:  TODO [#A] Water plants'
+  local row = vim.api.nvim_win_get_cursor(0)[1]
+  return home_line(2) == 'SCHEDULED: <2026-05-19 Tue +1w>'
+    and line(row) == '  home:       Scheduled:  TODO [#A] Water plants'
+    and line(row - 2) == 'Tuesday    19 May 2026'
 end)
 -- A count is a number of days. Back to how it was.
 press('3<S-Left>')

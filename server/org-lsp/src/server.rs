@@ -143,6 +143,15 @@ struct Follow {
     position: Position,
 }
 
+/// Where the agenda's cursor goes once the client shows the current view.
+enum Reveal {
+    /// To today, in a view that was just opened.
+    Home,
+    /// To a line of the current view. When the view changes before the
+    /// client has fetched it, the number means nothing any more.
+    At(Position),
+}
+
 /// A source of agenda entries as the server holds it while it works.
 enum Held {
     Open(Outline),
@@ -174,7 +183,7 @@ struct Server {
     /// Files the server asked the client to edit and has not seen change yet.
     edited: HashSet<String>,
     /// Where to put the cursor once the client shows the current view.
-    reveal: Option<Position>,
+    reveal: Option<Reveal>,
     follow: Option<Follow>,
     /// The cursor of the agenda is on its way from a line of the current
     /// view to another: the client was asked to move it and has not
@@ -802,7 +811,12 @@ impl Server {
     /// the text that the line number belongs to.
     fn reveal_when_current(&mut self) {
         if self.view.as_ref().is_some_and(OpenView::is_current) {
-            if let Some(position) = self.reveal.take() {
+            let position = match self.reveal.take() {
+                Some(Reveal::Home) => self.view.as_ref().map(|open| Position::new(open.view.home_line(), 0)),
+                Some(Reveal::At(position)) => Some(position),
+                None => None,
+            };
+            if let Some(position) = position {
                 self.show_view(position);
             }
         }
@@ -825,7 +839,7 @@ impl Server {
             // would be applied to those lines, so it waits until the client
             // has replaced them; see `reveal_when_current`.
             Some(_) => {
-                self.reveal = Some(line);
+                self.reveal = Some(Reveal::Home);
                 self.publish_view();
             }
             // The client does not have the view open, as far as it has
@@ -848,8 +862,12 @@ impl Server {
         // The same text may still stand for entries that moved.
         open.replace(view);
         if let Some(follow) = self.follow.take_if(|follow| follow.text == open.view.text) {
-            self.reveal = Some(follow.position);
+            self.reveal = Some(Reveal::At(follow.position));
             self.moving = Some((follow.from, follow.position.line));
+        } else if changed {
+            // Line numbers of the old text: the cursor stays where it is.
+            self.reveal = self.reveal.take().filter(|reveal| matches!(reveal, Reveal::Home));
+            self.moving = None;
         }
         if changed {
             self.publish_view();

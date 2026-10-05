@@ -1067,3 +1067,33 @@ fn a_command_from_a_stale_agenda_reaches_its_entry() {
     assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-21 Thu>\n* TODO Second\nSCHEDULED: <2026-05-19 Tue>\n");
     client.shutdown();
 }
+
+#[test]
+fn a_cursor_move_for_an_older_view_is_dropped() {
+    const HOME: &str = "* TODO Water plants\nSCHEDULED: <2026-05-24 Sun +1w>\n* Meeting <2026-05-19 Tue 14:00>\n";
+    const URI: &str = "file:///org/home.org";
+    let mut client = Client::editor(clock(), None);
+    let mut home = HOME.to_string();
+    client.open(URI, HOME);
+    client.command("org.agenda.list", VIEW, 0);
+    let text = client.show_view();
+    let plants = text.lines().position(|line| line.contains("Water plants")).unwrap() as u32;
+
+    // The entry moves to Tuesday, and the cursor is to go with it once the
+    // editor shows the new text. Before it does, the same line moves the
+    // entry back to Saturday, where its repeat stands on that very line.
+    client.edit("org.date.earlier", VIEW, (plants, 0), json!({ "count": 5 }), &mut home);
+    assert_eq!(home.lines().nth(1).unwrap(), "SCHEDULED: <2026-05-19 Tue +1w>");
+    client.edit("org.date.earlier", VIEW, (plants, 0), json!({ "count": 3 }), &mut home);
+    assert_eq!(home.lines().nth(1).unwrap(), "SCHEDULED: <2026-05-16 Sat +1w>");
+
+    // The cursor stays: the line it would have gone to belongs to a view
+    // the editor never showed, and now shows the meeting.
+    client.received.clear();
+    let text = client.refetch_view();
+    client.settle();
+    assert_eq!(methods(&client.received), Vec::<&str>::new());
+    assert_eq!(text.lines().nth(plants as usize).unwrap(), "  home:       Scheduled:  TODO Water plants");
+    assert_eq!(text.lines().nth(plants as usize - 1).unwrap(), "Saturday   23 May 2026");
+    client.shutdown();
+}
