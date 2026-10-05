@@ -103,8 +103,29 @@ describe('Org files', () => {
     await until('DONE -> TODO', () => document.lineAt(5).text === '* TODO Call the client');
     // It is also offered as a code action, which carries the edit itself.
     const actions = await vscode.commands.executeCommand('vscode.executeCodeActionProvider', workUri, new vscode.Range(6, 3, 6, 3));
-    assert.deepEqual(actions.map((action) => action.kind.value), ['org.todo.next', 'org.todo.previous']);
+    assert.deepEqual(actions.map((action) => action.kind.value), [
+      'org.todo.next',
+      'org.todo.previous',
+      'org.priority.up',
+      'org.priority.down',
+    ]);
     assert.ok(actions[0].edit.has(workUri));
+    await document.save();
+  });
+
+  it('changes the part of a timestamp at the cursor', async () => {
+    moveTo(6, 19); // on the day of "DEADLINE: <2026-05-20 Wed>"
+    await vscode.commands.executeCommand('org.timestamp.up');
+    await until('a day later', () => document.lineAt(6).text === 'DEADLINE: <2026-05-21 Thu>');
+    moveTo(6, 16); // on the month
+    await vscode.commands.executeCommand('org.timestamp.down');
+    await until('a month earlier', () => document.lineAt(6).text === 'DEADLINE: <2026-04-21 Tue>');
+    moveTo(6, 16);
+    await vscode.commands.executeCommand('org.timestamp.up');
+    await until('the old month', () => document.lineAt(6).text === 'DEADLINE: <2026-05-21 Thu>');
+    moveTo(6, 19);
+    await vscode.commands.executeCommand('org.timestamp.down');
+    await until('the old date', () => document.lineAt(6).text === 'DEADLINE: <2026-05-20 Wed>');
     await document.save();
   });
 });
@@ -164,6 +185,37 @@ describe('The agenda', () => {
     assert.equal(home.lineAt(0).text, '* TODO Water plants');
     assert.ok(home.isDirty, 'the change is left for the user to save');
     await until('the agenda to drop the old date', () => !activeText().includes('Sched. 2x:'));
+  });
+
+  it('changes priority and date from a line, and the cursor goes with the entry', async () => {
+    const home = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspace, 'home.org')));
+    const lines = activeText().split('\n');
+    moveTo(lines.findIndex((line) => line.endsWith('Scheduled:  TODO Water plants')), 14);
+    await vscode.commands.executeCommand('org.priority.up');
+    await until('the priority in the file', () => home.lineAt(0).text === '* TODO [#B] Water plants');
+    await until('the priority in the agenda', () => activeLine()?.endsWith('Scheduled:  TODO [#B] Water plants'));
+    // The entry moves to the next day, and the cursor with it.
+    await vscode.commands.executeCommand('org.date.later');
+    await until('the date in the file', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-24 Sun +1w>');
+    await until('the cursor on Sunday', () => {
+      const editor = vscode.window.activeTextEditor;
+      const line = editor.selection.active.line;
+      return (
+        line > 0 &&
+        editor.document.lineAt(line).text.endsWith('TODO [#B] Water plants') &&
+        editor.document.lineAt(line - 1).text === 'Sunday     24 May 2026'
+      );
+    });
+    assert.equal(vscode.window.activeTextEditor.selection.active.character, 14, 'the cursor keeps its column');
+    // Back as it was.
+    await vscode.commands.executeCommand('org.date.earlier');
+    await until('the old date', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-23 Sat +1w>');
+    await until('the cursor on Saturday', () => activeLine()?.endsWith('TODO [#B] Water plants') && activeText().includes('Saturday   23 May 2026\n  home:'));
+    await vscode.commands.executeCommand('org.priority.down');
+    await until('a lower priority', () => home.lineAt(0).text === '* TODO [#C] Water plants');
+    await until('the lower priority in the agenda', () => activeLine()?.endsWith('TODO [#C] Water plants'));
+    await vscode.commands.executeCommand('org.priority.down');
+    await until('no priority', () => home.lineAt(0).text === '* TODO Water plants');
   });
 
   it('goes to the entry of a line', async () => {

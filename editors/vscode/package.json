@@ -121,6 +121,56 @@
         "category": "Org"
       },
       {
+        "command": "org.priority.up",
+        "title": "Raise the priority",
+        "category": "Org"
+      },
+      {
+        "command": "org.priority.down",
+        "title": "Lower the priority",
+        "category": "Org"
+      },
+      {
+        "command": "org.timestamp.up",
+        "title": "Increase the part of the timestamp at the cursor",
+        "category": "Org"
+      },
+      {
+        "command": "org.timestamp.down",
+        "title": "Decrease the part of the timestamp at the cursor",
+        "category": "Org"
+      },
+      {
+        "command": "org.date.later",
+        "title": "Move the date one day later",
+        "category": "Org"
+      },
+      {
+        "command": "org.date.earlier",
+        "title": "Move the date one day earlier",
+        "category": "Org"
+      },
+      {
+        "command": "org.shift.up",
+        "title": "Increase the timestamp part or raise the priority",
+        "category": "Org"
+      },
+      {
+        "command": "org.shift.down",
+        "title": "Decrease the timestamp part or lower the priority",
+        "category": "Org"
+      },
+      {
+        "command": "org.shift.left",
+        "title": "Move the date a day earlier or cycle the TODO state backward",
+        "category": "Org"
+      },
+      {
+        "command": "org.shift.right",
+        "title": "Move the date a day later or cycle the TODO state forward",
+        "category": "Org"
+      },
+      {
         "command": "org-lsp.restartServer",
         "title": "Restart Language Server",
         "category": "Org"
@@ -871,6 +921,36 @@
       {
         "command": "org.todo.next",
         "key": "t",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.up",
+        "key": "shift+=",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.up",
+        "key": "shift+up",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.down",
+        "key": "-",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.down",
+        "key": "shift+down",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.date.later",
+        "key": "shift+right",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.date.earlier",
+        "key": "shift+left",
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
       }
     ]
