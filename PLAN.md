@@ -1,7 +1,7 @@
 # org-lsp: plan
 
 Written on 2026-10-05, when work was paused in the middle of milestone 3;
-updated the same day when milestone 3 was merged.
+last updated the same day, after milestone 4c was merged (PR #5).
 It records where the project stands, what is half done and how to finish
 it, and what comes after. The default branch is `main`.
 
@@ -35,6 +35,8 @@ others), as close to Emacs Org mode as it can get.
 | 2a | Agenda in the server: dates, repeaters, warning periods, week/day/month views, TODO list, `org-todo` port with logging and repeaters | #1 |
 | 2b | Agenda in editors: server-owned document over `workspace/textDocumentContent`, manifest (commands, keys, highlight links) that drives the Neovim plugin and generates the VS Code `package.json`, in-editor tests for both | #2 |
 | 3 | Priorities and dates: `org-priority`, `org-timestamp-change`, the agenda's date shift, Org's shifted keys; counts; the agenda's cursor follows an entry | #3 |
+| — | Folding takes the blank lines after a subtree as Emacs does (`cycleSeparatorLines`) | #4 |
+| 4a–4c | The date prompt: `org-read-date`, schedule, deadline, timestamps that ask for a date, and Emacs's calendar with the prompt | #5 |
 
 ### Milestone 3, merged: priorities and dates
 
@@ -154,10 +156,31 @@ show one. In four pull requests:
   `experimental.orgDatePrompt`; a command result `{ "close": uri }` closes
   the document. Neovim shows it in a window at the bottom, VS Code beside
   the file; others keep the plain input box.
-- **4d:** schedule and deadline from the agenda, go to a date in the
-  agenda (`j`), set a priority by name, text for state notes (now written
-  empty).
-
+- **4d, next:** in this order, each small.
+  1. Schedule and deadline from an agenda line (Emacs: `C-c C-s`,
+     `C-c C-d` in the agenda; nvim-orgmode: `<Leader>ois`, `<Leader>oid`
+     there too). `org-agenda-schedule` only runs `org-schedule` at the
+     entry's headline in its file, so the prompt starts from the entry's
+     own date. In the server: `ask_date` and `apply_date` work on open
+     documents only (`Server::place`). For an agenda line, resolve the
+     entry (`entry_at`, then `views::resolve` as `edit()` does) and read
+     the file with `with_source`, which also covers files that are not
+     open; send the edit with `Pending::Edit` so the agenda is rebuilt,
+     and let the cursor follow the entry (`followed`, as `edit()` does).
+     The `DatePrompt` then has to remember the entry rather than a
+     position in a file. Add the keys to the agenda scope, an Emacs
+     reference case (run `org-agenda-schedule` in an agenda, like
+     `scripts/agenda_action_reference.py` does), and tests in both
+     editors.
+  2. `j` in the agenda (`org-agenda-goto-date`): ask a date (prompt
+     "Date"), then `open_view(Query::Agenda { start: Some(day), .. })`.
+     `DatePrompt` finishes with `apply_date` today; give it what to do at
+     the end as an enum (a planning command on a place or entry, or going
+     to a date in the agenda).
+  3. Set a priority by name (`org-priority` with a character; an input of
+     kind `text`) and text for state notes (`org-add-note`; now written
+     empty). Both need an input `kind` other than `date`: the editors
+     already ask for any `input`; only the date preview is date-only.
 Differences from Emacs in 4a, both deliberate:
 
 - A word boundary in Org's expressions (`\<`, `\>`) is one between a
@@ -171,8 +194,7 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 - Emacs types in the minibuffer and moves the calendar with `S-<arrows>`
   from there. An editor's input box cannot pass such keys on, so the
-  calendar has its own keys and `i` goes back to typing; `Esc` in the
-  input box leaves it for the calendar.
+  calendar comes first, with its own keys, and `i` asks for the answer.
 - Closing the prompt's window does not cancel the prompt on the server
   (the client may report it late, when another prompt is open); the next
   date command replaces it. `q` cancels.

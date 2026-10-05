@@ -256,8 +256,9 @@ eq(line(2), 'SCHEDULED: <2026-05-26 Tue 11:00 +2w>', 'the timestamp is left alon
 eq(warnings, {}, 'without a complaint from the server')
 vim.notify = notify
 
--- 12. Commands that ask for a date ask with `vim.ui.input`, while the
--- calendar Emacs shows with the prompt opens at the bottom.
+-- 12. Commands that ask for a date open the calendar Emacs shows with the
+-- prompt at the bottom, in normal mode; `i` there asks for the answer with
+-- `vim.ui.input`.
 local function prompt_window()
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'org-date' then
@@ -272,27 +273,39 @@ vim.ui.input = function(opts, on_confirm)
   asked = opts
   on_confirm(answer)
 end
+local function in_calendar()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return prompt_window() ~= nil and vim.api.nvim_get_current_win() == prompt_window()
+end
 answer = '2026-06-03'
 vim.api.nvim_win_set_cursor(0, { 1, 0 })
+vim.cmd('startinsert')
 press('<Leader>ois')
+wait('the calendar', in_calendar)
+eq(asked, nil, 'nothing is asked until `i`')
+wait('normal mode in the calendar', function()
+  return vim.api.nvim_get_mode().mode == 'n'
+end)
+press('i')
 becomes(2, 'SCHEDULED: <2026-06-03 Wed +2w>', 'scheduled, the repeater kept')
-eq({ asked.prompt, asked.default }, { 'Schedule: ', '11:00' }, 'the prompt starts from the old time')
+eq({ asked.prompt, asked.default }, { 'SCHEDULED Date+time [2026-05-26]: ', '11:00' }, 'the prompt starts from the old time')
 wait('the calendar to close with the answer', function()
   return prompt_window() == nil
 end)
-answer = nil
+asked = nil
 press('<Leader>oid')
-wait('the calendar to stay when the minibuffer is left', function()
-  return prompt_window() ~= nil and vim.api.nvim_get_current_win() == prompt_window()
-end)
+wait('the calendar again', in_calendar)
 press('q')
 wait('the calendar to close', function()
   return prompt_window() == nil
 end)
 eq(line(2), 'SCHEDULED: <2026-06-03 Wed +2w>', 'a cancelled prompt changes nothing')
+eq(asked, nil, 'and asked nothing')
 answer = '2026-06-01 9:00'
 vim.api.nvim_win_set_cursor(0, { 3, 0 })
 press('<Leader>oi!')
+wait('the calendar for a timestamp', in_calendar)
+press('i')
 becomes(3, '[2026-06-01 Mon 09:00]Version 11 of the plan.', 'an inactive timestamp')
 wait('the cursor after it', function()
   return vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 3, 22 })

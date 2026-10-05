@@ -122,11 +122,15 @@ describe('Org files', () => {
     };
     try {
       moveTo(5, 3); // on "Call the client"
+      // The calendar opens; the answer is asked for from there.
       await vscode.commands.executeCommand('org.schedule');
+      await until('the calendar', () => vscode.window.activeTextEditor?.document.languageId === 'org-date');
+      assert.deepEqual(asked, []);
+      await vscode.commands.executeCommand('org.calendar.type');
       await until('the entry to be scheduled', () => document.lineAt(6).text === 'SCHEDULED: <2026-06-03 Wed> DEADLINE: <2026-05-20 Wed>');
       assert.deepEqual(asked, [
         {
-          prompt: 'Schedule',
+          prompt: 'SCHEDULED Date+time [2026-05-18]',
           value: '',
           preview: { message: '=> <2026-05-22 Fri 09:00>', severity: vscode.InputBoxValidationSeverity.Info },
         },
@@ -140,14 +144,14 @@ describe('Org files', () => {
   });
 
   it('shows a calendar with the date prompt, as Emacs does', async () => {
-    const answers = [undefined, '9:00'];
+    const answers = ['9:00'];
     const showInputBox = vscode.window.showInputBox;
     vscode.window.showInputBox = async () => answers.shift();
     const calendar = () => vscode.window.visibleTextEditors.find((editor) => editor.document.languageId === 'org-date');
     try {
       await vscode.window.showTextDocument(document);
       moveTo(5, 3); // on "Call the client"
-      // Leaving the minibuffer leaves the calendar, beside the file.
+      // The calendar opens beside the file, without asking anything yet.
       await vscode.commands.executeCommand('org.schedule');
       const editor = await until('the calendar', () => vscode.window.activeTextEditor?.document.languageId === 'org-date' && vscode.window.activeTextEditor);
       const lines = () => editor.document.getText().trimEnd().split('\n');

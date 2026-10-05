@@ -1196,10 +1196,10 @@ fn shows_a_calendar_with_the_date_prompt() {
         result
     };
 
-    // The command asks, and the calendar opens on the old date with the
-    // cursor on its day.
+    // The calendar opens on the old date with the cursor on its day; the
+    // answer is asked for only from there.
     let asked = run(&mut client, "org.schedule", at(0, 0)).unwrap();
-    assert_eq!(asked["input"]["value"], "10:00");
+    assert_eq!(asked, Value::Null);
     assert_eq!(methods(&client.received), ["window/showDocument"]);
     assert_eq!(client.received[0].params["uri"], PROMPT);
     let text = client.view_text(PROMPT);

@@ -1006,8 +1006,8 @@ impl Server {
         let Some(answer) = &context.input else {
             let prompt = planning::prompt(command, &text, offset)?;
             let input = commands::input(id).ok_or("Unknown command")?;
-            // In a client that shows it, the calendar opens beside the
-            // prompt, as in Emacs.
+            // In a client that shows it, the calendar opens instead; the
+            // answer is typed there once asked for (`org.calendar.type`).
             if self.client.date_prompt {
                 let (uri, position, now) = (context.text_document.uri.clone(), context.position, self.date_time());
                 let open = DatePrompt::new(
@@ -1021,6 +1021,7 @@ impl Server {
                     &self.read_date,
                 );
                 self.open_date_prompt(open);
+                return Ok(Value::Null);
             }
             return Ok(json!({ "input": { "kind": input.kind, "prompt": input.prompt, "value": prompt.value } }));
         };

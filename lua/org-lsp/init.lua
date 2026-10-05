@@ -165,6 +165,14 @@ function M.run(name, opts)
       local input = type(result) == 'table' and result.input or nil
       if input then
         vim.ui.input({ prompt = input.prompt .. ': ', default = input.value }, function(answer)
+          -- An input that runs in insert mode may leave it behind in the
+          -- calendar it was asked from, which is never typed into.
+          vim.schedule(function()
+            local prompt = M.manifest and M.manifest.datePrompt
+            if prompt and vim.bo.filetype == prompt.languageId then
+              vim.cmd.stopinsert()
+            end
+          end)
           if answer then
             context.input = answer
             client:exec_cmd(command, { bufnr = bufnr }, handle)

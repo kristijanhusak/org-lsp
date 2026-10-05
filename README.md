@@ -88,12 +88,11 @@ These are nvim-orgmode's defaults. A count works as in Vim (`3<C-a>`,
 `<C-a>`, `<C-x>`, `<S-Up>` and `<S-Down>` do what they do in any buffer.
 The commands that need a date ask with `vim.ui.input`; the answer is read
 as Org's date prompt reads it (`fri 10:00`, `+2d`, `2/15`, `++1w`). As in
-Emacs, a calendar opens at the bottom with the prompt. Leave the prompt
-with `<Esc>` to move about in the calendar: `h` `l` `j` `k` (or the shifted
-arrows) by day and week, `<M-S-Left>` `<M-S-Right>` by month, `<M-S-Up>`
-`<M-S-Down>` by year, `<` `>` to show other months, `.` for today, `<CR>`
-to take the day under the cursor, `i` to type the answer again (it is
-then read with the day you moved to), `q` to give up. Apart from fold cycling, `q` and
+Emacs, they show a calendar first, at the bottom: `h` `l` `j` `k` (or the
+shifted arrows) move by day and week, `<M-S-Left>` `<M-S-Right>` by month,
+`<M-S-Up>` `<M-S-Down>` by year, `<` `>` show other months, `.` goes to
+today, `<CR>` takes the day under the cursor, `i` asks for the answer
+(read with the day you moved to, if you did), `q` gives up. Apart from fold cycling, `q` and
 `<Leader>oa`, the plugin does not list them: the server announces its
 commands with their keys, and the plugin binds what it is told.
 
