@@ -20,7 +20,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Highlighting (semantic tokens) | yes | yes | no¹ |
 | Folding | yes, with `<Tab>` / `<S-Tab>` cycling | yes | no² |
 | Outline (document symbols) | yes | yes | yes |
-| TODO state changes, as `org-todo` does them | `cit` / `ciT`, repeatable with `.` | commands, `Ctrl+.` | `Space a` |
+| TODO state changes, as `org-todo` does them, with fast selection by key and notes (`TODO(t)`, `WAIT(w@/!)`) | `cit` / `ciT`, repeatable with `.` | commands, `Ctrl+.` | `Space a` |
 | Priorities, as `org-priority` changes them | `ciR` / `cir`, `<Leader>o,` | commands, `Ctrl+.` | `Space a` |
 | Timestamps: the part at the cursor, or the date by days | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>`, with counts | commands, `Ctrl+.` | `Space a` |
 | Schedule, deadline, insert a timestamp: dates typed as at Org's prompt, or picked in Emacs's calendar | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!` | commands, with a preview of the date | no⁴ |
@@ -81,7 +81,7 @@ instead of nvim-orgmode for those buffers, not next to it.
 | Where | Keys |
 | --- | --- |
 | Anywhere | `<Leader>oa` agenda commands; `:Org agenda`, `:Org agenda list`, `:Org agenda todos` |
-| Org files | `cit` / `ciT` next / previous TODO state, `ciR` / `cir` priority up / down, `<Leader>o,` set the priority, `<C-a>` / `<C-x>` the part of the timestamp under the cursor, `<S-Up>` / `<S-Down>` the date a day later / earlier, `<Leader>ois` / `<Leader>oid` schedule / deadline, `<Leader>oi.` / `<Leader>oi!` insert an active / inactive timestamp, `<Tab>` / `<S-Tab>` fold cycling |
+| Org files | `cit` change the TODO state (one key when the keywords have keys, else the next), `ciT` previous TODO state, `ciR` / `cir` priority up / down, `<Leader>o,` set the priority, `<C-a>` / `<C-x>` the part of the timestamp under the cursor, `<S-Up>` / `<S-Down>` the date a day later / earlier, `<Leader>ois` / `<Leader>oid` schedule / deadline, `<Leader>oi.` / `<Leader>oi!` insert an active / inactive timestamp, `<Tab>` / `<S-Tab>` fold cycling |
 | Agenda | `f` / `b` later / earlier, `.` today, `J` go to a date, `vd` `vw` `vt` `vm` `vy` span, `r` rebuild, `t` TODO state, `+` / `-` priority, `<Leader>o,` set the priority, `<S-Right>` / `<S-Left>` date later / earlier, `<Leader>ois` / `<Leader>oid` schedule / deadline, `<CR>` or `<Tab>` go to the entry, `q` close; `:Org agenda save` saves all Org files with changes |
 
 These are nvim-orgmode's defaults. A count works as in Vim (`3<C-a>`,
@@ -132,7 +132,7 @@ Commands you do not list keep the server's keys:
 ```lua
 mappings = {
   global = { ['org.agenda.list'] = '<Leader>oA' },
-  org = { ['org.todo.next'] = '<Leader>t', ['org.todo.previous'] = false },
+  org = { ['org.todo'] = '<Leader>t', ['org.todo.previous'] = false },
 }
 ```
 

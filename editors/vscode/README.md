@@ -18,6 +18,7 @@ All commands are in the Command Palette under **Org**.
 | `Org: Agenda for the current week or day` | Opens the agenda |
 | `Org: List of all TODO entries` | Opens the TODO list |
 | `Org: Agenda commands` | Asks which of the two to open |
+| `Org: Change the TODO state` | Org's `C-c C-t` (`t` in the agenda): with keys on the keywords (`TODO(t)`), pick one from a list; else the next state. A state with `@` asks for its note |
 | `Org: Cycle TODO state forward` / `backward` | Changes the entry under the cursor, in an Org file or on an agenda line |
 | `Org: Raise the priority` / `Lower the priority` | The same, for the priority |
 | `Org: Set the priority` | Asks for it, as Org's `C-c ,` does (`,` in the agenda); a space removes it |

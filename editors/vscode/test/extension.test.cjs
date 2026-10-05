@@ -134,6 +134,40 @@ describe('Org files', () => {
     await document.save();
   });
 
+  it('picks a TODO state by key and asks for its note', async () => {
+    const keyed = await vscode.workspace.openTextDocument({
+      language: 'org',
+      content: '#+TODO: TODO(t) WAIT(w@/!) | DONE(d!)\n* TODO Call them\n',
+    });
+    const editor = await vscode.window.showTextDocument(keyed);
+    const offered = [];
+    const notes = [];
+    const showQuickPick = vscode.window.showQuickPick;
+    const showInputBox = vscode.window.showInputBox;
+    vscode.window.showQuickPick = async (items) => {
+      offered.push(...items.map((item) => item.label));
+      return items.find((item) => item.key === 'w');
+    };
+    vscode.window.showInputBox = async (options) => {
+      notes.push(options.prompt);
+      return 'Waiting for Bob';
+    };
+    try {
+      editor.selection = new vscode.Selection(1, 2, 1, 2);
+      await vscode.commands.executeCommand('org.todo');
+      await until('the state and its note', () => keyed.lineCount > 3 && keyed.lineAt(3).text === '  Waiting for Bob');
+      assert.equal(keyed.lineAt(1).text, '* WAIT Call them');
+      assert.match(keyed.lineAt(2).text, /^- State "WAIT" {7}from "TODO" {7}\[.*\] \\\\$/);
+      assert.deepEqual(offered, ['[t] TODO', '[w] WAIT', '[d] DONE', '[SPC] (none)']);
+      assert.deepEqual(notes, ['Note for state change from "TODO" to "WAIT"']);
+    } finally {
+      vscode.window.showQuickPick = showQuickPick;
+      vscode.window.showInputBox = showInputBox;
+    }
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.window.showTextDocument(document);
+  });
+
   it('asks for a date, shows what it means, and uses it', async () => {
     const asked = [];
     const showInputBox = vscode.window.showInputBox;

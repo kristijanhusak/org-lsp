@@ -1446,3 +1446,62 @@ fn goes_to_a_date_in_the_agenda() {
     assert!(refused.is_err());
     client.shutdown();
 }
+
+/// `C-c C-t` (`org-todo`) with keys on the keywords: the server asks for
+/// a key, and a state that records a note (`@`) asks for its text before
+/// it is set. Without keys, the same command cycles.
+#[test]
+fn selects_todo_states_by_key_and_asks_for_notes() {
+    const URI: &str = "file:///org/keys.org";
+    const KEYS: &str = "#+TODO: TODO(t) WAIT(w@/!) | DONE(d!)\n* TODO Call them\n";
+    let mut client = Client::editor(clock(), None);
+    let mut text = KEYS.to_string();
+    client.open(URI, KEYS);
+    let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 1, "character": 3 } });
+    let run = |client: &mut Client, extra: Value| {
+        let mut context = at.clone();
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.request("workspace/executeCommand", json!({ "command": "org.todo", "arguments": [context] })).unwrap()
+    };
+
+    let asked = run(&mut client, json!({}));
+    assert_eq!(asked["input"]["kind"], "key");
+    assert_eq!(asked["input"]["prompt"], "[t] TODO  [w] WAIT  [d] DONE  [SPC] clear");
+    assert_eq!(asked["input"]["choices"][1], json!({ "key": "w", "label": "WAIT" }));
+
+    // WAIT wants a note: nothing changes until its text comes.
+    client.received.clear();
+    let asked = run(&mut client, json!({ "input": "w" }));
+    client.settle();
+    assert_eq!(asked["input"]["kind"], "note");
+    assert_eq!(asked["input"]["prompt"], "Note for state change from \"TODO\" to \"WAIT\"");
+    assert_eq!(asked["input"]["context"], json!({ "state": "WAIT" }));
+    assert!(client.received.is_empty(), "no edit yet");
+    client.edit("org.todo", URI, (1, 3), json!({ "input": "Waiting for Bob", "state": "WAIT" }), &mut text);
+    assert_eq!(
+        text,
+        "#+TODO: TODO(t) WAIT(w@/!) | DONE(d!)\n* WAIT Call them\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  Waiting for Bob"
+    );
+    // A key that selects nothing changes nothing.
+    client.received.clear();
+    assert_eq!(run(&mut client, json!({ "input": "x" })), Value::Null);
+    client.settle();
+    assert!(client.received.is_empty());
+
+    // Without keys, `org.todo` cycles.
+    const PLAIN: &str = "file:///org/plain.org";
+    let mut plain = "* TODO Plain\n".to_string();
+    client.open(PLAIN, &plain.clone());
+    client.edit("org.todo", PLAIN, (0, 0), json!({}), &mut plain);
+    assert_eq!(plain, "* DONE Plain\n");
+    // A repeating entry records the time of the repeat, and asks nothing.
+    const REPEAT: &str = "file:///org/repeat.org";
+    let mut repeat = "* TODO Water\nSCHEDULED: <2026-05-16 Sat +1w>\n".to_string();
+    client.open(REPEAT, &repeat.clone());
+    let requests = client.edit("org.todo", REPEAT, (0, 0), json!({}), &mut repeat);
+    assert!(methods(&requests).contains(&"workspace/applyEdit"), "changed at once");
+    assert!(repeat.contains("SCHEDULED: <2026-05-23 Sat +1w>"), "{repeat}");
+    client.shutdown();
+}

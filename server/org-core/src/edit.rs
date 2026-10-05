@@ -69,7 +69,7 @@ impl Default for Settings {
 }
 
 /// How a command was called.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Call {
     /// The count the user gave, Emacs's prefix argument.
     pub count: Option<i64>,
@@ -77,6 +77,9 @@ pub struct Call {
     pub repeated: bool,
     /// The local time, for the timestamps a command writes.
     pub now: DateTime,
+    /// The text of the note a TODO state change wants. Without it, such a
+    /// change is not made: the outcome says that it wants a note.
+    pub note: Option<String>,
 }
 
 /// The priorities a document declares with `#+PRIORITIES:`. Only the
@@ -98,6 +101,9 @@ pub struct Outcome {
     /// Where Emacs leaves the cursor, for the commands that move it
     /// within the text they change.
     pub cursor: Option<usize>,
+    /// The note a TODO state change wants, when the call gave no text for
+    /// it. The text is then without the note.
+    pub note: Option<todo::WantedNote>,
 }
 
 /// Run `command` with the cursor at byte `offset` of `text`, whose parse
@@ -115,12 +121,14 @@ pub fn run(
         offset -= 1;
     }
     let steps = |forward: bool| call.count.unwrap_or(1) * if forward { 1 } else { -1 };
-    let unplaced = |text: String| Outcome { text, cursor: None };
-    let placed = |changed: stamp::Changed| Outcome { text: changed.text, cursor: Some(changed.cursor) };
+    let unplaced = |text: String| Outcome { text, cursor: None, note: None };
+    let placed = |changed: stamp::Changed| Outcome { text: changed.text, cursor: Some(changed.cursor), note: None };
     match command {
         Command::Todo(target) => {
-            todo::change_state(text, parse.todo_keywords(), offset, target, &settings.todo, call.now)
-                .map(unplaced)
+            let keywords = parse.todo_keywords();
+            let note = call.note.as_deref();
+            todo::change_state_with_note(text, keywords, offset, target, &settings.todo, call.now, note)
+                .map(|changed| Outcome { text: changed.text, cursor: None, note: changed.wants_note })
                 .map_err(|message| {
                     if message == "Before first headline" {
                         Refusal::NotHere(message)

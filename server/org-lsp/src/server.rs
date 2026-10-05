@@ -31,6 +31,7 @@ use org_core::outline::Outline;
 use org_core::planning::{self, Command as PlanningCommand, Prompt};
 use org_core::priority;
 use org_core::read_date::Settings as ReadDateSettings;
+use org_core::todo::{self, Target as TodoTarget};
 use org_core::Refusal;
 use org_syntax::{Parse, TodoKeywords};
 use serde::de::DeserializeOwned;
@@ -137,6 +138,9 @@ struct Context {
     input: Option<String>,
     /// For `org.date.preview`: the command whose prompt is being answered.
     command: Option<String>,
+    /// The TODO state a change was asked for, when `input` is the text
+    /// of the note that change wants (`""` for no keyword).
+    state: Option<String>,
 }
 
 /// The editing command that ran last, and the entry it ran on. Some
@@ -157,6 +161,15 @@ struct Follow {
     /// The line the cursor is on now.
     from: u32,
     position: Position,
+}
+
+/// What an editing command was told besides its name.
+#[derive(Default)]
+struct Extra {
+    /// The text of the note a TODO state change wants.
+    note: Option<String>,
+    /// The key that selects the new TODO state.
+    key: Option<String>,
 }
 
 /// The file a command that asks for a date changes.
@@ -1052,6 +1065,7 @@ impl Server {
             }
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
+            id if id == commands::TODO || actions::command(id).is_some() => self.run_edit(id, context),
             id if commands::input(id).is_some() => {
                 self.ask_date(id, &context.ok_or("This command needs the cursor position")?)
             }
@@ -1462,10 +1476,7 @@ impl Server {
                 self.send_request::<ShowDocument>(params, None);
                 Ok(())
             }
-            other if actions::command(other).is_some() => {
-                let context = context.ok_or("This command needs the cursor position")?;
-                self.edit(&context, other, None)
-            }
+
             other => Err(format!("org-lsp has no command `{other}`").into()),
         }
     }
@@ -1506,6 +1517,21 @@ impl Server {
     /// text and asks the client to apply the difference. `given` is the
     /// change to make, for a command that asked what it is.
     fn edit(&mut self, context: &Context, id: &str, given: Option<EditCommand>) -> std::result::Result<(), Refusal> {
+        self.edit_with(context, id, given, &Extra::default()).map(|_| ())
+    }
+
+    /// [`Server::edit`] for a change to the TODO state, which may want a
+    /// note: say what to ask for it, `{ "input": { "kind": "note",
+    /// "prompt", "value", "context": { "state" } } }`, unless `extra`
+    /// gives its text. With `extra.key`, the state is the one that key
+    /// selects (`org-fast-todo-selection`).
+    fn edit_with(
+        &mut self,
+        context: &Context,
+        id: &str,
+        given: Option<EditCommand>,
+        extra: &Extra,
+    ) -> std::result::Result<Value, Refusal> {
         let encoding = self.client.encoding;
         let (settings, now) = (self.edit_settings.clone(), self.date_time());
         let uri = context.text_document.uri.clone();
@@ -1562,29 +1588,52 @@ impl Server {
                 }
             };
             let last = Last { command: id.to_string(), file: key.clone(), heading };
-            let call = Call { count, repeated: previous.as_ref() == Some(&last), now };
+            // The state the key selects; a key that selects none quits.
+            let command = match &extra.key {
+                Some(answer) => {
+                    match todo::fast_selection(text, parse.todo_keywords(), offset, answer).map_err(Refusal::NotHere)? {
+                        Some(target) => EditCommand::Todo(target),
+                        None => return Ok((last, None)),
+                    }
+                }
+                None => command.clone(),
+            };
+            let call = Call { count, repeated: previous.as_ref() == Some(&last), now, note: extra.note.clone() };
             let outcome = edit::run(&command, text, parse, offset, &call, &settings).map(|outcome| {
                 let edits: Vec<TextEdit> = actions::edits_between(text, &outcome.text)
                     .into_iter()
                     .map(|edit| TextEdit { range: index.range(text, edit.range, encoding), new_text: edit.new_text })
                     .collect();
-                (edits, version, outcome.text)
+                (edits, version, outcome.text, outcome.note)
             });
-            Ok::<_, Refusal>((last, outcome))
+            Ok::<_, Refusal>((last, Some(outcome)))
         });
         let (last, outcome) = found.ok_or("Cannot read the file of this entry")??;
         // Remembered even when the command was refused, as in Emacs.
         let heading = last.heading;
         self.last = Some(last);
-        let (edits, version, new_text) = outcome?;
+        let Some(outcome) = outcome else { return Ok(Value::Null) };
+        let (edits, version, new_text, wanted) = outcome?;
+        // The change wants a note: ask for its text, and make the change
+        // once it comes, with the state it is about.
+        if let Some(wanted) = wanted {
+            return Ok(json!({ "input": {
+                "kind": "note",
+                "prompt": format!("Note for {}", wanted.purpose),
+                "value": "",
+                "context": { "state": wanted.state.unwrap_or_default() },
+            } }));
+        }
         if edits.is_empty() {
-            return Ok(());
+            return Ok(Value::Null);
         }
         // A change to priority or date can move the entry to another line
         // of the agenda. The cursor goes with it, so that the next press
         // of the key reaches the same entry.
         self.follow = match (&line, heading) {
-            (Some((number, line)), Some(heading)) if !matches!(id, commands::TODO_NEXT | commands::TODO_PREVIOUS) => {
+            (Some((number, line)), Some(heading))
+                if !matches!(id, commands::TODO | commands::TODO_NEXT | commands::TODO_PREVIOUS) =>
+            {
                 self.followed(&file, &new_text, heading, (Position::new(*number, position.character), line))
             }
             _ => None,
@@ -1594,7 +1643,60 @@ impl Server {
         // No label: some editors print it every time an edit is applied.
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
         self.send_request::<ApplyWorkspaceEdit>(params, Some(Pending::Edit));
-        Ok(())
+        Ok(Value::Null)
+    }
+
+    /// An editing command, which may ask for something first. The answer
+    /// to the note a TODO state change asked for comes with the state
+    /// (`state` in the context); `org.todo` asks for the key of the new
+    /// state when the keywords have keys (`org-todo` with fast selection),
+    /// and cycles when they have none.
+    fn run_edit(&mut self, id: &str, context: Option<Context>) -> std::result::Result<Value, Refusal> {
+        let context = context.ok_or("This command needs the cursor position")?;
+        if let Some(state) = &context.state {
+            let target = TodoTarget::State((!state.is_empty()).then(|| state.clone()));
+            let extra = Extra { note: Some(context.input.clone().unwrap_or_default()), key: None };
+            return self.edit_with(&context, id, Some(EditCommand::Todo(target)), &extra);
+        }
+        if id != commands::TODO {
+            return self.edit_with(&context, id, None, &Extra::default());
+        }
+        let keys = self.fast_keys(&context)?;
+        if keys.is_empty() {
+            return self.edit_with(&context, id, Some(EditCommand::Todo(TodoTarget::Next)), &Extra::default());
+        }
+        let Some(answer) = &context.input else {
+            // `[t] TODO  [d] DONE`, as Org's expert prompt lists them.
+            let listed: Vec<String> = keys.iter().map(|(name, key)| format!("[{key}] {name}")).collect();
+            let choices: Vec<Value> = keys
+                .iter()
+                .map(|(name, key)| json!({ "key": key.to_string(), "label": name }))
+                .chain([json!({ "key": " ", "label": "(none)" })])
+                .collect();
+            return Ok(json!({ "input": {
+                "kind": "key",
+                "prompt": format!("{}  [SPC] clear", listed.join("  ")),
+                "value": "",
+                "choices": choices,
+            } }));
+        };
+        let extra = Extra { note: None, key: Some(answer.clone()) };
+        self.edit_with(&context, id, Some(EditCommand::Todo(TodoTarget::Next)), &extra)
+    }
+
+    /// The keys of fast TODO selection in the file of `context`: an Org
+    /// file, or the file of the entry of an agenda line.
+    fn fast_keys(&mut self, context: &Context) -> std::result::Result<Vec<(String, char)>, Refusal> {
+        let uri = &context.text_document.uri;
+        let file = if self.is_view(uri) {
+            self.entry_at(Some(context)).ok_or("No entry on this line")?.uri
+        } else {
+            uri.clone()
+        };
+        let keys = self.with_source(&file, |_, _, parse, _, _| {
+            parse.todo_keywords().fast_keys().into_iter().map(|(name, key)| (name.to_string(), key)).collect()
+        });
+        Ok(keys.ok_or("Cannot read the file of this entry")?)
     }
 
     /// Where the entry at `heading` of `file` will stand in the agenda

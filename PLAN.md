@@ -44,13 +44,14 @@ others), as close to Emacs Org mode as it can get.
 | 4d.1 | Schedule and deadline from an agenda line (`org-agenda-schedule`, `org-agenda-deadline`) | #10 |
 | 4d.2 | `j` in the agenda (`org-agenda-goto-date`) | #11 |
 | 4d.3 | Set a priority by name (`org-priority`, `org-agenda-priority`) | #12 |
+| 4e.1 | Fast TODO selection (`org-fast-todo-selection`) and the text of state notes (`@`) | #13 |
 
 ### Where to pick up
 
 Asked for next (2026-10-05), in this order; see milestone 4e below:
 
-1. Fast TODO selection, and the text of state notes (`@` in a keyword).
-2. Refile.
+1. Done: fast TODO selection, and the text of state notes.
+2. Refile: next.
 3. Capture.
 
 Then the opt-in autosave option (open question 3) and the Vim plugin
@@ -210,21 +211,25 @@ show one. In four pull requests:
 
 ### 4e. TODO selection, refile, capture (asked for next)
 
-1. **Fast TODO selection and note text.** `TODO(t)` keys are parsed in
-   `org-syntax/src/config.rs` (`keyword_definition`) but the key is
-   dropped; keep it. `org-todo` with `org-use-fast-todo-selection`
-   (default `auto`: fast selection whenever keywords have keys) asks
-   for a key: `C-c C-t` in Emacs, `<Leader>ot` in
-   nvim-orgmode, `t` in the agenda. Ask with an input of kind `todo`
-   that lists the keys (`[t] TODO  [d] DONE  [SPC] clear`), or a
-   `window/showMessageRequest` menu; read the answer as
-   `org-fast-todo-selection` does. `@` and `!` logging is already
-   ported (`todo.rs`, `store_note`), but the note is written empty:
-   after a state change that wants a note, return an input of kind
-   `note` ("State "DONE" from "TODO"") and write its text, as
-   `org-add-note`/`org-store-log-note` do (several lines indented under
-   the heading line). Check with `scripts/todo_reference.py` (answer the
-   key prompt and the note buffer).
+1. **Done: fast TODO selection and note text.** `org.todo` (`C-c C-t`,
+   `t` in the agenda, `cit`) is `org-todo`: with keys on the keywords
+   it asks for one (input kind `key` with `choices`; Neovim reads one
+   key press, VS Code offers a list) and sets the state it selects,
+   `SPC` clears, any other key quits; without keys it cycles.
+   `TodoKeywords::fast_keys` keeps the keys and assigns the missing ones
+   as `org-assign-fast-keys` does, preferring the current keyword's
+   sequence when keys are shared. A change that records a note (`@`,
+   `org-log-done` or `org-log-repeat` set to `note`) asks for its text
+   (input kind `note`, with `context: { state }`) before it is made;
+   `!` and the repeat's time are written at once. The text goes under
+   the heading line as `org-store-log-note` writes it (`\\` after the
+   heading, lines indented to the item's body). Checked by 133 new
+   cases in `tests/todo/cases.json` (`scripts/todo_reference.py` now
+   answers the key and writes the note's text). Differences: Emacs
+   makes the change first and asks for the note after, so aborting the
+   note keeps the change; here cancelling the note cancels the change.
+   The note is one line in both editors' input boxes; a multi-line note
+   needs a note document like capture's (3).
 2. **Refile** (`org-refile`, `C-c C-w`; `<Leader>or`; `C-c C-w` in the
    agenda). Targets from `org-refile-targets` (default `nil`: the
    current file's top-level headings), `org-refile-use-outline-path`,
