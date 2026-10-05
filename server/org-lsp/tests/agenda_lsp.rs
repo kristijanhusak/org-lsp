@@ -1279,3 +1279,23 @@ fn names_the_files_to_save() {
     assert_eq!(result, json!({ "save": ["file:///org/a.org", "file:///org/b.org"] }));
     client.shutdown();
 }
+
+#[test]
+fn completes_keywords_and_tags_in_a_headline() {
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/c.org", "* TODO a :work:home:\n* D\n* b :w\n");
+    let complete = |client: &mut Client, line: u32, character: u32| {
+        let params = json!({ "textDocument": { "uri": "file:///org/c.org" }, "position": { "line": line, "character": character } });
+        let items = client.request("textDocument/completion", params).unwrap();
+        items
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| (item["label"].clone(), item["textEdit"]["range"]["start"]["character"].clone()))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(complete(&mut client, 1, 3), [(json!("DONE"), json!(2))]);
+    assert_eq!(complete(&mut client, 2, 6), [(json!("work"), json!(5))]);
+    assert_eq!(client.initialize["capabilities"]["completionProvider"]["triggerCharacters"], json!([":"]));
+    client.shutdown();
+}
