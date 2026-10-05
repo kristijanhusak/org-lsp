@@ -42,7 +42,7 @@ use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt};
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
-use crate::{actions, cli, commands, folding, highlight, manifest, symbols, uri};
+use crate::{actions, cli, commands, completion, folding, highlight, manifest, symbols, uri};
 
 type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -338,6 +338,10 @@ fn capabilities(encoding: Encoding) -> ServerCapabilities {
         folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
         document_symbol_provider: Some(OneOf::Left(true)),
         definition_provider: Some(OneOf::Left(true)),
+        completion_provider: Some(lsp_types::CompletionOptions {
+            trigger_characters: Some(vec![":".to_string()]),
+            ..Default::default()
+        }),
         code_action_provider: Some(CodeActionProviderCapability::Options(CodeActionOptions {
             code_action_kinds: Some(actions::KINDS.iter().map(|kind| CodeActionKind::new(kind)).collect()),
             ..Default::default()
@@ -517,6 +521,7 @@ impl Server {
             DocumentSymbolRequest => document_symbols,
             CodeActionRequest => code_actions,
             GotoDefinition => definition,
+            lsp_types::request::Completion => completion,
         }
     }
 
@@ -736,6 +741,29 @@ impl Server {
             CodeActionOrCommand::CodeAction(action.to_lsp(edit))
         };
         Some(found.iter().map(to_lsp).collect())
+    }
+
+    /// TODO keywords and tags in a headline (`pcomplete`).
+    fn completion(&mut self, params: lsp_types::CompletionParams) -> Option<lsp_types::CompletionResponse> {
+        let position = params.text_document_position;
+        let document = self.document(&position.text_document.uri)?;
+        let encoding = self.client.encoding;
+        let offset = document.index.offset(&document.text, position.position, encoding);
+        let (start, items) = completion::complete(&document.text, offset, document.parse.todo_keywords())?;
+        let range = Range::new(document.index.position(&document.text, start, encoding), position.position);
+        let items = items
+            .into_iter()
+            .map(|(label, kind)| lsp_types::CompletionItem {
+                kind: Some(match kind {
+                    completion::Kind::Keyword => lsp_types::CompletionItemKind::KEYWORD,
+                    completion::Kind::Tag => lsp_types::CompletionItemKind::ENUM_MEMBER,
+                }),
+                text_edit: Some(lsp_types::CompletionTextEdit::Edit(TextEdit { range, new_text: label.clone() })),
+                label,
+                ..Default::default()
+            })
+            .collect();
+        Some(lsp_types::CompletionResponse::Array(items))
     }
 
     /// From an agenda line to the entry it shows.

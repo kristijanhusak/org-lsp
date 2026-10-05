@@ -9,6 +9,7 @@
 pub mod actions;
 pub mod cli;
 pub mod commands;
+pub mod completion;
 pub mod config;
 pub mod document;
 pub mod folding;

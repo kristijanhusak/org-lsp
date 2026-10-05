@@ -241,8 +241,9 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 - Follow links (`textDocument/definition`, `documentLink`), store and
   insert links, `id:` links across files, backlinks as references.
-- Completion: tags, TODO keywords, properties, link targets, block names,
-  `#+` keywords. Hover. Workspace symbols. Rename of tags and headings.
+- Completion: TODO keywords and tags in headlines are done (server
+  only); still to do: properties, link targets, block names, `#+`
+  keywords, and tags from the agenda files as well as the file. Hover. Workspace symbols. Rename of tags and headings.
 
 ### 12. Tables
 

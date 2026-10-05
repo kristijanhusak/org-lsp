@@ -24,6 +24,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Priorities, as `org-priority` changes them | `ciR` / `cir` | commands, `Ctrl+.` | `Space a` |
 | Timestamps: the part at the cursor, or the date by days | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>`, with counts | commands, `Ctrl+.` | `Space a` |
 | Schedule, deadline, insert a timestamp: dates typed as at Org's prompt, or picked in Emacs's calendar | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!` | commands, with a preview of the date | no⁴ |
+| Completion of TODO keywords and tags in headlines | with an LSP completion plugin | yes | yes |
 | Agenda: day, week, fortnight, month and year views | yes | yes | no³ |
 | Agenda: list of all TODO entries | yes | yes | no³ |
 | Agenda: change an entry's state, priority or date, go to its entry | yes | yes | no³ |

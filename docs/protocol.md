@@ -15,6 +15,7 @@ the agenda document and the semantic tokens.
 | `textDocument/codeAction` | The commands that apply at the cursor. See [Commands](#commands). |
 | `workspace/executeCommand` | Every command. See [Commands](#commands). |
 | `textDocument/definition` | In the agenda: from a line to its entry. |
+| `textDocument/completion` | In a headline: TODO keywords for the first word after the stars, and the file's tags after a `:` in the headline's tags (`pcomplete`). `:` triggers it. |
 | `workspace/textDocumentContent` | The text of the agenda. See [The agenda document](#the-agenda-document). |
 
 The server sends these requests to the client:
