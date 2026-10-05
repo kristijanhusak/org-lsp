@@ -36,33 +36,65 @@ UTF-32, and falls back to UTF-16.
 
 Passed as `initializationOptions`. The names are Org's variable names in
 camel case; the agenda's lose their `org-agenda-` prefix and live under
-`agenda`. Defaults are Org's. Unknown or malformed options are ignored.
+`agenda` (`agenda.span` below is `{ "agenda": { "span": … } }`). Defaults
+are Org's. Unknown options are ignored. `org-lsp settings` prints this
+table as JSON, and the table below is written from it by
+`scripts/generate-docs.mjs`; the configuration pages of each editor
+(`docs/neovim/configuration.md` and the like) show the same defaults in
+the editor's own syntax.
+
+<!-- BEGIN generated: options -->
 
 | Option | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `agendaFiles` | `string[]` | `[]` | Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home directory. A directory stands for the Org files directly in it. |
-| `todoKeywords` | `string[]` | `["TODO", "|", "DONE"]` | The TODO sequence, written like Org's `#+TODO:` line. `|` separates the states that count as done; without it the last keyword is the only done state. `TODO(t)`, `WAIT(w@/!)` and the like are accepted: `!` and `@` make the keyword log its changes. |
-| `logDone` | `false`, `"time"`, `"note"` | `false` | `org-log-done`: write `CLOSED:` when an entry is done. |
-| `logRepeat` | `false`, `"time"`, `"note"` | `"time"` | `org-log-repeat`: record when a repeating entry is done. |
-| `logIntoDrawer` | `boolean`, `string` | `false` | `org-log-into-drawer`: `true` for `LOGBOOK`, or a drawer name. |
-| `tagsColumn` | `number` | `-77` | `org-tags-column`: where tags are aligned after a TODO change. |
-| `todoRepeatToState` | `string`, `true` | first keyword | `org-todo-repeat-to-state`: the state a repeating entry returns to; `true` for the state it had. |
-| `priorityHighest` | letter or `0`–`64` | `"A"` | `org-priority-highest` |
-| `priorityLowest` | letter or `0`–`64` | `"C"` | `org-priority-lowest` |
-| `priorityDefault` | letter or `0`–`64` | `"B"` | `org-priority-default`: the priority of an entry without a cookie. |
-| `priorityStartCycleWithDefault` | `boolean` | `true` | `org-priority-start-cycle-with-default`: raising or lowering an entry without a priority starts at the default. |
-| `timestampRoundingMinutes` | `number` | `5` | The second number of `org-time-stamp-rounding-minutes`: the step in which the minutes of a timestamp change. |
-| `readDatePreferFuture` | `boolean`, `"time"` | `true` | `org-read-date-prefer-future`: a date typed without a year or month is the next one to come; with `"time"`, a time that has passed today is tomorrow's. |
-| `readDateForceCompatibleDates` | `boolean` | `true` | `org-read-date-force-compatible-dates`: a typed year is kept within 1970 to 2037. |
-| `refileTargets` | `object[]` | the top-level headlines of the entry's file | `org-refile-targets`: each `{ "files": "current" \| "agenda" \| path \| paths, and one of "level", "maxLevel", "tag", "todo", "regexp" (the Rust `regex` crate's syntax), "all": true }`. |
-| `refileUseOutlinePath` | `boolean \| string` | `false` | `org-refile-use-outline-path`: `true`, `"file"`, `"full-file-path"` or `"title"` name targets by their outline path (`Projects/Alpha/`); the last three start with the file and offer the file itself, for the top level. |
-| `reverseNoteOrder` | `boolean` | `false` | `org-reverse-note-order`: a refiled entry goes first under its target, not last. |
-| `captureTemplates` | `object[]` | Org's default: a TODO under "Tasks" in `defaultNotesFile` | `org-capture-templates`: each `{ "key", "description", "type": "entry" \| "plain", "target": ["file", path] \| ["file+headline", path, headline] \| ["file+olp", path, headline…], "template": text or lines, "prepend", "emptyLines", "emptyLinesBefore", "emptyLinesAfter", "immediateFinish" }`; one with only a key and a description groups the keys that start with it. |
-| `orgDirectory` | `string` | `~/org` | `org-directory`: where relative capture targets are. |
-| `defaultNotesFile` | `string` | `~/.notes` | `org-default-notes-file`: the target of a template whose file is empty. |
-| `cycleSeparatorLines` | `number` | `2` | `org-cycle-separator-lines`: with at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. Blank lines at the end of the file are never folded. |
-| `agenda` | object | | See below. |
-| `virtualDocuments` | `boolean` | from capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
+| `agendaFiles` | string[] | `[]` | Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home directory, and a directory stands for the Org files directly in it. When empty, the agenda is built from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left out), or else from the Org files that are open. (`org-agenda-files`) |
+| `todoKeywords` | string[] | `["TODO", "\|", "DONE"]` | The TODO sequence, written like Org's `#+TODO:` line. `\|` separates the states that count as done; without it the last keyword is the only done state. `TODO(t)` gives a keyword a key for fast selection, and `WAIT(w@/!)` makes it log a note (`@`) or the time (`!`) on entering and leaving it. A file's own `#+TODO:` lines take precedence. (`org-todo-keywords`) |
+| `logDone` | false, "time", "note" | `false` | Write `CLOSED:` with the time when an entry is done, and with `note` ask for a note too. (`org-log-done`) |
+| `logRepeat` | false, "time", "note" | `"time"` | Record when a repeating entry is done and moves to its next date. (`org-log-repeat`) |
+| `logIntoDrawer` | boolean, string | `false` | Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer. (`org-log-into-drawer`) |
+| `tagsColumn` | number | `-77` | Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`) |
+| `todoRepeatToState` | string, true | the first keyword of the sequence | The state a repeating entry returns to when it is done: a keyword, or `true` for the state it had. (`org-todo-repeat-to-state`) |
+| `priorityHighest` | letter, or 0 to 64 | `"A"` | The highest priority. (`org-priority-highest`) |
+| `priorityLowest` | letter, or 0 to 64 | `"C"` | The lowest priority. (`org-priority-lowest`) |
+| `priorityDefault` | letter, or 0 to 64 | `"B"` | The priority of an entry without a cookie. A file's `#+PRIORITIES:` line takes precedence over the three priority options. (`org-priority-default`) |
+| `priorityStartCycleWithDefault` | boolean | `true` | Raising or lowering the priority of an entry that has none starts at the default. (`org-priority-start-cycle-with-default`) |
+| `timestampRoundingMinutes` | number | `5` | The step in which the minutes of a timestamp change (the second number of Org's option). (`org-time-stamp-rounding-minutes`) |
+| `readDatePreferFuture` | boolean, "time" | `true` | A date typed without a year or month is the next one to come. With `time`, a time that has passed today is tomorrow's. (`org-read-date-prefer-future`) |
+| `readDateForceCompatibleDates` | boolean | `true` | A typed year is kept within 1970 to 2037. (`org-read-date-force-compatible-dates`) |
+| `refileTargets` | object[] | `[{ "files": "current", "level": 1 }]` | Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, a path or a list of paths; and one of `level`, `maxLevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says which headlines there are targets. (`org-refile-targets`) |
+| `refileUseOutlinePath` | boolean, "file", "full-file-path", "title" | `false` | Name targets by their outline path (`Projects/Alpha/`). The three names start the path with the file, and offer the file itself, for its top level. (`org-refile-use-outline-path`) |
+| `reverseNoteOrder` | boolean | `false` | A refiled entry goes first under its target, not last. (`org-reverse-note-order`) |
+| `captureTemplates` | object[] | `[{ "key": "t", "description": "Task", "target": ["file+headline", "", "Tasks"], "template": "* TODO %?\n  %u\n  %a" }]` | Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, or `plain`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `emptyLines`, `emptyLinesBefore`, `emptyLinesAfter` and `immediateFinish`. The target is a list: `file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path. An empty path is `defaultNotesFile`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`) |
+| `orgDirectory` | string | `"~/org"` | Where the relative paths of capture targets are. (`org-directory`) |
+| `defaultNotesFile` | string | `"~/.notes"` | The target of a capture template whose file is empty. (`org-default-notes-file`) |
+| `cycleSeparatorLines` | number | `2` | With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`) |
+| `agenda.span` | "day", "week", "fortnight", "month", "year", or a number of days | `"week"` | How much time the agenda shows. (`org-agenda-span`) |
+| `agenda.startOnWeekday` | 0 to 6 (0 is Sunday), or false | `1` | The day a week or fortnight starts on; `false` starts it today. (`org-agenda-start-on-weekday`) |
+| `agenda.deadlineWarningDays` | number | `14` | How many days before a deadline it shows up. (`org-deadline-warning-days`) |
+| `agenda.scheduledDelayDays` | number | `0` | How many days after its date a scheduled entry shows up. (`org-scheduled-delay-days`) |
+| `agenda.scheduledPastDays` | number | `10000` | How many days a scheduled entry that is not done keeps showing up. (`org-scheduled-past-days`) |
+| `agenda.deadlinePastDays` | number | `10000` | How many days a missed deadline keeps showing up. (`org-deadline-past-days`) |
+| `agenda.skipScheduledIfDone` | boolean | `false` | Leave out scheduled entries that are done. (`org-agenda-skip-scheduled-if-done`) |
+| `agenda.skipDeadlineIfDone` | boolean | `false` | Leave out deadlines of entries that are done. (`org-agenda-skip-deadline-if-done`) |
+| `agenda.skipTimestampIfDone` | boolean | `false` | Leave out timestamps of entries that are done. (`org-agenda-skip-timestamp-if-done`) |
+| `agenda.showFutureRepeats` | boolean, "next" | `true` | Show the future dates of repeating entries: all of them, none, or only the next. (`org-agenda-show-future-repeats`) |
+| `agenda.showAllDates` | boolean | `true` | Show days without entries. (`org-agenda-show-all-dates`) |
+| `agenda.tagsColumn` | number | `-80` | Where tags are aligned in the agenda. Org's own default follows the window width, which a server does not know. (`org-agenda-tags-column`) |
+| `agenda.useTimeGrid` | boolean | `true` | Draw the time grid. (`org-agenda-use-time-grid`) |
+| `agenda.timeGrid.daily` | boolean | `true` | Draw the grid in a one-day agenda. (`org-agenda-time-grid`) |
+| `agenda.timeGrid.today` | boolean | `true` | Draw the grid for today. (`org-agenda-time-grid`) |
+| `agenda.timeGrid.weekly` | boolean | `false` | Draw the grid for every day. (`org-agenda-time-grid`) |
+| `agenda.timeGrid.requireTimed` | boolean | `true` | Draw the grid only on days with an entry that has a time. (`org-agenda-time-grid`) |
+| `agenda.timeGrid.removeMatch` | boolean | `false` | Leave out grid lines at a time an entry already has. (`org-agenda-time-grid`) |
+| `agenda.timeGrid.times` | number[] | `[800, 1000, 1200, 1400, 1600, 1800, 2000]` | The times of the grid lines, as `800` for 8:00. (`org-agenda-time-grid`) |
+| `agenda.timeGrid.trailer` | string | `"......"` | What follows a time that has no end time. (`org-agenda-time-grid`) |
+| `agenda.timeGrid.line` | string | `"----------------"` | The text of a grid line. (`org-agenda-time-grid`) |
+| `agenda.timeGrid.now` | string | `"now - - - - - - - - - - - - - - - - - - - - - - - - -"` | The text of the line for the current time. (`org-agenda-current-time-string`) |
+| `agenda.showCurrentTimeInGrid` | boolean | `true` | Show the current time in the grid. (`org-agenda-show-current-time-in-grid`) |
+| `agenda.weekendDays` | number[] | `[6, 0]` | The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`) |
+| `virtualDocuments` | boolean | from the client's capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
+
+<!-- END generated -->
 
 A document that has `#+TODO:`, `#+SEQ_TODO:` or `#+TYP_TODO:` lines uses
 those keywords instead of `todoKeywords`, and one with a `#+PRIORITIES:`
@@ -74,27 +106,6 @@ workspace folders (hidden directories, `node_modules` and `target`
 excluded). Without workspace folders too, it is built from the Org files
 that are open. A file that is open in the editor is always read from the
 editor, not from disk.
-
-Options under `agenda`:
-
-| Option | Type | Default | Org variable |
-| --- | --- | --- | --- |
-| `span` | `"day"`, `"week"`, `"fortnight"`, `"month"`, `"year"`, or a number of days | `"week"` | `org-agenda-span` |
-| `startOnWeekday` | `0`–`6` (0 is Sunday), or `false` | `1` | `org-agenda-start-on-weekday` |
-| `deadlineWarningDays` | `number` | `14` | `org-deadline-warning-days` |
-| `scheduledDelayDays` | `number` | `0` | `org-scheduled-delay-days` |
-| `scheduledPastDays` | `number` | `10000` | `org-scheduled-past-days` |
-| `deadlinePastDays` | `number` | `10000` | `org-deadline-past-days` |
-| `skipScheduledIfDone` | `boolean` | `false` | `org-agenda-skip-scheduled-if-done` |
-| `skipDeadlineIfDone` | `boolean` | `false` | `org-agenda-skip-deadline-if-done` |
-| `skipTimestampIfDone` | `boolean` | `false` | `org-agenda-skip-timestamp-if-done` |
-| `showFutureRepeats` | `boolean`, `"next"` | `true` | `org-agenda-show-future-repeats` |
-| `showAllDates` | `boolean` | `true` | `org-agenda-show-all-dates` |
-| `tagsColumn` | `number` | `-80` | `org-agenda-tags-column`. Org's own default follows the window width, which a server does not know. |
-| `useTimeGrid` | `boolean` | `true` | `org-agenda-use-time-grid` |
-| `timeGrid` | object: `daily`, `today`, `weekly`, `requireTimed`, `removeMatch` (booleans), `times` (numbers such as `800`), `trailer`, `line`, `now` (strings) | Org's | `org-agenda-time-grid`, `org-agenda-current-time-string` |
-| `showCurrentTimeInGrid` | `boolean` | `true` | `org-agenda-show-current-time-in-grid` |
-| `weekendDays` | `number[]` | `[6, 0]` | `org-agenda-weekend-days` |
 
 ## Commands
 

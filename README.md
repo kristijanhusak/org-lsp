@@ -83,56 +83,17 @@ instead of nvim-orgmode for those buffers, not next to it.
 The plugin binds nvim-orgmode's default keys: `cit` changes the TODO
 state, `ciR` / `cir` change the priority, `<C-a>` / `<C-x>` the part of
 the timestamp under the cursor, `<Leader>ois` schedules, `<Leader>or`
-refiles, `<Tab>` / `<S-Tab>` cycle folds, and in the agenda `f` / `b`,
-`t`, `+` / `-` and `<CR>` do what they do in Emacs. Counts work, and the
-editing keys repeat with `.`. Dates are asked for with Emacs's calendar,
-or typed as at Org's prompt (`fri 10:00`, `+2d`, `2/15`, `++1w`).
-[docs/keys/neovim.md](docs/keys/neovim.md) lists every key, what it does
-and how to change it.
+refiles, `<Leader>oc` captures, `<Tab>` / `<S-Tab>` cycle folds, and in
+the agenda `f` / `b`, `t`, `+` / `-` and `<CR>` do what they do in Emacs.
+Counts work, and the editing keys repeat with `.`. Dates are asked for
+with Emacs's calendar, or typed as at Org's prompt (`fri 10:00`, `+2d`,
+`2/15`, `++1w`).
 
-Options, with their defaults:
-
-```lua
-require('org-lsp').setup({
-  cmd = nil,                          -- server command; found automatically
-  settings = {},                      -- the server's options, see docs/protocol.md
-  startup_folded = 'showeverything',  -- or 'overview'
-  folding = true,                     -- fold with the server's ranges
-  replace_syntax = true,              -- turn off regex syntax once tokens arrive
-  mappings = {                        -- false sets no keys at all
-    global = { ['org.agenda.dispatch'] = '<Leader>oa', ['org.capture'] = '<Leader>oc' },
-    org = { cycle = '<Tab>', global_cycle = '<S-Tab>' },
-    agenda = { quit = 'q' },
-  },
-})
-```
-
-`settings` is passed to the server as is. The ones you are most likely to
-want:
-
-```lua
-settings = {
-  agendaFiles = { '~/org', '~/notes/**/*.org' },
-  todoKeywords = { 'TODO', 'NEXT', '|', 'DONE', 'CANCELLED' },
-  logDone = 'time',
-  agenda = { span = 'day' },
-}
-```
-
-In `mappings`, a scope maps a command to a key, a list of keys, or `false`.
-Commands you do not list keep the server's keys, and `false` for a scope
-sets none in it. See [docs/keys/neovim.md](docs/keys/neovim.md):
-
-```lua
-mappings = {
-  global = { ['org.agenda.list'] = '<Leader>oA' },
-  org = { ['org.todo'] = '<Leader>t', ['org.todo.previous'] = false },
-}
-```
-
-Highlight groups are named `@lsp.type.<token>.org` and so on; the tokens are
-listed in `docs/protocol.md`. Colorschemes that style nvim-orgmode's
-`@org.*` groups apply here too.
+- [docs/neovim/keys.md](docs/neovim/keys.md): every key, what it does,
+  and how to change it.
+- [docs/neovim/configuration.md](docs/neovim/configuration.md): the
+  plugin's options and the server's, with their defaults, and how to
+  change them.
 
 ### VS Code
 
@@ -145,8 +106,12 @@ npm run package        # writes org-lsp-0.1.0.vsix
 code --install-extension org-lsp-0.1.0.vsix
 ```
 
-See `editors/vscode/README.md` for the commands and settings, and
-[docs/keys/vscode.md](docs/keys/vscode.md) for the keys and how to change them.
+See `editors/vscode/README.md` for the commands, and:
+
+- [docs/vscode/keys.md](docs/vscode/keys.md): every key and command, and
+  how to add, change and remove keys.
+- [docs/vscode/configuration.md](docs/vscode/configuration.md): the
+  settings with their defaults, and how to change them.
 
 ### Helix
 
@@ -156,8 +121,11 @@ cargo install --path server/org-lsp
 
 Then add the contents of `editors/helix/languages.toml` to your
 `languages.toml`.
-[docs/keys/helix.md](docs/keys/helix.md) says what is available from
-the code action menu.
+
+- [docs/helix/keys.md](docs/helix/keys.md): what the code action menu
+  offers.
+- [docs/helix/configuration.md](docs/helix/configuration.md): the
+  server's options with their defaults, and how to change them.
 
 ### Other editors
 
@@ -182,7 +150,7 @@ server/org-core/     dates, the outline model, the agenda, TODO state changes
 server/org-lsp/      the language server and command line
 editors/vscode/      VS Code extension
 editors/helix/       Helix configuration
-docs/                protocol and parser notes, the keys of each editor
+docs/                protocol and parser notes; keys and configuration of each editor
 tests/               Org files and what Emacs makes of them
 scripts/             reference, fuzzing and test helpers
 ```
@@ -196,7 +164,7 @@ cd editors/vscode
 npm run check && npm run smoke  # types, and the protocol through VS Code's library
 xvfb-run -a npm test            # the extension inside VS Code
 npm run generate                # after the server's commands or tokens change
-node ../../scripts/generate-key-docs.mjs   # the key tables in docs/keys
+node ../../scripts/generate-docs.mjs   # the generated parts of docs/
 ```
 
 Everything is checked against Emacs. The files under `tests/` come with

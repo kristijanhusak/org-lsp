@@ -19,11 +19,11 @@ local SERVER = 'org_lsp'
 
 ---@class OrgLspConfig
 ---@field cmd? string[] Server command. Found automatically when unset.
----@field settings table The server's options, such as `agendaFiles` and `todoKeywords`; see docs/protocol.md.
+---@field settings table The server's options, such as `agendaFiles` and `todoKeywords`; see docs/neovim/configuration.md.
 ---@field startup_folded 'showeverything'|'overview' Fold state of a newly opened file.
 ---@field folding boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
----@field mappings table|false Keys by scope (`global`, `org`, `agenda`, `calendar`, `capture`). In a scope, a command maps to a key, a list of keys, or `false`; commands that are not listed keep the server's default keys. `false` instead of a scope's table sets no keys in that scope, and instead of the whole table no keys at all. See docs/keys/neovim.md.
+---@field mappings table|false Keys by scope (`global`, `org`, `agenda`, `calendar`, `capture`). In a scope, a command maps to a key, a list of keys, or `false`; commands that are not listed keep the server's default keys. `false` instead of a scope's table sets no keys in that scope, and instead of the whole table no keys at all. See docs/neovim/keys.md.
 local defaults = {
   cmd = nil,
   settings = {},

@@ -38,3 +38,5 @@ o = "code_action"
 ```
 
 Helix cannot bind a key to one particular action.
+
+The other options are in [configuration.md](configuration.md).

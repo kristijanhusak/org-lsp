@@ -19,6 +19,7 @@ pub mod line_index;
 pub mod manifest;
 pub mod prompt;
 pub mod server;
+pub mod settings;
 pub mod symbols;
 pub mod uri;
 pub mod views;

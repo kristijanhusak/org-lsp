@@ -8,10 +8,10 @@ use org_core::priority::{self, Priorities};
 use org_core::read_date::{PreferFuture, Settings as ReadDateSettings};
 use org_core::refile::{OutlinePath, Select, Settings as RefileSettings};
 use org_core::todo::{RepeatTo, Settings as TodoSettings};
-use org_syntax::Logging;
-use serde::Deserialize;
+use org_syntax::{Logging, TodoKeywords};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Options {
     /// The default TODO sequence, written like Org's `#+TODO:` line:
@@ -77,7 +77,7 @@ pub struct Options {
 /// own, the default), `"agenda"`, a path or a list of paths, and one of
 /// `level`, `maxLevel`, `tag`, `todo`, `regexp` (the `regex` crate's
 /// syntax) or `all`.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct RefileTargetOption {
     pub files: Option<RefileFilesOption>,
@@ -89,7 +89,7 @@ pub struct RefileTargetOption {
     pub all: Option<bool>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum RefileFilesOption {
     One(String),
@@ -115,7 +115,7 @@ pub struct RefileTarget {
 
 /// An entry of `org-capture-templates`. One with only a key and a
 /// description groups the templates whose keys start with it.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CaptureTemplateOption {
     pub key: String,
@@ -136,7 +136,7 @@ pub struct CaptureTemplateOption {
     pub immediate_finish: Option<bool>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum TemplateText {
     Text(String),
@@ -152,7 +152,7 @@ impl TemplateText {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum OutlinePathOption {
     Flag(bool),
@@ -160,7 +160,7 @@ pub enum OutlinePathOption {
 }
 
 /// `false`, `true`, `"time"` or `"note"`.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum LogOption {
     Flag(bool),
@@ -179,14 +179,14 @@ impl LogOption {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum DrawerOption {
     Flag(bool),
     Name(String),
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum RepeatToOption {
     Flag(bool),
@@ -194,7 +194,7 @@ pub enum RepeatToOption {
 }
 
 /// `true`, `false` or `"time"`.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum PreferFutureOption {
     Flag(bool),
@@ -202,7 +202,7 @@ pub enum PreferFutureOption {
 }
 
 /// A priority: `"A"` or `1`.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum PriorityOption {
     Number(i64),
@@ -219,6 +219,42 @@ impl PriorityOption {
 }
 
 impl Options {
+    /// The options in `value`. One that is malformed is left out, not
+    /// the rest with it; its dotted name is returned with the options.
+    pub fn read(value: serde_json::Value) -> (Options, Vec<String>) {
+        // No options; Neovim sends an empty table as `[]`.
+        if value.is_null() || value.as_array().is_some_and(Vec::is_empty) {
+            return (Options::default(), Vec::new());
+        }
+        let mut dropped = Vec::new();
+        let value = keep_readable(&mut Vec::new(), value, &mut dropped).unwrap_or_default();
+        (serde_json::from_value(value).unwrap_or_default(), dropped)
+    }
+
+    /// The default TODO sequence: `todoKeywords`, or Org's `TODO | DONE`.
+    pub fn todo_keywords(&self) -> TodoKeywords {
+        self.todo_keywords
+            .clone()
+            .map(TodoKeywords::from_sequence)
+            .filter(|keywords| !keywords.is_empty())
+            .unwrap_or_default()
+    }
+
+    /// `org-directory`
+    pub fn org_directory(&self) -> String {
+        self.org_directory.clone().unwrap_or_else(|| "~/org".to_string())
+    }
+
+    /// `org-default-notes-file`
+    pub fn default_notes_file(&self) -> String {
+        self.default_notes_file.clone().unwrap_or_else(|| "~/.notes".to_string())
+    }
+
+    /// `org-cycle-separator-lines`
+    pub fn separator_lines(&self) -> i64 {
+        self.cycle_separator_lines.unwrap_or(crate::folding::SEPARATOR_LINES)
+    }
+
     /// `org-refile-targets`, with Org's default: the top-level headlines
     /// of the entry's own file. An entry that selects nothing known is
     /// left out.
@@ -366,8 +402,34 @@ impl Options {
     }
 }
 
+/// `value`, at `path` among the options, without what cannot be read: an
+/// object loses the fields that cannot, anything else is left out whole.
+fn keep_readable(
+    path: &mut Vec<String>,
+    value: serde_json::Value,
+    dropped: &mut Vec<String>,
+) -> Option<serde_json::Value> {
+    let alone = path.iter().rev().fold(value.clone(), |inner, key| serde_json::json!({ key: inner }));
+    if serde_json::from_value::<Options>(alone).is_ok() {
+        return Some(value);
+    }
+    let serde_json::Value::Object(fields) = value else {
+        dropped.push(path.join("."));
+        return None;
+    };
+    let mut kept = serde_json::Map::new();
+    for (key, field) in fields {
+        path.push(key.clone());
+        if let Some(field) = keep_readable(path, field, dropped) {
+            kept.insert(key, field);
+        }
+        path.pop();
+    }
+    Some(serde_json::Value::Object(kept))
+}
+
 /// `{ "today": "2026-05-18", "now": "10:30" }`
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ClockOption {
     pub today: String,
     pub now: Option<String>,
@@ -385,7 +447,7 @@ impl ClockOption {
 }
 
 /// A span given as a name or as a number of days.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum SpanOption {
     Name(String),
@@ -410,14 +472,14 @@ impl SpanOption {
 }
 
 /// `org-agenda-show-future-repeats`: `true`, `false` or `"next"`.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum FutureRepeatsOption {
     Flag(bool),
     Name(String),
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct TimeGridOptions {
     pub daily: Option<bool>,
@@ -431,7 +493,7 @@ pub struct TimeGridOptions {
     pub now: Option<String>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct AgendaOptions {
     pub span: Option<SpanOption>,
@@ -569,6 +631,26 @@ mod tests {
         assert_eq!(numbers.priorities(), Priorities { highest: 1, lowest: 9, default: 5 });
         let defaults: Options = serde_json::from_str("{}").unwrap();
         assert_eq!(defaults.edit_settings(), EditSettings::default());
+    }
+
+    #[test]
+    fn a_malformed_option_leaves_the_others() {
+        let (options, dropped) = Options::read(serde_json::json!({
+            "logDone": "time",
+            "agendaFiles": "~/org",
+            "agenda": { "span": "day", "deadlineWarningDays": "soon", "timeGrid": { "times": [900], "daily": 1 } },
+            "unknown": true
+        }));
+        assert_eq!(dropped, ["agenda.deadlineWarningDays", "agenda.timeGrid.daily", "agendaFiles"]);
+        assert_eq!(options.todo_settings().log_done, Some(Logging::Time));
+        let config = options.agenda_config();
+        assert_eq!((config.span, config.deadline_warning_days, config.time_grid.times), (Span::Day, 14, vec![900]));
+        let (whole, none) = Options::read(serde_json::json!({ "logDone": "time" }));
+        assert!(none.is_empty() && whole.log_done.is_some());
+        assert!(Options::read(serde_json::json!([1])).1 == [""]);
+        // Neovim sends an empty table as `[]`.
+        assert!(Options::read(serde_json::json!([])).1.is_empty());
+        assert!(Options::read(serde_json::Value::Null).1.is_empty());
     }
 
     #[test]

@@ -60,14 +60,14 @@ would take over copying and selecting. Add your own in `keybindings.json`:
 { "key": "alt+up", "command": "org.shift.up", "when": "editorTextFocus && editorLangId == 'org'" }
 ```
 
-[docs/keys/vscode.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/keys/vscode.md) lists every key and
+[docs/vscode/keys.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/vscode/keys.md) lists every key and
 command, and how to add, change and remove keys.
 
 ## Settings
 
 | Setting | Meaning |
 | --- | --- |
-| `org-lsp.settings` | The server's options, for example `{ "agendaFiles": ["~/org"], "logDone": "time" }`. They are listed in the server's `docs/protocol.md`. |
+| `org-lsp.settings` | The server's options, for example `{ "agendaFiles": ["~/org"], "logDone": "time" }`. [docs/vscode/configuration.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/vscode/configuration.md) lists them with their defaults. |
 | `org-lsp.server.path` | Path to the server binary; see below. |
 
 Without `agendaFiles`, the agenda is built from the Org files in the

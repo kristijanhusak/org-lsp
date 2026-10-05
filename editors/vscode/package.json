@@ -332,7 +332,7 @@
         "org-lsp.settings": {
           "type": "object",
           "default": {},
-          "markdownDescription": "The server's options, for example `{ \"agendaFiles\": [\"~/org\"], \"todoKeywords\": [\"TODO\", \"NEXT\", \"|\", \"DONE\"], \"logDone\": \"time\" }`. Without `agendaFiles`, the agenda is built from the Org files in the workspace folders. The options are listed in the server's `docs/protocol.md`."
+          "markdownDescription": "The server's options, for example `{ \"agendaFiles\": [\"~/org\"], \"todoKeywords\": [\"TODO\", \"NEXT\", \"|\", \"DONE\"], \"logDone\": \"time\" }`. Without `agendaFiles`, the agenda is built from the Org files in the workspace folders. The options and their defaults are listed in [docs/vscode/configuration.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/vscode/configuration.md)."
         }
       }
     },

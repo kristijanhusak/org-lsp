@@ -36,6 +36,12 @@ fn main() -> ExitCode {
         print(&format!("{:#}\n", org_lsp::manifest::manifest()));
         return ExitCode::SUCCESS;
     }
+    if arguments.first().is_some_and(|argument| argument == "settings") {
+        // The options with their types, defaults and meanings, which the
+        // documentation is written from.
+        print(&format!("{:#}\n", org_lsp::settings::manifest()));
+        return ExitCode::SUCCESS;
+    }
     for argument in arguments {
         match argument.as_str() {
             // Accepted for compatibility with clients that always pass it.
