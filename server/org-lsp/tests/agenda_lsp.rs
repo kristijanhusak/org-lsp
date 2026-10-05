@@ -124,6 +124,28 @@ impl Client {
         );
     }
 
+    /// Open the agenda the way an editor does that was asked to show it:
+    /// fetch its text and say that the document is open.
+    fn show_view(&mut self) -> String {
+        let text = self.view_text(VIEW);
+        self.notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": { "uri": VIEW, "languageId": "org-agenda", "version": 1, "text": text } }),
+        );
+        text
+    }
+
+    /// Run a command on the open agenda and fetch the new text, as an
+    /// editor does when it is told that the view changed. Returns the
+    /// requests the server made, before and after the fetch.
+    fn view_command(&mut self, command: &str, line: u32) -> (Vec<Request>, String) {
+        let mut requests = self.command(command, VIEW, line);
+        let text = self.view_text(VIEW);
+        self.settle();
+        requests.append(&mut self.received);
+        (requests, text)
+    }
+
     fn view_text(&mut self, uri: &str) -> String {
         let result = self.request("workspace/textDocumentContent", json!({ "uri": uri })).unwrap();
         result["text"].as_str().expect("the view has text").to_string()
@@ -179,11 +201,54 @@ fn announces_the_agenda() {
         .map(|c| c.as_str().unwrap())
         .collect();
     assert!(commands.contains(&"org.agenda.list") && commands.contains(&"org.todo.next"));
-    // The command table, for editors to build their key bindings from.
-    let manifest = capabilities["experimental"]["org"]["commands"].as_array().unwrap();
-    assert_eq!(manifest.len(), commands.len());
-    let later = manifest.iter().find(|command| command["command"] == "org.agenda.later").unwrap();
-    assert_eq!(later["keys"], json!([{ "key": "f", "in": "agenda" }]));
+    // The manifest: what editors build their keys and highlighting from.
+    let manifest = &capabilities["experimental"]["org"];
+    let table = manifest["commands"].as_array().unwrap();
+    assert_eq!(table.len(), commands.len());
+    let find = |id: &str| table.iter().find(|command| command["command"] == id).unwrap();
+    assert_eq!(
+        find("org.agenda.goto")["keys"],
+        json!([
+            { "key": "RET", "in": "agenda", "preset": "emacs" },
+            { "key": "TAB", "in": "agenda", "preset": "emacs" },
+            { "key": "<CR>", "in": "agenda", "preset": "vim" },
+            { "key": "<Tab>", "in": "agenda", "preset": "vim" }
+        ])
+    );
+    assert_eq!(find("org.todo.next")["edits"], true);
+    assert_eq!(find("org.agenda.later")["edits"], false);
+    assert_eq!(
+        manifest["agenda"],
+        json!({ "scheme": "org-agenda", "uri": VIEW, "fileName": "Agenda.org-agenda", "languageId": "org-agenda" })
+    );
+    // Every token of the legend is described, and the looks refer to it.
+    let legend = &capabilities["semanticTokensProvider"]["legend"];
+    let ids = |list: &Value| -> Vec<Value> { list.as_array().unwrap().iter().map(|item| item["id"].clone()).collect() };
+    assert_eq!(Value::Array(ids(&manifest["tokenTypes"])), legend["tokenTypes"]);
+    assert_eq!(Value::Array(ids(&manifest["tokenModifiers"])), legend["tokenModifiers"]);
+    let today = manifest["highlights"].as_array().unwrap().iter().find(|look| look["token"] == "agendaDate.today");
+    assert_eq!(today.unwrap()["vim"], json!(["@org.agenda.today", "@markup.strong"]));
+    client.shutdown();
+}
+
+#[test]
+fn closing_the_agenda_stops_rebuilding_it() {
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/home.org", HOME);
+    client.command("org.agenda.list", "file:///org/home.org", 0);
+    client.notify("textDocument/didClose", json!({ "textDocument": { "uri": VIEW } }));
+    client.settle();
+    // A change to a file no longer makes the server publish the view.
+    client.received.clear();
+    client.notify("textDocument/didSave", json!({ "textDocument": { "uri": "file:///org/home.org" } }));
+    client.settle();
+    assert_eq!(methods(&client.received), [] as [&str; 0]);
+    let error = client
+        .request("workspace/executeCommand", json!({ "command": "org.agenda.later", "arguments": [] }))
+        .unwrap_err();
+    assert_eq!(error, "No agenda is open");
+    // Fetching it again builds a fresh one.
+    assert!(client.view_text(VIEW).starts_with("Week-agenda (W21):"));
     client.shutdown();
 }
 
@@ -193,9 +258,10 @@ fn opens_the_agenda_from_open_documents() {
     client.open("file:///org/work.org", WORK);
     client.open("file:///org/home.org", HOME);
 
+    // The editor does not have the agenda yet: showing it makes it fetch the text.
     let requests = client.command("org.agenda.list", "file:///org/work.org", 0);
-    assert_eq!(methods(&requests), ["workspace/textDocumentContent/refresh", "window/showDocument"]);
-    let show = &requests[1].params;
+    assert_eq!(methods(&requests), ["window/showDocument"]);
+    let show = &requests[0].params;
     assert_eq!(show["uri"], VIEW);
     assert_eq!(show["takeFocus"], true);
     // The cursor goes to today's date.
@@ -285,28 +351,46 @@ fn moves_through_time_and_changes_span() {
     let mut client = Client::editor(clock(), None);
     client.open("file:///org/work.org", WORK);
     client.command("org.agenda.list", VIEW, 0);
+    client.show_view();
 
+    // The editor has the agenda open now. It is told that the text changed,
+    // fetches it, and only then is the cursor moved: the line is one of the
+    // new text.
     let requests = client.command("org.agenda.later", VIEW, 0);
-    assert_eq!(methods(&requests), ["workspace/textDocumentContent/refresh", "window/showDocument"]);
+    assert_eq!(methods(&requests), ["workspace/textDocumentContent/refresh"]);
+    client.received.clear();
     assert!(client.view_text(VIEW).starts_with("Week-agenda (W22):\nMonday     25 May 2026 W22\n"));
-    client.command("org.agenda.earlier", VIEW, 0);
-    client.command("org.agenda.earlier", VIEW, 0);
-    assert!(client.view_text(VIEW).starts_with("Week-agenda (W20):\nMonday     11 May 2026 W20\n"));
-    client.command("org.agenda.today", VIEW, 0);
-    assert!(client.view_text(VIEW).starts_with("Week-agenda (W21):\n"));
+    client.settle();
+    assert_eq!(methods(&client.received), ["window/showDocument"]);
+    assert_eq!(client.received[0].params["selection"]["start"], json!({ "line": 1, "character": 0 }));
+    // Fetching again moves nothing.
+    client.received.clear();
+    client.view_text(VIEW);
+    client.settle();
+    assert_eq!(methods(&client.received), [] as [&str; 0]);
 
-    // The day view starts from the day under the cursor: line 15 is Wednesday.
-    let lines: Vec<String> = client.view_text(VIEW).lines().map(str::to_string).collect();
+    client.view_command("org.agenda.earlier", 0);
+    let (_, text) = client.view_command("org.agenda.earlier", 0);
+    assert!(text.starts_with("Week-agenda (W20):\nMonday     11 May 2026 W20\n"));
+    let (requests, text) = client.view_command("org.agenda.today", 0);
+    assert!(text.starts_with("Week-agenda (W21):\n"));
+    // Today is the second line again.
+    assert_eq!(requests[1].params["selection"]["start"]["line"], 1);
+
+    // The day view starts from the day under the cursor.
+    let lines: Vec<&str> = text.lines().collect();
     let wednesday = lines.iter().position(|line| line.starts_with("Wednesday")).unwrap() as u32;
-    client.command("org.agenda.day", VIEW, wednesday + 1);
+    let (_, text) = client.view_command("org.agenda.day", wednesday + 1);
+    assert_eq!(text, "Day-agenda (W21):\nWednesday  20 May 2026\n  work:       Deadline:   TODO Call the client\n");
+    let (requests, text) = client.view_command("org.agenda.month", 1);
+    assert!(text.starts_with("Month-agenda (W18-W22):\nFriday      1 May 2026\n"));
+    // The cursor goes to today, far below the one line the day view had.
     assert_eq!(
-        client.view_text(VIEW),
-        "Day-agenda (W21):\nWednesday  20 May 2026\n  work:       Deadline:   TODO Call the client\n"
+        text.lines().nth(requests[1].params["selection"]["start"]["line"].as_u64().unwrap() as usize).unwrap(),
+        "Monday     18 May 2026 W21"
     );
-    client.command("org.agenda.month", VIEW, 1);
-    assert!(client.view_text(VIEW).starts_with("Month-agenda (W18-W22):\nFriday      1 May 2026\n"));
-    client.command("org.agenda.later", VIEW, 0);
-    assert!(client.view_text(VIEW).starts_with("Month-agenda (W23-W27):\nMonday      1 June 2026 W23\n"));
+    let (_, text) = client.view_command("org.agenda.later", 0);
+    assert!(text.starts_with("Month-agenda (W23-W27):\nMonday      1 June 2026 W23\n"));
 
     client.command("org.agenda.todos", VIEW, 0);
     expect![[r#"
@@ -384,10 +468,7 @@ fn the_dispatcher_asks_which_view() {
     client.open("file:///org/work.org", WORK);
     client.choice = Some("List of all TODO entries".to_string());
     let requests = client.command("org.agenda.dispatch", "file:///org/work.org", 0);
-    assert_eq!(
-        methods(&requests),
-        ["window/showMessageRequest", "workspace/textDocumentContent/refresh", "window/showDocument"]
-    );
+    assert_eq!(methods(&requests), ["window/showMessageRequest", "window/showDocument"]);
     let titles: Vec<&str> = requests[0].params["actions"]
         .as_array()
         .unwrap()

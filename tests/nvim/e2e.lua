@@ -88,9 +88,8 @@ eq(vim.api.nvim_get_hl(0, { name = '@lsp.typemod.headline.level1.org' }).link, '
 eq(vim.api.nvim_get_hl(0, { name = '@lsp.mod.bold.org' }).link, '@markup.strong', 'bold links to @markup.strong')
 -- A group nvim-orgmode themes define takes precedence once it exists.
 vim.api.nvim_set_hl(0, '@org.headline.level2', { fg = '#123456' })
-require('org-lsp.highlights').define()
 vim.cmd('hi clear @lsp.typemod.headline.level2.org')
-require('org-lsp.highlights').define()
+vim.api.nvim_exec_autocmds('ColorScheme', {})
 eq(vim.api.nvim_get_hl(0, { name = '@lsp.typemod.headline.level2.org' }).link, '@org.headline.level2', 'prefers @org.* groups')
 wait('regex syntax to be replaced', function()
   return vim.bo.syntax == ''
@@ -164,6 +163,24 @@ eq(symbols[3].detail, 'TODO', 'outline detail shows the keyword')
 
 -- 7. The plugin can locate the server.
 eq(require('org-lsp').server_command(), { server }, 'server command')
+
+-- 8. Keys come from the server's table and can be replaced or removed.
+local map = vim.fn.maparg('cit', 'n', false, true)
+eq({ map.buffer, map.desc }, { 1, 'Cycle TODO state forward' }, 'cit is buffer-local and described by the server')
+require('org-lsp').setup({ mappings = { org = { ['org.todo.next'] = 'gt', ['org.todo.previous'] = false } } })
+local other = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* TODO other' }, other)
+vim.cmd.edit(other)
+wait('the server to attach to a second file', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+eq(vim.fn.maparg('gt', 'n', false, true).desc, 'Cycle TODO state forward', 'a configured key replaces the default')
+eq(vim.fn.maparg('cit', 'n'), '', 'the default key is not set then')
+eq(vim.fn.maparg('ciT', 'n'), '', 'false removes a key')
+press('gt')
+wait('the configured key to work', function()
+  return line(1) == '* DONE other'
+end)
 
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

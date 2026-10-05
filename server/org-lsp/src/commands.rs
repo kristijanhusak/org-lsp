@@ -11,6 +11,8 @@ use serde_json::{json, Value};
 /// Where a key applies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Scope {
+    /// Everywhere in the editor.
+    Global,
     /// In Org files.
     Org,
     /// In the agenda.
@@ -20,6 +22,7 @@ pub enum Scope {
 impl Scope {
     fn name(self) -> &'static str {
         match self {
+            Scope::Global => "global",
             Scope::Org => "org",
             Scope::Agenda => "agenda",
         }
@@ -29,8 +32,14 @@ impl Scope {
 pub struct Command {
     pub id: &'static str,
     pub title: &'static str,
-    /// Default keys, written the way Emacs writes them (`C-c C-t`, `RET`).
-    pub keys: &'static [(Scope, &'static str)],
+    /// Whether the command changes the text of an Org file. Editors with a
+    /// "repeat the last change" key can make these repeatable.
+    pub edits: bool,
+    /// Default keys as Emacs has them, in its notation (`C-c C-t`, `RET`).
+    pub emacs: &'static [(Scope, &'static str)],
+    /// Default keys for modal editors, in Vim's notation (`<CR>`). These
+    /// are nvim-orgmode's defaults.
+    pub vim: &'static [(Scope, &'static str)],
 }
 
 pub const AGENDA_DISPATCH: &str = "org.agenda.dispatch";
@@ -49,45 +58,88 @@ pub const AGENDA_GOTO: &str = "org.agenda.goto";
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
 
-use Scope::{Agenda, Org};
+use Scope::{Agenda, Global, Org};
+
+const fn command(id: &'static str, title: &'static str) -> Command {
+    Command { id, title, edits: false, emacs: &[], vim: &[] }
+}
 
 pub const COMMANDS: &[Command] = &[
-    Command { id: AGENDA_DISPATCH, title: "Agenda commands", keys: &[(Org, "C-c a"), (Agenda, "C-c a")] },
-    Command { id: AGENDA_LIST, title: "Agenda for the current week or day", keys: &[] },
-    Command { id: AGENDA_TODOS, title: "List of all TODO entries", keys: &[] },
-    Command { id: AGENDA_LATER, title: "Agenda: go forward in time", keys: &[(Agenda, "f")] },
-    Command { id: AGENDA_EARLIER, title: "Agenda: go backward in time", keys: &[(Agenda, "b")] },
-    Command { id: AGENDA_TODAY, title: "Agenda: go to today", keys: &[(Agenda, ".")] },
-    Command { id: AGENDA_DAY, title: "Agenda: day view", keys: &[(Agenda, "d"), (Agenda, "v d")] },
-    Command { id: AGENDA_WEEK, title: "Agenda: week view", keys: &[(Agenda, "w"), (Agenda, "v w")] },
-    Command { id: AGENDA_FORTNIGHT, title: "Agenda: fortnight view", keys: &[(Agenda, "v t")] },
-    Command { id: AGENDA_MONTH, title: "Agenda: month view", keys: &[(Agenda, "v m")] },
-    Command { id: AGENDA_YEAR, title: "Agenda: year view", keys: &[(Agenda, "v y")] },
-    Command { id: AGENDA_REDO, title: "Agenda: rebuild", keys: &[(Agenda, "r"), (Agenda, "g")] },
-    Command { id: AGENDA_GOTO, title: "Agenda: go to the entry", keys: &[(Agenda, "RET"), (Agenda, "TAB")] },
     Command {
-        id: TODO_NEXT,
-        title: "Cycle TODO state forward",
-        keys: &[(Org, "C-c C-t"), (Org, "S-<right>"), (Agenda, "t")],
+        emacs: &[(Global, "C-c a")],
+        vim: &[(Global, "<Leader>oa")],
+        ..command(AGENDA_DISPATCH, "Agenda commands")
     },
-    Command { id: TODO_PREVIOUS, title: "Cycle TODO state backward", keys: &[(Org, "S-<left>")] },
+    command(AGENDA_LIST, "Agenda for the current week or day"),
+    command(AGENDA_TODOS, "List of all TODO entries"),
+    Command { emacs: &[(Agenda, "f")], vim: &[(Agenda, "f")], ..command(AGENDA_LATER, "Agenda: go forward in time") },
+    Command {
+        emacs: &[(Agenda, "b")],
+        vim: &[(Agenda, "b")],
+        ..command(AGENDA_EARLIER, "Agenda: go backward in time")
+    },
+    Command { emacs: &[(Agenda, ".")], vim: &[(Agenda, ".")], ..command(AGENDA_TODAY, "Agenda: go to today") },
+    Command {
+        emacs: &[(Agenda, "d"), (Agenda, "v d")],
+        vim: &[(Agenda, "vd")],
+        ..command(AGENDA_DAY, "Agenda: day view")
+    },
+    Command {
+        emacs: &[(Agenda, "w"), (Agenda, "v w")],
+        vim: &[(Agenda, "vw")],
+        ..command(AGENDA_WEEK, "Agenda: week view")
+    },
+    Command {
+        emacs: &[(Agenda, "v t")],
+        vim: &[(Agenda, "vt")],
+        ..command(AGENDA_FORTNIGHT, "Agenda: fortnight view")
+    },
+    Command { emacs: &[(Agenda, "v m")], vim: &[(Agenda, "vm")], ..command(AGENDA_MONTH, "Agenda: month view") },
+    Command { emacs: &[(Agenda, "v y")], vim: &[(Agenda, "vy")], ..command(AGENDA_YEAR, "Agenda: year view") },
+    Command {
+        emacs: &[(Agenda, "r"), (Agenda, "g")],
+        vim: &[(Agenda, "r")],
+        ..command(AGENDA_REDO, "Agenda: rebuild")
+    },
+    Command {
+        emacs: &[(Agenda, "RET"), (Agenda, "TAB")],
+        vim: &[(Agenda, "<CR>"), (Agenda, "<Tab>")],
+        ..command(AGENDA_GOTO, "Agenda: go to the entry")
+    },
+    Command {
+        edits: true,
+        emacs: &[(Org, "C-c C-t"), (Org, "S-<right>"), (Agenda, "t")],
+        vim: &[(Org, "cit"), (Agenda, "t")],
+        ..command(TODO_NEXT, "Cycle TODO state forward")
+    },
+    Command {
+        edits: true,
+        emacs: &[(Org, "S-<left>")],
+        vim: &[(Org, "ciT")],
+        ..command(TODO_PREVIOUS, "Cycle TODO state backward")
+    },
 ];
 
 pub fn ids() -> Vec<String> {
     COMMANDS.iter().map(|command| command.id.to_string()).collect()
 }
 
-/// The table as JSON: `{ "commands": [{ "command", "title", "keys": [{ "key", "in" }] }] }`.
+/// The table as JSON: a list of
+/// `{ "command", "title", "edits", "keys": [{ "key", "in", "preset" }] }`.
 pub fn manifest() -> Value {
     let commands: Vec<Value> = COMMANDS
         .iter()
         .map(|command| {
-            let keys: Vec<Value> =
-                command.keys.iter().map(|(scope, key)| json!({ "key": key, "in": scope.name() })).collect();
-            json!({ "command": command.id, "title": command.title, "keys": keys })
+            let keys: Vec<Value> = [("emacs", command.emacs), ("vim", command.vim)]
+                .into_iter()
+                .flat_map(|(preset, keys)| {
+                    keys.iter().map(move |(scope, key)| json!({ "key": key, "in": scope.name(), "preset": preset }))
+                })
+                .collect();
+            json!({ "command": command.id, "title": command.title, "edits": command.edits, "keys": keys })
         })
         .collect();
-    json!({ "commands": commands })
+    Value::Array(commands)
 }
 
 #[cfg(test)]
@@ -100,11 +152,26 @@ mod tests {
         ids.sort();
         ids.dedup();
         assert_eq!(ids.len(), COMMANDS.len());
-        let mut keys: Vec<(&str, &str)> =
-            COMMANDS.iter().flat_map(|command| command.keys.iter().map(|(scope, key)| (scope.name(), *key))).collect();
-        let total = keys.len();
-        keys.sort();
-        keys.dedup();
-        assert_eq!(keys.len(), total, "a key is bound twice in one scope");
+        for preset in [|command: &Command| command.emacs, |command: &Command| command.vim] {
+            let mut keys: Vec<(&str, &str)> = COMMANDS
+                .iter()
+                .flat_map(|command| preset(command).iter().map(|(scope, key)| (scope.name(), *key)))
+                .collect();
+            let total = keys.len();
+            keys.sort();
+            keys.dedup();
+            assert_eq!(keys.len(), total, "a key is bound twice in one scope");
+        }
+    }
+
+    #[test]
+    fn a_key_is_not_also_the_start_of_a_longer_one() {
+        // `v` then `d` in the agenda only works if `v` alone does nothing.
+        let keys: Vec<(Scope, &str)> = COMMANDS.iter().flat_map(|command| command.emacs.iter().copied()).collect();
+        for (scope, key) in &keys {
+            let clash =
+                keys.iter().any(|(other_scope, other)| other_scope == scope && other.starts_with(&format!("{key} ")));
+            assert!(!clash, "`{key}` is a key and a prefix in {scope:?}");
+        }
     }
 }
