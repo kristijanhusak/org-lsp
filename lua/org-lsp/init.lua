@@ -23,7 +23,7 @@ local SERVER = 'org_lsp'
 ---@field startup_folded 'showeverything'|'overview' Fold state of a newly opened file.
 ---@field folding boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
----@field mappings table|false Keys by scope (`global`, `org`, `agenda`). In a scope, a command maps to a key, a list of keys, or `false`; commands that are not listed keep the server's default keys. `false` instead of the table sets no keys at all.
+---@field mappings table|false Keys by scope (`global`, `org`, `agenda`, `calendar`). In a scope, a command maps to a key, a list of keys, or `false`; commands that are not listed keep the server's default keys. `false` instead of the table sets no keys at all.
 local defaults = {
   cmd = nil,
   settings = {},
@@ -145,17 +145,34 @@ function M.run(name, opts)
     local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
     context.count = count
     local command = { title = name, command = name, arguments = { context } }
-    client:exec_cmd(command, { bufnr = vim.api.nvim_get_current_buf() }, function(err)
-      if not err then
+    local bufnr = vim.api.nvim_get_current_buf()
+    local function handle(err, result)
+      if err then
+        if opts.key and type(err.data) == 'table' and err.data.notApplicable then
+          -- Not an Org matter here: the key does what it does elsewhere.
+          vim.api.nvim_feedkeys((count or '') .. vim.keycode(opts.key), 'n', false)
+        else
+          vim.notify('org-lsp: ' .. tostring(err.message), vim.log.levels.WARN)
+        end
         return
       end
-      if opts.key and type(err.data) == 'table' and err.data.notApplicable then
-        -- Not an Org matter here: the key does what it does elsewhere.
-        vim.api.nvim_feedkeys((count or '') .. vim.keycode(opts.key), 'n', false)
-      else
-        vim.notify('org-lsp: ' .. tostring(err.message), vim.log.levels.WARN)
+      -- The command is done with a document the server showed for it.
+      if type(result) == 'table' and result.close then
+        require('org-lsp.view').close(result.close)
       end
-    end)
+      -- The command asks for something first: ask, and run it again with
+      -- the answer.
+      local input = type(result) == 'table' and result.input or nil
+      if input then
+        vim.ui.input({ prompt = input.prompt .. ': ', default = input.value }, function(answer)
+          if answer then
+            context.input = answer
+            client:exec_cmd(command, { bufnr = bufnr }, handle)
+          end
+        end)
+      end
+    end
+    client:exec_cmd(command, { bufnr = bufnr }, handle)
   end)
 end
 
@@ -197,7 +214,7 @@ end
 
 --- The keys of a scope: the server's defaults for modal editors, with the
 --- configuration's entries taking their place command by command.
----@param scope 'global'|'org'|'agenda'
+---@param scope 'global'|'org'|'agenda'|'calendar'
 ---@return table<string, string[]> # command to keys
 ---@return table<string, boolean> # the keys that keep a meaning of their own
 local function keys_in(scope)
@@ -224,7 +241,7 @@ end
 --- them back.
 local global_keys = {}
 
----@param scope 'global'|'org'|'agenda'
+---@param scope 'global'|'org'|'agenda'|'calendar'
 ---@param bufnr? integer the buffer the keys are for; none for global keys
 local function set_keys(scope, bufnr)
   if scope == 'global' then
@@ -288,7 +305,7 @@ local function on_init(client)
     return vim.notify('org-lsp: the server is older than this plugin; run :OrgLspBuild', vim.log.levels.WARN)
   end
   require('org-lsp.highlights').define(M.manifest)
-  require('org-lsp.view').setup(M.manifest.agenda)
+  require('org-lsp.view').setup(M.manifest)
   set_keys('global')
   for _, fn in ipairs(waiting) do
     fn(client)
@@ -304,6 +321,9 @@ local function on_attach(client, bufnr)
   end
   if vim.bo[bufnr].filetype == M.manifest.agenda.languageId then
     return set_keys('agenda', bufnr)
+  end
+  if M.manifest.datePrompt and vim.bo[bufnr].filetype == M.manifest.datePrompt.languageId then
+    return set_keys('calendar', bufnr)
   end
   set_keys('org', bufnr)
   if M.config.replace_syntax and client:supports_method('textDocument/semanticTokens/full') then

@@ -8,7 +8,7 @@
 
 use serde_json::{json, Value};
 
-use crate::{commands, legend, views};
+use crate::{commands, legend, prompt, views};
 
 pub fn manifest() -> Value {
     let mut manifest = json!({
@@ -22,6 +22,14 @@ pub fn manifest() -> Value {
             "fileName": views::FILE_NAME,
             // The language identifier of the agenda document.
             "languageId": views::LANGUAGE,
+        },
+        // Org's date prompt: a calendar and the answer typed so far, for
+        // clients that announce `experimental.orgDatePrompt`. Its keys are
+        // the commands' keys `in` the `calendar` scope.
+        "datePrompt": {
+            "scheme": views::SCHEME,
+            "uri": prompt::URI,
+            "languageId": prompt::LANGUAGE,
         },
     });
     if let (Some(manifest), Value::Object(legend)) = (manifest.as_object_mut(), legend::manifest()) {
@@ -37,7 +45,7 @@ mod tests {
     #[test]
     fn has_every_section() {
         let manifest = manifest();
-        for section in ["commands", "agenda", "tokenTypes", "tokenModifiers", "highlights"] {
+        for section in ["commands", "agenda", "datePrompt", "tokenTypes", "tokenModifiers", "highlights"] {
             assert!(!manifest[section].is_null(), "missing `{section}`");
         }
         assert_eq!(manifest["agenda"]["scheme"], "org-agenda");

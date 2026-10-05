@@ -51,6 +51,8 @@ camel case; the agenda's lose their `org-agenda-` prefix and live under
 | `priorityDefault` | letter or `0`–`64` | `"B"` | `org-priority-default`: the priority of an entry without a cookie. |
 | `priorityStartCycleWithDefault` | `boolean` | `true` | `org-priority-start-cycle-with-default`: raising or lowering an entry without a priority starts at the default. |
 | `timestampRoundingMinutes` | `number` | `5` | The second number of `org-time-stamp-rounding-minutes`: the step in which the minutes of a timestamp change. |
+| `readDatePreferFuture` | `boolean`, `"time"` | `true` | `org-read-date-prefer-future`: a date typed without a year or month is the next one to come; with `"time"`, a time that has passed today is tomorrow's. |
+| `readDateForceCompatibleDates` | `boolean` | `true` | `org-read-date-force-compatible-dates`: a typed year is kept within 1970 to 2037. |
 | `cycleSeparatorLines` | `number` | `2` | `org-cycle-separator-lines`: with at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. Blank lines at the end of the file are never folded. |
 | `agenda` | object | | See below. |
 | `virtualDocuments` | `boolean` | from capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
@@ -130,6 +132,12 @@ number.
 | `org.timestamp.up`, `org.timestamp.down` | Changes the part of the timestamp the cursor is on. Org files only. |
 | `org.date.later`, `org.date.earlier` | Moves a date by days: in an Org file the timestamp at the cursor, on an agenda line the date the line is listed for. |
 | `org.shift.up`, `.down`, `.left`, `.right` | Org's shifted cursor keys in an Org file: on a timestamp they change it, on a headline they change its priority (up, down) or TODO state (left, right). |
+| `org.schedule`, `org.deadline` | Asks for a date and sets the entry's `SCHEDULED:` or `DEADLINE:`. Org files only, for now. |
+| `org.timestamp.insert`, `org.timestamp.insert.inactive` | Asks for a date and inserts a timestamp at the cursor, or changes the one there. Org files only. |
+| `org.date.preview` | Not for users: what an answer to a date prompt means; see below. Not in the manifest. |
+| `org.calendar.day.later`, `.day.earlier`, `.week.later`, `.week.earlier`, `.month.later`, `.month.earlier`, `.year.later`, `.year.earlier` | In the date prompt: move the selected day. |
+| `org.calendar.scroll.later`, `org.calendar.scroll.earlier` | In the date prompt: show the next or previous months. |
+| `org.calendar.today`, `org.calendar.select`, `org.calendar.type`, `org.calendar.cancel` | In the date prompt: go to today; take the day at the cursor; type the answer; give up. See [The date prompt document](#the-date-prompt-document). |
 
 **TODO state changes** do what Org's `org-todo` does. The cycle runs
 through "no keyword" between the last and first states. The tags of the
@@ -159,6 +167,41 @@ given. On a `CLOCK:` line the duration is recomputed. In a file,
 `-down-day`. On an agenda line they are `org-agenda-date-later` and
 `-earlier`: the first step forward takes a date that has passed to
 today, and a date range moves as a whole.
+
+**Commands that ask for something.** In the manifest such a command has
+`"input": { "kind", "prompt" }`. Run without an answer, it changes
+nothing and returns what to ask:
+
+```json
+{ "input": { "kind": "date", "prompt": "Schedule", "value": "10:00" } }
+```
+
+`value` is the text the prompt starts with, as Emacs fills it in: the
+time of the date being changed (`10:00+1:30` for a range), or nothing.
+The editor asks with its own input box and runs the command again with
+the answer as `input` in the argument:
+
+```json
+{ "textDocument": { "uri": "…" }, "position": { … }, "input": "fri 10:00" }
+```
+
+A `date` answer is read as Org's date prompt reads it (`org-read-date`):
+`+2d`, `fri`, `2/15`, `feb 15 3pm`, `w12`, `10:00-11:30`, `++1w`, and so
+on, against the date being changed or else today. While it is typed, an
+editor can show what it means with `org.date.preview`, whose argument is
+the same plus `"command"`, the command being answered; it returns
+`{ "timestamp": "<2026-05-22 Fri 10:00>" }`, or fails while the answer
+means nothing.
+
+**Scheduling** works as `org-schedule` and `org-deadline` do: the
+timestamp goes on the planning line under the headline, which is made
+when there is none; a `CLOSED:` timestamp is taken out; the repeater of
+the old date stays. **Timestamps** work as `org-timestamp` does: on a
+timestamp the command changes it (keeping its repeater), elsewhere it
+inserts one; right after inserting one, the same command adds the end of
+a date range (`<…>--<…>`). After a timestamp is inserted, the server
+moves the cursor after it with `window/showDocument`, as Emacs leaves
+it. Changes are not logged (`org-log-reschedule` and the like) yet.
 
 **Code actions.** The commands that apply at the cursor are also offered
 as code actions, with the command name as the action's kind. In an Org
@@ -207,6 +250,7 @@ time.
     "fileName": "Agenda.org-agenda",
     "languageId": "org-agenda"
   },
+  "datePrompt": { "scheme": "org-agenda", "uri": "org-agenda:/Org%20Date", "languageId": "org-date" },
   "tokenTypes": [{ "id": "headline", "description": "The title text of a headline", "standard": false }],
   "tokenModifiers": [{ "id": "level1", "description": "Headline level 1" }],
   "highlights": [
@@ -282,6 +326,52 @@ keeps the old view until the client's copy has changed, and resolves the
 line against it. Likewise, while the cursor is on its way to an entry's
 new line, a command from the line it is leaving is meant for the entry.
 
+## The date prompt document
+
+Emacs shows a calendar while it asks for a date, and the server does the
+same for a client that announces `experimental.orgDatePrompt: true` in
+its capabilities (and supports `workspace/textDocumentContent` and
+`window/showDocument`). The prompt is a second document of the agenda's
+scheme, `org-agenda:/Org%20Date` with the language `org-date`, as the
+manifest's `datePrompt` names it:
+
+```text
+          April 2026                May 2026                June 2026
+     Su Mo Tu We Th Fr Sa     Su Mo Tu We Th Fr Sa     Su Mo Tu We Th Fr Sa
+               1  2  3  4                     1  2         1  2  3  4  5  6
+      …
+
+SCHEDULED Date+time [2026-05-20]: 10:00    => <2026-05-20 Wed 10:00>
+```
+
+The three months are drawn as Emacs's calendar draws them; the last line
+is Emacs's minibuffer: the prompt, what was typed, and what that means.
+The selected day has the `calendarSelected` token, and the server puts
+the cursor on it.
+
+1. A command that asks for a date (`org.schedule` …) opens the prompt with
+   `window/showDocument` before it answers `{ "input": … }`. The client
+   shows it as it likes (Neovim: a window at the bottom, VS Code: beside
+   the file) and asks for the input as usual; that input box is the
+   minibuffer. While the answer is typed, `org.date.preview` also shows it
+   in the minibuffer line.
+2. Answered, the command runs with the answer and the day moved to in the
+   calendar (if it moved), as Emacs reads its prompt, and returns
+   `{ "close": "org-agenda:/Org%20Date" }`: the client closes that
+   document.
+3. Left without an answer, the input box goes away and the calendar stays.
+   Its keys are the commands' keys `in` the `calendar` scope: they move the
+   selected day (from the day under the cursor), take the day at the
+   cursor (`org.calendar.select`, what was typed and that day), ask for the
+   answer again (`org.calendar.type`, which returns `{ "input": … }` like
+   any command), or give up (`org.calendar.cancel`). The last three return
+   `close`.
+
+When the selected day moves, the server sends
+`workspace/textDocumentContent/refresh`, and once the client shows the new
+text, `window/showDocument` with the cursor on the day, as for the agenda.
+Other clients keep the plain input box.
+
 ## Semantic tokens
 
 Tokens never overlap and never span lines. Nested markup is flattened into
@@ -338,6 +428,16 @@ faces:
 | `agendaDone` | An entry that is done. | |
 | `agendaTimeGrid` | A line of the time grid. | `current` for the current time |
 
+### In the date prompt
+
+| Type | Covers | Modifiers |
+| --- | --- | --- |
+| `calendarHeader` | The month and year above a month. | |
+| `calendarWeekday` | The name of a weekday above its column. | `weekend` |
+| `calendarSelected` | The selected day. | |
+| `calendarPrompt` | The prompt in the minibuffer line. | |
+| `timestamp` | What the answer means. | |
+
 ### Modifiers
 
 | Modifier | On |
@@ -357,7 +457,9 @@ An integration should stay free of Org logic. Its whole job:
 2. Apply the manifest: link the tokens to the editor's highlight names and
    bind the keys of its preset to the commands.
 3. Run commands with the cursor position as their argument.
-4. Show the agenda document and keep it in sync, as described above.
+4. Show the agenda document and keep it in sync, as described above;
+   likewise the date prompt document, if it announces it, and close it
+   when a command returns `close`.
 5. Open and close folds; the server only says where they are.
 
 `lua/org-lsp/` does this at run time. `editors/vscode/` cannot, because

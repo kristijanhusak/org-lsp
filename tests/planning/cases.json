@@ -1,0 +1,252 @@
+[
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "schedule",
+  "answer": "fri",
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-22 Fri>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "schedule",
+  "answer": "fri 10:00-11:30",
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-22 Fri 10:00-11:30>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "schedule",
+  "answer": "3pm-5pm",
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-18 Mon 15:00-17:00>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "schedule",
+  "answer": "10am-11:30",
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-18 Mon-11:30>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nbo¦dy\n",
+  "command": "schedule",
+  "answer": "+2d",
+  "expected": "* TODO a\nSCHEDULED: <2026-05-20 Wed>\nbo¦dy\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a :tag:¦\n",
+  "command": "deadline",
+  "answer": "2026-06-01",
+  "expected": "* TODO a :tag:¦\nDEADLINE: <2026-06-01 Mon>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-20 Wed>\n",
+  "command": "schedule",
+  "answer": "3pm",
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-18 Mon 15:00> DEADLINE: <2026-05-20 Wed>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-20 Wed>\n",
+  "command": "schedule",
+  "answer": "sat",
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-23 Sat> DEADLINE: <2026-05-20 Wed>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n  SCHEDULED: <2026-05-20 Wed>  DEADLINE: <2026-05-25 Mon>  \n",
+  "command": "deadline",
+  "answer": "+1w",
+  "expected": "* TODO a¦\n  DEADLINE: <2026-05-25 Mon> SCHEDULED: <2026-05-20 Wed>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n** b¦\n",
+  "command": "deadline",
+  "answer": "fri",
+  "expected": "* a\n** b¦\nDEADLINE: <2026-05-22 Fri>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦",
+  "command": "schedule",
+  "answer": "fri",
+  "expected": "* a¦\nSCHEDULED: <2026-05-22 Fri>",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nSCHEDULED: <2026-05-20 Wed 10:00 +1w>\n¦",
+  "command": "schedule",
+  "answer": "++1",
+  "expected": "* TODO a\nSCHEDULED: <2026-05-21 Thu +1w>\n¦",
+  "prompt": "10:00"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nSCHEDULED: <2026-05-20 Wed 10:00-11:00 +1w>¦\n",
+  "command": "schedule",
+  "answer": "fri",
+  "expected": "* TODO a\n¦SCHEDULED: <2026-05-22 Fri +1w>\n",
+  "prompt": "10:00+1"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nSCHEDULED: <2026-05-20 Wed 10:00-11:00 +1w>¦\n",
+  "command": "schedule",
+  "answer": "10:00+1 fri",
+  "expected": "* TODO a\n¦SCHEDULED: <2026-05-22 Fri 10:00-11:00 +1w>\n",
+  "prompt": "10:00+1"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nDEADLINE: <2026-05-20 Wed -3d>\n¦",
+  "command": "deadline",
+  "answer": "+1d",
+  "expected": "* TODO a\nDEADLINE: <2026-05-19 Tue -3d>\n¦",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nDEADLINE: <2026-05-20 Wed .+1w -2d>\n¦",
+  "command": "deadline",
+  "answer": "fri",
+  "expected": "* TODO a\nDEADLINE: <2026-05-22 Fri .+1w -2d>\n¦",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nText SCHEDULED: <2026-06-01 Mon 9:00>\n¦",
+  "command": "schedule",
+  "answer": "++1",
+  "expected": "* TODO a\nSCHEDULED: <2026-06-02 Tue>\nText SCHEDULED: <2026-06-01 Mon 9:00>\n¦",
+  "prompt": "9:00"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "  ** b¦\n",
+  "command": "schedule",
+  "answer": "fri",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro¦\n* a\n",
+  "command": "schedule",
+  "answer": "fri",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext ¦here\n",
+  "command": "timestamp",
+  "answer": "fri",
+  "expected": "* a\ntext <2026-05-22 Fri>¦here\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext ¦here\n",
+  "command": "timestamp-inactive",
+  "answer": "fri 10:00",
+  "expected": "* a\ntext [2026-05-22 Fri 10:00]¦here\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext ¦here\n",
+  "command": "timestamp",
+  "answer": "10:00-11:30",
+  "expected": "* a\ntext <2026-05-18 Mon 10:00-11:30>¦here\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext <2026-05-20 Wed 10:00>¦ here\n",
+  "command": "timestamp",
+  "answer": "fri",
+  "expected": "* a\ntext <2026-05-22 Fri>¦ here\n",
+  "prompt": "10:00"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext <2026-05-2¦0 Wed +1w> here\n",
+  "command": "timestamp",
+  "answer": "3pm",
+  "expected": "* a\ntext <2026-05-20 Wed 15:00 +1w¦> here\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext <2026-05-2¦0 Wed +1w> here\n",
+  "command": "timestamp-inactive",
+  "answer": "3pm",
+  "expected": "* a\ntext [2026-05-20 Wed 15:00 +1w¦] here\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-20 Wed>--<2026-05-2¦2 Fri>\n",
+  "command": "timestamp",
+  "answer": "sat",
+  "expected": "* a\n<2026-05-20 Wed>--<2026-05-23 Sat>¦\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-2¦0 Wed 9:00>--<2026-05-22 Fri>\n",
+  "command": "timestamp",
+  "answer": "tue",
+  "expected": "* a\n<2026-05-19 Tue>¦--<2026-05-22 Fri>\n",
+  "prompt": "9:00"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-20 Wed>-¦-<2026-05-22 Fri>\n",
+  "command": "timestamp",
+  "answer": "tue",
+  "expected": "* a\n<2026-05-20 Wed>--<2026-05-19 Tue>¦\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "before¦ any headline\n",
+  "command": "timestamp",
+  "answer": "+1w",
+  "expected": "before<2026-05-25 Mon>¦ any headline\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext <2026-05-20 Wed 10:00>¦ here\n",
+  "command": "timestamp",
+  "answer": "fri",
+  "repeated": true,
+  "expected": "* a\ntext <2026-05-20 Wed 10:00>--<2026-05-22 Fri>¦ here\n",
+  "prompt": "10:00"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext [2026-05-20 Wed]¦ here\n",
+  "command": "timestamp-inactive",
+  "answer": "+2d",
+  "repeated": true,
+  "expected": "* a\ntext [2026-05-20 Wed]--[2026-05-20 Wed]¦ here\n",
+  "prompt": ""
+ }
+]

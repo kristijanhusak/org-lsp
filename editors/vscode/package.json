@@ -42,6 +42,15 @@
         "filenames": [
           "Org Agenda"
         ]
+      },
+      {
+        "id": "org-date",
+        "aliases": [
+          "Org Date Prompt"
+        ],
+        "filenames": [
+          "Org Date"
+        ]
       }
     ],
     "commands": [
@@ -171,6 +180,96 @@
         "category": "Org"
       },
       {
+        "command": "org.schedule",
+        "title": "Schedule the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.deadline",
+        "title": "Set the deadline of the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.timestamp.insert",
+        "title": "Insert or change a timestamp",
+        "category": "Org"
+      },
+      {
+        "command": "org.timestamp.insert.inactive",
+        "title": "Insert or change an inactive timestamp",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.day.later",
+        "title": "Date prompt: one day later",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.day.earlier",
+        "title": "Date prompt: one day earlier",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.week.later",
+        "title": "Date prompt: one week later",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.week.earlier",
+        "title": "Date prompt: one week earlier",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.month.later",
+        "title": "Date prompt: one month later",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.month.earlier",
+        "title": "Date prompt: one month earlier",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.year.later",
+        "title": "Date prompt: one year later",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.year.earlier",
+        "title": "Date prompt: one year earlier",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.scroll.later",
+        "title": "Date prompt: show the next months",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.scroll.earlier",
+        "title": "Date prompt: show the previous months",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.today",
+        "title": "Date prompt: go to today",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.select",
+        "title": "Date prompt: take the day at the cursor",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.type",
+        "title": "Date prompt: type the date",
+        "category": "Org"
+      },
+      {
+        "command": "org.calendar.cancel",
+        "title": "Date prompt: cancel",
+        "category": "Org"
+      },
+      {
         "command": "org-lsp.restartServer",
         "title": "Restart Language Server",
         "category": "Org"
@@ -209,6 +308,20 @@
         "editor.occurrencesHighlight": "off",
         "editor.selectionHighlight": false,
         "editor.stickyScroll.enabled": false
+      },
+      "[org-date]": {
+        "editor.semanticHighlighting.enabled": true,
+        "editor.lightbulb.enabled": "off",
+        "editor.bracketPairColorization.enabled": false,
+        "editor.lineNumbers": "off",
+        "editor.wordWrap": "off",
+        "editor.folding": false,
+        "editor.guides.indentation": false,
+        "editor.occurrencesHighlight": "off",
+        "editor.selectionHighlight": false,
+        "editor.stickyScroll.enabled": false,
+        "editor.minimap.enabled": false,
+        "editor.renderWhitespace": "none"
       }
     },
     "semanticTokenTypes": [
@@ -323,6 +436,22 @@
       {
         "id": "agendaTimeGrid",
         "description": "Agenda: a line of the time grid"
+      },
+      {
+        "id": "calendarHeader",
+        "description": "Date prompt: the month and year above a month"
+      },
+      {
+        "id": "calendarWeekday",
+        "description": "Date prompt: the name of a weekday above its column"
+      },
+      {
+        "id": "calendarSelected",
+        "description": "Date prompt: the selected day"
+      },
+      {
+        "id": "calendarPrompt",
+        "description": "Date prompt: the prompt before the answer"
       }
     ],
     "semanticTokenModifiers": [
@@ -630,6 +759,26 @@
           "agendaTimeGrid.current": [
             "markup.bold.current-time.agenda.org",
             "markup.bold"
+          ],
+          "calendarHeader": [
+            "entity.name.function.month.calendar.org",
+            "entity.name.function"
+          ],
+          "calendarWeekday": [
+            "constant.other.weekday.calendar.org",
+            "constant.other"
+          ],
+          "calendarWeekday.weekend": [
+            "comment.weekend.calendar.org",
+            "comment"
+          ],
+          "calendarSelected": [
+            "markup.inverse.selected.calendar.org",
+            "invalid.illegal"
+          ],
+          "calendarPrompt": [
+            "keyword.other.prompt.calendar.org",
+            "keyword"
           ]
         }
       },
@@ -843,6 +992,259 @@
           "agendaTimeGrid.current": [
             "markup.bold.current-time.agenda.org",
             "markup.bold"
+          ],
+          "calendarHeader": [
+            "entity.name.function.month.calendar.org",
+            "entity.name.function"
+          ],
+          "calendarWeekday": [
+            "constant.other.weekday.calendar.org",
+            "constant.other"
+          ],
+          "calendarWeekday.weekend": [
+            "comment.weekend.calendar.org",
+            "comment"
+          ],
+          "calendarSelected": [
+            "markup.inverse.selected.calendar.org",
+            "invalid.illegal"
+          ],
+          "calendarPrompt": [
+            "keyword.other.prompt.calendar.org",
+            "keyword"
+          ]
+        }
+      },
+      {
+        "language": "org-date",
+        "scopes": {
+          "headline": [
+            "markup.heading.org",
+            "markup.heading",
+            "entity.name.section"
+          ],
+          "headline.level1": [
+            "markup.heading.1.org"
+          ],
+          "headline.level2": [
+            "markup.heading.2.org"
+          ],
+          "headline.level3": [
+            "markup.heading.3.org"
+          ],
+          "headline.level4": [
+            "markup.heading.4.org"
+          ],
+          "headline.level5": [
+            "markup.heading.5.org"
+          ],
+          "headline.level6": [
+            "markup.heading.6.org"
+          ],
+          "headline.level7": [
+            "markup.heading.7.org"
+          ],
+          "headline.level8": [
+            "markup.heading.8.org"
+          ],
+          "stars": [
+            "punctuation.definition.heading.org",
+            "markup.heading"
+          ],
+          "todoKeyword": [
+            "keyword.other.todo.org",
+            "markup.deleted",
+            "keyword.control"
+          ],
+          "todoKeyword.done": [
+            "keyword.other.done.org",
+            "markup.inserted",
+            "string"
+          ],
+          "priority": [
+            "constant.other.priority.org",
+            "constant.numeric"
+          ],
+          "tag": [
+            "entity.name.tag.org",
+            "entity.name.tag"
+          ],
+          "planning": [
+            "keyword.other.planning.org",
+            "keyword.other"
+          ],
+          "timestamp": [
+            "constant.other.timestamp.org",
+            "constant.numeric"
+          ],
+          "timestamp.inactive": [
+            "comment.timestamp.org",
+            "comment"
+          ],
+          "drawer": [
+            "meta.preprocessor.drawer.org",
+            "meta.preprocessor"
+          ],
+          "property": [
+            "variable.other.property.org",
+            "variable.other.property"
+          ],
+          "keyword": [
+            "meta.preprocessor.keyword.org",
+            "meta.preprocessor"
+          ],
+          "block": [
+            "punctuation.definition.block.org",
+            "comment"
+          ],
+          "comment": [
+            "comment.line.org",
+            "comment"
+          ],
+          "bullet": [
+            "punctuation.definition.list.begin.org",
+            "punctuation.definition.list.begin.markdown",
+            "keyword.operator"
+          ],
+          "checkbox": [
+            "markup.list.unchecked.org",
+            "keyword.operator"
+          ],
+          "checkbox.checked": [
+            "markup.list.checked.org",
+            "markup.inserted"
+          ],
+          "link": [
+            "markup.underline.link.org",
+            "markup.underline.link",
+            "string.other.link"
+          ],
+          "code": [
+            "markup.inline.raw.org",
+            "markup.inline.raw"
+          ],
+          "verbatim": [
+            "markup.inline.raw.org",
+            "markup.inline.raw"
+          ],
+          "tableDelimiter": [
+            "punctuation.separator.table.org",
+            "punctuation.definition.table",
+            "comment"
+          ],
+          "footnote": [
+            "markup.underline.link.footnote.org",
+            "markup.underline.link"
+          ],
+          "cookie": [
+            "constant.numeric.cookie.org",
+            "constant.numeric"
+          ],
+          "target": [
+            "entity.name.label.org",
+            "entity.name.label"
+          ],
+          "latex": [
+            "markup.math.org",
+            "support.function"
+          ],
+          "entity": [
+            "constant.character.entity.org",
+            "constant.character.entity"
+          ],
+          "macro": [
+            "entity.name.function.macro.org",
+            "entity.name.function.preprocessor"
+          ],
+          "*.bold": [
+            "markup.bold.org",
+            "markup.bold"
+          ],
+          "*.italic": [
+            "markup.italic.org",
+            "markup.italic"
+          ],
+          "*.underline": [
+            "markup.underline.org",
+            "markup.underline"
+          ],
+          "*.strikethrough": [
+            "markup.strikethrough.org",
+            "markup.strikethrough"
+          ],
+          "agendaStructure": [
+            "markup.heading.agenda.org",
+            "markup.heading",
+            "entity.name.section"
+          ],
+          "agendaDate": [
+            "markup.heading.date.agenda.org",
+            "markup.heading",
+            "entity.name.section"
+          ],
+          "agendaDate.today": [
+            "markup.bold.today.agenda.org",
+            "markup.bold"
+          ],
+          "agendaDate.weekend": [
+            "markup.italic.weekend.agenda.org",
+            "markup.italic"
+          ],
+          "agendaScheduled": [
+            "markup.inserted.scheduled.agenda.org",
+            "markup.inserted",
+            "string"
+          ],
+          "agendaScheduled.past": [
+            "markup.changed.scheduled.agenda.org",
+            "markup.changed",
+            "constant.numeric"
+          ],
+          "agendaDeadline": [
+            "markup.changed.deadline.agenda.org",
+            "markup.changed",
+            "constant.numeric"
+          ],
+          "agendaDeadline.imminent": [
+            "markup.deleted.deadline.agenda.org",
+            "markup.deleted",
+            "keyword.control"
+          ],
+          "agendaDeadline.distant": [
+            "comment.deadline.agenda.org",
+            "comment"
+          ],
+          "agendaDone": [
+            "comment.done.agenda.org",
+            "comment"
+          ],
+          "agendaTimeGrid": [
+            "comment.time-grid.agenda.org",
+            "comment"
+          ],
+          "agendaTimeGrid.current": [
+            "markup.bold.current-time.agenda.org",
+            "markup.bold"
+          ],
+          "calendarHeader": [
+            "entity.name.function.month.calendar.org",
+            "entity.name.function"
+          ],
+          "calendarWeekday": [
+            "constant.other.weekday.calendar.org",
+            "constant.other"
+          ],
+          "calendarWeekday.weekend": [
+            "comment.weekend.calendar.org",
+            "comment"
+          ],
+          "calendarSelected": [
+            "markup.inverse.selected.calendar.org",
+            "invalid.illegal"
+          ],
+          "calendarPrompt": [
+            "keyword.other.prompt.calendar.org",
+            "keyword"
           ]
         }
       }
@@ -952,6 +1354,81 @@
         "command": "org.date.earlier",
         "key": "shift+left",
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.calendar.day.later",
+        "key": "shift+right",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.day.earlier",
+        "key": "shift+left",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.week.later",
+        "key": "shift+down",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.week.earlier",
+        "key": "shift+up",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.month.later",
+        "key": "alt+shift+right",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.month.earlier",
+        "key": "alt+shift+left",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.year.later",
+        "key": "alt+shift+down",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.year.earlier",
+        "key": "alt+shift+up",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.scroll.later",
+        "key": "shift+.",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.scroll.earlier",
+        "key": "shift+,",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.today",
+        "key": ".",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.select",
+        "key": "enter",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.type",
+        "key": "i",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.cancel",
+        "key": "q",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.cancel",
+        "key": "ctrl+g",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
       }
     ]
   },
@@ -978,9 +1455,11 @@
   },
   "orgLsp": {
     "agendaScheme": "org-agenda",
+    "datePromptUri": "org-agenda:/Org%20Date",
     "languages": [
       "org",
-      "org-agenda"
+      "org-agenda",
+      "org-date"
     ]
   }
 }

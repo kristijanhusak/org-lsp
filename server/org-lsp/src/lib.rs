@@ -16,6 +16,7 @@ pub mod highlight;
 pub mod legend;
 pub mod line_index;
 pub mod manifest;
+pub mod prompt;
 pub mod server;
 pub mod symbols;
 pub mod uri;

@@ -23,6 +23,7 @@ const manifest = JSON.parse(execFileSync(resolve(binary), ['manifest'], { encodi
 
 const ORG = 'org';
 const AGENDA = manifest.agenda.languageId;
+const DATE = manifest.datePrompt.languageId;
 
 /** An Emacs key such as `C-c a`, `RET` or `S-<right>` in VS Code's notation. */
 function key(emacs) {
@@ -65,16 +66,17 @@ const commands = manifest.commands.map((command) => ({
   category: 'Org',
 }));
 
-// Keys are bound in the agenda only. It is read-only, so plain letters are
-// free there; in Org files Emacs's keys would take over Ctrl+C and
-// Shift+arrows.
+// Keys are bound in the agenda and the date prompt only. Both are
+// read-only, so plain letters are free there; in Org files Emacs's keys
+// would take over Ctrl+C and Shift+arrows.
+const scopeLanguages = { agenda: AGENDA, calendar: DATE };
 const keybindings = manifest.commands.flatMap((command) =>
   command.keys
-    .filter((binding) => binding.preset === 'emacs' && binding.in === 'agenda')
+    .filter((binding) => binding.preset === 'emacs' && scopeLanguages[binding.in])
     .map((binding) => ({
       command: command.command,
       key: key(binding.key),
-      when: `editorTextFocus && editorLangId == '${AGENDA}'`,
+      when: `editorTextFocus && editorLangId == '${scopeLanguages[binding.in]}'`,
     })),
 );
 
@@ -84,6 +86,7 @@ const scopes = Object.fromEntries(
 
 // `/Org%20Agenda` in the agenda's URI is the file name VS Code sees.
 const agendaName = decodeURIComponent(manifest.agenda.uri.split('/').pop());
+const dateName = decodeURIComponent(manifest.datePrompt.uri.split('/').pop());
 const agendaExtension = '.' + manifest.agenda.fileName.split('.').pop();
 
 const path = 'package.json';
@@ -93,8 +96,9 @@ const own = (list, generated, id) => (list ?? []).filter((item) => !generated.in
 const contributes = pkg.contributes;
 
 contributes.languages = [
-  ...contributes.languages.filter((language) => language.id !== AGENDA),
+  ...contributes.languages.filter((language) => language.id !== AGENDA && language.id !== DATE),
   { id: AGENDA, aliases: ['Org Agenda'], extensions: [agendaExtension], filenames: [agendaName] },
+  { id: DATE, aliases: ['Org Date Prompt'], filenames: [dateName] },
 ];
 contributes.commands = [
   ...commands,
@@ -112,7 +116,7 @@ contributes.semanticTokenModifiers = manifest.tokenModifiers.map((modifier) => (
   id: modifier.id,
   description: modifier.description,
 }));
-contributes.semanticTokenScopes = [ORG, AGENDA].map((language) => ({ language, scopes }));
+contributes.semanticTokenScopes = [ORG, AGENDA, DATE].map((language) => ({ language, scopes }));
 // The server's tokens are the highlighting. Its commands are code actions,
 // which would light the bulb on every headline. Brackets are link syntax in
 // Org, not nesting to be colored by depth.
@@ -135,9 +139,26 @@ contributes.configurationDefaults = {
     'editor.selectionHighlight': false,
     'editor.stickyScroll.enabled': false,
   },
+  // The date prompt is a calendar to move about in, like the agenda.
+  [`[${DATE}]`]: {
+    ...editorDefaults,
+    'editor.lineNumbers': 'off',
+    'editor.wordWrap': 'off',
+    'editor.folding': false,
+    'editor.guides.indentation': false,
+    'editor.occurrencesHighlight': 'off',
+    'editor.selectionHighlight': false,
+    'editor.stickyScroll.enabled': false,
+    'editor.minimap.enabled': false,
+    'editor.renderWhitespace': 'none',
+  },
 };
 // For the extension itself: which documents belong to the server.
-pkg.orgLsp = { agendaScheme: manifest.agenda.scheme, languages: [ORG, AGENDA] };
+pkg.orgLsp = {
+  agendaScheme: manifest.agenda.scheme,
+  datePromptUri: manifest.datePrompt.uri,
+  languages: [ORG, AGENDA, DATE],
+};
 
 const after = JSON.stringify(pkg, null, 2) + '\n';
 if (check) {

@@ -17,6 +17,8 @@ pub enum Scope {
     Org,
     /// In the agenda.
     Agenda,
+    /// In the date prompt.
+    Calendar,
 }
 
 impl Scope {
@@ -25,6 +27,7 @@ impl Scope {
             Scope::Global => "global",
             Scope::Org => "org",
             Scope::Agenda => "agenda",
+            Scope::Calendar => "calendar",
         }
     }
 }
@@ -59,6 +62,16 @@ pub struct Command {
     /// Default keys for modal editors, in Vim's notation (`<CR>`). These
     /// are nvim-orgmode's defaults.
     pub vim: &'static [Key],
+    /// What the command asks the user for before it can run, as the
+    /// prompt the editor shows.
+    pub input: Option<Input>,
+}
+
+/// Input a command asks for.
+pub struct Input {
+    /// What kind of answer: `date` is read as Org's date prompt reads it.
+    pub kind: &'static str,
+    pub prompt: &'static str,
 }
 
 pub const AGENDA_DISPATCH: &str = "org.agenda.dispatch";
@@ -86,15 +99,40 @@ pub const SHIFT_UP: &str = "org.shift.up";
 pub const SHIFT_DOWN: &str = "org.shift.down";
 pub const SHIFT_LEFT: &str = "org.shift.left";
 pub const SHIFT_RIGHT: &str = "org.shift.right";
+pub const SCHEDULE: &str = "org.schedule";
+pub const DEADLINE: &str = "org.deadline";
+pub const TIMESTAMP_INSERT: &str = "org.timestamp.insert";
+pub const TIMESTAMP_INSERT_INACTIVE: &str = "org.timestamp.insert.inactive";
+/// What an answer to a date prompt means, for an editor that shows it
+/// while the answer is typed. Not a command of its own for users.
+pub const DATE_PREVIEW: &str = "org.date.preview";
+pub const CALENDAR_DAY_LATER: &str = "org.calendar.day.later";
+pub const CALENDAR_DAY_EARLIER: &str = "org.calendar.day.earlier";
+pub const CALENDAR_WEEK_LATER: &str = "org.calendar.week.later";
+pub const CALENDAR_WEEK_EARLIER: &str = "org.calendar.week.earlier";
+pub const CALENDAR_MONTH_LATER: &str = "org.calendar.month.later";
+pub const CALENDAR_MONTH_EARLIER: &str = "org.calendar.month.earlier";
+pub const CALENDAR_YEAR_LATER: &str = "org.calendar.year.later";
+pub const CALENDAR_YEAR_EARLIER: &str = "org.calendar.year.earlier";
+pub const CALENDAR_SCROLL_LATER: &str = "org.calendar.scroll.later";
+pub const CALENDAR_SCROLL_EARLIER: &str = "org.calendar.scroll.earlier";
+pub const CALENDAR_TODAY: &str = "org.calendar.today";
+pub const CALENDAR_SELECT: &str = "org.calendar.select";
+pub const CALENDAR_TYPE: &str = "org.calendar.type";
+pub const CALENDAR_CANCEL: &str = "org.calendar.cancel";
 
-use Scope::{Agenda, Global, Org};
+use Scope::{Agenda, Calendar, Global, Org};
 
 const fn command(id: &'static str, title: &'static str) -> Command {
-    Command { id, title, edits: false, emacs: &[], vim: &[] }
+    Command { id, title, edits: false, emacs: &[], vim: &[], input: None }
 }
 
 const fn edit(id: &'static str, title: &'static str) -> Command {
-    Command { id, title, edits: true, emacs: &[], vim: &[] }
+    Command { id, title, edits: true, emacs: &[], vim: &[], input: None }
+}
+
+const fn ask_date(id: &'static str, title: &'static str, prompt: &'static str) -> Command {
+    Command { input: Some(Input { kind: "date", prompt }), ..edit(id, title) }
 }
 
 pub const COMMANDS: &[Command] = &[
@@ -189,16 +227,117 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[native(Org, "S-<right>")],
         ..edit(SHIFT_RIGHT, "Move the date a day later or cycle the TODO state forward")
     },
+    Command {
+        emacs: &[key(Org, "C-c C-s")],
+        vim: &[key(Org, "<Leader>ois")],
+        ..ask_date(SCHEDULE, "Schedule the entry", "Schedule")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-d")],
+        vim: &[key(Org, "<Leader>oid")],
+        ..ask_date(DEADLINE, "Set the deadline of the entry", "Deadline")
+    },
+    Command {
+        emacs: &[key(Org, "C-c .")],
+        vim: &[key(Org, "<Leader>oi.")],
+        ..ask_date(TIMESTAMP_INSERT, "Insert or change a timestamp", "Timestamp")
+    },
+    Command {
+        emacs: &[key(Org, "C-c !")],
+        vim: &[key(Org, "<Leader>oi!")],
+        ..ask_date(TIMESTAMP_INSERT_INACTIVE, "Insert or change an inactive timestamp", "Inactive timestamp")
+    },
+    // The date prompt: the keys of `org-read-date-minibuffer-local-map`
+    // and of the calendar Emacs shows with it.
+    Command {
+        emacs: &[key(Calendar, "S-<right>")],
+        vim: &[key(Calendar, "l"), key(Calendar, "<S-Right>")],
+        ..command(CALENDAR_DAY_LATER, "Date prompt: one day later")
+    },
+    Command {
+        emacs: &[key(Calendar, "S-<left>")],
+        vim: &[key(Calendar, "h"), key(Calendar, "<S-Left>")],
+        ..command(CALENDAR_DAY_EARLIER, "Date prompt: one day earlier")
+    },
+    Command {
+        emacs: &[key(Calendar, "S-<down>")],
+        vim: &[key(Calendar, "j"), key(Calendar, "<S-Down>")],
+        ..command(CALENDAR_WEEK_LATER, "Date prompt: one week later")
+    },
+    Command {
+        emacs: &[key(Calendar, "S-<up>")],
+        vim: &[key(Calendar, "k"), key(Calendar, "<S-Up>")],
+        ..command(CALENDAR_WEEK_EARLIER, "Date prompt: one week earlier")
+    },
+    Command {
+        emacs: &[key(Calendar, "M-S-<right>")],
+        vim: &[key(Calendar, "<M-S-Right>")],
+        ..command(CALENDAR_MONTH_LATER, "Date prompt: one month later")
+    },
+    Command {
+        emacs: &[key(Calendar, "M-S-<left>")],
+        vim: &[key(Calendar, "<M-S-Left>")],
+        ..command(CALENDAR_MONTH_EARLIER, "Date prompt: one month earlier")
+    },
+    Command {
+        emacs: &[key(Calendar, "M-S-<down>")],
+        vim: &[key(Calendar, "<M-S-Down>")],
+        ..command(CALENDAR_YEAR_LATER, "Date prompt: one year later")
+    },
+    Command {
+        emacs: &[key(Calendar, "M-S-<up>")],
+        vim: &[key(Calendar, "<M-S-Up>")],
+        ..command(CALENDAR_YEAR_EARLIER, "Date prompt: one year earlier")
+    },
+    Command {
+        emacs: &[key(Calendar, ">")],
+        vim: &[key(Calendar, ">")],
+        ..command(CALENDAR_SCROLL_LATER, "Date prompt: show the next months")
+    },
+    Command {
+        emacs: &[key(Calendar, "<")],
+        vim: &[key(Calendar, "<")],
+        ..command(CALENDAR_SCROLL_EARLIER, "Date prompt: show the previous months")
+    },
+    Command {
+        emacs: &[key(Calendar, ".")],
+        vim: &[key(Calendar, ".")],
+        ..command(CALENDAR_TODAY, "Date prompt: go to today")
+    },
+    Command {
+        emacs: &[key(Calendar, "RET")],
+        vim: &[key(Calendar, "<CR>")],
+        ..command(CALENDAR_SELECT, "Date prompt: take the day at the cursor")
+    },
+    Command {
+        emacs: &[key(Calendar, "i")],
+        vim: &[key(Calendar, "i")],
+        input: Some(Input { kind: "date", prompt: "Date+time" }),
+        ..command(CALENDAR_TYPE, "Date prompt: type the date")
+    },
+    Command {
+        emacs: &[key(Calendar, "q"), key(Calendar, "C-g")],
+        vim: &[key(Calendar, "q"), key(Calendar, "<Esc>")],
+        ..command(CALENDAR_CANCEL, "Date prompt: cancel")
+    },
 ];
 
+/// Every command the server runs: the table's, and those editors call
+/// on their own.
 pub fn ids() -> Vec<String> {
-    COMMANDS.iter().map(|command| command.id.to_string()).collect()
+    COMMANDS.iter().map(|command| command.id).chain([DATE_PREVIEW]).map(str::to_string).collect()
+}
+
+/// The input the command `id` asks for, if any.
+pub fn input(id: &str) -> Option<&'static Input> {
+    COMMANDS.iter().find(|command| command.id == id)?.input.as_ref()
 }
 
 /// The table as JSON: a list of
 /// `{ "command", "title", "edits", "keys": [{ "key", "in", "preset" }] }`.
 /// A key that keeps its own meaning where the command does not apply has
-/// `"native": true` as well.
+/// `"native": true` as well. A command that asks for something has
+/// `"input": { "kind", "prompt" }`.
 pub fn manifest() -> Value {
     let commands: Vec<Value> = COMMANDS
         .iter()
@@ -215,7 +354,12 @@ pub fn manifest() -> Value {
                     })
                 })
                 .collect();
-            json!({ "command": command.id, "title": command.title, "edits": command.edits, "keys": keys })
+            let mut entry =
+                json!({ "command": command.id, "title": command.title, "edits": command.edits, "keys": keys });
+            if let Some(input) = &command.input {
+                entry["input"] = json!({ "kind": input.kind, "prompt": input.prompt });
+            }
+            entry
         })
         .collect();
     Value::Array(commands)
@@ -234,7 +378,7 @@ mod tests {
         let mut ids = ids();
         ids.sort();
         ids.dedup();
-        assert_eq!(ids.len(), COMMANDS.len());
+        assert_eq!(ids.len(), COMMANDS.len() + 1);
         for preset in [|command: &Command| command.emacs, |command: &Command| command.vim] {
             let mut keys: Vec<(&str, &str)> = COMMANDS
                 .iter()

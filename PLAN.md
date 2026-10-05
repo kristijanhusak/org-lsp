@@ -117,14 +117,66 @@ the agenda and daily use need first.
 
 ### 4. Commands that ask for something
 
-Needs one decision first, see "Open questions": how a command gets typed
-input over LSP only.
+Decided (2026-10-05): typed input goes through the editor's own input box,
+and a date can also be picked from a calendar, in every editor that can
+show one. In four pull requests:
 
-- Port `org-read-date` (`+2d`, `fri`, `2/15`, `+1w 10:00`, …), checked
-  against Emacs like the other ports.
-- `org-schedule`, `org-deadline` (in files and from the agenda),
-  `org-time-stamp` and its inactive form, set a priority by name, go to a
-  date in the agenda (`j`), text for state notes (now written empty).
+- **4a, done:** `org-core/src/read_date.rs`, a port of `org-read-date`
+  (`org-read-date-analyze`, `org-read-date-get-relative`, Emacs's
+  `parse-time-string` and `iso8601-parse`). Checked by
+  `tests/read-date/cases.json` (106 answers) and
+  `scripts/fuzz-read-date.py` (seeds 1 to 7, 5,400 answers, plus 4,500
+  random strings): no difference but those written down below. Uses the
+  `regex` crate, so that each of Org's expressions is ported as written.
+- **4b, done:** commands that ask for a date: `org.schedule`,
+  `org.deadline`, `org.timestamp.insert` and its inactive form, in Org
+  files. `org-core/src/planning.rs` ports `org--deadline-or-schedule`,
+  `org-add-planning-info`, `org-timestamp` and `org-insert-timestamp`.
+  Without an answer a command returns `{ "input": { "kind", "prompt",
+  "value" } }`; the editor asks (`vim.ui.input`, `showInputBox`) and runs
+  it again with `input`. `org.date.preview` says what an answer means;
+  VS Code shows it under the input box. Checked by
+  `tests/planning/cases.json` (31 cases, text, cursor and what the prompt
+  starts with) and `scripts/fuzz-planning.py` (seeds 1 to 9, 4,700 cases,
+  no difference). Not yet: logging a changed date (`org-log-reschedule`,
+  `org-log-redeadline`), the prefix arguments (remove a date, set a delay),
+  and these commands from the agenda (4d). After scheduling the cursor
+  stays where the editor has it; Emacs leaves it where it deleted text.
+- **4c, done:** the calendar Emacs shows with the date prompt. A second
+  server-owned document, `org-agenda:/Org%20Date` (language `org-date`):
+  three months drawn as `calendar-generate` draws them (checked against
+  Emacs's output, `tests/calendar/emacs.txt`), and the minibuffer line
+  (`SCHEDULED Date+time [2026-05-20]: 10:00    => <…>`, with `(=>F)`).
+  Keys in the `calendar` scope are `org-read-date-minibuffer-local-map`'s
+  (`S-<arrows>`, `M-S-<arrows>`, `<`, `>`, `.`) and the calendar's `RET`;
+  vim adds `h` `j` `k` `l`. The answer is what was typed plus the day moved
+  to, as `org-read-date` builds it. Clients opt in with
+  `experimental.orgDatePrompt`; a command result `{ "close": uri }` closes
+  the document. Neovim shows it in a window at the bottom, VS Code beside
+  the file; others keep the plain input box.
+- **4d:** schedule and deadline from the agenda, go to a date in the
+  agenda (`j`), set a priority by name, text for state notes (now written
+  empty).
+
+Differences from Emacs in 4a, both deliberate:
+
+- A word boundary in Org's expressions (`\<`, `\>`) is one between a
+  word character and anything else. `_` counts as a word character, and
+  a change of script is no boundary: `日W9` holds no ISO week for the
+  server, while Emacs finds `W9`.
+- Numbers too large for 64 bits are refused; Emacs reads them as floats
+  and usually fails later.
+
+Differences from Emacs in 4c, deliberate or forced by LSP:
+
+- Emacs types in the minibuffer and moves the calendar with `S-<arrows>`
+  from there. An editor's input box cannot pass such keys on, so the
+  calendar has its own keys and `i` goes back to typing; `Esc` in the
+  input box leaves it for the calendar.
+- Closing the prompt's window does not cancel the prompt on the server
+  (the client may report it late, when another prompt is open); the next
+  date command replaces it. `q` cancels.
+- No mouse selection, holidays or diary marks in the calendar.
 
 ### 5. More agenda
 
@@ -132,9 +184,6 @@ input over LSP only.
   (`/`, `<`, `=`, `_`, `|`), stuck projects, custom agenda commands.
 - Log mode, archives mode, clock report, entry text, follow mode.
 - Bulk marks and actions; hours and minutes on `S-<left>`/`S-<right>`.
-- A calendar or date picker as a second server-owned document. For this
-  the manifest's single `agenda` entry becomes a list of views (scheme,
-  language, key scope, how to present it).
 
 ### 6. Structure editing
 
@@ -201,13 +250,8 @@ previews.
 
 ## Open questions
 
-1. **Typed input over LSP only.** LSP has no free-text prompt. The way
-   that stays inside LSP: the manifest marks a command as taking input
-   (`"input": { "prompt": "Schedule: " }`), the editor glue asks with its
-   own input box and passes the answer as a command argument. One generic
-   code path per editor, about ten lines. Editors without glue (Helix)
-   would get a few fixed choices as code actions ("Schedule: today",
-   "tomorrow", "+1w"). Not started; needs a yes.
+1. **Typed input over LSP only.** Decided: the editor's input box, and
+   a calendar for dates; see milestone 4.
 2. **Licence.** The parser and the Org logic are ports of GPL code from
    Emacs Org mode. The repository has no licence file yet.
 3. **Saving after edits from the agenda.** Edited files stay unsaved, as
@@ -232,6 +276,9 @@ previews.
   | Priorities, timestamps | `tests/shift/cases.json` | `scripts/update-shift-fixtures.py` | `scripts/fuzz-shift.py` |
   | Agenda commands | `tests/agenda-actions/cases.json` | `scripts/update-agenda-action-fixtures.py` | |
   | Folding subtrees | `tests/folding/cases.json` | `scripts/update-fold-fixtures.py` | `scripts/fuzz-fold.py` |
+  | Date prompt | `tests/read-date/cases.json` | `scripts/update-read-date-fixtures.py` | `scripts/fuzz-read-date.py` |
+  | Commands that ask for a date | `tests/planning/cases.json` | `scripts/update-planning-fixtures.py` | `scripts/fuzz-planning.py` |
+  | Calendar of the date prompt | `tests/calendar/emacs.txt` | `scripts/update-calendar-fixtures.sh` | |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.
 - VS Code: in `editors/vscode`, `npm run generate -- --check`, `npm run

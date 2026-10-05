@@ -47,6 +47,10 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::AgendaEvent => "Agenda: an entry with a plain timestamp",
         TokenType::AgendaDone => "Agenda: an entry that is done",
         TokenType::AgendaTimeGrid => "Agenda: a line of the time grid",
+        TokenType::CalendarHeader => "Date prompt: the month and year above a month",
+        TokenType::CalendarWeekday => "Date prompt: the name of a weekday above its column",
+        TokenType::CalendarSelected => "Date prompt: the selected day",
+        TokenType::CalendarPrompt => "Date prompt: the prompt before the answer",
     }
 }
 
@@ -242,6 +246,12 @@ pub const LOOKS: &[Look] = &[
         &["@org.agenda.time_grid.current", "@markup.strong"],
         &["markup.bold.current-time.agenda.org", "markup.bold"],
     ),
+    // The date prompt, after Emacs's calendar and minibuffer faces.
+    look("calendarHeader", &["Function"], &["entity.name.function.month.calendar.org", "entity.name.function"]),
+    look("calendarWeekday", &["Constant"], &["constant.other.weekday.calendar.org", "constant.other"]),
+    look("calendarWeekday.weekend", &["Comment"], &["comment.weekend.calendar.org", "comment"]),
+    look("calendarSelected", &["IncSearch"], &["markup.inverse.selected.calendar.org", "invalid.illegal"]),
+    look("calendarPrompt", &["Question"], &["keyword.other.prompt.calendar.org", "keyword"]),
 ];
 
 /// The legend with descriptions, and the default looks:

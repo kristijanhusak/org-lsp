@@ -23,10 +23,24 @@ All commands are in the Command Palette under **Org**.
 | `Org: Increase` / `Decrease the part of the timestamp at the cursor` | The year, month, day, hour or minute under the cursor, as Org's `S-<up>` / `S-<down>` |
 | `Org: Move the date one day later` / `earlier` | The timestamp under the cursor, or the date of an agenda line |
 | `Org: Increase the timestamp part or raise the priority`, and the three like it | Org's `S-<up>`, `S-<down>`, `S-<left>`, `S-<right>`: what they do depends on where the cursor is |
+| `Org: Schedule the entry`, `Org: Set the deadline of the entry` | Ask for a date and set it |
+| `Org: Insert or change a timestamp` / `an inactive timestamp` | Ask for a date and insert it at the cursor, or change the timestamp there |
 | `Org: Agenda: …` | Move through time, change the span, rebuild, go to the entry |
 
 The changes that apply at the cursor are also listed under **Quick Fix…**
 (`Ctrl+.`). VS Code has no count to pass: each command moves by one step.
+
+A date is typed as at Org's prompt: `fri 10:00`, `+2d`, `2/15`, `++1w`,
+`10:00-11:30`. Under the input box the extension shows the timestamp the
+answer makes, as you type.
+
+As in Emacs, a calendar opens beside the file with the prompt, with the
+answer and what it means on its last line. Press `Escape` to leave the
+input box for the calendar, where Emacs's keys work: `Shift+arrows` by
+day and week, `Alt+Shift+Left`/`Right` by month, `Alt+Shift+Up`/`Down` by
+year, `<` `>` for other months, `.` for today, `Enter` to take the day
+under the cursor, `i` to type the answer again (it is then read with the
+day you moved to), `q` or `Ctrl+G` to give up.
 
 ## Keys
 

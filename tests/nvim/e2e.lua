@@ -256,5 +256,102 @@ eq(line(2), 'SCHEDULED: <2026-05-26 Tue 11:00 +2w>', 'the timestamp is left alon
 eq(warnings, {}, 'without a complaint from the server')
 vim.notify = notify
 
+-- 12. Commands that ask for a date ask with `vim.ui.input`, while the
+-- calendar Emacs shows with the prompt opens at the bottom.
+local function prompt_window()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'org-date' then
+      return win
+    end
+  end
+end
+local asked
+local answer
+local input = vim.ui.input
+vim.ui.input = function(opts, on_confirm)
+  asked = opts
+  on_confirm(answer)
+end
+answer = '2026-06-03'
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+press('<Leader>ois')
+becomes(2, 'SCHEDULED: <2026-06-03 Wed +2w>', 'scheduled, the repeater kept')
+eq({ asked.prompt, asked.default }, { 'Schedule: ', '11:00' }, 'the prompt starts from the old time')
+wait('the calendar to close with the answer', function()
+  return prompt_window() == nil
+end)
+answer = nil
+press('<Leader>oid')
+wait('the calendar to stay when the minibuffer is left', function()
+  return prompt_window() ~= nil and vim.api.nvim_get_current_win() == prompt_window()
+end)
+press('q')
+wait('the calendar to close', function()
+  return prompt_window() == nil
+end)
+eq(line(2), 'SCHEDULED: <2026-06-03 Wed +2w>', 'a cancelled prompt changes nothing')
+answer = '2026-06-01 9:00'
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+press('<Leader>oi!')
+becomes(3, '[2026-06-01 Mon 09:00]Version 11 of the plan.', 'an inactive timestamp')
+wait('the cursor after it', function()
+  return vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 3, 22 })
+end)
+
+-- 13. The calendar Emacs shows with the prompt opens at the bottom. Its
+-- keys move the selected day; RET takes it, `i` types an answer that ends
+-- with it, `q` cancels.
+local function on_prompt_day(day)
+  return function()
+    vim.api.nvim_feedkeys('', 'x', false)
+    local win = prompt_window()
+    if not win or vim.api.nvim_get_current_win() ~= win then
+      return false
+    end
+    local row, col = unpack(vim.api.nvim_win_get_cursor(win))
+    return vim.api.nvim_get_current_line():sub(col, col + 1) == day
+  end
+end
+answer = nil
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+press('<Leader>ois')
+wait('the calendar on the scheduled day', on_prompt_day(' 3'))
+local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+eq(lines[1], '           May 2026                June 2026                July 2026', 'three months, as in Emacs')
+eq(lines[#lines], 'SCHEDULED Date+time [2026-06-03]:    => <2026-06-03 Wed>', 'the minibuffer below')
+eq(vim.api.nvim_win_get_height(0), #lines, 'as high as its text')
+press('l')
+wait('a day later', on_prompt_day(' 4'))
+press('<CR>')
+becomes(2, 'SCHEDULED: <2026-06-04 Thu +2w>', 'the day taken with RET')
+wait('the calendar to close', function()
+  return prompt_window() == nil
+end)
+press('<Leader>ois')
+wait('the calendar again', on_prompt_day(' 4'))
+press('j')
+wait('a week later', on_prompt_day('11'))
+answer = '9:00'
+press('i')
+wait('the minibuffer prompt', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return asked.prompt == 'SCHEDULED Date+time [2026-06-04]: '
+end)
+becomes(2, 'SCHEDULED: <2026-06-11 Thu 09:00 +2w>', 'the typed time on the selected day')
+wait('the calendar to close after typing', function()
+  return prompt_window() == nil
+end)
+answer = nil
+press('<Leader>ois')
+wait('the calendar once more', function()
+  return prompt_window() ~= nil
+end)
+press('q')
+wait('the calendar to close when cancelled', function()
+  return prompt_window() == nil
+end)
+eq(line(2), 'SCHEDULED: <2026-06-11 Thu 09:00 +2w>', 'cancelling changes nothing')
+vim.ui.input = input
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

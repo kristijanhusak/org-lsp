@@ -5,6 +5,7 @@
 use org_core::agenda::{Config as AgendaConfig, FutureRepeats, Span, TimeGrid};
 use org_core::edit::Settings as EditSettings;
 use org_core::priority::{self, Priorities};
+use org_core::read_date::{PreferFuture, Settings as ReadDateSettings};
 use org_core::todo::{RepeatTo, Settings as TodoSettings};
 use org_syntax::Logging;
 use serde::Deserialize;
@@ -43,6 +44,10 @@ pub struct Options {
     /// `org-cycle-separator-lines`: how many blank lines after a subtree
     /// keep one of them visible when it is folded.
     pub cycle_separator_lines: Option<i64>,
+    /// `org-read-date-prefer-future`: `true`, `false` or `"time"`.
+    pub read_date_prefer_future: Option<PreferFutureOption>,
+    /// `org-read-date-force-compatible-dates`
+    pub read_date_force_compatible_dates: Option<bool>,
     /// Whether the client fetches the agenda from the server as a virtual
     /// document. Clients that announce LSP 3.18's `textDocumentContent`
     /// need not say so.
@@ -85,6 +90,14 @@ pub enum RepeatToOption {
     State(String),
 }
 
+/// `true`, `false` or `"time"`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum PreferFutureOption {
+    Flag(bool),
+    Name(String),
+}
+
 /// A priority: `"A"` or `1`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
@@ -122,6 +135,20 @@ impl Options {
     /// The agenda settings, with the priorities the agenda sorts by.
     pub fn agenda_config(&self) -> AgendaConfig {
         AgendaConfig { priorities: self.priorities(), ..self.agenda.to_config() }
+    }
+
+    /// How answers to the date prompt are read.
+    pub fn read_date_settings(&self) -> ReadDateSettings {
+        let defaults = ReadDateSettings::default();
+        ReadDateSettings {
+            prefer_future: match &self.read_date_prefer_future {
+                Some(PreferFutureOption::Flag(false)) => PreferFuture::No,
+                Some(PreferFutureOption::Name(name)) if name == "time" => PreferFuture::Time,
+                Some(_) => PreferFuture::Yes,
+                None => defaults.prefer_future,
+            },
+            force_compatible_dates: self.read_date_force_compatible_dates.unwrap_or(defaults.force_compatible_dates),
+        }
     }
 
     /// The settings of the commands that edit a document.
