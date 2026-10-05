@@ -61,6 +61,8 @@ struct Client {
 enum Pending {
     /// An edit to a file; the agenda is rebuilt once it is applied.
     Edit,
+    /// The cursor of the agenda is being moved to follow an entry.
+    Reveal,
     /// The agenda dispatcher's menu.
     Dispatch,
 }
@@ -75,6 +77,40 @@ struct OpenView {
     /// editor with the view open fetches new text when told that the view
     /// changed, and reports the text it then shows like any other edit.
     client: Option<Document>,
+    /// The view the client still shows, while that is an older one. The
+    /// lines its requests name are lines of this view.
+    shown: Option<View>,
+}
+
+impl OpenView {
+    /// Make `view` the current one.
+    fn replace(&mut self, view: View) {
+        let old = std::mem::replace(&mut self.view, view);
+        let copy = self.client.as_ref().map(|copy| copy.text.as_str());
+        if copy == Some(old.text.as_str()) && old.text != self.view.text {
+            self.shown = Some(old);
+        }
+        self.forget_shown();
+    }
+
+    /// Drop the older view once the client no longer shows it.
+    fn forget_shown(&mut self) {
+        let copy = self.client.as_ref().map(|copy| copy.text.as_str());
+        if self.shown.as_ref().is_some_and(|shown| copy != Some(shown.text.as_str())) {
+            self.shown = None;
+        }
+    }
+
+    /// The view the client shows: the current one, unless the client has
+    /// not fetched it yet.
+    fn on_screen(&self) -> &View {
+        self.shown.as_ref().unwrap_or(&self.view)
+    }
+
+    /// Whether the client shows the current view.
+    fn is_current(&self) -> bool {
+        self.client.as_ref().is_some_and(|copy| copy.text == self.view.text)
+    }
 }
 
 /// Where a command was invoked: a document and a place in it.
@@ -102,6 +138,8 @@ struct Last {
 struct Follow {
     /// The view as it will read then.
     text: String,
+    /// The line the cursor is on now.
+    from: u32,
     position: Position,
 }
 
@@ -138,6 +176,10 @@ struct Server {
     /// Where to put the cursor once the client shows the current view.
     reveal: Option<Position>,
     follow: Option<Follow>,
+    /// The cursor of the agenda is on its way from a line of the current
+    /// view to another: the client was asked to move it and has not
+    /// answered yet. A command from the old line is meant for the new one.
+    moving: Option<(u32, u32)>,
     last: Option<Last>,
 }
 
@@ -212,6 +254,7 @@ pub fn run(connection: Connection) -> Result<()> {
         edited: HashSet::new(),
         reveal: None,
         follow: None,
+        moving: None,
         last: None,
     };
     for message in &connection.receiver {
@@ -295,9 +338,21 @@ impl Server {
         self.documents.get(uri.as_str())
     }
 
-    /// The agenda, if `uri` names it.
+    /// The agenda as the client shows it, if `uri` names it.
     fn view_at(&self, uri: &Uri) -> Option<&View> {
-        self.view.as_ref().filter(|open| open.uri == *uri).map(|open| &open.view)
+        self.view.as_ref().filter(|open| open.uri == *uri).map(OpenView::on_screen)
+    }
+
+    /// The line of the agenda that a request at `line` of `uri` is about,
+    /// with its number. That is the line the client shows there, or the
+    /// line the cursor is being moved to from there.
+    fn view_line(&self, uri: &Uri, line: u32) -> Option<(u32, &ViewLine)> {
+        let open = self.view.as_ref().filter(|open| open.uri == *uri)?;
+        let line = match self.moving {
+            Some((from, to)) if from == line && open.is_current() => to,
+            _ => line,
+        };
+        Some((line, open.on_screen().line(line)?))
     }
 
     fn is_view(&self, uri: &Uri) -> bool {
@@ -344,6 +399,7 @@ impl Server {
     fn response(&mut self, response: Response) {
         match self.pending.remove(&response.id) {
             Some(Pending::Edit) => self.refresh_view(),
+            Some(Pending::Reveal) => self.moving = None,
             Some(Pending::Dispatch) => {
                 let title = response
                     .response_result
@@ -414,6 +470,7 @@ impl Server {
                 if self.is_view(&document.uri) {
                     if let Some(open) = self.view.as_mut().filter(|open| open.uri == document.uri) {
                         open.client = Some(Document::new(document.text, document.version, &self.todo));
+                        open.forget_shown();
                     }
                     self.reveal_when_current();
                     return;
@@ -428,8 +485,11 @@ impl Server {
                 // The client's copy of the agenda follows the server's.
                 let (encoding, todo) = (self.client.encoding, &self.todo);
                 let view = self.view.as_mut().filter(|open| open.uri == params.text_document.uri);
-                if let Some(copy) = view.and_then(|open| open.client.as_mut()) {
-                    copy.apply(params.content_changes, params.text_document.version, encoding, todo);
+                if let Some(open) = view.filter(|open| open.client.is_some()) {
+                    if let Some(copy) = open.client.as_mut() {
+                        copy.apply(params.content_changes, params.text_document.version, encoding, todo);
+                    }
+                    open.forget_shown();
                     self.reveal_when_current();
                     return;
                 }
@@ -465,6 +525,7 @@ impl Server {
                     self.view = None;
                     self.reveal = None;
                     self.follow = None;
+                    self.moving = None;
                 }
             }
             _ => {}
@@ -531,10 +592,10 @@ impl Server {
     fn code_actions(&mut self, params: CodeActionParams) -> Option<Vec<CodeActionOrCommand>> {
         let uri = &params.text_document.uri;
         let only = params.context.only.as_deref();
-        if let Some(view) = self.view_at(uri) {
+        if self.is_view(uri) {
             // On an agenda line the actions are commands: the server
             // edits the entry's file and rebuilds the agenda.
-            let line = view.line(params.range.start.line)?;
+            let (_, line) = self.view_line(uri, params.range.start.line)?;
             line.entry.as_ref()?;
             let dated = line.entry.as_ref().is_some_and(|entry| entry.marker.is_some());
             let context = json!({ "textDocument": { "uri": uri }, "position": params.range.start });
@@ -589,7 +650,7 @@ impl Server {
     /// From an agenda line to the entry it shows.
     fn definition(&mut self, params: GotoDefinitionParams) -> Option<GotoDefinitionResponse> {
         let position = params.text_document_position_params;
-        let reference = self.view_at(&position.text_document.uri)?.line(position.position.line)?.entry.clone()?;
+        let reference = self.view_line(&position.text_document.uri, position.position.line)?.1.entry.clone()?;
         self.locate(&reference).map(GotoDefinitionResponse::Scalar)
     }
 
@@ -690,10 +751,10 @@ impl Server {
     fn set_view(&mut self, query: Query) {
         let view = self.render(query);
         match &mut self.view {
-            Some(open) => open.view = view,
+            Some(open) => open.replace(view),
             None if self.client.virtual_documents => {
                 if let Ok(uri) = views::VIRTUAL_URI.parse() {
-                    self.view = Some(OpenView { uri, file: None, view, client: None });
+                    self.view = Some(OpenView { uri, file: None, view, client: None, shown: None });
                 }
             }
             None => {
@@ -702,7 +763,7 @@ impl Server {
                 let file = directory.join(views::FILE_NAME);
                 if std::fs::create_dir_all(&directory).is_ok() {
                     if let Some(uri) = uri::from_path(&file) {
-                        self.view = Some(OpenView { uri, file: Some(file), view, client: None });
+                        self.view = Some(OpenView { uri, file: Some(file), view, client: None, shown: None });
                     }
                 }
             }
@@ -734,15 +795,13 @@ impl Server {
             take_focus: Some(true),
             selection: Some(Range::new(position, position)),
         };
-        self.send_request::<ShowDocument>(params, None);
+        self.send_request::<ShowDocument>(params, Some(Pending::Reveal));
     }
 
     /// Move the cursor as `open_view` wanted, if the client by now shows
     /// the text that the line number belongs to.
     fn reveal_when_current(&mut self) {
-        let current =
-            self.view.as_ref().and_then(|open| Some(open.client.as_ref()?.text == open.view.text)).unwrap_or(false);
-        if current {
+        if self.view.as_ref().is_some_and(OpenView::is_current) {
             if let Some(position) = self.reveal.take() {
                 self.show_view(position);
             }
@@ -756,6 +815,7 @@ impl Server {
         }
         self.set_view(query);
         self.follow = None;
+        self.moving = None;
         let Some(open) = &self.view else { return Err("Cannot create the agenda".to_string()) };
         let line = Position::new(open.view.home_line(), 0);
         match &open.client {
@@ -786,9 +846,10 @@ impl Server {
         let Some(open) = &mut self.view else { return };
         let changed = view.text != open.view.text;
         // The same text may still stand for entries that moved.
-        open.view = view;
-        if self.follow.as_ref().is_some_and(|follow| follow.text == open.view.text) {
-            self.reveal = self.follow.take().map(|follow| follow.position);
+        open.replace(view);
+        if let Some(follow) = self.follow.take_if(|follow| follow.text == open.view.text) {
+            self.reveal = Some(follow.position);
+            self.moving = Some((follow.from, follow.position.line));
         }
         if changed {
             self.publish_view();
@@ -866,7 +927,8 @@ impl Server {
                 let day =
                     self.view.as_ref().filter(|open| matches!(open.view.query, Query::Agenda { .. })).map(|open| {
                         let line = context.as_ref().filter(|context| context.text_document.uri == open.uri);
-                        line.and_then(|context| open.view.line(context.position.line)?.day).unwrap_or(open.view.start)
+                        line.and_then(|context| open.on_screen().line(context.position.line)?.day)
+                            .unwrap_or(open.view.start)
                     });
                 let start = day.map(|day| agenda::starting_day(day, span, &self.agenda));
                 Ok(self.open_view(Query::Agenda { start, span })?)
@@ -894,7 +956,7 @@ impl Server {
     /// The entry on the agenda line of `context`.
     fn entry_at(&self, context: Option<&Context>) -> Option<EntryRef> {
         let context = context?;
-        self.view_at(&context.text_document.uri)?.line(context.position.line)?.entry.clone()
+        self.view_line(&context.text_document.uri, context.position.line)?.1.entry.clone()
     }
 
     /// Run the editing command `id` at `context`, which is a place in an
@@ -907,10 +969,13 @@ impl Server {
         let position = context.position;
         // On an agenda line the command goes to the entry in its file.
         let on_view = self.is_view(&uri);
-        let line: Option<ViewLine> = self.view_at(&uri).and_then(|view| view.line(position.line)).cloned();
+        // The line the command is meant for, which is not always the one
+        // the cursor is reported on.
+        let line: Option<(u32, ViewLine)> =
+            self.view_line(&uri, position.line).map(|(number, line)| (number, line.clone()));
         let dated_view = self.view_at(&uri).is_some_and(|view| matches!(view.query, Query::Agenda { .. }));
         let (file, reference, command) = if on_view {
-            let reference = line.as_ref().and_then(|line| line.entry.clone()).ok_or("No entry on this line")?;
+            let reference = line.as_ref().and_then(|(_, line)| line.entry.clone()).ok_or("No entry on this line")?;
             let command = match id {
                 commands::DATE_LATER | commands::DATE_EARLIER if !dated_view => {
                     return Err("The TODO list shows no dates to change".into());
@@ -975,8 +1040,8 @@ impl Server {
         // of the agenda. The cursor goes with it, so that the next press
         // of the key reaches the same entry.
         self.follow = match (&line, heading) {
-            (Some(line), Some(heading)) if !matches!(id, commands::TODO_NEXT | commands::TODO_PREVIOUS) => {
-                self.followed(&file, &new_text, heading, (position, line))
+            (Some((number, line)), Some(heading)) if !matches!(id, commands::TODO_NEXT | commands::TODO_PREVIOUS) => {
+                self.followed(&file, &new_text, heading, (Position::new(*number, position.character), line))
             }
             _ => None,
         };
@@ -998,7 +1063,10 @@ impl Server {
         let view = self.render_with(query, Some((file, outline)));
         let (position, line) = from;
         let target = view.line_of(file, heading, (position.line, line))?;
-        (target != position.line)
-            .then(|| Follow { text: view.text, position: Position::new(target, position.character) })
+        (target != position.line).then(|| Follow {
+            text: view.text,
+            from: position.line,
+            position: Position::new(target, position.character),
+        })
     }
 }

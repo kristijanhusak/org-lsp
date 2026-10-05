@@ -208,7 +208,80 @@ check(work_buf > 0 and vim.api.nvim_buf_is_loaded(work_buf), 'the file of the en
 eq(vim.api.nvim_buf_get_lines(work_buf, 2, 3, false), { '* DONE Call the client' }, 'the entry changed in its file')
 eq(vim.bo[work_buf].modified, true, 'the change is not saved behind the user\'s back')
 
--- 6. Enter goes to the entry.
+-- 6. Priority and date change from the agenda, and the cursor goes with
+-- the entry when it moves to another line.
+local home_buf = vim.fn.bufnr(vim.fs.joinpath(directory, 'home.org'))
+local function home_line(number)
+  home_buf = home_buf > 0 and home_buf or vim.fn.bufnr(vim.fs.joinpath(directory, 'home.org'))
+  return home_buf > 0 and vim.api.nvim_buf_get_lines(home_buf, number - 1, number, false)[1] or nil
+end
+local function find(text)
+  for number, content in ipairs(lines()) do
+    if content == text then
+      return number
+    end
+  end
+  error('no agenda line `' .. text .. '`')
+end
+vim.api.nvim_win_set_cursor(0, { find('  home:       Sched. 2x:  TODO Water plants'), 14 })
+press('+')
+wait('the priority in the file', function()
+  return home_line(1) == '* TODO [#B] Water plants'
+end)
+wait_for_cursor('  home:       Sched. 2x:  TODO [#B] Water plants')
+press('+')
+wait_for_cursor('  home:       Sched. 2x:  TODO [#A] Water plants')
+-- One step later takes a date that has passed to today, …
+press('<S-Right>')
+wait('the date in the file', function()
+  return home_line(2) == 'SCHEDULED: <2026-05-18 Mon +1w>'
+end)
+wait_for_cursor('  home:       Scheduled:  TODO [#A] Water plants')
+-- … and the next one to tomorrow, where the cursor follows the entry.
+press('<S-Right>')
+wait('the next day in the file', function()
+  return home_line(2) == 'SCHEDULED: <2026-05-19 Tue +1w>'
+end)
+wait('the cursor to follow the entry to Tuesday', function()
+  local row = vim.api.nvim_win_get_cursor(0)[1]
+  return line(row) == '  home:       Scheduled:  TODO [#A] Water plants' and line(row - 2) == 'Tuesday    19 May 2026'
+end)
+eq(line(vim.api.nvim_win_get_cursor(0)[1] - 1), '  work:       14:00-15:00 Meeting ', 'below what Tuesday already had')
+eq(vim.api.nvim_win_get_cursor(0)[2], 14, 'the cursor keeps its column')
+-- Held down, the key repeats faster than Neovim usually reports changes
+-- to the server. No press is lost: each builds on the one before.
+for _ = 1, 5 do
+  press('<S-Right>')
+  vim.wait(30)
+end
+wait('five more days in the file', function()
+  return home_line(2) == 'SCHEDULED: <2026-05-24 Sun +1w>'
+end)
+wait('the cursor to follow the entry to Sunday', function()
+  local row = vim.api.nvim_win_get_cursor(0)[1]
+  return line(row) == '  home:       Scheduled:  TODO [#A] Water plants' and line(row - 1) == 'Sunday     24 May 2026'
+end)
+press('5<S-Left>')
+wait('back on Tuesday', function()
+  return home_line(2) == 'SCHEDULED: <2026-05-19 Tue +1w>' and cursor_line() == '  home:       Scheduled:  TODO [#A] Water plants'
+end)
+-- A count is a number of days. Back to how it was.
+press('3<S-Left>')
+wait('the old date in the file', function()
+  return home_line(2) == 'SCHEDULED: <2026-05-16 Sat +1w>'
+end)
+wait_for_cursor('  home:       Sched. 2x:  TODO [#A] Water plants')
+press('-')
+wait_for_cursor('  home:       Sched. 2x:  TODO [#B] Water plants')
+press('-')
+wait_for_cursor('  home:       Sched. 2x:  TODO [#C] Water plants')
+press('-')
+wait('the priority to be gone', function()
+  return home_line(1) == '* TODO Water plants'
+end)
+wait_for_cursor('  home:       Sched. 2x:  TODO Water plants')
+
+-- 7. Enter goes to the entry.
 vim.api.nvim_win_set_cursor(0, { 16, 0 })
 press('<CR>')
 wait('the file of the entry', function()
@@ -223,7 +296,7 @@ wait('the agenda to follow the saved file', function()
   return text == '  work:        9:00...... Scheduled:  TODO [#A] Write the report        :office:'
 end)
 
--- 7. Closing the agenda, and opening a view by command.
+-- 8. Closing the agenda, and opening a view by command.
 vim.api.nvim_set_current_buf(agenda_buf)
 press('q')
 check(not vim.api.nvim_buf_is_valid(agenda_buf), 'q closes the agenda')
@@ -245,7 +318,7 @@ vim.cmd('Org agenda todos')
 wait_for_view('Global list of TODO items of type: ALL')
 eq(vim.fn.getcompletion('Org agenda.l', 'cmdline'), { 'agenda.list', 'agenda.later' }, 'commands complete')
 
--- 8. A command that cannot work says why.
+-- 9. A command that cannot work says why.
 local messages = {}
 vim.notify = function(message)
   table.insert(messages, message)

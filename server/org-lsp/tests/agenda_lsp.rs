@@ -38,6 +38,10 @@ struct Client {
     view_version: i32,
     /// The version of the Org file that `edit` changes.
     file_version: i32,
+    /// Leave requests to show a document unanswered, like an editor that
+    /// has not got round to them yet. They wait in `held`.
+    hold_show: bool,
+    held: Vec<Request>,
     initialize: Value,
 }
 
@@ -53,6 +57,8 @@ impl Client {
             choice: None,
             view_version: 0,
             file_version: 1,
+            hold_show: false,
+            held: Vec::new(),
             initialize: Value::Null,
         };
         let params = json!({ "capabilities": capabilities, "initializationOptions": options, "rootUri": root });
@@ -72,6 +78,10 @@ impl Client {
     }
 
     fn answer(&mut self, request: Request) {
+        if self.hold_show && request.method == "window/showDocument" {
+            self.held.push(request);
+            return;
+        }
         let result = match request.method.as_str() {
             "workspace/applyEdit" => json!({ "applied": true }),
             "window/showDocument" => json!({ "success": true }),
@@ -825,6 +835,7 @@ fn changes_dates_from_the_agenda() {
 
     // The TODO list has entries, but no dates.
     client.command("org.agenda.todos", VIEW, 0);
+    client.refetch_view();
     let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 } });
     let error = client
         .request("workspace/executeCommand", json!({ "command": "org.date.later", "arguments": [context] }))
@@ -995,4 +1006,64 @@ fn agenda_actions_match_emacs() {
     assert!(failures.is_empty(), "agenda commands differ from Emacs:{failures}");
     // The comparison means something only if most commands changed a file.
     assert!(changed > cases.len() / 2, "{changed} of {} cases changed a file", cases.len());
+}
+
+/// Keys can come faster than the agenda is redrawn. A line number then
+/// names a line of the text the editor still shows, or the line the
+/// cursor is about to leave. The command must reach the entry the user
+/// sees under the cursor, never the one that has since taken its place.
+#[test]
+fn a_command_from_a_stale_agenda_reaches_its_entry() {
+    const NOTES: &str = "* TODO First\nSCHEDULED: <2026-05-18 Mon>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon>\n";
+    const URI: &str = "file:///org/notes.org";
+    let mut client = Client::editor(clock(), None);
+    let mut notes = NOTES.to_string();
+    client.open(URI, NOTES);
+    client.command("org.agenda.list", VIEW, 0);
+    let text = client.show_view();
+    let line_of = |text: &str, needle: &str| text.lines().position(|line| line.contains(needle)).unwrap() as u32;
+    let first = line_of(&text, "TODO First");
+    assert_eq!(line_of(&text, "TODO Second"), first + 1);
+
+    // "First" moves to Tuesday. Its line now shows "Second", but the
+    // editor has not fetched the new text.
+    client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
+    assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-19 Tue>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon>\n");
+    assert_eq!(client.view_text(VIEW).lines().nth(first as usize).unwrap(), "  notes:      Scheduled:  TODO Second");
+    // The same key again, from the same line of the old text.
+    client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
+    assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-20 Wed>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon>\n");
+    // What the editor asks about its old text is answered from that text.
+    let definition = client
+        .request(
+            "textDocument/definition",
+            json!({ "textDocument": { "uri": VIEW }, "position": { "line": first, "character": 0 } }),
+        )
+        .unwrap();
+    assert_eq!(definition["range"]["start"]["line"], 0);
+
+    // Now the editor shows the new text. The server asks it to move the
+    // cursor to the entry; until the editor has done that, the cursor is
+    // still reported on the old line, and still means "First".
+    client.hold_show = true;
+    client.received.clear();
+    let text = client.refetch_view();
+    client.settle();
+    assert_eq!(client.held.len(), 1);
+    let target = client.held[0].params["selection"]["start"]["line"].as_u64().unwrap() as u32;
+    assert_eq!(target, line_of(&text, "TODO First"));
+    assert_eq!(text.lines().nth(first as usize).unwrap(), "  notes:      Scheduled:  TODO Second");
+    client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
+    assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-21 Thu>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon>\n");
+
+    // Once the cursor has moved, a line means what it shows.
+    client.hold_show = false;
+    for request in std::mem::take(&mut client.held) {
+        client.answer(request);
+    }
+    client.refetch_view();
+    client.settle();
+    client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
+    assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-21 Thu>\n* TODO Second\nSCHEDULED: <2026-05-19 Tue>\n");
+    client.shutdown();
 }
