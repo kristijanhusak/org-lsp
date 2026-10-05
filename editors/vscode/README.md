@@ -1,22 +1,61 @@
 # Org (org-lsp) for VS Code
 
-Org mode support through the org-lsp language server:
-highlighting, folding, the outline, and TODO cycling.
+Org mode support through the org-lsp language server: highlighting,
+folding, the outline, TODO state changes and the agenda.
 
-The extension is a thin client. It starts the server, declares the `org`
-language and the server's semantic tokens, and exposes two commands:
+The extension is a thin client. It starts the server and tells it where
+the cursor is when a command runs. The commands, their keys and the token
+colors in `package.json` are generated from the server's own description
+of itself (`npm run generate`), so nothing about Org is listed here by
+hand.
+
+## Commands
+
+All commands are in the Command Palette under **Org**.
 
 | Command | What it does |
 | --- | --- |
-| `Org: Next TODO State` | Cycles the entry under the cursor forward |
-| `Org: Previous TODO State` | Cycles it backward |
+| `Org: Agenda for the current week or day` | Opens the agenda |
+| `Org: List of all TODO entries` | Opens the TODO list |
+| `Org: Agenda commands` | Asks which of the two to open |
+| `Org: Cycle TODO state forward` / `backward` | Changes the entry under the cursor, in an Org file or on an agenda line |
+| `Org: Agenda: …` | Move through time, change the span, rebuild, go to the entry |
 
-Both are also listed under **Quick Fix…** (`Ctrl+.`). No keys are bound by
-default; add your own in `keybindings.json`:
+TODO changes are also listed under **Quick Fix…** (`Ctrl+.`).
+
+## Keys
+
+The agenda is read-only, so it has Org's single-letter keys:
+
+| Key | In the agenda |
+| --- | --- |
+| `f` / `b` | Later / earlier |
+| `.` | Today |
+| `d`, `w`, `v d`, `v w`, `v t`, `v m`, `v y` | Day, week, fortnight, month, year |
+| `r` or `g` | Rebuild |
+| `t` | Next TODO state of the entry |
+| `Enter` or `Tab` | Go to the entry |
+
+No keys are bound in Org files: Emacs's keys there (`C-c C-t`,
+`S-<right>`) would take over copying and selecting. Add your own in
+`keybindings.json`:
 
 ```json
-{ "key": "alt+t", "command": "org-lsp.todoNext", "when": "editorTextFocus && editorLangId == org" }
+{ "key": "alt+t", "command": "org.todo.next", "when": "editorTextFocus && editorLangId == 'org'" }
 ```
+
+## Settings
+
+| Setting | Meaning |
+| --- | --- |
+| `org-lsp.settings` | The server's options, for example `{ "agendaFiles": ["~/org"], "logDone": "time" }`. They are listed in the server's `docs/protocol.md`. |
+| `org-lsp.server.path` | Path to the server binary; see below. |
+
+Without `agendaFiles`, the agenda is built from the Org files in the
+workspace folders.
+
+A change made from the agenda edits the entry's file and leaves it
+unsaved, like any edit; the agenda follows at once.
 
 ## The server binary
 
@@ -31,6 +70,10 @@ The extension looks for the server in this order:
 ```sh
 cargo build --release -p org-lsp   # in the repository root
 npm install
+npm run generate                   # package.json from the server's manifest
 npm run bundle-server              # copies the binary into server/
 npm run package                    # writes org-lsp-<version>.vsix
 ```
+
+`npm test` runs the extension inside VS Code against the server
+(`xvfb-run -a npm test` on a machine without a display).
