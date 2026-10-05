@@ -15,7 +15,9 @@ A case is a JSON object:
 
 `reference(cases)` adds `expected`: the files after the command, or
 `ERROR: …` when Emacs refuses. A case with an answer also gets `prompt`,
-the text the date prompt offered before the answer replaced it. Emacs runs under faketime, so both programs
+the text the date prompt offered before the answer replaced it. A command
+that changes the view (`agenda-goto-date`) also gets `agenda`, the text of the
+agenda after it, and `cursor`, the line the cursor is left on (from 0). Emacs runs under faketime, so both programs
 see the same clock. Set ORG_LISP_DIR to the `lisp` directory of an Org
 checkout to use that version instead of the one bundled with Emacs.
 """
@@ -38,7 +40,11 @@ COMMANDS = {
     "date-earlier": "(call-interactively 'org-agenda-do-date-earlier)",
     "schedule": "(call-interactively 'org-agenda-schedule)",
     "deadline": "(call-interactively 'org-agenda-deadline)",
+    "agenda-goto-date": "(call-interactively 'org-agenda-goto-date)",
 }
+
+# Commands that change the view rather than the files.
+VIEW_COMMANDS = {"agenda-goto-date"}
 
 DRIVER = r"""
 ;; Loaded here, not on demand inside a case's `let': its options take
@@ -76,7 +82,10 @@ DRIVER = r"""
                                 (setq org-lsp-prompt (or initial ""))
                                 answer)))
                      (eval form)
-                     (org-lsp-finish-notes))))
+                     (org-lsp-finish-notes)))
+                 (let ((view (with-current-buffer org-agenda-buffer-name
+                               (format "%d\n%s" (1- (line-number-at-pos)) (buffer-string)))))
+                   (with-temp-file (concat out ".view") (insert view))))
                (mapconcat
                 (lambda (file)
                   ;; Not `find-file-noselect': under a faked clock it takes
@@ -136,6 +145,11 @@ def reference(cases):
                 if "answer" in case:
                     with open(target + ".prompt", encoding="utf-8") as handle:
                         case["prompt"] = handle.read()
+                if case["command"] in VIEW_COMMANDS and os.path.exists(target + ".view"):
+                    with open(target + ".view", encoding="utf-8") as handle:
+                        cursor, agenda = handle.read().split("\n", 1)
+                    case["cursor"] = int(cursor)
+                    case["agenda"] = agenda
                 if result.startswith("ERROR:"):
                     case["expected"] = result
                 else:

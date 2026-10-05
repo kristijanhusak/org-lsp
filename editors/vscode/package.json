@@ -85,6 +85,11 @@
         "category": "Org"
       },
       {
+        "command": "org.agenda.goto.date",
+        "title": "Agenda: go to a date",
+        "category": "Org"
+      },
+      {
         "command": "org.agenda.day",
         "title": "Agenda: day view",
         "category": "Org"
@@ -1268,6 +1273,11 @@
       {
         "command": "org.agenda.today",
         "key": ".",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.goto.date",
+        "key": "j",
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
       },
       {

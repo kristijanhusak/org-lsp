@@ -25,10 +25,10 @@ use lsp_types::{
     TextDocumentSyncOptions, TextDocumentSyncSaveOptions, TextEdit, Uri, WorkspaceEdit,
 };
 use org_core::agenda::{self, Config as AgendaConfig, Now, Span};
-use org_core::date::{Date, DateTime};
+use org_core::date::{Date, DateTime, Day};
 use org_core::edit::{self, Call, Command as EditCommand, Settings as EditSettings};
 use org_core::outline::Outline;
-use org_core::planning::{self, Command as PlanningCommand};
+use org_core::planning::{self, Command as PlanningCommand, Prompt};
 use org_core::read_date::Settings as ReadDateSettings;
 use org_core::Refusal;
 use org_syntax::{Parse, TodoKeywords};
@@ -177,6 +177,19 @@ enum Reveal {
     /// To a line of the current view. When the view changes before the
     /// client has fetched it, the number means nothing any more.
     At(Position),
+    /// To the first line of a day, in a view that was just opened.
+    Day(Day),
+}
+
+impl Reveal {
+    /// Where the cursor goes in `view`.
+    fn position(&self, view: &View) -> Position {
+        match self {
+            Reveal::Home => Position::new(view.home_line(), 0),
+            Reveal::At(position) => *position,
+            Reveal::Day(day) => Position::new(view.day_line(*day), 0),
+        }
+    }
 }
 
 /// A source of agenda entries as the server holds it while it works.
@@ -390,6 +403,16 @@ fn refused(id: RequestId, refusal: Refusal) -> Response {
 }
 
 /// The command of `org-core` behind a command that asks for a date.
+/// How a command that asks for a date reads and shows the answer. Going to
+/// a date in the agenda asks with a plain `org-read-date`, which reads and
+/// shows it as `org-timestamp` does.
+fn date_command(id: &str) -> Option<PlanningCommand> {
+    match id {
+        commands::AGENDA_GOTO_DATE => Some(PlanningCommand::Timestamp { inactive: false }),
+        id => planning_command(id),
+    }
+}
+
 fn planning_command(id: &str) -> Option<PlanningCommand> {
     match id {
         commands::SCHEDULE => Some(PlanningCommand::Schedule),
@@ -936,11 +959,8 @@ impl Server {
     /// the text that the line number belongs to.
     fn reveal_when_current(&mut self) {
         if self.view.as_ref().is_some_and(OpenView::is_current) {
-            let position = match self.reveal.take() {
-                Some(Reveal::Home) => self.view.as_ref().map(|open| Position::new(open.view.home_line(), 0)),
-                Some(Reveal::At(position)) => Some(position),
-                None => None,
-            };
+            let reveal = self.reveal.take();
+            let position = reveal.zip(self.view.as_ref()).map(|(reveal, open)| reveal.position(&open.view));
             if let Some(position) = position {
                 self.show_view(position);
             }
@@ -949,6 +969,11 @@ impl Server {
 
     /// Show `query` in the client, with the cursor on today's date.
     fn open_view(&mut self, query: Query) -> std::result::Result<(), String> {
+        self.open_view_at(query, Reveal::Home)
+    }
+
+    /// Show `query` in the client, with the cursor where `reveal` says.
+    fn open_view_at(&mut self, query: Query, reveal: Reveal) -> std::result::Result<(), String> {
         if !self.client.show_document {
             return Err("This editor cannot open documents on the server's request".to_string());
         }
@@ -956,7 +981,7 @@ impl Server {
         self.follow = None;
         self.moving = None;
         let Some(open) = &self.view else { return Err("Cannot create the agenda".to_string()) };
-        let line = Position::new(open.view.home_line(), 0);
+        let line = reveal.position(&open.view);
         match &open.client {
             // The client shows this very text already.
             Some(copy) if copy.text == open.view.text => self.show_view(line),
@@ -964,7 +989,7 @@ impl Server {
             // would be applied to those lines, so it waits until the client
             // has replaced them; see `reveal_when_current`.
             Some(_) => {
-                self.reveal = Some(Reveal::Home);
+                self.reveal = Some(reveal);
                 self.publish_view();
             }
             // The client does not have the view open, as far as it has
@@ -991,7 +1016,7 @@ impl Server {
             self.moving = Some((follow.from, follow.position.line));
         } else if changed {
             // Line numbers of the old text: the cursor stays where it is.
-            self.reveal = self.reveal.take().filter(|reveal| matches!(reveal, Reveal::Home));
+            self.reveal = self.reveal.take().filter(|reveal| !matches!(reveal, Reveal::At(_)));
             self.moving = None;
         }
         if changed {
@@ -1037,6 +1062,14 @@ impl Server {
     /// (`org-agenda-schedule`, `org-agenda-deadline`).
     fn date_target(&self, id: &str, context: &Context) -> std::result::Result<Target, Refusal> {
         let uri = &context.text_document.uri;
+        if id == commands::AGENDA_GOTO_DATE {
+            let open = self.view.as_ref().filter(|open| open.uri == *uri);
+            let open = open.ok_or_else(|| Refusal::NotHere("This command works in the agenda".to_string()))?;
+            if !matches!(open.view.query, Query::Agenda { .. }) {
+                return Err("The TODO list has no dates to move through".into());
+            }
+            return Ok(Target::Agenda { view: uri.clone() });
+        }
         if !self.is_view(uri) {
             return Ok(Target::Place { uri: uri.clone(), position: context.position });
         }
@@ -1061,6 +1094,7 @@ impl Server {
                     heading: None,
                 })
             }
+            Target::Agenda { .. } => Err("The agenda has no file to change".into()),
             Target::Entry { row, .. } => {
                 let reference = row.entry.as_ref().ok_or("No entry on this line")?;
                 self.with_source(&reference.uri, |text, _, _, outline, version| {
@@ -1083,15 +1117,24 @@ impl Server {
         }
     }
 
+    /// What the date prompt of `command` at `target` starts from.
+    fn date_prompt_start(&mut self, command: PlanningCommand, target: &Target) -> std::result::Result<Prompt, Refusal> {
+        if let Target::Agenda { .. } = target {
+            // `org-read-date` without a default: today, and nothing typed.
+            return Ok(Prompt { default: None, value: String::new() });
+        }
+        let source = self.date_source(target)?;
+        planning::prompt(command, &source.text, source.offset)
+    }
+
     /// A command that asks for a date. Without an answer it says what to
     /// ask: `{ "input": { "kind", "prompt", "value" } }`, where `value` is
     /// the text the prompt starts with. With `input` it runs.
     fn ask_date(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
-        let command = planning_command(id).ok_or("Unknown command")?;
+        let command = date_command(id).ok_or("Unknown command")?;
         let Some(answer) = &context.input else {
             let target = self.date_target(id, context)?;
-            let source = self.date_source(&target)?;
-            let prompt = planning::prompt(command, &source.text, source.offset)?;
+            let prompt = self.date_prompt_start(command, &target)?;
             let input = commands::input(id).ok_or("Unknown command")?;
             // In a client that shows it, the calendar opens instead; the
             // answer is typed there once asked for (`org.calendar.type`).
@@ -1124,6 +1167,9 @@ impl Server {
     /// Run the command `id` that asked for a date, at `target`, with
     /// `answer`.
     fn apply_date(&mut self, id: &str, target: &Target, answer: &str) -> std::result::Result<(), Refusal> {
+        if let Target::Agenda { .. } = target {
+            return self.goto_date(answer);
+        }
         let command = planning_command(id).ok_or("Unknown command")?;
         let source = self.date_source(target)?;
         let key = source.file.as_str().to_string();
@@ -1154,17 +1200,32 @@ impl Server {
                     source.heading.and_then(|heading| self.followed(&source.file, &outcome.text, heading, from));
                 Pending::Edit
             }
-            (Target::Place { .. }, Some(cursor)) => {
+            (_, Some(cursor)) => {
                 let position = LineIndex::new(&outcome.text).position(&outcome.text, cursor, encoding);
                 Pending::EditAndMove { uri: source.file.clone(), position }
             }
-            (Target::Place { .. }, None) => Pending::Edit,
+            (_, None) => Pending::Edit,
         };
         let edit = self.workspace_edit(&source.file, source.version, edits);
         self.edited.insert(key);
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
         self.send_request::<ApplyWorkspaceEdit>(params, Some(pending));
         Ok(())
+    }
+
+    /// `org-agenda-goto-date`: the agenda from the day `answer` names,
+    /// over as many days as its span has from there, with the cursor on
+    /// that day. A week or a fortnight still starts on the first day of
+    /// the week (`org-agenda-start-on-weekday`).
+    fn goto_date(&mut self, answer: &str) -> std::result::Result<(), Refusal> {
+        let read = org_core::read_date::read_date(answer, None, self.date_time(), &self.read_date)?;
+        let day = read.date.to_day();
+        let open = self.view.as_ref().ok_or("No agenda is open")?;
+        let Query::Agenda { span, .. } = open.view.query else {
+            return Err("The TODO list has no dates to move through".into());
+        };
+        let span = Span::from_days(span.days(day));
+        Ok(self.open_view_at(Query::Agenda { start: Some(day), span }, Reveal::Day(day))?)
     }
 
     // ----- the date prompt
@@ -1320,10 +1381,11 @@ impl Server {
             self.publish_date_prompt();
             return Ok(json!({ "timestamp": stamp }));
         }
-        let command = planning_command(id).ok_or("Unknown command")?;
+        let command = date_command(id).ok_or("Unknown command")?;
         let target = self.date_target(id, context)?;
-        let source = self.date_source(&target)?;
-        let stamp = planning::preview(command, &source.text, source.offset, answer, now, &settings)?;
+        let start = self.date_prompt_start(command, &target)?;
+        let read = org_core::read_date::read_date(answer, start.default, now, &settings)?;
+        let stamp = planning::timestamp_for(&read, matches!(command, PlanningCommand::Timestamp { inactive: true }));
         Ok(json!({ "timestamp": stamp }))
     }
 

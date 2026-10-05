@@ -1421,5 +1421,216 @@
   "answer": "fri",
   "prompt": "",
   "expected": "ERROR: (user-error \"Command not allowed in this line\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "span": "week",
+  "line": "Monday     18 May 2026",
+  "command": "agenda-goto-date",
+  "answer": "fri",
+  "prompt": "",
+  "cursor": 27,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:\n  work:        9:30...... Standup \n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 3x:  TODO Pay rent                                  :money:\n  home:       Sched. 2x:  TODO Water plants\n  work:        8 d. ago:  TODO Old deadline\n  home:       Deadline:   TODO Pay rent                                  :money:\n  work:       In   2 d.:  TODO Call the client\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \n  home:       Scheduled:  TODO Holiday\n  home:       (1/3):  TODO Holiday\nWednesday  20 May 2026\n  home:       (2/3):  TODO Holiday\n  work:       Deadline:   TODO Call the client\nThursday   21 May 2026\n  home:       (3/3):  TODO Holiday\n  work:       (1/2):  Conference\nFriday     22 May 2026\n  work:       (2/2):  Conference\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "span": "week",
+  "line": "Monday     18 May 2026",
+  "command": "agenda-goto-date",
+  "answer": "+2w",
+  "prompt": "",
+  "cursor": 1,
+  "agenda": "Week-agenda (W23):\nMonday      1 June 2026 W23\n  work:        9:30...... Standup \nTuesday     2 June 2026\nWednesday   3 June 2026\nThursday    4 June 2026\nFriday      5 June 2026\nSaturday    6 June 2026\n  home:       Scheduled:  TODO Water plants\nSunday      7 June 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "span": "week",
+  "line": "Monday     18 May 2026",
+  "command": "agenda-goto-date",
+  "answer": "2026-06-15",
+  "prompt": "",
+  "cursor": 1,
+  "agenda": "Week-agenda (W25):\nMonday     15 June 2026 W25\n  work:        9:30...... Standup \nTuesday    16 June 2026\nWednesday  17 June 2026\nThursday   18 June 2026\nFriday     19 June 2026\nSaturday   20 June 2026\n  home:       Scheduled:  TODO Water plants\nSunday     21 June 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "span": "day",
+  "line": "Monday     18 May 2026",
+  "command": "agenda-goto-date",
+  "answer": "1",
+  "prompt": "",
+  "cursor": 1,
+  "agenda": "Day-agenda (W23):\nMonday      1 June 2026 W23\n               8:00...... ----------------\n  work:        9:30...... Standup \n              10:00...... ----------------\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "span": "day",
+  "line": "Monday     18 May 2026",
+  "command": "agenda-goto-date",
+  "answer": "-3d",
+  "prompt": "",
+  "cursor": 1,
+  "agenda": "Day-agenda (W20):\nFriday     15 May 2026\n  home:       Scheduled:  TODO Pay rent                                  :money:\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "span": "month",
+  "line": "Monday     18 May 2026",
+  "command": "agenda-goto-date",
+  "answer": "2026-06-10",
+  "prompt": "",
+  "cursor": 1,
+  "agenda": "30 days-agenda (W24-W28):\nWednesday  10 June 2026\nThursday   11 June 2026\nFriday     12 June 2026\nSaturday   13 June 2026\n  home:       Scheduled:  TODO Water plants\nSunday     14 June 2026\nMonday     15 June 2026 W25\n  work:        9:30...... Standup \nTuesday    16 June 2026\nWednesday  17 June 2026\nThursday   18 June 2026\nFriday     19 June 2026\nSaturday   20 June 2026\n  home:       Scheduled:  TODO Water plants\nSunday     21 June 2026\nMonday     22 June 2026 W26\n  work:        9:30...... Standup \nTuesday    23 June 2026\nWednesday  24 June 2026\nThursday   25 June 2026\nFriday     26 June 2026\nSaturday   27 June 2026\n  home:       Scheduled:  TODO Water plants\nSunday     28 June 2026\nMonday     29 June 2026 W27\n  work:        9:30...... Standup \nTuesday    30 June 2026\nWednesday   1 July 2026\nThursday    2 July 2026\nFriday      3 July 2026\nSaturday    4 July 2026\n  home:       Scheduled:  TODO Water plants\nSunday      5 July 2026\nMonday      6 July 2026 W28\n  work:        9:30...... Standup \nTuesday     7 July 2026\nWednesday   8 July 2026\nThursday    9 July 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "span": "month",
+  "line": "Monday     18 May 2026",
+  "command": "agenda-goto-date",
+  "answer": "jan 2",
+  "prompt": "",
+  "cursor": 1,
+  "agenda": "31 days-agenda (W53-W05):\nSaturday    2 January 2027\n  home:       Scheduled:  TODO Water plants\nSunday      3 January 2027\nMonday      4 January 2027 W01\n  work:        9:30...... Standup \nTuesday     5 January 2027\nWednesday   6 January 2027\nThursday    7 January 2027\nFriday      8 January 2027\nSaturday    9 January 2027\n  home:       Scheduled:  TODO Water plants\nSunday     10 January 2027\nMonday     11 January 2027 W02\n  work:        9:30...... Standup \nTuesday    12 January 2027\nWednesday  13 January 2027\nThursday   14 January 2027\nFriday     15 January 2027\nSaturday   16 January 2027\n  home:       Scheduled:  TODO Water plants\nSunday     17 January 2027\nMonday     18 January 2027 W03\n  work:        9:30...... Standup \nTuesday    19 January 2027\nWednesday  20 January 2027\nThursday   21 January 2027\nFriday     22 January 2027\nSaturday   23 January 2027\n  home:       Scheduled:  TODO Water plants\nSunday     24 January 2027\nMonday     25 January 2027 W04\n  work:        9:30...... Standup \nTuesday    26 January 2027\nWednesday  27 January 2027\nThursday   28 January 2027\nFriday     29 January 2027\nSaturday   30 January 2027\n  home:       Scheduled:  TODO Water plants\nSunday     31 January 2027\nMonday      1 February 2027 W05\n  work:        9:30...... Standup \n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "span": "fortnight",
+  "line": "Monday     18 May 2026",
+  "command": "agenda-goto-date",
+  "answer": "+1d",
+  "prompt": "",
+  "cursor": 17,
+  "agenda": "Fortnight-agenda (W21-W22):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:\n  work:        9:30...... Standup \n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 3x:  TODO Pay rent                                  :money:\n  home:       Sched. 2x:  TODO Water plants\n  work:        8 d. ago:  TODO Old deadline\n  home:       Deadline:   TODO Pay rent                                  :money:\n  work:       In   2 d.:  TODO Call the client\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \n  home:       Scheduled:  TODO Holiday\n  home:       (1/3):  TODO Holiday\nWednesday  20 May 2026\n  home:       (2/3):  TODO Holiday\n  work:       Deadline:   TODO Call the client\nThursday   21 May 2026\n  home:       (3/3):  TODO Holiday\n  work:       (1/2):  Conference\nFriday     22 May 2026\n  work:       (2/2):  Conference\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     24 May 2026\nMonday     25 May 2026 W22\n  work:        9:30...... Standup \nTuesday    26 May 2026\nWednesday  27 May 2026\nThursday   28 May 2026\nFriday     29 May 2026\nSaturday   30 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     31 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "span": "year",
+  "line": "Monday     18 May 2026",
+  "command": "agenda-goto-date",
+  "answer": "2026-07-04",
+  "prompt": "",
+  "cursor": 1,
+  "agenda": "365 days-agenda:\nSaturday    4 July 2026\n  home:       Scheduled:  TODO Water plants\nSunday      5 July 2026\nMonday      6 July 2026 W28\n  work:        9:30...... Standup \nTuesday     7 July 2026\nWednesday   8 July 2026\nThursday    9 July 2026\nFriday     10 July 2026\nSaturday   11 July 2026\n  home:       Scheduled:  TODO Water plants\nSunday     12 July 2026\nMonday     13 July 2026 W29\n  work:        9:30...... Standup \nTuesday    14 July 2026\nWednesday  15 July 2026\nThursday   16 July 2026\nFriday     17 July 2026\nSaturday   18 July 2026\n  home:       Scheduled:  TODO Water plants\nSunday     19 July 2026\nMonday     20 July 2026 W30\n  work:        9:30...... Standup \nTuesday    21 July 2026\nWednesday  22 July 2026\nThursday   23 July 2026\nFriday     24 July 2026\nSaturday   25 July 2026\n  home:       Scheduled:  TODO Water plants\nSunday     26 July 2026\nMonday     27 July 2026 W31\n  work:        9:30...... Standup \nTuesday    28 July 2026\nWednesday  29 July 2026\nThursday   30 July 2026\nFriday     31 July 2026\nSaturday    1 August 2026\n  home:       Scheduled:  TODO Water plants\nSunday      2 August 2026\nMonday      3 August 2026 W32\n  work:        9:30...... Standup \nTuesday     4 August 2026\nWednesday   5 August 2026\nThursday    6 August 2026\nFriday      7 August 2026\nSaturday    8 August 2026\n  home:       Scheduled:  TODO Water plants\nSunday      9 August 2026\nMonday     10 August 2026 W33\n  work:        9:30...... Standup \nTuesday    11 August 2026\nWednesday  12 August 2026\nThursday   13 August 2026\nFriday     14 August 2026\nSaturday   15 August 2026\n  home:       Scheduled:  TODO Water plants\nSunday     16 August 2026\nMonday     17 August 2026 W34\n  work:        9:30...... Standup \nTuesday    18 August 2026\nWednesday  19 August 2026\nThursday   20 August 2026\nFriday     21 August 2026\nSaturday   22 August 2026\n  home:       Scheduled:  TODO Water plants\nSunday     23 August 2026\nMonday     24 August 2026 W35\n  work:        9:30...... Standup \nTuesday    25 August 2026\nWednesday  26 August 2026\nThursday   27 August 2026\nFriday     28 August 2026\nSaturday   29 August 2026\n  home:       Scheduled:  TODO Water plants\nSunday     30 August 2026\nMonday     31 August 2026 W36\n  work:        9:30...... Standup \nTuesday     1 September 2026\nWednesday   2 September 2026\nThursday    3 September 2026\nFriday      4 September 2026\nSaturday    5 September 2026\n  home:       Scheduled:  TODO Water plants\nSunday      6 September 2026\nMonday      7 September 2026 W37\n  work:        9:30...... Standup \nTuesday     8 September 2026\nWednesday   9 September 2026\nThursday   10 September 2026\nFriday     11 September 2026\nSaturday   12 September 2026\n  home:       Scheduled:  TODO Water plants\nSunday     13 September 2026\nMonday     14 September 2026 W38\n  work:        9:30...... Standup \nTuesday    15 September 2026\nWednesday  16 September 2026\nThursday   17 September 2026\nFriday     18 September 2026\nSaturday   19 September 2026\n  home:       Scheduled:  TODO Water plants\nSunday     20 September 2026\nMonday     21 September 2026 W39\n  work:        9:30...... Standup \nTuesday    22 September 2026\nWednesday  23 September 2026\nThursday   24 September 2026\nFriday     25 September 2026\nSaturday   26 September 2026\n  home:       Scheduled:  TODO Water plants\nSunday     27 September 2026\nMonday     28 September 2026 W40\n  work:        9:30...... Standup \nTuesday    29 September 2026\nWednesday  30 September 2026\nThursday    1 October 2026\nFriday      2 October 2026\nSaturday    3 October 2026\n  home:       Scheduled:  TODO Water plants\nSunday      4 October 2026\nMonday      5 October 2026 W41\n  work:        9:30...... Standup \nTuesday     6 October 2026\nWednesday   7 October 2026\nThursday    8 October 2026\nFriday      9 October 2026\nSaturday   10 October 2026\n  home:       Scheduled:  TODO Water plants\nSunday     11 October 2026\nMonday     12 October 2026 W42\n  work:        9:30...... Standup \nTuesday    13 October 2026\nWednesday  14 October 2026\nThursday   15 October 2026\nFriday     16 October 2026\nSaturday   17 October 2026\n  home:       Scheduled:  TODO Water plants\nSunday     18 October 2026\nMonday     19 October 2026 W43\n  work:        9:30...... Standup \nTuesday    20 October 2026\nWednesday  21 October 2026\nThursday   22 October 2026\nFriday     23 October 2026\nSaturday   24 October 2026\n  home:       Scheduled:  TODO Water plants\nSunday     25 October 2026\nMonday     26 October 2026 W44\n  work:        9:30...... Standup \nTuesday    27 October 2026\nWednesday  28 October 2026\nThursday   29 October 2026\nFriday     30 October 2026\nSaturday   31 October 2026\n  home:       Scheduled:  TODO Water plants\nSunday      1 November 2026\nMonday      2 November 2026 W45\n  work:        9:30...... Standup \nTuesday     3 November 2026\nWednesday   4 November 2026\nThursday    5 November 2026\nFriday      6 November 2026\nSaturday    7 November 2026\n  home:       Scheduled:  TODO Water plants\nSunday      8 November 2026\nMonday      9 November 2026 W46\n  work:        9:30...... Standup \nTuesday    10 November 2026\nWednesday  11 November 2026\nThursday   12 November 2026\nFriday     13 November 2026\nSaturday   14 November 2026\n  home:       Scheduled:  TODO Water plants\nSunday     15 November 2026\nMonday     16 November 2026 W47\n  work:        9:30...... Standup \nTuesday    17 November 2026\nWednesday  18 November 2026\nThursday   19 November 2026\nFriday     20 November 2026\nSaturday   21 November 2026\n  home:       Scheduled:  TODO Water plants\nSunday     22 November 2026\nMonday     23 November 2026 W48\n  work:        9:30...... Standup \nTuesday    24 November 2026\nWednesday  25 November 2026\nThursday   26 November 2026\nFriday     27 November 2026\nSaturday   28 November 2026\n  home:       Scheduled:  TODO Water plants\nSunday     29 November 2026\nMonday     30 November 2026 W49\n  work:        9:30...... Standup \nTuesday     1 December 2026\nWednesday   2 December 2026\nThursday    3 December 2026\nFriday      4 December 2026\nSaturday    5 December 2026\n  home:       Scheduled:  TODO Water plants\nSunday      6 December 2026\nMonday      7 December 2026 W50\n  work:        9:30...... Standup \nTuesday     8 December 2026\nWednesday   9 December 2026\nThursday   10 December 2026\nFriday     11 December 2026\nSaturday   12 December 2026\n  home:       Scheduled:  TODO Water plants\nSunday     13 December 2026\nMonday     14 December 2026 W51\n  work:        9:30...... Standup \nTuesday    15 December 2026\nWednesday  16 December 2026\nThursday   17 December 2026\nFriday     18 December 2026\nSaturday   19 December 2026\n  home:       Scheduled:  TODO Water plants\nSunday     20 December 2026\nMonday     21 December 2026 W52\n  work:        9:30...... Standup \nTuesday    22 December 2026\nWednesday  23 December 2026\nThursday   24 December 2026\nFriday     25 December 2026\nSaturday   26 December 2026\n  home:       Scheduled:  TODO Water plants\nSunday     27 December 2026\nMonday     28 December 2026 W53\n  work:        9:30...... Standup \nTuesday    29 December 2026\nWednesday  30 December 2026\nThursday   31 December 2026\nFriday      1 January 2027\nSaturday    2 January 2027\n  home:       Scheduled:  TODO Water plants\nSunday      3 January 2027\nMonday      4 January 2027 W01\n  work:        9:30...... Standup \nTuesday     5 January 2027\nWednesday   6 January 2027\nThursday    7 January 2027\nFriday      8 January 2027\nSaturday    9 January 2027\n  home:       Scheduled:  TODO Water plants\nSunday     10 January 2027\nMonday     11 January 2027 W02\n  work:        9:30...... Standup \nTuesday    12 January 2027\nWednesday  13 January 2027\nThursday   14 January 2027\nFriday     15 January 2027\nSaturday   16 January 2027\n  home:       Scheduled:  TODO Water plants\nSunday     17 January 2027\nMonday     18 January 2027 W03\n  work:        9:30...... Standup \nTuesday    19 January 2027\nWednesday  20 January 2027\nThursday   21 January 2027\nFriday     22 January 2027\nSaturday   23 January 2027\n  home:       Scheduled:  TODO Water plants\nSunday     24 January 2027\nMonday     25 January 2027 W04\n  work:        9:30...... Standup \nTuesday    26 January 2027\nWednesday  27 January 2027\nThursday   28 January 2027\nFriday     29 January 2027\nSaturday   30 January 2027\n  home:       Scheduled:  TODO Water plants\nSunday     31 January 2027\nMonday      1 February 2027 W05\n  work:        9:30...... Standup \nTuesday     2 February 2027\nWednesday   3 February 2027\nThursday    4 February 2027\nFriday      5 February 2027\nSaturday    6 February 2027\n  home:       Scheduled:  TODO Water plants\nSunday      7 February 2027\nMonday      8 February 2027 W06\n  work:        9:30...... Standup \nTuesday     9 February 2027\nWednesday  10 February 2027\nThursday   11 February 2027\nFriday     12 February 2027\nSaturday   13 February 2027\n  home:       Scheduled:  TODO Water plants\nSunday     14 February 2027\nMonday     15 February 2027 W07\n  work:        9:30...... Standup \nTuesday    16 February 2027\nWednesday  17 February 2027\nThursday   18 February 2027\nFriday     19 February 2027\nSaturday   20 February 2027\n  home:       Scheduled:  TODO Water plants\nSunday     21 February 2027\nMonday     22 February 2027 W08\n  work:        9:30...... Standup \nTuesday    23 February 2027\nWednesday  24 February 2027\nThursday   25 February 2027\nFriday     26 February 2027\nSaturday   27 February 2027\n  home:       Scheduled:  TODO Water plants\nSunday     28 February 2027\nMonday      1 March 2027 W09\n  work:        9:30...... Standup \nTuesday     2 March 2027\nWednesday   3 March 2027\nThursday    4 March 2027\nFriday      5 March 2027\nSaturday    6 March 2027\n  home:       Scheduled:  TODO Water plants\nSunday      7 March 2027\nMonday      8 March 2027 W10\n  work:        9:30...... Standup \nTuesday     9 March 2027\nWednesday  10 March 2027\nThursday   11 March 2027\nFriday     12 March 2027\nSaturday   13 March 2027\n  home:       Scheduled:  TODO Water plants\nSunday     14 March 2027\nMonday     15 March 2027 W11\n  work:        9:30...... Standup \nTuesday    16 March 2027\nWednesday  17 March 2027\nThursday   18 March 2027\nFriday     19 March 2027\nSaturday   20 March 2027\n  home:       Scheduled:  TODO Water plants\nSunday     21 March 2027\nMonday     22 March 2027 W12\n  work:        9:30...... Standup \nTuesday    23 March 2027\nWednesday  24 March 2027\nThursday   25 March 2027\nFriday     26 March 2027\nSaturday   27 March 2027\n  home:       Scheduled:  TODO Water plants\nSunday     28 March 2027\nMonday     29 March 2027 W13\n  work:        9:30...... Standup \nTuesday    30 March 2027\nWednesday  31 March 2027\nThursday    1 April 2027\nFriday      2 April 2027\nSaturday    3 April 2027\n  home:       Scheduled:  TODO Water plants\nSunday      4 April 2027\nMonday      5 April 2027 W14\n  work:        9:30...... Standup \nTuesday     6 April 2027\nWednesday   7 April 2027\nThursday    8 April 2027\nFriday      9 April 2027\nSaturday   10 April 2027\n  home:       Scheduled:  TODO Water plants\nSunday     11 April 2027\nMonday     12 April 2027 W15\n  work:        9:30...... Standup \nTuesday    13 April 2027\nWednesday  14 April 2027\nThursday   15 April 2027\nFriday     16 April 2027\nSaturday   17 April 2027\n  home:       Scheduled:  TODO Water plants\nSunday     18 April 2027\nMonday     19 April 2027 W16\n  work:        9:30...... Standup \nTuesday    20 April 2027\nWednesday  21 April 2027\nThursday   22 April 2027\nFriday     23 April 2027\nSaturday   24 April 2027\n  home:       Scheduled:  TODO Water plants\nSunday     25 April 2027\nMonday     26 April 2027 W17\n  work:        9:30...... Standup \nTuesday    27 April 2027\nWednesday  28 April 2027\nThursday   29 April 2027\nFriday     30 April 2027\nSaturday    1 May 2027\n  home:       Scheduled:  TODO Water plants\nSunday      2 May 2027\nMonday      3 May 2027 W18\n  work:        9:30...... Standup \nTuesday     4 May 2027\nWednesday   5 May 2027\nThursday    6 May 2027\nFriday      7 May 2027\nSaturday    8 May 2027\n  home:       Scheduled:  TODO Water plants\nSunday      9 May 2027\nMonday     10 May 2027 W19\n  work:        9:30...... Standup \nTuesday    11 May 2027\nWednesday  12 May 2027\nThursday   13 May 2027\nFriday     14 May 2027\nSaturday   15 May 2027\n  home:       Scheduled:  TODO Water plants\nSunday     16 May 2027\nMonday     17 May 2027 W20\n  work:        9:30...... Standup \nTuesday    18 May 2027\nWednesday  19 May 2027\nThursday   20 May 2027\nFriday     21 May 2027\nSaturday   22 May 2027\n  home:       Scheduled:  TODO Water plants\nSunday     23 May 2027\nMonday     24 May 2027 W21\n  work:        9:30...... Standup \nTuesday    25 May 2027\nWednesday  26 May 2027\nThursday   27 May 2027\nFriday     28 May 2027\nSaturday   29 May 2027\n  home:       Scheduled:  TODO Water plants\nSunday     30 May 2027\nMonday     31 May 2027 W22\n  work:        9:30...... Standup \nTuesday     1 June 2027\nWednesday   2 June 2027\nThursday    3 June 2027\nFriday      4 June 2027\nSaturday    5 June 2027\n  home:       Scheduled:  TODO Water plants\nSunday      6 June 2027\nMonday      7 June 2027 W23\n  work:        9:30...... Standup \nTuesday     8 June 2027\nWednesday   9 June 2027\nThursday   10 June 2027\nFriday     11 June 2027\nSaturday   12 June 2027\n  home:       Scheduled:  TODO Water plants\nSunday     13 June 2027\nMonday     14 June 2027 W24\n  work:        9:30...... Standup \nTuesday    15 June 2027\nWednesday  16 June 2027\nThursday   17 June 2027\nFriday     18 June 2027\nSaturday   19 June 2027\n  home:       Scheduled:  TODO Water plants\nSunday     20 June 2027\nMonday     21 June 2027 W25\n  work:        9:30...... Standup \nTuesday    22 June 2027\nWednesday  23 June 2027\nThursday   24 June 2027\nFriday     25 June 2027\nSaturday   26 June 2027\n  home:       Scheduled:  TODO Water plants\nSunday     27 June 2027\nMonday     28 June 2027 W26\n  work:        9:30...... Standup \nTuesday    29 June 2027\nWednesday  30 June 2027\nThursday    1 July 2027\nFriday      2 July 2027\nSaturday    3 July 2027\n  home:       Scheduled:  TODO Water plants\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "span": "week",
+  "line": "Monday     18 May 2026",
+  "command": "agenda-goto-date",
+  "answer": "2026-05-18",
+  "prompt": "",
+  "cursor": 1,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:\n  work:        9:30...... Standup \n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 3x:  TODO Pay rent                                  :money:\n  home:       Sched. 2x:  TODO Water plants\n  work:        8 d. ago:  TODO Old deadline\n  home:       Deadline:   TODO Pay rent                                  :money:\n  work:       In   2 d.:  TODO Call the client\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \n  home:       Scheduled:  TODO Holiday\n  home:       (1/3):  TODO Holiday\nWednesday  20 May 2026\n  home:       (2/3):  TODO Holiday\n  work:       Deadline:   TODO Call the client\nThursday   21 May 2026\n  home:       (3/3):  TODO Holiday\n  work:       (1/2):  Conference\nFriday     22 May 2026\n  work:       (2/2):  Conference\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "span": "day",
+  "line": "Monday     18 May 2026",
+  "command": "agenda-goto-date",
+  "answer": "2026-05-21 10:00",
+  "prompt": "",
+  "cursor": 1,
+  "agenda": "Day-agenda (W21):\nThursday   21 May 2026\n  home:       (3/3):  TODO Holiday\n  work:       (1/2):  Conference\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "view": "todo",
+  "line": "TODO Pay rent",
+  "command": "agenda-goto-date",
+  "answer": "fri",
+  "prompt": "",
+  "expected": "ERROR: (error \"Not allowed in ’todo’-type agenda buffer or component\")"
  }
 ]

@@ -240,6 +240,24 @@ describe('The agenda', () => {
     await agenda('Week-agenda (W21):');
   });
 
+  it('goes to a date picked in the calendar', async () => {
+    const calendar = () => vscode.window.visibleTextEditors.find((editor) => editor.document.languageId === 'org-date');
+    await vscode.commands.executeCommand('org.agenda.goto.date');
+    const editor = await until('the calendar', () => vscode.window.activeTextEditor?.document.languageId === 'org-date' && vscode.window.activeTextEditor);
+    await until('the prompt on today', () => editor.document.getText().trimEnd().endsWith('Date+time [2026-05-18]:    => <2026-05-18 Mon>'));
+    await vscode.commands.executeCommand('org.calendar.week.later');
+    await until('a week later', () => editor.document.getText().trimEnd().endsWith('=> <2026-05-25 Mon>'));
+    await vscode.commands.executeCommand('org.calendar.day.later');
+    await until('a day later', () => editor.document.getText().trimEnd().endsWith('=> <2026-05-26 Tue>'));
+    await vscode.commands.executeCommand('org.calendar.select');
+    await until('the calendar to close', () => !calendar());
+    await agenda('Week-agenda (W22):');
+    await until('the cursor on the day', () => activeLine() === 'Tuesday    26 May 2026');
+    await vscode.commands.executeCommand('org.agenda.today');
+    await agenda('Week-agenda (W21):');
+    await until('the cursor on today', () => activeLine() === 'Monday     18 May 2026 W21');
+  });
+
   it('changes an entry from its line and follows the file', async () => {
     const lines = activeText().split('\n');
     const entry = lines.findIndex((line) => line.endsWith('Sched. 2x:  TODO Water plants'));

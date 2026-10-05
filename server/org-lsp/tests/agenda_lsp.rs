@@ -1022,6 +1022,21 @@ fn agenda_actions_match_emacs() {
             after.insert(name, Value::String(changed));
         }
         changed += usize::from(after != *files);
+        // A command that changes the view: the new text, and where the
+        // cursor goes in it.
+        if let (Some(agenda), Ok(_)) = (case.get("agenda"), &result) {
+            let shown = client.view_text(VIEW);
+            let reveal = client.received.iter().rev().find(|request| request.method == "window/showDocument");
+            let cursor = reveal.map(|request| request.params["selection"]["start"]["line"].clone());
+            if shown != agenda.as_str().unwrap() || cursor.as_ref() != Some(&case["cursor"]) {
+                failures.push_str(&format!(
+                    "\ncase {index}: {command} `{}`\n--- emacs (cursor {})\n{}\n--- org-lsp (cursor {cursor:?})\n{shown}\n",
+                    case["answer"],
+                    case["cursor"],
+                    agenda.as_str().unwrap()
+                ));
+            }
+        }
         let same = match (&case["expected"], &result) {
             // Where Emacs refuses, so must the server.
             (Value::String(_), Err(_)) => true,
@@ -1381,4 +1396,53 @@ fn schedules_from_the_agenda() {
     assert_eq!(reveal.params["selection"]["start"]["line"], saturday as u64);
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
+}
+
+/// `j` in the agenda (`org-agenda-goto-date`): the calendar opens on
+/// today, and the agenda then shows the week of the day picked there, with
+/// the cursor on that day.
+#[test]
+fn goes_to_a_date_in_the_agenda() {
+    const PROMPT: &str = "org-agenda:/Org%20Date";
+    let mut client = Client::with_date_prompt(clock());
+    client.open("file:///org/work.org", WORK);
+    client.command("org.agenda.list", VIEW, 0);
+    client.show_view();
+
+    let requests = client.command("org.agenda.goto.date", VIEW, 3);
+    assert_eq!(methods(&requests), ["window/showDocument"]);
+    let text = client.view_text(PROMPT);
+    assert!(text.ends_with("\nDate+time [2026-05-18]:    => <2026-05-18 Mon>\n"), "{text}");
+
+    // Ten days on: Thursday of the next week.
+    client.command("org.calendar.week.later", PROMPT, 0);
+    for _ in 0..3 {
+        client.command("org.calendar.day.later", PROMPT, 0);
+    }
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": PROMPT }, "position": { "line": 0, "character": 0 } });
+    let closed =
+        client.request("workspace/executeCommand", json!({ "command": "org.calendar.select", "arguments": [context] }));
+    assert_eq!(closed, Ok(json!({ "close": PROMPT })));
+    client.settle();
+    let view = client.refetch_view();
+    client.settle();
+    assert!(view.starts_with("Week-agenda (W22):\nMonday     25 May 2026 W22\n"), "{view}");
+    let thursday = view.lines().position(|line| line.starts_with("Thursday   28 May 2026")).unwrap();
+    let reveal =
+        client.received.iter().rev().find(|request| request.method == "window/showDocument").expect("a reveal");
+    assert_eq!(reveal.params["selection"]["start"]["line"], thursday as u64);
+
+    // Not in the TODO list, and only in the agenda.
+    client.command("org.agenda.todos", VIEW, 0);
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 } });
+    let refused = client
+        .request("workspace/executeCommand", json!({ "command": "org.agenda.goto.date", "arguments": [context] }));
+    assert_eq!(refused, Err("The TODO list has no dates to move through".to_string()));
+    let context =
+        json!({ "textDocument": { "uri": "file:///org/work.org" }, "position": { "line": 1, "character": 0 } });
+    let refused = client
+        .request_raw("workspace/executeCommand", json!({ "command": "org.agenda.goto.date", "arguments": [context] }));
+    assert!(refused.is_err());
+    client.shutdown();
 }

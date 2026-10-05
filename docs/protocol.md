@@ -125,6 +125,7 @@ number.
 | `org.agenda.todos` | Opens the list of all TODO entries. |
 | `org.agenda.later`, `org.agenda.earlier` | Moves the agenda one span forward or backward. |
 | `org.agenda.today` | Moves the agenda to today. |
+| `org.agenda.goto.date` | Asks for a date and shows the agenda from that day, over as many days as its span (`org-agenda-goto-date`); a week or a fortnight still starts on the first day of the week. |
 | `org.agenda.day`, `.week`, `.fortnight`, `.month`, `.year` | Changes the span, keeping the day under the cursor in view. |
 | `org.agenda.redo` | Rebuilds the agenda. |
 | `org.agenda.goto` | Shows the entry of the agenda line under the cursor. |
