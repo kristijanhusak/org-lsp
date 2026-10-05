@@ -186,7 +186,7 @@ function M.run(name, opts)
           end
         end
         if input.kind == 'key' then
-          return answered(M.read_key(input.prompt))
+          return answered(M.read_key(input.prompt, input.choices))
         end
         if input.choices then
           -- One of a list, such as the targets of a refile.
@@ -214,14 +214,56 @@ function M.run(name, opts)
   end)
 end
 
---- Read one key, as Emacs does at its fast selection prompts: the
---- choices are shown on the command line, `<Esc>` or `<C-c>` cancels.
+--- The window that lists the choices of `read_key`, as Emacs lists them
+--- in a window of its own at the bottom of the frame.
 ---@param prompt string
+---@param choices { key: string, label: string }[]
+---@return integer window
+local function show_choices(prompt, choices)
+  local lines, width = {}, vim.fn.strdisplaywidth(prompt) + 2
+  for _, choice in ipairs(choices) do
+    local line = ('[%s] %s'):format(choice.key == ' ' and 'SPC' or choice.key, choice.label)
+    table.insert(lines, line)
+    width = math.max(width, vim.fn.strdisplaywidth(line))
+  end
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  local namespace = vim.api.nvim_create_namespace('org_lsp_choices')
+  for row, line in ipairs(lines) do
+    vim.api.nvim_buf_set_extmark(buf, namespace, row - 1, 0, { end_col = line:find(']', 1, true), hl_group = 'Special' })
+  end
+  vim.bo[buf].bufhidden = 'wipe'
+  -- Above the command line and the status line, inside the borders.
+  local height = math.max(1, math.min(#lines, vim.o.lines - vim.o.cmdheight - 4))
+  return vim.api.nvim_open_win(buf, false, {
+    relative = 'editor',
+    row = vim.o.lines - vim.o.cmdheight - height - 3,
+    col = 0,
+    width = math.min(width, vim.o.columns - 2),
+    height = height,
+    style = 'minimal',
+    border = 'rounded',
+    title = ' ' .. prompt .. ' ',
+    focusable = false,
+    noautocmd = true,
+  })
+end
+
+--- Read one key, as Emacs does at its fast selection prompts: the
+--- choices are shown in a window at the bottom, `<Esc>` or `<C-c>`
+--- cancels.
+---@param prompt string
+---@param choices? { key: string, label: string }[]
 ---@return string?
-function M.read_key(prompt)
-  vim.api.nvim_echo({ { prompt } }, false, {})
+function M.read_key(prompt, choices)
+  local win = choices and #choices > 0 and show_choices(prompt, choices) or nil
+  vim.api.nvim_echo({ { prompt .. ': ' } }, false, {})
+  vim.cmd.redraw()
   local ok, key = pcall(vim.fn.getcharstr)
   vim.api.nvim_echo({ { '' } }, false, {})
+  if win and vim.api.nvim_win_is_valid(win) then
+    vim.api.nvim_win_close(win, true)
+  end
   if not ok or key == vim.keycode('<Esc>') or key == vim.keycode('<C-c>') then
     return nil
   end

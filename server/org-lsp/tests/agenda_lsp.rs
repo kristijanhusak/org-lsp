@@ -1468,7 +1468,7 @@ fn selects_todo_states_by_key_and_asks_for_notes() {
 
     let asked = run(&mut client, json!({}));
     assert_eq!(asked["input"]["kind"], "key");
-    assert_eq!(asked["input"]["prompt"], "[t] TODO  [w] WAIT  [d] DONE  [SPC] clear");
+    assert_eq!(asked["input"]["prompt"], "Select a TODO state");
     assert_eq!(asked["input"]["choices"][1], json!({ "key": "w", "label": "WAIT" }));
 
     // WAIT wants a note: nothing changes until its text comes.
@@ -1573,6 +1573,37 @@ fn refiles_entries_between_files() {
         client.request("workspace/executeCommand", json!({ "command": "org.refile", "arguments": [at] })).unwrap();
     assert_eq!(asked["input"]["prompt"], "Refile to");
     assert_eq!(asked["input"]["choices"][0]["label"], "Write report (work.org)");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// Org's default template captures into `defaultNotesFile`, `~/.notes`
+/// unless set. The capture buffer is still an Org file by its name.
+#[test]
+fn the_capture_buffer_of_a_target_without_org_in_its_name_is_an_org_file() {
+    let root = workspace("capture-notes");
+    let notes = root.join(".notes");
+    let mut options = clock();
+    options["defaultNotesFile"] = json!(notes.display().to_string());
+    let mut client = Client::editor(options, None);
+    let at = json!({ "textDocument": { "uri": format!("file://{}", root.join("a.org").display()) }, "position": { "line": 0, "character": 0 } });
+    let mut context = at.clone();
+    context["input"] = json!("t");
+    client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [context] })).unwrap();
+    client.settle();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the buffer");
+    let buffer = show.params["uri"].as_str().unwrap().to_string();
+    assert!(buffer.ends_with("/CAPTURE-.notes.org"), "{buffer}");
+    let path = buffer.strip_prefix("file://").unwrap();
+    client.open(&buffer, &std::fs::read_to_string(path).unwrap());
+    let done = client.request(
+        "workspace/executeCommand",
+        json!({ "command": "org.capture.finish", "arguments": [{ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } }] }),
+    );
+    assert_eq!(done, Ok(json!({ "close": buffer })));
+    client.settle();
+    // The target did not exist: the server wrote it, under its own name.
+    assert!(std::fs::read_to_string(&notes).unwrap().starts_with("* Tasks\n** TODO "));
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }

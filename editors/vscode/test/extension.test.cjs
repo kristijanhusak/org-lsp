@@ -158,7 +158,7 @@ describe('Org files', () => {
       await until('the state and its note', () => keyed.lineCount > 3 && keyed.lineAt(3).text === '  Waiting for Bob');
       assert.equal(keyed.lineAt(1).text, '* WAIT Call them');
       assert.match(keyed.lineAt(2).text, /^- State "WAIT" {7}from "TODO" {7}\[.*\] \\\\$/);
-      assert.deepEqual(offered, ['[t] TODO', '[w] WAIT', '[d] DONE', '[SPC] (none)']);
+      assert.deepEqual(offered, ['[t] TODO', '[w] WAIT', '[d] DONE', '[SPC] clear']);
       assert.deepEqual(notes, ['Note for state change from "TODO" to "WAIT"']);
     } finally {
       vscode.window.showQuickPick = showQuickPick;
