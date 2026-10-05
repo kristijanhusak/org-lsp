@@ -574,6 +574,8 @@ describe('The agenda', () => {
       'Press key for agenda command',
       '[a] Agenda for the current week or day',
       '[t] List of all TODO entries',
+      '[m] Match a TAGS/PROP/TODO query',
+      '[M] Like m, but only TODO entries',
     ]);
     await agenda('Global list of TODO items of type: ALL');
   });

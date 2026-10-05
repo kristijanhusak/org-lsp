@@ -1,0 +1,4 @@
+Global list of TODO items of type: NEXT|WAIT
+  a:          NEXT Outline the sections                           :work:office::
+  a:          WAIT Numbers from finance                     :work:office::email:
+  a:          NEXT Call the client                                 :work::phone:

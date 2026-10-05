@@ -70,7 +70,7 @@ fn priority_cookie(text: &str, from: usize) -> Option<(usize, usize)> {
 pub fn display(line: &Line) -> Displayed {
     let raw = line.text.as_str();
     let item = match (&line.kind, &line.item) {
-        (LineKind::Header, _) => return whole(raw, Style::Structure),
+        (LineKind::Header | LineKind::Separator, _) => return whole(raw, Style::Structure),
         (LineKind::Date { today, weekend, .. }, _) => {
             return whole(raw, Style::Date { today: *today, weekend: *weekend })
         }

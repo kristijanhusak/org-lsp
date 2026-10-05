@@ -1,0 +1,16 @@
+Three days
+Sunday      4 October 2026
+Monday      5 October 2026 W41
+               8:00...... ----------------
+  a:           9:00...... Scheduled:  TODO [#A] Write the report  :work::office:
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  b:          Sched. 2x:  TODO Water plants                               :home:
+  a:          In   2 d.:  NEXT Call the client                     :work::phone:
+Tuesday     6 October 2026
+  a:          14:00...... Meeting notes                          :work::meeting:

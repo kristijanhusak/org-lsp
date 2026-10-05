@@ -47,6 +47,11 @@ fn arguments(directory: &Path, case: &Value, run: &Value) -> Vec<String> {
             arguments.extend(["--start".to_string(), text(start)]);
         }
     }
+    for (name, flag) in [("match", "--match"), ("key", "--key")] {
+        if let Some(value) = run.get(name) {
+            arguments.extend([flag.to_string(), text(value)]);
+        }
+    }
     if let Some(options) = case.get("options") {
         arguments.extend(["--options".to_string(), options.to_string()]);
     }

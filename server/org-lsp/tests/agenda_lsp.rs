@@ -599,7 +599,9 @@ fn the_dispatcher_asks_which_view() {
         asked["input"]["choices"],
         json!([
             { "key": "a", "label": "Agenda for the current week or day" },
-            { "key": "t", "label": "List of all TODO entries" }
+            { "key": "t", "label": "List of all TODO entries" },
+            { "key": "m", "label": "Match a TAGS/PROP/TODO query" },
+            { "key": "M", "label": "Like m, but only TODO entries" }
         ])
     );
     client.received.clear();
@@ -613,6 +615,72 @@ fn the_dispatcher_asks_which_view() {
         json!({ "command": "org.agenda.dispatch", "arguments": [{ "input": "a" }] }),
     );
     assert_eq!(answer, Ok(Value::Null));
+    client.shutdown();
+}
+
+/// `org-agenda-custom-commands`: a group of commands under a prefix key,
+/// a block agenda whose agenda block moves on its own (`f`), and the
+/// built-in tags search (`m`).
+#[test]
+fn runs_custom_agenda_commands() {
+    let mut options = clock();
+    options["agenda"] = json!({ "customCommands": [
+        { "key": "x", "description": "Mine" },
+        { "key": "xb", "description": "Day and office", "blocks": [
+            { "type": "agenda", "settings": { "span": "day" } },
+            { "type": "tags", "match": "office", "header": "At the office" }
+        ] }
+    ] });
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    let run = |client: &mut Client, command: &str, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let asked = run(&mut client, "org.agenda.dispatch", json!({})).unwrap();
+    let keys: Vec<&str> =
+        asked["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
+    assert_eq!(keys, ["a", "t", "m", "M", "x"]);
+    assert_eq!(asked["input"]["choices"][4]["label"], "+Mine");
+    let asked = run(&mut client, "org.agenda.dispatch", json!({ "input": "x" })).unwrap();
+    assert_eq!(asked["input"]["choices"], json!([{ "key": "b", "label": "Day and office" }]));
+    assert_eq!(asked["input"]["context"], json!({ "keys": "x" }));
+    assert_eq!(run(&mut client, "org.agenda.dispatch", json!({ "keys": "x", "input": "b" })), Ok(Value::Null));
+    let text = client.view_text(VIEW);
+    let lines: Vec<&str> = text.lines().collect();
+    assert_eq!(lines[0], "Day-agenda (W21):");
+    assert_eq!(lines[1], "Monday     18 May 2026 W21");
+    let separator = lines.iter().position(|line| line.starts_with("====")).unwrap();
+    assert_eq!(lines[separator - 1], "");
+    assert_eq!(lines[separator + 1], "At the office");
+    assert!(lines[separator + 2].contains("Write report"), "{text}");
+
+    // `f` on the agenda block moves it a day; the other block stays.
+    run(&mut client, "org.agenda.later", json!({ "position": { "line": 1, "character": 0 } })).unwrap();
+    let text = client.view_text(VIEW);
+    assert_eq!(text.lines().nth(1), Some("Tuesday    19 May 2026"));
+    assert!(text.contains("At the office"));
+    let on_tags = text.lines().position(|line| line == "At the office").unwrap() as u32;
+    let refused = run(&mut client, "org.agenda.later", json!({ "position": { "line": on_tags, "character": 0 } }));
+    assert_eq!(refused, Err("This block has no dates to move through".to_string()));
+    // Rebuilding keeps the moved block where it is.
+    run(&mut client, "org.agenda.redo", json!({})).unwrap();
+    assert_eq!(client.view_text(VIEW).lines().nth(1), Some("Tuesday    19 May 2026"));
+
+    // `m`: a match string, then the tags view.
+    let asked = run(&mut client, "org.agenda.dispatch", json!({ "input": "m" })).unwrap();
+    assert_eq!((asked["input"]["kind"].as_str(), asked["input"]["prompt"].as_str()), (Some("text"), Some("Match")));
+    let context = asked["input"]["context"].clone();
+    assert_eq!(context, json!({ "keys": "m", "ask": "match" }));
+    run(&mut client, "org.agenda.dispatch", json!({ "keys": "m", "ask": "match", "input": "office" })).unwrap();
+    let text = client.view_text(VIEW);
+    assert!(text.starts_with("Headlines with TAGS match: office\n"), "{text}");
+    assert!(text.contains("Write report"));
     client.shutdown();
 }
 

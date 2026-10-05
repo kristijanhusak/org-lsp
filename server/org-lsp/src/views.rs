@@ -6,7 +6,7 @@
 //! its file. Highlighting comes from semantic tokens, as for Org files.
 
 use lsp_types::Uri;
-use org_core::agenda::{self, Config, Face, ItemKind, LineKind, Now, Span, Style};
+use org_core::agenda::{self, Config, Face, ItemKind, LineKind, Matcher, Now, Span, Style};
 use org_core::date::Day;
 use org_core::outline::Outline;
 use org_syntax::{TextRange, TextSize};
@@ -24,12 +24,47 @@ pub const FILE_NAME: &str = "Agenda.org-agenda";
 pub const LANGUAGE: &str = "org-agenda";
 
 /// What a view shows.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Query {
     /// The agenda for `span`, including the day `start`, or today.
     Agenda { start: Option<Day>, span: Span },
     /// The global TODO list.
     Todo,
+    /// `org-tags-view` from the agenda menu (`m`, `M`): the entries a
+    /// match string matches, only open TODO entries with `todo_only`.
+    Tags { matching: String, todo_only: bool },
+    /// A command of `agenda.customCommands`, by its keys. One of its
+    /// agenda blocks may have been moved to other days (`f`, `b`, `d`
+    /// there), as Emacs's `org-agenda-overriding-cmd` moves one block.
+    Custom { keys: String, moved: Option<Moved> },
+}
+
+/// An agenda block of a custom command, moved to other days.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Moved {
+    pub block: usize,
+    pub start: Option<Day>,
+    pub span: Span,
+}
+
+/// One block of a view: a whole view, or a part of a block agenda.
+#[derive(Debug, Clone)]
+pub struct Block {
+    pub kind: BlockKind,
+    /// `org-agenda-overriding-header`: another header, none if empty.
+    pub header: Option<String>,
+    pub config: Config,
+}
+
+#[derive(Debug, Clone)]
+pub enum BlockKind {
+    /// `org-agenda-list`
+    Agenda { start: Option<Day>, span: Span },
+    /// `org-todo-list`: open TODO entries, or those with the keywords
+    /// `NEXT|WAIT`.
+    Todo { keywords: Option<String> },
+    /// `org-tags-view`; `tags-todo` with `todo_only`.
+    Tags { matcher: Matcher, todo_only: bool },
 }
 
 /// The entry behind a line, in a form that survives edits to its file.
@@ -52,14 +87,18 @@ pub struct ViewLine {
     pub kind: Option<ItemKind>,
     /// The day the line stands under, in an agenda.
     pub day: Option<Day>,
+    /// The block the line belongs to.
+    pub block: usize,
 }
 
 /// A rendered view.
 #[derive(Debug)]
 pub struct View {
     pub query: Query,
-    /// The first day shown, in an agenda.
+    /// The first day shown, in the first agenda block.
     pub start: Day,
+    /// The first day and the span of each block that is an agenda.
+    pub blocks: Vec<Option<(Day, Span)>>,
     pub text: String,
     pub index: LineIndex,
     pub lines: Vec<ViewLine>,
@@ -97,25 +136,26 @@ fn token_style(style: Style) -> Option<(TokenType, u32)> {
 }
 
 /// Build the view for `query` from the agenda files, given as their URIs
-/// and outlines in agenda order.
-pub fn render(query: Query, files: &[(Uri, &Outline)], now: Now, config: &Config) -> View {
+/// and outlines in agenda order, as `blocks` say: one for a plain agenda
+/// or TODO list, more for a block agenda, with a separator between them.
+pub fn render(query: Query, blocks: &[Block], files: &[(Uri, &Outline)], now: Now) -> View {
     let outlines: Vec<&Outline> = files.iter().map(|(_, outline)| *outline).collect();
-    let rendered = match query {
-        Query::Agenda { start, span } => agenda::view(&outlines, now, start, span, config),
-        Query::Todo => agenda::todo_view(&outlines, config),
-    };
-
+    let (rendered, starts) = block_lines(blocks, &outlines, now);
     let mut text = String::new();
-    let mut lines = Vec::with_capacity(rendered.lines.len());
+    let mut lines = Vec::with_capacity(rendered.len());
     let mut tokens = Vec::new();
     let mut today_line = None;
     let mut day = None;
-    for (number, line) in rendered.lines.iter().enumerate() {
-        if let LineKind::Date { day: date, today, .. } = line.kind {
-            day = Some(date);
-            if today {
-                today_line = Some(number as u32);
+    for (number, (block, line)) in rendered.iter().enumerate() {
+        match line.kind {
+            LineKind::Date { day: date, today, .. } => {
+                day = Some(date);
+                if today && today_line.is_none() {
+                    today_line = Some(number as u32);
+                }
             }
+            LineKind::Header | LineKind::Separator => day = None,
+            LineKind::Item => {}
         }
         let shown = agenda::display(line);
         let base = text.len();
@@ -140,9 +180,45 @@ pub fn render(query: Query, files: &[(Uri, &Outline)], now: Now, config: &Config
             }
         });
         let kind = line.item.as_ref().map(|item| item.kind);
-        lines.push(ViewLine { entry, kind, day: if line.kind == LineKind::Header { None } else { day } });
+        lines.push(ViewLine { entry, kind, day, block: *block });
     }
-    View { query, start: rendered.start, index: LineIndex::new(&text), text, lines, tokens, today_line }
+    let start = starts.iter().flatten().next().map_or(0, |(start, _)| *start);
+    View { query, start, blocks: starts, index: LineIndex::new(&text), text, lines, tokens, today_line }
+}
+
+/// The text of the view `blocks` make, as Org prints it (`org-batch-agenda`):
+/// links as written.
+pub fn org_text(blocks: &[Block], outlines: &[&Outline], now: Now) -> String {
+    block_lines(blocks, outlines, now).0.into_iter().map(|(_, line)| line.text + "\n").collect()
+}
+
+type BlockLines = (Vec<(usize, agenda::Line)>, Vec<Option<(Day, Span)>>);
+
+/// The lines of every block, with the block each belongs to, and the
+/// days and span of the blocks that are agendas.
+fn block_lines(blocks: &[Block], outlines: &[&Outline], now: Now) -> BlockLines {
+    let mut rendered: Vec<(usize, agenda::Line)> = Vec::new();
+    let mut starts = Vec::new();
+    for (number, block) in blocks.iter().enumerate() {
+        let config = &block.config;
+        let mut view = match &block.kind {
+            BlockKind::Agenda { start, span } => agenda::view(outlines, now, *start, *span, config),
+            BlockKind::Todo { keywords } => agenda::todo_view(outlines, keywords.as_deref(), config),
+            BlockKind::Tags { matcher, todo_only } => agenda::tags_view(outlines, matcher, *todo_only, now, config),
+        };
+        if let Some(header) = &block.header {
+            agenda::override_header(&mut view, header);
+        }
+        starts.push(match block.kind {
+            BlockKind::Agenda { span, .. } => Some((view.start, span)),
+            _ => None,
+        });
+        if number > 0 {
+            rendered.extend(agenda::block_separator().into_iter().map(|line| (number, line)));
+        }
+        rendered.extend(view.lines.into_iter().map(|line| (number, line)));
+    }
+    (rendered, starts)
 }
 
 impl View {
@@ -212,12 +288,12 @@ mod tests {
         let outline = outline(text);
         let uri: Uri = "file:///tmp/notes.org".parse().unwrap();
         let now = Now { today: Date::new(2026, 5, 18).to_day(), minute: 600 };
-        let view = render(
-            Query::Agenda { start: None, span: Span::Week },
-            &[(uri.clone(), &outline)],
-            now,
-            &Config::default(),
-        );
+        let block = Block {
+            kind: BlockKind::Agenda { start: None, span: Span::Week },
+            header: None,
+            config: Config::default(),
+        };
+        let view = render(Query::Agenda { start: None, span: Span::Week }, &[block], &[(uri.clone(), &outline)], now);
         let lines: Vec<&str> = view.text.lines().collect();
         assert_eq!(lines[0], "Week-agenda (W21):");
         assert_eq!(lines[1], "Monday     18 May 2026 W21");

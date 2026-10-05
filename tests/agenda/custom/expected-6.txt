@@ -1,0 +1,2 @@
+Headlines with TAGS match: EFFORT>1
+  a:          TODO [#A] Write the report                          :work::office:

@@ -51,6 +51,8 @@
 ---@field timeGrid? org_lsp.Settings.Agenda.TimeGrid
 ---@field showCurrentTimeInGrid? boolean Show the current time in the grid. (`org-agenda-show-current-time-in-grid`)
 ---@field weekendDays? integer[] The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`)
+---@field startDay? string The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)
+---@field customCommands? org_lsp.AgendaCommand[] Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`span`, `startDay`…). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)
 
 --- The options under `timeGrid`.
 ---@class org_lsp.Settings.Agenda.TimeGrid
@@ -84,3 +86,18 @@
 ---@field target? string[] `file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path
 ---@field template? string|string[] The template, or its lines
 ---@field type? 'entry'|'plain' An Org entry (the default), or plain text
+
+---@class org_lsp.AgendaCommand
+---@field blocks? org_lsp.AgendaBlock[] Views shown one after the other
+---@field description string What the menu shows
+---@field header? string Replaces the view's header; empty for none
+---@field key string The keys that pick the command in the agenda menu
+---@field match? string For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY="A")
+---@field settings? table Agenda options for this command: span, startDay…
+---@field type? 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo' The view
+
+---@class org_lsp.AgendaBlock
+---@field header? string Replaces the view's header; empty for none
+---@field match? string For todo, keywords; for tags, a match string
+---@field settings? table Agenda options for this block: span, startDay…
+---@field type 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo' The view

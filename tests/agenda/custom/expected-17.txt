@@ -1,0 +1,9 @@
+Day-agenda (W41):
+Monday      5 October 2026 W41
+  a:           9:00...... Scheduled:  TODO [#A] Write the report  :work::office:
+  b:          Sched. 2x:  TODO Water plants                               :home:
+  a:          In   2 d.:  NEXT Call the client                     :work::phone:
+
+===============================================================================
+Headlines with TAGS match: phone
+  a:          NEXT Call the client                                 :work::phone:

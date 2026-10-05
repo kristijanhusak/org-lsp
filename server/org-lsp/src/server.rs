@@ -46,7 +46,7 @@ use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target, TimeField};
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
-use crate::{actions, cli, commands, completion, folding, highlight, manifest, symbols, uri};
+use crate::{actions, cli, commands, completion, custom, folding, highlight, manifest, symbols, uri};
 
 type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -311,6 +311,8 @@ struct Server {
     saving: HashMap<RequestId, Vec<Uri>>,
     todo: TodoKeywords,
     agenda: AgendaConfig,
+    /// The `agenda` options as given, for the custom commands' own.
+    agenda_options: crate::config::AgendaOptions,
     edit_settings: EditSettings,
     read_date: ReadDateSettings,
     /// `org-refile-targets`, `org-refile-use-outline-path` and how a
@@ -433,6 +435,7 @@ pub fn run(connection: Connection) -> Result<()> {
         saving: HashMap::new(),
         todo,
         agenda: options.agenda_config(),
+        agenda_options: options.agenda.clone(),
         edit_settings: options.edit_settings(),
         read_date: options.read_date_settings(),
         refile: (options.refile_targets(), options.refile_outline_path(), options.refile_settings()),
@@ -1179,7 +1182,26 @@ impl Server {
             }
         }
         let outlines: Vec<(Uri, &Outline)> = files.iter().map(|(uri, held)| (uri.clone(), held.outline())).collect();
-        views::render(query, &outlines, self.now(), &self.agenda)
+        // A command that no longer reads shows nothing; opening it said why.
+        let blocks = self.blocks(&query).unwrap_or_default();
+        views::render(query, &blocks, &outlines, self.now())
+    }
+
+    /// The blocks `query` shows.
+    fn blocks(&self, query: &Query) -> std::result::Result<Vec<views::Block>, String> {
+        let one = |kind| vec![views::Block { kind, header: None, config: self.agenda.clone() }];
+        Ok(match query {
+            Query::Agenda { start, span } => one(views::BlockKind::Agenda { start: *start, span: *span }),
+            Query::Todo => one(views::BlockKind::Todo { keywords: None }),
+            Query::Tags { matching, todo_only } => {
+                one(views::BlockKind::Tags { matcher: org_core::agenda::Matcher::new(matching), todo_only: *todo_only })
+            }
+            Query::Custom { keys, moved } => {
+                let commands = self.agenda_options.custom_commands.as_deref().unwrap_or_default();
+                let command = custom::find(commands, keys).ok_or_else(|| format!("No agenda command `{keys}`"))?;
+                custom::blocks(command, &self.agenda_options, &self.agenda, self.now(), &self.read_date, *moved)?
+            }
+        })
     }
 
     /// Build the view for `query` and make it the current one.
@@ -1283,7 +1305,7 @@ impl Server {
     /// Rebuild the view after its files changed. The cursor stays, unless
     /// the change is the edit of a command that takes the cursor along.
     fn refresh_view(&mut self) {
-        let Some(query) = self.view.as_ref().map(|open| open.view.query) else { return };
+        let Some(query) = self.view.as_ref().map(|open| open.view.query.clone()) else { return };
         let view = self.render(query);
         let Some(open) = &mut self.view else { return };
         let changed = view.text != open.view.text;
@@ -1317,15 +1339,16 @@ impl Server {
 
     fn execute_command(&mut self, params: ExecuteCommandParams) -> std::result::Result<Value, Refusal> {
         let argument = params.arguments.into_iter().next();
-        // The answer to a question, also from where there is no document.
-        let input = argument.as_ref().and_then(|value| value.get("input")?.as_str()).map(str::to_string);
+        // Capturing and the agenda menu need no document.
+        if params.command == commands::AGENDA_DISPATCH {
+            return self.dispatch(argument.as_ref());
+        }
         if params.command == commands::CAPTURE {
             let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
             return self.capture(&context);
         }
         let context: Option<Context> = argument.and_then(|value| serde_json::from_value(value).ok());
         match params.command.as_str() {
-            commands::AGENDA_DISPATCH => self.dispatch(input.as_deref()),
             id if id.starts_with("org.calendar.") => self.calendar_command(id, context.as_ref()),
             // `org-save-all-org-buffers`: the server cannot save; the
             // editor saves the files it names that have changes.
@@ -1370,10 +1393,9 @@ impl Server {
         if id == commands::AGENDA_GOTO_DATE {
             let open = self.view.as_ref().filter(|open| open.uri == *uri);
             let open = open.ok_or_else(|| Refusal::NotHere("This command works in the agenda".to_string()))?;
-            if !matches!(open.view.query, Query::Agenda { .. }) {
-                return Err("The TODO list has no dates to move through".into());
-            }
-            return Ok(Target::Agenda { view: uri.clone() });
+            let _ = open;
+            self.agenda_block(Some(context.position.line))?;
+            return Ok(Target::Agenda { view: uri.clone(), line: context.position.line });
         }
         if !self.is_view(uri) {
             return Ok(Target::Place { uri: uri.clone(), position: context.position });
@@ -1485,8 +1507,8 @@ impl Server {
     /// Run the command `id` that asked for a date, at `target`, with
     /// `answer`.
     fn apply_date(&mut self, id: &str, target: &Target, answer: &str) -> std::result::Result<(), Refusal> {
-        if let Target::Agenda { .. } = target {
-            return self.goto_date(answer);
+        if let Target::Agenda { line, .. } = target {
+            return self.goto_date(answer, *line);
         }
         let command = self.date_command_at(id, target)?;
         let source = self.date_source(target)?;
@@ -1536,15 +1558,13 @@ impl Server {
     /// over as many days as its span has from there, with the cursor on
     /// that day. A week or a fortnight still starts on the first day of
     /// the week (`org-agenda-start-on-weekday`).
-    fn goto_date(&mut self, answer: &str) -> std::result::Result<(), Refusal> {
+    fn goto_date(&mut self, answer: &str, line: u32) -> std::result::Result<(), Refusal> {
         let read = org_core::read_date::read_date(answer, None, self.date_time(), &self.read_date)?;
         let day = read.date.to_day();
-        let open = self.view.as_ref().ok_or("No agenda is open")?;
-        let Query::Agenda { span, .. } = open.view.query else {
-            return Err("The TODO list has no dates to move through".into());
-        };
+        let (block, _, span) = self.agenda_block(Some(line))?;
         let span = Span::from_days(span.days(day));
-        Ok(self.open_view_at(Query::Agenda { start: Some(day), span }, Reveal::Day(day))?)
+        let query = self.moved(block, Some(day), span);
+        Ok(self.open_view_at(query, Reveal::Day(day))?)
     }
 
     // ----- the date prompt
@@ -1744,7 +1764,9 @@ impl Server {
             self.last = None;
         }
         match command {
-            commands::AGENDA_LIST => Ok(self.open_view(Query::Agenda { start: None, span: self.agenda.span })?),
+            commands::AGENDA_LIST => {
+                Ok(self.open_view(Query::Agenda { start: self.start_day(), span: self.agenda.span })?)
+            }
             commands::AGENDA_TODOS => Ok(self.open_view(Query::Todo)?),
             commands::AGENDA_REDO => {
                 self.view.as_ref().ok_or("No agenda is open")?;
@@ -1752,17 +1774,14 @@ impl Server {
                 Ok(())
             }
             commands::AGENDA_LATER | commands::AGENDA_EARLIER | commands::AGENDA_TODAY => {
-                let open = self.view.as_ref().ok_or("No agenda is open")?;
-                let Query::Agenda { span, .. } = open.view.query else {
-                    return Err("The TODO list has no dates to move through".into());
-                };
+                let (block, first, span) = self.agenda_block(self.view_cursor_line(context.as_ref()))?;
                 let steps = context.as_ref().and_then(|context| context.count).unwrap_or(1);
                 let start = match command {
-                    commands::AGENDA_LATER => Some(span.shift(open.view.start, steps)),
-                    commands::AGENDA_EARLIER => Some(span.shift(open.view.start, -steps)),
+                    commands::AGENDA_LATER => Some(span.shift(first, steps)),
+                    commands::AGENDA_EARLIER => Some(span.shift(first, -steps)),
                     _ => None,
                 };
-                Ok(self.open_view(Query::Agenda { start, span })?)
+                Ok(self.open_view(self.moved(block, start, span))?)
             }
             commands::AGENDA_DAY
             | commands::AGENDA_WEEK
@@ -1776,15 +1795,18 @@ impl Server {
                     commands::AGENDA_MONTH => Span::Month,
                     _ => Span::Year,
                 };
-                // The new span starts from the day under the cursor.
-                let day =
-                    self.view.as_ref().filter(|open| matches!(open.view.query, Query::Agenda { .. })).map(|open| {
-                        let line = context.as_ref().filter(|context| context.text_document.uri == open.uri);
-                        line.and_then(|context| open.on_screen().line(context.position.line)?.day)
-                            .unwrap_or(open.view.start)
-                    });
-                let start = day.map(|day| agenda::starting_day(day, span, &self.agenda));
-                self.open_view(Query::Agenda { start, span })?;
+                // The new span starts from the day under the cursor; from
+                // where there are no days, a new agenda.
+                let line = self.view_cursor_line(context.as_ref());
+                let query = match self.agenda_block(line) {
+                    Ok((block, first, _)) => {
+                        let open = self.view.as_ref().ok_or("No agenda is open")?;
+                        let day = line.and_then(|line| open.on_screen().line(line)?.day).unwrap_or(first);
+                        self.moved(block, Some(agenda::starting_day(day, span, &self.agenda)), span)
+                    }
+                    Err(_) => Query::Agenda { start: None, span },
+                };
+                self.open_view(query)?;
                 self.message = Some(format!("Switched to {} view", span_name(span)));
                 Ok(())
             }
@@ -1806,22 +1828,107 @@ impl Server {
     }
 
     /// `org-agenda` (`C-c a`): the views by their keys, as Emacs's menu
-    /// offers them, and the one picked.
-    fn dispatch(&mut self, answer: Option<&str>) -> std::result::Result<Value, Refusal> {
-        const VIEWS: [(&str, &str); 2] = [("a", commands::AGENDA_LIST), ("t", commands::AGENDA_TODOS)];
-        let Some(answer) = answer else {
-            let choices: Vec<Value> =
-                VIEWS.iter().map(|(key, id)| json!({ "key": key, "label": commands::title(id) })).collect();
+    /// offers them, and the one picked. `keys` are those typed so far (a
+    /// prefix of custom commands); `m` and `M` then ask for a match
+    /// string (`ask: "match"`).
+    fn dispatch(&mut self, argument: Option<&Value>) -> std::result::Result<Value, Refusal> {
+        let get = |name: &str| argument.and_then(|value| value.get(name)?.as_str()).map(str::to_string);
+        let prefix = get("keys").unwrap_or_default();
+        let input = get("input");
+        if get("ask").as_deref() == Some("match") {
+            let matching = input.unwrap_or_default();
+            self.open_view(Query::Tags { matching, todo_only: prefix == "M" })?;
+            return Ok(Value::Null);
+        }
+        let keys = format!("{prefix}{}", input.as_deref().unwrap_or(""));
+        let commands = self.agenda_options.custom_commands.clone().unwrap_or_default();
+        // The user's commands come first, as in Emacs.
+        if custom::find(&commands, &keys).is_some() {
+            let query = Query::Custom { keys, moved: None };
+            self.blocks(&query)?;
+            self.open_view(query)?;
+            return Ok(Value::Null);
+        }
+        let built_in = [
+            ("a", commands::title(commands::AGENDA_LIST)),
+            ("t", commands::title(commands::AGENDA_TODOS)),
+            ("m", "Match a TAGS/PROP/TODO query"),
+            ("M", "Like m, but only TODO entries"),
+        ];
+        let next = custom::next_keys(&commands, &keys);
+        if input.is_none() || !next.is_empty() {
+            let mut choices: Vec<Value> = Vec::new();
+            if keys.is_empty() {
+                for (key, label) in built_in {
+                    if !next.iter().any(|(own, _)| own == key) {
+                        choices.push(json!({ "key": key, "label": label }));
+                    }
+                }
+            }
+            choices.extend(next.iter().map(|(key, label)| json!({ "key": key, "label": label })));
             return Ok(json!({ "input": {
                 "kind": "key",
                 "prompt": "Press key for agenda command",
                 "value": "",
                 "choices": choices,
+                "context": { "keys": keys },
             } }));
-        };
-        let (_, id) = VIEWS.iter().find(|(key, _)| *key == answer).ok_or("No agenda command for this key")?;
-        self.execute(id, None)?;
+        }
+        match keys.as_str() {
+            "a" => self.execute(commands::AGENDA_LIST, None)?,
+            "t" => self.execute(commands::AGENDA_TODOS, None)?,
+            "m" | "M" => {
+                return Ok(json!({ "input": {
+                    "kind": "text",
+                    "prompt": "Match",
+                    "value": "",
+                    "context": { "keys": keys, "ask": "match" },
+                } }))
+            }
+            _ => return Err("No agenda command for this key".into()),
+        }
         Ok(Value::Null)
+    }
+
+    /// The line of the open view the cursor of `context` is on.
+    fn view_cursor_line(&self, context: Option<&Context>) -> Option<u32> {
+        let open = self.view.as_ref()?;
+        context.filter(|context| context.text_document.uri == open.uri).map(|context| context.position.line)
+    }
+
+    /// The agenda block at `line` of the open view (the first one when
+    /// no line is given): which block, its first day and its span.
+    fn agenda_block(&self, line: Option<u32>) -> std::result::Result<(usize, Day, Span), Refusal> {
+        let open = self.view.as_ref().ok_or("No agenda is open")?;
+        let block = line
+            .and_then(|line| open.on_screen().line(line))
+            .map_or_else(|| open.view.blocks.iter().position(Option::is_some).unwrap_or(0), |line| line.block);
+        match open.view.blocks.get(block).copied().flatten() {
+            Some((start, span)) => Ok((block, start, span)),
+            None => Err(match open.view.query {
+                Query::Todo => "The TODO list has no dates to move through",
+                Query::Tags { .. } => "A tags view has no dates to move through",
+                _ => "This block has no dates to move through",
+            }
+            .into()),
+        }
+    }
+
+    /// The open view with its agenda block `block` on other days.
+    fn moved(&self, block: usize, start: Option<Day>, span: Span) -> Query {
+        match self.view.as_ref().map(|open| &open.view.query) {
+            Some(Query::Custom { keys, .. }) => {
+                Query::Custom { keys: keys.clone(), moved: Some(views::Moved { block, start, span }) }
+            }
+            _ => Query::Agenda { start, span },
+        }
+    }
+
+    /// `org-agenda-start-day`: where a new agenda starts, if not today.
+    fn start_day(&self) -> Option<Day> {
+        let text = self.agenda_options.start_day.as_deref()?;
+        let read = org_core::read_date::read_date(text, None, self.date_time(), &self.read_date).ok()?;
+        Some(read.date.to_day())
     }
 
     /// The entry on the agenda line of `context`.
@@ -2567,7 +2674,7 @@ impl Server {
     /// once `file` reads `text`, if that is on another line than the one
     /// the cursor is on.
     fn followed(&mut self, file: &Uri, text: &str, heading: usize, from: (Position, &ViewLine)) -> Option<Follow> {
-        let query = self.view.as_ref()?.view.query;
+        let query = self.view.as_ref()?.view.query.clone();
         let parse = org_syntax::parse(text, &self.todo);
         let outline = Outline::new(&parse, text, &uri::file_stem(file));
         let view = self.render_with(query, Some((file, outline)));

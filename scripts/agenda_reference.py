@@ -8,7 +8,11 @@ A case is a directory with Org files and a `case.json`:
       "runs": [                       agenda commands to run
         {"view": "agenda", "span": "week"},
         {"view": "agenda", "span": "day", "start": "2026-10-07"},
-        {"view": "todo"}
+        {"view": "todo"},
+        {"view": "todo", "match": "NEXT|WAIT"},
+        {"view": "tags", "match": "work-home"},
+        {"view": "tags-todo", "match": "PRIORITY=\"A\""},
+        {"view": "custom", "key": "c"}
       ],
       "options": {...},               optional: settings for org-lsp
       "emacs": "(setq ...)"           optional: the same settings for Emacs
@@ -56,6 +60,7 @@ DEFAULTS = r"""
       org-scheduled-past-days 10000
       org-deadline-past-days 10000
       org-agenda-tags-column -80
+      org-agenda-custom-commands nil
       org-agenda-time-grid '((daily today require-timed)
                              (800 1000 1200 1400 1600 1800 2000)
                              "......" "----------------"))
@@ -70,9 +75,21 @@ def lisp_string(text):
     return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+def shown(form):
+    """A view command, and the agenda buffer printed as `org-batch-agenda` does."""
+    return f"(progn {form} (set-buffer org-agenda-buffer-name) (princ (buffer-string)))"
+
+
 def run_form(run):
+    match = lisp_string(run.get("match", ""))
     if run["view"] == "todo":
-        return '(org-batch-agenda "t")'
+        return shown(f"(org-todo-list {match})") if "match" in run else '(org-batch-agenda "t")'
+    if run["view"] == "tags":
+        return shown(f"(org-tags-view nil {match})")
+    if run["view"] == "tags-todo":
+        return shown(f"(org-tags-view t {match})")
+    if run["view"] == "custom":
+        return f"(org-batch-agenda {lisp_string(run['key'])})"
     parameters = []
     span = run.get("span", "week")
     parameters.append("org-agenda-span " + (str(span) if isinstance(span, int) else "'" + span))
@@ -84,19 +101,18 @@ def run_form(run):
 def clean(text, run):
     """Drop what a server cannot or should not reproduce."""
     lines = text.split("\n")
-    if run["view"] == "todo":
-        # A hint about Emacs key bindings, and its continuation lines.
-        kept = []
+    # A hint about Emacs key bindings, and its continuation lines.
+    kept = []
+    skipping = False
+    for line in lines:
+        if line.startswith("Press ") and "to search again" in line:
+            skipping = True
+            continue
+        if skipping and line.startswith("                     "):
+            continue
         skipping = False
-        for line in lines:
-            if line.startswith("Press ") and "to search again" in line:
-                skipping = True
-                continue
-            if skipping and line.startswith("                     "):
-                continue
-            skipping = False
-            kept.append(line)
-        lines = kept
+        kept.append(line)
+    lines = kept
     while lines and lines[-1] == "":
         lines.pop()
     return "\n".join(lines) + "\n"
@@ -130,6 +146,7 @@ def reference(directories):
             subprocess.run(
                 ["faketime", f"{today} {now}:00", "emacs", "--batch", "-Q", *org_path, "-l", driver.name],
                 check=True,
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 env=dict(os.environ, TZ="UTC"),
@@ -150,6 +167,10 @@ def run_arguments(directory, case, run):
         arguments += ["--span", str(run.get("span", "week"))]
         if "start" in run:
             arguments += ["--start", run["start"]]
+    if "match" in run:
+        arguments += ["--match", run["match"]]
+    if "key" in run:
+        arguments += ["--key", run["key"]]
     if "options" in case:
         arguments += ["--options", json.dumps(case["options"])]
     return arguments + [os.path.join(directory, name) for name in org_files(directory)]

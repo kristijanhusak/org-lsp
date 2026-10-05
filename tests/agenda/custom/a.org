@@ -1,0 +1,22 @@
+#+TITLE: Work
+#+FILETAGS: :work:
+#+TODO: TODO NEXT WAIT | DONE CANCELLED
+* TODO [#A] Write the report :office:
+SCHEDULED: <2026-10-05 Mon 09:00>
+:PROPERTIES:
+:EFFORT:   2:00
+:OWNER:    alice
+:END:
+** NEXT Outline the sections
+** WAIT Numbers from finance :email:
+* NEXT Call the client :phone:
+DEADLINE: <2026-10-07 Wed>
+:PROPERTIES:
+:OWNER:    bob
+:END:
+* DONE Book the room :office:
+CLOSED: [2026-10-02 Fri 10:00]
+* Meeting notes :meeting:
+<2026-10-06 Tue 14:00>
+** CANCELLED Old idea
+* TODO [#C] Low priority chore

@@ -96,7 +96,12 @@ press('\\oa')
 wait_for_view('Week-agenda (W21):')
 eq(menu, {
   prompt = 'Press key for agenda command',
-  keys = { 'a Agenda for the current week or day', 't List of all TODO entries' },
+  keys = {
+    'a Agenda for the current week or day',
+    't List of all TODO entries',
+    'm Match a TAGS/PROP/TODO query',
+    'M Like m, but only TODO entries',
+  },
 }, 'the menu of views')
 eq(vim.api.nvim_buf_get_name(0), 'org-agenda:/Org%20Agenda', 'the agenda is a document of the server')
 eq(vim.fn.winlayout()[1], 'col', 'the agenda opens in a horizontal split')

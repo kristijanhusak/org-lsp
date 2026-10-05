@@ -121,6 +121,68 @@ comment at the top of the file:
 logDone = "time"
 ```
 
+## Custom agenda commands
+
+`agenda.customCommands` is Emacs's `org-agenda-custom-commands`: views
+of your own in the agenda menu (`C-c a`, `<Leader>oa`), next to `a`
+(the agenda), `t` (the TODO list) and `m` / `M` (a tags search, asked
+for). A command is one view, or a block agenda: several views one after
+the other, with a line of `=` between them.
+
+```toml
+[[agenda.customCommands]]
+key = "n"
+description = "Next actions"
+type = "todo"
+match = "NEXT|WAIT"
+
+[[agenda.customCommands]]
+key = "w"
+description = "Work, open"
+type = "tags-todo"
+match = "work-email"
+
+# A prefix key: the menu then offers the commands under it.
+[[agenda.customCommands]]
+key = "d"
+description = "Daily"
+
+[[agenda.customCommands]]
+key = "dd"
+description = "Today, then what is waiting"
+blocks = [
+  { type = "agenda", settings = { span = "day" } },
+  { type = "tags-todo", match = "PRIORITY=\"A\"", header = "Urgent" },
+  { type = "todo", match = "WAIT", header = "Waiting for" },
+]
+```
+
+The views:
+
+| `type` | Shows | `match` |
+| --- | --- | --- |
+| `agenda` | the day or week agenda | |
+| `alltodo` | every open TODO entry | |
+| `todo` | entries with these keywords | `NEXT\|WAIT` |
+| `tags` | entries the match string matches | `work-home` |
+| `tags-todo` | the same, open TODO entries only | `work-home` |
+
+A match string is Org's: tags joined with `+` (and), `-` (not) and `|`
+(or), as in `work+urgent-home|@phone`; a regexp in braces, `{^proj}`;
+properties, as in `OWNER="alice"`, `EFFORT>2`, `PRIORITY="A"`, `LEVEL>1`,
+`TODO="NEXT"`, `SCHEDULED<"<today>"` (a `*` after the operator, as in
+`EFFORT<*3`, also requires the property); and, after a slash, keywords:
+`work/NEXT|WAIT`, or `work/!` for any open one.
+
+`header` replaces a view's header, and an empty one leaves it out.
+`settings` holds agenda options, as under `agenda`, for a command or a
+block: `span`, `startDay` (`-1d`, `2026-10-01`), `deadlineWarningDays`,
+`useTimeGrid` and the others. A block's settings go over its command's,
+which go over `agenda`'s.
+
+In a block agenda, `f`, `b`, `.`, `j` and the span keys move the agenda
+block the cursor is in, as in Emacs.
+
 ## An editor's options on top
 
 An editor's own options for the server (Neovim's `settings`, VS Code's
@@ -356,6 +418,20 @@ showCurrentTimeInGrid = true
 
 # The days drawn as the weekend (0 is Sunday). (org-agenda-weekend-days)
 weekendDays = [6, 0]
+
+# The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`,
+# `2026-10-01`. (org-agenda-start-day)
+# startDay = …  (unset: today)
+
+# Commands of the agenda menu. Each has a `key` and a `description`, and
+# either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a
+# `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as
+# `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views
+# shown one after the other. `header` replaces a view's header (empty: none),
+# and `settings` holds agenda options for the command or a block (`span`,
+# `startDay`…). A command with only a key and a description groups the
+# commands whose keys start with its key. (org-agenda-custom-commands)
+customCommands = []
 
 [agenda.timeGrid]
 # Draw the grid in a one-day agenda. (org-agenda-time-grid)
@@ -608,7 +684,22 @@ now = "now - - - - - - - - - - - - - - - - - - - - - - - - -"
     "showCurrentTimeInGrid": true,
 
     // The days drawn as the weekend (0 is Sunday). (org-agenda-weekend-days)
-    "weekendDays": [6, 0]
+    "weekendDays": [6, 0],
+
+    // The day the agenda starts from, as the date prompt reads it: `-1d`,
+    // `+2d`, `2026-10-01`. (org-agenda-start-day)
+    // "startDay": unset: today
+
+    // Commands of the agenda menu. Each has a `key` and a `description`, and
+    // either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`)
+    // with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string
+    // such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list
+    // of such views shown one after the other. `header` replaces a view's
+    // header (empty: none), and `settings` holds agenda options for the
+    // command or a block (`span`, `startDay`…). A command with only a key and
+    // a description groups the commands whose keys start with its key.
+    // (org-agenda-custom-commands)
+    "customCommands": []
   }
 }
 ```

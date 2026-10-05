@@ -603,7 +603,7 @@ pub fn load(editor: Option<serde_json::Value>, var: &dyn Fn(&str) -> Option<Stri
 }
 
 /// `over` on top of `base`: objects key by key, anything else replaced.
-fn merge(base: &mut serde_json::Value, over: serde_json::Value) {
+pub(crate) fn merge(base: &mut serde_json::Value, over: serde_json::Value) {
     match (base, over) {
         (serde_json::Value::Object(base), serde_json::Value::Object(over)) => {
             for (key, value) in over {
@@ -696,7 +696,7 @@ pub enum FutureRepeatsOption {
     Name(String),
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct TimeGridOptions {
     pub daily: Option<bool>,
@@ -710,7 +710,7 @@ pub struct TimeGridOptions {
     pub now: Option<String>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct AgendaOptions {
     pub span: Option<SpanOption>,
@@ -730,6 +730,48 @@ pub struct AgendaOptions {
     pub time_grid: TimeGridOptions,
     pub show_current_time_in_grid: Option<bool>,
     pub weekend_days: Option<Vec<usize>>,
+    /// `org-agenda-start-day`: the day the agenda starts from, as the date
+    /// prompt reads it (`-1d`, `2026-10-01`).
+    pub start_day: Option<String>,
+    /// `org-agenda-custom-commands`
+    pub custom_commands: Option<Vec<CustomCommandOption>>,
+}
+
+/// A command of `org-agenda-custom-commands`: one view (`type`, `match`),
+/// a block agenda (`blocks`), or, with neither, a prefix key that groups
+/// the commands whose keys start with it.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase", deny_unknown_fields)]
+pub struct CustomCommandOption {
+    pub key: String,
+    pub description: String,
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    #[serde(rename = "match", skip_serializing_if = "Option::is_none")]
+    pub matching: Option<String>,
+    /// `org-agenda-overriding-header`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub header: Option<String>,
+    /// Agenda options for this command, over `agenda`'s: `span`,
+    /// `startDay`, `deadlineWarningDays`…
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub settings: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocks: Option<Vec<CustomBlockOption>>,
+}
+
+/// One block of a block agenda.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase", deny_unknown_fields)]
+pub struct CustomBlockOption {
+    #[serde(rename = "type")]
+    pub kind: String,
+    #[serde(rename = "match", skip_serializing_if = "Option::is_none")]
+    pub matching: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub header: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub settings: Option<serde_json::Value>,
 }
 
 impl AgendaOptions {

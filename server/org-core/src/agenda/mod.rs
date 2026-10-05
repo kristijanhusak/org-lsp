@@ -10,10 +10,12 @@
 
 mod display;
 mod item;
+pub mod matcher;
 
 pub use crate::text::tag_group;
 pub use display::{display, Displayed, Link, Segment, Style};
 pub use item::{align_tags, display_column, hidden_ranges, Face, Item, ItemKind, Source};
+pub use matcher::Matcher;
 
 use item::{format_item, normalise_keyword, priority, Dotime, FormatInput, Prefix};
 
@@ -555,13 +557,18 @@ pub fn day_items(files: &[&Outline], current: Day, today: Day, config: &Config) 
     items
 }
 
-/// `org-agenda-get-todos` over all files: every entry in a not-done state.
-pub fn todo_items(files: &[&Outline], config: &Config) -> Vec<Item> {
+/// `org-agenda-get-todos` over all files: every entry in a not-done state,
+/// or with one of `keywords` (`org-todo-list` with an argument).
+pub fn todo_items(files: &[&Outline], keywords: Option<&[String]>, config: &Config) -> Vec<Item> {
     let builder = Builder { files, config, today: 0 };
     let mut items = Vec::new();
     for (file, outline) in files.iter().enumerate() {
         for (index, entry) in outline.entries.iter().enumerate() {
-            if entry.skip || !entry.is_open_todo() {
+            let wanted = match keywords {
+                Some(keywords) => entry.todo.as_ref().is_some_and(|todo| keywords.contains(todo)),
+                None => entry.is_open_todo(),
+            };
+            if entry.skip || !wanted {
                 continue;
             }
             let mut item = builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::Headline);
@@ -582,6 +589,8 @@ pub enum LineKind {
     Date { day: Day, today: bool, weekend: bool },
     /// An entry or a grid line.
     Item,
+    /// Between the blocks of a block agenda.
+    Separator,
 }
 
 /// One line of a rendered view.
@@ -696,12 +705,57 @@ pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, co
     View { lines, start }
 }
 
-/// `org-todo-list`: the global list of open TODO entries.
-pub fn todo_view(files: &[&Outline], config: &Config) -> View {
-    let mut lines =
-        vec![Line { text: "Global list of TODO items of type: ALL".to_string(), kind: LineKind::Header, item: None }];
-    lines.extend(todo_items(files, config).into_iter().map(|item| item_line(item, config)));
+/// `org-todo-list`: the global list of open TODO entries, or of the
+/// entries with one of the keywords of `keywords` (`NEXT|WAIT`).
+pub fn todo_view(files: &[&Outline], keywords: Option<&str>, config: &Config) -> View {
+    let wanted: Option<Vec<String>> =
+        keywords.filter(|text| !text.trim().is_empty()).map(|text| text.split('|').map(str::to_string).collect());
+    let shown = wanted.as_ref().map_or("ALL".to_string(), |keywords| keywords.join("|"));
+    let header = format!("Global list of TODO items of type: {shown}");
+    let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
+    lines.extend(todo_items(files, wanted.as_deref(), config).into_iter().map(|item| item_line(item, config)));
     View { lines, start: 0 }
+}
+
+/// `org-tags-view`: the entries `matcher` matches, only open TODO
+/// entries with `todo_only` (`tags-todo`).
+pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: Now, config: &Config) -> View {
+    let builder = Builder { files, config, today: now.today };
+    let clock = matcher::Clock { today: now.today, minute: now.minute };
+    let mut items = Vec::new();
+    for (file, outline) in files.iter().enumerate() {
+        for index in 0..outline.entries.len() {
+            if outline.entries[index].skip || !matcher.matches(outline, index, todo_only, clock) {
+                continue;
+            }
+            items.push(builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::Headline));
+        }
+    }
+    sort(&mut items, false);
+    let header = format!("Headlines with TAGS match: {}", matcher.text);
+    let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
+    lines.extend(items.into_iter().map(|item| item_line(item, config)));
+    View { lines, start: 0 }
+}
+
+/// `org-agenda-overriding-header`: another header for a view, or none
+/// when it is empty.
+pub fn override_header(view: &mut View, header: &str) {
+    if view.lines.first().is_some_and(|line| line.kind == LineKind::Header) {
+        view.lines.remove(0);
+    }
+    if !header.is_empty() {
+        view.lines.insert(0, Line { text: header.to_string(), kind: LineKind::Header, item: None });
+    }
+}
+
+/// `org-agenda-block-separator` between the blocks of a block agenda:
+/// `=` across the window, which in Emacs's batch mode is 79 columns.
+pub fn block_separator() -> [Line; 2] {
+    [
+        Line { text: String::new(), kind: LineKind::Separator, item: None },
+        Line { text: "=".repeat(79), kind: LineKind::Separator, item: None },
+    ]
 }
 
 /// The entry an agenda line was made from.

@@ -385,6 +385,29 @@ pub const SETTINGS: &[Setting] = &[
     ),
     Setting {
         default: None,
+        unset: "today",
+        ..setting(
+            "agenda.startDay",
+            "string",
+            "",
+            "org-agenda-start-day",
+            "The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`.",
+        )
+    },
+    setting(
+        "agenda.customCommands",
+        "object[]",
+        "[]",
+        "org-agenda-custom-commands",
+        "Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, \
+         `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, \
+         a match string such as `work-home` or `PRIORITY=\"A\"` for `tags`), or `blocks`, a list of such \
+         views shown one after the other. `header` replaces a view's header (empty: none), and `settings` \
+         holds agenda options for the command or a block (`span`, `startDay`…). A command with only a key \
+         and a description groups the commands whose keys start with its key.",
+    ),
+    Setting {
+        default: None,
         unset: "from the client's capabilities",
         integration: true,
         ..setting(
@@ -486,6 +509,24 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("agenda.timeGrid.now", STRING),
     ("agenda.showCurrentTimeInGrid", BOOLEAN),
     ("agenda.weekendDays", r#"{ "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 6 } }"#),
+    ("agenda.startDay", STRING),
+    (
+        "agenda.customCommands",
+        r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaCommand", "required": ["key", "description"], "additionalProperties": false, "properties": {
+            "key": { "type": "string", "description": "The keys that pick the command in the agenda menu" },
+            "description": { "type": "string", "description": "What the menu shows" },
+            "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo"], "description": "The view" },
+            "match": { "type": "string", "description": "For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY=\"A\")" },
+            "header": { "type": "string", "description": "Replaces the view's header; empty for none" },
+            "settings": { "type": "object", "description": "Agenda options for this command: span, startDay…" },
+            "blocks": { "type": "array", "description": "Views shown one after the other", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaBlock", "required": ["type"], "additionalProperties": false, "properties": {
+                "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo"], "description": "The view" },
+                "match": { "type": "string", "description": "For todo, keywords; for tags, a match string" },
+                "header": { "type": "string", "description": "Replaces the view's header; empty for none" },
+                "settings": { "type": "object", "description": "Agenda options for this block: span, startDay…" }
+            } } }
+        } } }"#,
+    ),
     ("virtualDocuments", BOOLEAN),
 ];
 

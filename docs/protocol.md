@@ -105,6 +105,8 @@ the editor's own syntax.
 | `agenda.timeGrid.now` | string | `"now - - - - - - - - - - - - - - - - - - - - - - - - -"` | The text of the line for the current time. (`org-agenda-current-time-string`) |
 | `agenda.showCurrentTimeInGrid` | boolean | `true` | Show the current time in the grid. (`org-agenda-show-current-time-in-grid`) |
 | `agenda.weekendDays` | number[] | `[6, 0]` | The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`) |
+| `agenda.startDay` | string | today | The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`) |
+| `agenda.customCommands` | object[] | `[]` | Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT\|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`span`, `startDay`…). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`) |
 | `virtualDocuments` | boolean | from the client's capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
 
 <!-- END generated -->
@@ -159,7 +161,7 @@ number.
 
 | Command | Does |
 | --- | --- |
-| `org.agenda.dispatch` | `org-agenda` (`C-c a`): asks for a view by its key, as Emacs's menu does (input kind `key`; `a` for the agenda, `t` for the TODO list), and opens it. |
+| `org.agenda.dispatch` | `org-agenda` (`C-c a`): asks for a view by its key, as Emacs's menu does (input kind `key`; `a` for the agenda, `t` for the TODO list, `m` / `M` for a tags search, and the commands of `agenda.customCommands`), and opens it. A prefix key of custom commands asks again, with the keys so far in the input's `context` (`keys`); `m` and `M` then ask for the match string (input kind `text`). |
 | `org.agenda.list` | Opens the agenda for the current week or day. |
 | `org.agenda.todos` | Opens the list of all TODO entries. |
 | `org.agenda.later`, `org.agenda.earlier` | Moves the agenda one span forward or backward. |
