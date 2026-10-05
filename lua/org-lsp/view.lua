@@ -35,6 +35,12 @@ local function prompt_window(bufnr)
   vim.wo[win][0].relativenumber = false
   vim.wo[win][0].signcolumn = 'no'
   vim.wo[win][0].wrap = false
+  -- A calendar to move about in, never to type into.
+  vim.schedule(function()
+    if vim.api.nvim_get_current_win() == win then
+      vim.cmd.stopinsert()
+    end
+  end)
   return win
 end
 

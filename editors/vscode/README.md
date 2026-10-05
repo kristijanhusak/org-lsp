@@ -34,13 +34,12 @@ A date is typed as at Org's prompt: `fri 10:00`, `+2d`, `2/15`, `++1w`,
 `10:00-11:30`. Under the input box the extension shows the timestamp the
 answer makes, as you type.
 
-As in Emacs, a calendar opens beside the file with the prompt, with the
-answer and what it means on its last line. Press `Escape` to leave the
-input box for the calendar, where Emacs's keys work: `Shift+arrows` by
-day and week, `Alt+Shift+Left`/`Right` by month, `Alt+Shift+Up`/`Down` by
-year, `<` `>` for other months, `.` for today, `Enter` to take the day
-under the cursor, `i` to type the answer again (it is then read with the
-day you moved to), `q` or `Ctrl+G` to give up.
+As in Emacs, a date command shows a calendar first, beside the file, with
+the answer and what it means on its last line. Emacs's keys work there:
+`Shift+arrows` by day and week, `Alt+Shift+Left`/`Right` by month,
+`Alt+Shift+Up`/`Down` by year, `<` `>` for other months, `.` for today,
+`Enter` to take the day under the cursor, `i` to type the answer (read
+with the day you moved to, if you did), `q` or `Ctrl+G` to give up.
 
 ## Keys
 

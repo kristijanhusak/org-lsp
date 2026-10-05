@@ -350,22 +350,19 @@ The selected day has the `calendarSelected` token, and the server puts
 the cursor on it.
 
 1. A command that asks for a date (`org.schedule` …) opens the prompt with
-   `window/showDocument` before it answers `{ "input": … }`. The client
-   shows it as it likes (Neovim: a window at the bottom, VS Code: beside
-   the file) and asks for the input as usual; that input box is the
-   minibuffer. While the answer is typed, `org.date.preview` also shows it
-   in the minibuffer line.
-2. Answered, the command runs with the answer and the day moved to in the
-   calendar (if it moved), as Emacs reads its prompt, and returns
-   `{ "close": "org-agenda:/Org%20Date" }`: the client closes that
-   document.
-3. Left without an answer, the input box goes away and the calendar stays.
-   Its keys are the commands' keys `in` the `calendar` scope: they move the
+   `window/showDocument` and returns nothing. The client shows it as it
+   likes (Neovim: a window at the bottom, VS Code: beside the file).
+2. Its keys are the commands' keys `in` the `calendar` scope: they move the
    selected day (from the day under the cursor), take the day at the
-   cursor (`org.calendar.select`, what was typed and that day), ask for the
-   answer again (`org.calendar.type`, which returns `{ "input": … }` like
-   any command), or give up (`org.calendar.cancel`). The last three return
-   `close`.
+   cursor (`org.calendar.select`: what was typed and that day), ask for the
+   answer (`org.calendar.type`, which returns `{ "input": … }` like any
+   command; that input box is the minibuffer), or give up
+   (`org.calendar.cancel`). While the answer is typed, `org.date.preview`
+   also shows it in the minibuffer line.
+3. Answered or picked, the command runs with the answer and the day moved
+   to (if it moved), as Emacs reads its prompt; the result is
+   `{ "close": "org-agenda:/Org%20Date" }`, and the client closes that
+   document. Cancelling returns the same.
 
 When the selected day moves, the server sends
 `workspace/textDocumentContent/refresh`, and once the client shows the new

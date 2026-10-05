@@ -194,8 +194,7 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 - Emacs types in the minibuffer and moves the calendar with `S-<arrows>`
   from there. An editor's input box cannot pass such keys on, so the
-  calendar has its own keys and `i` goes back to typing; `Esc` in the
-  input box leaves it for the calendar.
+  calendar comes first, with its own keys, and `i` asks for the answer.
 - Closing the prompt's window does not cancel the prompt on the server
   (the client may report it late, when another prompt is open); the next
   date command replaces it. `q` cancels.
