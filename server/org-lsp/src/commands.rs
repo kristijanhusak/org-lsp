@@ -17,6 +17,8 @@ pub enum Scope {
     Org,
     /// In the agenda.
     Agenda,
+    /// In the date prompt.
+    Calendar,
 }
 
 impl Scope {
@@ -25,6 +27,7 @@ impl Scope {
             Scope::Global => "global",
             Scope::Org => "org",
             Scope::Agenda => "agenda",
+            Scope::Calendar => "calendar",
         }
     }
 }
@@ -103,8 +106,22 @@ pub const TIMESTAMP_INSERT_INACTIVE: &str = "org.timestamp.insert.inactive";
 /// What an answer to a date prompt means, for an editor that shows it
 /// while the answer is typed. Not a command of its own for users.
 pub const DATE_PREVIEW: &str = "org.date.preview";
+pub const CALENDAR_DAY_LATER: &str = "org.calendar.day.later";
+pub const CALENDAR_DAY_EARLIER: &str = "org.calendar.day.earlier";
+pub const CALENDAR_WEEK_LATER: &str = "org.calendar.week.later";
+pub const CALENDAR_WEEK_EARLIER: &str = "org.calendar.week.earlier";
+pub const CALENDAR_MONTH_LATER: &str = "org.calendar.month.later";
+pub const CALENDAR_MONTH_EARLIER: &str = "org.calendar.month.earlier";
+pub const CALENDAR_YEAR_LATER: &str = "org.calendar.year.later";
+pub const CALENDAR_YEAR_EARLIER: &str = "org.calendar.year.earlier";
+pub const CALENDAR_SCROLL_LATER: &str = "org.calendar.scroll.later";
+pub const CALENDAR_SCROLL_EARLIER: &str = "org.calendar.scroll.earlier";
+pub const CALENDAR_TODAY: &str = "org.calendar.today";
+pub const CALENDAR_SELECT: &str = "org.calendar.select";
+pub const CALENDAR_TYPE: &str = "org.calendar.type";
+pub const CALENDAR_CANCEL: &str = "org.calendar.cancel";
 
-use Scope::{Agenda, Global, Org};
+use Scope::{Agenda, Calendar, Global, Org};
 
 const fn command(id: &'static str, title: &'static str) -> Command {
     Command { id, title, edits: false, emacs: &[], vim: &[], input: None }
@@ -229,6 +246,79 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c !")],
         vim: &[key(Org, "<Leader>oi!")],
         ..ask_date(TIMESTAMP_INSERT_INACTIVE, "Insert or change an inactive timestamp", "Inactive timestamp")
+    },
+    // The date prompt: the keys of `org-read-date-minibuffer-local-map`
+    // and of the calendar Emacs shows with it.
+    Command {
+        emacs: &[key(Calendar, "S-<right>")],
+        vim: &[key(Calendar, "l"), key(Calendar, "<S-Right>")],
+        ..command(CALENDAR_DAY_LATER, "Date prompt: one day later")
+    },
+    Command {
+        emacs: &[key(Calendar, "S-<left>")],
+        vim: &[key(Calendar, "h"), key(Calendar, "<S-Left>")],
+        ..command(CALENDAR_DAY_EARLIER, "Date prompt: one day earlier")
+    },
+    Command {
+        emacs: &[key(Calendar, "S-<down>")],
+        vim: &[key(Calendar, "j"), key(Calendar, "<S-Down>")],
+        ..command(CALENDAR_WEEK_LATER, "Date prompt: one week later")
+    },
+    Command {
+        emacs: &[key(Calendar, "S-<up>")],
+        vim: &[key(Calendar, "k"), key(Calendar, "<S-Up>")],
+        ..command(CALENDAR_WEEK_EARLIER, "Date prompt: one week earlier")
+    },
+    Command {
+        emacs: &[key(Calendar, "M-S-<right>")],
+        vim: &[key(Calendar, "<M-S-Right>")],
+        ..command(CALENDAR_MONTH_LATER, "Date prompt: one month later")
+    },
+    Command {
+        emacs: &[key(Calendar, "M-S-<left>")],
+        vim: &[key(Calendar, "<M-S-Left>")],
+        ..command(CALENDAR_MONTH_EARLIER, "Date prompt: one month earlier")
+    },
+    Command {
+        emacs: &[key(Calendar, "M-S-<down>")],
+        vim: &[key(Calendar, "<M-S-Down>")],
+        ..command(CALENDAR_YEAR_LATER, "Date prompt: one year later")
+    },
+    Command {
+        emacs: &[key(Calendar, "M-S-<up>")],
+        vim: &[key(Calendar, "<M-S-Up>")],
+        ..command(CALENDAR_YEAR_EARLIER, "Date prompt: one year earlier")
+    },
+    Command {
+        emacs: &[key(Calendar, ">")],
+        vim: &[key(Calendar, ">")],
+        ..command(CALENDAR_SCROLL_LATER, "Date prompt: show the next months")
+    },
+    Command {
+        emacs: &[key(Calendar, "<")],
+        vim: &[key(Calendar, "<")],
+        ..command(CALENDAR_SCROLL_EARLIER, "Date prompt: show the previous months")
+    },
+    Command {
+        emacs: &[key(Calendar, ".")],
+        vim: &[key(Calendar, ".")],
+        ..command(CALENDAR_TODAY, "Date prompt: go to today")
+    },
+    Command {
+        emacs: &[key(Calendar, "RET")],
+        vim: &[key(Calendar, "<CR>")],
+        ..command(CALENDAR_SELECT, "Date prompt: take the day at the cursor")
+    },
+    Command {
+        emacs: &[key(Calendar, "i")],
+        vim: &[key(Calendar, "i")],
+        input: Some(Input { kind: "date", prompt: "Date+time" }),
+        ..command(CALENDAR_TYPE, "Date prompt: type the date")
+    },
+    Command {
+        emacs: &[key(Calendar, "q"), key(Calendar, "C-g")],
+        vim: &[key(Calendar, "q"), key(Calendar, "<Esc>")],
+        ..command(CALENDAR_CANCEL, "Date prompt: cancel")
     },
 ];
 

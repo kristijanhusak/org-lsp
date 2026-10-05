@@ -25,7 +25,7 @@ use lsp_types::{
     TextDocumentSyncOptions, TextDocumentSyncSaveOptions, TextEdit, Uri, WorkspaceEdit,
 };
 use org_core::agenda::{self, Config as AgendaConfig, Now, Span};
-use org_core::date::DateTime;
+use org_core::date::{Date, DateTime};
 use org_core::edit::{self, Call, Command as EditCommand, Settings as EditSettings};
 use org_core::outline::Outline;
 use org_core::planning::{self, Command as PlanningCommand};
@@ -39,6 +39,7 @@ use serde_json::{json, Value};
 use crate::config::Options;
 use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
+use crate::prompt::{self, DatePrompt};
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
 use crate::{actions, cli, commands, folding, highlight, manifest, symbols, uri};
@@ -57,6 +58,11 @@ struct Client {
     /// The client fetches documents of the agenda scheme from the server.
     virtual_documents: bool,
     show_document: bool,
+    /// The client shows the date prompt document and binds its keys; it
+    /// says so with `experimental.orgDatePrompt`.
+    date_prompt: bool,
+    /// The client rereads semantic tokens when asked.
+    tokens_refresh: bool,
 }
 
 /// An outgoing request whose answer the server acts on.
@@ -185,6 +191,11 @@ struct Server {
     agenda: AgendaConfig,
     edit_settings: EditSettings,
     read_date: ReadDateSettings,
+    /// The date prompt that waits for an answer, in clients that show it.
+    date_prompt: Option<DatePrompt>,
+    /// The client's copy of the date prompt document, which it may keep
+    /// after a prompt is done.
+    prompt_copy: Option<Document>,
     /// `org-cycle-separator-lines`
     separator_lines: i64,
     /// A fixed clock, for tests.
@@ -233,7 +244,15 @@ pub fn run(connection: Connection) -> Result<()> {
             raw_params.pointer("/capabilities/workspace/textDocumentContent").is_some_and(|value| !value.is_null())
         }),
         show_document: window.and_then(|window| window.show_document.as_ref()).is_some_and(|show| show.support),
+        date_prompt: raw_params.pointer("/capabilities/experimental/orgDatePrompt").and_then(Value::as_bool)
+            == Some(true),
+        tokens_refresh: raw_params
+            .pointer("/capabilities/workspace/semanticTokens/refreshSupport")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
     };
+    let client =
+        Client { date_prompt: client.date_prompt && client.virtual_documents && client.show_document, ..client };
 
     let todo = options
         .todo_keywords
@@ -269,6 +288,8 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda: options.agenda_config(),
         edit_settings: options.edit_settings(),
         read_date: options.read_date_settings(),
+        date_prompt: None,
+        prompt_copy: None,
         separator_lines: options.cycle_separator_lines.unwrap_or(folding::SEPARATOR_LINES),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
         documents: HashMap::new(),
@@ -509,6 +530,11 @@ impl Server {
             DidOpenTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidOpenTextDocumentParams>(notification) else { return };
                 let document = params.text_document;
+                if document.uri.as_str() == prompt::URI {
+                    self.prompt_copy = Some(Document::new(document.text, document.version, &self.todo));
+                    self.reveal_prompt_when_current();
+                    return;
+                }
                 // The agenda is the server's own text; the client's copy is not read.
                 if self.is_view(&document.uri) {
                     if let Some(open) = self.view.as_mut().filter(|open| open.uri == document.uri) {
@@ -525,6 +551,14 @@ impl Server {
             }
             DidChangeTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidChangeTextDocumentParams>(notification) else { return };
+                if params.text_document.uri.as_str() == prompt::URI {
+                    let (encoding, todo) = (self.client.encoding, &self.todo);
+                    if let Some(copy) = self.prompt_copy.as_mut() {
+                        copy.apply(params.content_changes, params.text_document.version, encoding, todo);
+                    }
+                    self.reveal_prompt_when_current();
+                    return;
+                }
                 // The client's copy of the agenda follows the server's.
                 let (encoding, todo) = (self.client.encoding, &self.todo);
                 let view = self.view.as_mut().filter(|open| open.uri == params.text_document.uri);
@@ -561,6 +595,13 @@ impl Server {
             }
             DidCloseTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidCloseTextDocumentParams>(notification) else { return };
+                // The client may close its copy of the date prompt any time
+                // after the prompt is done, even after another has opened,
+                // so this cancels nothing: the next prompt replaces it.
+                if params.text_document.uri.as_str() == prompt::URI {
+                    self.prompt_copy = None;
+                    return;
+                }
                 self.documents.remove(params.text_document.uri.as_str());
                 // The agenda was closed: stop rebuilding it.
                 if self.view.as_ref().is_some_and(|open| open.uri == params.text_document.uri) {
@@ -577,6 +618,13 @@ impl Server {
 
     fn semantic_tokens(&self, uri: &Uri, range: Option<Range>) -> Option<SemanticTokens> {
         let encoding = self.client.encoding;
+        if uri.as_str() == prompt::URI {
+            let open = self.date_prompt.as_ref()?;
+            let index = LineIndex::new(&open.text);
+            let only = range.map(|range| index.text_range(&open.text, range, encoding));
+            let data = highlight::encode(&open.tokens, &open.text, &index, encoding, only);
+            return Some(SemanticTokens { result_id: None, data });
+        }
         if let Some(view) = self.view_at(uri) {
             let only = range.map(|range| view.index.text_range(&view.text, range, encoding));
             let data = highlight::encode(&view.tokens, &view.text, &view.index, encoding, only);
@@ -699,6 +747,9 @@ impl Server {
 
     fn text_document_content(&mut self, params: &Value) -> Value {
         let uri = params.get("uri").and_then(Value::as_str);
+        if uri == Some(prompt::URI) {
+            return json!({ "text": self.date_prompt.as_ref().map(|open| open.text.clone()).unwrap_or_default() });
+        }
         match &self.view {
             Some(open) if uri == Some(open.uri.as_str()) => json!({ "text": open.view.text }),
             // The client restored an agenda from an earlier session.
@@ -925,6 +976,7 @@ impl Server {
         let context: Option<Context> =
             params.arguments.into_iter().next().and_then(|value| serde_json::from_value(value).ok());
         match params.command.as_str() {
+            id if id.starts_with("org.calendar.") => self.calendar_command(id, context.as_ref()),
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             id if commands::input(id).is_some() => {
                 self.ask_date(id, &context.ok_or("This command needs the cursor position")?)
@@ -950,13 +1002,58 @@ impl Server {
     /// the text the prompt starts with. With `input` it runs.
     fn ask_date(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
         let command = planning_command(id).ok_or("Unknown command")?;
-        let (text, offset, version) = self.place(context)?;
+        let (text, offset, _) = self.place(context)?;
         let Some(answer) = &context.input else {
             let prompt = planning::prompt(command, &text, offset)?;
             let input = commands::input(id).ok_or("Unknown command")?;
+            // In a client that shows it, the calendar opens beside the
+            // prompt, as in Emacs.
+            if self.client.date_prompt {
+                let (uri, position, now) = (context.text_document.uri.clone(), context.position, self.date_time());
+                let open = DatePrompt::new(
+                    id,
+                    command,
+                    uri,
+                    position,
+                    prompt.default,
+                    prompt.value.clone(),
+                    now,
+                    &self.read_date,
+                );
+                self.open_date_prompt(open);
+            }
             return Ok(json!({ "input": { "kind": input.kind, "prompt": input.prompt, "value": prompt.value } }));
         };
-        let uri = context.text_document.uri.clone();
+        // The answer typed while the calendar was open ends with the day
+        // that was moved to there.
+        let pending = self.date_prompt.take_if(|open| open.id == id && open.file == context.text_document.uri);
+        let answer = match &pending {
+            Some(open) if open.moved => format!("{answer} {}", Date::from_day(open.selected)),
+            _ => answer.clone(),
+        };
+        self.apply_date(id, &context.text_document.uri, context.position, &answer)?;
+        Ok(if pending.is_some() { json!({ "close": prompt::URI }) } else { Value::Null })
+    }
+
+    /// Run the command `id` that asked for a date, at `position` of `uri`,
+    /// with `answer`.
+    fn apply_date(
+        &mut self,
+        id: &str,
+        uri: &Uri,
+        position: Position,
+        answer: &str,
+    ) -> std::result::Result<(), Refusal> {
+        let command = planning_command(id).ok_or("Unknown command")?;
+        let context = Context {
+            text_document: lsp_types::TextDocumentIdentifier { uri: uri.clone() },
+            position,
+            count: None,
+            input: None,
+            command: None,
+        };
+        let (text, offset, version) = self.place(&context)?;
+        let uri = uri.clone();
         let key = uri.as_str().to_string();
         // A timestamp right after another one makes a date range.
         let repeated = self.last.take().is_some_and(|last| {
@@ -973,7 +1070,7 @@ impl Server {
             .map(|edit| TextEdit { range: index.range(&text, edit.range, encoding), new_text: edit.new_text })
             .collect();
         if edits.is_empty() {
-            return Ok(Value::Null);
+            return Ok(());
         }
         let pending = match outcome.cursor {
             Some(cursor) => {
@@ -986,17 +1083,165 @@ impl Server {
         self.edited.insert(key);
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
         self.send_request::<ApplyWorkspaceEdit>(params, Some(pending));
+        Ok(())
+    }
+
+    // ----- the date prompt
+
+    /// Show `open` as the date prompt, replacing one that was open.
+    fn open_date_prompt(&mut self, mut open: DatePrompt) {
+        let cursor = open.cursor();
+        if self.prompt_copy.is_some() {
+            // The client has the document: it shows it again and fetches
+            // the new text, and the cursor follows once it has.
+            self.date_prompt = Some(open);
+            self.send_raw_request(TEXT_DOCUMENT_CONTENT_REFRESH, json!({ "uri": prompt::URI }), None);
+            let params = ShowDocumentParams {
+                uri: prompt::URI.parse().expect("valid URI"),
+                external: None,
+                take_focus: Some(true),
+                selection: None,
+            };
+            self.send_request::<ShowDocument>(params, None);
+            self.reveal_prompt_when_current();
+        } else {
+            open.reveal = false;
+            self.date_prompt = Some(open);
+            let params = ShowDocumentParams {
+                uri: prompt::URI.parse().expect("valid URI"),
+                external: None,
+                take_focus: Some(true),
+                selection: Some(Range::new(cursor, cursor)),
+            };
+            self.send_request::<ShowDocument>(params, None);
+        }
+    }
+
+    /// Whether the client shows the current text of the date prompt.
+    fn prompt_is_current(&self) -> bool {
+        let copy = self.prompt_copy.as_ref().map(|copy| copy.text.as_str());
+        self.date_prompt.as_ref().is_some_and(|open| copy == Some(open.text.as_str()))
+    }
+
+    /// Tell the client that the date prompt has new text, or new colours.
+    fn publish_date_prompt(&mut self) {
+        if self.date_prompt.is_none() {
+            return;
+        }
+        if self.prompt_is_current() {
+            if self.client.tokens_refresh {
+                self.send_raw_request("workspace/semanticTokens/refresh", Value::Null, None);
+            }
+            self.reveal_prompt_when_current();
+        } else {
+            let params = json!({ "uri": prompt::URI });
+            self.send_raw_request(TEXT_DOCUMENT_CONTENT_REFRESH, params, None);
+        }
+    }
+
+    /// Put the cursor on the selected day once the client shows the text
+    /// it belongs to.
+    fn reveal_prompt_when_current(&mut self) {
+        if !self.prompt_is_current() {
+            return;
+        }
+        let Some(open) = self.date_prompt.as_mut().filter(|open| open.reveal) else { return };
+        open.reveal = false;
+        let cursor = open.cursor();
+        let params = ShowDocumentParams {
+            uri: prompt::URI.parse().expect("valid URI"),
+            external: None,
+            take_focus: Some(true),
+            selection: Some(Range::new(cursor, cursor)),
+        };
+        self.send_request::<ShowDocument>(params, None);
+    }
+
+    /// A key of the date prompt. The day it starts from is the one under
+    /// the cursor, as in Emacs's calendar, or else the selected one.
+    fn calendar_command(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
+        let (now, settings) = (self.date_time(), self.read_date);
+        let open = self.date_prompt.as_mut().ok_or("No date prompt is open")?;
+        let at = context
+            .filter(|context| context.text_document.uri.as_str() == prompt::URI)
+            .and_then(|context| open.day_at(context.position))
+            .unwrap_or(open.selected);
+        let date = Date::from_day(at);
+        let by_months = |months: i64| {
+            let target = Date::new(date.year, date.month + months, 1);
+            let length = org_core::date::days_in_month(
+                Date::from_day(target.to_day()).year,
+                Date::from_day(target.to_day()).month,
+            );
+            Date::new(target.year, target.month, date.day.min(length)).to_day()
+        };
+        match id {
+            commands::CALENDAR_DAY_LATER => open.select(at + 1, now, &settings),
+            commands::CALENDAR_DAY_EARLIER => open.select(at - 1, now, &settings),
+            commands::CALENDAR_WEEK_LATER => open.select(at + 7, now, &settings),
+            commands::CALENDAR_WEEK_EARLIER => open.select(at - 7, now, &settings),
+            commands::CALENDAR_MONTH_LATER => open.select(by_months(1), now, &settings),
+            commands::CALENDAR_MONTH_EARLIER => open.select(by_months(-1), now, &settings),
+            commands::CALENDAR_YEAR_LATER => open.select(by_months(12), now, &settings),
+            commands::CALENDAR_YEAR_EARLIER => open.select(by_months(-12), now, &settings),
+            commands::CALENDAR_SCROLL_LATER => open.scroll(1, now, &settings),
+            commands::CALENDAR_SCROLL_EARLIER => open.scroll(-1, now, &settings),
+            commands::CALENDAR_TODAY => open.select(now.day, now, &settings),
+            commands::CALENDAR_SELECT => {
+                // `org-calendar-select`: what was typed, and this day.
+                let answer = open.answer_with(at);
+                return self.finish_date_prompt(&answer);
+            }
+            commands::CALENDAR_TYPE => {
+                let Some(typed) = context.and_then(|context| context.input.clone()) else {
+                    // The minibuffer: ask, starting from what was typed.
+                    return Ok(
+                        json!({ "input": { "kind": "date", "prompt": open.label.trim_end().trim_end_matches(':'), "value": open.typed } }),
+                    );
+                };
+                // `RET` there: what was typed, and the day if it moved.
+                open.typed = typed;
+                let answer = open.answer();
+                return self.finish_date_prompt(&answer);
+            }
+            commands::CALENDAR_CANCEL => {
+                self.date_prompt = None;
+                return Ok(json!({ "close": prompt::URI }));
+            }
+            other => return Err(format!("org-lsp has no command `{other}`").into()),
+        }
+        self.publish_date_prompt();
         Ok(Value::Null)
+    }
+
+    /// Run the command the date prompt answers, and close the prompt.
+    fn finish_date_prompt(&mut self, answer: &str) -> std::result::Result<Value, Refusal> {
+        let open = self.date_prompt.as_ref().ok_or("No date prompt is open")?;
+        let (id, file, position) = (open.id.clone(), open.file.clone(), open.position);
+        self.apply_date(&id, &file, position, answer)?;
+        self.date_prompt = None;
+        Ok(json!({ "close": prompt::URI }))
     }
 
     /// `org.date.preview`: the timestamp an answer to the prompt of
     /// `command` makes, `{ "timestamp": "<2026-05-22 Fri>" }`.
-    fn preview_date(&self, context: &Context) -> std::result::Result<Value, Refusal> {
+    fn preview_date(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
         let id = context.command.as_deref().ok_or("Which command's prompt?")?;
+        let answer = context.input.as_deref().unwrap_or("");
+        let (now, settings) = (self.date_time(), self.read_date);
+        // With the date prompt open, what is typed shows in its minibuffer
+        // too, and the answer ends with the day moved to there.
+        if let Some(open) = self.date_prompt.as_mut().filter(|open| open.id == id || id == commands::CALENDAR_TYPE) {
+            open.set_typed(answer.to_string(), now, &settings);
+            let read = org_core::read_date::read_date(&open.answer(), open.default, now, &settings)?;
+            let inactive = matches!(open.command, PlanningCommand::Timestamp { inactive: true });
+            let stamp = planning::timestamp_for(&read, inactive);
+            self.publish_date_prompt();
+            return Ok(json!({ "timestamp": stamp }));
+        }
         let command = planning_command(id).ok_or("Unknown command")?;
         let (text, offset, _) = self.place(context)?;
-        let answer = context.input.as_deref().unwrap_or("");
-        let stamp = planning::preview(command, &text, offset, answer, self.date_time(), &self.read_date)?;
+        let stamp = planning::preview(command, &text, offset, answer, now, &settings)?;
         Ok(json!({ "timestamp": stamp }))
     }
 

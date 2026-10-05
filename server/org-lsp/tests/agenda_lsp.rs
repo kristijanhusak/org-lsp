@@ -77,6 +77,21 @@ impl Client {
         Client::start(capabilities, options, root)
     }
 
+    /// An editor that also shows Org's date prompt.
+    fn with_date_prompt(options: Value) -> Client {
+        let capabilities = json!({
+            "workspace": {
+                "textDocumentContent": { "dynamicRegistration": true },
+                "workspaceEdit": { "documentChanges": true },
+                "semanticTokens": { "refreshSupport": true }
+            },
+            "window": { "showDocument": { "support": true } },
+            "general": { "positionEncodings": ["utf-8"] },
+            "experimental": { "orgDatePrompt": true }
+        });
+        Client::start(capabilities, options, None)
+    }
+
     fn answer(&mut self, request: Request) {
         if self.hold_show && request.method == "window/showDocument" {
             self.held.push(request);
@@ -1159,5 +1174,97 @@ fn asks_for_a_date_and_uses_the_answer() {
         .request_raw("workspace/executeCommand", json!({ "command": "org.schedule", "arguments": [context] }))
         .unwrap_err();
     assert_eq!(error.data, Some(json!({ "notApplicable": true })));
+    client.shutdown();
+}
+
+#[test]
+fn shows_a_calendar_with_the_date_prompt() {
+    const NOTES: &str = "* TODO Call them\nSCHEDULED: <2026-05-20 Wed 10:00 +1w>\n* Notes\n";
+    const URI: &str = "file:///org/notes.org";
+    const PROMPT: &str = "org-agenda:/Org%20Date";
+    let mut client = Client::with_date_prompt(clock());
+    let mut notes = NOTES.to_string();
+    client.open(URI, NOTES);
+    let manifest = &client.initialize["capabilities"]["experimental"]["org"];
+    assert_eq!(manifest["datePrompt"]["uri"], PROMPT);
+    let at = |line: u32, character: u32| json!({ "textDocument": { "uri": URI }, "position": { "line": line, "character": character } });
+    let on_prompt = |line: u32, character: u32| json!({ "textDocument": { "uri": PROMPT }, "position": { "line": line, "character": character } });
+    let run = |client: &mut Client, command: &str, context: Value| {
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+
+    // The command asks, and the calendar opens on the old date with the
+    // cursor on its day.
+    let asked = run(&mut client, "org.schedule", at(0, 0)).unwrap();
+    assert_eq!(asked["input"]["value"], "10:00");
+    assert_eq!(methods(&client.received), ["window/showDocument"]);
+    assert_eq!(client.received[0].params["uri"], PROMPT);
+    let text = client.view_text(PROMPT);
+    let lines: Vec<&str> = text.lines().collect();
+    assert_eq!(lines[0], "          April 2026                May 2026                June 2026");
+    assert_eq!(lines[lines.len() - 1], "SCHEDULED Date+time [2026-05-20]: 10:00    => <2026-05-20 Wed 10:00>");
+    let cursor = &client.received[0].params["selection"]["start"];
+    let (line, character) = (cursor["line"].as_u64().unwrap() as usize, cursor["character"].as_u64().unwrap() as usize);
+    assert_eq!(&lines[line][character - 1..=character], "20");
+    client.notify(
+        "textDocument/didOpen",
+        json!({ "textDocument": { "uri": PROMPT, "languageId": "org-date", "version": 1, "text": text } }),
+    );
+    client.settle();
+
+    // A day later, from the cursor: new text, then the cursor on Thursday.
+    run(&mut client, "org.calendar.day.later", on_prompt(line as u32, character as u32)).unwrap();
+    assert_eq!(methods(&client.received), ["workspace/textDocumentContent/refresh"]);
+    let text = client.view_text(PROMPT);
+    assert!(text.ends_with("10:00    => <2026-05-21 Thu 10:00>\n"), "{text}");
+    client.received.clear();
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": PROMPT, "version": 2 }, "contentChanges": [{ "text": text }] }),
+    );
+    client.settle();
+    assert_eq!(methods(&client.received), ["window/showDocument"]);
+    assert_eq!(client.received[0].params["selection"]["start"]["character"], character as u64 + 3);
+    // Tokens mark the selected day.
+    let tokens =
+        client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": PROMPT } })).unwrap();
+    assert!(!tokens["data"].as_array().unwrap().is_empty());
+
+    // Typing: the minibuffer starts from what was typed, and its answer
+    // ends with the day that was moved to.
+    let asked = run(&mut client, "org.calendar.type", on_prompt(0, 0)).unwrap();
+    assert_eq!(asked["input"]["prompt"], "SCHEDULED Date+time [2026-05-20]");
+    assert_eq!(asked["input"]["value"], "10:00");
+    let mut typed = on_prompt(0, 0);
+    typed["input"] = json!("15:00");
+    let done = run(&mut client, "org.calendar.type", typed).unwrap();
+    assert_eq!(done, json!({ "close": PROMPT }));
+    let (_, edits) = edits_of(&client.received[0]);
+    notes = apply(&notes, &edits);
+    assert_eq!(notes.lines().nth(1).unwrap(), "SCHEDULED: <2026-05-21 Thu 15:00 +1w>");
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": URI, "version": client.file_version }, "contentChanges": [{ "text": notes }] }),
+    );
+
+    // A day picked with RET; months and years move; cancelling closes.
+    run(&mut client, "org.deadline", at(0, 0)).unwrap();
+    run(&mut client, "org.calendar.month.later", on_prompt(0, 0)).unwrap();
+    assert!(client.view_text(PROMPT).contains("=> <2026-06-18 Thu>"));
+    run(&mut client, "org.calendar.year.earlier", on_prompt(0, 0)).unwrap();
+    assert!(client.view_text(PROMPT).contains("=> <2025-06-18 Wed>"));
+    run(&mut client, "org.calendar.today", on_prompt(0, 0)).unwrap();
+    let done = run(&mut client, "org.calendar.select", on_prompt(0, 0)).unwrap();
+    assert_eq!(done, json!({ "close": PROMPT }));
+    let (_, edits) = edits_of(&client.received[0]);
+    notes = apply(&notes, &edits);
+    assert_eq!(notes.lines().nth(1).unwrap(), "DEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-21 Thu 15:00 +1w>");
+    run(&mut client, "org.timestamp.insert", at(2, 0)).unwrap();
+    assert_eq!(run(&mut client, "org.calendar.cancel", on_prompt(0, 0)).unwrap(), json!({ "close": PROMPT }));
+    assert_eq!(run(&mut client, "org.calendar.today", on_prompt(0, 0)).unwrap_err(), "No date prompt is open");
     client.shutdown();
 }

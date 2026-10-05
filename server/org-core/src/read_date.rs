@@ -55,6 +55,9 @@ pub struct ReadDate {
     /// The year was outside what `force_compatible_dates` allows and was
     /// moved into it (`org-read-date-analyze-forced-year`).
     pub forced_year: bool,
+    /// A date without a year or month was taken to be the next one to
+    /// come (`org-read-date-analyze-futurep`); the prompt shows `(=>F)`.
+    pub future: bool,
 }
 
 impl ReadDate {
@@ -637,6 +640,7 @@ pub fn read_date(
             }
         }
         None if tl.month.is_some() => {
+            futurep = true;
             if month > nowdecode.month {
                 nowdecode.year
             } else if month < nowdecode.month || day < nowdecode.day {
@@ -662,11 +666,13 @@ pub fn read_date(
         })
     {
         day += 1;
+        futurep = true;
     }
 
     let mut time_given = false;
     if let Some((iso_year, iso_day, week)) = iso {
         // `calendar-iso-to-absolute`
+        futurep = false;
         year = iso_year.unwrap_or(year);
         let day_of_week = iso_day.or(wday).unwrap_or(1);
         let fourth = Date::new(year, 1, 1).to_day() + 3;
@@ -675,6 +681,7 @@ pub fn read_date(
         let date = Date::from_day(absolute);
         (year, month, day) = (date.year, date.month, date.day);
     } else if let Some(delta) = delta {
+        futurep = false;
         if !delta.from_default {
             (day, month, year) = (nowdecode.day, nowdecode.month, nowdecode.year);
         }
@@ -726,6 +733,7 @@ pub fn read_date(
         time: time_given.then_some((seconds / 3600, seconds / 60 % 60)),
         end,
         forced_year,
+        future: futurep,
     })
 }
 

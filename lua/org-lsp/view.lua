@@ -1,6 +1,6 @@
 --- What the server asks the editor to do: show documents, among them the
---- ones the server owns and the editor only displays (the agenda), and
---- apply edits.
+--- ones the server owns and the editor only displays (the agenda and the
+--- date prompt), and apply edits.
 ---
 --- For those this is the client side of LSP 3.18's
 --- `workspace/textDocumentContent`, which Neovim does not have built in. A
@@ -8,8 +8,49 @@
 --- returns, and filled again when the server says that the text has changed.
 local M = {}
 
---- Tells the server that this client fetches such documents.
-M.capabilities = { workspace = { textDocumentContent = { dynamicRegistration = false } } }
+--- Tells the server that this client fetches such documents, and shows
+--- its date prompt.
+M.capabilities = {
+  workspace = { textDocumentContent = { dynamicRegistration = false } },
+  experimental = { orgDatePrompt = true },
+}
+
+--- The manifest's sections for the documents the server owns.
+local documents = {}
+
+--- The date prompt pops up in a window at the bottom, as Emacs's calendar
+--- does, as high as its text. Returns that window.
+---@param bufnr integer
+---@return integer
+local function prompt_window(bufnr)
+  local win = vim.fn.win_findbuf(bufnr)[1]
+  if not win then
+    vim.cmd('botright split')
+    win = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_buf(win, bufnr)
+  end
+  vim.api.nvim_win_set_height(win, vim.api.nvim_buf_line_count(bufnr))
+  vim.wo[win][0].winfixheight = true
+  vim.wo[win][0].number = false
+  vim.wo[win][0].relativenumber = false
+  vim.wo[win][0].signcolumn = 'no'
+  vim.wo[win][0].wrap = false
+  return win
+end
+
+--- Close the windows that show the document at `uri`, and the buffer.
+---@param uri string
+function M.close(uri)
+  local bufnr = vim.uri_to_bufnr(uri)
+  for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+    if #vim.api.nvim_list_wins() > 1 then
+      vim.api.nvim_win_close(win, true)
+    end
+  end
+  if vim.api.nvim_buf_is_valid(bufnr) then
+    vim.api.nvim_buf_delete(bufnr, { force = true })
+  end
+end
 
 ---@param bufnr integer
 ---@param text string
@@ -84,10 +125,16 @@ M.handlers = {
       return vim.lsp.handlers['window/showDocument'](err, params, ctx)
     end
     local bufnr = vim.uri_to_bufnr(params.uri)
-    vim.cmd("normal! m'")
-    local win = vim.fn.win_findbuf(bufnr)[1] or vim.api.nvim_get_current_win()
-    vim.bo[bufnr].buflisted = true
-    vim.api.nvim_win_set_buf(win, bufnr)
+    local win
+    if documents.datePrompt and params.uri == documents.datePrompt.uri then
+      vim.fn.bufload(bufnr)
+      win = prompt_window(bufnr)
+    else
+      vim.cmd("normal! m'")
+      win = vim.fn.win_findbuf(bufnr)[1] or vim.api.nvim_get_current_win()
+      vim.bo[bufnr].buflisted = true
+      vim.api.nvim_win_set_buf(win, bufnr)
+    end
     if params.takeFocus ~= false then
       vim.api.nvim_set_current_win(win)
     end
@@ -108,6 +155,9 @@ M.handlers = {
         client:request('workspace/textDocumentContent', { uri = params.uri }, function(_, result)
           if result and vim.api.nvim_buf_is_loaded(bufnr) then
             set_text(bufnr, result.text)
+            if documents.datePrompt and params.uri == documents.datePrompt.uri then
+              prompt_window(bufnr)
+            end
           end
         end)
       end
@@ -116,15 +166,24 @@ M.handlers = {
   end,
 }
 
---- Fetch buffers of the agenda's scheme from the server.
----@param agenda table the `agenda` section of the server's manifest
-function M.setup(agenda)
+--- Fetch buffers of the agenda's scheme from the server: the agenda, and
+--- the date prompt.
+---@param manifest table the server's manifest
+function M.setup(manifest)
+  documents = { agenda = manifest.agenda, datePrompt = manifest.datePrompt }
   vim.api.nvim_create_autocmd('BufReadCmd', {
     group = vim.api.nvim_create_augroup('org_lsp_view', { clear = true }),
     -- With a slash, the pattern is matched against the whole name.
-    pattern = agenda.scheme .. ':/*',
+    pattern = manifest.agenda.scheme .. ':/*',
     callback = function(args)
-      load(args.buf, agenda.languageId)
+      local prompt = documents.datePrompt
+      if prompt and vim.uri_from_bufnr(args.buf) == prompt.uri then
+        -- Gone with its window: closing it is cancelling the prompt.
+        vim.bo[args.buf].bufhidden = 'wipe'
+        load(args.buf, prompt.languageId)
+      else
+        load(args.buf, manifest.agenda.languageId)
+      end
     end,
   })
 end

@@ -60,6 +60,10 @@ token_types! {
     AgendaEvent => "agendaEvent",
     AgendaDone => "agendaDone",
     AgendaTimeGrid => "agendaTimeGrid",
+    CalendarHeader => "calendarHeader",
+    CalendarWeekday => "calendarWeekday",
+    CalendarSelected => "calendarSelected",
+    CalendarPrompt => "calendarPrompt",
 }
 
 /// Token modifiers, in legend order; each is one bit.

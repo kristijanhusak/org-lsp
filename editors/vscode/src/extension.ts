@@ -41,6 +41,39 @@ function cursor(running: LanguageClient): unknown[] {
   ];
 }
 
+/** Done when the date prompt the server asked to show is shown. */
+let datePromptShown: Promise<void> = Promise.resolve();
+
+function sameUri(a: string, b: string): boolean {
+  return vscode.Uri.parse(a).toString() === vscode.Uri.parse(b).toString();
+}
+
+async function showDatePrompt(params: { uri: string; takeFocus?: boolean; selection?: { start: { line: number; character: number } } }): Promise<void> {
+  const uri = vscode.Uri.parse(params.uri);
+  const document = await vscode.workspace.openTextDocument(uri);
+  const shown = vscode.window.visibleTextEditors.find((editor) => editor.document.uri.toString() === uri.toString());
+  const start = params.selection?.start;
+  const position = start ? new vscode.Position(start.line, start.character) : undefined;
+  await vscode.window.showTextDocument(document, {
+    viewColumn: shown?.viewColumn ?? vscode.ViewColumn.Beside,
+    preserveFocus: params.takeFocus === false,
+    preview: false,
+    selection: position ? new vscode.Range(position, position) : undefined,
+  });
+}
+
+/** Close the editors of a document the server is done with. */
+function closeAsked(result: unknown): void {
+  const close = (result as { close?: string } | null)?.close;
+  if (typeof close !== 'string') {
+    return;
+  }
+  const tabs = vscode.window.tabGroups.all
+    .flatMap((group) => group.tabs)
+    .filter((tab) => tab.input instanceof vscode.TabInputText && sameUri(tab.input.uri.toString(), close));
+  void vscode.window.tabGroups.close(tabs);
+}
+
 /** What a command asks for before it runs, when its result says so. */
 interface Input {
   kind: string;
@@ -77,9 +110,10 @@ async function preview(
 async function startClient(context: vscode.ExtensionContext): Promise<void> {
   const command = serverCommand(context);
   const serverOptions: ServerOptions = { command, args: [] };
-  const { languages, agendaScheme } = context.extension.packageJSON.orgLsp as {
+  const { languages, agendaScheme, datePromptUri } = context.extension.packageJSON.orgLsp as {
     languages: string[];
     agendaScheme: string;
+    datePromptUri: string;
   };
   const clientOptions: LanguageClientOptions = {
     documentSelector: [...languages.map((language) => ({ language })), { scheme: agendaScheme }],
@@ -96,31 +130,61 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         const params = { command: name, arguments: args.length > 0 ? args : cursor(running) };
         try {
           const result = await running.sendRequest('workspace/executeCommand', params);
+          closeAsked(result);
           const input = asked(result);
           if (!input) {
             return result;
           }
+          // The server may have shown its date prompt for this; the input
+          // box comes after it, so that it keeps the focus.
+          await datePromptShown;
           // The command asks for something first: ask, and run it again
           // with the answer.
           const context = (params.arguments[0] ?? {}) as Record<string, unknown>;
           const answer = await vscode.window.showInputBox({
             prompt: input.prompt,
             value: input.value,
+            ignoreFocusOut: true,
             validateInput: input.kind === 'date' ? (text) => preview(running, name, context, text) : undefined,
           });
           if (answer === undefined) {
             return undefined;
           }
           const again = { command: name, arguments: [{ ...context, input: answer }] };
-          return await running.sendRequest('workspace/executeCommand', again);
+          const done = await running.sendRequest('workspace/executeCommand', again);
+          closeAsked(done);
+          return done;
         } catch (error) {
           void vscode.window.showWarningMessage(error instanceof Error ? error.message : String(error));
           return undefined;
         }
       },
+      window: {
+        // The date prompt opens beside the file, as Emacs pops its calendar
+        // up in another window, and stays in that editor as it changes.
+        showDocument: async (params, token, next) => {
+          if (!sameUri(params.uri, datePromptUri) || params.external) {
+            return next(params, token);
+          }
+          datePromptShown = showDatePrompt(params);
+          await datePromptShown;
+          return { success: true };
+        },
+      },
     },
   };
   client = new LanguageClient('org-lsp', 'Org Language Server', serverOptions, clientOptions);
+  // This client shows the server's date prompt.
+  client.registerFeature({
+    fillClientCapabilities(capabilities) {
+      capabilities.experimental = { ...(capabilities.experimental ?? {}), orgDatePrompt: true };
+    },
+    initialize() {},
+    getState() {
+      return { kind: 'static' };
+    },
+    clear() {},
+  });
   try {
     await client.start();
   } catch (error) {

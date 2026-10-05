@@ -5,6 +5,7 @@
 //! from its parents, what the agenda shows. Nothing here knows about LSP.
 
 pub mod agenda;
+pub mod calendar;
 pub mod date;
 pub mod edit;
 pub mod outline;

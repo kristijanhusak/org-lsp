@@ -222,6 +222,11 @@ pub fn run(
     }
 }
 
+/// The timestamp a read answer makes, with the end of a time range.
+pub fn timestamp_for(read: &ReadDate, inactive: bool) -> String {
+    insert_timestamp(read, inactive, true)
+}
+
 /// The timestamp that `answer` would make, as the date prompt shows it
 /// while the answer is typed (`org-read-date-display`).
 pub fn preview(
@@ -235,6 +240,39 @@ pub fn preview(
     let prompt = prompt(command, text, offset)?;
     let read = read_date(answer, prompt.default, now, settings)?;
     Ok(insert_timestamp(&read, matches!(command, Command::Timestamp { inactive: true }), true))
+}
+
+/// The text before the answer at the date prompt of `command`: `SCHEDULED
+/// Date+time [2026-05-20]: `, as `org-read-date` writes it for the date the
+/// answer is read against.
+pub fn label(command: Command, default: Option<DateTime>, now: DateTime) -> String {
+    let date = default.unwrap_or(now).date();
+    let prompt = match command {
+        Command::Schedule => "SCHEDULED ",
+        Command::Deadline => "DEADLINE ",
+        Command::Timestamp { .. } => "",
+    };
+    format!("{prompt}Date+time [{date}]: ")
+}
+
+/// What the date prompt shows after an answer (`org-read-date-display`):
+/// `=> <2026-05-22 Fri>`, with ` (=>F)` when a date without a year or
+/// month was taken to be the next one to come.
+pub fn display(
+    command: Command,
+    answer: &str,
+    default: Option<DateTime>,
+    now: DateTime,
+    settings: &Settings,
+) -> String {
+    match read_date(answer, default, now, settings) {
+        Ok(read) => {
+            let inactive = matches!(command, Command::Timestamp { inactive: true });
+            let future = if read.future { " (=>F)" } else { "" };
+            format!("=> {}{future}", insert_timestamp(&read, inactive, true))
+        }
+        Err(_) => String::new(),
+    }
 }
 
 /// `org--deadline-or-schedule` without a prefix argument, and

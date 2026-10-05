@@ -139,6 +139,42 @@ describe('Org files', () => {
     await document.save();
   });
 
+  it('shows a calendar with the date prompt, as Emacs does', async () => {
+    const answers = [undefined, '9:00'];
+    const showInputBox = vscode.window.showInputBox;
+    vscode.window.showInputBox = async () => answers.shift();
+    const calendar = () => vscode.window.visibleTextEditors.find((editor) => editor.document.languageId === 'org-date');
+    try {
+      await vscode.window.showTextDocument(document);
+      moveTo(5, 3); // on "Call the client"
+      // Leaving the minibuffer leaves the calendar, beside the file.
+      await vscode.commands.executeCommand('org.schedule');
+      const editor = await until('the calendar', () => vscode.window.activeTextEditor?.document.languageId === 'org-date' && vscode.window.activeTextEditor);
+      const lines = () => editor.document.getText().trimEnd().split('\n');
+      await until('the prompt of this command', () => lines().at(-1) === 'SCHEDULED Date+time [2026-05-18]:    => <2026-05-18 Mon>', 5000);
+      assert.equal(lines()[0], '          April 2026                May 2026                June 2026');
+      assert.notEqual(editor.viewColumn, vscode.ViewColumn.One);
+      const day = () => {
+        const cursor = editor.selection.active;
+        return editor.document.lineAt(cursor.line).text.slice(cursor.character - 1, cursor.character + 1);
+      };
+      assert.equal(day(), '18');
+      // Its keys move the day; the cursor goes with it.
+      await vscode.commands.executeCommand('org.calendar.day.later');
+      await until('a day later', () => lines().at(-1).endsWith('=> <2026-05-19 Tue>') && day() === '19');
+      // Typing gives an answer that ends with that day.
+      await vscode.commands.executeCommand('org.calendar.type');
+      await until('the entry to be scheduled', () => document.lineAt(6).text === 'SCHEDULED: <2026-05-19 Tue 09:00> DEADLINE: <2026-05-20 Wed>');
+      await until('the calendar to close', () => !calendar());
+    } finally {
+      vscode.window.showInputBox = showInputBox;
+    }
+    await vscode.window.showTextDocument(document);
+    await vscode.commands.executeCommand('undo');
+    await until('the schedule undone', () => document.lineAt(6).text === 'DEADLINE: <2026-05-20 Wed>');
+    await document.save();
+  });
+
   it('changes the part of a timestamp at the cursor', async () => {
     moveTo(6, 19); // on the day of "DEADLINE: <2026-05-20 Wed>"
     await vscode.commands.executeCommand('org.timestamp.up');

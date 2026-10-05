@@ -142,13 +142,18 @@ show one. In four pull requests:
   `org-log-redeadline`), the prefix arguments (remove a date, set a delay),
   and these commands from the agenda (4d). After scheduling the cursor
   stays where the editor has it; Emacs leaves it where it deleted text.
-- **4c:** the calendar. A second server-owned document beside the agenda:
-  the manifest's `agenda` entry becomes a list of views (scheme, language,
-  key scope, how to present it). The server draws the months and moves
-  the selection; keys come from the manifest (day, week, month, year,
-  today, select, type an answer, cancel). Neovim shows it in a floating
-  window, VS Code beside the file. Helix cannot show it and gets fixed
-  choices as code actions instead ("Schedule: today", "tomorrow", "+1w").
+- **4c, done:** the calendar Emacs shows with the date prompt. A second
+  server-owned document, `org-agenda:/Org%20Date` (language `org-date`):
+  three months drawn as `calendar-generate` draws them (checked against
+  Emacs's output, `tests/calendar/emacs.txt`), and the minibuffer line
+  (`SCHEDULED Date+time [2026-05-20]: 10:00    => <…>`, with `(=>F)`).
+  Keys in the `calendar` scope are `org-read-date-minibuffer-local-map`'s
+  (`S-<arrows>`, `M-S-<arrows>`, `<`, `>`, `.`) and the calendar's `RET`;
+  vim adds `h` `j` `k` `l`. The answer is what was typed plus the day moved
+  to, as `org-read-date` builds it. Clients opt in with
+  `experimental.orgDatePrompt`; a command result `{ "close": uri }` closes
+  the document. Neovim shows it in a window at the bottom, VS Code beside
+  the file; others keep the plain input box.
 - **4d:** schedule and deadline from the agenda, go to a date in the
   agenda (`j`), set a priority by name, text for state notes (now written
   empty).
@@ -161,6 +166,17 @@ Differences from Emacs in 4a, both deliberate:
   server, while Emacs finds `W9`.
 - Numbers too large for 64 bits are refused; Emacs reads them as floats
   and usually fails later.
+
+Differences from Emacs in 4c, deliberate or forced by LSP:
+
+- Emacs types in the minibuffer and moves the calendar with `S-<arrows>`
+  from there. An editor's input box cannot pass such keys on, so the
+  calendar has its own keys and `i` goes back to typing; `Esc` in the
+  input box leaves it for the calendar.
+- Closing the prompt's window does not cancel the prompt on the server
+  (the client may report it late, when another prompt is open); the next
+  date command replaces it. `q` cancels.
+- No mouse selection, holidays or diary marks in the calendar.
 
 ### 5. More agenda
 
@@ -262,6 +278,7 @@ previews.
   | Folding subtrees | `tests/folding/cases.json` | `scripts/update-fold-fixtures.py` | `scripts/fuzz-fold.py` |
   | Date prompt | `tests/read-date/cases.json` | `scripts/update-read-date-fixtures.py` | `scripts/fuzz-read-date.py` |
   | Commands that ask for a date | `tests/planning/cases.json` | `scripts/update-planning-fixtures.py` | `scripts/fuzz-planning.py` |
+  | Calendar of the date prompt | `tests/calendar/emacs.txt` | `scripts/update-calendar-fixtures.sh` | |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.
 - VS Code: in `editors/vscode`, `npm run generate -- --check`, `npm run
