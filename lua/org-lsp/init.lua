@@ -156,6 +156,17 @@ function M.run(name, opts)
         end
         return
       end
+      -- The server names files to save; those with changes are written.
+      if type(result) == 'table' and type(result.save) == 'table' then
+        for _, uri in ipairs(result.save) do
+          local file = vim.uri_to_bufnr(uri)
+          if vim.api.nvim_buf_is_loaded(file) and vim.bo[file].modified then
+            vim.api.nvim_buf_call(file, function()
+              vim.cmd('silent write')
+            end)
+          end
+        end
+      end
       -- The command is done with a document the server showed for it.
       if type(result) == 'table' and result.close then
         require('org-lsp.view').close(result.close)

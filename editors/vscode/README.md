@@ -55,6 +55,7 @@ The agenda is read-only, so it has Org's single-letter keys:
 | `+` / `-`, `Shift+Up` / `Shift+Down` | Raise / lower the entry's priority |
 | `Shift+Right` / `Shift+Left` | Move the entry's date a day later / earlier |
 | `Enter` or `Tab` | Go to the entry |
+| `s` or `Ctrl+X Ctrl+S` | Save all Org files with changes |
 
 After a change of priority or date, the cursor goes with the entry to
 its new line.

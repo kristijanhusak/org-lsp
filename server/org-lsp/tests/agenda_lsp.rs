@@ -1268,3 +1268,14 @@ fn shows_a_calendar_with_the_date_prompt() {
     assert_eq!(run(&mut client, "org.calendar.today", on_prompt(0, 0)).unwrap_err(), "No date prompt is open");
     client.shutdown();
 }
+
+#[test]
+fn names_the_files_to_save() {
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/b.org", "* b\n");
+    client.open("file:///org/a.org", "* a\n");
+    let result =
+        client.request("workspace/executeCommand", json!({ "command": "org.agenda.save", "arguments": [] })).unwrap();
+    assert_eq!(result, json!({ "save": ["file:///org/a.org", "file:///org/b.org"] }));
+    client.shutdown();
+}

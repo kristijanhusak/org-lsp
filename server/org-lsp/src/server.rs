@@ -977,6 +977,13 @@ impl Server {
             params.arguments.into_iter().next().and_then(|value| serde_json::from_value(value).ok());
         match params.command.as_str() {
             id if id.starts_with("org.calendar.") => self.calendar_command(id, context.as_ref()),
+            // `org-save-all-org-buffers`: the server cannot save; the
+            // editor saves the files it names that have changes.
+            commands::AGENDA_SAVE => {
+                let mut files: Vec<&String> = self.documents.keys().collect();
+                files.sort();
+                Ok(json!({ "save": files }))
+            }
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             id if commands::input(id).is_some() => {
                 self.ask_date(id, &context.ok_or("This command needs the cursor position")?)

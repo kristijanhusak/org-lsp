@@ -87,6 +87,7 @@ pub const AGENDA_MONTH: &str = "org.agenda.month";
 pub const AGENDA_YEAR: &str = "org.agenda.year";
 pub const AGENDA_REDO: &str = "org.agenda.redo";
 pub const AGENDA_GOTO: &str = "org.agenda.goto";
+pub const AGENDA_SAVE: &str = "org.agenda.save";
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
 pub const PRIORITY_UP: &str = "org.priority.up";
@@ -181,6 +182,7 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Agenda, "<CR>"), key(Agenda, "<Tab>")],
         ..command(AGENDA_GOTO, "Agenda: go to the entry")
     },
+    Command { emacs: &[key(Agenda, "s"), key(Agenda, "C-x C-s")], ..command(AGENDA_SAVE, "Save all Org files") },
     Command {
         emacs: &[key(Org, "C-c C-t"), key(Agenda, "t")],
         vim: &[key(Org, "cit"), key(Agenda, "t")],

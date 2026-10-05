@@ -279,10 +279,10 @@ previews.
 3. **Saving after edits from the agenda.** Decided: edited files stay
    unsaved, as in Emacs. Org has no option to save them by itself; it has
    `org-save-all-org-buffers`, bound to `s` and `C-x C-s` in the agenda.
-   Port that as a command (the server cannot save; it would return the
-   files to save, `{ "save": [uri…] }`, and the glue saves them), and add
-   an option of our own to save after every edit from the agenda (for
-   example `agendaSave: true`). Not done yet; fits milestone 4d or 5.
+   Ported as `org.agenda.save` (the server cannot save; it returns the
+   files to save, `{ "save": [uri…] }`, and the glue saves those with
+   changes). Still to do: an option of our own to save after every edit
+   from the agenda (for example `agendaSave: true`).
 4. **Vim.** Decided: one Vimscript plugin with the logic the Neovim plugin
    has (manifest, keys, the agenda and date prompt buffers, closing them),
    on top of whichever LSP client is installed. Generic LSP (highlighting
