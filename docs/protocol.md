@@ -1,42 +1,233 @@
 # Protocol
 
-org-lsp uses standard LSP only. This page lists what it offers and the
-names an editor integration needs: the semantic token legend, the code
-action kinds and the initialization options.
+org-lsp uses standard LSP. This page says what it offers and lists the
+names an editor integration deals with: options, commands, the manifest,
+the agenda document and the semantic tokens.
 
 ## Capabilities
 
 | Request | Notes |
 | --- | --- |
-| `textDocument/didOpen`, `didChange`, `didClose` | Incremental sync. |
-| `textDocument/semanticTokens/full`, `/range` | See the legend below. No deltas. |
+| `textDocument/didOpen`, `didChange`, `didSave`, `didClose` | Incremental sync. A save rebuilds an open agenda. |
+| `textDocument/semanticTokens/full`, `/range` | For Org files and the agenda. See [Semantic tokens](#semantic-tokens). No deltas. |
 | `textDocument/foldingRange` | Subtrees, drawers, blocks, LaTeX environments and multi-line list items. Whole lines only. |
 | `textDocument/documentSymbol` | The outline of headlines. Hierarchical when the client supports it, flat otherwise. |
-| `textDocument/codeAction` | Org commands; see below. |
+| `textDocument/codeAction` | The commands that apply at the cursor. See [Commands](#commands). |
+| `workspace/executeCommand` | Every command. See [Commands](#commands). |
+| `textDocument/definition` | In the agenda: from a line to its entry. |
+| `workspace/textDocumentContent` | The text of the agenda. See [The agenda document](#the-agenda-document). |
+
+The server sends these requests to the client:
+
+| Request | When |
+| --- | --- |
+| `workspace/applyEdit` | A command changes an Org file. |
+| `window/showDocument` | To show the agenda, or the file of an agenda entry. |
+| `window/showMessageRequest` | The agenda dispatcher asks which view to open. |
+| `workspace/textDocumentContent/refresh` | The agenda has new text. |
 
 **Position encoding.** The server picks UTF-8 if the client offers it, then
 UTF-32, and falls back to UTF-16.
 
 **Line endings.** `\n`, `\r\n` and a lone `\r` all end a line for positions.
 
-## Initialization options
+## Options
 
-Passed as `initializationOptions`. Unknown or malformed options are ignored.
+Passed as `initializationOptions`. The names are Org's variable names in
+camel case; the agenda's lose their `org-agenda-` prefix and live under
+`agenda`. Defaults are Org's. Unknown or malformed options are ignored.
 
 | Option | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `todoKeywords` | `string[]` | `["TODO", "|", "DONE"]` | The TODO sequence, written like Org's `#+TODO:` line. `|` separates the states that count as done; without it the last keyword is the only done state. Fast-access suffixes such as `TODO(t)` are accepted and dropped. |
+| `agendaFiles` | `string[]` | `[]` | Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home directory. A directory stands for the Org files directly in it. |
+| `todoKeywords` | `string[]` | `["TODO", "|", "DONE"]` | The TODO sequence, written like Org's `#+TODO:` line. `|` separates the states that count as done; without it the last keyword is the only done state. `TODO(t)`, `WAIT(w@/!)` and the like are accepted: `!` and `@` make the keyword log its changes. |
+| `logDone` | `false`, `"time"`, `"note"` | `false` | `org-log-done`: write `CLOSED:` when an entry is done. |
+| `logRepeat` | `false`, `"time"`, `"note"` | `"time"` | `org-log-repeat`: record when a repeating entry is done. |
+| `logIntoDrawer` | `boolean`, `string` | `false` | `org-log-into-drawer`: `true` for `LOGBOOK`, or a drawer name. |
+| `tagsColumn` | `number` | `-77` | `org-tags-column`: where tags are aligned after a TODO change. |
+| `todoRepeatToState` | `string`, `true` | first keyword | `org-todo-repeat-to-state`: the state a repeating entry returns to; `true` for the state it had. |
+| `agenda` | object | | See below. |
+| `virtualDocuments` | `boolean` | from capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
 
 A document that has `#+TODO:`, `#+SEQ_TODO:` or `#+TYP_TODO:` lines uses
-those instead.
+those keywords instead of `todoKeywords`.
+
+Without `agendaFiles`, the agenda is built from the Org files under the
+workspace folders (hidden directories, `node_modules` and `target`
+excluded). Without workspace folders too, it is built from the Org files
+that are open. A file that is open in the editor is always read from the
+editor, not from disk.
+
+Options under `agenda`:
+
+| Option | Type | Default | Org variable |
+| --- | --- | --- | --- |
+| `span` | `"day"`, `"week"`, `"fortnight"`, `"month"`, `"year"`, or a number of days | `"week"` | `org-agenda-span` |
+| `startOnWeekday` | `0`–`6` (0 is Sunday), or `false` | `1` | `org-agenda-start-on-weekday` |
+| `deadlineWarningDays` | `number` | `14` | `org-deadline-warning-days` |
+| `scheduledDelayDays` | `number` | `0` | `org-scheduled-delay-days` |
+| `scheduledPastDays` | `number` | `10000` | `org-scheduled-past-days` |
+| `deadlinePastDays` | `number` | `10000` | `org-deadline-past-days` |
+| `skipScheduledIfDone` | `boolean` | `false` | `org-agenda-skip-scheduled-if-done` |
+| `skipDeadlineIfDone` | `boolean` | `false` | `org-agenda-skip-deadline-if-done` |
+| `skipTimestampIfDone` | `boolean` | `false` | `org-agenda-skip-timestamp-if-done` |
+| `showFutureRepeats` | `boolean`, `"next"` | `true` | `org-agenda-show-future-repeats` |
+| `showAllDates` | `boolean` | `true` | `org-agenda-show-all-dates` |
+| `tagsColumn` | `number` | `-80` | `org-agenda-tags-column`. Org's own default follows the window width, which a server does not know. |
+| `useTimeGrid` | `boolean` | `true` | `org-agenda-use-time-grid` |
+| `timeGrid` | object: `daily`, `today`, `weekly`, `requireTimed`, `removeMatch` (booleans), `times` (numbers such as `800`), `trailer`, `line`, `now` (strings) | Org's | `org-agenda-time-grid`, `org-agenda-current-time-string` |
+| `showCurrentTimeInGrid` | `boolean` | `true` | `org-agenda-show-current-time-in-grid` |
+| `weekendDays` | `number[]` | `[6, 0]` | `org-agenda-weekend-days` |
+
+## Commands
+
+Commands run through `workspace/executeCommand`. The one argument says
+where the cursor is, in a document the server knows:
+
+```json
+{
+  "command": "org.todo.next",
+  "arguments": [{ "textDocument": { "uri": "file:///home/me/org/work.org" }, "position": { "line": 3, "character": 0 } }]
+}
+```
+
+This is `TextDocumentPositionParams`. Commands that open a view work
+without it. A command that cannot run answers with error code -32803
+(`RequestFailed`) and a message meant for the user, such as
+`No agenda is open`.
+
+| Command | Does |
+| --- | --- |
+| `org.agenda.dispatch` | Asks which agenda view to open. |
+| `org.agenda.list` | Opens the agenda for the current week or day. |
+| `org.agenda.todos` | Opens the list of all TODO entries. |
+| `org.agenda.later`, `org.agenda.earlier` | Moves the agenda one span forward or backward. |
+| `org.agenda.today` | Moves the agenda to today. |
+| `org.agenda.day`, `.week`, `.fortnight`, `.month`, `.year` | Changes the span, keeping the day under the cursor in view. |
+| `org.agenda.redo` | Rebuilds the agenda. |
+| `org.agenda.goto` | Shows the entry of the agenda line under the cursor. |
+| `org.todo.next`, `org.todo.previous` | Changes the TODO state of the entry at the cursor, in an Org file or on an agenda line. |
+
+**TODO state changes** do what Org's `org-todo` does. The cycle runs
+through "no keyword" between the last and first states. The tags of the
+headline return to their column, and statistics cookies (`[1/3]`, `[33%]`)
+in the parent headline are recounted. `CLOSED:` and state notes are
+written as `logDone` and the keywords ask; where Org would prompt for the
+text of a note, the note is written without text. An entry with a repeater
+that is marked done moves to its next date and is open again, with
+`LAST_REPEAT` and a state note recorded.
+
+The entry is the innermost headline whose subtree contains the cursor, so
+the cursor may be anywhere in the entry's body.
+
+**Code actions.** The commands that apply at the cursor are also offered
+as code actions, with the command name as the action's kind. In an Org
+file the actions carry their edit (versioned when the client supports
+`documentChanges`); in the agenda they carry the command to run. A client
+can therefore also bind a key by requesting code actions with
+`context.only` set to a kind, which matches hierarchically: `org` selects
+every action.
+
+**Edits to files that are not open.** A command run from the agenda edits
+the entry's file with `workspace/applyEdit`. Editors apply such an edit to
+a buffer and leave saving to the user, as Emacs does. The agenda follows
+the edit at once and again when the file is saved.
+
+## The manifest
+
+What an editor integration has to know beyond LSP's own fields, the server
+announces itself, so that integrations carry no tables about Org. The
+manifest is `capabilities.experimental.org` in the `initialize` result, and
+`org-lsp manifest` prints it for integrations that are generated ahead of
+time.
+
+```json
+{
+  "commands": [
+    {
+      "command": "org.todo.next",
+      "title": "Cycle TODO state forward",
+      "edits": true,
+      "keys": [
+        { "key": "C-c C-t", "in": "org", "preset": "emacs" },
+        { "key": "cit", "in": "org", "preset": "vim" },
+        { "key": "t", "in": "agenda", "preset": "vim" }
+      ]
+    }
+  ],
+  "agenda": {
+    "scheme": "org-agenda",
+    "uri": "org-agenda:/Org%20Agenda",
+    "fileName": "Agenda.org-agenda",
+    "languageId": "org-agenda"
+  },
+  "tokenTypes": [{ "id": "headline", "description": "The title text of a headline", "standard": false }],
+  "tokenModifiers": [{ "id": "level1", "description": "Headline level 1" }],
+  "highlights": [
+    { "token": "headline.level1", "vim": ["@org.headline.level1", "Title"], "textmate": ["markup.heading.1.org"] }
+  ]
+}
+```
+
+- **`commands`**: every command with its title and default keys. `edits`
+  marks commands that change an Org file, for editors that can repeat the
+  last change. A key applies `in` Org files (`org`), the agenda (`agenda`)
+  or everywhere (`global`). There are two presets: `emacs` has Org's own
+  keys in Emacs notation (`C-c C-t`, `RET`, `v d`), `vim` has
+  nvim-orgmode's defaults in Vim notation (`cit`, `<CR>`, `vd`).
+- **`agenda`**: how the agenda document is named; see below.
+- **`tokenTypes`**, **`tokenModifiers`**: the semantic token legend with
+  descriptions. `standard` types are LSP's own.
+- **`highlights`**: how tokens should look by default. `token` is a type, a
+  `type.modifier`, or `*.modifier` for any type. `vim` lists highlight
+  groups, the first defined one to be used: the group nvim-orgmode
+  colorschemes define, then a standard group. `textmate` lists scopes for
+  editors whose themes match scopes, most specific first.
+
+## The agenda document
+
+The agenda is one document that the server owns, as it is one buffer in
+Emacs: a new view replaces the old one. Its language identifier is
+`org-agenda`. The server remembers which entry each line stands for, so
+semantic tokens, go-to-definition, code actions and commands work on it
+like on any document.
+
+A client that announces `workspace.textDocumentContent` (LSP 3.18) is
+shown `org-agenda:/Org%20Agenda` and fetches its text with
+`workspace/textDocumentContent`. Other clients are shown a file,
+`Agenda.org-agenda` in a temporary directory, which the server rewrites
+and removes when it stops.
+
+Opening a view goes like this:
+
+1. The client runs `org.agenda.list`.
+2. The server sends `window/showDocument` with the agenda's URI and, as
+   the selection, the line of today's date.
+3. The client opens the document, which makes it fetch the text.
+
+When the view changes while the client has it open:
+
+1. The server sends `workspace/textDocumentContent/refresh`.
+2. The client fetches the text again and, since the document is open,
+   reports the change with `textDocument/didChange`.
+3. If the cursor is to move (the view went to another week, say), the
+   server sends `window/showDocument` with the new line only now, when the
+   client's copy matches. Sent earlier, the line number would be applied to
+   the old text.
+
+For step 3 the client must sync the agenda document like any other:
+`didOpen` when it shows it, `didChange` when it replaces the text,
+`didClose` when it closes it. After `didClose` the server stops rebuilding
+the view.
 
 ## Semantic tokens
 
 Tokens never overlap and never span lines. Nested markup is flattened into
 modifiers: in `*bold /both/*` the inner text carries `bold` and `italic`.
-Emphasis markers are part of the token they delimit.
+Emphasis markers are part of the token they delimit. The manifest has the
+full legend with descriptions; this is an overview.
 
-### Token types
+### In Org files
 
 | Type | Covers |
 | --- | --- |
@@ -45,7 +236,7 @@ Emphasis markers are part of the token they delimit.
 | `todoKeyword` | A TODO keyword; `done` when it is a done state. |
 | `priority` | A priority cookie, `[#A]`. |
 | `tag` | The tags of a headline, `:a:b:`, as one token. |
-| `planning` | `SCHEDULED:`, `DEADLINE:`, `CLOSED:` and `CLOCK:`. |
+| `planning` | `SCHEDULED:`, `DEADLINE:`, `CLOSED:`, `CLOCK:` and a headline's `COMMENT`. |
 | `timestamp` | A timestamp or timestamp range; `inactive` for `[…]`. |
 | `drawer` | The `:NAME:` and `:END:` lines of a drawer. |
 | `property` | The `:KEY:` of a property. |
@@ -66,11 +257,26 @@ Emphasis markers are part of the token they delimit.
 | `entity` | An entity such as `\alpha`. |
 | `macro` | `{{{macro}}}`. |
 
-`property`, `keyword`, `comment` and `macro` are standard LSP token types;
-the rest are specific to this server. Plain text gets no token, and neither
-do the contents of source and example blocks.
+Plain text gets no token, and neither do the contents of source and
+example blocks.
 
-### Token modifiers
+### In the agenda
+
+Keywords, priorities, tags and links inside an agenda line have the types
+above. The rest of a line has one of these, which follow Org's agenda
+faces:
+
+| Type | Covers | Modifiers |
+| --- | --- | --- |
+| `agendaStructure` | The title line of a view. | |
+| `agendaDate` | A date line. | `today`, `weekend` |
+| `agendaScheduled` | A scheduled entry. | `today`; `past` when scheduled before today |
+| `agendaDeadline` | An entry with a deadline. | `imminent` when due or overdue, `distant` when far away |
+| `agendaEvent` | An entry with a plain timestamp. | `range` inside a date range |
+| `agendaDone` | An entry that is done. | |
+| `agendaTimeGrid` | A line of the time grid. | `current` for the current time |
+
+### Modifiers
 
 | Modifier | On |
 | --- | --- |
@@ -79,37 +285,24 @@ do the contents of source and example blocks.
 | `inactive` | `timestamp` |
 | `checked`, `partial` | `checkbox` |
 | `bold`, `italic`, `underline`, `strikethrough` | `text` and `headline` |
-
-## Code actions
-
-Org commands are code actions with stable kinds. To bind a key, request
-code actions with `context.only` set to the kind and apply the single
-result. `only` matches hierarchically, so `org` selects every action.
-
-| Kind | Effect |
-| --- | --- |
-| `org.todo.next` | Move the entry's TODO keyword one state forward. |
-| `org.todo.previous` | Move it one state backward. |
-
-The entry is the innermost headline whose subtree contains the start of the
-requested range, so the cursor may be anywhere in the entry's body. The
-cycle runs through "no keyword" between the last and first states. Before
-the first headline there are no actions.
-
-Each action carries its edit. The edit is versioned (`documentChanges`) when
-the client supports that, and a plain `changes` map otherwise.
-
-The kinds sit under their own `org` root rather than under `source` or
-`refactor`. `source` actions are meant for whole files, and editors hide
-them from the cursor menu.
+| `today`, `weekend`, `past`, `imminent`, `distant`, `range`, `current` | the agenda types, as listed above |
 
 ## Writing an editor integration
 
 An integration should stay free of Org logic. Its whole job:
 
-1. Start `org-lsp` for `org` files.
-2. Map the token types and modifiers above to the editor's highlight groups.
-3. Bind keys to code action kinds.
-4. Open and close folds; the server only says where they are.
+1. Start `org-lsp` for `org` files, and on demand for the agenda.
+2. Apply the manifest: link the tokens to the editor's highlight names and
+   bind the keys of its preset to the commands.
+3. Run commands with the cursor position as their argument.
+4. Show the agenda document and keep it in sync, as described above.
+5. Open and close folds; the server only says where they are.
 
-`lua/org-lsp/` and `editors/vscode/` are the two existing ones.
+`lua/org-lsp/` does this at run time. `editors/vscode/` cannot, because
+VS Code wants commands, keys and token colors declared in `package.json`:
+there `scripts/generate.mjs` writes them from `org-lsp manifest`.
+
+Without an integration, an editor still gets what its LSP client supports
+on its own: highlighting, folding, the outline, and TODO changes as code
+actions. Commands need the cursor position as an argument, which generic
+clients do not send, and the agenda needs `window/showDocument`.
