@@ -364,7 +364,7 @@ impl Editor<'_> {
     /// The property drawer of the entry: the start of its first line and
     /// of its `:END:` line.
     fn property_drawer(&self) -> Option<(usize, usize)> {
-        let mut line = self.planning_line().map_or(self.heading, |planning| planning);
+        let mut line = self.planning_line().unwrap_or(self.heading);
         if self.line_end(line) == self.text.len() {
             return None;
         }
