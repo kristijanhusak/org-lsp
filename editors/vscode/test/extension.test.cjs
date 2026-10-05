@@ -40,6 +40,25 @@ function moveTo(line, character = 0) {
   vscode.window.activeTextEditor.selection = new vscode.Selection(position, position);
 }
 
+/** One editor group, showing the Org file: the layout the window tests start from. */
+async function oneGroup() {
+  await vscode.commands.executeCommand('workbench.action.joinAllGroups');
+  for (const tab of vscode.window.tabGroups.all.flatMap((group) => group.tabs)) {
+    if (tab.input instanceof vscode.TabInputText && tab.input.uri.scheme === 'org-agenda') {
+      await vscode.window.tabGroups.close(tab);
+    }
+  }
+  await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(workUri));
+}
+
+/** How the editor groups are laid out: `[orientation, number of groups]`. */
+async function layout() {
+  const found = await vscode.commands.executeCommand('vscode.getEditorLayout');
+  return [found.orientation, found.groups.length];
+}
+const BELOW = 1;
+const BESIDE = 0;
+
 /** Semantic tokens of `uri` as `[line, text, type, modifiers]`. */
 async function tokens(uri) {
   const legend = await vscode.commands.executeCommand('vscode.provideDocumentSemanticTokensLegend', uri);
@@ -197,11 +216,13 @@ describe('Org files', () => {
     const showQuickPick = vscode.window.showQuickPick;
     vscode.window.showQuickPick = async (items) => items.find((item) => item.key === 't');
     try {
+      await oneGroup();
       await vscode.commands.executeCommand('org.capture');
       const editor = await until('the capture buffer', () => {
         const active = vscode.window.activeTextEditor;
         return active && path.basename(active.document.uri.fsPath) === 'CAPTURE-inbox.org' && active;
       });
+      assert.deepEqual(await layout(), [BELOW, 2], 'in a group below');
       assert.equal(editor.document.getText(), '* TODO \n');
       await until('the cursor where %? was', () => editor.selection.active.isEqual(new vscode.Position(0, 7)));
       await editor.edit((edit) => edit.insert(editor.selection.active, 'Call mom'));
@@ -212,6 +233,7 @@ describe('Org files', () => {
       await until('the capture buffer to close', () =>
         vscode.window.tabGroups.all.flatMap((group) => group.tabs).every((tab) => !tab.label.startsWith('CAPTURE-')),
       );
+      await until('its group to close', async () => (await layout())[1] === 1);
     } finally {
       vscode.window.showQuickPick = showQuickPick;
     }
@@ -304,8 +326,10 @@ describe('Org files', () => {
 
 describe('The agenda', () => {
   it('opens as a read-only document of the server', async () => {
+    await oneGroup();
     await vscode.commands.executeCommand('org.agenda.list');
     const editor = await agenda('Week-agenda (W21):');
+    assert.deepEqual(await layout(), [BELOW, 2], 'in a group below');
     assert.equal(editor.document.uri.toString(), 'org-agenda:/Org%20Agenda');
     assert.equal(editor.document.languageId, 'org-agenda');
     assert.deepEqual(editor.document.getText().split('\n').slice(0, 5), [
@@ -470,5 +494,36 @@ describe('The agenda', () => {
     const before = activeText();
     await vscode.commands.executeCommand('org.agenda.later');
     assert.equal(activeText(), before);
+  });
+
+  it('opens where org-lsp.winSplitMode says', async () => {
+    const settings = vscode.workspace.getConfiguration('org-lsp');
+    const open = async (mode) => {
+      await settings.update('winSplitMode', mode, vscode.ConfigurationTarget.Global);
+      await oneGroup();
+      await vscode.commands.executeCommand('org.agenda.todos');
+      await agenda('Global list of TODO items of type: ALL');
+      return layout();
+    };
+    try {
+      assert.deepEqual(await open('vsplit'), [BESIDE, 2], 'vsplit: beside');
+      assert.deepEqual((await open('current'))[1], 1, 'current: in the same group');
+      // Going back to the agenda uses the group it is in.
+      await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(workUri));
+      await vscode.commands.executeCommand('org.agenda.todos');
+      await agenda('Global list of TODO items of type: ALL');
+      assert.deepEqual((await layout())[1], 1, 'no second agenda');
+      // float: a window of its own, which the main window's layout does not
+      // count, though its group is one of VS Code's.
+      await settings.update('winSplitMode', 'float', vscode.ConfigurationTarget.Global);
+      await oneGroup();
+      await vscode.commands.executeCommand('org.agenda.list');
+      await until('the agenda in a window of its own', async () =>
+        vscode.window.tabGroups.all.length === 2 && (await layout())[1] === 1,
+      );
+      await oneGroup();
+    } finally {
+      await settings.update('winSplitMode', undefined, vscode.ConfigurationTarget.Global);
+    }
   });
 });

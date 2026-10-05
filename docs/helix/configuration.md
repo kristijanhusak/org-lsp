@@ -110,9 +110,10 @@ reverseNoteOrder = false
 # lines), and may have `prepend`, `emptyLines`, `emptyLinesBefore`,
 # `emptyLinesAfter` and `immediateFinish`. The target is a list: `file` and a
 # path; `file+headline`, a path and a headline; or `file+olp`, a path and the
-# headlines of an outline path. An empty path is `defaultNotesFile`. A
-# template with only a key and a description groups the templates whose keys
-# start with its key. (org-capture-templates)
+# headlines of an outline path. An empty path is `defaultNotesFile`, and
+# without a target the entry goes at the end of `defaultNotesFile`. A template
+# with only a key and a description groups the templates whose keys start with
+# its key. (org-capture-templates)
 captureTemplates = [{ key = "t", description = "Task", target = ["file+headline", "", "Tasks"], template = "* TODO %?\n  %u\n  %a" }]
 
 # Where the relative paths of capture targets are. (org-directory)

@@ -161,6 +161,7 @@ contributes.configurationDefaults = {
 // For the extension itself: which documents belong to the server.
 pkg.orgLsp = {
   agendaScheme: manifest.agenda.scheme,
+  capturePrefix: manifest.capture.prefix,
   datePromptUri: manifest.datePrompt.uri,
   languages: [ORG, AGENDA, DATE],
 };

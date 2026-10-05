@@ -15,8 +15,70 @@ M.capabilities = {
   experimental = { orgDatePrompt = true },
 }
 
---- The manifest's sections for the documents the server owns.
+--- The manifest's sections for the documents the server owns, and the
+--- name capture buffers start with.
 local documents = {}
+
+---@param win integer
+---@return boolean
+local function is_float(win)
+  return vim.api.nvim_win_get_config(win).relative ~= ''
+end
+
+--- Open a window for `bufnr` as `mode` says, make it the current one and
+--- return it. `mode` is `'float'`, `'current'` (the current window), an Ex
+--- command that opens a window (`'split'`, `'vsplit'`, `'botright split'`,
+--- `'tabnew'`), or a function that is given the buffer and returns the
+--- window it opened for it.
+---@param bufnr integer
+---@param mode string|fun(bufnr: integer): integer?
+---@return integer
+local function open_window(bufnr, mode)
+  local win
+  if type(mode) == 'function' then
+    win = mode(bufnr)
+    if type(win) ~= 'number' or not vim.api.nvim_win_is_valid(win) then
+      win = vim.api.nvim_get_current_win()
+    end
+  elseif mode == 'float' then
+    local height = math.max(1, math.floor((vim.o.lines - vim.o.cmdheight) * 0.8))
+    local width = math.max(1, math.floor(vim.o.columns * 0.8))
+    win = vim.api.nvim_open_win(bufnr, true, {
+      relative = 'editor',
+      row = math.floor((vim.o.lines - vim.o.cmdheight - height) / 2) - 1,
+      col = math.floor((vim.o.columns - width) / 2),
+      width = width,
+      height = height,
+      border = 'rounded',
+    })
+  elseif mode == 'current' then
+    win = vim.api.nvim_get_current_win()
+  else
+    vim.cmd(mode)
+    win = vim.api.nvim_get_current_win()
+  end
+  -- Closing the document closes a window opened for it too.
+  if mode ~= 'current' then
+    vim.w[win].org_lsp_opened = true
+  end
+  if vim.api.nvim_win_get_buf(win) ~= bufnr then
+    vim.api.nvim_win_set_buf(win, bufnr)
+  end
+  vim.api.nvim_set_current_win(win)
+  return win
+end
+
+--- Whether the document at `uri` is one the plugin opens in a window of
+--- its own: the agenda or a capture buffer.
+---@param uri string
+---@return boolean
+local function opens_apart(uri)
+  if documents.agenda and vim.startswith(uri, documents.agenda.scheme .. ':') then
+    return not (documents.datePrompt and uri == documents.datePrompt.uri)
+  end
+  local prefix = documents.capture and documents.capture.prefix
+  return prefix ~= nil and vim.startswith(vim.fs.basename(vim.uri_to_fname(uri)), prefix)
+end
 
 --- The date prompt pops up in a window at the bottom, as Emacs's calendar
 --- does, as high as its text. Returns that window.
@@ -24,9 +86,19 @@ local documents = {}
 ---@return integer
 local function prompt_window(bufnr)
   local win = vim.fn.win_findbuf(bufnr)[1]
-  if not win then
+  -- Asked from a floating window, such as the agenda in one, a split at the
+  -- bottom would be under it: the calendar floats at the bottom instead.
+  local bottom = function(height)
+    return { relative = 'editor', row = vim.o.lines - vim.o.cmdheight - height - 1, col = 0, width = vim.o.columns, height = height }
+  end
+  if not win and is_float(vim.api.nvim_get_current_win()) then
+    win = vim.api.nvim_open_win(bufnr, true, vim.tbl_extend('force', bottom(1), { zindex = 100 }))
+    vim.w[win].org_lsp_opened = true
+    vim.fn.bufload(bufnr)
+  elseif not win then
     vim.cmd('botright split')
     win = vim.api.nvim_get_current_win()
+    vim.w[win].org_lsp_opened = true
     -- The split takes the folding of the window it came from. The calendar
     -- has nothing to fold, and asking the server for folds of a buffer
     -- that is about to go trips an assertion in Neovim 0.11.0: turn it
@@ -36,7 +108,12 @@ local function prompt_window(bufnr)
     vim.api.nvim_win_set_buf(win, bufnr)
     vim.fn.bufload(bufnr)
   end
-  vim.api.nvim_win_set_height(win, vim.api.nvim_buf_line_count(bufnr))
+  local height = vim.api.nvim_buf_line_count(bufnr)
+  if is_float(win) then
+    vim.api.nvim_win_set_config(win, bottom(height))
+  else
+    vim.api.nvim_win_set_height(win, height)
+  end
   vim.wo[win][0].winfixheight = true
   vim.wo[win][0].number = false
   vim.wo[win][0].relativenumber = false
@@ -51,18 +128,33 @@ local function prompt_window(bufnr)
   return win
 end
 
---- Close the windows that show the document at `uri`, and the buffer.
----@param uri string
-function M.close(uri)
-  local bufnr = vim.uri_to_bufnr(uri)
+--- Close the buffer `bufnr` and the windows the plugin opened for it. A
+--- window that was there before goes back to the buffer it showed.
+---@param bufnr integer
+function M.close_buffer(bufnr)
   for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
-    if #vim.api.nvim_list_wins() > 1 then
+    if vim.w[win].org_lsp_opened and #vim.api.nvim_list_wins() > 1 then
       vim.api.nvim_win_close(win, true)
+    else
+      vim.api.nvim_win_call(win, function()
+        local previous = vim.fn.bufnr('#')
+        if previous > 0 and previous ~= bufnr and vim.api.nvim_buf_is_valid(previous) then
+          vim.api.nvim_win_set_buf(win, previous)
+        else
+          vim.cmd.enew()
+        end
+      end)
     end
   end
   if vim.api.nvim_buf_is_valid(bufnr) then
     vim.api.nvim_buf_delete(bufnr, { force = true })
   end
+end
+
+--- Close the document at `uri`, as `close_buffer` does.
+---@param uri string
+function M.close(uri)
+  M.close_buffer(vim.uri_to_bufnr(uri))
 end
 
 ---@param bufnr integer
@@ -141,7 +233,21 @@ M.handlers = {
     local win
     if documents.datePrompt and params.uri == documents.datePrompt.uri then
       win = prompt_window(bufnr)
+    elseif opens_apart(params.uri) then
+      -- The agenda and capture buffers open as `win_split_mode` says, or
+      -- in the window that already shows them.
+      win = vim.fn.win_findbuf(bufnr)[1]
+      if not win then
+        vim.bo[bufnr].buflisted = true
+        win = open_window(bufnr, require('org-lsp').config.win_split_mode or 'split')
+      end
     else
+      -- A file, such as an entry's from the agenda. From a floating
+      -- window, it opens in the window under it.
+      local current = vim.api.nvim_get_current_win()
+      if is_float(current) and #vim.api.nvim_list_wins() > 1 then
+        vim.api.nvim_win_close(current, false)
+      end
       vim.cmd("normal! m'")
       win = vim.fn.win_findbuf(bufnr)[1] or vim.api.nvim_get_current_win()
       vim.bo[bufnr].buflisted = true
@@ -182,7 +288,7 @@ M.handlers = {
 --- the date prompt.
 ---@param manifest table the server's manifest
 function M.setup(manifest)
-  documents = { agenda = manifest.agenda, datePrompt = manifest.datePrompt }
+  documents = { agenda = manifest.agenda, datePrompt = manifest.datePrompt, capture = manifest.capture }
   vim.api.nvim_create_autocmd('BufReadCmd', {
     group = vim.api.nvim_create_augroup('org_lsp_view', { clear = true }),
     -- With a slash, the pattern is matched against the whole name.

@@ -17,9 +17,11 @@ them for that folder only. The **Settings** UI shows them under
 | --- | --- | --- |
 | `org-lsp.settings` | `{}` | The server's options, passed to it as they are. See below. |
 | `org-lsp.server.path` | `""` | The server binary. Empty: the one bundled with the extension, or else `org-lsp` from `PATH`. |
+| `org-lsp.winSplitMode` | `"split"` | Where the agenda and capture buffers open: `"split"` in an editor group below the current one, `"vsplit"` beside it, `"float"` in a window of its own, `"current"` in the current group. A group that already has it is used again. |
 
-When either changes, the extension restarts the server, so the change
-applies at once. **Org: Restart Language Server** does the same by hand.
+When `org-lsp.settings` or `org-lsp.server.path` changes, the extension
+restarts the server, so the change applies at once. **Org: Restart
+Language Server** does the same by hand.
 
 The extension also sets editor defaults for Org files, the agenda and the
 date prompt. Org files get semantic highlighting, and the light bulb and
@@ -134,8 +136,9 @@ their defaults; you would never write all of them out:
     // `emptyLinesBefore`, `emptyLinesAfter` and `immediateFinish`. The target
     // is a list: `file` and a path; `file+headline`, a path and a headline;
     // or `file+olp`, a path and the headlines of an outline path. An empty
-    // path is `defaultNotesFile`. A template with only a key and a
-    // description groups the templates whose keys start with its key.
+    // path is `defaultNotesFile`, and without a target the entry goes at the
+    // end of `defaultNotesFile`. A template with only a key and a description
+    // groups the templates whose keys start with its key.
     // (org-capture-templates)
     "captureTemplates": [{ "key": "t", "description": "Task", "target": ["file+headline", "", "Tasks"], "template": "* TODO %?\n  %u\n  %a" }],
 

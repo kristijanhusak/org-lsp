@@ -23,6 +23,7 @@ local SERVER = 'org_lsp'
 ---@field startup_folded 'showeverything'|'overview' Fold state of a newly opened file.
 ---@field folding boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
+---@field win_split_mode string|fun(bufnr: integer): integer? How the agenda and capture buffers open: 'split', 'vsplit', 'float', 'current', another Ex command that opens a window ('botright split', 'tabnew'), or a function that opens a window for the buffer and returns it.
 ---@field mappings table|false Keys by scope (`global`, `org`, `agenda`, `calendar`, `capture`). In a scope, a command maps to a key, a list of keys, or `false`; commands that are not listed keep the server's default keys. `false` instead of a scope's table sets no keys in that scope, and instead of the whole table no keys at all. See docs/neovim/keys.md.
 local defaults = {
   cmd = nil,
@@ -30,6 +31,7 @@ local defaults = {
   startup_folded = 'showeverything',
   folding = true,
   replace_syntax = true,
+  win_split_mode = 'split',
   mappings = {
     -- The keys that must work before the server has said anything.
     global = { ['org.agenda.dispatch'] = '<Leader>oa', ['org.capture'] = '<Leader>oc' },
@@ -55,7 +57,7 @@ local own_commands = {
     require('org-lsp.folds').global_cycle()
   end },
   quit = { 'Agenda: close', function()
-    vim.cmd.bwipeout()
+    require('org-lsp.view').close_buffer(vim.api.nvim_get_current_buf())
   end },
 }
 

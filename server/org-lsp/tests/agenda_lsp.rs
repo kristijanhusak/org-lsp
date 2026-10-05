@@ -1608,6 +1608,29 @@ fn the_capture_buffer_of_a_target_without_org_in_its_name_is_an_org_file() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// A template without a target captures to the end of `defaultNotesFile`.
+#[test]
+fn a_template_without_a_target_captures_into_the_default_notes_file() {
+    let root = workspace("capture-no-target");
+    let notes = root.join("notes.org");
+    std::fs::write(&notes, "* Old\n").unwrap();
+    let mut options = clock();
+    options["defaultNotesFile"] = json!(notes.display().to_string());
+    options["captureTemplates"] =
+        json!([{ "key": "n", "description": "Note", "template": "* Quick note", "immediateFinish": true }]);
+    let mut client = Client::editor(options, None);
+    let at = json!({ "textDocument": { "uri": format!("file://{}", notes.display()) }, "position": { "line": 0, "character": 0 }, "input": "n" });
+    let done = client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [at] }));
+    assert_eq!(done, Ok(Value::Null));
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (file, edits) = edits_of(edit);
+    assert_eq!(file, format!("file://{}", notes.display()));
+    assert_eq!(apply("* Old\n", &edits), "* Old\n* Quick note\n");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 /// `org-capture`: a template picked by its keys, a question answered, the
 /// capture buffer shown as a file of its own, and its text put under the
 /// target headline when the capture finishes.

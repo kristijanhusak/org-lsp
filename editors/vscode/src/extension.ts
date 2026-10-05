@@ -62,6 +62,46 @@ async function showDatePrompt(params: { uri: string; takeFocus?: boolean; select
   });
 }
 
+/**
+ * Show the agenda or a capture buffer where `org-lsp.winSplitMode` says: in
+ * a group below (`split`), beside (`vsplit`), in a window of its own
+ * (`float`), or in the current group. An editor that already shows it is
+ * used again.
+ */
+async function showApart(params: { uri: string; takeFocus?: boolean; selection?: { start: { line: number; character: number } } }): Promise<void> {
+  const uri = vscode.Uri.parse(params.uri);
+  const document = await vscode.workspace.openTextDocument(uri);
+  const start = params.selection?.start;
+  const position = start ? new vscode.Position(start.line, start.character) : undefined;
+  const options = (viewColumn: vscode.ViewColumn): vscode.TextDocumentShowOptions => ({
+    viewColumn,
+    preserveFocus: params.takeFocus === false,
+    preview: false,
+    selection: position ? new vscode.Range(position, position) : undefined,
+  });
+  // A group with a tab of it already, even one not in front.
+  const group = vscode.window.tabGroups.all.find((candidate) =>
+    candidate.tabs.some((tab) => tab.input instanceof vscode.TabInputText && sameUri(tab.input.uri.toString(), params.uri)),
+  );
+  if (group) {
+    await vscode.window.showTextDocument(document, options(group.viewColumn));
+    return;
+  }
+  const mode = vscode.workspace.getConfiguration('org-lsp').get<string>('winSplitMode', 'split');
+  if (mode === 'vsplit') {
+    await vscode.window.showTextDocument(document, options(vscode.ViewColumn.Beside));
+    return;
+  }
+  // An empty group below the current one, which the document then fills.
+  if (mode === 'split' && vscode.window.activeTextEditor) {
+    await vscode.commands.executeCommand('workbench.action.newGroupBelow');
+  }
+  await vscode.window.showTextDocument(document, options(vscode.ViewColumn.Active));
+  if (mode === 'float') {
+    await vscode.commands.executeCommand('workbench.action.moveEditorToNewWindow');
+  }
+}
+
 /** Save the files the server names that have changes. */
 async function saveAsked(result: unknown): Promise<void> {
   const save = (result as { save?: unknown } | null)?.save;
@@ -153,10 +193,19 @@ async function preview(
 async function startClient(context: vscode.ExtensionContext): Promise<void> {
   const command = serverCommand(context);
   const serverOptions: ServerOptions = { command, args: [] };
-  const { languages, agendaScheme, datePromptUri } = context.extension.packageJSON.orgLsp as {
+  const { languages, agendaScheme, capturePrefix, datePromptUri } = context.extension.packageJSON.orgLsp as {
     languages: string[];
     agendaScheme: string;
+    capturePrefix: string;
     datePromptUri: string;
+  };
+  // The agenda and capture buffers open apart from the file at hand.
+  const apart = (uri: string): boolean => {
+    const parsed = vscode.Uri.parse(uri);
+    if (parsed.scheme === agendaScheme) {
+      return !sameUri(uri, datePromptUri);
+    }
+    return parsed.scheme === 'file' && path.basename(parsed.fsPath).startsWith(capturePrefix);
   };
   const clientOptions: LanguageClientOptions = {
     documentSelector: [...languages.map((language) => ({ language })), { scheme: agendaScheme }],
@@ -200,7 +249,14 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         // The date prompt opens beside the file, as Emacs pops its calendar
         // up in another window, and stays in that editor as it changes.
         showDocument: async (params, token, next) => {
-          if (!sameUri(params.uri, datePromptUri) || params.external) {
+          if (params.external) {
+            return next(params, token);
+          }
+          if (apart(params.uri)) {
+            await showApart(params);
+            return { success: true };
+          }
+          if (!sameUri(params.uri, datePromptUri)) {
             return next(params, token);
           }
           datePromptShown = showDatePrompt(params);
@@ -248,7 +304,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     // The server reads its settings once, at start.
     vscode.workspace.onDidChangeConfiguration(async (event) => {
-      if (event.affectsConfiguration('org-lsp')) {
+      if (event.affectsConfiguration('org-lsp.settings') || event.affectsConfiguration('org-lsp.server')) {
         await stopClient();
         await startClient(context);
       }
