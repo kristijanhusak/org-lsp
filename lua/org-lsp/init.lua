@@ -361,6 +361,19 @@ local function set_keys(scope, bufnr)
     global_keys = {}
   end
   local keys, native = keys_in(scope)
+  -- The agenda and the calendar are read-only, with keys of one letter:
+  -- they run at once, not after waiting to see whether a longer mapping
+  -- of the user's (`tn`) is typed. A key that starts a longer one of
+  -- these (`v` of `v d`) still waits.
+  local nowait = {}
+  if scope == 'agenda' or scope == 'calendar' then
+    local all = vim.iter(vim.tbl_values(keys)):flatten():totable()
+    for _, lhs in ipairs(all) do
+      nowait[lhs] = not vim.iter(all):any(function(other)
+        return other ~= lhs and vim.startswith(other, lhs)
+      end)
+    end
+  end
   for name, list in pairs(keys) do
     local command = server_command(name)
     local title = own_commands[name] and own_commands[name][1] or command and command.title or name
@@ -374,7 +387,7 @@ local function set_keys(scope, bufnr)
       else
         vim.keymap.set('n', lhs, function()
           M.run(name, { count = vim.v.count, key = key })
-        end, { buffer = bufnr, desc = title })
+        end, { buffer = bufnr, desc = title, nowait = nowait[lhs] })
       end
     end
   end

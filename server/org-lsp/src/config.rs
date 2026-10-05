@@ -29,6 +29,9 @@ pub struct Options {
     pub log_into_drawer: Option<DrawerOption>,
     /// `org-tags-column`
     pub tags_column: Option<i64>,
+    /// `org-complete-tags-always-offer-all-agenda-tags`: completing a tag
+    /// also offers those of the agenda files.
+    pub complete_tags_always_offer_all_agenda_tags: Option<bool>,
     /// `org-todo-repeat-to-state`: a keyword, or `true` for the state the
     /// entry had before it was marked done.
     pub todo_repeat_to_state: Option<RepeatToOption>,

@@ -12,6 +12,7 @@
 ---@field logRepeat? false|'time'|'note' Record when a repeating entry is done and moves to its next date. (`org-log-repeat`)
 ---@field logIntoDrawer? boolean|string Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer. (`org-log-into-drawer`)
 ---@field tagsColumn? integer Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`)
+---@field completeTagsAlwaysOfferAllAgendaTags? boolean Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. (`org-complete-tags-always-offer-all-agenda-tags`)
 ---@field todoRepeatToState? string|true The state a repeating entry returns to when it is done: a keyword, or `true` for the state it had. (`org-todo-repeat-to-state`)
 ---@field priorityHighest? string|integer The highest priority. (`org-priority-highest`)
 ---@field priorityLowest? string|integer The lowest priority. (`org-priority-lowest`)

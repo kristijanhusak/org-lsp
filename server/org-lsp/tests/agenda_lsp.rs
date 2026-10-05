@@ -1565,6 +1565,33 @@ fn completes_keywords_and_tags_in_a_headline() {
     client.shutdown();
 }
 
+/// With `completeTagsAlwaysOfferAllAgendaTags`, a tag is completed from
+/// the agenda files too, after the file's own.
+#[test]
+fn completes_tags_of_the_agenda_files() {
+    let root = workspace("tags");
+    std::fs::write(root.join("sub/tagged.org"), "#+FILETAGS: :project:\n* a :errand:work:\n").unwrap();
+    let mut options = clock();
+    options["agendaFiles"] = json!([root.join("sub").display().to_string()]);
+    let file = format!("file://{}/c.org", root.display());
+    let complete = |client: &mut Client| {
+        client.open(&file, "* a :zoo:\n* b :\n");
+        let params = json!({ "textDocument": { "uri": file }, "position": { "line": 1, "character": 5 } });
+        let items = client.request("textDocument/completion", params).unwrap();
+        let mut items = items.as_array().unwrap().clone();
+        items.sort_by_key(|item| item["sortText"].as_str().unwrap_or("").to_string());
+        items.iter().map(|item| item["label"].as_str().unwrap().to_string()).collect::<Vec<_>>()
+    };
+    let mut client = Client::editor(options.clone(), None);
+    assert_eq!(complete(&mut client), ["zoo"], "the file's own, as Org does by default");
+    client.shutdown();
+    options["completeTagsAlwaysOfferAllAgendaTags"] = json!(true);
+    let mut client = Client::editor(options, None);
+    assert_eq!(complete(&mut client), ["zoo", "errand", "project", "work"]);
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 /// `C-c C-s` on an agenda line (`org-agenda-schedule`): the calendar
 /// opens on the entry's date, and the day picked there goes to the
 /// entry's file, which need not be open in the editor. The agenda's
@@ -1891,6 +1918,36 @@ fn a_template_without_a_target_captures_into_the_default_notes_file() {
     let (file, edits) = edits_of(edit);
     assert_eq!(file, format!("file://{}", notes.display()));
     assert_eq!(apply("* Old\n", &edits), "* Old\n* Quick note\n");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// Capturing from where there is no document (no file open): the
+/// template and the answers come without a cursor.
+#[test]
+fn captures_from_no_document() {
+    let root = workspace("capture-no-document");
+    let notes = root.join("notes.org");
+    std::fs::write(&notes, "* Old\n").unwrap();
+    let mut options = clock();
+    options["defaultNotesFile"] = json!(notes.display().to_string());
+    options["captureTemplates"] = json!([{ "key": "n", "description": "Note", "template": "* %^{Title} %?" }]);
+    let mut client = Client::editor(options, None);
+    let run = |client: &mut Client, arguments: Value| {
+        client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": arguments }))
+    };
+    let asked = run(&mut client, json!([])).unwrap();
+    assert_eq!(asked["input"]["choices"], json!([{ "key": "n", "label": "Note" }]));
+    let asked = run(&mut client, json!([{ "keys": "", "input": "n" }])).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Title");
+    let mut context = asked["input"]["context"].clone();
+    context["input"] = json!("Groceries");
+    client.received.clear();
+    assert_eq!(run(&mut client, json!([context])), Ok(Value::Null));
+    client.settle();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the buffer");
+    let buffer = show.params["uri"].as_str().unwrap();
+    assert_eq!(std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap(), "* Groceries \n");
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }

@@ -1,6 +1,8 @@
 //! Completion in a headline, as Org's `pcomplete` offers it: TODO
 //! keywords for the first word after the stars, and the tags of the file
-//! (`org-get-buffer-tags`) after a colon in the headline's tags.
+//! (`org-get-buffer-tags`) after a colon in the headline's tags, then
+//! those of the agenda files with
+//! `org-complete-tags-always-offer-all-agenda-tags`.
 
 use org_syntax::TodoKeywords;
 
@@ -12,8 +14,13 @@ pub enum Kind {
 }
 
 /// The candidates at byte `offset` of `text`, and where the word they
-/// replace starts.
-pub fn complete(text: &str, offset: usize, keywords: &TodoKeywords) -> Option<(usize, Vec<(String, Kind)>)> {
+/// replace starts. `more_tags` are offered after the file's own tags.
+pub fn complete(
+    text: &str,
+    offset: usize,
+    keywords: &TodoKeywords,
+    more_tags: &[String],
+) -> Option<(usize, Vec<(String, Kind)>)> {
     let offset = offset.min(text.len());
     let start = text[..offset].rfind('\n').map_or(0, |index| index + 1);
     let before = &text[start..offset];
@@ -41,6 +48,8 @@ pub fn complete(text: &str, offset: usize, keywords: &TodoKeywords) -> Option<(u
     }
     let present: Vec<&str> = group.split(':').filter(|tag| !tag.is_empty()).collect();
     let mut tags = buffer_tags(text);
+    let mut more: Vec<String> = more_tags.iter().filter(|tag| !tags.contains(tag)).cloned().collect();
+    tags.append(&mut more);
     tags.retain(|candidate| candidate.starts_with(tag) && !present.contains(&candidate.as_str()));
     Some((offset - tag.len(), tags.into_iter().map(|tag| (tag, Kind::Tag)).collect()))
 }
@@ -70,7 +79,7 @@ mod tests {
         let offset = marked.find('¦').unwrap();
         let text = marked.replacen('¦', "", 1);
         let keywords = TodoKeywords::from_document(&text).unwrap_or_default();
-        complete(&text, offset, &keywords)
+        complete(&text, offset, &keywords, &[])
             .map(|(start, items)| (start, items.into_iter().map(|(label, _)| label).collect()))
     }
 
@@ -92,5 +101,14 @@ mod tests {
         let file = "* a :work:home:\n* b :home:¦\n";
         assert_eq!(at(file), Some((26, vec!["work".into()])));
         assert_eq!(at("* a :work:\n* b text¦"), None);
+    }
+
+    #[test]
+    fn then_the_agenda_tags() {
+        let file = "* a :work:\n* b :¦\n";
+        let more = ["home".to_string(), "work".to_string(), "@phone".to_string()];
+        let found = complete(file, file.find('¦').unwrap(), &TodoKeywords::default(), &more).unwrap();
+        let labels: Vec<&str> = found.1.iter().map(|(label, _)| label.as_str()).collect();
+        assert_eq!(labels, ["work", "home", "@phone"]);
     }
 }

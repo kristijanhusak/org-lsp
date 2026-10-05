@@ -351,6 +351,9 @@ local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
 eq(lines[1], '           May 2026                June 2026                July 2026', 'three months, as in Emacs')
 eq(lines[#lines], 'SCHEDULED Date+time [2026-06-03]:    => <2026-06-03 Wed>', 'the minibuffer below')
 eq(vim.api.nvim_win_get_height(0), #lines, 'as high as its text')
+-- Its keys run at once, whatever longer mappings of the user's start
+-- with them (`tn`).
+eq(vim.fn.maparg('t', 'n', false, true).nowait, 1, 'the calendar keys do not wait')
 press('l')
 wait('a day later', on_prompt_day(' 4'))
 press('<CR>')

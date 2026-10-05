@@ -245,6 +245,27 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('captures with no file open', async () => {
+    const showQuickPick = vscode.window.showQuickPick;
+    vscode.window.showQuickPick = async (items) => items.find((item) => item.key === 't');
+    try {
+      await oneGroup();
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+      await vscode.commands.executeCommand('org.capture');
+      await until('the capture buffer', () => {
+        const active = vscode.window.activeTextEditor;
+        return active && path.basename(active.document.uri.fsPath) === 'CAPTURE-inbox.org';
+      });
+      await vscode.commands.executeCommand('org.capture.abort');
+      await until('the capture buffer to close', () =>
+        vscode.window.tabGroups.all.flatMap((group) => group.tabs).every((tab) => !tab.label.startsWith('CAPTURE-')),
+      );
+    } finally {
+      vscode.window.showQuickPick = showQuickPick;
+    }
+    await vscode.window.showTextDocument(document);
+  });
+
   it('asks for a date, shows what it means, and uses it', async () => {
     const asked = [];
     const showInputBox = vscode.window.showInputBox;
