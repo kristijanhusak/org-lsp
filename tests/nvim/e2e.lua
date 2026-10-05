@@ -468,6 +468,32 @@ eq(#vim.api.nvim_list_wins(), windows, 'the window of choices is closed')
 vim.api.nvim_feedkeys(vim.keycode('<Esc>'), 'n', false)
 eq(plugin.read_key('Select a TODO state', { { key = 't', label = 'TODO' } }), nil, '<Esc> gives up')
 
+-- 18. What the server marks hidden is concealed: a link shows its
+-- description, as `org-link-descriptive` shows it.
+local linked = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* Read [[https://example.org][the site]] now' }, linked)
+vim.cmd.edit(linked)
+wait('the server to attach to the file with a link', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+eq(vim.wo.conceallevel, 2, 'conceallevel in Org windows')
+local function concealed()
+  local found = {}
+  local client = vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' })[1]
+  local namespace = vim.api.nvim_create_namespace('nvim.lsp.semantic_tokens:' .. client.id)
+  for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(0, namespace, 0, -1, { details = true })) do
+    if mark[4].conceal then
+      table.insert(found, vim.api.nvim_buf_get_text(0, mark[2], mark[3], mark[4].end_row, mark[4].end_col, {})[1])
+    end
+  end
+  return found
+end
+wait('the link to be concealed', function()
+  vim.cmd.redraw()
+  return #concealed() == 2
+end)
+eq(concealed(), { '[[https://example.org][', ']]' }, 'the brackets and the target are concealed')
+
 -- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'

@@ -309,7 +309,108 @@ async function stopClient(): Promise<void> {
   await running?.stop();
 }
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
+// ----- concealing
+
+/**
+ * The text the server marks `hidden` in its tokens (link brackets and
+ * targets, emphasis markers with `hideEmphasisMarkers`) is hidden, as Org
+ * hides it. VS Code cannot conceal text; a decoration whose CSS takes the
+ * text out of the line is the usual way. On a line with a cursor or a
+ * selection it shows, so that it can be edited.
+ */
+const hiddenDecoration = vscode.window.createTextEditorDecorationType({ textDecoration: 'none; display: none;' });
+
+/** The hidden ranges of each document, for the version they were read for. */
+const hiddenRanges = new Map<string, { version: number; ranges: vscode.Range[] }>();
+
+/** What each editor hides now, as text; for the tests. */
+const concealedText = new Map<vscode.TextEditor, string[]>();
+
+async function hiddenIn(document: vscode.TextDocument): Promise<vscode.Range[]> {
+  const key = document.uri.toString();
+  const known = hiddenRanges.get(key);
+  if (known && known.version === document.version) {
+    return known.ranges;
+  }
+  const version = document.version;
+  const legend = await vscode.commands.executeCommand<vscode.SemanticTokensLegend | undefined>(
+    'vscode.provideDocumentSemanticTokensLegend',
+    document.uri,
+  );
+  const tokens = await vscode.commands.executeCommand<vscode.SemanticTokens | undefined>(
+    'vscode.provideDocumentSemanticTokens',
+    document.uri,
+  );
+  const bit = legend?.tokenModifiers.indexOf('hidden') ?? -1;
+  const ranges: vscode.Range[] = [];
+  if (tokens && bit >= 0) {
+    let line = 0;
+    let character = 0;
+    for (let i = 0; i < tokens.data.length; i += 5) {
+      const [deltaLine, deltaStart, length, , modifiers] = tokens.data.slice(i, i + 5);
+      line += deltaLine;
+      character = deltaLine === 0 ? character + deltaStart : deltaStart;
+      if (modifiers & (1 << bit)) {
+        ranges.push(new vscode.Range(line, character, line, character + length));
+      }
+    }
+  }
+  // Tokens of an older version would hide the wrong text.
+  if (document.version === version) {
+    hiddenRanges.set(key, { version, ranges });
+  }
+  return ranges;
+}
+
+async function conceal(editor: vscode.TextEditor): Promise<void> {
+  const enabled = vscode.workspace.getConfiguration('org-lsp').get<boolean>('conceal', true);
+  if (editor.document.languageId !== 'org') {
+    return;
+  }
+  const ranges = enabled ? await hiddenIn(editor.document) : [];
+  const editing = (range: vscode.Range) =>
+    editor.selections.some((selection) => selection.start.line <= range.end.line && range.start.line <= selection.end.line);
+  const shown = ranges.filter((range) => !editing(range));
+  editor.setDecorations(hiddenDecoration, shown);
+  concealedText.set(editor, shown.map((range) => editor.document.getText(range)));
+}
+
+function concealVisible(): void {
+  for (const editor of vscode.window.visibleTextEditors) {
+    void conceal(editor);
+  }
+}
+
+/** Conceal again as documents, cursors and settings change. */
+function watchConcealing(context: vscode.ExtensionContext): void {
+  let pending: NodeJS.Timeout | undefined;
+  context.subscriptions.push(
+    hiddenDecoration,
+    vscode.window.onDidChangeVisibleTextEditors(concealVisible),
+    vscode.window.onDidChangeTextEditorSelection((event) => void conceal(event.textEditor)),
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      if (event.document.languageId !== 'org') {
+        return;
+      }
+      // The server's tokens for the new text come a moment later.
+      clearTimeout(pending);
+      pending = setTimeout(concealVisible, 200);
+    }),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('org-lsp.conceal')) {
+        concealVisible();
+      }
+    }),
+  );
+}
+
+/** What the extension offers other code: for its tests. */
+export interface Api {
+  /** The text hidden in `editor` now. */
+  concealed(editor: vscode.TextEditor): string[];
+}
+
+export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   context.subscriptions.push(
     vscode.commands.registerCommand('org-lsp.restartServer', async () => {
       await stopClient();
@@ -324,6 +425,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
   );
   await startClient(context);
+  watchConcealing(context);
+  concealVisible();
+  return { concealed: (editor) => concealedText.get(editor) ?? [] };
 }
 
 export function deactivate(): Promise<void> {

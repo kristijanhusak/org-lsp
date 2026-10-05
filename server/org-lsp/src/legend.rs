@@ -79,6 +79,7 @@ const MODIFIER_DESCRIPTIONS: &[&str] = &[
     "Agenda: the deadline is far away",
     "Agenda: a day inside a date range",
     "Agenda: the current time",
+    "Text Org hides (link brackets and targets, emphasis markers); editors that can conceal text conceal it",
 ];
 
 /// The default look of the tokens a selector matches.

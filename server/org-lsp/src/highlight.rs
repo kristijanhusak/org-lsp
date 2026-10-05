@@ -92,6 +92,7 @@ pub mod modifier {
         "distant",
         "range",
         "current",
+        "hidden",
     ];
 
     pub const DONE: u32 = 1 << 8;
@@ -109,6 +110,9 @@ pub mod modifier {
     pub const DISTANT: u32 = 1 << 20;
     pub const RANGE: u32 = 1 << 21;
     pub const CURRENT: u32 = 1 << 22;
+    /// Text Org hides: link brackets and targets, emphasis markers. An
+    /// editor that can conceal text conceals it.
+    pub const HIDDEN: u32 = 1 << 23;
 
     /// Headline levels repeat after eight, like Org's level faces.
     pub fn level(level: usize) -> u32 {
@@ -143,15 +147,28 @@ impl Style {
     const PLAIN: Style = Style { text: None, modifiers: 0 };
 }
 
+/// What Org hides, and marks `hidden` here.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Conceal {
+    /// `org-link-descriptive`: a link shows its description, or its target
+    /// when it has none; the brackets, and a target with a description,
+    /// are hidden.
+    pub links: bool,
+    /// `org-hide-emphasis-markers`: the markers around `*bold*`, `/italic/`,
+    /// `_underline_`, `+strike+`, `=verbatim=` and `~code~`.
+    pub emphasis: bool,
+}
+
 /// All tokens of a document, in order.
-pub fn tokens(root: &SyntaxNode, todo: &TodoKeywords) -> Vec<Token> {
-    let mut walker = Walker { todo, out: Vec::new() };
+pub fn tokens(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal) -> Vec<Token> {
+    let mut walker = Walker { todo, conceal, out: Vec::new() };
     walker.children(root, Style::PLAIN);
     walker.out
 }
 
 struct Walker<'a> {
     todo: &'a TodoKeywords,
+    conceal: Conceal,
     out: Vec<Token>,
 }
 
@@ -213,11 +230,49 @@ impl Walker<'_> {
             }
             // A footnote definition's label; references are handled as nodes.
             FOOTNOTE_LABEL if parent == FOOTNOTE_DEFINITION => plain(TokenType::Footnote),
+            // The markers of emphasis, which Org can hide.
+            MARKER
+                if self.conceal.emphasis
+                    && matches!(parent, BOLD | ITALIC | UNDERLINE | STRIKE_THROUGH | CODE | VERBATIM) =>
+            {
+                let ty = match parent {
+                    CODE => TokenType::Code,
+                    VERBATIM => TokenType::Verbatim,
+                    _ => style.text.unwrap_or(TokenType::Text),
+                };
+                Some((ty, style.modifiers | modifier::HIDDEN))
+            }
             // Text and emphasis markers take the style of their context.
             TEXT | MARKER if style.text.is_some() || style.modifiers != 0 => {
                 Some((style.text.unwrap_or(TokenType::Text), style.modifiers))
             }
             _ => None,
+        }
+    }
+
+    /// A bracket link as `org-link-descriptive` shows it: the description,
+    /// or the target when there is none, with the rest hidden.
+    fn link(&mut self, node: &SyntaxNode) {
+        let described = node.children_with_tokens().any(|child| child.kind() == LINK_SEPARATOR);
+        let (mut shown_start, mut shown_end) = (None, None);
+        for child in node.children_with_tokens() {
+            let range = child.text_range();
+            match child.kind() {
+                LINK_OPEN | LINK_SEPARATOR | LINK_CLOSE => {
+                    if let (Some(start), Some(end)) = (shown_start.take(), shown_end.take()) {
+                        self.push(TextRange::new(start, end), TokenType::Link, 0);
+                    }
+                    self.push(range, TokenType::Link, modifier::HIDDEN);
+                }
+                LINK_PATH if described => self.push(range, TokenType::Link, modifier::HIDDEN),
+                _ => {
+                    shown_start.get_or_insert(range.start());
+                    shown_end = Some(range.end());
+                }
+            }
+        }
+        if let (Some(start), Some(end)) = (shown_start, shown_end) {
+            self.push(TextRange::new(start, end), TokenType::Link, 0);
         }
     }
 
@@ -229,7 +284,13 @@ impl Walker<'_> {
             HEADLINE => self.headline(node),
             // Tags, links and the like are single tokens whatever they contain.
             TAGS => self.push(range, TokenType::Tag, 0),
+            LINK if self.conceal.links => self.link(node),
             LINK | PLAIN_LINK | ANGLE_LINK | CITATION => self.push(range, TokenType::Link, 0),
+            // With their markers apart, to hide them.
+            CODE | VERBATIM if self.conceal.emphasis => {
+                let ty = if node.kind() == CODE { TokenType::Code } else { TokenType::Verbatim };
+                self.children(node, Style { text: Some(ty), modifiers: 0 });
+            }
             CODE | INLINE_SRC_BLOCK | INLINE_BABEL_CALL => self.push(range, TokenType::Code, 0),
             VERBATIM => self.push(range, TokenType::Verbatim, 0),
             TIMESTAMP => {
@@ -365,9 +426,13 @@ mod tests {
 
     /// Render tokens as `line:column text type +modifiers`, one per line piece.
     fn render(text: &str, encoding: Encoding) -> String {
+        render_concealed(text, encoding, Conceal::default())
+    }
+
+    fn render_concealed(text: &str, encoding: Encoding, conceal: Conceal) -> String {
         let parse = org_syntax::parse(text, &TodoKeywords::default());
         let index = LineIndex::new(text);
-        let tokens = tokens(&parse.syntax(), parse.todo_keywords());
+        let tokens = tokens(&parse.syntax(), parse.todo_keywords(), conceal);
         let mut out = String::new();
         let (mut line, mut column) = (0, 0);
         for token in encode(&tokens, text, &index, encoding, None) {
@@ -402,6 +467,61 @@ mod tests {
 
     fn check(text: &str, expected: Expect) {
         expected.assert_eq(&render(text, Encoding::Utf16));
+    }
+
+    #[test]
+    fn hidden_parts_of_links_as_org_link_descriptive_shows_them() {
+        let links = Conceal { links: true, emphasis: false };
+        expect![[r#"
+            0:0 "[[https://x.org][" link +hidden
+            0:17 "the *site*" link
+            0:27 "]]" link +hidden
+            0:30 "[[" link +hidden
+            0:32 "file:a.org" link
+            0:42 "]]" link +hidden
+            1:0 "[[a][" link +hidden
+            1:5 "two" link
+            2:0 "lines" link
+            2:5 "]]" link +hidden
+        "#]]
+        .assert_eq(&render_concealed(
+            "[[https://x.org][the *site*]] [[file:a.org]]\n[[a][two\nlines]]\n",
+            Encoding::Utf16,
+            links,
+        ));
+    }
+
+    #[test]
+    fn hidden_emphasis_markers_as_org_hide_emphasis_markers_hides_them() {
+        let emphasis = Conceal { links: false, emphasis: true };
+        expect![[r#"
+            0:0 "*" text +bold +hidden
+            0:1 "b" text +bold
+            0:3 "/" text +bold +italic +hidden
+            0:4 "i" text +bold +italic
+            0:5 "/" text +bold +italic +hidden
+            0:6 "*" text +bold +hidden
+            0:8 "=" verbatim +hidden
+            0:9 "v" verbatim
+            0:10 "=" verbatim +hidden
+            0:12 "~" code +hidden
+            0:13 "c" code
+            0:14 "~" code +hidden
+            0:16 "_" text +underline +hidden
+            0:17 "u" text +underline
+            0:18 "_" text +underline +hidden
+            0:20 "+" text +strikethrough +hidden
+            0:21 "s" text +strikethrough
+            0:22 "+" text +strikethrough +hidden
+            1:0 "*" stars +level1
+            1:2 "A" headline +level1
+            1:4 "*" headline +level1 +bold +hidden
+            1:5 "b" headline +level1 +bold
+            1:6 "*" headline +level1 +bold +hidden
+        "#]]
+        .assert_eq(&render_concealed("*b /i/* =v= ~c~ _u_ +s+\n* A *b*\n", Encoding::Utf16, emphasis));
+        // Off, the markers are text like the rest.
+        assert!(!render("*b* =v=\n", Encoding::Utf16).contains("hidden"));
     }
 
     #[test]
@@ -526,7 +646,7 @@ mod tests {
         .assert_eq(&render(text, Encoding::Utf8));
         let columns = |encoding| {
             let parse = org_syntax::parse(text, &TodoKeywords::default());
-            let tokens = tokens(&parse.syntax(), parse.todo_keywords());
+            let tokens = tokens(&parse.syntax(), parse.todo_keywords(), Conceal::default());
             let encoded = encode(&tokens, text, &LineIndex::new(text), encoding, None);
             (encoded[0].delta_start, encoded[0].length)
         };
@@ -540,7 +660,7 @@ mod tests {
         let text = "* a\n* b\n* c\n";
         let parse = org_syntax::parse(text, &TodoKeywords::default());
         let index = LineIndex::new(text);
-        let tokens = tokens(&parse.syntax(), parse.todo_keywords());
+        let tokens = tokens(&parse.syntax(), parse.todo_keywords(), Conceal::default());
         let all = encode(&tokens, text, &index, Encoding::Utf16, None);
         let second_line = TextRange::new(4.into(), 8.into());
         let some = encode(&tokens, text, &index, Encoding::Utf16, Some(second_line));
@@ -559,7 +679,7 @@ mod tests {
             }
             let text = std::fs::read_to_string(&path).unwrap();
             let parse = org_syntax::parse(&text, &TodoKeywords::default());
-            let tokens = tokens(&parse.syntax(), parse.todo_keywords());
+            let tokens = tokens(&parse.syntax(), parse.todo_keywords(), Conceal::default());
             for pair in tokens.windows(2) {
                 assert!(pair[0].range.end() <= pair[1].range.start(), "{}: {:?}", path.display(), pair);
             }

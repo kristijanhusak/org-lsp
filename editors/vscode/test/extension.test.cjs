@@ -307,6 +307,24 @@ describe('Org files', () => {
     await document.save();
   });
 
+  it('hides what Org hides, and shows it on the line being edited', async () => {
+    const fs = require('node:fs');
+    const file = path.join(workspace, 'links.org');
+    fs.writeFileSync(file, '* Links\nRead [[https://example.org][the site]] now\n');
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    editor.selection = new vscode.Selection(0, 0, 0, 0);
+    await until('the link to be concealed', () =>
+      JSON.stringify(api.concealed(editor)) === JSON.stringify(['[[https://example.org][', ']]']),
+    );
+    // On its line the link shows whole.
+    editor.selection = new vscode.Selection(1, 3, 1, 3);
+    await until('the link to show', () => api.concealed(editor).length === 0);
+    editor.selection = new vscode.Selection(0, 0, 0, 0);
+    await until('the link to be concealed again', () => api.concealed(editor).length === 2);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('changes the part of a timestamp at the cursor', async () => {
     moveTo(6, 19); // on the day of "DEADLINE: <2026-05-20 Wed>"
     await vscode.commands.executeCommand('org.timestamp.up');

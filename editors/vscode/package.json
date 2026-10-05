@@ -334,6 +334,11 @@
           "scope": "machine-overridable",
           "markdownDescription": "Path to the `org-lsp` server binary. When empty, the binary bundled with the extension is used, or else `org-lsp` from `PATH`."
         },
+        "org-lsp.conceal": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Hide what Org hides: link brackets and targets (`linkDescriptive`), and emphasis markers with `hideEmphasisMarkers`. It shows on the lines with a cursor."
+        },
         "org-lsp.winSplitMode": {
           "type": "string",
           "enum": [
@@ -613,6 +618,10 @@
       {
         "id": "current",
         "description": "Agenda: the current time"
+      },
+      {
+        "id": "hidden",
+        "description": "Text Org hides (link brackets and targets, emphasis markers); editors that can conceal text conceal it"
       }
     ],
     "semanticTokenScopes": [

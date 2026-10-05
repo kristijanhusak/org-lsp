@@ -136,6 +136,17 @@ orgDirectory = "~/org"
 # (org-default-notes-file)
 defaultNotesFile = "~/.notes"
 
+# Show a link as its description (or its target, when it has none) and hide
+# the rest: the brackets, and the target of a link with a description. The
+# text is marked `hidden` in the highlighting, and editors that can conceal
+# text conceal it. (org-link-descriptive)
+linkDescriptive = true
+
+# Hide the markers around `*bold*`, `/italic/`, `_underline_`,
+# `+strike-through+`, `=verbatim=` and `~code~`, as for links.
+# (org-hide-emphasis-markers)
+hideEmphasisMarkers = false
+
 # Save the files a command changes other than the one it was run in: an
 # entry's file changed from the agenda, the target of a capture or of a
 # refile. The editor saves them once it has made the change. Off, they are

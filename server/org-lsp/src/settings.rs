@@ -203,6 +203,23 @@ pub const SETTINGS: &[Setting] = &[
         "The target of a capture template whose file is empty.",
     ),
     setting(
+        "linkDescriptive",
+        "boolean",
+        "true",
+        "org-link-descriptive",
+        "Show a link as its description (or its target, when it has none) and hide the rest: the brackets, \
+         and the target of a link with a description. The text is marked `hidden` in the highlighting, \
+         and editors that can conceal text conceal it.",
+    ),
+    setting(
+        "hideEmphasisMarkers",
+        "boolean",
+        "false",
+        "org-hide-emphasis-markers",
+        "Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` \
+         and `~code~`, as for links.",
+    ),
+    setting(
         "autoSave",
         "boolean",
         "true",

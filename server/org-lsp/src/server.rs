@@ -277,6 +277,8 @@ struct Server {
     origin: Option<String>,
     /// `autoSave`: save the files a command changes elsewhere.
     auto_save: bool,
+    /// What the highlighting marks as hidden.
+    conceal: highlight::Conceal,
     /// The files to save once the edit request with this id is applied.
     saving: HashMap<RequestId, Vec<Uri>>,
     todo: TodoKeywords,
@@ -391,6 +393,10 @@ pub fn run(connection: Connection) -> Result<()> {
         message: None,
         origin: None,
         auto_save: options.auto_save.unwrap_or(true),
+        conceal: highlight::Conceal {
+            links: options.link_descriptive.unwrap_or(true),
+            emphasis: options.hide_emphasis_markers.unwrap_or(false),
+        },
         saving: HashMap::new(),
         todo,
         agenda: options.agenda_config(),
@@ -865,7 +871,7 @@ impl Server {
             return Some(SemanticTokens { result_id: None, data });
         }
         let document = self.document(uri)?;
-        let tokens = highlight::tokens(&document.syntax(), document.parse.todo_keywords());
+        let tokens = highlight::tokens(&document.syntax(), document.parse.todo_keywords(), self.conceal);
         let only = range.map(|range| document.index.text_range(&document.text, range, encoding));
         let data = highlight::encode(&tokens, &document.text, &document.index, encoding, only);
         Some(SemanticTokens { result_id: None, data })

@@ -69,6 +69,7 @@ command, and how to add, change and remove keys.
 | --- | --- |
 | `org-lsp.settings` | The server's options, for example `{ "agendaFiles": ["~/org"], "logDone": "time" }`. [docs/vscode/configuration.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/vscode/configuration.md) lists them with their defaults. |
 | `org-lsp.server.path` | Path to the server binary; see below. |
+| `org-lsp.conceal` | Hide link brackets and targets, and emphasis markers with `hideEmphasisMarkers`, except on the line with the cursor (default on). |
 | `org-lsp.winSplitMode` | Where the agenda and capture buffers open: `split` (below, the default), `vsplit` (beside), `float` (a window of its own) or `current`. |
 
 Without `agendaFiles`, the agenda is built from the Org files in the

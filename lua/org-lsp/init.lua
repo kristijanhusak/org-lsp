@@ -23,6 +23,7 @@ local SERVER = 'org_lsp'
 ---@field startup_folded 'showeverything'|'overview' Fold state of a newly opened file.
 ---@field folding boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
+---@field conceal boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `hideEmphasisMarkers`), with 'conceallevel' 2 in Org windows.
 ---@field win_split_mode string|fun(bufnr: integer): integer? How the agenda and capture buffers open: 'split', 'vsplit', 'float', 'current', another Ex command that opens a window ('botright split', 'tabnew'), or a function that opens a window for the buffer and returns it.
 ---@field mappings table|false Keys by scope (`global`, `org`, `agenda`, `calendar`, `capture`). In a scope, a command maps to a key, a list of keys, or `false`; commands that are not listed keep the server's default keys. `false` instead of a scope's table sets no keys in that scope, and instead of the whole table no keys at all. See docs/neovim/keys.md.
 local defaults = {
@@ -31,6 +32,7 @@ local defaults = {
   startup_folded = 'showeverything',
   folding = true,
   replace_syntax = true,
+  conceal = true,
   win_split_mode = 'split',
   mappings = {
     -- The keys that must work before the server has said anything.
@@ -390,6 +392,44 @@ local function replace_syntax(bufnr)
   })
 end
 
+--- Text the server marks hidden (link brackets and targets, emphasis
+--- markers) is concealed, as Org hides it. The marks go in the semantic
+--- tokens' own namespace, which Neovim clears whenever new tokens arrive,
+--- so they come and go with the highlighting.
+---@param bufnr integer
+local function conceal(bufnr)
+  vim.api.nvim_create_autocmd('LspTokenUpdate', {
+    buffer = bufnr,
+    group = vim.api.nvim_create_augroup('org_lsp_conceal_' .. bufnr, { clear = true }),
+    callback = function(args)
+      local token = args.data.token
+      if not token.modifiers.hidden then
+        return
+      end
+      local namespace = vim.api.nvim_create_namespace('nvim.lsp.semantic_tokens:' .. args.data.client_id)
+      pcall(vim.api.nvim_buf_set_extmark, bufnr, namespace, token.line, token.start_col, {
+        end_row = token.end_line or token.line,
+        end_col = token.end_col,
+        conceal = '',
+        strict = false,
+      })
+    end,
+  })
+  local function set_window(win)
+    vim.wo[win][0].conceallevel = 2
+  end
+  for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+    set_window(win)
+  end
+  vim.api.nvim_create_autocmd('BufWinEnter', {
+    buffer = bufnr,
+    group = vim.api.nvim_create_augroup('org_lsp_conceal_windows_' .. bufnr, { clear = true }),
+    callback = function()
+      set_window(vim.api.nvim_get_current_win())
+    end,
+  })
+end
+
 --- The server has started: take over what it announced.
 ---@param client vim.lsp.Client
 local function on_init(client)
@@ -426,6 +466,9 @@ local function on_attach(client, bufnr)
   end
   if M.config.replace_syntax and client:supports_method('textDocument/semanticTokens/full') then
     replace_syntax(bufnr)
+  end
+  if M.config.conceal then
+    conceal(bufnr)
   end
   if M.config.folding and client:supports_method('textDocument/foldingRange') then
     for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
