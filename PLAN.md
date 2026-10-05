@@ -47,6 +47,16 @@ Milestone 4d, step 1 (scheduling from the agenda), as described under
 milestone 4 below. Then the opt-in autosave option (open question 3) and
 the Vim plugin (open question 4) are free to take whenever.
 
+Known bug to look into first: VS Code sometimes fails
+`textDocument/documentSymbol` while typing with "selectionRange must be
+contained in fullRange" (reported from VS Code; Neovim does not check
+this). Suspect: `symbols.rs` trims trailing blanks off the subtree range
+(`subtree_range`), but the selection range is the title's own range,
+which can end in blanks, e.g. typing `* foo ` at the end of the file.
+Reproduce with a test that checks every symbol's selection range lies
+inside its range, for headlines ending in blanks, without a title, and at
+the end of the file; then clamp or stop trimming.
+
 ### Milestone 3, merged: priorities and dates
 
 Kept here as a record of what it covers and how it was checked.
