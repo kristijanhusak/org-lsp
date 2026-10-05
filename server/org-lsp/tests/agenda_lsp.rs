@@ -692,6 +692,48 @@ fn says_what_it_did_and_saves_what_it_changed_elsewhere() {
     client.shutdown();
 }
 
+/// `t` in the calendar picks the time with the keys that move by day and
+/// week; the answer takes it in place of the typed one.
+#[test]
+fn picks_a_time_in_the_calendar() {
+    const URI: &str = "file:///org/notes.org";
+    const PROMPT: &str = "org-agenda:/Org%20Date";
+    let mut client = Client::with_date_prompt(clock());
+    let notes = "* TODO Call them\nSCHEDULED: <2026-05-20 Wed 10:00>\n";
+    client.open(URI, notes);
+    let on_prompt = json!({ "textDocument": { "uri": PROMPT }, "position": { "line": 0, "character": 0 } });
+    let run = |client: &mut Client, command: &str, context: Value| {
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        client.settle();
+        result
+    };
+    run(
+        &mut client,
+        "org.schedule",
+        json!({ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } }),
+    );
+    for command in
+        ["org.calendar.time", "org.calendar.week.earlier", "org.calendar.day.later", "org.calendar.week.later"]
+    {
+        run(&mut client, command, on_prompt.clone());
+    }
+    let text = client.view_text(PROMPT);
+    assert!(text.contains("\nTime: 10:55\n"), "{text}");
+    assert!(text.trim_end().ends_with("=> <2026-05-20 Wed 10:55>"), "{text}");
+    // `t` again: the keys move the day, the time stays.
+    run(&mut client, "org.calendar.time", on_prompt.clone());
+    run(&mut client, "org.calendar.day.later", on_prompt.clone());
+    let text = client.view_text(PROMPT);
+    assert!(text.trim_end().ends_with("=> <2026-05-21 Thu 10:55>"), "{text}");
+    let done = run(&mut client, "org.calendar.select", on_prompt);
+    assert_eq!(done["message"], "Scheduled to <2026-05-21 Thu 10:55>");
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the change");
+    assert_eq!(apply(notes, &edits_of(edit).1), "* TODO Call them\nSCHEDULED: <2026-05-21 Thu 10:55>\n");
+    client.shutdown();
+}
+
 /// Keys of the calendar pressed quickly one after another: the second one
 /// comes with the cursor where it was before the first moved it, and goes
 /// on from the day the first selected.

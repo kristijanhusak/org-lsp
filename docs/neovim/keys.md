@@ -97,6 +97,7 @@ The other options are in [configuration.md](configuration.md).
 | `.` | `org.calendar.today` | Date prompt: go to today |
 | `<CR>` | `org.calendar.select` | Date prompt: take the day at the cursor |
 | `i` | `org.calendar.type` | Date prompt: type the date |
+| `t` | `org.calendar.time` | Date prompt: pick the time, or go back to the day |
 | `q`, `<Esc>` | `org.calendar.cancel` | Date prompt: cancel |
 
 ### Without a default key
@@ -144,7 +145,10 @@ subtree at the cursor.
   - a date (`<Leader>ois`, `J` in the agenda) opens Emacs's calendar at
     the bottom, with the keys under *In the date prompt*; `i` there asks
     for the date as text with `vim.ui.input`, read as Org reads it
-    (`fri 10:00`, `+2d`, `2/15`);
+    (`fri 10:00`, `+2d`, `2/15`); `t` there picks a time: a `Time:` line
+    shows it, `h` and `l` choose the hour or the minutes, `k` and `j` move
+    it up or down (the minutes by `timestampRoundingMinutes`), and `t`
+    again goes back to the days, keeping the time;
   - one key (a TODO keyword with a key, as `TODO(t)`, a capture template,
     or a view in the agenda menu) is read as soon as it is typed, with the
     choices listed in a window at the bottom; `<Esc>` gives up;

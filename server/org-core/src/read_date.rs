@@ -468,6 +468,18 @@ impl Fields {
     }
 }
 
+/// `answer` without the times it gives (`10:00`, `3pm`, `10:00-11:30`,
+/// `10:00+1:30`), so that a time picked another way can take their place.
+pub fn without_time(answer: &str) -> String {
+    let duration = regex!(r"(?i)\b[012]?[0-9]:[0-6][0-9]\+[012]?[0-9](:[0-5][0-9])?");
+    let time = regex!(
+        r"(?i)\b[012]?[0-9]((:[0-5][0-9]([ap]m)?)|([ap]m))\b(--?\b[012]?[0-9]((:[0-5][0-9]([ap]m)?)|([ap]m))\b)?"
+    );
+    let out = duration.replace_all(answer, "");
+    let out = time.replace_all(&out, "");
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 /// `org-read-date` called with `answer` as the text typed at its prompt,
 /// with `org-time-was-given` and `org-end-time-was-given` bound as
 /// `org-time-stamp` binds them. `default` is the date the prompt starts
@@ -740,6 +752,21 @@ pub fn read_date(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn takes_the_times_out_of_an_answer() {
+        for (answer, without) in [
+            ("10:00", ""),
+            ("fri 3pm", "fri"),
+            ("10:00-11:30 +1w", "+1w"),
+            ("10:00+1:30", ""),
+            ("2/15 10:00", "2/15"),
+            ("+2d", "+2d"),
+            ("w12", "w12"),
+        ] {
+            assert_eq!(without_time(answer), without, "{answer}");
+        }
+    }
 
     fn read(answer: &str) -> String {
         let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);

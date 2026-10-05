@@ -315,6 +315,11 @@
         "category": "Org"
       },
       {
+        "command": "org.calendar.time",
+        "title": "Date prompt: pick the time, or go back to the day",
+        "category": "Org"
+      },
+      {
         "command": "org.calendar.cancel",
         "title": "Date prompt: cancel",
         "category": "Org"
@@ -2060,6 +2065,11 @@
       {
         "command": "org.calendar.type",
         "key": "i",
+        "when": "editorTextFocus && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.time",
+        "key": "t",
         "when": "editorTextFocus && editorLangId == 'org-date'"
       },
       {

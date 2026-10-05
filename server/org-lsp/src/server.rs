@@ -43,7 +43,7 @@ use serde_json::{json, Value};
 use crate::config::{self, CaptureTemplateOption, RefileFiles, RefileTarget};
 use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
-use crate::prompt::{self, DatePrompt, Target};
+use crate::prompt::{self, DatePrompt, Target, TimeField};
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
 use crate::{actions, cli, commands, completion, folding, highlight, manifest, symbols, uri};
@@ -1583,7 +1583,30 @@ impl Server {
     /// the cursor, as in Emacs's calendar, or else the selected one.
     fn calendar_command(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
         let (now, settings) = (self.date_time(), self.read_date);
+        let step = self.edit_settings.timestamp_rounding_minutes.max(1);
         let open = self.date_prompt.as_mut().ok_or("No date prompt is open")?;
+        // Picking the time: the keys that move by day choose the hours or
+        // the minutes, and those that move by week change them.
+        if open.time_field.is_some() {
+            let timed = matches!(
+                id,
+                commands::CALENDAR_DAY_LATER
+                    | commands::CALENDAR_DAY_EARLIER
+                    | commands::CALENDAR_WEEK_EARLIER
+                    | commands::CALENDAR_WEEK_LATER
+            );
+            match id {
+                commands::CALENDAR_DAY_LATER => open.time_field_to(TimeField::Minute, now, &settings),
+                commands::CALENDAR_DAY_EARLIER => open.time_field_to(TimeField::Hour, now, &settings),
+                commands::CALENDAR_WEEK_EARLIER => open.change_time(true, step, now, &settings),
+                commands::CALENDAR_WEEK_LATER => open.change_time(false, step, now, &settings),
+                _ => {}
+            }
+            if timed {
+                self.publish_date_prompt();
+                return Ok(Value::Null);
+            }
+        }
         // Until the cursor is on the day selected last, the one it reports
         // is an old one: a key pressed again quickly goes on from the
         // selected day.
@@ -1613,6 +1636,7 @@ impl Server {
             commands::CALENDAR_SCROLL_LATER => open.scroll(1, now, &settings),
             commands::CALENDAR_SCROLL_EARLIER => open.scroll(-1, now, &settings),
             commands::CALENDAR_TODAY => open.select(now.day, now, &settings),
+            commands::CALENDAR_TIME => open.toggle_time(step, now, &settings),
             commands::CALENDAR_SELECT => {
                 // `org-calendar-select`: what was typed, and this day.
                 let answer = open.answer_with(at);
@@ -1622,7 +1646,7 @@ impl Server {
                 let Some(typed) = context.and_then(|context| context.input.clone()) else {
                     // The minibuffer: ask, starting from what was typed.
                     return Ok(
-                        json!({ "input": { "kind": "date", "prompt": open.label.trim_end().trim_end_matches(':'), "value": open.typed } }),
+                        json!({ "input": { "kind": "date", "prompt": open.label.trim_end().trim_end_matches(':'), "value": open.typed_with_time() } }),
                     );
                 };
                 // `RET` there: what was typed, and the day if it moved.

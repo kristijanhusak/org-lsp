@@ -80,6 +80,7 @@ The other options are in [configuration.md](configuration.md).
 | `.` | `org.calendar.today` | Date prompt: go to today |
 | `Enter` | `org.calendar.select` | Date prompt: take the day at the cursor |
 | `i` | `org.calendar.type` | Date prompt: type the date |
+| `t` | `org.calendar.time` | Date prompt: pick the time, or go back to the day |
 | `q`, `Ctrl+G` | `org.calendar.cancel` | Date prompt: cancel |
 
 ### Every command
@@ -138,6 +139,7 @@ The other options are in [configuration.md](configuration.md).
 | `org.calendar.today` | Org: Date prompt: go to today |
 | `org.calendar.select` | Org: Date prompt: take the day at the cursor |
 | `org.calendar.type` | Org: Date prompt: type the date |
+| `org.calendar.time` | Org: Date prompt: pick the time, or go back to the day |
 | `org.calendar.cancel` | Org: Date prompt: cancel |
 
 <!-- END generated -->
@@ -150,7 +152,11 @@ asked in VS Code's own way:
 - **A date** (scheduling, a deadline, `j` in the agenda) opens Emacs's
   calendar beside the file, with the keys under *In the date prompt*.
   `i` there asks for the date in an input box, with the timestamp the
-  answer makes shown as you type.
+  answer makes shown as you type. `t` picks a time: a `Time:` line shows
+  it, `Shift+Left` and `Shift+Right` choose the hour or the minutes,
+  `Shift+Up` and `Shift+Down` move it up or down (the minutes by
+  `timestampRoundingMinutes` in `org-lsp.settings`), and `t` again goes
+  back to the days, keeping the time.
 - **One key**, such as a TODO keyword with a key or a capture template, is
   picked from a list that shows each choice's key (`[t] TODO`). Type to
   narrow the list, then press `Enter`.

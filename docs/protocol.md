@@ -185,7 +185,7 @@ number.
 | `org.date.preview` | Not for users: what an answer to a date prompt means; see below. Not in the manifest. |
 | `org.calendar.day.later`, `.day.earlier`, `.week.later`, `.week.earlier`, `.month.later`, `.month.earlier`, `.year.later`, `.year.earlier` | In the date prompt: move the selected day. |
 | `org.calendar.scroll.later`, `org.calendar.scroll.earlier` | In the date prompt: show the next or previous months. |
-| `org.calendar.today`, `org.calendar.select`, `org.calendar.type`, `org.calendar.cancel` | In the date prompt: go to today; take the day at the cursor; type the answer; give up. See [The date prompt document](#the-date-prompt-document). |
+| `org.calendar.today`, `org.calendar.select`, `org.calendar.type`, `org.calendar.time`, `org.calendar.cancel` | In the date prompt: go to today; take the day at the cursor; type the answer; pick a time, or go back to the day; give up. See [The date prompt document](#the-date-prompt-document). |
 
 **TODO state changes** do what Org's `org-todo` does. The cycle runs
 through "no keyword" between the last and first states. The tags of the
@@ -434,7 +434,13 @@ the cursor on it.
    answer (`org.calendar.type`, which returns `{ "input": … }` like any
    command; that input box is the minibuffer), or give up
    (`org.calendar.cancel`). While the answer is typed, `org.date.preview`
-   also shows it in the minibuffer line.
+   also shows it in the minibuffer line. `org.calendar.time` picks a
+   time, which Emacs's calendar cannot: a `Time: 10:00` line appears above
+   the minibuffer, and until `org.calendar.time` again, the day commands
+   choose the hour (`.day.earlier`) or the minutes (`.day.later`) and the
+   week commands move it (`.week.earlier` up, `.week.later` down; the
+   minutes by `timestampRoundingMinutes`). The time takes the place
+   of a typed one, and stays when the keys go back to days.
 3. Answered or picked, the command runs with the answer and the day moved
    to (if it moved), as Emacs reads its prompt; the result is
    `{ "close": "org-agenda:/Org%20Date" }`, and the client closes that
