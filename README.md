@@ -23,6 +23,7 @@ still missing; see [Not done yet](#not-done-yet).
 | TODO state changes, as `org-todo` does them | `cit` / `ciT`, repeatable with `.` | commands, `Ctrl+.` | `Space a` |
 | Priorities, as `org-priority` changes them | `ciR` / `cir` | commands, `Ctrl+.` | `Space a` |
 | Timestamps: the part at the cursor, or the date by days | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>`, with counts | commands, `Ctrl+.` | `Space a` |
+| Schedule, deadline, insert a timestamp: dates typed as at Org's prompt | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!` | commands, with a preview of the date | no⁴ |
 | Agenda: day, week, fortnight, month and year views | yes | yes | no³ |
 | Agenda: list of all TODO entries | yes | yes | no³ |
 | Agenda: change an entry's state, priority or date, go to its entry | yes | yes | no³ |
@@ -30,6 +31,7 @@ still missing; see [Not done yet](#not-done-yet).
 ¹ Helix does not consume semantic tokens; it highlights Org with its own grammar.
 ² Helix has no folding.
 ³ Helix cannot open a document on a server's request. `org-lsp agenda FILE...` prints the agenda in a terminal.
+⁴ Helix has no way to ask for text on a server's behalf.
 
 Tested with Neovim 0.11.0 and 0.12.5, VSCodium 1.135 and Helix 25.07.1.
 
@@ -78,12 +80,14 @@ instead of nvim-orgmode for those buffers, not next to it.
 | Where | Keys |
 | --- | --- |
 | Anywhere | `<Leader>oa` agenda commands; `:Org agenda`, `:Org agenda list`, `:Org agenda todos` |
-| Org files | `cit` / `ciT` next / previous TODO state, `ciR` / `cir` priority up / down, `<C-a>` / `<C-x>` the part of the timestamp under the cursor, `<S-Up>` / `<S-Down>` the date a day later / earlier, `<Tab>` / `<S-Tab>` fold cycling |
+| Org files | `cit` / `ciT` next / previous TODO state, `ciR` / `cir` priority up / down, `<C-a>` / `<C-x>` the part of the timestamp under the cursor, `<S-Up>` / `<S-Down>` the date a day later / earlier, `<Leader>ois` / `<Leader>oid` schedule / deadline, `<Leader>oi.` / `<Leader>oi!` insert an active / inactive timestamp, `<Tab>` / `<S-Tab>` fold cycling |
 | Agenda | `f` / `b` later / earlier, `.` today, `vd` `vw` `vt` `vm` `vy` span, `r` rebuild, `t` TODO state, `+` / `-` priority, `<S-Right>` / `<S-Left>` date later / earlier, `<CR>` or `<Tab>` go to the entry, `q` close |
 
 These are nvim-orgmode's defaults. A count works as in Vim (`3<C-a>`,
 `2<S-Right>`), the editing keys repeat with `.`, and off a timestamp
-`<C-a>`, `<C-x>`, `<S-Up>` and `<S-Down>` do what they do in any buffer. Apart from fold cycling, `q` and
+`<C-a>`, `<C-x>`, `<S-Up>` and `<S-Down>` do what they do in any buffer.
+The commands that need a date ask with `vim.ui.input`; the answer is read
+as Org's date prompt reads it (`fri 10:00`, `+2d`, `2/15`, `++1w`). Apart from fold cycling, `q` and
 `<Leader>oa`, the plugin does not list them: the server announces its
 commands with their keys, and the plugin binds what it is told.
 
@@ -206,11 +210,13 @@ scripts/update-shift-fixtures.py           # priorities and timestamps
 scripts/update-agenda-action-fixtures.py   # the same, from the agenda
 scripts/update-fold-fixtures.py            # what folding a subtree hides
 scripts/update-read-date-fixtures.py       # answers to the date prompt
+scripts/update-planning-fixtures.py        # schedule, deadline, timestamps
 ```
 
 `scripts/fuzz-against-emacs.py`, `fuzz-agenda.py`, `fuzz-todo.py`,
-`fuzz-shift.py`, `fuzz-fold.py` and `fuzz-read-date.py` generate random
-documents (or answers) and compare both programs on them. See
+`fuzz-shift.py`, `fuzz-fold.py`, `fuzz-read-date.py` and
+`fuzz-planning.py` generate random documents (or answers) and compare
+both programs on them. See
 `docs/parser.md`.
 
 ## Not done yet
@@ -220,8 +226,9 @@ documents (or answers) and compare both programs on them. See
 - Capture, refile, archiving, clocking, tables, completion, following
   links, export.
 - Commands that ask for input (a date, a note, a tag): LSP has no prompt
-  for free text. State notes are written without their text, and there is
-  no `org-schedule` or `org-deadline` yet.
+  for free text. Dates are asked for (scheduling, deadlines, timestamps),
+  but not yet from the agenda, and without a calendar to pick from. State
+  notes are written without their text.
 - The shifted cursor keys do nothing yet on list items, in tables and on
   property lines.
 - Fold cycling is still done by the Neovim plugin, not by the server.

@@ -113,6 +113,32 @@ describe('Org files', () => {
     await document.save();
   });
 
+  it('asks for a date, shows what it means, and uses it', async () => {
+    const asked = [];
+    const showInputBox = vscode.window.showInputBox;
+    vscode.window.showInputBox = async (options) => {
+      asked.push({ prompt: options.prompt, value: options.value, preview: await options.validateInput('fri 9:00') });
+      return '2026-06-03';
+    };
+    try {
+      moveTo(5, 3); // on "Call the client"
+      await vscode.commands.executeCommand('org.schedule');
+      await until('the entry to be scheduled', () => document.lineAt(6).text === 'SCHEDULED: <2026-06-03 Wed> DEADLINE: <2026-05-20 Wed>');
+      assert.deepEqual(asked, [
+        {
+          prompt: 'Schedule',
+          value: '',
+          preview: { message: '=> <2026-05-22 Fri 09:00>', severity: vscode.InputBoxValidationSeverity.Info },
+        },
+      ]);
+    } finally {
+      vscode.window.showInputBox = showInputBox;
+    }
+    await vscode.commands.executeCommand('undo');
+    await until('the schedule undone', () => document.lineAt(6).text === 'DEADLINE: <2026-05-20 Wed>');
+    await document.save();
+  });
+
   it('changes the part of a timestamp at the cursor', async () => {
     moveTo(6, 19); // on the day of "DEADLINE: <2026-05-20 Wed>"
     await vscode.commands.executeCommand('org.timestamp.up');

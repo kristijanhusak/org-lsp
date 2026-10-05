@@ -28,6 +28,8 @@ use org_core::agenda::{self, Config as AgendaConfig, Now, Span};
 use org_core::date::DateTime;
 use org_core::edit::{self, Call, Command as EditCommand, Settings as EditSettings};
 use org_core::outline::Outline;
+use org_core::planning::{self, Command as PlanningCommand};
+use org_core::read_date::Settings as ReadDateSettings;
 use org_core::Refusal;
 use org_syntax::{Parse, TodoKeywords};
 use serde::de::DeserializeOwned;
@@ -61,6 +63,9 @@ struct Client {
 enum Pending {
     /// An edit to a file; the agenda is rebuilt once it is applied.
     Edit,
+    /// An edit after which the cursor goes to `position` of `uri`, as
+    /// Emacs leaves it after inserting a timestamp.
+    EditAndMove { uri: Uri, position: Position },
     /// The cursor of the agenda is being moved to follow an entry.
     Reveal,
     /// The agenda dispatcher's menu.
@@ -121,6 +126,10 @@ struct Context {
     position: Position,
     /// The count the user typed before the key, if any.
     count: Option<i64>,
+    /// The answer to what the command asked for.
+    input: Option<String>,
+    /// For `org.date.preview`: the command whose prompt is being answered.
+    command: Option<String>,
 }
 
 /// The editing command that ran last, and the entry it ran on. Some
@@ -175,6 +184,7 @@ struct Server {
     todo: TodoKeywords,
     agenda: AgendaConfig,
     edit_settings: EditSettings,
+    read_date: ReadDateSettings,
     /// `org-cycle-separator-lines`
     separator_lines: i64,
     /// A fixed clock, for tests.
@@ -258,6 +268,7 @@ pub fn run(connection: Connection) -> Result<()> {
         todo,
         agenda: options.agenda_config(),
         edit_settings: options.edit_settings(),
+        read_date: options.read_date_settings(),
         separator_lines: options.cycle_separator_lines.unwrap_or(folding::SEPARATOR_LINES),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
         documents: HashMap::new(),
@@ -341,6 +352,17 @@ fn refused(id: RequestId, refusal: Refusal) -> Response {
     Response { id, response_result: Err(error) }
 }
 
+/// The command of `org-core` behind a command that asks for a date.
+fn planning_command(id: &str) -> Option<PlanningCommand> {
+    match id {
+        commands::SCHEDULE => Some(PlanningCommand::Schedule),
+        commands::DEADLINE => Some(PlanningCommand::Deadline),
+        commands::TIMESTAMP_INSERT => Some(PlanningCommand::Timestamp { inactive: false }),
+        commands::TIMESTAMP_INSERT_INACTIVE => Some(PlanningCommand::Timestamp { inactive: true }),
+        _ => None,
+    }
+}
+
 fn is_view_uri(uri: &Uri) -> bool {
     uri.as_str().strip_prefix(views::SCHEME).is_some_and(|rest| rest.starts_with(':'))
 }
@@ -411,6 +433,15 @@ impl Server {
     fn response(&mut self, response: Response) {
         match self.pending.remove(&response.id) {
             Some(Pending::Edit) => self.refresh_view(),
+            Some(Pending::EditAndMove { uri, position }) => {
+                self.refresh_view();
+                let applied = response.response_result.ok().and_then(|result| result.get("applied")?.as_bool());
+                if applied == Some(true) {
+                    let selection = Some(Range::new(position, position));
+                    let params = ShowDocumentParams { uri, external: None, take_focus: Some(true), selection };
+                    self.send_request::<ShowDocument>(params, None);
+                }
+            }
             Some(Pending::Reveal) => self.moving = None,
             Some(Pending::Dispatch) => {
                 let title = response
@@ -442,7 +473,7 @@ impl Server {
                     },)*
                     ExecuteCommand::METHOD => match parameters::<ExecuteCommandParams>(request) {
                         Ok((id, params)) => match self.execute_command(params) {
-                            Ok(()) => respond(id, Value::Null),
+                            Ok(value) => respond(id, value),
                             Err(refusal) => refused(id, refusal),
                         },
                         Err(response) => response,
@@ -890,9 +921,83 @@ impl Server {
 
     // ----- commands
 
-    fn execute_command(&mut self, params: ExecuteCommandParams) -> std::result::Result<(), Refusal> {
-        let context = params.arguments.into_iter().next().and_then(|value| serde_json::from_value(value).ok());
-        self.execute(&params.command, context)
+    fn execute_command(&mut self, params: ExecuteCommandParams) -> std::result::Result<Value, Refusal> {
+        let context: Option<Context> =
+            params.arguments.into_iter().next().and_then(|value| serde_json::from_value(value).ok());
+        match params.command.as_str() {
+            commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
+            id if commands::input(id).is_some() => {
+                self.ask_date(id, &context.ok_or("This command needs the cursor position")?)
+            }
+            id => self.execute(id, context).map(|()| Value::Null),
+        }
+    }
+
+    /// The document of `context` and the byte offset of its position,
+    /// for the commands that ask for a date. They work in Org files.
+    fn place(&self, context: &Context) -> std::result::Result<(String, usize, i32), Refusal> {
+        let uri = &context.text_document.uri;
+        if self.is_view(uri) {
+            return Err(Refusal::NotHere("This command works in Org files".to_string()));
+        }
+        let document = self.document(uri).ok_or("The document is not open")?;
+        let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+        Ok((document.text.clone(), offset, document.version))
+    }
+
+    /// A command that asks for a date. Without an answer it says what to
+    /// ask: `{ "input": { "kind", "prompt", "value" } }`, where `value` is
+    /// the text the prompt starts with. With `input` it runs.
+    fn ask_date(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        let command = planning_command(id).ok_or("Unknown command")?;
+        let (text, offset, version) = self.place(context)?;
+        let Some(answer) = &context.input else {
+            let prompt = planning::prompt(command, &text, offset)?;
+            let input = commands::input(id).ok_or("Unknown command")?;
+            return Ok(json!({ "input": { "kind": input.kind, "prompt": input.prompt, "value": prompt.value } }));
+        };
+        let uri = context.text_document.uri.clone();
+        let key = uri.as_str().to_string();
+        // A timestamp right after another one makes a date range.
+        let repeated = self.last.take().is_some_and(|last| {
+            last.file == key
+                && matches!(last.command.as_str(), commands::TIMESTAMP_INSERT | commands::TIMESTAMP_INSERT_INACTIVE)
+        });
+        self.last = Some(Last { command: id.to_string(), file: key.clone(), heading: None });
+        let now = self.date_time();
+        let outcome = planning::run(command, &text, offset, answer, repeated, now, &self.read_date)?;
+        let encoding = self.client.encoding;
+        let index = LineIndex::new(&text);
+        let edits: Vec<TextEdit> = actions::edits_between(&text, &outcome.text)
+            .into_iter()
+            .map(|edit| TextEdit { range: index.range(&text, edit.range, encoding), new_text: edit.new_text })
+            .collect();
+        if edits.is_empty() {
+            return Ok(Value::Null);
+        }
+        let pending = match outcome.cursor {
+            Some(cursor) => {
+                let position = LineIndex::new(&outcome.text).position(&outcome.text, cursor, encoding);
+                Pending::EditAndMove { uri: uri.clone(), position }
+            }
+            None => Pending::Edit,
+        };
+        let edit = self.workspace_edit(&uri, Some(version), edits);
+        self.edited.insert(key);
+        let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+        self.send_request::<ApplyWorkspaceEdit>(params, Some(pending));
+        Ok(Value::Null)
+    }
+
+    /// `org.date.preview`: the timestamp an answer to the prompt of
+    /// `command` makes, `{ "timestamp": "<2026-05-22 Fri>" }`.
+    fn preview_date(&self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let id = context.command.as_deref().ok_or("Which command's prompt?")?;
+        let command = planning_command(id).ok_or("Unknown command")?;
+        let (text, offset, _) = self.place(context)?;
+        let answer = context.input.as_deref().unwrap_or("");
+        let stamp = planning::preview(command, &text, offset, answer, self.date_time(), &self.read_date)?;
+        Ok(json!({ "timestamp": stamp }))
     }
 
     fn execute(&mut self, command: &str, context: Option<Context>) -> std::result::Result<(), Refusal> {

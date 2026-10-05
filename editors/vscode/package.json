@@ -171,6 +171,26 @@
         "category": "Org"
       },
       {
+        "command": "org.schedule",
+        "title": "Schedule the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.deadline",
+        "title": "Set the deadline of the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.timestamp.insert",
+        "title": "Insert or change a timestamp",
+        "category": "Org"
+      },
+      {
+        "command": "org.timestamp.insert.inactive",
+        "title": "Insert or change an inactive timestamp",
+        "category": "Org"
+      },
+      {
         "command": "org-lsp.restartServer",
         "title": "Restart Language Server",
         "category": "Org"

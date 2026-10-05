@@ -8,6 +8,7 @@ pub mod agenda;
 pub mod date;
 pub mod edit;
 pub mod outline;
+pub mod planning;
 pub mod priority;
 pub mod read_date;
 pub mod stamp;

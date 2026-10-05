@@ -145,17 +145,30 @@ function M.run(name, opts)
     local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
     context.count = count
     local command = { title = name, command = name, arguments = { context } }
-    client:exec_cmd(command, { bufnr = vim.api.nvim_get_current_buf() }, function(err)
-      if not err then
+    local bufnr = vim.api.nvim_get_current_buf()
+    local function handle(err, result)
+      if err then
+        if opts.key and type(err.data) == 'table' and err.data.notApplicable then
+          -- Not an Org matter here: the key does what it does elsewhere.
+          vim.api.nvim_feedkeys((count or '') .. vim.keycode(opts.key), 'n', false)
+        else
+          vim.notify('org-lsp: ' .. tostring(err.message), vim.log.levels.WARN)
+        end
         return
       end
-      if opts.key and type(err.data) == 'table' and err.data.notApplicable then
-        -- Not an Org matter here: the key does what it does elsewhere.
-        vim.api.nvim_feedkeys((count or '') .. vim.keycode(opts.key), 'n', false)
-      else
-        vim.notify('org-lsp: ' .. tostring(err.message), vim.log.levels.WARN)
+      -- The command asks for something first: ask, and run it again with
+      -- the answer.
+      local input = type(result) == 'table' and result.input or nil
+      if input then
+        vim.ui.input({ prompt = input.prompt .. ': ', default = input.value }, function(answer)
+          if answer then
+            context.input = answer
+            client:exec_cmd(command, { bufnr = bufnr }, handle)
+          end
+        end)
       end
-    end)
+    end
+    client:exec_cmd(command, { bufnr = bufnr }, handle)
   end)
 end
 

@@ -51,6 +51,8 @@ camel case; the agenda's lose their `org-agenda-` prefix and live under
 | `priorityDefault` | letter or `0`–`64` | `"B"` | `org-priority-default`: the priority of an entry without a cookie. |
 | `priorityStartCycleWithDefault` | `boolean` | `true` | `org-priority-start-cycle-with-default`: raising or lowering an entry without a priority starts at the default. |
 | `timestampRoundingMinutes` | `number` | `5` | The second number of `org-time-stamp-rounding-minutes`: the step in which the minutes of a timestamp change. |
+| `readDatePreferFuture` | `boolean`, `"time"` | `true` | `org-read-date-prefer-future`: a date typed without a year or month is the next one to come; with `"time"`, a time that has passed today is tomorrow's. |
+| `readDateForceCompatibleDates` | `boolean` | `true` | `org-read-date-force-compatible-dates`: a typed year is kept within 1970 to 2037. |
 | `cycleSeparatorLines` | `number` | `2` | `org-cycle-separator-lines`: with at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. Blank lines at the end of the file are never folded. |
 | `agenda` | object | | See below. |
 | `virtualDocuments` | `boolean` | from capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
@@ -130,6 +132,9 @@ number.
 | `org.timestamp.up`, `org.timestamp.down` | Changes the part of the timestamp the cursor is on. Org files only. |
 | `org.date.later`, `org.date.earlier` | Moves a date by days: in an Org file the timestamp at the cursor, on an agenda line the date the line is listed for. |
 | `org.shift.up`, `.down`, `.left`, `.right` | Org's shifted cursor keys in an Org file: on a timestamp they change it, on a headline they change its priority (up, down) or TODO state (left, right). |
+| `org.schedule`, `org.deadline` | Asks for a date and sets the entry's `SCHEDULED:` or `DEADLINE:`. Org files only, for now. |
+| `org.timestamp.insert`, `org.timestamp.insert.inactive` | Asks for a date and inserts a timestamp at the cursor, or changes the one there. Org files only. |
+| `org.date.preview` | Not for users: what an answer to a date prompt means; see below. Not in the manifest. |
 
 **TODO state changes** do what Org's `org-todo` does. The cycle runs
 through "no keyword" between the last and first states. The tags of the
@@ -159,6 +164,41 @@ given. On a `CLOCK:` line the duration is recomputed. In a file,
 `-down-day`. On an agenda line they are `org-agenda-date-later` and
 `-earlier`: the first step forward takes a date that has passed to
 today, and a date range moves as a whole.
+
+**Commands that ask for something.** In the manifest such a command has
+`"input": { "kind", "prompt" }`. Run without an answer, it changes
+nothing and returns what to ask:
+
+```json
+{ "input": { "kind": "date", "prompt": "Schedule", "value": "10:00" } }
+```
+
+`value` is the text the prompt starts with, as Emacs fills it in: the
+time of the date being changed (`10:00+1:30` for a range), or nothing.
+The editor asks with its own input box and runs the command again with
+the answer as `input` in the argument:
+
+```json
+{ "textDocument": { "uri": "…" }, "position": { … }, "input": "fri 10:00" }
+```
+
+A `date` answer is read as Org's date prompt reads it (`org-read-date`):
+`+2d`, `fri`, `2/15`, `feb 15 3pm`, `w12`, `10:00-11:30`, `++1w`, and so
+on, against the date being changed or else today. While it is typed, an
+editor can show what it means with `org.date.preview`, whose argument is
+the same plus `"command"`, the command being answered; it returns
+`{ "timestamp": "<2026-05-22 Fri 10:00>" }`, or fails while the answer
+means nothing.
+
+**Scheduling** works as `org-schedule` and `org-deadline` do: the
+timestamp goes on the planning line under the headline, which is made
+when there is none; a `CLOSED:` timestamp is taken out; the repeater of
+the old date stays. **Timestamps** work as `org-timestamp` does: on a
+timestamp the command changes it (keeping its repeater), elsewhere it
+inserts one; right after inserting one, the same command adds the end of
+a date range (`<…>--<…>`). After a timestamp is inserted, the server
+moves the cursor after it with `window/showDocument`, as Emacs leaves
+it. Changes are not logged (`org-log-reschedule` and the like) yet.
 
 **Code actions.** The commands that apply at the cursor are also offered
 as code actions, with the command name as the action's kind. In an Org

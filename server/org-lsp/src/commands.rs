@@ -59,6 +59,16 @@ pub struct Command {
     /// Default keys for modal editors, in Vim's notation (`<CR>`). These
     /// are nvim-orgmode's defaults.
     pub vim: &'static [Key],
+    /// What the command asks the user for before it can run, as the
+    /// prompt the editor shows.
+    pub input: Option<Input>,
+}
+
+/// Input a command asks for.
+pub struct Input {
+    /// What kind of answer: `date` is read as Org's date prompt reads it.
+    pub kind: &'static str,
+    pub prompt: &'static str,
 }
 
 pub const AGENDA_DISPATCH: &str = "org.agenda.dispatch";
@@ -86,15 +96,26 @@ pub const SHIFT_UP: &str = "org.shift.up";
 pub const SHIFT_DOWN: &str = "org.shift.down";
 pub const SHIFT_LEFT: &str = "org.shift.left";
 pub const SHIFT_RIGHT: &str = "org.shift.right";
+pub const SCHEDULE: &str = "org.schedule";
+pub const DEADLINE: &str = "org.deadline";
+pub const TIMESTAMP_INSERT: &str = "org.timestamp.insert";
+pub const TIMESTAMP_INSERT_INACTIVE: &str = "org.timestamp.insert.inactive";
+/// What an answer to a date prompt means, for an editor that shows it
+/// while the answer is typed. Not a command of its own for users.
+pub const DATE_PREVIEW: &str = "org.date.preview";
 
 use Scope::{Agenda, Global, Org};
 
 const fn command(id: &'static str, title: &'static str) -> Command {
-    Command { id, title, edits: false, emacs: &[], vim: &[] }
+    Command { id, title, edits: false, emacs: &[], vim: &[], input: None }
 }
 
 const fn edit(id: &'static str, title: &'static str) -> Command {
-    Command { id, title, edits: true, emacs: &[], vim: &[] }
+    Command { id, title, edits: true, emacs: &[], vim: &[], input: None }
+}
+
+const fn ask_date(id: &'static str, title: &'static str, prompt: &'static str) -> Command {
+    Command { input: Some(Input { kind: "date", prompt }), ..edit(id, title) }
 }
 
 pub const COMMANDS: &[Command] = &[
@@ -189,16 +210,44 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[native(Org, "S-<right>")],
         ..edit(SHIFT_RIGHT, "Move the date a day later or cycle the TODO state forward")
     },
+    Command {
+        emacs: &[key(Org, "C-c C-s")],
+        vim: &[key(Org, "<Leader>ois")],
+        ..ask_date(SCHEDULE, "Schedule the entry", "Schedule")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-d")],
+        vim: &[key(Org, "<Leader>oid")],
+        ..ask_date(DEADLINE, "Set the deadline of the entry", "Deadline")
+    },
+    Command {
+        emacs: &[key(Org, "C-c .")],
+        vim: &[key(Org, "<Leader>oi.")],
+        ..ask_date(TIMESTAMP_INSERT, "Insert or change a timestamp", "Timestamp")
+    },
+    Command {
+        emacs: &[key(Org, "C-c !")],
+        vim: &[key(Org, "<Leader>oi!")],
+        ..ask_date(TIMESTAMP_INSERT_INACTIVE, "Insert or change an inactive timestamp", "Inactive timestamp")
+    },
 ];
 
+/// Every command the server runs: the table's, and those editors call
+/// on their own.
 pub fn ids() -> Vec<String> {
-    COMMANDS.iter().map(|command| command.id.to_string()).collect()
+    COMMANDS.iter().map(|command| command.id).chain([DATE_PREVIEW]).map(str::to_string).collect()
+}
+
+/// The input the command `id` asks for, if any.
+pub fn input(id: &str) -> Option<&'static Input> {
+    COMMANDS.iter().find(|command| command.id == id)?.input.as_ref()
 }
 
 /// The table as JSON: a list of
 /// `{ "command", "title", "edits", "keys": [{ "key", "in", "preset" }] }`.
 /// A key that keeps its own meaning where the command does not apply has
-/// `"native": true` as well.
+/// `"native": true` as well. A command that asks for something has
+/// `"input": { "kind", "prompt" }`.
 pub fn manifest() -> Value {
     let commands: Vec<Value> = COMMANDS
         .iter()
@@ -215,7 +264,12 @@ pub fn manifest() -> Value {
                     })
                 })
                 .collect();
-            json!({ "command": command.id, "title": command.title, "edits": command.edits, "keys": keys })
+            let mut entry =
+                json!({ "command": command.id, "title": command.title, "edits": command.edits, "keys": keys });
+            if let Some(input) = &command.input {
+                entry["input"] = json!({ "kind": input.kind, "prompt": input.prompt });
+            }
+            entry
         })
         .collect();
     Value::Array(commands)
@@ -234,7 +288,7 @@ mod tests {
         let mut ids = ids();
         ids.sort();
         ids.dedup();
-        assert_eq!(ids.len(), COMMANDS.len());
+        assert_eq!(ids.len(), COMMANDS.len() + 1);
         for preset in [|command: &Command| command.emacs, |command: &Command| command.vim] {
             let mut keys: Vec<(&str, &str)> = COMMANDS
                 .iter()

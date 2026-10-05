@@ -41,6 +41,39 @@ function cursor(running: LanguageClient): unknown[] {
   ];
 }
 
+/** What a command asks for before it runs, when its result says so. */
+interface Input {
+  kind: string;
+  prompt: string;
+  value: string;
+}
+
+function asked(result: unknown): Input | undefined {
+  const input = (result as { input?: Input } | null)?.input;
+  return input && typeof input.prompt === 'string' ? input : undefined;
+}
+
+/**
+ * What a date typed so far means, shown under the input box as the server
+ * reads it; nothing while it reads as nothing.
+ */
+async function preview(
+  running: LanguageClient,
+  command: string,
+  context: Record<string, unknown>,
+  text: string,
+): Promise<vscode.InputBoxValidationMessage | undefined> {
+  try {
+    const params = { command: 'org.date.preview', arguments: [{ ...context, command, input: text }] };
+    const result = (await running.sendRequest('workspace/executeCommand', params)) as { timestamp?: string } | null;
+    return result?.timestamp
+      ? { message: `=> ${result.timestamp}`, severity: vscode.InputBoxValidationSeverity.Info }
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function startClient(context: vscode.ExtensionContext): Promise<void> {
   const command = serverCommand(context);
   const serverOptions: ServerOptions = { command, args: [] };
@@ -62,7 +95,24 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         }
         const params = { command: name, arguments: args.length > 0 ? args : cursor(running) };
         try {
-          return await running.sendRequest('workspace/executeCommand', params);
+          const result = await running.sendRequest('workspace/executeCommand', params);
+          const input = asked(result);
+          if (!input) {
+            return result;
+          }
+          // The command asks for something first: ask, and run it again
+          // with the answer.
+          const context = (params.arguments[0] ?? {}) as Record<string, unknown>;
+          const answer = await vscode.window.showInputBox({
+            prompt: input.prompt,
+            value: input.value,
+            validateInput: input.kind === 'date' ? (text) => preview(running, name, context, text) : undefined,
+          });
+          if (answer === undefined) {
+            return undefined;
+          }
+          const again = { command: name, arguments: [{ ...context, input: answer }] };
+          return await running.sendRequest('workspace/executeCommand', again);
         } catch (error) {
           void vscode.window.showWarningMessage(error instanceof Error ? error.message : String(error));
           return undefined;

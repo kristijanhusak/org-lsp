@@ -128,13 +128,20 @@ show one. In four pull requests:
   `scripts/fuzz-read-date.py` (seeds 1 to 7, 5,400 answers, plus 4,500
   random strings): no difference but those written down below. Uses the
   `regex` crate, so that each of Org's expressions is ported as written.
-- **4b:** commands that take input. The manifest marks a command's input
-  (`"input": { "kind": "date", "prompt": "Schedule: " }`); the editor asks
-  (`vim.ui.input`, `showInputBox`) and passes the answer as an argument.
-  Port `org-schedule`, `org-deadline` (`org-add-planning-info`) and
-  `org-time-stamp` with its inactive form, checked against Emacs. VS
-  Code's input box can show what the answer means while it is typed
-  (`=> <2026-05-20 Wed>`), by asking the server.
+- **4b, done:** commands that ask for a date: `org.schedule`,
+  `org.deadline`, `org.timestamp.insert` and its inactive form, in Org
+  files. `org-core/src/planning.rs` ports `org--deadline-or-schedule`,
+  `org-add-planning-info`, `org-timestamp` and `org-insert-timestamp`.
+  Without an answer a command returns `{ "input": { "kind", "prompt",
+  "value" } }`; the editor asks (`vim.ui.input`, `showInputBox`) and runs
+  it again with `input`. `org.date.preview` says what an answer means;
+  VS Code shows it under the input box. Checked by
+  `tests/planning/cases.json` (31 cases, text, cursor and what the prompt
+  starts with) and `scripts/fuzz-planning.py` (seeds 1 to 9, 4,700 cases,
+  no difference). Not yet: logging a changed date (`org-log-reschedule`,
+  `org-log-redeadline`), the prefix arguments (remove a date, set a delay),
+  and these commands from the agenda (4d). After scheduling the cursor
+  stays where the editor has it; Emacs leaves it where it deleted text.
 - **4c:** the calendar. A second server-owned document beside the agenda:
   the manifest's `agenda` entry becomes a list of views (scheme, language,
   key scope, how to present it). The server draws the months and moves
@@ -254,6 +261,7 @@ previews.
   | Agenda commands | `tests/agenda-actions/cases.json` | `scripts/update-agenda-action-fixtures.py` | |
   | Folding subtrees | `tests/folding/cases.json` | `scripts/update-fold-fixtures.py` | `scripts/fuzz-fold.py` |
   | Date prompt | `tests/read-date/cases.json` | `scripts/update-read-date-fixtures.py` | `scripts/fuzz-read-date.py` |
+  | Commands that ask for a date | `tests/planning/cases.json` | `scripts/update-planning-fixtures.py` | `scripts/fuzz-planning.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.
 - VS Code: in `editors/vscode`, `npm run generate -- --check`, `npm run

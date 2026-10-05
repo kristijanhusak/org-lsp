@@ -256,5 +256,31 @@ eq(line(2), 'SCHEDULED: <2026-05-26 Tue 11:00 +2w>', 'the timestamp is left alon
 eq(warnings, {}, 'without a complaint from the server')
 vim.notify = notify
 
+-- 12. Commands that ask for a date ask with `vim.ui.input`.
+local asked
+local answer
+local input = vim.ui.input
+vim.ui.input = function(opts, on_confirm)
+  asked = opts
+  on_confirm(answer)
+end
+answer = '2026-06-03'
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+press('<Leader>ois')
+becomes(2, 'SCHEDULED: <2026-06-03 Wed +2w>', 'scheduled, the repeater kept')
+eq({ asked.prompt, asked.default }, { 'Schedule: ', '11:00' }, 'the prompt starts from the old time')
+answer = nil
+press('<Leader>oid')
+vim.wait(200)
+eq(line(2), 'SCHEDULED: <2026-06-03 Wed +2w>', 'a cancelled prompt changes nothing')
+answer = '2026-06-01 9:00'
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+press('<Leader>oi!')
+becomes(3, '[2026-06-01 Mon 09:00]Version 11 of the plan.', 'an inactive timestamp')
+wait('the cursor after it', function()
+  return vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 3, 22 })
+end)
+vim.ui.input = input
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')
