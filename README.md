@@ -81,7 +81,7 @@ instead of nvim-orgmode for those buffers, not next to it.
 | --- | --- |
 | Anywhere | `<Leader>oa` agenda commands; `:Org agenda`, `:Org agenda list`, `:Org agenda todos` |
 | Org files | `cit` / `ciT` next / previous TODO state, `ciR` / `cir` priority up / down, `<C-a>` / `<C-x>` the part of the timestamp under the cursor, `<S-Up>` / `<S-Down>` the date a day later / earlier, `<Leader>ois` / `<Leader>oid` schedule / deadline, `<Leader>oi.` / `<Leader>oi!` insert an active / inactive timestamp, `<Tab>` / `<S-Tab>` fold cycling |
-| Agenda | `f` / `b` later / earlier, `.` today, `vd` `vw` `vt` `vm` `vy` span, `r` rebuild, `t` TODO state, `+` / `-` priority, `<S-Right>` / `<S-Left>` date later / earlier, `<CR>` or `<Tab>` go to the entry, `q` close |
+| Agenda | `f` / `b` later / earlier, `.` today, `vd` `vw` `vt` `vm` `vy` span, `r` rebuild, `t` TODO state, `+` / `-` priority, `<S-Right>` / `<S-Left>` date later / earlier, `<CR>` or `<Tab>` go to the entry, `q` close; `:Org agenda save` saves all Org files with changes |
 
 These are nvim-orgmode's defaults. A count works as in Vim (`3<C-a>`,
 `2<S-Right>`), the editing keys repeat with `.`, and off a timestamp

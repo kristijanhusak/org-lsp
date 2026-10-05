@@ -207,6 +207,11 @@ local work_buf = vim.fn.bufnr(work)
 check(work_buf > 0 and vim.api.nvim_buf_is_loaded(work_buf), 'the file of the entry is loaded')
 eq(vim.api.nvim_buf_get_lines(work_buf, 2, 3, false), { '* DONE Call the client' }, 'the entry changed in its file')
 eq(vim.bo[work_buf].modified, true, 'the change is not saved behind the user\'s back')
+-- Org's `org-save-all-org-buffers` saves it when asked.
+require('org-lsp').run('org.agenda.save')
+wait('the file to be saved', function()
+  return not vim.bo[work_buf].modified
+end)
 
 -- 6. Priority and date change from the agenda, and the cursor goes with
 -- the entry when it moves to another line.

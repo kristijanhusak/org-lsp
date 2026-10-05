@@ -251,6 +251,9 @@ describe('The agenda', () => {
     await until('the entry to repeat', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-23 Sat +1w>');
     assert.equal(home.lineAt(0).text, '* TODO Water plants');
     assert.ok(home.isDirty, 'the change is left for the user to save');
+    // `s`, Org's `org-save-all-org-buffers`, saves it.
+    await vscode.commands.executeCommand('org.agenda.save');
+    await until('the file to be saved', () => !home.isDirty);
     await until('the agenda to drop the old date', () => !activeText().includes('Sched. 2x:'));
   });
 

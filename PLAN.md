@@ -275,10 +275,26 @@ previews.
 1. **Typed input over LSP only.** Decided: the editor's input box, and
    a calendar for dates; see milestone 4.
 2. **Licence.** The parser and the Org logic are ports of GPL code from
-   Emacs Org mode. The repository has no licence file yet.
-3. **Saving after edits from the agenda.** Edited files stay unsaved, as
-   in Emacs. nvim-orgmode saves them. Keep, or make it an option.
-4. **Which Vim client** to write the Vim integration for.
+   Emacs Org mode. The repository has no licence file yet. To be set later.
+3. **Saving after edits from the agenda.** Decided: edited files stay
+   unsaved, as in Emacs. Org has no option to save them by itself; it has
+   `org-save-all-org-buffers`, bound to `s` and `C-x C-s` in the agenda.
+   Ported as `org.agenda.save` (the server cannot save; it returns the
+   files to save, `{ "save": [uri…] }`, and the glue saves those with
+   changes). Still to do: an option of our own to save after every edit
+   from the agenda (for example `agendaSave: true`).
+4. **Vim.** Decided: one Vimscript plugin with the logic the Neovim plugin
+   has (manifest, keys, the agenda and date prompt buffers, closing them),
+   on top of whichever LSP client is installed. Generic LSP (highlighting
+   where the client supports semantic tokens, outline, folding, code
+   actions) needs nothing. Running commands with the cursor position and
+   answering the server's requests differ per client (vim-lsp,
+   yegappan/lsp, coc.nvim, ALE), so the plugin has a small adapter per
+   client: send a request, receive one. Keep as much as possible in the
+   shared code, and write adapters for the most used clients: yegappan/lsp
+   (Vim 9's own), vim-lsp, coc.nvim and ALE. Clients without server-owned
+   documents get the agenda as a file (the server already writes one) and
+   the plain input box instead of the calendar.
 
 ## How the work is checked
 

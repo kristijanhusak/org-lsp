@@ -62,6 +62,19 @@ async function showDatePrompt(params: { uri: string; takeFocus?: boolean; select
   });
 }
 
+/** Save the files the server names that have changes. */
+async function saveAsked(result: unknown): Promise<void> {
+  const save = (result as { save?: unknown } | null)?.save;
+  if (!Array.isArray(save)) {
+    return;
+  }
+  for (const document of vscode.workspace.textDocuments) {
+    if (document.isDirty && save.some((uri) => typeof uri === 'string' && sameUri(uri, document.uri.toString()))) {
+      await document.save();
+    }
+  }
+}
+
 /** Close the editors of a document the server is done with. */
 function closeAsked(result: unknown): void {
   const close = (result as { close?: string } | null)?.close;
@@ -131,6 +144,7 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         try {
           const result = await running.sendRequest('workspace/executeCommand', params);
           closeAsked(result);
+          await saveAsked(result);
           const input = asked(result);
           if (!input) {
             return result;

@@ -120,6 +120,11 @@
         "category": "Org"
       },
       {
+        "command": "org.agenda.save",
+        "title": "Save all Org files",
+        "category": "Org"
+      },
+      {
         "command": "org.todo.next",
         "title": "Cycle TODO state forward",
         "category": "Org"
@@ -1318,6 +1323,16 @@
       {
         "command": "org.agenda.goto",
         "key": "tab",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.save",
+        "key": "s",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.save",
+        "key": "ctrl+x ctrl+s",
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
       },
       {
