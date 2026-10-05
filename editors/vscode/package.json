@@ -329,6 +329,23 @@
           "scope": "machine-overridable",
           "markdownDescription": "Path to the `org-lsp` server binary. When empty, the binary bundled with the extension is used, or else `org-lsp` from `PATH`."
         },
+        "org-lsp.winSplitMode": {
+          "type": "string",
+          "enum": [
+            "split",
+            "vsplit",
+            "float",
+            "current"
+          ],
+          "enumDescriptions": [
+            "In an editor group below the current one.",
+            "In an editor group beside the current one.",
+            "In a window of its own.",
+            "In the current editor group."
+          ],
+          "default": "split",
+          "markdownDescription": "Where the agenda and capture buffers open."
+        },
         "org-lsp.settings": {
           "type": "object",
           "default": {},
@@ -1550,6 +1567,7 @@
   },
   "orgLsp": {
     "agendaScheme": "org-agenda",
+    "capturePrefix": "CAPTURE-",
     "datePromptUri": "org-agenda:/Org%20Date",
     "languages": [
       "org",

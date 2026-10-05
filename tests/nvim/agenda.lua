@@ -97,6 +97,7 @@ choice = 'Agenda for the current week or day'
 press('\\oa')
 wait_for_view('Week-agenda (W21):')
 eq(vim.api.nvim_buf_get_name(0), 'org-agenda:/Org%20Agenda', 'the agenda is a document of the server')
+eq(vim.fn.winlayout()[1], 'col', 'the agenda opens in a horizontal split')
 eq(lines(), {
   'Week-agenda (W21):',
   'Monday     18 May 2026 W21',
@@ -409,6 +410,7 @@ end)
 vim.api.nvim_set_current_buf(agenda_buf)
 press('q')
 check(not vim.api.nvim_buf_is_valid(agenda_buf), 'q closes the agenda')
+eq(#vim.api.nvim_tabpage_list_wins(0), 1, 'and the split it opened')
 press('<F7>')
 wait_for_view('Global list of TODO items of type: ALL')
 eq(lines(), {
@@ -471,6 +473,91 @@ wait('the capture buffer to close', function()
   end
   return true
 end)
+
+-- 11. Where the agenda and capture buffers open: `win_split_mode`.
+local function only_window()
+  vim.cmd('silent! only')
+  vim.cmd.edit(work)
+end
+local function windows()
+  return #vim.api.nvim_tabpage_list_wins(0)
+end
+local function is_float()
+  return vim.api.nvim_win_get_config(0).relative ~= ''
+end
+only_window()
+org_lsp.setup({ win_split_mode = 'vsplit' })
+press('<F7>')
+wait_for_view('Global list of TODO items of type: ALL')
+eq({ windows(), vim.fn.winlayout()[1] }, { 2, 'row' }, 'vsplit: beside')
+press('q')
+eq(windows(), 1, 'vsplit: q closes it')
+
+org_lsp.setup({ win_split_mode = 'float' })
+press('<F7>')
+wait_for_view('Global list of TODO items of type: ALL')
+check(is_float(), 'float: a floating window')
+local agenda_float = vim.api.nvim_get_current_win()
+-- The calendar of a date prompt floats over it, at the bottom.
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press('<Leader>ois')
+wait('the calendar over the float', function()
+  return vim.bo.filetype == 'org-date'
+end)
+local config = vim.api.nvim_win_get_config(0)
+eq({ config.relative, config.zindex > vim.api.nvim_win_get_config(agenda_float).zindex }, { 'editor', true }, 'the calendar floats above the agenda')
+press('q')
+wait('the calendar to go', function()
+  return vim.api.nvim_get_current_win() == agenda_float
+end)
+-- Going to an entry leaves the float for the window under it.
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press('<CR>')
+wait('the entry from the float', function()
+  return vim.api.nvim_get_current_buf() == work_buf
+end)
+eq({ windows(), is_float() }, { 1, false }, 'float: the entry opens under it')
+
+org_lsp.setup({ win_split_mode = 'current' })
+local before = vim.api.nvim_get_current_buf()
+vim.cmd('vsplit')
+press('<F7>')
+wait_for_view('Global list of TODO items of type: ALL')
+eq(windows(), 2, 'current: no new window')
+press('q')
+eq({ windows(), vim.api.nvim_get_current_buf() }, { 2, before }, 'current: q goes back to the buffer it replaced')
+
+only_window()
+local given
+org_lsp.setup({
+  win_split_mode = function(bufnr)
+    given = bufnr
+    vim.cmd('topleft split')
+    return vim.api.nvim_get_current_win()
+  end,
+})
+press('<F7>')
+wait_for_view('Global list of TODO items of type: ALL')
+eq({ given, vim.api.nvim_win_get_number(0) }, { vim.api.nvim_get_current_buf(), 1 }, 'a function opens the window')
+press('q')
+
+-- The capture buffer opens the same way, and goes with its window.
+only_window()
+org_lsp.setup({ win_split_mode = 'split' })
+plugin.read_key = function()
+  return 't'
+end
+press('<Leader>oc')
+wait('the capture buffer', function()
+  return vim.fs.basename(vim.api.nvim_buf_get_name(0)) == 'CAPTURE-inbox.org'
+end)
+plugin.read_key = read_key
+eq({ windows(), vim.fn.winlayout()[1] }, { 2, 'col' }, 'capture: a horizontal split')
+press('<Leader>ok')
+wait('the capture to be given up', function()
+  return windows() == 1
+end)
+eq(vim.api.nvim_get_current_buf(), work_buf, 'capture: back in the file')
 
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

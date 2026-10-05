@@ -50,6 +50,9 @@ require('org-lsp').setup({
   -- arrives.
   replace_syntax = true,
 
+  -- How the agenda and capture buffers open; see below.
+  win_split_mode = 'split',
+
   -- Keys by scope; see keys.md. `false` sets no keys at all.
   mappings = {
     global = { ['org.agenda.dispatch'] = '<Leader>oa', ['org.capture'] = '<Leader>oc' },
@@ -62,6 +65,39 @@ require('org-lsp').setup({
 `mappings` lists only the keys the plugin needs before the server has
 started. The other keys come from the server, and
 [keys.md](keys.md) lists them all and shows how to change them.
+
+## Where the agenda and capture buffers open
+
+`win_split_mode` says how a window is opened for the agenda and for a
+capture buffer. One that is already shown is used again.
+
+| Value | Opens it |
+| --- | --- |
+| `'split'` | In a horizontal split (the default) |
+| `'vsplit'` | In a vertical split |
+| `'float'` | In a floating window in the middle of the editor |
+| `'current'` | In the current window |
+| another Ex command | With that command, such as `'botright split'`, `'topleft vsplit'` or `'tabnew'` |
+| a function | With the function, which is given the buffer and returns the window it opened |
+
+```lua
+require('org-lsp').setup({ win_split_mode = 'float' })
+
+-- A float of your own size.
+require('org-lsp').setup({
+  win_split_mode = function(bufnr)
+    return vim.api.nvim_open_win(bufnr, true, {
+      relative = 'editor', row = 2, col = 4, width = vim.o.columns - 8, height = vim.o.lines - 6, border = 'single',
+    })
+  end,
+})
+```
+
+Closing the agenda (`q`) or finishing a capture closes the window that was
+opened for it; with `'current'`, the window goes back to the buffer it
+showed before. Going to an entry from the agenda opens the entry's file in
+the agenda's window, or, from a floating window, in the window under it.
+The date prompt's calendar always opens at the bottom.
 
 ## The server's options
 
@@ -163,8 +199,9 @@ require('org-lsp').setup({
     -- `emptyLinesBefore`, `emptyLinesAfter` and `immediateFinish`. The target
     -- is a list: `file` and a path; `file+headline`, a path and a headline;
     -- or `file+olp`, a path and the headlines of an outline path. An empty
-    -- path is `defaultNotesFile`. A template with only a key and a
-    -- description groups the templates whose keys start with its key.
+    -- path is `defaultNotesFile`, and without a target the entry goes at the
+    -- end of `defaultNotesFile`. A template with only a key and a description
+    -- groups the templates whose keys start with its key.
     -- (org-capture-templates)
     captureTemplates = { { key = 't', description = 'Task', target = { 'file+headline', '', 'Tasks' }, template = '* TODO %?\n  %u\n  %a' } },
 

@@ -197,9 +197,10 @@ fn capture_spec(template: &CaptureTemplateOption) -> std::result::Result<(captur
     let target = match template.target.first().map(String::as_str) {
         Some("file") => capture::Target::File,
         Some("file+headline") => capture::Target::Headline(template.target.get(2).cloned().unwrap_or_default()),
-        Some("file+olp") => capture::Target::Path(template.target[2..].to_vec()),
+        Some("file+olp") => capture::Target::Path(template.target.get(2..).unwrap_or_default().to_vec()),
         Some(other) => return Err(format!("Capture targets of type `{other}` are not supported yet").into()),
-        None => return Err("The capture template has no target".into()),
+        // No target: the end of `defaultNotesFile`, as `["file", ""]`.
+        None => capture::Target::File,
     };
     Ok((kind, target))
 }
