@@ -356,8 +356,13 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - Vim (which client to target is open), Helix (works for highlighting and
   code actions; it cannot open documents on the server's request, so it
   has no agenda), Zed.
-- Prebuilt server binaries and a release workflow.
-- An options schema in the manifest, so editors can offer settings.
+- Prebuilt server binaries and a release workflow: done
+  (`.github/workflows/release.yml`, a `nightly` prerelease from `main`,
+  `scripts/install-vscode.sh`). Left: the Neovim plugin downloading the
+  binary instead of building it, and publishing the extension to the
+  Marketplace and Open VSX.
+- An options schema in the manifest, so editors can offer settings:
+  done (`settings` in the manifest, `docs/config.schema.json`).
 
 ### Later or out of scope for now
 

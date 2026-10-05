@@ -62,6 +62,7 @@ the editor's own syntax.
 | `logRepeat` | false, "time", "note" | `"time"` | Record when a repeating entry is done and moves to its next date. (`org-log-repeat`) |
 | `logIntoDrawer` | boolean, string | `false` | Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer. (`org-log-into-drawer`) |
 | `tagsColumn` | number | `-77` | Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`) |
+| `completeTagsAlwaysOfferAllAgendaTags` | boolean | `false` | Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. (`org-complete-tags-always-offer-all-agenda-tags`) |
 | `todoRepeatToState` | string, true | the first keyword of the sequence | The state a repeating entry returns to when it is done: a keyword, or `true` for the state it had. (`org-todo-repeat-to-state`) |
 | `priorityHighest` | letter, or 0 to 64 | `"A"` | The highest priority. (`org-priority-highest`) |
 | `priorityLowest` | letter, or 0 to 64 | `"C"` | The lowest priority. (`org-priority-lowest`) |

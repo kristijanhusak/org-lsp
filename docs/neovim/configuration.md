@@ -181,6 +181,11 @@ require('org-lsp').setup({
     -- at that column. (org-tags-column)
     tagsColumn = -77,
 
+    -- Completing a tag offers the tags of every agenda file, after those of
+    -- the file. Off, only the file's own.
+    -- (org-complete-tags-always-offer-all-agenda-tags)
+    completeTagsAlwaysOfferAllAgendaTags = false,
+
     -- The state a repeating entry returns to when it is done: a keyword, or
     -- `true` for the state it had. (org-todo-repeat-to-state)
     -- todoRepeatToState = nil, -- unset: the first keyword of the sequence

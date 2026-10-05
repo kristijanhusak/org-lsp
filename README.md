@@ -57,8 +57,12 @@ off, it is left for you to save, as in Emacs).
 
 ## Install
 
-The server is a single binary, `org-lsp`. There are no prebuilt binaries yet,
-so each route below builds it with [cargo](https://rustup.rs).
+The server is a single binary, `org-lsp`. CI builds it on every push to
+`main` for Linux (x86_64, arm64), macOS (arm64, x86_64) and Windows
+(x86_64): the [nightly release](https://github.com/kristijanhusak/org-lsp/releases/tag/nightly)
+has the binaries (`org-lsp-<platform>.tar.gz`) and a VS Code package for
+each platform with the server inside. Version tags make releases of their
+own. Each route below can also build it with [cargo](https://rustup.rs).
 
 ### Neovim (0.11 or newer)
 
@@ -99,13 +103,17 @@ with Emacs's calendar, or typed as at Org's prompt (`fri 10:00`, `+2d`,
 ### VS Code
 
 ```sh
-cargo build --release -p org-lsp
-cd editors/vscode
-npm install
-npm run bundle-server
-npm run package        # writes org-lsp-0.1.0.vsix
-code --install-extension org-lsp-0.1.0.vsix
+scripts/install-vscode.sh            # the nightly build for this machine
+scripts/install-vscode.sh v0.2.0     # a release
+scripts/install-vscode.sh --source   # built from this checkout (cargo, npm)
 ```
+
+The script downloads the package for your platform, or builds it, and
+installs it with `code --install-extension`. Run it again to update, then
+reload the window. `CODE=codium` (or `code-insiders`, `cursor`) installs
+into another editor. On Windows without a shell, download
+`org-lsp-win32-x64.vsix` from the release and run **Extensions: Install
+from VSIX…**.
 
 See `editors/vscode/README.md` for the commands, and:
 
@@ -115,6 +123,8 @@ See `editors/vscode/README.md` for the commands, and:
   settings with their defaults, and how to change them.
 
 ### Helix
+
+Put the `org-lsp` binary from the release on your `PATH`, or build it:
 
 ```sh
 cargo install --path server/org-lsp

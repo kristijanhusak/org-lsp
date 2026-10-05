@@ -59,6 +59,11 @@
       "description": "Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`)",
       "default": -77
     },
+    "completeTagsAlwaysOfferAllAgendaTags": {
+      "type": "boolean",
+      "description": "Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. (`org-complete-tags-always-offer-all-agenda-tags`)",
+      "default": false
+    },
     "todoRepeatToState": {
       "anyOf": [
         {

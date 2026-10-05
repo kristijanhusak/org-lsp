@@ -140,6 +140,8 @@ end
 eq(announced, { ['org.agenda.dispatch'] = '<Leader>oa', ['org.capture'] = '<Leader>oc' }, 'the built-in global keys are the ones the server names')
 eq(vim.fn.maparg('f', 'n', false, true).desc, 'Agenda: go forward in time', 'agenda keys carry the server\'s titles')
 eq(vim.fn.maparg('f', 'n', false, true).buffer, 1, 'agenda keys are local to the agenda')
+eq(vim.fn.maparg('f', 'n', false, true).nowait, 1, 'agenda keys run at once')
+eq(vim.fn.maparg('vd', 'n', false, true).nowait, 1, 'also two-key ones')
 
 -- 3. Highlighting comes from the server here too.
 local agenda_buf = vim.api.nvim_get_current_buf()

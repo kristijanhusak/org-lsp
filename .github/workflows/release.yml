@@ -1,53 +1,82 @@
-# Builds the server for each platform when a version tag is pushed, and
-# attaches the binaries and a VS Code package per platform to the release.
+# Builds the server for each platform, and a VS Code package per platform
+# with the server inside, and puts them on a GitHub release:
 #
-# Not exercised yet: review the first run before relying on it.
+# - a push to main updates the `nightly` prerelease, whose files keep the
+#   same links: .../releases/download/nightly/org-lsp-<platform>.tar.gz
+# - a version tag (`v0.2.0`) makes that release.
+#
+# A pull request that changes this file builds everything without
+# publishing; the files are then on the run's page.
+# scripts/install-vscode.sh installs the VS Code package from a release.
 name: Release
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
+  pull_request:
+    paths: ['.github/workflows/release.yml']
+  workflow_dispatch:
 
 permissions:
   contents: write
 
-jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
-        env:
-          GH_TOKEN: ${{ github.token }}
+# One publish at a time; a newer push to main replaces an older one.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref == 'refs/heads/main' }}
 
+jobs:
   build:
-    needs: create-release
     strategy:
       fail-fast: false
       matrix:
         include:
+          # Linux binaries are static (musl): they run on any distribution.
           - os: ubuntu-latest
             name: linux-x86_64
+            target: x86_64-unknown-linux-musl
             vscode: linux-x64
-            exe: org-lsp
+          - os: ubuntu-24.04-arm
+            name: linux-arm64
+            target: aarch64-unknown-linux-musl
+            vscode: linux-arm64
           - os: macos-latest
             name: macos-arm64
+            target: aarch64-apple-darwin
             vscode: darwin-arm64
-            exe: org-lsp
+          - os: macos-latest
+            name: macos-x86_64
+            target: x86_64-apple-darwin
+            vscode: darwin-x64
           - os: windows-latest
             name: windows-x86_64
+            target: x86_64-pc-windows-msvc
             vscode: win32-x64
-            exe: org-lsp.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
-        run: rustup toolchain install stable --profile minimal && rustup default stable
-      - run: cargo build --release -p org-lsp
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
+          rustup default stable
+      - name: Install musl
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - run: cargo build --release --locked -p org-lsp --target ${{ matrix.target }}
 
       - name: Archive the server
         shell: bash
-        run: tar -czf "org-lsp-${{ matrix.name }}.tar.gz" -C target/release "${{ matrix.exe }}"
+        run: |
+          exe=org-lsp; [[ "${{ matrix.target }}" == *windows* ]] && exe=org-lsp.exe
+          dir="target/${{ matrix.target }}/release"
+          if [[ "$exe" == *.exe ]]; then
+            (cd "$dir" && 7z a "$GITHUB_WORKSPACE/org-lsp-${{ matrix.name }}.zip" "$exe")
+          else
+            tar -czf "org-lsp-${{ matrix.name }}.tar.gz" -C "$dir" "$exe"
+          fi
+          echo "EXE=$dir/$exe" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
@@ -58,11 +87,45 @@ jobs:
         run: |
           npm ci
           npm run build
-          npm run bundle-server
+          npm run bundle-server -- "../../$EXE"
           npx vsce package --no-dependencies --target "${{ matrix.vscode }}" --out "../../org-lsp-${{ matrix.vscode }}.vsix"
 
-      - name: Upload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: org-lsp-${{ matrix.name }}
+          path: |
+            org-lsp-${{ matrix.name }}.*
+            org-lsp-${{ matrix.vscode }}.vsix
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    # The platforms that built, also when one failed.
+    if: ${{ !cancelled() && github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish
         shell: bash
-        run: gh release upload "$GITHUB_REF_NAME" "org-lsp-${{ matrix.name }}.tar.gz" "org-lsp-${{ matrix.vscode }}.vsix"
         env:
           GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -l dist
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes --verify-tag dist/*
+            exit 0
+          fi
+          # nightly: the tag moves to this commit, the files are replaced.
+          git tag -f nightly "$GITHUB_SHA"
+          git push -f origin refs/tags/nightly
+          notes="Built from $GITHUB_SHA on $(date -u '+%Y-%m-%d %H:%M UTC'). Install the VS Code extension with scripts/install-vscode.sh."
+          if gh release view nightly > /dev/null 2>&1; then
+            gh release edit nightly --prerelease --title "Nightly" --notes "$notes"
+          else
+            gh release create nightly --prerelease --title "Nightly" --notes "$notes"
+          fi
+          gh release upload nightly dist/* --clobber

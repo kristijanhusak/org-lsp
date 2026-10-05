@@ -292,7 +292,8 @@ impl DatePrompt {
         text.push('\n');
         let start = text.len();
         token(start, self.label.len(), TokenType::CalendarPrompt, 0);
-        let mut line = format!("{}{}", self.label, self.typed);
+        // A picked time shows in place of a typed one, as `i` would start.
+        let mut line = format!("{}{}", self.label, self.typed_with_time());
         // `org-read-date-display` pads the answer with four blanks.
         while !line.ends_with("    ") {
             line.push(' ');
@@ -391,6 +392,12 @@ mod tests {
         assert_eq!(picking.time, Some((10, 55)));
         let lines: Vec<&str> = picking.text.lines().collect();
         assert_eq!(lines[lines.len() - 3], "Time: 10:55");
+        // The minibuffer shows it in place of the typed time.
+        assert!(
+            lines[lines.len() - 1].ends_with("]: 10:55    => <2026-10-07 Wed 10:55>"),
+            "{}",
+            lines[lines.len() - 1]
+        );
         // It takes the place of the typed time, with the day once it moved.
         assert_eq!(picking.answer(), "10:55");
         picking.select(Date::new(2026, 10, 9).to_day(), now(), &settings);

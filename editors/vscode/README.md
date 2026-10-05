@@ -89,6 +89,9 @@ The extension looks for the server in this order:
 
 ## Building
 
+`scripts/install-vscode.sh --source` (in the repository root) does all of
+this and installs the result. By hand:
+
 ```sh
 cargo build --release -p org-lsp   # in the repository root
 npm install

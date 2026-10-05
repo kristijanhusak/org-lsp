@@ -100,6 +100,14 @@ pub const SETTINGS: &[Setting] = &[
         "org-tags-column",
         "Where tags are aligned after a change to a headline. Negative: they end at that column.",
     ),
+    setting(
+        "completeTagsAlwaysOfferAllAgendaTags",
+        "boolean",
+        "false",
+        "org-complete-tags-always-offer-all-agenda-tags",
+        "Completing a tag offers the tags of every agenda file, after those of the file. Off, only the \
+         file's own.",
+    ),
     Setting {
         default: None,
         unset: "the first keyword of the sequence",
@@ -402,6 +410,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("logRepeat", r#"{ "enum": [false, "time", "note"] }"#),
     ("logIntoDrawer", r#"{ "type": ["boolean", "string"] }"#),
     ("tagsColumn", r#"{ "type": "integer" }"#),
+    ("completeTagsAlwaysOfferAllAgendaTags", BOOLEAN),
     ("todoRepeatToState", r#"{ "anyOf": [{ "type": "string" }, { "const": true }] }"#),
     ("priorityHighest", PRIORITY),
     ("priorityLowest", PRIORITY),

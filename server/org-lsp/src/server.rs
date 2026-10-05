@@ -143,10 +143,20 @@ struct Context {
     /// The TODO state a change was asked for, when `input` is the text
     /// of the note that change wants (`""` for no keyword).
     state: Option<String>,
-    /// For `org.capture`: the keys of the template picked so far.
+}
+
+/// What `org.capture` is run with. Capturing needs no document: from
+/// where there is none (no file open), the answers come alone.
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CaptureContext {
+    text_document: Option<lsp_types::TextDocumentIdentifier>,
+    position: Option<Position>,
+    input: Option<String>,
+    /// The keys of the template picked so far.
     keys: Option<String>,
-    /// For `org.capture`: the answers to the template's questions so far;
-    /// `input` is then the next one.
+    /// The answers to the template's questions so far; `input` is then the
+    /// next one.
     answers: Option<Vec<String>>,
 }
 
@@ -295,6 +305,8 @@ struct Server {
     auto_save: bool,
     /// What the highlighting marks as hidden.
     conceal: highlight::Conceal,
+    /// `org-complete-tags-always-offer-all-agenda-tags`
+    all_agenda_tags: bool,
     /// The files to save once the edit request with this id is applied.
     saving: HashMap<RequestId, Vec<Uri>>,
     todo: TodoKeywords,
@@ -315,6 +327,8 @@ struct Server {
     note: Option<Noting>,
     /// How many captures there were.
     captures: u32,
+    /// Where the capture and note buffers go, one directory each.
+    capture_directory: PathBuf,
     /// The date prompt that waits for an answer, in clients that show it.
     date_prompt: Option<DatePrompt>,
     /// The client's copy of the date prompt document, which it may keep
@@ -411,6 +425,7 @@ pub fn run(connection: Connection) -> Result<()> {
         message: None,
         origin: None,
         auto_save: options.auto_save.unwrap_or(true),
+        all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         conceal: highlight::Conceal {
             links: options.link_descriptive.unwrap_or(true),
             emphasis: options.hide_emphasis_markers.unwrap_or(false),
@@ -427,6 +442,7 @@ pub fn run(connection: Connection) -> Result<()> {
         capture: None,
         note: None,
         captures: 0,
+        capture_directory: capture_directory(),
         date_prompt: None,
         prompt_copy: None,
         separator_lines: options.separator_lines(),
@@ -459,7 +475,7 @@ pub fn run(connection: Connection) -> Result<()> {
     }
     server.remove_view_file();
     if server.captures > 0 {
-        let _ = std::fs::remove_dir_all(capture_directory());
+        let _ = std::fs::remove_dir_all(&server.capture_directory);
     }
     Ok(())
 }
@@ -528,9 +544,12 @@ fn span_name(span: Span) -> String {
     }
 }
 
-/// Where the capture buffers of this server are.
+/// A directory for the capture buffers of a server: one of its own, also
+/// when a process runs more than one (the tests).
 fn capture_directory() -> PathBuf {
-    std::env::temp_dir().join(format!("org-lsp-capture-{}", std::process::id()))
+    static SERVERS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let server = SERVERS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    std::env::temp_dir().join(format!("org-lsp-capture-{}-{server}", std::process::id()))
 }
 
 fn capabilities(encoding: Encoding) -> ServerCapabilities {
@@ -1021,14 +1040,20 @@ impl Server {
     /// TODO keywords and tags in a headline (`pcomplete`).
     fn completion(&mut self, params: lsp_types::CompletionParams) -> Option<lsp_types::CompletionResponse> {
         let position = params.text_document_position;
-        let document = self.document(&position.text_document.uri)?;
         let encoding = self.client.encoding;
+        // The tags of the agenda files, read only when a tag is completed.
+        let agenda_tags = if self.all_agenda_tags { self.agenda_tags() } else { Vec::new() };
+        let document = self.document(&position.text_document.uri)?;
         let offset = document.index.offset(&document.text, position.position, encoding);
-        let (start, items) = completion::complete(&document.text, offset, document.parse.todo_keywords())?;
+        let (start, items) =
+            completion::complete(&document.text, offset, document.parse.todo_keywords(), &agenda_tags)?;
         let range = Range::new(document.index.position(&document.text, start, encoding), position.position);
         let items = items
             .into_iter()
-            .map(|(label, kind)| lsp_types::CompletionItem {
+            .enumerate()
+            .map(|(rank, (label, kind))| lsp_types::CompletionItem {
+                // In the order given: the file's tags before the others.
+                sort_text: Some(format!("{rank:05}")),
                 kind: Some(match kind {
                     completion::Kind::Keyword => lsp_types::CompletionItemKind::KEYWORD,
                     completion::Kind::Tag => lsp_types::CompletionItemKind::ENUM_MEMBER,
@@ -1039,6 +1064,19 @@ impl Server {
             })
             .collect();
         Some(lsp_types::CompletionResponse::Array(items))
+    }
+
+    /// The tags of every agenda file (`org-global-tags-completion-table`).
+    fn agenda_tags(&mut self) -> Vec<String> {
+        let mut tags: Vec<String> = self
+            .agenda_files()
+            .iter()
+            .flat_map(|(_, held)| held.outline().entries.iter().flat_map(|entry| entry.tags.iter()))
+            .map(|tag| tag.name.clone())
+            .collect();
+        tags.sort();
+        tags.dedup();
+        tags
     }
 
     /// From an agenda line to the entry it shows.
@@ -1281,6 +1319,10 @@ impl Server {
         let argument = params.arguments.into_iter().next();
         // The answer to a question, also from where there is no document.
         let input = argument.as_ref().and_then(|value| value.get("input")?.as_str()).map(str::to_string);
+        if params.command == commands::CAPTURE {
+            let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
+            return self.capture(&context);
+        }
         let context: Option<Context> = argument.and_then(|value| serde_json::from_value(value).ok());
         match params.command.as_str() {
             commands::AGENDA_DISPATCH => self.dispatch(input.as_deref()),
@@ -1295,7 +1337,6 @@ impl Server {
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
-            commands::CAPTURE => self.capture(context.as_ref()),
             // In a note buffer, the keys of a capture store or cancel the
             // note.
             commands::CAPTURE_FINISH | commands::CAPTURE_ABORT
@@ -2000,12 +2041,12 @@ impl Server {
     /// and show the capture buffer, a file of its own with the template
     /// as it will stand in its target. Each step asks with an `input`
     /// whose `context` the editor sends back.
-    fn capture(&mut self, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
+    fn capture(&mut self, context: &CaptureContext) -> std::result::Result<Value, Refusal> {
         let templates = self.capture_templates.clone();
-        let answering = context.and_then(|context| context.answers.clone());
-        let mut keys = context.and_then(|context| context.keys.clone()).unwrap_or_default();
+        let answering = context.answers.clone();
+        let mut keys = context.keys.clone().unwrap_or_default();
         if answering.is_none() {
-            keys.push_str(context.and_then(|context| context.input.as_deref()).unwrap_or(""));
+            keys.push_str(context.input.as_deref().unwrap_or(""));
         }
         let chosen = templates.iter().find(|template| template.key == keys && template.template.is_some());
         let Some(template) = chosen.cloned() else {
@@ -2038,19 +2079,17 @@ impl Server {
                 "context": { "keys": keys },
             } }));
         };
-        let mut answers = answering.unwrap_or_default();
-        if let (Some(_), Some(answer)) =
-            (&context.and_then(|context| context.answers.as_ref()), context.and_then(|context| context.input.clone()))
-        {
+        let mut answers = answering.clone().unwrap_or_default();
+        if let (Some(_), Some(answer)) = (&answering, context.input.clone()) {
             answers.push(answer);
         }
         // Where the capture started, for `%f`, `%F` and `%a`.
-        let from = context.map(|context| &context.text_document.uri).filter(|uri| !self.is_view(uri));
+        let from = context.text_document.as_ref().map(|document| &document.uri).filter(|uri| !self.is_view(uri));
         let file = from.map(|uri| {
             (uri::file_name(uri), uri::to_path(uri).map(|path| path.display().to_string()).unwrap_or_default())
         });
-        let annotation = match (from, context) {
-            (Some(uri), Some(context)) => self.link_to(uri, context.position),
+        let annotation = match (from, context.position) {
+            (Some(uri), Some(position)) => self.link_to(uri, position),
             _ => String::new(),
         };
         let fill_context = capture::Context {
@@ -2103,7 +2142,7 @@ impl Server {
         // directory of the server's own, one for each capture, so that an
         // editor that still has the last one open does not mix them up.
         self.captures += 1;
-        let directory = capture_directory().join(self.captures.to_string());
+        let directory = self.capture_directory.join(self.captures.to_string());
         std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
         // It is an Org buffer whatever the target is called (Org's default
         // notes file is `~/.notes`), and editors tell that by the name.
@@ -2144,7 +2183,7 @@ impl Server {
         wanted: org_core::todo::WantedNote,
     ) -> std::result::Result<Value, Refusal> {
         self.captures += 1;
-        let directory = capture_directory().join(self.captures.to_string());
+        let directory = self.capture_directory.join(self.captures.to_string());
         std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
         let buffer = directory.join(format!("{CAPTURE_PREFIX}Note.org"));
         // The note goes on the third line, as in Emacs; an editor that takes
