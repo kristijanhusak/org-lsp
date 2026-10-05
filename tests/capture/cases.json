@@ -1,0 +1,321 @@
+[
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n\n* Ideas\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* TODO %?\n  %U"
+  },
+  "typed": "Call Bob",
+  "expected": {
+   "buffer": "** TODO ¦\n  [2026-05-18 Mon 10:30]",
+   "files": {
+    "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n** TODO Call Bob\n  [2026-05-18 Mon 10:30]\n* Ideas\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n\n* Ideas\n"
+  },
+  "template": {
+   "target": [
+    "file",
+    "notes.org"
+   ],
+   "template": "* %?\n%t"
+  },
+  "typed": "An idea",
+  "expected": {
+   "buffer": "* ¦\n<2026-05-18 Mon>\n",
+   "files": {
+    "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n\n* Ideas\n\n* An idea\n<2026-05-18 Mon>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n\n* Ideas\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Missing"
+   ],
+   "template": "* %^{Title}\n%?"
+  },
+  "answers": [
+   "Asked title"
+  ],
+  "typed": "body",
+  "expected": {
+   "buffer": "** Asked title\n¦\n",
+   "files": {
+    "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n\n* Ideas\n* Missing\n** Asked title\nbody\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n\n* Ideas\n"
+  },
+  "template": {
+   "type": "plain",
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Ideas"
+   ],
+   "template": "Note %u %?"
+  },
+  "typed": "x",
+  "expected": {
+   "buffer": "Note [2026-05-18 Mon] ¦",
+   "files": {
+    "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n\n* Ideas\nNote [2026-05-18 Mon] x\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n\n* Ideas\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* TODO %?",
+   "prepend": true
+  },
+  "typed": "First",
+  "expected": {
+   "buffer": "** TODO ¦",
+   "files": {
+    "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO First\n** TODO Old one\n\n* Ideas\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n\n* Ideas\n"
+  },
+  "template": {
+   "target": [
+    "file+olp",
+    "notes.org",
+    "Tasks",
+    "Old one"
+   ],
+   "template": "* %?",
+   "emptyLines": 1
+  },
+  "typed": "Sub",
+  "expected": {
+   "buffer": "*** ¦\n",
+   "files": {
+    "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n\n*** Sub\n\n* Ideas\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n\n* Ideas\n"
+  },
+  "template": {
+   "target": [
+    "file+olp",
+    "notes.org",
+    "Tasks",
+    "Nope"
+   ],
+   "template": "* %?"
+  },
+  "typed": "Sub",
+  "expected": "ERROR: (error \"Heading not found on level 2: Nope\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "#+TITLE: Notes\n* Tasks\n** TODO Old one\n\n* Ideas\n"
+  },
+  "template": {
+   "target": [
+    "file",
+    "notes.org"
+   ],
+   "template": "* %?",
+   "prepend": true
+  },
+  "typed": "Top",
+  "expected": {
+   "buffer": "* ¦",
+   "files": {
+    "notes.org": "#+TITLE: Notes\n* Top\n* Tasks\n** TODO Old one\n\n* Ideas\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "plain text\n"
+  },
+  "template": {
+   "target": [
+    "file",
+    "notes.org"
+   ],
+   "template": "* %?",
+   "prepend": true
+  },
+  "typed": "Top",
+  "expected": {
+   "buffer": "* ¦\n",
+   "files": {
+    "notes.org": "plain text\n* Top\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* A\n\n\n* B"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "A"
+   ],
+   "template": "* %? %^{Who|Bob|Ann}\n%^t %^U"
+  },
+  "answers": [
+   "",
+   "fri",
+   "2026-06-01 9:00"
+  ],
+  "typed": "meet",
+  "expected": {
+   "buffer": "** ¦ Bob\n<2026-05-22 Fri> [2026-06-01 Mon 09:00]",
+   "files": {
+    "notes.org": "* A\n** meet Bob\n<2026-05-22 Fri> [2026-06-01 Mon 09:00]\n* B\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* A\nSCHEDULED: <2026-05-18 Mon>\n:PROPERTIES:\n:ID: x\n:END:\nbody\n** child\n"
+  },
+  "template": {
+   "type": "plain",
+   "target": [
+    "file+headline",
+    "notes.org",
+    "A"
+   ],
+   "template": "Inserted %?",
+   "prepend": true
+  },
+  "typed": "!",
+  "expected": {
+   "buffer": "Inserted ¦",
+   "files": {
+    "notes.org": "* A\nSCHEDULED: <2026-05-18 Mon>\n:PROPERTIES:\n:ID: x\n:END:\nInserted !\nbody\n** child\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* A :tag:\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "A"
+   ],
+   "template": "* TODO %? :new:\n** sub"
+  },
+  "typed": "x",
+  "expected": {
+   "buffer": "** TODO ¦                                                              :new:\n*** sub\n",
+   "files": {
+    "notes.org": "* A :tag:\n** TODO x                                                              :new:\n*** sub\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* A\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "A"
+   ],
+   "template": "no star %?"
+  },
+  "typed": "x",
+  "expected": {
+   "buffer": "** no star ¦\n",
+   "files": {
+    "notes.org": "* A\n** no star x\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* A\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "A"
+   ],
+   "template": "** %?\n* bad"
+  },
+  "typed": "x",
+  "expected": "ERROR: (error \"Capture template ‘t’: Template is not a valid Org entry or tree\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* [#A] TODO A [1/2] :t:\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "A"
+   ],
+   "template": "* %<%Y-%m-%d %H:%M %a> %?"
+  },
+  "typed": "x",
+  "expected": {
+   "buffer": "** 2026-05-18 10:30 Mon ¦\n",
+   "files": {
+    "notes.org": "* [#A] TODO A [1/2] :t:\n* A\n** 2026-05-18 10:30 Mon x\n"
+   }
+  }
+ }
+]

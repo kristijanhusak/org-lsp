@@ -160,6 +160,26 @@
         "category": "Org"
       },
       {
+        "command": "org.capture",
+        "title": "Capture",
+        "category": "Org"
+      },
+      {
+        "command": "org.capture.finish",
+        "title": "Capture: finish",
+        "category": "Org"
+      },
+      {
+        "command": "org.capture.abort",
+        "title": "Capture: abort",
+        "category": "Org"
+      },
+      {
+        "command": "org.capture.refile",
+        "title": "Capture: refile the entry",
+        "category": "Org"
+      },
+      {
         "command": "org.priority.down",
         "title": "Lower the priority",
         "category": "Org"
@@ -1384,6 +1404,21 @@
         "command": "org.refile",
         "key": "ctrl+c ctrl+w",
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.capture.finish",
+        "key": "ctrl+c ctrl+c",
+        "when": "editorTextFocus && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+      },
+      {
+        "command": "org.capture.abort",
+        "key": "ctrl+c ctrl+k",
+        "when": "editorTextFocus && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+      },
+      {
+        "command": "org.capture.refile",
+        "key": "ctrl+c ctrl+w",
+        "when": "editorTextFocus && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
       },
       {
         "command": "org.priority.down",

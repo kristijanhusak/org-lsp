@@ -28,6 +28,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Agenda: day, week, fortnight, month and year views, going to a date | yes | yes | no³ |
 | Agenda: list of all TODO entries | yes | yes | no³ |
 | Refile, as `org-refile` does it, between files too | `<Leader>or` | command | no⁴ |
+| Capture, as `org-capture` does it: templates, prompts, a capture buffer | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | commands; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | no⁴ |
 | Agenda: change an entry's state, priority or date, schedule it or set its deadline, go to its entry | yes | yes | no³ |
 
 ¹ Helix does not consume semantic tokens; it highlights Org with its own grammar.

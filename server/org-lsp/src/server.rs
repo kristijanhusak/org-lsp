@@ -25,6 +25,7 @@ use lsp_types::{
     TextDocumentSyncOptions, TextDocumentSyncSaveOptions, TextEdit, Uri, WorkspaceEdit,
 };
 use org_core::agenda::{self, Config as AgendaConfig, Now, Span};
+use org_core::capture;
 use org_core::date::{Date, DateTime, Day};
 use org_core::edit::{self, Call, Command as EditCommand, Settings as EditSettings};
 use org_core::outline::Outline;
@@ -39,7 +40,7 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use crate::config::{Options, RefileFiles, RefileTarget};
+use crate::config::{CaptureTemplateOption, Options, RefileFiles, RefileTarget};
 use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target};
@@ -142,6 +143,11 @@ struct Context {
     /// The TODO state a change was asked for, when `input` is the text
     /// of the note that change wants (`""` for no keyword).
     state: Option<String>,
+    /// For `org.capture`: the keys of the template picked so far.
+    keys: Option<String>,
+    /// For `org.capture`: the answers to the template's questions so far;
+    /// `input` is then the next one.
+    answers: Option<Vec<String>>,
 }
 
 /// The editing command that ran last, and the entry it ran on. Some
@@ -162,6 +168,40 @@ struct Follow {
     /// The line the cursor is on now.
     from: u32,
     position: Position,
+}
+
+/// A capture going on (`org-capture`): the buffer the editor shows, and
+/// where its text goes.
+struct Capturing {
+    /// The capture buffer, a file of its own.
+    uri: Uri,
+    /// The target file, and its text when the capture began.
+    target: Uri,
+    snapshot: String,
+    /// The template in the target, and the part the buffer shows.
+    placed: capture::Placed,
+    /// To place the text again when the target has changed meanwhile.
+    spec: (capture::Target, capture::Kind, capture::Properties),
+}
+
+/// The name of a capture buffer starts with this, as Emacs names it.
+pub const CAPTURE_PREFIX: &str = "CAPTURE-";
+
+/// The kind and target of a capture template.
+fn capture_spec(template: &CaptureTemplateOption) -> std::result::Result<(capture::Kind, capture::Target), Refusal> {
+    let kind = match template.kind.as_deref() {
+        None | Some("entry") => capture::Kind::Entry,
+        Some("plain") => capture::Kind::Plain,
+        Some(other) => return Err(format!("Capture templates of type `{other}` are not supported yet").into()),
+    };
+    let target = match template.target.first().map(String::as_str) {
+        Some("file") => capture::Target::File,
+        Some("file+headline") => capture::Target::Headline(template.target.get(2).cloned().unwrap_or_default()),
+        Some("file+olp") => capture::Target::Path(template.target[2..].to_vec()),
+        Some(other) => return Err(format!("Capture targets of type `{other}` are not supported yet").into()),
+        None => return Err("The capture template has no target".into()),
+    };
+    Ok((kind, target))
 }
 
 /// What an editing command was told besides its name.
@@ -234,6 +274,15 @@ struct Server {
     /// `org-refile-targets`, `org-refile-use-outline-path` and how a
     /// subtree is filed.
     refile: (Vec<RefileTarget>, OutlinePath, RefileSettings),
+    /// `org-capture-templates`, `org-directory` and
+    /// `org-default-notes-file`.
+    capture_templates: Vec<CaptureTemplateOption>,
+    org_directory: String,
+    default_notes_file: String,
+    /// The capture whose buffer the editor shows.
+    capture: Option<Capturing>,
+    /// How many captures there were.
+    captures: u32,
     /// The date prompt that waits for an answer, in clients that show it.
     date_prompt: Option<DatePrompt>,
     /// The client's copy of the date prompt document, which it may keep
@@ -332,6 +381,11 @@ pub fn run(connection: Connection) -> Result<()> {
         edit_settings: options.edit_settings(),
         read_date: options.read_date_settings(),
         refile: (options.refile_targets(), options.refile_outline_path(), options.refile_settings()),
+        capture_templates: options.capture_templates(),
+        org_directory: options.org_directory.clone().unwrap_or_else(|| "~/org".to_string()),
+        default_notes_file: options.default_notes_file.clone().unwrap_or_else(|| "~/.notes".to_string()),
+        capture: None,
+        captures: 0,
         date_prompt: None,
         prompt_copy: None,
         separator_lines: options.cycle_separator_lines.unwrap_or(folding::SEPARATOR_LINES),
@@ -359,7 +413,15 @@ pub fn run(connection: Connection) -> Result<()> {
         }
     }
     server.remove_view_file();
+    if server.captures > 0 {
+        let _ = std::fs::remove_dir_all(capture_directory());
+    }
     Ok(())
+}
+
+/// Where the capture buffers of this server are.
+fn capture_directory() -> PathBuf {
+    std::env::temp_dir().join(format!("org-lsp-capture-{}", std::process::id()))
 }
 
 fn capabilities(encoding: Encoding) -> ServerCapabilities {
@@ -1087,6 +1149,13 @@ impl Server {
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
+            commands::CAPTURE => self.capture(context.as_ref()),
+            commands::CAPTURE_FINISH => self.finish_capture(),
+            commands::CAPTURE_ABORT => {
+                let capture = self.capture.take().ok_or("No capture is going on")?;
+                Ok(json!({ "close": capture.uri }))
+            }
+            commands::CAPTURE_REFILE => self.refile_capture(context.and_then(|context| context.input).as_deref()),
             id if id == commands::TODO || actions::command(id).is_some() => self.run_edit(id, context),
             id if commands::input(id).is_some() => {
                 self.ask_date(id, &context.ok_or("This command needs the cursor position")?)
@@ -1531,6 +1600,21 @@ impl Server {
             let document = self.document(uri).ok_or("The document is not open")?;
             (uri.clone(), document.index.offset(&document.text, context.position, self.client.encoding))
         };
+        self.refile_from(file, offset, None, from_agenda, context.input.as_deref())
+    }
+
+    /// Refile the entry at byte `offset` of `file`, which reads `text`
+    /// when that is given rather than as it is now (an entry a capture is
+    /// about to add); the edits still turn the file as it is now into the
+    /// result.
+    fn refile_from(
+        &mut self,
+        file: Uri,
+        offset: usize,
+        text: Option<String>,
+        from_agenda: bool,
+        answer: Option<&str>,
+    ) -> std::result::Result<Value, Refusal> {
         // The files the targets come from, the entry's own first.
         let (targets, outline_path, settings) = self.refile.clone();
         let mut uris = vec![file];
@@ -1580,9 +1664,24 @@ impl Server {
             });
             match read {
                 Some(read) => loaded.push(Some(read)),
+                // A capture's target file may not exist yet.
+                None if index == 0 && text.is_some() => loaded.push(Some(Loaded {
+                    text: String::new(),
+                    keywords: self.todo.clone(),
+                    title: None,
+                    version: None,
+                    name: uri::file_name(file),
+                    path: uri::to_path(file)
+                        .map_or_else(|| file.as_str().to_string(), |path| path.display().to_string()),
+                })),
                 None if index == 0 => return Err("Cannot read the file of this entry".into()),
                 None => loaded.push(None),
             }
+        }
+        // The file as it is now, which the edits change.
+        let as_now = loaded[0].as_ref().map(|file| file.text.clone()).unwrap_or_default();
+        if let (Some(text), Some(Some(file))) = (text, loaded.first_mut()) {
+            file.text = text;
         }
         let files: Vec<Option<refile::File>> = loaded
             .iter()
@@ -1622,7 +1721,7 @@ impl Server {
         if all.is_empty() {
             return Err("No refile targets".into());
         }
-        let Some(answer) = &context.input else {
+        let Some(answer) = answer else {
             let prompt = if from_agenda {
                 "Refile to".to_string()
             } else {
@@ -1644,7 +1743,7 @@ impl Server {
         let mut documents = vec![(
             uris[0].clone(),
             loaded[0].as_ref().expect("read").version,
-            self.text_edits(source, &refiled.source),
+            self.text_edits(&as_now, &refiled.source),
         )];
         if let (Some(changed), Some(other)) = (&refiled.target, other) {
             let version = loaded[target_file].as_ref().expect("read").version;
@@ -1661,6 +1760,268 @@ impl Server {
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
         self.send_request::<ApplyWorkspaceEdit>(params, Some(Pending::Edit));
         Ok(Value::Null)
+    }
+
+    /// A path as Org names a capture target (`org-capture-expand-file`):
+    /// empty for `org-default-notes-file`, relative to `org-directory`.
+    fn capture_file(&self, path: &str) -> PathBuf {
+        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+        let expand = |path: &str| match (path.strip_prefix("~/"), &home) {
+            (Some(rest), Some(home)) => home.join(rest),
+            _ => PathBuf::from(path),
+        };
+        if path.is_empty() {
+            return expand(&self.default_notes_file);
+        }
+        let path = expand(path);
+        if path.is_absolute() {
+            path
+        } else {
+            expand(&self.org_directory).join(path)
+        }
+    }
+
+    /// `org-capture`: pick a template by its keys, answer its questions,
+    /// and show the capture buffer, a file of its own with the template
+    /// as it will stand in its target. Each step asks with an `input`
+    /// whose `context` the editor sends back.
+    fn capture(&mut self, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
+        let templates = self.capture_templates.clone();
+        let answering = context.and_then(|context| context.answers.clone());
+        let mut keys = context.and_then(|context| context.keys.clone()).unwrap_or_default();
+        if answering.is_none() {
+            keys.push_str(context.and_then(|context| context.input.as_deref()).unwrap_or(""));
+        }
+        let chosen = templates.iter().find(|template| template.key == keys && template.template.is_some());
+        let Some(template) = chosen.cloned() else {
+            // The templates and groups one key further.
+            let next: Vec<Value> = templates
+                .iter()
+                .filter(|template| {
+                    template.key.starts_with(&keys) && template.key.chars().count() == keys.chars().count() + 1
+                })
+                .map(|template| {
+                    let key = template.key.chars().last().map(String::from).unwrap_or_default();
+                    let label = if template.template.is_some() {
+                        template.description.clone()
+                    } else {
+                        format!("{}...", template.description)
+                    };
+                    json!({ "key": key, "label": label })
+                })
+                .collect();
+            if next.is_empty() {
+                return Err(
+                    if keys.is_empty() { "No capture templates" } else { "No capture template for this key" }.into()
+                );
+            }
+            return Ok(json!({ "input": {
+                "kind": "key",
+                "prompt": "Select a capture template",
+                "value": "",
+                "choices": next,
+                "context": { "keys": keys },
+            } }));
+        };
+        let mut answers = answering.unwrap_or_default();
+        if let (Some(_), Some(answer)) =
+            (&context.and_then(|context| context.answers.as_ref()), context.and_then(|context| context.input.clone()))
+        {
+            answers.push(answer);
+        }
+        // Where the capture started, for `%f`, `%F` and `%a`.
+        let from = context.map(|context| &context.text_document.uri).filter(|uri| !self.is_view(uri));
+        let file = from.map(|uri| {
+            (uri::file_name(uri), uri::to_path(uri).map(|path| path.display().to_string()).unwrap_or_default())
+        });
+        let annotation = match (from, context) {
+            (Some(uri), Some(context)) => self.link_to(uri, context.position),
+            _ => String::new(),
+        };
+        let fill_context = capture::Context {
+            now: self.date_time(),
+            file,
+            initial: String::new(),
+            annotation,
+            user_name: String::new(),
+        };
+        let text = template.template.as_ref().map(|text| text.text()).unwrap_or_default();
+        let filled = match capture::fill(&text, &fill_context, &answers, &self.read_date)? {
+            capture::Filled::Text(filled) => filled,
+            capture::Filled::Ask(question) => {
+                let context = json!({ "keys": keys, "answers": answers });
+                return Ok(match question {
+                    capture::Question::Text { prompt, default, .. } => {
+                        let prompt = if default.is_empty() { prompt } else { format!("{prompt} (default {default})") };
+                        json!({ "input": { "kind": "text", "prompt": prompt, "value": "", "context": context } })
+                    }
+                    capture::Question::Date { prompt, .. } => {
+                        let prompt = prompt.unwrap_or_else(|| "Date".to_string());
+                        json!({ "input": { "kind": "date", "prompt": prompt, "value": "", "context": context } })
+                    }
+                });
+            }
+        };
+        // The target.
+        let (kind, target) = capture_spec(&template)?;
+        let path = self.capture_file(template.target.get(1).map(String::as_str).unwrap_or(""));
+        let target_uri = uri::from_path(&path).ok_or("Cannot name the target file")?;
+        let (snapshot, version, keywords) = self
+            .with_source(&target_uri, |text, _, parse, _, version| {
+                (text.to_string(), version, parse.todo_keywords().clone())
+            })
+            .unwrap_or_else(|| (String::new(), None, self.todo.clone()));
+        let properties = capture::Properties {
+            prepend: template.prepend.unwrap_or(false),
+            empty_lines: template.empty_lines,
+            empty_lines_before: template.empty_lines_before,
+            empty_lines_after: template.empty_lines_after,
+        };
+        let tags_column = self.edit_settings.todo.tags_column;
+        let placed = capture::place(&snapshot, &keywords, &target, kind, &filled, &properties, tags_column)?;
+        if template.immediate_finish == Some(true) {
+            let done = placed.finish(placed.shown());
+            self.apply_capture(&target_uri, version, &snapshot, &done);
+            return Ok(Value::Null);
+        }
+        // The capture buffer: a file named after the target, in a
+        // directory of the server's own, one for each capture, so that an
+        // editor that still has the last one open does not mix them up.
+        self.captures += 1;
+        let directory = capture_directory().join(self.captures.to_string());
+        std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+        let buffer = directory.join(format!("{}{}", CAPTURE_PREFIX, uri::file_name(&target_uri)));
+        std::fs::write(&buffer, placed.shown()).map_err(|error| error.to_string())?;
+        let buffer_uri = uri::from_path(&buffer).ok_or("Cannot name the capture buffer")?;
+        let shown = placed.shown();
+        let cursor = LineIndex::new(shown).position(shown, placed.cursor - placed.start, self.client.encoding);
+        self.capture = Some(Capturing {
+            uri: buffer_uri.clone(),
+            target: target_uri,
+            snapshot,
+            placed,
+            spec: (target, kind, properties),
+        });
+        let params = ShowDocumentParams {
+            uri: buffer_uri,
+            external: None,
+            take_focus: Some(true),
+            selection: Some(Range::new(cursor, cursor)),
+        };
+        self.send_request::<ShowDocument>(params, None);
+        Ok(Value::Null)
+    }
+
+    /// A link to the place `position` of `uri` (`org-store-link`): to its
+    /// headline when it has one.
+    fn link_to(&mut self, uri: &Uri, position: Position) -> String {
+        let Some(path) = uri::to_path(uri) else { return String::new() };
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        let shown = match home.as_ref().and_then(|home| path.strip_prefix(home).ok()) {
+            Some(rest) => format!("~/{}", rest.display()),
+            None => path.display().to_string(),
+        };
+        let encoding = self.client.encoding;
+        let heading = self.with_source(uri, |text, index, parse, _, _| {
+            let offset = index.offset(text, position, encoding);
+            refile::heading_text(text, offset, parse.todo_keywords())
+        });
+        match heading.filter(|heading| !heading.is_empty()) {
+            Some(heading) => format!("[[file:{shown}::*{heading}][{heading}]]"),
+            None => format!("[[file:{shown}]]"),
+        }
+    }
+
+    /// The text of the capture buffer, as the editor has it.
+    fn capture_text(&self, capture: &Capturing) -> String {
+        match self.document(&capture.uri) {
+            Some(document) => document.text.clone(),
+            None => uri::to_path(&capture.uri).and_then(|path| std::fs::read_to_string(path).ok()).unwrap_or_default(),
+        }
+    }
+
+    /// The target file once the capture buffer's text goes in: where the
+    /// template was placed, or placed again when the file has changed.
+    fn captured(&mut self, capture: &Capturing) -> std::result::Result<(String, Option<i32>, String), Refusal> {
+        let edited = self.capture_text(capture);
+        let (now, version, keywords) = self
+            .with_source(&capture.target, |text, _, parse, _, version| {
+                (text.to_string(), version, parse.todo_keywords().clone())
+            })
+            .unwrap_or_else(|| (String::new(), None, self.todo.clone()));
+        let done = if now == capture.snapshot {
+            capture.placed.finish(&edited)
+        } else {
+            let (target, kind, properties) = &capture.spec;
+            let tags_column = self.edit_settings.todo.tags_column;
+            let placed = capture::place(&now, &keywords, target, *kind, &edited, properties, tags_column)?;
+            placed.finish(placed.shown())
+        };
+        Ok((now, version, done))
+    }
+
+    /// Ask the editor to turn `now` into `done` in the target file. A file
+    /// that does not exist yet is written here, as Emacs saves it: no
+    /// editor has it open, and an edit cannot make it.
+    fn apply_capture(&mut self, target: &Uri, version: Option<i32>, now: &str, done: &str) {
+        let missing = uri::to_path(target).filter(|path| self.document(target).is_none() && !path.exists());
+        if let Some(path) = missing {
+            if let Some(directory) = path.parent() {
+                let _ = std::fs::create_dir_all(directory);
+            }
+            if let Err(error) = std::fs::write(&path, done) {
+                self.show_message(MessageType::ERROR, format!("Cannot write {}: {error}", path.display()));
+            }
+            self.refresh_view();
+            return;
+        }
+        let edits = self.text_edits(now, done);
+        if edits.is_empty() {
+            return;
+        }
+        self.edited.insert(target.as_str().to_string());
+        let edit = self.workspace_edit(target, version, edits);
+        let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+        self.send_request::<ApplyWorkspaceEdit>(params, Some(Pending::Edit));
+    }
+
+    /// `org-capture-finalize` (`C-c C-c`): the text of the capture buffer
+    /// goes to its target, and the buffer closes. The target is left for
+    /// the user to save.
+    fn finish_capture(&mut self) -> std::result::Result<Value, Refusal> {
+        let capture = self.capture.take().ok_or("No capture is going on")?;
+        let (now, version, done) = self.captured(&capture)?;
+        self.apply_capture(&capture.target, version, &now, &done);
+        Ok(json!({ "close": capture.uri }))
+    }
+
+    /// `org-capture-refile` (`C-c C-w`): the entry goes to its target, and
+    /// from there under a refile target.
+    fn refile_capture(&mut self, answer: Option<&str>) -> std::result::Result<Value, Refusal> {
+        let capture = self.capture.take().ok_or("No capture is going on")?;
+        if capture.spec.1 != capture::Kind::Entry {
+            self.capture = Some(capture);
+            return Err("Refiling from a capture buffer makes only sense for `entry'-type templates".into());
+        }
+        let (_, _, done) = self.captured(&capture)?;
+        // The entry starts where the buffer's text does, after any blank lines.
+        let start = capture.placed.start + done[capture.placed.start..].len()
+            - done[capture.placed.start..].trim_start_matches(['\n', ' ', '\t']).len();
+        let uri = capture.uri.clone();
+        let target = capture.target.clone();
+        let result = self.refile_from(target, start, Some(done), false, answer);
+        match result {
+            // Still asking where to: the capture stays.
+            Ok(value) if value.get("input").is_some() => {
+                self.capture = Some(capture);
+                Ok(value)
+            }
+            Ok(_) => Ok(json!({ "close": uri })),
+            Err(refusal) => {
+                self.capture = Some(capture);
+                Err(refusal)
+            }
+        }
     }
 
     /// `org-priority` (`C-c ,`), and `org-agenda-priority` on an agenda

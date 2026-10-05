@@ -334,7 +334,7 @@ pub fn refile(
     if at > 0 && !into[..at].ends_with('\n') {
         pasted.push('\n');
     }
-    pasted.push_str(&shift_levels(tree, level, settings.tags_column));
+    pasted.push_str(&shift_levels(tree, level, settings.tags_column, true));
     if !pasted.ends_with('\n') {
         pasted.push('\n');
     }
@@ -359,7 +359,7 @@ pub fn refile(
 }
 
 /// The headline at or above byte `offset`.
-fn heading_at(text: &str, offset: usize) -> Option<usize> {
+pub(crate) fn heading_at(text: &str, offset: usize) -> Option<usize> {
     let mut at = text[..offset.min(text.len())].rfind('\n').map_or(0, |index| index + 1);
     loop {
         if headline_level(line_at(text, at)).is_some() {
@@ -374,7 +374,7 @@ fn heading_at(text: &str, offset: usize) -> Option<usize> {
 
 /// The start of the first headline after the line at `offset`
 /// (`outline-next-heading`).
-fn next_heading(text: &str, offset: usize) -> Option<usize> {
+pub(crate) fn next_heading(text: &str, offset: usize) -> Option<usize> {
     let mut at = offset;
     loop {
         at += text[at..].find('\n')? + 1;
@@ -386,7 +386,7 @@ fn next_heading(text: &str, offset: usize) -> Option<usize> {
 
 /// Where the subtree of the headline at `heading` ends: at the next
 /// headline of the same or a higher level, or at the end of the text.
-fn subtree_end(text: &str, heading: usize) -> usize {
+pub(crate) fn subtree_end(text: &str, heading: usize) -> usize {
     let level = headline_level(line_at(text, heading)).unwrap_or(1);
     let mut at = heading;
     while let Some(next) = next_heading(text, at) {
@@ -398,10 +398,12 @@ fn subtree_end(text: &str, heading: usize) -> usize {
     text.len()
 }
 
-/// The subtree `tree` with its first headline at `level`, every headline
-/// in it moved by as many levels, and their tags aligned again
-/// (`org-paste-subtree`, `org-demote`, `org-promote`, `org-align-tags`).
-fn shift_levels(tree: &str, level: usize, tags_column: i64) -> String {
+/// The subtree `tree` with its first headline at `level` and every
+/// headline in it moved by as many levels, their tags aligned again
+/// (`org-paste-subtree`, `org-demote`, `org-promote`). With `align_top`,
+/// the first headline's tags are aligned even when nothing moves, as
+/// `org-refile` does after pasting (`org-align-tags`).
+pub(crate) fn shift_levels(tree: &str, level: usize, tags_column: i64, align_top: bool) -> String {
     let first = headline_level(tree).unwrap_or(level);
     let shift = level as i64 - first as i64;
     let mut out = String::with_capacity(tree.len() + 8);
@@ -412,7 +414,7 @@ fn shift_levels(tree: &str, level: usize, tags_column: i64) -> String {
             out.push_str(line);
             continue;
         };
-        if shift == 0 && !top {
+        if shift == 0 && !(top && align_top) {
             out.push_str(line);
             continue;
         }

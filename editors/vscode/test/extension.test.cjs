@@ -192,6 +192,32 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('captures into a file of its own, through a capture buffer', async () => {
+    const captured = process.env.ORG_LSP_TEST_CAPTURED;
+    const showQuickPick = vscode.window.showQuickPick;
+    vscode.window.showQuickPick = async (items) => items.find((item) => item.key === 't');
+    try {
+      await vscode.commands.executeCommand('org.capture');
+      const editor = await until('the capture buffer', () => {
+        const active = vscode.window.activeTextEditor;
+        return active && path.basename(active.document.uri.fsPath) === 'CAPTURE-inbox.org' && active;
+      });
+      assert.equal(editor.document.getText(), '* TODO \n');
+      await until('the cursor where %? was', () => editor.selection.active.isEqual(new vscode.Position(0, 7)));
+      await editor.edit((edit) => edit.insert(editor.selection.active, 'Call mom'));
+      await vscode.commands.executeCommand('org.capture.finish');
+      // The file did not exist: the server writes it.
+      const fs = require('node:fs');
+      await until('the entry in its file', () => fs.existsSync(captured) && fs.readFileSync(captured, 'utf8') === '* TODO Call mom\n');
+      await until('the capture buffer to close', () =>
+        vscode.window.tabGroups.all.flatMap((group) => group.tabs).every((tab) => !tab.label.startsWith('CAPTURE-')),
+      );
+    } finally {
+      vscode.window.showQuickPick = showQuickPick;
+    }
+    await vscode.window.showTextDocument(document);
+  });
+
   it('asks for a date, shows what it means, and uses it', async () => {
     const asked = [];
     const showInputBox = vscode.window.showInputBox;

@@ -65,7 +65,13 @@ vim.fn.writefile({ '* TODO Water plants', 'SCHEDULED: <2026-05-16 Sat +1w>', '* 
 
 vim.g.org_lsp = {
   cmd = { server },
-  settings = { agendaFiles = { directory }, clock = { today = '2026-05-18', now = '10:30' } },
+  settings = {
+    agendaFiles = { directory },
+    clock = { today = '2026-05-18', now = '10:30' },
+    captureTemplates = {
+      { key = 't', description = 'Task', target = { 'file', vim.fs.joinpath(directory, 'inbox.org') }, template = '* TODO %?\n%U' },
+    },
+  },
   -- A key of the user's own, for a command the server binds no key to.
   mappings = { global = { ['org.agenda.todos'] = '<F7>' } },
 }
@@ -118,17 +124,17 @@ eq(lines(), {
 eq(cursor_line(), 'Monday     18 May 2026 W21', 'the cursor is on today')
 eq({ vim.bo.modifiable, vim.bo.buftype, vim.bo.modified }, { false, 'nofile', false }, 'the agenda cannot be edited')
 
--- 2. The server announced the key the plugin sets before the server runs.
+-- 2. The server announced the keys the plugin sets before the server runs.
 local org_lsp = require('org-lsp')
-local announced
+local announced = {}
 for _, command in ipairs(org_lsp.manifest.commands) do
   for _, key in ipairs(command.keys) do
     if key.preset == 'vim' and key['in'] == 'global' then
-      announced = { command.command, key.key }
+      announced[command.command] = key.key
     end
   end
 end
-eq(announced, { 'org.agenda.dispatch', '<Leader>oa' }, 'the built-in global key is the one the server names')
+eq(announced, { ['org.agenda.dispatch'] = '<Leader>oa', ['org.capture'] = '<Leader>oc' }, 'the built-in global keys are the ones the server names')
 eq(vim.fn.maparg('f', 'n', false, true).desc, 'Agenda: go forward in time', 'agenda keys carry the server\'s titles')
 eq(vim.fn.maparg('f', 'n', false, true).buffer, 1, 'agenda keys are local to the agenda')
 
@@ -431,6 +437,40 @@ wait('the message of a failed command', function()
   return #messages > 0
 end)
 eq(messages, { 'org-lsp: The TODO list has no dates to move through' }, 'the server explains')
+
+-- 10. `<Leader>oc` captures: a template by its key, then a buffer of its
+-- own; `<C-c>` there puts the entry into its file. This one does not exist
+-- yet: the server writes it.
+local plugin = require('org-lsp')
+local read_key = plugin.read_key
+plugin.read_key = function()
+  return 't'
+end
+press('<Leader>oc')
+local inbox = vim.fs.joinpath(directory, 'inbox.org')
+wait('the capture buffer', function()
+  return vim.fs.basename(vim.api.nvim_buf_get_name(0)) == 'CAPTURE-inbox.org'
+end)
+plugin.read_key = read_key
+eq(lines(), { '* TODO ', '[2026-05-18 Mon 10:30]' }, 'the template, filled in')
+-- Normal mode puts the cursor on the last character of the line.
+eq(vim.api.nvim_win_get_cursor(0), { 1, 6 }, 'the cursor where %? was')
+wait('the capture keys', function()
+  return vim.fn.maparg('<C-c>', 'n') ~= ''
+end)
+vim.api.nvim_buf_set_lines(0, 0, 1, false, { '* TODO Call mom' })
+press('<C-c>')
+wait('the entry in its file', function()
+  return vim.uv.fs_stat(inbox) ~= nil and vim.deep_equal(vim.fn.readfile(inbox), { '* TODO Call mom', '[2026-05-18 Mon 10:30]' })
+end)
+wait('the capture buffer to close', function()
+  for _, buffer in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(buffer) and vim.fs.basename(vim.api.nvim_buf_get_name(buffer)) == 'CAPTURE-inbox.org' then
+      return false
+    end
+  end
+  return true
+end)
 
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

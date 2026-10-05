@@ -1576,3 +1576,131 @@ fn refiles_entries_between_files() {
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }
+
+/// `org-capture`: a template picked by its keys, a question answered, the
+/// capture buffer shown as a file of its own, and its text put under the
+/// target headline when the capture finishes.
+#[test]
+fn captures_into_a_file() {
+    let root = workspace("capture");
+    let notes = root.join("notes.org");
+    std::fs::write(&notes, "* Tasks\n** TODO Old\n\n* Ideas\n").unwrap();
+    let mut options = clock();
+    options["captureTemplates"] = json!([
+        { "key": "t", "description": "Task", "target": ["file+headline", notes.display().to_string(), "Tasks"], "template": "* TODO %?\n%U" },
+        { "key": "m", "description": "Meetings" },
+        { "key": "mx", "description": "Meeting", "target": ["file", "notes.org"], "template": ["* With %^{Who} %?"] }
+    ]);
+    options["orgDirectory"] = json!(root.display().to_string());
+    let mut client = Client::editor(options, None);
+    let run = |client: &mut Client, command: &str, context: Value| {
+        client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+    };
+    let at = json!({ "textDocument": { "uri": format!("file://{}", notes.display()) }, "position": { "line": 0, "character": 0 } });
+
+    let asked = run(&mut client, "org.capture", at.clone()).unwrap();
+    assert_eq!(asked["input"]["kind"], "key");
+    assert_eq!(
+        asked["input"]["choices"],
+        json!([{ "key": "t", "label": "Task" }, { "key": "m", "label": "Meetings..." }])
+    );
+    let mut context = at.clone();
+    context["keys"] = asked["input"]["context"]["keys"].clone();
+    context["input"] = json!("m");
+    let asked = run(&mut client, "org.capture", context.clone()).unwrap();
+    assert_eq!(asked["input"]["choices"], json!([{ "key": "x", "label": "Meeting" }]));
+    context["keys"] = json!("m");
+    context["input"] = json!("x");
+    let asked = run(&mut client, "org.capture", context.clone()).unwrap();
+    assert_eq!((asked["input"]["kind"].as_str(), asked["input"]["prompt"].as_str()), (Some("text"), Some("Who")));
+    for (key, value) in asked["input"]["context"].as_object().unwrap() {
+        context[key] = value.clone();
+    }
+    context["input"] = json!("Bob");
+    client.received.clear();
+    assert_eq!(run(&mut client, "org.capture", context).unwrap(), Value::Null);
+    client.settle();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the buffer");
+    let buffer = show.params["uri"].as_str().unwrap().to_string();
+    assert!(buffer.ends_with("/CAPTURE-notes.org"), "{buffer}");
+    assert_eq!(show.params["selection"]["start"], json!({ "line": 0, "character": 11 }));
+    let path = buffer.strip_prefix("file://").unwrap();
+    assert_eq!(std::fs::read_to_string(path).unwrap(), "* With Bob \n");
+
+    // The editor opens the buffer and the user types; finishing puts it
+    // at the end of the file.
+    client.open(&buffer, "* With Bob \n");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": buffer, "version": 2 }, "contentChanges": [{ "text": "* With Bob about lunch\n" }] }),
+    );
+    client.received.clear();
+    let done = run(
+        &mut client,
+        "org.capture.finish",
+        json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } }),
+    );
+    assert_eq!(done, Ok(json!({ "close": buffer })));
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (file, edits) = edits_of(edit);
+    assert_eq!(file, format!("file://{}", notes.display()));
+    // A blank line before it, as before "Ideas" (`org-blank-before-new-entry`).
+    assert_eq!(
+        apply("* Tasks\n** TODO Old\n\n* Ideas\n", &edits),
+        "* Tasks\n** TODO Old\n\n* Ideas\n\n* With Bob about lunch\n"
+    );
+
+    // A second capture, aborted: nothing changes.
+    let mut context = at.clone();
+    context["input"] = json!("t");
+    client.received.clear();
+    run(&mut client, "org.capture", context).unwrap();
+    client.settle();
+    let buffer =
+        client.received.iter().find(|request| request.method == "window/showDocument").unwrap().params["uri"].clone();
+    assert_eq!(
+        std::fs::read_to_string(buffer.as_str().unwrap().strip_prefix("file://").unwrap()).unwrap(),
+        "** TODO \n[2026-05-18 Mon 10:30]"
+    );
+    client.received.clear();
+    let aborted = run(
+        &mut client,
+        "org.capture.abort",
+        json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } }),
+    );
+    assert_eq!(aborted, Ok(json!({ "close": buffer })));
+    client.settle();
+    assert!(client.received.iter().all(|request| request.method != "workspace/applyEdit"));
+
+    // Refiled from the capture buffer: the entry goes under a refile target
+    // of its file instead (`org-capture-refile`).
+    let mut context = at.clone();
+    context["input"] = json!("t");
+    client.received.clear();
+    run(&mut client, "org.capture", context).unwrap();
+    client.settle();
+    let buffer =
+        client.received.iter().find(|request| request.method == "window/showDocument").unwrap().params["uri"].clone();
+    let in_buffer = json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } });
+    let asked = run(&mut client, "org.capture.refile", in_buffer.clone()).unwrap();
+    // A headline with only a keyword has no title.
+    assert_eq!(asked["input"]["prompt"], "Refile subtree \"\" to");
+    let names: Vec<&str> =
+        asked["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
+    assert_eq!(names, ["Tasks", "Ideas"]);
+    let mut answer = in_buffer.clone();
+    answer["input"] = json!("Ideas");
+    client.received.clear();
+    assert_eq!(run(&mut client, "org.capture.refile", answer), Ok(json!({ "close": buffer })));
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    assert_eq!(
+        apply("* Tasks\n** TODO Old\n\n* Ideas\n", &edits),
+        // Placed under "Tasks" first, which took the blank line, as in Emacs.
+        "* Tasks\n** TODO Old\n* Ideas\n** TODO \n[2026-05-18 Mon 10:30]\n"
+    );
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}

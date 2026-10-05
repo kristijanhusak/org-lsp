@@ -61,6 +61,14 @@ pub struct Options {
     pub refile_use_outline_path: Option<OutlinePathOption>,
     /// `org-reverse-note-order`: refiled entries go first, not last.
     pub reverse_note_order: Option<bool>,
+    /// `org-capture-templates`. Without it, Org's default: a TODO under
+    /// "Tasks" in `defaultNotesFile`.
+    pub capture_templates: Option<Vec<CaptureTemplateOption>>,
+    /// `org-directory`: where relative capture targets are. `~/org`.
+    pub org_directory: Option<String>,
+    /// `org-default-notes-file`: the target of a template whose file is
+    /// empty. `~/.notes`.
+    pub default_notes_file: Option<String>,
     /// A fixed date and time, for tests.
     pub clock: Option<ClockOption>,
 }
@@ -103,6 +111,45 @@ pub enum RefileFiles {
 pub struct RefileTarget {
     pub files: RefileFiles,
     pub select: Select,
+}
+
+/// An entry of `org-capture-templates`. One with only a key and a
+/// description groups the templates whose keys start with it.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CaptureTemplateOption {
+    pub key: String,
+    pub description: String,
+    /// `"entry"` (the default) or `"plain"`.
+    #[serde(rename = "type")]
+    pub kind: Option<String>,
+    /// `["file", path]`, `["file+headline", path, headline]` or
+    /// `["file+olp", path, headline…]`.
+    pub target: Vec<String>,
+    /// The template, or its lines.
+    pub template: Option<TemplateText>,
+    pub prepend: Option<bool>,
+    pub empty_lines: Option<usize>,
+    pub empty_lines_before: Option<usize>,
+    pub empty_lines_after: Option<usize>,
+    /// `:immediate-finish`: no capture buffer.
+    pub immediate_finish: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum TemplateText {
+    Text(String),
+    Lines(Vec<String>),
+}
+
+impl TemplateText {
+    pub fn text(&self) -> String {
+        match self {
+            TemplateText::Text(text) => text.clone(),
+            TemplateText::Lines(lines) => lines.join("\n"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -219,6 +266,19 @@ impl Options {
                 _ => OutlinePath::Yes,
             },
         }
+    }
+
+    /// `org-capture-templates`, or Org's default one.
+    pub fn capture_templates(&self) -> Vec<CaptureTemplateOption> {
+        self.capture_templates.clone().unwrap_or_else(|| {
+            vec![CaptureTemplateOption {
+                key: "t".to_string(),
+                description: "Task".to_string(),
+                target: vec!["file+headline".to_string(), String::new(), "Tasks".to_string()],
+                template: Some(TemplateText::Text("* TODO %?\n  %u\n  %a".to_string())),
+                ..CaptureTemplateOption::default()
+            }]
+        })
     }
 
     pub fn refile_settings(&self) -> RefileSettings {

@@ -21,6 +21,7 @@ All commands are in the Command Palette under **Org**.
 | `Org: Change the TODO state` | Org's `C-c C-t` (`t` in the agenda): with keys on the keywords (`TODO(t)`), pick one from a list; else the next state. A state with `@` asks for its note |
 | `Org: Cycle TODO state forward` / `backward` | Changes the entry under the cursor, in an Org file or on an agenda line |
 | `Org: Raise the priority` / `Lower the priority` | The same, for the priority |
+| `Org: Capture` | Org's `org-capture`: pick a template, answer its prompts, and edit the entry in a capture buffer; `Ctrl+C Ctrl+C` there files it, `Ctrl+C Ctrl+K` gives up, `Ctrl+C Ctrl+W` refiles it. Templates are `org-lsp.settings.captureTemplates` |
 | `Org: Refile the entry` | Org's `C-c C-w` (also in the agenda): pick a target from a list; see `refileTargets` |
 | `Org: Set the priority` | Asks for it, as Org's `C-c ,` does (`,` in the agenda); a space removes it |
 | `Org: Increase` / `Decrease the part of the timestamp at the cursor` | The year, month, day, hour or minute under the cursor, as Org's `S-<up>` / `S-<down>` |
