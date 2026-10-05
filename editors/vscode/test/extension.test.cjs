@@ -168,6 +168,30 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('refiles a subtree under a target picked from a list', async () => {
+    const notes = await vscode.workspace.openTextDocument({
+      language: 'org',
+      content: '* Inbox\n** Call Bob\nNotes.\n* Projects\n** Alpha\n',
+    });
+    const editor = await vscode.window.showTextDocument(notes);
+    const offered = [];
+    const showQuickPick = vscode.window.showQuickPick;
+    vscode.window.showQuickPick = async (items, options) => {
+      offered.push(options.placeHolder, ...items.map((item) => item.label));
+      return items.find((item) => item.key === 'Projects');
+    };
+    try {
+      editor.selection = new vscode.Selection(2, 0, 2, 0);
+      await vscode.commands.executeCommand('org.refile');
+      await until('the subtree under its new parent', () => notes.getText() === '* Inbox\n* Projects\n** Alpha\n** Call Bob\nNotes.\n');
+      assert.deepEqual(offered, ['Refile subtree "Call Bob" to', 'Inbox', 'Projects']);
+    } finally {
+      vscode.window.showQuickPick = showQuickPick;
+    }
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.window.showTextDocument(document);
+  });
+
   it('asks for a date, shows what it means, and uses it', async () => {
     const asked = [];
     const showInputBox = vscode.window.showInputBox;

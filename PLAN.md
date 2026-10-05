@@ -45,14 +45,15 @@ others), as close to Emacs Org mode as it can get.
 | 4d.2 | `j` in the agenda (`org-agenda-goto-date`) | #11 |
 | 4d.3 | Set a priority by name (`org-priority`, `org-agenda-priority`) | #12 |
 | 4e.1 | Fast TODO selection (`org-fast-todo-selection`) and the text of state notes (`@`) | #13 |
+| 4e.2 | Refile (`org-refile`, `org-agenda-refile`) | #14 |
 
 ### Where to pick up
 
 Asked for next (2026-10-05), in this order; see milestone 4e below:
 
 1. Done: fast TODO selection, and the text of state notes.
-2. Refile: next.
-3. Capture.
+2. Done: refile.
+3. Capture: next.
 
 Then the opt-in autosave option (open question 3) and the Vim plugin
 (open question 4) are free to take whenever.
@@ -230,14 +231,22 @@ show one. In four pull requests:
    note keeps the change; here cancelling the note cancels the change.
    The note is one line in both editors' input boxes; a multi-line note
    needs a note document like capture's (3).
-2. **Refile** (`org-refile`, `C-c C-w`; `<Leader>or`; `C-c C-w` in the
-   agenda). Targets from `org-refile-targets` (default `nil`: the
-   current file's top-level headings), `org-refile-use-outline-path`,
-   `org-outline-path-complete-in-steps`. Ask with an input of kind
-   `choice` holding the targets (VS Code: quick pick; Neovim:
-   `vim.ui.select`); move the subtree, possibly to another file (a
-   `WorkspaceEdit` over two documents). Emacs reference: run
-   `org-refile` with `completing-read` answered.
+2. **Done: refile** (`C-c C-w`, also in the agenda; `<Leader>or`).
+   `org-core/src/refile.rs` ports `org-refile-get-targets` (the
+   selections of `org-refile-targets`, names with links shown by their
+   description, outline paths without statistics cookies or `COMMENT`,
+   ` (file.org)` after targets from other files) and the move
+   (`org-copy-subtree`, `org-paste-subtree`: last child, or first with
+   `org-reverse-note-order`; every headline promoted or demoted and its
+   tags aligned; the deletion where Emacs's cursor marker ends up, which
+   can be the pasted copy). Options `refileTargets`,
+   `refileUseOutlinePath`, `reverseNoteOrder`. Input kind `choice` with
+   `choices` (Neovim `vim.ui.select`, VS Code a list). Checked by
+   `tests/refile/cases.json` (39 cases) and `scripts/fuzz-refile.py`
+   (seeds 1 to 4, 1,500 random documents, no difference). Not yet:
+   `org-log-refile`, creating parent nodes, refiling a region, the
+   prefix arguments (go to the target, copy), `org-refile-target-
+   verify-function`; a `regexp` target uses the `regex` crate's syntax.
 3. **Capture** (`org-capture`, `C-c c`; `<Leader>oc`). Templates as a
    server option (`captureTemplates`: key, description, type `entry`,
    target `file`/`file+headline`, template text with `%?`, `%U`, `%t`,

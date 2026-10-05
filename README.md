@@ -27,6 +27,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Completion of TODO keywords and tags in headlines | with an LSP completion plugin | yes | yes |
 | Agenda: day, week, fortnight, month and year views, going to a date | yes | yes | no³ |
 | Agenda: list of all TODO entries | yes | yes | no³ |
+| Refile, as `org-refile` does it, between files too | `<Leader>or` | command | no⁴ |
 | Agenda: change an entry's state, priority or date, schedule it or set its deadline, go to its entry | yes | yes | no³ |
 
 ¹ Helix does not consume semantic tokens; it highlights Org with its own grammar.
@@ -81,7 +82,7 @@ instead of nvim-orgmode for those buffers, not next to it.
 | Where | Keys |
 | --- | --- |
 | Anywhere | `<Leader>oa` agenda commands; `:Org agenda`, `:Org agenda list`, `:Org agenda todos` |
-| Org files | `cit` change the TODO state (one key when the keywords have keys, else the next), `ciT` previous TODO state, `ciR` / `cir` priority up / down, `<Leader>o,` set the priority, `<C-a>` / `<C-x>` the part of the timestamp under the cursor, `<S-Up>` / `<S-Down>` the date a day later / earlier, `<Leader>ois` / `<Leader>oid` schedule / deadline, `<Leader>oi.` / `<Leader>oi!` insert an active / inactive timestamp, `<Tab>` / `<S-Tab>` fold cycling |
+| Org files | `cit` change the TODO state (one key when the keywords have keys, else the next), `ciT` previous TODO state, `ciR` / `cir` priority up / down, `<Leader>o,` set the priority, `<Leader>or` refile, `<C-a>` / `<C-x>` the part of the timestamp under the cursor, `<S-Up>` / `<S-Down>` the date a day later / earlier, `<Leader>ois` / `<Leader>oid` schedule / deadline, `<Leader>oi.` / `<Leader>oi!` insert an active / inactive timestamp, `<Tab>` / `<S-Tab>` fold cycling |
 | Agenda | `f` / `b` later / earlier, `.` today, `J` go to a date, `vd` `vw` `vt` `vm` `vy` span, `r` rebuild, `t` TODO state, `+` / `-` priority, `<Leader>o,` set the priority, `<S-Right>` / `<S-Left>` date later / earlier, `<Leader>ois` / `<Leader>oid` schedule / deadline, `<CR>` or `<Tab>` go to the entry, `q` close; `:Org agenda save` saves all Org files with changes |
 
 These are nvim-orgmode's defaults. A count works as in Vim (`3<C-a>`,

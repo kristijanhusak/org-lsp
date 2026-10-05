@@ -1505,3 +1505,74 @@ fn selects_todo_states_by_key_and_asks_for_notes() {
     assert!(repeat.contains("SCHEDULED: <2026-05-23 Sat +1w>"), "{repeat}");
     client.shutdown();
 }
+
+/// `C-c C-w` (`org-refile`): the targets come from `refileTargets`; the
+/// subtree moves under the one picked, also into a file the editor does
+/// not have open. From the agenda every target names its file.
+#[test]
+fn refiles_entries_between_files() {
+    let root = workspace("refile");
+    let mut options = clock();
+    options["agendaFiles"] = json!([root.display().to_string(), root.join("sub").display().to_string()]);
+    options["refileTargets"] = json!([{ "files": "agenda", "level": 1 }]);
+    let mut client = Client::editor(options, None);
+    let work = format!("file://{}/work.org", root.display());
+    client.open(&work, WORK);
+    let call = json!({ "textDocument": { "uri": work }, "position": { "line": 3, "character": 4 } });
+
+    let asked =
+        client.request("workspace/executeCommand", json!({ "command": "org.refile", "arguments": [call] })).unwrap();
+    assert_eq!(asked["input"]["kind"], "choice");
+    assert_eq!(asked["input"]["prompt"], "Refile subtree \"Call the client\" to");
+    let names: Vec<&str> =
+        asked["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["label"].as_str().unwrap()).collect();
+    assert_eq!(
+        names,
+        [
+            "Write report",
+            "Call the client",
+            "Meeting <2026-05-19 Tue 14:00-15:00>",
+            "Water plants (home.org)",
+            "Buy milk (home.org)"
+        ]
+    );
+
+    // home.org is not open in the editor.
+    let home = format!("file://{}/sub/home.org", root.display());
+    let mut answer = call.clone();
+    answer["input"] = json!("Water plants (home.org)");
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.refile", "arguments": [answer] })).unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let changes = edit.params["edit"]["documentChanges"].as_array().unwrap();
+    assert_eq!(changes.len(), 2);
+    assert_eq!(
+        (changes[0]["textDocument"]["uri"].as_str(), changes[0]["textDocument"]["version"].as_i64()),
+        (Some(work.as_str()), Some(1))
+    );
+    assert_eq!(
+        (changes[1]["textDocument"]["uri"].as_str(), changes[1]["textDocument"]["version"].as_i64()),
+        (Some(home.as_str()), None)
+    );
+    assert_eq!(
+        apply(WORK, changes[0]["edits"].as_array().unwrap()),
+        "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+    );
+    assert_eq!(
+        apply(HOME, changes[1]["edits"].as_array().unwrap()),
+        "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n** TODO Call [[https://example.com][the client]]\nDEADLINE: <2026-05-20 Wed>\n* DONE Buy milk\n"
+    );
+
+    // From the TODO list: no file is the current one.
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.view_text(VIEW);
+    let line = view.lines().position(|line| line.contains("Water plants")).unwrap();
+    let at = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    let asked =
+        client.request("workspace/executeCommand", json!({ "command": "org.refile", "arguments": [at] })).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Refile to");
+    assert_eq!(asked["input"]["choices"][0]["label"], "Write report (work.org)");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}

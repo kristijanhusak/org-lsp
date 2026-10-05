@@ -359,7 +359,7 @@ fn token_text(node: &SyntaxNode, kind: SyntaxKind) -> Option<String> {
 /// Org's commands use this expression rather than the parser. It wants
 /// spaces, not tabs, before the keyword and the priority, takes any single
 /// character as a priority, and only sees a cookie right after the keyword.
-fn complex_heading_title(line: &str, level: usize, todo: &TodoKeywords) -> Option<(usize, usize)> {
+pub(crate) fn complex_heading_title(line: &str, level: usize, todo: &TodoKeywords) -> Option<(usize, usize)> {
     // What may end the line after any of the parts: blanks, with tags or without.
     let is_tail = |rest: &str| {
         let trimmed = rest.trim_end_matches([' ', '\t']);

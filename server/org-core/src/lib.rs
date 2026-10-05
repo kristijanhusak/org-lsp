@@ -12,6 +12,7 @@ pub mod outline;
 pub mod planning;
 pub mod priority;
 pub mod read_date;
+pub mod refile;
 pub mod stamp;
 pub mod text;
 pub mod timestr;

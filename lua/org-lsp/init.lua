@@ -188,6 +188,15 @@ function M.run(name, opts)
         if input.kind == 'key' then
           return answered(M.read_key(input.prompt))
         end
+        if input.choices then
+          -- One of a list, such as the targets of a refile.
+          local format = function(choice)
+            return choice.label
+          end
+          return vim.ui.select(input.choices, { prompt = input.prompt .. ': ', format_item = format }, function(choice)
+            answered(choice and choice.key)
+          end)
+        end
         vim.ui.input({ prompt = input.prompt .. ': ', default = input.value }, function(answer)
           -- An input that runs in insert mode may leave it behind in the
           -- calendar it was asked from, which is never typed into.

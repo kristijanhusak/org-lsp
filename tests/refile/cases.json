@@ -1,0 +1,845 @@
+[
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+  },
+  "answer": "Projects",
+  "expected": {
+   "offered": [
+    "Inbox",
+    "Projects",
+    "Archive"
+   ],
+   "files": {
+    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n** TODO Call Bob                                                       :work:\nSome text.\n\n* Archive\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+  },
+  "answer": "Archive",
+  "expected": {
+   "offered": [
+    "Inbox",
+    "Projects",
+    "Archive"
+   ],
+   "files": {
+    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n** TODO Call Bob                                                       :work:\nSome text.\n\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+  },
+  "answer": "Inbox",
+  "expected": {
+   "offered": [
+    "Inbox",
+    "Projects",
+    "Archive"
+   ],
+   "files": {
+    "a.org": "* Inbox\n** Read\n** TODO Call Bob                                                       :work:\nSome text.\n\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+  },
+  "answer": "Nope",
+  "expected": "ERROR: (user-error \"Invalid target location\")"
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+  },
+  "answer": "Projects",
+  "options": {
+   "reverseNoteOrder": true
+  },
+  "expected": {
+   "offered": [
+    "Inbox",
+    "Projects",
+    "Archive"
+   ],
+   "files": {
+    "a.org": "* Inbox\n** Read\n* Projects\n** TODO Call Bob                                                       :work:\nSome text.\n\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+  },
+  "answer": "Alpha",
+  "options": {
+   "refileTargets": [
+    {
+     "maxLevel": 2
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Inbox",
+    "Call Bob",
+    "Read",
+    "Projects",
+    "Alpha",
+    "Beta",
+    "Archive"
+   ],
+   "files": {
+    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n*** TODO Call Bob                                                      :work:\nSome text.\n\n** Beta\n* Archive\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+  },
+  "answer": "Beta",
+  "options": {
+   "refileTargets": [
+    {
+     "maxLevel": 3
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Inbox",
+    "Call Bob",
+    "Read",
+    "Projects",
+    "Alpha",
+    "Task",
+    "Beta",
+    "Archive"
+   ],
+   "files": {
+    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n*** TODO Call Bob                                                      :work:\nSome text.\n\n* Archive\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+  },
+  "answer": "Projects/Alpha/",
+  "options": {
+   "refileTargets": [
+    {
+     "maxLevel": 3
+    }
+   ],
+   "refileUseOutlinePath": true
+  },
+  "expected": {
+   "offered": [
+    "Inbox/",
+    "Inbox/Call Bob/",
+    "Inbox/Read/",
+    "Projects/",
+    "Projects/Alpha/",
+    "Projects/Alpha/Task/",
+    "Projects/Beta/",
+    "Archive/"
+   ],
+   "files": {
+    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n*** TODO Call Bob                                                      :work:\nSome text.\n\n** Beta\n* Archive\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+  },
+  "answer": "a.org/Projects/",
+  "options": {
+   "refileTargets": [
+    {
+     "maxLevel": 2
+    }
+   ],
+   "refileUseOutlinePath": "file"
+  },
+  "expected": {
+   "offered": [
+    "a.org/",
+    "a.org/Inbox/",
+    "a.org/Inbox/Call Bob/",
+    "a.org/Inbox/Read/",
+    "a.org/Projects/",
+    "a.org/Projects/Alpha/",
+    "a.org/Projects/Beta/",
+    "a.org/Archive/"
+   ],
+   "files": {
+    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n** TODO Call Bob                                                       :work:\nSome text.\n\n* Archive\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+  },
+  "answer": "a.org/",
+  "options": {
+   "refileTargets": [
+    {
+     "maxLevel": 2
+    }
+   ],
+   "refileUseOutlinePath": "file"
+  },
+  "expected": {
+   "offered": [
+    "a.org/",
+    "a.org/Inbox/",
+    "a.org/Inbox/Call Bob/",
+    "a.org/Inbox/Read/",
+    "a.org/Projects/",
+    "a.org/Projects/Alpha/",
+    "a.org/Projects/Beta/",
+    "a.org/Archive/"
+   ],
+   "files": {
+    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n* TODO Call Bob                                                        :work:\nSome text.\n\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+  },
+  "answer": "Task",
+  "options": {
+   "refileTargets": [
+    {
+     "all": true
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Inbox",
+    "Call Bob",
+    "Read",
+    "Projects",
+    "Alpha",
+    "Task",
+    "Beta",
+    "Archive"
+   ],
+   "files": {
+    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n**** TODO Call Bob                                                     :work:\nSome text.\n\n** Beta\n* Archive\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A¦\n** B\n* C\n"
+  },
+  "answer": "B",
+  "options": {
+   "refileTargets": [
+    {
+     "maxLevel": 2
+    }
+   ]
+  },
+  "expected": "ERROR: (error \"Cannot refile to position inside the tree or region\")"
+ },
+ {
+  "files": {
+   "a.org": "* Top\n** Mid\n*** Deep¦ :x:\n**** Deeper\nbody\n* Other\n"
+  },
+  "answer": "Other",
+  "expected": {
+   "offered": [
+    "Top",
+    "Other"
+   ],
+   "files": {
+    "a.org": "* Top\n** Mid\n* Other\n** Deep                                                                   :x:\n*** Deeper\nbody\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Top\n** Mid\n*** Deep¦ :x:\n**** Deeper\nbody\n* Other\n"
+  },
+  "answer": "Top",
+  "expected": {
+   "offered": [
+    "Top",
+    "Other"
+   ],
+   "files": {
+    "a.org": "* Top\n** Mid\n** Deep                                                                   :x:\n*** Deeper\nbody\n* Other\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Top\n** Mid\n*** Deep¦ :x:\n**** Deeper\nbody\n* Other\n"
+  },
+  "answer": "a.org/",
+  "options": {
+   "refileUseOutlinePath": "file"
+  },
+  "expected": {
+   "offered": [
+    "a.org/",
+    "a.org/Top/",
+    "a.org/Other/"
+   ],
+   "files": {
+    "a.org": "* Top\n** Mid\n* Other\n* Deep                                                                    :x:\n** Deeper\nbody\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A\n\n* B¦\ntext\n\n\n* C"
+  },
+  "answer": "C",
+  "expected": {
+   "offered": [
+    "A",
+    "B",
+    "C"
+   ],
+   "files": {
+    "a.org": "* A\n\n* C\n** B\ntext\n\n\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A\n* B¦\ntext"
+  },
+  "answer": "A",
+  "expected": {
+   "offered": [
+    "A",
+    "B"
+   ],
+   "files": {
+    "a.org": "* A\n** B\ntext\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A\n** a1\n\n* B¦\n\n* C\n"
+  },
+  "answer": "A",
+  "expected": {
+   "offered": [
+    "A",
+    "B",
+    "C"
+   ],
+   "files": {
+    "a.org": "* A\n** a1\n\n** B\n\n* C\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A\n** a1\n\n* B¦\n\n* C\n"
+  },
+  "answer": "A",
+  "options": {
+   "reverseNoteOrder": true
+  },
+  "expected": {
+   "offered": [
+    "A",
+    "B",
+    "C"
+   ],
+   "files": {
+    "a.org": "* A\n** B\n\n** a1\n\n* C\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+  },
+  "answer": "Home (b.org)",
+  "options": {
+   "refileTargets": [
+    {
+     "files": "agenda",
+     "level": 1
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Inbox",
+    "Misc",
+    "Home (b.org)",
+    "Work (b.org)"
+   ],
+   "files": {
+    "a.org": "* Inbox\n* Misc\n",
+    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n* Work\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+  },
+  "answer": "Misc",
+  "options": {
+   "refileTargets": [
+    {
+     "files": "agenda",
+     "level": 1
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Inbox",
+    "Misc",
+    "Home (b.org)",
+    "Work (b.org)"
+   ],
+   "files": {
+    "a.org": "* Inbox\n* Misc\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n",
+    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+  },
+  "answer": "Garden (b.org)",
+  "options": {
+   "refileTargets": [
+    {
+     "files": "agenda",
+     "maxLevel": 2
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Inbox",
+    "Pay",
+    "Misc",
+    "Home (b.org)",
+    "Garden (b.org)",
+    "Work (b.org)"
+   ],
+   "files": {
+    "a.org": "* Inbox\n* Misc\n",
+    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n*** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n* Work\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+  },
+  "answer": "b.org/Work/",
+  "options": {
+   "refileTargets": [
+    {
+     "files": "agenda",
+     "maxLevel": 2
+    }
+   ],
+   "refileUseOutlinePath": "file"
+  },
+  "expected": {
+   "offered": [
+    "a.org/",
+    "a.org/Inbox/",
+    "a.org/Inbox/Pay/",
+    "a.org/Misc/",
+    "b.org/",
+    "b.org/Home/",
+    "b.org/Home/Garden/",
+    "b.org/Work/"
+   ],
+   "files": {
+    "a.org": "* Inbox\n* Misc\n",
+    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+  },
+  "answer": "b.org/",
+  "options": {
+   "refileTargets": [
+    {
+     "files": "agenda",
+     "maxLevel": 2
+    }
+   ],
+   "refileUseOutlinePath": "file"
+  },
+  "expected": {
+   "offered": [
+    "a.org/",
+    "a.org/Inbox/",
+    "a.org/Inbox/Pay/",
+    "a.org/Misc/",
+    "b.org/",
+    "b.org/Home/",
+    "b.org/Home/Garden/",
+    "b.org/Work/"
+   ],
+   "files": {
+    "a.org": "* Inbox\n* Misc\n",
+    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n* TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+  },
+  "answer": "Bee/Home/",
+  "options": {
+   "refileTargets": [
+    {
+     "files": "agenda",
+     "maxLevel": 2
+    }
+   ],
+   "refileUseOutlinePath": "title"
+  },
+  "expected": {
+   "offered": [
+    "a.org/",
+    "a.org/Inbox/",
+    "a.org/Inbox/Pay/",
+    "a.org/Misc/",
+    "Bee/",
+    "Bee/Home/",
+    "Bee/Home/Garden/",
+    "Bee/Work/"
+   ],
+   "files": {
+    "a.org": "* Inbox\n* Misc\n",
+    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n* Work\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+  },
+  "answer": "Home/Garden/ (b.org)",
+  "options": {
+   "refileTargets": [
+    {
+     "files": "agenda",
+     "maxLevel": 2
+    }
+   ],
+   "refileUseOutlinePath": true
+  },
+  "expected": {
+   "offered": [
+    "Inbox/",
+    "Inbox/Pay/",
+    "Misc/",
+    "Home/ (b.org)",
+    "Home/Garden/ (b.org)",
+    "Work/ (b.org)"
+   ],
+   "files": {
+    "a.org": "* Inbox\n* Misc\n",
+    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n*** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n* Work\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+  },
+  "answer": "Work (b.org)",
+  "options": {
+   "refileTargets": [
+    {
+     "files": [
+      "b.org"
+     ],
+     "level": 1
+    },
+    {
+     "level": 1
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Home (b.org)",
+    "Work (b.org)",
+    "Inbox",
+    "Misc"
+   ],
+   "files": {
+    "a.org": "* Inbox\n* Misc\n",
+    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Projects :proj:\n* Notes\n** Sub :proj:\n* TODO Do it\n* NEXT Not kw\n* X¦\n"
+  },
+  "answer": "Sub",
+  "options": {
+   "refileTargets": [
+    {
+     "tag": "proj"
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Projects",
+    "Sub"
+   ],
+   "files": {
+    "a.org": "* Projects :proj:\n* Notes\n** Sub :proj:\n*** X\n* TODO Do it\n* NEXT Not kw\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Projects :proj:\n* Notes\n** Sub :proj:\n* TODO Do it\n* NEXT Not kw\n* X¦\n"
+  },
+  "answer": "Do it",
+  "options": {
+   "refileTargets": [
+    {
+     "todo": "TODO"
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Do it"
+   ],
+   "files": {
+    "a.org": "* Projects :proj:\n* Notes\n** Sub :proj:\n* TODO Do it\n** X\n* NEXT Not kw\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
+  },
+  "answer": "Site [1/2]",
+  "options": {
+   "refileTargets": [
+    {
+     "level": 1
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Site [1/2]",
+    "file:x.org",
+    "COMMENT Hidden"
+   ],
+   "files": {
+    "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n** y\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
+  },
+  "answer": "file:x.org",
+  "options": {
+   "refileTargets": [
+    {
+     "level": 1
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Site [1/2]",
+    "file:x.org",
+    "COMMENT Hidden"
+   ],
+   "files": {
+    "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n** y\n* TODO\n* COMMENT Hidden\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
+  },
+  "answer": "[[https://x.org][Site]]/",
+  "options": {
+   "refileTargets": [
+    {
+     "level": 1
+    }
+   ],
+   "refileUseOutlinePath": true
+  },
+  "expected": "ERROR: (user-error \"Invalid target location\")"
+ },
+ {
+  "files": {
+   "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
+  },
+  "answer": "Site/",
+  "options": {
+   "refileTargets": [
+    {
+     "level": 1
+    }
+   ],
+   "refileUseOutlinePath": true
+  },
+  "expected": {
+   "offered": [
+    "Site/",
+    "file:x.org/",
+    "Hidden/"
+   ],
+   "files": {
+    "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n** y\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
+  },
+  "answer": "Hidden/",
+  "options": {
+   "refileTargets": [
+    {
+     "level": 1
+    }
+   ],
+   "refileUseOutlinePath": true
+  },
+  "expected": {
+   "offered": [
+    "Site/",
+    "file:x.org/",
+    "Hidden/"
+   ],
+   "files": {
+    "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A\n*** B¦                    :tag:\n**** C :x:y:\n"
+  },
+  "answer": "A",
+  "options": {
+   "tagsColumn": -40
+  },
+  "expected": {
+   "offered": [
+    "A"
+   ],
+   "files": {
+    "a.org": "* A\n** B                               :tag:\n*** C                              :x:y:\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "intro¦\n* A\n"
+  },
+  "answer": "A",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer a.org\")"
+ },
+ {
+  "files": {
+   "a.org": "#+TITLE: Doc\n** Misc :a:b:\n*** Work :a:b:\n\n¦"
+  },
+  "answer": "Doc/",
+  "options": {
+   "refileUseOutlinePath": "title"
+  },
+  "expected": {
+   "offered": [
+    "Doc/"
+   ],
+   "files": {
+    "a.org": "#+TITLE: Doc\n** Misc :a:b:\n*** Work :a:b:\n\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Misc\n** Task\nS¦ome text.\n*** Work\n\n  - item"
+  },
+  "answer": "Misc/",
+  "options": {
+   "refileUseOutlinePath": true
+  },
+  "expected": {
+   "offered": [
+    "Misc/"
+   ],
+   "files": {
+    "a.org": "* Misc\n** Task\nSome text.\n*** Work\n\n  - item\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A\n* B\n** b¦\n* C\n"
+  },
+  "answer": "C",
+  "options": {
+   "reverseNoteOrder": true
+  },
+  "expected": {
+   "offered": [
+    "A",
+    "B",
+    "C"
+   ],
+   "files": {
+    "a.org": "* A\n* B\n* C\n** b\n"
+   }
+  }
+ }
+]

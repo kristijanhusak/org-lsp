@@ -155,6 +155,11 @@
         "category": "Org"
       },
       {
+        "command": "org.refile",
+        "title": "Refile the entry",
+        "category": "Org"
+      },
+      {
         "command": "org.priority.down",
         "title": "Lower the priority",
         "category": "Org"
@@ -1373,6 +1378,11 @@
       {
         "command": "org.priority",
         "key": ",",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.refile",
+        "key": "ctrl+c ctrl+w",
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
       },
       {

@@ -54,6 +54,9 @@ camel case; the agenda's lose their `org-agenda-` prefix and live under
 | `timestampRoundingMinutes` | `number` | `5` | The second number of `org-time-stamp-rounding-minutes`: the step in which the minutes of a timestamp change. |
 | `readDatePreferFuture` | `boolean`, `"time"` | `true` | `org-read-date-prefer-future`: a date typed without a year or month is the next one to come; with `"time"`, a time that has passed today is tomorrow's. |
 | `readDateForceCompatibleDates` | `boolean` | `true` | `org-read-date-force-compatible-dates`: a typed year is kept within 1970 to 2037. |
+| `refileTargets` | `object[]` | the top-level headlines of the entry's file | `org-refile-targets`: each `{ "files": "current" \| "agenda" \| path \| paths, and one of "level", "maxLevel", "tag", "todo", "regexp" (the Rust `regex` crate's syntax), "all": true }`. |
+| `refileUseOutlinePath` | `boolean \| string` | `false` | `org-refile-use-outline-path`: `true`, `"file"`, `"full-file-path"` or `"title"` name targets by their outline path (`Projects/Alpha/`); the last three start with the file and offer the file itself, for the top level. |
+| `reverseNoteOrder` | `boolean` | `false` | `org-reverse-note-order`: a refiled entry goes first under its target, not last. |
 | `cycleSeparatorLines` | `number` | `2` | `org-cycle-separator-lines`: with at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. Blank lines at the end of the file are never folded. |
 | `agenda` | object | | See below. |
 | `virtualDocuments` | `boolean` | from capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
@@ -133,6 +136,7 @@ number.
 | `org.todo` | `org-todo`: when the keywords have keys (`TODO(t)`), asks for one (`org-fast-todo-selection`) and sets the state it selects, a space clearing it; without keys, the next state. In an Org file or on an agenda line. |
 | `org.todo.next`, `org.todo.previous` | Changes the TODO state of the entry at the cursor, in an Org file or on an agenda line. |
 | `org.priority.up`, `org.priority.down` | Raises or lowers the priority of the entry at the cursor, in an Org file or on an agenda line. |
+| `org.refile` | `org-refile` (`org-agenda-refile` on an agenda line): offers the targets (an input of kind `choice`), named as Emacs names them (`Projects`, `Home (other.org)`, `Projects/Alpha/`), and moves the subtree under the one picked, as its last child, promoted or demoted to fit, into another file if need be (one `workspace/applyEdit` over both). |
 | `org.priority` | Asks for a priority (`Priority A-C, SPC to remove`, an input of kind `priority`) and sets it, or removes it for a space; in an Org file or on an agenda line. |
 | `org.timestamp.up`, `org.timestamp.down` | Changes the part of the timestamp the cursor is on. Org files only. |
 | `org.date.later`, `org.date.earlier` | Moves a date by days: in an Org file the timestamp at the cursor, on an agenda line the date the line is listed for. |

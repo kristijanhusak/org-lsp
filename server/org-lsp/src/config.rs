@@ -6,6 +6,7 @@ use org_core::agenda::{Config as AgendaConfig, FutureRepeats, Span, TimeGrid};
 use org_core::edit::Settings as EditSettings;
 use org_core::priority::{self, Priorities};
 use org_core::read_date::{PreferFuture, Settings as ReadDateSettings};
+use org_core::refile::{OutlinePath, Select, Settings as RefileSettings};
 use org_core::todo::{RepeatTo, Settings as TodoSettings};
 use org_syntax::Logging;
 use serde::Deserialize;
@@ -52,8 +53,63 @@ pub struct Options {
     /// document. Clients that announce LSP 3.18's `textDocumentContent`
     /// need not say so.
     pub virtual_documents: Option<bool>,
+    /// `org-refile-targets`: where entries can be refiled to. Without it,
+    /// the top-level headlines of the entry's own file.
+    pub refile_targets: Option<Vec<RefileTargetOption>>,
+    /// `org-refile-use-outline-path`: `false`, `true`, `"file"`,
+    /// `"full-file-path"` or `"title"`.
+    pub refile_use_outline_path: Option<OutlinePathOption>,
+    /// `org-reverse-note-order`: refiled entries go first, not last.
+    pub reverse_note_order: Option<bool>,
     /// A fixed date and time, for tests.
     pub clock: Option<ClockOption>,
+}
+
+/// An entry of `org-refile-targets`: the files, `"current"` (the entry's
+/// own, the default), `"agenda"`, a path or a list of paths, and one of
+/// `level`, `maxLevel`, `tag`, `todo`, `regexp` (the `regex` crate's
+/// syntax) or `all`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct RefileTargetOption {
+    pub files: Option<RefileFilesOption>,
+    pub level: Option<usize>,
+    pub max_level: Option<usize>,
+    pub tag: Option<String>,
+    pub todo: Option<String>,
+    pub regexp: Option<String>,
+    pub all: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum RefileFilesOption {
+    One(String),
+    Many(Vec<String>),
+}
+
+/// Where refile targets are looked for.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RefileFiles {
+    /// The file of the entry being refiled.
+    Current,
+    /// The agenda files.
+    Agenda,
+    Paths(Vec<String>),
+}
+
+/// An entry of `org-refile-targets`, read.
+#[derive(Debug, Clone)]
+pub struct RefileTarget {
+    pub files: RefileFiles,
+    pub select: Select,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum OutlinePathOption {
+    Flag(bool),
+    Name(String),
 }
 
 /// `false`, `true`, `"time"` or `"note"`.
@@ -116,6 +172,62 @@ impl PriorityOption {
 }
 
 impl Options {
+    /// `org-refile-targets`, with Org's default: the top-level headlines
+    /// of the entry's own file. An entry that selects nothing known is
+    /// left out.
+    pub fn refile_targets(&self) -> Vec<RefileTarget> {
+        let Some(targets) = &self.refile_targets else {
+            return vec![RefileTarget { files: RefileFiles::Current, select: Select::Level(1) }];
+        };
+        targets
+            .iter()
+            .filter_map(|target| {
+                let files = match &target.files {
+                    None => RefileFiles::Current,
+                    Some(RefileFilesOption::One(name)) if name == "current" => RefileFiles::Current,
+                    Some(RefileFilesOption::One(name)) if name == "agenda" => RefileFiles::Agenda,
+                    Some(RefileFilesOption::One(path)) => RefileFiles::Paths(vec![path.clone()]),
+                    Some(RefileFilesOption::Many(paths)) => RefileFiles::Paths(paths.clone()),
+                };
+                let select = if target.all == Some(true) {
+                    Select::All
+                } else if let Some(level) = target.level {
+                    Select::Level(level)
+                } else if let Some(level) = target.max_level {
+                    Select::MaxLevel(level)
+                } else if let Some(tag) = &target.tag {
+                    Select::Tag(tag.clone())
+                } else if let Some(keyword) = &target.todo {
+                    Select::Todo(keyword.clone())
+                } else {
+                    Select::regexp(target.regexp.as_deref()?)?
+                };
+                Some(RefileTarget { files, select })
+            })
+            .collect()
+    }
+
+    /// `org-refile-use-outline-path`
+    pub fn refile_outline_path(&self) -> OutlinePath {
+        match &self.refile_use_outline_path {
+            None | Some(OutlinePathOption::Flag(false)) => OutlinePath::No,
+            Some(OutlinePathOption::Flag(true)) => OutlinePath::Yes,
+            Some(OutlinePathOption::Name(name)) => match name.as_str() {
+                "file" => OutlinePath::File,
+                "full-file-path" => OutlinePath::FullFilePath,
+                "title" => OutlinePath::Title,
+                _ => OutlinePath::Yes,
+            },
+        }
+    }
+
+    pub fn refile_settings(&self) -> RefileSettings {
+        RefileSettings {
+            reverse_note_order: self.reverse_note_order.unwrap_or(false),
+            tags_column: self.tags_column.unwrap_or(-77),
+        }
+    }
+
     /// The priorities in use: Org's `A` to `C` unless set otherwise.
     pub fn priorities(&self) -> Priorities {
         let mut priorities = Priorities::default();

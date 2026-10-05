@@ -92,7 +92,7 @@ interface Input {
   kind: string;
   prompt: string;
   value: string;
-  /** For `key`: the keys to choose from and what each stands for. */
+  /** What to choose from: a key (kind `key`) or a name, and how it shows. */
   choices?: { key: string; label: string }[];
   /** What to send back with the answer, besides it. */
   context?: Record<string, unknown>;
@@ -103,9 +103,10 @@ interface Input {
  * Org's fast selection offers them; anything else is typed.
  */
 async function ask(input: Input, typed: (text: string) => Promise<vscode.InputBoxValidationMessage | undefined>) {
-  if (input.kind === 'key' && input.choices) {
+  if (input.choices) {
+    // A key shows with its choice, as Org's fast selection lists them.
     const items = input.choices.map((choice) => ({
-      label: `[${choice.key === ' ' ? 'SPC' : choice.key}] ${choice.label}`,
+      label: input.kind === 'key' ? `[${choice.key === ' ' ? 'SPC' : choice.key}] ${choice.label}` : choice.label,
       key: choice.key,
     }));
     const picked = await vscode.window.showQuickPick(items, { placeHolder: input.prompt, ignoreFocusOut: true });
