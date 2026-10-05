@@ -1,0 +1,2108 @@
+[
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "priority-up",
+  "expected": "* [#B] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "priority-down",
+  "expected": "* [#B] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#B] a¦\n",
+  "command": "priority-up",
+  "expected": "* [#A] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#B] a¦\n",
+  "command": "priority-down",
+  "expected": "* [#C] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#A] a¦\n",
+  "command": "priority-up",
+  "expected": "* a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#A] a¦\n",
+  "command": "priority-down",
+  "expected": "* [#B] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a¦\n",
+  "command": "priority-up",
+  "expected": "* [#B] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a¦\n",
+  "command": "priority-down",
+  "expected": "* a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nbo¦dy\n",
+  "command": "priority-up",
+  "expected": "* TODO [#B] a\nbo¦dy\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nbo¦dy\n",
+  "command": "priority-down",
+  "expected": "* TODO [#B] a\nbo¦dy\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO¦\n",
+  "command": "priority-up",
+  "expected": "* TODO¦ [#B]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO¦\n",
+  "command": "priority-down",
+  "expected": "* TODO¦ [#B]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* ¦\n",
+  "command": "priority-up",
+  "expected": "* ¦[#B] \n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* ¦\n",
+  "command": "priority-down",
+  "expected": "* ¦[#B] \n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "** TODOS a¦\n",
+  "command": "priority-up",
+  "expected": "** [#B] TODOS a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "** TODOS a¦\n",
+  "command": "priority-down",
+  "expected": "** [#B] TODOS a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#A] a¦ :t:\n",
+  "command": "priority-up",
+  "expected": "* a¦                                                                       :t:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#A] a¦ :t:\n",
+  "command": "priority-down",
+  "expected": "* [#B] a¦                                                                  :t:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦ :t:\n",
+  "command": "priority-up",
+  "expected": "* [#B] a¦                                                                  :t:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦ :t:\n",
+  "command": "priority-down",
+  "expected": "* [#B] a¦                                                                  :t:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] Call them¦                                     :work:\n",
+  "command": "priority-up",
+  "expected": "* TODO [#A] Call them¦                                                  :work:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] Call them¦                                     :work:\n",
+  "command": "priority-down",
+  "expected": "* TODO [#C] Call them¦                                                  :work:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#a] a¦\n",
+  "command": "priority-up",
+  "expected": "* a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#a] a¦\n",
+  "command": "priority-down",
+  "expected": "* a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#D] a¦\n",
+  "command": "priority-up",
+  "expected": "* [#C] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#D] a¦\n",
+  "command": "priority-down",
+  "expected": "* a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a [#B] b [#C]¦\n",
+  "command": "priority-up",
+  "expected": "* a [#A] b [#C]¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a [#B] b [#C]¦\n",
+  "command": "priority-down",
+  "expected": "* a [#C] b [#C]¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO\tx¦\n",
+  "command": "priority-up",
+  "expected": "* [#B] TODO\tx¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO\tx¦\n",
+  "command": "priority-down",
+  "expected": "* [#B] TODO\tx¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro¦\n* a\n",
+  "command": "priority-up",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro¦\n* a\n",
+  "command": "priority-down",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n** [#B] b\ntext¦\n",
+  "command": "priority-up",
+  "expected": "* a\n** [#A] b\ntext¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n** [#B] b\ntext¦\n",
+  "command": "priority-down",
+  "expected": "* a\n** [#C] b\ntext¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "priority-up",
+  "repeated": true,
+  "expected": "* [#C] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "priority-down",
+  "repeated": true,
+  "expected": "* [#A] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#B] a¦\n",
+  "command": "priority-up",
+  "repeated": true,
+  "expected": "* [#A] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 5 3\n* a¦\n",
+  "command": "priority-up",
+  "expected": "#+PRIORITIES: 1 5 3\n* [#3] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 5 3\n* [#1] a¦\n",
+  "command": "priority-up",
+  "expected": "#+PRIORITIES: 1 5 3\n* a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 5 3\n* [#5] a¦\n",
+  "command": "priority-down",
+  "expected": "#+PRIORITIES: 1 5 3\n* a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 5 3\n* a¦\n",
+  "command": "priority-down",
+  "repeated": true,
+  "expected": "#+PRIORITIES: 1 5 3\n* [#1] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n#+PRIORITIES: A B A\n* [#D] a¦\n",
+  "command": "priority-down",
+  "expected": "#+PRIORITIES: A E C\n#+PRIORITIES: A B A\n* [#E] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A B\n* [#C] a¦\n",
+  "command": "priority-down",
+  "expected": "#+PRIORITIES: A B\n* a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "priority-up",
+  "options": {
+   "priorityHighest": "A",
+   "priorityLowest": "E",
+   "priorityDefault": "C"
+  },
+  "expected": "* [#C] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#E] a¦\n",
+  "command": "priority-down",
+  "options": {
+   "priorityHighest": "A",
+   "priorityLowest": "E",
+   "priorityDefault": "C"
+  },
+  "expected": "* a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "priority-up",
+  "options": {
+   "priorityHighest": 1,
+   "priorityLowest": 20,
+   "priorityDefault": 10
+  },
+  "expected": "* [#10] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#10] a¦\n",
+  "command": "priority-up",
+  "options": {
+   "priorityHighest": 1,
+   "priorityLowest": 20,
+   "priorityDefault": 10
+  },
+  "expected": "* [#9] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#9] a¦\n",
+  "command": "priority-down",
+  "options": {
+   "priorityHighest": 1,
+   "priorityLowest": 20,
+   "priorityDefault": 10
+  },
+  "expected": "* [#10] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "priority-up",
+  "options": {
+   "priorityStartCycleWithDefault": false
+  },
+  "expected": "* [#A] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "priority-down",
+  "options": {
+   "priorityStartCycleWithDefault": false
+  },
+  "expected": "* [#C] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "priority-up",
+  "options": {
+   "priorityDefault": "A",
+   "priorityStartCycleWithDefault": false
+  },
+  "expected": "ERROR: (error \"The default can not be set, see ‘org-priority-default’ why\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦ :t:\n",
+  "command": "priority-up",
+  "options": {
+   "tagsColumn": -40
+  },
+  "expected": "* [#B] a¦                             :t:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n¦<2026-05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n¦[2026-05-18 Mon 10:58-11:20 +1w -2d] x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n¦<2026-05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n¦[2026-05-18 Mon 10:58-11:20 +1w -2d] x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<¦2026-05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<¦2027-05-18 Tue 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<¦2026-05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<¦2025-05-18 Sun 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2¦026-05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2¦027-05-18 Tue 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2¦026-05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2¦025-05-18 Sun 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<20¦26-05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<20¦27-05-18 Tue 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<20¦26-05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<20¦25-05-18 Sun 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<202¦6-05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<202¦7-05-18 Tue 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<202¦6-05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<202¦5-05-18 Sun 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026¦-05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2027¦-05-18 Tue 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026¦-05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2025¦-05-18 Sun 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-¦05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-¦06-18 Thu 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-¦05-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-¦04-18 Sat 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-0¦5-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-0¦6-18 Thu 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-0¦5-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-0¦4-18 Sat 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05¦-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-06¦-18 Thu 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05¦-18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-04¦-18 Sat 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-¦18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-¦19 Tue 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-¦18 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-¦17 Sun 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-1¦8 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-1¦9 Tue 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-1¦8 Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-1¦7 Sun 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18¦ Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-19¦ Tue 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18¦ Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-17¦ Sun 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 ¦Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-19 ¦Tue 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 ¦Mon 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-17 ¦Sun 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 M¦on 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-19 T¦ue 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 M¦on 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-17 S¦un 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mo¦n 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-19 Tu¦e 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mo¦n 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-17 Su¦n 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon¦ 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-19 Tu¦e 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon¦ 10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-17 Su¦n 10:58-11:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon ¦10:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon ¦11:58-12:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon ¦10:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon ¦09:58-10:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 1¦0:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 1¦1:58-12:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 1¦0:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 0¦9:58-10:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10¦:58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 11¦:58-12:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10¦:58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 09¦:58-10:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:¦58-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 11:¦00-11:25 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:¦58-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:¦55-11:15 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 11:0¦0-11:25 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:5¦5-11:15 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58¦-11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 11:0¦0-11:25 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58¦-11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:5¦5-11:15 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-¦11:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-¦12:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-¦11:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-¦10:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-1¦1:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-1¦2:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-1¦1:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-1¦0:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11¦:20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-12¦:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11¦:20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-10¦:20 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:¦20 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:¦21 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:¦20 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:¦19 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:2¦0 +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:2¦1 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:2¦0 +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:1¦9 +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20¦ +1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:21¦ +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20¦ +1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:19¦ +1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 ¦+1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 ¦+1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 ¦+1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 ¦+1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +¦1w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +¦2w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +¦1w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +¦1w -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1¦w -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +1¦m -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1¦w -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +1¦d -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1w¦ -2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +1m¦ -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1w¦ -2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +1d¦ -2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1w ¦-2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +1w ¦-2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1w ¦-2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +1w ¦-2d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -¦2d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -¦3d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -¦2d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -¦1d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -2¦d> x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -2¦w> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -2¦d> x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -2¦d> x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -2d¦> x\n",
+  "command": "shift-up",
+  "expected": "* a\n[2026-05-18 Mon 10:58-11:20 +1w -2d¦] x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -2d¦> x\n",
+  "command": "shift-down",
+  "expected": "* a\n[2026-05-18 Mon 10:58-11:20 +1w -2d¦] x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -2d>¦ x\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -2d>¦ x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -2d>¦ x\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:58-11:20 +1w -2d>¦ x\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<20¦26-05-18 Mon>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<20¦27-05-18 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<20¦26-05-18 Mon>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<20¦25-05-18 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<20¦26-05-18 Mon>\n",
+  "command": "shift-up",
+  "expected": "* a\n<20¦27-05-18 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<20¦26-05-18 Mon>\n",
+  "command": "shift-down",
+  "expected": "* a\n<20¦25-05-18 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<20¦26-05-18 Mon>\n",
+  "command": "shift-left",
+  "expected": "* a\n<20¦26-05-17 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<20¦26-05-18 Mon>\n",
+  "command": "shift-right",
+  "expected": "* a\n<20¦26-05-19 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-0¦1-31 Sat>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-0¦3-03 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-0¦1-31 Sat>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2025-1¦2-31 Wed>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-0¦1-31 Sat>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-0¦3-03 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-0¦1-31 Sat>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2025-1¦2-31 Wed>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-0¦1-31 Sat>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-0¦1-30 Fri>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-0¦1-31 Sat>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-0¦2-01 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-01-3¦1 Sat>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-02-0¦1 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-01-3¦1 Sat>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-01-3¦0 Fri>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-01-3¦1 Sat>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-02-0¦1 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-01-3¦1 Sat>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-01-3¦0 Fri>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-01-3¦1 Sat>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-01-3¦0 Fri>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-01-3¦1 Sat>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-02-0¦1 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-01-01 T¦hu>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-01-02 F¦ri>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-01-01 T¦hu>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2025-12-31 W¦ed>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-01-01 T¦hu>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-01-02 F¦ri>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-01-01 T¦hu>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2025-12-31 W¦ed>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-01-01 T¦hu>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2025-12-31 W¦ed>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-01-01 T¦hu>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-01-02 F¦ri>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n[2026-05-18 Mon 9:5¦8]\n",
+  "command": "timestamp-up",
+  "expected": "* a\n[2026-05-18 Mon 10:¦00]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n[2026-05-18 Mon 9:5¦8]\n",
+  "command": "timestamp-down",
+  "expected": "* a\n[2026-05-18 Mon 09:¦55]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n[2026-05-18 Mon 9:5¦8]\n",
+  "command": "shift-up",
+  "expected": "* a\n[2026-05-18 Mon 10:¦00]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n[2026-05-18 Mon 9:5¦8]\n",
+  "command": "shift-down",
+  "expected": "* a\n[2026-05-18 Mon 09:¦55]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n[2026-05-18 Mon 9:5¦8]\n",
+  "command": "shift-left",
+  "expected": "* a\n[2026-05-17 Sun 09:¦58]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n[2026-05-18 Mon 9:5¦8]\n",
+  "command": "shift-right",
+  "expected": "* a\n[2026-05-19 Tue 09:¦58]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 23:5¦8>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-05-19 Tue 00:0¦0>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 23:5¦8>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-05-18 Mon 23:5¦5>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 23:5¦8>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-19 Tue 00:0¦0>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 23:5¦8>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 23:5¦5>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 23:5¦8>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-05-17 Sun 23:5¦8>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 23:5¦8>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-05-19 Tue 23:5¦8>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 2¦3:58>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-05-19 Tue 0¦0:58>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 2¦3:58>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-05-18 Mon 2¦2:58>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 2¦3:58>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-19 Tue 0¦0:58>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 2¦3:58>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 2¦2:58>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 2¦3:58>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-05-17 Sun 2¦3:58>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 2¦3:58>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-05-19 Tue 2¦3:58>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-1¦8>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-05-1¦9 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-1¦8>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-05-1¦7 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-1¦8>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-1¦9 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-1¦8>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-1¦7 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-1¦8>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-05-1¦7 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-1¦8>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-05-1¦9 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Sun¦day>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-05-19 Tu¦e>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Sun¦day>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-05-17 Su¦n>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Sun¦day>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-19 Tu¦e>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Sun¦day>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-17 Su¦n>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Sun¦day>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-05-17 Su¦n>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Sun¦day>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-05-19 Tu¦e>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 lun. 10:¦07>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-05-18 Mon 10:1¦0>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 lun. 10:¦07>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-05-18 Mon 10:0¦5>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 lun. 10:¦07>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:1¦0>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 lun. 10:¦07>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:0¦5>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 lun. 10:¦07>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-05-17 Sun 10:0¦7>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 lun. 10:¦07>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-05-19 Tue 10:0¦7>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +¦1d>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-05-18 Mon +¦2d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +¦1d>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-05-18 Mon +¦1d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +¦1d>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon +¦2d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +¦1d>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon +¦1d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +¦1d>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-05-17 Sun +¦1d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +¦1d>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-05-19 Tue +¦1d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +1¦y>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-05-18 Mon +1¦y>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +1¦y>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-05-18 Mon +1¦m>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +1¦y>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon +1¦y>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +1¦y>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon +1¦m>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +1¦y>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-05-17 Sun +1¦y>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +1¦y>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-05-19 Tue +1¦y>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon .+¦1w>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-05-18 Mon .+¦1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon .+¦1w>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-05-18 Mon .+¦1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon .+¦1w>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon .+¦1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon .+¦1w>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon .+¦1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon .+¦1w>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-05-17 Sun .+¦1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon .+¦1w>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-05-19 Tue .+¦1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon ++1¦w>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-05-18 Mon ++1¦w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon ++1¦w>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-05-18 Mon ++1¦w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon ++1¦w>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon ++1¦w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon ++1¦w>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon ++1¦w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon ++1¦w>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-05-17 Sun ++1¦w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon ++1¦w>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-05-19 Tue ++1¦w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon -¦0d>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-05-18 Mon -¦1d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon -¦0d>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-05-18 Mon -¦0d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon -¦0d>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon -¦1d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon -¦0d>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon -¦0d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon -¦0d>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-05-17 Sun -¦0d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon -¦0d>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-05-19 Tue -¦0d>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:00 fo¦o>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-05-18 Mon 10:00¦>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:00 fo¦o>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-05-18 Mon 10:00¦>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:00 fo¦o>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon 10:00¦>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:00 fo¦o>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon 10:00¦>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:00 fo¦o>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-05-17 Sun 10:00¦>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:00 fo¦o>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-05-19 Tue 10:00¦>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a <2026-05-18 Mon>¦\n",
+  "command": "timestamp-up",
+  "expected": "* a <2026-05-18 Mon>¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a <2026-05-18 Mon>¦\n",
+  "command": "timestamp-down",
+  "expected": "* a <2026-05-18 Mon>¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a <2026-05-18 Mon>¦\n",
+  "command": "shift-up",
+  "expected": "* a <2026-05-18 Mon>¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a <2026-05-18 Mon>¦\n",
+  "command": "shift-down",
+  "expected": "* a <2026-05-18 Mon>¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a <2026-05-18 Mon>¦\n",
+  "command": "shift-left",
+  "expected": "* a <2026-05-17 Sun>¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a <2026-05-18 Mon>¦\n",
+  "command": "shift-right",
+  "expected": "* a <2026-05-19 Tue>¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n# <2026-05-1¦8 Mon>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n# <2026-05-1¦9 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n# <2026-05-1¦8 Mon>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n# <2026-05-1¦7 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n# <2026-05-1¦8 Mon>\n",
+  "command": "shift-up",
+  "expected": "* a\n# <2026-05-1¦9 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n# <2026-05-1¦8 Mon>\n",
+  "command": "shift-down",
+  "expected": "* a\n# <2026-05-1¦7 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n# <2026-05-1¦8 Mon>\n",
+  "command": "shift-left",
+  "expected": "* a\n# <2026-05-1¦7 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n# <2026-05-1¦8 Mon>\n",
+  "command": "shift-right",
+  "expected": "* a\n# <2026-05-1¦9 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n#+begin_src\n<2026-05-1¦8 Mon>\n#+end_src\n",
+  "command": "timestamp-up",
+  "expected": "* a\n#+begin_src\n<2026-05-1¦9 Tue>\n#+end_src\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n#+begin_src\n<2026-05-1¦8 Mon>\n#+end_src\n",
+  "command": "timestamp-down",
+  "expected": "* a\n#+begin_src\n<2026-05-1¦7 Sun>\n#+end_src\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n#+begin_src\n<2026-05-1¦8 Mon>\n#+end_src\n",
+  "command": "shift-up",
+  "expected": "* a\n#+begin_src\n<2026-05-1¦9 Tue>\n#+end_src\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n#+begin_src\n<2026-05-1¦8 Mon>\n#+end_src\n",
+  "command": "shift-down",
+  "expected": "* a\n#+begin_src\n<2026-05-1¦7 Sun>\n#+end_src\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n#+begin_src\n<2026-05-1¦8 Mon>\n#+end_src\n",
+  "command": "shift-left",
+  "expected": "* a\n#+begin_src\n<2026-05-1¦7 Sun>\n#+end_src\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n#+begin_src\n<2026-05-1¦8 Mon>\n#+end_src\n",
+  "command": "shift-right",
+  "expected": "* a\n#+begin_src\n<2026-05-1¦9 Tue>\n#+end_src\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon>--<2026-05-2¦0 Wed>\n",
+  "command": "timestamp-up",
+  "expected": "* a\n<2026-05-18 Mon>--<2026-05-2¦1 Thu>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon>--<2026-05-2¦0 Wed>\n",
+  "command": "timestamp-down",
+  "expected": "* a\n<2026-05-18 Mon>--<2026-05-1¦9 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon>--<2026-05-2¦0 Wed>\n",
+  "command": "shift-up",
+  "expected": "* a\n<2026-05-18 Mon>--<2026-05-2¦1 Thu>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon>--<2026-05-2¦0 Wed>\n",
+  "command": "shift-down",
+  "expected": "* a\n<2026-05-18 Mon>--<2026-05-1¦9 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon>--<2026-05-2¦0 Wed>\n",
+  "command": "shift-left",
+  "expected": "* a\n<2026-05-18 Mon>--<2026-05-1¦9 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon>--<2026-05-2¦0 Wed>\n",
+  "command": "shift-right",
+  "expected": "* a\n<2026-05-18 Mon>--<2026-05-2¦1 Thu>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nSCHEDULED: <2026-05-1¦8 Mon 10:00 +1w>\n",
+  "command": "timestamp-up",
+  "expected": "* a\nSCHEDULED: <2026-05-1¦9 Tue 10:00 +1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nSCHEDULED: <2026-05-1¦8 Mon 10:00 +1w>\n",
+  "command": "timestamp-down",
+  "expected": "* a\nSCHEDULED: <2026-05-1¦7 Sun 10:00 +1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nSCHEDULED: <2026-05-1¦8 Mon 10:00 +1w>\n",
+  "command": "shift-up",
+  "expected": "* a\nSCHEDULED: <2026-05-1¦9 Tue 10:00 +1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nSCHEDULED: <2026-05-1¦8 Mon 10:00 +1w>\n",
+  "command": "shift-down",
+  "expected": "* a\nSCHEDULED: <2026-05-1¦7 Sun 10:00 +1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nSCHEDULED: <2026-05-1¦8 Mon 10:00 +1w>\n",
+  "command": "shift-left",
+  "expected": "* a\nSCHEDULED: <2026-05-1¦7 Sun 10:00 +1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nSCHEDULED: <2026-05-1¦8 Mon 10:00 +1w>\n",
+  "command": "shift-right",
+  "expected": "* a\nSCHEDULED: <2026-05-1¦9 Tue 10:00 +1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext¦\n",
+  "command": "timestamp-up",
+  "expected": "ERROR: (user-error \"Not at a timestamp\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext¦\n",
+  "command": "timestamp-down",
+  "expected": "ERROR: (user-error \"Not at a timestamp\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext¦\n",
+  "command": "shift-up",
+  "expected": "ERROR: (user-error \"To use shift-selection with Org mode, customize ‘org-support-shift-select’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext¦\n",
+  "command": "shift-down",
+  "expected": "ERROR: (user-error \"To use shift-selection with Org mode, customize ‘org-support-shift-select’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext¦\n",
+  "command": "shift-left",
+  "expected": "ERROR: (user-error \"To use shift-selection with Org mode, customize ‘org-support-shift-select’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext¦\n",
+  "command": "shift-right",
+  "expected": "ERROR: (user-error \"To use shift-selection with Org mode, customize ‘org-support-shift-select’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro ¦text\n",
+  "command": "timestamp-up",
+  "expected": "ERROR: (user-error \"Not at a timestamp\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro ¦text\n",
+  "command": "timestamp-down",
+  "expected": "ERROR: (user-error \"Not at a timestamp\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro ¦text\n",
+  "command": "shift-up",
+  "expected": "ERROR: (user-error \"To use shift-selection with Org mode, customize ‘org-support-shift-select’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro ¦text\n",
+  "command": "shift-down",
+  "expected": "ERROR: (user-error \"To use shift-selection with Org mode, customize ‘org-support-shift-select’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro ¦text\n",
+  "command": "shift-left",
+  "expected": "ERROR: (user-error \"To use shift-selection with Org mode, customize ‘org-support-shift-select’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro ¦text\n",
+  "command": "shift-right",
+  "expected": "ERROR: (user-error \"To use shift-selection with Org mode, customize ‘org-support-shift-select’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro <2026-05-1¦8 Mon>\n",
+  "command": "timestamp-up",
+  "expected": "intro <2026-05-1¦9 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro <2026-05-1¦8 Mon>\n",
+  "command": "timestamp-down",
+  "expected": "intro <2026-05-1¦7 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro <2026-05-1¦8 Mon>\n",
+  "command": "shift-up",
+  "expected": "intro <2026-05-1¦9 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro <2026-05-1¦8 Mon>\n",
+  "command": "shift-down",
+  "expected": "intro <2026-05-1¦7 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro <2026-05-1¦8 Mon>\n",
+  "command": "shift-left",
+  "expected": "intro <2026-05-1¦7 Sun>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "intro <2026-05-1¦8 Mon>\n",
+  "command": "shift-right",
+  "expected": "intro <2026-05-1¦9 Tue>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
+  "command": "timestamp-up",
+  "count": 3,
+  "expected": "* a\n<2026-05-18 Mon 11:0¦1>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
+  "command": "timestamp-down",
+  "count": 1,
+  "expected": "* a\n<2026-05-18 Mon 10:5¦7>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8-11:00>\n",
+  "command": "timestamp-up",
+  "count": 30,
+  "expected": "* a\n<2026-05-18 Mon 11:2¦8-11:30>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-1¦8 Mon>\n",
+  "command": "timestamp-up",
+  "count": 14,
+  "expected": "* a\n<2026-06-0¦1 Mon>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-1¦8 Mon>\n",
+  "command": "date-later",
+  "count": 3,
+  "expected": "* a\n<2026-05-2¦1 Thu>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-0¦5-18 Mon 10:00>\n",
+  "command": "date-earlier",
+  "expected": "* a\n<2026-0¦5-17 Sun 10:00>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext <2026-05-18 Mon>¦\n",
+  "command": "date-later",
+  "expected": "* a\ntext <2026-05-19 Tue>¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\ntext¦ <2026-05-18 Mon>\n",
+  "command": "date-later",
+  "expected": "ERROR: (user-error \"Not at a timestamp\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +1¦w>\n",
+  "command": "timestamp-up",
+  "count": 2,
+  "expected": "* a\n<2026-05-18 Mon +1¦y>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +1¦w>\n",
+  "command": "timestamp-up",
+  "count": 4,
+  "expected": "* a\n<2026-05-18 Mon +1¦>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon +¦3w>\n",
+  "command": "timestamp-down",
+  "count": 5,
+  "expected": "* a\n<2026-05-18 Mon +¦1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
+  "command": "timestamp-up",
+  "options": {
+   "timestampRoundingMinutes": 0
+  },
+  "expected": "* a\n<2026-05-18 Mon 10:5¦9>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
+  "command": "timestamp-down",
+  "options": {
+   "timestampRoundingMinutes": 0
+  },
+  "expected": "* a\n<2026-05-18 Mon 10:5¦7>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
+  "command": "timestamp-up",
+  "options": {
+   "timestampRoundingMinutes": 1
+  },
+  "expected": "* a\n<2026-05-18 Mon 10:5¦9>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
+  "command": "timestamp-down",
+  "options": {
+   "timestampRoundingMinutes": 1
+  },
+  "expected": "* a\n<2026-05-18 Mon 10:5¦7>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
+  "command": "timestamp-up",
+  "options": {
+   "timestampRoundingMinutes": 10
+  },
+  "expected": "* a\n<2026-05-18 Mon 11:0¦0>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
+  "command": "timestamp-down",
+  "options": {
+   "timestampRoundingMinutes": 10
+  },
+  "expected": "* a\n<2026-05-18 Mon 10:5¦0>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
+  "command": "timestamp-up",
+  "options": {
+   "timestampRoundingMinutes": 15
+  },
+  "expected": "* a\n<2026-05-18 Mon 11:0¦0>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
+  "command": "timestamp-down",
+  "options": {
+   "timestampRoundingMinutes": 15
+  },
+  "expected": "* a\n<2026-05-18 Mon 10:4¦5>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
+  "command": "timestamp-up",
+  "options": {
+   "timestampRoundingMinutes": 7
+  },
+  "expected": "* a\n<2026-05-18 Mon 11:0¦3>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
+  "command": "timestamp-down",
+  "options": {
+   "timestampRoundingMinutes": 7
+  },
+  "expected": "* a\n<2026-05-18 Mon 10:5¦6>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [2026-05-18 Mon 10:5¦8]--[2026-05-18 Mon 11:20] =>  0:22\n",
+  "command": "shift-up",
+  "expected": "* a\nCLOCK: [2026-05-18 Mon 11:0¦0]--[2026-05-18 Mon 11:20] =>  0:20\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [2026-05-18 Mon 10:5¦8]--[2026-05-18 Mon 11:20] =>  0:22\n",
+  "command": "shift-down",
+  "expected": "* a\nCLOCK: [2026-05-18 Mon 10:5¦5]--[2026-05-18 Mon 11:20] =>  0:25\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n  CLOCK: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 11:2¦0] =>  0:22\n",
+  "command": "shift-up",
+  "expected": "* a\n  CLOCK: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 11:2¦5] =>  0:27\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\n  CLOCK: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 11:2¦0] =>  0:22\n",
+  "command": "shift-down",
+  "expected": "* a\n  CLOCK: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 11:1¦5] =>  0:17\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [2026-05-1¦8 Mon 10:58]--[2026-05-19 Tue 11:20] => 24:22\n",
+  "command": "shift-up",
+  "expected": "* a\nCLOCK: [2026-05-1¦9 Tue 10:58]--[2026-05-19 Tue 11:20] =>  0:22\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [2026-05-1¦8 Mon 10:58]--[2026-05-19 Tue 11:20] => 24:22\n",
+  "command": "shift-down",
+  "expected": "* a\nCLOCK: [2026-05-1¦7 Sun 10:58]--[2026-05-19 Tue 11:20] => 48:22\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [2026-05-18 Mon 10:5¦8]\n",
+  "command": "shift-up",
+  "expected": "* a\nCLOCK: [2026-05-18 Mon 11:0¦0]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [2026-05-18 Mon 10:5¦8]\n",
+  "command": "shift-down",
+  "expected": "* a\nCLOCK: [2026-05-18 Mon 10:5¦5]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [2026-05-18 10:58]--[2026-05-18 Mon 1¦1:20]\n",
+  "command": "shift-up",
+  "expected": "* a\nCLOCK: [2026-05-18 Mon 10:58]--[2026-05-18 M¦on 12:20] =>  1:22\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [2026-05-18 10:58]--[2026-05-18 Mon 1¦1:20]\n",
+  "command": "shift-down",
+  "expected": "* a\nCLOCK: [2026-05-18 Mon 10:58]--[2026-05-18 M¦on 10:20] => -0:38\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nclock: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 1¦1:20] => x\n",
+  "command": "shift-up",
+  "expected": "* a\nclock: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 1¦2:20] =>  1:22\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nclock: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 1¦1:20] => x\n",
+  "command": "shift-down",
+  "expected": "* a\nclock: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 1¦0:20] => -0:38\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 1¦1:20] rest\n",
+  "command": "shift-up",
+  "expected": "* a\nCLOCK: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 1¦2:20] rest =>  1:22\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 1¦1:20] rest\n",
+  "command": "shift-down",
+  "expected": "* a\nCLOCK: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 1¦0:20] rest => -0:38\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [nonsense]--[2026-05-18 Mon 1¦1:20]\n",
+  "command": "shift-up",
+  "expected": "ERROR: (user-error \"Not at a timestamp\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [nonsense]--[2026-05-18 Mon 1¦1:20]\n",
+  "command": "shift-down",
+  "expected": "ERROR: (user-error \"Not at a timestamp\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a\nCLOCK: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 11:2¦0] =>  0:22\n",
+  "command": "shift-down",
+  "count": 30,
+  "expected": "* a\nCLOCK: [2026-05-18 Mon 10:58]--[2026-05-18 Mon 10:5¦0] => -0:08\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "shift-up",
+  "expected": "* [#B] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "shift-down",
+  "expected": "* [#B] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "shift-left",
+  "expected": "* DONE a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* a¦\n",
+  "command": "shift-right",
+  "expected": "* TODO a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦ :x:\n",
+  "command": "shift-up",
+  "expected": "* TODO [#B] a¦                                                             :x:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦ :x:\n",
+  "command": "shift-down",
+  "expected": "* TODO [#B] a¦                                                             :x:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦ :x:\n",
+  "command": "shift-left",
+  "expected": "* a¦                                                                       :x:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦ :x:\n",
+  "command": "shift-right",
+  "expected": "* DONE a¦                                                                  :x:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] a¦\n",
+  "command": "shift-up",
+  "expected": "* DONE a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] a¦\n",
+  "command": "shift-down",
+  "expected": "* DONE [#B] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] a¦\n",
+  "command": "shift-left",
+  "expected": "* TODO [#A] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] a¦\n",
+  "command": "shift-right",
+  "expected": "* [#A] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "*¦ \n",
+  "command": "shift-up",
+  "expected": "*¦ [#B] \n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "*¦ \n",
+  "command": "shift-down",
+  "expected": "*¦ [#B] \n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "*¦ \n",
+  "command": "shift-left",
+  "expected": "* DONE ¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "*¦ \n",
+  "command": "shift-right",
+  "expected": "* TODO ¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "** TODO b <2026-05-18 Mon +1w>¦\n",
+  "command": "shift-up",
+  "expected": "** TODO b <2026-05-18 Mon +1w>¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "** TODO b <2026-05-18 Mon +1w>¦\n",
+  "command": "shift-down",
+  "expected": "** TODO b <2026-05-18 Mon +1w>¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "** TODO b <2026-05-18 Mon +1w>¦\n",
+  "command": "shift-left",
+  "expected": "** TODO b <2026-05-17 Sun +1w>¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "** TODO b <2026-05-18 Mon +1w>¦\n",
+  "command": "shift-right",
+  "expected": "** TODO b <2026-05-19 Tue +1w>¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO ¦a\nSCHEDULED: <2026-05-16 Sat +1w>\n",
+  "command": "shift-up",
+  "expected": "* TODO [#B] ¦a\nSCHEDULED: <2026-05-16 Sat +1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO ¦a\nSCHEDULED: <2026-05-16 Sat +1w>\n",
+  "command": "shift-down",
+  "expected": "* TODO [#B] ¦a\nSCHEDULED: <2026-05-16 Sat +1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO ¦a\nSCHEDULED: <2026-05-16 Sat +1w>\n",
+  "command": "shift-left",
+  "expected": "* ¦a\nSCHEDULED: <2026-05-16 Sat +1w>\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO ¦a\nSCHEDULED: <2026-05-16 Sat +1w>\n",
+  "command": "shift-right",
+  "expected": "* TODO ¦a\nSCHEDULED: <2026-05-23 Sat +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE\n* NEXT a¦\n",
+  "command": "shift-up",
+  "expected": "#+TODO: TODO NEXT | DONE\n* NEXT [#B] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE\n* NEXT a¦\n",
+  "command": "shift-down",
+  "expected": "#+TODO: TODO NEXT | DONE\n* NEXT [#B] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE\n* NEXT a¦\n",
+  "command": "shift-left",
+  "expected": "#+TODO: TODO NEXT | DONE\n* TODO a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE\n* NEXT a¦\n",
+  "command": "shift-right",
+  "expected": "#+TODO: TODO NEXT | DONE\n* DONE a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "shift-right",
+  "options": {
+   "logDone": "time"
+  },
+  "expected": "* DONE a¦\nCLOSED: [2026-05-18 Mon 10:30]\n"
+ }
+]

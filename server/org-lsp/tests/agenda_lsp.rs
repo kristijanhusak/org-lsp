@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::thread::JoinHandle;
 
 use expect_test::expect;
-use lsp_server::{Connection, Message, Notification, Request, RequestId, Response};
+use lsp_server::{Connection, Message, Notification, Request, RequestId, Response, ResponseError};
 use serde_json::{json, Value};
 
 const VIEW: &str = "org-agenda:/Org%20Agenda";
@@ -36,6 +36,8 @@ struct Client {
     choice: Option<String>,
     /// The version of the agenda document, as the editor counts it.
     view_version: i32,
+    /// The version of the Org file that `edit` changes.
+    file_version: i32,
     initialize: Value,
 }
 
@@ -50,6 +52,7 @@ impl Client {
             received: Vec::new(),
             choice: None,
             view_version: 0,
+            file_version: 1,
             initialize: Value::Null,
         };
         let params = json!({ "capabilities": capabilities, "initializationOptions": options, "rootUri": root });
@@ -83,15 +86,18 @@ impl Client {
     }
 
     fn request(&mut self, method: &str, params: Value) -> Result<Value, String> {
+        self.request_raw(method, params).map_err(|error| error.message)
+    }
+
+    /// Like `request`, with the whole error: its message and its data.
+    fn request_raw(&mut self, method: &str, params: Value) -> Result<Value, ResponseError> {
         self.next_id += 1;
         let id = RequestId::from(self.next_id);
         let request = Request { id: id.clone(), method: method.to_string(), params };
         self.connection.sender.send(Message::Request(request)).unwrap();
         loop {
             match self.connection.receiver.recv().expect("server answers") {
-                Message::Response(response) if response.id == id => {
-                    return response.response_result.map_err(|error| error.message)
-                }
+                Message::Response(response) if response.id == id => return response.response_result,
                 Message::Request(request) => self.answer(request),
                 _ => {}
             }
@@ -118,6 +124,41 @@ impl Client {
             .unwrap_or_else(|error| panic!("{command} failed: {error}"));
         self.settle();
         std::mem::take(&mut self.received)
+    }
+
+    /// Run an editing command at `position` (line and character) of `uri`
+    /// and apply the edit it asks for to `text`, as an editor would: the
+    /// document changes, and the server hears about it.
+    fn edit(
+        &mut self,
+        command: &str,
+        uri: &str,
+        position: (u32, u32),
+        extra: Value,
+        text: &mut String,
+    ) -> Vec<Request> {
+        self.received.clear();
+        let mut context =
+            json!({ "textDocument": { "uri": uri }, "position": { "line": position.0, "character": position.1 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        self.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .unwrap_or_else(|error| panic!("{command} failed: {error}"));
+        self.settle();
+        let mut requests = std::mem::take(&mut self.received);
+        if let Some(request) = requests.iter().find(|request| request.method == "workspace/applyEdit") {
+            let (file, edits) = edits_of(request);
+            *text = apply(text, &edits);
+            self.file_version += 1;
+            self.notify(
+                "textDocument/didChange",
+                json!({ "textDocument": { "uri": file, "version": self.file_version }, "contentChanges": [{ "text": text }] }),
+            );
+            self.settle();
+            requests.append(&mut self.received);
+        }
+        requests
     }
 
     fn open(&self, uri: &str, text: &str) {
@@ -357,7 +398,18 @@ fn opens_the_agenda_from_open_documents() {
         )
         .unwrap();
     let kinds: Vec<&str> = actions.as_array().unwrap().iter().map(|action| action["kind"].as_str().unwrap()).collect();
-    assert_eq!(kinds, ["org.todo.next", "org.todo.previous", "org.agenda.goto"]);
+    assert_eq!(
+        kinds,
+        [
+            "org.todo.next",
+            "org.todo.previous",
+            "org.priority.up",
+            "org.priority.down",
+            "org.date.later",
+            "org.date.earlier",
+            "org.agenda.goto"
+        ]
+    );
     assert_eq!(actions[0]["command"]["arguments"][0]["position"]["line"], 12);
     client.shutdown();
 }
@@ -635,5 +687,249 @@ fn needs_a_client_that_can_show_documents() {
     assert_eq!(error, "This editor cannot open documents on the server's request");
     let error = client.request("workspace/executeCommand", json!({ "command": "org.unknown" })).unwrap_err();
     assert_eq!(error, "org-lsp has no command `org.unknown`");
+    client.shutdown();
+}
+
+/// The agenda lines from `from` up to the next line that starts with `until`.
+fn lines_between(text: &str, from: &str, until: &str) -> String {
+    let mut out = String::new();
+    let mut inside = false;
+    for line in text.lines() {
+        if line.starts_with(until) && inside {
+            break;
+        }
+        inside |= line.starts_with(from);
+        if inside {
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    out
+}
+
+#[test]
+fn changes_priority_from_the_agenda_and_the_cursor_follows() {
+    let mut client = Client::editor(clock(), None);
+    let mut work = WORK.to_string();
+    client.open("file:///org/work.org", WORK);
+    client.open("file:///org/home.org", HOME);
+    client.command("org.agenda.list", VIEW, 0);
+    let text = client.show_view();
+    let line_of = |text: &str, needle: &str| text.lines().position(|line| line.contains(needle)).unwrap() as u32;
+    // "Call the client" is due in two days and stands below today's
+    // scheduled entry.
+    let call = line_of(&text, "In   2 d.:");
+    assert_eq!(text.lines().nth(call as usize - 1).unwrap(), "  home:       Sched. 2x:  TODO Water plants");
+
+    // Up from no priority: the default, B. Nothing moves in the agenda.
+    let requests = client.edit("org.priority.up", VIEW, (call, 14), json!({}), &mut work);
+    assert_eq!(methods(&requests), ["workspace/applyEdit", "workspace/textDocumentContent/refresh"]);
+    let (uri, edits) = edits_of(&requests[0]);
+    assert_eq!(uri, "file:///org/work.org");
+    assert_eq!(
+        edits,
+        [
+            json!({ "range": { "start": { "line": 3, "character": 7 }, "end": { "line": 3, "character": 7 } }, "newText": "[#B] " })
+        ]
+    );
+    client.received.clear();
+    let text = client.refetch_view();
+    client.settle();
+    assert_eq!(methods(&client.received), [] as [&str; 0]);
+    assert_eq!(text.lines().nth(call as usize).unwrap(), "  work:       In   2 d.:  TODO [#B] Call the client");
+
+    // Up again: A, which sorts the entry above the other one. The cursor
+    // goes with it, in its column, once the editor shows the new text.
+    let requests = client.edit("org.priority.up", VIEW, (call, 14), json!({}), &mut work);
+    assert_eq!(methods(&requests), ["workspace/applyEdit", "workspace/textDocumentContent/refresh"]);
+    client.received.clear();
+    let text = client.refetch_view();
+    client.settle();
+    assert_eq!(methods(&client.received), ["window/showDocument"]);
+    assert_eq!(client.received[0].params["selection"]["start"], json!({ "line": call - 1, "character": 14 }));
+    assert_eq!(
+        lines_between(&text, "  work:       In", "Tuesday"),
+        "  work:       In   2 d.:  TODO [#A] Call the client\n  home:       Sched. 2x:  TODO Water plants\n"
+    );
+    let call = call - 1;
+
+    // Past the highest priority comes none, and from there the same key
+    // goes on at the lowest.
+    client.edit("org.priority.up", VIEW, (call, 0), json!({}), &mut work);
+    assert_eq!(work.lines().nth(3).unwrap(), "* TODO Call [[https://example.com][the client]]");
+    let text = client.refetch_view();
+    let call = line_of(&text, "In   2 d.:");
+    client.edit("org.priority.up", VIEW, (call, 0), json!({}), &mut work);
+    assert_eq!(work.lines().nth(3).unwrap(), "* TODO [#C] Call [[https://example.com][the client]]");
+    // The other direction, from the file this time.
+    client.edit("org.priority.down", "file:///org/work.org", (4, 3), json!({}), &mut work);
+    assert_eq!(work.lines().nth(3).unwrap(), "* TODO Call [[https://example.com][the client]]");
+    // Something else happened in between: the cycle starts over.
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": "file:///org/work.org", "version": 50 }, "contentChanges": [{ "text": work }] }),
+    );
+    client.edit("org.priority.down", "file:///org/work.org", (4, 3), json!({}), &mut work);
+    assert_eq!(work.lines().nth(3).unwrap(), "* TODO [#B] Call [[https://example.com][the client]]");
+    client.shutdown();
+}
+
+#[test]
+fn changes_dates_from_the_agenda() {
+    const TRIP: &str =
+        "* Trip <2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n";
+    let mut client = Client::editor(clock(), None);
+    let mut home = TRIP.to_string();
+    client.open("file:///org/home.org", TRIP);
+    client.command("org.agenda.list", VIEW, 0);
+    let text = client.show_view();
+    let line_of = |text: &str, needle: &str| text.lines().position(|line| line.contains(needle)).unwrap() as u32;
+
+    // A date that has passed goes to today with the first step.
+    let plants = line_of(&text, "Sched. 2x:");
+    let requests = client.edit("org.date.later", VIEW, (plants, 0), json!({}), &mut home);
+    assert_eq!(home.lines().nth(2).unwrap(), "SCHEDULED: <2026-05-18 Mon +1w>");
+    let (_, edits) = edits_of(&requests[0]);
+    // Only what differs is replaced.
+    assert_eq!(
+        edits,
+        [
+            json!({ "range": { "start": { "line": 2, "character": 21 }, "end": { "line": 2, "character": 26 } }, "newText": "8 Mon" })
+        ]
+    );
+    let text = client.refetch_view();
+    assert_eq!(text.lines().nth(plants as usize).unwrap(), "  home:       Scheduled:  TODO Water plants");
+
+    // From there, day by day. The entry leaves today's list, and the
+    // cursor goes with it.
+    client.received.clear();
+    client.edit("org.date.later", VIEW, (plants, 0), json!({}), &mut home);
+    assert_eq!(home.lines().nth(2).unwrap(), "SCHEDULED: <2026-05-19 Tue +1w>");
+    client.received.clear();
+    let text = client.refetch_view();
+    client.settle();
+    assert_eq!(methods(&client.received), ["window/showDocument"]);
+    let plants = line_of(&text, "Water plants");
+    assert_eq!(client.received[0].params["selection"]["start"]["line"], plants);
+    assert_eq!(text.lines().nth(plants as usize - 1).unwrap(), "Tuesday    19 May 2026");
+
+    // A count is a number of days.
+    client.edit("org.date.earlier", VIEW, (plants, 0), json!({ "count": 3 }), &mut home);
+    assert_eq!(home.lines().nth(2).unwrap(), "SCHEDULED: <2026-05-16 Sat +1w>");
+
+    // A date range moves as a whole, from either of its days.
+    let text = client.refetch_view();
+    let trip = line_of(&text, "(2/2):  Trip");
+    client.edit("org.date.later", VIEW, (trip, 0), json!({}), &mut home);
+    assert_eq!(home.lines().next().unwrap(), "* Trip <2026-05-22 Fri>--<2026-05-23 Sat>");
+
+    // The TODO list has entries, but no dates.
+    client.command("org.agenda.todos", VIEW, 0);
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 } });
+    let error = client
+        .request("workspace/executeCommand", json!({ "command": "org.date.later", "arguments": [context] }))
+        .unwrap_err();
+    assert_eq!(error, "The TODO list shows no dates to change");
+    // Its lines offer no date actions either.
+    let actions = client
+        .request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": VIEW },
+                "range": { "start": { "line": 1, "character": 0 }, "end": { "line": 1, "character": 0 } },
+                "context": { "diagnostics": [] }
+            }),
+        )
+        .unwrap();
+    let kinds: Vec<&str> = actions.as_array().unwrap().iter().map(|action| action["kind"].as_str().unwrap()).collect();
+    assert_eq!(
+        kinds,
+        ["org.todo.next", "org.todo.previous", "org.priority.up", "org.priority.down", "org.agenda.goto"]
+    );
+    client.shutdown();
+}
+
+#[test]
+fn changes_timestamps_and_priorities_in_a_file() {
+    const NOTES: &str = "* TODO Call them :work:\nSCHEDULED: <2026-05-18 Mon 10:58-11:30 +1w>\nSome text.\n";
+    const URI: &str = "file:///org/notes.org";
+    let mut client = Client::editor(clock(), None);
+    let mut notes = NOTES.to_string();
+    client.open(URI, NOTES);
+    let line = |text: &str, number: usize| text.lines().nth(number).unwrap().to_string();
+
+    // The part under the cursor changes: the day, …
+    client.edit("org.timestamp.up", URI, (1, 21), json!({}), &mut notes);
+    assert_eq!(line(&notes, 1), "SCHEDULED: <2026-05-19 Tue 10:58-11:30 +1w>");
+    // … the minutes, in steps of five and with the end of the range, …
+    client.edit("org.timestamp.up", URI, (1, 30), json!({}), &mut notes);
+    assert_eq!(line(&notes, 1), "SCHEDULED: <2026-05-19 Tue 11:00-11:35 +1w>");
+    // … by exactly the count that was given, …
+    client.edit("org.timestamp.down", URI, (1, 30), json!({ "count": 2 }), &mut notes);
+    assert_eq!(line(&notes, 1), "SCHEDULED: <2026-05-19 Tue 10:58-11:33 +1w>");
+    // … and the repeater.
+    client.edit("org.timestamp.up", URI, (1, 40), json!({}), &mut notes);
+    assert_eq!(line(&notes, 1), "SCHEDULED: <2026-05-19 Tue 10:58-11:33 +2w>");
+    // On a bracket the timestamp becomes inactive.
+    client.edit("org.timestamp.up", URI, (1, 11), json!({}), &mut notes);
+    assert_eq!(line(&notes, 1), "SCHEDULED: [2026-05-19 Tue 10:58-11:33 +2w]");
+    // A day later, wherever in the timestamp the cursor is.
+    client.edit("org.date.later", URI, (1, 14), json!({ "count": 7 }), &mut notes);
+    assert_eq!(line(&notes, 1), "SCHEDULED: [2026-05-26 Tue 10:58-11:33 +2w]");
+
+    // The shifted cursor keys act on what the cursor is on.
+    client.edit("org.shift.down", URI, (1, 21), json!({}), &mut notes);
+    assert_eq!(line(&notes, 1), "SCHEDULED: [2026-05-25 Mon 10:58-11:33 +2w]");
+    client.edit("org.shift.left", URI, (1, 30), json!({}), &mut notes);
+    assert_eq!(line(&notes, 1), "SCHEDULED: [2026-05-24 Sun 10:58-11:33 +2w]");
+    client.edit("org.shift.up", URI, (0, 3), json!({}), &mut notes);
+    assert_eq!(line(&notes, 0), format!("* TODO [#B] Call them{}:work:", " ".repeat(50)));
+    client.edit("org.shift.right", URI, (0, 3), json!({}), &mut notes);
+    assert_eq!(line(&notes, 0), format!("* DONE [#B] Call them{}:work:", " ".repeat(50)));
+    // The priority commands work from anywhere in the entry.
+    client.edit("org.priority.up", URI, (2, 4), json!({}), &mut notes);
+    assert_eq!(line(&notes, 0), format!("* DONE [#A] Call them{}:work:", " ".repeat(50)));
+
+    // Where a command means nothing, the server says so in a way that an
+    // editor can tell from a failure: the key may then do something else.
+    let run = |client: &mut Client, command: &str, uri: &str, position: (u32, u32)| {
+        let context =
+            json!({ "textDocument": { "uri": uri }, "position": { "line": position.0, "character": position.1 } });
+        client.request_raw("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+    };
+    for (command, position) in [("org.timestamp.up", (2, 4)), ("org.shift.up", (2, 4)), ("org.date.later", (0, 3))] {
+        let error = run(&mut client, command, URI, position).unwrap_err();
+        assert_eq!(error.data, Some(json!({ "notApplicable": true })), "{command}: {}", error.message);
+    }
+    let error = run(&mut client, "org.timestamp.up", URI, (2, 4)).unwrap_err();
+    assert_eq!(error.message, "Not at a timestamp");
+    // A command that applies but cannot be done is a plain failure.
+    client.open("file:///org/empty.org", "* a\n");
+    client.command("org.agenda.todos", VIEW, 0);
+    let error = run(&mut client, "org.timestamp.up", VIEW, (0, 0)).unwrap_err();
+    assert_eq!((error.message.as_str(), error.data), ("No entry on this line", None));
+
+    // The actions at a timestamp.
+    let actions = client
+        .request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": URI },
+                "range": { "start": { "line": 1, "character": 21 }, "end": { "line": 1, "character": 21 } },
+                "context": { "diagnostics": [], "only": ["org.timestamp", "org.date"] }
+            }),
+        )
+        .unwrap();
+    let titles: Vec<&str> =
+        actions.as_array().unwrap().iter().map(|action| action["title"].as_str().unwrap()).collect();
+    assert_eq!(
+        titles,
+        [
+            "Increase the part of the timestamp at the cursor",
+            "Decrease the part of the timestamp at the cursor",
+            "Move the date one day later",
+            "Move the date one day earlier"
+        ]
+    );
     client.shutdown();
 }

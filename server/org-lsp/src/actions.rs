@@ -6,14 +6,40 @@
 
 use lsp_types::{CodeAction, CodeActionKind};
 use org_core::date::DateTime;
-use org_core::todo::{self, Settings, Target};
-use org_syntax::{ast, SyntaxNode, TextRange, TextSize, TodoKeywords};
+use org_core::edit::{self, Call, Command, Direction, Settings};
+use org_core::priority::Action as Priority;
+use org_core::todo::{self, Target};
+use org_syntax::{Parse, TextRange, TextSize};
 
-pub const TODO_NEXT: &str = "org.todo.next";
-pub const TODO_PREVIOUS: &str = "org.todo.previous";
+use crate::commands::{
+    self, DATE_EARLIER, DATE_LATER, PRIORITY_DOWN, PRIORITY_UP, SHIFT_DOWN, SHIFT_LEFT, SHIFT_RIGHT, SHIFT_UP,
+    TIMESTAMP_DOWN, TIMESTAMP_UP, TODO_NEXT, TODO_PREVIOUS,
+};
 
 /// Every kind the server can return, for the capabilities announcement.
-pub const KINDS: &[&str] = &[TODO_NEXT, TODO_PREVIOUS];
+/// The shifted cursor keys are not among them: what they do is offered
+/// under its own name.
+pub const KINDS: &[&str] =
+    &[TODO_NEXT, TODO_PREVIOUS, PRIORITY_UP, PRIORITY_DOWN, TIMESTAMP_UP, TIMESTAMP_DOWN, DATE_LATER, DATE_EARLIER];
+
+/// The command of this name as it runs in an Org file.
+pub fn command(id: &str) -> Option<Command> {
+    Some(match id {
+        TODO_NEXT => Command::Todo(Target::Next),
+        TODO_PREVIOUS => Command::Todo(Target::Previous),
+        PRIORITY_UP => Command::Priority(Priority::Up),
+        PRIORITY_DOWN => Command::Priority(Priority::Down),
+        TIMESTAMP_UP => Command::Timestamp { forward: true },
+        TIMESTAMP_DOWN => Command::Timestamp { forward: false },
+        DATE_LATER => Command::Date { forward: true },
+        DATE_EARLIER => Command::Date { forward: false },
+        SHIFT_UP => Command::Shift(Direction::Up),
+        SHIFT_DOWN => Command::Shift(Direction::Down),
+        SHIFT_LEFT => Command::Shift(Direction::Left),
+        SHIFT_RIGHT => Command::Shift(Direction::Right),
+        _ => return None,
+    })
+}
 
 /// Whether an action of `kind` was asked for. `only` filters hierarchically:
 /// `org` and `org.todo` both select `org.todo.next`.
@@ -41,80 +67,67 @@ pub struct Action {
     pub edits: Vec<Edit>,
 }
 
-/// The edits that change the TODO state of the entry containing `offset`,
-/// with everything `org-todo` does around it: logging, repeaters, tags,
-/// statistics cookies.
-pub fn todo_edits(
-    text: &str,
-    keywords: &TodoKeywords,
-    offset: usize,
-    target: &Target,
-    settings: &Settings,
-    now: DateTime,
-) -> Result<Vec<Edit>, String> {
-    let changed = todo::change_state(text, keywords, offset, target, settings, now)?;
-    // Line edits to byte ranges of the old text.
+/// The edits that turn `old` into `new`: one for each run of changed
+/// lines, narrowed to the characters that differ, so that the cursor and
+/// marks around a change stay where they are.
+pub fn edits_between(old: &str, new: &str) -> Vec<Edit> {
     let mut starts: Vec<usize> = vec![0];
-    starts.extend(text.match_indices('\n').map(|(index, _)| index + 1));
-    let offset_of = |line: usize| starts.get(line).copied().unwrap_or(text.len()).min(text.len());
-    let edits = todo::edits(text, &changed)
+    starts.extend(old.match_indices('\n').map(|(index, _)| index + 1));
+    let offset_of = |line: usize| starts.get(line).copied().unwrap_or(old.len()).min(old.len());
+    todo::edits(old, new)
         .into_iter()
         .map(|edit| {
-            // Narrow the edit to what really changes, so that the cursor
-            // and marks around it stay where they are.
             let (start, end) = (offset_of(edit.start), offset_of(edit.end));
-            let (old, new) = (&text[start..end], edit.text.as_str());
+            let (before, after) = (&old[start..end], edit.text.as_str());
             let prefix: usize =
-                old.chars().zip(new.chars()).take_while(|(a, b)| a == b).map(|(a, _)| a.len_utf8()).sum();
-            let suffix: usize = old[prefix..]
+                before.chars().zip(after.chars()).take_while(|(a, b)| a == b).map(|(a, _)| a.len_utf8()).sum();
+            let suffix: usize = before[prefix..]
                 .chars()
                 .rev()
-                .zip(new[prefix..].chars().rev())
+                .zip(after[prefix..].chars().rev())
                 .take_while(|(a, b)| a == b)
                 .map(|(a, _)| a.len_utf8())
                 .sum();
             Edit {
                 range: TextRange::new(TextSize::new((start + prefix) as u32), TextSize::new((end - suffix) as u32)),
-                new_text: new[prefix..new.len() - suffix].to_string(),
+                new_text: after[prefix..after.len() - suffix].to_string(),
             }
         })
-        .collect();
-    Ok(edits)
+        .collect()
 }
 
-/// The actions available with the cursor at `offset`.
+/// The actions available with the cursor at byte `offset`: every command
+/// that would change something there.
 pub fn actions(
-    root: &SyntaxNode,
     text: &str,
-    todo: &TodoKeywords,
-    offset: TextSize,
+    parse: &Parse,
+    offset: usize,
     only: Option<&[CodeActionKind]>,
     settings: &Settings,
     now: DateTime,
 ) -> Vec<Action> {
-    let Some(headline) = ast::headline_at(root, offset) else { return Vec::new() };
-    let mut out = Vec::new();
-    if todo.is_empty() {
-        return out;
-    }
-    let current = headline.todo_keyword();
+    let call = Call { count: None, repeated: false, now };
+    let keywords = parse.todo_keywords();
+    let headline = org_syntax::ast::headline_at(&parse.syntax(), TextSize::new(offset as u32));
+    let current = headline.as_ref().and_then(|headline| headline.todo_keyword());
     let current = current.as_ref().map(|token| token.text());
-    for (kind, direction, target, to) in [
-        (TODO_NEXT, "forward", Target::Next, todo.next(current)),
-        (TODO_PREVIOUS, "backward", Target::Previous, todo.previous(current)),
-    ] {
-        if !requested(kind, only) {
-            continue;
-        }
-        if let Ok(edits) = todo_edits(text, todo, offset.into(), &target, settings, now) {
-            out.push(Action {
-                kind,
-                title: format!("Cycle TODO state {direction} (→ {})", to.unwrap_or("none")),
-                edits,
-            });
-        }
-    }
-    out
+    KINDS
+        .iter()
+        .filter(|kind| requested(kind, only))
+        .filter_map(|kind| {
+            let title = match *kind {
+                TODO_NEXT | TODO_PREVIOUS if keywords.is_empty() => return None,
+                TODO_NEXT => format!("Cycle TODO state forward (→ {})", keywords.next(current).unwrap_or("none")),
+                TODO_PREVIOUS => {
+                    format!("Cycle TODO state backward (→ {})", keywords.previous(current).unwrap_or("none"))
+                }
+                other => commands::title(other).to_string(),
+            };
+            let outcome = edit::run(&command(kind)?, text, parse, offset, &call, settings).ok()?;
+            let edits = edits_between(text, &outcome.text);
+            (!edits.is_empty()).then_some(Action { kind, title, edits })
+        })
+        .collect()
 }
 
 impl Action {
@@ -135,6 +148,7 @@ impl Action {
 #[cfg(test)]
 mod tests {
     use org_core::date::Date;
+    use org_syntax::{ast, TodoKeywords};
 
     use super::*;
 
@@ -145,15 +159,7 @@ mod tests {
         let parse = org_syntax::parse(&text, &TodoKeywords::default());
         let only = [CodeActionKind::from(kind.to_string())];
         let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);
-        let found = actions(
-            &parse.syntax(),
-            &text,
-            parse.todo_keywords(),
-            TextSize::new(offset as u32),
-            Some(&only),
-            &Settings::default(),
-            now,
-        );
+        let found = actions(&text, &parse, offset, Some(&only), &Settings::default(), now);
         assert!(found.len() <= 1);
         let action = found.into_iter().next()?;
         let mut text = text;
@@ -247,28 +253,53 @@ SCHEDULED: <2026-05-23 Sat +1w>
     }
 
     #[test]
-    fn only_filters_by_kind_prefix() {
-        let kinds = |only: &[&str]| -> Vec<&'static str> {
+    fn priorities_and_timestamps() {
+        assert_eq!(apply("* TODO a\nbo¦dy\n", PRIORITY_UP).unwrap(), "* TODO [#B] a\nbody\n");
+        assert_eq!(apply("* [#B] a¦\n", PRIORITY_DOWN).unwrap(), "* [#C] a\n");
+        assert_eq!(apply("* a\n<2026-05-1¦8 Mon>\n", TIMESTAMP_UP).unwrap(), "* a\n<2026-05-19 Tue>\n");
+        assert_eq!(apply("* a\n<2026-0¦5-18 Mon>\n", TIMESTAMP_DOWN).unwrap(), "* a\n<2026-04-18 Sat>\n");
+        assert_eq!(apply("* a\n<2026-0¦5-18 Mon>\n", DATE_LATER).unwrap(), "* a\n<2026-05-19 Tue>\n");
+        assert_eq!(apply("intro <2026-05-18 Mon>¦\n", DATE_EARLIER).unwrap(), "intro <2026-05-17 Sun>\n");
+        // Away from a timestamp there is nothing to offer.
+        assert_eq!(apply("* a\nbo¦dy <2026-05-18 Mon>\n", TIMESTAMP_UP), None);
+        assert_eq!(apply("intro¦\n* a\n", PRIORITY_UP), None);
+    }
+
+    #[test]
+    fn offers_what_applies_at_the_cursor() {
+        let kinds = |marked: &str, only: &[&str]| -> Vec<&'static str> {
+            let offset = marked.find('¦').expect("cursor marker");
+            let text = marked.replacen('¦', "", 1);
             let only: Vec<CodeActionKind> = only.iter().map(|kind| CodeActionKind::from(kind.to_string())).collect();
-            let parse = org_syntax::parse("* a\n", &TodoKeywords::default());
+            let parse = org_syntax::parse(&text, &TodoKeywords::default());
             let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);
-            actions(
-                &parse.syntax(),
-                "* a\n",
-                parse.todo_keywords(),
-                TextSize::new(0),
-                Some(&only),
-                &Settings::default(),
-                now,
-            )
-            .into_iter()
-            .map(|action| action.kind)
-            .collect()
+            let only = (!only.is_empty()).then_some(only.as_slice());
+            actions(&text, &parse, offset, only, &Settings::default(), now)
+                .into_iter()
+                .map(|action| action.kind)
+                .collect()
         };
-        assert_eq!(kinds(&["org"]), [TODO_NEXT, TODO_PREVIOUS]);
-        assert_eq!(kinds(&["org.todo"]), [TODO_NEXT, TODO_PREVIOUS]);
-        assert_eq!(kinds(&["org.todo.next"]), [TODO_NEXT]);
-        assert_eq!(kinds(&["org.to"]), [] as [&str; 0]);
-        assert_eq!(kinds(&["quickfix", "refactor"]), [] as [&str; 0]);
+        let on_entry = [TODO_NEXT, TODO_PREVIOUS, PRIORITY_UP, PRIORITY_DOWN];
+        assert_eq!(kinds("* a¦\n", &[]), on_entry);
+        assert_eq!(kinds("* a¦\n", &["org"]), on_entry);
+        assert_eq!(kinds("* a¦\n", &["org.todo"]), [TODO_NEXT, TODO_PREVIOUS]);
+        assert_eq!(kinds("* a¦\n", &["org.todo.next"]), [TODO_NEXT]);
+        assert_eq!(kinds("* a¦\n", &["org.to"]), [] as [&str; 0]);
+        assert_eq!(kinds("* a¦\n", &["quickfix", "refactor"]), [] as [&str; 0]);
+        assert_eq!(
+            kinds("* a\n<2026-05-1¦8 Mon>\n", &[]),
+            [
+                TODO_NEXT,
+                TODO_PREVIOUS,
+                PRIORITY_UP,
+                PRIORITY_DOWN,
+                TIMESTAMP_UP,
+                TIMESTAMP_DOWN,
+                DATE_LATER,
+                DATE_EARLIER
+            ]
+        );
+        assert_eq!(kinds("<2026-05-1¦8 Mon>\n", &["org.date"]), [DATE_LATER, DATE_EARLIER]);
+        assert_eq!(kinds("intro¦\n", &[]), [] as [&str; 0]);
     }
 }

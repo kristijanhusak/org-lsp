@@ -7,6 +7,7 @@
 //! timestamps and date ranges the agenda shows. The agenda and other
 //! commands then work on this flat model instead of the tree.
 
+use crate::priority::Priorities;
 use org_syntax::{ast, ast::Headline, Parse, SyntaxKind, SyntaxKind::*, SyntaxNode, TodoKeywords, TokenAtOffset};
 
 /// A tag on an entry, and whether it comes from a parent or the file.
@@ -118,6 +119,8 @@ pub struct Outline {
     pub category: String,
     pub file_tags: Vec<String>,
     pub todo: TodoKeywords,
+    /// The priorities the file sets with `#+PRIORITIES:`.
+    pub priorities: Option<Priorities>,
     pub entries: Vec<Entry>,
     pub stamps: Vec<Stamp>,
     pub blocks: Vec<Block>,
@@ -145,6 +148,8 @@ impl Outline {
             category: shown_category(&category),
             file_tags,
             todo,
+            // Only the first such line counts.
+            priorities: keyword_values(&root, "PRIORITIES").first().and_then(|value| Priorities::from_keyword(value)),
             entries: Vec::new(),
             stamps: Vec::new(),
             blocks: Vec::new(),
@@ -417,7 +422,7 @@ fn shown_category(value: &str) -> String {
 }
 
 /// Stand-alone keyword lines with the given key, in document order.
-fn keyword_values(root: &SyntaxNode, key: &str) -> Vec<String> {
+pub(crate) fn keyword_values(root: &SyntaxNode, key: &str) -> Vec<String> {
     let wanted = format!("#+{key}:");
     root.descendants()
         .filter(|node| node.kind() == KEYWORD && !ast::is_affiliated_keyword(node))

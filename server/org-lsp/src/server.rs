@@ -5,7 +5,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use lsp_server::{Connection, ErrorCode, Message, Notification, Request, RequestId, Response};
+use lsp_server::{Connection, ErrorCode, Message, Notification, Request, RequestId, Response, ResponseError};
 use lsp_types::notification::{
     DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, DidSaveTextDocument, Notification as _,
     ShowMessage,
@@ -26,9 +26,10 @@ use lsp_types::{
 };
 use org_core::agenda::{self, Config as AgendaConfig, Now, Span};
 use org_core::date::DateTime;
+use org_core::edit::{self, Call, Command as EditCommand, Settings as EditSettings};
 use org_core::outline::Outline;
-use org_core::todo::{Settings as TodoSettings, Target};
-use org_syntax::{Parse, TextSize, TodoKeywords};
+use org_core::Refusal;
+use org_syntax::{Parse, TodoKeywords};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -36,7 +37,7 @@ use serde_json::{json, Value};
 use crate::config::Options;
 use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
-use crate::views::{self, EntryRef, Query, View};
+use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
 use crate::{actions, cli, commands, folding, highlight, manifest, symbols, uri};
 
@@ -82,6 +83,26 @@ struct OpenView {
 struct Context {
     text_document: lsp_types::TextDocumentIdentifier,
     position: Position,
+    /// The count the user typed before the key, if any.
+    count: Option<i64>,
+}
+
+/// The editing command that ran last, and the entry it ran on. Some
+/// commands go on differently when they are repeated.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Last {
+    command: String,
+    file: String,
+    /// Byte offset of the entry's headline.
+    heading: Option<usize>,
+}
+
+/// Where the agenda's cursor goes once the view shows the effect of an
+/// edit: to the line of the entry that was changed.
+struct Follow {
+    /// The view as it will read then.
+    text: String,
+    position: Position,
 }
 
 /// A source of agenda entries as the server holds it while it works.
@@ -106,7 +127,7 @@ struct Server {
     pending: HashMap<RequestId, Pending>,
     todo: TodoKeywords,
     agenda: AgendaConfig,
-    todo_settings: TodoSettings,
+    edit_settings: EditSettings,
     /// A fixed clock, for tests.
     clock: Option<Now>,
     documents: HashMap<String, Document>,
@@ -114,8 +135,10 @@ struct Server {
     view: Option<OpenView>,
     /// Files the server asked the client to edit and has not seen change yet.
     edited: HashSet<String>,
-    /// The line to put the cursor on once the client shows the current view.
-    reveal: Option<u32>,
+    /// Where to put the cursor once the client shows the current view.
+    reveal: Option<Position>,
+    follow: Option<Follow>,
+    last: Option<Last>,
 }
 
 /// Run the server until the client asks it to exit.
@@ -180,14 +203,16 @@ pub fn run(connection: Connection) -> Result<()> {
         next_request: 0,
         pending: HashMap::new(),
         todo,
-        agenda: options.agenda.to_config(),
-        todo_settings: options.todo_settings(),
+        agenda: options.agenda_config(),
+        edit_settings: options.edit_settings(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
         documents: HashMap::new(),
         workspace: Workspace::new(options.agenda_files, folders),
         view: None,
         edited: HashSet::new(),
         reveal: None,
+        follow: None,
+        last: None,
     };
     for message in &connection.receiver {
         match message {
@@ -250,6 +275,15 @@ fn respond<T: serde::Serialize>(id: RequestId, result: T) -> Response {
         Ok(value) => Response::new_ok(id, value),
         Err(error) => Response::new_err(id, ErrorCode::InternalError as i32, error.to_string()),
     }
+}
+
+/// The answer to a command that was not carried out. A command that has
+/// no meaning at the cursor says so in the error data, so that an editor
+/// can let the key do what it otherwise does.
+fn refused(id: RequestId, refusal: Refusal) -> Response {
+    let data = matches!(refusal, Refusal::NotHere(_)).then(|| json!({ "notApplicable": true }));
+    let error = ResponseError { code: ErrorCode::RequestFailed as i32, message: refusal.message().to_string(), data };
+    Response { id, response_result: Err(error) }
 }
 
 fn is_view_uri(uri: &Uri) -> bool {
@@ -317,10 +351,10 @@ impl Server {
                     .and_then(|result| result.get("title").and_then(Value::as_str).map(str::to_string));
                 let chosen = [commands::AGENDA_LIST, commands::AGENDA_TODOS]
                     .into_iter()
-                    .find(|id| title.as_deref() == Some(command_title(id)));
+                    .find(|id| title.as_deref() == Some(commands::title(id)));
                 if let Some(id) = chosen {
-                    if let Err(message) = self.execute(id, None) {
-                        self.show_message(MessageType::ERROR, message);
+                    if let Err(refusal) = self.execute(id, None) {
+                        self.show_message(MessageType::ERROR, refusal.message());
                     }
                 }
             }
@@ -341,7 +375,7 @@ impl Server {
                     ExecuteCommand::METHOD => match parameters::<ExecuteCommandParams>(request) {
                         Ok((id, params)) => match self.execute_command(params) {
                             Ok(()) => respond(id, Value::Null),
-                            Err(message) => Response::new_err(id, ErrorCode::RequestFailed as i32, message),
+                            Err(refusal) => refused(id, refusal),
                         },
                         Err(response) => response,
                     },
@@ -409,8 +443,11 @@ impl Server {
                     );
                 }
                 // An edit the server asked for has arrived: show its effect.
+                // Any other change means the user did something in between.
                 if self.edited.remove(key) {
                     self.refresh_view();
+                } else {
+                    self.last = None;
                 }
             }
             DidSaveTextDocument::METHOD => {
@@ -427,6 +464,7 @@ impl Server {
                     self.remove_view_file();
                     self.view = None;
                     self.reveal = None;
+                    self.follow = None;
                 }
             }
             _ => {}
@@ -496,39 +534,43 @@ impl Server {
         if let Some(view) = self.view_at(uri) {
             // On an agenda line the actions are commands: the server
             // edits the entry's file and rebuilds the agenda.
-            view.line(params.range.start.line)?.entry.as_ref()?;
+            let line = view.line(params.range.start.line)?;
+            line.entry.as_ref()?;
+            let dated = line.entry.as_ref().is_some_and(|entry| entry.marker.is_some());
             let context = json!({ "textDocument": { "uri": uri }, "position": params.range.start });
-            let actions = [commands::TODO_NEXT, commands::TODO_PREVIOUS, commands::AGENDA_GOTO]
-                .into_iter()
-                .filter(|id| actions::requested(id, only))
-                .map(|id| {
-                    let title = command_title(id).to_string();
-                    CodeActionOrCommand::CodeAction(CodeAction {
-                        title: title.clone(),
-                        kind: Some(CodeActionKind::new(id)),
-                        command: Some(lsp_types::Command {
-                            title,
-                            command: id.to_string(),
-                            arguments: Some(vec![context.clone()]),
-                        }),
-                        ..Default::default()
-                    })
+            let actions = [
+                commands::TODO_NEXT,
+                commands::TODO_PREVIOUS,
+                commands::PRIORITY_UP,
+                commands::PRIORITY_DOWN,
+                commands::DATE_LATER,
+                commands::DATE_EARLIER,
+                commands::AGENDA_GOTO,
+            ]
+            .into_iter()
+            .filter(|id| dated || !matches!(*id, commands::DATE_LATER | commands::DATE_EARLIER))
+            .filter(|id| actions::requested(id, only))
+            .map(|id| {
+                let title = commands::title(id).to_string();
+                CodeActionOrCommand::CodeAction(CodeAction {
+                    title: title.clone(),
+                    kind: Some(CodeActionKind::new(id)),
+                    command: Some(lsp_types::Command {
+                        title,
+                        command: id.to_string(),
+                        arguments: Some(vec![context.clone()]),
+                    }),
+                    ..Default::default()
                 })
-                .collect();
+            })
+            .collect();
             return Some(actions);
         }
         let document = self.document(uri)?;
         let encoding = self.client.encoding;
         let offset = document.index.offset(&document.text, params.range.start, encoding);
-        let found = actions::actions(
-            &document.syntax(),
-            &document.text,
-            document.parse.todo_keywords(),
-            TextSize::new(offset as u32),
-            only,
-            &self.todo_settings,
-            self.date_time(),
-        );
+        let found =
+            actions::actions(&document.text, &document.parse, offset, only, &self.edit_settings, self.date_time());
         let to_lsp = |action: &actions::Action| {
             let edits = action
                 .edits
@@ -628,7 +670,18 @@ impl Server {
     // ----- the agenda view
 
     fn render(&mut self, query: Query) -> View {
-        let files = self.agenda_files();
+        self.render_with(query, None)
+    }
+
+    /// Build the view with the outline of one file replaced: what the
+    /// agenda will show once that file has changed.
+    fn render_with(&mut self, query: Query, replaced: Option<(&Uri, Outline)>) -> View {
+        let mut files = self.agenda_files();
+        if let Some((uri, outline)) = replaced {
+            if let Some(file) = files.iter_mut().find(|(file, _)| file == uri) {
+                file.1 = Held::Open(outline);
+            }
+        }
         let outlines: Vec<(Uri, &Outline)> = files.iter().map(|(uri, held)| (uri.clone(), held.outline())).collect();
         views::render(query, &outlines, self.now(), &self.agenda)
     }
@@ -672,14 +725,14 @@ impl Server {
         }
     }
 
-    /// Ask the client to show the view with the cursor on `line`.
-    fn show_view(&mut self, line: u32) {
+    /// Ask the client to show the view with the cursor at `position`.
+    fn show_view(&mut self, position: Position) {
         let Some(uri) = self.view.as_ref().map(|open| open.uri.clone()) else { return };
         let params = ShowDocumentParams {
             uri,
             external: None,
             take_focus: Some(true),
-            selection: Some(Range::new(Position::new(line, 0), Position::new(line, 0))),
+            selection: Some(Range::new(position, position)),
         };
         self.send_request::<ShowDocument>(params, None);
     }
@@ -690,8 +743,8 @@ impl Server {
         let current =
             self.view.as_ref().and_then(|open| Some(open.client.as_ref()?.text == open.view.text)).unwrap_or(false);
         if current {
-            if let Some(line) = self.reveal.take() {
-                self.show_view(line);
+            if let Some(position) = self.reveal.take() {
+                self.show_view(position);
             }
         }
     }
@@ -702,8 +755,9 @@ impl Server {
             return Err("This editor cannot open documents on the server's request".to_string());
         }
         self.set_view(query);
+        self.follow = None;
         let Some(open) = &self.view else { return Err("Cannot create the agenda".to_string()) };
-        let line = open.view.home_line();
+        let line = Position::new(open.view.home_line(), 0);
         match &open.client {
             // The client shows this very text already.
             Some(copy) if copy.text == open.view.text => self.show_view(line),
@@ -724,17 +778,22 @@ impl Server {
         Ok(())
     }
 
-    /// Rebuild the view after its files changed; the cursor stays.
+    /// Rebuild the view after its files changed. The cursor stays, unless
+    /// the change is the edit of a command that takes the cursor along.
     fn refresh_view(&mut self) {
         let Some(query) = self.view.as_ref().map(|open| open.view.query) else { return };
         let view = self.render(query);
         let Some(open) = &mut self.view else { return };
-        if view.text != open.view.text {
-            open.view = view;
+        let changed = view.text != open.view.text;
+        // The same text may still stand for entries that moved.
+        open.view = view;
+        if self.follow.as_ref().is_some_and(|follow| follow.text == open.view.text) {
+            self.reveal = self.follow.take().map(|follow| follow.position);
+        }
+        if changed {
             self.publish_view();
         } else {
-            // The same text may still stand for entries that moved.
-            open.view = view;
+            self.reveal_when_current();
         }
     }
 
@@ -749,16 +808,20 @@ impl Server {
 
     // ----- commands
 
-    fn execute_command(&mut self, params: ExecuteCommandParams) -> std::result::Result<(), String> {
+    fn execute_command(&mut self, params: ExecuteCommandParams) -> std::result::Result<(), Refusal> {
         let context = params.arguments.into_iter().next().and_then(|value| serde_json::from_value(value).ok());
         self.execute(&params.command, context)
     }
 
-    fn execute(&mut self, command: &str, context: Option<Context>) -> std::result::Result<(), String> {
+    fn execute(&mut self, command: &str, context: Option<Context>) -> std::result::Result<(), Refusal> {
+        if actions::command(command).is_none() {
+            // Whatever was being repeated has come to an end.
+            self.last = None;
+        }
         match command {
             commands::AGENDA_DISPATCH => {
                 let actions = [commands::AGENDA_LIST, commands::AGENDA_TODOS]
-                    .map(|id| MessageActionItem { title: command_title(id).to_string(), properties: HashMap::new() });
+                    .map(|id| MessageActionItem { title: commands::title(id).to_string(), properties: HashMap::new() });
                 let params = ShowMessageRequestParams {
                     typ: MessageType::INFO,
                     message: "Org agenda".to_string(),
@@ -767,8 +830,8 @@ impl Server {
                 self.send_request::<ShowMessageRequest>(params, Some(Pending::Dispatch));
                 Ok(())
             }
-            commands::AGENDA_LIST => self.open_view(Query::Agenda { start: None, span: self.agenda.span }),
-            commands::AGENDA_TODOS => self.open_view(Query::Todo),
+            commands::AGENDA_LIST => Ok(self.open_view(Query::Agenda { start: None, span: self.agenda.span })?),
+            commands::AGENDA_TODOS => Ok(self.open_view(Query::Todo)?),
             commands::AGENDA_REDO => {
                 self.view.as_ref().ok_or("No agenda is open")?;
                 self.refresh_view();
@@ -777,14 +840,15 @@ impl Server {
             commands::AGENDA_LATER | commands::AGENDA_EARLIER | commands::AGENDA_TODAY => {
                 let open = self.view.as_ref().ok_or("No agenda is open")?;
                 let Query::Agenda { span, .. } = open.view.query else {
-                    return Err("The TODO list has no dates to move through".to_string());
+                    return Err("The TODO list has no dates to move through".into());
                 };
+                let steps = context.as_ref().and_then(|context| context.count).unwrap_or(1);
                 let start = match command {
-                    commands::AGENDA_LATER => Some(span.shift(open.view.start, 1)),
-                    commands::AGENDA_EARLIER => Some(span.shift(open.view.start, -1)),
+                    commands::AGENDA_LATER => Some(span.shift(open.view.start, steps)),
+                    commands::AGENDA_EARLIER => Some(span.shift(open.view.start, -steps)),
                     _ => None,
                 };
-                self.open_view(Query::Agenda { start, span })
+                Ok(self.open_view(Query::Agenda { start, span })?)
             }
             commands::AGENDA_DAY
             | commands::AGENDA_WEEK
@@ -805,7 +869,7 @@ impl Server {
                         line.and_then(|context| open.view.line(context.position.line)?.day).unwrap_or(open.view.start)
                     });
                 let start = day.map(|day| agenda::starting_day(day, span, &self.agenda));
-                self.open_view(Query::Agenda { start, span })
+                Ok(self.open_view(Query::Agenda { start, span })?)
             }
             commands::AGENDA_GOTO => {
                 let reference = self.entry_at(context.as_ref()).ok_or("No entry on this line")?;
@@ -819,11 +883,11 @@ impl Server {
                 self.send_request::<ShowDocument>(params, None);
                 Ok(())
             }
-            commands::TODO_NEXT | commands::TODO_PREVIOUS => {
+            other if actions::command(other).is_some() => {
                 let context = context.ok_or("This command needs the cursor position")?;
-                self.cycle_todo(&context, command)
+                self.edit(&context, other)
             }
-            other => Err(format!("org-lsp has no command `{other}`")),
+            other => Err(format!("org-lsp has no command `{other}`").into()),
         }
     }
 
@@ -833,49 +897,108 @@ impl Server {
         self.view_at(&context.text_document.uri)?.line(context.position.line)?.entry.clone()
     }
 
-    /// Change the TODO state of the entry at `context`, which is a place
-    /// in an Org file or a line of the agenda.
-    fn cycle_todo(&mut self, context: &Context, kind: &str) -> std::result::Result<(), String> {
+    /// Run the editing command `id` at `context`, which is a place in an
+    /// Org file or a line of the agenda. The server works out the new
+    /// text and asks the client to apply the difference.
+    fn edit(&mut self, context: &Context, id: &str) -> std::result::Result<(), Refusal> {
         let encoding = self.client.encoding;
-        let target = if kind == commands::TODO_NEXT { Target::Next } else { Target::Previous };
-        let (settings, now) = (self.todo_settings.clone(), self.date_time());
+        let (settings, now) = (self.edit_settings.clone(), self.date_time());
         let uri = context.text_document.uri.clone();
-        // The file to edit and the place of the entry in it.
-        let (file, reference) = if self.is_view(&uri) {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
-            (reference.uri.clone(), Some(reference))
-        } else {
-            (uri, None)
-        };
         let position = context.position;
+        // On an agenda line the command goes to the entry in its file.
+        let on_view = self.is_view(&uri);
+        let line: Option<ViewLine> = self.view_at(&uri).and_then(|view| view.line(position.line)).cloned();
+        let dated_view = self.view_at(&uri).is_some_and(|view| matches!(view.query, Query::Agenda { .. }));
+        let (file, reference, command) = if on_view {
+            let reference = line.as_ref().and_then(|line| line.entry.clone()).ok_or("No entry on this line")?;
+            let command = match id {
+                commands::DATE_LATER | commands::DATE_EARLIER if !dated_view => {
+                    return Err("The TODO list shows no dates to change".into());
+                }
+                commands::DATE_LATER | commands::DATE_EARLIER => {
+                    EditCommand::AgendaDate { forward: id == commands::DATE_LATER }
+                }
+                commands::TODO_NEXT | commands::TODO_PREVIOUS | commands::PRIORITY_UP | commands::PRIORITY_DOWN => {
+                    actions::command(id).ok_or("Unknown command")?
+                }
+                _ => return Err(Refusal::NotHere("This command works in Org files".to_string())),
+            };
+            (reference.uri.clone(), Some(reference), command)
+        } else {
+            (uri, None, actions::command(id).ok_or("Unknown command")?)
+        };
+
+        let key = file.as_str().to_string();
+        let previous = self.last.take();
+        let count = context.count;
         let found = self.with_source(&file, |text, index, parse, outline, version| {
-            let offset = match &reference {
+            // The place the command acts on, and the headline of its entry.
+            let (offset, heading) = match &reference {
                 Some(reference) => {
                     let entry = views::resolve(reference, outline).ok_or("The entry is gone; rebuild the agenda")?;
-                    outline.entries[entry].offset
+                    let heading = outline.entries[entry].offset;
+                    let offset = match (&command, reference.marker) {
+                        // The timestamp is where it was, seen from the headline.
+                        (EditCommand::AgendaDate { .. }, Some(marker)) => {
+                            heading + marker.saturating_sub(reference.offset)
+                        }
+                        (EditCommand::AgendaDate { .. }, None) => return Err("Cannot find time stamp".into()),
+                        _ => heading,
+                    };
+                    (offset, Some(heading))
                 }
-                None => index.offset(text, position, encoding),
+                None => {
+                    let offset = index.offset(text, position, encoding);
+                    (offset, outline.entry_at(offset).map(|entry| outline.entries[entry].offset))
+                }
             };
-            let edits = actions::todo_edits(text, parse.todo_keywords(), offset, &target, &settings, now)?;
-            let edits: Vec<TextEdit> = edits
-                .into_iter()
-                .map(|edit| TextEdit { range: index.range(text, edit.range, encoding), new_text: edit.new_text })
-                .collect();
-            Ok::<_, String>((edits, version))
+            let last = Last { command: id.to_string(), file: key.clone(), heading };
+            let call = Call { count, repeated: previous.as_ref() == Some(&last), now };
+            let outcome = edit::run(&command, text, parse, offset, &call, &settings).map(|outcome| {
+                let edits: Vec<TextEdit> = actions::edits_between(text, &outcome.text)
+                    .into_iter()
+                    .map(|edit| TextEdit { range: index.range(text, edit.range, encoding), new_text: edit.new_text })
+                    .collect();
+                (edits, version, outcome.text)
+            });
+            Ok::<_, Refusal>((last, outcome))
         });
-        let (edits, version) = found.ok_or("Cannot read the file of this entry")??;
+        let (last, outcome) = found.ok_or("Cannot read the file of this entry")??;
+        // Remembered even when the command was refused, as in Emacs.
+        let heading = last.heading;
+        self.last = Some(last);
+        let (edits, version, new_text) = outcome?;
         if edits.is_empty() {
             return Ok(());
         }
+        // A change to priority or date can move the entry to another line
+        // of the agenda. The cursor goes with it, so that the next press
+        // of the key reaches the same entry.
+        self.follow = match (&line, heading) {
+            (Some(line), Some(heading)) if !matches!(id, commands::TODO_NEXT | commands::TODO_PREVIOUS) => {
+                self.followed(&file, &new_text, heading, (position, line))
+            }
+            _ => None,
+        };
         let edit = self.workspace_edit(&file, version, edits);
-        self.edited.insert(file.as_str().to_string());
+        self.edited.insert(key);
         // No label: some editors print it every time an edit is applied.
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
         self.send_request::<ApplyWorkspaceEdit>(params, Some(Pending::Edit));
         Ok(())
     }
-}
 
-fn command_title(id: &str) -> &'static str {
-    commands::COMMANDS.iter().find(|command| command.id == id).map_or("", |command| command.title)
+    /// Where the entry at `heading` of `file` will stand in the agenda
+    /// once `file` reads `text`, if that is on another line than the one
+    /// the cursor is on.
+    fn followed(&mut self, file: &Uri, text: &str, heading: usize, from: (Position, &ViewLine)) -> Option<Follow> {
+        let query = self.view.as_ref()?.view.query;
+        let parse = org_syntax::parse(text, &self.todo);
+        let outline = Outline::new(&parse, text, &uri::file_stem(file));
+        let view = self.render_with(query, Some((file, outline)));
+        let (position, line) = from;
+        let target = view.line_of(file, heading, (position.line, line))?;
+        (target != position.line)
+            .then(|| Follow { text: view.text, position: Position::new(target, position.character) })
+    }
 }

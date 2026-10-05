@@ -16,8 +16,9 @@
 
 use org_syntax::{Logging, SyntaxKind, TodoKeywords, TokenAtOffset};
 
-use crate::date::{weekday, Date, DateTime, WEEKDAY_ABBREVIATIONS};
+use crate::date::DateTime;
 use crate::outline::Outline;
+use crate::stamp::{self, format_timestamp, Around, Placed, Shift, Stamp, Unit};
 use crate::text::{char_width, tag_group, width, word_start};
 use crate::timestr::parse_time_string;
 
@@ -103,12 +104,12 @@ struct Editor<'a> {
 const TAB_WIDTH: usize = 8;
 const KEYWORDS: [&str; 3] = ["SCHEDULED:", "DEADLINE:", "CLOSED:"];
 
-fn is_blank(b: u8) -> bool {
+pub(crate) fn is_blank(b: u8) -> bool {
     b == b' ' || b == b'\t'
 }
 
 /// The column reached after `text`, which starts a line.
-fn column(text: &str) -> usize {
+pub(crate) fn column(text: &str) -> usize {
     text.chars()
         .fold(0, |column, c| if c == '\t' { (column / TAB_WIDTH + 1) * TAB_WIDTH } else { column + char_width(c) })
 }
@@ -124,123 +125,35 @@ fn is_planning_line(line: &str) -> bool {
 }
 
 /// Number of stars if the line is a headline.
-fn headline_level(line: &str) -> Option<usize> {
+pub(crate) fn headline_level(line: &str) -> Option<usize> {
     let stars = line.bytes().take_while(|b| *b == b'*').count();
     (stars > 0 && line.as_bytes().get(stars) == Some(&b' ')).then_some(stars)
 }
 
-/// `[2026-05-18 Mon 10:30]` or `<2026-05-18 Mon>`, with `extra` before
-/// the closing bracket.
-fn format_timestamp(time: DateTime, with_time: bool, inactive: bool, extra: &str) -> String {
-    let date = time.date();
-    let (open, close) = if inactive { ('[', ']') } else { ('<', '>') };
-    let name = WEEKDAY_ABBREVIATIONS[weekday(time.day)];
-    let clock = if with_time { format!(" {:02}:{:02}", time.minute / 60, time.minute % 60) } else { String::new() };
-    format!("{open}{:04}-{:02}-{:02} {name}{clock}{extra}{close}", date.year, date.month, date.day)
-}
-
-/// Length of `[-+]?…N[hdwmy](/N[hdwmy])?` cookies as `org-timestamp-change`
-/// keeps them: a blank run, an optional `.` or `+`, an optional `-`, a
-/// sign, digits, a unit, and an optional `/N[hdwmy]`.
-fn cookie_len(text: &str) -> Option<usize> {
-    let bytes = text.as_bytes();
-    let mut at = bytes.iter().take_while(|b| **b == b' ').count();
-    if at == 0 {
-        return None;
-    }
-    if matches!(bytes.get(at), Some(b'.' | b'+')) && matches!(bytes.get(at + 1), Some(b'-' | b'+')) {
-        // The optional prefix, when a sign still follows it.
-        let after =
-            if bytes.get(at + 1) == Some(&b'-') && matches!(bytes.get(at + 2), Some(b'-' | b'+')) { 2 } else { 1 };
-        at += after;
-    } else if bytes.get(at) == Some(&b'-') && matches!(bytes.get(at + 1), Some(b'-' | b'+')) {
-        at += 1;
-    }
-    if !matches!(bytes.get(at), Some(b'-' | b'+')) {
-        return None;
-    }
-    at += 1;
-    let unit_after = |at: usize| -> Option<usize> {
-        let digits = bytes[at..].iter().take_while(|b| b.is_ascii_digit()).count();
-        (digits > 0 && matches!(bytes.get(at + digits), Some(b'h' | b'd' | b'w' | b'm' | b'y')))
-            .then_some(at + digits + 1)
+/// `org--align-tags-here`: where the blanks before the tags of a headline
+/// start and end, and the blanks that belong there instead; nothing when
+/// the line has no tags or they stand where they should.
+pub(crate) fn tags_padding(line: &str, tags_column: i64) -> Option<(usize, usize, String)> {
+    // `org-tag-line-re`: the tags follow a blank, or the stars' space.
+    let (blanks, tags) = tag_group(line)?;
+    let tags_text = line[tags..].trim_end_matches([' ', '\t']);
+    let wanted = if tags_column >= 0 {
+        tags_column as usize
+    } else {
+        (tags_column.unsigned_abs() as usize).saturating_sub(width(tags_text))
     };
-    at = unit_after(at)?;
-    if bytes.get(at) == Some(&b'/') {
-        if let Some(end) = unit_after(at + 1) {
-            at = end;
-        }
-    }
-    Some(at)
+    // At least one space after the title or the stars.
+    let before = column(&line[..blanks]);
+    let target = wanted.max(before + 1);
+    (target != column(&line[..tags])).then(|| (blanks, tags, " ".repeat(target - before)))
 }
 
-/// What `org-timestamp-change` keeps of a timestamp besides date and
-/// time: the end of a time range and the repeater and warning cookies
-/// that stand directly before the closing bracket.
-fn timestamp_extra(stamp: &str) -> &str {
-    let inner = &stamp[..stamp.len() - 1];
-    let matches_fully = |mut rest: &str| {
-        let bytes = rest.as_bytes();
-        let range = matches!(bytes, [b'-', b'0'..=b'2', b'0'..=b'9', b':', b'0'..=b'5', b'0'..=b'9', ..]);
-        if range {
-            rest = &rest[6..];
-        }
-        while let Some(len) = cookie_len(rest) {
-            rest = &rest[len..];
-        }
-        rest.is_empty()
-    };
-    inner.char_indices().map(|(at, _)| &inner[at..]).find(|rest| matches_fully(rest)).unwrap_or("")
-}
-
-/// Where the timestamp that opens at `start` ends, as `org-ts-regexp3`
-/// reads it: a date, an optional day name and time, at most sixteen more
-/// characters, and the closing bracket.
-fn timestamp3_end(text: &str, start: usize) -> Option<usize> {
-    let bytes = text.as_bytes();
-    let date = bytes.get(start + 1..start + 11)?;
-    let is_date = date
-        .iter()
-        .enumerate()
-        .all(|(index, b)| if index == 4 || index == 7 { *b == b'-' } else { b.is_ascii_digit() });
-    if !matches!(bytes[start], b'<' | b'[') || !is_date {
-        return None;
-    }
-    let after_date = start + 11;
-    // The optional day name: blanks, then characters that are no digits,
-    // signs, blanks or brackets.
-    let spaces = bytes[after_date..].iter().take_while(|b| **b == b' ').count();
-    let name: usize = text[after_date + spaces..]
-        .chars()
-        .take_while(|c| !matches!(c, ']' | '+' | '0'..='9' | '>' | '\r' | '\n' | ' ' | '-'))
-        .map(char::len_utf8)
-        .sum();
-    let mut starts = vec![after_date];
-    if name > 0 {
-        // Org tries the longest name first.
-        let boundaries: Vec<usize> = text[after_date + spaces..after_date + spaces + name]
-            .char_indices()
-            .map(|(at, c)| at + c.len_utf8())
-            .collect();
-        starts = boundaries.into_iter().rev().map(|len| after_date + spaces + len).chain([after_date]).collect();
-    }
-    for after_name in starts {
-        let time = match &bytes[after_name..] {
-            [b' ', b'0'..=b'9', b'0'..=b'9', b':', b'0'..=b'9', b'0'..=b'9', ..] => 6,
-            [b' ', b'0'..=b'9', b':', b'0'..=b'9', b'0'..=b'9', ..] => 5,
-            _ => 0,
-        };
-        for after_time in [after_name + time, after_name] {
-            let rest = &bytes[after_time..];
-            let close = rest.iter().position(|b| matches!(b, b']' | b'>' | b'\n'));
-            if let Some(close) = close
-                .filter(|close| rest[*close] != b'\n' && text[after_time..after_time + close].chars().count() <= 16)
-            {
-                return Some(after_time + close + 1);
-            }
-        }
-    }
-    None
+/// `org-time-string-to-time`: the first date in `text` and the time
+/// after it.
+fn time_of(text: &str) -> Result<DateTime, String> {
+    let parsed = parse_time_string(text).ok_or("Not a standard Org time string")?;
+    let (hour, minute) = parsed.time.unwrap_or((0, 0));
+    Ok(DateTime::new(parsed.date, hour, minute))
 }
 
 /// The next match of `org-repeat-re` at or after `from`, before `end`:
@@ -440,20 +353,7 @@ impl Editor<'_> {
 
     /// `org--align-tags-here` for the headline at `line`.
     fn align_tags(&mut self, line: usize) {
-        let text = self.line(line);
-        // `org-tag-line-re`: the tags follow a blank, or the stars' space.
-        let Some((blanks, tags)) = tag_group(text) else { return };
-        let tags_text = text[tags..].trim_end_matches([' ', '\t']);
-        let wanted = if self.settings.tags_column >= 0 {
-            self.settings.tags_column as usize
-        } else {
-            (self.settings.tags_column.unsigned_abs() as usize).saturating_sub(width(tags_text))
-        };
-        // At least one space after the title or the stars.
-        let before = column(&text[..blanks]);
-        let target = wanted.max(before + 1);
-        if target != column(&text[..tags]) {
-            let padding = " ".repeat(target - before);
+        if let Some((blanks, tags, padding)) = tags_padding(self.line(line), self.settings.tags_column) {
             self.replace(line + blanks, line + tags, &padding);
         }
     }
@@ -893,68 +793,29 @@ impl Editor<'_> {
         None
     }
 
-    /// `org-timestamp-change`: move the timestamp at `start` by `count`
-    /// units. Returns where the new timestamp ends.
-    fn shift_timestamp(&mut self, start: usize, count: i64, unit: char, drop_delay: bool) -> Result<usize, String> {
-        let end = timestamp3_end(&self.text, start).ok_or("Not at a timestamp")?;
-        let stamp = self.text[start..end].to_string();
-        let inactive = stamp.starts_with('[');
-        let mut extra = timestamp_extra(&stamp).to_string();
-        if drop_delay {
-            // A one-time delay, ` --2d`, has served its purpose.
-            while let Some(at) = extra.find(" --") {
-                let digits = extra[at + 3..].bytes().take_while(u8::is_ascii_digit).count();
-                let has_unit = matches!(extra.as_bytes().get(at + 3 + digits), Some(b'h' | b'd' | b'w' | b'm' | b'y'));
-                if digits == 0 || !has_unit {
-                    break;
-                }
-                extra.replace_range(at..at + 3 + digits + 1, "");
-            }
-        }
-        let parsed = parse_time_string(&stamp).ok_or("Not a standard Org time string")?;
-        let with_time = {
-            // `^.{10}.*?[0-9]+:[0-9][0-9]`
-            let rest: String = stamp.chars().skip(10).collect();
-            let bytes = rest.as_bytes();
-            (1..bytes.len().saturating_sub(2)).any(|at| {
-                bytes[at] == b':'
-                    && bytes[at - 1].is_ascii_digit()
-                    && bytes[at + 1].is_ascii_digit()
-                    && bytes[at + 2].is_ascii_digit()
-            })
-        };
-        let (hour, minute) = parsed.time.unwrap_or((0, 0));
-        let date = parsed.date;
-        let moved = match unit {
-            'h' => DateTime::new(date, hour + count, minute),
-            'd' => DateTime::new(Date::new(date.year, date.month, date.day + count), hour, minute),
-            'm' => DateTime::new(Date::new(date.year, date.month + count, date.day), hour, minute),
-            'y' => DateTime::new(Date::new(date.year + count, date.month, date.day), hour, minute),
+    /// `org-timestamp-change` with the cursor at `point`: move the
+    /// timestamp there by `count` units.
+    fn shift_timestamp(&mut self, point: usize, count: i64, unit: char, drop_delay: bool) -> Result<Placed, String> {
+        let what = match unit {
+            'h' => Unit::Hour,
+            'd' => Unit::Day,
+            'm' => Unit::Month,
+            'y' => Unit::Year,
             // `M`: minutes.
-            _ => DateTime::new(date, hour, minute + count),
+            _ => Unit::Minute,
         };
-        // A shift by hours or minutes moves the end of a time range too.
-        if matches!(unit, 'h' | 'M') {
-            if let [b'-', h1 @ b'0'..=b'2', h2 @ b'0'..=b'9', b':', m1 @ b'0'..=b'5', m2 @ b'0'..=b'9', ..] =
-                *extra.as_bytes()
-            {
-                let digit = |b: u8| i64::from(b - b'0');
-                let end = digit(h1) * 600 + digit(h2) * 60 + digit(m1) * 10 + digit(m2);
-                let shifted = (end + if unit == 'h' { count * 60 } else { count }).rem_euclid(1440);
-                extra.replace_range(..6, &format!("-{:02}:{:02}", shifted / 60, shifted % 60));
-            }
-        }
-        let new = format_timestamp(moved, with_time, inactive, &extra);
-        self.replace(start, end, &new);
-        Ok(start + new.len())
+        let shift = Shift { n: count, what: Some(what), updown: false, counted: false };
+        // `org-todo` runs without case folding. The rounding of minutes
+        // only applies to changes from the keyboard.
+        let around = Around { clock: true, drop_delay, fold: false };
+        stamp::change_in_place(&mut self.text, point, &shift, 1, around)
+            .map_err(|refusal| refusal.message().to_string())
     }
 
-    /// The date and time of the timestamp at `start`.
-    fn timestamp_time(&self, start: usize) -> Result<DateTime, String> {
-        let end = timestamp3_end(&self.text, start).ok_or("Not at a timestamp")?;
-        let parsed = parse_time_string(&self.text[start..end]).ok_or("Not a standard Org time string")?;
-        let (hour, minute) = parsed.time.unwrap_or((0, 0));
-        Ok(DateTime::new(parsed.date, hour, minute))
+    /// The date and time of the timestamp around `point`.
+    fn timestamp_time(&self, point: usize) -> Result<DateTime, String> {
+        let stamp = Stamp::around(&self.text, point).ok_or("Not at a timestamp")?;
+        time_of(&self.text[stamp.start..stamp.end])
     }
 
     /// `org-auto-repeat-maybe`: the entry was marked done; if it repeats,
@@ -1008,7 +869,9 @@ impl Editor<'_> {
             self.remove_scheduled();
         }
 
-        // Move every timestamp with a repeater.
+        // Move every timestamp with a repeater. Like Org, this follows
+        // the cursor: it starts behind the repeater, and every change is
+        // made to the timestamp the cursor is then in.
         let mut at = self.heading;
         loop {
             let (parse, _, end) = self.entry_outline();
@@ -1017,6 +880,7 @@ impl Editor<'_> {
             if !self.in_timestamp(&parse, repeater_end.min(end - 1)) {
                 continue;
             }
+            let mut point = repeater_end;
             let stamp = self.text[start..repeater_end].to_string();
             let Some((kind, count, unit)) = repeater_parts(&stamp) else { continue };
             let (count, unit) = if unit == 'w' { (count * 7, 'd') } else { (count, unit) };
@@ -1026,19 +890,19 @@ impl Editor<'_> {
             match kind {
                 // `.+`: count from today, or from now when repeating by hours.
                 Some('.') => {
-                    let time = self.timestamp_time(start)?;
+                    let time = time_of(&stamp)?;
                     if unit == 'h' {
                         let minutes = (self.now.day - time.day) * 1440 + self.now.minute - time.minute;
-                        self.shift_timestamp(start, minutes, 'M', false)?;
+                        point = self.shift_timestamp(point, minutes, 'M', false)?.cursor;
                     } else {
-                        self.shift_timestamp(start, self.now.day - time.day, 'd', false)?;
+                        point = self.shift_timestamp(point, self.now.day - time.day, 'd', false)?.cursor;
                     }
                 }
                 // `++`: keep the rhythm, but land in the future.
                 Some('+') => {
+                    let mut time = time_of(&stamp)?;
                     let mut shifts = 0;
                     loop {
-                        let time = self.timestamp_time(start)?;
                         let behind = if unit == 'h' {
                             (self.now.day, self.now.minute) >= (time.day, time.minute)
                         } else {
@@ -1048,13 +912,14 @@ impl Editor<'_> {
                             break;
                         }
                         shifts += 1;
-                        self.shift_timestamp(start, count, unit, false)?;
+                        point = self.shift_timestamp(point, count, unit, false)?.cursor;
+                        time = self.timestamp_time(point)?;
                     }
-                    self.shift_timestamp(start, -count, unit, false)?;
+                    point = self.shift_timestamp(point, -count, unit, false)?.cursor;
                 }
                 _ => {}
             }
-            at = self.shift_timestamp(start, count, unit, true)?;
+            at = self.shift_timestamp(point, count, unit, true)?.stamp.1;
         }
         Ok(())
     }
@@ -1275,6 +1140,7 @@ pub fn edits(old: &str, new: &str) -> Vec<LineEdit> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::date::Date;
 
     fn change(marked: &str, target: Target, settings: &Settings) -> Result<String, String> {
         let offset = marked.find('¦').expect("cursor marker");
@@ -1325,12 +1191,6 @@ mod tests {
 
     #[test]
     fn keeps_what_a_timestamp_carries() {
-        assert_eq!(timestamp_extra("<2026-05-10 Sun 10:00-11:00 +1m -2d>"), "-11:00 +1m -2d");
-        assert_eq!(timestamp_extra("<2026-05-10 Sun +1w>"), " +1w");
-        assert_eq!(timestamp_extra("<2026-05-10 Sun>"), "");
-        assert_eq!(timestamp_extra("<2026-05-10 Sun foo .+2d/4d --1d>"), " .+2d/4d --1d");
-        assert_eq!(timestamp3_end("<2026-05-10 Sun 10:00-11:00 +1m -2d> x", 0), Some(36));
-        assert_eq!(timestamp3_end("<2026-05-10 Sun and far too many characters here>", 0), None);
         assert_eq!(next_repeater("a <2026-05-10 Sun> <2026-05-11 Mon 10:00 .+2d/3d -1d>", 0, 53), Some((19, 48)));
         assert_eq!(repeater_parts("<2026-05-11 Mon 10:00 .+2d/3d"), Some((Some('.'), 2, 'd')));
         assert_eq!(repeater_parts("<2026-05-11 Mon ++1w"), Some((Some('+'), 1, 'w')));
