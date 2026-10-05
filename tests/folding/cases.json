@@ -1,0 +1,255 @@
+[
+ {
+  "text": "* a\nbody\n* b\n",
+  "expected": [
+   [
+    0,
+    1
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n* b\n",
+  "expected": [
+   [
+    0,
+    2
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n\n* b\n",
+  "expected": [
+   [
+    0,
+    2
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n\n\n\n* b\n",
+  "expected": [
+   [
+    0,
+    4
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n** b\nmore\n\n\n* c\n* d\ntext\n",
+  "expected": [
+   [
+    0,
+    5
+   ],
+   [
+    3,
+    5
+   ],
+   [
+    8,
+    9
+   ]
+  ]
+ },
+ {
+  "text": "* a\n\n* b\n",
+  "expected": [
+   [
+    0,
+    1
+   ]
+  ]
+ },
+ {
+  "text": "* a\n\n\n* b\n",
+  "expected": [
+   [
+    0,
+    1
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n  \n\t\n\n* b\n",
+  "expected": [
+   [
+    0,
+    3
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n \n* b\n",
+  "expected": [
+   [
+    0,
+    2
+   ]
+  ]
+ },
+ {
+  "text": "* a\n** b\nbody\n\n** c\n\n\n* d\n",
+  "expected": [
+   [
+    0,
+    5
+   ],
+   [
+    1,
+    3
+   ],
+   [
+    4,
+    5
+   ]
+  ]
+ },
+ {
+  "text": "#+TITLE: x\n\n* a\nbody\n\n* b\n",
+  "expected": [
+   [
+    2,
+    4
+   ]
+  ]
+ },
+ {
+  "text": "* a\n:PROPERTIES:\n:ID: 1\n:END:\n\n#+begin_src sh\necho\n\n#+end_src\n\n- one\n\n- two\n\n\n* b\n",
+  "expected": [
+   [
+    0,
+    13
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n\n",
+  "expected": [
+   [
+    0,
+    1
+   ]
+  ]
+ },
+ {
+  "text": "* a\n** b\nbody\n\n",
+  "expected": [
+   [
+    0,
+    2
+   ],
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n \n",
+  "expected": [
+   [
+    0,
+    1
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody",
+  "expected": [
+   [
+    0,
+    1
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n* b",
+  "expected": [
+   [
+    0,
+    2
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n\n\n* b\n",
+  "separatorLines": 0,
+  "expected": [
+   [
+    0,
+    4
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n* b\n",
+  "separatorLines": 1,
+  "expected": [
+   [
+    0,
+    1
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n\n\n* b\n",
+  "separatorLines": 1,
+  "expected": [
+   [
+    0,
+    3
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n\n\n* b\n",
+  "separatorLines": 3,
+  "expected": [
+   [
+    0,
+    3
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n\n* b\n",
+  "separatorLines": 3,
+  "expected": [
+   [
+    0,
+    3
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n\n\n* b\n",
+  "separatorLines": -2,
+  "expected": [
+   [
+    0,
+    1
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n* b\n",
+  "separatorLines": -2,
+  "expected": [
+   [
+    0,
+    2
+   ]
+  ]
+ },
+ {
+  "text": "* a\nbody\n\n* b\n",
+  "separatorLines": -1,
+  "expected": [
+   [
+    0,
+    1
+   ]
+  ]
+ }
+]

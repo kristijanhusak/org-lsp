@@ -1,7 +1,7 @@
 # org-lsp: plan
 
 Written on 2026-10-05, when work was paused in the middle of milestone 3;
-updated the same day when milestone 3 was finished.
+updated the same day when milestone 3 was merged.
 It records where the project stands, what is half done and how to finish
 it, and what comes after. The default branch is `main`.
 
@@ -34,12 +34,11 @@ others), as close to Emacs Org mode as it can get.
 | 1 | Parser (`server/org-syntax`), server with highlighting, folding, outline, TODO cycling; Neovim plugin, VS Code extension, docs, CI | first commits |
 | 2a | Agenda in the server: dates, repeaters, warning periods, week/day/month views, TODO list, `org-todo` port with logging and repeaters | #1 |
 | 2b | Agenda in editors: server-owned document over `workspace/textDocumentContent`, manifest (commands, keys, highlight links) that drives the Neovim plugin and generates the VS Code `package.json`, in-editor tests for both | #2 |
+| 3 | Priorities and dates: `org-priority`, `org-timestamp-change`, the agenda's date shift, Org's shifted keys; counts; the agenda's cursor follows an entry | #3 |
 
-### Milestone 3, finished, waiting to be merged: priorities and dates
+### Milestone 3, merged: priorities and dates
 
-Branch `claude/elegant-meitner-ggxbid` (it carries `shift-commands`
-merged in, plus the work below). All of it is checked; what is left is
-the pull request and its CI.
+Kept here as a record of what it covers and how it was checked.
 
 Done and checked:
 
@@ -86,8 +85,14 @@ Done and checked:
 - Last full run: 154 Rust tests, clippy and fmt clean; Neovim 0.11.0 and
   0.12.5 (68 + 73 checks); VS Code 12 tests in VSCodium 1.135.
 
-To finish milestone 3: open the pull request from
-`claude/elegant-meitner-ggxbid`, wait for the four CI jobs, merge.
+### After milestone 3: folding as Emacs folds
+
+A folded subtree now takes the blank lines before the next headline
+along, keeping the last one visible when there are at least
+`org-cycle-separator-lines` of them (option `cycleSeparatorLines`), as
+`org-cycle-show-empty-lines` does. Blank lines at the end of the file
+stay visible. Compared with Emacs by `tests/folding/cases.json` and
+`scripts/fuzz-fold.py` (seeds 1 to 4, 1,900 documents, no difference).
 
 Differences from Emacs in this milestone, all deliberate:
 
@@ -226,9 +231,7 @@ previews.
   | TODO changes | `tests/todo/cases.json` | `scripts/update-todo-fixtures.py` | `scripts/fuzz-todo.py` |
   | Priorities, timestamps | `tests/shift/cases.json` | `scripts/update-shift-fixtures.py` | `scripts/fuzz-shift.py` |
   | Agenda commands | `tests/agenda-actions/cases.json` | `scripts/update-agenda-action-fixtures.py` | |
-
-  The last two rows exist on the milestone 3 branch only, until it is
-  merged.
+  | Folding subtrees | `tests/folding/cases.json` | `scripts/update-fold-fixtures.py` | `scripts/fuzz-fold.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.
 - VS Code: in `editors/vscode`, `npm run generate -- --check`, `npm run
