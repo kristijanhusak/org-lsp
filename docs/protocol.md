@@ -130,6 +130,7 @@ number.
 | `org.agenda.redo` | Rebuilds the agenda. |
 | `org.agenda.goto` | Shows the entry of the agenda line under the cursor. |
 | `org.agenda.save` | `org-save-all-org-buffers`: returns `{ "save": [uri…] }`, the Org files the editor has open; the editor saves those with changes. |
+| `org.todo` | `org-todo`: when the keywords have keys (`TODO(t)`), asks for one (`org-fast-todo-selection`) and sets the state it selects, a space clearing it; without keys, the next state. In an Org file or on an agenda line. |
 | `org.todo.next`, `org.todo.previous` | Changes the TODO state of the entry at the cursor, in an Org file or on an agenda line. |
 | `org.priority.up`, `org.priority.down` | Raises or lowers the priority of the entry at the cursor, in an Org file or on an agenda line. |
 | `org.priority` | Asks for a priority (`Priority A-C, SPC to remove`, an input of kind `priority`) and sets it, or removes it for a space; in an Org file or on an agenda line. |
@@ -188,6 +189,21 @@ the answer as `input` in the argument:
 ```json
 { "textDocument": { "uri": "…" }, "position": { … }, "input": "fri 10:00" }
 ```
+
+An input may say more:
+
+- `"choices": [{ "key": "t", "label": "TODO" }, …]` with kind `key`: the
+  answer is one key, as Emacs reads it at its fast selection prompts. An
+  editor can read a single key press (Neovim) or offer a list (VS Code).
+- `"context": { … }`: fields to send back with the answer. A TODO state
+  change that records a note (`@`, or `org-log-done` set to `note`) is
+  not made until the note's text comes: it asks with kind `note`
+  (`Note for state change from "TODO" to "WAIT"`) and `"context": {
+  "state": "WAIT" }`, and the answer then sets that state and writes the
+  note under the heading line, as `org-store-log-note` does.
+
+An answer may lead to another question; the editor asks again until the
+command asks for nothing more.
 
 A `date` answer is read as Org's date prompt reads it (`org-read-date`):
 `+2d`, `fri`, `2/15`, `feb 15 3pm`, `w12`, `10:00-11:30`, `++1w`, and so

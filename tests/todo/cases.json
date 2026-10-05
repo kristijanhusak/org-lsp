@@ -400,5 +400,1141 @@
    "logDone": "time"
   },
   "expected": "#+TODO: TODO | DONE(d!)\n* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "t"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "n"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* NEXT a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "w"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "d"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* DONE a\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "c"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": " "
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "q"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "x"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "e"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "a"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "g"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "1"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "0"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": "t"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a\n- State \"TODO\"       from \"WAIT\"       [2026-05-18 Mon 10:30]\n  body\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": "n"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* NEXT a\n- State \"NEXT\"       from \"WAIT\"       [2026-05-18 Mon 10:30]\n  body\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": "w"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"WAIT\"       [2026-05-18 Mon 10:30]\n  body\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": "d"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* DONE a\n- State \"DONE\"       from \"WAIT\"       [2026-05-18 Mon 10:30]\n  body\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": "c"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"WAIT\"       [2026-05-18 Mon 10:30]\n  body\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": " "
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a\n  body\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": "q"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": "x"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": "e"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": "a"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": "g"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": "1"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n  body¦\n",
+  "command": {
+   "key": "0"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": "t"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": "n"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* NEXT a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": "w"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from              [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": "d"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* DONE a\n- State \"DONE\"       from              [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": "c"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from              [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": " "
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": "q"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": "x"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": "e"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": "a"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": "g"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": "1"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* a¦\n",
+  "command": {
+   "key": "0"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": "t"
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TOLD a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": "n"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": "w"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": "d"
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* DONE a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": "c"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": " "
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": "q"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": "x"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": "e"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": "a"
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": "g"
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* GONE a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": "1"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a¦\n",
+  "command": {
+   "key": "0"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": "t"
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": "n"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": "w"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": "d"
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* DONE a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": "c"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": " "
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": "q"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": "x"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": "e"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": "a"
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": "g"
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* GONE a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": "1"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a¦\n",
+  "command": {
+   "key": "0"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": "t"
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TODO a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": "n"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": "w"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": "d"
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* DONE a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": "c"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": " "
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": "q"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": "x"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": "e"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": "a"
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* TASK a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": "g"
+  },
+  "expected": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* GONE a\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": "1"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) | DONE(d)\n#+TODO: TASK | TOLD(t) GONE\n* a¦\n",
+  "command": {
+   "key": "0"
+  },
+  "expected": "QUIT"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": "t"
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": "n"
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": "w"
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": "d"
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": "c"
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": " "
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": "q"
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": "x"
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": "e"
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": "a"
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": "g"
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": "1"
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO plain¦\n",
+  "command": {
+   "key": "0"
+  },
+  "expected": "* DONE plain\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "Waiting for Bob",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  Waiting for Bob"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "line one\nline two",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  line one\n  line two"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "  \n# not a comment\nfoo  \n\n",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  foo  \n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "\n\nafter blanks",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  after blanks"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "a\n\n  \nb",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  a\n\n    \n  b"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "CANCELLED"
+  },
+  "note": "Waiting for Bob",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  Waiting for Bob"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "CANCELLED"
+  },
+  "note": "line one\nline two",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  line one\n  line two"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "CANCELLED"
+  },
+  "note": "  \n# not a comment\nfoo  \n\n",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  foo  \n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "CANCELLED"
+  },
+  "note": "",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "CANCELLED"
+  },
+  "note": "\n\nafter blanks",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  after blanks"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "CANCELLED"
+  },
+  "note": "a\n\n  \nb",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  a\n\n    \n  b"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "c"
+  },
+  "note": "Waiting for Bob",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  Waiting for Bob"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "c"
+  },
+  "note": "line one\nline two",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  line one\n  line two"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "c"
+  },
+  "note": "  \n# not a comment\nfoo  \n\n",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  foo  \n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "c"
+  },
+  "note": "",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "c"
+  },
+  "note": "\n\nafter blanks",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  after blanks"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "key": "c"
+  },
+  "note": "a\n\n  \nb",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* CANCELLED a\n- State \"CANCELLED\"  from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  a\n\n    \n  b"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "Waiting for Bob",
+  "options": {
+   "logIntoDrawer": "LOGBOOK"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n:LOGBOOK:\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  Waiting for Bob\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "line one\nline two",
+  "options": {
+   "logIntoDrawer": "LOGBOOK"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n:LOGBOOK:\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  line one\n  line two\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "  \n# not a comment\nfoo  \n\n",
+  "options": {
+   "logIntoDrawer": "LOGBOOK"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n:LOGBOOK:\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  foo  \n\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "",
+  "options": {
+   "logIntoDrawer": "LOGBOOK"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n:LOGBOOK:\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "\n\nafter blanks",
+  "options": {
+   "logIntoDrawer": "LOGBOOK"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n:LOGBOOK:\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  after blanks\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "a\n\n  \nb",
+  "options": {
+   "logIntoDrawer": "LOGBOOK"
+  },
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n:LOGBOOK:\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  a\n\n    \n  b\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a\n- item¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "Waiting for Bob",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  Waiting for Bob\n- item\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a\n- item¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "line one\nline two",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  line one\n  line two\n- item\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a\n- item¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "  \n# not a comment\nfoo  \n\n",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  foo  \n\n- item\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a\n- item¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n- item\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a\n- item¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "\n\nafter blanks",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  after blanks\n- item\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* TODO a\n- item¦\n",
+  "command": {
+   "state": "WAIT"
+  },
+  "note": "a\n\n  \nb",
+  "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  a\n\n    \n  b\n- item\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "next",
+  "note": "Waiting for Bob",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  Waiting for Bob"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "next",
+  "note": "line one\nline two",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  line one\n  line two"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "next",
+  "note": "  \n# not a comment\nfoo  \n\n",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  foo  \n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "next",
+  "note": "",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "next",
+  "note": "\n\nafter blanks",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  after blanks"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "next",
+  "note": "a\n\n  \nb",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  a\n\n    \n  b"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "  * TODO a¦\n  - x\n",
+  "command": "next",
+  "note": "Waiting for Bob",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "  * TODO a¦\n  - x\n",
+  "command": "next",
+  "note": "line one\nline two",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "  * TODO a¦\n  - x\n",
+  "command": "next",
+  "note": "  \n# not a comment\nfoo  \n\n",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "  * TODO a¦\n  - x\n",
+  "command": "next",
+  "note": "",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "  * TODO a¦\n  - x\n",
+  "command": "next",
+  "note": "\n\nafter blanks",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "  * TODO a¦\n  - x\n",
+  "command": "next",
+  "note": "a\n\n  \nb",
+  "options": {
+   "logDone": "note"
+  },
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
  }
 ]

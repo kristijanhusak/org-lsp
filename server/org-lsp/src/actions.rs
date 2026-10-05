@@ -106,7 +106,8 @@ pub fn actions(
     settings: &Settings,
     now: DateTime,
 ) -> Vec<Action> {
-    let call = Call { count: None, repeated: false, now };
+    // A note a change wants is written without text, as before.
+    let call = Call { count: None, repeated: false, now, note: Some(String::new()) };
     let keywords = parse.todo_keywords();
     let headline = org_syntax::ast::headline_at(&parse.syntax(), TextSize::new(offset as u32));
     let current = headline.as_ref().and_then(|headline| headline.todo_keyword());

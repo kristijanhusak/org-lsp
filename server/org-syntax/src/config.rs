@@ -13,6 +13,8 @@ pub enum Logging {
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Keyword {
     name: String,
+    /// The key that selects it, as in `TODO(t)`.
+    key: Option<char>,
     done: bool,
     /// Index of the first keyword of the sequence this one belongs to.
     head: usize,
@@ -35,10 +37,14 @@ impl Default for TodoKeywords {
     }
 }
 
-/// Split `WAIT(w@/!)` into the name and what to log on entering and on
-/// leaving the state.
-fn keyword_definition(word: &str) -> (&str, Option<Logging>, Option<Logging>) {
-    let Some(open) = word.find('(').filter(|_| word.ends_with(')')) else { return (word, None, None) };
+/// A keyword as written: its name, the key that selects it, and what to
+/// log on entering and on leaving the state.
+type Definition<'a> = (&'a str, Option<char>, Option<Logging>, Option<Logging>);
+
+/// Split `WAIT(w@/!)` into the name, the selection key and what to log on
+/// entering and on leaving the state.
+fn keyword_definition(word: &str) -> Definition<'_> {
+    let Some(open) = word.find('(').filter(|_| word.ends_with(')')) else { return (word, None, None, None) };
     let options = &word[open + 1..word.len() - 1];
     let logging = |c: Option<char>| match c {
         Some('!') => Some(Logging::Time),
@@ -48,15 +54,13 @@ fn keyword_definition(word: &str) -> (&str, Option<Logging>, Option<Logging>) {
     // An optional selection key, then `!` or `@`, then `/` and the same
     // for leaving.
     let mut chars = options.chars().peekable();
-    if chars.peek().is_some_and(|c| !matches!(c, '!' | '@' | '/')) {
-        chars.next();
-    }
+    let key = chars.next_if(|c| !matches!(c, '!' | '@' | '/'));
     let entering = logging(chars.peek().copied());
     if entering.is_some() {
         chars.next();
     }
     let leaving = if chars.next() == Some('/') { logging(chars.next()) } else { None };
-    (&word[..open], entering, leaving)
+    (&word[..open], key, entering, leaving)
 }
 
 impl TodoKeywords {
@@ -81,7 +85,7 @@ impl TodoKeywords {
         S: AsRef<str>,
     {
         let words: Vec<String> = words.into_iter().map(|w| w.as_ref().to_string()).collect();
-        let definitions: Vec<(&str, Option<Logging>, Option<Logging>)> =
+        let definitions: Vec<Definition> =
             words.iter().map(|word| keyword_definition(word)).filter(|(name, ..)| !name.is_empty()).collect();
         let separator = definitions.iter().position(|(name, ..)| *name == "|");
         let names: Vec<_> = definitions.iter().filter(|(name, ..)| *name != "|").collect();
@@ -90,12 +94,13 @@ impl TodoKeywords {
             None => names.len().saturating_sub(1),
         };
         let head = self.keywords.len();
-        for (index, (name, on_entering, on_leaving)) in names.into_iter().enumerate() {
+        for (index, (name, key, on_entering, on_leaving)) in names.into_iter().enumerate() {
             if self.contains(name) {
                 continue;
             }
             self.keywords.push(Keyword {
                 name: name.to_string(),
+                key: *key,
                 done: index >= first_done,
                 head,
                 on_entering: *on_entering,
@@ -190,6 +195,48 @@ impl TodoKeywords {
         }
     }
 
+    /// The keys of fast TODO selection (`org-todo-key-alist`), in
+    /// keyword order, or none when no keyword was given a key
+    /// (`org-todo-key-trigger`). A keyword without a key gets one as
+    /// `org-assign-fast-keys` picks it: the first letter of its name, in
+    /// lower case, that no other keyword uses, or else the first unused of
+    /// `0`, `1`, `2`…
+    pub fn fast_keys(&self) -> Vec<(&str, char)> {
+        if self.keywords.iter().all(|keyword| keyword.key.is_none()) {
+            return Vec::new();
+        }
+        let mut keys: Vec<Option<char>> = self.keywords.iter().map(|keyword| keyword.key).collect();
+        let mut alternative = '0';
+        for index in 0..keys.len() {
+            if keys[index].is_some() {
+                continue;
+            }
+            // Keys taken: those assigned so far, and those given later.
+            let used = |c: char, keys: &[Option<char>]| keys.contains(&Some(c));
+            let name = self.keywords[index].name.to_lowercase();
+            let mut letters = name.chars().peekable();
+            letters.next_if_eq(&'@');
+            let letter = letters.find(|c| !used(*c, &keys));
+            keys[index] = Some(letter.unwrap_or_else(|| {
+                while used(alternative, &keys) {
+                    alternative = char::from_u32(u32::from(alternative) + 1).unwrap_or(alternative);
+                }
+                alternative
+            }));
+        }
+        self.keywords.iter().zip(keys).map(|(keyword, key)| (keyword.name.as_str(), key.unwrap_or('0'))).collect()
+    }
+
+    /// The keyword `key` selects (`org-fast-todo-selection`), preferring
+    /// one in the sequence of `current` when keys are shared.
+    pub fn fast_key(&self, key: char, current: Option<&str>) -> Option<&str> {
+        let keys = self.fast_keys();
+        let head = current.and_then(|word| self.get(word)).map(|keyword| keyword.head);
+        let in_sequence = |name: &str| head.is_some() && self.get(name).map(|keyword| keyword.head) == head;
+        let found = keys.iter().find(|(name, k)| *k == key && in_sequence(name));
+        found.or_else(|| keys.iter().find(|(_, k)| *k == key)).map(|(name, _)| *name)
+    }
+
     fn position(&self, word: &str) -> Option<usize> {
         self.keywords.iter().position(|keyword| keyword.name == word)
     }
@@ -250,5 +297,30 @@ mod tests {
         assert_eq!(kw.head("B"), Some("A"));
         assert_eq!(kw.head("nope"), None);
         assert!(kw.logs_any() && !TodoKeywords::default().logs_any());
+    }
+
+    #[test]
+    fn fast_selection_keys() {
+        assert!(TodoKeywords::default().fast_keys().is_empty(), "no key given");
+        let text = "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) DELEGATED\n#+TODO: TASK | TOLD(t)\n";
+        let kw = TodoKeywords::from_document(text).unwrap();
+        assert_eq!(
+            kw.fast_keys(),
+            [
+                ("TODO", 't'),
+                ("NEXT", 'n'),
+                ("WAIT", 'w'),
+                ("DONE", 'd'),
+                ("DELEGATED", 'e'),
+                ("TASK", 'a'),
+                ("TOLD", 't')
+            ]
+        );
+        assert_eq!(kw.fast_key('t', Some("TASK")), Some("TOLD"), "the sequence of the current keyword first");
+        assert_eq!(kw.fast_key('t', Some("NEXT")), Some("TODO"));
+        assert_eq!(kw.fast_key('t', None), Some("TODO"));
+        assert_eq!(kw.fast_key('x', None), None);
+        let kw = TodoKeywords::from_sequence(["A(a)", "AB", "BA"]);
+        assert_eq!(kw.fast_keys(), [("A", 'a'), ("AB", 'b'), ("BA", '0')]);
     }
 }

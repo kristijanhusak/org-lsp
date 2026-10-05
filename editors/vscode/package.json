@@ -130,6 +130,11 @@
         "category": "Org"
       },
       {
+        "command": "org.todo",
+        "title": "Change the TODO state",
+        "category": "Org"
+      },
+      {
         "command": "org.todo.next",
         "title": "Cycle TODO state forward",
         "category": "Org"
@@ -1351,7 +1356,7 @@
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
       },
       {
-        "command": "org.todo.next",
+        "command": "org.todo",
         "key": "t",
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
       },

@@ -6,7 +6,7 @@
 use std::path::PathBuf;
 
 use org_core::date::DateTime;
-use org_core::todo::{change_state, Target};
+use org_core::todo::{change_state_with_note, fast_selection, Target};
 use org_lsp::config::Options;
 use org_syntax::TodoKeywords;
 use serde_json::Value;
@@ -46,20 +46,40 @@ fn todo_changes_match_emacs() {
         let default = options.todo_keywords.clone().map(TodoKeywords::from_sequence).unwrap_or_default();
         let keywords = TodoKeywords::from_document(&text).unwrap_or(default);
         let target = match &case["command"] {
-            Value::String(name) if name == "next" => Target::Next,
-            Value::String(name) if name == "previous" => Target::Previous,
-            other => Target::State(other["state"].as_str().map(str::to_string)),
+            Value::String(name) if name == "next" => Some(Target::Next),
+            Value::String(name) if name == "previous" => Some(Target::Previous),
+            // Fast selection: `QUIT` when the key selects nothing.
+            other if other.get("key").is_some() => {
+                match fast_selection(&text, &keywords, offset, other["key"].as_str().unwrap()) {
+                    Ok(target) => target,
+                    Err(error) => {
+                        compared += 1;
+                        failed += usize::from(!expected.starts_with("ERROR:"));
+                        failures.push_str(&format!("\ncase {index}: refused with {error}\n"));
+                        continue;
+                    }
+                }
+            }
+            other => Some(Target::State(other["state"].as_str().map(str::to_string))),
         };
         let now = clock(case["clock"].as_str().unwrap());
-        let actual = change_state(&text, &keywords, offset, &target, &options.todo_settings(), now)
-            .unwrap_or_else(|error| format!("ERROR: {error}"));
+        // The note is written with the text the case gives, or none.
+        let note = case.get("note").and_then(Value::as_str).unwrap_or("");
+        let actual = match target {
+            None => "QUIT".to_string(),
+            Some(target) => {
+                change_state_with_note(&text, &keywords, offset, &target, &options.todo_settings(), now, Some(note))
+                    .map(|changed| changed.text)
+                    .unwrap_or_else(|error| format!("ERROR: {error}"))
+            }
+        };
         compared += 1;
         if actual != expected {
             failed += 1;
             if failed <= 12 {
                 failures.push_str(&format!(
-                    "\ncase {index}: {} {}\n--- text\n{marked}\n--- emacs\n{expected}\n--- org-lsp\n{actual}\n",
-                    case["command"], case["options"]
+                    "\ncase {index}: {} {} note {:?}\n--- text\n{marked}\n--- emacs\n{expected}\n--- org-lsp\n{actual}\n",
+                    case["command"], case["options"], case["note"]
                 ));
             }
         }

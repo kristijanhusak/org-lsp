@@ -175,6 +175,19 @@ function M.run(name, opts)
       -- the answer.
       local input = type(result) == 'table' and result.input or nil
       if input then
+        local function answered(answer)
+          if answer then
+            -- What the server asked to have back, and the answer.
+            for key, value in pairs(input.context or {}) do
+              context[key] = value
+            end
+            context.input = answer
+            client:exec_cmd(command, { bufnr = bufnr }, handle)
+          end
+        end
+        if input.kind == 'key' then
+          return answered(M.read_key(input.prompt))
+        end
         vim.ui.input({ prompt = input.prompt .. ': ', default = input.value }, function(answer)
           -- An input that runs in insert mode may leave it behind in the
           -- calendar it was asked from, which is never typed into.
@@ -184,15 +197,26 @@ function M.run(name, opts)
               vim.cmd.stopinsert()
             end
           end)
-          if answer then
-            context.input = answer
-            client:exec_cmd(command, { bufnr = bufnr }, handle)
-          end
+          answered(answer)
         end)
       end
     end
     client:exec_cmd(command, { bufnr = bufnr }, handle)
   end)
+end
+
+--- Read one key, as Emacs does at its fast selection prompts: the
+--- choices are shown on the command line, `<Esc>` or `<C-c>` cancels.
+---@param prompt string
+---@return string?
+function M.read_key(prompt)
+  vim.api.nvim_echo({ { prompt } }, false, {})
+  local ok, key = pcall(vim.fn.getcharstr)
+  vim.api.nvim_echo({ { '' } }, false, {})
+  if not ok or key == vim.keycode('<Esc>') or key == vim.keycode('<C-c>') then
+    return nil
+  end
+  return key
 end
 
 --- The editing command that `.` repeats, with its options.

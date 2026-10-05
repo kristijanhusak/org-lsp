@@ -89,6 +89,7 @@ pub const AGENDA_REDO: &str = "org.agenda.redo";
 pub const AGENDA_GOTO: &str = "org.agenda.goto";
 pub const AGENDA_SAVE: &str = "org.agenda.save";
 pub const AGENDA_GOTO_DATE: &str = "org.agenda.goto.date";
+pub const TODO: &str = "org.todo";
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
 pub const PRIORITY_UP: &str = "org.priority.up";
@@ -191,11 +192,14 @@ pub const COMMANDS: &[Command] = &[
         ..command(AGENDA_GOTO, "Agenda: go to the entry")
     },
     Command { emacs: &[key(Agenda, "s"), key(Agenda, "C-x C-s")], ..command(AGENDA_SAVE, "Save all Org files") },
+    // `org-todo`: the state picked by key when the keywords have keys,
+    // and else the next one.
     Command {
         emacs: &[key(Org, "C-c C-t"), key(Agenda, "t")],
         vim: &[key(Org, "cit"), key(Agenda, "t")],
-        ..edit(TODO_NEXT, "Cycle TODO state forward")
+        ..edit(TODO, "Change the TODO state")
     },
+    Command { ..edit(TODO_NEXT, "Cycle TODO state forward") },
     Command { vim: &[key(Org, "ciT")], ..edit(TODO_PREVIOUS, "Cycle TODO state backward") },
     Command {
         emacs: &[key(Agenda, "+"), key(Agenda, "S-<up>")],

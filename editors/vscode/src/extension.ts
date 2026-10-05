@@ -92,6 +92,31 @@ interface Input {
   kind: string;
   prompt: string;
   value: string;
+  /** For `key`: the keys to choose from and what each stands for. */
+  choices?: { key: string; label: string }[];
+  /** What to send back with the answer, besides it. */
+  context?: Record<string, unknown>;
+}
+
+/**
+ * Ask what `input` asks for. A key is picked from its choices, the way
+ * Org's fast selection offers them; anything else is typed.
+ */
+async function ask(input: Input, typed: (text: string) => Promise<vscode.InputBoxValidationMessage | undefined>) {
+  if (input.kind === 'key' && input.choices) {
+    const items = input.choices.map((choice) => ({
+      label: `[${choice.key === ' ' ? 'SPC' : choice.key}] ${choice.label}`,
+      key: choice.key,
+    }));
+    const picked = await vscode.window.showQuickPick(items, { placeHolder: input.prompt, ignoreFocusOut: true });
+    return picked?.key;
+  }
+  return vscode.window.showInputBox({
+    prompt: input.prompt,
+    value: input.value,
+    ignoreFocusOut: true,
+    validateInput: input.kind === 'date' ? typed : undefined,
+  });
 }
 
 function asked(result: unknown): Input | undefined {
@@ -142,32 +167,25 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         }
         const params = { command: name, arguments: args.length > 0 ? args : cursor(running) };
         try {
-          const result = await running.sendRequest('workspace/executeCommand', params);
+          let result = await running.sendRequest('workspace/executeCommand', params);
           closeAsked(result);
           await saveAsked(result);
-          const input = asked(result);
-          if (!input) {
-            return result;
-          }
-          // The server may have shown its date prompt for this; the input
-          // box comes after it, so that it keeps the focus.
-          await datePromptShown;
+          let context = (params.arguments[0] ?? {}) as Record<string, unknown>;
           // The command asks for something first: ask, and run it again
-          // with the answer.
-          const context = (params.arguments[0] ?? {}) as Record<string, unknown>;
-          const answer = await vscode.window.showInputBox({
-            prompt: input.prompt,
-            value: input.value,
-            ignoreFocusOut: true,
-            validateInput: input.kind === 'date' ? (text) => preview(running, name, context, text) : undefined,
-          });
-          if (answer === undefined) {
-            return undefined;
+          // with the answer, until it asks for nothing more.
+          for (let input = asked(result); input; input = asked(result)) {
+            // The server may have shown its date prompt for this; the
+            // input box comes after it, so that it keeps the focus.
+            await datePromptShown;
+            const answer = await ask(input, (text) => preview(running, name, context, text));
+            if (answer === undefined) {
+              return undefined;
+            }
+            context = { ...context, ...(input.context ?? {}), input: answer };
+            result = await running.sendRequest('workspace/executeCommand', { command: name, arguments: [context] });
+            closeAsked(result);
           }
-          const again = { command: name, arguments: [{ ...context, input: answer }] };
-          const done = await running.sendRequest('workspace/executeCommand', again);
-          closeAsked(done);
-          return done;
+          return result;
         } catch (error) {
           void vscode.window.showWarningMessage(error instanceof Error ? error.message : String(error));
           return undefined;

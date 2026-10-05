@@ -5,12 +5,16 @@ A case is a JSON object:
     {
       "clock": "2026-05-18 10:30",     the pretended current time
       "text": "* TODO a¦\\n",          an Org document; ¦ marks the cursor
-      "command": "next",               "next", "previous" or {"state": "DONE"}
+      "command": "next",               "next", "previous", {"state": "DONE"},
+                                       or {"key": "d"}: `org-todo` with its
+                                       fast selection answered with that key
+      "note": "Waiting",               optional: the text of the note, if the
+                                       change asks for one
       "options": {"logDone": "time"}   optional: server settings
     }
 
 `reference(cases)` adds `expected`, the document after the command, to each
-case. Emacs runs under faketime, so both programs see the same clock. Set
+case, or `QUIT` when the key quits the fast selection. Emacs runs under faketime, so both programs see the same clock. Set
 ORG_LISP_DIR to the `lisp` directory of an Org checkout to use that version
 instead of the one bundled with Emacs.
 """
@@ -25,13 +29,18 @@ CURSOR = "¦"
 DRIVER = r"""
 (require 'org)
 (require 'cl-lib)
+(defvar org-lsp-note-text ""
+  "What the user writes in a note buffer.")
 (defun org-lsp-finish-notes ()
-  "Store a pending log note the way a user would who writes no text."
+  "Store a pending log note with the text `org-lsp-note-text'."
   (when (memq 'org-add-log-note post-command-hook)
     (org-add-log-note)
     (when (get-buffer "*Org Note*")
-      (with-current-buffer "*Org Note*" (org-ctrl-c-ctrl-c)))))
-(defun org-lsp-todo-case (in out offset arg)
+      (with-current-buffer "*Org Note*"
+        (goto-char (point-max))
+        (insert org-lsp-note-text)
+        (org-ctrl-c-ctrl-c)))))
+(defun org-lsp-todo-case (in out offset arg &optional key note)
   ;; A case that stopped with an error may have left a note pending.
   (remove-hook 'post-command-hook 'org-add-log-note)
   (setq org-log-setup nil)
@@ -42,10 +51,14 @@ DRIVER = r"""
                (org-mode)
                (goto-char (1+ offset))
                ;; A long catch-up asks for confirmation; say yes.
-               (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
-                 (org-todo arg)
-                 (org-lsp-finish-notes))
+               (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t))
+                         ((symbol-function 'read-char-exclusive)
+                          (lambda (&rest _) (string-to-char key))))
+                 (let ((org-lsp-note-text (or note "")))
+                   (org-todo arg)
+                   (org-lsp-finish-notes)))
                (buffer-string))
+           (quit "QUIT")
            (error (format "ERROR: %S" err)))))
     (with-temp-file out (insert result))))
 """
@@ -99,6 +112,8 @@ def command_argument(command):
         return "'right"
     if command == "previous":
         return "'left"
+    if "key" in command:
+        return "nil"
     return lisp_string(command["state"])
 
 
@@ -122,7 +137,9 @@ def reference(cases):
                 forms.append(
                     f"(let ({bindings(case.get('options'))})\n"
                     f"  (org-lsp-todo-case {lisp_string(source)} {lisp_string(target)} {offset}"
-                    f" {command_argument(case['command'])}))"
+                    f" {command_argument(case['command'])}"
+                    f" {lisp_string(case['command']['key']) if isinstance(case['command'], dict) and 'key' in case['command'] else 'nil'}"
+                    f" {lisp_string(case['note']) if 'note' in case else 'nil'}))"
                 )
             driver = os.path.join(directory, "driver.el")
             with open(driver, "w", encoding="utf-8") as handle:

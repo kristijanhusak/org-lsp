@@ -173,15 +173,15 @@ eq(require('org-lsp').server_command(), { server }, 'server command')
 
 -- 8. Keys come from the server's table and can be replaced or removed.
 local map = vim.fn.maparg('cit', 'n', false, true)
-eq({ map.buffer, map.desc }, { 1, 'Cycle TODO state forward' }, 'cit is buffer-local and described by the server')
-require('org-lsp').setup({ mappings = { org = { ['org.todo.next'] = 'gt', ['org.todo.previous'] = false } } })
+eq({ map.buffer, map.desc }, { 1, 'Change the TODO state' }, 'cit is buffer-local and described by the server')
+require('org-lsp').setup({ mappings = { org = { ['org.todo'] = 'gt', ['org.todo.previous'] = false } } })
 local other = vim.fn.tempname() .. '.org'
 vim.fn.writefile({ '* TODO other' }, other)
 vim.cmd.edit(other)
 wait('the server to attach to a second file', function()
   return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
 end)
-eq(vim.fn.maparg('gt', 'n', false, true).desc, 'Cycle TODO state forward', 'a configured key replaces the default')
+eq(vim.fn.maparg('gt', 'n', false, true).desc, 'Change the TODO state', 'a configured key replaces the default')
 eq(vim.fn.maparg('cit', 'n'), '', 'the default key is not set then')
 eq(vim.fn.maparg('ciT', 'n'), '', 'false removes a key')
 press('gt')
@@ -382,6 +382,46 @@ wait('the calendar to close when cancelled', function()
   return prompt_window() == nil
 end)
 eq(line(2), 'SCHEDULED: <2026-06-11 Thu 09:00 +2w>', 'cancelling changes nothing')
+vim.ui.input = input
+
+-- 14. With keys on the keywords, `org.todo` (`cit` by default, `gt` as
+-- configured above) asks for one key (`org-todo`'s fast selection); a
+-- state that records a note asks for its text.
+local keyed = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '#+TODO: TODO(t) WAIT(w@/!) | DONE(d!)', '* TODO Call them' }, keyed)
+vim.cmd.edit(keyed)
+wait('the server to attach to the file with keys', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+local plugin = require('org-lsp')
+local read_key = plugin.read_key
+local shown
+plugin.read_key = function(prompt)
+  shown = prompt
+  return 'w'
+end
+local noted
+vim.ui.input = function(opts, on_confirm)
+  noted = opts.prompt
+  on_confirm('Waiting for Bob')
+end
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press('gt')
+becomes(2, '* WAIT Call them', 'the state picked by its key')
+wait('the note under it', function()
+  return (line(3) or ''):match('^%- State "WAIT"       from "TODO"       %[.*%] \\\\$') ~= nil
+end)
+eq(line(4), '  Waiting for Bob', 'with its text')
+eq(shown, '[t] TODO  [w] WAIT  [d] DONE  [SPC] clear', 'the keys offered')
+eq(noted, 'Note for state change from "TODO" to "WAIT": ', 'what the note is for')
+-- A key that selects nothing changes nothing.
+plugin.read_key = function()
+  return 'x'
+end
+press('gt')
+vim.wait(200)
+eq(line(2), '* WAIT Call them', 'an unknown key quits')
+plugin.read_key = read_key
 vim.ui.input = input
 
 print(('ok: %d checks passed'):format(checks))

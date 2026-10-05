@@ -82,12 +82,38 @@ pub struct LineEdit {
     pub text: String,
 }
 
+/// The lines of a note's text, as `org-store-log-note` takes them from
+/// the note buffer: without blank lines at the start (the comment lines
+/// the buffer starts with take them along), without comment lines, and
+/// without blanks at the end of the last line, split at newlines
+/// (`org-split-string`, which ignores one at the end).
+fn note_lines(text: &str) -> Vec<&str> {
+    // `\`# .*\n[ \t\n]*`, after the buffer's own comment lines.
+    let mut text = text.trim_start_matches([' ', '\t', '\n']);
+    while let Some(rest) = text.strip_prefix("# ").and_then(|rest| rest.split_once('\n')).map(|(_, rest)| rest) {
+        text = rest.trim_start_matches([' ', '\t', '\n']);
+    }
+    // `\s-+\'`: a newline is no whitespace in the note buffer.
+    let text = text.trim_end_matches([' ', '\t']);
+    if text.is_empty() {
+        return Vec::new();
+    }
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    if lines.last() == Some(&"") {
+        lines.pop();
+    }
+    lines
+}
+
 /// A state note that waits to be written.
 struct Note {
     /// `State "DONE" from "TODO"` rather than `CLOSING NOTE`.
     state_change: bool,
     state: Option<String>,
     previous: Option<String>,
+    /// The user writes text for it (`@`); otherwise it records the time
+    /// only (`!`) and is written at once.
+    text: bool,
 }
 
 struct Editor<'a> {
@@ -323,6 +349,19 @@ impl Editor<'_> {
     }
 
     // ----- the headline
+
+    /// Make the headline at or above byte `offset` the entry's.
+    fn go_to_heading(&mut self, offset: usize) -> Result<(), String> {
+        let mut line = self.line_start(offset.min(self.text.len()));
+        while headline_level(self.line(line)).is_none() {
+            if line == 0 {
+                return Err("Before first headline".to_string());
+            }
+            line = self.line_start(line - 1);
+        }
+        self.heading = line;
+        Ok(())
+    }
 
     /// The keyword of the headline as `org-todo` sees it, and where the
     /// text it replaces ends: the spaces after the stars, the keyword and
@@ -634,8 +673,9 @@ impl Editor<'_> {
         })
     }
 
-    /// `org-store-log-note`: write the note at `org-log-beginning`.
-    fn store_note(&mut self, note: &Note) {
+    /// `org-store-log-note`: write the note at `org-log-beginning`, with
+    /// the text the user wrote for it.
+    fn store_note(&mut self, note: &Note, text: &str) {
         let quoted = |state: &Option<String>| state.as_ref().map(|state| format!("\"{state}\"")).unwrap_or_default();
         let time = format_timestamp(self.now, true, true, "");
         let heading = if note.state_change {
@@ -662,7 +702,21 @@ impl Editor<'_> {
         }
         let indent = self.indentation_at(at);
         let blanks = leading_blanks(self.line(at));
-        self.replace(at, at + blanks, &format!("{indent}- {heading}"));
+        let lines = note_lines(text);
+        let mut item = format!("{indent}- {heading}");
+        if !lines.is_empty() {
+            item.push_str(" \\\\");
+        }
+        // The text below the heading, indented to the item's body.
+        for line in lines {
+            item.push('\n');
+            if !line.is_empty() {
+                item.push_str(&indent);
+                item.push_str("  ");
+            }
+            item.push_str(line);
+        }
+        self.replace(at, at + blanks, &item);
     }
 
     /// The indentation of a new line at `at`, as `org-indent-line` sets it.
@@ -857,6 +911,7 @@ impl Editor<'_> {
                     .or_else(|| self.keywords.names().find(|name| self.keywords.is_done(name)).map(str::to_string)),
                 // Org writes `""` here for an entry that had no keyword.
                 previous: Some(previous.clone().unwrap_or_default()),
+                text: self.settings.log_repeat == Some(Logging::Note),
             });
         }
 
@@ -973,11 +1028,13 @@ impl Editor<'_> {
             if now_done && self.settings.log_done.is_some() {
                 self.planning_closed(true);
                 if record.is_none() && self.settings.log_done == Some(Logging::Note) {
-                    self.note = Some(Note { state_change: false, state: state.clone(), previous: this.clone() });
+                    let (state, previous) = (state.clone(), this.clone());
+                    self.note = Some(Note { state_change: false, state, previous, text: true });
                 }
             }
             if state.is_some() && record.is_some() {
-                self.note = Some(Note { state_change: true, state: state.clone(), previous: this.clone() });
+                let text = record == Some(Logging::Note);
+                self.note = Some(Note { state_change: true, state: state.clone(), previous: this.clone(), text });
             }
         }
         self.align_tags(self.heading);
@@ -1068,24 +1125,98 @@ pub fn change_state(
     settings: &Settings,
     now: DateTime,
 ) -> Result<String, String> {
+    // A note, if one is wanted, is written without text.
+    change_state_with_note(text, keywords, offset, target, settings, now, Some("")).map(|changed| changed.text)
+}
+
+/// The state that `answer` selects at `org-todo`'s fast selection
+/// (`org-fast-todo-selection`) for the entry at byte `offset`: its first
+/// character is the key. A space clears the keyword; a key that selects
+/// nothing quits, which is `Ok(None)`. Without keys, `org-todo` cycles
+/// instead.
+pub fn fast_selection(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    answer: &str,
+) -> Result<Option<Target>, String> {
+    if keywords.fast_keys().is_empty() {
+        return Ok(Some(Target::Next));
+    }
+    let settings = Settings::default();
+    let mut editor = Editor {
+        text: text.to_string(),
+        keywords,
+        settings: &settings,
+        now: DateTime::new(crate::date::Date::new(1970, 1, 1), 0, 0),
+        heading: 0,
+        note: None,
+    };
+    editor.go_to_heading(offset)?;
+    let (current, ..) = editor.keyword_match();
+    Ok(match answer.chars().next() {
+        Some(' ') => Some(Target::State(None)),
+        Some(key) => keywords.fast_key(key, current.as_deref()).map(|name| Target::State(Some(name.to_string()))),
+        None => None,
+    })
+}
+
+/// A state change that may want a note.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Changed {
+    pub text: String,
+    /// The note the change wants, when no text was given for it. The text
+    /// is then without the note.
+    pub wants_note: Option<WantedNote>,
+}
+
+/// A note a state change wants (`org-add-note`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WantedNote {
+    /// What it is for, as the note buffer says: `state change from
+    /// "TODO" to "DONE"`, or `closed todo item`.
+    pub purpose: String,
+    /// The state the entry was changed to, which the note is about.
+    pub state: Option<String>,
+}
+
+/// [`change_state`], with the text of the note the change records, as
+/// the user writes it after the change (`org-add-note`). Without `note`,
+/// a change that wants one says so instead of writing it.
+pub fn change_state_with_note(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    target: &Target,
+    settings: &Settings,
+    now: DateTime,
+    note: Option<&str>,
+) -> Result<Changed, String> {
     let mut editor = Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None };
-    // The headline at or above the cursor.
-    let mut line = editor.line_start(offset.min(text.len()));
-    loop {
-        if headline_level(editor.line(line)).is_some() {
-            break;
-        }
-        if line == 0 {
-            return Err("Before first headline".to_string());
-        }
-        line = editor.line_start(line - 1);
-    }
-    editor.heading = line;
+    editor.go_to_heading(offset)?;
     editor.set_state(target, true)?;
-    if let Some(note) = editor.note.take() {
-        editor.store_note(&note);
-    }
-    Ok(editor.text)
+    let wants_note = match (editor.note.take(), note) {
+        // A time only (`!`): no text is asked for.
+        (Some(wanted), _) if !wanted.text => {
+            editor.store_note(&wanted, "");
+            None
+        }
+        (Some(wanted), Some(note)) => {
+            editor.store_note(&wanted, note);
+            None
+        }
+        (Some(wanted), None) => {
+            let purpose = if wanted.state_change {
+                let name = |state: &Option<String>| state.clone().unwrap_or_default();
+                format!("state change from \"{}\" to \"{}\"", name(&wanted.previous), name(&wanted.state))
+            } else {
+                "closed todo item".to_string()
+            };
+            Some(WantedNote { purpose, state: wanted.state })
+        }
+        (None, _) => None,
+    };
+    Ok(Changed { text: editor.text, wants_note })
 }
 
 /// The line edits that turn `old` into `new`.
