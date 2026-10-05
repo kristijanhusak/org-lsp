@@ -156,7 +156,19 @@ fn announces_capabilities() {
     assert!(capabilities.document_symbol_provider.is_some());
     let capabilities = serde_json::to_value(capabilities).unwrap();
     assert_eq!(capabilities["textDocumentSync"]["change"], 2);
-    assert_eq!(capabilities["codeActionProvider"]["codeActionKinds"], json!(["org.todo.next", "org.todo.previous"]));
+    assert_eq!(
+        capabilities["codeActionProvider"]["codeActionKinds"],
+        json!([
+            "org.todo.next",
+            "org.todo.previous",
+            "org.priority.up",
+            "org.priority.down",
+            "org.timestamp.up",
+            "org.timestamp.down",
+            "org.date.later",
+            "org.date.earlier"
+        ])
+    );
     let legend = &capabilities["semanticTokensProvider"]["legend"];
     assert_eq!(legend["tokenTypes"][0], "headline");
     assert_eq!(legend["tokenModifiers"][0], "level1");
@@ -287,8 +299,10 @@ fn todo_cycle_round_trip() {
     assert_eq!(edit.range, Range::new(Position::new(1, 2), Position::new(1, 12)));
     assert_eq!(edit.new_text, format!("First{}", " ".repeat(5)));
 
-    // Asking for every Org action returns both directions.
-    assert_eq!(client.code_actions(&uri(), cursor, "org").len(), 2);
+    // Asking for every Org action returns both directions, of the TODO
+    // state and of the priority.
+    assert_eq!(client.code_actions(&uri(), cursor, "org.todo").len(), 2);
+    assert_eq!(client.code_actions(&uri(), cursor, "org").len(), 4);
     // Nothing applies before the first headline or for unrelated kinds.
     assert!(client.code_actions(&uri(), Position::new(0, 3), "org").is_empty());
     assert!(client.code_actions(&uri(), cursor, "quickfix").is_empty());

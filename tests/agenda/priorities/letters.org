@@ -1,0 +1,13 @@
+#+PRIORITIES: A E C
+* TODO [#E] lowest of five
+SCHEDULED: <2026-05-18 Mon>
+* TODO [#D] fourth of five
+SCHEDULED: <2026-05-18 Mon>
+* TODO no cookie, default C
+SCHEDULED: <2026-05-18 Mon>
+* TODO [#C] third of five
+SCHEDULED: <2026-05-18 Mon>
+* TODO [#A] highest of five
+SCHEDULED: <2026-05-18 Mon>
+* TODO [#B] second of five
+DEADLINE: <2026-05-18 Mon>

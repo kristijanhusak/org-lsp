@@ -1,0 +1,17 @@
+Global list of TODO items of type: ALL
+  numbers:    TODO [#1] one
+  letters:    TODO [#A] highest of five
+  numbers:    TODO five by default
+  letters:    TODO [#B] second of five
+  numbers:    TODO [#6] six
+  letters:    TODO no cookie, default C
+  letters:    TODO [#C] third of five
+  plain:      TODO [#A] plain A
+  letters:    TODO [#D] fourth of five
+  plain:      TODO plain default
+  letters:    TODO [#E] lowest of five
+  numbers:    TODO [#9] nine
+  plain:      TODO [#C] plain C
+  plain:      TODO [#E] plain E, out of range
+  numbers:    TODO [#12] twelve, out of range
+  numbers:    TODO [#A] a letter among numbers

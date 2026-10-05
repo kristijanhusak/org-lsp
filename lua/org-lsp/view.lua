@@ -1,5 +1,6 @@
---- Showing documents on the server's request, among them the ones the
---- server owns and the editor only displays: the agenda.
+--- What the server asks the editor to do: show documents, among them the
+--- ones the server owns and the editor only displays (the agenda), and
+--- apply edits.
 ---
 --- For those this is the client side of LSP 3.18's
 --- `workspace/textDocumentContent`, which Neovim does not have built in. A
@@ -56,6 +57,23 @@ local function load(bufnr, language)
 end
 
 M.handlers = {
+  --- The server edits a file for a command. Neovim reports changes to a
+  --- buffer after a delay; the server should hear of this one at once,
+  --- because the next press of the same key builds on it.
+  ['workspace/applyEdit'] = function(err, params, ctx)
+    local result = vim.lsp.handlers['workspace/applyEdit'](err, params, ctx)
+    local edit = params.edit or {}
+    local uris = vim.tbl_keys(edit.changes or {})
+    for _, change in ipairs(edit.documentChanges or {}) do
+      table.insert(uris, change.textDocument and change.textDocument.uri)
+    end
+    for _, uri in ipairs(uris) do
+      -- Asking for the new highlighting sends the change first.
+      vim.lsp.semantic_tokens.force_refresh(vim.uri_to_bufnr(uri))
+    end
+    return result
+  end,
+
   --- The server asks for a document to be shown: the agenda, or the file
   --- of an entry. Neovim's own handler fails when the cursor is on an empty
   --- line (it asks for the word under the cursor), so this one does the

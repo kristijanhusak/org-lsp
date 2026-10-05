@@ -6,7 +6,40 @@
 
 pub mod agenda;
 pub mod date;
+pub mod edit;
 pub mod outline;
+pub mod priority;
+pub mod stamp;
 pub mod text;
 pub mod timestr;
 pub mod todo;
+
+/// Why a command changed nothing.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Refusal {
+    /// The command has no meaning where the cursor is. An editor may give
+    /// the key its ordinary meaning instead.
+    NotHere(String),
+    /// The command applies here but cannot be carried out.
+    Failed(String),
+}
+
+impl From<String> for Refusal {
+    fn from(message: String) -> Self {
+        Refusal::Failed(message)
+    }
+}
+
+impl From<&str> for Refusal {
+    fn from(message: &str) -> Self {
+        Refusal::Failed(message.to_string())
+    }
+}
+
+impl Refusal {
+    pub fn message(&self) -> &str {
+        match self {
+            Refusal::NotHere(message) | Refusal::Failed(message) => message,
+        }
+    }
+}

@@ -176,6 +176,7 @@ mod tests {
                 kind: ItemKind::Scheduled,
                 face,
                 source: Some(Source { file: 0, entry: 0 }),
+                marker: None,
                 keyword_len,
                 keyword_done: false,
             }),

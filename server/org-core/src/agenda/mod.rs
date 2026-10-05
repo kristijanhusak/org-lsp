@@ -19,6 +19,7 @@ use item::{format_item, normalise_keyword, priority, Dotime, FormatInput, Prefix
 
 use crate::date::{days_in_month, is_leap_year, iso_week, weekday, Date, Day, MONTH_NAMES, WEEKDAY_NAMES};
 use crate::outline::{Entry, Outline};
+use crate::priority::Priorities;
 use crate::timestr::{closest_date, time_string_to_day, warning_days, Prefer};
 
 /// How many days the agenda covers.
@@ -172,6 +173,9 @@ pub struct Config {
     pub show_current_time_in_grid: bool,
     /// `org-agenda-weekend-days`
     pub weekend_days: Vec<usize>,
+    /// `org-priority-highest`, `-lowest` and `-default`, for files that
+    /// do not set their own with `#+PRIORITIES:`.
+    pub priorities: Priorities,
 }
 
 impl Default for Config {
@@ -193,6 +197,7 @@ impl Default for Config {
             time_grid: TimeGrid::default(),
             show_current_time_in_grid: true,
             weekend_days: vec![6, 0],
+            priorities: Priorities::default(),
         }
     }
 }
@@ -248,7 +253,7 @@ impl Builder<'_> {
             time_trailer: &self.config.time_grid.trailer,
         });
         let mut text = formatted.text;
-        let priority = priority(&text);
+        let priority = priority(&text, outline.priorities.as_ref().unwrap_or(&self.config.priorities));
         let keyword_len = normalise_keyword(&mut text, formatted.heading, outline.todo.names()).unwrap_or(0);
         let keyword_done = outline.todo.is_done(&text[formatted.heading..formatted.heading + keyword_len]);
         Item {
@@ -259,6 +264,7 @@ impl Builder<'_> {
             kind,
             face,
             source: Some(Source { file, entry: entry_index }),
+            marker: None,
             keyword_len,
             keyword_done,
         }
@@ -305,6 +311,7 @@ impl Builder<'_> {
             };
             let time = planning_time(raw, current != deadline && current != repeat);
             let mut item = self.item(file, index, ItemKind::Deadline, face, &extra, time.as_dotime());
+            item.marker = Some(planning.offset);
             // Overdue deadlines sort first, then the most imminent ones.
             item.priority += if is_today { -diff } else { 0 };
             out.push(item);
@@ -346,6 +353,7 @@ impl Builder<'_> {
             };
             let time = planning_time(raw, current != schedule && current != repeat);
             let mut item = self.item(file, index, ItemKind::Scheduled, face, &extra, time.as_dotime());
+            item.marker = Some(planning.offset);
             item.priority += 99 + diff;
             out.push(item);
         }
@@ -376,7 +384,9 @@ impl Builder<'_> {
                 (false, false) => None,
             };
             let dotime = dotime.as_deref().map_or(Dotime::No, Dotime::Text);
-            out.push(self.item(file, block.entry, ItemKind::Block, face, &extra, dotime));
+            let mut item = self.item(file, block.entry, ItemKind::Block, face, &extra, dotime);
+            item.marker = Some(block.offset);
+            out.push(item);
         }
     }
 
@@ -413,14 +423,10 @@ impl Builder<'_> {
                     continue;
                 }
             }
-            out.push(self.item(
-                file,
-                shown.entry,
-                ItemKind::Timestamp,
-                Face::CalendarEvent,
-                "",
-                Dotime::Text(&shown.text),
-            ));
+            let mut item =
+                self.item(file, shown.entry, ItemKind::Timestamp, Face::CalendarEvent, "", Dotime::Text(&shown.text));
+            item.marker = Some(stamp.offset);
+            out.push(item);
         }
     }
 
@@ -460,6 +466,7 @@ impl Builder<'_> {
                 kind: ItemKind::Grid,
                 face,
                 source: None,
+                marker: None,
                 keyword_len: 0,
                 keyword_done: false,
             }

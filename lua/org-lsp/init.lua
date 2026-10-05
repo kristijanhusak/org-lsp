@@ -132,43 +132,62 @@ end
 --- Run a command: one of the editor's own, or one of the server's, which
 --- is told where the cursor is.
 ---@param name string e.g. 'org.todo.next'
-function M.run(name)
+---@param opts? { count?: integer, key?: string } the count typed before the
+--- key, and the key to give back its own meaning if the command does not
+--- apply at the cursor
+function M.run(name, opts)
   if own_commands[name] then
     return own_commands[name][2]()
   end
+  opts = opts or {}
+  local count = opts.count and opts.count > 0 and opts.count or nil
   with_client(function(client)
     local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
+    context.count = count
     local command = { title = name, command = name, arguments = { context } }
     client:exec_cmd(command, { bufnr = vim.api.nvim_get_current_buf() }, function(err)
-      if err then
+      if not err then
+        return
+      end
+      if opts.key and type(err.data) == 'table' and err.data.notApplicable then
+        -- Not an Org matter here: the key does what it does elsewhere.
+        vim.api.nvim_feedkeys((count or '') .. vim.keycode(opts.key), 'n', false)
+      else
         vim.notify('org-lsp: ' .. tostring(err.message), vim.log.levels.WARN)
       end
     end)
   end)
 end
 
+--- The editing command that `.` repeats, with its options.
 local last_edit
 
 --- 'operatorfunc' target, so that `.` repeats the last editing command.
+--- A count typed before `.` replaces the one the command had.
 function M.repeat_edit()
   if last_edit then
-    M.run(last_edit)
+    M.run(last_edit.name, { count = vim.v.count, key = last_edit.key })
   end
 end
 
 --- The right-hand side of an expression mapping that runs `name` and can
 --- be repeated with `.`.
 ---@param name string
+---@param key? string the mapped key, if it has a meaning of its own
 ---@return fun(): string
-local function repeatable(name)
+local function repeatable(name, key)
   return function()
-    last_edit = name
+    last_edit = { name = name, key = key }
     vim.o.operatorfunc = "v:lua.require'org-lsp'.repeat_edit"
     -- `g@l` runs 'operatorfunc' without moving the cursor, but `l` cannot
     -- move on an empty line; there the command runs directly instead.
     if vim.api.nvim_get_current_line() == '' then
-      vim.schedule(M.repeat_edit)
-      return ''
+      local count = vim.v.count
+      vim.schedule(function()
+        M.run(name, { count = count, key = key })
+      end)
+      -- Use up the count, which would otherwise wait for a command.
+      return count > 0 and vim.keycode('<Esc>') or ''
     end
     return 'g@l'
   end
@@ -180,23 +199,25 @@ end
 --- configuration's entries taking their place command by command.
 ---@param scope 'global'|'org'|'agenda'
 ---@return table<string, string[]> # command to keys
+---@return table<string, boolean> # the keys that keep a meaning of their own
 local function keys_in(scope)
   if not M.config.mappings then
-    return {}
+    return {}, {}
   end
-  local keys = {}
+  local keys, native = {}, {}
   for _, command in ipairs(M.manifest and M.manifest.commands or {}) do
     for _, key in ipairs(command.keys) do
       if key.preset == 'vim' and key['in'] == scope then
         keys[command.command] = keys[command.command] or {}
         table.insert(keys[command.command], key.key)
+        native[key.key] = key.native or nil
       end
     end
   end
   for name, key in pairs(M.config.mappings[scope] or {}) do
     keys[name] = type(key) == 'table' and key or key and { key } or {}
   end
-  return keys
+  return keys, native
 end
 
 --- Global keys that are set, so that a change of configuration can take
@@ -212,18 +233,20 @@ local function set_keys(scope, bufnr)
     end
     global_keys = {}
   end
-  for name, keys in pairs(keys_in(scope)) do
+  local keys, native = keys_in(scope)
+  for name, list in pairs(keys) do
     local command = server_command(name)
     local title = own_commands[name] and own_commands[name][1] or command and command.title or name
-    for _, lhs in ipairs(keys) do
+    for _, lhs in ipairs(list) do
       if scope == 'global' then
         table.insert(global_keys, lhs)
       end
+      local key = native[lhs] and lhs or nil
       if command and command.edits and scope == 'org' then
-        vim.keymap.set('n', lhs, repeatable(name), { buffer = bufnr, desc = title, expr = true })
+        vim.keymap.set('n', lhs, repeatable(name, key), { buffer = bufnr, desc = title, expr = true })
       else
         vim.keymap.set('n', lhs, function()
-          M.run(name)
+          M.run(name, { count = vim.v.count, key = key })
         end, { buffer = bufnr, desc = title })
       end
     end

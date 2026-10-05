@@ -3,6 +3,8 @@
 //! without the `org-agenda-` prefix.
 
 use org_core::agenda::{Config as AgendaConfig, FutureRepeats, Span, TimeGrid};
+use org_core::edit::Settings as EditSettings;
+use org_core::priority::{self, Priorities};
 use org_core::todo::{RepeatTo, Settings as TodoSettings};
 use org_syntax::Logging;
 use serde::Deserialize;
@@ -27,6 +29,17 @@ pub struct Options {
     /// `org-todo-repeat-to-state`: a keyword, or `true` for the state the
     /// entry had before it was marked done.
     pub todo_repeat_to_state: Option<RepeatToOption>,
+    /// `org-priority-highest`: a letter, or a number from 0 to 64.
+    pub priority_highest: Option<PriorityOption>,
+    /// `org-priority-lowest`
+    pub priority_lowest: Option<PriorityOption>,
+    /// `org-priority-default`
+    pub priority_default: Option<PriorityOption>,
+    /// `org-priority-start-cycle-with-default`
+    pub priority_start_cycle_with_default: Option<bool>,
+    /// The step in which the minutes of a timestamp change: the second
+    /// number of `org-time-stamp-rounding-minutes`.
+    pub timestamp_rounding_minutes: Option<i64>,
     /// Whether the client fetches the agenda from the server as a virtual
     /// document. Clients that announce LSP 3.18's `textDocumentContent`
     /// need not say so.
@@ -69,7 +82,61 @@ pub enum RepeatToOption {
     State(String),
 }
 
+/// A priority: `"A"` or `1`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum PriorityOption {
+    Number(i64),
+    Letter(String),
+}
+
+impl PriorityOption {
+    fn value(&self) -> Option<i64> {
+        match self {
+            PriorityOption::Number(number) => Some(*number),
+            PriorityOption::Letter(letter) => priority::value(letter),
+        }
+    }
+}
+
 impl Options {
+    /// The priorities in use: Org's `A` to `C` unless set otherwise.
+    pub fn priorities(&self) -> Priorities {
+        let mut priorities = Priorities::default();
+        let value = |option: &Option<PriorityOption>| option.as_ref().and_then(PriorityOption::value);
+        if let Some(highest) = value(&self.priority_highest) {
+            priorities.highest = highest;
+        }
+        if let Some(lowest) = value(&self.priority_lowest) {
+            priorities.lowest = lowest;
+        }
+        if let Some(default) = value(&self.priority_default) {
+            priorities.default = default;
+        }
+        priorities
+    }
+
+    /// The agenda settings, with the priorities the agenda sorts by.
+    pub fn agenda_config(&self) -> AgendaConfig {
+        AgendaConfig { priorities: self.priorities(), ..self.agenda.to_config() }
+    }
+
+    /// The settings of the commands that edit a document.
+    pub fn edit_settings(&self) -> EditSettings {
+        let defaults = EditSettings::default();
+        EditSettings {
+            todo: self.todo_settings(),
+            priorities: self.priorities(),
+            priority_start_cycle_with_default: self
+                .priority_start_cycle_with_default
+                .unwrap_or(defaults.priority_start_cycle_with_default),
+            timestamp_rounding_minutes: self
+                .timestamp_rounding_minutes
+                .filter(|minutes| *minutes >= 0)
+                .unwrap_or(defaults.timestamp_rounding_minutes),
+        }
+    }
+
     /// The settings for changing TODO states: Org's defaults with the
     /// given options applied.
     pub fn todo_settings(&self) -> TodoSettings {
@@ -278,6 +345,28 @@ mod tests {
         assert_eq!(config.tags_column, -100);
         assert_eq!(config.time_grid.times, [900, 1700]);
         assert!(config.time_grid.weekly && config.time_grid.today);
+    }
+
+    #[test]
+    fn reads_priorities_and_rounding() {
+        let options: Options = serde_json::from_value(serde_json::json!({
+            "priorityHighest": "A", "priorityLowest": "E", "priorityDefault": "C",
+            "priorityStartCycleWithDefault": false, "timestampRoundingMinutes": 15, "tagsColumn": -90
+        }))
+        .unwrap();
+        let settings = options.edit_settings();
+        assert_eq!(settings.priorities, Priorities { highest: 65, lowest: 69, default: 67 });
+        assert!(!settings.priority_start_cycle_with_default);
+        assert_eq!(settings.timestamp_rounding_minutes, 15);
+        assert_eq!(settings.todo.tags_column, -90);
+        assert_eq!(options.agenda_config().priorities, settings.priorities);
+        let numbers: Options = serde_json::from_value(
+            serde_json::json!({ "priorityHighest": 1, "priorityLowest": 9, "priorityDefault": 5 }),
+        )
+        .unwrap();
+        assert_eq!(numbers.priorities(), Priorities { highest: 1, lowest: 9, default: 5 });
+        let defaults: Options = serde_json::from_str("{}").unwrap();
+        assert_eq!(defaults.edit_settings(), EditSettings::default());
     }
 
     #[test]

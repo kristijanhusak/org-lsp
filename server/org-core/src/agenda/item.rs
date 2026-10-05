@@ -6,6 +6,7 @@
 //! `Scheduled:`, then the headline with its tags.
 
 use crate::outline::Tag;
+use crate::priority::Priorities;
 use crate::text::{pad_left, pad_right, tag_group, trim, width};
 use crate::timestr::{plain_time_range, stamp_time_range, time_of_day, TimeOfDay};
 
@@ -67,6 +68,10 @@ pub struct Item {
     pub kind: ItemKind,
     pub face: Face,
     pub source: Option<Source>,
+    /// Byte offset in the file of the timestamp the line stands for, where
+    /// Emacs keeps its marker: the opening bracket, or the end of a date
+    /// range.
+    pub marker: Option<usize>,
     /// Length of the TODO keyword at `heading`, if the headline has one.
     pub keyword_len: usize,
     pub keyword_done: bool,
@@ -271,9 +276,7 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
 /// or the default priority. Higher is more urgent.
 ///
 /// A cookie holds one capital letter or a number from 0 to 64.
-pub fn priority(text: &str) -> i64 {
-    const LOWEST: i64 = b'C' as i64;
-    const DEFAULT: i64 = b'B' as i64;
+pub fn priority(text: &str, priorities: &Priorities) -> i64 {
     let bytes = text.as_bytes();
     let digit = |b: u8| i64::from(b - b'0');
     let value = text.match_indices("[#").find_map(|(at, _)| match bytes[at + 2..] {
@@ -284,7 +287,7 @@ pub fn priority(text: &str) -> i64 {
         }
         _ => None,
     });
-    1000 * (LOWEST - value.unwrap_or(DEFAULT))
+    1000 * (priorities.lowest - value.unwrap_or(priorities.default))
 }
 
 /// `org-agenda-highlight-todo`: find the keyword at the start of the
@@ -454,15 +457,19 @@ mod tests {
 
     #[test]
     fn priorities() {
-        assert_eq!(priority("TODO Task"), 1000);
-        assert_eq!(priority("TODO [#A] Task"), 2000);
-        assert_eq!(priority("TODO [#C] Task"), 0);
-        assert_eq!(priority("x [#a] y"), 1000);
-        assert_eq!(priority("x [#Z] y"), -23000);
-        assert_eq!(priority("x [#5] y"), 62000);
-        assert_eq!(priority("x [#64] y"), 3000);
-        assert_eq!(priority("x [#65] [#05] y"), 1000);
-        assert_eq!(priority("[#] [#B]"), 1000);
+        let priority_of = |text: &str| priority(text, &Priorities::default());
+        assert_eq!(priority_of("TODO Task"), 1000);
+        assert_eq!(priority_of("TODO [#A] Task"), 2000);
+        assert_eq!(priority_of("TODO [#C] Task"), 0);
+        assert_eq!(priority_of("x [#a] y"), 1000);
+        assert_eq!(priority_of("x [#Z] y"), -23000);
+        assert_eq!(priority_of("x [#5] y"), 62000);
+        assert_eq!(priority_of("x [#64] y"), 3000);
+        assert_eq!(priority_of("x [#65] [#05] y"), 1000);
+        assert_eq!(priority_of("[#] [#B]"), 1000);
+        let wide = Priorities { highest: 65, lowest: 69, default: 67 };
+        assert_eq!(priority("TODO Task", &wide), 2000);
+        assert_eq!(priority("[#A]", &wide), 4000);
     }
 
     #[test]

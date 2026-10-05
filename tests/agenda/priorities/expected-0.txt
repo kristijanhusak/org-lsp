@@ -1,0 +1,18 @@
+Day-agenda (W21):
+Monday     18 May 2026 W21
+  numbers:    Scheduled:  TODO [#1] one
+  letters:    Scheduled:  TODO [#A] highest of five
+  numbers:    Scheduled:  TODO five by default
+  numbers:    Scheduled:  TODO [#6] six
+  letters:    Deadline:   TODO [#B] second of five
+  letters:    Scheduled:  TODO no cookie, default C
+  letters:    Scheduled:  TODO [#C] third of five
+  plain:      Scheduled:  TODO [#A] plain A
+  letters:    Scheduled:  TODO [#D] fourth of five
+  plain:      Scheduled:  TODO plain default
+  letters:    Scheduled:  TODO [#E] lowest of five
+  numbers:    Scheduled:  TODO [#9] nine
+  plain:      Scheduled:  TODO [#C] plain C
+  plain:      Scheduled:  TODO [#E] plain E, out of range
+  numbers:    Scheduled:  TODO [#12] twelve, out of range
+  numbers:    Scheduled:  TODO [#A] a letter among numbers
