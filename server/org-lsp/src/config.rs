@@ -420,22 +420,115 @@ pub struct Loaded {
 }
 
 /// The shared configuration file when nothing names another one:
-/// `$ORG_LSP_CONFIG`, else `config.toml` in `$XDG_CONFIG_HOME/org-lsp`,
-/// `~/.config/org-lsp`, or on Windows `%APPDATA%\org-lsp`. `var` reads the
-/// environment.
-pub fn default_config_file(var: &dyn Fn(&str) -> Option<String>) -> Option<PathBuf> {
+/// `$ORG_LSP_CONFIG`, else `config.toml` or `config.json` in
+/// `$XDG_CONFIG_HOME/org-lsp`, `~/.config/org-lsp`, or on Windows
+/// `%APPDATA%\org-lsp`; `config.toml` when neither is there. With both
+/// there, `config.toml` is the one, and the second value says so. `var`
+/// reads the environment.
+pub fn default_config_file(var: &dyn Fn(&str) -> Option<String>) -> (Option<PathBuf>, Option<String>) {
     let set = |name: &str| var(name).filter(|value| !value.is_empty());
     if let Some(path) = set("ORG_LSP_CONFIG") {
-        return Some(expand_home(&path, var));
+        return (Some(expand_home(&path, var)), None);
     }
     let directory = if let Some(config) = set("XDG_CONFIG_HOME") {
         PathBuf::from(config)
     } else if cfg!(windows) {
-        PathBuf::from(set("APPDATA")?)
+        match set("APPDATA") {
+            Some(directory) => PathBuf::from(directory),
+            None => return (None, None),
+        }
     } else {
-        PathBuf::from(set("HOME")?).join(".config")
+        match set("HOME") {
+            Some(home) => PathBuf::from(home).join(".config"),
+            None => return (None, None),
+        }
     };
-    Some(directory.join("org-lsp").join("config.toml"))
+    let directory = directory.join("org-lsp");
+    let (toml, json) = (directory.join("config.toml"), directory.join("config.json"));
+    match (toml.exists(), json.exists()) {
+        (true, true) => {
+            let warning = format!("{} is ignored, as {} is there too", json.display(), toml.display());
+            (Some(toml), Some(warning))
+        }
+        (false, true) => (Some(json), None),
+        _ => (Some(toml), None),
+    }
+}
+
+/// The options in the configuration file at `path`, which `text` holds:
+/// JSON for a `.json` file, with comments and trailing commas allowed as in
+/// VS Code's settings, and TOML for any other.
+fn parse_config(path: &std::path::Path, text: &str) -> Result<serde_json::Value, String> {
+    if path.extension().is_some_and(|extension| extension.eq_ignore_ascii_case("json")) {
+        let value: serde_json::Value =
+            serde_json::from_str(&strip_json_comments(text)).map_err(|error| format!("is not valid JSON: {error}"))?;
+        if value.is_object() {
+            Ok(value)
+        } else {
+            Err("is not a JSON object".to_string())
+        }
+    } else {
+        let table = text.parse::<toml::Table>().map_err(|error| format!("is not valid TOML: {error}"))?;
+        Ok(serde_json::to_value(table).unwrap_or_default())
+    }
+}
+
+/// JSON with comments (`//`, `/* */`) and trailing commas made plain JSON.
+/// What goes is replaced by spaces, so that errors keep their lines and
+/// columns.
+fn strip_json_comments(text: &str) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let mut out: Vec<char> = Vec::with_capacity(chars.len());
+    // Where the last comma outside a string is in `out`, while only
+    // blanks follow it.
+    let mut comma: Option<usize> = None;
+    let mut index = 0;
+    while index < chars.len() {
+        let c = chars[index];
+        if c == '"' {
+            comma = None;
+            out.push(c);
+            index += 1;
+            while index < chars.len() {
+                let c = chars[index];
+                out.push(c);
+                index += 1;
+                if c == '\\' && index < chars.len() {
+                    out.push(chars[index]);
+                    index += 1;
+                } else if c == '"' {
+                    break;
+                }
+            }
+        } else if c == '/' && chars.get(index + 1) == Some(&'/') {
+            while index < chars.len() && chars[index] != '\n' {
+                out.push(' ');
+                index += 1;
+            }
+        } else if c == '/' && chars.get(index + 1) == Some(&'*') {
+            out.extend([' ', ' ']);
+            index += 2;
+            while index < chars.len() && !(chars[index] == '*' && chars.get(index + 1) == Some(&'/')) {
+                out.push(if chars[index] == '\n' { '\n' } else { ' ' });
+                index += 1;
+            }
+            if index < chars.len() {
+                out.extend([' ', ' ']);
+                index += 2;
+            }
+        } else {
+            if (c == '}' || c == ']') && comma.is_some() {
+                out[comma.take().unwrap_or_default()] = ' ';
+            } else if c == ',' {
+                comma = Some(out.len());
+            } else if !c.is_whitespace() {
+                comma = None;
+            }
+            out.push(c);
+            index += 1;
+        }
+    }
+    out.into_iter().collect()
 }
 
 /// `path` with a leading `~/` for the home directory.
@@ -464,25 +557,30 @@ pub fn load(editor: Option<serde_json::Value>, var: &dyn Fn(&str) -> Option<Stri
         }
     };
     // A file the editor names must be there; the usual one may not be.
+    let usual = |problems: &mut Vec<String>| {
+        let (file, warning) = default_config_file(var);
+        problems.extend(warning);
+        (file, false)
+    };
     let (file, named) = match editor.remove("configFile") {
         Some(serde_json::Value::Bool(false)) => (None, false),
         Some(serde_json::Value::String(path)) if !path.is_empty() => (Some(expand_home(&path, var)), true),
-        None | Some(serde_json::Value::Bool(true)) => (default_config_file(var), false),
+        None | Some(serde_json::Value::Bool(true)) => usual(&mut problems),
         Some(_) => {
             problems.push("the option `configFile` is malformed and is ignored".to_string());
-            (default_config_file(var), false)
+            usual(&mut problems)
         }
     };
     let mut merged = serde_json::json!({});
     let mut read = false;
     if let Some(path) = &file {
         match std::fs::read_to_string(path) {
-            Ok(text) => match text.parse::<toml::Table>() {
-                Ok(table) => {
-                    merged = serde_json::to_value(table).unwrap_or_default();
+            Ok(text) => match parse_config(path, &text) {
+                Ok(options) => {
+                    merged = options;
                     read = true;
                 }
-                Err(error) => problems.push(format!("{} is not valid TOML and is ignored: {error}", path.display())),
+                Err(error) => problems.push(format!("{} {error}; it is ignored", path.display())),
             },
             Err(error) if error.kind() == std::io::ErrorKind::NotFound && !named => {}
             Err(error) => problems.push(format!("cannot read {}: {error}", path.display())),
@@ -838,11 +936,62 @@ mod tests {
     }
 
     #[test]
+    fn a_json_file_may_have_comments_and_trailing_commas() {
+        let text = r#"{
+  // Where the agenda is built from.
+  "agendaFiles": ["~/org", "https://x//y", "/* kept */",],
+  /* Org's own
+     default. */
+  "agenda": { "span": "day", },
+}
+"#;
+        assert_eq!(
+            parse_config(std::path::Path::new("config.json"), text),
+            Ok(
+                serde_json::json!({ "agendaFiles": ["~/org", "https://x//y", "/* kept */"], "agenda": { "span": "day" } })
+            )
+        );
+        // Errors keep their lines.
+        let error = parse_config(std::path::Path::new("config.json"), "{\n  // a\n  \"logDone\": time\n}").unwrap_err();
+        assert!(error.contains("line 3"), "{error}");
+        assert_eq!(parse_config(std::path::Path::new("c.JSON"), "[1]"), Err("is not a JSON object".to_string()));
+        // Any other name is TOML.
+        assert_eq!(
+            parse_config(std::path::Path::new("work.conf"), "logDone = \"time\""),
+            Ok(serde_json::json!({ "logDone": "time" }))
+        );
+    }
+
+    #[test]
+    fn config_toml_or_config_json() {
+        let toml = temp_file("formats", "logDone = \"time\"\n");
+        let directory = toml.parent().unwrap().to_path_buf();
+        let config = directory.join("org-lsp");
+        std::fs::create_dir_all(&config).unwrap();
+        let home = directory.display().to_string();
+        let env = |name: &str| (name == "XDG_CONFIG_HOME").then(|| home.clone());
+        // Only JSON: that one.
+        std::fs::write(config.join("config.json"), "{ \"logDone\": \"note\", }").unwrap();
+        assert_eq!(default_config_file(&env), (Some(config.join("config.json")), None));
+        let loaded = load(None, &env);
+        assert_eq!((loaded.read, loaded.merged), (true, serde_json::json!({ "logDone": "note" })));
+        // Both: TOML, and a word about the other.
+        std::fs::rename(&toml, config.join("config.toml")).unwrap();
+        let (file, warning) = default_config_file(&env);
+        assert_eq!(file, Some(config.join("config.toml")));
+        assert!(warning.unwrap().contains("config.json is ignored"));
+        let loaded = load(None, &env);
+        assert_eq!(loaded.merged, serde_json::json!({ "logDone": "time" }));
+        assert_eq!(loaded.problems.len(), 1);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
     fn where_the_shared_file_is() {
         let env = |pairs: &'static [(&'static str, &'static str)]| {
             move |name: &str| pairs.iter().find(|(key, _)| *key == name).map(|(_, value)| value.to_string())
         };
-        let file = |pairs| default_config_file(&env(pairs));
+        let file = |pairs| default_config_file(&env(pairs)).0;
         assert_eq!(file(&[("ORG_LSP_CONFIG", "~/my.toml"), ("HOME", "/h")]), Some(PathBuf::from("/h/my.toml")));
         assert_eq!(file(&[("XDG_CONFIG_HOME", "/x"), ("HOME", "/h")]), Some(PathBuf::from("/x/org-lsp/config.toml")));
         if !cfg!(windows) {

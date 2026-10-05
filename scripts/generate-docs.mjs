@@ -296,6 +296,11 @@ function fileOptions() {
   return ['```toml', ...lines, '```'].join('\n');
 }
 
+/** The same as JSON with comments, for a `config.json`. */
+function fileOptionsJson() {
+  return ['```jsonc', '{', ...jsonOptions(optionTree({ editor: false }), '  '), '}', '```'].join('\n');
+}
+
 /** The table of options in docs/protocol.md. */
 function protocolOptions() {
   const rows = settings.map((setting) => [
@@ -316,7 +321,7 @@ const PAGES = {
   'docs/vscode/configuration.md': { options: vscodeOptions },
   'docs/helix/configuration.md': { options: helixOptions },
   'docs/protocol.md': { options: protocolOptions },
-  'docs/configuration.md': { options: fileOptions },
+  'docs/configuration.md': { options: fileOptions, 'options-json': fileOptionsJson },
 };
 
 const END = '<!-- END generated -->';

@@ -57,10 +57,11 @@ them out:
 {
   "org-lsp.settings": {
     // The shared configuration file, whose options this editor's go on top
-    // of: `false` for none, or the path of another file. Unset, it is
-    // `$ORG_LSP_CONFIG`, else `config.toml` in `$XDG_CONFIG_HOME/org-lsp`
-    // (`~/.config/org-lsp`; `%APPDATA%\org-lsp` on Windows).
-    // "configFile": unset: the shared file, `~/.config/org-lsp/config.toml`
+    // of: `false` for none, or the path of another file (JSON if it ends in
+    // `.json`, else TOML). Unset, it is `$ORG_LSP_CONFIG`, else `config.toml`
+    // or `config.json` in `$XDG_CONFIG_HOME/org-lsp` (`~/.config/org-lsp`;
+    // `%APPDATA%\org-lsp` on Windows).
+    // "configFile": unset: the shared file, `~/.config/org-lsp/config.toml` or `config.json`
 
     // Files, directories and glob patterns (`*`, `?`, `**`) the agenda is
     // built from. `~/` is the home directory, and a directory stands for the
