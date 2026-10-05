@@ -54,6 +54,12 @@ fn percent_decode(text: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
+/// The file's name, without its directories.
+pub fn file_name(uri: &Uri) -> String {
+    let path = percent_decode(uri.as_str());
+    path.rsplit('/').next().unwrap_or("").to_string()
+}
+
 /// The file name without directory and extension: the category Org gives
 /// a file that sets none.
 pub fn file_stem(uri: &Uri) -> String {

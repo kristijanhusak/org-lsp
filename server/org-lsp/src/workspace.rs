@@ -187,6 +187,19 @@ impl Workspace {
         files
     }
 
+    /// The Org files `pattern` names, as for the agenda files.
+    pub fn org_files(&self, pattern: &str) -> Vec<PathBuf> {
+        let mut files = Vec::new();
+        for path in self.expand(pattern) {
+            if path.is_dir() {
+                files.extend(org_files_in(&path));
+            } else if path.is_file() {
+                files.push(path);
+            }
+        }
+        files
+    }
+
     /// What `pattern` names: a path, or the matches of a glob pattern.
     /// `~` is the home directory; a relative pattern is tried in every
     /// workspace folder.

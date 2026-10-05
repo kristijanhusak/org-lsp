@@ -424,5 +424,27 @@ eq(line(2), '* WAIT Call them', 'an unknown key quits')
 plugin.read_key = read_key
 vim.ui.input = input
 
+-- 15. `<Leader>or` refiles the subtree under a target picked from a list.
+local refiled = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* Inbox', '** Call Bob', 'Notes.', '* Projects', '** Alpha' }, refiled)
+vim.cmd.edit(refiled)
+wait('the server to attach to the file to refile in', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+local select = vim.ui.select
+local offered, asked_to
+vim.ui.select = function(items, opts, on_choice)
+  offered = vim.tbl_map(opts.format_item, items)
+  asked_to = opts.prompt
+  on_choice(items[2])
+end
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+press('<Leader>or')
+becomes(4, '** Call Bob', 'the subtree under its new parent')
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* Inbox', '* Projects', '** Alpha', '** Call Bob', 'Notes.' }, 'moved as the last child')
+eq(offered, { 'Inbox', 'Projects' }, 'the top-level headlines of the file')
+eq(asked_to, 'Refile subtree "Call Bob" to: ', 'what is refiled')
+vim.ui.select = select
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

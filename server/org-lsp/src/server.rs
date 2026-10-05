@@ -31,6 +31,7 @@ use org_core::outline::Outline;
 use org_core::planning::{self, Command as PlanningCommand, Prompt};
 use org_core::priority;
 use org_core::read_date::Settings as ReadDateSettings;
+use org_core::refile::{self, OutlinePath, Settings as RefileSettings};
 use org_core::todo::{self, Target as TodoTarget};
 use org_core::Refusal;
 use org_syntax::{Parse, TodoKeywords};
@@ -38,7 +39,7 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use crate::config::Options;
+use crate::config::{Options, RefileFiles, RefileTarget};
 use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target};
@@ -230,6 +231,9 @@ struct Server {
     agenda: AgendaConfig,
     edit_settings: EditSettings,
     read_date: ReadDateSettings,
+    /// `org-refile-targets`, `org-refile-use-outline-path` and how a
+    /// subtree is filed.
+    refile: (Vec<RefileTarget>, OutlinePath, RefileSettings),
     /// The date prompt that waits for an answer, in clients that show it.
     date_prompt: Option<DatePrompt>,
     /// The client's copy of the date prompt document, which it may keep
@@ -327,6 +331,7 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda: options.agenda_config(),
         edit_settings: options.edit_settings(),
         read_date: options.read_date_settings(),
+        refile: (options.refile_targets(), options.refile_outline_path(), options.refile_settings()),
         date_prompt: None,
         prompt_copy: None,
         separator_lines: options.cycle_separator_lines.unwrap_or(folding::SEPARATOR_LINES),
@@ -718,20 +723,36 @@ impl Server {
     /// The edit as a workspace edit: versioned when the client supports
     /// that form, which lets it reject an edit to text that has changed.
     fn workspace_edit(&self, uri: &Uri, version: Option<i32>, edits: Vec<TextEdit>) -> WorkspaceEdit {
+        self.workspace_edits(vec![(uri.clone(), version, edits)])
+    }
+
+    /// One edit over several documents, each with its version when the
+    /// editor has it open.
+    fn workspace_edits(&self, documents: Vec<(Uri, Option<i32>, Vec<TextEdit>)>) -> WorkspaceEdit {
         if self.client.document_changes {
-            WorkspaceEdit {
-                document_changes: Some(lsp_types::DocumentChanges::Edits(vec![TextDocumentEdit {
-                    text_document: OptionalVersionedTextDocumentIdentifier { uri: uri.clone(), version },
+            let edits = documents
+                .into_iter()
+                .map(|(uri, version, edits)| TextDocumentEdit {
+                    text_document: OptionalVersionedTextDocumentIdentifier { uri, version },
                     edits: edits.into_iter().map(OneOf::Left).collect(),
-                }])),
-                ..Default::default()
-            }
+                })
+                .collect();
+            WorkspaceEdit { document_changes: Some(lsp_types::DocumentChanges::Edits(edits)), ..Default::default() }
         } else {
             #[allow(clippy::mutable_key_type)]
-            let mut changes = HashMap::new();
-            changes.insert(uri.clone(), edits);
+            let changes = documents.into_iter().map(|(uri, _, edits)| (uri, edits)).collect();
             WorkspaceEdit { changes: Some(changes), ..Default::default() }
         }
+    }
+
+    /// The text edits that turn `old` into `new`.
+    fn text_edits(&self, old: &str, new: &str) -> Vec<TextEdit> {
+        let index = LineIndex::new(old);
+        let encoding = self.client.encoding;
+        actions::edits_between(old, new)
+            .into_iter()
+            .map(|edit| TextEdit { range: index.range(old, edit.range, encoding), new_text: edit.new_text })
+            .collect()
     }
 
     fn code_actions(&mut self, params: CodeActionParams) -> Option<Vec<CodeActionOrCommand>> {
@@ -1065,6 +1086,7 @@ impl Server {
             }
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
+            commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
             id if id == commands::TODO || actions::command(id).is_some() => self.run_edit(id, context),
             id if commands::input(id).is_some() => {
                 self.ask_date(id, &context.ok_or("This command needs the cursor position")?)
@@ -1485,6 +1507,160 @@ impl Server {
     fn entry_at(&self, context: Option<&Context>) -> Option<EntryRef> {
         let context = context?;
         self.view_line(&context.text_document.uri, context.position.line)?.1.entry.clone()
+    }
+
+    /// `org-refile` (`C-c C-w`), and `org-agenda-refile` on an agenda
+    /// line: without an answer it offers the targets, `{ "input": {
+    /// "kind": "choice", "prompt", "choices" } }`; with one it moves the
+    /// subtree under the target it names, in its file or another.
+    fn refile(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        self.last = None;
+        let uri = &context.text_document.uri;
+        let from_agenda = self.is_view(uri);
+        // The entry: its file and a place in it.
+        let (file, offset) = if from_agenda {
+            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let offset = self
+                .with_source(&reference.uri, |_, _, _, outline, _| {
+                    views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
+                })
+                .flatten()
+                .ok_or("The entry is gone; rebuild the agenda")?;
+            (reference.uri, offset)
+        } else {
+            let document = self.document(uri).ok_or("The document is not open")?;
+            (uri.clone(), document.index.offset(&document.text, context.position, self.client.encoding))
+        };
+        // The files the targets come from, the entry's own first.
+        let (targets, outline_path, settings) = self.refile.clone();
+        let mut uris = vec![file];
+        let add = |uris: &mut Vec<Uri>, found: Uri| {
+            let same = |known: &Uri| {
+                known == &found || (uri::to_path(known).is_some() && uri::to_path(known) == uri::to_path(&found))
+            };
+            match uris.iter().position(same) {
+                Some(index) => index,
+                None => {
+                    uris.push(found);
+                    uris.len() - 1
+                }
+            }
+        };
+        let mut selections = Vec::new();
+        for target in &targets {
+            let found: Vec<Uri> = match &target.files {
+                RefileFiles::Current => vec![uris[0].clone()],
+                RefileFiles::Agenda => self.agenda_files().into_iter().map(|(uri, _)| uri).collect(),
+                RefileFiles::Paths(patterns) => patterns
+                    .iter()
+                    .flat_map(|pattern| self.workspace.org_files(pattern))
+                    .filter_map(|path| uri::from_path(&path))
+                    .collect(),
+            };
+            let indexes = found.into_iter().map(|found| add(&mut uris, found)).collect();
+            selections.push((target.select.clone(), indexes));
+        }
+        struct Loaded {
+            text: String,
+            keywords: TodoKeywords,
+            title: Option<String>,
+            version: Option<i32>,
+            name: String,
+            path: String,
+        }
+        let mut loaded = Vec::new();
+        for (index, file) in uris.iter().enumerate() {
+            let read = self.with_source(file, |text, _, parse, _, version| Loaded {
+                text: text.to_string(),
+                keywords: parse.todo_keywords().clone(),
+                title: refile::file_title(parse),
+                version,
+                name: uri::file_name(file),
+                path: uri::to_path(file).map_or_else(|| file.as_str().to_string(), |path| path.display().to_string()),
+            });
+            match read {
+                Some(read) => loaded.push(Some(read)),
+                None if index == 0 => return Err("Cannot read the file of this entry".into()),
+                None => loaded.push(None),
+            }
+        }
+        let files: Vec<Option<refile::File>> = loaded
+            .iter()
+            .map(|file| {
+                file.as_ref().map(|file| refile::File {
+                    text: &file.text,
+                    keywords: &file.keywords,
+                    name: &file.name,
+                    path: &file.path,
+                    title: file.title.as_deref(),
+                })
+            })
+            .collect();
+        // Files that could not be read have no targets.
+        let readable: Vec<refile::File> = files.iter().flatten().copied().collect();
+        let position: Vec<Option<usize>> = {
+            let mut next = 0;
+            files
+                .iter()
+                .map(|file| {
+                    file.as_ref().map(|_| {
+                        next += 1;
+                        next - 1
+                    })
+                })
+                .collect()
+        };
+        let selections: Vec<(refile::Select, Vec<usize>)> = selections
+            .into_iter()
+            .map(|(select, indexes): (refile::Select, Vec<usize>)| {
+                (select, indexes.into_iter().filter_map(|index| position[index]).collect())
+            })
+            .collect();
+        // In the agenda no file is the current one: every target names its file.
+        let current = (!from_agenda).then_some(0);
+        let all = refile::all_targets(&selections, &readable, current, outline_path);
+        if all.is_empty() {
+            return Err("No refile targets".into());
+        }
+        let Some(answer) = &context.input else {
+            let prompt = if from_agenda {
+                "Refile to".to_string()
+            } else {
+                format!(
+                    "Refile subtree \"{}\" to",
+                    refile::heading_text(readable[0].text, offset, readable[0].keywords)
+                )
+            };
+            let choices: Vec<Value> =
+                refile::names(&all).into_iter().map(|name| json!({ "key": name, "label": name })).collect();
+            return Ok(json!({ "input": { "kind": "choice", "prompt": prompt, "value": "", "choices": choices } }));
+        };
+        let (target_file, target) = refile::find(&all, answer).ok_or("Invalid target location")?;
+        // Back from readable files to all of them.
+        let target_file = position.iter().position(|at| *at == Some(*target_file)).expect("a readable file");
+        let source = &readable[0].text;
+        let other = (target_file != 0).then(|| loaded[target_file].as_ref().expect("read").text.as_str());
+        let refiled = refile::refile(source, offset, other, target.offset, &settings)?;
+        let mut documents = vec![(
+            uris[0].clone(),
+            loaded[0].as_ref().expect("read").version,
+            self.text_edits(source, &refiled.source),
+        )];
+        if let (Some(changed), Some(other)) = (&refiled.target, other) {
+            let version = loaded[target_file].as_ref().expect("read").version;
+            documents.push((uris[target_file].clone(), version, self.text_edits(other, changed)));
+        }
+        documents.retain(|(_, _, edits)| !edits.is_empty());
+        if documents.is_empty() {
+            return Ok(Value::Null);
+        }
+        for (uri, _, _) in &documents {
+            self.edited.insert(uri.as_str().to_string());
+        }
+        let edit = self.workspace_edits(documents);
+        let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+        self.send_request::<ApplyWorkspaceEdit>(params, Some(Pending::Edit));
+        Ok(Value::Null)
     }
 
     /// `org-priority` (`C-c ,`), and `org-agenda-priority` on an agenda

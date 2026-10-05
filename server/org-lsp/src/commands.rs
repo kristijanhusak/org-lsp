@@ -95,6 +95,7 @@ pub const TODO_PREVIOUS: &str = "org.todo.previous";
 pub const PRIORITY_UP: &str = "org.priority.up";
 pub const PRIORITY_DOWN: &str = "org.priority.down";
 pub const PRIORITY: &str = "org.priority";
+pub const REFILE: &str = "org.refile";
 pub const TIMESTAMP_UP: &str = "org.timestamp.up";
 pub const TIMESTAMP_DOWN: &str = "org.timestamp.down";
 pub const DATE_LATER: &str = "org.date.later";
@@ -211,6 +212,12 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>o,"), key(Agenda, "<Leader>o,")],
         input: Some(Input { kind: "priority", prompt: "Priority" }),
         ..edit(PRIORITY, "Set the priority")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-w"), key(Agenda, "C-c C-w")],
+        vim: &[key(Org, "<Leader>or"), key(Agenda, "<Leader>or")],
+        input: Some(Input { kind: "choice", prompt: "Refile to" }),
+        ..edit(REFILE, "Refile the entry")
     },
     Command {
         emacs: &[key(Agenda, "-"), key(Agenda, "S-<down>")],
