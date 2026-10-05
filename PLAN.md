@@ -370,13 +370,13 @@ previews.
    a calendar for dates; see milestone 4.
 2. **Licence.** The parser and the Org logic are ports of GPL code from
    Emacs Org mode. The repository has no licence file yet. To be set later.
-3. **Saving after edits from the agenda.** Decided: edited files stay
-   unsaved, as in Emacs. Org has no option to save them by itself; it has
-   `org-save-all-org-buffers`, bound to `s` and `C-x C-s` in the agenda.
-   Ported as `org.agenda.save` (the server cannot save; it returns the
-   files to save, `{ "save": [uri…] }`, and the glue saves those with
-   changes). Still to do: an option of our own to save after every edit
-   from the agenda (for example `agendaSave: true`).
+3. **Saving after edits from the agenda.** Decided: saved by default
+   (`autoSave`), unlike Emacs: the files a command changes other than the
+   one it was run in (from the agenda, a capture or refile target) are
+   saved once the editor has applied the change (the `org-lsp/save`
+   notification). Off, they stay unsaved, as in Emacs, and
+   `org.agenda.save` (`org-save-all-org-buffers`, `s` in the agenda) saves
+   them.
 4. **Vim.** Decided: one Vimscript plugin with the logic the Neovim plugin
    has (manifest, keys, the agenda and date prompt buffers, closing them),
    on top of whichever LSP client is installed. Generic LSP (highlighting

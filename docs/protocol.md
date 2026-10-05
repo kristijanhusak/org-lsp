@@ -24,8 +24,13 @@ The server sends these requests to the client:
 | --- | --- |
 | `workspace/applyEdit` | A command changes an Org file. |
 | `window/showDocument` | To show the agenda, a capture buffer, or the file of an agenda entry. The editors open the agenda and capture buffers in a window of their own (a split by default), and an entry's file where the agenda was. |
-| `window/showMessageRequest` | The agenda dispatcher asks which view to open. |
 | `workspace/textDocumentContent/refresh` | The agenda has new text. |
+
+And this notification:
+
+| Notification | When |
+| --- | --- |
+| `org-lsp/save` | `{ "uris": [uri…] }`: with `autoSave`, the files a command changed other than the one it was run in (an entry's file changed from the agenda, the target of a capture or a refile), once the editor has applied the change. The editor saves those with changes. |
 
 **Position encoding.** The server picks UTF-8 if the client offers it, then
 UTF-32, and falls back to UTF-16.
@@ -71,6 +76,9 @@ the editor's own syntax.
 | `captureTemplates` | object[] | `[{ "key": "t", "description": "Task", "target": ["file+headline", "", "Tasks"], "template": "* TODO %?\n  %u\n  %a" }]` | Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, or `plain`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `emptyLines`, `emptyLinesBefore`, `emptyLinesAfter` and `immediateFinish`. The target is a list: `file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path. An empty path is `defaultNotesFile`, and without a target the entry goes at the end of `defaultNotesFile`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`) |
 | `orgDirectory` | string | `"~/org"` | Where the relative paths of capture targets are. (`org-directory`) |
 | `defaultNotesFile` | string | `"~/.notes"` | The target of a capture template whose file is empty. (`org-default-notes-file`) |
+| `linkDescriptive` | boolean | `true` | Show a link as its description (or its target, when it has none) and hide the rest: the brackets, and the target of a link with a description. The text is marked `hidden` in the highlighting, and editors that can conceal text conceal it. (`org-link-descriptive`) |
+| `hideEmphasisMarkers` | boolean | `false` | Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~`, as for links. (`org-hide-emphasis-markers`) |
+| `autoSave` | boolean | `true` | Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them. |
 | `cycleSeparatorLines` | number | `2` | With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`) |
 | `agenda.span` | "day", "week", "fortnight", "month", "year", or a number of days | `"week"` | How much time the agenda shows. (`org-agenda-span`) |
 | `agenda.startOnWeekday` | 0 to 6 (0 is Sunday), or false | `1` | The day a week or fortnight starts on; `false` starts it today. (`org-agenda-start-on-weekday`) |
@@ -129,6 +137,15 @@ Vim's count). The commands that move something by steps take it as the
 number of steps; the others ignore it. Commands that open a view work
 without the argument.
 
+A command's result may carry `"message"`: what Emacs says in the echo area
+when it is done, for the editor to show the same way (Neovim's messages, VS
+Code's status bar). `TODO state changed to DONE` (from the agenda, where
+the entry is out of sight), `TODO state was already TODO`, `Priority of
+current item set to B`, `Priority removed`, `Scheduled to <2026-05-22
+Fri>`, `Deadline on <…>`, `Timestamp updated`, `Refile to "Projects" in
+file /home/me/org/work.org: done`, `Switched to day view`, `Capture
+process aborted and target buffer cleaned up`.
+
 A command that cannot run answers with error code -32803
 (`RequestFailed`) and a message meant for the user, such as
 `No agenda is open`. When the command means nothing at the cursor (a
@@ -141,7 +158,7 @@ number.
 
 | Command | Does |
 | --- | --- |
-| `org.agenda.dispatch` | Asks which agenda view to open. |
+| `org.agenda.dispatch` | `org-agenda` (`C-c a`): asks for a view by its key, as Emacs's menu does (input kind `key`; `a` for the agenda, `t` for the TODO list), and opens it. |
 | `org.agenda.list` | Opens the agenda for the current week or day. |
 | `org.agenda.todos` | Opens the list of all TODO entries. |
 | `org.agenda.later`, `org.agenda.earlier` | Moves the agenda one span forward or backward. |
@@ -168,7 +185,7 @@ number.
 | `org.date.preview` | Not for users: what an answer to a date prompt means; see below. Not in the manifest. |
 | `org.calendar.day.later`, `.day.earlier`, `.week.later`, `.week.earlier`, `.month.later`, `.month.earlier`, `.year.later`, `.year.earlier` | In the date prompt: move the selected day. |
 | `org.calendar.scroll.later`, `org.calendar.scroll.earlier` | In the date prompt: show the next or previous months. |
-| `org.calendar.today`, `org.calendar.select`, `org.calendar.type`, `org.calendar.cancel` | In the date prompt: go to today; take the day at the cursor; type the answer; give up. See [The date prompt document](#the-date-prompt-document). |
+| `org.calendar.today`, `org.calendar.select`, `org.calendar.type`, `org.calendar.time`, `org.calendar.cancel` | In the date prompt: go to today; take the day at the cursor; type the answer; pick a time, or go back to the day; give up. See [The date prompt document](#the-date-prompt-document). |
 
 **TODO state changes** do what Org's `org-todo` does. The cycle runs
 through "no keyword" between the last and first states. The tags of the
@@ -229,7 +246,15 @@ An input may say more:
   not made until the note's text comes: it asks with kind `note`
   (`Note for state change from "TODO" to "WAIT"`) and `"context": {
   "state": "WAIT" }`, and the answer then sets that state and writes the
-  note under the heading line, as `org-store-log-note` does.
+  note under the heading line, as `org-store-log-note` does. A client
+  that announces `experimental.orgDatePrompt` (one of this project's
+  integrations) gets a note buffer instead, as Emacs's `*Org Note*`: a
+  file named like a capture buffer (`CAPTURE-Note.org`), shown with
+  `window/showDocument`, which starts with `# Insert note for state
+  change from "TODO" to "WAIT".` and has the cursor on its third line.
+  `org.capture.finish` there makes the change with the text below the
+  comment lines as the note, and `org.capture.abort` makes it without
+  any (Emacs's `C-c C-k`); both return `{ "close": uri }`.
 
 An answer may lead to another question; the editor asks again until the
 command asks for nothing more.
@@ -247,7 +272,8 @@ timestamp goes on the planning line under the headline, which is made
 when there is none; a `CLOSED:` timestamp is taken out; the repeater of
 the old date stays. **Timestamps** work as `org-timestamp` does: on a
 timestamp the command changes it (keeping its repeater), elsewhere it
-inserts one; right after inserting one, the same command adds the end of
+inserts one (`org.timestamp.change` only changes one, active or inactive
+as it is, and refuses elsewhere); right after inserting one, the same command adds the end of
 a date range (`<…>--<…>`). After a timestamp is inserted, the server
 moves the cursor after it with `window/showDocument`, as Emacs leaves
 it. Changes are not logged (`org-log-reschedule` and the like) yet.
@@ -408,7 +434,13 @@ the cursor on it.
    answer (`org.calendar.type`, which returns `{ "input": … }` like any
    command; that input box is the minibuffer), or give up
    (`org.calendar.cancel`). While the answer is typed, `org.date.preview`
-   also shows it in the minibuffer line.
+   also shows it in the minibuffer line. `org.calendar.time` picks a
+   time, which Emacs's calendar cannot: a `Time: 10:00` line appears above
+   the minibuffer, and until `org.calendar.time` again, the day commands
+   choose the hour (`.day.earlier`) or the minutes (`.day.later`) and the
+   week commands move it (`.week.earlier` up, `.week.later` down; the
+   minutes by `timestampRoundingMinutes`). The time takes the place
+   of a typed one, and stays when the keys go back to days.
 3. Answered or picked, the command runs with the answer and the day moved
    to (if it moved), as Emacs reads its prompt; the result is
    `{ "close": "org-agenda:/Org%20Date" }`, and the client closes that
@@ -495,6 +527,7 @@ faces:
 | `checked`, `partial` | `checkbox` |
 | `bold`, `italic`, `underline`, `strikethrough` | `text` and `headline` |
 | `today`, `weekend`, `past`, `imminent`, `distant`, `range`, `current` | the agenda types, as listed above |
+| `hidden` | Text Org hides: the brackets of a link, and its target when it has a description (`linkDescriptive`); emphasis markers (`hideEmphasisMarkers`). It comes as tokens of its own, so an editor that can conceal text conceals the tokens with this modifier: Neovim with extmarks in the semantic tokens' namespace, VS Code with decorations. |
 
 ## Writing an editor integration
 

@@ -160,29 +160,34 @@ describe('Org files', () => {
     });
     const editor = await vscode.window.showTextDocument(keyed);
     const offered = [];
-    const notes = [];
     const showQuickPick = vscode.window.showQuickPick;
-    const showInputBox = vscode.window.showInputBox;
     vscode.window.showQuickPick = async (items) => {
       offered.push(...items.map((item) => item.label));
       return items.find((item) => item.key === 'w');
     };
-    vscode.window.showInputBox = async (options) => {
-      notes.push(options.prompt);
-      return 'Waiting for Bob';
-    };
     try {
       editor.selection = new vscode.Selection(1, 2, 1, 2);
       await vscode.commands.executeCommand('org.todo');
+      // The note is written in a buffer of its own, as Emacs's `*Org Note*`.
+      const note = await until('the note buffer', () => {
+        const active = vscode.window.activeTextEditor;
+        return active && path.basename(active.document.uri.fsPath) === 'CAPTURE-Note.org' && active;
+      });
+      assert.equal(note.document.lineAt(0).text, '# Insert note for state change from "TODO" to "WAIT".');
+      await until('the cursor on the third line', () => note.selection.active.line === 2);
+      await note.edit((edit) => edit.insert(note.selection.active, 'Waiting for Bob'));
+      await vscode.commands.executeCommand('org.capture.finish');
       await until('the state and its note', () => keyed.lineCount > 3 && keyed.lineAt(3).text === '  Waiting for Bob');
       assert.equal(keyed.lineAt(1).text, '* WAIT Call them');
       assert.match(keyed.lineAt(2).text, /^- State "WAIT" {7}from "TODO" {7}\[.*\] \\\\$/);
       assert.deepEqual(offered, ['[t] TODO', '[w] WAIT', '[d] DONE', '[SPC] clear']);
-      assert.deepEqual(notes, ['Note for state change from "TODO" to "WAIT"']);
+      await until('the note buffer to close', () =>
+        vscode.window.tabGroups.all.flatMap((group) => group.tabs).every((tab) => tab.label !== 'CAPTURE-Note.org'),
+      );
     } finally {
       vscode.window.showQuickPick = showQuickPick;
-      vscode.window.showInputBox = showInputBox;
     }
+    await vscode.window.showTextDocument(keyed);
     await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
     await vscode.window.showTextDocument(document);
   });
@@ -307,6 +312,24 @@ describe('Org files', () => {
     await document.save();
   });
 
+  it('hides what Org hides, and shows it on the line being edited', async () => {
+    const fs = require('node:fs');
+    const file = path.join(workspace, 'links.org');
+    fs.writeFileSync(file, '* Links\nRead [[https://example.org][the site]] now\n');
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    editor.selection = new vscode.Selection(0, 0, 0, 0);
+    await until('the link to be concealed', () =>
+      JSON.stringify(api.concealed(editor)) === JSON.stringify(['[[https://example.org][', ']]']),
+    );
+    // On its line the link shows whole.
+    editor.selection = new vscode.Selection(1, 3, 1, 3);
+    await until('the link to show', () => api.concealed(editor).length === 0);
+    editor.selection = new vscode.Selection(0, 0, 0, 0);
+    await until('the link to be concealed again', () => api.concealed(editor).length === 2);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('changes the part of a timestamp at the cursor', async () => {
     moveTo(6, 19); // on the day of "DEADLINE: <2026-05-20 Wed>"
     await vscode.commands.executeCommand('org.timestamp.up');
@@ -397,8 +420,14 @@ describe('The agenda', () => {
     const home = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspace, 'home.org')));
     await until('the entry to repeat', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-23 Sat +1w>');
     assert.equal(home.lineAt(0).text, '* TODO Water plants');
-    assert.ok(home.isDirty, 'the change is left for the user to save');
-    // `s`, Org's `org-save-all-org-buffers`, saves it.
+    // `autoSave`: a change made from the agenda is saved.
+    const fs = require('node:fs');
+    await until('the change to be saved', () => !home.isDirty && fs.readFileSync(home.uri.fsPath, 'utf8').includes('<2026-05-23 Sat +1w>'));
+    // `s`, Org's `org-save-all-org-buffers`, saves what is left unsaved.
+    const edit = new vscode.WorkspaceEdit();
+    edit.insert(home.uri, home.lineAt(home.lineCount - 1).range.end, '\n');
+    await vscode.workspace.applyEdit(edit);
+    assert.ok(home.isDirty);
     await vscode.commands.executeCommand('org.agenda.save');
     await until('the file to be saved', () => !home.isDirty);
     await until('the agenda to drop the old date', () => !activeText().includes('Sched. 2x:'));
@@ -408,7 +437,19 @@ describe('The agenda', () => {
     const home = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspace, 'home.org')));
     const lines = activeText().split('\n');
     moveTo(lines.findIndex((line) => line.endsWith('Scheduled:  TODO Water plants')), 14);
-    await vscode.commands.executeCommand('org.priority.up');
+    // What Emacs says goes to the status bar.
+    const said = [];
+    const setStatusBarMessage = vscode.window.setStatusBarMessage;
+    vscode.window.setStatusBarMessage = (text, ...rest) => {
+      said.push(text);
+      return setStatusBarMessage(text, ...rest);
+    };
+    try {
+      await vscode.commands.executeCommand('org.priority.up');
+    } finally {
+      vscode.window.setStatusBarMessage = setStatusBarMessage;
+    }
+    assert.deepEqual(said, ['Priority of current item set to B']);
     await until('the priority in the file', () => home.lineAt(0).text === '* TODO [#B] Water plants');
     await until('the priority in the agenda', () => activeLine()?.endsWith('Scheduled:  TODO [#B] Water plants'));
     // The entry moves to the next day, and the cursor with it.
@@ -494,6 +535,26 @@ describe('The agenda', () => {
     const before = activeText();
     await vscode.commands.executeCommand('org.agenda.later');
     assert.equal(activeText(), before);
+  });
+
+  it('asks which view by key, as Emacs\'s agenda menu does', async () => {
+    const showQuickPick = vscode.window.showQuickPick;
+    let offered;
+    vscode.window.showQuickPick = async (items, options) => {
+      offered = [options.placeHolder, ...items.map((item) => item.label)];
+      return items.find((item) => item.key === 't');
+    };
+    try {
+      await vscode.commands.executeCommand('org.agenda.dispatch');
+    } finally {
+      vscode.window.showQuickPick = showQuickPick;
+    }
+    assert.deepEqual(offered, [
+      'Press key for agenda command',
+      '[a] Agenda for the current week or day',
+      '[t] List of all TODO entries',
+    ]);
+    await agenda('Global list of TODO items of type: ALL');
   });
 
   it('opens where org-lsp.winSplitMode says', async () => {

@@ -17,20 +17,37 @@ local M = {}
 
 local SERVER = 'org_lsp'
 
----@class OrgLspConfig
+--- The plugin's options, for `setup()` and `vim.g.org_lsp`. Every one may
+--- be left out. Annotate a table of your own with `---@type org_lsp.Config`
+--- to have them completed and checked.
+---@class org_lsp.Config
 ---@field cmd? string[] Server command. Found automatically when unset.
----@field settings table The server's options, such as `agendaFiles` and `todoKeywords`; see docs/neovim/configuration.md.
----@field startup_folded 'showeverything'|'overview' Fold state of a newly opened file.
----@field folding boolean Whether to fold with the server's folding ranges.
----@field replace_syntax boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
----@field win_split_mode string|fun(bufnr: integer): integer? How the agenda and capture buffers open: 'split', 'vsplit', 'float', 'current', another Ex command that opens a window ('botright split', 'tabnew'), or a function that opens a window for the buffer and returns it.
----@field mappings table|false Keys by scope (`global`, `org`, `agenda`, `calendar`, `capture`). In a scope, a command maps to a key, a list of keys, or `false`; commands that are not listed keep the server's default keys. `false` instead of a scope's table sets no keys in that scope, and instead of the whole table no keys at all. See docs/neovim/keys.md.
+---@field settings? org_lsp.Settings The server's options, such as `agendaFiles` and `todoKeywords`; see docs/neovim/configuration.md.
+---@field startup_folded? 'showeverything'|'overview' Fold state of a newly opened file.
+---@field folding? boolean Whether to fold with the server's folding ranges.
+---@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
+---@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `hideEmphasisMarkers`), with 'conceallevel' 2 in Org windows.
+---@field win_split_mode? 'split'|'vsplit'|'float'|'current'|string|fun(bufnr: integer): integer? How the agenda and capture buffers open: 'split', 'vsplit', 'float', 'current', another Ex command that opens a window ('botright split', 'tabnew'), or a function that opens a window for the buffer and returns it.
+---@field mappings? org_lsp.Mappings|false Keys by scope; `false` sets no keys at all. See docs/neovim/keys.md.
+
+--- Keys by scope. In a scope, a command (`org.todo`, or one of the plugin's
+--- own: `cycle`, `global_cycle`, `quit`) maps to a key, a list of keys, or
+--- `false`; commands that are not listed keep the server's default keys.
+--- `false` instead of a scope's table sets no keys in that scope.
+---@class org_lsp.Mappings
+---@field global? table<string, string|string[]|false>|false Keys that work anywhere.
+---@field org? table<string, string|string[]|false>|false Keys in Org files.
+---@field agenda? table<string, string|string[]|false>|false Keys in the agenda.
+---@field calendar? table<string, string|string[]|false>|false Keys in the date prompt's calendar.
+---@field capture? table<string, string|string[]|false>|false Keys in a capture or note buffer.
+
 local defaults = {
   cmd = nil,
   settings = {},
   startup_folded = 'showeverything',
   folding = true,
   replace_syntax = true,
+  conceal = true,
   win_split_mode = 'split',
   mappings = {
     -- The keys that must work before the server has said anything.
@@ -40,7 +57,7 @@ local defaults = {
   },
 }
 
----@type OrgLspConfig
+---@type org_lsp.Config
 M.config = vim.tbl_deep_extend('force', defaults, vim.g.org_lsp or {})
 
 --- What the server announced about itself: commands, keys, looks. Set when
@@ -160,14 +177,11 @@ function M.run(name, opts)
       end
       -- The server names files to save; those with changes are written.
       if type(result) == 'table' and type(result.save) == 'table' then
-        for _, uri in ipairs(result.save) do
-          local file = vim.uri_to_bufnr(uri)
-          if vim.api.nvim_buf_is_loaded(file) and vim.bo[file].modified then
-            vim.api.nvim_buf_call(file, function()
-              vim.cmd('silent write')
-            end)
-          end
-        end
+        require('org-lsp.view').save(result.save)
+      end
+      -- What the command has to say, as Emacs says it in the echo area.
+      if type(result) == 'table' and type(result.message) == 'string' then
+        vim.notify(result.message, vim.log.levels.INFO)
       end
       -- The command is done with a document the server showed for it.
       if type(result) == 'table' and result.close then
@@ -393,6 +407,44 @@ local function replace_syntax(bufnr)
   })
 end
 
+--- Text the server marks hidden (link brackets and targets, emphasis
+--- markers) is concealed, as Org hides it. The marks go in the semantic
+--- tokens' own namespace, which Neovim clears whenever new tokens arrive,
+--- so they come and go with the highlighting.
+---@param bufnr integer
+local function conceal(bufnr)
+  vim.api.nvim_create_autocmd('LspTokenUpdate', {
+    buffer = bufnr,
+    group = vim.api.nvim_create_augroup('org_lsp_conceal_' .. bufnr, { clear = true }),
+    callback = function(args)
+      local token = args.data.token
+      if not token.modifiers.hidden then
+        return
+      end
+      local namespace = vim.api.nvim_create_namespace('nvim.lsp.semantic_tokens:' .. args.data.client_id)
+      pcall(vim.api.nvim_buf_set_extmark, bufnr, namespace, token.line, token.start_col, {
+        end_row = token.end_line or token.line,
+        end_col = token.end_col,
+        conceal = '',
+        strict = false,
+      })
+    end,
+  })
+  local function set_window(win)
+    vim.wo[win][0].conceallevel = 2
+  end
+  for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+    set_window(win)
+  end
+  vim.api.nvim_create_autocmd('BufWinEnter', {
+    buffer = bufnr,
+    group = vim.api.nvim_create_augroup('org_lsp_conceal_windows_' .. bufnr, { clear = true }),
+    callback = function()
+      set_window(vim.api.nvim_get_current_win())
+    end,
+  })
+end
+
 --- The server has started: take over what it announced.
 ---@param client vim.lsp.Client
 local function on_init(client)
@@ -429,6 +481,9 @@ local function on_attach(client, bufnr)
   end
   if M.config.replace_syntax and client:supports_method('textDocument/semanticTokens/full') then
     replace_syntax(bufnr)
+  end
+  if M.config.conceal then
+    conceal(bufnr)
   end
   if M.config.folding and client:supports_method('textDocument/foldingRange') then
     for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
@@ -542,7 +597,7 @@ function M.start()
 end
 
 --- Change the configuration. May be called before or after the plugin loads.
----@param opts? table
+---@param opts? org_lsp.Config
 function M.setup(opts)
   M.config = vim.tbl_deep_extend('force', M.config, opts or {})
   if started then

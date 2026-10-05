@@ -1,0 +1,85 @@
+---@meta
+-- The types of the server's options, for lua-language-server. Written by
+-- scripts/generate-docs.mjs from `org-lsp settings`; edit
+-- server/org-lsp/src/settings.rs, not this file.
+
+--- The server's options, as `settings` passes them; see docs/configuration.md.
+---@class org_lsp.Settings
+---@field configFile? false|string The shared configuration file, whose options this editor's go on top of: `false` for none, or the path of another file (JSON if it ends in `.json`, else TOML). Unset, it is `$ORG_LSP_CONFIG`, else `config.toml` or `config.json` in `$XDG_CONFIG_HOME/org-lsp` (`~/.config/org-lsp`; `%APPDATA%\org-lsp` on Windows).
+---@field agendaFiles? string[] Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home directory, and a directory stands for the Org files directly in it. When empty, the agenda is built from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left out), or else from the Org files that are open. (`org-agenda-files`)
+---@field todoKeywords? string[] The TODO sequence, written like Org's `#+TODO:` line. `|` separates the states that count as done; without it the last keyword is the only done state. `TODO(t)` gives a keyword a key for fast selection, and `WAIT(w@/!)` makes it log a note (`@`) or the time (`!`) on entering and leaving it. A file's own `#+TODO:` lines take precedence. (`org-todo-keywords`)
+---@field logDone? false|'time'|'note' Write `CLOSED:` with the time when an entry is done, and with `note` ask for a note too. (`org-log-done`)
+---@field logRepeat? false|'time'|'note' Record when a repeating entry is done and moves to its next date. (`org-log-repeat`)
+---@field logIntoDrawer? boolean|string Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer. (`org-log-into-drawer`)
+---@field tagsColumn? integer Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`)
+---@field todoRepeatToState? string|true The state a repeating entry returns to when it is done: a keyword, or `true` for the state it had. (`org-todo-repeat-to-state`)
+---@field priorityHighest? string|integer The highest priority. (`org-priority-highest`)
+---@field priorityLowest? string|integer The lowest priority. (`org-priority-lowest`)
+---@field priorityDefault? string|integer The priority of an entry without a cookie. A file's `#+PRIORITIES:` line takes precedence over the three priority options. (`org-priority-default`)
+---@field priorityStartCycleWithDefault? boolean Raising or lowering the priority of an entry that has none starts at the default. (`org-priority-start-cycle-with-default`)
+---@field timestampRoundingMinutes? integer The step in which the minutes of a timestamp change (the second number of Org's option). (`org-time-stamp-rounding-minutes`)
+---@field readDatePreferFuture? true|false|'time' A date typed without a year or month is the next one to come. With `time`, a time that has passed today is tomorrow's. (`org-read-date-prefer-future`)
+---@field readDateForceCompatibleDates? boolean A typed year is kept within 1970 to 2037. (`org-read-date-force-compatible-dates`)
+---@field refileTargets? org_lsp.RefileTarget[] Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, a path or a list of paths; and one of `level`, `maxLevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says which headlines there are targets. (`org-refile-targets`)
+---@field refileUseOutlinePath? true|false|'file'|'full-file-path'|'title' Name targets by their outline path (`Projects/Alpha/`). The three names start the path with the file, and offer the file itself, for its top level. (`org-refile-use-outline-path`)
+---@field reverseNoteOrder? boolean A refiled entry goes first under its target, not last. (`org-reverse-note-order`)
+---@field captureTemplates? org_lsp.CaptureTemplate[] Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, or `plain`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `emptyLines`, `emptyLinesBefore`, `emptyLinesAfter` and `immediateFinish`. The target is a list: `file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path. An empty path is `defaultNotesFile`, and without a target the entry goes at the end of `defaultNotesFile`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)
+---@field orgDirectory? string Where the relative paths of capture targets are. (`org-directory`)
+---@field defaultNotesFile? string The target of a capture template whose file is empty. (`org-default-notes-file`)
+---@field linkDescriptive? boolean Show a link as its description (or its target, when it has none) and hide the rest: the brackets, and the target of a link with a description. The text is marked `hidden` in the highlighting, and editors that can conceal text conceal it. (`org-link-descriptive`)
+---@field hideEmphasisMarkers? boolean Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~`, as for links. (`org-hide-emphasis-markers`)
+---@field autoSave? boolean Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them.
+---@field cycleSeparatorLines? integer With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`)
+---@field agenda? org_lsp.Settings.Agenda
+
+--- The options under `agenda`.
+---@class org_lsp.Settings.Agenda
+---@field span? 'day'|'week'|'fortnight'|'month'|'year'|integer How much time the agenda shows. (`org-agenda-span`)
+---@field startOnWeekday? integer|false The day a week or fortnight starts on; `false` starts it today. (`org-agenda-start-on-weekday`)
+---@field deadlineWarningDays? integer How many days before a deadline it shows up. (`org-deadline-warning-days`)
+---@field scheduledDelayDays? integer How many days after its date a scheduled entry shows up. (`org-scheduled-delay-days`)
+---@field scheduledPastDays? integer How many days a scheduled entry that is not done keeps showing up. (`org-scheduled-past-days`)
+---@field deadlinePastDays? integer How many days a missed deadline keeps showing up. (`org-deadline-past-days`)
+---@field skipScheduledIfDone? boolean Leave out scheduled entries that are done. (`org-agenda-skip-scheduled-if-done`)
+---@field skipDeadlineIfDone? boolean Leave out deadlines of entries that are done. (`org-agenda-skip-deadline-if-done`)
+---@field skipTimestampIfDone? boolean Leave out timestamps of entries that are done. (`org-agenda-skip-timestamp-if-done`)
+---@field showFutureRepeats? true|false|'next' Show the future dates of repeating entries: all of them, none, or only the next. (`org-agenda-show-future-repeats`)
+---@field showAllDates? boolean Show days without entries. (`org-agenda-show-all-dates`)
+---@field tagsColumn? integer Where tags are aligned in the agenda. Org's own default follows the window width, which a server does not know. (`org-agenda-tags-column`)
+---@field useTimeGrid? boolean Draw the time grid. (`org-agenda-use-time-grid`)
+---@field timeGrid? org_lsp.Settings.Agenda.TimeGrid
+---@field showCurrentTimeInGrid? boolean Show the current time in the grid. (`org-agenda-show-current-time-in-grid`)
+---@field weekendDays? integer[] The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`)
+
+--- The options under `timeGrid`.
+---@class org_lsp.Settings.Agenda.TimeGrid
+---@field daily? boolean Draw the grid in a one-day agenda. (`org-agenda-time-grid`)
+---@field today? boolean Draw the grid for today. (`org-agenda-time-grid`)
+---@field weekly? boolean Draw the grid for every day. (`org-agenda-time-grid`)
+---@field requireTimed? boolean Draw the grid only on days with an entry that has a time. (`org-agenda-time-grid`)
+---@field removeMatch? boolean Leave out grid lines at a time an entry already has. (`org-agenda-time-grid`)
+---@field times? integer[] The times of the grid lines, as `800` for 8:00. (`org-agenda-time-grid`)
+---@field trailer? string What follows a time that has no end time. (`org-agenda-time-grid`)
+---@field line? string The text of a grid line. (`org-agenda-time-grid`)
+---@field now? string The text of the line for the current time. (`org-agenda-current-time-string`)
+
+---@class org_lsp.RefileTarget
+---@field all? boolean Every headline
+---@field files? 'current'|'agenda'|string|string[] `current` (the entry's own file), `agenda`, a path or a list of paths
+---@field level? integer The headlines of this level
+---@field maxLevel? integer The headlines up to this level
+---@field regexp? string The headlines that match this regular expression
+---@field tag? string The headlines with this tag
+---@field todo? string The headlines with this TODO keyword
+
+---@class org_lsp.CaptureTemplate
+---@field description string What the menu shows
+---@field emptyLines? integer Blank lines before and after
+---@field emptyLinesAfter? integer Blank lines after
+---@field emptyLinesBefore? integer Blank lines before
+---@field immediateFinish? boolean Capture without a capture buffer
+---@field key string The keys that pick the template
+---@field prepend? boolean First under the target, not last
+---@field target? string[] `file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path
+---@field template? string|string[] The template, or its lines
+---@field type? 'entry'|'plain' An Org entry (the default), or plain text

@@ -19,6 +19,7 @@ still missing; see [Not done yet](#not-done-yet).
 | --- | --- | --- | --- |
 | Highlighting (semantic tokens) | yes | yes | no¹ |
 | Folding | yes, with `<Tab>` / `<S-Tab>` cycling | yes | no² |
+| Concealing: links show their description, emphasis markers can hide (`org-link-descriptive`, `org-hide-emphasis-markers`) | yes | yes | no¹ |
 | Outline (document symbols) | yes | yes | yes |
 | TODO state changes, as `org-todo` does them, with fast selection by key and notes (`TODO(t)`, `WAIT(w@/!)`) | `cit` / `ciT`, repeatable with `.` | commands, `Ctrl+.` | `Space a` |
 | Priorities, as `org-priority` changes them | `ciR` / `cir`, `<Leader>o,` | commands, `Ctrl+.` | `Space a` |
@@ -51,8 +52,8 @@ minute under the cursor, with time ranges, repeaters, warning periods and
 timestamps, date ranges and the time grid, sorted as in Org, and is
 rebuilt when its files change. It matches the output of Emacs's
 `org-batch-agenda` line for line on the test corpus. A change made from
-the agenda edits the entry's file in the editor and leaves saving to you,
-as in Emacs.
+the agenda edits the entry's file in the editor and saves it (`autoSave`;
+off, it is left for you to save, as in Emacs).
 
 ## Install
 

@@ -17,7 +17,7 @@ fn main() {
 
     let start = Instant::now();
     let index = LineIndex::new(&text);
-    let tokens = highlight::tokens(&parse.syntax(), parse.todo_keywords());
+    let tokens = highlight::tokens(&parse.syntax(), parse.todo_keywords(), highlight::Conceal::default());
     let encoded = highlight::encode(&tokens, &text, &index, Encoding::Utf16, None);
     let highlighted = start.elapsed();
 

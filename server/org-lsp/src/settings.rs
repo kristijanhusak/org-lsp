@@ -203,6 +203,32 @@ pub const SETTINGS: &[Setting] = &[
         "The target of a capture template whose file is empty.",
     ),
     setting(
+        "linkDescriptive",
+        "boolean",
+        "true",
+        "org-link-descriptive",
+        "Show a link as its description (or its target, when it has none) and hide the rest: the brackets, \
+         and the target of a link with a description. The text is marked `hidden` in the highlighting, \
+         and editors that can conceal text conceal it.",
+    ),
+    setting(
+        "hideEmphasisMarkers",
+        "boolean",
+        "false",
+        "org-hide-emphasis-markers",
+        "Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` \
+         and `~code~`, as for links.",
+    ),
+    setting(
+        "autoSave",
+        "boolean",
+        "true",
+        "",
+        "Save the files a command changes other than the one it was run in: an entry's file changed from \
+         the agenda, the target of a capture or of a refile. The editor saves them once it has made the \
+         change. Off, they are left with unsaved changes, as Emacs leaves them.",
+    ),
+    setting(
         "cycleSeparatorLines",
         "number",
         "2",
@@ -364,14 +390,118 @@ pub const SETTINGS: &[Setting] = &[
     },
 ];
 
+/// The values each option takes, as JSON Schema: what editors complete and
+/// check the options against (VS Code's settings, the schema of the shared
+/// file, Neovim's type annotations). An object that is a type of its own
+/// names it in `x-lua-class`.
+const SCHEMAS: &[(&str, &str)] = &[
+    ("configFile", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
+    ("agendaFiles", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("todoKeywords", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("logDone", r#"{ "enum": [false, "time", "note"] }"#),
+    ("logRepeat", r#"{ "enum": [false, "time", "note"] }"#),
+    ("logIntoDrawer", r#"{ "type": ["boolean", "string"] }"#),
+    ("tagsColumn", r#"{ "type": "integer" }"#),
+    ("todoRepeatToState", r#"{ "anyOf": [{ "type": "string" }, { "const": true }] }"#),
+    ("priorityHighest", PRIORITY),
+    ("priorityLowest", PRIORITY),
+    ("priorityDefault", PRIORITY),
+    ("priorityStartCycleWithDefault", BOOLEAN),
+    ("timestampRoundingMinutes", r#"{ "type": "integer", "minimum": 0 }"#),
+    ("readDatePreferFuture", r#"{ "enum": [true, false, "time"] }"#),
+    ("readDateForceCompatibleDates", BOOLEAN),
+    (
+        "refileTargets",
+        r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RefileTarget", "additionalProperties": false, "properties": {
+            "files": { "anyOf": [{ "enum": ["current", "agenda"] }, { "type": "string" }, { "type": "array", "items": { "type": "string" } }],
+                "description": "`current` (the entry's own file), `agenda`, a path or a list of paths" },
+            "level": { "type": "integer", "minimum": 1, "description": "The headlines of this level" },
+            "maxLevel": { "type": "integer", "minimum": 1, "description": "The headlines up to this level" },
+            "tag": { "type": "string", "description": "The headlines with this tag" },
+            "todo": { "type": "string", "description": "The headlines with this TODO keyword" },
+            "regexp": { "type": "string", "description": "The headlines that match this regular expression" },
+            "all": { "type": "boolean", "description": "Every headline" }
+        } } }"#,
+    ),
+    ("refileUseOutlinePath", r#"{ "enum": [true, false, "file", "full-file-path", "title"] }"#),
+    ("reverseNoteOrder", BOOLEAN),
+    (
+        "captureTemplates",
+        r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.CaptureTemplate", "required": ["key", "description"], "additionalProperties": false, "properties": {
+            "key": { "type": "string", "description": "The keys that pick the template" },
+            "description": { "type": "string", "description": "What the menu shows" },
+            "type": { "enum": ["entry", "plain"], "description": "An Org entry (the default), or plain text" },
+            "target": { "type": "array", "items": { "type": "string" },
+                "description": "`file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path" },
+            "template": { "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "The template, or its lines" },
+            "prepend": { "type": "boolean", "description": "First under the target, not last" },
+            "emptyLines": { "type": "integer", "minimum": 0, "description": "Blank lines before and after" },
+            "emptyLinesBefore": { "type": "integer", "minimum": 0, "description": "Blank lines before" },
+            "emptyLinesAfter": { "type": "integer", "minimum": 0, "description": "Blank lines after" },
+            "immediateFinish": { "type": "boolean", "description": "Capture without a capture buffer" }
+        } } }"#,
+    ),
+    ("orgDirectory", STRING),
+    ("defaultNotesFile", STRING),
+    ("linkDescriptive", BOOLEAN),
+    ("hideEmphasisMarkers", BOOLEAN),
+    ("autoSave", BOOLEAN),
+    ("cycleSeparatorLines", r#"{ "type": "integer" }"#),
+    (
+        "agenda.span",
+        r#"{ "anyOf": [{ "enum": ["day", "week", "fortnight", "month", "year"] }, { "type": "integer", "minimum": 1 }] }"#,
+    ),
+    (
+        "agenda.startOnWeekday",
+        r#"{ "anyOf": [{ "type": "integer", "minimum": 0, "maximum": 6 }, { "const": false }] }"#,
+    ),
+    ("agenda.deadlineWarningDays", INTEGER),
+    ("agenda.scheduledDelayDays", INTEGER),
+    ("agenda.scheduledPastDays", INTEGER),
+    ("agenda.deadlinePastDays", INTEGER),
+    ("agenda.skipScheduledIfDone", BOOLEAN),
+    ("agenda.skipDeadlineIfDone", BOOLEAN),
+    ("agenda.skipTimestampIfDone", BOOLEAN),
+    ("agenda.showFutureRepeats", r#"{ "enum": [true, false, "next"] }"#),
+    ("agenda.showAllDates", BOOLEAN),
+    ("agenda.tagsColumn", INTEGER),
+    ("agenda.useTimeGrid", BOOLEAN),
+    ("agenda.timeGrid.daily", BOOLEAN),
+    ("agenda.timeGrid.today", BOOLEAN),
+    ("agenda.timeGrid.weekly", BOOLEAN),
+    ("agenda.timeGrid.requireTimed", BOOLEAN),
+    ("agenda.timeGrid.removeMatch", BOOLEAN),
+    ("agenda.timeGrid.times", r#"{ "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 2400 } }"#),
+    ("agenda.timeGrid.trailer", STRING),
+    ("agenda.timeGrid.line", STRING),
+    ("agenda.timeGrid.now", STRING),
+    ("agenda.showCurrentTimeInGrid", BOOLEAN),
+    ("agenda.weekendDays", r#"{ "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 6 } }"#),
+    ("virtualDocuments", BOOLEAN),
+];
+
+const BOOLEAN: &str = r#"{ "type": "boolean" }"#;
+const INTEGER: &str = r#"{ "type": "integer" }"#;
+const STRING: &str = r#"{ "type": "string" }"#;
+const PRIORITY: &str = r#"{ "anyOf": [{ "type": "string", "pattern": "^[A-Za-z]$" }, { "type": "integer", "minimum": 0, "maximum": 64 }] }"#;
+
+/// The schema of the option `name`.
+pub fn schema(name: &str) -> Option<Value> {
+    let (_, schema) = SCHEMAS.iter().find(|(known, _)| *known == name)?;
+    serde_json::from_str(schema).ok()
+}
+
 /// The table as JSON: a list of `{ "name", "type", "default"?, "unset"?,
-/// "org"?, "doc", "integration"?, "editorOnly"? }`.
+/// "org"?, "doc", "schema", "integration"?, "editorOnly"? }`.
 pub fn manifest() -> Value {
     Value::Array(
         SETTINGS
             .iter()
             .map(|setting| {
                 let mut entry = json!({ "name": setting.name, "type": setting.kind, "doc": setting.doc });
+                if let Some(schema) = schema(setting.name) {
+                    entry["schema"] = schema;
+                }
                 match setting.default {
                     Some(default) => entry["default"] = serde_json::from_str(default).expect("a default is JSON"),
                     None => entry["unset"] = json!(setting.unset),
@@ -466,6 +596,55 @@ mod tests {
         let mut listed: Vec<String> = SETTINGS.iter().map(|setting| setting.name.to_string()).collect();
         listed.sort();
         assert_eq!(listed, read);
+    }
+
+    /// Whether `value` is what `schema` allows, for the parts of JSON
+    /// Schema the table uses.
+    fn allows(schema: &Value, value: &Value) -> bool {
+        if let Some(choices) = schema.get("anyOf").and_then(Value::as_array) {
+            return choices.iter().any(|choice| allows(choice, value));
+        }
+        if let Some(constant) = schema.get("const") {
+            return constant == value;
+        }
+        if let Some(choices) = schema.get("enum").and_then(Value::as_array) {
+            return choices.contains(value);
+        }
+        let of_type = |name: &str| match name {
+            "boolean" => value.is_boolean(),
+            "string" => value.is_string(),
+            "integer" => value.is_i64() || value.is_u64(),
+            "array" => value.as_array().is_some_and(|items| {
+                items.iter().all(|item| schema.get("items").is_none_or(|items| allows(items, item)))
+            }),
+            "object" => value.as_object().is_some_and(|fields| {
+                fields.iter().all(|(key, field)| {
+                    schema.pointer(&format!("/properties/{key}")).is_some_and(|property| allows(property, field))
+                })
+            }),
+            _ => false,
+        };
+        match &schema["type"] {
+            Value::String(name) => of_type(name),
+            Value::Array(names) => names.iter().filter_map(Value::as_str).any(of_type),
+            _ => false,
+        }
+    }
+
+    #[test]
+    fn every_option_has_a_schema_that_allows_its_default() {
+        for setting in SETTINGS {
+            let schema = schema(setting.name).unwrap_or_else(|| panic!("no schema for `{}`", setting.name));
+            if let Some(default) = setting.default {
+                let default: Value = serde_json::from_str(default).unwrap();
+                assert!(allows(&schema, &default), "the default of `{}` is not what its schema allows", setting.name);
+            }
+        }
+        assert_eq!(SCHEMAS.len(), SETTINGS.len(), "a schema for an option that is not there");
+        // And an example of each kind of value the schemas catch.
+        assert!(!allows(&schema("logDone").unwrap(), &json!("yes")));
+        assert!(!allows(&schema("captureTemplates").unwrap(), &json!([{ "key": "t", "taget": [] }])));
+        assert!(allows(&schema("agenda.span").unwrap(), &json!(3)));
     }
 
     #[test]

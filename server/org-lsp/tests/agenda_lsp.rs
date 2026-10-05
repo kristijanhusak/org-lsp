@@ -583,25 +583,249 @@ fn changes_an_entry_from_the_agenda() {
 fn the_dispatcher_asks_which_view() {
     let mut client = Client::editor(clock(), None);
     client.open("file:///org/work.org", WORK);
-    client.choice = Some("List of all TODO entries".to_string());
-    let requests = client.command("org.agenda.dispatch", "file:///org/work.org", 0);
+    // Emacs's menu: a view by its key.
+    let at = json!({ "textDocument": { "uri": "file:///org/work.org" }, "position": { "line": 0, "character": 0 } });
+    let run = |client: &mut Client, extra: Value| {
+        let mut context = at.clone();
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.request("workspace/executeCommand", json!({ "command": "org.agenda.dispatch", "arguments": [context] }))
+    };
+    let asked = run(&mut client, json!({})).unwrap();
+    assert_eq!(asked["input"]["kind"], "key");
+    assert_eq!(asked["input"]["prompt"], "Press key for agenda command");
     assert_eq!(
-        methods(&requests),
-        ["window/showMessageRequest", "workspace/textDocumentContent/refresh", "window/showDocument"]
+        asked["input"]["choices"],
+        json!([
+            { "key": "a", "label": "Agenda for the current week or day" },
+            { "key": "t", "label": "List of all TODO entries" }
+        ])
     );
-    let titles: Vec<&str> = requests[0].params["actions"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|action| action["title"].as_str().unwrap())
-        .collect();
-    assert_eq!(titles, ["Agenda for the current week or day", "List of all TODO entries"]);
+    client.received.clear();
+    assert_eq!(run(&mut client, json!({ "input": "t" })), Ok(Value::Null));
+    client.settle();
     assert!(client.view_text(VIEW).starts_with("Global list of TODO items"));
+    assert_eq!(run(&mut client, json!({ "input": "x" })), Err("No agenda command for this key".to_string()));
+    // Asked with no document, as from a key with no file open.
+    let answer = client.request(
+        "workspace/executeCommand",
+        json!({ "command": "org.agenda.dispatch", "arguments": [{ "input": "a" }] }),
+    );
+    assert_eq!(answer, Ok(Value::Null));
+    client.shutdown();
+}
 
-    // Dismissing the menu does nothing.
-    client.choice = None;
-    let requests = client.command("org.agenda.dispatch", "file:///org/work.org", 0);
-    assert_eq!(methods(&requests), ["window/showMessageRequest"]);
+/// Run `command` at `line` and `character` of `uri`, and return its result
+/// with the files the server then asked the editor to save.
+fn run_saving(client: &mut Client, command: &str, uri: &str, at: (u32, u32), extra: Value) -> (Value, Vec<Value>) {
+    client.notifications.clear();
+    client.received.clear();
+    let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": at.0, "character": at.1 } });
+    for (key, value) in extra.as_object().into_iter().flatten() {
+        context[key] = value.clone();
+    }
+    let result = client
+        .request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+        .unwrap_or_else(|error| panic!("{command} failed: {error}"));
+    client.settle();
+    let saved = client
+        .notifications
+        .iter()
+        .filter(|notification| notification.method == "org-lsp/save")
+        .map(|notification| notification.params["uris"].clone())
+        .collect();
+    (result, saved)
+}
+
+/// Commands say what they did, as Emacs says it in the echo area, and the
+/// files they change from elsewhere are saved.
+#[test]
+fn says_what_it_did_and_saves_what_it_changed_elsewhere() {
+    let mut options = clock();
+    options["todoKeywords"] = json!(["TODO(t)", "|", "DONE(d)"]);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    client.command("org.agenda.list", VIEW, 0);
+    let text = client.show_view();
+    let report = text.lines().position(|line| line.contains("Write report")).unwrap() as u32;
+
+    // From the agenda the entry is out of sight: Emacs says what it became,
+    // and its file is saved.
+    let (result, saved) = run_saving(&mut client, "org.todo", VIEW, (report, 0), json!({ "input": "d" }));
+    assert_eq!(result, json!({ "message": "TODO state changed to DONE" }));
+    assert_eq!(saved, [json!(["file:///org/work.org"])]);
+    let (result, _) = run_saving(&mut client, "org.agenda.day", VIEW, (report, 0), json!({}));
+    assert_eq!(result, json!({ "message": "Switched to day view" }));
+
+    // In the file itself the edit is the user's to save.
+    let (result, saved) = run_saving(&mut client, "org.priority.down", "file:///org/work.org", (1, 0), json!({}));
+    assert_eq!(result, json!({ "message": "Priority of current item set to B" }));
+    assert!(saved.is_empty());
+    let (result, _) = run_saving(&mut client, "org.todo", "file:///org/work.org", (1, 0), json!({ "input": "t" }));
+    assert_eq!(result, json!({ "message": "TODO state was already TODO" }));
+
+    // `cid`: the timestamp at the cursor changes, inactive as it was; off a
+    // timestamp there is nothing to change.
+    let mut dates = "* a\n<2026-05-20 Wed> [2026-05-21 Thu]\n".to_string();
+    client.open("file:///org/dates.org", &dates);
+    let requests =
+        client.edit("org.timestamp.change", "file:///org/dates.org", (1, 20), json!({ "input": "fri" }), &mut dates);
+    assert_eq!(methods(&requests)[0], "workspace/applyEdit");
+    assert_eq!(dates, "* a\n<2026-05-20 Wed> [2026-05-22 Fri]\n");
+    let context =
+        json!({ "textDocument": { "uri": "file:///org/dates.org" }, "position": { "line": 0, "character": 0 } });
+    let refused = client
+        .request("workspace/executeCommand", json!({ "command": "org.timestamp.change", "arguments": [context] }));
+    assert_eq!(refused, Err("No timestamp at the cursor".to_string()));
+    client.shutdown();
+
+    // `autoSave` off: nothing is saved.
+    let mut options = clock();
+    options["autoSave"] = json!(false);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    client.command("org.agenda.list", VIEW, 0);
+    client.show_view();
+    let (_, saved) = run_saving(&mut client, "org.todo.next", VIEW, (report, 0), json!({}));
+    assert!(saved.is_empty());
+    client.shutdown();
+}
+
+/// `t` in the calendar picks the time with the keys that move by day and
+/// week; the answer takes it in place of the typed one.
+#[test]
+fn picks_a_time_in_the_calendar() {
+    const URI: &str = "file:///org/notes.org";
+    const PROMPT: &str = "org-agenda:/Org%20Date";
+    let mut client = Client::with_date_prompt(clock());
+    let notes = "* TODO Call them\nSCHEDULED: <2026-05-20 Wed 10:00>\n";
+    client.open(URI, notes);
+    let on_prompt = json!({ "textDocument": { "uri": PROMPT }, "position": { "line": 0, "character": 0 } });
+    let run = |client: &mut Client, command: &str, context: Value| {
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        client.settle();
+        result
+    };
+    run(
+        &mut client,
+        "org.schedule",
+        json!({ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } }),
+    );
+    for command in
+        ["org.calendar.time", "org.calendar.week.earlier", "org.calendar.day.later", "org.calendar.week.later"]
+    {
+        run(&mut client, command, on_prompt.clone());
+    }
+    let text = client.view_text(PROMPT);
+    assert!(text.contains("\nTime: 10:55\n"), "{text}");
+    assert!(text.trim_end().ends_with("=> <2026-05-20 Wed 10:55>"), "{text}");
+    // `t` again: the keys move the day, the time stays.
+    run(&mut client, "org.calendar.time", on_prompt.clone());
+    run(&mut client, "org.calendar.day.later", on_prompt.clone());
+    let text = client.view_text(PROMPT);
+    assert!(text.trim_end().ends_with("=> <2026-05-21 Thu 10:55>"), "{text}");
+    let done = run(&mut client, "org.calendar.select", on_prompt);
+    assert_eq!(done["message"], "Scheduled to <2026-05-21 Thu 10:55>");
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the change");
+    assert_eq!(apply(notes, &edits_of(edit).1), "* TODO Call them\nSCHEDULED: <2026-05-21 Thu 10:55>\n");
+    client.shutdown();
+}
+
+/// Keys of the calendar pressed quickly one after another: the second one
+/// comes with the cursor where it was before the first moved it, and goes
+/// on from the day the first selected.
+#[test]
+fn calendar_keys_go_on_from_the_selected_day_until_the_cursor_follows() {
+    const URI: &str = "file:///org/notes.org";
+    const PROMPT: &str = "org-agenda:/Org%20Date";
+    let mut client = Client::with_date_prompt(clock());
+    client.open(URI, "* TODO Call them\nSCHEDULED: <2026-05-20 Wed>\n");
+    let run = |client: &mut Client, command: &str, context: Value| {
+        client.received.clear();
+        client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        client.settle();
+    };
+    run(
+        &mut client,
+        "org.schedule",
+        json!({ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } }),
+    );
+    let cursor = client.received[0].params["selection"]["start"].clone();
+    let text = client.view_text(PROMPT);
+    client.notify(
+        "textDocument/didOpen",
+        json!({ "textDocument": { "uri": PROMPT, "languageId": "org-date", "version": 1, "text": text } }),
+    );
+    client.settle();
+    // The cursor stays on the 20th: the editor has not got round to moving
+    // it when the next key comes.
+    let stale = json!({ "textDocument": { "uri": PROMPT }, "position": cursor });
+    client.hold_show = true;
+    run(&mut client, "org.calendar.week.later", stale.clone());
+    let text = client.view_text(PROMPT);
+    assert!(text.trim_end().ends_with("=> <2026-05-27 Wed>"), "{text}");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": PROMPT, "version": 2 }, "contentChanges": [{ "text": text }] }),
+    );
+    client.settle();
+    run(&mut client, "org.calendar.day.later", stale.clone());
+    let text = client.view_text(PROMPT);
+    assert!(text.trim_end().ends_with("=> <2026-05-28 Thu>"), "from the selected day: {text}");
+    client.shutdown();
+}
+
+/// The note a TODO state wants is written in a buffer of its own, as
+/// Emacs's `*Org Note*`: finished, it is logged with the change;
+/// cancelled, the state changes and nothing is logged.
+#[test]
+fn writes_a_state_note_in_a_buffer_of_its_own() {
+    let mut options = clock();
+    options["todoKeywords"] = json!(["TODO(t)", "WAIT(w@)", "|", "DONE(d)"]);
+    let mut client = Client::with_date_prompt(options);
+    let note_for = |client: &mut Client, file: &str| {
+        client.open(file, "* TODO Call\n");
+        client.received.clear();
+        let context =
+            json!({ "textDocument": { "uri": file }, "position": { "line": 0, "character": 0 }, "input": "w" });
+        let result = client
+            .request("workspace/executeCommand", json!({ "command": "org.todo", "arguments": [context] }))
+            .unwrap();
+        assert_eq!(result, Value::Null);
+        client.settle();
+        assert!(client.received.iter().all(|request| request.method != "workspace/applyEdit"), "nothing changes yet");
+        let show =
+            client.received.iter().find(|request| request.method == "window/showDocument").expect("the note buffer");
+        assert_eq!(show.params["selection"]["start"], json!({ "line": 2, "character": 0 }));
+        let buffer = show.params["uri"].as_str().unwrap().to_string();
+        assert!(buffer.ends_with("/CAPTURE-Note.org"), "{buffer}");
+        let text = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
+        assert_eq!(text, "# Insert note for state change from \"TODO\" to \"WAIT\".\n\n\n");
+        buffer
+    };
+    let finish = |client: &mut Client, command: &str, buffer: &str| {
+        client.received.clear();
+        let context = json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } });
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        assert_eq!(result["close"], buffer);
+        client.settle();
+        let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the change");
+        apply("* TODO Call\n", &edits_of(edit).1)
+    };
+
+    let buffer = note_for(&mut client, "file:///org/a.org");
+    client.open(&buffer, "# Insert note for state change from \"TODO\" to \"WAIT\".\n\nWaiting for Bob\n\n");
+    assert_eq!(
+        finish(&mut client, "org.capture.finish", &buffer),
+        "* WAIT Call\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  Waiting for Bob"
+    );
+
+    let buffer = note_for(&mut client, "file:///org/b.org");
+    assert_eq!(finish(&mut client, "org.capture.abort", &buffer), "* WAIT Call\n");
     client.shutdown();
 }
 
@@ -1281,7 +1505,8 @@ fn shows_a_calendar_with_the_date_prompt() {
     let mut typed = on_prompt(0, 0);
     typed["input"] = json!("15:00");
     let done = run(&mut client, "org.calendar.type", typed).unwrap();
-    assert_eq!(done, json!({ "close": PROMPT }));
+    // Emacs says what it did, with the repeater the entry keeps.
+    assert_eq!(done, json!({ "close": PROMPT, "message": "Scheduled to <2026-05-21 Thu 15:00 +1w>" }));
     let (_, edits) = edits_of(&client.received[0]);
     notes = apply(&notes, &edits);
     assert_eq!(notes.lines().nth(1).unwrap(), "SCHEDULED: <2026-05-21 Thu 15:00 +1w>");
@@ -1299,7 +1524,7 @@ fn shows_a_calendar_with_the_date_prompt() {
     assert!(client.view_text(PROMPT).contains("=> <2025-06-18 Wed>"));
     run(&mut client, "org.calendar.today", on_prompt(0, 0)).unwrap();
     let done = run(&mut client, "org.calendar.select", on_prompt(0, 0)).unwrap();
-    assert_eq!(done, json!({ "close": PROMPT }));
+    assert_eq!(done, json!({ "close": PROMPT, "message": "Deadline on <2026-05-18 Mon>" }));
     let (_, edits) = edits_of(&client.received[0]);
     notes = apply(&notes, &edits);
     assert_eq!(notes.lines().nth(1).unwrap(), "DEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-21 Thu 15:00 +1w>");
@@ -1762,7 +1987,10 @@ fn captures_into_a_file() {
         "org.capture.abort",
         json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } }),
     );
-    assert_eq!(aborted, Ok(json!({ "close": buffer })));
+    assert_eq!(
+        aborted,
+        Ok(json!({ "close": buffer, "message": "Capture process aborted and target buffer cleaned up" }))
+    );
     client.settle();
     assert!(client.received.iter().all(|request| request.method != "workspace/applyEdit"));
 
@@ -1785,7 +2013,10 @@ fn captures_into_a_file() {
     let mut answer = in_buffer.clone();
     answer["input"] = json!("Ideas");
     client.received.clear();
-    assert_eq!(run(&mut client, "org.capture.refile", answer), Ok(json!({ "close": buffer })));
+    let refiled = run(&mut client, "org.capture.refile", answer).unwrap();
+    assert_eq!(refiled["close"], buffer);
+    let said = format!("Refile to \"Ideas\" in file {}: done", notes.display());
+    assert_eq!(refiled["message"], said);
     client.settle();
     let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
     let (_, edits) = edits_of(edit);

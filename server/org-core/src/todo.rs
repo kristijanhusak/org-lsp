@@ -1180,6 +1180,18 @@ pub struct WantedNote {
     pub state: Option<String>,
 }
 
+/// What becomes of the note a state change wants.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NoteText<'a> {
+    /// None given yet: the change says that it wants one.
+    Ask,
+    /// This text, as the user wrote it.
+    Write(&'a str),
+    /// The note was cancelled (`C-c C-k` in Emacs's note buffer): the
+    /// state changes, and nothing is logged.
+    Skip,
+}
+
 /// [`change_state`], with the text of the note the change records, as
 /// the user writes it after the change (`org-add-note`). Without `note`,
 /// a change that wants one says so instead of writing it.
@@ -1192,20 +1204,36 @@ pub fn change_state_with_note(
     now: DateTime,
     note: Option<&str>,
 ) -> Result<Changed, String> {
+    let note = note.map_or(NoteText::Ask, NoteText::Write);
+    change_state_noted(text, keywords, offset, target, settings, now, note)
+}
+
+/// [`change_state_with_note`], where the note may also be cancelled.
+pub fn change_state_noted(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    target: &Target,
+    settings: &Settings,
+    now: DateTime,
+    note: NoteText,
+) -> Result<Changed, String> {
     let mut editor = Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None };
     editor.go_to_heading(offset)?;
     editor.set_state(target, true)?;
     let wants_note = match (editor.note.take(), note) {
+        // `org-store-log-note` with `org-note-abort`: nothing is stored.
+        (Some(wanted), NoteText::Skip) if wanted.text => None,
         // A time only (`!`): no text is asked for.
         (Some(wanted), _) if !wanted.text => {
             editor.store_note(&wanted, "");
             None
         }
-        (Some(wanted), Some(note)) => {
+        (Some(wanted), NoteText::Write(note)) => {
             editor.store_note(&wanted, note);
             None
         }
-        (Some(wanted), None) => {
+        (Some(wanted), NoteText::Ask | NoteText::Skip) => {
             let purpose = if wanted.state_change {
                 let name = |state: &Option<String>| state.clone().unwrap_or_default();
                 format!("state change from \"{}\" to \"{}\"", name(&wanted.previous), name(&wanted.state))

@@ -98,6 +98,29 @@ no braces to balance. JSON is easier to copy settings into from VS Code.
 The full list, with every option at its default, is at the end of this
 page, in both.
 
+### Completion and checking
+
+[`config.schema.json`](config.schema.json) is the JSON Schema of the file,
+written from the server's own table of options. An editor that knows JSON
+Schema completes and checks the options with it, and flags a misspelt
+name. In JSON, name it with `$schema`:
+
+```jsonc
+{
+  "$schema": "https://raw.githubusercontent.com/kristijanhusak/org-lsp/main/docs/config.schema.json",
+  "logDone": "time"
+}
+```
+
+In TOML, editors that use [Taplo](https://taplo.tamasfe.dev) (VS Code's
+Even Better TOML, Helix, Neovim's `taplo` server) read a `#:schema`
+comment at the top of the file:
+
+```toml
+#:schema https://raw.githubusercontent.com/kristijanhusak/org-lsp/main/docs/config.schema.json
+logDone = "time"
+```
+
 ## An editor's options on top
 
 An editor's own options for the server (Neovim's `settings`, VS Code's
@@ -252,6 +275,23 @@ orgDirectory = "~/org"
 # The target of a capture template whose file is empty.
 # (org-default-notes-file)
 defaultNotesFile = "~/.notes"
+
+# Show a link as its description (or its target, when it has none) and hide
+# the rest: the brackets, and the target of a link with a description. The
+# text is marked `hidden` in the highlighting, and editors that can conceal
+# text conceal it. (org-link-descriptive)
+linkDescriptive = true
+
+# Hide the markers around `*bold*`, `/italic/`, `_underline_`,
+# `+strike-through+`, `=verbatim=` and `~code~`, as for links.
+# (org-hide-emphasis-markers)
+hideEmphasisMarkers = false
+
+# Save the files a command changes other than the one it was run in: an
+# entry's file changed from the agenda, the target of a capture or of a
+# refile. The editor saves them once it has made the change. Off, they are
+# left with unsaved changes, as Emacs leaves them.
+autoSave = true
 
 # With at least this many blank lines after a subtree, the last one stays
 # outside its fold. Negative: all of them stay outside. `0`: none does.
@@ -447,6 +487,23 @@ now = "now - - - - - - - - - - - - - - - - - - - - - - - - -"
   // The target of a capture template whose file is empty.
   // (org-default-notes-file)
   "defaultNotesFile": "~/.notes",
+
+  // Show a link as its description (or its target, when it has none) and hide
+  // the rest: the brackets, and the target of a link with a description. The
+  // text is marked `hidden` in the highlighting, and editors that can conceal
+  // text conceal it. (org-link-descriptive)
+  "linkDescriptive": true,
+
+  // Hide the markers around `*bold*`, `/italic/`, `_underline_`,
+  // `+strike-through+`, `=verbatim=` and `~code~`, as for links.
+  // (org-hide-emphasis-markers)
+  "hideEmphasisMarkers": false,
+
+  // Save the files a command changes other than the one it was run in: an
+  // entry's file changed from the agenda, the target of a capture or of a
+  // refile. The editor saves them once it has made the change. Off, they are
+  // left with unsaved changes, as Emacs leaves them.
+  "autoSave": true,
 
   // With at least this many blank lines after a subtree, the last one stays
   // outside its fold. Negative: all of them stay outside. `0`: none does.

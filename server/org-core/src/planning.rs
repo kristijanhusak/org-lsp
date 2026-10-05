@@ -46,6 +46,8 @@ pub struct Outcome {
     pub text: String,
     /// Where Emacs leaves the cursor, after a timestamp it inserted.
     pub cursor: Option<usize>,
+    /// What Emacs says when it is done: `Scheduled to <2026-05-22 Fri>`.
+    pub message: Option<String>,
 }
 
 fn rx(pattern: &str) -> Regex {
@@ -222,6 +224,13 @@ pub fn run(
     }
 }
 
+/// Whether the cursor at `offset` is on a timestamp, and if so whether it
+/// is an inactive one: what a command that changes the timestamp there
+/// keeps.
+pub fn timestamp_kind(text: &str, offset: usize) -> Option<bool> {
+    Stamp::around(text, offset.min(text.len())).map(|stamp| text[stamp.start..].starts_with('['))
+}
+
 /// The timestamp a read answer makes, with the end of a time range.
 pub fn timestamp_for(read: &ReadDate, inactive: bool) -> String {
     insert_timestamp(read, inactive, true)
@@ -343,10 +352,16 @@ fn schedule(
     }
     out.insert_str(insert_at, &inserted);
     // The old repeater goes back in, before the closing bracket.
+    let mut stamp = stamp;
     if let Some(repeater) = repeater {
         out.insert_str(after - 1, &format!(" {repeater}"));
+        stamp.insert_str(stamp.len() - 1, &format!(" {repeater}"));
     }
-    Ok(Outcome { text: out, cursor: None })
+    let message = match command {
+        Command::Deadline => format!("Deadline on {stamp}"),
+        _ => format!("Scheduled to {stamp}"),
+    };
+    Ok(Outcome { text: out, cursor: None, message: Some(message) })
 }
 
 /// The timestamp that `org-in-regexp` matched last when it found none
@@ -393,7 +408,7 @@ fn timestamp(
     if found.is_some() && repeated {
         let inserted = format!("--{}", insert_timestamp(&read, inactive, false));
         out.insert_str(offset, &inserted);
-        return Ok(Outcome { text: out, cursor: Some(offset + inserted.len()) });
+        return Ok(Outcome { text: out, cursor: Some(offset + inserted.len()), message: None });
     }
     if found.is_some() {
         // On a timestamp; from the dashes of a range, on the one after.
@@ -412,11 +427,11 @@ fn timestamp(
             out.insert_str(cursor, &inserted);
             cursor += inserted.len();
         }
-        return Ok(Outcome { text: out, cursor: Some(cursor) });
+        return Ok(Outcome { text: out, cursor: Some(cursor), message: Some("Timestamp updated".to_string()) });
     }
     let new = insert_timestamp(&read, inactive, true);
     out.insert_str(offset, &new);
-    Ok(Outcome { text: out, cursor: Some(offset + new.len()) })
+    Ok(Outcome { text: out, cursor: Some(offset + new.len()), message: None })
 }
 
 #[cfg(test)]
@@ -446,6 +461,28 @@ mod tests {
             run_at("* TODO a\nSCHEDULED: <2026-05-20 Wed 10:00 +1w>\n¦", Command::Schedule, "++1"),
             "* TODO a\nSCHEDULED: <2026-05-21 Thu +1w>\n"
         );
+    }
+
+    #[test]
+    fn says_what_it_did_as_emacs_does() {
+        let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);
+        let message = |text: &str, command, answer| {
+            run(command, text, 0, answer, false, now, &Settings::default()).unwrap().message
+        };
+        let repeating = "* TODO a\nSCHEDULED: <2026-05-20 Wed +1w>\n";
+        assert_eq!(message(repeating, Command::Schedule, "fri"), Some("Scheduled to <2026-05-22 Fri +1w>".to_string()));
+        assert_eq!(message("* TODO a\n", Command::Deadline, "fri"), Some("Deadline on <2026-05-22 Fri>".to_string()));
+        let timestamp = Command::Timestamp { inactive: false };
+        assert_eq!(message("<2026-05-20 Wed>", timestamp, "fri"), Some("Timestamp updated".to_string()));
+        assert_eq!(message("text", timestamp, "fri"), None);
+    }
+
+    #[test]
+    fn knows_the_kind_of_timestamp_at_the_cursor() {
+        let text = "a <2026-05-20 Wed> b [2026-05-21 Thu]";
+        assert_eq!(timestamp_kind(text, 5), Some(false));
+        assert_eq!(timestamp_kind(text, 25), Some(true));
+        assert_eq!(timestamp_kind(text, 0), None);
     }
 
     #[test]

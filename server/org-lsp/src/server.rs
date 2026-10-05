@@ -12,17 +12,17 @@ use lsp_types::notification::{
 };
 use lsp_types::request::{
     ApplyWorkspaceEdit, CodeActionRequest, DocumentSymbolRequest, ExecuteCommand, FoldingRangeRequest, GotoDefinition,
-    Request as _, SemanticTokensFullRequest, SemanticTokensRangeRequest, ShowDocument, ShowMessageRequest,
+    Request as _, SemanticTokensFullRequest, SemanticTokensRangeRequest, ShowDocument,
 };
 use lsp_types::{
     CodeAction, CodeActionKind, CodeActionOptions, CodeActionOrCommand, CodeActionParams, CodeActionProviderCapability,
     DocumentSymbolParams, DocumentSymbolResponse, ExecuteCommandOptions, ExecuteCommandParams, FoldingRangeParams,
     FoldingRangeProviderCapability, GotoDefinitionParams, GotoDefinitionResponse, InitializeParams, InitializeResult,
-    Location, MessageActionItem, MessageType, OneOf, OptionalVersionedTextDocumentIdentifier, Position, Range,
-    SemanticTokens, SemanticTokensFullOptions, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams,
+    Location, MessageType, OneOf, OptionalVersionedTextDocumentIdentifier, Position, Range, SemanticTokens,
+    SemanticTokensFullOptions, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams,
     SemanticTokensServerCapabilities, ServerCapabilities, ServerInfo, ShowDocumentParams, ShowMessageParams,
-    ShowMessageRequestParams, TextDocumentEdit, TextDocumentSyncCapability, TextDocumentSyncKind,
-    TextDocumentSyncOptions, TextDocumentSyncSaveOptions, TextEdit, Uri, WorkspaceEdit,
+    TextDocumentEdit, TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
+    TextDocumentSyncSaveOptions, TextEdit, Uri, WorkspaceEdit,
 };
 use org_core::agenda::{self, Config as AgendaConfig, Now, Span};
 use org_core::capture;
@@ -43,7 +43,7 @@ use serde_json::{json, Value};
 use crate::config::{self, CaptureTemplateOption, RefileFiles, RefileTarget};
 use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
-use crate::prompt::{self, DatePrompt, Target};
+use crate::prompt::{self, DatePrompt, Target, TimeField};
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
 use crate::{actions, cli, commands, completion, folding, highlight, manifest, symbols, uri};
@@ -78,8 +78,8 @@ enum Pending {
     EditAndMove { uri: Uri, position: Position },
     /// The cursor of the agenda is being moved to follow an entry.
     Reveal,
-    /// The agenda dispatcher's menu.
-    Dispatch,
+    /// The cursor of the date prompt is being moved to the selected day.
+    PromptCursor,
 }
 
 /// The agenda the client is showing.
@@ -129,7 +129,7 @@ impl OpenView {
 }
 
 /// Where a command was invoked: a document and a place in it.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Context {
     text_document: lsp_types::TextDocumentIdentifier,
@@ -184,6 +184,21 @@ struct Capturing {
     spec: (capture::Target, capture::Kind, capture::Properties),
 }
 
+/// A note being written for a TODO state change (`org-add-note`), in a
+/// buffer of its own like a capture's: the change it is for waits for it.
+struct Noting {
+    /// The note buffer, a file of its own.
+    uri: Uri,
+    /// The command that changes the state, where it was run.
+    id: String,
+    context: Context,
+    /// The state the note is for; empty for none.
+    state: String,
+}
+
+/// The notification that asks the editor to save files, `{ "uris": [...] }`.
+pub const SAVE: &str = "org-lsp/save";
+
 /// The name of a capture buffer starts with this, as Emacs names it.
 pub const CAPTURE_PREFIX: &str = "CAPTURE-";
 
@@ -210,6 +225,8 @@ fn capture_spec(template: &CaptureTemplateOption) -> std::result::Result<(captur
 struct Extra {
     /// The text of the note a TODO state change wants.
     note: Option<String>,
+    /// The note was cancelled: change the state and log nothing.
+    skip_note: bool,
     /// The key that selects the new TODO state.
     key: Option<String>,
 }
@@ -268,6 +285,18 @@ struct Server {
     sender: crossbeam_channel::Sender<Message>,
     next_request: i32,
     pending: HashMap<RequestId, Pending>,
+    /// What the command being run has to say, as Emacs says it in the echo
+    /// area. It goes back with the command's result.
+    message: Option<String>,
+    /// The document the command being run was run in, whose edits are the
+    /// user's to save.
+    origin: Option<String>,
+    /// `autoSave`: save the files a command changes elsewhere.
+    auto_save: bool,
+    /// What the highlighting marks as hidden.
+    conceal: highlight::Conceal,
+    /// The files to save once the edit request with this id is applied.
+    saving: HashMap<RequestId, Vec<Uri>>,
     todo: TodoKeywords,
     agenda: AgendaConfig,
     edit_settings: EditSettings,
@@ -282,6 +311,8 @@ struct Server {
     default_notes_file: String,
     /// The capture whose buffer the editor shows.
     capture: Option<Capturing>,
+    /// The note being written for a TODO state change, if one is.
+    note: Option<Noting>,
     /// How many captures there were.
     captures: u32,
     /// The date prompt that waits for an answer, in clients that show it.
@@ -377,6 +408,14 @@ pub fn run(connection: Connection) -> Result<()> {
         sender: connection.sender.clone(),
         next_request: 0,
         pending: HashMap::new(),
+        message: None,
+        origin: None,
+        auto_save: options.auto_save.unwrap_or(true),
+        conceal: highlight::Conceal {
+            links: options.link_descriptive.unwrap_or(true),
+            emphasis: options.hide_emphasis_markers.unwrap_or(false),
+        },
+        saving: HashMap::new(),
         todo,
         agenda: options.agenda_config(),
         edit_settings: options.edit_settings(),
@@ -386,6 +425,7 @@ pub fn run(connection: Connection) -> Result<()> {
         org_directory: options.org_directory(),
         default_notes_file: options.default_notes_file(),
         capture: None,
+        note: None,
         captures: 0,
         date_prompt: None,
         prompt_copy: None,
@@ -422,6 +462,70 @@ pub fn run(connection: Connection) -> Result<()> {
         let _ = std::fs::remove_dir_all(capture_directory());
     }
     Ok(())
+}
+
+/// A command's result with what it has to say: `{ "message": … }` on top
+/// of whatever else the result holds.
+fn with_message(result: Value, message: Option<String>) -> Value {
+    match (result, message) {
+        (result, None) => result,
+        (Value::Null, Some(message)) => json!({ "message": message }),
+        (Value::Object(mut fields), Some(message)) => {
+            fields.insert("message".to_string(), json!(message));
+            Value::Object(fields)
+        }
+        (result, Some(_)) => result,
+    }
+}
+
+/// What Emacs says about a change to the headline at `heading`: the
+/// priority it now has, or, for a change made from the agenda where the
+/// entry is out of sight, its TODO state. A state set to the one it had is
+/// worth a word as well.
+fn headline_message(
+    old: &str,
+    new: &str,
+    heading: usize,
+    keywords: &TodoKeywords,
+    from_agenda: bool,
+    explicit: bool,
+) -> Option<String> {
+    let line = old[..heading.min(old.len())].matches('\n').count();
+    let state = |text: &str| {
+        let headline = text.lines().nth(line)?;
+        let parse = org_syntax::parse(headline, keywords);
+        let headline = org_syntax::ast::headline_at(&parse.syntax(), 0.into())?;
+        let keyword = headline.todo_keyword().map(|token| token.text().to_string());
+        let priority = headline.priority().map(|token| token.text().trim_matches(['[', '#', ']']).to_string());
+        Some((keyword, priority))
+    };
+    let ((old_keyword, old_priority), (keyword, priority)) = (state(old)?, state(new)?);
+    if priority != old_priority {
+        return Some(match priority {
+            Some(priority) => format!("Priority of current item set to {priority}"),
+            None => "Priority removed".to_string(),
+        });
+    }
+    if keyword != old_keyword && from_agenda {
+        return Some(format!("TODO state changed to {}", keyword.unwrap_or_default()));
+    }
+    // A state picked by its key that the entry already has.
+    if keyword == old_keyword && explicit {
+        return Some(format!("TODO state was already {}", keyword.unwrap_or_default()));
+    }
+    None
+}
+
+/// A span as Emacs names it in its messages: `week`, or a number of days.
+fn span_name(span: Span) -> String {
+    match span {
+        Span::Day => "day".to_string(),
+        Span::Week => "week".to_string(),
+        Span::Fortnight => "fortnight".to_string(),
+        Span::Month => "month".to_string(),
+        Span::Year => "year".to_string(),
+        Span::Days(days) => days.to_string(),
+    }
 }
 
 /// Where the capture buffers of this server are.
@@ -505,6 +609,8 @@ fn planning_command(id: &str) -> Option<PlanningCommand> {
         commands::DEADLINE => Some(PlanningCommand::Deadline),
         commands::TIMESTAMP_INSERT => Some(PlanningCommand::Timestamp { inactive: false }),
         commands::TIMESTAMP_INSERT_INACTIVE => Some(PlanningCommand::Timestamp { inactive: true }),
+        // Active or inactive as the timestamp is: see `date_command_at`.
+        commands::TIMESTAMP_CHANGE => Some(PlanningCommand::Timestamp { inactive: false }),
         _ => None,
     }
 }
@@ -555,6 +661,30 @@ impl Server {
         self.send_raw_request(R::METHOD, serde_json::to_value(params).unwrap_or(Value::Null), pending);
     }
 
+    /// Ask the editor to apply `params`. With `autoSave`, the files it
+    /// changes other than the one the command was run in (an entry's file
+    /// changed from the agenda, the target of a capture or a refile) are
+    /// saved once the editor has applied the edit.
+    fn apply_edit(&mut self, params: lsp_types::ApplyWorkspaceEditParams, pending: Pending) {
+        let mut files: Vec<Uri> = match (&params.edit.document_changes, &params.edit.changes) {
+            (Some(lsp_types::DocumentChanges::Edits(edits)), _) => {
+                edits.iter().map(|edit| edit.text_document.uri.clone()).collect()
+            }
+            (_, Some(changes)) => changes.keys().cloned().collect(),
+            _ => Vec::new(),
+        };
+        files.retain(|uri| Some(uri.as_str()) != self.origin.as_deref() && !is_view_uri(uri));
+        let request = self.new_request(
+            ApplyWorkspaceEdit::METHOD,
+            serde_json::to_value(params).unwrap_or(Value::Null),
+            Some(pending),
+        );
+        if self.auto_save && !files.is_empty() {
+            self.saving.insert(request.id.clone(), files);
+        }
+        let _ = self.sender.send(Message::Request(request));
+    }
+
     fn send_raw_request(&mut self, method: &str, params: Value, pending: Option<Pending>) {
         let request = self.new_request(method, params, pending);
         // A closed channel means the client is gone; the loop ends on its own.
@@ -577,6 +707,15 @@ impl Server {
     }
 
     fn response(&mut self, response: Response) {
+        // An edit to save, now that the editor has applied it.
+        if let Some(files) = self.saving.remove(&response.id) {
+            let applied = response.response_result.as_ref().ok().and_then(|result| result.get("applied")?.as_bool());
+            if applied == Some(true) {
+                let uris: Vec<&str> = files.iter().map(|uri| uri.as_str()).collect();
+                let notification = Notification::new(SAVE.to_string(), json!({ "uris": uris }));
+                let _ = self.sender.send(Message::Notification(notification));
+            }
+        }
         match self.pending.remove(&response.id) {
             Some(Pending::Edit) => self.refresh_view(),
             Some(Pending::EditAndMove { uri, position }) => {
@@ -589,18 +728,9 @@ impl Server {
                 }
             }
             Some(Pending::Reveal) => self.moving = None,
-            Some(Pending::Dispatch) => {
-                let title = response
-                    .response_result
-                    .ok()
-                    .and_then(|result| result.get("title").and_then(Value::as_str).map(str::to_string));
-                let chosen = [commands::AGENDA_LIST, commands::AGENDA_TODOS]
-                    .into_iter()
-                    .find(|id| title.as_deref() == Some(commands::title(id)));
-                if let Some(id) = chosen {
-                    if let Err(refusal) = self.execute(id, None) {
-                        self.show_message(MessageType::ERROR, refusal.message());
-                    }
+            Some(Pending::PromptCursor) => {
+                if let Some(open) = self.date_prompt.as_mut() {
+                    open.moving_cursor = false;
                 }
             }
             None => {}
@@ -618,10 +748,18 @@ impl Server {
                         Err(response) => response,
                     },)*
                     ExecuteCommand::METHOD => match parameters::<ExecuteCommandParams>(request) {
-                        Ok((id, params)) => match self.execute_command(params) {
-                            Ok(value) => respond(id, value),
-                            Err(refusal) => refused(id, refusal),
-                        },
+                        Ok((id, params)) => {
+                            self.message = None;
+                            self.origin = params
+                                .arguments
+                                .first()
+                                .and_then(|argument| argument.pointer("/textDocument/uri")?.as_str())
+                                .map(str::to_string);
+                            match self.execute_command(params) {
+                                Ok(value) => respond(id, with_message(value, self.message.take())),
+                                Err(refusal) => refused(id, refusal),
+                            }
+                        }
                         Err(response) => response,
                     },
                     TEXT_DOCUMENT_CONTENT => match parameters::<Value>(request) {
@@ -757,7 +895,7 @@ impl Server {
             return Some(SemanticTokens { result_id: None, data });
         }
         let document = self.document(uri)?;
-        let tokens = highlight::tokens(&document.syntax(), document.parse.todo_keywords());
+        let tokens = highlight::tokens(&document.syntax(), document.parse.todo_keywords(), self.conceal);
         let only = range.map(|range| document.index.text_range(&document.text, range, encoding));
         let data = highlight::encode(&tokens, &document.text, &document.index, encoding, only);
         Some(SemanticTokens { result_id: None, data })
@@ -1140,9 +1278,12 @@ impl Server {
     // ----- commands
 
     fn execute_command(&mut self, params: ExecuteCommandParams) -> std::result::Result<Value, Refusal> {
-        let context: Option<Context> =
-            params.arguments.into_iter().next().and_then(|value| serde_json::from_value(value).ok());
+        let argument = params.arguments.into_iter().next();
+        // The answer to a question, also from where there is no document.
+        let input = argument.as_ref().and_then(|value| value.get("input")?.as_str()).map(str::to_string);
+        let context: Option<Context> = argument.and_then(|value| serde_json::from_value(value).ok());
         match params.command.as_str() {
+            commands::AGENDA_DISPATCH => self.dispatch(input.as_deref()),
             id if id.starts_with("org.calendar.") => self.calendar_command(id, context.as_ref()),
             // `org-save-all-org-buffers`: the server cannot save; the
             // editor saves the files it names that have changes.
@@ -1155,9 +1296,20 @@ impl Server {
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
             commands::CAPTURE => self.capture(context.as_ref()),
+            // In a note buffer, the keys of a capture store or cancel the
+            // note.
+            commands::CAPTURE_FINISH | commands::CAPTURE_ABORT
+                if self.note.as_ref().is_some_and(|note| {
+                    context.as_ref().is_none_or(|context| context.text_document.uri == note.uri)
+                }) =>
+            {
+                let note = self.note.take().expect("a note");
+                self.finish_note(note, params.command == commands::CAPTURE_ABORT)
+            }
             commands::CAPTURE_FINISH => self.finish_capture(),
             commands::CAPTURE_ABORT => {
                 let capture = self.capture.take().ok_or("No capture is going on")?;
+                self.message = Some("Capture process aborted and target buffer cleaned up".to_string());
                 Ok(json!({ "close": capture.uri }))
             }
             commands::CAPTURE_REFILE => self.refile_capture(context.and_then(|context| context.input).as_deref()),
@@ -1229,6 +1381,19 @@ impl Server {
         }
     }
 
+    /// What the command `id` that asks for a date does at `target`. Changing
+    /// the timestamp at the cursor needs one there, and keeps it active or
+    /// inactive.
+    fn date_command_at(&mut self, id: &str, target: &Target) -> std::result::Result<PlanningCommand, Refusal> {
+        if id != commands::TIMESTAMP_CHANGE {
+            return Ok(date_command(id).ok_or("Unknown command")?);
+        }
+        let source = self.date_source(target)?;
+        let inactive = planning::timestamp_kind(&source.text, source.offset)
+            .ok_or_else(|| Refusal::NotHere("No timestamp at the cursor".to_string()))?;
+        Ok(PlanningCommand::Timestamp { inactive })
+    }
+
     /// What the date prompt of `command` at `target` starts from.
     fn date_prompt_start(&mut self, command: PlanningCommand, target: &Target) -> std::result::Result<Prompt, Refusal> {
         if let Target::Agenda { .. } = target {
@@ -1243,9 +1408,9 @@ impl Server {
     /// ask: `{ "input": { "kind", "prompt", "value" } }`, where `value` is
     /// the text the prompt starts with. With `input` it runs.
     fn ask_date(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
-        let command = date_command(id).ok_or("Unknown command")?;
         let Some(answer) = &context.input else {
             let target = self.date_target(id, context)?;
+            let command = self.date_command_at(id, &target)?;
             let prompt = self.date_prompt_start(command, &target)?;
             let input = commands::input(id).ok_or("Unknown command")?;
             // In a client that shows it, the calendar opens instead; the
@@ -1282,7 +1447,7 @@ impl Server {
         if let Target::Agenda { .. } = target {
             return self.goto_date(answer);
         }
-        let command = planning_command(id).ok_or("Unknown command")?;
+        let command = self.date_command_at(id, target)?;
         let source = self.date_source(target)?;
         let key = source.file.as_str().to_string();
         // A timestamp right after another one makes a date range.
@@ -1300,6 +1465,7 @@ impl Server {
             .into_iter()
             .map(|edit| TextEdit { range: index.range(text, edit.range, encoding), new_text: edit.new_text })
             .collect();
+        self.message = outcome.message.clone();
         if edits.is_empty() {
             return Ok(());
         }
@@ -1321,7 +1487,7 @@ impl Server {
         let edit = self.workspace_edit(&source.file, source.version, edits);
         self.edited.insert(key);
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
-        self.send_request::<ApplyWorkspaceEdit>(params, Some(pending));
+        self.apply_edit(params, pending);
         Ok(())
     }
 
@@ -1360,6 +1526,7 @@ impl Server {
             self.reveal_prompt_when_current();
         } else {
             open.reveal = false;
+            open.moving_cursor = true;
             self.date_prompt = Some(open);
             let params = ShowDocumentParams {
                 uri: prompt::URI.parse().expect("valid URI"),
@@ -1367,7 +1534,7 @@ impl Server {
                 take_focus: Some(true),
                 selection: Some(Range::new(cursor, cursor)),
             };
-            self.send_request::<ShowDocument>(params, None);
+            self.send_request::<ShowDocument>(params, Some(Pending::PromptCursor));
         }
     }
 
@@ -1401,6 +1568,7 @@ impl Server {
         }
         let Some(open) = self.date_prompt.as_mut().filter(|open| open.reveal) else { return };
         open.reveal = false;
+        open.moving_cursor = true;
         let cursor = open.cursor();
         let params = ShowDocumentParams {
             uri: prompt::URI.parse().expect("valid URI"),
@@ -1408,16 +1576,43 @@ impl Server {
             take_focus: Some(true),
             selection: Some(Range::new(cursor, cursor)),
         };
-        self.send_request::<ShowDocument>(params, None);
+        self.send_request::<ShowDocument>(params, Some(Pending::PromptCursor));
     }
 
     /// A key of the date prompt. The day it starts from is the one under
     /// the cursor, as in Emacs's calendar, or else the selected one.
     fn calendar_command(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
         let (now, settings) = (self.date_time(), self.read_date);
+        let step = self.edit_settings.timestamp_rounding_minutes.max(1);
         let open = self.date_prompt.as_mut().ok_or("No date prompt is open")?;
+        // Picking the time: the keys that move by day choose the hours or
+        // the minutes, and those that move by week change them.
+        if open.time_field.is_some() {
+            let timed = matches!(
+                id,
+                commands::CALENDAR_DAY_LATER
+                    | commands::CALENDAR_DAY_EARLIER
+                    | commands::CALENDAR_WEEK_EARLIER
+                    | commands::CALENDAR_WEEK_LATER
+            );
+            match id {
+                commands::CALENDAR_DAY_LATER => open.time_field_to(TimeField::Minute, now, &settings),
+                commands::CALENDAR_DAY_EARLIER => open.time_field_to(TimeField::Hour, now, &settings),
+                commands::CALENDAR_WEEK_EARLIER => open.change_time(true, step, now, &settings),
+                commands::CALENDAR_WEEK_LATER => open.change_time(false, step, now, &settings),
+                _ => {}
+            }
+            if timed {
+                self.publish_date_prompt();
+                return Ok(Value::Null);
+            }
+        }
+        // Until the cursor is on the day selected last, the one it reports
+        // is an old one: a key pressed again quickly goes on from the
+        // selected day.
         let at = context
             .filter(|context| context.text_document.uri.as_str() == prompt::URI)
+            .filter(|_| !open.reveal && !open.moving_cursor)
             .and_then(|context| open.day_at(context.position))
             .unwrap_or(open.selected);
         let date = Date::from_day(at);
@@ -1441,6 +1636,7 @@ impl Server {
             commands::CALENDAR_SCROLL_LATER => open.scroll(1, now, &settings),
             commands::CALENDAR_SCROLL_EARLIER => open.scroll(-1, now, &settings),
             commands::CALENDAR_TODAY => open.select(now.day, now, &settings),
+            commands::CALENDAR_TIME => open.toggle_time(step, now, &settings),
             commands::CALENDAR_SELECT => {
                 // `org-calendar-select`: what was typed, and this day.
                 let answer = open.answer_with(at);
@@ -1450,7 +1646,7 @@ impl Server {
                 let Some(typed) = context.and_then(|context| context.input.clone()) else {
                     // The minibuffer: ask, starting from what was typed.
                     return Ok(
-                        json!({ "input": { "kind": "date", "prompt": open.label.trim_end().trim_end_matches(':'), "value": open.typed } }),
+                        json!({ "input": { "kind": "date", "prompt": open.label.trim_end().trim_end_matches(':'), "value": open.typed_with_time() } }),
                     );
                 };
                 // `RET` there: what was typed, and the day if it moved.
@@ -1493,8 +1689,8 @@ impl Server {
             self.publish_date_prompt();
             return Ok(json!({ "timestamp": stamp }));
         }
-        let command = date_command(id).ok_or("Unknown command")?;
         let target = self.date_target(id, context)?;
+        let command = self.date_command_at(id, &target)?;
         let start = self.date_prompt_start(command, &target)?;
         let read = org_core::read_date::read_date(answer, start.default, now, &settings)?;
         let stamp = planning::timestamp_for(&read, matches!(command, PlanningCommand::Timestamp { inactive: true }));
@@ -1507,17 +1703,6 @@ impl Server {
             self.last = None;
         }
         match command {
-            commands::AGENDA_DISPATCH => {
-                let actions = [commands::AGENDA_LIST, commands::AGENDA_TODOS]
-                    .map(|id| MessageActionItem { title: commands::title(id).to_string(), properties: HashMap::new() });
-                let params = ShowMessageRequestParams {
-                    typ: MessageType::INFO,
-                    message: "Org agenda".to_string(),
-                    actions: Some(actions.to_vec()),
-                };
-                self.send_request::<ShowMessageRequest>(params, Some(Pending::Dispatch));
-                Ok(())
-            }
             commands::AGENDA_LIST => Ok(self.open_view(Query::Agenda { start: None, span: self.agenda.span })?),
             commands::AGENDA_TODOS => Ok(self.open_view(Query::Todo)?),
             commands::AGENDA_REDO => {
@@ -1558,7 +1743,9 @@ impl Server {
                             .unwrap_or(open.view.start)
                     });
                 let start = day.map(|day| agenda::starting_day(day, span, &self.agenda));
-                Ok(self.open_view(Query::Agenda { start, span })?)
+                self.open_view(Query::Agenda { start, span })?;
+                self.message = Some(format!("Switched to {} view", span_name(span)));
+                Ok(())
             }
             commands::AGENDA_GOTO => {
                 let reference = self.entry_at(context.as_ref()).ok_or("No entry on this line")?;
@@ -1575,6 +1762,25 @@ impl Server {
 
             other => Err(format!("org-lsp has no command `{other}`").into()),
         }
+    }
+
+    /// `org-agenda` (`C-c a`): the views by their keys, as Emacs's menu
+    /// offers them, and the one picked.
+    fn dispatch(&mut self, answer: Option<&str>) -> std::result::Result<Value, Refusal> {
+        const VIEWS: [(&str, &str); 2] = [("a", commands::AGENDA_LIST), ("t", commands::AGENDA_TODOS)];
+        let Some(answer) = answer else {
+            let choices: Vec<Value> =
+                VIEWS.iter().map(|(key, id)| json!({ "key": key, "label": commands::title(id) })).collect();
+            return Ok(json!({ "input": {
+                "kind": "key",
+                "prompt": "Press key for agenda command",
+                "value": "",
+                "choices": choices,
+            } }));
+        };
+        let (_, id) = VIEWS.iter().find(|(key, _)| *key == answer).ok_or("No agenda command for this key")?;
+        self.execute(id, None)?;
+        Ok(Value::Null)
     }
 
     /// The entry on the agenda line of `context`.
@@ -1745,6 +1951,9 @@ impl Server {
         let source = &readable[0].text;
         let other = (target_file != 0).then(|| loaded[target_file].as_ref().expect("read").text.as_str());
         let refiled = refile::refile(source, offset, other, target.offset, &settings)?;
+        let target_path = uri::to_path(&uris[target_file])
+            .map_or_else(|| uris[target_file].as_str().to_string(), |path| path.display().to_string());
+        let message = format!("Refile to \"{}\" in file {}: done", target.name, target_path);
         let mut documents = vec![(
             uris[0].clone(),
             loaded[0].as_ref().expect("read").version,
@@ -1763,7 +1972,8 @@ impl Server {
         }
         let edit = self.workspace_edits(documents);
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
-        self.send_request::<ApplyWorkspaceEdit>(params, Some(Pending::Edit));
+        self.apply_edit(params, Pending::Edit);
+        self.message = Some(message);
         Ok(Value::Null)
     }
 
@@ -1923,6 +2133,60 @@ impl Server {
         Ok(Value::Null)
     }
 
+    /// `org-add-log-note`: a buffer of its own for the note a TODO state
+    /// change wants, which `org.capture.finish` stores and
+    /// `org.capture.abort` cancels. Its name starts as a capture buffer's,
+    /// so editors treat it as one.
+    fn open_note(
+        &mut self,
+        context: &Context,
+        id: &str,
+        wanted: org_core::todo::WantedNote,
+    ) -> std::result::Result<Value, Refusal> {
+        self.captures += 1;
+        let directory = capture_directory().join(self.captures.to_string());
+        std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+        let buffer = directory.join(format!("{CAPTURE_PREFIX}Note.org"));
+        // The note goes on the third line, as in Emacs; an editor that takes
+        // the last newline for the end of the file still has that line.
+        let text = format!("# Insert note for {}.\n\n\n", wanted.purpose);
+        std::fs::write(&buffer, &text).map_err(|error| error.to_string())?;
+        let uri = uri::from_path(&buffer).ok_or("Cannot name the note buffer")?;
+        self.note = Some(Noting {
+            uri: uri.clone(),
+            id: id.to_string(),
+            context: context.clone(),
+            state: wanted.state.unwrap_or_default(),
+        });
+        let end = Position::new(2, 0);
+        let params =
+            ShowDocumentParams { uri, external: None, take_focus: Some(true), selection: Some(Range::new(end, end)) };
+        self.send_request::<ShowDocument>(params, None);
+        Ok(Value::Null)
+    }
+
+    /// `org-store-log-note`: the state change with the note written in its
+    /// buffer, or without any (cancelled), and the buffer closed.
+    fn finish_note(&mut self, note: Noting, cancelled: bool) -> std::result::Result<Value, Refusal> {
+        let written = match self.document(&note.uri) {
+            Some(document) => document.text.clone(),
+            None => uri::to_path(&note.uri).and_then(|path| std::fs::read_to_string(path).ok()).unwrap_or_default(),
+        };
+        // The comment lines at the top go, and blanks at the end.
+        let mut text = written.as_str();
+        while text.starts_with("# ") {
+            text = text.split_once('\n').map_or("", |(_, rest)| rest);
+            text = text.trim_start_matches([' ', '\t', '\n']);
+        }
+        let text = text.trim_end();
+        let target = TodoTarget::State((!note.state.is_empty()).then(|| note.state.clone()));
+        let extra = Extra { note: Some(text.to_string()), skip_note: cancelled, ..Extra::default() };
+        // The change is the file's, as if made where it was asked for.
+        self.origin = Some(note.context.text_document.uri.as_str().to_string());
+        self.edit_with(&note.context, &note.id, Some(EditCommand::Todo(target)), &extra)?;
+        Ok(json!({ "close": note.uri }))
+    }
+
     /// A link to the place `position` of `uri` (`org-store-link`): to its
     /// headline when it has one.
     fn link_to(&mut self, uri: &Uri, position: Position) -> String {
@@ -1993,7 +2257,7 @@ impl Server {
         self.edited.insert(target.as_str().to_string());
         let edit = self.workspace_edit(target, version, edits);
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
-        self.send_request::<ApplyWorkspaceEdit>(params, Some(Pending::Edit));
+        self.apply_edit(params, Pending::Edit);
     }
 
     /// `org-capture-finalize` (`C-c C-c`): the text of the capture buffer
@@ -2146,13 +2410,23 @@ impl Server {
                 }
                 None => command.clone(),
             };
-            let call = Call { count, repeated: previous.as_ref() == Some(&last), now, note: extra.note.clone() };
+            let call = Call {
+                count,
+                repeated: previous.as_ref() == Some(&last),
+                now,
+                note: extra.note.clone(),
+                skip_note: extra.skip_note,
+            };
+            let explicit = matches!(command, EditCommand::Todo(TodoTarget::State(_)));
             let outcome = edit::run(&command, text, parse, offset, &call, &settings).map(|outcome| {
                 let edits: Vec<TextEdit> = actions::edits_between(text, &outcome.text)
                     .into_iter()
                     .map(|edit| TextEdit { range: index.range(text, edit.range, encoding), new_text: edit.new_text })
                     .collect();
-                (edits, version, outcome.text, outcome.note)
+                let message = heading.and_then(|heading| {
+                    headline_message(text, &outcome.text, heading, parse.todo_keywords(), reference.is_some(), explicit)
+                });
+                (edits, version, outcome.text, outcome.note, message)
             });
             Ok::<_, Refusal>((last, Some(outcome)))
         });
@@ -2161,10 +2435,14 @@ impl Server {
         let heading = last.heading;
         self.last = Some(last);
         let Some(outcome) = outcome else { return Ok(Value::Null) };
-        let (edits, version, new_text, wanted) = outcome?;
+        let (edits, version, new_text, wanted, message) = outcome?;
         // The change wants a note: ask for its text, and make the change
-        // once it comes, with the state it is about.
+        // once it comes, with the state it is about. An editor of this
+        // project shows a note buffer, as Emacs does (`*Org Note*`).
         if let Some(wanted) = wanted {
+            if self.client.date_prompt && self.client.show_document {
+                return self.open_note(context, id, wanted);
+            }
             return Ok(json!({ "input": {
                 "kind": "note",
                 "prompt": format!("Note for {}", wanted.purpose),
@@ -2172,6 +2450,7 @@ impl Server {
                 "context": { "state": wanted.state.unwrap_or_default() },
             } }));
         }
+        self.message = message;
         if edits.is_empty() {
             return Ok(Value::Null);
         }
@@ -2190,7 +2469,7 @@ impl Server {
         self.edited.insert(key);
         // No label: some editors print it every time an edit is applied.
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
-        self.send_request::<ApplyWorkspaceEdit>(params, Some(Pending::Edit));
+        self.apply_edit(params, Pending::Edit);
         Ok(Value::Null)
     }
 
@@ -2203,7 +2482,7 @@ impl Server {
         let context = context.ok_or("This command needs the cursor position")?;
         if let Some(state) = &context.state {
             let target = TodoTarget::State((!state.is_empty()).then(|| state.clone()));
-            let extra = Extra { note: Some(context.input.clone().unwrap_or_default()), key: None };
+            let extra = Extra { note: Some(context.input.clone().unwrap_or_default()), ..Extra::default() };
             return self.edit_with(&context, id, Some(EditCommand::Todo(target)), &extra);
         }
         if id != commands::TODO {
@@ -2226,7 +2505,7 @@ impl Server {
                 "choices": choices,
             } }));
         };
-        let extra = Extra { note: None, key: Some(answer.clone()) };
+        let extra = Extra { key: Some(answer.clone()), ..Extra::default() };
         self.edit_with(&context, id, Some(EditCommand::Todo(TodoTarget::Next)), &extra)
     }
 

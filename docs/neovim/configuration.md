@@ -26,6 +26,24 @@ require('org-lsp').setup({ settings = { agendaFiles = { '~/org' } } })
 
 Calling `setup()` more than once merges each call into what was there.
 
+### Completion and checking
+
+The plugin's options and the server's have type annotations for
+lua-language-server (`org_lsp.Config`, `org_lsp.Settings`), so with the
+plugin in its library, the options are completed and their values
+checked. `setup()` is annotated already; for `vim.g.org_lsp`, annotate the
+table:
+
+```lua
+---@type org_lsp.Config
+vim.g.org_lsp = {
+  settings = { logDone = 'time', agenda = { span = 'day' } },
+}
+```
+
+The server's types are written from the server's own table of options
+(`lua/org-lsp/types.lua`), so they always match the server.
+
 ## The plugin's options
 
 These are the defaults:
@@ -49,6 +67,11 @@ require('org-lsp').setup({
   -- Turn off Vim's regex syntax for Org once the server's highlighting
   -- arrives.
   replace_syntax = true,
+
+  -- Conceal what the server marks hidden: link brackets and targets
+  -- (`linkDescriptive`), emphasis markers (`hideEmphasisMarkers`). Sets
+  -- 'conceallevel' 2 in Org windows; the cursor line shows everything.
+  conceal = true,
 
   -- How the agenda and capture buffers open; see below.
   win_split_mode = 'split',
@@ -224,6 +247,23 @@ require('org-lsp').setup({
     -- The target of a capture template whose file is empty.
     -- (org-default-notes-file)
     defaultNotesFile = '~/.notes',
+
+    -- Show a link as its description (or its target, when it has none) and
+    -- hide the rest: the brackets, and the target of a link with a
+    -- description. The text is marked `hidden` in the highlighting, and
+    -- editors that can conceal text conceal it. (org-link-descriptive)
+    linkDescriptive = true,
+
+    -- Hide the markers around `*bold*`, `/italic/`, `_underline_`,
+    -- `+strike-through+`, `=verbatim=` and `~code~`, as for links.
+    -- (org-hide-emphasis-markers)
+    hideEmphasisMarkers = false,
+
+    -- Save the files a command changes other than the one it was run in: an
+    -- entry's file changed from the agenda, the target of a capture or of a
+    -- refile. The editor saves them once it has made the change. Off, they
+    -- are left with unsaved changes, as Emacs leaves them.
+    autoSave = true,
 
     -- With at least this many blank lines after a subtree, the last one stays
     -- outside its fold. Negative: all of them stay outside. `0`: none does.

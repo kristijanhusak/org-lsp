@@ -68,6 +68,14 @@ local function open_window(bufnr, mode)
   return win
 end
 
+--- Whether the document at `uri` is a capture buffer.
+---@param uri string
+---@return boolean
+local function is_capture(uri)
+  local prefix = documents.capture and documents.capture.prefix
+  return prefix ~= nil and vim.startswith(uri, 'file:') and vim.startswith(vim.fs.basename(vim.uri_to_fname(uri)), prefix)
+end
+
 --- Whether the document at `uri` is one the plugin opens in a window of
 --- its own: the agenda or a capture buffer.
 ---@param uri string
@@ -76,8 +84,7 @@ local function opens_apart(uri)
   if documents.agenda and vim.startswith(uri, documents.agenda.scheme .. ':') then
     return not (documents.datePrompt and uri == documents.datePrompt.uri)
   end
-  local prefix = documents.capture and documents.capture.prefix
-  return prefix ~= nil and vim.startswith(vim.fs.basename(vim.uri_to_fname(uri)), prefix)
+  return is_capture(uri)
 end
 
 --- The date prompt pops up in a window at the bottom, as Emacs's calendar
@@ -126,6 +133,19 @@ local function prompt_window(bufnr)
     end
   end)
   return win
+end
+
+--- Write the files at `uris` that have changes.
+---@param uris string[]
+function M.save(uris)
+  for _, uri in ipairs(uris) do
+    local bufnr = vim.uri_to_bufnr(uri)
+    if vim.api.nvim_buf_is_loaded(bufnr) and vim.bo[bufnr].modified then
+      vim.api.nvim_buf_call(bufnr, function()
+        vim.cmd('silent write')
+      end)
+    end
+  end
 end
 
 --- Close the buffer `bufnr` and the windows the plugin opened for it. A
@@ -261,8 +281,18 @@ M.handlers = {
       local text = vim.api.nvim_buf_get_lines(bufnr, start.line, start.line + 1, false)[1] or ''
       local column = vim.str_byteindex(text, client.offset_encoding, start.character, false)
       pcall(vim.api.nvim_win_set_cursor, win, { start.line + 1, column })
+      -- A capture buffer is for typing in, from where `%?` was.
+      if is_capture(params.uri) and vim.api.nvim_get_current_win() == win then
+        vim.cmd(column >= #text and 'startinsert!' or 'startinsert')
+      end
     end
     return { success = true }
+  end,
+
+  --- The server made changes to files the user is not editing (from the
+  --- agenda, a capture or a refile) and `autoSave` is on: write them.
+  ['org-lsp/save'] = function(_, params)
+    M.save(params and params.uris or {})
   end,
 
   --- The server's text for a document has changed: fetch it again.

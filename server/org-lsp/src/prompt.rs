@@ -79,6 +79,22 @@ pub struct DatePrompt {
     /// The cursor is to go to the selected day once the client shows the
     /// current text.
     pub reveal: bool,
+    /// The client has been told to put the cursor on the selected day and
+    /// has not said yet that it has: the cursor it reports is an old one.
+    pub moving_cursor: bool,
+    /// A time picked with the keys (hours and minutes): it takes the place
+    /// of a time in what was typed.
+    pub time: Option<(i64, i64)>,
+    /// The part of the time the keys change, while they change the time
+    /// instead of the day.
+    pub time_field: Option<TimeField>,
+}
+
+/// The part of a picked time the keys change.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TimeField {
+    Hour,
+    Minute,
 }
 
 impl DatePrompt {
@@ -106,23 +122,78 @@ impl DatePrompt {
             text: String::new(),
             tokens: Vec::new(),
             reveal: true,
+            moving_cursor: false,
+            time: None,
+            time_field: None,
         };
         prompt.render(now, settings);
         prompt
     }
 
-    /// The answer: what was typed, and the selected day once it moved.
+    /// The answer: what was typed, and the selected day once it moved,
+    /// with the picked time instead of a typed one.
     pub fn answer(&self) -> String {
         if self.moved {
             self.answer_with(self.selected)
         } else {
-            self.typed.clone()
+            self.with_time(self.typed.clone())
         }
     }
 
     /// The answer with `day` picked in the calendar.
     pub fn answer_with(&self, day: Day) -> String {
-        format!("{} {}", self.typed, Date::from_day(day))
+        self.with_time(format!("{} {}", self.typed, Date::from_day(day)))
+    }
+
+    /// What was typed, with the picked time: where typing the answer
+    /// starts from.
+    pub fn typed_with_time(&self) -> String {
+        self.with_time(self.typed.clone())
+    }
+
+    fn with_time(&self, answer: String) -> String {
+        match self.time {
+            Some((hour, minute)) => {
+                let rest = org_core::read_date::without_time(&answer);
+                format!("{rest} {hour:02}:{minute:02}").trim_start().to_string()
+            }
+            None => answer,
+        }
+    }
+
+    /// Start or stop picking the time with the keys. It starts from the
+    /// time of the answer, or else from now, rounded to `step` minutes.
+    pub fn toggle_time(&mut self, step: i64, now: DateTime, settings: &Settings) {
+        if self.time_field.take().is_none() {
+            let given = org_core::read_date::read_date(&self.answer(), self.default, now, settings)
+                .ok()
+                .and_then(|read| read.time);
+            self.time = Some(given.unwrap_or_else(|| {
+                let rounded = (now.minute + step / 2) / step * step % 1440;
+                (rounded / 60, rounded % 60)
+            }));
+            self.time_field = Some(TimeField::Hour);
+        }
+        self.render(now, settings);
+    }
+
+    /// Pick which part of the time the keys change.
+    pub fn time_field_to(&mut self, field: TimeField, now: DateTime, settings: &Settings) {
+        self.time_field = Some(field);
+        self.render(now, settings);
+    }
+
+    /// Change the part of the time being picked: an hour, or `step`
+    /// minutes, up or down, round the clock.
+    pub fn change_time(&mut self, up: bool, step: i64, now: DateTime, settings: &Settings) {
+        let (Some((hour, minute)), Some(field)) = (self.time, self.time_field) else { return };
+        let by = match field {
+            TimeField::Hour => 60,
+            TimeField::Minute => step,
+        };
+        let total = (hour * 60 + minute + if up { by } else { -by }).rem_euclid(1440);
+        self.time = Some((total / 60, total % 60));
+        self.render(now, settings);
     }
 
     /// Select `day`, showing the months around it if it is not shown.
@@ -153,6 +224,9 @@ impl DatePrompt {
     /// stays where it is.
     pub fn set_typed(&mut self, typed: String, now: DateTime, settings: &Settings) {
         self.typed = typed;
+        // What is typed now carries the time, if it has one.
+        self.time = None;
+        self.time_field = None;
         self.render(now, settings);
     }
 
@@ -200,6 +274,19 @@ impl DatePrompt {
         if let Some(cell) = self.calendar.cell(self.selected) {
             let start: usize = self.calendar.lines[..cell.line].iter().map(|line| line.len() + 1).sum();
             token(start + cell.column, 2, TokenType::CalendarSelected, 0);
+        }
+        // The picked time, with the part the keys change marked.
+        if let Some((hour, minute)) = self.time {
+            let start = text.len();
+            let line = format!("Time: {hour:02}:{minute:02}");
+            token(start, 5, TokenType::CalendarHeader, 0);
+            match self.time_field {
+                Some(TimeField::Hour) => token(start + 6, 2, TokenType::CalendarSelected, 0),
+                Some(TimeField::Minute) => token(start + 9, 2, TokenType::CalendarSelected, 0),
+                None => token(start + 6, 5, TokenType::Timestamp, 0),
+            }
+            text.push_str(&line);
+            text.push('\n');
         }
         // The minibuffer, after a blank line.
         text.push('\n');
@@ -289,6 +376,44 @@ mod tests {
         assert_eq!(Date::from_day(prompt.selected), Date::new(2026, 11, 1));
         assert_eq!((prompt.calendar.year, prompt.calendar.month), (2026, 11));
         assert_eq!(prompt.day_at(Position::new(2, 31)), Some(Date::new(2026, 11, 1).to_day()));
+    }
+
+    #[test]
+    fn picks_a_time_with_the_keys() {
+        let settings = Settings::default();
+        let mut picking = prompt();
+        // From the time typed, the hours first.
+        picking.toggle_time(5, now(), &settings);
+        assert_eq!((picking.time, picking.time_field), (Some((10, 0)), Some(TimeField::Hour)));
+        picking.change_time(true, 5, now(), &settings);
+        picking.time_field_to(TimeField::Minute, now(), &settings);
+        picking.change_time(false, 5, now(), &settings);
+        assert_eq!(picking.time, Some((10, 55)));
+        let lines: Vec<&str> = picking.text.lines().collect();
+        assert_eq!(lines[lines.len() - 3], "Time: 10:55");
+        // It takes the place of the typed time, with the day once it moved.
+        assert_eq!(picking.answer(), "10:55");
+        picking.select(Date::new(2026, 10, 9).to_day(), now(), &settings);
+        assert_eq!(picking.answer(), "2026-10-09 10:55");
+        assert!(picking.text.ends_with("=> <2026-10-09 Fri 10:55>\n"), "{}", picking.text);
+        // Back to days, the time kept; round the clock.
+        picking.toggle_time(5, now(), &settings);
+        assert_eq!((picking.time, picking.time_field), (Some((10, 55)), None));
+        picking.toggle_time(5, now(), &settings);
+        for _ in 0..14 {
+            picking.change_time(true, 5, now(), &settings);
+        }
+        assert_eq!(picking.time, Some((0, 55)));
+        // Typed again, the typed time counts.
+        picking.set_typed("15:00".to_string(), now(), &settings);
+        assert_eq!((picking.time, picking.answer()), (None, "15:00 2026-10-09".to_string()));
+
+        // With no time typed: now, rounded.
+        let mut untimed = prompt();
+        untimed.set_typed(String::new(), now(), &settings);
+        let now = DateTime::new(Date::new(2026, 10, 5), 10, 33);
+        untimed.toggle_time(5, now, &settings);
+        assert_eq!(untimed.time, Some((10, 35)));
     }
 
     #[test]

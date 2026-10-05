@@ -115,6 +115,7 @@ pub const SCHEDULE: &str = "org.schedule";
 pub const DEADLINE: &str = "org.deadline";
 pub const TIMESTAMP_INSERT: &str = "org.timestamp.insert";
 pub const TIMESTAMP_INSERT_INACTIVE: &str = "org.timestamp.insert.inactive";
+pub const TIMESTAMP_CHANGE: &str = "org.timestamp.change";
 /// What an answer to a date prompt means, for an editor that shows it
 /// while the answer is typed. Not a command of its own for users.
 pub const DATE_PREVIEW: &str = "org.date.preview";
@@ -131,6 +132,7 @@ pub const CALENDAR_SCROLL_EARLIER: &str = "org.calendar.scroll.earlier";
 pub const CALENDAR_TODAY: &str = "org.calendar.today";
 pub const CALENDAR_SELECT: &str = "org.calendar.select";
 pub const CALENDAR_TYPE: &str = "org.calendar.type";
+pub const CALENDAR_TIME: &str = "org.calendar.time";
 pub const CALENDAR_CANCEL: &str = "org.calendar.cancel";
 
 use Scope::{Agenda, Calendar, Capture, Global, Org};
@@ -303,6 +305,11 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>oi!")],
         ..ask_date(TIMESTAMP_INSERT_INACTIVE, "Insert or change an inactive timestamp", "Inactive timestamp")
     },
+    // nvim-orgmode's `cid`; in Emacs, `C-c .` on a timestamp changes it.
+    Command {
+        vim: &[key(Org, "cid")],
+        ..ask_date(TIMESTAMP_CHANGE, "Change the timestamp at the cursor", "Timestamp")
+    },
     // The date prompt: the keys of `org-read-date-minibuffer-local-map`
     // and of the calendar Emacs shows with it.
     Command {
@@ -370,6 +377,14 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Calendar, "i")],
         input: Some(Input { kind: "date", prompt: "Date+time" }),
         ..command(CALENDAR_TYPE, "Date prompt: type the date")
+    },
+    // Not Emacs's: its calendar picks the day only, and the time is typed.
+    // While it is on, the keys that move by day and week choose the hours
+    // or minutes and change them.
+    Command {
+        emacs: &[key(Calendar, "t")],
+        vim: &[key(Calendar, "t")],
+        ..command(CALENDAR_TIME, "Date prompt: pick the time, or go back to the day")
     },
     Command {
         emacs: &[key(Calendar, "q"), key(Calendar, "C-g")],

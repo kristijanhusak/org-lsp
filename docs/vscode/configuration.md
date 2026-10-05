@@ -9,7 +9,9 @@ Open **Preferences: Open User Settings (JSON)** and add the extension's
 settings to `settings.json`. A workspace's `.vscode/settings.json` can set
 them for that folder only. The **Settings** UI shows them under
 **Extensions › Org (org-lsp)**, with a link to edit `org-lsp.settings` in
-`settings.json`.
+`settings.json`. There, the server's options are completed, described on
+hover and checked, as the extension knows them all with their types and
+defaults.
 
 ## The extension's settings
 
@@ -17,6 +19,7 @@ them for that folder only. The **Settings** UI shows them under
 | --- | --- | --- |
 | `org-lsp.settings` | `{}` | The server's options, passed to it as they are. See below. |
 | `org-lsp.server.path` | `""` | The server binary. Empty: the one bundled with the extension, or else `org-lsp` from `PATH`. |
+| `org-lsp.conceal` | `true` | Hide what Org hides: link brackets and targets (`linkDescriptive`), emphasis markers (`hideEmphasisMarkers`). The line with the cursor shows everything. |
 | `org-lsp.winSplitMode` | `"split"` | Where the agenda and capture buffers open: `"split"` in an editor group below the current one, `"vsplit"` beside it, `"float"` in a window of its own, `"current"` in the current group. A group that already has it is used again. |
 
 When `org-lsp.settings` or `org-lsp.server.path` changes, the extension
@@ -161,6 +164,23 @@ them out:
     // The target of a capture template whose file is empty.
     // (org-default-notes-file)
     "defaultNotesFile": "~/.notes",
+
+    // Show a link as its description (or its target, when it has none) and
+    // hide the rest: the brackets, and the target of a link with a
+    // description. The text is marked `hidden` in the highlighting, and
+    // editors that can conceal text conceal it. (org-link-descriptive)
+    "linkDescriptive": true,
+
+    // Hide the markers around `*bold*`, `/italic/`, `_underline_`,
+    // `+strike-through+`, `=verbatim=` and `~code~`, as for links.
+    // (org-hide-emphasis-markers)
+    "hideEmphasisMarkers": false,
+
+    // Save the files a command changes other than the one it was run in: an
+    // entry's file changed from the agenda, the target of a capture or of a
+    // refile. The editor saves them once it has made the change. Off, they
+    // are left with unsaved changes, as Emacs leaves them.
+    "autoSave": true,
 
     // With at least this many blank lines after a subtree, the last one stays
     // outside its fold. Negative: all of them stay outside. `0`: none does.
