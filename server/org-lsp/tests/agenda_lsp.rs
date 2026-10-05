@@ -34,6 +34,8 @@ struct Client {
     received: Vec<Request>,
     /// What to answer to `window/showMessageRequest`.
     choice: Option<String>,
+    /// The version of the agenda document, as the editor counts it.
+    view_version: i32,
     initialize: Value,
 }
 
@@ -47,6 +49,7 @@ impl Client {
             next_id: 0,
             received: Vec::new(),
             choice: None,
+            view_version: 0,
             initialize: Value::Null,
         };
         let params = json!({ "capabilities": capabilities, "initializationOptions": options, "rootUri": root });
@@ -128,6 +131,7 @@ impl Client {
     /// fetch its text and say that the document is open.
     fn show_view(&mut self) -> String {
         let text = self.view_text(VIEW);
+        self.view_version = 1;
         self.notify(
             "textDocument/didOpen",
             json!({ "textDocument": { "uri": VIEW, "languageId": "org-agenda", "version": 1, "text": text } }),
@@ -135,12 +139,24 @@ impl Client {
         text
     }
 
-    /// Run a command on the open agenda and fetch the new text, as an
-    /// editor does when it is told that the view changed. Returns the
-    /// requests the server made, before and after the fetch.
+    /// Fetch the agenda again and report the new text, as an editor does
+    /// when it is told that the view changed.
+    fn refetch_view(&mut self) -> String {
+        let text = self.view_text(VIEW);
+        self.view_version += 1;
+        self.notify(
+            "textDocument/didChange",
+            json!({ "textDocument": { "uri": VIEW, "version": self.view_version }, "contentChanges": [{ "text": text }] }),
+        );
+        text
+    }
+
+    /// Run a command on the open agenda and let the editor follow. Returns
+    /// the requests the server made, before and after the editor fetched
+    /// the new text, and that text.
     fn view_command(&mut self, command: &str, line: u32) -> (Vec<Request>, String) {
         let mut requests = self.command(command, VIEW, line);
-        let text = self.view_text(VIEW);
+        let text = self.refetch_view();
         self.settle();
         requests.append(&mut self.received);
         (requests, text)
@@ -260,8 +276,8 @@ fn opens_the_agenda_from_open_documents() {
 
     // The editor does not have the agenda yet: showing it makes it fetch the text.
     let requests = client.command("org.agenda.list", "file:///org/work.org", 0);
-    assert_eq!(methods(&requests), ["window/showDocument"]);
-    let show = &requests[0].params;
+    assert_eq!(methods(&requests), ["workspace/textDocumentContent/refresh", "window/showDocument"]);
+    let show = &requests[1].params;
     assert_eq!(show["uri"], VIEW);
     assert_eq!(show["takeFocus"], true);
     // The cursor goes to today's date.
@@ -353,19 +369,23 @@ fn moves_through_time_and_changes_span() {
     client.command("org.agenda.list", VIEW, 0);
     client.show_view();
 
-    // The editor has the agenda open now. It is told that the text changed,
-    // fetches it, and only then is the cursor moved: the line is one of the
-    // new text.
+    // The editor has the agenda open now. It is told that the text changed.
+    // The cursor is moved only once the editor reports the new text: the
+    // line is one of that text, not of the old one.
     let requests = client.command("org.agenda.later", VIEW, 0);
     assert_eq!(methods(&requests), ["workspace/textDocumentContent/refresh"]);
     client.received.clear();
+    // Fetching the text is not yet showing it.
     assert!(client.view_text(VIEW).starts_with("Week-agenda (W22):\nMonday     25 May 2026 W22\n"));
+    client.settle();
+    assert_eq!(methods(&client.received), [] as [&str; 0]);
+    client.refetch_view();
     client.settle();
     assert_eq!(methods(&client.received), ["window/showDocument"]);
     assert_eq!(client.received[0].params["selection"]["start"], json!({ "line": 1, "character": 0 }));
-    // Fetching again moves nothing.
+    // Further changes move nothing.
     client.received.clear();
-    client.view_text(VIEW);
+    client.refetch_view();
     client.settle();
     assert_eq!(methods(&client.received), [] as [&str; 0]);
 
@@ -375,7 +395,12 @@ fn moves_through_time_and_changes_span() {
     let (requests, text) = client.view_command("org.agenda.today", 0);
     assert!(text.starts_with("Week-agenda (W21):\n"));
     // Today is the second line again.
+    assert_eq!(methods(&requests), ["workspace/textDocumentContent/refresh", "window/showDocument"]);
     assert_eq!(requests[1].params["selection"]["start"]["line"], 1);
+    // Asked again, the text stays as it is: there is nothing to fetch, and
+    // the cursor goes to today at once.
+    let requests = client.command("org.agenda.today", VIEW, 5);
+    assert_eq!(methods(&requests), ["window/showDocument"]);
 
     // The day view starts from the day under the cursor.
     let lines: Vec<&str> = text.lines().collect();
@@ -468,7 +493,10 @@ fn the_dispatcher_asks_which_view() {
     client.open("file:///org/work.org", WORK);
     client.choice = Some("List of all TODO entries".to_string());
     let requests = client.command("org.agenda.dispatch", "file:///org/work.org", 0);
-    assert_eq!(methods(&requests), ["window/showMessageRequest", "window/showDocument"]);
+    assert_eq!(
+        methods(&requests),
+        ["window/showMessageRequest", "workspace/textDocumentContent/refresh", "window/showDocument"]
+    );
     let titles: Vec<&str> = requests[0].params["actions"]
         .as_array()
         .unwrap()

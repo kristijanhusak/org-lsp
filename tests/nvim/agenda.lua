@@ -66,6 +66,8 @@ vim.fn.writefile({ '* TODO Water plants', 'SCHEDULED: <2026-05-16 Sat +1w>', '* 
 vim.g.org_lsp = {
   cmd = { server },
   settings = { agendaFiles = { directory }, clock = { today = '2026-05-18', now = '10:30' } },
+  -- A key of the user's own, for a command the server binds no key to.
+  mappings = { global = { ['org.agenda.todos'] = '<F7>' } },
 }
 vim.opt.runtimepath:prepend(root)
 vim.cmd('filetype plugin on')
@@ -158,15 +160,25 @@ eq(vim.api.nvim_get_hl(0, { name = '@lsp.typemod.agendaDate.today.org-agenda' })
 eq(vim.api.nvim_get_hl(0, { name = '@lsp.type.todoKeyword.org-agenda' }).link, 'DiagnosticError', 'Org tokens are linked in the agenda')
 
 -- 4. Moving through time and changing the span.
+-- The cursor is placed by the server, right after the new text arrives.
+local function wait_for_cursor(text)
+  wait('the cursor on `' .. text .. '`', function()
+    return cursor_line() == text
+  end)
+end
 press('f')
 wait_for_view('Week-agenda (W22):')
-eq(cursor_line(), 'Monday     25 May 2026 W22', 'forward: the cursor is on the first day')
+wait_for_cursor('Monday     25 May 2026 W22')
 press('b')
 press('b')
 wait_for_view('Week-agenda (W20):')
 press('.')
 wait_for_view('Week-agenda (W21):')
-eq(cursor_line(), 'Monday     18 May 2026 W21', 'back on today')
+wait_for_cursor('Monday     18 May 2026 W21')
+-- Asked for today again from elsewhere in the same view, only the cursor moves.
+vim.api.nvim_win_set_cursor(0, { 20, 0 })
+press('.')
+wait_for_cursor('Monday     18 May 2026 W21')
 -- A day view of Wednesday has three lines.
 vim.api.nvim_win_set_cursor(0, { 17, 0 })
 press('vd')
@@ -176,11 +188,10 @@ eq(lines(), { 'Day-agenda (W21):', 'Wednesday  20 May 2026', '  work:       Dead
 -- the new text, not on a line of the old one.
 press('vm')
 wait_for_view('Month-agenda (W18-W22):')
-wait('the cursor to reach today', function()
-  return cursor_line() == 'Monday     18 May 2026 W21'
-end)
+wait_for_cursor('Monday     18 May 2026 W21')
 press('vw')
 wait_for_view('Week-agenda (W21):')
+wait_for_cursor('Monday     18 May 2026 W21')
 
 -- 5. Changing an entry from the agenda edits its file and the agenda follows.
 vim.api.nvim_win_set_cursor(0, { 13, 0 })
@@ -216,7 +227,7 @@ end)
 vim.api.nvim_set_current_buf(agenda_buf)
 press('q')
 check(not vim.api.nvim_buf_is_valid(agenda_buf), 'q closes the agenda')
-vim.cmd('Org agenda todos')
+press('<F7>')
 wait_for_view('Global list of TODO items of type: ALL')
 eq(lines(), {
   'Global list of TODO items of type: ALL',
@@ -228,6 +239,10 @@ choice = nil
 vim.cmd('Org agenda')
 vim.wait(200)
 eq(line(1), 'Global list of TODO items of type: ALL', 'dismissing the menu changes nothing')
+vim.cmd('Org agenda list')
+wait_for_view('Week-agenda (W21):')
+vim.cmd('Org agenda todos')
+wait_for_view('Global list of TODO items of type: ALL')
 eq(vim.fn.getcompletion('Org agenda.l', 'cmdline'), { 'agenda.list', 'agenda.later' }, 'commands complete')
 
 -- 8. A command that cannot work says why.

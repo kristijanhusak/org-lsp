@@ -31,6 +31,10 @@ local function set_text(bufnr, text)
       vim.fn.winrestview(view)
     end)
   end
+  -- Highlight the new text now, not after the usual delay. This also sends
+  -- the change to the server at once, which is what the server waits for
+  -- before it moves the cursor to a line of the new text.
+  vim.lsp.semantic_tokens.force_refresh(bufnr)
 end
 
 --- Fill a new buffer of the server's scheme and attach the server to it,

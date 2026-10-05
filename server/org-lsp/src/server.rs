@@ -70,9 +70,10 @@ struct OpenView {
     /// Where the view is written when the client cannot fetch it.
     file: Option<PathBuf>,
     view: View,
-    /// The client has the view open, so it fetches new text on its own
-    /// when told that the view changed.
-    shown: bool,
+    /// The view as the client has it, while the client has it open. An
+    /// editor with the view open fetches new text when told that the view
+    /// changed, and reports the text it then shows like any other edit.
+    client: Option<Document>,
 }
 
 /// Where a command was invoked: a document and a place in it.
@@ -113,10 +114,8 @@ struct Server {
     view: Option<OpenView>,
     /// Files the server asked the client to edit and has not seen change yet.
     edited: HashSet<String>,
-    /// The line to put the cursor on once the client has fetched the view.
+    /// The line to put the cursor on once the client shows the current view.
     reveal: Option<u32>,
-    /// Messages to send after the response to the current request.
-    deferred: Vec<Message>,
 }
 
 /// Run the server until the client asks it to exit.
@@ -189,7 +188,6 @@ pub fn run(connection: Connection) -> Result<()> {
         view: None,
         edited: HashSet::new(),
         reveal: None,
-        deferred: Vec::new(),
     };
     for message in &connection.receiver {
         match message {
@@ -199,9 +197,6 @@ pub fn run(connection: Connection) -> Result<()> {
                 }
                 let response = server.request(request);
                 connection.sender.send(Message::Response(response))?;
-                for message in server.deferred.drain(..) {
-                    connection.sender.send(message)?;
-                }
             }
             Message::Notification(notification) => server.notification(notification),
             Message::Response(response) => server.response(response),
@@ -384,8 +379,9 @@ impl Server {
                 // The agenda is the server's own text; the client's copy is not read.
                 if self.is_view(&document.uri) {
                     if let Some(open) = self.view.as_mut().filter(|open| open.uri == document.uri) {
-                        open.shown = true;
+                        open.client = Some(Document::new(document.text, document.version, &self.todo));
                     }
+                    self.reveal_when_current();
                     return;
                 }
                 self.documents.insert(
@@ -395,6 +391,14 @@ impl Server {
             }
             DidChangeTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidChangeTextDocumentParams>(notification) else { return };
+                // The client's copy of the agenda follows the server's.
+                let (encoding, todo) = (self.client.encoding, &self.todo);
+                let view = self.view.as_mut().filter(|open| open.uri == params.text_document.uri);
+                if let Some(copy) = view.and_then(|open| open.client.as_mut()) {
+                    copy.apply(params.content_changes, params.text_document.version, encoding, todo);
+                    self.reveal_when_current();
+                    return;
+                }
                 let key = params.text_document.uri.as_str();
                 if let Some(document) = self.documents.get_mut(key) {
                     document.apply(
@@ -550,15 +554,7 @@ impl Server {
     fn text_document_content(&mut self, params: &Value) -> Value {
         let uri = params.get("uri").and_then(Value::as_str);
         match &self.view {
-            Some(open) if uri == Some(open.uri.as_str()) => {
-                let text = json!({ "text": open.view.text });
-                // The client now has the text the cursor position is for.
-                if let Some(line) = self.reveal.take() {
-                    let request = self.show_view_request(line);
-                    self.deferred.extend(request.map(Message::Request));
-                }
-                text
-            }
+            Some(open) if uri == Some(open.uri.as_str()) => json!({ "text": open.view.text }),
             // The client restored an agenda from an earlier session.
             _ if uri == Some(views::VIRTUAL_URI) => {
                 let query = Query::Agenda { start: None, span: self.agenda.span };
@@ -644,7 +640,7 @@ impl Server {
             Some(open) => open.view = view,
             None if self.client.virtual_documents => {
                 if let Ok(uri) = views::VIRTUAL_URI.parse() {
-                    self.view = Some(OpenView { uri, file: None, view, shown: false });
+                    self.view = Some(OpenView { uri, file: None, view, client: None });
                 }
             }
             None => {
@@ -653,7 +649,7 @@ impl Server {
                 let file = directory.join(views::FILE_NAME);
                 if std::fs::create_dir_all(&directory).is_ok() {
                     if let Some(uri) = uri::from_path(&file) {
-                        self.view = Some(OpenView { uri, file: Some(file), view, shown: false });
+                        self.view = Some(OpenView { uri, file: Some(file), view, client: None });
                     }
                 }
             }
@@ -676,15 +672,28 @@ impl Server {
         }
     }
 
-    /// The request that shows the view with the cursor on `line`.
-    fn show_view_request(&mut self, line: u32) -> Option<Request> {
+    /// Ask the client to show the view with the cursor on `line`.
+    fn show_view(&mut self, line: u32) {
+        let Some(uri) = self.view.as_ref().map(|open| open.uri.clone()) else { return };
         let params = ShowDocumentParams {
-            uri: self.view.as_ref()?.uri.clone(),
+            uri,
             external: None,
             take_focus: Some(true),
             selection: Some(Range::new(Position::new(line, 0), Position::new(line, 0))),
         };
-        Some(self.new_request(ShowDocument::METHOD, serde_json::to_value(params).ok()?, None))
+        self.send_request::<ShowDocument>(params, None);
+    }
+
+    /// Move the cursor as `open_view` wanted, if the client by now shows
+    /// the text that the line number belongs to.
+    fn reveal_when_current(&mut self) {
+        let current =
+            self.view.as_ref().and_then(|open| Some(open.client.as_ref()?.text == open.view.text)).unwrap_or(false);
+        if current {
+            if let Some(line) = self.reveal.take() {
+                self.show_view(line);
+            }
+        }
     }
 
     /// Show `query` in the client, with the cursor on today's date.
@@ -695,19 +704,21 @@ impl Server {
         self.set_view(query);
         let Some(open) = &self.view else { return Err("Cannot create the agenda".to_string()) };
         let line = open.view.home_line();
-        if open.shown && open.file.is_none() {
-            // The client has the old text. Moving the cursor now would place
-            // it by the wrong lines, so that waits until the client has
-            // fetched the new text; see `text_document_content`.
-            self.reveal = Some(line);
-            self.publish_view();
-        } else {
-            // Showing the view makes the client fetch it, or read the file.
-            if open.file.is_some() {
+        match &open.client {
+            // The client shows this very text already.
+            Some(copy) if copy.text == open.view.text => self.show_view(line),
+            // The client shows the old text. A cursor position sent now
+            // would be applied to those lines, so it waits until the client
+            // has replaced them; see `reveal_when_current`.
+            Some(_) => {
+                self.reveal = Some(line);
                 self.publish_view();
             }
-            if let Some(request) = self.show_view_request(line) {
-                let _ = self.sender.send(Message::Request(request));
+            // The client does not have the view open, as far as it has
+            // said: showing it makes the client fetch it, or read the file.
+            None => {
+                self.publish_view();
+                self.show_view(line);
             }
         }
         Ok(())
