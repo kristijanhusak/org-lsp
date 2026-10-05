@@ -245,6 +245,11 @@
         "category": "Org"
       },
       {
+        "command": "org.timestamp.change",
+        "title": "Change the timestamp at the cursor",
+        "category": "Org"
+      },
+      {
         "command": "org.calendar.day.later",
         "title": "Date prompt: one day later",
         "category": "Org"

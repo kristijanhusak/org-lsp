@@ -74,8 +74,9 @@ command, and how to add, change and remove keys.
 Without `agendaFiles`, the agenda is built from the Org files in the
 workspace folders.
 
-A change made from the agenda edits the entry's file and leaves it
-unsaved, like any edit; the agenda follows at once.
+A change made from the agenda edits the entry's file and saves it
+(`autoSave` in `org-lsp.settings`; off, it is left unsaved, as in Emacs);
+the agenda follows at once.
 
 ## The server binary
 

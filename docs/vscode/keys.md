@@ -124,6 +124,7 @@ The other options are in [configuration.md](configuration.md).
 | `org.deadline` | Org: Set the deadline of the entry |
 | `org.timestamp.insert` | Org: Insert or change a timestamp |
 | `org.timestamp.insert.inactive` | Org: Insert or change an inactive timestamp |
+| `org.timestamp.change` | Org: Change the timestamp at the cursor |
 | `org.calendar.day.later` | Org: Date prompt: one day later |
 | `org.calendar.day.earlier` | Org: Date prompt: one day earlier |
 | `org.calendar.week.later` | Org: Date prompt: one week later |
@@ -157,6 +158,10 @@ asked in VS Code's own way:
   list.
 - **Text**, such as a state note or a capture prompt, is typed in an input
   box.
+
+What Emacs says when a command is done (`Priority of current item set to
+B`, `Scheduled to <2026-05-22 Fri>`) shows in the status bar for a few
+seconds; a command that cannot run says why in a warning.
 
 ## Changing them
 

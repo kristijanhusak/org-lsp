@@ -115,6 +115,7 @@ pub const SCHEDULE: &str = "org.schedule";
 pub const DEADLINE: &str = "org.deadline";
 pub const TIMESTAMP_INSERT: &str = "org.timestamp.insert";
 pub const TIMESTAMP_INSERT_INACTIVE: &str = "org.timestamp.insert.inactive";
+pub const TIMESTAMP_CHANGE: &str = "org.timestamp.change";
 /// What an answer to a date prompt means, for an editor that shows it
 /// while the answer is typed. Not a command of its own for users.
 pub const DATE_PREVIEW: &str = "org.date.preview";
@@ -302,6 +303,11 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c !")],
         vim: &[key(Org, "<Leader>oi!")],
         ..ask_date(TIMESTAMP_INSERT_INACTIVE, "Insert or change an inactive timestamp", "Inactive timestamp")
+    },
+    // nvim-orgmode's `cid`; in Emacs, `C-c .` on a timestamp changes it.
+    Command {
+        vim: &[key(Org, "cid")],
+        ..ask_date(TIMESTAMP_CHANGE, "Change the timestamp at the cursor", "Timestamp")
     },
     // The date prompt: the keys of `org-read-date-minibuffer-local-map`
     // and of the calendar Emacs shows with it.

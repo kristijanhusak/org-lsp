@@ -45,6 +45,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oid` | `org.deadline` | Set the deadline of the entry |
 | `<Leader>oi.` | `org.timestamp.insert` | Insert or change a timestamp |
 | `<Leader>oi!` | `org.timestamp.insert.inactive` | Insert or change an inactive timestamp |
+| `cid` | `org.timestamp.change` | Change the timestamp at the cursor |
 
 ### In a capture buffer
 
@@ -144,12 +145,17 @@ subtree at the cursor.
     the bottom, with the keys under *In the date prompt*; `i` there asks
     for the date as text with `vim.ui.input`, read as Org reads it
     (`fri 10:00`, `+2d`, `2/15`);
-  - one key (a TODO keyword with a key, as `TODO(t)`, or a capture
-    template) is read as soon as it is typed, with the choices listed in
-    a window at the bottom; `<Esc>` gives up;
+  - one key (a TODO keyword with a key, as `TODO(t)`, a capture template,
+    or a view in the agenda menu) is read as soon as it is typed, with the
+    choices listed in a window at the bottom; `<Esc>` gives up;
   - a choice from a list (refile targets) goes through `vim.ui.select`,
     so a picker plugin that replaces it is used;
   - text (a state note, a capture prompt) goes through `vim.ui.input`.
+- **Messages**: what Emacs says when a command is done (`Priority of
+  current item set to B`, `Scheduled to <2026-05-22 Fri>`, `Refile to
+  "Projects" in file …: done`) goes through `vim.notify`, and so do
+  commands' errors (`No timestamp at the cursor`).
+- **Capture buffers** open in insert mode, where the template's `%?` was.
 
 ## Changing them
 

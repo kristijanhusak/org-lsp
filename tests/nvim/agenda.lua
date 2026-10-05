@@ -79,23 +79,25 @@ vim.opt.runtimepath:prepend(root)
 vim.cmd('filetype plugin on')
 vim.cmd('runtime plugin/org-lsp.lua')
 
--- The dispatcher asks which view to show; pick by title.
-local choice
-vim.ui.select = function(items, opts, on_choice)
-  for _, item in ipairs(items) do
-    if opts.format_item(item) == choice then
-      return on_choice(item)
-    end
-  end
-  on_choice(nil)
+-- The dispatcher asks which view to show, by key, as Emacs's menu does.
+local choice, menu
+require('org-lsp').read_key = function(prompt, choices)
+  menu = { prompt = prompt, keys = vim.tbl_map(function(item)
+    return item.key .. ' ' .. item.label
+  end, choices or {}) }
+  return choice
 end
 
 -- 1. From a buffer that is not an Org file, with no server running yet.
 eq(#vim.lsp.get_clients(), 0, 'the server does not run before it is needed')
 eq(vim.fn.maparg('\\oa', 'n', false, true).buffer, 0, 'the agenda key is global')
-choice = 'Agenda for the current week or day'
+choice = 'a'
 press('\\oa')
 wait_for_view('Week-agenda (W21):')
+eq(menu, {
+  prompt = 'Press key for agenda command',
+  keys = { 'a Agenda for the current week or day', 't List of all TODO entries' },
+}, 'the menu of views')
 eq(vim.api.nvim_buf_get_name(0), 'org-agenda:/Org%20Agenda', 'the agenda is a document of the server')
 eq(vim.fn.winlayout()[1], 'col', 'the agenda opens in a horizontal split')
 eq(lines(), {
@@ -247,8 +249,12 @@ eq(vim.api.nvim_win_get_cursor(0)[1], 13, 'the cursor stays where it was')
 local work_buf = vim.fn.bufnr(work)
 check(work_buf > 0 and vim.api.nvim_buf_is_loaded(work_buf), 'the file of the entry is loaded')
 eq(vim.api.nvim_buf_get_lines(work_buf, 2, 3, false), { '* DONE Call the client' }, 'the entry changed in its file')
-eq(vim.bo[work_buf].modified, true, 'the change is not saved behind the user\'s back')
--- Org's `org-save-all-org-buffers` saves it when asked.
+-- `autoSave`: a change made from the agenda is saved.
+wait('the file of the entry to be saved', function()
+  return not vim.bo[work_buf].modified and vim.fn.readfile(work)[3] == '* DONE Call the client'
+end)
+-- Org's `org-save-all-org-buffers` saves what is left unsaved when asked.
+vim.api.nvim_buf_set_lines(work_buf, -1, -1, false, { '' })
 require('org-lsp').run('org.agenda.save')
 wait('the file to be saved', function()
   return not vim.bo[work_buf].modified
@@ -448,6 +454,18 @@ local read_key = plugin.read_key
 plugin.read_key = function()
   return 't'
 end
+-- What the plugin asks of insert mode.
+local started
+local command = vim.cmd
+vim.cmd = setmetatable({}, {
+  __index = command,
+  __call = function(_, text)
+    if type(text) == 'string' and text:match('^startinsert') then
+      started = text
+    end
+    return command(text)
+  end,
+})
 press('<Leader>oc')
 local inbox = vim.fs.joinpath(directory, 'inbox.org')
 wait('the capture buffer', function()
@@ -455,8 +473,11 @@ wait('the capture buffer', function()
 end)
 plugin.read_key = read_key
 eq(lines(), { '* TODO ', '[2026-05-18 Mon 10:30]' }, 'the template, filled in')
--- Normal mode puts the cursor on the last character of the line.
-eq(vim.api.nvim_win_get_cursor(0), { 1, 6 }, 'the cursor where %? was')
+-- Ready to type where `%?` was: insert mode, after the last character. (A
+-- script never gets back to Neovim's main loop, where insert mode would
+-- start; what the plugin asked for is what can be seen here.)
+eq(started, 'startinsert!', 'insert mode in the capture buffer')
+eq(vim.api.nvim_win_get_cursor(0), { 1, 7 }, 'the cursor where %? was')
 wait('the capture keys', function()
   return vim.fn.maparg('<C-c>', 'n') ~= ''
 end)

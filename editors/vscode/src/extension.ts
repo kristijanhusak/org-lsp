@@ -115,6 +115,14 @@ async function saveAsked(result: unknown): Promise<void> {
   }
 }
 
+/** Show what a command has to say, as Emacs shows it in the echo area. */
+function sayAsked(result: unknown): void {
+  const message = (result as { message?: unknown } | null)?.message;
+  if (typeof message === 'string') {
+    vscode.window.setStatusBarMessage(message, 5000);
+  }
+}
+
 /** Close the editors of a document the server is done with. */
 function closeAsked(result: unknown): void {
   const close = (result as { close?: string } | null)?.close;
@@ -224,6 +232,7 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           let result = await running.sendRequest('workspace/executeCommand', params);
           closeAsked(result);
           await saveAsked(result);
+          sayAsked(result);
           let context = (params.arguments[0] ?? {}) as Record<string, unknown>;
           // The command asks for something first: ask, and run it again
           // with the answer, until it asks for nothing more.
@@ -238,6 +247,7 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
             context = { ...context, ...(input.context ?? {}), input: answer };
             result = await running.sendRequest('workspace/executeCommand', { command: name, arguments: [context] });
             closeAsked(result);
+            sayAsked(result);
           }
           return result;
         } catch (error) {
@@ -280,6 +290,9 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
   });
   try {
     await client.start();
+    // Files the server changed from elsewhere (the agenda, a capture, a
+    // refile), to save now that the change is made: `autoSave`.
+    client.onNotification('org-lsp/save', (params: { uris?: string[] }) => saveAsked({ save: params.uris ?? [] }));
   } catch (error) {
     client = undefined;
     const message = error instanceof Error ? error.message : String(error);

@@ -397,8 +397,14 @@ describe('The agenda', () => {
     const home = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspace, 'home.org')));
     await until('the entry to repeat', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-23 Sat +1w>');
     assert.equal(home.lineAt(0).text, '* TODO Water plants');
-    assert.ok(home.isDirty, 'the change is left for the user to save');
-    // `s`, Org's `org-save-all-org-buffers`, saves it.
+    // `autoSave`: a change made from the agenda is saved.
+    const fs = require('node:fs');
+    await until('the change to be saved', () => !home.isDirty && fs.readFileSync(home.uri.fsPath, 'utf8').includes('<2026-05-23 Sat +1w>'));
+    // `s`, Org's `org-save-all-org-buffers`, saves what is left unsaved.
+    const edit = new vscode.WorkspaceEdit();
+    edit.insert(home.uri, home.lineAt(home.lineCount - 1).range.end, '\n');
+    await vscode.workspace.applyEdit(edit);
+    assert.ok(home.isDirty);
     await vscode.commands.executeCommand('org.agenda.save');
     await until('the file to be saved', () => !home.isDirty);
     await until('the agenda to drop the old date', () => !activeText().includes('Sched. 2x:'));
@@ -408,7 +414,19 @@ describe('The agenda', () => {
     const home = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspace, 'home.org')));
     const lines = activeText().split('\n');
     moveTo(lines.findIndex((line) => line.endsWith('Scheduled:  TODO Water plants')), 14);
-    await vscode.commands.executeCommand('org.priority.up');
+    // What Emacs says goes to the status bar.
+    const said = [];
+    const setStatusBarMessage = vscode.window.setStatusBarMessage;
+    vscode.window.setStatusBarMessage = (text, ...rest) => {
+      said.push(text);
+      return setStatusBarMessage(text, ...rest);
+    };
+    try {
+      await vscode.commands.executeCommand('org.priority.up');
+    } finally {
+      vscode.window.setStatusBarMessage = setStatusBarMessage;
+    }
+    assert.deepEqual(said, ['Priority of current item set to B']);
     await until('the priority in the file', () => home.lineAt(0).text === '* TODO [#B] Water plants');
     await until('the priority in the agenda', () => activeLine()?.endsWith('Scheduled:  TODO [#B] Water plants'));
     // The entry moves to the next day, and the cursor with it.
@@ -494,6 +512,26 @@ describe('The agenda', () => {
     const before = activeText();
     await vscode.commands.executeCommand('org.agenda.later');
     assert.equal(activeText(), before);
+  });
+
+  it('asks which view by key, as Emacs\'s agenda menu does', async () => {
+    const showQuickPick = vscode.window.showQuickPick;
+    let offered;
+    vscode.window.showQuickPick = async (items, options) => {
+      offered = [options.placeHolder, ...items.map((item) => item.label)];
+      return items.find((item) => item.key === 't');
+    };
+    try {
+      await vscode.commands.executeCommand('org.agenda.dispatch');
+    } finally {
+      vscode.window.showQuickPick = showQuickPick;
+    }
+    assert.deepEqual(offered, [
+      'Press key for agenda command',
+      '[a] Agenda for the current week or day',
+      '[t] List of all TODO entries',
+    ]);
+    await agenda('Global list of TODO items of type: ALL');
   });
 
   it('opens where org-lsp.winSplitMode says', async () => {

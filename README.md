@@ -51,8 +51,8 @@ minute under the cursor, with time ranges, repeaters, warning periods and
 timestamps, date ranges and the time grid, sorted as in Org, and is
 rebuilt when its files change. It matches the output of Emacs's
 `org-batch-agenda` line for line on the test corpus. A change made from
-the agenda edits the entry's file in the editor and leaves saving to you,
-as in Emacs.
+the agenda edits the entry's file in the editor and saves it (`autoSave`;
+off, it is left for you to save, as in Emacs).
 
 ## Install
 

@@ -203,6 +203,15 @@ pub const SETTINGS: &[Setting] = &[
         "The target of a capture template whose file is empty.",
     ),
     setting(
+        "autoSave",
+        "boolean",
+        "true",
+        "",
+        "Save the files a command changes other than the one it was run in: an entry's file changed from \
+         the agenda, the target of a capture or of a refile. The editor saves them once it has made the \
+         change. Off, they are left with unsaved changes, as Emacs leaves them.",
+    ),
+    setting(
         "cycleSeparatorLines",
         "number",
         "2",

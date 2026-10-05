@@ -72,6 +72,8 @@ pub struct Options {
     pub default_notes_file: Option<String>,
     /// A fixed date and time, for tests.
     pub clock: Option<ClockOption>,
+    /// Save the files a command changes other than the one it was run in.
+    pub auto_save: Option<bool>,
     /// The shared configuration file: `false` for none, or a path instead
     /// of the usual one. Read by `load`, before the options are.
     pub config_file: Option<serde_json::Value>,

@@ -24,8 +24,13 @@ The server sends these requests to the client:
 | --- | --- |
 | `workspace/applyEdit` | A command changes an Org file. |
 | `window/showDocument` | To show the agenda, a capture buffer, or the file of an agenda entry. The editors open the agenda and capture buffers in a window of their own (a split by default), and an entry's file where the agenda was. |
-| `window/showMessageRequest` | The agenda dispatcher asks which view to open. |
 | `workspace/textDocumentContent/refresh` | The agenda has new text. |
+
+And this notification:
+
+| Notification | When |
+| --- | --- |
+| `org-lsp/save` | `{ "uris": [uri…] }`: with `autoSave`, the files a command changed other than the one it was run in (an entry's file changed from the agenda, the target of a capture or a refile), once the editor has applied the change. The editor saves those with changes. |
 
 **Position encoding.** The server picks UTF-8 if the client offers it, then
 UTF-32, and falls back to UTF-16.
@@ -71,6 +76,7 @@ the editor's own syntax.
 | `captureTemplates` | object[] | `[{ "key": "t", "description": "Task", "target": ["file+headline", "", "Tasks"], "template": "* TODO %?\n  %u\n  %a" }]` | Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, or `plain`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `emptyLines`, `emptyLinesBefore`, `emptyLinesAfter` and `immediateFinish`. The target is a list: `file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path. An empty path is `defaultNotesFile`, and without a target the entry goes at the end of `defaultNotesFile`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`) |
 | `orgDirectory` | string | `"~/org"` | Where the relative paths of capture targets are. (`org-directory`) |
 | `defaultNotesFile` | string | `"~/.notes"` | The target of a capture template whose file is empty. (`org-default-notes-file`) |
+| `autoSave` | boolean | `true` | Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them. |
 | `cycleSeparatorLines` | number | `2` | With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`) |
 | `agenda.span` | "day", "week", "fortnight", "month", "year", or a number of days | `"week"` | How much time the agenda shows. (`org-agenda-span`) |
 | `agenda.startOnWeekday` | 0 to 6 (0 is Sunday), or false | `1` | The day a week or fortnight starts on; `false` starts it today. (`org-agenda-start-on-weekday`) |
@@ -129,6 +135,15 @@ Vim's count). The commands that move something by steps take it as the
 number of steps; the others ignore it. Commands that open a view work
 without the argument.
 
+A command's result may carry `"message"`: what Emacs says in the echo area
+when it is done, for the editor to show the same way (Neovim's messages, VS
+Code's status bar). `TODO state changed to DONE` (from the agenda, where
+the entry is out of sight), `TODO state was already TODO`, `Priority of
+current item set to B`, `Priority removed`, `Scheduled to <2026-05-22
+Fri>`, `Deadline on <…>`, `Timestamp updated`, `Refile to "Projects" in
+file /home/me/org/work.org: done`, `Switched to day view`, `Capture
+process aborted and target buffer cleaned up`.
+
 A command that cannot run answers with error code -32803
 (`RequestFailed`) and a message meant for the user, such as
 `No agenda is open`. When the command means nothing at the cursor (a
@@ -141,7 +156,7 @@ number.
 
 | Command | Does |
 | --- | --- |
-| `org.agenda.dispatch` | Asks which agenda view to open. |
+| `org.agenda.dispatch` | `org-agenda` (`C-c a`): asks for a view by its key, as Emacs's menu does (input kind `key`; `a` for the agenda, `t` for the TODO list), and opens it. |
 | `org.agenda.list` | Opens the agenda for the current week or day. |
 | `org.agenda.todos` | Opens the list of all TODO entries. |
 | `org.agenda.later`, `org.agenda.earlier` | Moves the agenda one span forward or backward. |
@@ -247,7 +262,8 @@ timestamp goes on the planning line under the headline, which is made
 when there is none; a `CLOSED:` timestamp is taken out; the repeater of
 the old date stays. **Timestamps** work as `org-timestamp` does: on a
 timestamp the command changes it (keeping its repeater), elsewhere it
-inserts one; right after inserting one, the same command adds the end of
+inserts one (`org.timestamp.change` only changes one, active or inactive
+as it is, and refuses elsewhere); right after inserting one, the same command adds the end of
 a date range (`<…>--<…>`). After a timestamp is inserted, the server
 moves the cursor after it with `window/showDocument`, as Emacs leaves
 it. Changes are not logged (`org-log-reschedule` and the like) yet.
