@@ -9,6 +9,7 @@ pub mod date;
 pub mod edit;
 pub mod outline;
 pub mod priority;
+pub mod read_date;
 pub mod stamp;
 pub mod text;
 pub mod timestr;

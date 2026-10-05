@@ -7,6 +7,7 @@ publish.workspace = true
 
 [dependencies]
 org-syntax = { path = "../org-syntax" }
+regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-perl", "unicode-case"] }
 unicode-width = "0.2"
 
 [dev-dependencies]
