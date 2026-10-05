@@ -1888,7 +1888,13 @@ impl Server {
         self.captures += 1;
         let directory = capture_directory().join(self.captures.to_string());
         std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
-        let buffer = directory.join(format!("{}{}", CAPTURE_PREFIX, uri::file_name(&target_uri)));
+        // It is an Org buffer whatever the target is called (Org's default
+        // notes file is `~/.notes`), and editors tell that by the name.
+        let mut name = format!("{}{}", CAPTURE_PREFIX, uri::file_name(&target_uri));
+        if !name.ends_with(".org") {
+            name.push_str(".org");
+        }
+        let buffer = directory.join(name);
         std::fs::write(&buffer, placed.shown()).map_err(|error| error.to_string())?;
         let buffer_uri = uri::from_path(&buffer).ok_or("Cannot name the capture buffer")?;
         let shown = placed.shown();
@@ -2201,16 +2207,14 @@ impl Server {
             return self.edit_with(&context, id, Some(EditCommand::Todo(TodoTarget::Next)), &Extra::default());
         }
         let Some(answer) = &context.input else {
-            // `[t] TODO  [d] DONE`, as Org's expert prompt lists them.
-            let listed: Vec<String> = keys.iter().map(|(name, key)| format!("[{key}] {name}")).collect();
             let choices: Vec<Value> = keys
                 .iter()
                 .map(|(name, key)| json!({ "key": key.to_string(), "label": name }))
-                .chain([json!({ "key": " ", "label": "(none)" })])
+                .chain([json!({ "key": " ", "label": "clear" })])
                 .collect();
             return Ok(json!({ "input": {
                 "kind": "key",
-                "prompt": format!("{}  [SPC] clear", listed.join("  ")),
+                "prompt": "Select a TODO state",
                 "value": "",
                 "choices": choices,
             } }));

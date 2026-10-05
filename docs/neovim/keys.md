@@ -145,8 +145,8 @@ subtree at the cursor.
     for the date as text with `vim.ui.input`, read as Org reads it
     (`fri 10:00`, `+2d`, `2/15`);
   - one key (a TODO keyword with a key, as `TODO(t)`, or a capture
-    template) is read as soon as it is typed, with the question at the
-    bottom; `<Esc>` gives up;
+    template) is read as soon as it is typed, with the choices listed in
+    a window at the bottom; `<Esc>` gives up;
   - a choice from a list (refile targets) goes through `vim.ui.select`,
     so a picker plugin that replaces it is used;
   - text (a state note, a capture prompt) goes through `vim.ui.input`.

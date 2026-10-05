@@ -215,8 +215,11 @@ the answer as `input` in the argument:
 An input may say more:
 
 - `"choices": [{ "key": "t", "label": "TODO" }, …]` with kind `key`: the
-  answer is one key, as Emacs reads it at its fast selection prompts. An
-  editor can read a single key press (Neovim) or offer a list (VS Code).
+  answer is one key, as Emacs reads it at its fast selection prompts. The
+  prompt is a title (`Select a TODO state`); the editor shows the choices,
+  as Emacs shows them in a window of their own. It can list them and read
+  a single key press (Neovim) or offer them as a list (VS Code). A space
+  is shown as `SPC`.
 - `"context": { … }`: fields to send back with the answer. A TODO state
   change that records a note (`@`, or `org-log-done` set to `note`) is
   not made until the note's text comes: it asks with kind `note`

@@ -395,9 +395,12 @@ wait('the server to attach to the file with keys', function()
 end)
 local plugin = require('org-lsp')
 local read_key = plugin.read_key
-local shown
-plugin.read_key = function(prompt)
+local shown, offered
+plugin.read_key = function(prompt, choices)
   shown = prompt
+  offered = vim.tbl_map(function(choice)
+    return choice.key .. ' ' .. choice.label
+  end, choices)
   return 'w'
 end
 local noted
@@ -412,7 +415,8 @@ wait('the note under it', function()
   return (line(3) or ''):match('^%- State "WAIT"       from "TODO"       %[.*%] \\\\$') ~= nil
 end)
 eq(line(4), '  Waiting for Bob', 'with its text')
-eq(shown, '[t] TODO  [w] WAIT  [d] DONE  [SPC] clear', 'the keys offered')
+eq(shown, 'Select a TODO state', 'what is asked')
+eq(offered, { 't TODO', 'w WAIT', 'd DONE', '  clear' }, 'the keys offered')
 eq(noted, 'Note for state change from "TODO" to "WAIT": ', 'what the note is for')
 -- A key that selects nothing changes nothing.
 plugin.read_key = function()
@@ -446,7 +450,25 @@ eq(offered, { 'Inbox', 'Projects' }, 'the top-level headlines of the file')
 eq(asked_to, 'Refile subtree "Call Bob" to: ', 'what is refiled')
 vim.ui.select = select
 
--- 16. `false` for a scope sets none of its keys, the plugin's own included.
+-- 16. A key is read with the choices shown in a window, which goes when
+-- the key is typed.
+local windows = #vim.api.nvim_list_wins()
+local listed
+local open_win = vim.api.nvim_open_win
+vim.api.nvim_open_win = function(buf, enter, config)
+  listed = { lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false), title = config.title }
+  return open_win(buf, enter, config)
+end
+vim.api.nvim_feedkeys('m', 'n', false)
+local key = plugin.read_key('Select a capture template', { { key = 't', label = 'Task' }, { key = 'm', label = 'Meetings...' } })
+vim.api.nvim_open_win = open_win
+eq(key, 'm', 'the key typed')
+eq(listed, { lines = { '[t] Task', '[m] Meetings...' }, title = ' Select a capture template ' }, 'the choices shown')
+eq(#vim.api.nvim_list_wins(), windows, 'the window of choices is closed')
+vim.api.nvim_feedkeys(vim.keycode('<Esc>'), 'n', false)
+eq(plugin.read_key('Select a TODO state', { { key = 't', label = 'TODO' } }), nil, '<Esc> gives up')
+
+-- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'
 vim.fn.writefile({ '* TODO bare' }, bare)
