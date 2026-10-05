@@ -295,6 +295,11 @@ M.handlers = {
     M.save(params and params.uris or {})
   end,
 
+  --- A clock started or stopped: for the statusline.
+  ['org-lsp/clock'] = function(_, params)
+    require('org-lsp.clock').update(params)
+  end,
+
   --- The server's text for a document has changed: fetch it again.
   ['workspace/textDocumentContent/refresh'] = function(_, params, ctx)
     local client = vim.lsp.get_client_by_id(ctx.client_id)

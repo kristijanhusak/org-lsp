@@ -47,6 +47,7 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::AgendaEvent => "Agenda: an entry with a plain timestamp",
         TokenType::AgendaDone => "Agenda: an entry that is done",
         TokenType::AgendaTimeGrid => "Agenda: a line of the time grid",
+        TokenType::AgendaClocking => "Agenda: the line of the entry the clock runs on, between its other parts",
         TokenType::CalendarHeader => "Date prompt: the month and year above a month",
         TokenType::CalendarWeekday => "Date prompt: the name of a weekday above its column",
         TokenType::CalendarSelected => "Date prompt: the selected day",
@@ -80,6 +81,7 @@ const MODIFIER_DESCRIPTIONS: &[&str] = &[
     "Agenda: a day inside a date range",
     "Agenda: the current time",
     "Text Org hides (link brackets and targets, emphasis markers); editors that can conceal text conceal it",
+    "Agenda: part of the line of the entry the clock runs on",
 ];
 
 /// The default look of the tokens a selector matches.
@@ -246,6 +248,17 @@ pub const LOOKS: &[Look] = &[
         "agendaTimeGrid.current",
         &["@org.agenda.time_grid.current", "@markup.strong"],
         &["markup.bold.current-time.agenda.org", "markup.bold"],
+    ),
+    // `org-agenda-clocking`: the line of the clocked entry, highlighted.
+    look(
+        "agendaClocking",
+        &["@org.agenda.clocking", "Visual"],
+        &["markup.highlight.clocking.agenda.org", "markup.inserted"],
+    ),
+    look(
+        "*.clocking",
+        &["@org.agenda.clocking", "Visual"],
+        &["markup.highlight.clocking.agenda.org", "markup.inserted"],
     ),
     // The date prompt, after Emacs's calendar and minibuffer faces.
     look("calendarHeader", &["Function"], &["entity.name.function.month.calendar.org", "entity.name.function"]),

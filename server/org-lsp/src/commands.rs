@@ -92,6 +92,12 @@ pub const AGENDA_REDO: &str = "org.agenda.redo";
 pub const AGENDA_GOTO: &str = "org.agenda.goto";
 pub const AGENDA_SAVE: &str = "org.agenda.save";
 pub const AGENDA_GOTO_DATE: &str = "org.agenda.goto.date";
+pub const AGENDA_LOG: &str = "org.agenda.log";
+pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
+pub const CLOCK_IN: &str = "org.clock.in";
+pub const CLOCK_OUT: &str = "org.clock.out";
+pub const CLOCK_CANCEL: &str = "org.clock.cancel";
+pub const CLOCK_GOTO: &str = "org.clock.goto";
 pub const TODO: &str = "org.todo";
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
@@ -202,6 +208,37 @@ pub const COMMANDS: &[Command] = &[
         ..command(AGENDA_GOTO, "Agenda: go to the entry")
     },
     Command { emacs: &[key(Agenda, "s"), key(Agenda, "C-x C-s")], ..command(AGENDA_SAVE, "Save all Org files") },
+    Command {
+        emacs: &[key(Agenda, "l"), key(Agenda, "v l")],
+        vim: &[key(Agenda, "vl")],
+        ..command(AGENDA_LOG, "Agenda: log mode, what was closed and clocked")
+    },
+    Command {
+        emacs: &[key(Agenda, "R"), key(Agenda, "v R")],
+        vim: &[key(Agenda, "R")],
+        ..command(AGENDA_CLOCKREPORT, "Agenda: the clock report")
+    },
+    // `org-clock-in` and its relatives, in Org files and on agenda lines.
+    Command {
+        emacs: &[key(Org, "C-c C-x C-i"), key(Agenda, "I")],
+        vim: &[key(Org, "<Leader>oxi"), key(Agenda, "I")],
+        ..edit(CLOCK_IN, "Clock in")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x C-o"), key(Agenda, "O")],
+        vim: &[key(Org, "<Leader>oxo"), key(Agenda, "O")],
+        ..edit(CLOCK_OUT, "Clock out")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x C-q"), key(Agenda, "X")],
+        vim: &[key(Org, "<Leader>oxq"), key(Agenda, "X")],
+        ..edit(CLOCK_CANCEL, "Cancel the clock")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x C-j"), key(Agenda, "J")],
+        vim: &[key(Global, "<Leader>oxj")],
+        ..command(CLOCK_GOTO, "Go to the clocked entry")
+    },
     // `org-todo`: the state picked by key when the keywords have keys,
     // and else the next one.
     Command {

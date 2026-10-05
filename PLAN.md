@@ -295,9 +295,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 ### 5. More agenda
 
-- Match by tags and properties (`m`, `M`), search (`s`), filters
-  (`/`, `<`, `=`, `_`, `|`), stuck projects, custom agenda commands.
-- Log mode, archives mode, clock report, entry text, follow mode.
+- Done: match by tags and properties (`m`, `M`), custom agenda commands
+  and block agendas, log mode (`l`), the clock report (`R`). Checked
+  against Emacs in `tests/agenda/custom` and `tests/agenda/clock`.
+- Search (`s`), filters (`/`, `<`, `=`, `_`, `|`), stuck projects, group
+  tags in match strings, archives mode, entry text, follow mode.
 - Bulk marks and actions; hours and minutes on `S-<left>`/`S-<right>`.
 
 ### 6. Structure editing
@@ -322,8 +324,14 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 ### 9. Clocking
 
-- Clock in and out, cancel, go to the running clock, effort, clock
-  tables, clocking from the agenda (`I`, `O`).
+- Done: clock in and out, cancel, go to the running clock, from Org files
+  and the agenda (`I`, `O`, `X`, `J`); the clock in the editors' status
+  line with the effort (`org-lsp/clock`); `org-clock-out-when-done`; the
+  clocked entry highlighted in the agenda.
+- Left: clock tables in files (`#+BEGIN: clocktable`, `C-c C-x C-r`),
+  `org-clock-in-switch-to-state`, idle time and resolving dangling clocks
+  with a question, the clock history (`C-u C-c C-x C-i`), effort
+  estimates (`C-c C-x e`), `org-clock-display` (`C-c C-x C-d`).
 
 ### 10. Capture
 

@@ -53,6 +53,12 @@ The other options are in [configuration.md](configuration.md).
 | `r`, `g` | `org.agenda.redo` | Agenda: rebuild |
 | `Enter`, `Tab` | `org.agenda.goto` | Agenda: go to the entry |
 | `s`, `Ctrl+X Ctrl+S` | `org.agenda.save` | Save all Org files |
+| `l`, `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
+| `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
+| `Shift+I` | `org.clock.in` | Clock in |
+| `Shift+O` | `org.clock.out` | Clock out |
+| `Shift+X` | `org.clock.cancel` | Cancel the clock |
+| `Shift+J` | `org.clock.goto` | Go to the clocked entry |
 | `t` | `org.todo` | Change the TODO state |
 | `+`, `Shift+Up` | `org.priority.up` | Raise the priority |
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
@@ -102,6 +108,12 @@ The other options are in [configuration.md](configuration.md).
 | `org.agenda.redo` | Org: Agenda: rebuild |
 | `org.agenda.goto` | Org: Agenda: go to the entry |
 | `org.agenda.save` | Org: Save all Org files |
+| `org.agenda.log` | Org: Agenda: log mode, what was closed and clocked |
+| `org.agenda.clockreport` | Org: Agenda: the clock report |
+| `org.clock.in` | Org: Clock in |
+| `org.clock.out` | Org: Clock out |
+| `org.clock.cancel` | Org: Cancel the clock |
+| `org.clock.goto` | Org: Go to the clocked entry |
 | `org.todo` | Org: Change the TODO state |
 | `org.todo.next` | Org: Cycle TODO state forward |
 | `org.todo.previous` | Org: Cycle TODO state backward |

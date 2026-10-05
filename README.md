@@ -31,11 +31,14 @@ still missing; see [Not done yet](#not-done-yet).
 | Refile, as `org-refile` does it, between files too | `<Leader>or` | command | no⁴ |
 | Capture, as `org-capture` does it: templates, prompts, a capture buffer | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | commands; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | no⁴ |
 | Agenda: change an entry's state, priority or date, schedule it or set its deadline, go to its entry | yes | yes | no³ |
+| Clocking, as `org-clock-in` and `org-clock-out` do it, with the clock in the status line | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`; `clock_status()` | commands; the status bar | `Space a`⁵ |
+| Agenda: the clocked entry highlighted, log mode (what was closed and clocked each day), the clock report | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | no³ |
 
 ¹ Helix does not consume semantic tokens; it highlights Org with its own grammar.
 ² Helix has no folding.
 ³ Helix cannot open a document on a server's request. `org-lsp agenda FILE...` prints the agenda in a terminal.
 ⁴ Helix has no way to ask for text on a server's behalf.
+⁵ Through the commands Helix lists; it has no status line for the clock.
 
 Tested with Neovim 0.11.0 and 0.12.5, VSCodium 1.135 and Helix 25.07.1.
 

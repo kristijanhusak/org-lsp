@@ -45,6 +45,8 @@ pub enum ItemKind {
     Timestamp,
     Todo,
     Grid,
+    /// A line of log mode: closed, clocked, or a state change.
+    Log,
 }
 
 /// Where an agenda line comes from.

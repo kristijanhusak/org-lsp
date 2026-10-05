@@ -101,6 +101,28 @@ pub const SETTINGS: &[Setting] = &[
         "Where tags are aligned after a change to a headline. Negative: they end at that column.",
     ),
     setting(
+        "clockIntoDrawer",
+        "boolean, string",
+        "true",
+        "org-clock-into-drawer",
+        "Where `CLOCK:` lines go: `true` for the drawer of `logIntoDrawer` (`LOGBOOK` when that is not a name), \
+         the name of a drawer, or `false` for the entry itself.",
+    ),
+    setting(
+        "clockOutRemoveZeroTimeClocks",
+        "boolean",
+        "false",
+        "org-clock-out-remove-zero-time-clocks",
+        "Clocking out after less than a minute removes the `CLOCK:` line.",
+    ),
+    setting(
+        "clockOutWhenDone",
+        "boolean",
+        "true",
+        "org-clock-out-when-done",
+        "Marking the clocked entry done stops the clock.",
+    ),
+    setting(
         "completeTagsAlwaysOfferAllAgendaTags",
         "boolean",
         "false",
@@ -383,6 +405,27 @@ pub const SETTINGS: &[Setting] = &[
         "org-agenda-weekend-days",
         "The days drawn as the weekend (0 is Sunday).",
     ),
+    setting(
+        "agenda.startWithLogMode",
+        "boolean",
+        "false",
+        "org-agenda-start-with-log-mode",
+        "Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it).",
+    ),
+    setting(
+        "agenda.startWithClockreportMode",
+        "boolean",
+        "false",
+        "org-agenda-start-with-clockreport-mode",
+        "Start the agenda with the clock report under it (`R` toggles it).",
+    ),
+    setting(
+        "agenda.logModeItems",
+        "string[]",
+        r#"["closed", "clock"]"#,
+        "org-agenda-log-mode-items",
+        "What log mode shows: `closed` entries, `clock` lines and `state` changes.",
+    ),
     Setting {
         default: None,
         unset: "today",
@@ -434,6 +477,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("logIntoDrawer", r#"{ "type": ["boolean", "string"] }"#),
     ("tagsColumn", r#"{ "type": "integer" }"#),
     ("completeTagsAlwaysOfferAllAgendaTags", BOOLEAN),
+    ("clockIntoDrawer", r#"{ "type": ["boolean", "string"] }"#),
+    ("clockOutRemoveZeroTimeClocks", BOOLEAN),
+    ("clockOutWhenDone", BOOLEAN),
     ("todoRepeatToState", r#"{ "anyOf": [{ "type": "string" }, { "const": true }] }"#),
     ("priorityHighest", PRIORITY),
     ("priorityLowest", PRIORITY),
@@ -510,6 +556,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("agenda.showCurrentTimeInGrid", BOOLEAN),
     ("agenda.weekendDays", r#"{ "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 6 } }"#),
     ("agenda.startDay", STRING),
+    ("agenda.startWithLogMode", BOOLEAN),
+    ("agenda.startWithClockreportMode", BOOLEAN),
+    ("agenda.logModeItems", r#"{ "type": "array", "items": { "enum": ["closed", "clock", "state"] } }"#),
     (
         "agenda.customCommands",
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaCommand", "required": ["key", "description"], "additionalProperties": false, "properties": {

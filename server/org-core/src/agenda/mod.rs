@@ -11,6 +11,7 @@
 mod display;
 mod item;
 pub mod matcher;
+pub mod report;
 
 pub use crate::text::tag_group;
 pub use display::{display, Displayed, Link, Segment, Style};
@@ -20,7 +21,7 @@ pub use matcher::Matcher;
 use item::{format_item, normalise_keyword, priority, Dotime, FormatInput, Prefix};
 
 use crate::date::{days_in_month, is_leap_year, iso_week, weekday, Date, Day, MONTH_NAMES, WEEKDAY_NAMES};
-use crate::outline::{Entry, Outline};
+use crate::outline::{Entry, LogKind, Outline};
 use crate::priority::Priorities;
 use crate::timestr::{closest_date, time_string_to_day, warning_days, Prefer};
 
@@ -178,6 +179,26 @@ pub struct Config {
     /// `org-priority-highest`, `-lowest` and `-default`, for files that
     /// do not set their own with `#+PRIORITIES:`.
     pub priorities: Priorities,
+    /// `org-agenda-show-log`: log mode, `l`.
+    pub show_log: bool,
+    /// `org-agenda-log-mode-items`
+    pub log_items: LogItems,
+    /// `org-agenda-clockreport-mode`: the clock report, `R`.
+    pub clockreport: bool,
+}
+
+/// What log mode shows (`org-agenda-log-mode-items`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LogItems {
+    pub closed: bool,
+    pub clock: bool,
+    pub state: bool,
+}
+
+impl Default for LogItems {
+    fn default() -> Self {
+        LogItems { closed: true, clock: true, state: false }
+    }
 }
 
 impl Default for Config {
@@ -200,6 +221,9 @@ impl Default for Config {
             show_current_time_in_grid: true,
             weekend_days: vec![6, 0],
             priorities: Priorities::default(),
+            show_log: false,
+            log_items: LogItems::default(),
+            clockreport: false,
         }
     }
 }
@@ -432,9 +456,69 @@ impl Builder<'_> {
         }
     }
 
+    /// `org-agenda-get-progress`: what log mode shows on `current`.
+    fn progress(&self, file: usize, current: Day, out: &mut Vec<Item>) {
+        let items = self.config.log_items;
+        let outline = self.files[file];
+        for log in &outline.logs {
+            let wanted = match log.kind {
+                LogKind::Closed => items.closed,
+                LogKind::Clock(_) => items.clock,
+                LogKind::State(_) => items.state,
+            };
+            if !wanted || log.date.to_day() != current || outline.entries[log.entry].skip {
+                continue;
+            }
+            let extra = match &log.kind {
+                LogKind::Closed => "Closed:    ".to_string(),
+                LogKind::State(state) => format!("State:     ({state})"),
+                LogKind::Clock(clocked) => format!("Clocked:   ({clocked})"),
+            };
+            let entry = &outline.entries[log.entry];
+            // The note goes before the tags.
+            let head = match &log.note {
+                None => entry.head.clone(),
+                Some(note) => match crate::text::tag_group(&entry.head) {
+                    Some((blanks, tags)) => {
+                        format!("{} - {note} {}", &entry.head[..blanks], &entry.head[tags..])
+                    }
+                    None => format!("{} - {note}", entry.head),
+                },
+            };
+            let formatted = format_item(&FormatInput {
+                prefix: Prefix::Agenda,
+                extra: &extra,
+                head: &head,
+                category: &entry.category,
+                tags: &entry.tags,
+                dotime: Dotime::Text(&log.time),
+                remove_stamps: false,
+                time_trailer: &self.config.time_grid.trailer,
+            });
+            let mut text = formatted.text;
+            let keyword_len = normalise_keyword(&mut text, formatted.heading, outline.todo.names()).unwrap_or(0);
+            let keyword_done = outline.todo.is_done(&text[formatted.heading..formatted.heading + keyword_len]);
+            out.push(Item {
+                text,
+                heading: formatted.heading,
+                time_of_day: formatted.time_of_day,
+                priority: 100_000,
+                kind: ItemKind::Log,
+                face: Face::Done,
+                source: Some(Source { file, entry: log.entry }),
+                marker: Some(log.offset),
+                keyword_len,
+                keyword_done,
+            });
+        }
+    }
+
     /// `org-agenda-get-day-entries` for one file, in Org's order.
     fn day(&self, file: usize, current: Day, out: &mut Vec<Item>) {
         self.deadlines(file, current, out);
+        if self.config.show_log {
+            self.progress(file, current, out);
+        }
         self.scheduled(file, current, out);
         self.blocks(file, current, out);
         self.timestamps(file, current, out);
@@ -591,6 +675,8 @@ pub enum LineKind {
     Item,
     /// Between the blocks of a block agenda.
     Separator,
+    /// A line of the clock report.
+    Table,
 }
 
 /// One line of a rendered view.
@@ -608,6 +694,8 @@ pub struct View {
     pub lines: Vec<Line>,
     /// The first day shown, for moving to the next or previous span.
     pub start: Day,
+    /// The day after the last one shown.
+    pub end: Day,
 }
 
 impl View {
@@ -702,7 +790,7 @@ pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, co
         sort(&mut items, true);
         lines.extend(items.into_iter().map(|item| item_line(item, config)));
     }
-    View { lines, start }
+    View { lines, start, end: last + 1 }
 }
 
 /// `org-todo-list`: the global list of open TODO entries, or of the
@@ -714,7 +802,7 @@ pub fn todo_view(files: &[&Outline], keywords: Option<&str>, config: &Config) ->
     let header = format!("Global list of TODO items of type: {shown}");
     let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
     lines.extend(todo_items(files, wanted.as_deref(), config).into_iter().map(|item| item_line(item, config)));
-    View { lines, start: 0 }
+    View { lines, start: 0, end: 0 }
 }
 
 /// `org-tags-view`: the entries `matcher` matches, only open TODO
@@ -735,7 +823,7 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
     let header = format!("Headlines with TAGS match: {}", matcher.text);
     let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
     lines.extend(items.into_iter().map(|item| item_line(item, config)));
-    View { lines, start: 0 }
+    View { lines, start: 0, end: 0 }
 }
 
 /// `org-agenda-overriding-header`: another header for a view, or none

@@ -12,6 +12,9 @@
 ---@field logRepeat? false|'time'|'note' Record when a repeating entry is done and moves to its next date. (`org-log-repeat`)
 ---@field logIntoDrawer? boolean|string Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer. (`org-log-into-drawer`)
 ---@field tagsColumn? integer Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`)
+---@field clockIntoDrawer? boolean|string Where `CLOCK:` lines go: `true` for the drawer of `logIntoDrawer` (`LOGBOOK` when that is not a name), the name of a drawer, or `false` for the entry itself. (`org-clock-into-drawer`)
+---@field clockOutRemoveZeroTimeClocks? boolean Clocking out after less than a minute removes the `CLOCK:` line. (`org-clock-out-remove-zero-time-clocks`)
+---@field clockOutWhenDone? boolean Marking the clocked entry done stops the clock. (`org-clock-out-when-done`)
 ---@field completeTagsAlwaysOfferAllAgendaTags? boolean Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. (`org-complete-tags-always-offer-all-agenda-tags`)
 ---@field todoRepeatToState? string|true The state a repeating entry returns to when it is done: a keyword, or `true` for the state it had. (`org-todo-repeat-to-state`)
 ---@field priorityHighest? string|integer The highest priority. (`org-priority-highest`)
@@ -51,6 +54,9 @@
 ---@field timeGrid? org_lsp.Settings.Agenda.TimeGrid
 ---@field showCurrentTimeInGrid? boolean Show the current time in the grid. (`org-agenda-show-current-time-in-grid`)
 ---@field weekendDays? integer[] The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`)
+---@field startWithLogMode? boolean Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it). (`org-agenda-start-with-log-mode`)
+---@field startWithClockreportMode? boolean Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)
+---@field logModeItems? ('closed'|'clock'|'state')[] What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`)
 ---@field startDay? string The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)
 ---@field customCommands? org_lsp.AgendaCommand[] Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`span`, `startDay`…). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)
 

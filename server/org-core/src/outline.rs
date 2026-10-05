@@ -112,6 +112,40 @@ pub struct Block {
     pub entry: usize,
 }
 
+/// A line the agenda's log mode shows (`org-agenda-get-progress`): a
+/// `CLOSED:`, a `CLOCK:` or a state change, with an inactive timestamp.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Log {
+    /// Where the keyword starts.
+    pub offset: usize,
+    pub entry: usize,
+    pub kind: LogKind,
+    /// The date of the timestamp.
+    pub date: crate::date::Date,
+    /// What the agenda reads the time from: the keyword and the
+    /// timestamp, with a clock's end time put in it (`[… 07:00-07:20]`).
+    pub time: String,
+    /// The note under it (`org-agenda-log-mode-add-notes`).
+    pub note: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LogKind {
+    Closed,
+    /// With the time clocked, or `-` for a clock that runs.
+    Clock(String),
+    /// The state changed to.
+    State(String),
+}
+
+/// A `CLOCK:` line, and the entry it belongs to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClockLine {
+    pub offset: usize,
+    pub entry: Option<usize>,
+    pub clock: crate::clock::Clock,
+}
+
 /// The model of one document.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outline {
@@ -124,6 +158,8 @@ pub struct Outline {
     pub entries: Vec<Entry>,
     pub stamps: Vec<Stamp>,
     pub blocks: Vec<Block>,
+    pub logs: Vec<Log>,
+    pub clocks: Vec<ClockLine>,
 }
 
 const ARCHIVE_TAG: &str = "ARCHIVE";
@@ -153,6 +189,8 @@ impl Outline {
             entries: Vec::new(),
             stamps: Vec::new(),
             blocks: Vec::new(),
+            logs: Vec::new(),
+            clocks: Vec::new(),
         };
         let file_archived = outline.file_tags.iter().any(|tag| tag == ARCHIVE_TAG);
         let inherited = Inherited {
@@ -165,6 +203,7 @@ impl Outline {
         }
         outline.collect_stamps(&root, text);
         outline.collect_blocks(&root, text);
+        outline.collect_logs(text);
         outline
     }
 
@@ -250,6 +289,46 @@ impl Outline {
 
     /// Every place the agenda's scan for plain timestamps can stop, with
     /// what `org-agenda-get-timestamps` makes of it there.
+    /// The lines of `org-agenda-get-progress`'s search: `CLOSED:`,
+    /// `CLOCK:` and `- State "KEYWORD"`, each followed by an inactive
+    /// timestamp; and every `CLOCK:` line.
+    fn collect_logs(&mut self, text: &str) {
+        let mut at = 0;
+        for line in text.split_inclusive('\n') {
+            let start = at;
+            at += line.len();
+            let line = line.trim_end_matches(['\n', '\r']);
+            if let Some(clock) = crate::clock::parse_line(line) {
+                self.clocks.push(ClockLine { offset: start, entry: self.entry_at(start), clock });
+            }
+            let next = text[at..].split('\n').next().unwrap_or("");
+            for found in log_matches(line, &self.todo) {
+                let Some(entry) = self.entry_at(start + found.at) else { continue };
+                // `org-agenda-log-mode-add-notes`
+                let note = match &found.kind {
+                    LogKind::Clock(_) => next
+                        .trim_start_matches([' ', '\t'])
+                        .strip_prefix('-')
+                        .filter(|rest| rest.starts_with([' ', '\t']))
+                        .map(|rest| rest.trim_matches([' ', '\t']))
+                        .filter(|rest| !rest.is_empty() && !rest.starts_with('-')),
+                    LogKind::State(_) if line.ends_with('\\') => {
+                        Some(next.trim_matches([' ', '\t'])).filter(|rest| !rest.is_empty() && !rest.starts_with('-'))
+                    }
+                    _ => None,
+                };
+                self.logs.push(Log {
+                    offset: start + found.at,
+                    entry,
+                    kind: found.kind,
+                    date: found.date,
+                    time: found.time,
+                    note: note.map(str::to_string),
+                });
+            }
+        }
+    }
+
     fn collect_stamps(&mut self, root: &SyntaxNode, text: &str) {
         let bytes = text.as_bytes();
         let mut from = 0;
@@ -652,6 +731,129 @@ fn in_source_block(root: &SyntaxNode, offset: usize) -> bool {
             node.kind() == BLOCK
                 && token_text(&node, BLOCK_BEGIN).is_some_and(|begin| begin.eq_ignore_ascii_case("#+begin_src"))
         })
+}
+
+/// A match of `org-agenda-get-progress`'s search in one line.
+struct LogMatch {
+    at: usize,
+    kind: LogKind,
+    date: crate::date::Date,
+    time: String,
+}
+
+/// `\\<CLOSED: *[DATE`, `\\<CLOCK: *[DATE` and `- +State "KEYWORD".*? *[DATE`
+/// in `line`, read as `org-agenda-get-progress` reads them.
+fn log_matches(line: &str, todo: &TodoKeywords) -> Vec<LogMatch> {
+    let mut out = Vec::new();
+    let word_start =
+        |at: usize| at == 0 || !line[..at].chars().next_back().is_some_and(|c| c.is_alphanumeric() || c == '_');
+    // The inactive timestamp right after `from`, past blanks.
+    let stamp_after = |from: usize| -> Option<(usize, usize)> {
+        let open = from + line[from..].bytes().take_while(|b| *b == b' ').count();
+        stamp_at(line, open).map(|end| (open, end))
+    };
+    for keyword in ["CLOSED:", "CLOCK:"] {
+        for (at, _) in line.match_indices(keyword) {
+            if !word_start(at) {
+                continue;
+            }
+            let Some((open, end)) = stamp_after(at + keyword.len()) else { continue };
+            let Some(date) = stamp_date(&line[open..]) else { continue };
+            let mut time = line[at..end].to_string();
+            let kind = if keyword == "CLOSED:" {
+                LogKind::Closed
+            } else {
+                // A clock's end time goes into the timestamp, and the
+                // time clocked after it is what it shows.
+                match clock_end(&line[end..]) {
+                    Some((until, clocked)) => {
+                        time.pop();
+                        time.push('-');
+                        time.push_str(&until);
+                        time.push(']');
+                        LogKind::Clock(clocked)
+                    }
+                    None => LogKind::Clock("-".to_string()),
+                }
+            };
+            out.push(LogMatch { at, kind, date, time });
+        }
+    }
+    // `- +State "KEYWORD"`
+    for (at, _) in line.match_indices("- ") {
+        let rest = &line[at + 1..];
+        let rest_trimmed = rest.trim_start_matches(' ');
+        let Some(quoted) = rest_trimmed.strip_prefix("State \"") else { continue };
+        let Some(close) = quoted.find('"') else { continue };
+        let state = &quoted[..close];
+        if !todo.names().any(|name| name == state) {
+            continue;
+        }
+        let after = line.len() - quoted.len() + close + 1;
+        // The first inactive timestamp after it.
+        let Some(open) = line[after..].find('[').map(|offset| after + offset) else { continue };
+        let Some(end) = stamp_at(line, open) else { continue };
+        let Some(date) = stamp_date(&line[open..]) else { continue };
+        out.push(LogMatch { at, kind: LogKind::State(state.to_string()), date, time: line[at..end].to_string() });
+    }
+    out.sort_by_key(|found| found.at);
+    out
+}
+
+/// The end of the inactive timestamp (`org-ts-regexp-inactive`) that
+/// opens at `open`, past its closing bracket.
+fn stamp_at(line: &str, open: usize) -> Option<usize> {
+    let rest = line.get(open..)?.strip_prefix('[')?;
+    stamp_date(&line[open..])?;
+    let close = rest.find(']')?;
+    if rest[..close].contains(['[', '\n', '>']) {
+        return None;
+    }
+    Some(open + 1 + close + 1)
+}
+
+/// The date of `[YYYY-MM-DD`.
+fn stamp_date(text: &str) -> Option<crate::date::Date> {
+    let bytes = text.as_bytes();
+    if bytes.first() != Some(&b'[') || !is_date_at(bytes, 1) {
+        return None;
+    }
+    Some(parse_date(&text[1..11]))
+}
+
+/// After a clock's start: its end time, and the time clocked
+/// (`\\([0-9]\\{1,2\\}:[0-9]\\{2\\}\\)\\].*?\\([0-9]\\{1,2\\}:[0-9]\\{2\\}\\)`).
+fn clock_end(rest: &str) -> Option<(String, String)> {
+    let time_at = |text: &str, at: usize| -> Option<usize> {
+        let bytes = text.as_bytes();
+        let hours = bytes[at..].iter().take_while(|b| b.is_ascii_digit()).count();
+        if !(1..=2).contains(&hours) || bytes.get(at + hours) != Some(&b':') {
+            return None;
+        }
+        let minutes = bytes.get(at + hours + 1..at + hours + 3)?;
+        minutes.iter().all(u8::is_ascii_digit).then_some(at + hours + 3)
+    };
+    let mut first = None;
+    for at in 0..rest.len() {
+        if !rest.is_char_boundary(at) {
+            continue;
+        }
+        if let Some(end) = time_at(rest, at).filter(|end| rest.as_bytes().get(*end) == Some(&b']')) {
+            first = Some((at, end));
+            break;
+        }
+    }
+    let (start, end) = first?;
+    let until = rest[start..end].to_string();
+    for at in end + 1..rest.len() {
+        if !rest.is_char_boundary(at) {
+            continue;
+        }
+        if let Some(second_end) = time_at(rest, at) {
+            return Some((until, rest[at..second_end].to_string()));
+        }
+    }
+    None
 }
 
 #[cfg(test)]

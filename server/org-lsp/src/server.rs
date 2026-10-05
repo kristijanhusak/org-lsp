@@ -26,6 +26,7 @@ use lsp_types::{
 };
 use org_core::agenda::{self, Config as AgendaConfig, Now, Span};
 use org_core::capture;
+use org_core::clock;
 use org_core::date::{Date, DateTime, Day};
 use org_core::edit::{self, Call, Command as EditCommand, Settings as EditSettings};
 use org_core::outline::Outline;
@@ -194,6 +195,29 @@ struct Capturing {
     spec: (capture::Target, capture::Kind, capture::Properties),
 }
 
+/// A clock that runs: the file of its `CLOCK:` line, and when it started.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct RunningClock {
+    uri: Uri,
+    start: DateTime,
+    /// The headline of its entry, after the stars: two clocks may start
+    /// in the same minute.
+    head: String,
+}
+
+/// The clocks that run in `text`: where each line starts, when it
+/// started, and the headline of its entry.
+fn running_lines(text: &str) -> Vec<(usize, DateTime, String)> {
+    clock::running(text)
+        .into_iter()
+        .filter_map(|(line, start)| {
+            let heading = Server::heading_above(text, line)?;
+            let head = text[heading..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();
+            Some((line, start, head))
+        })
+        .collect()
+}
+
 /// A note being written for a TODO state change (`org-add-note`), in a
 /// buffer of its own like a capture's: the change it is for waits for it.
 struct Noting {
@@ -277,7 +301,7 @@ impl Reveal {
 
 /// A source of agenda entries as the server holds it while it works.
 enum Held {
-    Open(Outline),
+    Open(Box<Outline>),
     Disk(Rc<Source>),
 }
 
@@ -340,6 +364,20 @@ struct Server {
     separator_lines: i64,
     /// A fixed clock, for tests.
     clock: Option<Now>,
+    /// The clock that runs, as the files say.
+    running: Option<RunningClock>,
+    /// The entry clocked last: its file and headline, for
+    /// `org.clock.goto` when no clock runs.
+    last_clocked: Option<(Uri, String)>,
+    /// `org-clock-into-drawer` and its relatives.
+    clock_settings: org_core::clock::Settings,
+    /// `org-clock-out-when-done`
+    clock_out_when_done: bool,
+    /// The clock's status waits for the edit that writes its line.
+    clock_pending: bool,
+    /// Log mode (`l`) and the clock report (`R`) in the agenda.
+    agenda_log: bool,
+    agenda_clockreport: bool,
     documents: HashMap<String, Document>,
     workspace: Workspace,
     view: Option<OpenView>,
@@ -450,6 +488,13 @@ pub fn run(connection: Connection) -> Result<()> {
         prompt_copy: None,
         separator_lines: options.separator_lines(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
+        running: None,
+        clock_pending: false,
+        last_clocked: None,
+        clock_settings: options.clock_settings(),
+        clock_out_when_done: options.clock_out_when_done.unwrap_or(true),
+        agenda_log: options.agenda.start_with_log_mode.unwrap_or(false),
+        agenda_clockreport: options.agenda.start_with_clockreport_mode.unwrap_or(false),
         documents: HashMap::new(),
         workspace: Workspace::new(options.agenda_files, folders),
         view: None,
@@ -462,6 +507,11 @@ pub fn run(connection: Connection) -> Result<()> {
     // A problem with the options is worth a message where the user looks.
     if !loaded.problems.is_empty() {
         server.show_message(MessageType::WARNING, format!("org-lsp: {}", loaded.problems.join("; ")));
+    }
+    // A clock left running in the files runs on.
+    server.running = server.find_running();
+    if server.running.is_some() {
+        server.publish_clock();
     }
     for message in &connection.receiver {
         match message {
@@ -830,10 +880,9 @@ impl Server {
                     self.reveal_when_current();
                     return;
                 }
-                self.documents.insert(
-                    document.uri.as_str().to_string(),
-                    Document::new(document.text, document.version, &self.todo),
-                );
+                let key = document.uri.as_str().to_string();
+                self.documents.insert(key.clone(), Document::new(document.text, document.version, &self.todo));
+                self.sync_clock(&key);
             }
             DidChangeTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidChangeTextDocumentParams>(notification) else { return };
@@ -865,6 +914,7 @@ impl Server {
                         &self.todo,
                     );
                 }
+                self.sync_clock(key);
                 // An edit the server asked for has arrived: show its effect.
                 // Any other change means the user did something in between.
                 if self.edited.remove(key) {
@@ -991,6 +1041,7 @@ impl Server {
             let (_, line) = self.view_line(uri, params.range.start.line)?;
             line.entry.as_ref()?;
             let dated = line.entry.as_ref().is_some_and(|entry| entry.marker.is_some());
+            let running = self.running.is_some();
             let context = json!({ "textDocument": { "uri": uri }, "position": params.range.start });
             let actions = [
                 commands::TODO_NEXT,
@@ -999,10 +1050,13 @@ impl Server {
                 commands::PRIORITY_DOWN,
                 commands::DATE_LATER,
                 commands::DATE_EARLIER,
+                commands::CLOCK_IN,
+                commands::CLOCK_OUT,
                 commands::AGENDA_GOTO,
             ]
             .into_iter()
             .filter(|id| dated || !matches!(*id, commands::DATE_LATER | commands::DATE_EARLIER))
+            .filter(|id| running || *id != commands::CLOCK_OUT)
             .filter(|id| actions::requested(id, only))
             .map(|id| {
                 let title = commands::title(id).to_string();
@@ -1037,7 +1091,30 @@ impl Server {
             let edit = self.workspace_edit(uri, Some(document.version), edits);
             CodeActionOrCommand::CodeAction(action.to_lsp(edit))
         };
-        Some(found.iter().map(to_lsp).collect())
+        let mut result: Vec<CodeActionOrCommand> = found.iter().map(to_lsp).collect();
+        // Clocking, as commands: they may change another file too.
+        let in_entry = Self::heading_above(&document.text, offset).is_some();
+        let running = self.running.is_some();
+        let context = json!({ "textDocument": { "uri": uri }, "position": params.range.start });
+        for (id, offered) in
+            [(commands::CLOCK_IN, in_entry), (commands::CLOCK_OUT, running), (commands::CLOCK_CANCEL, running)]
+        {
+            if !offered || !actions::requested(id, only) {
+                continue;
+            }
+            let title = commands::title(id).to_string();
+            result.push(CodeActionOrCommand::CodeAction(CodeAction {
+                title: title.clone(),
+                kind: Some(CodeActionKind::new(id)),
+                command: Some(lsp_types::Command {
+                    title,
+                    command: id.to_string(),
+                    arguments: Some(vec![context.clone()]),
+                }),
+                ..Default::default()
+            }));
+        }
+        Some(result)
     }
 
     /// Completion as Org's `pcomplete` offers it, and file names in links.
@@ -1164,7 +1241,7 @@ impl Server {
     /// The agenda files with their outlines, in agenda order.
     fn agenda_files(&mut self) -> Vec<(Uri, Held)> {
         let open = |document: &Document, uri: &Uri| {
-            Held::Open(Outline::new(&document.parse, &document.text, &uri::file_stem(uri)))
+            Held::Open(Box::new(Outline::new(&document.parse, &document.text, &uri::file_stem(uri))))
         };
         if !self.workspace.is_configured() {
             // Nothing says where the agenda files are: use what is open.
@@ -1216,17 +1293,37 @@ impl Server {
         let mut files = self.agenda_files();
         if let Some((uri, outline)) = replaced {
             if let Some(file) = files.iter_mut().find(|(file, _)| file == uri) {
-                file.1 = Held::Open(outline);
+                file.1 = Held::Open(Box::new(outline));
             }
         }
         let outlines: Vec<(Uri, &Outline)> = files.iter().map(|(uri, held)| (uri.clone(), held.outline())).collect();
         // A command that no longer reads shows nothing; opening it said why.
         let blocks = self.blocks(&query).unwrap_or_default();
-        views::render(query, &blocks, &outlines, self.now())
+        // The entry the clock runs on, highlighted.
+        let clocked = self.running.as_ref().and_then(|running| {
+            let (uri, outline) = outlines.iter().find(|(uri, _)| *uri == running.uri)?;
+            let line = outline.clocks.iter().find(|line| {
+                line.clock.is_running()
+                    && line.clock.start == Some(running.start)
+                    && line.entry.is_some_and(|entry| outline.entries[entry].head == running.head)
+            })?;
+            Some((uri, outline.entries[line.entry?].offset))
+        });
+        views::render(query, &blocks, &outlines, self.now(), clocked)
     }
 
-    /// The blocks `query` shows.
+    /// The blocks `query` shows, in log mode and with the clock report as
+    /// `l` and `R` have them.
     fn blocks(&self, query: &Query) -> std::result::Result<Vec<views::Block>, String> {
+        let mut blocks = self.query_blocks(query)?;
+        for block in &mut blocks {
+            block.config.show_log = self.agenda_log;
+            block.config.clockreport = self.agenda_clockreport;
+        }
+        Ok(blocks)
+    }
+
+    fn query_blocks(&self, query: &Query) -> std::result::Result<Vec<views::Block>, String> {
         let one = |kind| vec![views::Block { kind, header: None, config: self.agenda.clone() }];
         Ok(match query {
             Query::Agenda { start, span } => one(views::BlockKind::Agenda { start: *start, span: *span }),
@@ -1415,6 +1512,7 @@ impl Server {
                 Ok(json!({ "close": capture.uri }))
             }
             commands::CAPTURE_REFILE => self.refile_capture(context.and_then(|context| context.input).as_deref()),
+            id if id.starts_with("org.clock.") => self.clock_command(id, context.as_ref()),
             id if id == commands::TODO || actions::command(id).is_some() => self.run_edit(id, context),
             id if commands::input(id).is_some() => {
                 self.ask_date(id, &context.ok_or("This command needs the cursor position")?)
@@ -1808,6 +1906,18 @@ impl Server {
             commands::AGENDA_TODOS => Ok(self.open_view(Query::Todo)?),
             commands::AGENDA_REDO => {
                 self.view.as_ref().ok_or("No agenda is open")?;
+                self.refresh_view();
+                Ok(())
+            }
+            commands::AGENDA_LOG | commands::AGENDA_CLOCKREPORT => {
+                self.view.as_ref().ok_or("No agenda is open")?;
+                let (flag, name) = if command == commands::AGENDA_LOG {
+                    (&mut self.agenda_log, "Log mode")
+                } else {
+                    (&mut self.agenda_clockreport, "Clocktable mode")
+                };
+                *flag = !*flag;
+                self.message = Some(format!("{name} is {}", if *flag { "on" } else { "off" }));
                 self.refresh_view();
                 Ok(())
             }
@@ -2635,6 +2745,10 @@ impl Server {
             } }));
         }
         self.message = message;
+        let (edits, new_text) = match heading {
+            Some(heading) => self.clock_out_if_done(&file, heading, edits, new_text),
+            None => (edits, new_text),
+        };
         if edits.is_empty() {
             return Ok(Value::Null);
         }
@@ -2706,6 +2820,365 @@ impl Server {
             parse.todo_keywords().fast_keys().into_iter().map(|(name, key)| (name.to_string(), key)).collect()
         });
         Ok(keys.ok_or("Cannot read the file of this entry")?)
+    }
+
+    // ----- clocking
+
+    /// The clock that runs in the files the server knows, the latest one
+    /// if there are several.
+    fn find_running(&mut self) -> Option<RunningClock> {
+        let mut found: Vec<RunningClock> = Vec::new();
+        for (key, document) in &self.documents {
+            let Ok(uri) = key.parse::<Uri>() else { continue };
+            for (_, start, head) in running_lines(&document.text) {
+                found.push(RunningClock { uri: uri.clone(), start, head });
+            }
+        }
+        for (uri, held) in self.agenda_files() {
+            let outline = held.outline();
+            for line in outline.clocks.iter().filter(|line| line.clock.is_running()) {
+                let (Some(start), Some(entry)) = (line.clock.start, line.entry) else { continue };
+                let head = outline.entries[entry].head.clone();
+                if !found.iter().any(|known| known.uri == uri && known.start == start && known.head == head) {
+                    found.push(RunningClock { uri: uri.clone(), start, head });
+                }
+            }
+        }
+        found.into_iter().max_by_key(|running| clock::minutes_of(running.start))
+    }
+
+    /// Follow a document that changed: its running clock may be gone, or
+    /// a new one there runs now.
+    fn sync_clock(&mut self, key: &str) {
+        let Some(document) = self.documents.get(key) else { return };
+        let found = running_lines(&document.text);
+        let changed = match &self.running {
+            Some(running) if running.uri.as_str() == key => {
+                if found.iter().any(|(_, start, head)| *start == running.start && *head == running.head) {
+                    self.clock_pending
+                } else if self.clock_pending {
+                    // The edit that writes the line has not come yet.
+                    false
+                } else {
+                    self.running = None;
+                    true
+                }
+            }
+            None => match found.into_iter().max_by_key(|(_, start, _)| clock::minutes_of(*start)) {
+                Some((_, start, head)) => {
+                    let Ok(uri) = key.parse::<Uri>() else { return };
+                    self.running = Some(RunningClock { uri, start, head });
+                    true
+                }
+                None => false,
+            },
+            Some(_) => false,
+        };
+        if changed {
+            self.publish_clock();
+        }
+    }
+
+    /// The text of the running clock's file, its version, and where its
+    /// `CLOCK:` line starts.
+    fn clock_line(&mut self, running: &RunningClock) -> Option<(String, Option<i32>, usize)> {
+        self.with_source(&running.uri, |text, _, _, _, version| {
+            let line = running_lines(text)
+                .into_iter()
+                .find(|(_, start, head)| *start == running.start && *head == running.head)?
+                .0;
+            Some((text.to_string(), version, line))
+        })
+        .flatten()
+    }
+
+    /// Tell the client what the clock does (`org-lsp/clock`): nothing
+    /// (`null`), or the entry, the minutes clocked on it, its effort and
+    /// the text of Emacs's mode line (`[0:25/1:00] (Write the report)`).
+    fn publish_clock(&mut self) {
+        let params = match self.running.clone() {
+            None => Value::Null,
+            Some(running) => match self.clock_status(&running) {
+                Some(status) => status,
+                // Its line is not in the text yet: once the edit is.
+                None => {
+                    self.clock_pending = true;
+                    return;
+                }
+            },
+        };
+        self.clock_pending = false;
+        let notification = lsp_server::Notification::new("org-lsp/clock".to_string(), params);
+        let _ = self.sender.send(Message::Notification(notification));
+    }
+
+    fn clock_status(&mut self, running: &RunningClock) -> Option<Value> {
+        let now = clock::minutes_of(self.date_time());
+        let started = clock::minutes_of(running.start);
+        self.with_source(&running.uri, |text, index, _, outline, _| {
+            let line = outline.clocks.iter().find(|line| {
+                line.clock.is_running()
+                    && line.clock.start == Some(running.start)
+                    && line.entry.is_some_and(|entry| outline.entries[entry].head == running.head)
+            })?;
+            let entry = &outline.entries[line.entry?];
+            let property = |name: &str| entry.properties.iter().find(|(key, _)| key == name).map(|(_, value)| value);
+            // `org-clock-mode-line-total` `auto`: since the last repeat if
+            // there was one, else the whole task.
+            let since = property("LAST_REPEAT").and_then(|stamp| {
+                let read = org_core::timestr::parse_time_string(stamp)?;
+                let (hour, minute) = read.time.unwrap_or((0, 0));
+                Some(read.date.to_day() * 1440 + hour * 60 + minute)
+            });
+            let minutes = clock::subtree_minutes(text, entry.offset, since) + (now - started).max(0);
+            let effort = property("EFFORT")
+                .and_then(|effort| clock::duration_to_minutes(effort))
+                .map(|effort| effort.round() as i64);
+            let heading = org_core::agenda::report::plain_heading(&entry.head, entry.todo.as_deref());
+            let time = match effort {
+                Some(effort) => format!("{}/{}", clock::duration(minutes), clock::duration(effort)),
+                None => clock::duration(minutes),
+            };
+            let position = index.position(text, entry.offset, Encoding::Utf16);
+            Some(json!({
+                "heading": heading,
+                "minutes": minutes,
+                "effort": effort,
+                "text": format!("[{time}] ({heading})"),
+                "uri": running.uri.as_str(),
+                "line": position.line,
+            }))
+        })
+        .flatten()
+    }
+
+    /// The headline above byte `at` of `text`.
+    fn heading_above(text: &str, at: usize) -> Option<usize> {
+        let mut line = text[..at.min(text.len())].rfind('\n').map_or(0, |index| index + 1);
+        loop {
+            let end = text[line..].find('\n').map_or(text.len(), |end| line + end);
+            if text[line..end].starts_with('*') && text[line..end].trim_start_matches('*').starts_with([' ', '\t']) {
+                return Some(line);
+            }
+            if line == 0 {
+                return None;
+            }
+            line = text[..line - 1].rfind('\n').map_or(0, |index| index + 1);
+        }
+    }
+
+    /// `org-clock-in`, `org-clock-out`, `org-clock-cancel` and
+    /// `org-clock-goto`, in an Org file or on an agenda line.
+    fn clock_command(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
+        self.last = None;
+        match id {
+            commands::CLOCK_IN => self.clock_in(context.ok_or("This command needs the cursor position")?),
+            commands::CLOCK_OUT | commands::CLOCK_CANCEL => {
+                let running = self.running.clone().ok_or("No active clock")?;
+                let Some((text, version, line)) = self.clock_line(&running) else {
+                    self.running = None;
+                    self.publish_clock();
+                    return Err("Clock start time is gone".into());
+                };
+                let (new_text, message) = if id == commands::CLOCK_OUT {
+                    let out = clock::clock_out(&text, line, self.date_time(), &self.clock_settings)?;
+                    (out.text, out.message)
+                } else {
+                    (clock::cancel(&text, line, &self.clock_settings)?, "Clock canceled".to_string())
+                };
+                if let Some(heading) = Self::heading_above(&text, line) {
+                    let head = text[heading..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();
+                    self.last_clocked = Some((running.uri.clone(), head));
+                }
+                self.running = None;
+                self.send_texts(vec![(running.uri, version, text, new_text)]);
+                self.message = Some(message);
+                self.publish_clock();
+                Ok(Value::Null)
+            }
+            commands::CLOCK_GOTO => {
+                let (uri, offset, recent) = match self.running.clone() {
+                    Some(running) => {
+                        let (text, _, line) = self.clock_line(&running).ok_or("Clock start time is gone")?;
+                        (running.uri, Self::heading_above(&text, line).ok_or("Clock start time is gone")?, false)
+                    }
+                    None => {
+                        let (uri, head) = self.last_clocked.clone().ok_or("No active or recent clock task")?;
+                        let offset = self
+                            .with_source(&uri, |_, _, _, outline, _| {
+                                outline.entries.iter().find(|entry| entry.head == head).map(|entry| entry.offset)
+                            })
+                            .flatten()
+                            .ok_or("No active or recent clock task")?;
+                        (uri, offset, true)
+                    }
+                };
+                let encoding = self.client.encoding;
+                let position = self
+                    .with_source(&uri, |text, index, _, _, _| index.position(text, offset, encoding))
+                    .ok_or("Cannot read the file of the clocked entry")?;
+                let params = ShowDocumentParams {
+                    uri,
+                    external: None,
+                    take_focus: Some(true),
+                    selection: Some(Range::new(position, position)),
+                };
+                self.send_request::<ShowDocument>(params, None);
+                if recent {
+                    self.message = Some("No running clock, this is the most recently clocked task".to_string());
+                }
+                Ok(Value::Null)
+            }
+            other => Err(format!("org-lsp has no command `{other}`").into()),
+        }
+    }
+
+    /// `org-clock-in` on the entry at the cursor, or on the entry of an
+    /// agenda line. A clock that runs elsewhere stops first.
+    fn clock_in(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let uri = context.text_document.uri.clone();
+        let (file, heading) = if self.is_view(&uri) {
+            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let heading = self
+                .with_source(&reference.uri, |_, _, _, outline, _| {
+                    views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
+                })
+                .flatten()
+                .ok_or("The entry is gone; rebuild the agenda")?;
+            (reference.uri, heading)
+        } else {
+            let document = self.document(&uri).ok_or("The document is not open")?;
+            let offset = document.index.offset(&document.text, context.position, encoding);
+            let heading = Self::heading_above(&document.text, offset).ok_or("Before first headline")?;
+            (uri, heading)
+        };
+        let now = self.date_time();
+        let mut changes: Vec<(Uri, Option<i32>, String, String)> = Vec::new();
+        let mut heading = heading;
+        if let Some(running) = self.running.clone() {
+            if let Some((text, version, line)) = self.clock_line(&running) {
+                // Already on this entry: the clock continues.
+                if running.uri == file && Self::heading_above(&text, line) == Some(heading) {
+                    let title = self
+                        .with_source(&file, |_, _, _, outline, _| {
+                            let entry = &outline.entries[outline.entry_at(heading)?];
+                            Some(org_core::agenda::report::plain_heading(&entry.head, entry.todo.as_deref()))
+                        })
+                        .flatten()
+                        .unwrap_or_default();
+                    self.message = Some(format!("Clock continues in \"{title}\""));
+                    return Ok(Value::Null);
+                }
+                let out = clock::clock_out(&text, line, now, &self.clock_settings)?;
+                if running.uri == file && line < heading {
+                    heading = heading + out.text.len() - text.len();
+                }
+                changes.push((running.uri.clone(), version, text, out.text));
+            }
+        }
+        let settings = self.clock_settings.clone();
+        let base = changes.iter().find(|(uri, ..)| *uri == file).map(|(_, _, _, new)| new.clone());
+        let found = self.with_source(&file, |text, _, parse, outline, version| {
+            let base = base.clone().unwrap_or_else(|| text.to_string());
+            let clocked = clock::clock_in(&base, parse.todo_keywords(), heading, &settings, now)?;
+            let entry = &outline.entries[outline.entry_at(heading).ok_or("Before first headline")?];
+            let repeat = entry.properties.iter().any(|(key, _)| key == "LAST_REPEAT");
+            Ok::<_, String>((text.to_string(), version, clocked.0, entry.head.clone(), repeat))
+        });
+        let (old, version, new_text, head, repeat) = found.ok_or("Cannot read the file of this entry")??;
+        match changes.iter_mut().find(|(uri, ..)| *uri == file) {
+            Some(change) => change.3 = new_text,
+            None => changes.push((file.clone(), version, old, new_text)),
+        }
+        self.send_texts(changes);
+        self.running = Some(RunningClock { uri: file.clone(), start: now, head: head.clone() });
+        self.last_clocked = Some((file, head));
+        let shown = if repeat { "showing task time since last repeat." } else { "showing entire task time." };
+        self.message =
+            Some(format!("Clock starts at {} - {shown}", org_core::stamp::format_timestamp(now, true, true, "")));
+        self.publish_clock();
+        Ok(Value::Null)
+    }
+
+    /// `org-clock-out-when-done`: the entry at `heading` of `file`, which
+    /// the clock runs on, became done in `new_text`; the clock stops there
+    /// too, in the same edit.
+    fn clock_out_if_done(
+        &mut self,
+        file: &Uri,
+        heading: usize,
+        edits: Vec<TextEdit>,
+        new_text: String,
+    ) -> (Vec<TextEdit>, String) {
+        let unchanged = |edits, new_text| (edits, new_text);
+        let Some(running) = self.running.clone().filter(|running| self.clock_out_when_done && running.uri == *file)
+        else {
+            return unchanged(edits, new_text);
+        };
+        let Some(old) = self.with_source(file, |text, _, _, _, _| text.to_string()) else {
+            return unchanged(edits, new_text);
+        };
+        // The clock's line, among those that started in the same minute.
+        let same_start = |text: &str| -> Vec<usize> {
+            clock::running(text)
+                .into_iter()
+                .filter(|(_, start)| *start == running.start)
+                .map(|(line, _)| line)
+                .collect()
+        };
+        let before = same_start(&old);
+        let Some(rank) = before.iter().position(|line| {
+            Self::heading_above(&old, *line) == Some(heading)
+                && old[heading..].lines().next().unwrap_or("").trim_start_matches('*').trim() == running.head
+        }) else {
+            return unchanged(edits, new_text);
+        };
+        let Some(&line) = same_start(&new_text).get(rank) else { return unchanged(edits, new_text) };
+        let Some(headline) = Self::heading_above(&new_text, line) else { return unchanged(edits, new_text) };
+        let parse = org_syntax::parse(&new_text, &self.todo);
+        let first_word =
+            new_text[headline..].lines().next().unwrap_or("").trim_start_matches('*').split_whitespace().next();
+        if !first_word.is_some_and(|word| parse.todo_keywords().is_done(word)) {
+            return unchanged(edits, new_text);
+        }
+        let Ok(out) = clock::clock_out(&new_text, line, self.date_time(), &self.clock_settings) else {
+            return unchanged(edits, new_text);
+        };
+        let head = new_text[headline..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();
+        self.last_clocked = Some((file.clone(), head));
+        self.running = None;
+        self.publish_clock();
+        let encoding = self.client.encoding;
+        let index = LineIndex::new(&old);
+        let edits = actions::edits_between(&old, &out.text)
+            .into_iter()
+            .map(|edit| TextEdit { range: index.range(&old, edit.range, encoding), new_text: edit.new_text })
+            .collect();
+        (edits, out.text)
+    }
+
+    /// Edit files from their old text to their new one, in one edit.
+    fn send_texts(&mut self, changes: Vec<(Uri, Option<i32>, String, String)>) {
+        let encoding = self.client.encoding;
+        let mut documents = Vec::new();
+        for (uri, version, old, new) in changes {
+            let index = LineIndex::new(&old);
+            let edits: Vec<TextEdit> = actions::edits_between(&old, &new)
+                .into_iter()
+                .map(|edit| TextEdit { range: index.range(&old, edit.range, encoding), new_text: edit.new_text })
+                .collect();
+            if !edits.is_empty() {
+                self.edited.insert(uri.as_str().to_string());
+                documents.push((uri, version, edits));
+            }
+        }
+        if documents.is_empty() {
+            return;
+        }
+        let edit = self.workspace_edits(documents);
+        let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+        self.apply_edit(params, Pending::Edit);
     }
 
     /// Where the entry at `heading` of `file` will stand in the agenda

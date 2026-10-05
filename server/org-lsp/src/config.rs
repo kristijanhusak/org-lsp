@@ -29,6 +29,13 @@ pub struct Options {
     pub log_into_drawer: Option<DrawerOption>,
     /// `org-tags-column`
     pub tags_column: Option<i64>,
+    /// `org-clock-into-drawer`: `true` for the drawer of `logIntoDrawer`
+    /// (`LOGBOOK`), a drawer name, or `false` for none.
+    pub clock_into_drawer: Option<DrawerOption>,
+    /// `org-clock-out-remove-zero-time-clocks`
+    pub clock_out_remove_zero_time_clocks: Option<bool>,
+    /// `org-clock-out-when-done`: a done state stops the clock on the entry.
+    pub clock_out_when_done: Option<bool>,
     /// `org-complete-tags-always-offer-all-agenda-tags`: completing a tag
     /// also offers those of the agenda files.
     pub complete_tags_always_offer_all_agenda_tags: Option<bool>,
@@ -370,6 +377,22 @@ impl Options {
                 None => defaults.prefer_future,
             },
             force_compatible_dates: self.read_date_force_compatible_dates.unwrap_or(defaults.force_compatible_dates),
+        }
+    }
+
+    /// How clocking writes (`org-clock-into-drawer` and its relatives).
+    pub fn clock_settings(&self) -> org_core::clock::Settings {
+        let log_drawer = match &self.log_into_drawer {
+            Some(DrawerOption::Name(name)) if !name.is_empty() => name.clone(),
+            _ => "LOGBOOK".to_string(),
+        };
+        org_core::clock::Settings {
+            drawer: match &self.clock_into_drawer {
+                Some(DrawerOption::Flag(false)) => None,
+                Some(DrawerOption::Name(name)) if !name.is_empty() => Some(name.clone()),
+                _ => Some(log_drawer),
+            },
+            remove_zero: self.clock_out_remove_zero_time_clocks.unwrap_or(false),
         }
     }
 
@@ -730,6 +753,12 @@ pub struct AgendaOptions {
     pub time_grid: TimeGridOptions,
     pub show_current_time_in_grid: Option<bool>,
     pub weekend_days: Option<Vec<usize>>,
+    /// `org-agenda-start-with-log-mode`
+    pub start_with_log_mode: Option<bool>,
+    /// `org-agenda-start-with-clockreport-mode`
+    pub start_with_clockreport_mode: Option<bool>,
+    /// `org-agenda-log-mode-items`: `closed`, `clock` and `state`.
+    pub log_mode_items: Option<Vec<String>>,
     /// `org-agenda-start-day`: the day the agenda starts from, as the date
     /// prompt reads it (`-1d`, `2026-10-01`).
     pub start_day: Option<String>,
@@ -816,6 +845,13 @@ impl AgendaOptions {
             Some(FutureRepeatsOption::Flag(false)) => config.show_future_repeats = FutureRepeats::None,
             Some(FutureRepeatsOption::Name(name)) if name == "next" => config.show_future_repeats = FutureRepeats::Next,
             _ => {}
+        }
+        config.show_log = self.start_with_log_mode.unwrap_or(false);
+        config.clockreport = self.start_with_clockreport_mode.unwrap_or(false);
+        if let Some(items) = &self.log_mode_items {
+            let has = |name: &str| items.iter().any(|item| item == name);
+            config.log_items =
+                org_core::agenda::LogItems { closed: has("closed"), clock: has("clock"), state: has("state") };
         }
         if let Some(days) = &self.weekend_days {
             config.weekend_days = days.iter().copied().filter(|day| *day < 7).collect();

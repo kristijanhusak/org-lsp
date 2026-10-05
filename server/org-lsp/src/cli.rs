@@ -30,6 +30,8 @@ Options:
   --match MATCH        for todo: keywords (NEXT|WAIT); for tags: a match
                        string (work-home, PRIORITY=\"A\", /NEXT)
   --key KEYS           a command of the `customCommands` agenda option
+  --log                log mode: what was closed and clocked each day
+  --clockreport        the clock report under the agenda
   --span SPAN          day, week, fortnight, month, year or a number of days
   --start YYYY-MM-DD   a day the agenda should include (default: today)
   --today YYYY-MM-DD   pretend this is today
@@ -74,6 +76,8 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     let mut view = "agenda".to_string();
     let mut matching = None;
     let mut key = None;
+    let mut log = false;
+    let mut clockreport = false;
     let mut span = None;
     let mut start = None;
     let mut now = now();
@@ -87,6 +91,8 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             "--view" => view = value("--view")?.clone(),
             "--match" => matching = Some(value("--match")?.clone()),
             "--key" => key = Some(value("--key")?.clone()),
+            "--log" => log = true,
+            "--clockreport" => clockreport = true,
             "--span" => span = Some(value("--span")?.clone()),
             "--start" => start = Some(parse_date(value("--start")?)?),
             "--today" => now.today = parse_date(value("--today")?)?,
@@ -104,6 +110,8 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     }
 
     let mut config = options.to_config();
+    config.show_log |= log;
+    config.clockreport |= clockreport;
     if let Some(span) = span {
         config.span = SpanOption::Name(span.clone()).to_span().ok_or_else(|| format!("`{span}` is not a span"))?;
     }
@@ -132,8 +140,16 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
         }
         other => return Err(format!("unknown view `{other}`; expected agenda, todo, tags, tags-todo or custom")),
     };
-    let outlines: Vec<&Outline> = outlines.iter().collect();
-    Ok(views::org_text(&blocks, &outlines, now))
+    let named: Vec<(&Outline, String, String)> = outlines
+        .iter()
+        .zip(&files)
+        .map(|(outline, file)| {
+            let path = Path::new(file);
+            let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+            (outline, file.clone(), name)
+        })
+        .collect();
+    Ok(views::org_text(&blocks, &named, now))
 }
 
 pub const CONFIG_USAGE: &str = "\

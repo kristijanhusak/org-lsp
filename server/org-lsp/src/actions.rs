@@ -19,8 +19,19 @@ use crate::commands::{
 /// Every kind the server can return, for the capabilities announcement.
 /// The shifted cursor keys are not among them: what they do is offered
 /// under its own name.
-pub const KINDS: &[&str] =
-    &[TODO_NEXT, TODO_PREVIOUS, PRIORITY_UP, PRIORITY_DOWN, TIMESTAMP_UP, TIMESTAMP_DOWN, DATE_LATER, DATE_EARLIER];
+pub const KINDS: &[&str] = &[
+    TODO_NEXT,
+    TODO_PREVIOUS,
+    PRIORITY_UP,
+    PRIORITY_DOWN,
+    TIMESTAMP_UP,
+    TIMESTAMP_DOWN,
+    DATE_LATER,
+    DATE_EARLIER,
+    commands::CLOCK_IN,
+    commands::CLOCK_OUT,
+    commands::CLOCK_CANCEL,
+];
 
 /// The command of this name as it runs in an Org file.
 pub fn command(id: &str) -> Option<Command> {

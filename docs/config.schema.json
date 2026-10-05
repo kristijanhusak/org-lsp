@@ -59,6 +59,24 @@
       "description": "Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`)",
       "default": -77
     },
+    "clockIntoDrawer": {
+      "type": [
+        "boolean",
+        "string"
+      ],
+      "description": "Where `CLOCK:` lines go: `true` for the drawer of `logIntoDrawer` (`LOGBOOK` when that is not a name), the name of a drawer, or `false` for the entry itself. (`org-clock-into-drawer`)",
+      "default": true
+    },
+    "clockOutRemoveZeroTimeClocks": {
+      "type": "boolean",
+      "description": "Clocking out after less than a minute removes the `CLOCK:` line. (`org-clock-out-remove-zero-time-clocks`)",
+      "default": false
+    },
+    "clockOutWhenDone": {
+      "type": "boolean",
+      "description": "Marking the clocked entry done stops the clock. (`org-clock-out-when-done`)",
+      "default": true
+    },
     "completeTagsAlwaysOfferAllAgendaTags": {
       "type": "boolean",
       "description": "Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. (`org-complete-tags-always-offer-all-agenda-tags`)",
@@ -513,6 +531,31 @@
           "default": [
             6,
             0
+          ]
+        },
+        "startWithLogMode": {
+          "type": "boolean",
+          "description": "Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it). (`org-agenda-start-with-log-mode`)",
+          "default": false
+        },
+        "startWithClockreportMode": {
+          "type": "boolean",
+          "description": "Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)",
+          "default": false
+        },
+        "logModeItems": {
+          "items": {
+            "enum": [
+              "closed",
+              "clock",
+              "state"
+            ]
+          },
+          "type": "array",
+          "description": "What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`)",
+          "default": [
+            "closed",
+            "clock"
           ]
         },
         "startDay": {

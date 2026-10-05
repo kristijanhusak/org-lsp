@@ -95,6 +95,10 @@ def run_form(run):
     parameters.append("org-agenda-span " + (str(span) if isinstance(span, int) else "'" + span))
     if "start" in run:
         parameters.append("org-agenda-start-day " + lisp_string(run["start"]))
+    if run.get("log"):
+        parameters.append("org-agenda-start-with-log-mode t")
+    if run.get("clockreport"):
+        parameters.append("org-agenda-start-with-clockreport-mode t")
     return '(org-batch-agenda "a" ' + " ".join(parameters) + ")"
 
 
@@ -156,6 +160,8 @@ def reference(directories):
         for out, run in outputs:
             with open(out, encoding="utf-8") as handle:
                 text = handle.read()
+            # The clock report links to the files: by where the case is.
+            text = text.replace(os.path.dirname(out) + "/", "{dir}/")
             with open(out, "w", encoding="utf-8") as handle:
                 handle.write(clean(text, run))
 
@@ -171,6 +177,9 @@ def run_arguments(directory, case, run):
         arguments += ["--match", run["match"]]
     if "key" in run:
         arguments += ["--key", run["key"]]
+    for flag in ("log", "clockreport"):
+        if run.get(flag):
+            arguments.append("--" + flag)
     if "options" in case:
         arguments += ["--options", json.dumps(case["options"])]
     return arguments + [os.path.join(directory, name) for name in org_files(directory)]

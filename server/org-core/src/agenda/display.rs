@@ -26,6 +26,8 @@ pub enum Style {
     Priority,
     Tags,
     Link,
+    /// A clock report's table.
+    Table,
 }
 
 /// A styled byte range of a displayed line.
@@ -71,6 +73,7 @@ pub fn display(line: &Line) -> Displayed {
     let raw = line.text.as_str();
     let item = match (&line.kind, &line.item) {
         (LineKind::Header | LineKind::Separator, _) => return whole(raw, Style::Structure),
+        (LineKind::Table, _) => return table(raw),
         (LineKind::Date { today, weekend, .. }, _) => {
             return whole(raw, Style::Date { today: *today, weekend: *weekend })
         }
@@ -151,6 +154,33 @@ pub fn display(line: &Line) -> Displayed {
         .into_iter()
         .map(|(start, end, target)| Link { start: shift(start), end: shift(end), target })
         .collect();
+    Displayed { text, segments, links }
+}
+
+/// A table line: its links folded, the rest in the table's style.
+fn table(raw: &str) -> Displayed {
+    let hidden = hidden_ranges(raw);
+    let mut text = String::with_capacity(raw.len());
+    let mut segments = Vec::new();
+    let mut links = Vec::new();
+    let mut copied = 0;
+    for pair in hidden.chunks(2) {
+        let [open, close] = pair else { continue };
+        let target = if open.1 - open.0 > 2 { &raw[open.0 + 2..open.1 - 2] } else { &raw[open.1..close.0] };
+        if open.0 > copied {
+            segments.push(Segment { start: text.len(), end: text.len() + open.0 - copied, style: Style::Table });
+        }
+        text.push_str(&raw[copied..open.0]);
+        let start = text.len();
+        text.push_str(&raw[open.1..close.0]);
+        segments.push(Segment { start, end: text.len(), style: Style::Link });
+        links.push(Link { start, end: text.len(), target: target.to_string() });
+        copied = close.1;
+    }
+    if raw.len() > copied {
+        segments.push(Segment { start: text.len(), end: text.len() + raw.len() - copied, style: Style::Table });
+    }
+    text.push_str(&raw[copied..]);
     Displayed { text, segments, links }
 }
 

@@ -127,8 +127,11 @@ describe('Org files', () => {
       'org.todo.previous',
       'org.priority.up',
       'org.priority.down',
+      'org.clock.in',
     ]);
     assert.ok(actions[0].edit.has(workUri));
+    // Clocking in runs as a command: it may stop a clock in another file.
+    assert.equal(actions[4].command.command, 'org.clock.in');
     await document.save();
   });
 
@@ -348,6 +351,28 @@ describe('Org files', () => {
     await until('the link to show', () => api.concealed(editor).length === 0);
     editor.selection = new vscode.Selection(0, 0, 0, 0);
     await until('the link to be concealed again', () => api.concealed(editor).length === 2);
+    await vscode.window.showTextDocument(document);
+  });
+
+  it('clocks in and out, and shows the clock in the status bar', async () => {
+    const fs = require('node:fs');
+    const file = path.join(workspace, 'clock.org');
+    fs.writeFileSync(file, '* Clocked\n:PROPERTIES:\n:EFFORT: 1:00\n:END:\n');
+    const clockDocument = await vscode.workspace.openTextDocument(file);
+    const editor = await vscode.window.showTextDocument(clockDocument);
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const lineOf = (number) => (number < clockDocument.lineCount ? clockDocument.lineAt(number).text : '');
+    assert.equal(api.clock(), '');
+    editor.selection = new vscode.Selection(0, 0, 0, 0);
+    await vscode.commands.executeCommand('org.clock.in');
+    await until('the clock line', () => lineOf(5) === 'CLOCK: [2026-05-18 Mon 10:30]');
+    assert.equal(lineOf(4), ':LOGBOOK:');
+    await until('the clock in the status bar', () => api.clock() === '[0:00/1:00] (Clocked)');
+    await vscode.commands.executeCommand('org.clock.out');
+    await until('the clock to stop', () => lineOf(5).endsWith('=>  0:00'));
+    await until('the status bar without the clock', () => api.clock() === '');
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    fs.unlinkSync(file);
     await vscode.window.showTextDocument(document);
   });
 

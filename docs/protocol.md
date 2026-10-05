@@ -31,6 +31,7 @@ And this notification:
 | Notification | When |
 | --- | --- |
 | `org-lsp/save` | `{ "uris": [uri…] }`: with `autoSave`, the files a command changed other than the one it was run in (an entry's file changed from the agenda, the target of a capture or a refile), once the editor has applied the change. The editor saves those with changes. |
+| `org-lsp/clock` | The clock that runs, for a status line: `null` when none does, or `{ "heading", "minutes", "effort", "text", "uri", "line" }`, the entry's headline, the minutes clocked on it so far (since `LAST_REPEAT` if it has one), its effort in minutes or `null`, the text of Emacs's mode line (`[0:25/1:00] (Write the report)`), and where the entry is. Sent when the clock starts or stops, and when the server starts with a clock running in the files. The editor counts the minutes on from there. |
 
 **Position encoding.** The server picks UTF-8 if the client offers it, then
 UTF-32, and falls back to UTF-16.
@@ -62,6 +63,9 @@ the editor's own syntax.
 | `logRepeat` | false, "time", "note" | `"time"` | Record when a repeating entry is done and moves to its next date. (`org-log-repeat`) |
 | `logIntoDrawer` | boolean, string | `false` | Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer. (`org-log-into-drawer`) |
 | `tagsColumn` | number | `-77` | Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`) |
+| `clockIntoDrawer` | boolean, string | `true` | Where `CLOCK:` lines go: `true` for the drawer of `logIntoDrawer` (`LOGBOOK` when that is not a name), the name of a drawer, or `false` for the entry itself. (`org-clock-into-drawer`) |
+| `clockOutRemoveZeroTimeClocks` | boolean | `false` | Clocking out after less than a minute removes the `CLOCK:` line. (`org-clock-out-remove-zero-time-clocks`) |
+| `clockOutWhenDone` | boolean | `true` | Marking the clocked entry done stops the clock. (`org-clock-out-when-done`) |
 | `completeTagsAlwaysOfferAllAgendaTags` | boolean | `false` | Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. (`org-complete-tags-always-offer-all-agenda-tags`) |
 | `todoRepeatToState` | string, true | the first keyword of the sequence | The state a repeating entry returns to when it is done: a keyword, or `true` for the state it had. (`org-todo-repeat-to-state`) |
 | `priorityHighest` | letter, or 0 to 64 | `"A"` | The highest priority. (`org-priority-highest`) |
@@ -105,6 +109,9 @@ the editor's own syntax.
 | `agenda.timeGrid.now` | string | `"now - - - - - - - - - - - - - - - - - - - - - - - - -"` | The text of the line for the current time. (`org-agenda-current-time-string`) |
 | `agenda.showCurrentTimeInGrid` | boolean | `true` | Show the current time in the grid. (`org-agenda-show-current-time-in-grid`) |
 | `agenda.weekendDays` | number[] | `[6, 0]` | The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`) |
+| `agenda.startWithLogMode` | boolean | `false` | Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it). (`org-agenda-start-with-log-mode`) |
+| `agenda.startWithClockreportMode` | boolean | `false` | Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`) |
+| `agenda.logModeItems` | string[] | `["closed", "clock"]` | What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`) |
 | `agenda.startDay` | string | today | The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`) |
 | `agenda.customCommands` | object[] | `[]` | Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT\|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`span`, `startDay`…). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`) |
 | `virtualDocuments` | boolean | from the client's capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
@@ -171,6 +178,9 @@ number.
 | `org.agenda.redo` | Rebuilds the agenda. |
 | `org.agenda.goto` | Shows the entry of the agenda line under the cursor. |
 | `org.agenda.save` | `org-save-all-org-buffers`: returns `{ "save": [uri…] }`, the Org files the editor has open; the editor saves those with changes. |
+| `org.agenda.log`, `org.agenda.clockreport` | Turn log mode (`org-agenda-log-mode`: what was closed and clocked each day) or the clock report under the agenda (`org-agenda-clockreport-mode`) on or off. |
+| `org.clock.in`, `org.clock.out`, `org.clock.cancel` | `org-clock-in`, `org-clock-out`, `org-clock-cancel`, on the entry at the cursor or of an agenda line. Clocking in stops a clock that runs elsewhere, in the same edit; the clock is a `CLOCK:` line in the `LOGBOOK` drawer, as `clockIntoDrawer` says. |
+| `org.clock.goto` | `org-clock-goto`: shows the entry the clock runs on, or the one clocked last. |
 | `org.todo` | `org-todo`: when the keywords have keys (`TODO(t)`), asks for one (`org-fast-todo-selection`) and sets the state it selects, a space clearing it; without keys, the next state. In an Org file or on an agenda line. |
 | `org.todo.next`, `org.todo.previous` | Changes the TODO state of the entry at the cursor, in an Org file or on an agenda line. |
 | `org.priority.up`, `org.priority.down` | Raises or lowers the priority of the entry at the cursor, in an Org file or on an agenda line. |
@@ -284,7 +294,9 @@ it. Changes are not logged (`org-log-reschedule` and the like) yet.
 **Code actions.** The commands that apply at the cursor are also offered
 as code actions, with the command name as the action's kind. In an Org
 file the actions carry their edit (versioned when the client supports
-`documentChanges`); in the agenda they carry the command to run. A client
+`documentChanges`), except clocking (`org.clock.in`, `org.clock.out`,
+`org.clock.cancel`), which may change another file too and carries its
+command; in the agenda they carry the command to run. A client
 can therefore also bind a key by requesting code actions with
 `context.only` set to a kind, which matches hierarchically: `org` selects
 every action.

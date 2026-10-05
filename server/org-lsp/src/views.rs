@@ -118,6 +118,7 @@ fn token_style(style: Style) -> Option<(TokenType, u32)> {
         Style::Priority => (TokenType::Priority, 0),
         Style::Tags => (TokenType::Tag, 0),
         Style::Link => (TokenType::Link, 0),
+        Style::Table => (TokenType::TableDelimiter, 0),
         Style::Face(face) => match face {
             Face::Scheduled => (TokenType::AgendaScheduled, 0),
             Face::ScheduledToday => (TokenType::AgendaScheduled, modifier::TODAY),
@@ -138,9 +139,22 @@ fn token_style(style: Style) -> Option<(TokenType, u32)> {
 /// Build the view for `query` from the agenda files, given as their URIs
 /// and outlines in agenda order, as `blocks` say: one for a plain agenda
 /// or TODO list, more for a block agenda, with a separator between them.
-pub fn render(query: Query, blocks: &[Block], files: &[(Uri, &Outline)], now: Now) -> View {
+pub fn render(
+    query: Query,
+    blocks: &[Block],
+    files: &[(Uri, &Outline)],
+    now: Now,
+    clocked: Option<(&Uri, usize)>,
+) -> View {
     let outlines: Vec<&Outline> = files.iter().map(|(_, outline)| *outline).collect();
-    let (rendered, starts) = block_lines(blocks, &outlines, now);
+    let named: Vec<(&Outline, String, String)> = files
+        .iter()
+        .map(|(uri, outline)| {
+            let path = crate::uri::to_path(uri).map(|path| path.display().to_string()).unwrap_or_default();
+            (*outline, path, crate::uri::file_name(uri))
+        })
+        .collect();
+    let (rendered, starts) = block_lines(blocks, &named, now);
     let mut text = String::new();
     let mut lines = Vec::with_capacity(rendered.len());
     let mut tokens = Vec::new();
@@ -154,19 +168,42 @@ pub fn render(query: Query, blocks: &[Block], files: &[(Uri, &Outline)], now: No
                     today_line = Some(number as u32);
                 }
             }
-            LineKind::Header | LineKind::Separator => day = None,
+            LineKind::Header | LineKind::Separator | LineKind::Table => day = None,
             LineKind::Item => {}
         }
         let shown = agenda::display(line);
         let base = text.len();
+        // The entry the clock runs on shows with `org-agenda-clocking`:
+        // every part of its line, the gaps included.
+        let clocking = line.item.as_ref().and_then(|item| item.source).is_some_and(|source| {
+            clocked.is_some_and(|(uri, offset)| {
+                files[source.file].0 == *uri && agenda::entry(&outlines, source).offset == offset
+            })
+        });
+        let mut at = 0;
         for segment in &shown.segments {
-            if let Some((ty, modifiers)) = token_style(segment.style) {
-                let range = TextRange::new(
-                    TextSize::new((base + segment.start) as u32),
-                    TextSize::new((base + segment.end) as u32),
-                );
-                tokens.push(Token { range, ty, modifiers });
+            let range = |start: usize, end: usize| {
+                TextRange::new(TextSize::new((base + start) as u32), TextSize::new((base + end) as u32))
+            };
+            if clocking && segment.start > at {
+                tokens.push(Token { range: range(at, segment.start), ty: TokenType::AgendaClocking, modifiers: 0 });
             }
+            at = segment.end;
+            if let Some((ty, modifiers)) = token_style(segment.style) {
+                let modifiers = if clocking { modifiers | modifier::CLOCKING } else { modifiers };
+                tokens.push(Token { range: range(segment.start, segment.end), ty, modifiers });
+            } else if clocking {
+                tokens.push(Token {
+                    range: range(segment.start, segment.end),
+                    ty: TokenType::AgendaClocking,
+                    modifiers: 0,
+                });
+            }
+        }
+        if clocking && shown.text.len() > at {
+            let range =
+                TextRange::new(TextSize::new((base + at) as u32), TextSize::new((base + shown.text.len()) as u32));
+            tokens.push(Token { range, ty: TokenType::AgendaClocking, modifiers: 0 });
         }
         text.push_str(&shown.text);
         text.push('\n');
@@ -188,15 +225,17 @@ pub fn render(query: Query, blocks: &[Block], files: &[(Uri, &Outline)], now: No
 
 /// The text of the view `blocks` make, as Org prints it (`org-batch-agenda`):
 /// links as written.
-pub fn org_text(blocks: &[Block], outlines: &[&Outline], now: Now) -> String {
-    block_lines(blocks, outlines, now).0.into_iter().map(|(_, line)| line.text + "\n").collect()
+pub fn org_text(blocks: &[Block], files: &[(&Outline, String, String)], now: Now) -> String {
+    block_lines(blocks, files, now).0.into_iter().map(|(_, line)| line.text + "\n").collect()
 }
 
 type BlockLines = (Vec<(usize, agenda::Line)>, Vec<Option<(Day, Span)>>);
 
 /// The lines of every block, with the block each belongs to, and the
 /// days and span of the blocks that are agendas.
-fn block_lines(blocks: &[Block], outlines: &[&Outline], now: Now) -> BlockLines {
+fn block_lines(blocks: &[Block], files: &[(&Outline, String, String)], now: Now) -> BlockLines {
+    let outlines: Vec<&Outline> = files.iter().map(|(outline, _, _)| *outline).collect();
+    let outlines = outlines.as_slice();
     let mut rendered: Vec<(usize, agenda::Line)> = Vec::new();
     let mut starts = Vec::new();
     for (number, block) in blocks.iter().enumerate() {
@@ -216,7 +255,16 @@ fn block_lines(blocks: &[Block], outlines: &[&Outline], now: Now) -> BlockLines 
         if number > 0 {
             rendered.extend(agenda::block_separator().into_iter().map(|line| (number, line)));
         }
+        let (start, end) = (view.start, view.end);
         rendered.extend(view.lines.into_iter().map(|line| (number, line)));
+        // `org-agenda-clockreport-mode`: the clock table for the days shown.
+        if config.clockreport && matches!(block.kind, BlockKind::Agenda { .. }) {
+            let named: Vec<(&Outline, &str, &str)> =
+                files.iter().map(|(outline, path, name)| (*outline, path.as_str(), name.as_str())).collect();
+            for text in agenda::report::clock_table(&named, start, end) {
+                rendered.push((number, agenda::Line { text, kind: LineKind::Table, item: None }));
+            }
+        }
     }
     (rendered, starts)
 }
@@ -293,7 +341,8 @@ mod tests {
             header: None,
             config: Config::default(),
         };
-        let view = render(Query::Agenda { start: None, span: Span::Week }, &[block], &[(uri.clone(), &outline)], now);
+        let view =
+            render(Query::Agenda { start: None, span: Span::Week }, &[block], &[(uri.clone(), &outline)], now, None);
         let lines: Vec<&str> = view.text.lines().collect();
         assert_eq!(lines[0], "Week-agenda (W21):");
         assert_eq!(lines[1], "Monday     18 May 2026 W21");

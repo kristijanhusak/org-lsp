@@ -447,6 +447,7 @@ fn opens_the_agenda_from_open_documents() {
             "org.priority.down",
             "org.date.later",
             "org.date.earlier",
+            "org.clock.in",
             "org.agenda.goto"
         ]
     );
@@ -681,6 +682,128 @@ fn runs_custom_agenda_commands() {
     let text = client.view_text(VIEW);
     assert!(text.starts_with("Headlines with TAGS match: office\n"), "{text}");
     assert!(text.contains("Write report"));
+    client.shutdown();
+}
+
+/// `org-clock-in` and its relatives: the `CLOCK:` line in its drawer, the
+/// clock's status for the editor (`org-lsp/clock`), switching to another
+/// entry, clocking out, cancelling, and a done state stopping the clock.
+#[test]
+fn clocks_in_and_out() {
+    const URI: &str = "file:///org/clock.org";
+    let mut text = "* TODO Write\n:PROPERTIES:\n:EFFORT: 1:00\n:END:\n* Other\n".to_string();
+    let mut client = Client::editor(clock(), None);
+    client.open(URI, &text);
+    let mut version = 1;
+    // Run a command; apply its edit as the editor would, and return what
+    // it said and the clock's last status.
+    let mut run = |client: &mut Client, text: &mut String, command: &str, line: u32| {
+        client.received.clear();
+        client.notifications.clear();
+        let at = json!({ "textDocument": { "uri": URI }, "position": { "line": line, "character": 0 } });
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
+        client.settle();
+        if let Some(edit) = client.received.iter().find(|request| request.method == "workspace/applyEdit") {
+            let (_, edits) = edits_of(edit);
+            *text = apply(text, &edits);
+            version += 1;
+            client.notify(
+                "textDocument/didChange",
+                json!({ "textDocument": { "uri": URI, "version": version }, "contentChanges": [{ "text": text }] }),
+            );
+            client.settle();
+        }
+        let status = client
+            .notifications
+            .iter()
+            .rev()
+            .find(|notification| notification.method == "org-lsp/clock")
+            .map(|notification| notification.params.clone());
+        (result, status)
+    };
+
+    let (result, status) = run(&mut client, &mut text, "org.clock.in", 0);
+    assert_eq!(result.unwrap()["message"], "Clock starts at [2026-05-18 Mon 10:30] - showing entire task time.");
+    assert_eq!(
+        text,
+        "* TODO Write\n:PROPERTIES:\n:EFFORT: 1:00\n:END:\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* Other\n"
+    );
+    let status = status.unwrap();
+    assert_eq!((status["text"].as_str(), status["minutes"].as_i64()), (Some("[0:00/1:00] (Write)"), Some(0)));
+    // Again on the same entry: it goes on.
+    let (result, _) = run(&mut client, &mut text, "org.clock.in", 1);
+    assert_eq!(result.unwrap()["message"], "Clock continues in \"Write\"");
+
+    // Another entry: the first clock stops, in the same edit.
+    let (_, status) = run(&mut client, &mut text, "org.clock.in", 7);
+    assert_eq!(
+        text,
+        "* TODO Write\n:PROPERTIES:\n:EFFORT: 1:00\n:END:\n:LOGBOOK:\n\
+         CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n\
+         * Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+    );
+    assert_eq!(status.unwrap()["text"], "[0:00] (Other)");
+    let (result, status) = run(&mut client, &mut text, "org.clock.out", 0);
+    assert_eq!(result.unwrap()["message"], "Clock stopped at [2026-05-18 Mon 10:30] after 0:00");
+    assert_eq!(status, Some(Value::Null));
+    assert!(
+        text.ends_with("* Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n")
+    );
+    let (result, _) = run(&mut client, &mut text, "org.clock.out", 0);
+    assert_eq!(result, Err("No active clock".to_string()));
+
+    // Cancelled: the line goes.
+    let before = text.clone();
+    run(&mut client, &mut text, "org.clock.in", 0).0.unwrap();
+    let (result, _) = run(&mut client, &mut text, "org.clock.cancel", 0);
+    assert_eq!(result.unwrap()["message"], "Clock canceled");
+    assert_eq!(text, before);
+
+    // Going to the clocked entry; and with none, to the last one.
+    run(&mut client, &mut text, "org.clock.in", 0).0.unwrap();
+    run(&mut client, &mut text, "org.clock.goto", 8).0.unwrap();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").unwrap();
+    assert_eq!(shown.params["selection"]["start"], json!({ "line": 0, "character": 0 }));
+
+    // Done: the clock stops with it.
+    let (_, status) = run(&mut client, &mut text, "org.todo.next", 0);
+    assert_eq!(status, Some(Value::Null));
+    assert!(text.starts_with("* DONE Write\n"), "{text}");
+    assert!(!text.contains("CLOCK: [2026-05-18 Mon 10:30]\n"), "{text}");
+    let (result, _) = run(&mut client, &mut text, "org.clock.goto", 3);
+    assert_eq!(result.unwrap()["message"], "No running clock, this is the most recently clocked task");
+    client.shutdown();
+}
+
+/// The agenda: the clocked entry's line highlighted; `l` and `R`.
+#[test]
+fn shows_the_clock_in_the_agenda() {
+    const URI: &str = "file:///org/work.org";
+    let text = "* TODO Write\nSCHEDULED: <2026-05-18 Mon>\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 09:30] =>  0:30\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n";
+    let mut client = Client::editor(clock(), None);
+    client.open(URI, text);
+    let run = |client: &mut Client, command: &str| {
+        let at = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 } });
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
+        client.settle();
+        result
+    };
+    run(&mut client, "org.agenda.list").unwrap();
+    let tokens =
+        client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": VIEW } })).unwrap();
+    let legend = &client.initialize["capabilities"]["semanticTokensProvider"]["legend"];
+    let bit = legend["tokenModifiers"].as_array().unwrap().iter().position(|name| name == "clocking").unwrap();
+    let data = tokens["data"].as_array().unwrap();
+    assert!(data.chunks(5).any(|token| token[4].as_u64().unwrap() & (1 << bit) != 0), "a token is marked clocking");
+
+    assert_eq!(run(&mut client, "org.agenda.log").unwrap()["message"], "Log mode is on");
+    let view = client.view_text(VIEW);
+    assert!(view.contains("Clocked:   (0:30) TODO Write"), "{view}");
+    assert!(view.contains("Clocked:   (-) TODO Write"), "{view}");
+    assert_eq!(run(&mut client, "org.agenda.clockreport").unwrap()["message"], "Clocktable mode is on");
+    let view = client.view_text(VIEW);
+    assert!(view.contains("| work.org | *File time*      | *0:30* |"), "{view}");
+    assert!(view.contains("| Write            | 0:30   |"), "the links show as their descriptions: {view}");
     client.shutdown();
 }
 
@@ -1177,7 +1300,14 @@ fn changes_dates_from_the_agenda() {
     let kinds: Vec<&str> = actions.as_array().unwrap().iter().map(|action| action["kind"].as_str().unwrap()).collect();
     assert_eq!(
         kinds,
-        ["org.todo.next", "org.todo.previous", "org.priority.up", "org.priority.down", "org.agenda.goto"]
+        [
+            "org.todo.next",
+            "org.todo.previous",
+            "org.priority.up",
+            "org.priority.down",
+            "org.clock.in",
+            "org.agenda.goto"
+        ]
     );
     client.shutdown();
 }

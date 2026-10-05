@@ -25,12 +25,16 @@ The other options are in [configuration.md](configuration.md).
 | Keys | Command | What it does |
 | --- | --- | --- |
 | `<Leader>oa` | `org.agenda.dispatch` | Agenda commands |
+| `<Leader>oxj` | `org.clock.goto` | Go to the clocked entry |
 | `<Leader>oc` | `org.capture` | Capture |
 
 ### In Org files
 
 | Keys | Command | What it does |
 | --- | --- | --- |
+| `<Leader>oxi` | `org.clock.in` | Clock in |
+| `<Leader>oxo` | `org.clock.out` | Clock out |
+| `<Leader>oxq` | `org.clock.cancel` | Cancel the clock |
 | `cit` | `org.todo` | Change the TODO state |
 | `ciT` | `org.todo.previous` | Cycle TODO state backward |
 | `ciR` | `org.priority.up` | Raise the priority |
@@ -70,6 +74,11 @@ The other options are in [configuration.md](configuration.md).
 | `vy` | `org.agenda.year` | Agenda: year view |
 | `r` | `org.agenda.redo` | Agenda: rebuild |
 | `<CR>`, `<Tab>` | `org.agenda.goto` | Agenda: go to the entry |
+| `vl` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
+| `R` | `org.agenda.clockreport` | Agenda: the clock report |
+| `I` | `org.clock.in` | Clock in |
+| `O` | `org.clock.out` | Clock out |
+| `X` | `org.clock.cancel` | Cancel the clock |
 | `t` | `org.todo` | Change the TODO state |
 | `+` | `org.priority.up` | Raise the priority |
 | `-` | `org.priority.down` | Lower the priority |

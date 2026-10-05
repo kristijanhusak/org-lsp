@@ -142,7 +142,11 @@ for _, command in ipairs(org_lsp.manifest.commands) do
     end
   end
 end
-eq(announced, { ['org.agenda.dispatch'] = '<Leader>oa', ['org.capture'] = '<Leader>oc' }, 'the built-in global keys are the ones the server names')
+eq(
+  announced,
+  { ['org.agenda.dispatch'] = '<Leader>oa', ['org.capture'] = '<Leader>oc', ['org.clock.goto'] = '<Leader>oxj' },
+  'the built-in global keys are the ones the server names'
+)
 eq(vim.fn.maparg('f', 'n', false, true).desc, 'Agenda: go forward in time', 'agenda keys carry the server\'s titles')
 eq(vim.fn.maparg('f', 'n', false, true).buffer, 1, 'agenda keys are local to the agenda')
 eq(vim.fn.maparg('f', 'n', false, true).nowait, 1, 'agenda keys run at once')
@@ -440,7 +444,7 @@ vim.cmd('Org agenda list')
 wait_for_view('Week-agenda (W21):')
 vim.cmd('Org agenda todos')
 wait_for_view('Global list of TODO items of type: ALL')
-eq(vim.fn.getcompletion('Org agenda.l', 'cmdline'), { 'agenda.list', 'agenda.later' }, 'commands complete')
+eq(vim.fn.getcompletion('Org agenda.l', 'cmdline'), { 'agenda.list', 'agenda.later', 'agenda.log' }, 'commands complete')
 
 -- 9. A command that cannot work says why.
 local messages = {}

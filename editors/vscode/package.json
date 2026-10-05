@@ -130,6 +130,36 @@
         "category": "Org"
       },
       {
+        "command": "org.agenda.log",
+        "title": "Agenda: log mode, what was closed and clocked",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.clockreport",
+        "title": "Agenda: the clock report",
+        "category": "Org"
+      },
+      {
+        "command": "org.clock.in",
+        "title": "Clock in",
+        "category": "Org"
+      },
+      {
+        "command": "org.clock.out",
+        "title": "Clock out",
+        "category": "Org"
+      },
+      {
+        "command": "org.clock.cancel",
+        "title": "Cancel the clock",
+        "category": "Org"
+      },
+      {
+        "command": "org.clock.goto",
+        "title": "Go to the clocked entry",
+        "category": "Org"
+      },
+      {
         "command": "org.todo",
         "title": "Change the TODO state",
         "category": "Org"
@@ -427,6 +457,24 @@
               "type": "integer",
               "markdownDescription": "Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`)",
               "default": -77
+            },
+            "clockIntoDrawer": {
+              "type": [
+                "boolean",
+                "string"
+              ],
+              "markdownDescription": "Where `CLOCK:` lines go: `true` for the drawer of `logIntoDrawer` (`LOGBOOK` when that is not a name), the name of a drawer, or `false` for the entry itself. (`org-clock-into-drawer`)",
+              "default": true
+            },
+            "clockOutRemoveZeroTimeClocks": {
+              "type": "boolean",
+              "markdownDescription": "Clocking out after less than a minute removes the `CLOCK:` line. (`org-clock-out-remove-zero-time-clocks`)",
+              "default": false
+            },
+            "clockOutWhenDone": {
+              "type": "boolean",
+              "markdownDescription": "Marking the clocked entry done stops the clock. (`org-clock-out-when-done`)",
+              "default": true
             },
             "completeTagsAlwaysOfferAllAgendaTags": {
               "type": "boolean",
@@ -883,6 +931,31 @@
                     0
                   ]
                 },
+                "startWithLogMode": {
+                  "type": "boolean",
+                  "markdownDescription": "Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it). (`org-agenda-start-with-log-mode`)",
+                  "default": false
+                },
+                "startWithClockreportMode": {
+                  "type": "boolean",
+                  "markdownDescription": "Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)",
+                  "default": false
+                },
+                "logModeItems": {
+                  "items": {
+                    "enum": [
+                      "closed",
+                      "clock",
+                      "state"
+                    ]
+                  },
+                  "type": "array",
+                  "markdownDescription": "What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`)",
+                  "default": [
+                    "closed",
+                    "clock"
+                  ]
+                },
                 "startDay": {
                   "type": "string",
                   "markdownDescription": "The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)"
@@ -1120,6 +1193,10 @@
         "description": "Agenda: a line of the time grid"
       },
       {
+        "id": "agendaClocking",
+        "description": "Agenda: the line of the entry the clock runs on, between its other parts"
+      },
+      {
         "id": "calendarHeader",
         "description": "Date prompt: the month and year above a month"
       },
@@ -1232,6 +1309,10 @@
       {
         "id": "hidden",
         "description": "Text Org hides (link brackets and targets, emphasis markers); editors that can conceal text conceal it"
+      },
+      {
+        "id": "clocking",
+        "description": "Agenda: part of the line of the entry the clock runs on"
       }
     ],
     "semanticTokenScopes": [
@@ -1445,6 +1526,14 @@
           "agendaTimeGrid.current": [
             "markup.bold.current-time.agenda.org",
             "markup.bold"
+          ],
+          "agendaClocking": [
+            "markup.highlight.clocking.agenda.org",
+            "markup.inserted"
+          ],
+          "*.clocking": [
+            "markup.highlight.clocking.agenda.org",
+            "markup.inserted"
           ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
@@ -1679,6 +1768,14 @@
             "markup.bold.current-time.agenda.org",
             "markup.bold"
           ],
+          "agendaClocking": [
+            "markup.highlight.clocking.agenda.org",
+            "markup.inserted"
+          ],
+          "*.clocking": [
+            "markup.highlight.clocking.agenda.org",
+            "markup.inserted"
+          ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
             "entity.name.function"
@@ -1912,6 +2009,14 @@
             "markup.bold.current-time.agenda.org",
             "markup.bold"
           ],
+          "agendaClocking": [
+            "markup.highlight.clocking.agenda.org",
+            "markup.inserted"
+          ],
+          "*.clocking": [
+            "markup.highlight.clocking.agenda.org",
+            "markup.inserted"
+          ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
             "entity.name.function"
@@ -2019,6 +2124,46 @@
       {
         "command": "org.agenda.save",
         "key": "ctrl+x ctrl+s",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.log",
+        "key": "l",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.log",
+        "key": "v l",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.clockreport",
+        "key": "shift+r",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.clockreport",
+        "key": "v shift+r",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.in",
+        "key": "shift+i",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.out",
+        "key": "shift+o",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.cancel",
+        "key": "shift+x",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.goto",
+        "key": "shift+j",
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
       },
       {

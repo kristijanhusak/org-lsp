@@ -1,0 +1,44 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day",
+      "log": true
+    },
+    {
+      "view": "agenda",
+      "span": "week",
+      "log": true
+    },
+    {
+      "view": "agenda",
+      "span": "day",
+      "clockreport": true
+    },
+    {
+      "view": "agenda",
+      "span": "week",
+      "clockreport": true
+    },
+    {
+      "view": "agenda",
+      "span": "week",
+      "log": true,
+      "clockreport": true
+    },
+    {
+      "view": "agenda",
+      "span": "day",
+      "start": "2026-10-07",
+      "clockreport": true
+    },
+    {
+      "view": "agenda",
+      "span": "day",
+      "start": "2026-10-01",
+      "clockreport": true
+    }
+  ]
+}

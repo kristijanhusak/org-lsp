@@ -1,0 +1,24 @@
+Week-agenda (W41):
+Monday      5 October 2026 W41
+  home:        7:00-7:20  Clocked:   (0:20) TODO Water plants
+  work:        7:45...... Closed:     DONE [#A] Book the room with [[https://rooms.example.com][the tool]] :office::
+  work:        8:00-9:15  Clocked:   (1:15) TODO Write the report [1/2] - Drafted the outline :office:
+               8:00...... ----------------
+  work:        9:00...... Scheduled:  TODO Write the report [1/2]       :office:
+  work:        9:30-10:00 Clocked:   (0:30) NEXT Outline the sections  :office::
+              10:00...... ----------------
+  work:       10:10...... Clocked:   (-) Running now
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+Tuesday     6 October 2026
+  work:       14:00-15:00 Clocked:   (1:00) Meeting with a rather long title that goes beyond forty characters :meeting:
+  work:       23:30-1:00  Clocked:   (1:30) A third level              :office::
+Wednesday   7 October 2026
+Thursday    8 October 2026
+Friday      9 October 2026
+Saturday   10 October 2026
+Sunday     11 October 2026
