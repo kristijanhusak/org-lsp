@@ -47,31 +47,21 @@ with the day you moved to, if you did), `q` or `Ctrl+G` to give up.
 
 ## Keys
 
-The agenda is read-only, so it has Org's single-letter keys:
+Emacs's keys are bound where they take nothing from the editor: in the
+agenda (`f`, `b`, `t`, `+`, `Enter`, …), in the date prompt, and in capture
+buffers (`Ctrl+C Ctrl+C`). After a change of priority or date in the
+agenda, the cursor goes with the entry to its new line.
 
-| Key | In the agenda |
-| --- | --- |
-| `f` / `b` | Later / earlier |
-| `.` | Today |
-| `d`, `w`, `v d`, `v w`, `v t`, `v m`, `v y` | Day, week, fortnight, month, year |
-| `r` or `g` | Rebuild |
-| `t` | Next TODO state of the entry |
-| `+` / `-`, `Shift+Up` / `Shift+Down` | Raise / lower the entry's priority |
-| `Shift+Right` / `Shift+Left` | Move the entry's date a day later / earlier |
-| `Enter` or `Tab` | Go to the entry |
-| `s` or `Ctrl+X Ctrl+S` | Save all Org files with changes |
-
-After a change of priority or date, the cursor goes with the entry to
-its new line.
-
-No keys are bound in Org files: Emacs's keys there (`C-c C-t`,
-`S-<right>`) would take over copying and selecting. Add your own in
-`keybindings.json`:
+Org files get no keys, because Emacs's keys there (`C-c C-t`, `S-<right>`)
+would take over copying and selecting. Add your own in `keybindings.json`:
 
 ```json
-{ "key": "alt+t", "command": "org.todo.next", "when": "editorTextFocus && editorLangId == 'org'" },
+{ "key": "alt+t", "command": "org.todo", "when": "editorTextFocus && editorLangId == 'org'" },
 { "key": "alt+up", "command": "org.shift.up", "when": "editorTextFocus && editorLangId == 'org'" }
 ```
+
+[docs/keys/vscode.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/keys/vscode.md) lists every key and
+command, and how to add, change and remove keys.
 
 ## Settings
 

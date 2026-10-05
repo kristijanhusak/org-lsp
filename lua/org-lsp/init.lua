@@ -23,7 +23,7 @@ local SERVER = 'org_lsp'
 ---@field startup_folded 'showeverything'|'overview' Fold state of a newly opened file.
 ---@field folding boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
----@field mappings table|false Keys by scope (`global`, `org`, `agenda`, `calendar`, `capture`). In a scope, a command maps to a key, a list of keys, or `false`; commands that are not listed keep the server's default keys. `false` instead of the table sets no keys at all.
+---@field mappings table|false Keys by scope (`global`, `org`, `agenda`, `calendar`, `capture`). In a scope, a command maps to a key, a list of keys, or `false`; commands that are not listed keep the server's default keys. `false` instead of a scope's table sets no keys in that scope, and instead of the whole table no keys at all. See docs/keys/neovim.md.
 local defaults = {
   cmd = nil,
   settings = {},
@@ -270,7 +270,7 @@ end
 ---@return table<string, string[]> # command to keys
 ---@return table<string, boolean> # the keys that keep a meaning of their own
 local function keys_in(scope)
-  if not M.config.mappings then
+  if not M.config.mappings or M.config.mappings[scope] == false then
     return {}, {}
   end
   local keys, native = {}, {}

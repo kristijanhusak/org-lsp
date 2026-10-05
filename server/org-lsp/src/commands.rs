@@ -215,6 +215,11 @@ pub const COMMANDS: &[Command] = &[
         ..edit(PRIORITY_UP, "Raise the priority")
     },
     Command {
+        emacs: &[key(Agenda, "-"), key(Agenda, "S-<down>")],
+        vim: &[key(Org, "cir"), key(Agenda, "-")],
+        ..edit(PRIORITY_DOWN, "Lower the priority")
+    },
+    Command {
         emacs: &[key(Org, "C-c ,"), key(Agenda, ",")],
         vim: &[key(Org, "<Leader>o,"), key(Agenda, "<Leader>o,")],
         input: Some(Input { kind: "priority", prompt: "Priority" }),
@@ -247,11 +252,6 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Capture, "<Leader>or")],
         input: Some(Input { kind: "choice", prompt: "Refile to" }),
         ..command(CAPTURE_REFILE, "Capture: refile the entry")
-    },
-    Command {
-        emacs: &[key(Agenda, "-"), key(Agenda, "S-<down>")],
-        vim: &[key(Org, "cir"), key(Agenda, "-")],
-        ..edit(PRIORITY_DOWN, "Lower the priority")
     },
     Command { vim: &[native(Org, "<C-a>")], ..edit(TIMESTAMP_UP, "Increase the part of the timestamp at the cursor") },
     Command {

@@ -446,5 +446,16 @@ eq(offered, { 'Inbox', 'Projects' }, 'the top-level headlines of the file')
 eq(asked_to, 'Refile subtree "Call Bob" to: ', 'what is refiled')
 vim.ui.select = select
 
+-- 16. `false` for a scope sets none of its keys, the plugin's own included.
+require('org-lsp').setup({ mappings = { org = false } })
+local bare = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* TODO bare' }, bare)
+vim.cmd.edit(bare)
+wait('the server to attach to a file without keys', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+eq({ vim.fn.maparg('gt', 'n'), vim.fn.maparg('cir', 'n'), vim.fn.maparg('<Tab>', 'n') }, { '', '', '' }, 'no keys in Org files')
+eq(vim.fn.maparg('<Leader>oa', 'n', false, true).buffer, 0, 'global keys stay')
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')
