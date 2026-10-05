@@ -10,6 +10,7 @@ use org_core::refile::{OutlinePath, Select, Settings as RefileSettings};
 use org_core::todo::{RepeatTo, Settings as TodoSettings};
 use org_syntax::{Logging, TodoKeywords};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -71,6 +72,9 @@ pub struct Options {
     pub default_notes_file: Option<String>,
     /// A fixed date and time, for tests.
     pub clock: Option<ClockOption>,
+    /// The shared configuration file: `false` for none, or a path instead
+    /// of the usual one. Read by `load`, before the options are.
+    pub config_file: Option<serde_json::Value>,
 }
 
 /// An entry of `org-refile-targets`: the files, `"current"` (the entry's
@@ -402,6 +406,209 @@ impl Options {
     }
 }
 
+/// The options and where they came from.
+pub struct Loaded {
+    pub options: Options,
+    /// The shared configuration file that was looked for, if any.
+    pub file: Option<PathBuf>,
+    /// Whether it was there and read.
+    pub read: bool,
+    /// The options as given: the file's, with the editor's on top.
+    pub merged: serde_json::Value,
+    /// What could not be read, to tell the user.
+    pub problems: Vec<String>,
+}
+
+/// The shared configuration file when nothing names another one:
+/// `$ORG_LSP_CONFIG`, else `config.toml` or `config.json` in
+/// `$XDG_CONFIG_HOME/org-lsp`, `~/.config/org-lsp`, or on Windows
+/// `%APPDATA%\org-lsp`; `config.toml` when neither is there. With both
+/// there, `config.toml` is the one, and the second value says so. `var`
+/// reads the environment.
+pub fn default_config_file(var: &dyn Fn(&str) -> Option<String>) -> (Option<PathBuf>, Option<String>) {
+    let set = |name: &str| var(name).filter(|value| !value.is_empty());
+    if let Some(path) = set("ORG_LSP_CONFIG") {
+        return (Some(expand_home(&path, var)), None);
+    }
+    let directory = if let Some(config) = set("XDG_CONFIG_HOME") {
+        PathBuf::from(config)
+    } else if cfg!(windows) {
+        match set("APPDATA") {
+            Some(directory) => PathBuf::from(directory),
+            None => return (None, None),
+        }
+    } else {
+        match set("HOME") {
+            Some(home) => PathBuf::from(home).join(".config"),
+            None => return (None, None),
+        }
+    };
+    let directory = directory.join("org-lsp");
+    let (toml, json) = (directory.join("config.toml"), directory.join("config.json"));
+    match (toml.exists(), json.exists()) {
+        (true, true) => {
+            let warning = format!("{} is ignored, as {} is there too", json.display(), toml.display());
+            (Some(toml), Some(warning))
+        }
+        (false, true) => (Some(json), None),
+        _ => (Some(toml), None),
+    }
+}
+
+/// The options in the configuration file at `path`, which `text` holds:
+/// JSON for a `.json` file, with comments and trailing commas allowed as in
+/// VS Code's settings, and TOML for any other.
+fn parse_config(path: &std::path::Path, text: &str) -> Result<serde_json::Value, String> {
+    if path.extension().is_some_and(|extension| extension.eq_ignore_ascii_case("json")) {
+        let value: serde_json::Value =
+            serde_json::from_str(&strip_json_comments(text)).map_err(|error| format!("is not valid JSON: {error}"))?;
+        if value.is_object() {
+            Ok(value)
+        } else {
+            Err("is not a JSON object".to_string())
+        }
+    } else {
+        let table = text.parse::<toml::Table>().map_err(|error| format!("is not valid TOML: {error}"))?;
+        Ok(serde_json::to_value(table).unwrap_or_default())
+    }
+}
+
+/// JSON with comments (`//`, `/* */`) and trailing commas made plain JSON.
+/// What goes is replaced by spaces, so that errors keep their lines and
+/// columns.
+fn strip_json_comments(text: &str) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let mut out: Vec<char> = Vec::with_capacity(chars.len());
+    // Where the last comma outside a string is in `out`, while only
+    // blanks follow it.
+    let mut comma: Option<usize> = None;
+    let mut index = 0;
+    while index < chars.len() {
+        let c = chars[index];
+        if c == '"' {
+            comma = None;
+            out.push(c);
+            index += 1;
+            while index < chars.len() {
+                let c = chars[index];
+                out.push(c);
+                index += 1;
+                if c == '\\' && index < chars.len() {
+                    out.push(chars[index]);
+                    index += 1;
+                } else if c == '"' {
+                    break;
+                }
+            }
+        } else if c == '/' && chars.get(index + 1) == Some(&'/') {
+            while index < chars.len() && chars[index] != '\n' {
+                out.push(' ');
+                index += 1;
+            }
+        } else if c == '/' && chars.get(index + 1) == Some(&'*') {
+            out.extend([' ', ' ']);
+            index += 2;
+            while index < chars.len() && !(chars[index] == '*' && chars.get(index + 1) == Some(&'/')) {
+                out.push(if chars[index] == '\n' { '\n' } else { ' ' });
+                index += 1;
+            }
+            if index < chars.len() {
+                out.extend([' ', ' ']);
+                index += 2;
+            }
+        } else {
+            if (c == '}' || c == ']') && comma.is_some() {
+                out[comma.take().unwrap_or_default()] = ' ';
+            } else if c == ',' {
+                comma = Some(out.len());
+            } else if !c.is_whitespace() {
+                comma = None;
+            }
+            out.push(c);
+            index += 1;
+        }
+    }
+    out.into_iter().collect()
+}
+
+/// `path` with a leading `~/` for the home directory.
+fn expand_home(path: &str, var: &dyn Fn(&str) -> Option<String>) -> PathBuf {
+    match (path.strip_prefix("~/"), var("HOME").or_else(|| var("USERPROFILE"))) {
+        (Some(rest), Some(home)) => PathBuf::from(home).join(rest),
+        _ => PathBuf::from(path),
+    }
+}
+
+/// The options: those of the shared configuration file, with the
+/// editor's (`initializationOptions`) on top. An object such as `agenda`
+/// is merged key by key; anything else the editor gives replaces the
+/// file's. The editor's `configFile` says which file to read: `false` for
+/// none, a path, or by default `default_config_file`.
+pub fn load(editor: Option<serde_json::Value>, var: &dyn Fn(&str) -> Option<String>) -> Loaded {
+    let mut problems = Vec::new();
+    let mut editor = match editor {
+        Some(serde_json::Value::Object(fields)) => fields,
+        // No options; Neovim sends an empty table as `[]`.
+        None | Some(serde_json::Value::Null) => serde_json::Map::new(),
+        Some(serde_json::Value::Array(items)) if items.is_empty() => serde_json::Map::new(),
+        Some(_) => {
+            problems.push("the options are not an object and are ignored".to_string());
+            serde_json::Map::new()
+        }
+    };
+    // A file the editor names must be there; the usual one may not be.
+    let usual = |problems: &mut Vec<String>| {
+        let (file, warning) = default_config_file(var);
+        problems.extend(warning);
+        (file, false)
+    };
+    let (file, named) = match editor.remove("configFile") {
+        Some(serde_json::Value::Bool(false)) => (None, false),
+        Some(serde_json::Value::String(path)) if !path.is_empty() => (Some(expand_home(&path, var)), true),
+        None | Some(serde_json::Value::Bool(true)) => usual(&mut problems),
+        Some(_) => {
+            problems.push("the option `configFile` is malformed and is ignored".to_string());
+            usual(&mut problems)
+        }
+    };
+    let mut merged = serde_json::json!({});
+    let mut read = false;
+    if let Some(path) = &file {
+        match std::fs::read_to_string(path) {
+            Ok(text) => match parse_config(path, &text) {
+                Ok(options) => {
+                    merged = options;
+                    read = true;
+                }
+                Err(error) => problems.push(format!("{} {error}; it is ignored", path.display())),
+            },
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound && !named => {}
+            Err(error) => problems.push(format!("cannot read {}: {error}", path.display())),
+        }
+    }
+    merge(&mut merged, serde_json::Value::Object(editor));
+    let (options, dropped) = Options::read(merged.clone());
+    problems.extend(dropped.into_iter().map(|name| format!("the option `{name}` is malformed and is ignored")));
+    Loaded { options, file, read, merged, problems }
+}
+
+/// `over` on top of `base`: objects key by key, anything else replaced.
+fn merge(base: &mut serde_json::Value, over: serde_json::Value) {
+    match (base, over) {
+        (serde_json::Value::Object(base), serde_json::Value::Object(over)) => {
+            for (key, value) in over {
+                match base.get_mut(&key) {
+                    Some(slot) if slot.is_object() && value.is_object() => merge(slot, value),
+                    _ => {
+                        base.insert(key, value);
+                    }
+                }
+            }
+        }
+        (base, over) => *base = over,
+    }
+}
+
 /// `value`, at `path` among the options, without what cannot be read: an
 /// object loses the fields that cannot, anything else is left out whole.
 fn keep_readable(
@@ -651,6 +858,146 @@ mod tests {
         // Neovim sends an empty table as `[]`.
         assert!(Options::read(serde_json::json!([])).1.is_empty());
         assert!(Options::read(serde_json::Value::Null).1.is_empty());
+    }
+
+    fn temp_file(name: &str, text: &str) -> PathBuf {
+        let directory = std::env::temp_dir().join(format!("org-lsp-config-{}-{name}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("config.toml");
+        std::fs::write(&path, text).unwrap();
+        path
+    }
+
+    fn no_env(_: &str) -> Option<String> {
+        None
+    }
+
+    #[test]
+    fn the_editors_options_go_on_top_of_the_files() {
+        let file = temp_file(
+            "merge",
+            "logDone = \"time\"\ntodoKeywords = [\"TODO\", \"NEXT\", \"|\", \"DONE\"]\n\n[agenda]\ndeadlineWarningDays = 3\nspan = \"week\"\n",
+        );
+        let editor = serde_json::json!({
+            "configFile": file.display().to_string(),
+            "logDone": "note",
+            "agenda": { "span": "day" }
+        });
+        let loaded = load(Some(editor), &no_env);
+        assert!(loaded.problems.is_empty(), "{:?}", loaded.problems);
+        assert_eq!((loaded.file, loaded.read), (Some(file.clone()), true));
+        assert_eq!(
+            loaded.merged,
+            serde_json::json!({
+                "logDone": "note",
+                "todoKeywords": ["TODO", "NEXT", "|", "DONE"],
+                "agenda": { "deadlineWarningDays": 3, "span": "day" }
+            })
+        );
+        let config = loaded.options.agenda_config();
+        assert_eq!((config.span, config.deadline_warning_days), (Span::Day, 3));
+        assert_eq!(loaded.options.todo_settings().log_done, Some(Logging::Note));
+
+        // `false`: no file.
+        let alone = load(Some(serde_json::json!({ "configFile": false, "logDone": "time" })), &no_env);
+        assert_eq!((alone.file, alone.read, alone.merged), (None, false, serde_json::json!({ "logDone": "time" })));
+        std::fs::remove_dir_all(file.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn a_file_that_cannot_be_read_is_reported_and_left_out() {
+        let file = temp_file("broken", "logDone = \"time\"\nagenda = [\n");
+        let loaded =
+            load(Some(serde_json::json!({ "configFile": file.display().to_string(), "logRepeat": false })), &no_env);
+        assert!(!loaded.read);
+        assert_eq!(loaded.problems.len(), 1);
+        assert!(
+            loaded.problems[0].contains("is not valid TOML") && loaded.problems[0].contains("line 2"),
+            "{:?}",
+            loaded.problems
+        );
+        assert_eq!(loaded.merged, serde_json::json!({ "logRepeat": false }));
+
+        // A malformed option in the file goes on its own.
+        std::fs::write(&file, "logDone = \"time\"\ntagsColumn = \"far\"\n").unwrap();
+        let loaded = load(Some(serde_json::json!({ "configFile": file.display().to_string() })), &no_env);
+        assert_eq!(loaded.problems, ["the option `tagsColumn` is malformed and is ignored"]);
+        assert_eq!(loaded.options.todo_settings().log_done, Some(Logging::Time));
+
+        // A file the editor names must be there; the usual one need not be.
+        let missing = file.with_file_name("missing.toml");
+        let named = load(Some(serde_json::json!({ "configFile": missing.display().to_string() })), &no_env);
+        assert!(named.problems[0].starts_with("cannot read"), "{:?}", named.problems);
+        let home = file.parent().unwrap().display().to_string();
+        let usual = load(None, &|name| (name == "HOME").then(|| home.clone()));
+        assert!(usual.problems.is_empty() && !usual.read);
+        assert_eq!(usual.file, Some(file.parent().unwrap().join(".config/org-lsp/config.toml")));
+        std::fs::remove_dir_all(file.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn a_json_file_may_have_comments_and_trailing_commas() {
+        let text = r#"{
+  // Where the agenda is built from.
+  "agendaFiles": ["~/org", "https://x//y", "/* kept */",],
+  /* Org's own
+     default. */
+  "agenda": { "span": "day", },
+}
+"#;
+        assert_eq!(
+            parse_config(std::path::Path::new("config.json"), text),
+            Ok(
+                serde_json::json!({ "agendaFiles": ["~/org", "https://x//y", "/* kept */"], "agenda": { "span": "day" } })
+            )
+        );
+        // Errors keep their lines.
+        let error = parse_config(std::path::Path::new("config.json"), "{\n  // a\n  \"logDone\": time\n}").unwrap_err();
+        assert!(error.contains("line 3"), "{error}");
+        assert_eq!(parse_config(std::path::Path::new("c.JSON"), "[1]"), Err("is not a JSON object".to_string()));
+        // Any other name is TOML.
+        assert_eq!(
+            parse_config(std::path::Path::new("work.conf"), "logDone = \"time\""),
+            Ok(serde_json::json!({ "logDone": "time" }))
+        );
+    }
+
+    #[test]
+    fn config_toml_or_config_json() {
+        let toml = temp_file("formats", "logDone = \"time\"\n");
+        let directory = toml.parent().unwrap().to_path_buf();
+        let config = directory.join("org-lsp");
+        std::fs::create_dir_all(&config).unwrap();
+        let home = directory.display().to_string();
+        let env = |name: &str| (name == "XDG_CONFIG_HOME").then(|| home.clone());
+        // Only JSON: that one.
+        std::fs::write(config.join("config.json"), "{ \"logDone\": \"note\", }").unwrap();
+        assert_eq!(default_config_file(&env), (Some(config.join("config.json")), None));
+        let loaded = load(None, &env);
+        assert_eq!((loaded.read, loaded.merged), (true, serde_json::json!({ "logDone": "note" })));
+        // Both: TOML, and a word about the other.
+        std::fs::rename(&toml, config.join("config.toml")).unwrap();
+        let (file, warning) = default_config_file(&env);
+        assert_eq!(file, Some(config.join("config.toml")));
+        assert!(warning.unwrap().contains("config.json is ignored"));
+        let loaded = load(None, &env);
+        assert_eq!(loaded.merged, serde_json::json!({ "logDone": "time" }));
+        assert_eq!(loaded.problems.len(), 1);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn where_the_shared_file_is() {
+        let env = |pairs: &'static [(&'static str, &'static str)]| {
+            move |name: &str| pairs.iter().find(|(key, _)| *key == name).map(|(_, value)| value.to_string())
+        };
+        let file = |pairs| default_config_file(&env(pairs)).0;
+        assert_eq!(file(&[("ORG_LSP_CONFIG", "~/my.toml"), ("HOME", "/h")]), Some(PathBuf::from("/h/my.toml")));
+        assert_eq!(file(&[("XDG_CONFIG_HOME", "/x"), ("HOME", "/h")]), Some(PathBuf::from("/x/org-lsp/config.toml")));
+        if !cfg!(windows) {
+            assert_eq!(file(&[("HOME", "/h")]), Some(PathBuf::from("/h/.config/org-lsp/config.toml")));
+        }
+        assert_eq!(file(&[]), None);
     }
 
     #[test]

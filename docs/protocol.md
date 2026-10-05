@@ -34,7 +34,10 @@ UTF-32, and falls back to UTF-16.
 
 ## Options
 
-Passed as `initializationOptions`. The names are Org's variable names in
+Passed as `initializationOptions`, on top of the shared configuration file
+the server reads itself (`~/.config/org-lsp/config.toml` or `config.json`; see
+`docs/configuration.md`): an object such as `agenda` is merged option by
+option, anything else replaces the file's. The names are Org's variable names in
 camel case; the agenda's lose their `org-agenda-` prefix and live under
 `agenda` (`agenda.span` below is `{ "agenda": { "span": … } }`). Defaults
 are Org's. Unknown options are ignored. `org-lsp settings` prints this
@@ -47,6 +50,7 @@ the editor's own syntax.
 
 | Option | Type | Default | Meaning |
 | --- | --- | --- | --- |
+| `configFile` | false, or a path | the shared file, `~/.config/org-lsp/config.toml` or `config.json` | The shared configuration file, whose options this editor's go on top of: `false` for none, or the path of another file (JSON if it ends in `.json`, else TOML). Unset, it is `$ORG_LSP_CONFIG`, else `config.toml` or `config.json` in `$XDG_CONFIG_HOME/org-lsp` (`~/.config/org-lsp`; `%APPDATA%\org-lsp` on Windows). |
 | `agendaFiles` | string[] | `[]` | Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home directory, and a directory stands for the Org files directly in it. When empty, the agenda is built from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left out), or else from the Org files that are open. (`org-agenda-files`) |
 | `todoKeywords` | string[] | `["TODO", "\|", "DONE"]` | The TODO sequence, written like Org's `#+TODO:` line. `\|` separates the states that count as done; without it the last keyword is the only done state. `TODO(t)` gives a keyword a key for fast selection, and `WAIT(w@/!)` makes it log a note (`@`) or the time (`!`) on entering and leaving it. A file's own `#+TODO:` lines take precedence. (`org-todo-keywords`) |
 | `logDone` | false, "time", "note" | `false` | Write `CLOSED:` with the time when an entry is done, and with `note` ask for a note too. (`org-log-done`) |

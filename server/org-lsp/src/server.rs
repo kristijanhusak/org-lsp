@@ -40,7 +40,7 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use crate::config::{CaptureTemplateOption, Options, RefileFiles, RefileTarget};
+use crate::config::{self, CaptureTemplateOption, RefileFiles, RefileTarget};
 use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target};
@@ -313,12 +313,14 @@ pub fn run(connection: Connection) -> Result<()> {
     let (id, raw_params) = connection.initialize_start()?;
     let params: InitializeParams = serde_json::from_value(raw_params.clone())?;
 
+    // The shared configuration file with the editor's options on top.
     // Unknown or malformed options must not keep the server from starting,
     // nor take the other options with them.
-    let (options, dropped) = params.initialization_options.map(Options::read).unwrap_or_default();
-    for name in dropped {
-        eprintln!("org-lsp: the option `{name}` is malformed and is ignored");
+    let loaded = config::load(params.initialization_options.clone(), &|name| std::env::var(name).ok());
+    for problem in &loaded.problems {
+        eprintln!("org-lsp: {problem}");
     }
+    let options = loaded.options;
 
     let general = params.capabilities.general.as_ref();
     let text_document = params.capabilities.text_document.as_ref();
@@ -398,6 +400,10 @@ pub fn run(connection: Connection) -> Result<()> {
         moving: None,
         last: None,
     };
+    // A problem with the options is worth a message where the user looks.
+    if !loaded.problems.is_empty() {
+        server.show_message(MessageType::WARNING, format!("org-lsp: {}", loaded.problems.join("; ")));
+    }
     for message in &connection.receiver {
         match message {
             Message::Request(request) => {

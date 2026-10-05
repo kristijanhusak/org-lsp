@@ -51,7 +51,12 @@ try {
     vscodeExecutablePath: process.env.VSCODE_EXECUTABLE || undefined,
     extensionDevelopmentPath: resolve('.'),
     extensionTestsPath: resolve('test', 'suite.cjs'),
-    extensionTestsEnv: { ORG_LSP_TEST_WORKSPACE: workspace, ORG_LSP_TEST_CAPTURED: captured },
+    // The tests' own options only, whatever configuration file the machine has.
+    extensionTestsEnv: {
+      ORG_LSP_TEST_WORKSPACE: workspace,
+      ORG_LSP_TEST_CAPTURED: captured,
+      ORG_LSP_CONFIG: '/nonexistent/org-lsp/config.toml',
+    },
     launchArgs: [workspace, '--disable-extensions', '--disable-gpu', '--no-sandbox', '--disable-workspace-trust'],
   });
 } catch (error) {

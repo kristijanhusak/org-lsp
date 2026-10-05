@@ -6,7 +6,9 @@ org-lsp: a language server for Org mode
 
 Usage: org-lsp [--stdio]
        org-lsp agenda [OPTIONS] FILE...
+       org-lsp config [--options JSON]
        org-lsp manifest
+       org-lsp settings
        org-lsp --version
 
 The server communicates over standard input and output.";
@@ -35,6 +37,22 @@ fn main() -> ExitCode {
         // What editor integrations are built from; see `docs/protocol.md`.
         print(&format!("{:#}\n", org_lsp::manifest::manifest()));
         return ExitCode::SUCCESS;
+    }
+    if arguments.first().is_some_and(|argument| argument == "config") {
+        if arguments[1..].iter().any(|argument| argument == "--help" || argument == "-h") {
+            print(&format!("{}\n", org_lsp::cli::CONFIG_USAGE));
+            return ExitCode::SUCCESS;
+        }
+        return match org_lsp::cli::config(&arguments[1..], &|name| std::env::var(name).ok()) {
+            Ok(output) => {
+                print(&output);
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("org-lsp config: {error}\n\n{}", org_lsp::cli::CONFIG_USAGE);
+                ExitCode::from(2)
+            }
+        };
     }
     if arguments.first().is_some_and(|argument| argument == "settings") {
         // The options with their types, defaults and meanings, which the
