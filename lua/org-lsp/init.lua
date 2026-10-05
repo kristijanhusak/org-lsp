@@ -17,15 +17,30 @@ local M = {}
 
 local SERVER = 'org_lsp'
 
----@class OrgLspConfig
+--- The plugin's options, for `setup()` and `vim.g.org_lsp`. Every one may
+--- be left out. Annotate a table of your own with `---@type org_lsp.Config`
+--- to have them completed and checked.
+---@class org_lsp.Config
 ---@field cmd? string[] Server command. Found automatically when unset.
----@field settings table The server's options, such as `agendaFiles` and `todoKeywords`; see docs/neovim/configuration.md.
----@field startup_folded 'showeverything'|'overview' Fold state of a newly opened file.
----@field folding boolean Whether to fold with the server's folding ranges.
----@field replace_syntax boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
----@field conceal boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `hideEmphasisMarkers`), with 'conceallevel' 2 in Org windows.
----@field win_split_mode string|fun(bufnr: integer): integer? How the agenda and capture buffers open: 'split', 'vsplit', 'float', 'current', another Ex command that opens a window ('botright split', 'tabnew'), or a function that opens a window for the buffer and returns it.
----@field mappings table|false Keys by scope (`global`, `org`, `agenda`, `calendar`, `capture`). In a scope, a command maps to a key, a list of keys, or `false`; commands that are not listed keep the server's default keys. `false` instead of a scope's table sets no keys in that scope, and instead of the whole table no keys at all. See docs/neovim/keys.md.
+---@field settings? org_lsp.Settings The server's options, such as `agendaFiles` and `todoKeywords`; see docs/neovim/configuration.md.
+---@field startup_folded? 'showeverything'|'overview' Fold state of a newly opened file.
+---@field folding? boolean Whether to fold with the server's folding ranges.
+---@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
+---@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `hideEmphasisMarkers`), with 'conceallevel' 2 in Org windows.
+---@field win_split_mode? 'split'|'vsplit'|'float'|'current'|string|fun(bufnr: integer): integer? How the agenda and capture buffers open: 'split', 'vsplit', 'float', 'current', another Ex command that opens a window ('botright split', 'tabnew'), or a function that opens a window for the buffer and returns it.
+---@field mappings? org_lsp.Mappings|false Keys by scope; `false` sets no keys at all. See docs/neovim/keys.md.
+
+--- Keys by scope. In a scope, a command (`org.todo`, or one of the plugin's
+--- own: `cycle`, `global_cycle`, `quit`) maps to a key, a list of keys, or
+--- `false`; commands that are not listed keep the server's default keys.
+--- `false` instead of a scope's table sets no keys in that scope.
+---@class org_lsp.Mappings
+---@field global? table<string, string|string[]|false>|false Keys that work anywhere.
+---@field org? table<string, string|string[]|false>|false Keys in Org files.
+---@field agenda? table<string, string|string[]|false>|false Keys in the agenda.
+---@field calendar? table<string, string|string[]|false>|false Keys in the date prompt's calendar.
+---@field capture? table<string, string|string[]|false>|false Keys in a capture or note buffer.
+
 local defaults = {
   cmd = nil,
   settings = {},
@@ -42,7 +57,7 @@ local defaults = {
   },
 }
 
----@type OrgLspConfig
+---@type org_lsp.Config
 M.config = vim.tbl_deep_extend('force', defaults, vim.g.org_lsp or {})
 
 --- What the server announced about itself: commands, keys, looks. Set when
@@ -582,7 +597,7 @@ function M.start()
 end
 
 --- Change the configuration. May be called before or after the plugin loads.
----@param opts? table
+---@param opts? org_lsp.Config
 function M.setup(opts)
   M.config = vim.tbl_deep_extend('force', M.config, opts or {})
   if started then

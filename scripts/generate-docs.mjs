@@ -6,6 +6,8 @@
 //   docs/<editor>/configuration.md   the default options, in the editor's syntax
 //   docs/configuration.md            the shared configuration file, at its defaults
 //   docs/protocol.md                 the table of options
+//   docs/config.schema.json          the JSON Schema of the shared file
+//   lua/org-lsp/types.lua            the options' types, for lua-language-server
 //
 // Only the text between `<!-- BEGIN generated: NAME -->` and
 // `<!-- END generated -->` is rewritten; the rest is written by hand.
@@ -16,6 +18,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { describe, schemaProperties } from './settings-schema.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -312,6 +315,107 @@ function protocolOptions() {
   return table(['Option', 'Type', 'Default', 'Meaning'], rows);
 }
 
+// ----- types
+
+/** `value` as a Lua literal. */
+const luaLiteral = (value) => (typeof value === 'string' ? `'${value}'` : String(value));
+
+/** The Lua type of what `schema` allows; classes it names go into `classes`. */
+function luaType(schema, classes) {
+  if (schema.anyOf) return [...new Set(schema.anyOf.map((choice) => luaType(choice, classes)))].join('|');
+  if ('const' in schema) return luaLiteral(schema.const);
+  if (schema.enum) return schema.enum.map(luaLiteral).join('|');
+  const types = Array.isArray(schema.type) ? schema.type : [schema.type];
+  return types
+    .map((type) => {
+      switch (type) {
+        case 'array': {
+          const item = luaType(schema.items ?? {}, classes);
+          return item.includes('|') ? `(${item})[]` : `${item}[]`;
+        }
+        case 'object': {
+          const name = schema['x-lua-class'] ?? 'table';
+          if (name !== 'table') classes.set(name, schema);
+          return name;
+        }
+        case undefined:
+          return 'any';
+        default:
+          return type;
+      }
+    })
+    .join('|');
+}
+
+/** `text` on one line, as a field's description. */
+const oneLine = (text) => text.replace(/\s+/g, ' ');
+
+/** lua/org-lsp/types.lua: the classes of `settings`, for lua-language-server. */
+function luaTypes() {
+  const classes = new Map();
+  const blocks = [];
+  // The option groups, from the tree of the options.
+  const group = (node, name, description) => {
+    const lines = [`--- ${description}`, `---@class ${name}`];
+    const nested = [];
+    for (const child of node.children) {
+      if (child.setting) {
+        const type = luaType(child.setting.schema ?? {}, classes);
+        lines.push(`---@field ${child.name}? ${type} ${oneLine(describe(child.setting))}`);
+      } else {
+        const childName = `${name}.${child.name[0].toUpperCase()}${child.name.slice(1)}`;
+        lines.push(`---@field ${child.name}? ${childName}`);
+        nested.push([child, childName]);
+      }
+    }
+    blocks.push(lines.join('\n'));
+    for (const [child, childName] of nested) group(child, childName, `The options under \`${child.name}\`.`);
+  };
+  group(optionTree(), 'org_lsp.Settings', "The server's options, as `settings` passes them; see docs/configuration.md.");
+  for (const [name, schema] of classes) {
+    const required = new Set(schema.required ?? []);
+    const lines = [`---@class ${name}`];
+    for (const [field, property] of Object.entries(schema.properties ?? {})) {
+      const optional = required.has(field) ? '' : '?';
+      lines.push(`---@field ${field}${optional} ${luaType(property, classes)} ${oneLine(property.description ?? '')}`.trimEnd());
+    }
+    blocks.push(lines.join('\n'));
+  }
+  return [
+    '---@meta',
+    '-- The types of the server\'s options, for lua-language-server. Written by',
+    '-- scripts/generate-docs.mjs from `org-lsp settings`; edit',
+    '-- server/org-lsp/src/settings.rs, not this file.',
+    '',
+    blocks.join('\n\n'),
+    '',
+  ].join('\n');
+}
+
+/** docs/config.schema.json: the JSON Schema of the shared configuration file. */
+function configSchema() {
+  const schema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    $id: 'https://raw.githubusercontent.com/kristijanhusak/org-lsp/main/docs/config.schema.json',
+    title: 'org-lsp configuration',
+    description: "The options of the org-lsp server, in its shared configuration file. See docs/configuration.md.",
+    type: 'object',
+    properties: { $schema: { type: 'string' }, ...schemaProperties(settings, { editor: false }) },
+    additionalProperties: false,
+  };
+  // Typos in nested groups are caught too.
+  const close = (properties) => {
+    for (const property of Object.values(properties)) {
+      if (property.type === 'object' && property.properties) {
+        property.additionalProperties = false;
+        close(property.properties);
+      }
+    }
+  };
+  close(schema.properties);
+  return JSON.stringify(schema, null, 2) + '\n';
+}
+
 // ----- the pages
 
 const PAGES = {
@@ -325,7 +429,26 @@ const PAGES = {
 };
 
 const END = '<!-- END generated -->';
+/** Files written whole. */
+const FILES = {
+  'lua/org-lsp/types.lua': luaTypes,
+  'docs/config.schema.json': configSchema,
+};
+
 let stale = false;
+for (const [file, render] of Object.entries(FILES)) {
+  const path = join(root, file);
+  const before = existsSync(path) ? readFileSync(path, 'utf8') : '';
+  const after = render();
+  if (after === before) continue;
+  if (check) {
+    console.error(`${file} is out of date with the server. Run: node scripts/generate-docs.mjs`);
+    stale = true;
+  } else {
+    writeFileSync(path, after);
+    console.log(`wrote ${file}`);
+  }
+}
 for (const [page, sections] of Object.entries(PAGES)) {
   const path = join(root, page);
   const before = readFileSync(path, 'utf8');

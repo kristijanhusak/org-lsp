@@ -98,6 +98,29 @@ no braces to balance. JSON is easier to copy settings into from VS Code.
 The full list, with every option at its default, is at the end of this
 page, in both.
 
+### Completion and checking
+
+[`config.schema.json`](config.schema.json) is the JSON Schema of the file,
+written from the server's own table of options. An editor that knows JSON
+Schema completes and checks the options with it, and flags a misspelt
+name. In JSON, name it with `$schema`:
+
+```jsonc
+{
+  "$schema": "https://raw.githubusercontent.com/kristijanhusak/org-lsp/main/docs/config.schema.json",
+  "logDone": "time"
+}
+```
+
+In TOML, editors that use [Taplo](https://taplo.tamasfe.dev) (VS Code's
+Even Better TOML, Helix, Neovim's `taplo` server) read a `#:schema`
+comment at the top of the file:
+
+```toml
+#:schema https://raw.githubusercontent.com/kristijanhusak/org-lsp/main/docs/config.schema.json
+logDone = "time"
+```
+
 ## An editor's options on top
 
 An editor's own options for the server (Neovim's `settings`, VS Code's

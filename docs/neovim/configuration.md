@@ -26,6 +26,24 @@ require('org-lsp').setup({ settings = { agendaFiles = { '~/org' } } })
 
 Calling `setup()` more than once merges each call into what was there.
 
+### Completion and checking
+
+The plugin's options and the server's have type annotations for
+lua-language-server (`org_lsp.Config`, `org_lsp.Settings`), so with the
+plugin in its library, the options are completed and their values
+checked. `setup()` is annotated already; for `vim.g.org_lsp`, annotate the
+table:
+
+```lua
+---@type org_lsp.Config
+vim.g.org_lsp = {
+  settings = { logDone = 'time', agenda = { span = 'day' } },
+}
+```
+
+The server's types are written from the server's own table of options
+(`lua/org-lsp/types.lua`), so they always match the server.
+
 ## The plugin's options
 
 These are the defaults:

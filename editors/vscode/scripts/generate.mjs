@@ -1,6 +1,6 @@
 // Write the parts of package.json that mirror the server: its commands and
-// their keys, the semantic tokens and how themes should color them, and the
-// agenda's document type. They come from the server's manifest, so nothing
+// their keys, the semantic tokens and how themes should color them, the
+// agenda's document type, and the server's options. They come from the server's manifest, so nothing
 // about Org is listed by hand in this extension.
 //
 //   npm run generate [-- path/to/org-lsp]     rewrite package.json
@@ -8,6 +8,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { schemaProperties } from '../../../scripts/settings-schema.mjs';
 
 const args = process.argv.slice(2);
 const check = args.includes('--check');
@@ -20,6 +21,7 @@ if (!binary) {
   process.exit(1);
 }
 const manifest = JSON.parse(execFileSync(resolve(binary), ['manifest'], { encoding: 'utf8' }));
+const settings = JSON.parse(execFileSync(resolve(binary), ['settings'], { encoding: 'utf8' }));
 
 const ORG = 'org';
 const AGENDA = manifest.agenda.languageId;
@@ -158,6 +160,9 @@ contributes.configurationDefaults = {
     'editor.renderWhitespace': 'none',
   },
 };
+// The server's options, so that settings.json completes and checks them.
+contributes.configuration.properties['org-lsp.settings'].properties = schemaProperties(settings, { markdown: true });
+
 // For the extension itself: which documents belong to the server.
 pkg.orgLsp = {
   agendaScheme: manifest.agenda.scheme,

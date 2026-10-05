@@ -359,7 +359,523 @@
         "org-lsp.settings": {
           "type": "object",
           "default": {},
-          "markdownDescription": "The server's options, for example `{ \"agendaFiles\": [\"~/org\"], \"todoKeywords\": [\"TODO\", \"NEXT\", \"|\", \"DONE\"], \"logDone\": \"time\" }`. Without `agendaFiles`, the agenda is built from the Org files in the workspace folders. The options and their defaults are listed in [docs/vscode/configuration.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/vscode/configuration.md)."
+          "markdownDescription": "The server's options, for example `{ \"agendaFiles\": [\"~/org\"], \"todoKeywords\": [\"TODO\", \"NEXT\", \"|\", \"DONE\"], \"logDone\": \"time\" }`. Without `agendaFiles`, the agenda is built from the Org files in the workspace folders. The options and their defaults are listed in [docs/vscode/configuration.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/vscode/configuration.md).",
+          "properties": {
+            "configFile": {
+              "anyOf": [
+                {
+                  "const": false
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "markdownDescription": "The shared configuration file, whose options this editor's go on top of: `false` for none, or the path of another file (JSON if it ends in `.json`, else TOML). Unset, it is `$ORG_LSP_CONFIG`, else `config.toml` or `config.json` in `$XDG_CONFIG_HOME/org-lsp` (`~/.config/org-lsp`; `%APPDATA%\\org-lsp` on Windows)."
+            },
+            "agendaFiles": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "markdownDescription": "Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home directory, and a directory stands for the Org files directly in it. When empty, the agenda is built from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left out), or else from the Org files that are open. (`org-agenda-files`)",
+              "default": []
+            },
+            "todoKeywords": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "markdownDescription": "The TODO sequence, written like Org's `#+TODO:` line. `|` separates the states that count as done; without it the last keyword is the only done state. `TODO(t)` gives a keyword a key for fast selection, and `WAIT(w@/!)` makes it log a note (`@`) or the time (`!`) on entering and leaving it. A file's own `#+TODO:` lines take precedence. (`org-todo-keywords`)",
+              "default": [
+                "TODO",
+                "|",
+                "DONE"
+              ]
+            },
+            "logDone": {
+              "enum": [
+                false,
+                "time",
+                "note"
+              ],
+              "markdownDescription": "Write `CLOSED:` with the time when an entry is done, and with `note` ask for a note too. (`org-log-done`)",
+              "default": false
+            },
+            "logRepeat": {
+              "enum": [
+                false,
+                "time",
+                "note"
+              ],
+              "markdownDescription": "Record when a repeating entry is done and moves to its next date. (`org-log-repeat`)",
+              "default": "time"
+            },
+            "logIntoDrawer": {
+              "type": [
+                "boolean",
+                "string"
+              ],
+              "markdownDescription": "Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer. (`org-log-into-drawer`)",
+              "default": false
+            },
+            "tagsColumn": {
+              "type": "integer",
+              "markdownDescription": "Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`)",
+              "default": -77
+            },
+            "todoRepeatToState": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "const": true
+                }
+              ],
+              "markdownDescription": "The state a repeating entry returns to when it is done: a keyword, or `true` for the state it had. (`org-todo-repeat-to-state`)"
+            },
+            "priorityHighest": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Za-z]$",
+                  "type": "string"
+                },
+                {
+                  "maximum": 64,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              ],
+              "markdownDescription": "The highest priority. (`org-priority-highest`)",
+              "default": "A"
+            },
+            "priorityLowest": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Za-z]$",
+                  "type": "string"
+                },
+                {
+                  "maximum": 64,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              ],
+              "markdownDescription": "The lowest priority. (`org-priority-lowest`)",
+              "default": "C"
+            },
+            "priorityDefault": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Za-z]$",
+                  "type": "string"
+                },
+                {
+                  "maximum": 64,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              ],
+              "markdownDescription": "The priority of an entry without a cookie. A file's `#+PRIORITIES:` line takes precedence over the three priority options. (`org-priority-default`)",
+              "default": "B"
+            },
+            "priorityStartCycleWithDefault": {
+              "type": "boolean",
+              "markdownDescription": "Raising or lowering the priority of an entry that has none starts at the default. (`org-priority-start-cycle-with-default`)",
+              "default": true
+            },
+            "timestampRoundingMinutes": {
+              "minimum": 0,
+              "type": "integer",
+              "markdownDescription": "The step in which the minutes of a timestamp change (the second number of Org's option). (`org-time-stamp-rounding-minutes`)",
+              "default": 5
+            },
+            "readDatePreferFuture": {
+              "enum": [
+                true,
+                false,
+                "time"
+              ],
+              "markdownDescription": "A date typed without a year or month is the next one to come. With `time`, a time that has passed today is tomorrow's. (`org-read-date-prefer-future`)",
+              "default": true
+            },
+            "readDateForceCompatibleDates": {
+              "type": "boolean",
+              "markdownDescription": "A typed year is kept within 1970 to 2037. (`org-read-date-force-compatible-dates`)",
+              "default": true
+            },
+            "refileTargets": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "all": {
+                    "description": "Every headline",
+                    "type": "boolean"
+                  },
+                  "files": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "current",
+                          "agenda"
+                        ]
+                      },
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    ],
+                    "description": "`current` (the entry's own file), `agenda`, a path or a list of paths"
+                  },
+                  "level": {
+                    "description": "The headlines of this level",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "maxLevel": {
+                    "description": "The headlines up to this level",
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "regexp": {
+                    "description": "The headlines that match this regular expression",
+                    "type": "string"
+                  },
+                  "tag": {
+                    "description": "The headlines with this tag",
+                    "type": "string"
+                  },
+                  "todo": {
+                    "description": "The headlines with this TODO keyword",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "type": "array",
+              "markdownDescription": "Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, a path or a list of paths; and one of `level`, `maxLevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says which headlines there are targets. (`org-refile-targets`)",
+              "default": [
+                {
+                  "files": "current",
+                  "level": 1
+                }
+              ]
+            },
+            "refileUseOutlinePath": {
+              "enum": [
+                true,
+                false,
+                "file",
+                "full-file-path",
+                "title"
+              ],
+              "markdownDescription": "Name targets by their outline path (`Projects/Alpha/`). The three names start the path with the file, and offer the file itself, for its top level. (`org-refile-use-outline-path`)",
+              "default": false
+            },
+            "reverseNoteOrder": {
+              "type": "boolean",
+              "markdownDescription": "A refiled entry goes first under its target, not last. (`org-reverse-note-order`)",
+              "default": false
+            },
+            "captureTemplates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "description": {
+                    "description": "What the menu shows",
+                    "type": "string"
+                  },
+                  "emptyLines": {
+                    "description": "Blank lines before and after",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "emptyLinesAfter": {
+                    "description": "Blank lines after",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "emptyLinesBefore": {
+                    "description": "Blank lines before",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "immediateFinish": {
+                    "description": "Capture without a capture buffer",
+                    "type": "boolean"
+                  },
+                  "key": {
+                    "description": "The keys that pick the template",
+                    "type": "string"
+                  },
+                  "prepend": {
+                    "description": "First under the target, not last",
+                    "type": "boolean"
+                  },
+                  "target": {
+                    "description": "`file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "template": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    ],
+                    "description": "The template, or its lines"
+                  },
+                  "type": {
+                    "description": "An Org entry (the default), or plain text",
+                    "enum": [
+                      "entry",
+                      "plain"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "description"
+                ],
+                "type": "object"
+              },
+              "type": "array",
+              "markdownDescription": "Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, or `plain`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `emptyLines`, `emptyLinesBefore`, `emptyLinesAfter` and `immediateFinish`. The target is a list: `file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path. An empty path is `defaultNotesFile`, and without a target the entry goes at the end of `defaultNotesFile`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)",
+              "default": [
+                {
+                  "description": "Task",
+                  "key": "t",
+                  "target": [
+                    "file+headline",
+                    "",
+                    "Tasks"
+                  ],
+                  "template": "* TODO %?\n  %u\n  %a"
+                }
+              ]
+            },
+            "orgDirectory": {
+              "type": "string",
+              "markdownDescription": "Where the relative paths of capture targets are. (`org-directory`)",
+              "default": "~/org"
+            },
+            "defaultNotesFile": {
+              "type": "string",
+              "markdownDescription": "The target of a capture template whose file is empty. (`org-default-notes-file`)",
+              "default": "~/.notes"
+            },
+            "linkDescriptive": {
+              "type": "boolean",
+              "markdownDescription": "Show a link as its description (or its target, when it has none) and hide the rest: the brackets, and the target of a link with a description. The text is marked `hidden` in the highlighting, and editors that can conceal text conceal it. (`org-link-descriptive`)",
+              "default": true
+            },
+            "hideEmphasisMarkers": {
+              "type": "boolean",
+              "markdownDescription": "Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~`, as for links. (`org-hide-emphasis-markers`)",
+              "default": false
+            },
+            "autoSave": {
+              "type": "boolean",
+              "markdownDescription": "Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them.",
+              "default": true
+            },
+            "cycleSeparatorLines": {
+              "type": "integer",
+              "markdownDescription": "With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`)",
+              "default": 2
+            },
+            "agenda": {
+              "type": "object",
+              "properties": {
+                "span": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "day",
+                        "week",
+                        "fortnight",
+                        "month",
+                        "year"
+                      ]
+                    },
+                    {
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  ],
+                  "markdownDescription": "How much time the agenda shows. (`org-agenda-span`)",
+                  "default": "week"
+                },
+                "startOnWeekday": {
+                  "anyOf": [
+                    {
+                      "maximum": 6,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    {
+                      "const": false
+                    }
+                  ],
+                  "markdownDescription": "The day a week or fortnight starts on; `false` starts it today. (`org-agenda-start-on-weekday`)",
+                  "default": 1
+                },
+                "deadlineWarningDays": {
+                  "type": "integer",
+                  "markdownDescription": "How many days before a deadline it shows up. (`org-deadline-warning-days`)",
+                  "default": 14
+                },
+                "scheduledDelayDays": {
+                  "type": "integer",
+                  "markdownDescription": "How many days after its date a scheduled entry shows up. (`org-scheduled-delay-days`)",
+                  "default": 0
+                },
+                "scheduledPastDays": {
+                  "type": "integer",
+                  "markdownDescription": "How many days a scheduled entry that is not done keeps showing up. (`org-scheduled-past-days`)",
+                  "default": 10000
+                },
+                "deadlinePastDays": {
+                  "type": "integer",
+                  "markdownDescription": "How many days a missed deadline keeps showing up. (`org-deadline-past-days`)",
+                  "default": 10000
+                },
+                "skipScheduledIfDone": {
+                  "type": "boolean",
+                  "markdownDescription": "Leave out scheduled entries that are done. (`org-agenda-skip-scheduled-if-done`)",
+                  "default": false
+                },
+                "skipDeadlineIfDone": {
+                  "type": "boolean",
+                  "markdownDescription": "Leave out deadlines of entries that are done. (`org-agenda-skip-deadline-if-done`)",
+                  "default": false
+                },
+                "skipTimestampIfDone": {
+                  "type": "boolean",
+                  "markdownDescription": "Leave out timestamps of entries that are done. (`org-agenda-skip-timestamp-if-done`)",
+                  "default": false
+                },
+                "showFutureRepeats": {
+                  "enum": [
+                    true,
+                    false,
+                    "next"
+                  ],
+                  "markdownDescription": "Show the future dates of repeating entries: all of them, none, or only the next. (`org-agenda-show-future-repeats`)",
+                  "default": true
+                },
+                "showAllDates": {
+                  "type": "boolean",
+                  "markdownDescription": "Show days without entries. (`org-agenda-show-all-dates`)",
+                  "default": true
+                },
+                "tagsColumn": {
+                  "type": "integer",
+                  "markdownDescription": "Where tags are aligned in the agenda. Org's own default follows the window width, which a server does not know. (`org-agenda-tags-column`)",
+                  "default": -80
+                },
+                "useTimeGrid": {
+                  "type": "boolean",
+                  "markdownDescription": "Draw the time grid. (`org-agenda-use-time-grid`)",
+                  "default": true
+                },
+                "timeGrid": {
+                  "type": "object",
+                  "properties": {
+                    "daily": {
+                      "type": "boolean",
+                      "markdownDescription": "Draw the grid in a one-day agenda. (`org-agenda-time-grid`)",
+                      "default": true
+                    },
+                    "today": {
+                      "type": "boolean",
+                      "markdownDescription": "Draw the grid for today. (`org-agenda-time-grid`)",
+                      "default": true
+                    },
+                    "weekly": {
+                      "type": "boolean",
+                      "markdownDescription": "Draw the grid for every day. (`org-agenda-time-grid`)",
+                      "default": false
+                    },
+                    "requireTimed": {
+                      "type": "boolean",
+                      "markdownDescription": "Draw the grid only on days with an entry that has a time. (`org-agenda-time-grid`)",
+                      "default": true
+                    },
+                    "removeMatch": {
+                      "type": "boolean",
+                      "markdownDescription": "Leave out grid lines at a time an entry already has. (`org-agenda-time-grid`)",
+                      "default": false
+                    },
+                    "times": {
+                      "items": {
+                        "maximum": 2400,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "type": "array",
+                      "markdownDescription": "The times of the grid lines, as `800` for 8:00. (`org-agenda-time-grid`)",
+                      "default": [
+                        800,
+                        1000,
+                        1200,
+                        1400,
+                        1600,
+                        1800,
+                        2000
+                      ]
+                    },
+                    "trailer": {
+                      "type": "string",
+                      "markdownDescription": "What follows a time that has no end time. (`org-agenda-time-grid`)",
+                      "default": "......"
+                    },
+                    "line": {
+                      "type": "string",
+                      "markdownDescription": "The text of a grid line. (`org-agenda-time-grid`)",
+                      "default": "----------------"
+                    },
+                    "now": {
+                      "type": "string",
+                      "markdownDescription": "The text of the line for the current time. (`org-agenda-current-time-string`)",
+                      "default": "now - - - - - - - - - - - - - - - - - - - - - - - - -"
+                    }
+                  }
+                },
+                "showCurrentTimeInGrid": {
+                  "type": "boolean",
+                  "markdownDescription": "Show the current time in the grid. (`org-agenda-show-current-time-in-grid`)",
+                  "default": true
+                },
+                "weekendDays": {
+                  "items": {
+                    "maximum": 6,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "type": "array",
+                  "markdownDescription": "The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`)",
+                  "default": [
+                    6,
+                    0
+                  ]
+                }
+              }
+            }
+          }
         }
       }
     },

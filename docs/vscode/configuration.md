@@ -9,7 +9,9 @@ Open **Preferences: Open User Settings (JSON)** and add the extension's
 settings to `settings.json`. A workspace's `.vscode/settings.json` can set
 them for that folder only. The **Settings** UI shows them under
 **Extensions › Org (org-lsp)**, with a link to edit `org-lsp.settings` in
-`settings.json`.
+`settings.json`. There, the server's options are completed, described on
+hover and checked, as the extension knows them all with their types and
+defaults.
 
 ## The extension's settings
 
