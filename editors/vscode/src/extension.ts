@@ -1,8 +1,10 @@
 // VS Code glue for the org-lsp language server.
 //
-// The server does the Org work. This extension only starts it, declares the
-// `org` language and its semantic tokens (in package.json), and exposes the
-// server's code actions as commands that can be bound to keys.
+// The server does the Org work. What VS Code has to be told ahead of time
+// (commands, keys, token colors, the agenda's document type) is in
+// package.json, generated from the server's own description of itself; see
+// scripts/generate.mjs. This file starts the server and tells it where the
+// cursor is when a command runs.
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -25,13 +27,47 @@ function serverCommand(context: vscode.ExtensionContext): string {
   return fs.existsSync(bundled) ? bundled : exe;
 }
 
+/** Where the cursor is, in the form the server's commands take. */
+function cursor(running: LanguageClient): unknown[] {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    return [];
+  }
+  return [
+    {
+      textDocument: running.code2ProtocolConverter.asTextDocumentIdentifier(editor.document),
+      position: running.code2ProtocolConverter.asPosition(editor.selection.active),
+    },
+  ];
+}
+
 async function startClient(context: vscode.ExtensionContext): Promise<void> {
   const command = serverCommand(context);
   const serverOptions: ServerOptions = { command, args: [] };
+  const { languages, agendaScheme } = context.extension.packageJSON.orgLsp as {
+    languages: string[];
+    agendaScheme: string;
+  };
   const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ language: 'org' }],
-    initializationOptions: {
-      todoKeywords: vscode.workspace.getConfiguration('org-lsp').get<string[]>('todoKeywords'),
+    documentSelector: [...languages.map((language) => ({ language })), { scheme: agendaScheme }],
+    initializationOptions: vscode.workspace.getConfiguration('org-lsp').get('settings'),
+    middleware: {
+      // The client registers every command of the server with VS Code. Run
+      // from a key or the palette, a command has no arguments: add the
+      // cursor. The server's reason for refusing a command is shown as is.
+      executeCommand: async (name, args) => {
+        const running = client;
+        if (!running) {
+          return undefined;
+        }
+        const params = { command: name, arguments: args.length > 0 ? args : cursor(running) };
+        try {
+          return await running.sendRequest('workspace/executeCommand', params);
+        } catch (error) {
+          void vscode.window.showWarningMessage(error instanceof Error ? error.message : String(error));
+          return undefined;
+        }
+      },
     },
   };
   client = new LanguageClient('org-lsp', 'Org Language Server', serverOptions, clientOptions);
@@ -53,18 +89,8 @@ async function stopClient(): Promise<void> {
   await running?.stop();
 }
 
-/**
- * Run the server's code action of exactly this kind at the cursor. Every Org
- * command goes through this: the server computes the edit, VS Code applies it.
- */
-function codeAction(kind: string): () => Thenable<unknown> {
-  return () => vscode.commands.executeCommand('editor.action.codeAction', { kind, apply: 'first' });
-}
-
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   context.subscriptions.push(
-    vscode.commands.registerCommand('org-lsp.todoNext', codeAction('org.todo.next')),
-    vscode.commands.registerCommand('org-lsp.todoPrevious', codeAction('org.todo.previous')),
     vscode.commands.registerCommand('org-lsp.restartServer', async () => {
       await stopClient();
       await startClient(context);

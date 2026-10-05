@@ -40,13 +40,18 @@ jobs:
 
   neovim:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest supported release and the current one.
+        neovim: [v0.11.0, stable]
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal && rustup default stable
       - name: Install Neovim
         run: |
-          curl -sSL -o nvim.tar.gz https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz
+          curl -sSL -o nvim.tar.gz https://github.com/neovim/neovim/releases/download/${{ matrix.neovim }}/nvim-linux-x86_64.tar.gz
           mkdir -p "$HOME/nvim" && tar xzf nvim.tar.gz -C "$HOME/nvim" --strip-components=1
           echo "$HOME/nvim/bin" >> "$GITHUB_PATH"
       - run: scripts/test-nvim.sh
@@ -63,9 +68,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: cargo build --release -p org-lsp
+      - run: cargo build -p org-lsp
         working-directory: .
       - run: npm ci
+      # package.json must match what the server announces.
+      - run: npm run generate -- --check
       - run: npm run check
       - run: npm run build
-      - run: npm run smoke
+      - run: npm run smoke -- ../../target/debug/org-lsp
+      # The extension inside VS Code.
+      - run: xvfb-run -a npm test

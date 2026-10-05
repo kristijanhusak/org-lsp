@@ -8,24 +8,38 @@ edits. An editor needs only a thin shim (start the server, map highlight
 groups, bind keys), and editors without a plugin system still get whatever
 standard LSP can carry.
 
-**Status: first milestone.** The parser is complete enough to match Emacs on
-the test corpus; the server exposes a first slice of features on top of it.
+**Status: early.** The parser, the agenda and TODO state changes are checked
+against Emacs (Org 9.8.10) and match it on the test corpus. Much of Org is
+still missing; see [Not done yet](#not-done-yet).
 
 ## What works
 
-| Feature | How it is exposed | Neovim | VS Code | Helix |
-| --- | --- | --- | --- | --- |
-| Highlighting | semantic tokens | yes | yes¹ | no² |
-| Folding | folding ranges | yes, with `<Tab>` / `<S-Tab>` cycling | yes¹ | no³ |
-| Outline | document symbols | yes | yes¹ | yes |
-| TODO cycling | code actions `org.todo.next` / `org.todo.previous` | yes, `cit` / `ciT`, repeatable with `.` | yes¹, commands and `Ctrl+.` | yes, `Space a` |
+| Feature | Neovim | VS Code | Helix |
+| --- | --- | --- | --- |
+| Highlighting (semantic tokens) | yes | yes | no¹ |
+| Folding | yes, with `<Tab>` / `<S-Tab>` cycling | yes | no² |
+| Outline (document symbols) | yes | yes | yes |
+| TODO state changes, as `org-todo` does them | `cit` / `ciT`, repeatable with `.` | commands, `Ctrl+.` | `Space a` |
+| Agenda: day, week, fortnight, month and year views | yes | yes | no³ |
+| Agenda: list of all TODO entries | yes | yes | no³ |
+| Agenda: change an entry's state, go to its entry | yes | yes | no³ |
 
-¹ The extension builds, packages and passes a protocol smoke test, but has
-not been run inside VS Code yet.
-² Helix does not consume semantic tokens; it highlights Org with its own grammar.
-³ Helix has no folding.
+¹ Helix does not consume semantic tokens; it highlights Org with its own grammar.
+² Helix has no folding.
+³ Helix cannot open a document on a server's request. `org-lsp agenda FILE...` prints the agenda in a terminal.
 
-Tested with Neovim 0.11.0 and 0.12.5 and Helix 25.07.1.
+Tested with Neovim 0.11.0 and 0.12.5, VSCodium 1.135 and Helix 25.07.1.
+
+**TODO state changes** follow Org: tags return to their column, statistics
+cookies in the parent are recounted, `CLOSED:` and state notes are logged
+when configured, and an entry with a repeater moves to its next date.
+
+**The agenda** shows scheduled entries, deadlines with their warnings,
+timestamps, date ranges and the time grid, sorted as in Org, and is
+rebuilt when its files change. It matches the output of Emacs's
+`org-batch-agenda` line for line on the test corpus. A change made from
+the agenda edits the entry's file in the editor and leaves saving to you,
+as in Emacs.
 
 ## Install
 
@@ -37,36 +51,74 @@ so each route below builds it with [cargo](https://rustup.rs).
 Install the repository as a plugin and build the server. With lazy.nvim:
 
 ```lua
-{ 'kristijanhusak/org-lsp', build = 'cargo build --release -p org-lsp' }
+{
+  'kristijanhusak/org-lsp',
+  build = 'cargo build --release -p org-lsp',
+  init = function()
+    vim.g.org_lsp = { settings = { agendaFiles = { '~/org' } } }
+  end,
+}
 ```
 
 With any other plugin manager, install the repository and run `:OrgLspBuild`
-once. Nothing else is required: opening an `.org` file starts the server.
-`:checkhealth org-lsp` reports what the plugin found.
+once. Opening an `.org` file starts the server; `<Leader>oa` opens the
+agenda from anywhere. `:checkhealth org-lsp` reports what the plugin found.
 
 The plugin sets buffer-local keys in Org files, so it is meant to be used
 instead of nvim-orgmode for those buffers, not next to it.
+
+| Where | Keys |
+| --- | --- |
+| Anywhere | `<Leader>oa` agenda commands; `:Org agenda`, `:Org agenda list`, `:Org agenda todos` |
+| Org files | `cit` / `ciT` next / previous TODO state, `<Tab>` / `<S-Tab>` fold cycling |
+| Agenda | `f` / `b` later / earlier, `.` today, `vd` `vw` `vt` `vm` `vy` span, `r` rebuild, `t` TODO state, `<CR>` or `<Tab>` go to the entry, `q` close |
+
+These are nvim-orgmode's defaults. Apart from fold cycling, `q` and
+`<Leader>oa`, the plugin does not list them: the server announces its
+commands with their keys, and the plugin binds what it is told.
 
 Options, with their defaults:
 
 ```lua
 require('org-lsp').setup({
   cmd = nil,                          -- server command; found automatically
-  todo_keywords = nil,                -- e.g. { 'TODO', 'NEXT', '|', 'DONE' }
+  settings = {},                      -- the server's options, see docs/protocol.md
   startup_folded = 'showeverything',  -- or 'overview'
   folding = true,                     -- fold with the server's ranges
   replace_syntax = true,              -- turn off regex syntax once tokens arrive
-  mappings = {                        -- false disables all of them
-    todo_next = 'cit',
-    todo_previous = 'ciT',
-    cycle = '<Tab>',
-    global_cycle = '<S-Tab>',
+  mappings = {                        -- false sets no keys at all
+    global = { ['org.agenda.dispatch'] = '<Leader>oa' },
+    org = { cycle = '<Tab>', global_cycle = '<S-Tab>' },
+    agenda = { quit = 'q' },
   },
 })
 ```
 
-Highlight groups are documented in `lua/org-lsp/highlights.lua`. Colorschemes
-that style nvim-orgmode's `@org.*` groups apply here too.
+`settings` is passed to the server as is. The ones you are most likely to
+want:
+
+```lua
+settings = {
+  agendaFiles = { '~/org', '~/notes/**/*.org' },
+  todoKeywords = { 'TODO', 'NEXT', '|', 'DONE', 'CANCELLED' },
+  logDone = 'time',
+  agenda = { span = 'day' },
+}
+```
+
+In `mappings`, a scope maps a command to a key, a list of keys, or `false`.
+Commands you do not list keep the server's keys:
+
+```lua
+mappings = {
+  global = { ['org.agenda.list'] = '<Leader>oA' },
+  org = { ['org.todo.next'] = '<Leader>t', ['org.todo.previous'] = false },
+}
+```
+
+Highlight groups are named `@lsp.type.<token>.org` and so on; the tokens are
+listed in `docs/protocol.md`. Colorschemes that style nvim-orgmode's
+`@org.*` groups apply here too.
 
 ### VS Code
 
@@ -79,7 +131,7 @@ npm run package        # writes org-lsp-0.1.0.vsix
 code --install-extension org-lsp-0.1.0.vsix
 ```
 
-See `editors/vscode/README.md` for the commands and settings.
+See `editors/vscode/README.md` for the commands, keys and settings.
 
 ### Helix
 
@@ -93,49 +145,69 @@ Then add the contents of `editors/helix/languages.toml` to your
 ### Other editors
 
 Point the editor's LSP client at `org-lsp` for the `org` file type. The
-server talks over standard input and output. `docs/protocol.md` lists the
-token legend, the code action kinds and the initialization options.
+server talks over standard input and output. `docs/protocol.md` describes
+the options, the commands and what an integration has to do.
+
+### Without an editor
+
+```sh
+org-lsp agenda ~/org/*.org              # this week
+org-lsp agenda --span day --view todo ~/org/*.org
+org-lsp agenda --help
+```
 
 ## Layout
 
 ```
-plugin/, lua/        Neovim shim (at the root so plugin managers find it)
+plugin/, lua/        Neovim plugin (at the root so plugin managers find it)
 server/org-syntax/   the Org parser, a library with no LSP in it
-server/org-lsp/      the language server
+server/org-core/     dates, the outline model, the agenda, TODO state changes
+server/org-lsp/      the language server and command line
 editors/vscode/      VS Code extension
 editors/helix/       Helix configuration
 docs/                protocol and parser notes
-tests/fixtures/      Org files with reference dumps from Emacs
-tests/nvim/          Neovim end-to-end test
-scripts/             fixture, fuzzing and test helpers
+tests/               Org files and what Emacs makes of them
+scripts/             reference, fuzzing and test helpers
 ```
 
 ## Development
 
 ```sh
-cargo test --workspace          # parser, server and protocol tests
-scripts/test-nvim.sh            # Neovim shim against the real server
-cd editors/vscode && npm run check && npm run smoke
+cargo test --workspace          # parser, agenda, TODO changes, protocol
+scripts/test-nvim.sh            # Neovim plugin against the real server
+cd editors/vscode
+npm run check && npm run smoke  # types, and the protocol through VS Code's library
+xvfb-run -a npm test            # the extension inside VS Code
+npm run generate                # after the server's commands or tokens change
 ```
 
-The parser is checked against Emacs. Every file in `tests/fixtures/` has a
-`.elements` dump produced by `org-element-parse-buffer`, and the parser must
-find the same elements and objects at the same positions. After changing a
-fixture, regenerate the dumps (needs Emacs):
+Everything is checked against Emacs. The files under `tests/` come with
+what Emacs makes of them: syntax trees from `org-element-parse-buffer`,
+agendas from `org-batch-agenda`, and headlines after `org-todo`. The tests
+compare against those committed outputs, so they need no Emacs. To
+regenerate them (needs Emacs, and `faketime` for the agenda):
 
 ```sh
+export ORG_LISP_DIR=/path/to/org-mode/lisp   # the reference is Org 9.8.10
 scripts/update-fixtures.sh
+scripts/update-agenda-fixtures.py
+scripts/update-todo-fixtures.py
 ```
 
-`scripts/fuzz-against-emacs.py` generates random documents and compares both
-parsers on them. See `docs/parser.md`.
+`scripts/fuzz-against-emacs.py`, `fuzz-agenda.py` and `fuzz-todo.py`
+generate random documents and compare both programs on them. See
+`docs/parser.md`.
 
 ## Not done yet
 
-- Everything beyond the four features above: agenda, capture, refile, clocking,
-  tables, completion, links, export, and so on.
-- TODO cycling only changes the keyword. It does not log `CLOSED:`, shift
-  repeaters or realign tags.
+- Agenda: tag and property matches, text search, filters, custom commands,
+  the clock report, habits, diary entries, bulk actions, and changing
+  dates or priorities from the agenda.
+- Capture, refile, archiving, clocking, tables, completion, following
+  links, export.
+- Commands that ask for input (a date, a note, a tag): LSP has no prompt
+  for free text. State notes are written without their text.
+- Fold cycling is still done by the Neovim plugin, not by the server.
 - No prebuilt binaries, and no Vim or Zed integration.
 - Source blocks get no highlighting of their own; that needs editor support
   for embedded languages.

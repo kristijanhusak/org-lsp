@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::process::ExitCode;
 
 const USAGE: &str = "\
@@ -10,12 +11,18 @@ Usage: org-lsp [--stdio]
 
 The server communicates over standard input and output.";
 
+/// Write to standard output. A reader that stops early (`org-lsp agenda |
+/// head`) is not an error.
+fn print(text: &str) {
+    let _ = std::io::stdout().write_all(text.as_bytes());
+}
+
 fn main() -> ExitCode {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     if arguments.first().is_some_and(|argument| argument == "agenda") {
         return match org_lsp::cli::agenda(&arguments[1..]) {
             Ok(output) => {
-                print!("{output}");
+                print(&output);
                 ExitCode::SUCCESS
             }
             Err(error) => {
@@ -25,8 +32,8 @@ fn main() -> ExitCode {
         };
     }
     if arguments.first().is_some_and(|argument| argument == "manifest") {
-        // The command table, for building editor integrations.
-        println!("{:#}", org_lsp::commands::manifest());
+        // What editor integrations are built from; see `docs/protocol.md`.
+        print(&format!("{:#}\n", org_lsp::manifest::manifest()));
         return ExitCode::SUCCESS;
     }
     for argument in arguments {
@@ -34,11 +41,11 @@ fn main() -> ExitCode {
             // Accepted for compatibility with clients that always pass it.
             "--stdio" => {}
             "--version" | "-V" => {
-                println!("org-lsp {}", env!("CARGO_PKG_VERSION"));
+                print(&format!("org-lsp {}\n", env!("CARGO_PKG_VERSION")));
                 return ExitCode::SUCCESS;
             }
             "--help" | "-h" => {
-                println!("{USAGE}");
+                print(&format!("{USAGE}\n"));
                 return ExitCode::SUCCESS;
             }
             other => {

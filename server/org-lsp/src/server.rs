@@ -38,7 +38,7 @@ use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
 use crate::views::{self, EntryRef, Query, View};
 use crate::workspace::{Source, Workspace};
-use crate::{actions, cli, commands, folding, highlight, symbols, uri};
+use crate::{actions, cli, commands, folding, highlight, manifest, symbols, uri};
 
 type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -70,6 +70,10 @@ struct OpenView {
     /// Where the view is written when the client cannot fetch it.
     file: Option<PathBuf>,
     view: View,
+    /// The view as the client has it, while the client has it open. An
+    /// editor with the view open fetches new text when told that the view
+    /// changed, and reports the text it then shows like any other edit.
+    client: Option<Document>,
 }
 
 /// Where a command was invoked: a document and a place in it.
@@ -110,6 +114,8 @@ struct Server {
     view: Option<OpenView>,
     /// Files the server asked the client to edit and has not seen change yet.
     edited: HashSet<String>,
+    /// The line to put the cursor on once the client shows the current view.
+    reveal: Option<u32>,
 }
 
 /// Run the server until the client asks it to exit.
@@ -181,6 +187,7 @@ pub fn run(connection: Connection) -> Result<()> {
         workspace: Workspace::new(options.agenda_files, folders),
         view: None,
         edited: HashSet::new(),
+        reveal: None,
     };
     for message in &connection.receiver {
         match message {
@@ -224,7 +231,7 @@ fn capabilities(encoding: Encoding) -> ServerCapabilities {
             ..Default::default()
         })),
         execute_command_provider: Some(ExecuteCommandOptions { commands: commands::ids(), ..Default::default() }),
-        experimental: Some(json!({ "org": commands::manifest() })),
+        experimental: Some(json!({ "org": manifest::manifest() })),
         ..Default::default()
     }
 }
@@ -280,13 +287,18 @@ impl Server {
     }
 
     fn send_raw_request(&mut self, method: &str, params: Value, pending: Option<Pending>) {
+        let request = self.new_request(method, params, pending);
+        // A closed channel means the client is gone; the loop ends on its own.
+        let _ = self.sender.send(Message::Request(request));
+    }
+
+    fn new_request(&mut self, method: &str, params: Value, pending: Option<Pending>) -> Request {
         self.next_request += 1;
         let id = RequestId::from(format!("org-lsp-{}", self.next_request));
         if let Some(pending) = pending {
             self.pending.insert(id.clone(), pending);
         }
-        // A closed channel means the client is gone; the loop ends on its own.
-        let _ = self.sender.send(Message::Request(Request { id, method: method.to_string(), params }));
+        Request { id, method: method.to_string(), params }
     }
 
     fn show_message(&self, typ: MessageType, message: impl Into<String>) {
@@ -366,6 +378,10 @@ impl Server {
                 let document = params.text_document;
                 // The agenda is the server's own text; the client's copy is not read.
                 if self.is_view(&document.uri) {
+                    if let Some(open) = self.view.as_mut().filter(|open| open.uri == document.uri) {
+                        open.client = Some(Document::new(document.text, document.version, &self.todo));
+                    }
+                    self.reveal_when_current();
                     return;
                 }
                 self.documents.insert(
@@ -375,6 +391,14 @@ impl Server {
             }
             DidChangeTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidChangeTextDocumentParams>(notification) else { return };
+                // The client's copy of the agenda follows the server's.
+                let (encoding, todo) = (self.client.encoding, &self.todo);
+                let view = self.view.as_mut().filter(|open| open.uri == params.text_document.uri);
+                if let Some(copy) = view.and_then(|open| open.client.as_mut()) {
+                    copy.apply(params.content_changes, params.text_document.version, encoding, todo);
+                    self.reveal_when_current();
+                    return;
+                }
                 let key = params.text_document.uri.as_str();
                 if let Some(document) = self.documents.get_mut(key) {
                     document.apply(
@@ -398,6 +422,12 @@ impl Server {
             DidCloseTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidCloseTextDocumentParams>(notification) else { return };
                 self.documents.remove(params.text_document.uri.as_str());
+                // The agenda was closed: stop rebuilding it.
+                if self.view.as_ref().is_some_and(|open| open.uri == params.text_document.uri) {
+                    self.remove_view_file();
+                    self.view = None;
+                    self.reveal = None;
+                }
             }
             _ => {}
         }
@@ -610,7 +640,7 @@ impl Server {
             Some(open) => open.view = view,
             None if self.client.virtual_documents => {
                 if let Ok(uri) = views::VIRTUAL_URI.parse() {
-                    self.view = Some(OpenView { uri, file: None, view });
+                    self.view = Some(OpenView { uri, file: None, view, client: None });
                 }
             }
             None => {
@@ -619,7 +649,7 @@ impl Server {
                 let file = directory.join(views::FILE_NAME);
                 if std::fs::create_dir_all(&directory).is_ok() {
                     if let Some(uri) = uri::from_path(&file) {
-                        self.view = Some(OpenView { uri, file: Some(file), view });
+                        self.view = Some(OpenView { uri, file: Some(file), view, client: None });
                     }
                 }
             }
@@ -642,22 +672,55 @@ impl Server {
         }
     }
 
+    /// Ask the client to show the view with the cursor on `line`.
+    fn show_view(&mut self, line: u32) {
+        let Some(uri) = self.view.as_ref().map(|open| open.uri.clone()) else { return };
+        let params = ShowDocumentParams {
+            uri,
+            external: None,
+            take_focus: Some(true),
+            selection: Some(Range::new(Position::new(line, 0), Position::new(line, 0))),
+        };
+        self.send_request::<ShowDocument>(params, None);
+    }
+
+    /// Move the cursor as `open_view` wanted, if the client by now shows
+    /// the text that the line number belongs to.
+    fn reveal_when_current(&mut self) {
+        let current =
+            self.view.as_ref().and_then(|open| Some(open.client.as_ref()?.text == open.view.text)).unwrap_or(false);
+        if current {
+            if let Some(line) = self.reveal.take() {
+                self.show_view(line);
+            }
+        }
+    }
+
     /// Show `query` in the client, with the cursor on today's date.
     fn open_view(&mut self, query: Query) -> std::result::Result<(), String> {
         if !self.client.show_document {
             return Err("This editor cannot open documents on the server's request".to_string());
         }
         self.set_view(query);
-        self.publish_view();
         let Some(open) = &self.view else { return Err("Cannot create the agenda".to_string()) };
         let line = open.view.home_line();
-        let params = ShowDocumentParams {
-            uri: open.uri.clone(),
-            external: None,
-            take_focus: Some(true),
-            selection: Some(Range::new(Position::new(line, 0), Position::new(line, 0))),
-        };
-        self.send_request::<ShowDocument>(params, None);
+        match &open.client {
+            // The client shows this very text already.
+            Some(copy) if copy.text == open.view.text => self.show_view(line),
+            // The client shows the old text. A cursor position sent now
+            // would be applied to those lines, so it waits until the client
+            // has replaced them; see `reveal_when_current`.
+            Some(_) => {
+                self.reveal = Some(line);
+                self.publish_view();
+            }
+            // The client does not have the view open, as far as it has
+            // said: showing it makes the client fetch it, or read the file.
+            None => {
+                self.publish_view();
+                self.show_view(line);
+            }
+        }
         Ok(())
     }
 
@@ -806,7 +869,8 @@ impl Server {
         }
         let edit = self.workspace_edit(&file, version, edits);
         self.edited.insert(file.as_str().to_string());
-        let params = lsp_types::ApplyWorkspaceEditParams { label: Some(command_title(kind).to_string()), edit };
+        // No label: some editors print it every time an edit is applied.
+        let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
         self.send_request::<ApplyWorkspaceEdit>(params, Some(Pending::Edit));
         Ok(())
     }

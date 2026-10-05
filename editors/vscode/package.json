@@ -1,7 +1,7 @@
 {
   "name": "org-lsp",
   "displayName": "Org (org-lsp)",
-  "description": "Org mode support through the org-lsp language server: highlighting, folding, outline and TODO cycling.",
+  "description": "Org mode support through the org-lsp language server: highlighting, folding, outline, TODO states and the agenda.",
   "version": "0.1.0",
   "publisher": "org-lsp",
   "private": true,
@@ -30,20 +30,95 @@
           ".org_archive"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "org-agenda",
+        "aliases": [
+          "Org Agenda"
+        ],
+        "extensions": [
+          ".org-agenda"
+        ],
+        "filenames": [
+          "Org Agenda"
+        ]
       }
     ],
     "commands": [
       {
-        "command": "org-lsp.todoNext",
-        "title": "Next TODO State",
-        "category": "Org",
-        "enablement": "editorLangId == org"
+        "command": "org.agenda.dispatch",
+        "title": "Agenda commands",
+        "category": "Org"
       },
       {
-        "command": "org-lsp.todoPrevious",
-        "title": "Previous TODO State",
-        "category": "Org",
-        "enablement": "editorLangId == org"
+        "command": "org.agenda.list",
+        "title": "Agenda for the current week or day",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.todos",
+        "title": "List of all TODO entries",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.later",
+        "title": "Agenda: go forward in time",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.earlier",
+        "title": "Agenda: go backward in time",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.today",
+        "title": "Agenda: go to today",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.day",
+        "title": "Agenda: day view",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.week",
+        "title": "Agenda: week view",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.fortnight",
+        "title": "Agenda: fortnight view",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.month",
+        "title": "Agenda: month view",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.year",
+        "title": "Agenda: year view",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.redo",
+        "title": "Agenda: rebuild",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.goto",
+        "title": "Agenda: go to the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.todo.next",
+        "title": "Cycle TODO state forward",
+        "category": "Org"
+      },
+      {
+        "command": "org.todo.previous",
+        "title": "Cycle TODO state backward",
+        "category": "Org"
       },
       {
         "command": "org-lsp.restartServer",
@@ -60,102 +135,743 @@
           "scope": "machine-overridable",
           "markdownDescription": "Path to the `org-lsp` server binary. When empty, the binary bundled with the extension is used, or else `org-lsp` from `PATH`."
         },
-        "org-lsp.todoKeywords": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [
-            "TODO",
-            "|",
-            "DONE"
-          ],
-          "markdownDescription": "The default TODO sequence, written like Org's `#+TODO:` line; `|` separates the states that count as done. A file can override this with its own `#+TODO:` lines."
+        "org-lsp.settings": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "The server's options, for example `{ \"agendaFiles\": [\"~/org\"], \"todoKeywords\": [\"TODO\", \"NEXT\", \"|\", \"DONE\"], \"logDone\": \"time\" }`. Without `agendaFiles`, the agenda is built from the Org files in the workspace folders. The options are listed in the server's `docs/protocol.md`."
         }
       }
     },
     "configurationDefaults": {
       "[org]": {
         "editor.semanticHighlighting.enabled": true,
-        "editor.lightbulb.enabled": "off"
+        "editor.lightbulb.enabled": "off",
+        "editor.bracketPairColorization.enabled": false
+      },
+      "[org-agenda]": {
+        "editor.semanticHighlighting.enabled": true,
+        "editor.lightbulb.enabled": "off",
+        "editor.bracketPairColorization.enabled": false,
+        "editor.lineNumbers": "off",
+        "editor.wordWrap": "off",
+        "editor.folding": false,
+        "editor.guides.indentation": false,
+        "editor.occurrencesHighlight": "off",
+        "editor.selectionHighlight": false,
+        "editor.stickyScroll.enabled": false
       }
     },
     "semanticTokenTypes": [
-      { "id": "headline", "description": "The title text of an Org headline" },
-      { "id": "stars", "description": "The stars that start an Org headline" },
-      { "id": "todoKeyword", "description": "A TODO keyword" },
-      { "id": "priority", "description": "A priority cookie such as [#A]" },
-      { "id": "tag", "description": "Headline tags" },
-      { "id": "planning", "description": "SCHEDULED:, DEADLINE:, CLOSED: and CLOCK: keywords" },
-      { "id": "timestamp", "description": "A timestamp" },
-      { "id": "drawer", "description": "The opening or closing line of a drawer" },
-      { "id": "block", "description": "The opening or closing line of a block" },
-      { "id": "bullet", "description": "A list bullet" },
-      { "id": "checkbox", "description": "A list checkbox" },
-      { "id": "link", "description": "A link" },
-      { "id": "code", "description": "Inline code" },
-      { "id": "verbatim", "description": "Verbatim text" },
-      { "id": "text", "description": "Text that carries emphasis" },
-      { "id": "tableDelimiter", "description": "Table borders and rules" },
-      { "id": "footnote", "description": "A footnote reference or label" },
-      { "id": "cookie", "description": "A statistics cookie such as [1/3]" },
-      { "id": "target", "description": "A link target" },
-      { "id": "latex", "description": "A LaTeX fragment or environment" },
-      { "id": "entity", "description": "An entity such as \\alpha" }
+      {
+        "id": "headline",
+        "description": "The title text of a headline"
+      },
+      {
+        "id": "stars",
+        "description": "The stars that start a headline"
+      },
+      {
+        "id": "todoKeyword",
+        "description": "A TODO keyword"
+      },
+      {
+        "id": "priority",
+        "description": "A priority cookie such as [#A]"
+      },
+      {
+        "id": "tag",
+        "description": "Headline tags"
+      },
+      {
+        "id": "planning",
+        "description": "SCHEDULED:, DEADLINE:, CLOSED: and CLOCK: keywords"
+      },
+      {
+        "id": "timestamp",
+        "description": "A timestamp"
+      },
+      {
+        "id": "drawer",
+        "description": "The opening or closing line of a drawer"
+      },
+      {
+        "id": "block",
+        "description": "The opening or closing line of a block"
+      },
+      {
+        "id": "bullet",
+        "description": "A list bullet"
+      },
+      {
+        "id": "checkbox",
+        "description": "A list checkbox"
+      },
+      {
+        "id": "link",
+        "description": "A link"
+      },
+      {
+        "id": "code",
+        "description": "Inline code"
+      },
+      {
+        "id": "verbatim",
+        "description": "Verbatim text"
+      },
+      {
+        "id": "text",
+        "description": "Text that carries emphasis"
+      },
+      {
+        "id": "tableDelimiter",
+        "description": "Table borders and rules"
+      },
+      {
+        "id": "footnote",
+        "description": "A footnote reference or label"
+      },
+      {
+        "id": "cookie",
+        "description": "A statistics cookie such as [1/3]"
+      },
+      {
+        "id": "target",
+        "description": "A link target"
+      },
+      {
+        "id": "latex",
+        "description": "A LaTeX fragment or environment"
+      },
+      {
+        "id": "entity",
+        "description": "An entity such as \\alpha"
+      },
+      {
+        "id": "agendaStructure",
+        "description": "Agenda: the title line of a view"
+      },
+      {
+        "id": "agendaDate",
+        "description": "Agenda: a date line"
+      },
+      {
+        "id": "agendaScheduled",
+        "description": "Agenda: a scheduled entry"
+      },
+      {
+        "id": "agendaDeadline",
+        "description": "Agenda: an entry with a deadline"
+      },
+      {
+        "id": "agendaEvent",
+        "description": "Agenda: an entry with a plain timestamp"
+      },
+      {
+        "id": "agendaDone",
+        "description": "Agenda: an entry that is done"
+      },
+      {
+        "id": "agendaTimeGrid",
+        "description": "Agenda: a line of the time grid"
+      }
     ],
     "semanticTokenModifiers": [
-      { "id": "level1", "description": "Headline level 1" },
-      { "id": "level2", "description": "Headline level 2" },
-      { "id": "level3", "description": "Headline level 3" },
-      { "id": "level4", "description": "Headline level 4" },
-      { "id": "level5", "description": "Headline level 5" },
-      { "id": "level6", "description": "Headline level 6" },
-      { "id": "level7", "description": "Headline level 7" },
-      { "id": "level8", "description": "Headline level 8" },
-      { "id": "done", "description": "A TODO keyword that marks the entry as finished" },
-      { "id": "inactive", "description": "An inactive timestamp" },
-      { "id": "checked", "description": "A ticked checkbox" },
-      { "id": "partial", "description": "A partially ticked checkbox" },
-      { "id": "bold", "description": "Bold text" },
-      { "id": "italic", "description": "Italic text" },
-      { "id": "underline", "description": "Underlined text" },
-      { "id": "strikethrough", "description": "Struck-through text" }
+      {
+        "id": "level1",
+        "description": "Headline level 1"
+      },
+      {
+        "id": "level2",
+        "description": "Headline level 2"
+      },
+      {
+        "id": "level3",
+        "description": "Headline level 3"
+      },
+      {
+        "id": "level4",
+        "description": "Headline level 4"
+      },
+      {
+        "id": "level5",
+        "description": "Headline level 5"
+      },
+      {
+        "id": "level6",
+        "description": "Headline level 6"
+      },
+      {
+        "id": "level7",
+        "description": "Headline level 7"
+      },
+      {
+        "id": "level8",
+        "description": "Headline level 8"
+      },
+      {
+        "id": "done",
+        "description": "A TODO keyword that marks the entry as finished"
+      },
+      {
+        "id": "inactive",
+        "description": "An inactive timestamp"
+      },
+      {
+        "id": "checked",
+        "description": "A ticked checkbox"
+      },
+      {
+        "id": "partial",
+        "description": "A partially ticked checkbox"
+      },
+      {
+        "id": "bold",
+        "description": "Bold text"
+      },
+      {
+        "id": "italic",
+        "description": "Italic text"
+      },
+      {
+        "id": "underline",
+        "description": "Underlined text"
+      },
+      {
+        "id": "strikethrough",
+        "description": "Struck-through text"
+      },
+      {
+        "id": "today",
+        "description": "Agenda: today"
+      },
+      {
+        "id": "weekend",
+        "description": "Agenda: a weekend day"
+      },
+      {
+        "id": "past",
+        "description": "Agenda: scheduled before today"
+      },
+      {
+        "id": "imminent",
+        "description": "Agenda: the deadline is today or has passed"
+      },
+      {
+        "id": "distant",
+        "description": "Agenda: the deadline is far away"
+      },
+      {
+        "id": "range",
+        "description": "Agenda: a day inside a date range"
+      },
+      {
+        "id": "current",
+        "description": "Agenda: the current time"
+      }
     ],
     "semanticTokenScopes": [
       {
         "language": "org",
         "scopes": {
-          "headline": ["markup.heading.org", "entity.name.section"],
-          "stars": ["punctuation.definition.heading.org", "markup.heading.org"],
-          "todoKeyword": ["keyword.other.todo.org", "markup.deleted", "keyword.control"],
-          "todoKeyword.done": ["keyword.other.done.org", "markup.inserted", "string"],
-          "priority": ["constant.other.priority.org", "constant.numeric"],
-          "tag": ["entity.name.tag.org", "entity.name.tag"],
-          "planning": ["keyword.other.planning.org", "keyword.other"],
-          "timestamp": ["constant.other.timestamp.org", "constant.numeric"],
-          "timestamp.inactive": ["comment.timestamp.org", "comment"],
-          "drawer": ["meta.preprocessor.drawer.org", "meta.preprocessor"],
-          "property": ["variable.other.property.org", "variable.other.property"],
-          "keyword": ["meta.preprocessor.keyword.org", "meta.preprocessor"],
-          "block": ["punctuation.definition.block.org", "comment"],
-          "bullet": ["punctuation.definition.list.begin.org", "punctuation.definition.list.begin.markdown", "keyword.operator"],
-          "checkbox": ["markup.list.unchecked.org", "keyword.operator"],
-          "checkbox.checked": ["markup.list.checked.org", "markup.inserted"],
-          "link": ["markup.underline.link.org", "markup.underline.link", "string.other.link"],
-          "code": ["markup.inline.raw.org", "markup.inline.raw"],
-          "verbatim": ["markup.inline.raw.org", "markup.inline.raw"],
-          "tableDelimiter": ["punctuation.separator.table.org", "punctuation.definition.table", "comment"],
-          "footnote": ["markup.underline.link.footnote.org", "markup.underline.link"],
-          "cookie": ["constant.numeric.cookie.org", "constant.numeric"],
-          "target": ["entity.name.label.org", "entity.name.label"],
-          "latex": ["markup.math.org", "support.function"],
-          "entity": ["constant.character.entity.org", "constant.character.entity"],
-          "macro": ["entity.name.function.macro.org", "entity.name.function.preprocessor"],
-          "*.bold": ["markup.bold.org", "markup.bold"],
-          "*.italic": ["markup.italic.org", "markup.italic"],
-          "*.underline": ["markup.underline.org", "markup.underline"],
-          "*.strikethrough": ["markup.strikethrough.org", "markup.strikethrough"]
+          "headline": [
+            "markup.heading.org",
+            "markup.heading",
+            "entity.name.section"
+          ],
+          "headline.level1": [
+            "markup.heading.1.org"
+          ],
+          "headline.level2": [
+            "markup.heading.2.org"
+          ],
+          "headline.level3": [
+            "markup.heading.3.org"
+          ],
+          "headline.level4": [
+            "markup.heading.4.org"
+          ],
+          "headline.level5": [
+            "markup.heading.5.org"
+          ],
+          "headline.level6": [
+            "markup.heading.6.org"
+          ],
+          "headline.level7": [
+            "markup.heading.7.org"
+          ],
+          "headline.level8": [
+            "markup.heading.8.org"
+          ],
+          "stars": [
+            "punctuation.definition.heading.org",
+            "markup.heading"
+          ],
+          "todoKeyword": [
+            "keyword.other.todo.org",
+            "markup.deleted",
+            "keyword.control"
+          ],
+          "todoKeyword.done": [
+            "keyword.other.done.org",
+            "markup.inserted",
+            "string"
+          ],
+          "priority": [
+            "constant.other.priority.org",
+            "constant.numeric"
+          ],
+          "tag": [
+            "entity.name.tag.org",
+            "entity.name.tag"
+          ],
+          "planning": [
+            "keyword.other.planning.org",
+            "keyword.other"
+          ],
+          "timestamp": [
+            "constant.other.timestamp.org",
+            "constant.numeric"
+          ],
+          "timestamp.inactive": [
+            "comment.timestamp.org",
+            "comment"
+          ],
+          "drawer": [
+            "meta.preprocessor.drawer.org",
+            "meta.preprocessor"
+          ],
+          "property": [
+            "variable.other.property.org",
+            "variable.other.property"
+          ],
+          "keyword": [
+            "meta.preprocessor.keyword.org",
+            "meta.preprocessor"
+          ],
+          "block": [
+            "punctuation.definition.block.org",
+            "comment"
+          ],
+          "comment": [
+            "comment.line.org",
+            "comment"
+          ],
+          "bullet": [
+            "punctuation.definition.list.begin.org",
+            "punctuation.definition.list.begin.markdown",
+            "keyword.operator"
+          ],
+          "checkbox": [
+            "markup.list.unchecked.org",
+            "keyword.operator"
+          ],
+          "checkbox.checked": [
+            "markup.list.checked.org",
+            "markup.inserted"
+          ],
+          "link": [
+            "markup.underline.link.org",
+            "markup.underline.link",
+            "string.other.link"
+          ],
+          "code": [
+            "markup.inline.raw.org",
+            "markup.inline.raw"
+          ],
+          "verbatim": [
+            "markup.inline.raw.org",
+            "markup.inline.raw"
+          ],
+          "tableDelimiter": [
+            "punctuation.separator.table.org",
+            "punctuation.definition.table",
+            "comment"
+          ],
+          "footnote": [
+            "markup.underline.link.footnote.org",
+            "markup.underline.link"
+          ],
+          "cookie": [
+            "constant.numeric.cookie.org",
+            "constant.numeric"
+          ],
+          "target": [
+            "entity.name.label.org",
+            "entity.name.label"
+          ],
+          "latex": [
+            "markup.math.org",
+            "support.function"
+          ],
+          "entity": [
+            "constant.character.entity.org",
+            "constant.character.entity"
+          ],
+          "macro": [
+            "entity.name.function.macro.org",
+            "entity.name.function.preprocessor"
+          ],
+          "*.bold": [
+            "markup.bold.org",
+            "markup.bold"
+          ],
+          "*.italic": [
+            "markup.italic.org",
+            "markup.italic"
+          ],
+          "*.underline": [
+            "markup.underline.org",
+            "markup.underline"
+          ],
+          "*.strikethrough": [
+            "markup.strikethrough.org",
+            "markup.strikethrough"
+          ],
+          "agendaStructure": [
+            "markup.heading.agenda.org",
+            "markup.heading",
+            "entity.name.section"
+          ],
+          "agendaDate": [
+            "markup.heading.date.agenda.org",
+            "markup.heading",
+            "entity.name.section"
+          ],
+          "agendaDate.today": [
+            "markup.bold.today.agenda.org",
+            "markup.bold"
+          ],
+          "agendaDate.weekend": [
+            "markup.italic.weekend.agenda.org",
+            "markup.italic"
+          ],
+          "agendaScheduled": [
+            "markup.inserted.scheduled.agenda.org",
+            "markup.inserted",
+            "string"
+          ],
+          "agendaScheduled.past": [
+            "markup.changed.scheduled.agenda.org",
+            "markup.changed",
+            "constant.numeric"
+          ],
+          "agendaDeadline": [
+            "markup.changed.deadline.agenda.org",
+            "markup.changed",
+            "constant.numeric"
+          ],
+          "agendaDeadline.imminent": [
+            "markup.deleted.deadline.agenda.org",
+            "markup.deleted",
+            "keyword.control"
+          ],
+          "agendaDeadline.distant": [
+            "comment.deadline.agenda.org",
+            "comment"
+          ],
+          "agendaDone": [
+            "comment.done.agenda.org",
+            "comment"
+          ],
+          "agendaTimeGrid": [
+            "comment.time-grid.agenda.org",
+            "comment"
+          ],
+          "agendaTimeGrid.current": [
+            "markup.bold.current-time.agenda.org",
+            "markup.bold"
+          ]
         }
+      },
+      {
+        "language": "org-agenda",
+        "scopes": {
+          "headline": [
+            "markup.heading.org",
+            "markup.heading",
+            "entity.name.section"
+          ],
+          "headline.level1": [
+            "markup.heading.1.org"
+          ],
+          "headline.level2": [
+            "markup.heading.2.org"
+          ],
+          "headline.level3": [
+            "markup.heading.3.org"
+          ],
+          "headline.level4": [
+            "markup.heading.4.org"
+          ],
+          "headline.level5": [
+            "markup.heading.5.org"
+          ],
+          "headline.level6": [
+            "markup.heading.6.org"
+          ],
+          "headline.level7": [
+            "markup.heading.7.org"
+          ],
+          "headline.level8": [
+            "markup.heading.8.org"
+          ],
+          "stars": [
+            "punctuation.definition.heading.org",
+            "markup.heading"
+          ],
+          "todoKeyword": [
+            "keyword.other.todo.org",
+            "markup.deleted",
+            "keyword.control"
+          ],
+          "todoKeyword.done": [
+            "keyword.other.done.org",
+            "markup.inserted",
+            "string"
+          ],
+          "priority": [
+            "constant.other.priority.org",
+            "constant.numeric"
+          ],
+          "tag": [
+            "entity.name.tag.org",
+            "entity.name.tag"
+          ],
+          "planning": [
+            "keyword.other.planning.org",
+            "keyword.other"
+          ],
+          "timestamp": [
+            "constant.other.timestamp.org",
+            "constant.numeric"
+          ],
+          "timestamp.inactive": [
+            "comment.timestamp.org",
+            "comment"
+          ],
+          "drawer": [
+            "meta.preprocessor.drawer.org",
+            "meta.preprocessor"
+          ],
+          "property": [
+            "variable.other.property.org",
+            "variable.other.property"
+          ],
+          "keyword": [
+            "meta.preprocessor.keyword.org",
+            "meta.preprocessor"
+          ],
+          "block": [
+            "punctuation.definition.block.org",
+            "comment"
+          ],
+          "comment": [
+            "comment.line.org",
+            "comment"
+          ],
+          "bullet": [
+            "punctuation.definition.list.begin.org",
+            "punctuation.definition.list.begin.markdown",
+            "keyword.operator"
+          ],
+          "checkbox": [
+            "markup.list.unchecked.org",
+            "keyword.operator"
+          ],
+          "checkbox.checked": [
+            "markup.list.checked.org",
+            "markup.inserted"
+          ],
+          "link": [
+            "markup.underline.link.org",
+            "markup.underline.link",
+            "string.other.link"
+          ],
+          "code": [
+            "markup.inline.raw.org",
+            "markup.inline.raw"
+          ],
+          "verbatim": [
+            "markup.inline.raw.org",
+            "markup.inline.raw"
+          ],
+          "tableDelimiter": [
+            "punctuation.separator.table.org",
+            "punctuation.definition.table",
+            "comment"
+          ],
+          "footnote": [
+            "markup.underline.link.footnote.org",
+            "markup.underline.link"
+          ],
+          "cookie": [
+            "constant.numeric.cookie.org",
+            "constant.numeric"
+          ],
+          "target": [
+            "entity.name.label.org",
+            "entity.name.label"
+          ],
+          "latex": [
+            "markup.math.org",
+            "support.function"
+          ],
+          "entity": [
+            "constant.character.entity.org",
+            "constant.character.entity"
+          ],
+          "macro": [
+            "entity.name.function.macro.org",
+            "entity.name.function.preprocessor"
+          ],
+          "*.bold": [
+            "markup.bold.org",
+            "markup.bold"
+          ],
+          "*.italic": [
+            "markup.italic.org",
+            "markup.italic"
+          ],
+          "*.underline": [
+            "markup.underline.org",
+            "markup.underline"
+          ],
+          "*.strikethrough": [
+            "markup.strikethrough.org",
+            "markup.strikethrough"
+          ],
+          "agendaStructure": [
+            "markup.heading.agenda.org",
+            "markup.heading",
+            "entity.name.section"
+          ],
+          "agendaDate": [
+            "markup.heading.date.agenda.org",
+            "markup.heading",
+            "entity.name.section"
+          ],
+          "agendaDate.today": [
+            "markup.bold.today.agenda.org",
+            "markup.bold"
+          ],
+          "agendaDate.weekend": [
+            "markup.italic.weekend.agenda.org",
+            "markup.italic"
+          ],
+          "agendaScheduled": [
+            "markup.inserted.scheduled.agenda.org",
+            "markup.inserted",
+            "string"
+          ],
+          "agendaScheduled.past": [
+            "markup.changed.scheduled.agenda.org",
+            "markup.changed",
+            "constant.numeric"
+          ],
+          "agendaDeadline": [
+            "markup.changed.deadline.agenda.org",
+            "markup.changed",
+            "constant.numeric"
+          ],
+          "agendaDeadline.imminent": [
+            "markup.deleted.deadline.agenda.org",
+            "markup.deleted",
+            "keyword.control"
+          ],
+          "agendaDeadline.distant": [
+            "comment.deadline.agenda.org",
+            "comment"
+          ],
+          "agendaDone": [
+            "comment.done.agenda.org",
+            "comment"
+          ],
+          "agendaTimeGrid": [
+            "comment.time-grid.agenda.org",
+            "comment"
+          ],
+          "agendaTimeGrid.current": [
+            "markup.bold.current-time.agenda.org",
+            "markup.bold"
+          ]
+        }
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "org.agenda.later",
+        "key": "f",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.earlier",
+        "key": "b",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.today",
+        "key": ".",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.day",
+        "key": "d",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.day",
+        "key": "v d",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.week",
+        "key": "w",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.week",
+        "key": "v w",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.fortnight",
+        "key": "v t",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.month",
+        "key": "v m",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.year",
+        "key": "v y",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.redo",
+        "key": "r",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.redo",
+        "key": "g",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.goto",
+        "key": "enter",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.goto",
+        "key": "tab",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.todo.next",
+        "key": "t",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
       }
     ]
   },
@@ -164,7 +880,9 @@
     "build": "node scripts/build.mjs",
     "bundle-server": "node scripts/bundle-server.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "package": "npm run build && vsce package --no-dependencies"
+    "package": "npm run build && vsce package --no-dependencies",
+    "generate": "node scripts/generate.mjs",
+    "test": "node test/run.mjs"
   },
   "dependencies": {
     "vscode-languageclient": "^10.1.2"
@@ -172,8 +890,17 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/vscode": "~1.91.0",
+    "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.0",
+    "mocha": "^12.0.3",
     "typescript": "^5.9.0"
+  },
+  "orgLsp": {
+    "agendaScheme": "org-agenda",
+    "languages": [
+      "org",
+      "org-agenda"
+    ]
   }
 }

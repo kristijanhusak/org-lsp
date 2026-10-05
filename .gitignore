@@ -4,3 +4,4 @@ node_modules
 /editors/vscode/server
 *.vsix
 __pycache__/
+/editors/vscode/.vscode-test

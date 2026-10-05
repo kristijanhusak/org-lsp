@@ -20,6 +20,8 @@ pub const SCHEME: &str = "org-agenda";
 pub const VIRTUAL_URI: &str = "org-agenda:/Org%20Agenda";
 /// The file name used when the client cannot show virtual documents.
 pub const FILE_NAME: &str = "Agenda.org-agenda";
+/// The language of the view document, by which editors tell it from Org files.
+pub const LANGUAGE: &str = "org-agenda";
 
 /// What a view shows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -1,9 +1,10 @@
 //! A language server for Org mode documents.
 //!
-//! The server speaks standard LSP only: any editor with an LSP client gets
-//! highlighting (semantic tokens), folding, the outline and TODO cycling.
-//! See `docs/protocol.md` in the repository for the token legend and the
-//! code action kinds editors can bind keys to.
+//! The server speaks standard LSP: any editor with an LSP client gets
+//! highlighting (semantic tokens), folding, the outline, TODO state changes
+//! and the agenda. What an editor integration still has to know (commands,
+//! default keys, default looks) the server announces itself; see
+//! `manifest` and `docs/protocol.md` in the repository.
 
 pub mod actions;
 pub mod cli;
@@ -12,7 +13,9 @@ pub mod config;
 pub mod document;
 pub mod folding;
 pub mod highlight;
+pub mod legend;
 pub mod line_index;
+pub mod manifest;
 pub mod server;
 pub mod symbols;
 pub mod uri;

@@ -12,7 +12,8 @@ function M.check()
     return
   end
 
-  local cmd = require('org-lsp').server_command()
+  local org_lsp = require('org-lsp')
+  local cmd = org_lsp.server_command()
   if not cmd then
     health.error('Server binary not found', {
       'Run :OrgLspBuild (needs cargo)',
@@ -28,6 +29,15 @@ function M.check()
     health.ok(vim.trim(result.stdout) .. ' (' .. cmd[1] .. ')')
   else
     health.error('Could not run ' .. cmd[1])
+  end
+
+  local files = org_lsp.config.settings.agendaFiles
+  if type(files) == 'table' and #files > 0 then
+    health.ok('Agenda files: ' .. table.concat(files, ', '))
+  else
+    health.warn('No agenda files are configured; the agenda shows the Org files that are open', {
+      "Set them in the configuration: settings = { agendaFiles = { '~/org' } }",
+    })
   end
 
   local attached = #vim.lsp.get_clients({ name = 'org_lsp' })
