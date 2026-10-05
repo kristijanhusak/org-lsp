@@ -8,8 +8,9 @@ edits. An editor needs only a thin shim (start the server, map highlight
 groups, bind keys), and editors without a plugin system still get whatever
 standard LSP can carry.
 
-**Status: early.** The parser, the agenda and TODO state changes are checked
-against Emacs (Org 9.8.10) and match it on the test corpus. Much of Org is
+**Status: early.** The parser, the agenda, TODO state changes, priorities
+and timestamp changes are checked against Emacs (Org 9.8.10) and match it
+on the test corpus. Much of Org is
 still missing; see [Not done yet](#not-done-yet).
 
 ## What works
@@ -20,9 +21,11 @@ still missing; see [Not done yet](#not-done-yet).
 | Folding | yes, with `<Tab>` / `<S-Tab>` cycling | yes | no² |
 | Outline (document symbols) | yes | yes | yes |
 | TODO state changes, as `org-todo` does them | `cit` / `ciT`, repeatable with `.` | commands, `Ctrl+.` | `Space a` |
+| Priorities, as `org-priority` changes them | `ciR` / `cir` | commands, `Ctrl+.` | `Space a` |
+| Timestamps: the part at the cursor, or the date by days | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>`, with counts | commands, `Ctrl+.` | `Space a` |
 | Agenda: day, week, fortnight, month and year views | yes | yes | no³ |
 | Agenda: list of all TODO entries | yes | yes | no³ |
-| Agenda: change an entry's state, go to its entry | yes | yes | no³ |
+| Agenda: change an entry's state, priority or date, go to its entry | yes | yes | no³ |
 
 ¹ Helix does not consume semantic tokens; it highlights Org with its own grammar.
 ² Helix has no folding.
@@ -33,6 +36,11 @@ Tested with Neovim 0.11.0 and 0.12.5, VSCodium 1.135 and Helix 25.07.1.
 **TODO state changes** follow Org: tags return to their column, statistics
 cookies in the parent are recounted, `CLOSED:` and state notes are logged
 when configured, and an entry with a repeater moves to its next date.
+
+**Priorities and timestamps** change as Org's `S-<up>` and its relatives
+change them: the priority of the entry, or the year, month, day, hour or
+minute under the cursor, with time ranges, repeaters, warning periods and
+`CLOCK:` durations kept in step. A `#+PRIORITIES:` line is honoured.
 
 **The agenda** shows scheduled entries, deadlines with their warnings,
 timestamps, date ranges and the time grid, sorted as in Org, and is
@@ -70,10 +78,12 @@ instead of nvim-orgmode for those buffers, not next to it.
 | Where | Keys |
 | --- | --- |
 | Anywhere | `<Leader>oa` agenda commands; `:Org agenda`, `:Org agenda list`, `:Org agenda todos` |
-| Org files | `cit` / `ciT` next / previous TODO state, `<Tab>` / `<S-Tab>` fold cycling |
-| Agenda | `f` / `b` later / earlier, `.` today, `vd` `vw` `vt` `vm` `vy` span, `r` rebuild, `t` TODO state, `<CR>` or `<Tab>` go to the entry, `q` close |
+| Org files | `cit` / `ciT` next / previous TODO state, `ciR` / `cir` priority up / down, `<C-a>` / `<C-x>` the part of the timestamp under the cursor, `<S-Up>` / `<S-Down>` the date a day later / earlier, `<Tab>` / `<S-Tab>` fold cycling |
+| Agenda | `f` / `b` later / earlier, `.` today, `vd` `vw` `vt` `vm` `vy` span, `r` rebuild, `t` TODO state, `+` / `-` priority, `<S-Right>` / `<S-Left>` date later / earlier, `<CR>` or `<Tab>` go to the entry, `q` close |
 
-These are nvim-orgmode's defaults. Apart from fold cycling, `q` and
+These are nvim-orgmode's defaults. A count works as in Vim (`3<C-a>`,
+`2<S-Right>`), the editing keys repeat with `.`, and off a timestamp
+`<C-a>`, `<C-x>`, `<S-Up>` and `<S-Down>` do what they do in any buffer. Apart from fold cycling, `q` and
 `<Leader>oa`, the plugin does not list them: the server announces its
 commands with their keys, and the plugin binds what it is told.
 
@@ -192,21 +202,26 @@ export ORG_LISP_DIR=/path/to/org-mode/lisp   # the reference is Org 9.8.10
 scripts/update-fixtures.sh
 scripts/update-agenda-fixtures.py
 scripts/update-todo-fixtures.py
+scripts/update-shift-fixtures.py           # priorities and timestamps
+scripts/update-agenda-action-fixtures.py   # the same, from the agenda
 ```
 
-`scripts/fuzz-against-emacs.py`, `fuzz-agenda.py` and `fuzz-todo.py`
-generate random documents and compare both programs on them. See
+`scripts/fuzz-against-emacs.py`, `fuzz-agenda.py`, `fuzz-todo.py` and
+`fuzz-shift.py` generate random documents and compare both programs on
+them. See
 `docs/parser.md`.
 
 ## Not done yet
 
 - Agenda: tag and property matches, text search, filters, custom commands,
-  the clock report, habits, diary entries, bulk actions, and changing
-  dates or priorities from the agenda.
+  the clock report, habits, diary entries and bulk actions.
 - Capture, refile, archiving, clocking, tables, completion, following
   links, export.
 - Commands that ask for input (a date, a note, a tag): LSP has no prompt
-  for free text. State notes are written without their text.
+  for free text. State notes are written without their text, and there is
+  no `org-schedule` or `org-deadline` yet.
+- The shifted cursor keys do nothing yet on list items, in tables and on
+  property lines.
 - Fold cycling is still done by the Neovim plugin, not by the server.
 - No prebuilt binaries, and no Vim or Zed integration.
 - Source blocks get no highlighting of their own; that needs editor support

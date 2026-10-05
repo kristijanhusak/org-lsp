@@ -1,7 +1,7 @@
 # Org (org-lsp) for VS Code
 
 Org mode support through the org-lsp language server: highlighting,
-folding, the outline, TODO state changes and the agenda.
+folding, the outline, TODO states, priorities, timestamps and the agenda.
 
 The extension is a thin client. It starts the server and tells it where
 the cursor is when a command runs. The commands, their keys and the token
@@ -19,9 +19,14 @@ All commands are in the Command Palette under **Org**.
 | `Org: List of all TODO entries` | Opens the TODO list |
 | `Org: Agenda commands` | Asks which of the two to open |
 | `Org: Cycle TODO state forward` / `backward` | Changes the entry under the cursor, in an Org file or on an agenda line |
+| `Org: Raise the priority` / `Lower the priority` | The same, for the priority |
+| `Org: Increase` / `Decrease the part of the timestamp at the cursor` | The year, month, day, hour or minute under the cursor, as Org's `S-<up>` / `S-<down>` |
+| `Org: Move the date one day later` / `earlier` | The timestamp under the cursor, or the date of an agenda line |
+| `Org: Increase the timestamp part or raise the priority`, and the three like it | Org's `S-<up>`, `S-<down>`, `S-<left>`, `S-<right>`: what they do depends on where the cursor is |
 | `Org: Agenda: …` | Move through time, change the span, rebuild, go to the entry |
 
-TODO changes are also listed under **Quick Fix…** (`Ctrl+.`).
+The changes that apply at the cursor are also listed under **Quick Fix…**
+(`Ctrl+.`). VS Code has no count to pass: each command moves by one step.
 
 ## Keys
 
@@ -34,14 +39,20 @@ The agenda is read-only, so it has Org's single-letter keys:
 | `d`, `w`, `v d`, `v w`, `v t`, `v m`, `v y` | Day, week, fortnight, month, year |
 | `r` or `g` | Rebuild |
 | `t` | Next TODO state of the entry |
+| `+` / `-`, `Shift+Up` / `Shift+Down` | Raise / lower the entry's priority |
+| `Shift+Right` / `Shift+Left` | Move the entry's date a day later / earlier |
 | `Enter` or `Tab` | Go to the entry |
+
+After a change of priority or date, the cursor goes with the entry to
+its new line.
 
 No keys are bound in Org files: Emacs's keys there (`C-c C-t`,
 `S-<right>`) would take over copying and selecting. Add your own in
 `keybindings.json`:
 
 ```json
-{ "key": "alt+t", "command": "org.todo.next", "when": "editorTextFocus && editorLangId == 'org'" }
+{ "key": "alt+t", "command": "org.todo.next", "when": "editorTextFocus && editorLangId == 'org'" },
+{ "key": "alt+up", "command": "org.shift.up", "when": "editorTextFocus && editorLangId == 'org'" }
 ```
 
 ## Settings
