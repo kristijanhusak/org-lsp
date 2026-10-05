@@ -1,7 +1,7 @@
 # org-lsp: plan
 
 Written on 2026-10-05, when work was paused in the middle of milestone 3;
-last updated the same day, after milestone 4c was merged (PR #5).
+last updated the same day, after PR #8 (completion in headlines).
 It records where the project stands, what is half done and how to finish
 it, and what comes after. The default branch is `main`.
 
@@ -37,6 +37,15 @@ others), as close to Emacs Org mode as it can get.
 | 3 | Priorities and dates: `org-priority`, `org-timestamp-change`, the agenda's date shift, Org's shifted keys; counts; the agenda's cursor follows an entry | #3 |
 | — | Folding takes the blank lines after a subtree as Emacs does (`cycleSeparatorLines`) | #4 |
 | 4a–4c | The date prompt: `org-read-date`, schedule, deadline, timestamps that ask for a date, and Emacs's calendar with the prompt | #5 |
+| — | The calendar comes first; `i` asks for the answer; Neovim leaves insert mode there | #6 |
+| — | `org.agenda.save` (`org-save-all-org-buffers`, `s` and `C-x C-s` in the agenda) | #7 |
+| 11 (part) | Completion of TODO keywords and tags in headlines | #8 |
+
+### Where to pick up
+
+Milestone 4d, step 1 (scheduling from the agenda), as described under
+milestone 4 below. Then the opt-in autosave option (open question 3) and
+the Vim plugin (open question 4) are free to take whenever.
 
 ### Milestone 3, merged: priorities and dates
 
