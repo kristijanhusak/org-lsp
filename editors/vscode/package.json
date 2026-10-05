@@ -145,6 +145,11 @@
         "category": "Org"
       },
       {
+        "command": "org.priority",
+        "title": "Set the priority",
+        "category": "Org"
+      },
+      {
         "command": "org.priority.down",
         "title": "Lower the priority",
         "category": "Org"
@@ -1358,6 +1363,11 @@
       {
         "command": "org.priority.up",
         "key": "shift+up",
+        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority",
+        "key": ",",
         "when": "editorTextFocus && editorLangId == 'org-agenda'"
       },
       {

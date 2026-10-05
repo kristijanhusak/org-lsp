@@ -2104,5 +2104,761 @@
    "logDone": "time"
   },
   "expected": "* DONE a¦\nCLOSED: [2026-05-18 Mon 10:30]\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "priority",
+  "answer": "a",
+  "expected": "* TODO [#A] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "priority",
+  "answer": "B",
+  "expected": "* TODO [#B] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "priority",
+  "answer": "c",
+  "expected": "* TODO [#C] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "priority",
+  "answer": "d",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "priority",
+  "answer": " ",
+  "expected": "ERROR: (user-error \"No priority cookie found in line\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "priority",
+  "answer": "",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "priority",
+  "answer": "ab",
+  "expected": "* TODO [#A] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "priority",
+  "answer": "1",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "priority",
+  "answer": "7",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "priority",
+  "answer": "12",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "priority",
+  "answer": "x",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "priority",
+  "answer": "é",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] a :tag:¦\n",
+  "command": "priority",
+  "answer": "a",
+  "expected": "* TODO [#A] a                                                           :tag:¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] a :tag:¦\n",
+  "command": "priority",
+  "answer": "B",
+  "expected": "* TODO [#B] a                                                           :tag:¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] a :tag:¦\n",
+  "command": "priority",
+  "answer": "c",
+  "expected": "* TODO [#C] a                                                           :tag:¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] a :tag:¦\n",
+  "command": "priority",
+  "answer": "d",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] a :tag:¦\n",
+  "command": "priority",
+  "answer": " ",
+  "expected": "* TODO a                                                                :tag:¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] a :tag:¦\n",
+  "command": "priority",
+  "answer": "",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] a :tag:¦\n",
+  "command": "priority",
+  "answer": "ab",
+  "expected": "* TODO [#A] a                                                           :tag:¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] a :tag:¦\n",
+  "command": "priority",
+  "answer": "1",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] a :tag:¦\n",
+  "command": "priority",
+  "answer": "7",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] a :tag:¦\n",
+  "command": "priority",
+  "answer": "12",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] a :tag:¦\n",
+  "command": "priority",
+  "answer": "x",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO [#B] a :tag:¦\n",
+  "command": "priority",
+  "answer": "é",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a\nbody¦\n",
+  "command": "priority",
+  "answer": "a",
+  "expected": "* [#A] a\nbody¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a\nbody¦\n",
+  "command": "priority",
+  "answer": "B",
+  "expected": "* [#B] a\nbody¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a\nbody¦\n",
+  "command": "priority",
+  "answer": "c",
+  "expected": "* [#C] a\nbody¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a\nbody¦\n",
+  "command": "priority",
+  "answer": "d",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a\nbody¦\n",
+  "command": "priority",
+  "answer": " ",
+  "expected": "* a\nbody¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a\nbody¦\n",
+  "command": "priority",
+  "answer": "",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a\nbody¦\n",
+  "command": "priority",
+  "answer": "ab",
+  "expected": "* [#A] a\nbody¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a\nbody¦\n",
+  "command": "priority",
+  "answer": "1",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a\nbody¦\n",
+  "command": "priority",
+  "answer": "7",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a\nbody¦\n",
+  "command": "priority",
+  "answer": "12",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a\nbody¦\n",
+  "command": "priority",
+  "answer": "x",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* [#C] a\nbody¦\n",
+  "command": "priority",
+  "answer": "é",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "¦text before\n* a\n",
+  "command": "priority",
+  "answer": "a",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "¦text before\n* a\n",
+  "command": "priority",
+  "answer": "B",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "¦text before\n* a\n",
+  "command": "priority",
+  "answer": "c",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "¦text before\n* a\n",
+  "command": "priority",
+  "answer": "d",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "¦text before\n* a\n",
+  "command": "priority",
+  "answer": " ",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "¦text before\n* a\n",
+  "command": "priority",
+  "answer": "",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "¦text before\n* a\n",
+  "command": "priority",
+  "answer": "ab",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "¦text before\n* a\n",
+  "command": "priority",
+  "answer": "1",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "¦text before\n* a\n",
+  "command": "priority",
+  "answer": "7",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "¦text before\n* a\n",
+  "command": "priority",
+  "answer": "12",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "¦text before\n* a\n",
+  "command": "priority",
+  "answer": "x",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "¦text before\n* a\n",
+  "command": "priority",
+  "answer": "é",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] done\n** child¦\n",
+  "command": "priority",
+  "answer": "a",
+  "expected": "* DONE [#A] done\n** [#A] child¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] done\n** child¦\n",
+  "command": "priority",
+  "answer": "B",
+  "expected": "* DONE [#A] done\n** [#B] child¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] done\n** child¦\n",
+  "command": "priority",
+  "answer": "c",
+  "expected": "* DONE [#A] done\n** [#C] child¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] done\n** child¦\n",
+  "command": "priority",
+  "answer": "d",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] done\n** child¦\n",
+  "command": "priority",
+  "answer": " ",
+  "expected": "ERROR: (user-error \"No priority cookie found in line\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] done\n** child¦\n",
+  "command": "priority",
+  "answer": "",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] done\n** child¦\n",
+  "command": "priority",
+  "answer": "ab",
+  "expected": "* DONE [#A] done\n** [#A] child¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] done\n** child¦\n",
+  "command": "priority",
+  "answer": "1",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] done\n** child¦\n",
+  "command": "priority",
+  "answer": "7",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] done\n** child¦\n",
+  "command": "priority",
+  "answer": "12",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] done\n** child¦\n",
+  "command": "priority",
+  "answer": "x",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE [#A] done\n** child¦\n",
+  "command": "priority",
+  "answer": "é",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 9 5\n* a¦\n",
+  "command": "priority",
+  "answer": "a",
+  "expected": "ERROR: (user-error \"Priority must be between ‘1’ and ‘9’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 9 5\n* a¦\n",
+  "command": "priority",
+  "answer": "B",
+  "expected": "ERROR: (user-error \"Priority must be between ‘1’ and ‘9’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 9 5\n* a¦\n",
+  "command": "priority",
+  "answer": "c",
+  "expected": "ERROR: (user-error \"Priority must be between ‘1’ and ‘9’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 9 5\n* a¦\n",
+  "command": "priority",
+  "answer": "d",
+  "expected": "ERROR: (user-error \"Priority must be between ‘1’ and ‘9’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 9 5\n* a¦\n",
+  "command": "priority",
+  "answer": " ",
+  "expected": "ERROR: (user-error \"No priority cookie found in line\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 9 5\n* a¦\n",
+  "command": "priority",
+  "answer": "",
+  "expected": "ERROR: (user-error \"Priority must be a number between ‘1’ and ‘9’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 9 5\n* a¦\n",
+  "command": "priority",
+  "answer": "ab",
+  "expected": "ERROR: (user-error \"Priority must be between ‘1’ and ‘9’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 9 5\n* a¦\n",
+  "command": "priority",
+  "answer": "1",
+  "expected": "#+PRIORITIES: 1 9 5\n* [#1] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 9 5\n* a¦\n",
+  "command": "priority",
+  "answer": "7",
+  "expected": "#+PRIORITIES: 1 9 5\n* [#7] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 9 5\n* a¦\n",
+  "command": "priority",
+  "answer": "12",
+  "expected": "#+PRIORITIES: 1 9 5\n* [#1] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 9 5\n* a¦\n",
+  "command": "priority",
+  "answer": "x",
+  "expected": "ERROR: (user-error \"Priority must be between ‘1’ and ‘9’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 9 5\n* a¦\n",
+  "command": "priority",
+  "answer": "é",
+  "expected": "ERROR: (user-error \"Priority must be a number between ‘1’ and ‘9’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 15 5\n* [#3] a¦\n",
+  "command": "priority",
+  "answer": "a",
+  "expected": "ERROR: (user-error \"Priority must be between ‘1’ and ‘15’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 15 5\n* [#3] a¦\n",
+  "command": "priority",
+  "answer": "B",
+  "expected": "ERROR: (user-error \"Priority must be between ‘1’ and ‘15’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 15 5\n* [#3] a¦\n",
+  "command": "priority",
+  "answer": "c",
+  "expected": "ERROR: (user-error \"Priority must be between ‘1’ and ‘15’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 15 5\n* [#3] a¦\n",
+  "command": "priority",
+  "answer": "d",
+  "expected": "ERROR: (user-error \"Priority must be between ‘1’ and ‘15’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 15 5\n* [#3] a¦\n",
+  "command": "priority",
+  "answer": " ",
+  "expected": "#+PRIORITIES: 1 15 5\n* a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 15 5\n* [#3] a¦\n",
+  "command": "priority",
+  "answer": "",
+  "expected": "ERROR: (user-error \"Priority must be a number between ‘1’ and ‘15’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 15 5\n* [#3] a¦\n",
+  "command": "priority",
+  "answer": "ab",
+  "expected": "ERROR: (user-error \"Priority must be between ‘1’ and ‘15’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 15 5\n* [#3] a¦\n",
+  "command": "priority",
+  "answer": "1",
+  "expected": "#+PRIORITIES: 1 15 5\n* [#1] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 15 5\n* [#3] a¦\n",
+  "command": "priority",
+  "answer": "7",
+  "expected": "#+PRIORITIES: 1 15 5\n* [#7] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 15 5\n* [#3] a¦\n",
+  "command": "priority",
+  "answer": "12",
+  "expected": "#+PRIORITIES: 1 15 5\n* [#12] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 15 5\n* [#3] a¦\n",
+  "command": "priority",
+  "answer": "x",
+  "expected": "ERROR: (user-error \"Priority must be between ‘1’ and ‘15’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: 1 15 5\n* [#3] a¦\n",
+  "command": "priority",
+  "answer": "é",
+  "expected": "ERROR: (user-error \"Priority must be a number between ‘1’ and ‘15’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n* a¦\n",
+  "command": "priority",
+  "answer": "a",
+  "expected": "#+PRIORITIES: A E C\n* [#A] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n* a¦\n",
+  "command": "priority",
+  "answer": "B",
+  "expected": "#+PRIORITIES: A E C\n* [#B] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n* a¦\n",
+  "command": "priority",
+  "answer": "c",
+  "expected": "#+PRIORITIES: A E C\n* [#C] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n* a¦\n",
+  "command": "priority",
+  "answer": "d",
+  "expected": "#+PRIORITIES: A E C\n* [#D] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n* a¦\n",
+  "command": "priority",
+  "answer": " ",
+  "expected": "ERROR: (user-error \"No priority cookie found in line\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n* a¦\n",
+  "command": "priority",
+  "answer": "",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘E’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n* a¦\n",
+  "command": "priority",
+  "answer": "ab",
+  "expected": "#+PRIORITIES: A E C\n* [#A] a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n* a¦\n",
+  "command": "priority",
+  "answer": "1",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘E’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n* a¦\n",
+  "command": "priority",
+  "answer": "7",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘E’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n* a¦\n",
+  "command": "priority",
+  "answer": "12",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘E’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n* a¦\n",
+  "command": "priority",
+  "answer": "x",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘E’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+PRIORITIES: A E C\n* a¦\n",
+  "command": "priority",
+  "answer": "é",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘E’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO  [#A]  a¦\n",
+  "command": "priority",
+  "answer": "a",
+  "expected": "* TODO  [#A]  a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO  [#A]  a¦\n",
+  "command": "priority",
+  "answer": "B",
+  "expected": "* TODO  [#B]  a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO  [#A]  a¦\n",
+  "command": "priority",
+  "answer": "c",
+  "expected": "* TODO  [#C]  a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO  [#A]  a¦\n",
+  "command": "priority",
+  "answer": "d",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO  [#A]  a¦\n",
+  "command": "priority",
+  "answer": " ",
+  "expected": "* TODO   a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO  [#A]  a¦\n",
+  "command": "priority",
+  "answer": "",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO  [#A]  a¦\n",
+  "command": "priority",
+  "answer": "ab",
+  "expected": "* TODO  [#A]  a¦\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO  [#A]  a¦\n",
+  "command": "priority",
+  "answer": "1",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO  [#A]  a¦\n",
+  "command": "priority",
+  "answer": "7",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO  [#A]  a¦\n",
+  "command": "priority",
+  "answer": "12",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO  [#A]  a¦\n",
+  "command": "priority",
+  "answer": "x",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO  [#A]  a¦\n",
+  "command": "priority",
+  "answer": "é",
+  "expected": "ERROR: (user-error \"Priority must be between ‘A’ and ‘C’\")"
  }
 ]

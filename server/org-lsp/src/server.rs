@@ -29,6 +29,7 @@ use org_core::date::{Date, DateTime, Day};
 use org_core::edit::{self, Call, Command as EditCommand, Settings as EditSettings};
 use org_core::outline::Outline;
 use org_core::planning::{self, Command as PlanningCommand, Prompt};
+use org_core::priority;
 use org_core::read_date::Settings as ReadDateSettings;
 use org_core::Refusal;
 use org_syntax::{Parse, TodoKeywords};
@@ -1050,6 +1051,7 @@ impl Server {
                 Ok(json!({ "save": files }))
             }
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
+            commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             id if commands::input(id).is_some() => {
                 self.ask_date(id, &context.ok_or("This command needs the cursor position")?)
             }
@@ -1462,7 +1464,7 @@ impl Server {
             }
             other if actions::command(other).is_some() => {
                 let context = context.ok_or("This command needs the cursor position")?;
-                self.edit(&context, other)
+                self.edit(&context, other, None)
             }
             other => Err(format!("org-lsp has no command `{other}`").into()),
         }
@@ -1474,10 +1476,36 @@ impl Server {
         self.view_line(&context.text_document.uri, context.position.line)?.1.entry.clone()
     }
 
+    /// `org-priority` (`C-c ,`), and `org-agenda-priority` on an agenda
+    /// line: without an answer it says what to ask, `{ "input": { "kind":
+    /// "priority", "prompt", "value" } }`; with `input` it sets the
+    /// priority the answer names, or removes it for a space.
+    fn ask_priority(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = &context.text_document.uri;
+        let settings = self.edit_settings.priorities;
+        // The priorities of the file the entry is in.
+        let priorities = if self.is_view(uri) {
+            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            self.with_source(&reference.uri, |_, _, parse, _, _| edit::document_priorities(parse))
+                .ok_or("Cannot read the file of this entry")?
+        } else {
+            edit::document_priorities(&self.document(uri).ok_or("The document is not open")?.parse)
+        }
+        .unwrap_or(settings);
+        let Some(answer) = &context.input else {
+            let question = priority::question(&priorities);
+            return Ok(json!({ "input": { "kind": "priority", "prompt": question, "value": "" } }));
+        };
+        let action = priority::read_answer(answer, &priorities)?;
+        self.edit(context, commands::PRIORITY, Some(EditCommand::Priority(action)))?;
+        Ok(Value::Null)
+    }
+
     /// Run the editing command `id` at `context`, which is a place in an
     /// Org file or a line of the agenda. The server works out the new
-    /// text and asks the client to apply the difference.
-    fn edit(&mut self, context: &Context, id: &str) -> std::result::Result<(), Refusal> {
+    /// text and asks the client to apply the difference. `given` is the
+    /// change to make, for a command that asked what it is.
+    fn edit(&mut self, context: &Context, id: &str, given: Option<EditCommand>) -> std::result::Result<(), Refusal> {
         let encoding = self.client.encoding;
         let (settings, now) = (self.edit_settings.clone(), self.date_time());
         let uri = context.text_document.uri.clone();
@@ -1498,6 +1526,7 @@ impl Server {
                 commands::DATE_LATER | commands::DATE_EARLIER => {
                     EditCommand::AgendaDate { forward: id == commands::DATE_LATER }
                 }
+                _ if given.is_some() => given.clone().expect("given"),
                 commands::TODO_NEXT | commands::TODO_PREVIOUS | commands::PRIORITY_UP | commands::PRIORITY_DOWN => {
                     actions::command(id).ok_or("Unknown command")?
                 }
@@ -1505,7 +1534,7 @@ impl Server {
             };
             (reference.uri.clone(), Some(reference), command)
         } else {
-            (uri, None, actions::command(id).ok_or("Unknown command")?)
+            (uri, None, given.map_or_else(|| actions::command(id).ok_or("Unknown command"), Ok)?)
         };
 
         let key = file.as_str().to_string();

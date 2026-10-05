@@ -8,6 +8,7 @@ A case is a JSON object:
       "command": "shift-up",           see COMMANDS below
       "count": 3,                      optional: the prefix argument
       "repeated": true,                optional: the same key was pressed before
+      "answer": "b",                   for `priority`: what is typed at its prompt
       "options": {"priorityLowest": "E"}   optional: server settings
     }
 
@@ -38,10 +39,11 @@ COMMANDS = {
     "shift-down": "org-shiftdown",
     "shift-left": "org-shiftleft",
     "shift-right": "org-shiftright",
+    "priority": "org-priority",
 }
 
 DRIVER = r"""
-(defun org-lsp-shift-case (in out offset command count repeated)
+(defun org-lsp-shift-case (in out offset command count repeated answer)
   (remove-hook 'post-command-hook 'org-add-log-note)
   (setq org-log-setup nil)
   (let ((result
@@ -53,7 +55,12 @@ DRIVER = r"""
                (let ((current-prefix-arg count)
                      (this-command command)
                      (last-command (if repeated command 'ignore)))
-                 (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
+                 (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t))
+                           ;; The key typed at a one-key prompt, and the
+                           ;; text typed at any other.
+                           ((symbol-function 'read-char-exclusive)
+                            (lambda (&rest _) (string-to-char answer)))
+                           ((symbol-function 'read-string) (lambda (&rest _) answer)))
                    (call-interactively command)
                    (org-lsp-finish-notes)))
                (insert "¦")
@@ -117,7 +124,7 @@ def reference(cases):
                     f"(let ({bindings(case.get('options'))})\n"
                     f"  (org-lsp-shift-case {lisp_string(source)} {lisp_string(target)} {offset}"
                     f" '{COMMANDS[case['command']]} {'nil' if count is None else count}"
-                    f" {lisp_value(bool(case.get('repeated')))}))"
+                    f" {lisp_value(bool(case.get('repeated')))} {lisp_string(case.get('answer', ''))}))"
                 )
             driver = os.path.join(directory, "driver.el")
             with open(driver, "w", encoding="utf-8") as handle:

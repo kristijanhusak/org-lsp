@@ -7,8 +7,8 @@
 use std::path::PathBuf;
 
 use org_core::date::DateTime;
-use org_core::edit::{run, Call, Command, Direction};
-use org_core::priority::Action;
+use org_core::edit::{document_priorities, run, Call, Command, Direction};
+use org_core::priority::{self, Action};
 use org_lsp::config::Options;
 use org_syntax::TodoKeywords;
 use serde_json::Value;
@@ -66,7 +66,15 @@ fn priority_and_timestamp_changes_match_emacs() {
             now: clock(case["clock"].as_str().unwrap()),
         };
         let name = case["command"].as_str().unwrap();
-        let actual = run(&command(name), &text, &parse, offset, &call, &options.edit_settings());
+        let settings = options.edit_settings();
+        // `org-priority` reads its answer against the file's priorities.
+        let actual = if name == "priority" {
+            let priorities = document_priorities(&parse).unwrap_or(settings.priorities);
+            priority::read_answer(case["answer"].as_str().unwrap(), &priorities)
+                .and_then(|action| run(&Command::Priority(action), &text, &parse, offset, &call, &settings))
+        } else {
+            run(&command(name), &text, &parse, offset, &call, &settings)
+        };
         compared += 1;
         // Emacs marks where it leaves the cursor. Where the server says
         // where the cursor goes, that must be the place; where Emacs stops
@@ -87,9 +95,10 @@ fn priority_and_timestamp_changes_match_emacs() {
             failed += 1;
             if failed <= shown {
                 failures.push_str(&format!(
-                    "\ncase {index}: {name} count {} repeated {} {}\n--- text\n{marked}\n--- emacs\n{expected}\n--- org-lsp\n{}\n",
+                    "\ncase {index}: {name} count {} repeated {} answer {} {}\n--- text\n{marked}\n--- emacs\n{expected}\n--- org-lsp\n{}\n",
                     case["count"],
                     call.repeated,
+                    case["answer"],
                     case["options"],
                     actual.unwrap_or_else(|refusal| format!("ERROR: {refusal:?}")),
                 ));

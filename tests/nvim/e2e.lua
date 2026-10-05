@@ -211,6 +211,24 @@ press('.')
 becomes(1, '* TODO [#A] Call them', '`.` raises it again')
 press('cir')
 becomes(1, '* TODO [#B] Call them', 'and down')
+-- `org-priority` asks which one; a space removes it.
+do
+  local input = vim.ui.input
+  local prompts = {}
+  local answers = { 'c', ' ', 'b' }
+  vim.ui.input = function(opts, on_confirm)
+    table.insert(prompts, opts.prompt)
+    on_confirm(table.remove(answers, 1))
+  end
+  press('<Leader>o,')
+  becomes(1, '* TODO [#C] Call them', 'the priority typed')
+  press('<Leader>o,')
+  becomes(1, '* TODO Call them', 'a space removes it')
+  press('<Leader>o,')
+  becomes(1, '* TODO [#B] Call them', 'and back')
+  eq(prompts[1], 'Priority A-C, SPC to remove: ', 'Org\'s question')
+  vim.ui.input = input
+end
 
 -- 10. Timestamps: the part under the cursor, with counts and `.`.
 vim.api.nvim_win_set_cursor(0, { 2, 21 })

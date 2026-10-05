@@ -43,13 +43,18 @@ others), as close to Emacs Org mode as it can get.
 | — | Outline symbols keep their selection inside their range (VS Code refused them while typing) | #9 |
 | 4d.1 | Schedule and deadline from an agenda line (`org-agenda-schedule`, `org-agenda-deadline`) | #10 |
 | 4d.2 | `j` in the agenda (`org-agenda-goto-date`) | #11 |
+| 4d.3 | Set a priority by name (`org-priority`, `org-agenda-priority`) | #12 |
 
 ### Where to pick up
 
-Milestone 4d, step 3 (priority by name, note text), as described under
-milestone 4 below. Then the opt-in autosave option (open
-question 3) and the Vim plugin (open question 4) are free to take
-whenever.
+Asked for next (2026-10-05), in this order; see milestone 4e below:
+
+1. Fast TODO selection, and the text of state notes (`@` in a keyword).
+2. Refile.
+3. Capture.
+
+Then the opt-in autosave option (open question 3) and the Vim plugin
+(open question 4) are free to take whenever.
 
 ### Milestone 3, merged: priorities and dates
 
@@ -194,10 +199,48 @@ show one. In four pull requests:
      `Reveal::Day` places the cursor once the client has the new text.
      Checked by 12 cases in `tests/agenda-actions/cases.json`, which now
      also hold the agenda's text and cursor line after the command.
-  3. Set a priority by name (`org-priority` with a character; an input of
-     kind `text`) and text for state notes (`org-add-note`; now written
-     empty). Both need an input `kind` other than `date`: the editors
-     already ask for any `input`; only the date preview is date-only.
+  3. Done: set a priority by name (`C-c ,`, `,` in the agenda;
+     `<Leader>o,`). `priority::question` and `priority::read_answer`
+     port `org-priority`'s prompt: one key (the first character typed),
+     a space removes, letters in either case, and the whole answer only
+     when number priorities reach 10. The input has kind `priority`.
+     Checked by 108 cases in `tests/shift/cases.json` and 8 in
+     `tests/agenda-actions/cases.json`. The text of state notes moved
+     to 4e.
+
+### 4e. TODO selection, refile, capture (asked for next)
+
+1. **Fast TODO selection and note text.** `TODO(t)` keys are parsed in
+   `org-syntax/src/config.rs` (`keyword_definition`) but the key is
+   dropped; keep it. `org-todo` with `org-use-fast-todo-selection`
+   (default `auto`: fast selection whenever keywords have keys) asks
+   for a key: `C-c C-t` in Emacs, `<Leader>ot` in
+   nvim-orgmode, `t` in the agenda. Ask with an input of kind `todo`
+   that lists the keys (`[t] TODO  [d] DONE  [SPC] clear`), or a
+   `window/showMessageRequest` menu; read the answer as
+   `org-fast-todo-selection` does. `@` and `!` logging is already
+   ported (`todo.rs`, `store_note`), but the note is written empty:
+   after a state change that wants a note, return an input of kind
+   `note` ("State "DONE" from "TODO"") and write its text, as
+   `org-add-note`/`org-store-log-note` do (several lines indented under
+   the heading line). Check with `scripts/todo_reference.py` (answer the
+   key prompt and the note buffer).
+2. **Refile** (`org-refile`, `C-c C-w`; `<Leader>or`; `C-c C-w` in the
+   agenda). Targets from `org-refile-targets` (default `nil`: the
+   current file's top-level headings), `org-refile-use-outline-path`,
+   `org-outline-path-complete-in-steps`. Ask with an input of kind
+   `choice` holding the targets (VS Code: quick pick; Neovim:
+   `vim.ui.select`); move the subtree, possibly to another file (a
+   `WorkspaceEdit` over two documents). Emacs reference: run
+   `org-refile` with `completing-read` answered.
+3. **Capture** (`org-capture`, `C-c c`; `<Leader>oc`). Templates as a
+   server option (`captureTemplates`: key, description, type `entry`,
+   target `file`/`file+headline`, template text with `%?`, `%U`, `%t`,
+   `%i`, `%a`); pick one from a menu, open a server-owned capture
+   document (like the date prompt) with the expanded template, and on
+   finish (`C-c C-c`) insert it at the target; abort with `C-c C-k`.
+   Refile from the capture buffer (`C-c C-w`) reuses 2.
+
 Differences from Emacs in 4a, both deliberate:
 
 - A word boundary in Org's expressions (`\<`, `\>`) is one between a

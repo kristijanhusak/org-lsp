@@ -322,6 +322,25 @@ wait('the priority to be gone', function()
   return home_line(1) == '* TODO Water plants'
 end)
 wait_for_cursor('  home:       Sched. 2x:  TODO Water plants')
+-- `org-agenda-priority` asks which one.
+do
+  local input = vim.ui.input
+  local answers = { 'a', ' ' }
+  vim.ui.input = function(_, on_confirm)
+    on_confirm(table.remove(answers, 1))
+  end
+  press('<Leader>o,')
+  wait('the priority typed in the file', function()
+    return home_line(1) == '* TODO [#A] Water plants'
+  end)
+  wait_for_cursor('  home:       Sched. 2x:  TODO [#A] Water plants')
+  press('<Leader>o,')
+  wait('the priority removed again', function()
+    return home_line(1) == '* TODO Water plants'
+  end)
+  wait_for_cursor('  home:       Sched. 2x:  TODO Water plants')
+  vim.ui.input = input
+end
 
 -- 6b. Scheduling from the agenda (`org-agenda-schedule`) opens the
 -- calendar on the entry's date; the day taken there goes to its file, and
