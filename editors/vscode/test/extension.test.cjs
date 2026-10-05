@@ -294,7 +294,12 @@ describe('The agenda', () => {
     const showInputBox = vscode.window.showInputBox;
     vscode.window.showInputBox = async () => '2026-05-23';
     try {
-      moveTo(activeText().split('\n').findIndex((line) => line.endsWith('Scheduled:  TODO Water plants')));
+      // The agenda may not show the last change of the test before yet.
+      const entry = await until('the entry in the agenda', () => {
+        const line = activeText().split('\n').findIndex((text) => text.endsWith('Scheduled:  TODO Water plants'));
+        return line >= 0 && line + 1;
+      });
+      moveTo(entry - 1);
       // The calendar opens on the entry's date; RET takes the day a week
       // earlier.
       await vscode.commands.executeCommand('org.schedule');
@@ -312,7 +317,7 @@ describe('The agenda', () => {
       await agenda('Week-agenda (W21):');
       await until('the agenda to show it today', () => activeText().includes('Sched. 2x:  TODO Water plants'));
       // Typed in the minibuffer, back to Saturday.
-      moveTo(activeText().split('\n').findIndex((line) => line.endsWith('Sched. 2x:  TODO Water plants')));
+      moveTo(activeText().split('\n').findIndex((text) => text.endsWith('Sched. 2x:  TODO Water plants')));
       await vscode.commands.executeCommand('org.schedule');
       await until('the calendar again', () => vscode.window.activeTextEditor?.document.languageId === 'org-date');
       await vscode.commands.executeCommand('org.calendar.type');
