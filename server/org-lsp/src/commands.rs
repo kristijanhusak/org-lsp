@@ -88,6 +88,7 @@ pub const AGENDA_YEAR: &str = "org.agenda.year";
 pub const AGENDA_REDO: &str = "org.agenda.redo";
 pub const AGENDA_GOTO: &str = "org.agenda.goto";
 pub const AGENDA_SAVE: &str = "org.agenda.save";
+pub const AGENDA_GOTO_DATE: &str = "org.agenda.goto.date";
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
 pub const PRIORITY_UP: &str = "org.priority.up";
@@ -155,6 +156,12 @@ pub const COMMANDS: &[Command] = &[
         ..command(AGENDA_EARLIER, "Agenda: go backward in time")
     },
     Command { emacs: &[key(Agenda, ".")], vim: &[key(Agenda, ".")], ..command(AGENDA_TODAY, "Agenda: go to today") },
+    Command {
+        emacs: &[key(Agenda, "j")],
+        vim: &[key(Agenda, "J")],
+        input: Some(Input { kind: "date", prompt: "Date" }),
+        ..command(AGENDA_GOTO_DATE, "Agenda: go to a date")
+    },
     Command {
         emacs: &[key(Agenda, "d"), key(Agenda, "v d")],
         vim: &[key(Agenda, "vd")],

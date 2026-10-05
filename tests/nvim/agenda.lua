@@ -193,6 +193,40 @@ press('vw')
 wait_for_view('Week-agenda (W21):')
 wait_for_cursor('Monday     18 May 2026 W21')
 
+-- 4b. `J` goes to a date picked in the calendar (`org-agenda-goto-date`):
+-- the week of that day, with the cursor on it.
+local function prompt_window()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'org-date' then
+      return win
+    end
+  end
+end
+local function in_calendar_on(day)
+  return function()
+    vim.api.nvim_feedkeys('', 'x', false)
+    local win = prompt_window()
+    if not win or vim.api.nvim_get_current_win() ~= win then
+      return false
+    end
+    local col = vim.api.nvim_win_get_cursor(win)[2]
+    return vim.api.nvim_get_current_line():sub(col, col + 1) == day
+  end
+end
+press('J')
+wait('the calendar on today', in_calendar_on('18'))
+press('j')
+wait('a week later', in_calendar_on('25'))
+press('l')
+wait('a day later', in_calendar_on('26'))
+press('<CR>')
+wait_for_view('Week-agenda (W22):')
+wait_for_cursor('Tuesday    26 May 2026')
+check(prompt_window() == nil, 'the calendar is closed')
+press('.')
+wait_for_view('Week-agenda (W21):')
+wait_for_cursor('Monday     18 May 2026 W21')
+
 -- 5. Changing an entry from the agenda edits its file and the agenda follows.
 vim.api.nvim_win_set_cursor(0, { 13, 0 })
 eq(cursor_line(), '  work:       In   2 d.:  TODO Call the client', 'on an entry')
@@ -292,24 +326,6 @@ wait_for_cursor('  home:       Sched. 2x:  TODO Water plants')
 -- 6b. Scheduling from the agenda (`org-agenda-schedule`) opens the
 -- calendar on the entry's date; the day taken there goes to its file, and
 -- the cursor follows the entry.
-local function prompt_window()
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'org-date' then
-      return win
-    end
-  end
-end
-local function in_calendar_on(day)
-  return function()
-    vim.api.nvim_feedkeys('', 'x', false)
-    local win = prompt_window()
-    if not win or vim.api.nvim_get_current_win() ~= win then
-      return false
-    end
-    local col = vim.api.nvim_win_get_cursor(win)[2]
-    return vim.api.nvim_get_current_line():sub(col, col + 1) == day
-  end
-end
 press('<Leader>ois')
 wait('the calendar on the scheduled day', in_calendar_on('16'))
 eq(vim.api.nvim_buf_get_lines(0, -2, -1, false), { 'SCHEDULED Date+time [2026-05-16]:    => <2026-05-16 Sat>' }, 'the minibuffer')

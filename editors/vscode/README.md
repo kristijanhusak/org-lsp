@@ -25,7 +25,7 @@ All commands are in the Command Palette under **Org**.
 | `Org: Increase the timestamp part or raise the priority`, and the three like it | Org's `S-<up>`, `S-<down>`, `S-<left>`, `S-<right>`: what they do depends on where the cursor is |
 | `Org: Schedule the entry`, `Org: Set the deadline of the entry` | Ask for a date and set it, in an Org file or on an agenda line (`Ctrl+C Ctrl+S`, `Ctrl+C Ctrl+D` there) |
 | `Org: Insert or change a timestamp` / `an inactive timestamp` | Ask for a date and insert it at the cursor, or change the timestamp there |
-| `Org: Agenda: …` | Move through time, change the span, rebuild, go to the entry |
+| `Org: Agenda: …` | Move through time, go to a date (`j`), change the span, rebuild, go to the entry |
 
 The changes that apply at the cursor are also listed under **Quick Fix…**
 (`Ctrl+.`). VS Code has no count to pass: each command moves by one step.

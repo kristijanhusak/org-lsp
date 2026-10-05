@@ -43,6 +43,9 @@ pub enum Target {
     /// marker points. `line` and `character` are where the cursor was, so
     /// that it can follow the entry.
     Entry { view: Uri, line: u32, character: u32, row: ViewLine },
+    /// The agenda `view` itself: the answer is the day to show
+    /// (`org-agenda-goto-date`).
+    Agenda { view: Uri },
 }
 
 impl Target {
@@ -50,7 +53,7 @@ impl Target {
     pub fn from(&self) -> &Uri {
         match self {
             Target::Place { uri, .. } => uri,
-            Target::Entry { view, .. } => view,
+            Target::Entry { view, .. } | Target::Agenda { view } => view,
         }
     }
 }

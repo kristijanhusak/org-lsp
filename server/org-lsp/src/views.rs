@@ -172,6 +172,13 @@ impl View {
     pub fn home_line(&self) -> u32 {
         self.today_line.unwrap_or(if self.lines.len() > 1 { 1 } else { 0 })
     }
+
+    /// The line `org-agenda-goto-date` leaves the cursor on: the first
+    /// line of `day`, or the last line when the day is not shown.
+    pub fn day_line(&self, day: Day) -> u32 {
+        let line = self.lines.iter().position(|line| line.day == Some(day));
+        line.unwrap_or(self.lines.len().saturating_sub(1)) as u32
+    }
 }
 
 /// Where the entry of `reference` is now in `outline`: at the same place

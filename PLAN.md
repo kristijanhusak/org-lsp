@@ -42,11 +42,12 @@ others), as close to Emacs Org mode as it can get.
 | 11 (part) | Completion of TODO keywords and tags in headlines | #8 |
 | — | Outline symbols keep their selection inside their range (VS Code refused them while typing) | #9 |
 | 4d.1 | Schedule and deadline from an agenda line (`org-agenda-schedule`, `org-agenda-deadline`) | #10 |
+| 4d.2 | `j` in the agenda (`org-agenda-goto-date`) | #11 |
 
 ### Where to pick up
 
-Milestone 4d, step 2 (`j` in the agenda, `org-agenda-goto-date`), as
-described under milestone 4 below. Then the opt-in autosave option (open
+Milestone 4d, step 3 (priority by name, note text), as described under
+milestone 4 below. Then the opt-in autosave option (open
 question 3) and the Vim plugin (open question 4) are free to take
 whenever.
 
@@ -181,11 +182,18 @@ show one. In four pull requests:
      ` S => <date>` and rebuilds on `r`). Checked by 34 cases in
      `tests/agenda-actions/cases.json`: the files after the command and
      what the prompt starts with, every line kind, both views.
-  2. `j` in the agenda (`org-agenda-goto-date`): ask a date (prompt
-     "Date"), then `open_view(Query::Agenda { start: Some(day), .. })`.
-     `DatePrompt` finishes with `apply_date` today; give it what to do at
-     the end as an enum (a planning command on a `Target`, or going to a
-     date in the agenda).
+  2. Done: `j` in the agenda (`org-agenda-goto-date`; nvim-orgmode's
+     `J`). The prompt is a plain `org-read-date` ("Date+time [today]"),
+     read with the same settings as the others
+     (`org-agenda-jump-prefer-future` defaults to them). The agenda then
+     runs over as many days as its span has from that day: a month view
+     becomes "30 days" starting there, and only a week or a fortnight
+     still starts on the first day of the week. The cursor goes to the
+     first line of the day, or the last line when the day is not shown.
+     In the server a `prompt::Target::Agenda` stands for the view, and
+     `Reveal::Day` places the cursor once the client has the new text.
+     Checked by 12 cases in `tests/agenda-actions/cases.json`, which now
+     also hold the agenda's text and cursor line after the command.
   3. Set a priority by name (`org-priority` with a character; an input of
      kind `text`) and text for state notes (`org-add-note`; now written
      empty). Both need an input `kind` other than `date`: the editors
