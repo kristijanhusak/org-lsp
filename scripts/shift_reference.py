@@ -125,6 +125,7 @@ def reference(cases):
             subprocess.run(
                 ["faketime", f"{clock}:00", "emacs", "--batch", "-Q", *org_path, "-l", driver],
                 check=True,
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 env=dict(os.environ, TZ="UTC"),

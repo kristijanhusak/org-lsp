@@ -933,3 +933,66 @@ fn changes_timestamps_and_priorities_in_a_file() {
     );
     client.shutdown();
 }
+
+/// Conformance against Emacs: `tests/agenda-actions/cases.json` holds agenda
+/// files, a line of the agenda, a command and what the files read after
+/// Emacs ran its own agenda command there (see
+/// `scripts/agenda_action_reference.py`).
+#[test]
+fn agenda_actions_match_emacs() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/agenda-actions/cases.json");
+    let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    let mut failures = String::new();
+    let mut changed = 0;
+    for (index, case) in cases.iter().enumerate() {
+        let (today, now) = case["clock"].as_str().unwrap().split_once(' ').unwrap();
+        let mut options = case.get("options").cloned().unwrap_or_else(|| json!({}));
+        options["clock"] = json!({ "today": today, "now": now });
+        options["agenda"] = json!({ "span": case.get("span").cloned().unwrap_or_else(|| json!("week")) });
+        let mut client = Client::editor(options, None);
+        let files = case["files"].as_object().unwrap();
+        for (name, text) in files {
+            client.open(&format!("file:///org/{name}"), text.as_str().unwrap());
+        }
+        let todo_list = case.get("view").and_then(Value::as_str) == Some("todo");
+        client.command(if todo_list { "org.agenda.todos" } else { "org.agenda.list" }, VIEW, 0);
+        let view = client.view_text(VIEW);
+        let needle = case["line"].as_str().unwrap();
+        let line = view.lines().position(|line| line.contains(needle)).unwrap_or_else(|| panic!("no `{needle}`"));
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+        if let Some(count) = case.get("count").filter(|count| !count.is_null()) {
+            context["count"] = count.clone();
+        }
+        let command = format!("org.{}", case["command"].as_str().unwrap().replace('-', "."));
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        // The files as they read once the editor has applied the edit.
+        let mut after: serde_json::Map<String, Value> = files.clone();
+        for request in client.received.iter().filter(|request| request.method == "workspace/applyEdit") {
+            let (uri, edits) = edits_of(request);
+            let name = uri.rsplit('/').next().unwrap().to_string();
+            let changed = apply(after[&name].as_str().unwrap(), &edits);
+            after.insert(name, Value::String(changed));
+        }
+        changed += usize::from(after != *files);
+        let same = match (&case["expected"], &result) {
+            // Where Emacs refuses, so must the server.
+            (Value::String(_), Err(_)) => true,
+            (Value::Object(expected), Ok(_)) => *expected == after,
+            _ => false,
+        };
+        if !same {
+            failures.push_str(&format!(
+                "\ncase {index}: {command} on `{needle}` (count {})\n--- emacs\n{:#}\n--- org-lsp ({result:?})\n{:#}\n",
+                case["count"],
+                case["expected"],
+                Value::Object(after)
+            ));
+        }
+        client.shutdown();
+    }
+    assert!(failures.is_empty(), "agenda commands differ from Emacs:{failures}");
+    // The comparison means something only if most commands changed a file.
+    assert!(changed > cases.len() / 2, "{changed} of {} cases changed a file", cases.len());
+}
