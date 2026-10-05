@@ -4,6 +4,7 @@
 //
 //   docs/<editor>/keys.md            the key tables
 //   docs/<editor>/configuration.md   the default options, in the editor's syntax
+//   docs/configuration.md            the shared configuration file, at its defaults
 //   docs/protocol.md                 the table of options
 //
 // Only the text between `<!-- BEGIN generated: NAME -->` and
@@ -129,10 +130,14 @@ function vscodeKeys() {
 
 // ----- options
 
-/** The options as a tree, in the table's order: `{ name, setting?, children? }`. */
-function optionTree() {
+/**
+ * The options as a tree, in the table's order: `{ name, setting?, children? }`.
+ * The options only an editor gives (`configFile`) are left out for the
+ * shared configuration file.
+ */
+function optionTree({ editor = true } = {}) {
   const top = { children: [] };
-  for (const setting of settings.filter((setting) => !setting.integration)) {
+  for (const setting of settings.filter((setting) => !setting.integration && (editor || !setting.editorOnly))) {
     let node = top;
     const parts = setting.name.split('.');
     for (const [index, part] of parts.entries()) {
@@ -246,9 +251,9 @@ function jsonOptions(node, indent) {
   return lines;
 }
 
-/** The same in TOML, as Helix's languages.toml takes it. */
+/** The same in TOML, as Helix's languages.toml and the shared file take it. */
 function tomlOptions(node, table) {
-  const lines = [`[${table}]`];
+  const lines = table ? [`[${table}]`] : [];
   const tables = [];
   for (const child of node.children) {
     if (!child.setting) {
@@ -264,7 +269,7 @@ function tomlOptions(node, table) {
       '',
     );
   }
-  for (const child of tables) lines.push(...tomlOptions(child, `${table}.${child.name}`));
+  for (const child of tables) lines.push(...tomlOptions(child, table ? `${table}.${child.name}` : child.name));
   return lines;
 }
 
@@ -280,6 +285,13 @@ function vscodeOptions() {
 
 function helixOptions() {
   const lines = tomlOptions(optionTree(), 'language-server.org-lsp.config');
+  while (lines[lines.length - 1] === '') lines.pop();
+  return ['```toml', ...lines, '```'].join('\n');
+}
+
+/** The shared configuration file with every option at its default. */
+function fileOptions() {
+  const lines = tomlOptions(optionTree({ editor: false }), '');
   while (lines[lines.length - 1] === '') lines.pop();
   return ['```toml', ...lines, '```'].join('\n');
 }
@@ -304,6 +316,7 @@ const PAGES = {
   'docs/vscode/configuration.md': { options: vscodeOptions },
   'docs/helix/configuration.md': { options: helixOptions },
   'docs/protocol.md': { options: protocolOptions },
+  'docs/configuration.md': { options: fileOptions },
 };
 
 const END = '<!-- END generated -->';

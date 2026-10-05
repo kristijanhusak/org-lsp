@@ -43,10 +43,18 @@ struct Client {
     hold_show: bool,
     held: Vec<Request>,
     initialize: Value,
+    /// Notifications the server sent, oldest first.
+    notifications: Vec<Notification>,
 }
 
 impl Client {
     fn start(capabilities: Value, options: Value, root: Option<&str>) -> Client {
+        // The tests' own options only, whatever configuration file the
+        // machine has.
+        let mut options = if options.is_null() { json!({}) } else { options };
+        if let Some(fields) = options.as_object_mut() {
+            fields.entry("configFile").or_insert(json!(false));
+        }
         let (server_side, client_side) = Connection::memory();
         let server = std::thread::spawn(move || org_lsp::run(server_side).expect("server runs"));
         let mut client = Client {
@@ -60,6 +68,7 @@ impl Client {
             hold_show: false,
             held: Vec::new(),
             initialize: Value::Null,
+            notifications: Vec::new(),
         };
         let params = json!({ "capabilities": capabilities, "initializationOptions": options, "rootUri": root });
         client.initialize = client.request("initialize", params).expect("initialize result");
@@ -124,6 +133,7 @@ impl Client {
             match self.connection.receiver.recv().expect("server answers") {
                 Message::Response(response) if response.id == id => return response.response_result,
                 Message::Request(request) => self.answer(request),
+                Message::Notification(notification) => self.notifications.push(notification),
                 _ => {}
             }
         }
@@ -1573,6 +1583,35 @@ fn refiles_entries_between_files() {
         client.request("workspace/executeCommand", json!({ "command": "org.refile", "arguments": [at] })).unwrap();
     assert_eq!(asked["input"]["prompt"], "Refile to");
     assert_eq!(asked["input"]["choices"][0]["label"], "Write report (work.org)");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// The shared configuration file's options apply, under the editor's, and
+/// a problem with it is shown to the user.
+#[test]
+fn reads_the_shared_configuration_file() {
+    let root = workspace("config-file");
+    let config = root.join("config.toml");
+    std::fs::write(&config, "todoKeywords = [\"TODO\", \"WAIT\", \"|\", \"DONE\"]\ntagsColumn = \"far\"\n").unwrap();
+    let mut client = Client::editor(json!({ "configFile": config.display().to_string() }), None);
+    client.settle();
+    let shown: Vec<&str> = client
+        .notifications
+        .iter()
+        .filter(|notification| notification.method == "window/showMessage")
+        .filter_map(|notification| notification.params["message"].as_str())
+        .collect();
+    assert_eq!(shown, ["org-lsp: the option `tagsColumn` is malformed and is ignored"]);
+    // The file's keywords are the ones in use.
+    let uri = format!("file://{}", root.join("a.org").display());
+    client.open(&uri, "* TODO Call\n");
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 } });
+    client.request("workspace/executeCommand", json!({ "command": "org.todo.next", "arguments": [context] })).unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    assert_eq!(apply("* TODO Call\n", &edits), "* WAIT Call\n");
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }

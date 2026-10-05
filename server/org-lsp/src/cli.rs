@@ -113,3 +113,56 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     };
     Ok(rendered.text())
 }
+
+pub const CONFIG_USAGE: &str = "\
+Usage: org-lsp config [--options JSON]
+
+Show the shared configuration file and the options the server makes of it,
+with the editor's options given as JSON on top (`initializationOptions`),
+as the server reads them when it starts.";
+
+/// `org-lsp config`: which configuration file is read, what is wrong with
+/// it, and the options it comes to. `var` reads the environment.
+pub fn config(arguments: &[String], var: &dyn Fn(&str) -> Option<String>) -> Result<String, String> {
+    let mut editor = None;
+    let mut arguments = arguments.iter();
+    while let Some(argument) = arguments.next() {
+        match argument.as_str() {
+            "--options" => {
+                let value = arguments.next().ok_or("--options needs a value")?;
+                editor = Some(serde_json::from_str(value).map_err(|error| format!("--options: {error}"))?);
+            }
+            other => return Err(format!("unknown argument `{other}`")),
+        }
+    }
+    let loaded = crate::config::load(editor, var);
+    let mut out = match (&loaded.file, loaded.read) {
+        (Some(file), true) => format!("Configuration file: {}\n", file.display()),
+        (Some(file), false) if !file.exists() => format!("Configuration file: {} (not found)\n", file.display()),
+        (Some(file), false) => format!("Configuration file: {} (not read)\n", file.display()),
+        (None, _) => "Configuration file: none\n".to_string(),
+    };
+    for problem in &loaded.problems {
+        out.push_str(&format!("Problem: {problem}\n"));
+    }
+    out.push_str(&format!("Options:\n{:#}\n", loaded.merged));
+    Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_shows_the_file_and_the_options() {
+        let no_env = |_: &str| None;
+        let out =
+            config(&["--options".to_string(), r#"{ "configFile": false, "logDone": "time" }"#.to_string()], &no_env);
+        assert_eq!(out.unwrap(), "Configuration file: none\nOptions:\n{\n  \"logDone\": \"time\"\n}\n");
+        let home = |name: &str| (name == "XDG_CONFIG_HOME").then(|| "/nonexistent".to_string());
+        let out = config(&[], &home).unwrap();
+        let expected = std::path::Path::new("/nonexistent").join("org-lsp").join("config.toml");
+        assert!(out.starts_with(&format!("Configuration file: {} (not found)\n", expected.display())), "{out}");
+        assert!(config(&["--options".to_string(), "{".to_string()], &no_env).is_err());
+    }
+}

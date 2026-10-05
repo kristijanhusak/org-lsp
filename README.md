@@ -127,6 +127,15 @@ Then add the contents of `editors/helix/languages.toml` to your
 - [docs/helix/configuration.md](docs/helix/configuration.md): the
   server's options with their defaults, and how to change them.
 
+### One configuration for every editor
+
+The server reads its options (TODO keywords, agenda files, capture
+templates, …) from `~/.config/org-lsp/config.toml` itself, so they can be
+set once for every editor. An editor's own settings go on top, and
+`org-lsp config` shows what the server makes of them.
+[docs/configuration.md](docs/configuration.md) has the details and every
+option with its default.
+
 ### Other editors
 
 Point the editor's LSP client at `org-lsp` for the `org` file type. The

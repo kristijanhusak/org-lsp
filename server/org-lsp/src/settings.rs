@@ -21,6 +21,9 @@ pub struct Setting {
     pub doc: &'static str,
     /// An option for editor integrations rather than for users.
     pub integration: bool,
+    /// An option an editor gives, which the shared configuration file
+    /// does not.
+    pub editor_only: bool,
 }
 
 const fn setting(
@@ -30,10 +33,24 @@ const fn setting(
     org: &'static str,
     doc: &'static str,
 ) -> Setting {
-    Setting { name, kind, default: Some(default), unset: "", org, doc, integration: false }
+    Setting { name, kind, default: Some(default), unset: "", org, doc, integration: false, editor_only: false }
 }
 
 pub const SETTINGS: &[Setting] = &[
+    Setting {
+        default: None,
+        unset: "the shared file, `~/.config/org-lsp/config.toml`",
+        editor_only: true,
+        ..setting(
+            "configFile",
+            "false, or a path",
+            "",
+            "",
+            "The shared configuration file, whose options this editor's go on top of: `false` for none, or \
+             the path of another file. Unset, it is `$ORG_LSP_CONFIG`, else `config.toml` in \
+             `$XDG_CONFIG_HOME/org-lsp` (`~/.config/org-lsp`; `%APPDATA%\\org-lsp` on Windows).",
+        )
+    },
     setting(
         "agendaFiles",
         "string[]",
@@ -347,7 +364,7 @@ pub const SETTINGS: &[Setting] = &[
 ];
 
 /// The table as JSON: a list of `{ "name", "type", "default"?, "unset"?,
-/// "org"?, "doc", "integration"? }`.
+/// "org"?, "doc", "integration"?, "editorOnly"? }`.
 pub fn manifest() -> Value {
     Value::Array(
         SETTINGS
@@ -363,6 +380,9 @@ pub fn manifest() -> Value {
                 }
                 if setting.integration {
                     entry["integration"] = json!(true);
+                }
+                if setting.editor_only {
+                    entry["editorOnly"] = json!(true);
                 }
                 entry
             })

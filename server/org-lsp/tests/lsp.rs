@@ -41,6 +41,12 @@ impl Client {
     /// Start a server and initialise it with the given client capabilities
     /// and initialization options.
     fn start(capabilities: Value, options: Value) -> Client {
+        // The tests' own options only, whatever configuration file the
+        // machine has.
+        let mut options = if options.is_null() { json!({}) } else { options };
+        if let Some(fields) = options.as_object_mut() {
+            fields.entry("configFile").or_insert(json!(false));
+        }
         let (server_side, client_side) = Connection::memory();
         let server = std::thread::spawn(move || org_lsp::run(server_side).expect("server runs"));
         let mut client = Client {

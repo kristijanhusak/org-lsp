@@ -101,9 +101,15 @@ The date prompt's calendar always opens at the bottom.
 
 ## The server's options
 
-`settings` goes to the server as it is. Leave out an option and the server
-uses its default, which is Org's. These are all the options with their
-defaults; you would never write all of them out:
+`settings` goes to the server as it is. Leave out an option and
+the server takes it from the [shared configuration file](../configuration.md),
+if you have one, or else uses its default, which is Org's. The editor's
+options go on top of the file's: an object such as `agenda` is merged
+option by option, and anything else replaces the file's. `configFile`
+says which file to read, or `false` for none.
+
+These are all the options with their defaults; you would never write all of
+them out:
 
 <!-- The block below is written by scripts/generate-docs.mjs from
      `org-lsp settings`. Edit server/org-lsp/src/settings.rs, not the block. -->
@@ -113,6 +119,12 @@ defaults; you would never write all of them out:
 ```lua
 require('org-lsp').setup({
   settings = {
+    -- The shared configuration file, whose options this editor's go on top
+    -- of: `false` for none, or the path of another file. Unset, it is
+    -- `$ORG_LSP_CONFIG`, else `config.toml` in `$XDG_CONFIG_HOME/org-lsp`
+    -- (`~/.config/org-lsp`; `%APPDATA%\org-lsp` on Windows).
+    -- configFile = nil, -- unset: the shared file, `~/.config/org-lsp/config.toml`
+
     -- Files, directories and glob patterns (`*`, `?`, `**`) the agenda is
     -- built from. `~/` is the home directory, and a directory stands for the
     -- Org files directly in it. When empty, the agenda is built from the Org
