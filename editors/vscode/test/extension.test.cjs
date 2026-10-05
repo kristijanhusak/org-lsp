@@ -158,7 +158,8 @@ describe('Org files', () => {
         const cursor = editor.selection.active;
         return editor.document.lineAt(cursor.line).text.slice(cursor.character - 1, cursor.character + 1);
       };
-      assert.equal(day(), '18');
+      // The cursor follows once the editor has the new text.
+      await until('the cursor on the day', () => day() === '18');
       // Its keys move the day; the cursor goes with it.
       await vscode.commands.executeCommand('org.calendar.day.later');
       await until('a day later', () => lines().at(-1).endsWith('=> <2026-05-19 Tue>') && day() === '19');
