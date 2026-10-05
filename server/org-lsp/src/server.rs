@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use lsp_server::{Connection, ErrorCode, Message, Notification, Request, RequestId, Response, ResponseError};
@@ -576,7 +576,7 @@ fn capabilities(encoding: Encoding) -> ServerCapabilities {
         document_symbol_provider: Some(OneOf::Left(true)),
         definition_provider: Some(OneOf::Left(true)),
         completion_provider: Some(lsp_types::CompletionOptions {
-            trigger_characters: Some(vec![":".to_string()]),
+            trigger_characters: Some([":", "+", "[", "/", "*", "#", "\\"].iter().map(|c| c.to_string()).collect()),
             ..Default::default()
         }),
         code_action_provider: Some(CodeActionProviderCapability::Options(CodeActionOptions {
@@ -1040,29 +1040,67 @@ impl Server {
         Some(found.iter().map(to_lsp).collect())
     }
 
-    /// TODO keywords and tags in a headline (`pcomplete`).
+    /// Completion as Org's `pcomplete` offers it, and file names in links.
     fn completion(&mut self, params: lsp_types::CompletionParams) -> Option<lsp_types::CompletionResponse> {
         let position = params.text_document_position;
         let encoding = self.client.encoding;
-        // The tags of the agenda files, read only when a tag is completed.
-        let agenda_tags = if self.all_agenda_tags { self.agenda_tags() } else { Vec::new() };
-        let document = self.document(&position.text_document.uri)?;
+        let uri = position.text_document.uri;
+        // The tags of the agenda files, read only for a headline.
+        let on_headline = self.document(&uri).is_some_and(|document| {
+            let offset = document.index.offset(&document.text, position.position, encoding);
+            let line_start = document.text[..offset].rfind('\n').map_or(0, |at| at + 1);
+            document.text[line_start..].starts_with('*')
+        });
+        let agenda_tags = if self.all_agenda_tags && on_headline { self.agenda_tags() } else { Vec::new() };
+        let document = self.document(&uri)?;
         let offset = document.index.offset(&document.text, position.position, encoding);
-        let (start, items) =
-            completion::complete(&document.text, offset, document.parse.todo_keywords(), &agenda_tags)?;
+        let directory = uri::to_path(&uri).and_then(|path| path.parent().map(Path::to_path_buf));
+        let documents = &self.documents;
+        let list_directory = |path: &Path| -> Vec<(String, bool)> {
+            let Ok(entries) = std::fs::read_dir(path) else { return Vec::new() };
+            entries
+                .flatten()
+                .filter_map(|entry| {
+                    let name = entry.file_name().to_string_lossy().into_owned();
+                    let folder = entry.path().is_dir();
+                    (!name.starts_with('.')).then_some((name, folder))
+                })
+                .take(1000)
+                .collect()
+        };
+        let read_file = |path: &Path| -> Option<String> {
+            let open =
+                uri::from_path(path).and_then(|uri| documents.get(uri.as_str()).map(|document| document.text.clone()));
+            open.or_else(|| std::fs::read_to_string(path).ok())
+        };
+        let context = completion::Context {
+            keywords: document.parse.todo_keywords(),
+            more_tags: &agenda_tags,
+            directory: directory.as_deref(),
+            list_directory: &list_directory,
+            read_file: &read_file,
+        };
+        let (start, items) = completion::complete(&document.text, offset, &context)?;
         let range = Range::new(document.index.position(&document.text, start, encoding), position.position);
         let items = items
             .into_iter()
             .enumerate()
-            .map(|(rank, (label, kind))| lsp_types::CompletionItem {
+            .map(|(rank, candidate)| lsp_types::CompletionItem {
                 // In the order given: the file's tags before the others.
                 sort_text: Some(format!("{rank:05}")),
-                kind: Some(match kind {
+                kind: Some(match candidate.kind {
                     completion::Kind::Keyword => lsp_types::CompletionItemKind::KEYWORD,
                     completion::Kind::Tag => lsp_types::CompletionItemKind::ENUM_MEMBER,
+                    completion::Kind::Name => lsp_types::CompletionItemKind::PROPERTY,
+                    completion::Kind::Value => lsp_types::CompletionItemKind::VALUE,
+                    completion::Kind::LinkType => lsp_types::CompletionItemKind::MODULE,
+                    completion::Kind::File => lsp_types::CompletionItemKind::FILE,
+                    completion::Kind::Folder => lsp_types::CompletionItemKind::FOLDER,
+                    completion::Kind::Heading => lsp_types::CompletionItemKind::REFERENCE,
+                    completion::Kind::Entity => lsp_types::CompletionItemKind::CONSTANT,
                 }),
-                text_edit: Some(lsp_types::CompletionTextEdit::Edit(TextEdit { range, new_text: label.clone() })),
-                label,
+                text_edit: Some(lsp_types::CompletionTextEdit::Edit(TextEdit { range, new_text: candidate.insert })),
+                label: candidate.label,
                 ..Default::default()
             })
             .collect();

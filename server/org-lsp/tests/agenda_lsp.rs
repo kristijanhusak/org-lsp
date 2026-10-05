@@ -1629,8 +1629,45 @@ fn completes_keywords_and_tags_in_a_headline() {
     };
     assert_eq!(complete(&mut client, 1, 3), [(json!("DONE"), json!(2))]);
     assert_eq!(complete(&mut client, 2, 6), [(json!("work"), json!(5))]);
-    assert_eq!(client.initialize["capabilities"]["completionProvider"]["triggerCharacters"], json!([":"]));
+    assert_eq!(
+        client.initialize["capabilities"]["completionProvider"]["triggerCharacters"],
+        json!([":", "+", "[", "/", "*", "#", "\\"])
+    );
     client.shutdown();
+}
+
+/// File names in a link, from the directory of the file, and the
+/// headlines of the file named.
+#[test]
+fn completes_file_names_in_links() {
+    let root = workspace("complete-files");
+    let uri = format!("file://{}/c.org", root.display());
+    let mut client = Client::editor(clock(), None);
+    client.open(&uri, "[[file:\n[[file:sub/\n[[file:work.org::*\n");
+    let complete = |client: &mut Client, line: u32, character: u32| {
+        let params = json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": character } });
+        let items = client.request("textDocument/completion", params).unwrap();
+        items
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| (item["textEdit"]["newText"].as_str().unwrap().to_string(), item["kind"].as_u64().unwrap()))
+            .collect::<Vec<_>>()
+    };
+    const FILE: u64 = 17;
+    const FOLDER: u64 = 19;
+    assert_eq!(
+        complete(&mut client, 0, 7),
+        [("notes.txt".to_string(), FILE), ("sub/".to_string(), FOLDER), ("work.org".to_string(), FILE)]
+    );
+    assert_eq!(complete(&mut client, 1, 11), [("home.org".to_string(), FILE)]);
+    let headlines: Vec<String> = complete(&mut client, 2, 19).into_iter().map(|(text, _)| text).collect();
+    assert_eq!(
+        headlines,
+        ["Write report", "Call [[https://example.com][the client]]", "Meeting <2026-05-19 Tue 14:00-15:00>"]
+    );
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 /// With `completeTagsAlwaysOfferAllAgendaTags`, a tag is completed from
