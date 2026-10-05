@@ -47,6 +47,13 @@ Milestone 4d, step 1 (scheduling from the agenda), as described under
 milestone 4 below. Then the opt-in autosave option (open question 3) and
 the Vim plugin (open question 4) are free to take whenever.
 
+Fixed: VS Code failed `textDocument/documentSymbol` while typing with
+"selectionRange must be contained in fullRange". The symbol's range drops
+the blanks it ends in, but the title's range did not, e.g. `* ` or
+`* foo ` at the end of the file. The selection is now trimmed the same
+way and kept inside the range; `symbols.rs` checks this for every prefix
+of a few documents, as they are met while typing.
+
 ### Milestone 3, merged: priorities and dates
 
 Kept here as a record of what it covers and how it was checked.

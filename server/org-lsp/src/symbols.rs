@@ -53,6 +53,7 @@ pub fn symbol_information(
 fn symbol(headline: &Headline, text: &str, index: &LineIndex, encoding: Encoding) -> DocumentSymbol {
     let children: Vec<DocumentSymbol> =
         headline.children().map(|child| symbol(&child, text, index, encoding)).collect();
+    let range = subtree_range(headline, text);
     let selection = headline.title().map_or_else(|| headline.line_range(), |title| title.text_range());
     #[allow(deprecated)]
     DocumentSymbol {
@@ -61,8 +62,8 @@ fn symbol(headline: &Headline, text: &str, index: &LineIndex, encoding: Encoding
         kind: KIND,
         tags: None,
         deprecated: None,
-        range: index.range(text, subtree_range(headline, text), encoding),
-        selection_range: index.range(text, selection, encoding),
+        range: index.range(text, range, encoding),
+        selection_range: index.range(text, trim_end(selection, text).intersect(range).unwrap_or(range), encoding),
         children: (!children.is_empty()).then_some(children),
     }
 }
@@ -94,7 +95,13 @@ fn detail(headline: &Headline) -> Option<String> {
 
 /// The subtree without its trailing blank lines.
 fn subtree_range(headline: &Headline, text: &str) -> TextRange {
-    let range = headline.syntax().text_range();
+    trim_end(headline.syntax().text_range(), text)
+}
+
+/// `range` without the blanks it ends in. VS Code refuses a selection
+/// that is not inside the symbol's range, so the selection, which can end
+/// in the blanks just typed, is trimmed as the range is.
+fn trim_end(range: TextRange, text: &str) -> TextRange {
     let (start, end) = (usize::from(range.start()), usize::from(range.end()));
     let trimmed = start + text[start..end].trim_end().len();
     TextRange::new(range.start(), TextSize::new(trimmed as u32))
@@ -176,5 +183,45 @@ First *bold* [TODO :a:b:] lines 1..5
                 ("* :only:tags:", None),
             ]
         );
+    }
+
+    fn contains(outer: &lsp_types::Range, inner: &lsp_types::Range) -> bool {
+        let key = |p: &lsp_types::Position| (p.line, p.character);
+        key(&outer.start) <= key(&inner.start) && key(&inner.end) <= key(&outer.end)
+    }
+
+    fn check(symbols: &[DocumentSymbol], text: &str) {
+        for symbol in symbols {
+            assert!(contains(&symbol.range, &symbol.selection_range), "{symbol:?} in {text:?}");
+            let children = symbol.children.as_deref().unwrap_or(&[]);
+            for child in children {
+                assert!(contains(&symbol.range, &child.range), "{child:?} in {text:?}");
+            }
+            check(children, text);
+        }
+    }
+
+    /// VS Code refuses a symbol whose selection is not inside its range,
+    /// so check it for every text met while typing a document.
+    #[test]
+    fn selection_lies_inside_the_range_while_typing() {
+        let documents = [
+            "* foo \n",
+            "* TODO   \n** \t\n*** DONE x :a: \n",
+            "* a\n\n  \n* b  \n  \n",
+            "* TODO [#A] title  :tag:   \nbody   \n** child\t\n",
+            "* \u{00e9}t\u{00e9} \u{1F600} \n",
+            "* a\r\n** b \r\n",
+        ];
+        for document in documents {
+            for (end, _) in document.char_indices().chain([(document.len(), ' ')]) {
+                let text = &document[..end];
+                let parse = org_syntax::parse(text, &TodoKeywords::default());
+                let index = LineIndex::new(text);
+                for encoding in [Encoding::Utf8, Encoding::Utf16] {
+                    check(&document_symbols(&parse.syntax(), text, &index, encoding), text);
+                }
+            }
+        }
     }
 }
