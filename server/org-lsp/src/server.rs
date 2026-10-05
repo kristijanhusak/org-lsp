@@ -312,9 +312,12 @@ pub fn run(connection: Connection) -> Result<()> {
     let (id, raw_params) = connection.initialize_start()?;
     let params: InitializeParams = serde_json::from_value(raw_params.clone())?;
 
-    // Unknown or malformed options must not keep the server from starting.
-    let options: Options =
-        params.initialization_options.and_then(|options| serde_json::from_value(options).ok()).unwrap_or_default();
+    // Unknown or malformed options must not keep the server from starting,
+    // nor take the other options with them.
+    let (options, dropped) = params.initialization_options.map(Options::read).unwrap_or_default();
+    for name in dropped {
+        eprintln!("org-lsp: the option `{name}` is malformed and is ignored");
+    }
 
     let general = params.capabilities.general.as_ref();
     let text_document = params.capabilities.text_document.as_ref();
@@ -346,12 +349,7 @@ pub fn run(connection: Connection) -> Result<()> {
     let client =
         Client { date_prompt: client.date_prompt && client.virtual_documents && client.show_document, ..client };
 
-    let todo = options
-        .todo_keywords
-        .clone()
-        .map(TodoKeywords::from_sequence)
-        .filter(|keywords| !keywords.is_empty())
-        .unwrap_or_default();
+    let todo = options.todo_keywords();
 
     #[allow(deprecated)]
     let folders: Vec<PathBuf> = match &params.workspace_folders {
@@ -382,13 +380,13 @@ pub fn run(connection: Connection) -> Result<()> {
         read_date: options.read_date_settings(),
         refile: (options.refile_targets(), options.refile_outline_path(), options.refile_settings()),
         capture_templates: options.capture_templates(),
-        org_directory: options.org_directory.clone().unwrap_or_else(|| "~/org".to_string()),
-        default_notes_file: options.default_notes_file.clone().unwrap_or_else(|| "~/.notes".to_string()),
+        org_directory: options.org_directory(),
+        default_notes_file: options.default_notes_file(),
         capture: None,
         captures: 0,
         date_prompt: None,
         prompt_copy: None,
-        separator_lines: options.cycle_separator_lines.unwrap_or(folding::SEPARATOR_LINES),
+        separator_lines: options.separator_lines(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
         documents: HashMap::new(),
         workspace: Workspace::new(options.agenda_files, folders),
