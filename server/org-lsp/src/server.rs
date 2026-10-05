@@ -78,6 +78,8 @@ enum Pending {
     EditAndMove { uri: Uri, position: Position },
     /// The cursor of the agenda is being moved to follow an entry.
     Reveal,
+    /// The cursor of the date prompt is being moved to the selected day.
+    PromptCursor,
 }
 
 /// The agenda the client is showing.
@@ -726,6 +728,11 @@ impl Server {
                 }
             }
             Some(Pending::Reveal) => self.moving = None,
+            Some(Pending::PromptCursor) => {
+                if let Some(open) = self.date_prompt.as_mut() {
+                    open.moving_cursor = false;
+                }
+            }
             None => {}
         }
     }
@@ -1519,6 +1526,7 @@ impl Server {
             self.reveal_prompt_when_current();
         } else {
             open.reveal = false;
+            open.moving_cursor = true;
             self.date_prompt = Some(open);
             let params = ShowDocumentParams {
                 uri: prompt::URI.parse().expect("valid URI"),
@@ -1526,7 +1534,7 @@ impl Server {
                 take_focus: Some(true),
                 selection: Some(Range::new(cursor, cursor)),
             };
-            self.send_request::<ShowDocument>(params, None);
+            self.send_request::<ShowDocument>(params, Some(Pending::PromptCursor));
         }
     }
 
@@ -1560,6 +1568,7 @@ impl Server {
         }
         let Some(open) = self.date_prompt.as_mut().filter(|open| open.reveal) else { return };
         open.reveal = false;
+        open.moving_cursor = true;
         let cursor = open.cursor();
         let params = ShowDocumentParams {
             uri: prompt::URI.parse().expect("valid URI"),
@@ -1567,7 +1576,7 @@ impl Server {
             take_focus: Some(true),
             selection: Some(Range::new(cursor, cursor)),
         };
-        self.send_request::<ShowDocument>(params, None);
+        self.send_request::<ShowDocument>(params, Some(Pending::PromptCursor));
     }
 
     /// A key of the date prompt. The day it starts from is the one under
@@ -1575,8 +1584,12 @@ impl Server {
     fn calendar_command(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
         let (now, settings) = (self.date_time(), self.read_date);
         let open = self.date_prompt.as_mut().ok_or("No date prompt is open")?;
+        // Until the cursor is on the day selected last, the one it reports
+        // is an old one: a key pressed again quickly goes on from the
+        // selected day.
         let at = context
             .filter(|context| context.text_document.uri.as_str() == prompt::URI)
+            .filter(|_| !open.reveal && !open.moving_cursor)
             .and_then(|context| open.day_at(context.position))
             .unwrap_or(open.selected);
         let date = Date::from_day(at);

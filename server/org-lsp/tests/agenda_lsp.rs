@@ -692,6 +692,50 @@ fn says_what_it_did_and_saves_what_it_changed_elsewhere() {
     client.shutdown();
 }
 
+/// Keys of the calendar pressed quickly one after another: the second one
+/// comes with the cursor where it was before the first moved it, and goes
+/// on from the day the first selected.
+#[test]
+fn calendar_keys_go_on_from_the_selected_day_until_the_cursor_follows() {
+    const URI: &str = "file:///org/notes.org";
+    const PROMPT: &str = "org-agenda:/Org%20Date";
+    let mut client = Client::with_date_prompt(clock());
+    client.open(URI, "* TODO Call them\nSCHEDULED: <2026-05-20 Wed>\n");
+    let run = |client: &mut Client, command: &str, context: Value| {
+        client.received.clear();
+        client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        client.settle();
+    };
+    run(
+        &mut client,
+        "org.schedule",
+        json!({ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } }),
+    );
+    let cursor = client.received[0].params["selection"]["start"].clone();
+    let text = client.view_text(PROMPT);
+    client.notify(
+        "textDocument/didOpen",
+        json!({ "textDocument": { "uri": PROMPT, "languageId": "org-date", "version": 1, "text": text } }),
+    );
+    client.settle();
+    // The cursor stays on the 20th: the editor has not got round to moving
+    // it when the next key comes.
+    let stale = json!({ "textDocument": { "uri": PROMPT }, "position": cursor });
+    client.hold_show = true;
+    run(&mut client, "org.calendar.week.later", stale.clone());
+    let text = client.view_text(PROMPT);
+    assert!(text.trim_end().ends_with("=> <2026-05-27 Wed>"), "{text}");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": PROMPT, "version": 2 }, "contentChanges": [{ "text": text }] }),
+    );
+    client.settle();
+    run(&mut client, "org.calendar.day.later", stale.clone());
+    let text = client.view_text(PROMPT);
+    assert!(text.trim_end().ends_with("=> <2026-05-28 Thu>"), "from the selected day: {text}");
+    client.shutdown();
+}
+
 /// The note a TODO state wants is written in a buffer of its own, as
 /// Emacs's `*Org Note*`: finished, it is logged with the change;
 /// cancelled, the state changes and nothing is logged.

@@ -79,6 +79,9 @@ pub struct DatePrompt {
     /// The cursor is to go to the selected day once the client shows the
     /// current text.
     pub reveal: bool,
+    /// The client has been told to put the cursor on the selected day and
+    /// has not said yet that it has: the cursor it reports is an old one.
+    pub moving_cursor: bool,
 }
 
 impl DatePrompt {
@@ -106,6 +109,7 @@ impl DatePrompt {
             text: String::new(),
             tokens: Vec::new(),
             reveal: true,
+            moving_cursor: false,
         };
         prompt.render(now, settings);
         prompt
