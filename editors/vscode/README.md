@@ -20,6 +20,7 @@ All commands are in the Command Palette under **Org**.
 | `Org: Agenda commands` | Asks which of the two to open |
 | `Org: Cycle TODO state forward` / `backward` | Changes the entry under the cursor, in an Org file or on an agenda line |
 | `Org: Raise the priority` / `Lower the priority` | The same, for the priority |
+| `Org: Set the priority` | Asks for it, as Org's `C-c ,` does (`,` in the agenda); a space removes it |
 | `Org: Increase` / `Decrease the part of the timestamp at the cursor` | The year, month, day, hour or minute under the cursor, as Org's `S-<up>` / `S-<down>` |
 | `Org: Move the date one day later` / `earlier` | The timestamp under the cursor, or the date of an agenda line |
 | `Org: Increase the timestamp part or raise the priority`, and the three like it | Org's `S-<up>`, `S-<down>`, `S-<left>`, `S-<right>`: what they do depends on where the cursor is |

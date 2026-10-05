@@ -113,6 +113,27 @@ describe('Org files', () => {
     await document.save();
   });
 
+  it('asks for a priority and sets it', async () => {
+    const asked = [];
+    const answers = ['c', ' '];
+    const showInputBox = vscode.window.showInputBox;
+    vscode.window.showInputBox = async (options) => {
+      asked.push(options.prompt);
+      return answers.shift();
+    };
+    try {
+      moveTo(5, 3); // on "Call the client"
+      await vscode.commands.executeCommand('org.priority');
+      await until('the priority typed', () => document.lineAt(5).text === '* TODO [#C] Call the client');
+      await vscode.commands.executeCommand('org.priority');
+      await until('a space removes it', () => document.lineAt(5).text === '* TODO Call the client');
+      assert.deepEqual(asked, ['Priority A-C, SPC to remove', 'Priority A-C, SPC to remove']);
+    } finally {
+      vscode.window.showInputBox = showInputBox;
+    }
+    await document.save();
+  });
+
   it('asks for a date, shows what it means, and uses it', async () => {
     const asked = [];
     const showInputBox = vscode.window.showInputBox;

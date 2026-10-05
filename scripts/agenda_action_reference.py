@@ -41,6 +41,7 @@ COMMANDS = {
     "schedule": "(call-interactively 'org-agenda-schedule)",
     "deadline": "(call-interactively 'org-agenda-deadline)",
     "agenda-goto-date": "(call-interactively 'org-agenda-goto-date)",
+    "priority": "(call-interactively 'org-agenda-priority)",
 }
 
 # Commands that change the view rather than the files.
@@ -80,7 +81,9 @@ DRIVER = r"""
                              ((symbol-function 'read-string)
                               (lambda (_prompt &optional initial &rest _)
                                 (setq org-lsp-prompt (or initial ""))
-                                answer)))
+                                answer))
+                             ((symbol-function 'read-char-exclusive)
+                              (lambda (&rest _) (string-to-char answer))))
                      (eval form)
                      (org-lsp-finish-notes)))
                  (let ((view (with-current-buffer org-agenda-buffer-name

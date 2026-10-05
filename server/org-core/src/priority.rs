@@ -56,6 +56,12 @@ impl Priorities {
         })
     }
 
+    /// Whether priorities are numbers (`org-priority-number-p` of the
+    /// lowest one).
+    fn numeric(&self) -> bool {
+        (0..=64).contains(&self.lowest)
+    }
+
     /// `org-priority-valid-value-p`
     fn allows(&self, value: i64) -> bool {
         let known = (0..=64).contains(&value) || (i64::from(b'A')..=i64::from(b'Z')).contains(&value);
@@ -90,6 +96,69 @@ pub enum Action {
     Remove,
     /// A priority as Org counts it: a letter's code, or 0 to 64.
     Set(i64),
+}
+
+/// What `org-priority` asks for: `Priority A-C, SPC to remove`.
+pub fn question(priorities: &Priorities) -> String {
+    format!("Priority {}-{}, SPC to remove", name(priorities.highest), name(priorities.lowest))
+}
+
+/// The answer to [`question`], read as `org-priority` reads it. Emacs
+/// takes a single key, so only the first character counts, unless the
+/// priorities are numbers that reach 10: then the whole answer is read. A
+/// space removes the priority; a letter counts in either case. Whether
+/// the priority is in range is for [`change`] to say.
+pub fn read_answer(answer: &str, priorities: &Priorities) -> Result<Action, Refusal> {
+    let read: String = if priorities.numeric() && priorities.lowest >= 10 {
+        answer.to_string()
+    } else {
+        answer.chars().take(1).collect()
+    };
+    if read == " " {
+        return Ok(Action::Remove);
+    }
+    if !priorities.numeric() {
+        // `(string-to-char (upcase s))`
+        let first = read.chars().flat_map(char::to_uppercase).next();
+        return Ok(Action::Set(first.map_or(0, |c| i64::from(u32::from(c)))));
+    }
+    // `org-priority-value-regexp`, unanchored and without regard to case:
+    // any letter or digit will do. Then `string-to-number`.
+    if !read.chars().any(|c| c.is_ascii_alphanumeric()) {
+        return Err(Refusal::Failed(format!(
+            "Priority must be a number between `{}' and `{}'",
+            name(priorities.highest),
+            name(priorities.lowest)
+        )));
+    }
+    string_to_number(&read).map(Action::Set).ok_or_else(|| {
+        Refusal::Failed(format!(
+            "Priority must be between `{}' and `{}'",
+            name(priorities.highest),
+            name(priorities.lowest)
+        ))
+    })
+}
+
+/// Emacs's `string-to-number` for a whole number: blanks, a sign, digits;
+/// 0 when there are none. A fraction makes a float, which is no priority.
+fn string_to_number(text: &str) -> Option<i64> {
+    let text = text.trim_start_matches([' ', '\t']);
+    let (sign, rest) = match text.as_bytes().first() {
+        Some(b'-') => (-1, &text[1..]),
+        Some(b'+') => (1, &text[1..]),
+        _ => (1, text),
+    };
+    let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+    let after = &rest[digits.len()..];
+    let fraction = after.starts_with('.') && after[1..].starts_with(|c: char| c.is_ascii_digit());
+    let exponent = !digits.is_empty()
+        && after.starts_with(['e', 'E'])
+        && after[1..].trim_start_matches(['+', '-']).starts_with(|c: char| c.is_ascii_digit());
+    if fraction || exponent {
+        return None;
+    }
+    Some(sign * digits.parse::<i64>().unwrap_or(0))
 }
 
 /// The first priority cookie on a headline, as `org-priority` finds it:
@@ -269,5 +338,23 @@ mod tests {
         assert_eq!(run("* [#5] a", Action::Up), "* [#4] a");
         assert_eq!(Priorities::from_keyword("A E"), None);
         assert_eq!(Priorities::from_keyword("A E C").unwrap().lowest, 69);
+    }
+
+    #[test]
+    fn asks_and_reads_the_answer() {
+        let letters = Priorities::default();
+        assert_eq!(question(&letters), "Priority A-C, SPC to remove");
+        assert_eq!(read_answer("b", &letters), Ok(Action::Set(i64::from(b'B'))));
+        assert_eq!(read_answer("ab", &letters), Ok(Action::Set(i64::from(b'A'))), "one key");
+        assert_eq!(read_answer(" ", &letters), Ok(Action::Remove));
+        let small = Priorities { highest: 1, lowest: 9, default: 5 };
+        assert_eq!(question(&small), "Priority 1-9, SPC to remove");
+        assert_eq!(read_answer("12", &small), Ok(Action::Set(1)), "one key");
+        assert_eq!(read_answer("x", &small), Ok(Action::Set(0)), "`string-to-number`");
+        assert!(read_answer("", &small).is_err());
+        let large = Priorities { highest: 1, lowest: 15, default: 5 };
+        assert_eq!(read_answer("12", &large), Ok(Action::Set(12)), "the whole answer");
+        assert_eq!(read_answer(" ", &large), Ok(Action::Remove));
+        assert!(read_answer("1.5", &large).is_err(), "a float");
     }
 }
