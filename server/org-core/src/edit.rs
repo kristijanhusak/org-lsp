@@ -42,6 +42,8 @@ pub enum Command {
     /// timestamp an agenda line stands for by days. The position is where
     /// the agenda marks that timestamp, not a cursor.
     AgendaDate { forward: bool },
+    /// `org-toggle-checkbox`, and the cookies that count checkboxes.
+    Checkbox,
 }
 
 /// Settings, named after Org's variables.
@@ -151,6 +153,7 @@ pub fn run(
             };
             priority::change(text, parse.todo_keywords(), offset, *action, call.repeated, &priority).map(unplaced)
         }
+        Command::Checkbox => crate::checkbox::toggle(text, parse.todo_keywords(), offset).map(unplaced),
         Command::Timestamp { forward } => {
             let shift = Shift { n: steps(*forward), what: None, updown: true, counted: call.count.is_some() };
             stamp::change(text, offset, &shift, settings.timestamp_rounding_minutes).map(placed)

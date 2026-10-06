@@ -40,6 +40,7 @@ The other options are in [configuration.md](configuration.md).
 | `ciR` | `org.priority.up` | Raise the priority |
 | `cir` | `org.priority.down` | Lower the priority |
 | `<Leader>o,` | `org.priority` | Set the priority |
+| `<C-Space>` | `org.checkbox.toggle` | Toggle the checkbox |
 | `<Leader>or` | `org.refile` | Refile the entry |
 | `<C-a>`¹ | `org.timestamp.up` | Increase the part of the timestamp at the cursor |
 | `<C-x>`¹ | `org.timestamp.down` | Decrease the part of the timestamp at the cursor |

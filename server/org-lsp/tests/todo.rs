@@ -45,6 +45,19 @@ fn todo_changes_match_emacs() {
             serde_json::from_value(case.get("options").cloned().unwrap_or_else(|| serde_json::json!({}))).unwrap();
         let default = options.todo_keywords.clone().map(TodoKeywords::from_sequence).unwrap_or_default();
         let keywords = TodoKeywords::from_document(&text).unwrap_or(default);
+        // `org-toggle-checkbox`, on an item or a headline.
+        if case["command"] == "checkbox" {
+            let actual = org_core::checkbox::toggle(&text, &keywords, offset)
+                .unwrap_or_else(|refusal| format!("ERROR: {}", refusal.message()));
+            compared += 1;
+            if actual != expected {
+                failed += 1;
+                failures.push_str(&format!(
+                    "\ncase {index} (checkbox):\n{marked}\nexpected:\n{expected}\nactual:\n{actual}\n"
+                ));
+            }
+            continue;
+        }
         let target = match &case["command"] {
             Value::String(name) if name == "next" => Some(Target::Next),
             Value::String(name) if name == "previous" => Some(Target::Previous),

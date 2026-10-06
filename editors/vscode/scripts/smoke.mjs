@@ -56,7 +56,7 @@ assert.deepEqual(decoded, [
   ['#+TITLE:', 'keyword'],
   ['*', 'stars'],
   ['TODO', 'todoKeyword'],
-  ['Ünï 😀', 'headline'],
+  ['Ünï 😀 ', 'headline'],
   ['*bold*', 'headline'],
 ]);
 

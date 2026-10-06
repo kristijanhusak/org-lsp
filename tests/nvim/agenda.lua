@@ -156,6 +156,12 @@ eq(vim.fn.maparg('vd', 'n', false, true).nowait, 1, 'also two-key ones')
 local agenda_buf = vim.api.nvim_get_current_buf()
 local function token_at(row, col)
   local tokens = vim.lsp.semantic_tokens.get_at_pos(agenda_buf, row, col)
+  -- Neovim 0.12 also lists the token that ends where this one starts.
+  for _, token in ipairs(tokens or {}) do
+    if token.start_col == col then
+      return token
+    end
+  end
   return tokens and tokens[1]
 end
 wait('semantic tokens in the agenda', function()

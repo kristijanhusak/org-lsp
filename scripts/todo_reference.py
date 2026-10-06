@@ -55,7 +55,9 @@ DRIVER = r"""
                          ((symbol-function 'read-char-exclusive)
                           (lambda (&rest _) (string-to-char key))))
                  (let ((org-lsp-note-text (or note "")))
-                   (org-todo arg)
+                   (if (eq arg 'checkbox)
+                       (org-toggle-checkbox)
+                     (org-todo arg))
                    (org-lsp-finish-notes)))
                (buffer-string))
            (quit "QUIT")
@@ -110,6 +112,8 @@ def bindings(options):
 
 
 def command_argument(command):
+    if command == "checkbox":
+        return "'checkbox"
     if command == "next":
         return "'right"
     if command == "previous":

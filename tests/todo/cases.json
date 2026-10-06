@@ -1772,5 +1772,473 @@
    "adaptIndentation": "headline-data"
   },
   "expected": "* [#B] with [[https://x.org][link]] [2/2]                              :日本:\nSCHEDULED:  <2027-04-17 Mon 14:00-15:30 ++3h>\n# <2027-03-12 Fri>\n- item <2027-04-18 Sun --2d>\nplain text\n** DONE [#B] Call them\nDEADLINE:  <2026-08-03 Mon 23:45 ++1w>\n:PROPERTIES:\n:COOKIE_DATA: checkbox\n:END:\n1. numbered\n** žć\n   DEADLINE:  <2027-04-15 Thu>\n   1. numbered\n** DONE [#B]  x  y\nCLOSED: [2027-04-17 Sat 14:46] SCHEDULED:  <2027-04-16 Fri 09:30> DEADLINE:  <2027-04-25 Sun -3d>\n:NOTES:\n- CLOSING NOTE [2027-04-17 Sat 14:46]\n:END:\n***  TODO x  y\n#+begin_example\n<2027-04-19 Tue>\n#+end_example"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Groceries [0/3]\n- [ ]¦ milk\n- [ ] eggs\n- [X] bread\n",
+  "command": "checkbox",
+  "expected": "* TODO Groceries [2/3]\n- [X] milk\n- [ ] eggs\n- [X] bread\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Groceries [33%]\n- [ ] milk\n- [ ] eggs¦\n- [X] bread\n",
+  "command": "checkbox",
+  "expected": "* TODO Groceries [66%]\n- [ ] milk\n- [X] eggs\n- [X] bread\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Project [1/2]\n- [ ] parent [0/2]\n  - [ ]¦ a\n  - [ ] b\n- [X] done\n",
+  "command": "checkbox",
+  "expected": "* Project [1/2]\n- [-] parent [1/2]\n  - [X] a\n  - [ ] b\n- [X] done\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Project\n- [ ] parent [/]\n  - [X] a\n  - [ ] b¦\n",
+  "command": "checkbox",
+  "expected": "* Project\n- [X] parent [2/2]\n  - [X] a\n  - [X] b\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Project [%]\n- [-] parent\n  - [X] a\n  - [ ] ¦b\n  - [ ] c\n",
+  "command": "checkbox",
+  "expected": "* Project [0%]\n- [-] parent\n  - [X] a\n  - [X] b\n  - [ ] c\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* H¦ead [/]\n- [ ] one\n- [X] two\n- [ ] three\n",
+  "command": "checkbox",
+  "expected": "* Head [3/3]\n- [X] one\n- [X] two\n- [X] three\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* H¦ead [/]\n- [X] one\n- [X] two\n",
+  "command": "checkbox",
+  "expected": "* Head [0/2]\n- [ ] one\n- [ ] two\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head\n- plain item¦ without box\n- [ ] boxed\n",
+  "command": "checkbox",
+  "expected": "* Head\n- plain item without box\n- [ ] boxed\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [0/0]\nText¦ only\n",
+  "command": "checkbox",
+  "expected": "ERROR: (error \"Not at an item or heading, and no active region\")"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Recursive [/]\n:PROPERTIES:\n:COOKIE_DATA: checkbox recursive\n:END:\n- [ ] a\n  - [ ]¦ b\n  - [X] c\n",
+  "command": "checkbox",
+  "expected": "* Recursive [3/3]\n:PROPERTIES:\n:COOKIE_DATA: checkbox recursive\n:END:\n- [X] a\n  - [X] b\n  - [X] c\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO counts todos [1/2]\n:PROPERTIES:\n:COOKIE_DATA: todo\n:END:\n- [ ] x¦\n** DONE a\n** TODO b\n",
+  "command": "checkbox",
+  "expected": "* TODO counts todos [1/2]\n:PROPERTIES:\n:COOKIE_DATA: todo\n:END:\n- [X] x\n** DONE a\n** TODO b\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Drawer\n:NOTES:\n- [ ] in drawer [/]\n  - [ ]¦ x\n:END:\n",
+  "command": "checkbox",
+  "expected": "* Drawer\n:NOTES:\n- [X] in drawer [1/1]\n  - [X] x\n:END:\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Ordered\n1. [ ] first¦\n2. [X] second\n   - [ ] sub\n",
+  "command": "checkbox",
+  "expected": "* Ordered\n1. [X] first\n2. [ ] second\n   - [ ] sub\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Two lists [/]\n- [ ] a¦\n\n\nText.\n- [X] b\n",
+  "command": "checkbox",
+  "expected": "* Two lists [2/2]\n- [X] a\n\n\nText.\n- [X] b\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Planning [/]\nSCHEDULED: <2026-10-05 Mon>\n:LOGBOOK:\n- [X] logged\n:END:\n- [X] fi¦rst\n- [ ] second\n",
+  "command": "checkbox",
+  "expected": "* Planning [1/3]\nSCHEDULED: <2026-10-05 Mon>\n:LOGBOOK:\n- [X] logged\n:END:\n- [ ] first\n- [ ] second\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Nested state\n- [ ] top\n  - [ ] mid\n    - [ ] deep¦\n    - [ ] deep2\n  - [X] mid2\n",
+  "command": "checkbox",
+  "expected": "* Nested state\n- [-] top\n  - [-] mid\n    - [X] deep\n    - [ ] deep2\n  - [X] mid2\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "Text before¦\n- [ ] no heading\n",
+  "command": "checkbox",
+  "expected": "ERROR: (error \"Not at an item or heading, and no active region\")"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* A\n- [ ] x [/]¦\n  - [X] y\n** B [/]\n- [ ] z\n",
+  "command": "checkbox",
+  "expected": "* A\n- [X] x [1/1]\n  - [X] y\n** B [/]\n- [ ] z\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task\n1. [ ] item [%]\n1. [ ] b\n¦1. [ ] a\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n1. [ ] item [0%]\n1. [ ] b\n1. [X] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [0/0]\n+ [X] item\n   + [ ] a¦\n",
+  "command": "checkbox",
+  "expected": "* Head [1/1]\n+ [X] item\n   + [X] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head\n+ b [%]\n   + [X] a [/]\n+ [X] a [%]\n+ b [/]\n¦   + [ ] item [/]\n      1. [ ] b\n",
+  "command": "checkbox",
+  "expected": "* Head\n+ b [100%]\n   + [X] a [0/0]\n+ [X] a [0%]\n+ b [0/1]\n   + [ ] item [0/1]\n      1. [ ] b\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head\n+ [X] item [/]\n+ [X] b [/]\n+ [ ] item [%]\n¦   1. [ ] a [/]\n      1. [X] b\n      1. a\n",
+  "command": "checkbox",
+  "expected": "* Head\n+ [X] item [0/0]\n+ [X] b [0/0]\n+ [X] item [100%]\n   1. [X] a [1/1]\n      1. [X] b\n      1. a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head\n+ [ ] item [/]\n+ [ ] a [/]\n+ [ ] a¦\n",
+  "command": "checkbox",
+  "expected": "* Head\n+ [ ] item [0/0]\n+ [ ] a [0/0]\n+ [X] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [/]\n- [-] a [/]\n   1. item [%]¦\n      - [ ] item\n",
+  "command": "checkbox",
+  "expected": "* Head [0/1]\n- [-] a [0/0]\n   1. item [0%]\n      - [ ] item\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task\n+ [-] a [/]\n   + [ ] a [/]\n      + [ ] a¦\n      + item [/]\n      + [ ] item [/]\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n+ [-] a [0/1]\n   + [-] a [1/2]\n      + [X] a\n      + item [0/0]\n      + [ ] item [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head\n1. item [/]\n1. [X] a [/]\n1. [-] b [/]¦\n",
+  "command": "checkbox",
+  "expected": "* Head\n1. item [0/0]\n1. [X] a [0/0]\n1. [X] b [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head\n1. [-] item\n1. [X] a [/]¦\n",
+  "command": "checkbox",
+  "expected": "* Head\n1. [-] item\n1. [ ] a [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "¦* Head\n- [X] a [%]\n- [-] item\n   1. [-] a\n",
+  "command": "checkbox",
+  "expected": "* Head\n- [ ] a [0%]\n- [ ] item\n   1. [ ] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task\n+ [-] item\n¦+ [ ] b\n+ [ ] b [/]\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n+ [-] item\n+ [X] b\n+ [ ] b [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [/]¦\n+ a\n",
+  "command": "checkbox",
+  "expected": "* Head [0/0]\n+ a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [0/0]¦\n1. [X] item\n   + [ ] item [/]\n   + [X] item\n   + [ ] a\n1. [ ] b\n1. [ ] item [%]\n",
+  "command": "checkbox",
+  "expected": "* Head [0/3]\n1. [ ] item\n   + [ ] item [0/0]\n   + [ ] item\n   + [ ] a\n1. [ ] b\n1. [ ] item [0%]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [/]\n- [ ] a [%]\n- [-] b\n¦   1. [ ] a [/]\n   1. [ ] a\n   1. [-] a\n",
+  "command": "checkbox",
+  "expected": "* Head [0/2]\n- [ ] a [0%]\n- [-] b\n   1. [X] a [0/0]\n   1. [ ] a\n   1. [-] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]¦\n- [ ] a [%]\n   + [-] a\n   + [ ] a\n",
+  "command": "checkbox",
+  "expected": "* Head [100%]\n- [X] a [100%]\n   + [X] a\n   + [X] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head\n1. a [/]\n1. [ ] b [/]\n   - [ ] b [/]\n   - [X] b [/]\n1. [X] item¦\n",
+  "command": "checkbox",
+  "expected": "* Head\n1. a [0/0]\n1. [-] b [1/2]\n   - [ ] b [0/0]\n   - [X] b [0/0]\n1. [ ] item\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head\n1. item [%]\n1. [ ] a [%]\n1. b [/]¦\n",
+  "command": "checkbox",
+  "expected": "* Head\n1. item [0%]\n1. [ ] a [0%]\n1. b [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task\n- [ ] b\n- a\n- [-] a [/]\n   1. [ ] item [%]\n- [-] item\n- a¦\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n- [ ] b\n- a\n- [ ] a [0/1]\n   1. [ ] item [0%]\n- [-] item\n- a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [0/0]\n¦- a\n- [ ] a\n   1. [-] a [/]\n- [ ] a\n- [ ] item\n- [ ] a\n",
+  "command": "checkbox",
+  "expected": "* Head [0/4]\n- a\n- [-] a\n   1. [-] a [0/0]\n- [ ] a\n- [ ] item\n- [ ] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task\n+ [-] item [/]\n   1. [-] a [%]\n¦      1. [ ] b\n      1. a [%]\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n+ [X] item [1/1]\n   1. [X] a [100%]\n      1. [X] b\n      1. a [0%]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task\n- item [%]\n- [X] a [/]¦\n- [ ] a [/]\n- a [/]\n- [ ] b [/]\n   - [X] item\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n- item [0%]\n- [ ] a [0/0]\n- [ ] a [0/0]\n- a [0/0]\n- [X] b [1/1]\n   - [X] item\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]\n¦- [ ] b\n- b\n- a\n- [X] a [/]\n",
+  "command": "checkbox",
+  "expected": "* Head [100%]\n- [X] b\n- b\n- a\n- [X] a [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task\n- [ ] a [/]\n- [-] b\n- [ ] a¦\n- [-] b\n   1. [ ] a [/]\n- [-] b [/]\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n- [ ] a [0/0]\n- [-] b\n- [X] a\n- [ ] b\n   1. [ ] a [0/0]\n- [-] b [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task\n1. item\n¦1. [ ] a [/]\n   1. [ ] item [%]\n   1. [ ] item [/]\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n1. item\n1. [ ] a [0/2]\n   1. [ ] item [0%]\n   1. [ ] item [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [/]\n1. [-] b\n¦1. a [/]\n1. [ ] item\n1. [X] item [/]\n   1. [ ] item\n   1. [-] item [%]\n",
+  "command": "checkbox",
+  "expected": "* Head [0/3]\n1. [-] b\n1. a [0/0]\n1. [ ] item\n1. [-] item [0/2]\n   1. [ ] item\n   1. [-] item [0%]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]\n+ [ ] item\n+ [ ] b [%]\n¦+ [-] b [/]\n+ [X] b\n+ [X] b [/]\n   + b\n",
+  "command": "checkbox",
+  "expected": "* Head [60%]\n+ [ ] item\n+ [ ] b [0%]\n+ [X] b [0/0]\n+ [X] b\n+ [X] b [0/0]\n   + b\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "¦* Head\n- [ ] a\n",
+  "command": "checkbox",
+  "expected": "* Head\n- [X] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]\n1. [X] a [%]\n1. [ ] a\n1. [-] a [/]¦\n   - b [%]\n   - item [/]\n",
+  "command": "checkbox",
+  "expected": "* Head [66%]\n1. [X] a [0%]\n1. [ ] a\n1. [X] a [0/0]\n   - b [0%]\n   - item [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task\n1. [X] a [%]¦\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n1. [ ] a [0%]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [0/0]\n- item\n- [X] b\n- [ ] a\n- [ ] item\n- b¦\n- [-] item [/]\n",
+  "command": "checkbox",
+  "expected": "* Head [1/4]\n- item\n- [X] b\n- [ ] a\n- [ ] item\n- b\n- [-] item [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [0/0]¦\n- [-] a\n- b\n- [ ] b\n- [X] b\n   1. item\n      - [X] b [%]\n",
+  "command": "checkbox",
+  "expected": "* Head [3/3]\n- [X] a\n- b\n- [X] b\n- [X] b\n   1. item\n      - [X] b [0%]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]\n¦+ [-] b [/]\n",
+  "command": "checkbox",
+  "expected": "* Head [100%]\n+ [X] b [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [0/0]¦\n+ [-] a [/]\n   - [ ] a\n",
+  "command": "checkbox",
+  "expected": "* Head [1/1]\n+ [X] a [1/1]\n   - [X] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [0/0]\n+ [ ] a¦\n+ a [%]\n+ [ ] b [%]\n+ item\n+ [X] a [%]\n   1. a\n",
+  "command": "checkbox",
+  "expected": "* Head [2/3]\n+ [X] a\n+ a [0%]\n+ [ ] b [0%]\n+ item\n+ [X] a [0%]\n   1. a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]\n- [ ] a [/]\n- [-] b [/]\n- item\n- [ ] item [/]\n- [-] a¦\n",
+  "command": "checkbox",
+  "expected": "* Head [25%]\n- [ ] a [0/0]\n- [-] b [0/0]\n- item\n- [ ] item [0/0]\n- [X] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "¦* Head\n1. [ ] a\n",
+  "command": "checkbox",
+  "expected": "* Head\n1. [X] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]\n- [-] b\n¦- item [/]\n- item [/]\n   - [ ] a [/]\n      1. [ ] item [%]\n",
+  "command": "checkbox",
+  "expected": "* Head [0%]\n- [-] b\n- item [0/0]\n- item [0/1]\n   - [ ] a [0/1]\n      1. [ ] item [0%]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]¦\n- [ ] a [/]\n- a [%]\n   1. b [/]\n   1. [ ] b [%]\n",
+  "command": "checkbox",
+  "expected": "* Head [100%]\n- [X] a [0/0]\n- a [100%]\n   1. b [0/0]\n   1. [X] b [0%]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head\n+ [ ] a [/]\n+ [ ] b\n   - [-] a [/]\n+ [X] a [%]\n+ [ ] a [/]¦\n   - [ ] a\n",
+  "command": "checkbox",
+  "expected": "* Head\n+ [ ] a [0/0]\n+ [-] b\n   - [-] a [0/0]\n+ [X] a [0%]\n+ [ ] a [0/1]\n   - [ ] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task¦\n1. [ ] b\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n1. [X] b\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [0/0]\n1. [-] b\n1. [ ] a\n1. [ ] a\n1. [-] a¦\n   + item\n",
+  "command": "checkbox",
+  "expected": "* Head [1/4]\n1. [-] b\n1. [ ] a\n1. [ ] a\n1. [X] a\n   + item\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]\n1. [ ] a [%]¦\n1. [ ] b [%]\n1. [ ] b\n1. [ ] b [/]\n",
+  "command": "checkbox",
+  "expected": "* Head [25%]\n1. [X] a [0%]\n1. [ ] b [0%]\n1. [ ] b\n1. [ ] b [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head¦\n1. item\n1. [X] a [/]\n1. [X] b [%]\n",
+  "command": "checkbox",
+  "expected": "* Head\n1. item\n1. [X] a [0/0]\n1. [X] b [0%]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [/]\n- [X] item [%]\n   1. [-] item\n      - b [%]\n   1. [-] a\n- [ ] b¦\n- a\n",
+  "command": "checkbox",
+  "expected": "* Head [1/2]\n- [-] item [0%]\n   1. [-] item\n      - b [0%]\n   1. [-] a\n- [X] b\n- a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]\n+ [X] a [/]\n¦+ b [/]\n   - [ ] a\n      + [-] item [%]\n",
+  "command": "checkbox",
+  "expected": "* Head [100%]\n+ [X] a [0/0]\n+ b [0/1]\n   - [-] a\n      + [-] item [0%]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]¦\n+ [ ] b\n+ [-] b\n+ [-] item [/]\n+ [ ] a\n+ [ ] item\n",
+  "command": "checkbox",
+  "expected": "* Head [100%]\n+ [X] b\n+ [X] b\n+ [X] item [0/0]\n+ [X] a\n+ [X] item\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head¦\n- [-] b\n- [X] b\n   - [-] item\n",
+  "command": "checkbox",
+  "expected": "* Head\n- [X] b\n- [X] b\n   - [X] item\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [/]\n- [-] a [/]¦\n- item\n- [ ] a\n   1. [ ] item [/]\n",
+  "command": "checkbox",
+  "expected": "* Head [1/2]\n- [X] a [0/0]\n- item\n- [ ] a\n   1. [ ] item [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task\n- [ ] b [%]\n   - [-] b¦\n   - [ ] item\n- b [/]\n   - [-] b [/]\n   - [ ] item\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n- [-] b [50%]\n   - [X] b\n   - [ ] item\n- b [0/2]\n   - [-] b [0/0]\n   - [ ] item\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head\n+ [ ] a [/]\n+ [ ] b\n+ [-] a [/]\n   + [ ] a [/]¦\n",
+  "command": "checkbox",
+  "expected": "* Head\n+ [ ] a [0/0]\n+ [ ] b\n+ [X] a [1/1]\n   + [X] a [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]\n- b [%]¦\n- [-] a\n",
+  "command": "checkbox",
+  "expected": "* Head [0%]\n- b [0%]\n- [-] a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]\n1. b [/]\n1. a¦\n",
+  "command": "checkbox",
+  "expected": "* Head [0%]\n1. b [0/0]\n1. a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [0/0]¦\n- [ ] item [/]\n",
+  "command": "checkbox",
+  "expected": "* Head [1/1]\n- [X] item [0/0]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [%]\n¦+ [ ] a\n+ a\n+ [X] item [%]\n   + [ ] b\n+ [X] b\n",
+  "command": "checkbox",
+  "expected": "* Head [66%]\n+ [X] a\n+ a\n+ [ ] item [0%]\n   + [ ] b\n+ [X] b\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task¦\n- [ ] b\n- a [%]\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n- [X] b\n- a [0%]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "¦* TODO Task\n- item [/]\n- [X] b\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n- item [0/0]\n- [X] b\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Task\n¦- [ ] b [/]\n- [-] item [%]\n   + b [/]\n   + [ ] b [%]\n",
+  "command": "checkbox",
+  "expected": "* TODO Task\n- [X] b [0/0]\n- [ ] item [0%]\n   + b [0/0]\n   + [ ] b [0%]\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [/]¦\n1. [X] b [/]\n1. [X] item\n1. a\n",
+  "command": "checkbox",
+  "expected": "* Head [0/2]\n1. [ ] b [0/0]\n1. [ ] item\n1. a\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head\n+ [ ] a [/]\n   1. [ ] b [%]\n¦   1. [ ] b\n",
+  "command": "checkbox",
+  "expected": "* Head\n+ [-] a [1/2]\n   1. [ ] b [0%]\n   1. [X] b\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Head [/]\n1. [ ] item [/]\n¦1. [-] b [/]\n1. [ ] item\n",
+  "command": "checkbox",
+  "expected": "* Head [1/3]\n1. [ ] item [0/0]\n1. [X] b [0/0]\n1. [ ] item\n"
  }
 ]

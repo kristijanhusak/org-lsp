@@ -1,0 +1,321 @@
+//! Checkboxes: `org-toggle-checkbox` (`C-c C-c` on a list item), the box
+//! of a parent item that follows its children (`org-list-struct-fix-box`),
+//! and the statistics cookies that count checkboxes, `[1/3]` and `[33%]`
+//! (`org-update-checkbox-count`). Checked against Emacs in `tests/todo`.
+
+use org_syntax::{SyntaxKind::*, SyntaxNode, TodoKeywords};
+
+use crate::todo::headline_level;
+use crate::Refusal;
+
+/// A list item and its checkbox.
+#[derive(Debug, Clone)]
+struct Item {
+    /// The start of its line.
+    begin: usize,
+    indent: usize,
+    /// Where `[ ]` is, and the character inside.
+    checkbox: Option<(usize, u8)>,
+    parent: Option<usize>,
+    /// The outermost list it belongs to (`org-list-struct`).
+    list: usize,
+}
+
+struct Lists {
+    items: Vec<Item>,
+    /// The range of each outermost list.
+    ranges: Vec<(usize, usize)>,
+}
+
+fn span(node: &SyntaxNode) -> (usize, usize) {
+    let range = node.text_range();
+    (usize::from(range.start()), usize::from(range.end()))
+}
+
+fn line_start(text: &str, at: usize) -> usize {
+    text[..at.min(text.len())].rfind('\n').map_or(0, |newline| newline + 1)
+}
+
+fn line_end(text: &str, at: usize) -> usize {
+    text[at..].find('\n').map_or(text.len(), |newline| at + newline)
+}
+
+fn next_line(text: &str, at: usize) -> usize {
+    text[at..].find('\n').map_or(text.len(), |newline| at + newline + 1)
+}
+
+impl Lists {
+    fn new(text: &str, root: &SyntaxNode) -> Lists {
+        let mut lists = Lists { items: Vec::new(), ranges: Vec::new() };
+        lists.collect(text, root, None, None);
+        lists
+    }
+
+    fn collect(&mut self, text: &str, node: &SyntaxNode, parent: Option<usize>, list: Option<usize>) {
+        for child in node.children() {
+            match child.kind() {
+                LIST => {
+                    let list = list.unwrap_or_else(|| {
+                        self.ranges.push(span(&child));
+                        self.ranges.len() - 1
+                    });
+                    for item in child.children().filter(|item| item.kind() == LIST_ITEM) {
+                        let begin = line_start(text, span(&item).0);
+                        let indent = text[begin..].bytes().take_while(|b| matches!(b, b' ' | b'\t')).count();
+                        let checkbox = item
+                            .children_with_tokens()
+                            .filter_map(|element| element.into_token())
+                            .find(|token| token.kind() == CHECKBOX)
+                            .map(|token| {
+                                let at = usize::from(token.text_range().start());
+                                (at, token.text().as_bytes()[1])
+                            });
+                        self.items.push(Item { begin, indent, checkbox, parent, list });
+                        let index = self.items.len() - 1;
+                        self.collect(text, &item, Some(index), Some(list));
+                    }
+                }
+                _ => self.collect(text, &child, parent, list),
+            }
+        }
+    }
+
+    fn children(&self, item: usize) -> impl Iterator<Item = usize> + '_ {
+        (0..self.items.len()).filter(move |index| self.items[*index].parent == Some(item))
+    }
+
+    fn descendants(&self, item: usize) -> Vec<usize> {
+        let mut out = Vec::new();
+        for child in self.children(item) {
+            out.push(child);
+            out.extend(self.descendants(child));
+        }
+        out
+    }
+}
+
+fn parse(text: &str, keywords: &TodoKeywords) -> SyntaxNode {
+    org_syntax::parse(text, keywords).syntax()
+}
+
+/// The end of a headline's planning line, property drawer and the drawers
+/// after them (`org-end-of-meta-data` with `full`).
+fn end_of_meta_data(text: &str, heading: usize, limit: usize) -> usize {
+    let mut at = next_line(text, heading);
+    let line = |at: usize| text[at..line_end(text, at)].trim();
+    let upper = |at: usize| line(at).to_ascii_uppercase();
+    if at < limit && ["SCHEDULED:", "DEADLINE:", "CLOSED:"].iter().any(|word| upper(at).starts_with(word)) {
+        at = next_line(text, at);
+    }
+    loop {
+        let current = line(at);
+        let is_drawer = current.len() > 2
+            && current.starts_with(':')
+            && current.ends_with(':')
+            && current[1..current.len() - 1].bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-');
+        if at >= limit || !is_drawer {
+            break;
+        }
+        let mut end = next_line(text, at);
+        while end < limit && !upper(end).eq(":END:") {
+            end = next_line(text, end);
+        }
+        if end >= limit {
+            break;
+        }
+        at = next_line(text, end);
+    }
+    at
+}
+
+/// `org-toggle-checkbox` at byte `offset`: on a list item, its checkbox;
+/// on a headline, those of all the items below it, as the first one goes.
+/// Parent boxes follow their children, and the cookies of the section are
+/// counted again.
+pub fn toggle(text: &str, keywords: &TodoKeywords, offset: usize) -> Result<String, Refusal> {
+    let root = parse(text, keywords);
+    let lists = Lists::new(text, &root);
+    let line = line_start(text, offset);
+    let line_text = &text[line..line_end(text, line)];
+    let (up, down) = if headline_level(line_text).is_some() {
+        let limit = next_heading(text, line).unwrap_or(text.len());
+        let meta = end_of_meta_data(text, line, limit);
+        let first = lists.items.iter().map(|item| item.begin).filter(|begin| *begin >= meta && *begin < limit).min();
+        (first.ok_or_else(|| Refusal::Failed("No item in subtree".to_string()))?, limit)
+    } else if lists.items.iter().any(|item| item.begin == line) {
+        (line, line_end(text, line))
+    } else {
+        return Err(Refusal::NotHere("Not at an item or heading, and no active region".to_string()));
+    };
+    let first = lists.items.iter().find(|item| item.begin == up).expect("an item");
+    let reference = if first.checkbox.map(|(_, state)| state) == Some(b'X') { b' ' } else { b'X' };
+    let mut states: Vec<Option<u8>> = lists.items.iter().map(|item| item.checkbox.map(|(_, state)| state)).collect();
+    let mut touched = Vec::new();
+    for (index, item) in lists.items.iter().enumerate() {
+        if item.begin >= up && item.begin <= down {
+            if states[index].is_some() {
+                states[index] = Some(reference);
+            }
+            if !touched.contains(&item.list) {
+                touched.push(item.list);
+            }
+        }
+    }
+    // `org-list-struct-fix-box`: a parent's box from its children's,
+    // deepest first.
+    for list in touched {
+        let mut parents: Vec<usize> = (0..lists.items.len())
+            .filter(|index| lists.items[*index].list == list && states[*index].is_some())
+            .filter(|index| lists.children(*index).next().is_some())
+            .collect();
+        parents.sort_by(|a, b| lists.items[*b].indent.cmp(&lists.items[*a].indent));
+        for parent in parents {
+            let boxes: Vec<u8> = lists.children(parent).filter_map(|child| states[child]).collect();
+            let has = |state: u8| boxes.contains(&state);
+            states[parent] = if (has(b' ') && has(b'X')) || has(b'-') {
+                Some(b'-')
+            } else if has(b'X') {
+                Some(b'X')
+            } else if has(b' ') {
+                Some(b' ')
+            } else {
+                states[parent]
+            };
+        }
+    }
+    let mut out = text.to_string();
+    for (index, item) in lists.items.iter().enumerate() {
+        if let (Some((at, _)), Some(state)) = (item.checkbox, states[index]) {
+            out.replace_range(at + 1..at + 2, &char::from(state).to_string());
+        }
+    }
+    Ok(update_counts(&out, keywords, offset))
+}
+
+/// The start of the next headline after the line at `at`.
+fn next_heading(text: &str, at: usize) -> Option<usize> {
+    let mut line = next_line(text, at);
+    while line < text.len() {
+        if headline_level(&text[line..line_end(text, line)]).is_some() {
+            return Some(line);
+        }
+        line = next_line(text, line);
+    }
+    None
+}
+
+/// The `COOKIE_DATA` property of the entry the text at `at` is in.
+fn cookie_data(text: &str, at: usize) -> String {
+    let mut line = line_start(text, at);
+    while headline_level(&text[line..line_end(text, line)]).is_none() {
+        if line == 0 {
+            return String::new();
+        }
+        line = line_start(text, line - 1);
+    }
+    let limit = next_heading(text, line).unwrap_or(text.len());
+    let mut at = next_line(text, line);
+    while at < limit {
+        let current = text[at..line_end(text, at)].trim();
+        if current.len() > 13 && current[..13].eq_ignore_ascii_case(":COOKIE_DATA:") {
+            return current[13..].trim().to_string();
+        }
+        if current.eq_ignore_ascii_case(":END:") {
+            break;
+        }
+        at = next_line(text, at);
+    }
+    String::new()
+}
+
+fn has_word(text: &str, word: &str) -> bool {
+    text.split(|c: char| !c.is_alphanumeric()).any(|part| part == word)
+}
+
+/// `org-update-checkbox-count` for the section around byte `offset`: each
+/// statistics cookie there counts the checkboxes of what it is in (an
+/// item's children, or the lists of a drawer, a block or the section).
+pub fn update_counts(text: &str, keywords: &TodoKeywords, offset: usize) -> String {
+    let root = parse(text, keywords);
+    let lists = Lists::new(text, &root);
+    let line = line_start(text, offset);
+    let mut start = line;
+    while headline_level(&text[start..line_end(text, start)]).is_none() && start > 0 {
+        start = line_start(text, start - 1);
+    }
+    if headline_level(&text[start..line_end(text, start)]).is_none() {
+        start = 0;
+    }
+    let end = next_heading(text, start).unwrap_or(text.len());
+    let cookies: Vec<SyntaxNode> = root
+        .descendants()
+        .filter(|node| node.kind() == STATISTICS_COOKIE)
+        .filter(|node| (start..end).contains(&span(node).0))
+        .collect();
+    let mut edits = Vec::new();
+    for cookie in cookies {
+        let (begin, finish) = span(&cookie);
+        let data = cookie_data(text, begin);
+        if has_word(&data, "todo") {
+            continue;
+        }
+        let recursive = has_word(&data, "recursive");
+        let container = cookie.ancestors().find(|node| match node.kind() {
+            DRAWER | DYNAMIC_BLOCK | LIST_ITEM => true,
+            BLOCK => node
+                .children_with_tokens()
+                .filter_map(|element| element.into_token())
+                .find(|token| token.kind() == BLOCK_BEGIN)
+                .is_some_and(|token| {
+                    let name = token.text().get(8..).unwrap_or("").to_ascii_uppercase();
+                    !matches!(name.as_str(), "SRC" | "EXAMPLE" | "EXPORT" | "COMMENT")
+                }),
+            _ => false,
+        });
+        // The lists with a checkbox in the area the cookie counts.
+        let (from, to) = match &container {
+            Some(node) => span(node),
+            None => (start, end),
+        };
+        let item = container
+            .as_ref()
+            .filter(|node| node.kind() == LIST_ITEM)
+            .and_then(|node| lists.items.iter().position(|item| item.begin == line_start(text, span(node).0)));
+        let mut structs: Vec<usize> = Vec::new();
+        for (index, candidate) in lists.items.iter().enumerate() {
+            let inside = candidate.begin >= from && candidate.begin < to && Some(index) != item;
+            if inside && candidate.checkbox.is_some() && !structs.contains(&candidate.list) {
+                structs.push(candidate.list);
+            }
+        }
+        let counted: Vec<usize> = match item {
+            Some(item) if structs.contains(&lists.items[item].list) => {
+                if recursive {
+                    lists.descendants(item)
+                } else {
+                    lists.children(item).collect()
+                }
+            }
+            Some(_) => Vec::new(),
+            None => (0..lists.items.len())
+                .filter(|index| structs.contains(&lists.items[*index].list))
+                .filter(|index| recursive || lists.items[*index].parent.is_none())
+                .collect(),
+        };
+        let boxes: Vec<u8> =
+            counted.iter().filter_map(|index| lists.items[*index].checkbox.map(|(_, state)| state)).collect();
+        let checked = boxes.iter().filter(|state| **state == b'X').count();
+        let total = boxes.len();
+        let new = if text[begin..finish].contains('%') {
+            format!("[{}%]", 100 * checked / total.max(1))
+        } else {
+            format!("[{checked}/{total}]")
+        };
+        edits.push((begin, finish, new));
+    }
+    let mut out = text.to_string();
+    for (begin, finish, new) in edits.into_iter().rev() {
+        out.replace_range(begin..finish, &new);
+    }
+    out
+}

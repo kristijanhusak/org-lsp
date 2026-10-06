@@ -120,6 +120,7 @@ The other options are in [configuration.md](configuration.md).
 | `org.priority.up` | Org: Raise the priority |
 | `org.priority.down` | Org: Lower the priority |
 | `org.priority` | Org: Set the priority |
+| `org.checkbox.toggle` | Org: Toggle the checkbox |
 | `org.refile` | Org: Refile the entry |
 | `org.capture` | Org: Capture |
 | `org.capture.finish` | Org: Capture: finish |
