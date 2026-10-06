@@ -405,6 +405,46 @@ describe('Org files', () => {
     await vscode.workspace.fs.delete(file);
   });
 
+  it('cycles folds as Org\'s TAB and S-TAB do', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'cycle.org'));
+    const text = ['* A', 'text', '** B', 'b text', '** C', 'c text', '* D', 'd text', ''].join('\n');
+    await vscode.workspace.fs.writeFile(file, Buffer.from(text));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the folds', async () => {
+      const folds = await vscode.commands.executeCommand('vscode.executeFoldingRangeProvider', file);
+      return folds?.length === 4;
+    });
+    const hidden = () =>
+      [...Array(editor.document.lineCount - 1).keys()].filter(
+        (line) => !editor.visibleRanges.some((range) => range.start.line <= line && line <= range.end.line),
+      );
+    const shows = (what, lines) => until(what, () => JSON.stringify(hidden()) === JSON.stringify(lines));
+    moveTo(0);
+    await vscode.commands.executeCommand('org-lsp.cycle');
+    await shows('FOLDED', [1, 2, 3, 4, 5]);
+    await vscode.commands.executeCommand('org-lsp.cycle');
+    await shows('CHILDREN', [3, 5]);
+    await vscode.commands.executeCommand('org-lsp.cycle');
+    await shows('SUBTREE', []);
+    await vscode.commands.executeCommand('org-lsp.cycle');
+    await shows('FOLDED again', [1, 2, 3, 4, 5]);
+    await vscode.commands.executeCommand('org-lsp.cycleGlobal');
+    await shows('OVERVIEW', [1, 2, 3, 4, 5, 7]);
+    await vscode.commands.executeCommand('org-lsp.cycleGlobal');
+    await shows('CONTENTS', [3, 5, 7]);
+    await vscode.commands.executeCommand('org-lsp.cycleGlobal');
+    await shows('SHOW ALL', []);
+    // Off a fold, Tab is Tab; and Shift+Up off a timestamp or headline selects.
+    moveTo(1);
+    await vscode.commands.executeCommand('org-lsp.cycle', { fallback: ['tab'] });
+    await until('a tab typed', () => editor.document.lineAt(1).text !== 'text');
+    moveTo(3, 2);
+    await vscode.commands.executeCommand('org.shift.up', { fallback: ['cursorUpSelect'] });
+    await until('the selection', () => editor.selection.active.line === 2 && !editor.selection.isEmpty);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+  });
+
   it('changes the part of a timestamp at the cursor', async () => {
     moveTo(6, 19); // on the day of "DEADLINE: <2026-05-20 Wed>"
     await vscode.commands.executeCommand('org.timestamp.up');

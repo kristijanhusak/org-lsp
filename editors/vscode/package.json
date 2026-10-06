@@ -360,6 +360,16 @@
         "category": "Org"
       },
       {
+        "command": "org-lsp.cycle",
+        "title": "Cycle the visibility of the subtree, block or drawer at the cursor",
+        "category": "Org"
+      },
+      {
+        "command": "org-lsp.cycleGlobal",
+        "title": "Cycle the visibility of the whole file",
+        "category": "Org"
+      },
+      {
         "command": "org-lsp.restartServer",
         "title": "Restart Language Server",
         "category": "Org"
@@ -395,6 +405,21 @@
           ],
           "default": "split",
           "markdownDescription": "Where the agenda and capture buffers open."
+        },
+        "org-lsp.keys": {
+          "type": "string",
+          "enum": [
+            "emacs",
+            "vim",
+            "custom"
+          ],
+          "enumDescriptions": [
+            "Emacs's keys: `Ctrl+C Ctrl+T`, `Tab`, `Shift+arrows`, … in Org files, and Org's single letters in the agenda. `Ctrl+C` then waits for a second key in Org files instead of copying (`Ctrl+Insert` still copies).",
+            "The Neovim plugin's keys, for VSCodeVim: those VS Code can bind without taking keys from Vim (`Tab`, `Ctrl+Space`, `Ctrl+A`, …) in Normal mode, and the agenda's. docs/vscode/keys.md shows how to add the leader keys to VSCodeVim.",
+            "No keys: bind the commands yourself in keybindings.json."
+          ],
+          "default": "emacs",
+          "markdownDescription": "Which keys the extension binds in Org files, the agenda, the date prompt and capture buffers."
         },
         "org-lsp.settings": {
           "type": "object",
@@ -2100,279 +2125,686 @@
     ],
     "keybindings": [
       {
-        "command": "org.agenda.later",
-        "key": "f",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.earlier",
-        "key": "b",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.today",
-        "key": ".",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.goto.date",
-        "key": "j",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.day",
-        "key": "d",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.day",
-        "key": "v d",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.week",
-        "key": "w",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.week",
-        "key": "v w",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.fortnight",
-        "key": "v t",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.month",
-        "key": "v m",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.year",
-        "key": "v y",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.redo",
-        "key": "r",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.redo",
-        "key": "g",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.goto",
-        "key": "enter",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.goto",
-        "key": "tab",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.save",
-        "key": "s",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.save",
-        "key": "ctrl+x ctrl+s",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.log",
-        "key": "l",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.log",
-        "key": "v l",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.clockreport",
-        "key": "shift+r",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.clockreport",
-        "key": "v shift+r",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
         "command": "org.clock.in",
-        "key": "shift+i",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "key": "ctrl+c ctrl+x ctrl+i",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
         "command": "org.clock.out",
-        "key": "shift+o",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "key": "ctrl+c ctrl+x ctrl+o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
         "command": "org.clock.cancel",
-        "key": "shift+x",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "key": "ctrl+c ctrl+x ctrl+q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
         "command": "org.clock.goto",
-        "key": "shift+j",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "key": "ctrl+c ctrl+x ctrl+j",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
         "command": "org.todo",
-        "key": "t",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.priority.up",
-        "key": "shift+=",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.priority.up",
-        "key": "shift+up",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.priority.down",
-        "key": "-",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.priority.down",
-        "key": "shift+down",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "key": "ctrl+c ctrl+t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
         "command": "org.priority",
-        "key": ",",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "key": "ctrl+c ,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.checkbox.toggle",
+        "key": "ctrl+c ctrl+c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.checkbox.toggle",
+        "key": "ctrl+space",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && (!vim.active || vim.mode == 'Normal')"
       },
       {
         "command": "org.refile",
         "key": "ctrl+c ctrl+w",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
-        "command": "org.capture.finish",
-        "key": "ctrl+c ctrl+c",
-        "when": "editorTextFocus && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+        "command": "org.timestamp.up",
+        "key": "ctrl+a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && (!vim.active || vim.mode == 'Normal')",
+        "args": {
+          "fallback": [
+            "extension.vim_ctrl+a",
+            "editor.action.selectAll"
+          ]
+        }
       },
       {
-        "command": "org.capture.abort",
-        "key": "ctrl+c ctrl+k",
-        "when": "editorTextFocus && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
-      },
-      {
-        "command": "org.capture.refile",
-        "key": "ctrl+c ctrl+w",
-        "when": "editorTextFocus && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+        "command": "org.timestamp.down",
+        "key": "ctrl+x",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && (!vim.active || vim.mode == 'Normal')",
+        "args": {
+          "fallback": [
+            "extension.vim_ctrl+x",
+            "editor.action.clipboardCutAction"
+          ]
+        }
       },
       {
         "command": "org.date.later",
-        "key": "shift+right",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "key": "shift+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && (!vim.active || vim.mode == 'Normal')",
+        "args": {
+          "fallback": [
+            "cursorUpSelect"
+          ]
+        }
       },
       {
         "command": "org.date.earlier",
+        "key": "shift+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && (!vim.active || vim.mode == 'Normal')",
+        "args": {
+          "fallback": [
+            "cursorDownSelect"
+          ]
+        }
+      },
+      {
+        "command": "org.shift.up",
+        "key": "shift+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "cursorUpSelect"
+          ]
+        }
+      },
+      {
+        "command": "org.shift.down",
+        "key": "shift+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "cursorDownSelect"
+          ]
+        }
+      },
+      {
+        "command": "org.shift.left",
         "key": "shift+left",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "cursorLeftSelect"
+          ]
+        }
+      },
+      {
+        "command": "org.shift.right",
+        "key": "shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "cursorRightSelect"
+          ]
+        }
       },
       {
         "command": "org.schedule",
         "key": "ctrl+c ctrl+s",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
         "command": "org.deadline",
         "key": "ctrl+c ctrl+d",
-        "when": "editorTextFocus && editorLangId == 'org-agenda'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timestamp.insert",
+        "key": "ctrl+c .",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timestamp.insert.inactive",
+        "key": "ctrl+c shift+1",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org-lsp.cycle",
+        "key": "tab",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus",
+        "args": {
+          "fallback": [
+            "tab"
+          ]
+        }
+      },
+      {
+        "command": "org-lsp.cycle",
+        "key": "tab",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && (!vim.active || vim.mode == 'Normal') && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus"
+      },
+      {
+        "command": "org-lsp.cycleGlobal",
+        "key": "shift+tab",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus"
+      },
+      {
+        "command": "org-lsp.cycleGlobal",
+        "key": "shift+tab",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && (!vim.active || vim.mode == 'Normal') && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus"
+      },
+      {
+        "command": "org.agenda.dispatch",
+        "key": "ctrl+c a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.agenda.dispatch",
+        "key": "ctrl+c a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.capture",
+        "key": "ctrl+c c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.capture",
+        "key": "ctrl+c c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.capture.finish",
+        "key": "ctrl+c ctrl+c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+      },
+      {
+        "command": "org.capture.finish",
+        "key": "ctrl+c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/ && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.capture.abort",
+        "key": "ctrl+c ctrl+k",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+      },
+      {
+        "command": "org.capture.refile",
+        "key": "ctrl+c ctrl+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+      },
+      {
+        "command": "org.agenda.later",
+        "key": "f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.later",
+        "key": "f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.earlier",
+        "key": "b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.earlier",
+        "key": "b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.today",
+        "key": ".",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.today",
+        "key": ".",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.goto.date",
+        "key": "j",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.goto.date",
+        "key": "shift+j",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.day",
+        "key": "d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.day",
+        "key": "v d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.day",
+        "key": "v d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.week",
+        "key": "w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.week",
+        "key": "v w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.week",
+        "key": "v w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.fortnight",
+        "key": "v t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.fortnight",
+        "key": "v t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.month",
+        "key": "v m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.month",
+        "key": "v m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.year",
+        "key": "v y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.year",
+        "key": "v y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.redo",
+        "key": "r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.redo",
+        "key": "g",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.redo",
+        "key": "r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.goto",
+        "key": "enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.goto",
+        "key": "tab",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus"
+      },
+      {
+        "command": "org.agenda.goto",
+        "key": "enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.goto",
+        "key": "tab",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus"
+      },
+      {
+        "command": "org.agenda.save",
+        "key": "s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.save",
+        "key": "ctrl+x ctrl+s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.log",
+        "key": "l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.log",
+        "key": "v l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.log",
+        "key": "v l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.clockreport",
+        "key": "shift+r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.clockreport",
+        "key": "v shift+r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.clockreport",
+        "key": "shift+r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.in",
+        "key": "shift+i",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.in",
+        "key": "shift+i",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.out",
+        "key": "shift+o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.out",
+        "key": "shift+o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.cancel",
+        "key": "shift+x",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.cancel",
+        "key": "shift+x",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.goto",
+        "key": "shift+j",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.todo",
+        "key": "t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.todo",
+        "key": "t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.up",
+        "key": "shift+=",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.up",
+        "key": "shift+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.up",
+        "key": "shift+=",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.down",
+        "key": "-",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.down",
+        "key": "shift+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.down",
+        "key": "-",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority",
+        "key": ",",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.refile",
+        "key": "ctrl+c ctrl+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.date.later",
+        "key": "shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.date.later",
+        "key": "shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.date.earlier",
+        "key": "shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.date.earlier",
+        "key": "shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.schedule",
+        "key": "ctrl+c ctrl+s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.deadline",
+        "key": "ctrl+c ctrl+d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.calendar.day.later",
         "key": "shift+right",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.day.later",
+        "key": "l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.day.later",
+        "key": "shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.day.earlier",
         "key": "shift+left",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.day.earlier",
+        "key": "h",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.day.earlier",
+        "key": "shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.week.later",
         "key": "shift+down",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.week.later",
+        "key": "j",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.week.later",
+        "key": "shift+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.week.earlier",
         "key": "shift+up",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.week.earlier",
+        "key": "k",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.week.earlier",
+        "key": "shift+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.month.later",
         "key": "alt+shift+right",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.month.later",
+        "key": "alt+shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.month.earlier",
         "key": "alt+shift+left",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.month.earlier",
+        "key": "alt+shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.year.later",
         "key": "alt+shift+down",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.year.later",
+        "key": "alt+shift+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.year.earlier",
         "key": "alt+shift+up",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.year.earlier",
+        "key": "alt+shift+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.scroll.later",
         "key": "shift+.",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.scroll.later",
+        "key": "shift+.",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.scroll.earlier",
         "key": "shift+,",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.scroll.earlier",
+        "key": "shift+,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.today",
         "key": ".",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.today",
+        "key": ".",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.select",
         "key": "enter",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.select",
+        "key": "enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.type",
         "key": "i",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.type",
+        "key": "i",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.time",
         "key": "t",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.time",
+        "key": "t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.cancel",
         "key": "q",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.cancel",
         "key": "ctrl+g",
-        "when": "editorTextFocus && editorLangId == 'org-date'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.cancel",
+        "key": "q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.cancel",
+        "key": "escape",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
       }
     ]
   },

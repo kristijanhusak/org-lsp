@@ -1,5 +1,5 @@
 // Write the parts of package.json that mirror the server: its commands and
-// their keys, the semantic tokens and how themes should color them, the
+// their keys (with the extension's own), the semantic tokens and how themes should color them, the
 // agenda's document type, and the server's options. They come from the server's manifest, so nothing
 // about Org is listed by hand in this extension.
 //
@@ -68,24 +68,116 @@ const commands = manifest.commands.map((command) => ({
   category: 'Org',
 }));
 
-// Keys are bound in the agenda, the date prompt and capture buffers only.
-// The first two are read-only, so plain letters are free there; in Org
-// files Emacs's keys would take over Ctrl+C and Shift+arrows. A capture
-// buffer is short-lived, and `C-c C-c` is how it is finished.
+/**
+ * A Vim key such as `<Leader>oa`, `cit`, `<C-Space>` or `<S-Right>` in
+ * Emacs's notation, or null when VS Code cannot bind it (the leader).
+ */
+function fromVim(vim) {
+  const named = { CR: 'RET', Tab: 'TAB', Esc: 'ESC', Space: 'SPC', BS: 'DEL' };
+  const strokes = [];
+  for (const [, special, plain] of vim.matchAll(/<([^>]+)>|(.)/g)) {
+    if (plain !== undefined) {
+      strokes.push(plain);
+      continue;
+    }
+    const parts = special.split('-');
+    const base = parts.pop();
+    if (base === 'Leader') {
+      return null;
+    }
+    const modifiers = parts.map((part) => (part === 'A' ? 'M' : part)).map((part) => `${part}-`).join('');
+    strokes.push(modifiers + (named[base] ?? (base.length > 1 ? `<${base.toLowerCase()}>` : base.toLowerCase())));
+  }
+  return strokes.join(' ');
+}
+
+// The setting `org-lsp.keys` picks the keys: Emacs's (the default), the
+// Neovim plugin's for VSCodeVim, or none.
+const PRESET = 'org-lsp.keys';
+const preset = (name) => `config.${PRESET} == '${name}'`;
 const scopeWhen = {
+  org: `editorLangId == '${ORG}'`,
   agenda: `editorLangId == '${AGENDA}'`,
   calendar: `editorLangId == '${DATE}'`,
   capture: `editorLangId == '${ORG}' && resourceFilename =~ /^${manifest.capture.prefix}/`,
 };
-const keybindings = manifest.commands.flatMap((command) =>
-  command.keys
-    .filter((binding) => binding.preset === 'emacs' && scopeWhen[binding.in])
-    .map((binding) => ({
-      command: command.command,
-      key: key(binding.key),
-      when: `editorTextFocus && ${scopeWhen[binding.in]}`,
-    })),
-);
+// Keys for the whole editor are bound where `C-c` is Org's already.
+const globalScopes = ['org', 'agenda'];
+// Keys that keep their own meaning where the command does not apply: the
+// command VS Code (or VSCodeVim) runs for them otherwise, tried in turn.
+const fallbacks = {
+  'shift+up': ['cursorUpSelect'],
+  'shift+down': ['cursorDownSelect'],
+  'shift+left': ['cursorLeftSelect'],
+  'shift+right': ['cursorRightSelect'],
+  'ctrl+a': ['extension.vim_ctrl+a', 'editor.action.selectAll'],
+  'ctrl+x': ['extension.vim_ctrl+x', 'editor.action.clipboardCutAction'],
+  tab: ['tab'],
+};
+// In Org files, VSCodeVim's keys apply in Normal mode only, and keys that
+// start with a plain letter would take it from Vim (`c` of `cit`).
+const vimNormal = "(!vim.active || vim.mode == 'Normal')";
+// Tab does not cycle where VS Code needs it.
+const tabFree = '!suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus';
+
+/** The commands of the extension itself, with their keys. */
+const ownCommands = [
+  {
+    command: 'org-lsp.cycle',
+    title: 'Cycle the visibility of the subtree, block or drawer at the cursor',
+    keys: [
+      { key: 'TAB', in: 'org', preset: 'emacs', native: true },
+      { key: '<Tab>', in: 'org', preset: 'vim' },
+    ],
+  },
+  {
+    command: 'org-lsp.cycleGlobal',
+    title: 'Cycle the visibility of the whole file',
+    keys: [
+      { key: 'S-TAB', in: 'org', preset: 'emacs' },
+      { key: '<S-Tab>', in: 'org', preset: 'vim' },
+    ],
+  },
+];
+
+const ORDER = ['org', 'global', 'capture', 'agenda', 'calendar'];
+// Later bindings win: a capture buffer's `C-c C-c` over an Org file's.
+const keybindings = [...manifest.commands, ...ownCommands]
+  .flatMap((command) => command.keys.map((binding) => ({ command: command.command, ...binding })))
+  .sort((a, b) => ORDER.indexOf(a.in) - ORDER.indexOf(b.in))
+  .flatMap((binding) => {
+    const emacs = binding.preset === 'emacs' ? binding.key : fromVim(binding.key);
+    if (emacs === null) {
+      return [];
+    }
+    const vsKey = key(emacs);
+    const inText = binding.in === 'org' || binding.in === 'capture' || binding.in === 'global';
+    if (binding.preset === 'vim' && inText && !/[+]/.test(vsKey.split(' ')[0]) && vsKey.split(' ')[0].length === 1) {
+      return [];
+    }
+    const conditions = [];
+    if (binding.preset === 'vim' && (binding.in === 'org' || binding.in === 'capture')) {
+      conditions.push(vimNormal);
+    }
+    if (vsKey === 'tab' || vsKey === 'shift+tab') {
+      conditions.push(tabFree);
+    }
+    const scopes = binding.in === 'global' ? globalScopes : [binding.in];
+    return scopes.map((scope) => {
+      const entry = {
+        command: binding.command,
+        key: vsKey,
+        when: ['editorTextFocus', preset(binding.preset), scopeWhen[scope], ...conditions].join(' && '),
+      };
+      if (binding.native) {
+        if (!fallbacks[vsKey]) {
+          throw new Error(`No fallback for the key \`${vsKey}\` of ${binding.command}`);
+        }
+        entry.args = { fallback: fallbacks[vsKey] };
+      }
+      return entry;
+    });
+  });
 
 const scopes = Object.fromEntries(
   manifest.highlights.filter((look) => look.textmate.length > 0).map((look) => [look.token, look.textmate]),
@@ -107,11 +199,15 @@ contributes.languages = [
   { id: AGENDA, aliases: ['Org Agenda'], extensions: [agendaExtension], filenames: [agendaName] },
   { id: DATE, aliases: ['Org Date Prompt'], filenames: [dateName] },
 ];
+const ownIds = ownCommands.map((command) => command.command);
 contributes.commands = [
   ...commands,
+  ...ownCommands.map((command) => ({ command: command.command, title: command.title, category: 'Org' })),
   ...own(
     contributes.commands,
-    contributes.commands.filter((command) => command.command.startsWith('org.')).map((command) => command.command),
+    contributes.commands
+      .filter((command) => command.command.startsWith('org.') || ownIds.includes(command.command))
+      .map((command) => command.command),
     'command',
   ),
 ];

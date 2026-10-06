@@ -57,21 +57,7 @@ others), as close to Emacs Org mode as it can get.
 Asked for on 2026-10-06 and not done yet, in this order (two items per
 PR, as agreed):
 
-1. **Fold cycling in VS Code.** Neovim cycles folds with `<Tab>` /
-   `<S-Tab>` (`lua/org-lsp/folds.lua`); VS Code has no command for it.
-   Add commands that do what `org-cycle` and `org-global-cycle` do
-   (folded, children, subtree; overview, contents, show all), bound in
-   Org files, and listed with the other commands. Better still, move
-   cycling into the server (milestone 6) so every editor gets it.
-2. **Key presets for VS Code and the editors other than Vim and
-   Neovim.** Org files get Emacs's keys by default (today VS Code has
-   keys only in the agenda, calendar and capture buffers). A setting
-   picks the preset: `emacs` (default), `vim` (the keys the Neovim plugin
-   uses, for VSCodeVim users), or `custom` (no keys bound; the user binds
-   the commands). The manifest already carries both key sets (`emacs`
-   and `vim` in `commands.rs`); the VS Code `package.json` generator
-   turns them into keybindings with a `when` on the setting.
-3. **Shims for Zed, Sublime Text and Vim.**
+1. **Shims for Zed, Sublime Text and Vim.**
    - Vim: one Vimscript plugin with the logic the Neovim plugin has, on
      top of whichever LSP client is installed, with small adapters for
      yegappan/lsp, vim-lsp, coc.nvim and ALE (open question 4).
@@ -80,13 +66,19 @@ PR, as agreed):
      agenda goes through the file the server writes.
    - Sublime Text: an LSP-package configuration (sublimelsp/LSP) plus
      key bindings from the manifest, with the same preset choice as
-     item 2.
-4. **Formatting** (milestone 13): document formatting that aligns
+     VS Code's `org-lsp.keys` (emacs, vim, custom).
+2. **Formatting** (milestone 13): document formatting that aligns
    tables and tags (`org-table-align`, `org-align-tags`), on top of the
    range formatting that indents today.
 
 Done from that list in #24: nested emphasis highlighting, checkbox
-cookies. Concealing emphasis markers already existed
+cookies. In #26: fold cycling in VS Code (`org-lsp.cycle`,
+`org-lsp.cycleGlobal` on `Tab` / `Shift+Tab`, in the extension over the
+server's folding ranges, since only the editor knows which folds are
+closed), and key presets (`org-lsp.keys`: `emacs` binds Emacs's keys in
+Org files too, `vim` the Neovim plugin's for VSCodeVim, `custom` none;
+keys with their own meaning fall back to it where the server says the
+command does not apply). Concealing emphasis markers already existed
 (`hideEmphasisMarkers`, `org-hide-emphasis-markers`, off by default).
 
 Older leftovers, any time:
