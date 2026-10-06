@@ -7,6 +7,7 @@
 pub mod agenda;
 pub mod calendar;
 pub mod capture;
+pub mod checkbox;
 pub mod clock;
 pub mod date;
 pub mod edit;

@@ -185,7 +185,8 @@ fn announces_capabilities() {
             "org.date.earlier",
             "org.clock.in",
             "org.clock.out",
-            "org.clock.cancel"
+            "org.clock.cancel",
+            "org.checkbox.toggle"
         ])
     );
     let legend = &capabilities["semanticTokensProvider"]["legend"];
@@ -581,5 +582,20 @@ fn sends_virtual_indentation() {
     });
     let sent = client.notification("org-lsp/virtualIndent");
     assert_eq!((sent["version"].clone(), sent["lines"].clone()), (json!(2), json!([])));
+    client.shutdown();
+}
+
+/// `org-toggle-checkbox` as a code action: the box, and the cookie that
+/// counts it.
+#[test]
+fn toggles_checkboxes() {
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri(), "* Groceries [0/2]\n- [ ] milk\n- [ ] eggs\n");
+    let toggle = client.code_actions(&uri(), Position::new(1, 3), "org.checkbox.toggle");
+    let changed: Vec<String> = edits(&toggle[0]).into_iter().map(|edit| edit.new_text).collect();
+    assert_eq!(changed, ["1/2]\n- [X"]);
+    // Nothing to toggle on text.
+    client.open(&uri(), "* a\ntext\n");
+    assert!(client.code_actions(&uri(), Position::new(1, 0), "org.checkbox.toggle").is_empty());
     client.shutdown();
 }

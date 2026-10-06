@@ -323,7 +323,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 ### 8. Lists and checkboxes
 
-- Toggle checkboxes with their statistics cookies, cycle bullets,
+- Done: toggle checkboxes (`org-toggle-checkbox`, on an item or a
+  headline), parent boxes from their children, and the cookies that count
+  checkboxes (`org-update-checkbox-count`), checked against Emacs in
+  `tests/todo`. Cookies that count TODO entries were done with `org-todo`.
+- Cycle bullets,
   renumber, indent and outdent, move items. This also completes the
   shifted cursor keys.
 

@@ -31,6 +31,7 @@ pub const KINDS: &[&str] = &[
     commands::CLOCK_IN,
     commands::CLOCK_OUT,
     commands::CLOCK_CANCEL,
+    commands::CHECKBOX_TOGGLE,
 ];
 
 /// The command of this name as it runs in an Org file.
@@ -48,6 +49,7 @@ pub fn command(id: &str) -> Option<Command> {
         SHIFT_DOWN => Command::Shift(Direction::Down),
         SHIFT_LEFT => Command::Shift(Direction::Left),
         SHIFT_RIGHT => Command::Shift(Direction::Right),
+        commands::CHECKBOX_TOGGLE => Command::Checkbox,
         _ => return None,
     })
 }

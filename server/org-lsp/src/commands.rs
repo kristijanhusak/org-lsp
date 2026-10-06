@@ -104,6 +104,7 @@ pub const TODO_PREVIOUS: &str = "org.todo.previous";
 pub const PRIORITY_UP: &str = "org.priority.up";
 pub const PRIORITY_DOWN: &str = "org.priority.down";
 pub const PRIORITY: &str = "org.priority";
+pub const CHECKBOX_TOGGLE: &str = "org.checkbox.toggle";
 pub const REFILE: &str = "org.refile";
 pub const CAPTURE: &str = "org.capture";
 pub const CAPTURE_FINISH: &str = "org.capture.finish";
@@ -263,6 +264,13 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>o,"), key(Agenda, "<Leader>o,")],
         input: Some(Input { kind: "priority", prompt: "Priority" }),
         ..edit(PRIORITY, "Set the priority")
+    },
+    // `org-toggle-checkbox`: on an item, or on a headline for the items
+    // below it; the cookies that count checkboxes follow.
+    Command {
+        emacs: &[key(Org, "C-c C-c")],
+        vim: &[key(Org, "<C-Space>")],
+        ..edit(CHECKBOX_TOGGLE, "Toggle the checkbox")
     },
     Command {
         emacs: &[key(Org, "C-c C-w"), key(Agenda, "C-c C-w")],

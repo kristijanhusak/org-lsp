@@ -190,6 +190,11 @@
         "category": "Org"
       },
       {
+        "command": "org.checkbox.toggle",
+        "title": "Toggle the checkbox",
+        "category": "Org"
+      },
+      {
         "command": "org.refile",
         "title": "Refile the entry",
         "category": "Org"

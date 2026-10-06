@@ -395,10 +395,13 @@ pub fn encode(
             if piece_start >= piece_end {
                 continue;
             }
+            // A token that goes on to another line leaves out the blanks
+            // that indent the line or end it; blanks within the line, as
+            // between the words of emphasis, keep its style.
             let piece = &text[piece_start..piece_end];
-            let trimmed = piece.trim_start();
+            let trimmed = if piece_start == line_start { piece.trim_start() } else { piece };
             let piece_start = piece_start + (piece.len() - trimmed.len());
-            let trimmed = trimmed.trim_end();
+            let trimmed = if piece_end == line_end { trimmed.trim_end() } else { trimmed };
             if trimmed.is_empty() {
                 continue;
             }
@@ -500,7 +503,7 @@ mod tests {
         let emphasis = Conceal { links: false, emphasis: true };
         expect![[r#"
             0:0 "*" text +bold +hidden
-            0:1 "b" text +bold
+            0:1 "b " text +bold
             0:3 "/" text +bold +italic +hidden
             0:4 "i" text +bold +italic
             0:5 "/" text +bold +italic +hidden
@@ -518,7 +521,7 @@ mod tests {
             0:21 "s" text +strikethrough
             0:22 "+" text +strikethrough +hidden
             1:0 "*" stars +level1
-            1:2 "A" headline +level1
+            1:2 "A " headline +level1
             1:4 "*" headline +level1 +bold +hidden
             1:5 "b" headline +level1 +bold
             1:6 "*" headline +level1 +bold +hidden
@@ -533,17 +536,18 @@ mod tests {
         check(
             "** TODO [#A] Write *the* [[a][parser]] :work:rust:\n*** DONE x\n",
             expect![[r#"
-            0:0 "**" stars +level2
-            0:3 "TODO" todoKeyword
-            0:8 "[#A]" priority
-            0:13 "Write" headline +level2
-            0:19 "*the*" headline +level2 +bold
-            0:25 "[[a][parser]]" link
-            0:39 ":work:rust:" tag
-            1:0 "***" stars +level3
-            1:4 "DONE" todoKeyword +done
-            1:9 "x" headline +level3
-        "#]],
+                0:0 "**" stars +level2
+                0:3 "TODO" todoKeyword
+                0:8 "[#A]" priority
+                0:13 "Write " headline +level2
+                0:19 "*the*" headline +level2 +bold
+                0:24 " " headline +level2
+                0:25 "[[a][parser]]" link
+                0:39 ":work:rust:" tag
+                1:0 "***" stars +level3
+                1:4 "DONE" todoKeyword +done
+                1:9 "x" headline +level3
+            "#]],
         );
     }
 
@@ -552,18 +556,18 @@ mod tests {
         check(
             "a *b /c _d_ c/ b* +e+ =f= ~g~ *~h~*\n",
             expect![[r#"
-            0:2 "*b" text +bold
-            0:5 "/c" text +bold +italic
-            0:8 "_d_" text +bold +italic +underline
-            0:12 "c/" text +bold +italic
-            0:15 "b*" text +bold
-            0:18 "+e+" text +strikethrough
-            0:22 "=f=" verbatim
-            0:26 "~g~" code
-            0:30 "*" text +bold
-            0:31 "~h~" code
-            0:34 "*" text +bold
-        "#]],
+                0:2 "*b " text +bold
+                0:5 "/c " text +bold +italic
+                0:8 "_d_" text +bold +italic +underline
+                0:11 " c/" text +bold +italic
+                0:14 " b*" text +bold
+                0:18 "+e+" text +strikethrough
+                0:22 "=f=" verbatim
+                0:26 "~g~" code
+                0:30 "*" text +bold
+                0:31 "~h~" code
+                0:34 "*" text +bold
+            "#]],
         );
     }
 
