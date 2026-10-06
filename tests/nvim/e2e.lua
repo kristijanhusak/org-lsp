@@ -656,6 +656,26 @@ plugin.read_key = read_key
 eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { 'Intro', '* TODO New' }, 'the subtree said yes to went')
 eq(asked_about, { 'Move subtree to archive? (no open TODO items)' }, 'one question, for the one subtree left')
 
+-- 25. LSP range formatting (`textDocument/rangeFormatting`), as
+-- `vim.lsp.buf.format()` asks for it with a range or in Visual mode: the
+-- tables with a line in the range are aligned and its headlines' tags go
+-- to their column; what is outside the range stays.
+local ranged = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A :x:', '| a | bbb |', '|cc|d|', '* B :y:', '|e|f|' }, ranged)
+vim.cmd.edit(ranged)
+wait('the server to attach to the file to format', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.lsp.buf.format({ range = { start = { 2, 0 }, ['end'] = { 3, 0 } } })
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* A :x:', '| a  | bbb |', '| cc | d   |', '* B :y:', '|e|f|' },
+  'the table in the range aligned, the rest as it was')
+vim.api.nvim_win_set_cursor(0, { 4, 0 })
+vim.cmd('normal! Vj')
+vim.lsp.buf.format()
+vim.cmd('normal! \27')
+eq(vim.api.nvim_buf_get_lines(0, 3, 5, false), { tagged('* B', ':y:'), '| e | f |' }, 'the selected lines formatted')
+eq(line(1), '* A :x:', 'the headline before the selection as it was')
+
 -- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'

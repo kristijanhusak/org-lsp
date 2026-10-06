@@ -18,7 +18,7 @@ the agenda document and the semantic tokens.
 | `textDocument/completion` | In a headline: TODO keywords for the first word after the stars, and the file's tags after a `:` in the headline's tags (`pcomplete`). `:` triggers it. |
 | `workspace/textDocumentContent` | The text of the agenda. See [The agenda document](#the-agenda-document). |
 | `textDocument/onTypeFormatting` | After a line break: `org-indent-line` on the new line (Org's `RET`), following `adaptIndentation`. No edit when the line is indented right, or when Org leaves such a line as it is (headlines, the first line of a list item, the code of a source block). |
-| `textDocument/rangeFormatting` | `org-indent-region` over the lines of the range: text, drawers and blocks re-indented, node properties aligned (`org-property-format`). |
+| `textDocument/rangeFormatting` | `org-indent-region` over the lines of the range (text, drawers and blocks re-indented, node properties aligned as `org-property-format` has them), then, as `textDocument/formatting` does for the whole file, every table with a line in the range aligned whole (`org-table-align`) and the tags of the headlines in the range put in their column (`org-align-tags`). A range that ends at the start of a line leaves that line out. One edit per changed line. |
 
 The server sends these requests to the client:
 
