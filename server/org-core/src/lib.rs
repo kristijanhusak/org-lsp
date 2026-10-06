@@ -5,6 +5,7 @@
 //! from its parents, what the agenda shows. Nothing here knows about LSP.
 
 pub mod agenda;
+pub mod archive;
 pub mod calendar;
 pub mod capture;
 pub mod checkbox;
@@ -13,6 +14,7 @@ pub mod date;
 pub mod edit;
 pub mod format;
 pub mod indent;
+pub mod newline;
 pub mod outline;
 pub mod planning;
 pub mod priority;

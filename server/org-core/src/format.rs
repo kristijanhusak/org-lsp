@@ -24,6 +24,17 @@ impl Default for Settings {
 /// The lines that change, as `(line number, new text)`. Formatting never
 /// adds or removes lines.
 pub fn format(text: &str, keywords: &TodoKeywords, settings: &Settings) -> Vec<(usize, String)> {
+    format_lines(text, keywords, settings, 0..=usize::MAX)
+}
+
+/// `format` for the lines `lines`: the tables with a line among them, whole,
+/// and the tags of the headlines among them.
+pub fn format_lines(
+    text: &str,
+    keywords: &TodoKeywords,
+    settings: &Settings,
+    lines_asked: std::ops::RangeInclusive<usize>,
+) -> Vec<(usize, String)> {
     let lines: Vec<&str> = text.split('\n').collect();
     let mut changed: Vec<(usize, String)> = Vec::new();
     let root = org_syntax::parse(text, keywords).syntax();
@@ -43,6 +54,9 @@ pub fn format(text: &str, keywords: &TodoKeywords, settings: &Settings) -> Vec<(
             last += 1;
         }
         done = last + 1;
+        if last < *lines_asked.start() || first > *lines_asked.end() {
+            continue;
+        }
         for (offset, new) in align_table(&lines[first..=last]).into_iter().enumerate() {
             if new != lines[first + offset] {
                 changed.push((first + offset, new));
@@ -50,7 +64,7 @@ pub fn format(text: &str, keywords: &TodoKeywords, settings: &Settings) -> Vec<(
         }
     }
     for (number, line) in lines.iter().enumerate() {
-        if headline_level(line).is_some() {
+        if lines_asked.contains(&number) && headline_level(line).is_some() {
             if let Some((blanks, tags, padding)) = tags_padding(line, settings.tags_column) {
                 changed.push((number, format!("{}{}{}", &line[..blanks], padding, &line[tags..])));
             }
@@ -141,7 +155,7 @@ fn align_field(field: &str, width: usize, align: char) -> String {
 }
 
 /// `org-table-align`: the lines of a table, aligned.
-fn align_table(lines: &[&str]) -> Vec<String> {
+pub(crate) fn align_table(lines: &[&str]) -> Vec<String> {
     let table: Vec<Row> = lines.iter().map(|line| row(line)).collect();
     let rows: Vec<&Vec<String>> = table
         .iter()

@@ -17,6 +17,7 @@ All commands are in the Command Palette under **Org**.
 | --- | --- |
 | `Org: Cycle the visibility of the subtree, block or drawer at the cursor` | Org's `TAB` (`Tab`): folded, its children, all of it |
 | `Org: Cycle the visibility of the whole file` | Org's `S-TAB` (`Shift+Tab`): the top level, every headline, everything |
+| `Org: Show the keys` | Lists the keys bound in the editor at hand, with the preset `org-lsp.keys` picks; picking one runs it |
 | `Org: Agenda for the current week or day` | Opens the agenda |
 | `Org: List of all TODO entries` | Opens the TODO list |
 | `Org: Agenda commands` | Asks which of the two to open |

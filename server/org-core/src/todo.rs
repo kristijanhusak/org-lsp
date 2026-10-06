@@ -453,7 +453,7 @@ impl<'a> Editor<'a> {
     /// With `recursive` in the `COOKIE_DATA` property the count covers the
     /// whole subtree, and the ancestors up to the entry that sets the
     /// property are updated as well.
-    fn update_parent_statistics(&mut self) {
+    pub(crate) fn update_parent_statistics(&mut self) {
         let has_word =
             |data: &str, word: &str| data.to_lowercase().split(|c: char| !c.is_alphanumeric()).any(|w| w == word);
         let Some(level) = headline_level(self.line(self.heading)) else { return };
@@ -652,6 +652,12 @@ impl<'a> Editor<'a> {
     /// `org-entry-put` for `LAST_REPEAT`.
     fn put_last_repeat(&mut self) {
         let value = format_timestamp(self.now, true, true, "");
+        self.put_property("LAST_REPEAT", &value);
+    }
+
+    /// `org-entry-put`: the property `key` of the entry set to `value`, in
+    /// the property drawer, which is made when there is none.
+    pub(crate) fn put_property(&mut self, key: &str, value: &str) {
         let (drawer, end) = match self.property_drawer() {
             Some(found) => found,
             None => {
@@ -669,20 +675,21 @@ impl<'a> Editor<'a> {
         };
         // Replace an existing value, or add a line before `:END:`; then
         // `org-indent-line` on it.
+        let key = format!(":{key}:");
         let mut at = self.next_line(drawer);
         while at < end {
             let text = self.line(at).trim_start_matches([' ', '\t']);
-            let is_it = text.get(..13).is_some_and(|key| key.eq_ignore_ascii_case(":LAST_REPEAT:"))
-                && text[13..].chars().next().is_none_or(|c| c == ' ' || c == '\t');
+            let is_it = text.get(..key.len()).is_some_and(|found| found.eq_ignore_ascii_case(&key))
+                && text[key.len()..].chars().next().is_none_or(|c| c == ' ' || c == '\t');
             if is_it {
                 let line_end = self.line_end(at);
-                self.replace(at, line_end, &format!(":LAST_REPEAT: {value}"));
+                self.replace(at, line_end, &format!("{key} {value}"));
                 self.indent_line(at);
                 return;
             }
             at = self.next_line(at);
         }
-        self.replace(end, end, &format!(":LAST_REPEAT: {value}\n"));
+        self.replace(end, end, &format!("{key} {value}\n"));
         self.indent_line(end);
     }
 

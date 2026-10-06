@@ -49,7 +49,12 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+T` | `org.todo` | Change the TODO state |
 | `Ctrl+C ,` | `org.priority` | Set the priority |
 | `Ctrl+C Ctrl+C` | `org.checkbox.toggle` | Toggle the checkbox |
+| `Enter`¹ | `org.return` | New line, as Org's RET makes it |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
+| `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Shift+4` | `org.archive.subtree` | Archive the subtree |
+| `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
+| `Ctrl+C Ctrl+X a` | `org.archive.tag` | Toggle the ARCHIVE tag |
+| `Ctrl+C Ctrl+X Ctrl+A` | `org.archive.default` | Archive with the default command |
 | `Shift+Up`¹ | `org.shift.up` | Increase the timestamp part or raise the priority |
 | `Shift+Down`¹ | `org.shift.down` | Decrease the timestamp part or lower the priority |
 | `Shift+Left`¹ | `org.shift.left` | Move the date a day earlier or cycle the TODO state backward |
@@ -100,6 +105,11 @@ The other options are in [configuration.md](configuration.md).
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
+| `Shift+4`, `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Shift+4` | `org.archive.subtree` | Archive the subtree |
+| `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
+| `Ctrl+C Ctrl+X a` | `org.archive.tag` | Toggle the ARCHIVE tag |
+| `Ctrl+C Ctrl+X Ctrl+A` | `org.archive.default` | Archive with the default command |
+| `a` | `org.archive.confirm` | Archive with the default command, once confirmed |
 | `Shift+Right` | `org.date.later` | Move the date one day later |
 | `Shift+Left` | `org.date.earlier` | Move the date one day earlier |
 | `Ctrl+C Ctrl+S` | `org.schedule` | Schedule the entry |
@@ -132,6 +142,7 @@ The other options are in [configuration.md](configuration.md).
 | Keys | Command | What it does |
 | --- | --- | --- |
 | `Ctrl+Space` | `org.checkbox.toggle` | Toggle the checkbox |
+| `Enter`¹ | `org.return` | New line, as Org's RET makes it |
 | `Ctrl+A`¹ | `org.timestamp.up` | Increase the part of the timestamp at the cursor |
 | `Ctrl+X`¹ | `org.timestamp.down` | Decrease the part of the timestamp at the cursor |
 | `Shift+Up`¹ | `org.date.later` | Move the date one day later |
@@ -168,6 +179,8 @@ The other options are in [configuration.md](configuration.md).
 | `t` | `org.todo` | Change the TODO state |
 | `+` | `org.priority.up` | Raise the priority |
 | `-` | `org.priority.down` | Lower the priority |
+| `Shift+4` | `org.archive.subtree` | Archive the subtree |
+| `a` | `org.archive.confirm` | Archive with the default command, once confirmed |
 | `Shift+Right` | `org.date.later` | Move the date one day later |
 | `Shift+Left` | `org.date.earlier` | Move the date one day earlier |
 
@@ -193,7 +206,8 @@ The other options are in [configuration.md](configuration.md).
 
 ¹ Where the command does not apply, the key does what it does without
 the extension: `Shift+Up` off a timestamp or headline selects, `Tab` off
-a headline, block or drawer indents.
+a headline, block or drawer indents, `Enter` in a source block's code
+is VS Code's own.
 
 #### The leader keys, for VSCodeVim
 
@@ -210,6 +224,9 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "x", "j"], "commands": ["org.clock.goto"] },
   { "before": ["<leader>", "o", ","], "commands": ["org.priority"] },
   { "before": ["<leader>", "o", "r"], "commands": ["org.refile"] },
+  { "before": ["<leader>", "o", "$"], "commands": ["org.archive.subtree"] },
+  { "before": ["<leader>", "o", "x", "A"], "commands": ["org.archive.sibling"] },
+  { "before": ["<leader>", "o", "A"], "commands": ["org.archive.tag"] },
   { "before": ["<leader>", "o", "c"], "commands": ["org.capture"] },
   { "before": ["<leader>", "o", "i", "s"], "commands": ["org.schedule"] },
   { "before": ["<leader>", "o", "i", "d"], "commands": ["org.deadline"] },
@@ -250,7 +267,15 @@ every file; outside Org files the commands say they do not apply):
 | `org.priority.down` | Org: Lower the priority |
 | `org.priority` | Org: Set the priority |
 | `org.checkbox.toggle` | Org: Toggle the checkbox |
+| `org.return` | Org: New line, as Org's RET makes it |
 | `org.refile` | Org: Refile the entry |
+| `org.archive.subtree` | Org: Archive the subtree |
+| `org.archive.sibling` | Org: Archive the subtree under its Archive sibling |
+| `org.archive.tag` | Org: Toggle the ARCHIVE tag |
+| `org.archive.default` | Org: Archive with the default command |
+| `org.archive.confirm` | Org: Archive with the default command, once confirmed |
+| `org.archive.done` | Org: Archive the subtrees without open TODO items |
+| `org.archive.tag.done` | Org: Tag the subtrees without open TODO items as archived |
 | `org.capture` | Org: Capture |
 | `org.capture.finish` | Org: Capture: finish |
 | `org.capture.abort` | Org: Capture: abort |
@@ -284,6 +309,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.calendar.time` | Org: Date prompt: pick the time, or go back to the day |
 | `org.calendar.cancel` | Org: Date prompt: cancel |
 | `org-lsp.cycle` | Org: Cycle the visibility of the subtree, block or drawer at the cursor |
+| `org-lsp.help` | Org: Show the keys |
 | `org-lsp.cycleGlobal` | Org: Cycle the visibility of the whole file |
 
 <!-- END generated -->

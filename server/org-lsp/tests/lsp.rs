@@ -327,9 +327,16 @@ fn todo_cycle_round_trip() {
             + client.code_actions(&uri(), cursor, "org.priority").len(),
         4
     );
-    // And clocking in, with no clock running.
-    assert_eq!(client.code_actions(&uri(), cursor, "org").len(), 5);
+    // And clocking in, with no clock running, and the three ways to
+    // archive.
+    assert_eq!(client.code_actions(&uri(), cursor, "org").len(), 8);
     assert_eq!(client.code_actions(&uri(), cursor, "org.clock")[0].title, "Clock in");
+    let archive: Vec<String> =
+        client.code_actions(&uri(), cursor, "org.archive").iter().map(|action| action.title.clone()).collect();
+    assert_eq!(
+        archive,
+        ["Archive the subtree", "Archive the subtree under its Archive sibling", "Toggle the ARCHIVE tag"]
+    );
     // Nothing applies before the first headline or for unrelated kinds.
     assert!(client.code_actions(&uri(), Position::new(0, 3), "org").is_empty());
     assert!(client.code_actions(&uri(), cursor, "quickfix").is_empty());
@@ -567,7 +574,31 @@ fn indents_new_lines_and_ranges() {
         })
         .unwrap();
     let changed: Vec<(u32, &str)> = edits.iter().map(|edit| (edit.range.start.line, edit.new_text.as_str())).collect();
-    assert_eq!(changed, [(1, "   "), (2, "   :ID:       x"), (3, "   "), (4, "   "), (6, "   ")]);
+    assert_eq!(
+        changed,
+        [(1, "   :PROPERTIES:"), (2, "   :ID:       x"), (3, "   :END:"), (4, "   - item"), (6, "   Text")]
+    );
+
+    // A table with a line in the range is aligned whole, and the tags of
+    // the headlines in it go to their column; the rest stays.
+    client.notify::<lsp_types::notification::DidChangeTextDocument>(lsp_types::DidChangeTextDocumentParams {
+        text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri(), version: 3 },
+        content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+            range: None,
+            range_length: None,
+            text: "* A :x:\n|a|bb|\n|ccc|d|\n* B :y:\n".to_string(),
+        }],
+    });
+    let edits = client
+        .request::<lsp_types::request::RangeFormatting>(lsp_types::DocumentRangeFormattingParams {
+            text_document: identifier(),
+            range: Range::new(Position::new(2, 0), Position::new(3, 0)),
+            options: lsp_types::FormattingOptions { tab_size: 8, insert_spaces: true, ..Default::default() },
+            work_done_progress_params: Default::default(),
+        })
+        .unwrap();
+    let changed: Vec<(u32, &str)> = edits.iter().map(|edit| (edit.range.start.line, edit.new_text.as_str())).collect();
+    assert_eq!(changed, [(1, "| a   | bb |"), (2, "| ccc | d  |")]);
     client.shutdown();
 }
 
@@ -609,6 +640,32 @@ fn sends_virtual_indentation() {
 
 /// `org-toggle-checkbox` as a code action: the box, and the cookie that
 /// counts it.
+/// RET (`org-return`): the result carries the edit and where the cursor
+/// goes, for the editor to apply as the key is typed; in a source block's
+/// code the command does not apply, and the editor's own RET does.
+#[test]
+fn returns_as_org_does() {
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri(), "* TODO Write the report :work:\n#+begin_src sh\necho\n#+end_src\n");
+    let run = |client: &mut Client, line: u32, character: u32| {
+        let context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        client.raw_request("workspace/executeCommand", json!({ "command": "org.return", "arguments": [context] }))
+    };
+    let result = run(&mut client, 0, 12).response_result.expect("a result");
+    let edit: TextEdit = serde_json::from_value(result["edits"][0].clone()).unwrap();
+    // The title split, the tags aligned again, the rest on a new line.
+    let line = "* TODO Write the report :work:";
+    let (start, end) = (edit.range.start.character as usize, edit.range.end.character as usize);
+    assert_eq!((edit.range.start.line, edit.range.end.line), (0, 0));
+    let changed = format!("{}{}{}", &line[..start], edit.new_text, &line[end..]);
+    assert_eq!(changed, format!("* TODO Write{}:work:\nthe report", " ".repeat(59)));
+    assert_eq!(result["cursor"], json!({ "line": 1, "character": 0 }));
+    let refused = run(&mut client, 2, 2).response_result.expect_err("a refusal");
+    assert_eq!(refused.data, Some(json!({ "notApplicable": true })));
+    client.shutdown();
+}
+
 #[test]
 fn toggles_checkboxes() {
     let mut client = Client::start(json!({}), Value::Null);

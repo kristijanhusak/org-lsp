@@ -597,5 +597,48 @@ wait('the capture to be given up', function()
 end)
 eq(vim.api.nvim_get_current_buf(), work_buf, 'capture: back in the file')
 
+-- 12. `r` rebuilds the agenda from the files as they are on disk, an open
+-- file that changed there and not here included.
+only_window()
+vim.cmd('silent write')
+press('<F7>')
+wait_for_view('Global list of TODO items of type: ALL')
+local on_disk = vim.fn.readfile(work)
+table.insert(on_disk, '* TODO Written elsewhere')
+vim.fn.writefile(on_disk, work)
+press('r')
+wait('the entry written elsewhere', function()
+  return vim.iter(lines()):any(function(text)
+    return text:find('TODO Written elsewhere', 1, true) ~= nil
+  end)
+end)
+eq(vim.api.nvim_buf_get_lines(work_buf, -2, -1, false), { '* TODO Written elsewhere' }, 'the open file read again')
+
+-- 13. `g?` lists the agenda's keys.
+local agenda_win = vim.api.nvim_get_current_win()
+press('g?')
+eq(lines()[1], 'Agenda', 'the help starts with the agenda keys')
+check(vim.iter(lines()):any(function(text)
+  return text:match('^  r%s+Agenda: rebuild$') ~= nil
+end), 'r is listed')
+press('<Esc>')
+eq(vim.api.nvim_get_current_win(), agenda_win, '<Esc> closes the help')
+
+-- 14. `$` archives the entry of the line, into the archive file next to
+-- its own, and the entry leaves the agenda.
+local written = vim.iter(lines()):enumerate():find(function(_, text)
+  return text:find('TODO Written elsewhere', 1, true) ~= nil
+end)
+vim.api.nvim_win_set_cursor(0, { written, 0 })
+press('$')
+wait('the entry archived', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return not vim.iter(lines()):any(function(text)
+    return text:find('TODO Written elsewhere', 1, true) ~= nil
+  end)
+end)
+check(vim.tbl_contains(vim.fn.readfile(work .. '_archive'), '* TODO Written elsewhere'), 'in the archive file')
+press('q')
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

@@ -64,7 +64,7 @@ function neovimKeys() {
     const rows = manifest.commands.flatMap((command) => {
       const keys = command.keys.filter((key) => key.preset === 'vim' && key.in === scope);
       if (keys.length === 0) return [];
-      const shown = keys.map((key) => code(key.key) + (key.native ? '¹' : '')).join(', ');
+      const shown = keys.map((key) => code(key.key) + (key.native ? '¹' : '') + (key.mode === 'insert' ? ' (insert mode)' : '')).join(', ');
       return [[shown, code(command.command), cell(command.title)]];
     });
     if (rows.length > 0) sections.push(`### ${heading}\n\n` + table(['Keys', 'Command', 'What it does'], rows));
@@ -76,7 +76,7 @@ function neovimKeys() {
   sections.push(
     '¹ Where the command does not apply, the key does what it does in any\n' +
       'buffer: `<C-a>` off a timestamp still increments the number under the\n' +
-      'cursor.',
+      'cursor, and `<CR>` in a source block\'s code is Vim\'s own.',
   );
   return sections.join('\n\n');
 }
@@ -136,7 +136,8 @@ function vscodeKeys() {
   sections.push(
     '¹ Where the command does not apply, the key does what it does without\n' +
       'the extension: `Shift+Up` off a timestamp or headline selects, `Tab` off\n' +
-      'a headline, block or drawer indents.',
+      'a headline, block or drawer indents, `Enter` in a source block\'s code\n' +
+      'is VS Code\'s own.',
   );
   // VSCodeVim's own key bindings, for the keys VS Code cannot bind: those
   // with the leader. They apply in every file.
@@ -160,7 +161,7 @@ function vscodeKeys() {
         .join(',\n') +
       '\n]\n```',
   );
-  const every = [...manifest.commands, ...vscode.contributes.commands.filter((command) => command.command.startsWith('org-lsp.cycle'))].map(
+  const every = [...manifest.commands, ...vscode.contributes.commands.filter((command) => ['org-lsp.cycle', 'org-lsp.cycleGlobal', 'org-lsp.help'].includes(command.command))].map(
     (command) => [code(command.command), cell(`Org: ${command.title}`)],
   );
   sections.push('### Every command\n\n' + table(['Command', 'In the Command Palette'], every));

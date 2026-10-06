@@ -3,6 +3,7 @@
 //! without the `org-agenda-` prefix.
 
 use org_core::agenda::{Config as AgendaConfig, FutureRepeats, Span, TimeGrid};
+use org_core::archive::{ContextInfo, InheritedTags, MarkDone, Settings as ArchiveSettings};
 use org_core::edit::Settings as EditSettings;
 use org_core::priority::{self, Priorities};
 use org_core::read_date::{PreferFuture, Settings as ReadDateSettings};
@@ -85,6 +86,25 @@ pub struct Options {
     pub refile_use_outline_path: Option<OutlinePathOption>,
     /// `org-reverse-note-order`: refiled entries go first, not last.
     pub reverse_note_order: Option<bool>,
+    /// `org-archive-location`: the file and the heading archived subtrees
+    /// go to, `"%s_archive::"`.
+    pub archive_location: Option<String>,
+    /// `org-archive-reversed-order`
+    pub archive_reversed_order: Option<bool>,
+    /// `org-archive-mark-done`: `false`, `true` or a done keyword.
+    pub archive_mark_done: Option<serde_json::Value>,
+    /// `org-archive-subtree-add-inherited-tags`: `false`, `true` or
+    /// `"infile"`.
+    pub archive_subtree_add_inherited_tags: Option<serde_json::Value>,
+    /// `org-archive-save-context-info`
+    pub archive_save_context_info: Option<Vec<String>>,
+    /// `org-archive-sibling-heading`
+    pub archive_sibling_heading: Option<String>,
+    /// `org-archive-file-header-format`: a format with `%s` for the file,
+    /// or `false` for none.
+    pub archive_file_header_format: Option<serde_json::Value>,
+    /// `org-archive-default-command`: `"subtree"`, `"sibling"` or `"tag"`.
+    pub archive_default_command: Option<String>,
     /// `org-capture-templates`. Without it, Org's default: a TODO under
     /// "Tasks" in `defaultNotesFile`.
     pub capture_templates: Option<Vec<CaptureTemplateOption>>,
@@ -357,6 +377,45 @@ impl Options {
             tags_column: self.tags_column.unwrap_or(-77),
             adapt: self.adapt(),
             src_preserve_indentation: self.src_preserve_indentation.unwrap_or(false),
+        }
+    }
+
+    /// How archiving goes (`org-archive-location` and its relatives).
+    pub fn archive_settings(&self) -> ArchiveSettings {
+        let defaults = ArchiveSettings::default();
+        ArchiveSettings {
+            location: self.archive_location.clone().unwrap_or(defaults.location),
+            reversed_order: self.archive_reversed_order.unwrap_or(defaults.reversed_order),
+            mark_done: match &self.archive_mark_done {
+                Some(serde_json::Value::Bool(true)) => MarkDone::Yes,
+                Some(serde_json::Value::String(word)) if !word.is_empty() => MarkDone::Keyword(word.clone()),
+                _ => MarkDone::No,
+            },
+            add_inherited_tags: match &self.archive_subtree_add_inherited_tags {
+                Some(serde_json::Value::Bool(false)) => InheritedTags::Never,
+                Some(serde_json::Value::Bool(true)) => InheritedTags::Always,
+                _ => InheritedTags::InFile,
+            },
+            context_info: match &self.archive_save_context_info {
+                Some(names) => names.iter().filter_map(|name| ContextInfo::from_name(name)).collect(),
+                None => defaults.context_info,
+            },
+            sibling_heading: self.archive_sibling_heading.clone().unwrap_or(defaults.sibling_heading),
+            file_header_format: match &self.archive_file_header_format {
+                Some(serde_json::Value::String(format)) => Some(format.clone()),
+                Some(serde_json::Value::Bool(false)) => None,
+                _ => defaults.file_header_format,
+            },
+            levels: self.refile_settings(),
+            todo: self.todo_settings(),
+        }
+    }
+
+    /// `org-archive-default-command`
+    pub fn archive_default_command(&self) -> &str {
+        match self.archive_default_command.as_deref() {
+            Some(command @ ("sibling" | "tag")) => command,
+            _ => "subtree",
         }
     }
 

@@ -576,6 +576,106 @@ end)
 eq(prefixes(), { { 2, 2 }, { 3, 1 }, { 3, 'star', 0 } }, 'the text below A at 2, B after 1 column, one star hidden')
 eq(line(3), 'text', 'the file is not changed')
 
+-- 22. `g?` lists the keys of the buffer, the user's own among them, in a
+-- window that `q` closes.
+local before_help = vim.api.nvim_get_current_win()
+press('g?')
+check(vim.api.nvim_win_get_config(0).relative ~= '', 'the help is a floating window')
+local help = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+eq(help[1], 'Org file', 'the help starts with the keys of Org files')
+check(vim.iter(help):any(function(text)
+  return text:match('^  gt%s+Change the TODO state$') ~= nil
+end), 'the key set in the configuration is listed with what it does:\n' .. table.concat(help, '\n'))
+check(vim.iter(help):any(function(text)
+  return text:match('^  g%?%s+Show the keys$') ~= nil
+end), 'g? itself is listed')
+check(vim.tbl_contains(help, 'Anywhere'), 'the global keys follow')
+press('q')
+eq(vim.api.nvim_get_current_win(), before_help, 'q closes the help')
+
+-- 23. RET in insert mode is Org's: a headline splits with its tags kept,
+-- a table goes to the next row, and in a source block's code it is RET.
+local returns = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* TODO Write the report :work:', '| a | bb |', '#+begin_src sh', 'echo', '#+end_src' }, returns)
+vim.cmd.edit(returns)
+wait('the server for RET', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 1, 11 })
+press('a<CR>x<Esc>')
+eq(vim.api.nvim_buf_get_lines(0, 0, 2, false), { '* TODO Write' .. (' '):rep(59) .. ':work:', 'xthe report' },
+  'the title split, the tags kept in their column')
+vim.api.nvim_win_set_cursor(0, { 3, 6 })
+press('a<CR>y<Esc>')
+eq(vim.api.nvim_buf_get_lines(0, 2, 4, false), { '| a | bb |', '|   | y   |' }, 'a new row, the cursor in its column')
+vim.api.nvim_win_set_cursor(0, { 6, 3 })
+press('a<CR>z<Esc>')
+eq(vim.api.nvim_buf_get_lines(0, 5, 7, false), { 'echo', '  z' }, 'in code, RET is RET (indented as the block content)')
+
+-- 24. `<Leader>o$` archives the subtree to the archive file, which is
+-- written as Emacs saves it, and `<Leader>oA` tags a subtree as archived.
+-- `org.archive.done` asks about each subtree without open TODO items.
+local archived = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ 'Intro', '* DONE Old', 'Notes.', '* DONE Older', '* TODO New' }, archived)
+vim.cmd.edit(archived)
+wait('the server to attach to the file to archive in', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press('<Leader>o$')
+wait('the subtree archived', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return line(2) == '* DONE Older'
+end)
+local archive_lines = vim.fn.readfile(archived .. '_archive')
+check(vim.tbl_contains(archive_lines, '* DONE Old') and vim.tbl_contains(archive_lines, ':ARCHIVE_CATEGORY: ' .. vim.fn.fnamemodify(archived, ':t:r')),
+  'the archive file has the subtree and where it came from:\n' .. table.concat(archive_lines, '\n'))
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+press('<Leader>oA')
+wait('the ARCHIVE tag', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return line(3):match(' :ARCHIVE:$') ~= nil
+end)
+press('<Leader>oA')
+wait('the ARCHIVE tag gone', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return line(3) == '* TODO New'
+end)
+local asked_about = {}
+plugin.read_key = function(prompt)
+  table.insert(asked_about, prompt)
+  return 'y'
+end
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+plugin.run('org.archive.done')
+wait('the answered subtree archived', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return #vim.api.nvim_buf_get_lines(0, 0, -1, false) == 2
+end)
+plugin.read_key = read_key
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { 'Intro', '* TODO New' }, 'the subtree said yes to went')
+eq(asked_about, { 'Move subtree to archive? (no open TODO items)' }, 'one question, for the one subtree left')
+
+-- 25. LSP range formatting (`textDocument/rangeFormatting`), as
+-- `vim.lsp.buf.format()` asks for it with a range or in Visual mode: the
+-- tables with a line in the range are aligned and its headlines' tags go
+-- to their column; what is outside the range stays.
+local ranged = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A :x:', '| a | bbb |', '|cc|d|', '* B :y:', '|e|f|' }, ranged)
+vim.cmd.edit(ranged)
+wait('the server to attach to the file to format', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.lsp.buf.format({ range = { start = { 2, 0 }, ['end'] = { 3, 0 } } })
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* A :x:', '| a  | bbb |', '| cc | d   |', '* B :y:', '|e|f|' },
+  'the table in the range aligned, the rest as it was')
+vim.api.nvim_win_set_cursor(0, { 4, 0 })
+vim.cmd('normal! Vj')
+vim.lsp.buf.format()
+vim.cmd('normal! \27')
+eq(vim.api.nvim_buf_get_lines(0, 3, 5, false), { tagged('* B', ':y:'), '| e | f |' }, 'the selected lines formatted')
+eq(line(1), '* A :x:', 'the headline before the selection as it was')
+
 -- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'

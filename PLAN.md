@@ -51,13 +51,32 @@ others), as close to Emacs Org mode as it can get.
 | 5, 9, 11 | Custom agenda commands and block agendas, `m`/`M`, clocking, log mode, clock report, more completion | #22 |
 | 5, 13 | Block agenda cursor, separators, empty blocks; indentation (`org-indent-line`, `org-indent-region`, `adaptIndentation`) and virtual indentation (`org-indent-mode`) | #23 |
 | 8 | Emphasis keeps its style across spaces; toggle checkboxes with their cookies | #24 |
+| 6, 13 | Range formatting aligns tables and tags; agenda blocks without the blank line; `r` reads changed files; help (`g?`); RET as `org-return`; archiving | #29 |
 
 ### Where to pick up
 
-Everything asked for on 2026-10-06 is done (two items per PR, as agreed).
-Next, by the milestones below: diagnostics (milestone 13), table
-navigation and editing (milestone 12), and the leftovers listed after
-this.
+The second list asked for on 2026-10-06 is in #29: range formatting
+now aligns tables and tags as whole-file formatting does; custom agenda
+blocks without the blank line above their separator (in editors; the
+CLI keeps Emacs's); `r` reads files changed on disk first; a help window
+of the buffer's keys (`g?` in Neovim and Vim, a command elsewhere); RET
+as `org-return` (`tests/return`, `scripts/fuzz-return.py`); and
+archiving: `org-archive-subtree` with every way Org names a location
+(`archiveLocation`, `ARCHIVE` properties, `#+ARCHIVE:`, date trees),
+the context properties, inherited tags and `archiveMarkDone`;
+`org-archive-to-archive-sibling`; `org-toggle-archive-tag`; the `C-u`
+forms over every subtree without open TODO items; `$`, `a` and the
+`C-c C-x` keys in the agenda (`tests/archive`,
+`scripts/fuzz-archive.py`).
+
+Next, from that list: Emacs's RET does not continue lists, `M-RET`
+(`org-meta-return`: a new item or heading) and `M-S-RET` (a new TODO
+heading, or an item with a checkbox) do; they are not ported yet. Also
+open around archiving: the agenda's archives mode (`v a`, `v A`),
+archived subtrees staying folded when cycling
+(`org-cycle-hide-archived-subtrees`) and the `org-archived` face. Then,
+by the milestones below: diagnostics (milestone 13), table navigation
+and editing (milestone 12), and the leftovers listed after this.
 
 Done from that list in #24: nested emphasis highlighting, checkbox
 cookies. In #26: fold cycling in VS Code (`org-lsp.cycle`,
@@ -339,9 +358,9 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 ### 6. Structure editing
 
+- Done: RET (`org-return`), refile, archive.
 - New headings and items (`M-RET` and relatives), promote and demote,
   move subtrees, cut/copy/paste subtree, sort.
-- Refile and archive.
 - Fold cycling in the server (Neovim does it in Lua today,
   `lua/org-lsp/folds.lua`), sparse trees.
 
@@ -488,6 +507,8 @@ previews.
   | Calendar of the date prompt | `tests/calendar/emacs.txt` | `scripts/update-calendar-fixtures.sh` | |
   | Indentation | `tests/indent/cases.json` | `scripts/update-indent-fixtures.py` | `scripts/fuzz-indent.py` |
   | Formatting (tables, tags) | `tests/format/cases.json` | `scripts/update-format-fixtures.py` | `scripts/fuzz-format.py` |
+  | RET (`org-return`) | `tests/return/cases.json` | `scripts/update-return-fixtures.py` | `scripts/fuzz-return.py` |
+  | Archiving | `tests/archive/cases.json` | `scripts/update-archive-fixtures.py` | `scripts/fuzz-archive.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.
 - VS Code: in `editors/vscode`, `npm run generate -- --check`, `npm run

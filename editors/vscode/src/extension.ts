@@ -47,7 +47,7 @@ function cursor(running: LanguageClient): unknown[] {
  * at the cursor, so that the key keeps its own meaning there.
  */
 interface KeyArgs {
-  fallback: string[];
+  fallback: (string | { command: string; args?: unknown })[];
 }
 
 function keyArgs(args: unknown[]): KeyArgs | undefined {
@@ -56,10 +56,11 @@ function keyArgs(args: unknown[]): KeyArgs | undefined {
 }
 
 /** Run the first of `commands` that VS Code has. */
-async function fallBack(commands: string[]): Promise<void> {
-  for (const command of commands) {
+async function fallBack(commands: KeyArgs['fallback']): Promise<void> {
+  for (const entry of commands) {
+    const { command, args } = typeof entry === 'string' ? { command: entry, args: undefined } : entry;
     try {
-      await vscode.commands.executeCommand(command);
+      await vscode.commands.executeCommand(command, ...(args === undefined ? [] : [args]));
       return;
     } catch {
       // Not there (VSCodeVim's, without VSCodeVim): the next one.
@@ -69,6 +70,30 @@ async function fallBack(commands: string[]): Promise<void> {
 
 function notApplicable(error: unknown): boolean {
   return (error as { data?: { notApplicable?: unknown } } | null)?.data?.notApplicable === true;
+}
+
+/**
+ * A command whose result carries its edit and where the cursor goes
+ * (`org.return`): applied to the editor at hand, at once.
+ */
+async function applyCarried(running: LanguageClient, result: unknown): Promise<void> {
+  const carried = result as { edits?: unknown[]; cursor?: { line: number; character: number } } | null;
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || !Array.isArray(carried?.edits)) {
+    return;
+  }
+  const edits: vscode.TextEdit[] =
+    (await running.protocol2CodeConverter.asTextEdits(carried.edits as Parameters<typeof running.protocol2CodeConverter.asTextEdits>[0])) ?? [];
+  await editor.edit((builder) => {
+    for (const edit of edits) {
+      builder.replace(edit.range, edit.newText);
+    }
+  }, { undoStopBefore: false, undoStopAfter: false });
+  if (carried.cursor) {
+    const position = running.protocol2CodeConverter.asPosition(carried.cursor);
+    editor.selection = new vscode.Selection(position, position);
+    editor.revealRange(new vscode.Range(position, position));
+  }
 }
 
 /** Done when the date prompt the server asked to show is shown. */
@@ -254,13 +279,15 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
       // cursor. The server's reason for refusing a command is shown as is.
       executeCommand: async (name, args) => {
         const running = client;
-        if (!running) {
-          return undefined;
-        }
         const key = keyArgs(args);
+        if (!running) {
+          // A key keeps its own meaning without a server (Enter types).
+          return key ? fallBack(key.fallback) : undefined;
+        }
         const params = { command: name, arguments: args.length > 0 && !key ? args : cursor(running) };
         try {
           let result = await running.sendRequest('workspace/executeCommand', params);
+          await applyCarried(running, result);
           closeAsked(result);
           await saveAsked(result);
           sayAsked(result);
@@ -282,9 +309,13 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           }
           return result;
         } catch (error) {
-          if (key && notApplicable(error)) {
+          // A key keeps its own meaning where the command does not apply,
+          // and when it fails: Enter is never lost.
+          if (key) {
             await fallBack(key.fallback);
-            return undefined;
+            if (notApplicable(error)) {
+              return undefined;
+            }
           }
           void vscode.window.showWarningMessage(error instanceof Error ? error.message : String(error));
           return undefined;
@@ -722,6 +753,69 @@ async function cycleGlobal(): Promise<void> {
   }
 }
 
+// ----- help
+
+interface Binding {
+  command: string;
+  key: string;
+  when?: string;
+  args?: unknown;
+}
+
+/** A key as VS Code's menus write it: `ctrl+c ctrl+t` as `Ctrl+C Ctrl+T`. */
+function keyLabel(key: string): string {
+  const names: Record<string, string> = { ctrl: 'Ctrl', alt: 'Alt', shift: 'Shift', enter: 'Enter', tab: 'Tab', escape: 'Escape' };
+  return key
+    .split(' ')
+    .map((stroke) =>
+      stroke
+        .split('+')
+        .map((part) => names[part] ?? (part.length === 1 && stroke.includes('+') ? part.toUpperCase() : part))
+        .join('+'),
+    )
+    .join(' ');
+}
+
+/**
+ * The keys the extension binds where `editor` is, with the preset
+ * `org-lsp.keys` picks: `[key, title, command, args]`, in the order of the
+ * keybindings. Keys of the user's own are not known to extensions.
+ */
+function helpItems(
+  packageJSON: { contributes: { keybindings: Binding[]; commands: { command: string; title: string }[] }; orgLsp: { capturePrefix: string } },
+  editor: vscode.TextEditor | undefined,
+): { key: string; title: string; command: string; args?: unknown }[] {
+  const preset = vscode.workspace.getConfiguration('org-lsp').get<string>('keys', 'emacs');
+  const language = editor?.document.languageId;
+  const capture = editor ? path.basename(editor.document.uri.fsPath).startsWith(packageJSON.orgLsp.capturePrefix) : false;
+  const titles = new Map(packageJSON.contributes.commands.map((command) => [command.command, command.title]));
+  return packageJSON.contributes.keybindings
+    .filter((binding) => binding.when?.includes(`config.org-lsp.keys == '${preset}'`))
+    .filter((binding) => binding.when?.includes(`editorLangId == '${language}'`))
+    .filter((binding) => capture || !binding.when?.includes('resourceFilename'))
+    .filter((binding) => !binding.when?.includes('vim.mode') || preset === 'vim')
+    .map((binding) => ({ key: keyLabel(binding.key), title: titles.get(binding.command) ?? binding.command, command: binding.command, args: binding.args }));
+}
+
+/** `org-lsp.help`: the keys of the editor at hand; picking one runs it. */
+async function help(packageJSON: Parameters<typeof helpItems>[0]): Promise<void> {
+  const items = helpItems(packageJSON, vscode.window.activeTextEditor);
+  if (items.length === 0) {
+    const preset = vscode.workspace.getConfiguration('org-lsp').get<string>('keys', 'emacs');
+    void vscode.window.showInformationMessage(
+      preset === 'custom' ? 'Org: no keys are bound ("org-lsp.keys" is "custom").' : 'Org: no keys are bound here.',
+    );
+    return;
+  }
+  const picked = await vscode.window.showQuickPick(
+    items.map((item) => ({ label: item.title, description: item.key, item })),
+    { placeHolder: 'Org keys', matchOnDescription: true },
+  );
+  if (picked) {
+    await vscode.commands.executeCommand(picked.item.command, ...(picked.item.args === undefined ? [] : [picked.item.args]));
+  }
+}
+
 /** What the extension offers other code: for its tests. */
 export interface Api {
   /** The text hidden in `editor` now. */
@@ -730,6 +824,8 @@ export interface Api {
   clock(): string;
   /** The lines of `editor` shown indented: `[line, prefix, hidden stars]`. */
   virtualIndent(editor: vscode.TextEditor): number[][];
+  /** What `org-lsp.help` lists for `editor`: `[key, title]`. */
+  help(editor: vscode.TextEditor): string[][];
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
@@ -757,6 +853,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   context.subscriptions.push(
     vscode.commands.registerCommand('org-lsp.cycle', cycle),
     vscode.commands.registerCommand('org-lsp.cycleGlobal', cycleGlobal),
+    vscode.commands.registerCommand('org-lsp.help', () => help(context.extension.packageJSON)),
     // A cycle goes on from the last one only when nothing came between.
     vscode.window.onDidChangeActiveTextEditor(() => (lastCycle = undefined)),
   );
@@ -769,6 +866,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     concealed: (editor) => concealedText.get(editor) ?? [],
     clock: clockText,
     virtualIndent: (editor) => virtualIndentShown.get(editor) ?? [],
+    help: (editor) => helpItems(context.extension.packageJSON, editor).map((item) => [item.key, item.title]),
   };
 }
 

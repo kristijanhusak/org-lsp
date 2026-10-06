@@ -241,6 +241,83 @@
       "description": "A refiled entry goes first under its target, not last. (`org-reverse-note-order`)",
       "default": false
     },
+    "archiveLocation": {
+      "type": "string",
+      "description": "Where archived subtrees go: a file, `::`, and a headline under which they go (they go to the end of the file without one). `%s` is the name of the file the subtree is in; an empty file part is that file. `datetree/` as the headline files them under year, month and day, by when they were closed. An `ARCHIVE` property of the entry or a parent, or a `#+ARCHIVE:` line, says otherwise. (`org-archive-location`)",
+      "default": "%s_archive::"
+    },
+    "archiveReversedOrder": {
+      "type": "boolean",
+      "description": "An archived subtree goes first under its archive headline, not last. (`org-archive-reversed-order`)",
+      "default": false
+    },
+    "archiveMarkDone": {
+      "type": [
+        "boolean",
+        "string"
+      ],
+      "description": "Mark archived entries done: `true` for the first done keyword, or the keyword to use. (`org-archive-mark-done`)",
+      "default": false
+    },
+    "archiveSubtreeAddInheritedTags": {
+      "enum": [
+        true,
+        false,
+        "infile"
+      ],
+      "description": "Give an archived subtree the tags it inherited: always, never, or when it stays in its file. (`org-archive-subtree-add-inherited-tags`)",
+      "default": "infile"
+    },
+    "archiveSaveContextInfo": {
+      "items": {
+        "enum": [
+          "time",
+          "file",
+          "olpath",
+          "category",
+          "todo",
+          "itags",
+          "ltags",
+          "olid"
+        ]
+      },
+      "type": "array",
+      "description": "What an archived entry keeps as `ARCHIVE_…` properties: `time`, `file`, `olpath` (its outline path), `category`, `todo`, `itags` (inherited tags), `ltags` (its own tags) and `olid` (its parent's ID). (`org-archive-save-context-info`)",
+      "default": [
+        "time",
+        "file",
+        "olpath",
+        "category",
+        "todo",
+        "itags"
+      ]
+    },
+    "archiveSiblingHeading": {
+      "type": "string",
+      "description": "The headline of the sibling `org.archive.sibling` archives under. (`org-archive-sibling-heading`)",
+      "default": "Archive"
+    },
+    "archiveFileHeaderFormat": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "const": false
+        }
+      ],
+      "description": "What a new archive file starts with; `%s` is the path of the file the subtree came from. (`org-archive-file-header-format`)",
+      "default": "\nArchived entries from file %s\n\n"
+    },
+    "archiveDefaultCommand": {
+      "enum": [
+        "subtree",
+        "sibling",
+        "tag"
+      ],
+      "description": "What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it. (`org-archive-default-command`)",
+      "default": "subtree"
+    },
     "captureTemplates": {
       "items": {
         "additionalProperties": false,

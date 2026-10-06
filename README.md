@@ -23,7 +23,8 @@ still missing; see [Not done yet](#not-done-yet).
 | Outline (document symbols) | yes | yes | through the client | yes | yes | yes |
 | Virtual indentation (`org-indent-mode`, `#+STARTUP: indent`) and hidden leading stars, without changing the file | yes, but not on wrapped lines | yes, but not on wrapped lines | no | no | no | no |
 | Indentation, as `org-indent-line` and `org-indent-region` do it, under `adaptIndentation` (`org-adapt-indentation`); what commands write is indented the same way | new lines (`indentexpr`), `=` | new lines (format on type), Format Selection | no | Format Selection | format selections | `=` |
-| Formatting: every table aligned (`org-table-align`) and every headline's tags in their column (`org-align-tags`) | `vim.lsp.buf.format()` | Format Document | the client's format command | LSP: Format File | editor: format | `:format` |
+| Formatting: tables aligned (`org-table-align`) and headlines' tags in their column (`org-align-tags`), in the whole file or in a range (with the range's indentation) | `vim.lsp.buf.format()`, with a range or in Visual mode; `=` | Format Document, Format Selection | the client's format commands | LSP: Format File, LSP: Format Selection | editor: format, format selections | `:format`, `=` |
+| RET as Org's `org-return`: the next row in a table, a headline split with its tags kept, the rest of a list item's line kept in the item; indented as Org indents | `<CR>` in insert mode | Enter | `<CR>` in insert mode | Enter | no | no |
 | TODO state changes, as `org-todo` does them, with fast selection by key and notes (`TODO(t)`, `WAIT(w@/!)`) | `cit` / `ciT`, repeatable with `.` | `Ctrl+C Ctrl+T`, `Shift+Left`/`Right`, `Ctrl+.` | `cit` / `ciT`, repeatable with `.` | `Ctrl+C Ctrl+T`, `Shift+Left`/`Right` | code actions (`ctrl-.`) | `Space a` |
 | Checkboxes, as `org-toggle-checkbox` does it, with parent boxes and the cookies that count them (`[1/3]`, `[33%]`) | `<C-Space>` | `Ctrl+C Ctrl+C`, `Ctrl+.` | `<C-Space>` | `Ctrl+C Ctrl+C` | code actions | `Space a` |
 | Priorities, as `org-priority` changes them | `ciR` / `cir`, `<Leader>o,` | commands, `Ctrl+.` | `ciR` / `cir`, `<Leader>o,` | `Shift+Up`/`Down`, `Ctrl+C ,` | code actions | `Space a` |
@@ -33,6 +34,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Agenda: day, week, fortnight, month and year views, going to a date | yes | yes | yes, as a file | yes, as a file | no⁸ | no³ |
 | Agenda: list of all TODO entries, tags and property searches (`m`, `M`), custom commands and block agendas (`org-agenda-custom-commands`) | yes | yes | yes | yes | no⁸ | no³ |
 | Refile, as `org-refile` does it, between files too | `<Leader>or` | command | `<Leader>or` | `Ctrl+C Ctrl+W` | no⁸ | no⁴ |
+| Archiving, as `org-archive-subtree`, `org-archive-to-archive-sibling` and `org-toggle-archive-tag` do it: archive locations (`archiveLocation`, `ARCHIVE` properties, `#+ARCHIVE:`, date trees), the context kept as `ARCHIVE_…` properties, all done subtrees at once | `<Leader>o$`, `<Leader>oxA`, `<Leader>oA`; `$` and `a` in the agenda | `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Ctrl+X A`, `Ctrl+C Ctrl+X a`; `$` and `a` in the agenda | `<Leader>o$`, `<Leader>oxA`, `<Leader>oA`; `$` and `a` in the agenda | `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Ctrl+X A`, `Ctrl+C Ctrl+X a`; `$` and `a` in the agenda | code actions | `Space a` |
 | Capture, as `org-capture` does it: templates, prompts, a capture buffer | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | commands; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | `Ctrl+C c`; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | no⁸ | no⁴ |
 | Agenda: change an entry's state, priority or date, schedule it or set its deadline, go to its entry | yes | yes | yes | yes | no⁸ | no³ |
 | Clocking, as `org-clock-in` and `org-clock-out` do it, with the clock in the status line | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`; `clock_status()` | commands; the status bar | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`; `org_lsp#clock_status()` | `Ctrl+C Ctrl+X Ctrl+I`, `Ctrl+C Ctrl+X Ctrl+O`; the status bar | code actions | `Space a`⁵ |
@@ -103,7 +105,8 @@ state, `ciR` / `cir` change the priority, `<C-a>` / `<C-x>` the part of
 the timestamp under the cursor, `<Leader>ois` schedules, `<Leader>or`
 refiles, `<Leader>oc` captures, `<Tab>` / `<S-Tab>` cycle folds, and in
 the agenda `f` / `b`, `t`, `+` / `-` and `<CR>` do what they do in Emacs.
-Counts work, and the editing keys repeat with `.`. Dates are asked for
+Counts work, and the editing keys repeat with `.`. `g?` shows the keys
+of the buffer at hand. Dates are asked for
 with Emacs's calendar, or typed as at Org's prompt (`fri 10:00`, `+2d`,
 `2/15`, `++1w`).
 

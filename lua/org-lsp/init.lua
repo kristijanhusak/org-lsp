@@ -33,7 +33,7 @@ local SERVER = 'org_lsp'
 ---@field mappings? org_lsp.Mappings|false Keys by scope; `false` sets no keys at all. See docs/neovim/keys.md.
 
 --- Keys by scope. In a scope, a command (`org.todo`, or one of the plugin's
---- own: `cycle`, `global_cycle`, `quit`) maps to a key, a list of keys, or
+--- own: `cycle`, `global_cycle`, `quit`, `help`) maps to a key, a list of keys, or
 --- `false`; commands that are not listed keep the server's default keys.
 --- `false` instead of a scope's table sets no keys in that scope.
 ---@class org_lsp.Mappings
@@ -60,8 +60,8 @@ local defaults = {
       ['org.capture'] = '<Leader>oc',
       ['org.clock.goto'] = '<Leader>oxj',
     },
-    org = { cycle = '<Tab>', global_cycle = '<S-Tab>' },
-    agenda = { quit = 'q' },
+    org = { cycle = '<Tab>', global_cycle = '<S-Tab>', help = 'g?' },
+    agenda = { quit = 'q', help = 'g?' },
   },
 }
 
@@ -80,6 +80,9 @@ local own_commands = {
   end },
   global_cycle = { 'Org: cycle visibility of the whole file', function()
     require('org-lsp.folds').global_cycle()
+  end },
+  help = { 'Show the keys', function()
+    require('org-lsp.help').show()
   end },
   quit = { 'Agenda: close', function()
     require('org-lsp.view').close_buffer(vim.api.nvim_get_current_buf())
@@ -167,6 +170,15 @@ function M.run(name, opts)
     return own_commands[name][2]()
   end
   opts = opts or {}
+  -- Rebuilding reads the files again: those changed on disk while open
+  -- here, and not changed here, are read again first (`autoread`), as the
+  -- server takes an open file's text from the editor.
+  if name == 'org.agenda.redo' then
+    local autoread = vim.o.autoread
+    vim.o.autoread = true
+    vim.cmd('silent! checktime')
+    vim.o.autoread = autoread
+  end
   local count = opts.count and opts.count > 0 and opts.count or nil
   with_client(function(client)
     local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
@@ -330,6 +342,40 @@ end
 
 -- ----- keys
 
+--- The commands whose keys are typed in insert mode (`org.return`).
+local insert_keys = {}
+
+--- Run `name`, whose result carries edits and a cursor (`org.return`), from
+--- insert mode: at once, so that what is typed next goes after it. The key
+--- keeps its own meaning while the completion menu is open, with no server,
+--- or where the command does not apply.
+---@param name string
+---@param key string
+function M.insert_command(name, key)
+  local bufnr = vim.api.nvim_get_current_buf()
+  local client = running_client()
+  -- Ahead of what is typed after it.
+  local function native()
+    vim.api.nvim_feedkeys(vim.keycode(key), 'ni', false)
+  end
+  if vim.fn.pumvisible() == 1 or not client then
+    return native()
+  end
+  local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
+  local response = client:request_sync('workspace/executeCommand', { command = name, arguments = { context } }, 1000, bufnr)
+  local result = response and not response.err and response.result
+  if type(result) ~= 'table' or type(result.edits) ~= 'table' then
+    return native()
+  end
+  vim.lsp.util.apply_text_edits(result.edits, bufnr, client.offset_encoding)
+  local cursor = result.cursor
+  if cursor then
+    local text = vim.api.nvim_buf_get_lines(bufnr, cursor.line, cursor.line + 1, false)[1] or ''
+    local column = vim.str_byteindex(text, client.offset_encoding, cursor.character, false)
+    pcall(vim.api.nvim_win_set_cursor, 0, { cursor.line + 1, column })
+  end
+end
+
 --- The keys of a scope: the server's defaults for modal editors, with the
 --- configuration's entries taking their place command by command.
 ---@param scope 'global'|'org'|'agenda'|'calendar'|'capture'
@@ -346,6 +392,7 @@ local function keys_in(scope)
         keys[command.command] = keys[command.command] or {}
         table.insert(keys[command.command], key.key)
         native[key.key] = key.native or nil
+        insert_keys[command.command] = key.mode == 'insert' or nil
       end
     end
   end
@@ -353,6 +400,34 @@ local function keys_in(scope)
     keys[name] = type(key) == 'table' and key or key and { key } or {}
   end
   return keys, native
+end
+
+--- The keys of a scope as they are set, for the help: in the order of the
+--- server's commands, then the plugin's own.
+---@param scope 'global'|'org'|'agenda'|'calendar'|'capture'
+---@return { command: string, title: string, keys: string[] }[]
+function M.keys(scope)
+  local keys = keys_in(scope)
+  local out = {}
+  local function add(name, title)
+    if keys[name] and #keys[name] > 0 then
+      table.insert(out, { command = name, title = title, keys = keys[name] })
+      keys[name] = nil
+    end
+  end
+  for _, command in ipairs(M.manifest and M.manifest.commands or {}) do
+    add(command.command, command.title)
+  end
+  for _, name in ipairs({ 'cycle', 'global_cycle', 'quit', 'help' }) do
+    add(name, own_commands[name][1])
+  end
+  -- Keys of the user's for commands neither knows of.
+  for name, list in pairs(keys) do
+    if #list > 0 then
+      table.insert(out, { command = name, title = name, keys = list })
+    end
+  end
+  return out
 end
 
 --- Global keys that are set, so that a change of configuration can take
@@ -390,7 +465,11 @@ local function set_keys(scope, bufnr)
         table.insert(global_keys, lhs)
       end
       local key = native[lhs] and lhs or nil
-      if command and command.edits and scope == 'org' then
+      if insert_keys[name] then
+        vim.keymap.set('i', lhs, function()
+          M.insert_command(name, lhs)
+        end, { buffer = bufnr, desc = title })
+      elseif command and command.edits and scope == 'org' then
         vim.keymap.set('n', lhs, repeatable(name, key), { buffer = bufnr, desc = title, expr = true })
       else
         vim.keymap.set('n', lhs, function()

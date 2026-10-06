@@ -241,8 +241,14 @@ impl Outline {
 
         let section = headline.section();
         let planning = section.as_ref().and_then(|section| section.children().find(|child| child.kind() == PLANNING));
-        let drawer =
-            section.as_ref().and_then(|section| section.children().find(|child| child.kind() == PROPERTY_DRAWER));
+        // A property drawer counts right below the headline or its planning
+        // line, not after a blank line or anything else.
+        let drawer = section.as_ref().and_then(|section| {
+            let mut children = section.children().skip_while(|child| child.kind() == PLANNING);
+            let first = children.next().filter(|child| child.kind() == PROPERTY_DRAWER)?;
+            let after = planning.as_ref().map_or(section.text_range().start(), |planning| planning.text_range().end());
+            (first.text_range().start() == after).then_some(first)
+        });
         let properties = drawer.map(|drawer| properties(&drawer)).unwrap_or_default();
         let category = category_values(&properties, &inherited.category);
 

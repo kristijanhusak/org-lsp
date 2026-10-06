@@ -149,6 +149,52 @@ function! s:clock() abort
 endfunction
 call s:test('clocks in and out, for the statusline', function('s:clock'))
 
+function! s:return() abort
+  let file = s:work . '/notes/return.org'
+  call writefile(['* TODO Write the report :work:', '| a | bb |'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(1, 12)
+  call feedkeys("a\<CR>x\<Esc>", 'xt')
+  call s:until('the split', {-> getline(2) ==# 'xthe report'})
+  call assert_equal('* TODO Write' . repeat(' ', 59) . ':work:', getline(1))
+  call cursor(3, 7)
+  call feedkeys("a\<CR>y\<Esc>", 'xt')
+  call s:until('the new row', {-> getline(4) ==# '|   | y   |'})
+  silent write
+endfunction
+call s:test('RET in insert mode is as in Org', function('s:return'))
+
+function! s:help() abort
+  execute 'buffer' s:work_buf
+  let popup = org_lsp#help()
+  call assert_true(popup > 0, 'a popup')
+  let shown = getbufline(winbufnr(popup), 1, '$')
+  call assert_equal('Org file', shown[0])
+  call assert_true(index(shown, '  cit          Change the TODO state') >= 0, string(shown))
+  call assert_true(match(shown, '^  g?\s\+Show the keys$') >= 0, 'g? is listed')
+  call popup_close(popup)
+endfunction
+call s:test('g? lists the keys of the buffer', function('s:help'))
+
+function! s:archive() abort
+  let file = s:work . '/notes/archive.org'
+  call writefile(['Intro', '* DONE Old', 'Notes.', '* DONE Older', '* TODO New'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(2, 1)
+  call feedkeys("\\o$", 'xt')
+  call s:until('the subtree archived', {-> getline(2) ==# '* DONE Older'})
+  call s:until('the archive file', {-> filereadable(file . '_archive')})
+  call assert_true(index(readfile(file . '_archive'), '* DONE Old') >= 0, string(readfile(file . '_archive')))
+  let g:answers = ['y']
+  call cursor(1, 1)
+  call org_lsp#run('org.archive.done')
+  call s:until('the subtree without open TODO items archived', {-> getline(1, '$') ==# ['Intro', '* TODO New']})
+  silent write
+endfunction
+call s:test('archives a subtree, and asks about each done one', function('s:archive'))
+
 for error in v:errors
   call add(s:results, 'not ok - ' . error)
 endfor

@@ -79,6 +79,7 @@ const fallbacks = {
   'ctrl+a': { command: 'nv_feed_key', args: { key: '<C-a>' } },
   'ctrl+x': { command: 'nv_feed_key', args: { key: '<C-x>' } },
   tab: { command: 'insert_best_completion', args: { default: '\t', exact: false } },
+  enter: { command: 'insert', args: { characters: '\n' } },
 };
 
 /** The package's own commands, with their keys. */
@@ -112,7 +113,7 @@ const bindings = [...manifest.commands, ...own]
     if (keys === null) return [];
     const inText = binding.in !== 'agenda';
     // In Vim's command mode a plain first key belongs to Vim (`c` of `cit`).
-    if (binding.preset === 'vim' && inText && keys[0].length === 1) return [];
+    if (binding.preset === 'vim' && inText && binding.mode !== 'insert' && keys[0].length === 1) return [];
     const scopes = binding.in === 'global' ? globalScopes : [binding.in];
     return scopes.map((scope) => {
       const context = [
@@ -120,8 +121,10 @@ const bindings = [...manifest.commands, ...own]
         { key: 'selector', operator: 'equal', operand: selector[scope] },
       ];
       if (scope === 'capture') context.push({ key: 'org_lsp.capture', operator: 'equal', operand: true });
-      if (binding.preset === 'vim' && inText) context.push({ key: 'setting.command_mode', operator: 'equal', operand: true });
-      if (keys[0] === 'tab' || keys[0] === 'shift+tab') {
+      if (binding.preset === 'vim' && inText) {
+        context.push({ key: 'setting.command_mode', operator: 'equal', operand: binding.mode !== 'insert' });
+      }
+      if (keys[0] === 'tab' || keys[0] === 'shift+tab' || (keys[0] === 'enter' && scope !== 'agenda')) {
         context.push(
           { key: 'auto_complete_visible', operator: 'equal', operand: false },
           { key: 'has_next_field', operator: 'equal', operand: false },
@@ -151,6 +154,7 @@ const palette = [
     args: { command: command.command },
   })),
   ...own.map((command) => ({ caption: `Org: ${command.title}`, command: command.command })),
+  { caption: 'Org: Show the keys', command: 'org_lsp_help' },
 ];
 
 // The scopes of the server's tokens, from the TextMate scopes it names. A

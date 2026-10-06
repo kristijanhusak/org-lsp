@@ -26,8 +26,8 @@ let s:defaults = {
       \     'org.capture': '<Leader>oc',
       \     'org.clock.goto': '<Leader>oxj',
       \   },
-      \   'org': {'cycle': '<Tab>', 'global_cycle': '<S-Tab>'},
-      \   'agenda': {'quit': 'q'},
+      \   'org': {'cycle': '<Tab>', 'global_cycle': '<S-Tab>', 'help': 'g?'},
+      \   'agenda': {'quit': 'q', 'help': 'g?'},
       \ },
       \ }
 
@@ -241,6 +241,7 @@ let s:own = {
       \ 'cycle': {'title': 'Org: cycle visibility of the subtree', 'run': function('org_lsp#cycle')},
       \ 'global_cycle': {'title': 'Org: cycle visibility of the whole file', 'run': function('org_lsp#global_cycle')},
       \ 'quit': {'title': 'Agenda: close', 'run': {-> org_lsp#close_buffer(bufnr())}},
+      \ 'help': {'title': 'Show the keys', 'run': function('org_lsp#help')},
       \ }
 
 function! s:command(name) abort
@@ -263,6 +264,15 @@ function! org_lsp#run(name, ...) abort
   endif
   if empty(org_lsp#adapter())
     return s:warn('no LSP client found: install yegappan/lsp, vim-lsp, coc.nvim or ALE')
+  endif
+  " Rebuilding reads the files again: those changed on disk while open
+  " here, and not changed here, are read again first ('autoread'), as the
+  " server takes an open file's text from the editor.
+  if a:name ==# 'org.agenda.redo'
+    let autoread = &autoread
+    set autoread
+    silent! checktime
+    let &autoread = autoread
   endif
   let [nr, context] = s:cursor_context()
   if get(opts, 'count', 0) > 0
@@ -381,6 +391,64 @@ endfunction
 
 " ----- keys
 
+" The commands whose keys are typed in insert mode (`org.return`).
+let s:insert_commands = {}
+
+" Run a command whose result carries edits and a cursor (`org.return`)
+" from insert mode, at once. The key keeps its own meaning while the
+" completion menu shows, with no server, or where the command does not
+" apply.
+function! org_lsp#insert_key(index) abort
+  let entry = s:mapped[a:index]
+  if pumvisible() || empty(org_lsp#adapter()) || !org_lsp#ready(bufnr())
+    return s:insert_fallback(entry.lhs)
+  endif
+  let [nr, context] = s:cursor_context()
+  let answer = org_lsp#request_sync(nr, 'workspace/executeCommand', {'command': entry.name, 'arguments': [context]}, 1000)
+  let result = get(answer, 'result', v:null)
+  if !empty(get(answer, 'error', {})) || type(result) != v:t_dict || type(get(result, 'edits', 0)) != v:t_list
+    return s:insert_fallback(entry.lhs)
+  endif
+  call org_lsp#apply_edit({'changes': {context.textDocument.uri: result.edits}})
+  if type(get(result, 'cursor', 0)) == v:t_dict
+    let text = getline(result.cursor.line + 1)
+    call cursor(result.cursor.line + 1, s:byte(text, result.cursor.character) + 1)
+  endif
+endfunction
+
+" The key's meaning without the plugin: the buffer's mapping that the
+" plugin's took the place of (a completion plugin's `<CR>`), else the key.
+function! s:insert_fallback(lhs) abort
+  let saved = get(get(b:, 'org_lsp_replaced', {}), a:lhs, {})
+  if empty(saved)
+    return feedkeys(s:keycode(a:lhs), 'ni')
+  endif
+  let rhs = saved.expr ? eval(substitute(saved.rhs, '<SID>', '<SNR>' . saved.sid . '_', 'g')) : s:keycode(saved.rhs)
+  call feedkeys(rhs, (saved.noremap ? 'n' : 'm') . 'i')
+endfunction
+
+" Set the insert-mode keys of buffer `nr` again: an LSP client may have
+" mapped one of them (`<CR>`) after the plugin did. The client's mapping is
+" kept, for where the plugin's does not apply.
+function! org_lsp#remap_insert_keys(nr) abort
+  if a:nr != bufnr() || !exists('b:org_lsp_attached')
+    return
+  endif
+  let replaced = get(b:, 'org_lsp_replaced', {})
+  for index in range(len(s:mapped))
+    let entry = s:mapped[index]
+    if !has_key(s:insert_commands, entry.name) || get(entry, 'buffer', 0) != a:nr
+      continue
+    endif
+    let current = maparg(entry.lhs, 'i', 0, 1)
+    if get(current, 'buffer', 0) && get(current, 'rhs', '') !~# 'org_lsp#insert_key'
+      let replaced[entry.lhs] = current
+    endif
+    execute printf('inoremap <buffer> <silent> %s <Cmd>call org_lsp#insert_key(%d)<CR>', entry.lhs, index)
+  endfor
+  let b:org_lsp_replaced = replaced
+endfunction
+
 " The editing command that `.` repeats.
 let s:last_edit = {}
 
@@ -431,6 +499,9 @@ function! s:keys_in(scope) abort
         if get(key, 'native', v:false)
           let native[key.key] = 1
         endif
+        if get(key, 'mode', '') ==# 'insert'
+          let s:insert_commands[command.command] = 1
+        endif
       endif
     endfor
   endfor
@@ -449,8 +520,12 @@ function! org_lsp#set_keys(scope) abort
   for [name, list] in items(keys)
     let command = s:command(name)
     for lhs in list
-      call add(s:mapped, {'name': name, 'native': get(native, lhs, 0) ? lhs : ''})
+      call add(s:mapped, {'name': name, 'native': get(native, lhs, 0) ? lhs : '', 'lhs': lhs, 'buffer': empty(buffer) ? 0 : bufnr()})
       let index = len(s:mapped) - 1
+      if has_key(s:insert_commands, name)
+        execute printf('inoremap %s <silent> %s <Cmd>call org_lsp#insert_key(%d)<CR>', buffer, lhs, index)
+        continue
+      endif
       let nowait = a:scope ==# 'agenda' && empty(filter(copy(all), {_, o -> o !=# lhs && stridx(o, lhs) == 0})) ? '<nowait>' : ''
       if get(command, 'edits', v:false) && a:scope ==# 'org'
         execute printf('nnoremap %s <silent> <expr> %s org_lsp#repeatable(%d)', buffer, lhs, index)
@@ -459,6 +534,80 @@ function! org_lsp#set_keys(scope) abort
       endif
     endfor
   endfor
+endfunction
+
+" ----- help
+
+let s:scope_titles = {'org': 'Org file', 'capture': 'Capture buffer', 'agenda': 'Agenda', 'global': 'Anywhere'}
+
+" The keys of `scope` as they are set: `[{keys, title}]`, in the order of
+" the server's commands, then the plugin's own.
+function! org_lsp#keys(scope) abort
+  let bound = s:keys_in(a:scope)[0]
+  let out = []
+  let names = map(copy(get(org_lsp#manifest(), 'commands', [])), 'v:val.command') + ['cycle', 'global_cycle', 'quit', 'help']
+  for name in names + sort(keys(bound))
+    if !empty(get(bound, name, []))
+      let command = s:command(name)
+      let title = has_key(s:own, name) ? s:own[name].title : get(command, 'title', name)
+      call add(out, {'keys': remove(bound, name), 'title': title})
+    endif
+  endfor
+  return out
+endfunction
+
+" The lines of the help for `scopes`: a heading for each, then its keys
+" and what they do.
+function! org_lsp#help_lines(scopes) abort
+  let sections = filter(map(copy(a:scopes), {_, scope -> [scope, org_lsp#keys(scope)]}), '!empty(v:val[1])')
+  let width = 0
+  for [_, entries] in sections
+    for entry in entries
+      let width = max([width, strdisplaywidth(join(entry.keys, ', '))])
+    endfor
+  endfor
+  let lines = []
+  for [scope, entries] in sections
+    if !empty(lines)
+      call add(lines, '')
+    endif
+    call add(lines, get(s:scope_titles, scope, scope))
+    for entry in entries
+      let keys = join(entry.keys, ', ')
+      call add(lines, '  ' . keys . repeat(' ', width - strdisplaywidth(keys)) . '  ' . entry.title)
+    endfor
+  endfor
+  return lines
+endfunction
+
+function! s:help_filter(id, key) abort
+  if index(['q', "\<Esc>", 'g'], a:key) >= 0
+    call popup_close(a:id)
+    return 1
+  endif
+  return popup_filter_menu(a:id, a:key)
+endfunction
+
+" Show the keys of the current buffer in a popup; `q` or <Esc> closes it.
+function! org_lsp#help() abort
+  let manifest = org_lsp#manifest()
+  if &filetype ==# get(get(manifest, 'agenda', {}), 'languageId', 'org-agenda')
+    let scopes = ['agenda', 'global']
+  elseif s:is_capture(bufname())
+    let scopes = ['capture', 'org', 'global']
+  else
+    let scopes = ['org', 'global']
+  endif
+  let lines = org_lsp#help_lines(scopes)
+  if empty(lines)
+    echomsg 'org-lsp: no keys are set here'
+    return 0
+  endif
+  return popup_create(lines, {
+        \ 'title': ' Org keys ', 'border': [], 'padding': [0, 1, 0, 1],
+        \ 'pos': 'center', 'maxheight': &lines - 6, 'scrollbar': 1,
+        \ 'filter': function('s:help_filter'), 'mapping': 0, 'zindex': 200,
+        \ })
 endfunction
 
 " ----- buffers the server shows

@@ -12,6 +12,8 @@ import shutil
 import sublime
 import sublime_plugin
 from LSP.plugin import AbstractPlugin
+from LSP.plugin import apply_text_edits
+from LSP.plugin import position_to_offset
 from LSP.plugin import LspTextCommand
 from LSP.plugin import LspWindowCommand
 from LSP.plugin import Request
@@ -121,10 +123,14 @@ class OrgLspRunCommand(LspWindowCommand):
 
     def run(self, command: str, fallback=None) -> None:
         session = self.session_by_name(SESSION)
-        if not session:
-            sublime.status_message('org-lsp: open an Org file first')
-            return
         view = self.window.active_view()
+        if not session:
+            # A key keeps its own meaning without a server (Enter types).
+            if fallback and view:
+                view.run_command(fallback['command'], fallback.get('args'))
+            else:
+                sublime.status_message('org-lsp: open an Org file first')
+            return
         if is_org(view):
             context = text_document_position_params(view, view.sel()[0].b)
         else:
@@ -141,13 +147,25 @@ class OrgLspRunCommand(LspWindowCommand):
 
     def failed(self, view, fallback, error) -> None:
         data = error.get('data') if isinstance(error, dict) else None
-        if fallback and isinstance(data, dict) and data.get('notApplicable'):
+        # A key keeps its own meaning where the command does not apply,
+        # and when it fails: Enter is never lost.
+        if fallback:
             view.run_command(fallback['command'], fallback.get('args'))
-        else:
+        if not (isinstance(data, dict) and data.get('notApplicable')):
             sublime.status_message('org-lsp: {}'.format(error.get('message', error) if isinstance(error, dict) else error))
 
     def done(self, session, view, command, context, fallback, result) -> None:
         result = result if isinstance(result, dict) else {}
+        # The edit and the cursor, carried in the result (`org.return`).
+        if isinstance(result.get('edits'), list):
+            cursor = result.get('cursor')
+
+            def place(_) -> None:
+                if cursor:
+                    point = position_to_offset(cursor, view)
+                    view.sel().clear()
+                    view.sel().add(sublime.Region(point))
+            apply_text_edits(view, result['edits']).then(lambda done: sublime.set_timeout(lambda: place(done)))
         if isinstance(result.get('save'), list):
             save(result['save'])
         if isinstance(result.get('message'), str):
@@ -181,6 +199,56 @@ def ask(window, request, then) -> None:
         window.show_quick_panel(items, picked, placeholder=request.get('prompt', ''))
         return
     window.show_input_panel(request.get('prompt', '') + ':', request.get('value', ''), then, None, None)
+
+
+# ----- help
+
+def key_label(keys) -> str:
+    return ' '.join('+'.join(part.capitalize() if len(part) > 1 else part.upper() if '+' in key else part
+                             for part in key.split('+')) for key in keys)
+
+
+def help_items(view):
+    """The keys the package binds where `view` is, with the preset in
+    `org_keys`: `[(keys, title, command, args)]`."""
+    preset = settings().get('org_keys', 'emacs')
+    keymap = sublime.decode_value(sublime.load_resource('Packages/{}/Default.sublime-keymap'.format(SESSION)))
+    palette = sublime.decode_value(sublime.load_resource('Packages/{}/{}.sublime-commands'.format(SESSION, SESSION)))
+    titles = {}
+    for entry in palette:
+        name = (entry.get('args') or {}).get('command') or entry['command']
+        titles[name] = entry['caption'][len('Org: '):]
+    capture = OrgLspListener().on_query_context(view, 'org_lsp.capture', sublime.OP_EQUAL, True, False)
+    items = []
+    for binding in keymap:
+        context = {entry['key']: entry['operand'] for entry in binding.get('context', [])}
+        if context.get('org_lsp.keys') != preset:
+            continue
+        if not view.match_selector(0, context.get('selector', '')):
+            continue
+        if context.get('org_lsp.capture') and not capture:
+            continue
+        name = (binding.get('args') or {}).get('command') or binding['command']
+        items.append((key_label(binding['keys']), titles.get(name, name), binding['command'], binding.get('args')))
+    return items
+
+
+class OrgLspHelpCommand(sublime_plugin.WindowCommand):
+    """The keys of the view at hand, in the quick panel; picking one runs it."""
+
+    def run(self) -> None:
+        view = self.window.active_view()
+        items = help_items(view) if view else []
+        if not items:
+            sublime.status_message('org-lsp: no keys are bound here')
+            return
+
+        def picked(index: int) -> None:
+            if index >= 0:
+                _, _, command, args = items[index]
+                target = self.window if command == 'org_lsp_run' else view
+                target.run_command(command, args)
+        self.window.show_quick_panel([[title, keys] for keys, title, _, _ in items], picked, placeholder='Org keys')
 
 
 # ----- visibility cycling
