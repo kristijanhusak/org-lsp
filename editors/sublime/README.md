@@ -40,7 +40,9 @@ restarts the server.
 **Highlighting.** The package's syntaxes color Org files and the agenda
 by their patterns: headlines by level, TODO keywords, priorities, tags,
 planning lines and timestamps, drawers and properties, lists and
-checkboxes, links, emphasis, tables, blocks and comments; in the agenda
+checkboxes, links, emphasis, tables, blocks and comments, and the code of
+source blocks in its language's syntax for the languages Sublime Text
+ships (`#+begin_src python`); in the agenda
 the days, schedules, deadlines and the time grid. The server's colors
 (semantic tokens) go further, with the TODO keywords of your files, the
 agenda's today, weekends and overdue items, the clocked entry. LSP draws

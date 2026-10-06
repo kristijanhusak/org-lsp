@@ -1,0 +1,686 @@
+{
+  "name": "Org",
+  "scopeName": "text.org",
+  "patterns": [
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:python|py)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.python",
+      "patterns": [
+        {
+          "include": "source.python"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:js|javascript)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.javascript",
+      "patterns": [
+        {
+          "include": "source.js"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:ts|typescript)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.typescript",
+      "patterns": [
+        {
+          "include": "source.ts"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:sh|shell|bash|zsh)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.shellscript",
+      "patterns": [
+        {
+          "include": "source.shell"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:rust)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.rust",
+      "patterns": [
+        {
+          "include": "source.rust"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:go)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.go",
+      "patterns": [
+        {
+          "include": "source.go"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:c)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.c",
+      "patterns": [
+        {
+          "include": "source.c"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:c\\+\\+|cpp)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.cpp",
+      "patterns": [
+        {
+          "include": "source.cpp"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:java)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.java",
+      "patterns": [
+        {
+          "include": "source.java"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:ruby|rb)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.ruby",
+      "patterns": [
+        {
+          "include": "source.ruby"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:lua)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.lua",
+      "patterns": [
+        {
+          "include": "source.lua"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:json)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.json",
+      "patterns": [
+        {
+          "include": "source.json"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:yaml|yml)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.yaml",
+      "patterns": [
+        {
+          "include": "source.yaml"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:html)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.html",
+      "patterns": [
+        {
+          "include": "text.html.basic"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:css)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.css",
+      "patterns": [
+        {
+          "include": "source.css"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:sql|sqlite)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.sql",
+      "patterns": [
+        {
+          "include": "source.sql"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:clojure)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.clojure",
+      "patterns": [
+        {
+          "include": "source.clojure"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:perl)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.perl",
+      "patterns": [
+        {
+          "include": "source.perl"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:r)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.r",
+      "patterns": [
+        {
+          "include": "source.r"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:csharp)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.csharp",
+      "patterns": [
+        {
+          "include": "source.cs"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:objc)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.objective-c",
+      "patterns": [
+        {
+          "include": "source.objc"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:groovy)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.groovy",
+      "patterns": [
+        {
+          "include": "source.groovy"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:markdown|md)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.markdown",
+      "patterns": [
+        {
+          "include": "text.html.markdown"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:xml)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.xml",
+      "patterns": [
+        {
+          "include": "text.xml"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:latex)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.latex",
+      "patterns": [
+        {
+          "include": "text.tex.latex"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:diff)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.diff",
+      "patterns": [
+        {
+          "include": "source.diff"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:makefile)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.makefile",
+      "patterns": [
+        {
+          "include": "source.makefile"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:bat)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.bat",
+      "patterns": [
+        {
+          "include": "source.batchfile"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:dockerfile)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.dockerfile",
+      "patterns": [
+        {
+          "include": "source.dockerfile"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:swift)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.swift",
+      "patterns": [
+        {
+          "include": "source.swift"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:powershell)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.powershell",
+      "patterns": [
+        {
+          "include": "source.powershell"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:fsharp)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.fsharp",
+      "patterns": [
+        {
+          "include": "source.fsharp"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:julia)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.julia",
+      "patterns": [
+        {
+          "include": "source.julia"
+        }
+      ]
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:ini|conf)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.org"
+        }
+      },
+      "contentName": "meta.embedded.block.ini",
+      "patterns": [
+        {
+          "include": "source.ini"
+        }
+      ]
+    }
+  ]
+}

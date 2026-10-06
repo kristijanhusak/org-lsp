@@ -2240,5 +2240,119 @@
   "text": "* Head [/]\n1. [ ] item [/]\n¦1. [-] b [/]\n1. [ ] item\n",
   "command": "checkbox",
   "expected": "* Head [1/3]\n1. [ ] item [0/0]\n1. [X] b [0/0]\n1. [ ] item\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Write¦\n",
+  "command": "note",
+  "note": "Started on it",
+  "expected": "* TODO Write\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  Started on it"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Write\nSome text¦.\n",
+  "command": "note",
+  "note": "In the body",
+  "expected": "* TODO Write\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  In the body\nSome text.\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Write¦\nSCHEDULED: <2026-05-19 Tue>\nText.\n",
+  "command": "note",
+  "note": "After planning",
+  "expected": "* TODO Write\nSCHEDULED: <2026-05-19 Tue>\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  After planning\nText.\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Write¦\n:PROPERTIES:\n:ID: x\n:END:\nText.\n",
+  "command": "note",
+  "note": "After properties",
+  "expected": "* Write\n:PROPERTIES:\n:ID: x\n:END:\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  After properties\nText.\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Write¦\n- Note taken on [2026-05-17 Sun 09:00] \\\\\n  old\nText.\n",
+  "command": "note",
+  "note": "Above the old one",
+  "expected": "* Write\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  Above the old one\n- Note taken on [2026-05-17 Sun 09:00] \\\\\n  old\nText.\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Write¦\n",
+  "command": "note",
+  "note": "",
+  "expected": "* Write\n- Note taken on [2026-05-18 Mon 10:30]"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Write¦\n",
+  "command": "note",
+  "note": "Line one\nline two\n\nline four",
+  "expected": "* Write\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  Line one\n  line two\n\n  line four"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Write¦\n",
+  "command": "note",
+  "note": "Into the drawer",
+  "options": {
+   "logIntoDrawer": true
+  },
+  "expected": "* Write\n:LOGBOOK:\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  Into the drawer\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Write¦\nSCHEDULED: <2026-05-19 Tue>\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-05-17 Sun 09:00]\n:END:\n",
+  "command": "note",
+  "note": "Existing drawer",
+  "options": {
+   "logIntoDrawer": true
+  },
+  "expected": "* Write\nSCHEDULED: <2026-05-19 Tue>\n:LOGBOOK:\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  Existing drawer\n- State \"DONE\"       from \"TODO\"       [2026-05-17 Sun 09:00]\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Write¦\n",
+  "command": "note",
+  "note": "Named drawer",
+  "options": {
+   "logIntoDrawer": "NOTES"
+  },
+  "expected": "* Write\n:NOTES:\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  Named drawer\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* A\n** Child¦\nText.\n* B\n",
+  "command": "note",
+  "note": "On a child",
+  "expected": "* A\n** Child\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  On a child\nText.\n* B\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "Before¦ any headline\n* A\n",
+  "command": "note",
+  "note": "Nowhere",
+  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Write¦\n",
+  "command": "note",
+  "note": "Indented",
+  "options": {
+   "adaptIndentation": true
+  },
+  "expected": "* Write\n  - Note taken on [2026-05-18 Mon 10:30] \\\\\n    Indented"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Write\n** Sub¦\n",
+  "command": "note",
+  "note": "Sub, indented",
+  "options": {
+   "adaptIndentation": true,
+   "logIntoDrawer": true
+  },
+  "expected": "* Write\n** Sub\n   :LOGBOOK:\n   - Note taken on [2026-05-18 Mon 10:30] \\\\\n     Sub, indented\n   :END:\n"
  }
 ]

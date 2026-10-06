@@ -319,13 +319,35 @@ impl View {
         self.today_line.unwrap_or(if self.lines.len() > 1 { 1 } else { 0 })
     }
 
+    /// The days block `block` shows, in order.
+    fn days_of(&self, block: usize) -> Vec<Day> {
+        let mut days: Vec<Day> = Vec::new();
+        for day in self.lines.iter().filter(|line| line.block == block).filter_map(|line| line.day) {
+            if days.last() != Some(&day) {
+                days.push(day);
+            }
+        }
+        days
+    }
+
+    /// `org-day-cnt`: which of the days its block shows line `line` stands
+    /// under, counted from 0; none on a line under no day.
+    pub fn day_count(&self, line: u32) -> Option<usize> {
+        let line = self.line(line)?;
+        let day = line.day?;
+        self.days_of(line.block).iter().position(|shown| *shown == day)
+    }
+
     /// The line the cursor goes to in block `block` once it has moved to
-    /// other days: the first line of `day` if the block shows it, else
-    /// today's, else the block's first day.
-    pub fn block_line(&self, block: usize, day: Option<Day>) -> u32 {
+    /// other days: the first line of `day` if the block shows it, else of
+    /// its `count`th day (`org-agenda-find-same-or-today-or-agenda`: the
+    /// same place in the new days), else today's, else the block's first
+    /// day.
+    pub fn block_line(&self, block: usize, day: Option<Day>, count: Option<usize>) -> u32 {
         let lines = || self.lines.iter().enumerate().filter(|(_, line)| line.block == block);
         let first_of = |wanted: Day| lines().find(|(_, line)| line.day == Some(wanted)).map(|(number, _)| number);
         day.and_then(first_of)
+            .or_else(|| count.and_then(|count| self.days_of(block).get(count).copied()).and_then(first_of))
             .or_else(|| first_of(self.today))
             .or_else(|| lines().find(|(_, line)| line.day.is_some()).map(|(number, _)| number))
             .map_or_else(|| self.home_line(), |number| number as u32)

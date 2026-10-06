@@ -500,6 +500,26 @@ fn moves_through_time_and_changes_span() {
     let requests = client.command("org.agenda.today", VIEW, 5);
     assert_eq!(methods(&requests), ["window/showDocument"]);
 
+    // `org-agenda-later` and `-earlier` keep the cursor on the same day
+    // among the days shown (`org-day-cnt`): from Wednesday, or a line under
+    // it, to the Wednesday of the next week and back; from the title, where
+    // there is no day, to today or else the first day.
+    let at_cursor = |requests: &[Request], text: &str| {
+        let shown = requests.iter().find(|request| request.method == "window/showDocument").unwrap();
+        text.lines().nth(shown.params["selection"]["start"]["line"].as_u64().unwrap() as usize).unwrap().to_string()
+    };
+    let wednesday = text.lines().position(|line| line.starts_with("Wednesday")).unwrap() as u32;
+    assert!(text.lines().nth(wednesday as usize + 1).unwrap().starts_with("  work:"));
+    let (requests, later) = client.view_command("org.agenda.later", wednesday + 1);
+    assert_eq!(at_cursor(&requests, &later), "Wednesday  27 May 2026");
+    let wednesday = later.lines().position(|line| line.starts_with("Wednesday")).unwrap() as u32;
+    let (requests, earlier) = client.view_command("org.agenda.earlier", wednesday);
+    assert_eq!(at_cursor(&requests, &earlier), "Wednesday  20 May 2026");
+    let (requests, later) = client.view_command("org.agenda.later", 0);
+    assert_eq!(at_cursor(&requests, &later), "Monday     25 May 2026 W22");
+    let (requests, earlier) = client.view_command("org.agenda.earlier", 0);
+    assert_eq!(at_cursor(&requests, &earlier), "Monday     18 May 2026 W21");
+
     // The day view starts from the day under the cursor.
     let lines: Vec<&str> = text.lines().collect();
     let wednesday = lines.iter().position(|line| line.starts_with("Wednesday")).unwrap() as u32;
@@ -2729,4 +2749,186 @@ fn captures_into_a_file() {
     );
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
+}
+
+/// `org-open-at-point` (`org.open`): an internal link moves the cursor in
+/// its file, a URL goes to the system, a `file:` link and an `id:` link
+/// open the other file at their place, a timestamp opens the agenda of its
+/// day, the links of an entry are offered by key; go to definition answers
+/// for links too, and on an agenda line the links of its entry open.
+#[test]
+fn opens_links() {
+    let root = std::env::temp_dir().join(format!("org-lsp-open-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let notes = "* Notes\n* Two\n:PROPERTIES:\n:ID: two-id\n:END:\n";
+    std::fs::write(root.join("notes.org"), notes).unwrap();
+    let text = "* TODO Read [[https://orgmode.org][the manual]]\nSCHEDULED: <2026-05-19 Tue>\n\
+                See [[*Target]], [[file:notes.org::*Two]] and [[id:two-id]].\n* Target\n";
+    std::fs::write(root.join("work.org"), text).unwrap();
+    let root_uri = format!("file://{}", root.display());
+    let work = format!("{root_uri}/work.org");
+    let mut client = Client::editor(clock(), Some(&root_uri));
+    client.open(&work, text);
+    let open = |client: &mut Client, line: u32, character: u32, input: Option<&str>| {
+        client.received.clear();
+        let mut context =
+            json!({ "textDocument": { "uri": work }, "position": { "line": line, "character": character } });
+        if let Some(input) = input {
+            context["input"] = json!(input);
+        }
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }));
+        client.settle();
+        let shown = client
+            .received
+            .iter()
+            .find(|request| request.method == "window/showDocument")
+            .map(|request| request.params.clone());
+        (result, shown)
+    };
+    // `[[*Target]]`: the headline, in the same file.
+    let (_, shown) = open(&mut client, 2, 6, None);
+    let shown = shown.unwrap();
+    assert_eq!(shown["uri"], work);
+    assert_eq!(shown["selection"]["start"], json!({ "line": 3, "character": 0 }));
+    // `[[file:notes.org::*Two]]` and `[[id:two-id]]`: the other file.
+    for character in [20, 47] {
+        let (_, shown) = open(&mut client, 2, character, None);
+        let shown = shown.unwrap();
+        assert_eq!(shown["uri"], format!("{root_uri}/notes.org"));
+        assert_eq!(shown["selection"]["start"], json!({ "line": 1, "character": 0 }));
+    }
+    // A URL is for the system.
+    let (_, shown) = open(&mut client, 0, 20, None);
+    let shown = shown.unwrap();
+    assert_eq!(shown["uri"], "https://orgmode.org");
+    assert_eq!(shown["external"], true);
+    // A timestamp: the agenda of its day.
+    let (_, shown) = open(&mut client, 1, 14, None);
+    assert_eq!(shown.unwrap()["uri"], VIEW);
+    assert!(client.view_text(VIEW).starts_with("Day-agenda (W21):\nTuesday    19 May 2026\n"));
+    // The links of the entry, offered by key, and the one picked opened.
+    let (result, _) = open(&mut client, 0, 2, None);
+    let input = &result.unwrap()["input"];
+    assert_eq!(input["kind"], "key");
+    let labels: Vec<&str> =
+        input["choices"].as_array().unwrap().iter().map(|choice| choice["label"].as_str().unwrap()).collect();
+    assert_eq!(labels, ["the manual (https://orgmode.org)", "*Target", "file:notes.org::*Two", "id:two-id"]);
+    let (_, shown) = open(&mut client, 0, 2, Some("2"));
+    assert_eq!(shown.unwrap()["selection"]["start"], json!({ "line": 3, "character": 0 }));
+    // Go to definition on a link.
+    let found = client
+        .request(
+            "textDocument/definition",
+            json!({ "textDocument": { "uri": work }, "position": { "line": 2, "character": 6 } }),
+        )
+        .unwrap();
+    assert_eq!(found["range"]["start"], json!({ "line": 3, "character": 0 }));
+    // On an agenda line (`org-agenda-open-link`): the links of its entry.
+    client.command("org.agenda.list", VIEW, 0);
+    let agenda = client.view_text(VIEW);
+    let line = agenda.lines().position(|line| line.contains("Read the manual")).unwrap() as u32;
+    let result = client.request(
+        "workspace/executeCommand",
+        json!({ "command": "org.open", "arguments": [{ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } }] }),
+    );
+    assert_eq!(result.unwrap()["input"]["choices"].as_array().unwrap().len(), 4);
+    // On a planning line, but not on its timestamp: nothing to open.
+    let refused = client.request(
+        "workspace/executeCommand",
+        json!({ "command": "org.open", "arguments": [{ "textDocument": { "uri": work }, "position": { "line": 1, "character": 3 } }] }),
+    );
+    assert_eq!(refused.unwrap_err(), "No link found");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// `org-add-note` (`org.add.note`): asks for the note, then writes it at
+/// the start of the entry's log, headed `Note taken on`; from an agenda
+/// line too (`org-agenda-add-note`).
+#[test]
+fn adds_a_note() {
+    const URI: &str = "file:///org/work.org";
+    let mut text = WORK.to_string();
+    let mut client = Client::editor(clock(), None);
+    client.open(URI, &text);
+    let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 1, "character": 0 } });
+    let asked =
+        client.request("workspace/executeCommand", json!({ "command": "org.add.note", "arguments": [at] })).unwrap();
+    assert_eq!(asked["input"]["kind"], "note");
+    assert_eq!(asked["input"]["prompt"], "Note for this entry");
+    let requests =
+        client.edit("org.add.note", URI, (1, 0), json!({ "input": "Asked for the numbers", "state": "" }), &mut text);
+    assert!(requests.iter().any(|request| request.method == "workspace/applyEdit"));
+    assert!(
+        text.starts_with(
+            "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n\
+             - Note taken on [2026-05-18 Mon 10:30] \\\\\n  Asked for the numbers\n"
+        ),
+        "{text}"
+    );
+    // Before the first headline there is no entry.
+    let refused = client.request(
+        "workspace/executeCommand",
+        json!({ "command": "org.add.note", "arguments": [{ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } }] }),
+    );
+    assert_eq!(refused.unwrap_err(), "Before first headline");
+    // From the agenda, the line's entry.
+    client.command("org.agenda.list", VIEW, 0);
+    let agenda = client.view_text(VIEW);
+    let line = agenda.lines().position(|line| line.contains("Call")).unwrap() as u32;
+    let requests =
+        client.edit("org.add.note", VIEW, (line, 0), json!({ "input": "From the agenda", "state": "" }), &mut text);
+    assert!(requests.iter().any(|request| request.method == "workspace/applyEdit"));
+    assert!(
+        text.contains("DEADLINE: <2026-05-20 Wed>\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  From the agenda\n"),
+        "{text}"
+    );
+    client.shutdown();
+}
+
+/// `org-add-note` in an editor with note buffers: the note is written
+/// there, stored when finished, and not at all when cancelled.
+#[test]
+fn adds_a_note_from_a_note_buffer() {
+    let mut client = Client::with_date_prompt(clock());
+    let open = |client: &mut Client, file: &str| {
+        client.open(file, "* Call\n");
+        client.received.clear();
+        let context = json!({ "textDocument": { "uri": file }, "position": { "line": 0, "character": 2 } });
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.add.note", "arguments": [context] }))
+            .unwrap();
+        client.settle();
+        let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the buffer");
+        let buffer = show.params["uri"].as_str().unwrap().to_string();
+        let text = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
+        assert_eq!(text, "# Insert note for this entry.\n\n\n");
+        buffer
+    };
+    let finish = |client: &mut Client, command: &str, buffer: &str| {
+        client.received.clear();
+        let context = json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } });
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        assert_eq!(result["close"], buffer);
+        client.settle();
+        client
+            .received
+            .iter()
+            .find(|request| request.method == "workspace/applyEdit")
+            .map(|edit| apply("* Call\n", &edits_of(edit).1))
+    };
+    let buffer = open(&mut client, "file:///org/a.org");
+    client.open(&buffer, "# Insert note for this entry.\n\nRang twice\n");
+    assert_eq!(
+        finish(&mut client, "org.capture.finish", &buffer).unwrap(),
+        // As Emacs leaves it: the note at the end of the file, without a
+        // newline after it.
+        "* Call\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  Rang twice"
+    );
+    let buffer = open(&mut client, "file:///org/b.org");
+    assert_eq!(finish(&mut client, "org.capture.abort", &buffer), None);
+    client.shutdown();
 }

@@ -235,6 +235,16 @@
         "category": "Org"
       },
       {
+        "command": "org.add.note",
+        "title": "Add a note to the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.open",
+        "title": "Open the link or thing at the cursor",
+        "category": "Org"
+      },
+      {
         "command": "org.archive.subtree",
         "title": "Archive the subtree",
         "category": "Org"
@@ -2462,6 +2472,16 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
+        "command": "org.add.note",
+        "key": "ctrl+c ctrl+z",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.open",
+        "key": "ctrl+c ctrl+o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
         "command": "org.archive.subtree",
         "key": "ctrl+c ctrl+x ctrl+s",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
@@ -2944,6 +2964,26 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
+        "command": "org.add.note",
+        "key": "z",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.add.note",
+        "key": "z",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.open",
+        "key": "ctrl+c ctrl+o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.open",
+        "key": "ctrl+c ctrl+o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
         "command": "org.archive.subtree",
         "key": "shift+4",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
@@ -3252,6 +3292,49 @@
         "command": "org.calendar.cancel",
         "key": "escape",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "org",
+        "scopeName": "text.org",
+        "path": "./syntaxes/org.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.python": "python",
+          "meta.embedded.block.javascript": "javascript",
+          "meta.embedded.block.typescript": "typescript",
+          "meta.embedded.block.shellscript": "shellscript",
+          "meta.embedded.block.rust": "rust",
+          "meta.embedded.block.go": "go",
+          "meta.embedded.block.c": "c",
+          "meta.embedded.block.cpp": "cpp",
+          "meta.embedded.block.java": "java",
+          "meta.embedded.block.ruby": "ruby",
+          "meta.embedded.block.lua": "lua",
+          "meta.embedded.block.json": "json",
+          "meta.embedded.block.yaml": "yaml",
+          "meta.embedded.block.html": "html",
+          "meta.embedded.block.css": "css",
+          "meta.embedded.block.sql": "sql",
+          "meta.embedded.block.clojure": "clojure",
+          "meta.embedded.block.perl": "perl",
+          "meta.embedded.block.r": "r",
+          "meta.embedded.block.csharp": "csharp",
+          "meta.embedded.block.objective-c": "objective-c",
+          "meta.embedded.block.groovy": "groovy",
+          "meta.embedded.block.markdown": "markdown",
+          "meta.embedded.block.xml": "xml",
+          "meta.embedded.block.latex": "latex",
+          "meta.embedded.block.diff": "diff",
+          "meta.embedded.block.makefile": "makefile",
+          "meta.embedded.block.bat": "bat",
+          "meta.embedded.block.dockerfile": "dockerfile",
+          "meta.embedded.block.swift": "swift",
+          "meta.embedded.block.powershell": "powershell",
+          "meta.embedded.block.fsharp": "fsharp",
+          "meta.embedded.block.julia": "julia",
+          "meta.embedded.block.ini": "ini"
+        }
       }
     ]
   },

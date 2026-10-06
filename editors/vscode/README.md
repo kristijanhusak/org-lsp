@@ -1,7 +1,8 @@
 # Org (org-lsp) for VS Code
 
-Org mode support through the org-lsp language server: highlighting,
-folding, the outline, TODO states, priorities, timestamps and the agenda.
+Org mode support through the org-lsp language server: highlighting
+(the code of source blocks in its own language's colors, for the
+languages VS Code knows), folding, the outline, TODO states, priorities, timestamps and the agenda.
 
 The extension is a thin client. It starts the server and tells it where
 the cursor is when a command runs. The commands, their keys and the token
@@ -32,6 +33,8 @@ All commands are in the Command Palette under **Org**.
 | `Org: Increase the timestamp part or raise the priority`, and the three like it | Org's `S-<up>`, `S-<down>`, `S-<left>`, `S-<right>`: what they do depends on where the cursor is |
 | `Org: Schedule the entry`, `Org: Set the deadline of the entry` | Ask for a date and set it, in an Org file or on an agenda line (`Ctrl+C Ctrl+S`, `Ctrl+C Ctrl+D` there) |
 | `Org: Insert or change a timestamp` / `an inactive timestamp` | Ask for a date and insert it at the cursor, or change the timestamp there |
+| `Org: Open the link or thing at the cursor` | Org's `C-c C-o` (also in the agenda): follows a link to a headline, target, ID or file, opens a URL in the browser, a timestamp or tag in the agenda; on a headline, picks one of the entry's links |
+| `Org: Add a note to the entry` | Org's `C-c C-z` (`z` in the agenda): asks for the note and files it under the heading, as `org-add-note` does |
 | `Org: Agenda: …` | Move through time, go to a date (`j`), change the span, rebuild, go to the entry |
 
 The changes that apply at the cursor are also listed under **Quick Fix…**

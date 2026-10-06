@@ -62,7 +62,7 @@ impl Mode {
 
 /// Link types recognised for plain (`https://…`) and angle (`<https://…>`)
 /// links: Org's defaults plus `attachment`.
-const LINK_TYPES: &[&str] = &[
+pub(crate) const LINK_TYPES: &[&str] = &[
     "https",
     "http",
     "ftp",

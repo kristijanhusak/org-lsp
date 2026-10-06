@@ -252,6 +252,20 @@
     }
   },
   {
+    "caption": "Org: Add a note to the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.add.note"
+    }
+  },
+  {
+    "caption": "Org: Open the link or thing at the cursor",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.open"
+    }
+  },
+  {
     "caption": "Org: Archive the subtree",
     "command": "org_lsp_run",
     "args": {

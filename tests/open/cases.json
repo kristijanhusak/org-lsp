@@ -1,0 +1,667 @@
+[
+ {
+  "files": {
+   "a.org": "See [[B¦]] there.\n* A\nText.\n* B\nBody of B.\n** C\n"
+  },
+  "note": "fuzzy to a headline",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 4,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[¦*B]] there.\n* A\nText.\n* B\nBody of B.\n** C\n"
+  },
+  "note": "starred headline",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 4,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[*B][the ¦description]].\n* A\nText.\n* B\nBody of B.\n** C\n"
+  },
+  "note": "on the description",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 4,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[Buy ¦milk]]\n* TODO [#A] Buy milk [1/2] :home:\n"
+  },
+  "note": "TODO, priority, cookie and tags ignored",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[buy    ¦MILK]]\n* Buy milk\n"
+  },
+  "note": "case and spaces ignored",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[*Buy ¦milk]]\n* COMMENT Buy milk\n"
+  },
+  "note": "COMMENT keyword ignored",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "Go to [[he¦re]].\n\nSome text <<here>> and more.\n* here\n"
+  },
+  "note": "target before headline",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 3,
+    "column": 10
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[*he¦re]]\n\nSome text <<here>>.\n* here\n"
+  },
+  "note": "starred skips targets",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 4,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[Ta¦ble one]]\n\n#+NAME: table one\n| a | b |\n"
+  },
+  "note": "#+NAME",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 3,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[#ab¦c]]\n* A\n* B\n:PROPERTIES:\n:CUSTOM_ID: abc\n:END:\n"
+  },
+  "note": "custom id",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 3,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[#no¦pe]]\n* A\n"
+  },
+  "note": "missing custom id",
+  "expected": {
+   "error": "No match for custom ID: nope"
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[Noth¦ing]]\n* A\n"
+  },
+  "note": "no match",
+  "expected": {
+   "error": "No match for fuzzy expression: Nothing"
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[*Noth¦ing]]\n* A\n"
+  },
+  "note": "no headline",
+  "expected": {
+   "error": "No match for fuzzy expression: *Nothing"
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[(re¦f)]]\n#+begin_src emacs-lisp\n(message \"hi\") (ref:ref)\n#+end_src\n"
+  },
+  "note": "coderef",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 3,
+    "column": 15
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[*B]] [[*A]]¦\n* A\nText.\n* B\nBody of B.\n** C\n"
+  },
+  "note": "after a link",
+  "expected": {
+   "error": "No link found"
+  }
+ },
+ {
+  "files": {
+   "a.org": "Plain ¦text.\n* A\nText.\n* B\nBody of B.\n** C\n"
+  },
+  "note": "no link",
+  "expected": {
+   "error": "No link found"
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[file:b.¦org]]\n",
+   "b.org": "* One\n* Two\n"
+  },
+  "note": "file",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 1,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[./b.¦org]]\n",
+   "b.org": "* One\n* Two\n"
+  },
+  "note": "relative path",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 1,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[file:b.org::*T¦wo]]\n",
+   "b.org": "* One\n* TODO Two :x:\n"
+  },
+  "note": "file and headline",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[file:b.org::#t¦wo]]\n",
+   "b.org": "* One\n* Two\n:PROPERTIES:\n:CUSTOM_ID: two\n:END:\n"
+  },
+  "note": "file and custom id",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[file:b.org::ta¦rget]]\n",
+   "b.org": "* One\nA <<target>> here.\n"
+  },
+  "note": "file and target",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 2,
+    "column": 2
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[file:b.org::¦3]]\n",
+   "b.org": "* One\nline two\nline three\n"
+  },
+  "note": "file and line",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 3,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[file:notes.txt::second ¦line]]\n",
+   "notes.txt": "first line\nthe second line here\n"
+  },
+  "note": "text file and words",
+  "expected": {
+   "goto": {
+    "file": "notes.txt",
+    "line": 2,
+    "column": 4
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[file:sub/c.¦org]]\n",
+   "sub/c.org": "* C\n"
+  },
+  "note": "subdirectory",
+  "expected": {
+   "goto": {
+    "file": "c.org",
+    "line": 1,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[id:abc-¦123]]\n",
+   "b.org": "* One\n* Two\n:PROPERTIES:\n:ID: abc-123\n:END:\n"
+  },
+  "note": "id in another file",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[id:no¦pe]]\n",
+   "b.org": "* One\n"
+  },
+  "note": "missing id",
+  "expected": {
+   "error": "Cannot find entry with ID \"nope\""
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[https://orgmode.org][O¦rg]]\n"
+  },
+  "note": "bracket URL",
+  "expected": {
+   "external": "https://orgmode.org"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See https://orgmode.org/¦manual for more.\n"
+  },
+  "note": "plain URL",
+  "expected": {
+   "external": "https://orgmode.org/manual"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See <https://orgmode.org/¦guide>.\n"
+  },
+  "note": "angle URL",
+  "expected": {
+   "external": "https://orgmode.org/guide"
+  }
+ },
+ {
+  "files": {
+   "a.org": "Mail [[mailto:someone@ex¦ample.com]].\n"
+  },
+  "note": "mailto",
+  "expected": {
+   "external": "mailto:someone@example.com"
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[file:doc.¦pdf]]\n",
+   "doc.pdf": "%PDF\n"
+  },
+  "note": "pdf to the system",
+  "expected": {
+   "system": "doc.pdf"
+  }
+ },
+ {
+  "files": {
+   "a.org": "Meeting <2026-05-18 Mon 1¦0:00>.\n"
+  },
+  "note": "active timestamp",
+  "expected": {
+   "agenda": "2026-05-18",
+   "span": 1
+  }
+ },
+ {
+  "files": {
+   "a.org": "Done [2026-05-18 ¦Mon].\n"
+  },
+  "note": "inactive timestamp",
+  "expected": {
+   "agenda": "2026-05-18",
+   "span": 1
+  }
+ },
+ {
+  "files": {
+   "a.org": "Trip <2026-05-18 Mon>--<2026-05-2¦0 Wed>.\n"
+  },
+  "note": "date range",
+  "expected": {
+   "agenda": "2026-05-18",
+   "span": 3
+  }
+ },
+ {
+  "files": {
+   "a.org": "* TODO Task\nSCHEDULED: <2026-05-1¦9 Tue>\n"
+  },
+  "note": "planning line",
+  "expected": {
+   "agenda": "2026-05-19",
+   "span": 1
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Task\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 1¦0:00]--[2026-05-18 Mon 11:00] =>  1:00\n:END:\n"
+  },
+  "note": "clock line",
+  "expected": {
+   "agenda": "2026-05-18",
+   "span": 1
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Task :work:ho¦me:\n"
+  },
+  "note": "tag",
+  "expected": {
+   "tags": "home"
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Ta¦sk :work:\nSee [[https://orgmode.org]].\n"
+  },
+  "note": "headline with one link",
+  "expected": {
+   "external": "https://orgmode.org"
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Ta¦sk\nSee [[*B][B]] and [[https://orgmode.org]].\n* A\nText.\n* B\nBody of B.\n** C\n"
+  },
+  "answer": "1",
+  "note": "headline, first of two links",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 5,
+    "column": 0
+   },
+   "offered": "[1]  B (*B)\n[2]  https://orgmode.org\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Ta¦sk\nSee [[*B][B]] and [[https://orgmode.org]].\n* A\nText.\n* B\nBody of B.\n** C\n"
+  },
+  "answer": "2",
+  "note": "headline, second of two links",
+  "expected": {
+   "external": "https://orgmode.org",
+   "offered": "[1]  B (*B)\n[2]  https://orgmode.org\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Ta¦sk\nNo links here.\n"
+  },
+  "note": "headline without links",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 1,
+    "column": 4
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "Text[fn:¦1].\n\n[fn:1] The note.\n"
+  },
+  "note": "footnote reference",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 3,
+    "column": 6
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "Text[fn:1].\n\n[fn:¦1] The note.\n"
+  },
+  "note": "footnote definition",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 1,
+    "column": 4
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "# see https://orgmode.org/¦x\n"
+  },
+  "note": "link in a comment",
+  "expected": {
+   "external": "https://orgmode.org/x"
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A\n:PROPERTIES:\n:URL: https://orgmode.org/¦y\n:END:\n"
+  },
+  "note": "link in a property",
+  "expected": {
+   "external": "https://orgmode.org/y"
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+TITLE: see https://orgmode.org/¦z\n"
+  },
+  "note": "link in a keyword",
+  "expected": {
+   "external": "https://orgmode.org/z"
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[*A]] and [[*¦A]]\n* A\n* A\n"
+  },
+  "note": "first of two headlines",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "- item [[*¦B]]\n* A\nText.\n* B\nBody of B.\n** C\n"
+  },
+  "note": "in a list",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 4,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A\nSome te¦xt, see [[*B]].\n* B\n"
+  },
+  "note": "text in an entry with one link",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 3,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A\nSome te¦xt.\n** Child [[*B]]\n* B\n"
+  },
+  "note": "links of a child entry are not offered",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 7
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* TODO A\nSCHEDULED: ¦<2026-05-19 Tue>\n"
+  },
+  "note": "planning keyword, not a timestamp",
+  "expected": {
+   "agenda": "2026-05-19",
+   "span": 1
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A\nSCHE¦DULED: <2026-05-19 Tue>\n"
+  },
+  "note": "planning line before the timestamp",
+  "expected": {
+   "error": "No link found"
+  }
+ },
+ {
+  "files": {
+   "a.org": "Text[fn:1].\n\n[fn:1] The ¦note.\n"
+  },
+  "note": "in a footnote definition's text",
+  "expected": {
+   "error": "No link found"
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[http://example.com/a?b=¦c][x]]\n"
+  },
+  "note": "http with a query",
+  "expected": {
+   "external": "http://example.com/a?b=c"
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[doi:10.1000/¦182]]\n"
+  },
+  "note": "doi",
+  "expected": {
+   "external": "https://doi.org/10.1000/182"
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[file:b.org::Some ¦words]]\n",
+   "b.org": "* One\nSome words here.\n* Some words\n"
+  },
+  "note": "file search prefers a headline",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 3,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[file:doc.ht¦ml]]\n",
+   "doc.html": "<html/>\n"
+  },
+  "note": "html to the system",
+  "expected": {
+   "system": "doc.html"
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[*B][¦*bold* desc]]\n* A\nText.\n* B\nBody of B.\n** C\n"
+  },
+  "note": "on emphasis in a description",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 4,
+    "column": 0
+   }
+  }
+ }
+]

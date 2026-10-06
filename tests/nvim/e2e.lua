@@ -736,6 +736,42 @@ vim.cmd('normal! \27')
 eq(vim.api.nvim_buf_get_lines(0, 3, 5, false), { tagged('* B', ':y:'), '| e | f |' }, 'the selected lines formatted')
 eq(line(1), '* A :x:', 'the headline before the selection as it was')
 
+-- 16b. Source blocks show their code in its language's colors.
+local code = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* Code', '#+begin_src lua', 'local x = 1', '#+end_src', '', 'See [[*Code]].' }, code)
+vim.cmd.edit(code)
+wait('the server to attach to the file with code', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+local marks = vim.api.nvim_buf_get_extmarks(0, require('org-lsp.src').namespace, { 2, 0 }, { 2, -1 }, { details = true })
+eq(marks[1] and marks[1][4].hl_group, '@keyword.lua', '`local` in the colors of Lua')
+
+-- 16c. `<Leader>oo` (`org-open-at-point`) follows the link at the cursor.
+vim.api.nvim_win_set_cursor(0, { 6, 8 })
+press('<Leader>oo')
+wait('the cursor on the headline the link names', function()
+  return vim.api.nvim_win_get_cursor(0)[1] == 1
+end)
+
+-- 16d. `<Leader>ona` (`org-add-note`) takes the note in a buffer of its
+-- own, and writes it in the entry.
+press('<Leader>ona')
+wait('the note buffer', function()
+  return vim.fs.basename(vim.api.nvim_buf_get_name(0)) == 'CAPTURE-Note.org'
+end)
+eq(line(1), '# Insert note for this entry.', 'what the note is for')
+vim.api.nvim_buf_set_lines(0, 2, 3, false, { 'Looked at it' })
+vim.cmd('stopinsert')
+press('<C-c>')
+wait('the note in the entry', function()
+  local lines = vim.fn.readfile(code)
+  local buffer = vim.fn.bufnr(code)
+  if buffer ~= -1 then
+    lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+  end
+  return lines[3] == '  Looked at it'
+end)
+
 -- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'

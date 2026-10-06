@@ -68,6 +68,12 @@ require('org-lsp').setup({
   -- arrives.
   replace_syntax = true,
 
+  -- Highlight the code of source blocks (`#+begin_src python`) with the
+  -- tree-sitter parser of its language and its highlight query, as
+  -- Emacs's `org-src-fontify-natively` does. A language whose parser is
+  -- not installed stays as it is.
+  src_highlight = true,
+
   -- Conceal what the server marks hidden: link brackets and targets
   -- (`linkDescriptive`), emphasis markers (`hideEmphasisMarkers`). Sets
   -- 'conceallevel' 2 in Org windows; the cursor line shows everything.

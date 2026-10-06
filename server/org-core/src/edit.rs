@@ -44,6 +44,9 @@ pub enum Command {
     AgendaDate { forward: bool },
     /// `org-toggle-checkbox`, and the cookies that count checkboxes.
     Checkbox,
+    /// `org-add-note`: the note of the call. Without one, the outcome
+    /// asks for its text.
+    Note,
 }
 
 /// Settings, named after Org's variables.
@@ -153,6 +156,25 @@ pub fn run(
             };
             priority::change(text, parse.todo_keywords(), offset, *action, call.repeated, &priority).map(unplaced)
         }
+        Command::Note => match (&call.note, call.skip_note) {
+            (_, true) => Ok(unplaced(text.to_string())),
+            (Some(note), false) => todo::add_note(text, parse.todo_keywords(), offset, &settings.todo, call.now, note)
+                .map(unplaced)
+                .map_err(|message| {
+                    if message == "Before first headline" {
+                        Refusal::NotHere(message)
+                    } else {
+                        Refusal::Failed(message)
+                    }
+                }),
+            (None, false) => {
+                // On a headline only, as Emacs refuses before the first.
+                todo::add_note(text, parse.todo_keywords(), offset, &settings.todo, call.now, "")
+                    .map_err(Refusal::NotHere)?;
+                let wanted = todo::WantedNote { purpose: "this entry".to_string(), state: None };
+                Ok(Outcome { text: text.to_string(), cursor: None, note: Some(wanted) })
+            }
+        },
         Command::Checkbox => {
             crate::checkbox::toggle(text, parse.todo_keywords(), offset, settings.todo.tags_column).map(unplaced)
         }

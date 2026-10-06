@@ -58,6 +58,20 @@ fn todo_changes_match_emacs() {
             }
             continue;
         }
+        // `org-add-note`, with the case's note.
+        if case["command"] == "note" {
+            let note = case.get("note").and_then(Value::as_str).unwrap_or("");
+            let now = clock(case["clock"].as_str().unwrap());
+            let actual = org_core::todo::add_note(&text, &keywords, offset, &options.todo_settings(), now, note)
+                .unwrap_or_else(|error| format!("ERROR: {error}"));
+            compared += 1;
+            if actual != expected {
+                failed += 1;
+                failures
+                    .push_str(&format!("\ncase {index} (note):\n{marked}\nexpected:\n{expected}\nactual:\n{actual}\n"));
+            }
+            continue;
+        }
         let target = match &case["command"] {
             Value::String(name) if name == "next" => Some(Target::Next),
             Value::String(name) if name == "previous" => Some(Target::Previous),
