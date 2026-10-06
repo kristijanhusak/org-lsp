@@ -2425,6 +2425,56 @@ fn captures_from_no_document() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// `org.capture.finish` with the buffer's text: a client may tell the
+/// server of the last changes only after the command (coc.nvim waits),
+/// and the text it sends is what gets filed. Text sent from another
+/// buffer is not taken for the capture buffer's.
+#[test]
+fn files_the_capture_buffer_text_the_command_comes_with() {
+    let root = workspace("capture-text");
+    let notes = root.join("notes.org");
+    std::fs::write(&notes, "* Old\n").unwrap();
+    let mut options = clock();
+    options["defaultNotesFile"] = json!(notes.display().to_string());
+    options["captureTemplates"] = json!([{ "key": "n", "description": "Note", "template": "* %?" }]);
+    let mut client = Client::editor(options, None);
+    let notes_uri = format!("file://{}", notes.display());
+    client.open(&notes_uri, "* Old\n");
+    let at = json!({ "textDocument": { "uri": notes_uri }, "position": { "line": 0, "character": 0 }, "input": "n" });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [at] })).unwrap();
+    client.settle();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the buffer");
+    let buffer = show.params["uri"].as_str().unwrap().to_string();
+    let shown = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
+    client.open(&buffer, &shown);
+    let finish = |client: &mut Client, uri: &str, text: &str| {
+        client.received.clear();
+        let context =
+            json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "text": text });
+        client.request("workspace/executeCommand", json!({ "command": "org.capture.finish", "arguments": [context] }))
+    };
+    // No change of the buffer has reached the server; the text has it.
+    finish(&mut client, &buffer, "* Call mom\n").unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    assert_eq!(apply("* Old\n", &edits), "* Old\n* Call mom\n");
+
+    // From another buffer, its text is not the capture's.
+    let at = json!({ "textDocument": { "uri": notes_uri }, "position": { "line": 0, "character": 0 }, "input": "n" });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [at] })).unwrap();
+    client.settle();
+    finish(&mut client, &notes_uri, "* Not this\n").unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    assert!(!apply("* Old\n", &edits).contains("Not this"));
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 /// `org-capture`: a template picked by its keys, a question answered, the
 /// capture buffer shown as a file of its own, and its text put under the
 /// target headline when the capture finishes.

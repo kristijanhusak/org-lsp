@@ -160,6 +160,10 @@ struct Context {
     /// The answers to the questions of `org.archive.done` so far, `y` or
     /// `n` each; `input` is then the next one.
     answers: Option<String>,
+    /// The text of the buffer the command runs in, as the editor has it:
+    /// a capture or note buffer whose last changes the server may not have
+    /// heard of yet.
+    text: Option<String>,
 }
 
 /// What `org.capture` is run with. Capturing needs no document: from
@@ -1755,15 +1759,22 @@ impl Server {
                 }) =>
             {
                 let note = self.note.take().expect("a note");
-                self.finish_note(note, params.command == commands::CAPTURE_ABORT)
+                let text = context.and_then(|context| context.text);
+                self.finish_note(note, params.command == commands::CAPTURE_ABORT, text)
             }
-            commands::CAPTURE_FINISH => self.finish_capture(),
+            commands::CAPTURE_FINISH => {
+                let text = self.capture_buffer_text(context.as_ref());
+                self.finish_capture(text)
+            }
             commands::CAPTURE_ABORT => {
                 let capture = self.capture.take().ok_or("No capture is going on")?;
                 self.message = Some("Capture process aborted and target buffer cleaned up".to_string());
                 Ok(json!({ "close": capture.uri }))
             }
-            commands::CAPTURE_REFILE => self.refile_capture(context.and_then(|context| context.input).as_deref()),
+            commands::CAPTURE_REFILE => {
+                let text = self.capture_buffer_text(context.as_ref());
+                self.refile_capture(context.and_then(|context| context.input).as_deref(), text)
+            }
             id if id.starts_with("org.clock.") => self.clock_command(id, context.as_ref()),
             id if id == commands::TODO || actions::command(id).is_some() => self.run_edit(id, context),
             id if commands::input(id).is_some() => {
@@ -2865,10 +2876,18 @@ impl Server {
 
     /// `org-store-log-note`: the state change with the note written in its
     /// buffer, or without any (cancelled), and the buffer closed.
-    fn finish_note(&mut self, note: Noting, cancelled: bool) -> std::result::Result<Value, Refusal> {
-        let written = match self.document(&note.uri) {
-            Some(document) => document.text.clone(),
-            None => uri::to_path(&note.uri).and_then(|path| std::fs::read_to_string(path).ok()).unwrap_or_default(),
+    fn finish_note(
+        &mut self,
+        note: Noting,
+        cancelled: bool,
+        text: Option<String>,
+    ) -> std::result::Result<Value, Refusal> {
+        let written = match (text, self.document(&note.uri)) {
+            (Some(text), _) => text,
+            (None, Some(document)) => document.text.clone(),
+            (None, None) => {
+                uri::to_path(&note.uri).and_then(|path| std::fs::read_to_string(path).ok()).unwrap_or_default()
+            }
         };
         // The comment lines at the top go, and blanks at the end.
         let mut text = written.as_str();
@@ -2905,18 +2924,33 @@ impl Server {
         }
     }
 
-    /// The text of the capture buffer, as the editor has it.
-    fn capture_text(&self, capture: &Capturing) -> String {
-        match self.document(&capture.uri) {
-            Some(document) => document.text.clone(),
-            None => uri::to_path(&capture.uri).and_then(|path| std::fs::read_to_string(path).ok()).unwrap_or_default(),
+    /// The text a command came with, when it runs in the capture buffer.
+    fn capture_buffer_text(&self, context: Option<&Context>) -> Option<String> {
+        let context = context?;
+        let capture = self.capture.as_ref()?;
+        (context.text_document.uri == capture.uri).then(|| context.text.clone()).flatten()
+    }
+
+    /// The text of the capture buffer, as the editor has it: the text the
+    /// command came with, or the server's copy.
+    fn capture_text(&self, capture: &Capturing, given: Option<String>) -> String {
+        match (given, self.document(&capture.uri)) {
+            (Some(text), _) => text,
+            (None, Some(document)) => document.text.clone(),
+            (None, None) => {
+                uri::to_path(&capture.uri).and_then(|path| std::fs::read_to_string(path).ok()).unwrap_or_default()
+            }
         }
     }
 
     /// The target file once the capture buffer's text goes in: where the
     /// template was placed, or placed again when the file has changed.
-    fn captured(&mut self, capture: &Capturing) -> std::result::Result<(String, Option<i32>, String), Refusal> {
-        let edited = self.capture_text(capture);
+    fn captured(
+        &mut self,
+        capture: &Capturing,
+        given: Option<String>,
+    ) -> std::result::Result<(String, Option<i32>, String), Refusal> {
+        let edited = self.capture_text(capture, given);
         let (now, version, keywords) = self
             .with_source(&capture.target, |text, _, parse, _, version| {
                 (text.to_string(), version, parse.todo_keywords().clone())
@@ -2961,22 +2995,22 @@ impl Server {
     /// `org-capture-finalize` (`C-c C-c`): the text of the capture buffer
     /// goes to its target, and the buffer closes. The target is left for
     /// the user to save.
-    fn finish_capture(&mut self) -> std::result::Result<Value, Refusal> {
+    fn finish_capture(&mut self, text: Option<String>) -> std::result::Result<Value, Refusal> {
         let capture = self.capture.take().ok_or("No capture is going on")?;
-        let (now, version, done) = self.captured(&capture)?;
+        let (now, version, done) = self.captured(&capture, text)?;
         self.apply_capture(&capture.target, version, &now, &done);
         Ok(json!({ "close": capture.uri }))
     }
 
     /// `org-capture-refile` (`C-c C-w`): the entry goes to its target, and
     /// from there under a refile target.
-    fn refile_capture(&mut self, answer: Option<&str>) -> std::result::Result<Value, Refusal> {
+    fn refile_capture(&mut self, answer: Option<&str>, text: Option<String>) -> std::result::Result<Value, Refusal> {
         let capture = self.capture.take().ok_or("No capture is going on")?;
         if capture.spec.1 != capture::Kind::Entry {
             self.capture = Some(capture);
             return Err("Refiling from a capture buffer makes only sense for `entry'-type templates".into());
         }
-        let (_, _, done) = self.captured(&capture)?;
+        let (_, _, done) = self.captured(&capture, text)?;
         // The entry starts where the buffer's text does, after any blank lines.
         let start = capture.placed.start + done[capture.placed.start..].len()
             - done[capture.placed.start..].trim_start_matches(['\n', ' ', '\t']).len();

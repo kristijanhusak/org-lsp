@@ -278,6 +278,11 @@ function! org_lsp#run(name, ...) abort
   if get(opts, 'count', 0) > 0
     let context.count = opts.count
   endif
+  " Filing a capture or a note takes the buffer's text as it is here: some
+  " clients tell the server of the last changes only a while later.
+  if index(['org.capture.finish', 'org.capture.refile'], a:name) >= 0
+    let context.text = join(getline(1, '$'), "\n") . (&eol || &fixeol ? "\n" : '')
+  endif
   call s:execute(nr, a:name, context, opts)
 endfunction
 
