@@ -50,11 +50,22 @@ pub(crate) type Struct = Vec<Item>;
 
 // ----- lines
 
+/// `at` moved back to the start of the character it is in. Positions
+/// that Emacs's list code computes from stale data can fall anywhere.
+fn char_start(text: &str, at: usize) -> usize {
+    let mut at = at.min(text.len());
+    while !text.is_char_boundary(at) {
+        at -= 1;
+    }
+    at
+}
+
 pub(crate) fn line_start(text: &str, at: usize) -> usize {
-    text[..at.min(text.len())].rfind('\n').map_or(0, |index| index + 1)
+    text[..char_start(text, at)].rfind('\n').map_or(0, |index| index + 1)
 }
 
 pub(crate) fn line_end(text: &str, at: usize) -> usize {
+    let at = char_start(text, at);
     text[at..].find('\n').map_or(text.len(), |index| at + index)
 }
 
@@ -1078,7 +1089,7 @@ fn min_indentation(buffer: &mut Buffer, up: usize, down: usize) -> isize {
     static DRAWER_AT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?m)\A[ \t]*:((?:\w|[-_])+):[ \t]*$").unwrap());
     let text = buffer.text.clone();
     let mut min_ind = isize::MAX;
-    let mut at = up;
+    let mut at = char_start(&text, up);
     while at < down && at < text.len() {
         let rest_of_line = &text[at..line_end(&text, at)];
         if !is_blank(rest_of_line) {
@@ -1204,7 +1215,8 @@ fn indent_line_to(buffer: &mut Buffer, origin: &mut usize, at: usize, column: us
 fn shift_body(buffer: &mut Buffer, origin: &mut usize, end: usize, beg: usize, delta: isize, ind: Option<usize>) {
     static ITEM_AT: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"(?m)\A([ \t]*([-+]|(([0-9]+)[.)]))|[ \t]+\*)([ \t]+|$)").unwrap());
-    let trimmed = buffer.text[..end.min(buffer.text.len())].trim_end_matches([' ', '\r', '\t', '\n']).len();
+    let end = char_start(&buffer.text, end);
+    let trimmed = buffer.text[..end].trim_end_matches([' ', '\r', '\t', '\n']).len();
     let mut at = line_start(&buffer.text, trimmed);
     loop {
         if at < beg {

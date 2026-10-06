@@ -513,9 +513,8 @@ impl Buffer {
 
 /// Where `at` of `old` is in `new`, when what changed is one stretch.
 fn track(old: &str, new: &str, at: usize) -> usize {
-    let prefix = old.bytes().zip(new.bytes()).take_while(|(a, b)| a == b).count();
-    let max_suffix = old.len().min(new.len()) - prefix;
-    let suffix = old.bytes().rev().zip(new.bytes().rev()).take(max_suffix).take_while(|(a, b)| a == b).count();
+    use crate::text::common_ends;
+    let (prefix, suffix) = common_ends(old, new);
     if at <= prefix {
         at
     } else if at >= old.len() - suffix {
@@ -1083,6 +1082,8 @@ fn archive_one(
     for mark in marks.iter_mut() {
         *mark = track(&cut_text, source, *mark);
     }
+    // The point moves with what changed before it (a parent's cookie).
+    let cut = track(&cut_text, source, cut);
     let message = if same {
         format!("Subtree archived under heading: {}", target.unwrap_or_default())
     } else {

@@ -379,7 +379,9 @@ impl Snapshot {
         if trimmed == 0 {
             return 0;
         }
-        self.next_line(trimmed - 1)
+        // From the start of the last line with text: a byte back from
+        // `trimmed` may be inside a character.
+        self.next_line(self.line_start(trimmed))
     }
 
     /// `current-indentation` of the line at `at`.

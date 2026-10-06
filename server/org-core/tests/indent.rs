@@ -134,3 +134,16 @@ fn indents_as_org_does() {
     }
     assert!(failures.is_empty(), "{} differences:\n{}", failures.len(), failures[..failures.len().min(40)].join("\n"));
 }
+
+/// A list or item whose last text ends with a character of more than one
+/// byte: its end is found by line, not by stepping back a byte.
+#[test]
+fn ends_after_text_of_several_bytes() {
+    let text = "* a\n- one 🤦\n- two 🤦\n\n| x | 🤦 |\n\n* b\n";
+    for adapt in [Adapt::Off, Adapt::All] {
+        let settings = Settings { adapt, ..Settings::default() };
+        let edits = indent::indent_region(text, 0, text.len(), &settings);
+        indent::apply(text, &edits);
+        indent::fixup_entry(text, 1, &settings);
+    }
+}

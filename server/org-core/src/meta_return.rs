@@ -336,12 +336,10 @@ fn mark_todo(buffer: &mut Buffer, keywords: &TodoKeywords, settings: &Settings) 
 
 /// Where `at` of `old` is in `new`, when what changed is one stretch.
 fn follow(old: &str, new: &str, at: usize) -> usize {
-    let prefix = old.bytes().zip(new.bytes()).take_while(|(a, b)| a == b).count();
+    let (prefix, suffix) = crate::text::common_ends(old, new);
     if at <= prefix {
         return at;
     }
-    let max_suffix = old.len().min(new.len()) - prefix;
-    let suffix = old.bytes().rev().zip(new.bytes().rev()).take(max_suffix).take_while(|(a, b)| a == b).count();
     if at >= old.len() - suffix {
         at + new.len() - old.len()
     } else {
