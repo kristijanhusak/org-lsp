@@ -445,6 +445,17 @@ describe('Org files', () => {
     await vscode.workspace.fs.delete(file);
   });
 
+  it('lists the keys of the editor at hand', async () => {
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const shown = api.help(vscode.window.activeTextEditor);
+    assert.ok(shown.some(([key, title]) => key === 'Ctrl+C Ctrl+T' && title === 'Change the TODO state'), JSON.stringify(shown));
+    assert.ok(shown.some(([key]) => key === 'Tab'));
+    assert.ok(!shown.some(([, title]) => title === 'Capture: finish'), 'the capture keys only in a capture buffer');
+    await vscode.workspace.getConfiguration('org-lsp').update('keys', 'custom', vscode.ConfigurationTarget.Workspace);
+    assert.deepEqual(api.help(vscode.window.activeTextEditor), []);
+    await vscode.workspace.getConfiguration('org-lsp').update('keys', undefined, vscode.ConfigurationTarget.Workspace);
+  });
+
   it('changes the part of a timestamp at the cursor', async () => {
     moveTo(6, 19); // on the day of "DEADLINE: <2026-05-20 Wed>"
     await vscode.commands.executeCommand('org.timestamp.up');

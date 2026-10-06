@@ -433,5 +433,9 @@
   {
     "caption": "Org: Cycle the visibility of the whole file",
     "command": "org_lsp_cycle_global"
+  },
+  {
+    "caption": "Org: Show the keys",
+    "command": "org_lsp_help"
   }
 ]

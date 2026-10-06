@@ -51,7 +51,8 @@ let g:org_lsp = {
 | `mappings` | the server's | Keys by scope (`global`, `org`, `agenda`, `capture`), as for the Neovim plugin: a command maps to a key, a list of keys, or `0`; `0` for a scope (or for `mappings`) sets no keys there. |
 
 The keys are the Neovim plugin's; [docs/neovim/keys.md](../neovim/keys.md)
-lists them (the date prompt's calendar aside). `:Org agenda`, `:Org
+lists them (the date prompt's calendar aside). `g?` in an Org file or the
+agenda shows the keys set there, yours included, in a popup. `:Org agenda`, `:Org
 capture`, `:Org todo next` … run any command.
 
 For the clock in the statusline:

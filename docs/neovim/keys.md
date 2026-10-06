@@ -129,13 +129,14 @@ cursor.
 
 <!-- END generated -->
 
-The plugin adds three keys of its own, which only an editor can carry out:
+The plugin adds keys of its own, which only an editor can carry out:
 
 | Keys | Name in `mappings` | Scope | What it does |
 | --- | --- | --- | --- |
 | `<Tab>` | `cycle` | `org` | Cycle the visibility of the subtree at the cursor |
 | `<S-Tab>` | `global_cycle` | `org` | Cycle the visibility of the whole file |
 | `q` | `quit` | `agenda` | Close the agenda |
+| `g?` | `help` | `org`, `agenda` | Show the keys of the buffer in a window (`q` closes it) |
 
 A capture buffer is an Org file, so it has the keys of Org files as well
 as its own; there `<Leader>or` refiles the captured entry rather than the

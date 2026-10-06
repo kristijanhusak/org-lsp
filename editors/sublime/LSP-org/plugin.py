@@ -183,6 +183,56 @@ def ask(window, request, then) -> None:
     window.show_input_panel(request.get('prompt', '') + ':', request.get('value', ''), then, None, None)
 
 
+# ----- help
+
+def key_label(keys) -> str:
+    return ' '.join('+'.join(part.capitalize() if len(part) > 1 else part.upper() if '+' in key else part
+                             for part in key.split('+')) for key in keys)
+
+
+def help_items(view):
+    """The keys the package binds where `view` is, with the preset in
+    `org_keys`: `[(keys, title, command, args)]`."""
+    preset = settings().get('org_keys', 'emacs')
+    keymap = sublime.decode_value(sublime.load_resource('Packages/{}/Default.sublime-keymap'.format(SESSION)))
+    palette = sublime.decode_value(sublime.load_resource('Packages/{}/{}.sublime-commands'.format(SESSION, SESSION)))
+    titles = {}
+    for entry in palette:
+        name = (entry.get('args') or {}).get('command') or entry['command']
+        titles[name] = entry['caption'][len('Org: '):]
+    capture = OrgLspListener().on_query_context(view, 'org_lsp.capture', sublime.OP_EQUAL, True, False)
+    items = []
+    for binding in keymap:
+        context = {entry['key']: entry['operand'] for entry in binding.get('context', [])}
+        if context.get('org_lsp.keys') != preset:
+            continue
+        if not view.match_selector(0, context.get('selector', '')):
+            continue
+        if context.get('org_lsp.capture') and not capture:
+            continue
+        name = (binding.get('args') or {}).get('command') or binding['command']
+        items.append((key_label(binding['keys']), titles.get(name, name), binding['command'], binding.get('args')))
+    return items
+
+
+class OrgLspHelpCommand(sublime_plugin.WindowCommand):
+    """The keys of the view at hand, in the quick panel; picking one runs it."""
+
+    def run(self) -> None:
+        view = self.window.active_view()
+        items = help_items(view) if view else []
+        if not items:
+            sublime.status_message('org-lsp: no keys are bound here')
+            return
+
+        def picked(index: int) -> None:
+            if index >= 0:
+                _, _, command, args = items[index]
+                target = self.window if command == 'org_lsp_run' else view
+                target.run_command(command, args)
+        self.window.show_quick_panel([[title, keys] for keys, title, _, _ in items], picked, placeholder='Org keys')
+
+
 # ----- visibility cycling
 
 # The last cycle: (view id, change count, line, state); the step after

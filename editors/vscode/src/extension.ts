@@ -722,6 +722,69 @@ async function cycleGlobal(): Promise<void> {
   }
 }
 
+// ----- help
+
+interface Binding {
+  command: string;
+  key: string;
+  when?: string;
+  args?: unknown;
+}
+
+/** A key as VS Code's menus write it: `ctrl+c ctrl+t` as `Ctrl+C Ctrl+T`. */
+function keyLabel(key: string): string {
+  const names: Record<string, string> = { ctrl: 'Ctrl', alt: 'Alt', shift: 'Shift', enter: 'Enter', tab: 'Tab', escape: 'Escape' };
+  return key
+    .split(' ')
+    .map((stroke) =>
+      stroke
+        .split('+')
+        .map((part) => names[part] ?? (part.length === 1 && stroke.includes('+') ? part.toUpperCase() : part))
+        .join('+'),
+    )
+    .join(' ');
+}
+
+/**
+ * The keys the extension binds where `editor` is, with the preset
+ * `org-lsp.keys` picks: `[key, title, command, args]`, in the order of the
+ * keybindings. Keys of the user's own are not known to extensions.
+ */
+function helpItems(
+  packageJSON: { contributes: { keybindings: Binding[]; commands: { command: string; title: string }[] }; orgLsp: { capturePrefix: string } },
+  editor: vscode.TextEditor | undefined,
+): { key: string; title: string; command: string; args?: unknown }[] {
+  const preset = vscode.workspace.getConfiguration('org-lsp').get<string>('keys', 'emacs');
+  const language = editor?.document.languageId;
+  const capture = editor ? path.basename(editor.document.uri.fsPath).startsWith(packageJSON.orgLsp.capturePrefix) : false;
+  const titles = new Map(packageJSON.contributes.commands.map((command) => [command.command, command.title]));
+  return packageJSON.contributes.keybindings
+    .filter((binding) => binding.when?.includes(`config.org-lsp.keys == '${preset}'`))
+    .filter((binding) => binding.when?.includes(`editorLangId == '${language}'`))
+    .filter((binding) => capture || !binding.when?.includes('resourceFilename'))
+    .filter((binding) => !binding.when?.includes('vim.mode') || preset === 'vim')
+    .map((binding) => ({ key: keyLabel(binding.key), title: titles.get(binding.command) ?? binding.command, command: binding.command, args: binding.args }));
+}
+
+/** `org-lsp.help`: the keys of the editor at hand; picking one runs it. */
+async function help(packageJSON: Parameters<typeof helpItems>[0]): Promise<void> {
+  const items = helpItems(packageJSON, vscode.window.activeTextEditor);
+  if (items.length === 0) {
+    const preset = vscode.workspace.getConfiguration('org-lsp').get<string>('keys', 'emacs');
+    void vscode.window.showInformationMessage(
+      preset === 'custom' ? 'Org: no keys are bound ("org-lsp.keys" is "custom").' : 'Org: no keys are bound here.',
+    );
+    return;
+  }
+  const picked = await vscode.window.showQuickPick(
+    items.map((item) => ({ label: item.title, description: item.key, item })),
+    { placeHolder: 'Org keys', matchOnDescription: true },
+  );
+  if (picked) {
+    await vscode.commands.executeCommand(picked.item.command, ...(picked.item.args === undefined ? [] : [picked.item.args]));
+  }
+}
+
 /** What the extension offers other code: for its tests. */
 export interface Api {
   /** The text hidden in `editor` now. */
@@ -730,6 +793,8 @@ export interface Api {
   clock(): string;
   /** The lines of `editor` shown indented: `[line, prefix, hidden stars]`. */
   virtualIndent(editor: vscode.TextEditor): number[][];
+  /** What `org-lsp.help` lists for `editor`: `[key, title]`. */
+  help(editor: vscode.TextEditor): string[][];
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
@@ -757,6 +822,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   context.subscriptions.push(
     vscode.commands.registerCommand('org-lsp.cycle', cycle),
     vscode.commands.registerCommand('org-lsp.cycleGlobal', cycleGlobal),
+    vscode.commands.registerCommand('org-lsp.help', () => help(context.extension.packageJSON)),
     // A cycle goes on from the last one only when nothing came between.
     vscode.window.onDidChangeActiveTextEditor(() => (lastCycle = undefined)),
   );
@@ -769,6 +835,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     concealed: (editor) => concealedText.get(editor) ?? [],
     clock: clockText,
     virtualIndent: (editor) => virtualIndentShown.get(editor) ?? [],
+    help: (editor) => helpItems(context.extension.packageJSON, editor).map((item) => [item.key, item.title]),
   };
 }
 

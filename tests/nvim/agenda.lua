@@ -613,6 +613,16 @@ wait('the entry written elsewhere', function()
   end)
 end)
 eq(vim.api.nvim_buf_get_lines(work_buf, -2, -1, false), { '* TODO Written elsewhere' }, 'the open file read again')
+
+-- 13. `g?` lists the agenda's keys.
+local agenda_win = vim.api.nvim_get_current_win()
+press('g?')
+eq(lines()[1], 'Agenda', 'the help starts with the agenda keys')
+check(vim.iter(lines()):any(function(text)
+  return text:match('^  r%s+Agenda: rebuild$') ~= nil
+end), 'r is listed')
+press('<Esc>')
+eq(vim.api.nvim_get_current_win(), agenda_win, '<Esc> closes the help')
 press('q')
 
 print(('ok: %d checks passed'):format(checks))

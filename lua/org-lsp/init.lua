@@ -33,7 +33,7 @@ local SERVER = 'org_lsp'
 ---@field mappings? org_lsp.Mappings|false Keys by scope; `false` sets no keys at all. See docs/neovim/keys.md.
 
 --- Keys by scope. In a scope, a command (`org.todo`, or one of the plugin's
---- own: `cycle`, `global_cycle`, `quit`) maps to a key, a list of keys, or
+--- own: `cycle`, `global_cycle`, `quit`, `help`) maps to a key, a list of keys, or
 --- `false`; commands that are not listed keep the server's default keys.
 --- `false` instead of a scope's table sets no keys in that scope.
 ---@class org_lsp.Mappings
@@ -60,8 +60,8 @@ local defaults = {
       ['org.capture'] = '<Leader>oc',
       ['org.clock.goto'] = '<Leader>oxj',
     },
-    org = { cycle = '<Tab>', global_cycle = '<S-Tab>' },
-    agenda = { quit = 'q' },
+    org = { cycle = '<Tab>', global_cycle = '<S-Tab>', help = 'g?' },
+    agenda = { quit = 'q', help = 'g?' },
   },
 }
 
@@ -80,6 +80,9 @@ local own_commands = {
   end },
   global_cycle = { 'Org: cycle visibility of the whole file', function()
     require('org-lsp.folds').global_cycle()
+  end },
+  help = { 'Show the keys', function()
+    require('org-lsp.help').show()
   end },
   quit = { 'Agenda: close', function()
     require('org-lsp.view').close_buffer(vim.api.nvim_get_current_buf())
@@ -362,6 +365,34 @@ local function keys_in(scope)
     keys[name] = type(key) == 'table' and key or key and { key } or {}
   end
   return keys, native
+end
+
+--- The keys of a scope as they are set, for the help: in the order of the
+--- server's commands, then the plugin's own.
+---@param scope 'global'|'org'|'agenda'|'calendar'|'capture'
+---@return { command: string, title: string, keys: string[] }[]
+function M.keys(scope)
+  local keys = keys_in(scope)
+  local out = {}
+  local function add(name, title)
+    if keys[name] and #keys[name] > 0 then
+      table.insert(out, { command = name, title = title, keys = keys[name] })
+      keys[name] = nil
+    end
+  end
+  for _, command in ipairs(M.manifest and M.manifest.commands or {}) do
+    add(command.command, command.title)
+  end
+  for _, name in ipairs({ 'cycle', 'global_cycle', 'quit', 'help' }) do
+    add(name, own_commands[name][1])
+  end
+  -- Keys of the user's for commands neither knows of.
+  for name, list in pairs(keys) do
+    if #list > 0 then
+      table.insert(out, { command = name, title = name, keys = list })
+    end
+  end
+  return out
 end
 
 --- Global keys that are set, so that a change of configuration can take

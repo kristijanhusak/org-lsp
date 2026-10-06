@@ -160,7 +160,7 @@ function vscodeKeys() {
         .join(',\n') +
       '\n]\n```',
   );
-  const every = [...manifest.commands, ...vscode.contributes.commands.filter((command) => command.command.startsWith('org-lsp.cycle'))].map(
+  const every = [...manifest.commands, ...vscode.contributes.commands.filter((command) => ['org-lsp.cycle', 'org-lsp.cycleGlobal', 'org-lsp.help'].includes(command.command))].map(
     (command) => [code(command.command), cell(`Org: ${command.title}`)],
   );
   sections.push('### Every command\n\n' + table(['Command', 'In the Command Palette'], every));

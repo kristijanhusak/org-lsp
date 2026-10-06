@@ -284,6 +284,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.calendar.time` | Org: Date prompt: pick the time, or go back to the day |
 | `org.calendar.cancel` | Org: Date prompt: cancel |
 | `org-lsp.cycle` | Org: Cycle the visibility of the subtree, block or drawer at the cursor |
+| `org-lsp.help` | Org: Show the keys |
 | `org-lsp.cycleGlobal` | Org: Cycle the visibility of the whole file |
 
 <!-- END generated -->

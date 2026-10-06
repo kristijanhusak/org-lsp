@@ -149,6 +149,18 @@ function! s:clock() abort
 endfunction
 call s:test('clocks in and out, for the statusline', function('s:clock'))
 
+function! s:help() abort
+  execute 'buffer' s:work_buf
+  let popup = org_lsp#help()
+  call assert_true(popup > 0, 'a popup')
+  let shown = getbufline(winbufnr(popup), 1, '$')
+  call assert_equal('Org file', shown[0])
+  call assert_true(index(shown, '  cit          Change the TODO state') >= 0, string(shown))
+  call assert_true(match(shown, '^  g?\s\+Show the keys$') >= 0, 'g? is listed')
+  call popup_close(popup)
+endfunction
+call s:test('g? lists the keys of the buffer', function('s:help'))
+
 for error in v:errors
   call add(s:results, 'not ok - ' . error)
 endfor

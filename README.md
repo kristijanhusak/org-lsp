@@ -103,7 +103,8 @@ state, `ciR` / `cir` change the priority, `<C-a>` / `<C-x>` the part of
 the timestamp under the cursor, `<Leader>ois` schedules, `<Leader>or`
 refiles, `<Leader>oc` captures, `<Tab>` / `<S-Tab>` cycle folds, and in
 the agenda `f` / `b`, `t`, `+` / `-` and `<CR>` do what they do in Emacs.
-Counts work, and the editing keys repeat with `.`. Dates are asked for
+Counts work, and the editing keys repeat with `.`. `g?` shows the keys
+of the buffer at hand. Dates are asked for
 with Emacs's calendar, or typed as at Org's prompt (`fri 10:00`, `+2d`,
 `2/15`, `++1w`).
 

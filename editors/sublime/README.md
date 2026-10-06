@@ -40,7 +40,8 @@ or the leader are bound in command mode (`Tab`, `Ctrl+Space`, `Ctrl+A`,
 …), and the agenda's keys. Bind the others yourself.
 
 `Default.sublime-keymap` has every binding, and the Command Palette lists
-every command under *Org:*. To bind one yourself:
+every command under *Org:*. *Org: Show the keys* lists the keys bound in
+the view at hand. To bind one yourself:
 
 ```json
 { "keys": ["alt+t"], "command": "org_lsp_run", "args": {"command": "org.todo"},

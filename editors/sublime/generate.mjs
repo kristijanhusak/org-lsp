@@ -151,6 +151,7 @@ const palette = [
     args: { command: command.command },
   })),
   ...own.map((command) => ({ caption: `Org: ${command.title}`, command: command.command })),
+  { caption: 'Org: Show the keys', command: 'org_lsp_help' },
 ];
 
 // The scopes of the server's tokens, from the TextMate scopes it names. A

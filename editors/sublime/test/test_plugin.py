@@ -5,6 +5,7 @@ the answers.
     python3 editors/sublime/test/test_plugin.py
 """
 import importlib.util
+import json
 import os
 import sys
 import types
@@ -86,7 +87,8 @@ class View:
         self.commands.append((name, args))
 
     def match_selector(self, point, selector):
-        return True
+        scope = 'text.org-agenda' if self.name.endswith('.org-agenda') else 'text.org'
+        return scope in [part.strip() for part in selector.split('|')]
 
     def file_name(self):
         return self.name
@@ -136,8 +138,12 @@ def load_plugin():
     sublime.settings = {}
     sublime.load_settings = lambda name: types.SimpleNamespace(get=lambda k, d=None: sublime.settings.get(k, d))
     sublime.windows = lambda: []
+    package = os.path.join(HERE, '..', 'LSP-org')
+    sublime.load_resource = lambda name: open(os.path.join(package, name.split('/')[-1]), encoding='utf-8').read()
+    sublime.decode_value = json.loads
     sublime_plugin = types.ModuleType('sublime_plugin')
     sublime_plugin.EventListener = object
+    sublime_plugin.WindowCommand = object
     lsp = types.ModuleType('LSP')
     api = types.ModuleType('LSP.plugin')
 
@@ -272,6 +278,22 @@ class Tests(unittest.TestCase):
         capture = View('* TODO ', '/tmp/CAPTURE-1.org')
         self.assertTrue(listener.on_query_context(capture, 'org_lsp.capture', 0, True, True))
         self.assertIsNone(listener.on_query_context(self.view, 'other', 0, True, True))
+
+
+class Help(unittest.TestCase):
+    def setUp(self):
+        self.plugin, self.sublime, _ = load_plugin()
+
+    def test_lists_the_keys_of_the_view_with_the_preset(self):
+        items = self.plugin.help_items(View('* TODO x'))
+        shown = [(keys, title) for keys, title, _, _ in items]
+        self.assertIn(('Ctrl+C Ctrl+T', 'Change the TODO state'), shown)
+        self.assertIn(('Tab', 'Cycle the visibility of the subtree, block or drawer at the cursor'), shown)
+        self.assertNotIn('Capture: finish', [title for _, title in shown])
+        agenda = [title for _, title, _, _ in self.plugin.help_items(View('', '/tmp/Agenda.org-agenda'))]
+        self.assertIn('Agenda: rebuild', agenda)
+        self.sublime.settings['org_keys'] = 'custom'
+        self.assertEqual(self.plugin.help_items(View('* x')), [])
 
 
 if __name__ == '__main__':

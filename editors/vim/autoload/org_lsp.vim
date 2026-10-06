@@ -26,8 +26,8 @@ let s:defaults = {
       \     'org.capture': '<Leader>oc',
       \     'org.clock.goto': '<Leader>oxj',
       \   },
-      \   'org': {'cycle': '<Tab>', 'global_cycle': '<S-Tab>'},
-      \   'agenda': {'quit': 'q'},
+      \   'org': {'cycle': '<Tab>', 'global_cycle': '<S-Tab>', 'help': 'g?'},
+      \   'agenda': {'quit': 'q', 'help': 'g?'},
       \ },
       \ }
 
@@ -241,6 +241,7 @@ let s:own = {
       \ 'cycle': {'title': 'Org: cycle visibility of the subtree', 'run': function('org_lsp#cycle')},
       \ 'global_cycle': {'title': 'Org: cycle visibility of the whole file', 'run': function('org_lsp#global_cycle')},
       \ 'quit': {'title': 'Agenda: close', 'run': {-> org_lsp#close_buffer(bufnr())}},
+      \ 'help': {'title': 'Show the keys', 'run': function('org_lsp#help')},
       \ }
 
 function! s:command(name) abort
@@ -468,6 +469,80 @@ function! org_lsp#set_keys(scope) abort
       endif
     endfor
   endfor
+endfunction
+
+" ----- help
+
+let s:scope_titles = {'org': 'Org file', 'capture': 'Capture buffer', 'agenda': 'Agenda', 'global': 'Anywhere'}
+
+" The keys of `scope` as they are set: `[{keys, title}]`, in the order of
+" the server's commands, then the plugin's own.
+function! org_lsp#keys(scope) abort
+  let bound = s:keys_in(a:scope)[0]
+  let out = []
+  let names = map(copy(get(org_lsp#manifest(), 'commands', [])), 'v:val.command') + ['cycle', 'global_cycle', 'quit', 'help']
+  for name in names + sort(keys(bound))
+    if !empty(get(bound, name, []))
+      let command = s:command(name)
+      let title = has_key(s:own, name) ? s:own[name].title : get(command, 'title', name)
+      call add(out, {'keys': remove(bound, name), 'title': title})
+    endif
+  endfor
+  return out
+endfunction
+
+" The lines of the help for `scopes`: a heading for each, then its keys
+" and what they do.
+function! org_lsp#help_lines(scopes) abort
+  let sections = filter(map(copy(a:scopes), {_, scope -> [scope, org_lsp#keys(scope)]}), '!empty(v:val[1])')
+  let width = 0
+  for [_, entries] in sections
+    for entry in entries
+      let width = max([width, strdisplaywidth(join(entry.keys, ', '))])
+    endfor
+  endfor
+  let lines = []
+  for [scope, entries] in sections
+    if !empty(lines)
+      call add(lines, '')
+    endif
+    call add(lines, get(s:scope_titles, scope, scope))
+    for entry in entries
+      let keys = join(entry.keys, ', ')
+      call add(lines, '  ' . keys . repeat(' ', width - strdisplaywidth(keys)) . '  ' . entry.title)
+    endfor
+  endfor
+  return lines
+endfunction
+
+function! s:help_filter(id, key) abort
+  if index(['q', "\<Esc>", 'g'], a:key) >= 0
+    call popup_close(a:id)
+    return 1
+  endif
+  return popup_filter_menu(a:id, a:key)
+endfunction
+
+" Show the keys of the current buffer in a popup; `q` or <Esc> closes it.
+function! org_lsp#help() abort
+  let manifest = org_lsp#manifest()
+  if &filetype ==# get(get(manifest, 'agenda', {}), 'languageId', 'org-agenda')
+    let scopes = ['agenda', 'global']
+  elseif s:is_capture(bufname())
+    let scopes = ['capture', 'org', 'global']
+  else
+    let scopes = ['org', 'global']
+  endif
+  let lines = org_lsp#help_lines(scopes)
+  if empty(lines)
+    echomsg 'org-lsp: no keys are set here'
+    return 0
+  endif
+  return popup_create(lines, {
+        \ 'title': ' Org keys ', 'border': [], 'padding': [0, 1, 0, 1],
+        \ 'pos': 'center', 'maxheight': &lines - 6, 'scrollbar': 1,
+        \ 'filter': function('s:help_filter'), 'mapping': 0, 'zindex': 200,
+        \ })
 endfunction
 
 " ----- buffers the server shows

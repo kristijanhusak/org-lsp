@@ -576,6 +576,23 @@ end)
 eq(prefixes(), { { 2, 2 }, { 3, 1 }, { 3, 'star', 0 } }, 'the text below A at 2, B after 1 column, one star hidden')
 eq(line(3), 'text', 'the file is not changed')
 
+-- 22. `g?` lists the keys of the buffer, the user's own among them, in a
+-- window that `q` closes.
+local before_help = vim.api.nvim_get_current_win()
+press('g?')
+check(vim.api.nvim_win_get_config(0).relative ~= '', 'the help is a floating window')
+local help = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+eq(help[1], 'Org file', 'the help starts with the keys of Org files')
+check(vim.iter(help):any(function(text)
+  return text:match('^  gt%s+Change the TODO state$') ~= nil
+end), 'the key set in the configuration is listed with what it does:\n' .. table.concat(help, '\n'))
+check(vim.iter(help):any(function(text)
+  return text:match('^  g%?%s+Show the keys$') ~= nil
+end), 'g? itself is listed')
+check(vim.tbl_contains(help, 'Anywhere'), 'the global keys follow')
+press('q')
+eq(vim.api.nvim_get_current_win(), before_help, 'q closes the help')
+
 -- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'

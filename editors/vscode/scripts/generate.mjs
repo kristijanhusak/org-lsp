@@ -131,6 +131,11 @@ const ownCommands = [
     ],
   },
   {
+    command: 'org-lsp.help',
+    title: 'Show the keys',
+    keys: [],
+  },
+  {
     command: 'org-lsp.cycleGlobal',
     title: 'Cycle the visibility of the whole file',
     keys: [
