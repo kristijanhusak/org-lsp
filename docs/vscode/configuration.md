@@ -209,6 +209,33 @@ them out:
     // (org-cycle-separator-lines)
     "cycleSeparatorLines": 2,
 
+    // Indent the lines of an entry past its headline's stars: `true` for all
+    // of them, `"headline-data"` for the planning line, drawers and clock
+    // lines right below the headline. Applies to new lines, to re-indenting
+    // (range formatting) and to what commands write. (org-adapt-indentation)
+    "adaptIndentation": false,
+
+    // Show files indented by level without changing them (`org-indent-mode`):
+    // the text under a headline lines up with its title, and leading stars
+    // are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It
+    // turns `adaptIndentation` off in such files, unless that is
+    // `"headline-data"`. Editors that can show it: Neovim, and VS Code (not
+    // on wrapped lines). (org-startup-indented)
+    "startupIndented": false,
+
+    // Hide all the stars of a headline but the last; they keep their place.
+    // `#+STARTUP: hidestars` and `showstars` decide for a file.
+    // (org-hide-leading-stars)
+    "hideLeadingStars": false,
+
+    // Leave the code of source blocks as it is indented when re-indenting.
+    // (org-src-preserve-indentation)
+    "srcPreserveIndentation": false,
+
+    // How far code is indented past its source block when re-indenting.
+    // (org-edit-src-content-indentation)
+    "editSrcContentIndentation": 2,
+
     "agenda": {
       // How much time the agenda shows. (org-agenda-span)
       "span": "week",
@@ -311,6 +338,20 @@ them out:
       // What log mode shows: `closed` entries, `clock` lines and `state`
       // changes. (org-agenda-log-mode-items)
       "logModeItems": ["closed", "clock"],
+
+      // What goes between the blocks of a block agenda: one character
+      // repeated across 79 columns, a longer text as it is, or `false` for
+      // nothing. In a block's `settings`, the separator above that block.
+      // (org-agenda-block-separator)
+      "blockSeparator": "=",
+
+      // Leave out the separators between blocks and the header over agenda
+      // blocks. (org-agenda-compact-blocks)
+      "compactBlocks": false,
+
+      // Leave out the blocks of a block agenda that show no entries. Not in
+      // Org.
+      "hideEmptyBlocks": false,
 
       // The day the agenda starts from, as the date prompt reads it: `-1d`,
       // `+2d`, `2026-10-01`. (org-agenda-start-day)

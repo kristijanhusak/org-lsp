@@ -317,5 +317,264 @@
     "notes.org": "* [#A] TODO A [1/2] :t:\n* A\n** 2026-05-18 10:30 Mon x\n"
    }
   }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "\n* DONE Work\n- item\n* DONE Ideas\n"
+  },
+  "template": {
+   "type": "entry",
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Inbox"
+   ],
+   "template": "* TODO %? :tag:\n  %t",
+   "prepend": true
+  },
+  "typed": "",
+  "options": {
+   "adaptIndentation": true
+  },
+  "expected": {
+   "buffer": "** TODO ¦                                                              :tag:\n   <2026-05-18 Mon>\n",
+   "files": {
+    "notes.org": "\n* DONE Work\n- item\n* DONE Ideas\n* Inbox\n** TODO                                                               :tag:\n   <2026-05-18 Mon>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "\n* Inbox :tag:\n** TODO Ideas\n\n"
+  },
+  "template": {
+   "type": "entry",
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %^{Title} %?\n%^t",
+   "prepend": true
+  },
+  "typed": "line\nmore",
+  "answers": [
+   "",
+   "fri"
+  ],
+  "options": {
+   "adaptIndentation": true
+  },
+  "expected": {
+   "buffer": "**  ¦\n <2026-05-22 Fri>\n",
+   "files": {
+    "notes.org": "\n* Inbox :tag:\n** TODO Ideas\n\n* Tasks\n\n**  line\nmore\n <2026-05-22 Fri>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* DONE Tasks\n* DONE Ideas\n** Inbox :tag:\n* TODO Inbox\n:PROPERTIES:\n:ID: x\n:END:\n* Inbox\n- item\n* TODO Inbox\n\n\n"
+  },
+  "template": {
+   "type": "entry",
+   "target": [
+    "file",
+    "notes.org"
+   ],
+   "template": "* TODO %? :tag:\n  %t",
+   "prepend": true,
+   "emptyLinesAfter": 0
+  },
+  "typed": "Call Bob",
+  "options": {
+   "adaptIndentation": true
+  },
+  "expected": {
+   "buffer": "* TODO ¦ :tag:\n  <2026-05-18 Mon>",
+   "files": {
+    "notes.org": "* TODO Call Bob :tag:\n  <2026-05-18 Mon>\n* DONE Tasks\n* DONE Ideas\n** Inbox :tag:\n* TODO Inbox\n:PROPERTIES:\n:ID: x\n:END:\n* Inbox\n- item\n* TODO Inbox\n\n\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "Some text before.\n** TODO Inbox\n** Inbox\n- item\n\n** Home\n** Work\n** Tasks\n* Home :tag:\n:PROPERTIES:\n:ID: x\n:END:\n\n"
+  },
+  "template": {
+   "type": "entry",
+   "target": [
+    "file+olp",
+    "notes.org",
+    "Home"
+   ],
+   "template": "* TODO %? :tag:\n  %t",
+   "prepend": true,
+   "emptyLinesBefore": 1
+  },
+  "typed": "Call Bob",
+  "options": {
+   "adaptIndentation": true
+  },
+  "expected": {
+   "buffer": "** TODO ¦                                                              :tag:\n   <2026-05-18 Mon>\n",
+   "files": {
+    "notes.org": "Some text before.\n** TODO Inbox\n** Inbox\n- item\n\n** Home\n** Work\n** Tasks\n* Home :tag:\n:PROPERTIES:\n:ID: x\n:END:\n\n** TODO Call Bob                                                              :tag:\n   <2026-05-18 Mon>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "\n\n\n"
+  },
+  "template": {
+   "type": "entry",
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Home"
+   ],
+   "template": "* TODO %? :tag:\n  %t",
+   "prepend": true
+  },
+  "typed": "line\nmore",
+  "options": {
+   "adaptIndentation": true
+  },
+  "expected": {
+   "buffer": "** TODO ¦                                                              :tag:\n   <2026-05-18 Mon>\n",
+   "files": {
+    "notes.org": "\n\n\n* Home\n\n** TODO line\nmore                                                              :tag:\n   <2026-05-18 Mon>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Inbox\nSCHEDULED: <2026-05-18 Mon>\n** DONE Tasks :tag:\n- item\nSCHEDULED: <2026-05-18 Mon>\n** DONE Work\n:PROPERTIES:\n:ID: x\n:END:\nSCHEDULED: <2026-05-18 Mon>\n* DONE Work :tag:\n* TODO Inbox\n:PROPERTIES:\n:ID: x\n:END:\nSCHEDULED: <2026-05-18 Mon>\n** DONE Ideas :tag:\n:PROPERTIES:\n:ID: x\n:END:\n- item\n\n\n"
+  },
+  "template": {
+   "type": "plain",
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Home"
+   ],
+   "template": "* TODO %? :tag:\n  %t"
+  },
+  "typed": "x",
+  "options": {
+   "adaptIndentation": "headline-data"
+  },
+  "expected": {
+   "buffer": "* TODO ¦ :tag:\n  <2026-05-18 Mon>",
+   "files": {
+    "notes.org": "* Inbox\nSCHEDULED: <2026-05-18 Mon>\n** DONE Tasks :tag:\n- item\nSCHEDULED: <2026-05-18 Mon>\n** DONE Work\n:PROPERTIES:\n:ID: x\n:END:\nSCHEDULED: <2026-05-18 Mon>\n* DONE Work :tag:\n* TODO Inbox\n:PROPERTIES:\n:ID: x\n:END:\nSCHEDULED: <2026-05-18 Mon>\n** DONE Ideas :tag:\n:PROPERTIES:\n:ID: x\n:END:\n- item\n\n\n* Home\n* TODO x :tag:\n  <2026-05-18 Mon>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* TODO Tasks :tag:\n** Work :tag:\n*** TODO Home\n*** TODO Inbox\n\n- item\n*** DONE Inbox\n*** TODO Home :tag:\n"
+  },
+  "template": {
+   "type": "entry",
+   "target": [
+    "file",
+    "notes.org"
+   ],
+   "template": "* TODO %? :tag:\n  %t"
+  },
+  "typed": "",
+  "options": {
+   "adaptIndentation": "headline-data"
+  },
+  "expected": {
+   "buffer": "* TODO ¦ :tag:\n  <2026-05-18 Mon>\n",
+   "files": {
+    "notes.org": "* TODO Tasks :tag:\n** Work :tag:\n*** TODO Home\n*** TODO Inbox\n\n- item\n*** DONE Inbox\n*** TODO Home :tag:\n* TODO  :tag:\n  <2026-05-18 Mon>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "\n* Work\nbody text\n\n** DONE Ideas\n** DONE Home\n"
+  },
+  "template": {
+   "type": "plain",
+   "target": [
+    "file",
+    "notes.org"
+   ],
+   "template": "* TODO %? :tag:\n  %t"
+  },
+  "typed": "Call Bob",
+  "options": {
+   "adaptIndentation": true
+  },
+  "expected": {
+   "buffer": "* TODO ¦ :tag:\n  <2026-05-18 Mon>",
+   "files": {
+    "notes.org": "\n* Work\nbody text\n\n** DONE Ideas\n** DONE Home\n* TODO Call Bob :tag:\n  <2026-05-18 Mon>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "Some text before.\n* Ideas\n- item"
+  },
+  "template": {
+   "type": "plain",
+   "target": [
+    "file",
+    "notes.org"
+   ],
+   "template": "* TODO %? :tag:\n  %t"
+  },
+  "typed": "x",
+  "options": {
+   "adaptIndentation": true
+  },
+  "expected": {
+   "buffer": "* TODO ¦ :tag:\n  <2026-05-18 Mon>",
+   "files": {
+    "notes.org": "Some text before.\n* Ideas\n- item\n* TODO x :tag:\n  <2026-05-18 Mon>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "\n\n"
+  },
+  "template": {
+   "type": "entry",
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Ideas"
+   ],
+   "template": "* %?\n%U",
+   "emptyLines": 1,
+   "emptyLinesBefore": 2
+  },
+  "typed": "line\nmore",
+  "options": {
+   "adaptIndentation": true
+  },
+  "expected": {
+   "buffer": "** ¦\n [2026-05-18 Mon 10:30]\n\n",
+   "files": {
+    "notes.org": "\n\n* Ideas\n\n\n** line\nmore\n [2026-05-18 Mon 10:30]\n\n"
+   }
+  }
  }
 ]

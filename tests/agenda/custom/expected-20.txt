@@ -1,0 +1,5 @@
+Headlines with TAGS match: +home
+  b:          TODO Water plants                                           :home:
+Global list of TODO items of type: NEXT
+  a:          NEXT Outline the sections                           :work:office::
+  a:          NEXT Call the client                                 :work::phone:

@@ -14,7 +14,8 @@ A case is a JSON object:
         "emptyLinesAfter": 0, "immediateFinish": false
       },
       "answers": ["fri"],                     what is typed at the prompts
-      "typed": "Call Bob"                     what is typed in the capture
+      "typed": "Call Bob",                    what is typed in the capture
+      "options": {"adaptIndentation": true}   optional: server settings
     }                                         buffer, where the cursor is
 
 `reference(cases)` adds `expected` to each case: `{"buffer": ...,
@@ -138,9 +139,12 @@ def reference(cases):
                 files = " ".join(lisp_string(paths[name]) for name in sorted(paths))
                 answers = " ".join(lisp_string(answer) for answer in case.get("answers", []))
                 source = lisp_string(paths[case["from"]]) if "from" in case else "nil"
+                adapt = case.get("options", {}).get("adaptIndentation", False)
+                adapt = "t" if adapt is True else "nil" if adapt is False else "'" + adapt
                 forms.append(
-                    f"(org-lsp-capture-case (list {files}) {source} {template_form(case['template'], paths)}"
-                    f" (list {answers}) {lisp_string(case.get('typed', ''))} {lisp_string(target)})"
+                    f"(let ((org-adapt-indentation {adapt}))"
+                    f" (org-lsp-capture-case (list {files}) {source} {template_form(case['template'], paths)}"
+                    f" (list {answers}) {lisp_string(case.get('typed', ''))} {lisp_string(target)}))"
                 )
             driver = os.path.join(directory, f"driver-{clock[:10]}.el")
             with open(driver, "w", encoding="utf-8") as handle:

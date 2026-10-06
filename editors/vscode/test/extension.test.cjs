@@ -376,6 +376,35 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('indents a new line as Org does on RET, and a selection as org-indent-region', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'indent.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* Head\n- item\n      stray\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    moveTo(1, 6);
+    await vscode.commands.executeCommand('type', { text: '\n' });
+    await until('the new line at the text of the item', () => editor.document.lineAt(2).text === '  ');
+    await vscode.commands.executeCommand('type', { text: 'body' });
+    editor.selection = new vscode.Selection(3, 0, 3, 5);
+    await vscode.commands.executeCommand('editor.action.formatSelection');
+    await until('the stray line re-indented', () => editor.document.lineAt(3).text === '  stray');
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+  });
+
+  it('shows a file with org-indent-mode indented by level', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'virtual.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('#+STARTUP: indent\n* A\ntext\n** B\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    await until('the lines indented', () =>
+      JSON.stringify(api.virtualIndent(editor)) === JSON.stringify([[2, 2, 0], [3, 1, 1]]),
+    );
+    assert.equal(editor.document.lineAt(2).text, 'text', 'the file is not changed');
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    await vscode.workspace.fs.delete(file);
+  });
+
   it('changes the part of a timestamp at the cursor', async () => {
     moveTo(6, 19); // on the day of "DEADLINE: <2026-05-20 Wed>"
     await vscode.commands.executeCommand('org.timestamp.up');
@@ -425,7 +454,8 @@ describe('The agenda', () => {
     await until('the cursor on the first day', () => activeLine() === 'Monday     25 May 2026 W22');
     await vscode.commands.executeCommand('org.agenda.today');
     await agenda('Week-agenda (W21):');
-    // From a short view to a long one: today is far below the old last line.
+    // From a short view to a long one: the day under the cursor is far below
+    // the old last line.
     const wednesday = activeText().split('\n').findIndex((line) => line.startsWith('Wednesday'));
     moveTo(wednesday + 1);
     await vscode.commands.executeCommand('org.agenda.day');
@@ -433,7 +463,7 @@ describe('The agenda', () => {
     assert.equal(vscode.window.activeTextEditor.document.lineCount, 4);
     await vscode.commands.executeCommand('org.agenda.month');
     await agenda('Month-agenda (W18-W22):');
-    await until('the cursor on today in the month', () => activeLine() === 'Monday     18 May 2026 W21');
+    await until('the cursor on the same day in the month', () => activeLine() === 'Wednesday  20 May 2026');
     await vscode.commands.executeCommand('org.agenda.week');
     await agenda('Week-agenda (W21):');
   });

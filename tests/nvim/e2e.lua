@@ -530,6 +530,52 @@ wait('the statusline to drop the clock', function()
   return require('org-lsp').clock_status() == ''
 end)
 
+-- 20. Indentation by the server: a line opened below a list item starts
+-- at the item's text, as Org's RET has it, and `==` re-indents a line as
+-- `org-indent-region` does. `gq` is left to wrap text.
+local indented = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* Head', '- item', '     stray' }, indented)
+vim.cmd.edit(indented)
+wait('the server to attach to the file to indent', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+eq(vim.bo.indentexpr, "v:lua.require'org-lsp.indent'.expr()", 'indentexpr asks the server')
+eq(vim.bo.formatexpr, '', 'gq wraps text')
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press('obody<Esc>')
+eq(line(3), '  body', 'a new line in a list item starts at its text')
+vim.api.nvim_win_set_cursor(0, { 4, 0 })
+press('==')
+wait('the stray line to be re-indented', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return line(4) == '  stray'
+end)
+
+-- 21. A file with `org-indent-mode` shows indented by level, without
+-- changing it: the text under a headline lines up with its title, and the
+-- leading stars are hidden.
+local virtual = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '#+STARTUP: indent', '* A', 'text', '** B' }, virtual)
+vim.cmd.edit(virtual)
+local virtual_ns = vim.api.nvim_create_namespace('org_lsp_virtual_indent')
+local function prefixes()
+  local found = {}
+  for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(0, virtual_ns, 0, -1, { details = true })) do
+    local details = mark[4]
+    if details.virt_text then
+      table.insert(found, { mark[2], #details.virt_text[1][1] })
+    elseif details.conceal then
+      table.insert(found, { mark[2], 'star', mark[3] })
+    end
+  end
+  return found
+end
+wait('the lines indented', function()
+  return #prefixes() > 0
+end)
+eq(prefixes(), { { 2, 2 }, { 3, 1 }, { 3, 'star', 0 } }, 'the text below A at 2, B after 1 column, one star hidden')
+eq(line(3), 'text', 'the file is not changed')
+
 -- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'

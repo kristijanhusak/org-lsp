@@ -755,6 +755,36 @@
               "markdownDescription": "With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`)",
               "default": 2
             },
+            "adaptIndentation": {
+              "enum": [
+                true,
+                false,
+                "headline-data"
+              ],
+              "markdownDescription": "Indent the lines of an entry past its headline's stars: `true` for all of them, `\"headline-data\"` for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (`org-adapt-indentation`)",
+              "default": false
+            },
+            "startupIndented": {
+              "type": "boolean",
+              "markdownDescription": "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It turns `adaptIndentation` off in such files, unless that is `\"headline-data\"`. Editors that can show it: Neovim, and VS Code (not on wrapped lines). (`org-startup-indented`)",
+              "default": false
+            },
+            "hideLeadingStars": {
+              "type": "boolean",
+              "markdownDescription": "Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and `showstars` decide for a file. (`org-hide-leading-stars`)",
+              "default": false
+            },
+            "srcPreserveIndentation": {
+              "type": "boolean",
+              "markdownDescription": "Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)",
+              "default": false
+            },
+            "editSrcContentIndentation": {
+              "minimum": 0,
+              "type": "integer",
+              "markdownDescription": "How far code is indented past its source block when re-indenting. (`org-edit-src-content-indentation`)",
+              "default": 2
+            },
             "agenda": {
               "type": "object",
               "properties": {
@@ -956,6 +986,28 @@
                     "clock"
                   ]
                 },
+                "blockSeparator": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "const": false
+                    }
+                  ],
+                  "markdownDescription": "What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block. (`org-agenda-block-separator`)",
+                  "default": "="
+                },
+                "compactBlocks": {
+                  "type": "boolean",
+                  "markdownDescription": "Leave out the separators between blocks and the header over agenda blocks. (`org-agenda-compact-blocks`)",
+                  "default": false
+                },
+                "hideEmptyBlocks": {
+                  "type": "boolean",
+                  "markdownDescription": "Leave out the blocks of a block agenda that show no entries. Not in Org.",
+                  "default": false
+                },
                 "startDay": {
                   "type": "string",
                   "markdownDescription": "The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)"
@@ -1050,7 +1102,8 @@
       "[org]": {
         "editor.semanticHighlighting.enabled": true,
         "editor.lightbulb.enabled": "off",
-        "editor.bracketPairColorization.enabled": false
+        "editor.bracketPairColorization.enabled": false,
+        "editor.formatOnType": true
       },
       "[org-agenda]": {
         "editor.semanticHighlighting.enabled": true,

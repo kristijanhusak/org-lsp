@@ -11,6 +11,7 @@
 use std::path::PathBuf;
 
 use org_core::date::DateTime;
+use org_core::indent::Adapt;
 use org_core::planning::{prompt, run, Command};
 use org_core::read_date::Settings;
 use serde_json::Value;
@@ -52,7 +53,12 @@ fn date_commands_match_emacs() {
         let now = clock(case["clock"].as_str().unwrap());
         let repeated = case.get("repeated").and_then(Value::as_bool).unwrap_or(false);
         let keeps_cursor = matches!(command, Command::Schedule | Command::Deadline);
-        let actual = match run(command, &text, offset, answer, repeated, now, &Settings::default()) {
+        let adapt = match case.pointer("/options/adaptIndentation") {
+            Some(Value::Bool(true)) => Adapt::All,
+            Some(Value::String(name)) if name == "headline-data" => Adapt::HeadlineData,
+            _ => Adapt::Off,
+        };
+        let actual = match run(command, &text, offset, answer, repeated, now, &Settings::default(), adapt) {
             Ok(outcome) => match outcome.cursor {
                 Some(cursor) => format!("{}¦{}", &outcome.text[..cursor], &outcome.text[cursor..]),
                 None => outcome.text,

@@ -9,6 +9,7 @@ use std::path::PathBuf;
 
 use org_core::capture::{fill, place, Context, Filled, Kind, Properties, Target};
 use org_core::date::DateTime;
+use org_core::indent::Adapt;
 use org_core::read_date::Settings;
 use org_syntax::TodoKeywords;
 use serde_json::Value;
@@ -61,7 +62,13 @@ fn run(case: &Value) -> Result<(String, String, String), String> {
     };
     let original = case["files"][&name].as_str().unwrap();
     let keywords = TodoKeywords::from_document(original).unwrap_or_default();
-    let placed = place(original, &keywords, &target, kind, &text, &properties, -77)
+    let adapt = match case.pointer("/options/adaptIndentation") {
+        Some(Value::Bool(true)) => Adapt::All,
+        Some(Value::String(name)) if name == "headline-data" => Adapt::HeadlineData,
+        _ => Adapt::Off,
+    };
+    let levels = org_core::refile::Settings { adapt, ..Default::default() };
+    let placed = place(original, &keywords, &target, kind, &text, &properties, &levels)
         .map_err(|refusal| refusal.message().to_string())?;
     let at = placed.cursor - placed.start;
     let shown = placed.shown();

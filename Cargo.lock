@@ -282,6 +282,7 @@ dependencies = [
  "expect-test",
  "org-syntax",
  "regex",
+ "serde_json",
  "unicode-width",
 ]
 

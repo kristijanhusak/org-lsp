@@ -114,6 +114,10 @@ def bindings(options, paths):
             out["org-reverse-note-order"] = "t" if value else "nil"
         elif key == "tagsColumn":
             out["org-tags-column"] = str(value)
+        elif key == "adaptIndentation":
+            out["org-adapt-indentation"] = (
+                "t" if value is True else "nil" if value is False else "'" + value
+            )
         else:
             raise ValueError(f"no Emacs setting for option {key}")
     return " ".join(f"({name} {value})" for name, value in out.items())

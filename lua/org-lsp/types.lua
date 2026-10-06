@@ -34,6 +34,11 @@
 ---@field hideEmphasisMarkers? boolean Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~`, as for links. (`org-hide-emphasis-markers`)
 ---@field autoSave? boolean Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them.
 ---@field cycleSeparatorLines? integer With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`)
+---@field adaptIndentation? true|false|'headline-data' Indent the lines of an entry past its headline's stars: `true` for all of them, `"headline-data"` for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (`org-adapt-indentation`)
+---@field startupIndented? boolean Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It turns `adaptIndentation` off in such files, unless that is `"headline-data"`. Editors that can show it: Neovim, and VS Code (not on wrapped lines). (`org-startup-indented`)
+---@field hideLeadingStars? boolean Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and `showstars` decide for a file. (`org-hide-leading-stars`)
+---@field srcPreserveIndentation? boolean Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)
+---@field editSrcContentIndentation? integer How far code is indented past its source block when re-indenting. (`org-edit-src-content-indentation`)
 ---@field agenda? org_lsp.Settings.Agenda
 
 --- The options under `agenda`.
@@ -57,6 +62,9 @@
 ---@field startWithLogMode? boolean Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it). (`org-agenda-start-with-log-mode`)
 ---@field startWithClockreportMode? boolean Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)
 ---@field logModeItems? ('closed'|'clock'|'state')[] What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`)
+---@field blockSeparator? string|false What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block. (`org-agenda-block-separator`)
+---@field compactBlocks? boolean Leave out the separators between blocks and the header over agenda blocks. (`org-agenda-compact-blocks`)
+---@field hideEmptyBlocks? boolean Leave out the blocks of a block agenda that show no entries. Not in Org.
 ---@field startDay? string The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)
 ---@field customCommands? org_lsp.AgendaCommand[] Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`span`, `startDay`…). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)
 

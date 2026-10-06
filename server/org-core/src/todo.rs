@@ -17,6 +17,7 @@
 use org_syntax::{Logging, SyntaxKind, TodoKeywords, TokenAtOffset};
 
 use crate::date::DateTime;
+use crate::indent::{self, Adapt};
 use crate::outline::Outline;
 use crate::stamp::{self, format_timestamp, Around, Placed, Shift, Stamp, Unit};
 use crate::text::{char_width, tag_group, width, word_start};
@@ -58,6 +59,8 @@ pub struct Settings {
     pub tags_column: i64,
     /// `org-todo-repeat-to-state`
     pub repeat_to_state: RepeatTo,
+    /// `org-adapt-indentation`: how the lines Org writes are indented.
+    pub adapt: Adapt,
 }
 
 impl Default for Settings {
@@ -68,6 +71,7 @@ impl Default for Settings {
             log_into_drawer: None,
             tags_column: -77,
             repeat_to_state: RepeatTo::Head,
+            adapt: Adapt::Off,
         }
     }
 }
@@ -255,6 +259,37 @@ impl<'a> Editor<'a> {
 
     pub(crate) fn line_start(&self, at: usize) -> usize {
         self.text[..at].rfind('\n').map_or(0, |index| index + 1)
+    }
+
+    fn indent_settings(&self) -> indent::Settings {
+        indent::Settings {
+            adapt: self.settings.adapt,
+            log_into_drawer: self.settings.log_into_drawer.clone(),
+            ..indent::Settings::default()
+        }
+    }
+
+    /// `org-indent-region` over the lines from `start` up to `end`.
+    pub(crate) fn indent_region(&mut self, start: usize, end: usize) {
+        for edit in indent::indent_region(&self.text, start, end, &self.indent_settings()).into_iter().rev() {
+            self.replace(edit.start, edit.end, &edit.text);
+        }
+    }
+
+    /// `org-indent-line` on the line at `at`.
+    pub(crate) fn indent_line(&mut self, at: usize) {
+        if let Some(edit) = indent::indent_line(&self.text, at, &self.indent_settings()) {
+            self.replace(edit.start, edit.end, &edit.text);
+        }
+    }
+
+    /// The indentation of a planning line Org adds below the headline:
+    /// past the stars with `org-adapt-indentation`.
+    pub(crate) fn planning_indentation(&self) -> String {
+        match self.settings.adapt {
+            Adapt::Off => String::new(),
+            _ => " ".repeat(self.line(self.heading).bytes().take_while(|b| *b == b'*').count() + 1),
+        }
     }
 
     /// The end of the line holding `at`, before its line break.
@@ -569,7 +604,8 @@ impl<'a> Editor<'a> {
             None if add => {
                 let at = self.line_end(self.heading);
                 let stamp = format_timestamp(self.now, true, true, "");
-                self.replace(at, at, &format!("\nCLOSED: {stamp}"));
+                let indentation = self.planning_indentation();
+                self.replace(at, at, &format!("\n{indentation}CLOSED: {stamp}"));
             }
             None => {}
         }
@@ -613,46 +649,26 @@ impl<'a> Editor<'a> {
 
     // ----- properties and notes
 
-    /// The indentation `org-indent-line` gives a new line after the
-    /// entry's planning line and drawer: that of the element before it.
-    pub(crate) fn indentation_after(&self, line: usize) -> String {
-        let headline_end = self.next_line(self.heading);
-        if line <= headline_end {
-            return String::new();
-        }
-        // The first line of the element that ends before `line`.
-        let mut previous = self.line_start(line - 1);
-        if let Some((drawer, drawer_end)) = self.property_drawer() {
-            if previous == drawer_end {
-                previous = drawer;
-            }
-        }
-        let text = self.line(previous);
-        text[..leading_blanks(text)].to_string()
-    }
-
     /// `org-entry-put` for `LAST_REPEAT`.
     fn put_last_repeat(&mut self) {
         let value = format_timestamp(self.now, true, true, "");
         let (drawer, end) = match self.property_drawer() {
             Some(found) => found,
             None => {
-                // A new drawer below the headline and its planning line.
+                // `org-insert-property-drawer`: below the headline and its
+                // planning line, indented as `org-indent-region` has it.
                 let after = self.planning_line().unwrap_or(self.heading);
-                let indent = if after == self.heading {
-                    String::new()
-                } else {
-                    self.line(after)[..leading_blanks(self.line(after))].to_string()
-                };
                 let at = self.line_end(after);
                 let at_end = at == self.text.len();
-                let drawer = format!("\n{indent}:PROPERTIES:\n{indent}:END:{}", if at_end { "\n" } else { "" });
+                let drawer = format!("\n:PROPERTIES:\n:END:{}", if at_end { "\n" } else { "" });
                 self.replace(at, at, &drawer);
-                (at + 1, at + 1 + indent.len() + ":PROPERTIES:\n".len())
+                let end = self.line_end(self.next_line(at + 1));
+                self.indent_region(at + 1, end);
+                self.property_drawer().expect("the new drawer")
             }
         };
-        let indent = self.line(drawer)[..leading_blanks(self.line(drawer))].to_string();
-        // Replace an existing value, or add a line before `:END:`.
+        // Replace an existing value, or add a line before `:END:`; then
+        // `org-indent-line` on it.
         let mut at = self.next_line(drawer);
         while at < end {
             let text = self.line(at).trim_start_matches([' ', '\t']);
@@ -660,12 +676,14 @@ impl<'a> Editor<'a> {
                 && text[13..].chars().next().is_none_or(|c| c == ' ' || c == '\t');
             if is_it {
                 let line_end = self.line_end(at);
-                self.replace(at, line_end, &format!("{indent}:LAST_REPEAT: {value}"));
+                self.replace(at, line_end, &format!(":LAST_REPEAT: {value}"));
+                self.indent_line(at);
                 return;
             }
             at = self.next_line(at);
         }
-        self.replace(end, end, &format!("{indent}:LAST_REPEAT: {value}\n"));
+        self.replace(end, end, &format!(":LAST_REPEAT: {value}\n"));
+        self.indent_line(end);
     }
 
     /// Whether the entry has a clock line.
@@ -704,8 +722,12 @@ impl<'a> Editor<'a> {
         } else if self.line(at).bytes().any(|b| !is_blank(b)) {
             self.replace(at, at, "\n");
         }
-        let indent = self.indentation_at(at);
+        // `org-indent-line` on the note's line.
         let blanks = leading_blanks(self.line(at));
+        let indent = match indent::line_column(&self.text, at, &self.indent_settings()) {
+            Some(column) => " ".repeat(column),
+            None => self.line(at)[..blanks].to_string(),
+        };
         let lines = note_lines(text);
         let mut item = format!("{indent}- {heading}");
         if !lines.is_empty() {
@@ -721,37 +743,6 @@ impl<'a> Editor<'a> {
             item.push_str(line);
         }
         self.replace(at, at + blanks, &item);
-    }
-
-    /// The indentation of a new line at `at`, as `org-indent-line` sets it.
-    pub(crate) fn indentation_at(&self, at: usize) -> String {
-        // Inside a drawer: like the drawer.
-        if let Some(drawer) = self.settings.log_into_drawer.as_ref() {
-            let mut line = at;
-            while line > self.heading {
-                line = self.line_start(line - 1);
-                let text = self.line(line);
-                if text.trim_matches([' ', '\t']).eq_ignore_ascii_case(&format!(":{drawer}:")) {
-                    return text[..leading_blanks(text)].to_string();
-                }
-                if !text.bytes().all(is_blank) {
-                    break;
-                }
-            }
-        }
-        // Otherwise like the last line with text above, if that belongs
-        // to the entry's planning line or drawer.
-        let mut line = at;
-        while line > self.heading {
-            line = self.line_start(line - 1);
-            if !self.line(line).bytes().all(is_blank) {
-                break;
-            }
-        }
-        if line <= self.heading {
-            return String::new();
-        }
-        self.indentation_after(self.next_line(line))
     }
 
     /// `org-log-beginning` with a drawer: the line below the drawer's
@@ -773,23 +764,19 @@ impl<'a> Editor<'a> {
             }
             line = next;
         }
-        // Create it. At the end of the text, or right before the next
-        // headline, it goes on a new line after what is there.
-        let indent = self.indentation_after(meta);
-        let at_text_end = meta == self.text.len();
-        if at_text_end && !self.text.ends_with('\n') {
-            let drawer = format!("\n{indent}{opening}\n{indent}:END:");
-            self.replace(meta, meta, &drawer);
-            return meta + 1 + indent.len() + opening.len() + 1;
-        }
-        if at_text_end {
-            let drawer = format!("{indent}{opening}\n{indent}:END:\n");
-            self.replace(meta, meta, &drawer);
-            return meta + indent.len() + opening.len() + 1;
-        }
-        let drawer = format!("{indent}{opening}\n{indent}:END:\n");
-        self.replace(meta, meta, &drawer);
-        meta + indent.len() + opening.len() + 1
+        // Create it, as `org-indent-region` indents it. At the end of
+        // the text, or right before the next headline, it goes on a new
+        // line after what is there.
+        let start = if meta == self.text.len() && !self.text.is_empty() && !self.text.ends_with('\n') {
+            self.replace(meta, meta, &format!("\n{opening}\n:END:"));
+            meta + 1
+        } else {
+            self.replace(meta, meta, &format!("{opening}\n:END:\n"));
+            meta
+        };
+        let end = self.line_end(self.next_line(start));
+        self.indent_region(start, end);
+        self.next_line(start)
     }
 
     /// Whether the drawer opening at `line` has its `:END:` before `end`.

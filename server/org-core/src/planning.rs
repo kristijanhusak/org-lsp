@@ -12,6 +12,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 
 use crate::date::DateTime;
+use crate::indent::Adapt;
 use crate::read_date::{read_date, ReadDate, Settings};
 use crate::stamp::{format_timestamp, Stamp};
 use crate::timestr::parse_time_string;
@@ -208,6 +209,8 @@ fn insert_timestamp(read: &ReadDate, inactive: bool, with_end: bool) -> String {
 /// Run `command` with the cursor at byte `offset` of `text`, reading
 /// `answer` as the date. `repeated` says that a timestamp command ran just
 /// before, which makes `org-timestamp` add the end of a date range.
+/// `adapt` (`org-adapt-indentation`) indents a new planning line.
+#[allow(clippy::too_many_arguments)]
 pub fn run(
     command: Command,
     text: &str,
@@ -216,10 +219,11 @@ pub fn run(
     repeated: bool,
     now: DateTime,
     settings: &Settings,
+    adapt: Adapt,
 ) -> Result<Outcome, Refusal> {
     let prompt = prompt(command, text, offset)?;
     match command {
-        Command::Schedule | Command::Deadline => schedule(command, text, offset, answer, &prompt, now, settings),
+        Command::Schedule | Command::Deadline => schedule(command, text, offset, answer, &prompt, now, settings, adapt),
         Command::Timestamp { inactive } => timestamp(text, offset, answer, &prompt, inactive, repeated, now, settings),
     }
 }
@@ -286,6 +290,7 @@ pub fn display(
 
 /// `org--deadline-or-schedule` without a prefix argument, and
 /// `org-add-planning-info` under it.
+#[allow(clippy::too_many_arguments)]
 fn schedule(
     command: Command,
     text: &str,
@@ -294,6 +299,7 @@ fn schedule(
     prompt: &Prompt,
     now: DateTime,
     settings: &Settings,
+    adapt: Adapt,
 ) -> Result<Outcome, Refusal> {
     let heading = heading_at(text, offset)?;
     let keyword = keyword(command);
@@ -340,9 +346,14 @@ fn schedule(
         out.replace_range(trimmed..end, "");
         indent
     } else {
+        // A new line, past the stars with `org-adapt-indentation`.
         let end = line_end(&out, heading);
-        out.insert(end, '\n');
-        end + 1
+        let indentation = match adapt {
+            Adapt::Off => String::new(),
+            _ => " ".repeat(out[heading..].bytes().take_while(|b| *b == b'*').count() + 1),
+        };
+        out.insert_str(end, &format!("\n{indentation}"));
+        end + 1 + indentation.len()
     };
     let stamp = insert_timestamp(&read, false, true);
     let mut inserted = format!("{keyword} {stamp}");
@@ -443,7 +454,7 @@ mod tests {
         let offset = marked.find('¦').expect("cursor marker");
         let text = marked.replacen('¦', "", 1);
         let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);
-        let outcome = run(command, &text, offset, answer, false, now, &Settings::default()).unwrap();
+        let outcome = run(command, &text, offset, answer, false, now, &Settings::default(), Adapt::Off).unwrap();
         match outcome.cursor {
             Some(cursor) => format!("{}¦{}", &outcome.text[..cursor], &outcome.text[cursor..]),
             None => outcome.text,
@@ -467,7 +478,7 @@ mod tests {
     fn says_what_it_did_as_emacs_does() {
         let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);
         let message = |text: &str, command, answer| {
-            run(command, text, 0, answer, false, now, &Settings::default()).unwrap().message
+            run(command, text, 0, answer, false, now, &Settings::default(), Adapt::Off).unwrap().message
         };
         let repeating = "* TODO a\nSCHEDULED: <2026-05-20 Wed +1w>\n";
         assert_eq!(message(repeating, Command::Schedule, "fri"), Some("Scheduled to <2026-05-22 Fri +1w>".to_string()));

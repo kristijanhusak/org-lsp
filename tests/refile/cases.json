@@ -841,5 +841,339 @@
     "a.org": "* A\n* B\n* C\n** b\n"
    }
   }
+ },
+ {
+  "files": {
+   "a.org": "*¦** Call\n**** TODO Notes\n**** TODO [#A] Call                       :a:b:\nSCHEDULED: <2026-05-18 Mon>\n\n",
+   "b.org": "#+TITLE: Doc\n** [#A] Misc\n** TODO Work               :tag:\n* DONE Home     :a:b:\n\n"
+  },
+  "answerIndex": 1,
+  "options": {
+   "refileUseOutlinePath": "title",
+   "reverseNoteOrder": true,
+   "tagsColumn": 20,
+   "adaptIndentation": true
+  },
+  "expected": {
+   "offered": [
+    "a.org/"
+   ],
+   "files": {
+    "a.org": "* Call\n** TODO Notes\n** TODO [#A] Call   :a:b:\n   SCHEDULED: <2026-05-18 Mon>\n\n**** TODO Notes\n**** TODO [#A] Call                       :a:b:\nSCHEDULED: <2026-05-18 Mon>\n\n",
+    "b.org": "#+TITLE: Doc\n** [#A] Misc\n** TODO Work               :tag:\n* DONE Home     :a:b:\n\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+TITLE: Doc\n¦* TODO Task [1/2]  :tag:\nSome text.\nSome text.\n* Plan\nSome text.\n"
+  },
+  "answerIndex": 5,
+  "options": {
+   "refileTargets": [
+    {
+     "maxLevel": 3
+    }
+   ],
+   "tagsColumn": -40,
+   "adaptIndentation": true
+  },
+  "expected": {
+   "offered": [
+    "Task [1/2]",
+    "Plan"
+   ],
+   "files": {
+    "a.org": "#+TITLE: Doc\n* Plan\nSome text.\n** TODO Task [1/2]                 :tag:\n Some text.\n Some text.\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "** Plan\n  - item\n* Notes           :proj:\nSCHEDULED: <2026-05-18 Mon>\n*** TODO Work\nSCHEDULED: <2026-05-18 Mon>\n* ¦DONE [[x][Link]]         :proj:\n  - item\n* a/b                 :a:b:\n** DONE Inbox    :proj:\n** Read\n",
+   "b.org": "#+TITLE: Doc\n* a/b\n** a/b\n** Misc\nSome text.\nSCHEDULED: <2026-05-18 Mon>\n** [[x][Link]]\nSCHEDULED: <2026-05-18 Mon>\n*** DONE Call                         :tag:\n"
+  },
+  "answerIndex": 6,
+  "options": {
+   "refileTargets": [
+    {
+     "maxLevel": 3,
+     "files": "agenda"
+    }
+   ],
+   "refileUseOutlinePath": "title",
+   "adaptIndentation": true
+  },
+  "expected": {
+   "offered": [
+    "a.org/",
+    "a.org/Plan/",
+    "a.org/Notes/",
+    "a.org/Notes/Work/",
+    "a.org/Link/",
+    "a.org/a\\/b/",
+    "a.org/a\\/b/Inbox/",
+    "a.org/a\\/b/Read/",
+    "Doc/",
+    "Doc/a\\/b/",
+    "Doc/a\\/b/a\\/b/",
+    "Doc/a\\/b/Misc/",
+    "Doc/a\\/b/Link/",
+    "Doc/a\\/b/Link/Call/"
+   ],
+   "files": {
+    "a.org": "** Plan\n  - item\n* Notes           :proj:\nSCHEDULED: <2026-05-18 Mon>\n*** TODO Work\nSCHEDULED: <2026-05-18 Mon>\n* a/b                 :a:b:\n** DONE Inbox    :proj:\n*** DONE [[x][Link]]                                                   :proj:\n    - item\n** Read\n",
+    "b.org": "#+TITLE: Doc\n* a/b\n** a/b\n** Misc\nSome text.\nSCHEDULED: <2026-05-18 Mon>\n** [[x][Link]]\nSCHEDULED: <2026-05-18 Mon>\n*** DONE Call                         :tag:\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Home\n** [#A] Task [1/2]\n**** [#A] Misc\n**** [#A] Work\n\n\n**** DONE Plan              :proj:\n¦  - item\n** Call\n"
+  },
+  "answerIndex": 9,
+  "options": {
+   "refileTargets": [
+    {
+     "all": true
+    }
+   ],
+   "tagsColumn": 20,
+   "adaptIndentation": true
+  },
+  "expected": {
+   "offered": [
+    "Home",
+    "Task [1/2]",
+    "Misc",
+    "Work",
+    "Plan",
+    "Call"
+   ],
+   "files": {
+    "a.org": "* Home\n** [#A] Task [1/2]\n**** [#A] Misc\n**** [#A] Work\n\n\n***** DONE Plan     :proj:\n   - item\n** Call\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* DONE Call\n  - item\nSCHEDULED: <2026-05-18 Mon>\n* a/b\n* Read\n  - item\nSome text.\n**¦ Misc\n\nSCHEDULED: <2026-05-18 Mon>\n",
+   "b.org": "* TODO [[x][Link]]                  :tag:\n** [#A] Home\n** TODO Misc                        :proj:\nSome text.\n**** TODO Work\n\nSome text.\n**** Call\nSome text.\n  - item\n**** [#A] Work\n\n"
+  },
+  "answerIndex": 7,
+  "options": {
+   "refileTargets": [
+    {
+     "todo": "TODO"
+    }
+   ],
+   "refileUseOutlinePath": "file",
+   "adaptIndentation": true
+  },
+  "expected": {
+   "offered": [
+    "a.org/"
+   ],
+   "files": {
+    "a.org": "* DONE Call\n  - item\nSCHEDULED: <2026-05-18 Mon>\n* a/b\n* Read\n  - item\nSome text.\n* Misc\n\nSCHEDULED: <2026-05-18 Mon>\n",
+    "b.org": "* TODO [[x][Link]]                  :tag:\n** [#A] Home\n** TODO Misc                        :proj:\nSome text.\n**** TODO Work\n\nSome text.\n**** Call\nSome text.\n  - item\n**** [#A] Work\n\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "** DONE Call\nSome text.\n  - item\n* TODO Call\nSCHEDULED: <2026-05-18 Mon>\n*** [#A] [[x][Link]]                      :proj:\n¦** TODO [[x][Link]]\n",
+   "b.org": "#+TITLE: Doc\n* [#A] Notes\n** TODO Notes\nSome text.\nSCHEDULED: <2026-05-18 Mon>"
+  },
+  "answerIndex": 3,
+  "options": {
+   "refileTargets": [
+    {
+     "tag": "proj"
+    }
+   ],
+   "refileUseOutlinePath": true,
+   "adaptIndentation": "headline-data"
+  },
+  "expected": {
+   "offered": [
+    "Call/Link/"
+   ],
+   "files": {
+    "a.org": "** DONE Call\nSome text.\n  - item\n* TODO Call\nSCHEDULED: <2026-05-18 Mon>\n*** [#A] [[x][Link]]                      :proj:\n**** TODO [[x][Link]]\n",
+    "b.org": "#+TITLE: Doc\n* [#A] Notes\n** TODO Notes\nSome text.\nSCHEDULED: <2026-05-18 Mon>"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* DONE a/b\nS¦CHEDULED: <2026-05-18 Mon>\n** TODO a/b\n* a/b\n  - item\n** Read\nSCHEDULED: <2026-05-18 Mon>\n\n** Work            :proj:\n* TODO Misc\nSome text.\n*** DONE Plan                     :a:b:\n\n"
+  },
+  "answerIndex": 3,
+  "options": {
+   "refileTargets": [
+    {
+     "maxLevel": 3
+    }
+   ],
+   "refileUseOutlinePath": "file",
+   "reverseNoteOrder": true,
+   "adaptIndentation": "headline-data"
+  },
+  "expected": {
+   "offered": [
+    "a.org/",
+    "a.org/a\\/b/",
+    "a.org/a\\/b/a\\/b/",
+    "a.org/a\\/b/",
+    "a.org/a\\/b/Read/",
+    "a.org/a\\/b/Work/",
+    "a.org/Misc/",
+    "a.org/Misc/Plan/"
+   ],
+   "files": {
+    "a.org": "* a/b\n  - item\n** Read\nSCHEDULED: <2026-05-18 Mon>\n\n*** DONE a/b\n    SCHEDULED: <2026-05-18 Mon>\n**** TODO a/b\n** Work            :proj:\n* TODO Misc\nSome text.\n*** DONE Plan                     :a:b:\n\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+TITLE: Doc\n*** DONE Inbox :tag:\n**** DONE [#A] a/b\nSome text.\n\n** [#A] a/b        :proj:\nSC¦HEDULED: <2026-05-18 Mon>\n  - item\n**** Work\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n**** Inbox"
+  },
+  "answerIndex": 10,
+  "options": {
+   "refileTargets": [
+    {
+     "maxLevel": 2
+    }
+   ],
+   "refileUseOutlinePath": "file",
+   "adaptIndentation": true
+  },
+  "expected": {
+   "offered": [
+    "a.org/",
+    "a.org/a\\/b/"
+   ],
+   "files": {
+    "a.org": "#+TITLE: Doc\n*** DONE Inbox :tag:\n**** DONE [#A] a/b\nSome text.\n\n* [#A] a/b                                                             :proj:\n  SCHEDULED: <2026-05-18 Mon>\n - item\n*** Work\n    SCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n*** Inbox\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "** Plan     :proj:\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n** Read\n** Call\n\n*** Plan    :proj:\n**¦* [#A] a/b\n**** [[x][Link]]\nSome text.\nSome text."
+  },
+  "answerIndex": 3,
+  "options": {
+   "refileTargets": [
+    {
+     "maxLevel": 3
+    }
+   ],
+   "refileUseOutlinePath": true,
+   "reverseNoteOrder": true,
+   "adaptIndentation": true
+  },
+  "expected": {
+   "offered": [
+    "Plan/",
+    "Read/",
+    "Call/",
+    "Call/Plan/",
+    "Call/a\\/b/"
+   ],
+   "files": {
+    "a.org": "** Plan     :proj:\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n** Read\n** Call\n\n*** Plan    :proj:\n**** [#A] a/b\n***** [[x][Link]]\n Some text.\n Some text.\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* TODO Task [1/2]\n* [#A] a/b\n* Plan\nSome text.\n*** [#A] Home\n**¦ a/b\nSome text.\n\n*** TODO Call     :a:b:\n**** [[x][Link]]\nSCHEDULED: <2026-05-18 Mon>\n** Read         :proj:\n\n"
+  },
+  "answerIndex": 9,
+  "options": {
+   "refileTargets": [
+    {
+     "tag": "proj"
+    }
+   ],
+   "reverseNoteOrder": true,
+   "adaptIndentation": true
+  },
+  "expected": {
+   "offered": [
+    "Read"
+   ],
+   "files": {
+    "a.org": "* TODO Task [1/2]\n* [#A] a/b\n* Plan\nSome text.\n*** [#A] Home\n** Read         :proj:\n\n*** a/b\n Some text.\n\n**** TODO Call                                                          :a:b:\n***** [[x][Link]]\n      SCHEDULED: <2026-05-18 Mon>\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* TODO Inbox\nSCHEDULED: <2026-05-18 Mon>\nSome text.\n* [#A] Read                        :proj:\nSCHEDULED: <2026-05-18 Mon>\n*** Work\nSCHEDULED: <2026-05-18 Mon>\n  - item\n**** a/b\n**** Inbox                            :a:b:\nSCHEDULED: <2026-05-18 Mon>\n  - item\n*¦** [[x][Link]]\n**** Task [1/2]\n**** Misc          :tag:",
+   "b.org": "#+TITLE: Doc\n* DONE [#A] Misc\nSome text.\n* Task [1/2]\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n** Inbox                  :a:b:\n** Task [1/2]\n\n* Notes\n* TODO Misc\n\n"
+  },
+  "answerIndex": 6,
+  "options": {
+   "refileTargets": [
+    {
+     "level": 1,
+     "files": "agenda"
+    }
+   ],
+   "reverseNoteOrder": true,
+   "adaptIndentation": true
+  },
+  "expected": {
+   "offered": [
+    "Inbox",
+    "Read",
+    "Misc (b.org)",
+    "Task [1/2] (b.org)",
+    "Notes (b.org)",
+    "Misc (b.org)"
+   ],
+   "files": {
+    "a.org": "* TODO Inbox\nSCHEDULED: <2026-05-18 Mon>\nSome text.\n* [#A] Read                        :proj:\nSCHEDULED: <2026-05-18 Mon>\n** [[x][Link]]\n*** Task [1/2]\n*** Misc                                                                :tag:\n*** Work\nSCHEDULED: <2026-05-18 Mon>\n  - item\n**** a/b\n**** Inbox                            :a:b:\nSCHEDULED: <2026-05-18 Mon>\n  - item\n",
+    "b.org": "#+TITLE: Doc\n* DONE [#A] Misc\nSome text.\n* Task [1/2]\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n** Inbox                  :a:b:\n** Task [1/2]\n\n* Notes\n* TODO Misc\n\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "¦* [[x][Link]]\n\n*** Notes\n",
+   "b.org": "* [#A] Call\n  - item\nSome text.\n* DONE Misc\nSCHEDULED: <2026-05-18 Mon>\n* TODO Task [1/2]\n** TODO Work\n*** TODO Inbox\n\nSCHEDULED: <2026-05-18 Mon>"
+  },
+  "answerIndex": 2,
+  "options": {
+   "refileTargets": [
+    {
+     "all": true,
+     "files": "agenda"
+    }
+   ],
+   "refileUseOutlinePath": true,
+   "reverseNoteOrder": true,
+   "tagsColumn": -40,
+   "adaptIndentation": true
+  },
+  "expected": {
+   "offered": [
+    "Link/",
+    "Link/Notes/",
+    "Call/ (b.org)",
+    "Misc/ (b.org)",
+    "Task/ (b.org)",
+    "Task/Work/ (b.org)",
+    "Task/Work/Inbox/ (b.org)"
+   ],
+   "files": {
+    "a.org": "",
+    "b.org": "* [#A] Call\n  - item\nSome text.\n** [[x][Link]]\n\n**** Notes\n* DONE Misc\nSCHEDULED: <2026-05-18 Mon>\n* TODO Task [1/2]\n** TODO Work\n*** TODO Inbox\n\nSCHEDULED: <2026-05-18 Mon>"
+   }
+  }
  }
 ]

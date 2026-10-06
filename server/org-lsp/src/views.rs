@@ -105,6 +105,7 @@ pub struct View {
     pub tokens: Vec<Token>,
     /// The line of today's date, if it is shown.
     pub today_line: Option<u32>,
+    pub today: Day,
 }
 
 fn token_style(style: Style) -> Option<(TokenType, u32)> {
@@ -220,7 +221,17 @@ pub fn render(
         lines.push(ViewLine { entry, kind, day, block: *block });
     }
     let start = starts.iter().flatten().next().map_or(0, |(start, _)| *start);
-    View { query, start, blocks: starts, index: LineIndex::new(&text), text, lines, tokens, today_line }
+    View {
+        query,
+        start,
+        blocks: starts,
+        index: LineIndex::new(&text),
+        text,
+        lines,
+        tokens,
+        today_line,
+        today: now.today,
+    }
 }
 
 /// The text of the view `blocks` make, as Org prints it (`org-batch-agenda`):
@@ -245,20 +256,27 @@ fn block_lines(blocks: &[Block], files: &[(&Outline, String, String)], now: Now)
             BlockKind::Todo { keywords } => agenda::todo_view(outlines, keywords.as_deref(), config),
             BlockKind::Tags { matcher, todo_only } => agenda::tags_view(outlines, matcher, *todo_only, now, config),
         };
-        if let Some(header) = &block.header {
+        let agenda = matches!(block.kind, BlockKind::Agenda { .. });
+        // A compact agenda block has no header, not even its own.
+        if let Some(header) = block.header.as_ref().filter(|_| !(agenda && config.compact_blocks)) {
             agenda::override_header(&mut view, header);
         }
         starts.push(match block.kind {
             BlockKind::Agenda { span, .. } => Some((view.start, span)),
             _ => None,
         });
-        if number > 0 {
-            rendered.extend(agenda::block_separator().into_iter().map(|line| (number, line)));
+        let entries = view.lines.iter().any(|line| line.item.as_ref().is_some_and(|item| item.source.is_some()));
+        if blocks.len() > 1 && config.hide_empty_blocks && !entries {
+            continue;
+        }
+        // Between this block and what is above it.
+        if !rendered.is_empty() {
+            rendered.extend(agenda::block_separator(config).into_iter().map(|line| (number, line)));
         }
         let (start, end) = (view.start, view.end);
         rendered.extend(view.lines.into_iter().map(|line| (number, line)));
         // `org-agenda-clockreport-mode`: the clock table for the days shown.
-        if config.clockreport && matches!(block.kind, BlockKind::Agenda { .. }) {
+        if config.clockreport && agenda {
             let named: Vec<(&Outline, &str, &str)> =
                 files.iter().map(|(outline, path, name)| (*outline, path.as_str(), name.as_str())).collect();
             for text in agenda::report::clock_table(&named, start, end) {
@@ -297,11 +315,16 @@ impl View {
         self.today_line.unwrap_or(if self.lines.len() > 1 { 1 } else { 0 })
     }
 
-    /// The line `org-agenda-goto-date` leaves the cursor on: the first
-    /// line of `day`, or the last line when the day is not shown.
-    pub fn day_line(&self, day: Day) -> u32 {
-        let line = self.lines.iter().position(|line| line.day == Some(day));
-        line.unwrap_or(self.lines.len().saturating_sub(1)) as u32
+    /// The line the cursor goes to in block `block` once it has moved to
+    /// other days: the first line of `day` if the block shows it, else
+    /// today's, else the block's first day.
+    pub fn block_line(&self, block: usize, day: Option<Day>) -> u32 {
+        let lines = || self.lines.iter().enumerate().filter(|(_, line)| line.block == block);
+        let first_of = |wanted: Day| lines().find(|(_, line)| line.day == Some(wanted)).map(|(number, _)| number);
+        day.and_then(first_of)
+            .or_else(|| first_of(self.today))
+            .or_else(|| lines().find(|(_, line)| line.day.is_some()).map(|(number, _)| number))
+            .map_or_else(|| self.home_line(), |number| number as u32)
     }
 }
 

@@ -53,6 +53,16 @@ pub struct Options {
     /// The step in which the minutes of a timestamp change: the second
     /// number of `org-time-stamp-rounding-minutes`.
     pub timestamp_rounding_minutes: Option<i64>,
+    /// `org-adapt-indentation`: `true`, `false` or `"headline-data"`.
+    pub adapt_indentation: Option<serde_json::Value>,
+    /// `org-src-preserve-indentation`
+    pub src_preserve_indentation: Option<bool>,
+    /// `org-startup-indented`: show files with `org-indent-mode`.
+    pub startup_indented: Option<bool>,
+    /// `org-hide-leading-stars`
+    pub hide_leading_stars: Option<bool>,
+    /// `org-edit-src-content-indentation`
+    pub edit_src_content_indentation: Option<i64>,
     /// `org-cycle-separator-lines`: how many blank lines after a subtree
     /// keep one of them visible when it is folded.
     pub cycle_separator_lines: Option<i64>,
@@ -342,6 +352,8 @@ impl Options {
         RefileSettings {
             reverse_note_order: self.reverse_note_order.unwrap_or(false),
             tags_column: self.tags_column.unwrap_or(-77),
+            adapt: self.adapt(),
+            src_preserve_indentation: self.src_preserve_indentation.unwrap_or(false),
         }
     }
 
@@ -393,6 +405,40 @@ impl Options {
                 _ => Some(log_drawer),
             },
             remove_zero: self.clock_out_remove_zero_time_clocks.unwrap_or(false),
+            adapt: self.adapt(),
+            log_into_drawer: self.todo_settings().log_into_drawer,
+        }
+    }
+
+    /// How lines are indented (`org-adapt-indentation` and its
+    /// relatives).
+    pub fn indent_settings(&self) -> org_core::indent::Settings {
+        let defaults = org_core::indent::Settings::default();
+        org_core::indent::Settings {
+            adapt: self.adapt(),
+            log_into_drawer: self.todo_settings().log_into_drawer,
+            src_preserve_indentation: self.src_preserve_indentation.unwrap_or(defaults.src_preserve_indentation),
+            src_content_indentation: self
+                .edit_src_content_indentation
+                .and_then(|columns| usize::try_from(columns).ok())
+                .unwrap_or(defaults.src_content_indentation),
+        }
+    }
+
+    /// How files show: `org-startup-indented`, `org-hide-leading-stars`.
+    pub fn display(&self) -> org_core::indent::Display {
+        org_core::indent::Display {
+            startup_indented: self.startup_indented.unwrap_or(false),
+            hide_leading_stars: self.hide_leading_stars.unwrap_or(false),
+        }
+    }
+
+    /// `org-adapt-indentation`
+    fn adapt(&self) -> org_core::indent::Adapt {
+        match &self.adapt_indentation {
+            Some(serde_json::Value::Bool(true)) => org_core::indent::Adapt::All,
+            Some(serde_json::Value::String(name)) if name == "headline-data" => org_core::indent::Adapt::HeadlineData,
+            _ => org_core::indent::Adapt::Off,
         }
     }
 
@@ -435,6 +481,7 @@ impl Options {
             Some(RepeatToOption::State(state)) => RepeatTo::State(state.clone()),
             _ => RepeatTo::Head,
         };
+        settings.adapt = self.adapt();
         settings
     }
 }
@@ -762,6 +809,13 @@ pub struct AgendaOptions {
     /// `org-agenda-start-day`: the day the agenda starts from, as the date
     /// prompt reads it (`-1d`, `2026-10-01`).
     pub start_day: Option<String>,
+    /// `org-agenda-block-separator`: a character to repeat, a text, or
+    /// `false`.
+    pub block_separator: Option<serde_json::Value>,
+    /// `org-agenda-compact-blocks`
+    pub compact_blocks: Option<bool>,
+    /// Leave out the empty blocks of a block agenda.
+    pub hide_empty_blocks: Option<bool>,
     /// `org-agenda-custom-commands`
     pub custom_commands: Option<Vec<CustomCommandOption>>,
 }
@@ -826,8 +880,18 @@ impl AgendaOptions {
             show_all_dates,
             tags_column,
             use_time_grid,
-            show_current_time_in_grid
+            show_current_time_in_grid,
+            compact_blocks,
+            hide_empty_blocks
         );
+        match &self.block_separator {
+            Some(serde_json::Value::Bool(false)) => config.block_separator = None,
+            Some(serde_json::Value::String(text)) if text.chars().count() == 1 => {
+                config.block_separator = Some(text.repeat(79));
+            }
+            Some(serde_json::Value::String(text)) => config.block_separator = Some(text.clone()),
+            _ => {}
+        }
         if let Some(span) = self.span.as_ref().and_then(SpanOption::to_span) {
             config.span = span;
         }

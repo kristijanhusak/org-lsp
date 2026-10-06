@@ -8,6 +8,7 @@ use std::sync::LazyLock;
 use org_syntax::TodoKeywords;
 use regex::Regex;
 
+use crate::indent::{self, Adapt};
 use crate::outline::complex_heading_title;
 use crate::todo::{headline_level, tags_padding};
 use crate::Refusal;
@@ -273,11 +274,16 @@ pub struct Settings {
     pub reverse_note_order: bool,
     /// `org-tags-column`, for the tags of headlines whose level changes.
     pub tags_column: i64,
+    /// `org-adapt-indentation`: the text of entries whose level changes
+    /// moves with their headline (`org-fixup-indentation`).
+    pub adapt: Adapt,
+    /// `org-src-preserve-indentation`
+    pub src_preserve_indentation: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { reverse_note_order: false, tags_column: -77 }
+        Settings { reverse_note_order: false, tags_column: -77, adapt: Adapt::Off, src_preserve_indentation: false }
     }
 }
 
@@ -334,7 +340,7 @@ pub fn refile(
     if at > 0 && !into[..at].ends_with('\n') {
         pasted.push('\n');
     }
-    pasted.push_str(&shift_levels(tree, level, settings.tags_column, true));
+    pasted.push_str(&shift_levels(tree, level, settings, true));
     if !pasted.ends_with('\n') {
         pasted.push('\n');
     }
@@ -400,12 +406,36 @@ pub(crate) fn subtree_end(text: &str, heading: usize) -> usize {
 
 /// The subtree `tree` with its first headline at `level` and every
 /// headline in it moved by as many levels, their tags aligned again
-/// (`org-paste-subtree`, `org-demote`, `org-promote`). With `align_top`,
-/// the first headline's tags are aligned even when nothing moves, as
-/// `org-refile` does after pasting (`org-align-tags`).
-pub(crate) fn shift_levels(tree: &str, level: usize, tags_column: i64, align_top: bool) -> String {
+/// (`org-paste-subtree`, `org-demote`, `org-promote`). With
+/// `org-adapt-indentation`, each entry's text moves too, a level at a time
+/// as `org-demote` does it. With `align_top`, the first headline's tags are
+/// aligned even when nothing moves, as `org-refile` does after pasting
+/// (`org-align-tags`).
+pub(crate) fn shift_levels(tree: &str, level: usize, settings: &Settings, align_top: bool) -> String {
     let first = headline_level(tree).unwrap_or(level);
     let shift = level as i64 - first as i64;
+    let mut tree = tree.to_string();
+    if settings.adapt != Adapt::Off && shift != 0 {
+        let indent = indent::Settings {
+            adapt: settings.adapt,
+            src_preserve_indentation: settings.src_preserve_indentation,
+            ..indent::Settings::default()
+        };
+        let step: isize = if shift > 0 { 1 } else { -1 };
+        for _ in 0..shift.unsigned_abs() {
+            tree = entries(&tree)
+                .into_iter()
+                .map(|entry| {
+                    let Some(stars) = headline_level(entry) else { return entry.to_string() };
+                    if step < 0 && stars == 1 {
+                        return entry.to_string();
+                    }
+                    let moved = format!("{}{}", "*".repeat((stars as isize + step) as usize), &entry[stars..]);
+                    indent::fixup_entry(&moved, step, &indent)
+                })
+                .collect();
+        }
+    }
     let mut out = String::with_capacity(tree.len() + 8);
     let mut top = true;
     for line in tree.split_inclusive('\n') {
@@ -419,14 +449,30 @@ pub(crate) fn shift_levels(tree: &str, level: usize, tags_column: i64, align_top
             continue;
         }
         top = false;
-        let stars = (stars as i64 + shift).max(1) as usize;
+        let stars = if settings.adapt != Adapt::Off { stars } else { (stars as i64 + shift).max(1) as usize };
         let mut changed = format!("{}{}", "*".repeat(stars), &body[headline_level(body).unwrap_or(0)..]);
-        if let Some((blanks, tags, padding)) = tags_padding(&changed, tags_column) {
+        if let Some((blanks, tags, padding)) = tags_padding(&changed, settings.tags_column) {
             changed.replace_range(blanks..tags, &padding);
         }
         out.push_str(&changed);
         out.push_str(newline);
     }
+    out
+}
+
+/// `text` cut before each headline.
+fn entries(text: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let mut start = 0;
+    let mut at = 0;
+    for line in text.split_inclusive('\n') {
+        if at > start && headline_level(line.trim_end_matches('\n')).is_some() {
+            out.push(&text[start..at]);
+            start = at;
+        }
+        at += line.len();
+    }
+    out.push(&text[start..]);
     out
 }
 

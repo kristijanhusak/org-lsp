@@ -267,6 +267,47 @@ pub const SETTINGS: &[Setting] = &[
          all of them stay outside. `0`: none does.",
     ),
     setting(
+        "adaptIndentation",
+        "boolean | \"headline-data\"",
+        "false",
+        "org-adapt-indentation",
+        "Indent the lines of an entry past its headline's stars: `true` for all of them, `\"headline-data\"` for \
+         the planning line, drawers and clock lines right below the headline. Applies to new lines, to \
+         re-indenting (range formatting) and to what commands write.",
+    ),
+    setting(
+        "startupIndented",
+        "boolean",
+        "false",
+        "org-startup-indented",
+        "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up \
+         with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It \
+         turns `adaptIndentation` off in such files, unless that is `\"headline-data\"`. Editors that can show it: \
+         Neovim, and VS Code (not on wrapped lines).",
+    ),
+    setting(
+        "hideLeadingStars",
+        "boolean",
+        "false",
+        "org-hide-leading-stars",
+        "Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and \
+         `showstars` decide for a file.",
+    ),
+    setting(
+        "srcPreserveIndentation",
+        "boolean",
+        "false",
+        "org-src-preserve-indentation",
+        "Leave the code of source blocks as it is indented when re-indenting.",
+    ),
+    setting(
+        "editSrcContentIndentation",
+        "number",
+        "2",
+        "org-edit-src-content-indentation",
+        "How far code is indented past its source block when re-indenting.",
+    ),
+    setting(
         "agenda.span",
         r#""day", "week", "fortnight", "month", "year", or a number of days"#,
         r#""week""#,
@@ -426,6 +467,27 @@ pub const SETTINGS: &[Setting] = &[
         "org-agenda-log-mode-items",
         "What log mode shows: `closed` entries, `clock` lines and `state` changes.",
     ),
+    setting(
+        "agenda.blockSeparator",
+        "string | false",
+        r#""=""#,
+        "org-agenda-block-separator",
+        "What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block.",
+    ),
+    setting(
+        "agenda.compactBlocks",
+        "boolean",
+        "false",
+        "org-agenda-compact-blocks",
+        "Leave out the separators between blocks and the header over agenda blocks.",
+    ),
+    setting(
+        "agenda.hideEmptyBlocks",
+        "boolean",
+        "false",
+        "",
+        "Leave out the blocks of a block agenda that show no entries. Not in Org.",
+    ),
     Setting {
         default: None,
         unset: "today",
@@ -525,6 +587,11 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("hideEmphasisMarkers", BOOLEAN),
     ("autoSave", BOOLEAN),
     ("cycleSeparatorLines", r#"{ "type": "integer" }"#),
+    ("adaptIndentation", r#"{ "enum": [true, false, "headline-data"] }"#),
+    ("startupIndented", BOOLEAN),
+    ("hideLeadingStars", BOOLEAN),
+    ("srcPreserveIndentation", BOOLEAN),
+    ("editSrcContentIndentation", r#"{ "type": "integer", "minimum": 0 }"#),
     (
         "agenda.span",
         r#"{ "anyOf": [{ "enum": ["day", "week", "fortnight", "month", "year"] }, { "type": "integer", "minimum": 1 }] }"#,
@@ -559,6 +626,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("agenda.startWithLogMode", BOOLEAN),
     ("agenda.startWithClockreportMode", BOOLEAN),
     ("agenda.logModeItems", r#"{ "type": "array", "items": { "enum": ["closed", "clock", "state"] } }"#),
+    ("agenda.blockSeparator", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
+    ("agenda.compactBlocks", BOOLEAN),
+    ("agenda.hideEmptyBlocks", BOOLEAN),
     (
         "agenda.customCommands",
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaCommand", "required": ["key", "description"], "additionalProperties": false, "properties": {

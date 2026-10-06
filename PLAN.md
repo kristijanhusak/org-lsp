@@ -298,6 +298,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - Done: match by tags and properties (`m`, `M`), custom agenda commands
   and block agendas, log mode (`l`), the clock report (`R`). Checked
   against Emacs in `tests/agenda/custom` and `tests/agenda/clock`.
+- Done: block agendas keep the cursor in the agenda block that moves
+  (`f`, `b`, `.`, `d`/`w`, `j`), on the same day when it is still shown;
+  `blockSeparator` and `compactBlocks` (`org-agenda-block-separator`,
+  `org-agenda-compact-blocks`, checked against Emacs); `hideEmptyBlocks`
+  leaves out blocks with no entries (not in Org).
 - Search (`s`), filters (`/`, `<`, `=`, `_`, `|`), stuck projects, group
   tags in match strings, archives mode, entry text, follow mode.
 - Bulk marks and actions; hours and minutes on `S-<left>`/`S-<right>`.
@@ -354,8 +359,24 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 ### 13. Diagnostics and formatting
 
-- `org-lint` checks as diagnostics. Document formatting (tags, tables,
-  indentation).
+- Done: indentation as Org does it. `org-indent-line` on new lines
+  (on-type formatting after a line break: `indentexpr` in Neovim, format
+  on type in VS Code), `org-indent-region` on a range (range formatting:
+  `=` in Neovim and Helix, Format Selection in VS Code), and
+  `adaptIndentation` (`org-adapt-indentation`, `t` or `headline-data`)
+  for what commands write: planning lines, drawers, notes, `CLOCK:`
+  lines, and the text of entries whose level changes on refile and
+  capture (`org-fixup-indentation`). Checked against Emacs in
+  `tests/indent` and in the TODO, planning, refile and capture cases.
+- Done: virtual indentation (`org-indent-mode`: `startupIndented`,
+  `#+STARTUP: indent`) and hidden leading stars (`hideLeadingStars`,
+  `#+STARTUP: hidestars`). The server sends each line's prefix
+  (`org-lsp/virtualIndent`), checked against Emacs's `line-prefix` and
+  `wrap-prefix` in `tests/indent`; Neovim shows them as inline virtual
+  text, VS Code as decorations. Neither can indent the lines a long line
+  wraps into (`wrap-prefix`); Helix cannot show them at all.
+- Next: document formatting (tables, tags).
+- `org-lint` checks as diagnostics.
 
 ### 14. Editors and distribution
 
@@ -424,6 +445,7 @@ previews.
   | Date prompt | `tests/read-date/cases.json` | `scripts/update-read-date-fixtures.py` | `scripts/fuzz-read-date.py` |
   | Commands that ask for a date | `tests/planning/cases.json` | `scripts/update-planning-fixtures.py` | `scripts/fuzz-planning.py` |
   | Calendar of the date prompt | `tests/calendar/emacs.txt` | `scripts/update-calendar-fixtures.sh` | |
+  | Indentation | `tests/indent/cases.json` | `scripts/update-indent-fixtures.py` | `scripts/fuzz-indent.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.
 - VS Code: in `editors/vscode`, `npm run generate -- --check`, `npm run

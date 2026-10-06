@@ -13,7 +13,7 @@ use regex::Regex;
 use crate::date::{iso_week, weekday, DateTime, MONTH_NAMES, WEEKDAY_ABBREVIATIONS, WEEKDAY_NAMES};
 use crate::outline::complex_heading_title;
 use crate::read_date::{read_date, Settings as ReadDateSettings};
-use crate::refile::{heading_at, next_heading, shift_levels, subtree_end};
+use crate::refile::{heading_at, next_heading, shift_levels, subtree_end, Settings as LevelSettings};
 use crate::stamp::format_timestamp;
 use crate::todo::headline_level;
 use crate::Refusal;
@@ -574,13 +574,13 @@ pub fn place(
     kind: Kind,
     template: &str,
     properties: &Properties,
-    tags_column: i64,
+    levels: &LevelSettings,
 ) -> Result<Placed, Refusal> {
     let mut text = text.to_string();
     let heading = find_target(&mut text, target, keywords)?;
     let mut buffer = Buffer { text, point: heading.unwrap_or(0) };
     let (start, end) = match kind {
-        Kind::Entry => place_entry(&mut buffer, heading, template, properties, tags_column)?,
+        Kind::Entry => place_entry(&mut buffer, heading, template, properties, levels)?,
         Kind::Plain => place_plain(&mut buffer, heading, template, properties),
     };
     // `org-capture--position-cursor`: at the first `%?`, which goes.
@@ -599,7 +599,7 @@ fn place_entry(
     heading: Option<usize>,
     template: &str,
     properties: &Properties,
-    tags_column: i64,
+    levels: &LevelSettings,
 ) -> Result<(usize, usize), Refusal> {
     let template = if template.split('\n').any(|line| headline_level(line).is_some()) {
         template.to_string()
@@ -644,7 +644,7 @@ fn place_entry(
             buffer.insert("\n");
         }
     }
-    let mut pasted = shift_levels(&template, level, tags_column, false);
+    let mut pasted = shift_levels(&template, level, levels, false);
     if !pasted.ends_with('\n') {
         pasted.push('\n');
     }

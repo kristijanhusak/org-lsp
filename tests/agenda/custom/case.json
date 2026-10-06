@@ -73,6 +73,26 @@
     {
       "view": "custom",
       "key": "g"
+    },
+    {
+      "view": "custom",
+      "key": "s"
+    },
+    {
+      "view": "custom",
+      "key": "x"
+    },
+    {
+      "view": "custom",
+      "key": "z"
+    },
+    {
+      "view": "custom",
+      "key": "k"
+    },
+    {
+      "view": "custom",
+      "key": "y"
     }
   ],
   "options": {
@@ -156,8 +176,100 @@
             "match": "phone"
           }
         ]
+      },
+      {
+        "key": "s",
+        "description": "Separator text",
+        "blocks": [
+          {
+            "type": "tags-todo",
+            "match": "+home"
+          },
+          {
+            "type": "todo",
+            "match": "NEXT"
+          }
+        ],
+        "settings": {
+          "blockSeparator": "-- next --"
+        }
+      },
+      {
+        "key": "x",
+        "description": "Separator character",
+        "blocks": [
+          {
+            "type": "tags-todo",
+            "match": "+home"
+          },
+          {
+            "type": "todo",
+            "match": "NEXT"
+          }
+        ],
+        "settings": {
+          "blockSeparator": "-"
+        }
+      },
+      {
+        "key": "z",
+        "description": "No separator",
+        "blocks": [
+          {
+            "type": "tags-todo",
+            "match": "+home"
+          },
+          {
+            "type": "todo",
+            "match": "NEXT"
+          }
+        ],
+        "settings": {
+          "blockSeparator": false
+        }
+      },
+      {
+        "key": "k",
+        "description": "Compact",
+        "blocks": [
+          {
+            "type": "agenda",
+            "header": "Today",
+            "settings": {
+              "span": "day"
+            }
+          },
+          {
+            "type": "todo",
+            "match": "NEXT",
+            "header": "Next"
+          }
+        ],
+        "settings": {
+          "compactBlocks": true
+        }
+      },
+      {
+        "key": "y",
+        "description": "Separator of one block",
+        "blocks": [
+          {
+            "type": "tags",
+            "match": "home"
+          },
+          {
+            "type": "todo",
+            "match": "NEXT",
+            "settings": {
+              "blockSeparator": "~"
+            }
+          },
+          {
+            "type": "alltodo"
+          }
+        ]
       }
     ]
   },
-  "emacs": "(setq org-agenda-custom-commands\n '((\"h\" \"Home\" tags \"home\")\n   (\"w\" \"Work todos\" tags-todo \"work-email\")\n   (\"n\" \"Next\" todo \"NEXT|WAIT\")\n   (\"c\" \"Combined\" ((agenda \"\" ((org-agenda-span 'day))) (tags-todo \"+home\") (todo \"NEXT\" ((org-agenda-overriding-header \"Next actions\")))))\n   (\"d\" \"Three days\" agenda \"\" ((org-agenda-span 3) (org-agenda-start-day \"-1d\") (org-agenda-overriding-header \"Three days\")))\n   (\"e\" \"No header\" ((tags \"OWNER=\\\"alice\\\"\" ((org-agenda-overriding-header \"\"))) (alltodo \"\")))\n   (\"g\" \"Settings for all\" ((agenda \"\") (tags \"phone\")) ((org-agenda-span 'day) (org-agenda-use-time-grid nil)))))"
+  "emacs": "(setq org-agenda-custom-commands\n '((\"h\" \"Home\" tags \"home\")\n   (\"w\" \"Work todos\" tags-todo \"work-email\")\n   (\"n\" \"Next\" todo \"NEXT|WAIT\")\n   (\"c\" \"Combined\" ((agenda \"\" ((org-agenda-span 'day))) (tags-todo \"+home\") (todo \"NEXT\" ((org-agenda-overriding-header \"Next actions\")))))\n   (\"d\" \"Three days\" agenda \"\" ((org-agenda-span 3) (org-agenda-start-day \"-1d\") (org-agenda-overriding-header \"Three days\")))\n   (\"e\" \"No header\" ((tags \"OWNER=\\\"alice\\\"\" ((org-agenda-overriding-header \"\"))) (alltodo \"\")))\n   (\"g\" \"Settings for all\" ((agenda \"\") (tags \"phone\")) ((org-agenda-span 'day) (org-agenda-use-time-grid nil)))\n   (\"s\" \"Separator text\" ((tags-todo \"+home\") (todo \"NEXT\")) ((org-agenda-block-separator \"-- next --\")))\n   (\"x\" \"Separator character\" ((tags-todo \"+home\") (todo \"NEXT\")) ((org-agenda-block-separator ?-)))\n   (\"z\" \"No separator\" ((tags-todo \"+home\") (todo \"NEXT\")) ((org-agenda-block-separator nil)))\n   (\"k\" \"Compact\" ((agenda \"\" ((org-agenda-span 'day) (org-agenda-overriding-header \"Today\"))) (todo \"NEXT\" ((org-agenda-overriding-header \"Next\")))) ((org-agenda-compact-blocks t)))\n   (\"y\" \"Separator of one block\" ((tags \"home\") (todo \"NEXT\" ((org-agenda-block-separator ?~))) (alltodo \"\")))))"
 }

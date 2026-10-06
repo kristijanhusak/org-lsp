@@ -65,6 +65,8 @@ def case(rng):
         options["reverseNoteOrder"] = True
     if rng.random() < 0.2:
         options["tagsColumn"] = rng.choice([-40, 20, 0])
+    if rng.random() < 0.35:
+        options["adaptIndentation"] = rng.choice([True, "headline-data", False])
     out = {"files": files, "answerIndex": rng.randint(0, 12)}
     if options:
         out["options"] = options

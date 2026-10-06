@@ -1,0 +1,18 @@
+Headlines with TAGS match: home
+  b:          TODO Water plants                                           :home:
+  b:          NEXT [#B] Buy groceries                              :home:errand:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Global list of TODO items of type: NEXT
+  a:          NEXT Outline the sections                           :work:office::
+  a:          NEXT Call the client                                 :work::phone:
+
+===============================================================================
+Global list of TODO items of type: ALL
+  a:          TODO [#A] Write the report                          :work::office:
+  a:          NEXT Outline the sections                           :work:office::
+  a:          WAIT Numbers from finance                     :work:office::email:
+  a:          NEXT Call the client                                 :work::phone:
+  b:          TODO Water plants                                           :home:
+  projects:   TODO Learn Rust                                         :learning:
+  a:          TODO [#C] Low priority chore                               :work::

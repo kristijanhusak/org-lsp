@@ -10,6 +10,7 @@ pub mod capture;
 pub mod clock;
 pub mod date;
 pub mod edit;
+pub mod indent;
 pub mod outline;
 pub mod planning;
 pub mod priority;
