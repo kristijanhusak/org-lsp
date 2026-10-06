@@ -58,9 +58,12 @@ pub fn command(id: &str) -> Option<Command> {
 /// `org` and `org.todo` both select `org.todo.next`.
 pub fn requested(kind: &str, only: Option<&[CodeActionKind]>) -> bool {
     let Some(only) = only else { return true };
+    // The empty kind (`CodeActionKind.Empty`) is above every other.
     only.iter().any(|wanted| {
         let wanted = wanted.as_str();
-        kind == wanted || (kind.starts_with(wanted) && kind.as_bytes().get(wanted.len()) == Some(&b'.'))
+        wanted.is_empty()
+            || kind == wanted
+            || (kind.starts_with(wanted) && kind.as_bytes().get(wanted.len()) == Some(&b'.'))
     })
 }
 

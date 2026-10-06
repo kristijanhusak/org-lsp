@@ -7,7 +7,13 @@ with the cursor position, asks what they ask for, and cycles folds.
 """
 from __future__ import annotations
 
+import io
+import os
 import shutil
+import tarfile
+import threading
+import urllib.request
+import zipfile
 
 import sublime
 import sublime_plugin
@@ -23,13 +29,99 @@ from LSP.plugin import text_document_identifier
 from LSP.plugin import text_document_position_params
 from LSP.plugin import unregister_plugin
 
+# The folder the package is in: `LSP-org`, as it is installed.
+PACKAGE = __package__ or 'LSP-org'
 SESSION = 'LSP-org'
 SETTINGS = 'LSP-org.sublime-settings'
 CLOCK_KEY = 'org-lsp-clock'
+REPOSITORY = 'kristijanhusak/org-lsp'
+RELEASE = 'nightly'
+# The release's name for each platform Sublime Text runs on.
+PLATFORMS = {
+    ('linux', 'x64'): 'linux-x86_64',
+    ('linux', 'arm64'): 'linux-arm64',
+    ('osx', 'arm64'): 'macos-arm64',
+    ('osx', 'x64'): 'macos-x86_64',
+    ('windows', 'x64'): 'windows-x86_64',
+}
 
 
 def settings() -> sublime.Settings:
     return sublime.load_settings(SETTINGS)
+
+
+# ----- the server binary
+
+def executable() -> str:
+    return 'org-lsp.exe' if sublime.platform() == 'windows' else 'org-lsp'
+
+
+def search_path() -> str:
+    """PATH, and where cargo, pipx-style installs and Homebrew put programs:
+    started from a desktop launcher, Sublime Text often has none of them."""
+    home = os.path.expanduser('~')
+    extra = [os.path.join(home, '.cargo', 'bin'), os.path.join(home, '.local', 'bin'), '/usr/local/bin',
+             '/opt/homebrew/bin']
+    return os.pathsep.join([os.environ.get('PATH', '')] + extra)
+
+
+def checkout_build():
+    """The server built in the checkout this package is linked from
+    (`editors/sublime/LSP-org`), if there is one."""
+    package = os.path.realpath(os.path.join(sublime.packages_path(), PACKAGE))
+    root = os.path.dirname(os.path.dirname(os.path.dirname(package)))
+    for profile in ('release', 'debug'):
+        path = os.path.join(root, 'target', profile, executable())
+        if os.path.isfile(path):
+            return path
+    return None
+
+
+def downloaded_path(storage: str) -> str:
+    return os.path.join(storage, PACKAGE, executable())
+
+
+def server_path(storage: str):
+    """The server to start: the configured `command`, `org-lsp` on the search
+    path, a build in the checkout, or the one downloaded before."""
+    command = settings().get('command') or ['org-lsp']
+    if command[0] != 'org-lsp':
+        return os.path.expanduser(command[0])
+    found = shutil.which('org-lsp', path=search_path()) or checkout_build()
+    if found:
+        return found
+    downloaded = downloaded_path(storage)
+    return downloaded if os.path.isfile(downloaded) else None
+
+
+def download(storage: str) -> str:
+    """Fetch the nightly build of the server for this platform into the
+    package's storage, and return its path."""
+    platform = PLATFORMS.get((sublime.platform(), sublime.arch()))
+    if not platform:
+        raise RuntimeError('org-lsp has no build for this platform; put org-lsp on PATH or set "command"')
+    windows = sublime.platform() == 'windows'
+    archive = 'org-lsp-{}.{}'.format(platform, 'zip' if windows else 'tar.gz')
+    url = 'https://github.com/{}/releases/download/{}/{}'.format(REPOSITORY, RELEASE, archive)
+    with urllib.request.urlopen(url, timeout=120) as response:
+        data = response.read()
+    if windows:
+        with zipfile.ZipFile(io.BytesIO(data)) as files:
+            binary = files.read(executable())
+    else:
+        with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as files:
+            member = files.extractfile(executable())
+            if member is None:
+                raise RuntimeError('no {} in {}'.format(executable(), url))
+            binary = member.read()
+    target = downloaded_path(storage)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    partial = target + '.part'
+    with open(partial, 'wb') as out:
+        out.write(binary)
+    os.chmod(partial, 0o755)
+    os.replace(partial, target)
+    return target
 
 
 class OrgLsp(AbstractPlugin):
@@ -38,12 +130,31 @@ class OrgLsp(AbstractPlugin):
         return SESSION
 
     @classmethod
+    def configuration(cls):
+        # Named here, whatever LSP makes of the name: newer versions put
+        # `LSP-` before it (`LSP-LSP-org`), older ones do not.
+        return settings(), 'Packages/{}/{}'.format(PACKAGE, SETTINGS)
+
+    @classmethod
+    def needs_update_or_installation(cls) -> bool:
+        return server_path(cls.storage_path()) is None
+
+    @classmethod
+    def install_or_update(cls) -> None:
+        download(cls.storage_path())
+
+    @classmethod
+    def can_start(cls, window, initiating_view, workspace_folders, configuration):
+        if server_path(cls.storage_path()) is None:
+            return 'org-lsp: no server found. Put org-lsp on PATH, set "command" in the LSP-org settings, ' \
+                   'or run "Org: Download the latest server".'
+        return None
+
+    @classmethod
     def on_pre_start(cls, window, initiating_view, workspace_folders, configuration):
-        # `org-lsp` from PATH, unless a path is configured.
-        if configuration.command and configuration.command[0] == 'org-lsp':
-            found = shutil.which('org-lsp')
-            if found:
-                configuration.command[0] = found
+        found = server_path(cls.storage_path())
+        if found and configuration.command and configuration.command[0] == 'org-lsp':
+            configuration.command[0] = found
         # This package shows the documents the server asks it to.
         options = configuration.init_options
         options.set('showDocument', True)
@@ -58,6 +169,32 @@ class OrgLsp(AbstractPlugin):
     # The clock that runs, for the status bar.
     def m_org_lsp_clock(self, params) -> None:
         sublime.set_timeout(lambda: show_clock(params))
+
+
+class OrgLspUpdateServerCommand(sublime_plugin.WindowCommand):
+    """Download the nightly build of the server again, then restart it."""
+
+    def run(self) -> None:
+        sublime.status_message('org-lsp: downloading the server…')
+
+        def work() -> None:
+            try:
+                path = download(OrgLsp.storage_path())
+            except Exception as error:
+                sublime.set_timeout(lambda: sublime.error_message('org-lsp: could not download the server: {}'.format(error)))
+                return
+            sublime.set_timeout(lambda: self.done(path))
+        threading.Thread(target=work, daemon=True).start()
+
+    def done(self, path: str) -> None:
+        sublime.status_message('org-lsp: the server is at {}'.format(path))
+        if server_path(OrgLsp.storage_path()) != path:
+            sublime.message_dialog('org-lsp: downloaded to {}, but another server is used: '
+                                   '{}'.format(path, server_path(OrgLsp.storage_path())))
+            return
+        view = self.window.active_view()
+        if view:
+            view.run_command('lsp_restart_server', {'config_name': SESSION})
 
 
 def plugin_loaded() -> None:
@@ -212,8 +349,8 @@ def help_items(view):
     """The keys the package binds where `view` is, with the preset in
     `org_keys`: `[(keys, title, command, args)]`."""
     preset = settings().get('org_keys', 'emacs')
-    keymap = sublime.decode_value(sublime.load_resource('Packages/{}/Default.sublime-keymap'.format(SESSION)))
-    palette = sublime.decode_value(sublime.load_resource('Packages/{}/{}.sublime-commands'.format(SESSION, SESSION)))
+    keymap = sublime.decode_value(sublime.load_resource('Packages/{}/Default.sublime-keymap'.format(PACKAGE)))
+    palette = sublime.decode_value(sublime.load_resource('Packages/{}/{}.sublime-commands'.format(PACKAGE, SESSION)))
     titles = {}
     for entry in palette:
         name = (entry.get('args') or {}).get('command') or entry['command']

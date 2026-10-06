@@ -598,6 +598,30 @@ pub const SETTINGS: &[Setting] = &[
              this; the Vim plugin does, for the LSP clients that leave the request to it.",
         )
     },
+    Setting {
+        integration: true,
+        ..setting(
+            "messagePrompts",
+            "boolean",
+            "false",
+            "",
+            "Ask what commands ask for (a key, one of a list) with `window/showMessageRequest`, and say what \
+             they have to say with `window/showMessage`, for a client that does nothing with a command's result. \
+             The Zed extension sets it.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
+            "commandActions",
+            "boolean",
+            "false",
+            "",
+            "Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked \
+             from a list, and in the agenda moving through time, for a client that cannot run a command from a \
+             key. The Zed extension sets it.",
+        )
+    },
 ];
 
 /// The values each option takes, as JSON Schema: what editors complete and
@@ -733,6 +757,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("virtualDocuments", BOOLEAN),
     ("showDocument", BOOLEAN),
+    ("messagePrompts", BOOLEAN),
+    ("commandActions", BOOLEAN),
 ];
 
 const BOOLEAN: &str = r#"{ "type": "boolean" }"#;

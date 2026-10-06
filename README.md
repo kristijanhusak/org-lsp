@@ -31,14 +31,14 @@ still missing; see [Not done yet](#not-done-yet).
 | Timestamps: the part at the cursor, or the date by days | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>`, with counts | commands, `Ctrl+.` | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>` | `Shift+arrows` | code actions | `Space a` |
 | Schedule, deadline, insert a timestamp: dates typed as at Org's prompt, or picked in Emacs's calendar | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!` | commands, with a preview of the date | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!`; dates typed | `Ctrl+C Ctrl+S`, `Ctrl+C Ctrl+D`, `Ctrl+C .`, `Ctrl+C !`; dates typed | no⁸ | no⁴ |
 | Completion: TODO keywords and tags in headlines, `#+` keywords and `#+STARTUP:` values, drawers and property names, entities, and in links file names, headlines and custom IDs | with an LSP completion plugin | yes | through the client | yes | yes | yes |
-| Agenda: day, week, fortnight, month and year views, going to a date | yes | yes | yes, as a file | yes, as a file | no⁸ | no³ |
-| Agenda: list of all TODO entries, tags and property searches (`m`, `M`), custom commands and block agendas (`org-agenda-custom-commands`) | yes | yes | yes | yes | no⁸ | no³ |
-| Refile, as `org-refile` does it, between files too | `<Leader>or` | command | `<Leader>or` | `Ctrl+C Ctrl+W` | no⁸ | no⁴ |
+| Agenda: day, week, fortnight, month and year views, going to a date | yes | yes | yes, as a file | yes, as a file | code actions, as a file; no going to a date | no³ |
+| Agenda: list of all TODO entries, tags and property searches (`m`, `M`), custom commands and block agendas (`org-agenda-custom-commands`) | yes | yes | yes | yes | code actions; no searches | no³ |
+| Refile, as `org-refile` does it, between files too | `<Leader>or` | command | `<Leader>or` | `Ctrl+C Ctrl+W` | code actions | no⁴ |
 | Archiving, as `org-archive-subtree`, `org-archive-to-archive-sibling` and `org-toggle-archive-tag` do it: archive locations (`archiveLocation`, `ARCHIVE` properties, `#+ARCHIVE:`, date trees), the context kept as `ARCHIVE_…` properties, all done subtrees at once | `<Leader>o$`, `<Leader>oxA`, `<Leader>oA`; `$` and `a` in the agenda | `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Ctrl+X A`, `Ctrl+C Ctrl+X a`; `$` and `a` in the agenda | `<Leader>o$`, `<Leader>oxA`, `<Leader>oA`; `$` and `a` in the agenda | `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Ctrl+X A`, `Ctrl+C Ctrl+X a`; `$` and `a` in the agenda | code actions | `Space a` |
-| Capture, as `org-capture` does it: templates, prompts, a capture buffer | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | commands; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | `Ctrl+C c`; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | no⁸ | no⁴ |
-| Agenda: change an entry's state, priority or date, schedule it or set its deadline, go to its entry | yes | yes | yes | yes | no⁸ | no³ |
+| Capture, as `org-capture` does it: templates, prompts, a capture buffer | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | commands; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | `Ctrl+C c`; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | code actions, templates without text prompts | no⁴ |
+| Agenda: change an entry's state, priority or date, schedule it or set its deadline, go to its entry | yes | yes | yes | yes | code actions, without dates asked for | no³ |
 | Clocking, as `org-clock-in` and `org-clock-out` do it, with the clock in the status line | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`; `clock_status()` | commands; the status bar | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`; `org_lsp#clock_status()` | `Ctrl+C Ctrl+X Ctrl+I`, `Ctrl+C Ctrl+X Ctrl+O`; the status bar | code actions | `Space a`⁵ |
-| Agenda: the clocked entry highlighted, log mode (what was closed and clocked each day), the clock report | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | no⁸ | no³ |
+| Agenda: the clocked entry highlighted, log mode (what was closed and clocked each day), the clock report | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | code actions | no³ |
 
 ¹ Helix does not consume semantic tokens; it highlights Org with its own grammar.
 ² Helix has no folding.
@@ -48,9 +48,11 @@ still missing; see [Not done yet](#not-done-yet).
 ⁶ With LSP's `semantic_highlighting` on. The Sublime Text package is
 checked with stand-ins for Sublime Text and its LSP package, not in Sublime
 Text itself.
-⁷ With `"semantic_tokens": "full"` for Org in Zed's settings.
+⁷ With `"semantic_tokens": "combined"` for Org (and Org Agenda) in Zed's settings.
 ⁸ Zed cannot run a server's command from a key or ask for text on its
-behalf; the editing commands are in its code actions.
+behalf: the commands are in its code actions, and what they ask for is
+asked with buttons (a state, a priority, a target, yes or no), but no date
+or text can be.
 
 Tested with Neovim 0.11.0 and 0.12.5, VSCodium 1.135, Vim 9.1 (with yegappan/lsp, vim-lsp, coc.nvim and ALE) and Helix 25.07.1.
 
@@ -161,9 +163,11 @@ does and what Vim cannot.
 ### Sublime Text
 
 `editors/sublime/LSP-org` is a package for
-[sublimelsp/LSP](https://github.com/sublimelsp/LSP): copy or link it into
-Sublime Text's `Packages` folder as `LSP-org`, and put `org-lsp` on your
-PATH. It binds Emacs's keys in Org files (`Ctrl+C Ctrl+T`, `Tab`, …);
+[sublimelsp/LSP](https://github.com/sublimelsp/LSP).
+`scripts/install-sublime.sh` links it into Sublime Text's `Packages`
+folder and has Package Control install LSP; the package finds `org-lsp`
+(on PATH, in `~/.cargo/bin`, in the checkout) or downloads the nightly
+build. It binds Emacs's keys in Org files (`Ctrl+C Ctrl+T`, `Tab`, …);
 `org_keys` in its settings picks `vim` (for Vintage and NeoVintageous) or
 `custom` instead. [editors/sublime/README.md](editors/sublime/README.md)
 has the details.
@@ -172,9 +176,11 @@ has the details.
 
 `editors/zed` is a Zed extension: run **zed: install dev extension** and
 pick that folder. It uses `org-lsp` from PATH or downloads the nightly
-build. Turn on `"semantic_tokens": "full"` for Org for the server's
-highlighting; [editors/zed/README.md](editors/zed/README.md) has the
-settings and what Zed can and cannot do.
+build. Turn on `"semantic_tokens": "combined"` for Org and Org Agenda for
+the server's highlighting. The commands, the agenda and capture among
+them, are in the code actions, and what they ask for is asked with
+buttons; [editors/zed/README.md](editors/zed/README.md) has the settings
+and what Zed can and cannot do.
 
 ### Helix
 

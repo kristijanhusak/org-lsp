@@ -9,6 +9,9 @@ repository = "https://github.com/kristijanhusak/org-lsp"
 [language_servers.org-lsp]
 name = "org-lsp"
 languages = ["Org", "Org Agenda"]
+# The server's code actions are of its own kinds (`org.todo.next`, …); Zed
+# asks only for the kinds named here, and without them for none of these.
+code_action_kinds = ["org"]
 
 [language_servers.org-lsp.language_ids]
 "Org" = "org"

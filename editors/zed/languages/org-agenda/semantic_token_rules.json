@@ -1,185 +1,5 @@
 [
   {
-    "token_type": "stars",
-    "style": [
-      "punctuation.special"
-    ]
-  },
-  {
-    "token_type": "todoKeyword",
-    "style": [
-      "keyword"
-    ]
-  },
-  {
-    "token_type": "priority",
-    "style": [
-      "constant"
-    ]
-  },
-  {
-    "token_type": "tag",
-    "style": [
-      "tag"
-    ]
-  },
-  {
-    "token_type": "planning",
-    "style": [
-      "keyword"
-    ]
-  },
-  {
-    "token_type": "timestamp",
-    "style": [
-      "string.special"
-    ]
-  },
-  {
-    "token_type": "drawer",
-    "style": [
-      "comment"
-    ]
-  },
-  {
-    "token_type": "property",
-    "style": [
-      "property"
-    ]
-  },
-  {
-    "token_type": "keyword",
-    "style": [
-      "keyword"
-    ]
-  },
-  {
-    "token_type": "block",
-    "style": [
-      "keyword"
-    ]
-  },
-  {
-    "token_type": "comment",
-    "style": [
-      "comment"
-    ]
-  },
-  {
-    "token_type": "bullet",
-    "style": [
-      "punctuation.list_marker"
-    ]
-  },
-  {
-    "token_type": "checkbox",
-    "style": [
-      "punctuation.list_marker"
-    ]
-  },
-  {
-    "token_type": "link",
-    "style": [
-      "link_uri"
-    ]
-  },
-  {
-    "token_type": "code",
-    "style": [
-      "text.literal"
-    ]
-  },
-  {
-    "token_type": "verbatim",
-    "style": [
-      "text.literal"
-    ]
-  },
-  {
-    "token_type": "tableDelimiter",
-    "style": [
-      "punctuation.delimiter"
-    ]
-  },
-  {
-    "token_type": "footnote",
-    "style": [
-      "link_uri"
-    ]
-  },
-  {
-    "token_type": "cookie",
-    "style": [
-      "number"
-    ]
-  },
-  {
-    "token_type": "target",
-    "style": [
-      "link_text"
-    ]
-  },
-  {
-    "token_type": "latex",
-    "style": [
-      "string.special"
-    ]
-  },
-  {
-    "token_type": "entity",
-    "style": [
-      "string.special"
-    ]
-  },
-  {
-    "token_type": "macro",
-    "style": [
-      "function"
-    ]
-  },
-  {
-    "token_type": "agendaStructure",
-    "style": [
-      "title"
-    ]
-  },
-  {
-    "token_type": "agendaDate",
-    "style": [
-      "keyword"
-    ]
-  },
-  {
-    "token_type": "agendaScheduled",
-    "style": [
-      "string"
-    ]
-  },
-  {
-    "token_type": "agendaDeadline",
-    "style": [
-      "keyword"
-    ]
-  },
-  {
-    "token_type": "agendaDone",
-    "style": [
-      "comment"
-    ]
-  },
-  {
-    "token_type": "agendaTimeGrid",
-    "style": [
-      "comment"
-    ]
-  },
-  {
-    "token_type": "agendaClocking",
-    "style": [
-      "emphasis.strong"
-    ]
-  },
-  {
     "token_type": "headline",
     "token_modifiers": [
       "level1"
@@ -409,6 +229,186 @@
     "token_modifiers": [
       "current"
     ],
+    "style": [
+      "emphasis.strong"
+    ]
+  },
+  {
+    "token_type": "stars",
+    "style": [
+      "punctuation.special"
+    ]
+  },
+  {
+    "token_type": "todoKeyword",
+    "style": [
+      "keyword"
+    ]
+  },
+  {
+    "token_type": "priority",
+    "style": [
+      "constant"
+    ]
+  },
+  {
+    "token_type": "tag",
+    "style": [
+      "tag"
+    ]
+  },
+  {
+    "token_type": "planning",
+    "style": [
+      "keyword"
+    ]
+  },
+  {
+    "token_type": "timestamp",
+    "style": [
+      "string.special"
+    ]
+  },
+  {
+    "token_type": "drawer",
+    "style": [
+      "comment"
+    ]
+  },
+  {
+    "token_type": "property",
+    "style": [
+      "property"
+    ]
+  },
+  {
+    "token_type": "keyword",
+    "style": [
+      "keyword"
+    ]
+  },
+  {
+    "token_type": "block",
+    "style": [
+      "keyword"
+    ]
+  },
+  {
+    "token_type": "comment",
+    "style": [
+      "comment"
+    ]
+  },
+  {
+    "token_type": "bullet",
+    "style": [
+      "punctuation.list_marker"
+    ]
+  },
+  {
+    "token_type": "checkbox",
+    "style": [
+      "punctuation.list_marker"
+    ]
+  },
+  {
+    "token_type": "link",
+    "style": [
+      "link_uri"
+    ]
+  },
+  {
+    "token_type": "code",
+    "style": [
+      "text.literal"
+    ]
+  },
+  {
+    "token_type": "verbatim",
+    "style": [
+      "text.literal"
+    ]
+  },
+  {
+    "token_type": "tableDelimiter",
+    "style": [
+      "punctuation.delimiter"
+    ]
+  },
+  {
+    "token_type": "footnote",
+    "style": [
+      "link_uri"
+    ]
+  },
+  {
+    "token_type": "cookie",
+    "style": [
+      "number"
+    ]
+  },
+  {
+    "token_type": "target",
+    "style": [
+      "link_text"
+    ]
+  },
+  {
+    "token_type": "latex",
+    "style": [
+      "string.special"
+    ]
+  },
+  {
+    "token_type": "entity",
+    "style": [
+      "string.special"
+    ]
+  },
+  {
+    "token_type": "macro",
+    "style": [
+      "function"
+    ]
+  },
+  {
+    "token_type": "agendaStructure",
+    "style": [
+      "title"
+    ]
+  },
+  {
+    "token_type": "agendaDate",
+    "style": [
+      "keyword"
+    ]
+  },
+  {
+    "token_type": "agendaScheduled",
+    "style": [
+      "string"
+    ]
+  },
+  {
+    "token_type": "agendaDeadline",
+    "style": [
+      "keyword"
+    ]
+  },
+  {
+    "token_type": "agendaDone",
+    "style": [
+      "comment"
+    ]
+  },
+  {
+    "token_type": "agendaTimeGrid",
+    "style": [
+      "comment"
+    ]
+  },
+  {
+    "token_type": "agendaClocking",
     "style": [
       "emphasis.strong"
     ]

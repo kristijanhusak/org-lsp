@@ -155,6 +155,12 @@ const palette = [
   })),
   ...own.map((command) => ({ caption: `Org: ${command.title}`, command: command.command })),
   { caption: 'Org: Show the keys', command: 'org_lsp_help' },
+  { caption: 'Org: Download the latest server', command: 'org_lsp_update_server' },
+  {
+    caption: 'Preferences: LSP-org Settings',
+    command: 'edit_settings',
+    args: { base_file: '${packages}/LSP-org/LSP-org.sublime-settings', default: '{\n\t$0\n}\n' },
+  },
 ];
 
 // The scopes of the server's tokens, from the TextMate scopes it names. A
