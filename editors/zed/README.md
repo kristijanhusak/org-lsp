@@ -24,9 +24,15 @@ A Zed extension that runs Org through the org-lsp server.
    }
    ```
 
-The server needs nothing: the extension starts `org-lsp` from your PATH,
-or else downloads the nightly build for your platform once.
-`lsp.org-lsp.binary.path` names a server binary of your own.
+The extension starts `org-lsp` from your PATH (`cargo install --path
+server/org-lsp` in a checkout puts it in `~/.cargo/bin`), or else
+downloads the nightly build for your platform once. The download needs
+the repository to be public: GitHub answers 404 to Zed for a private
+one. `lsp.org-lsp.binary.path` names a server binary of your own:
+
+```json
+{ "lsp": { "org-lsp": { "binary": { "path": "/path/to/org-lsp/target/release/org-lsp" } } } }
+```
 
 Zed asks a language server for semantic tokens only when a language's
 `semantic_tokens` says so. `combined` colors Org files with the
