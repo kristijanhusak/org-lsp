@@ -18,73 +18,73 @@ contexts:
   main:
     - match: '^(\*{1})(?=\s)'
       captures:
-        1: punctuation.definition.heading.org
+        1: markup.heading punctuation.definition.heading.org
       push: [heading-1, heading-start]
     - match: '^(\*{2})(?=\s)'
       captures:
-        1: punctuation.definition.heading.org
+        1: markup.heading punctuation.definition.heading.org
       push: [heading-2, heading-start]
     - match: '^(\*{3})(?=\s)'
       captures:
-        1: punctuation.definition.heading.org
+        1: markup.heading punctuation.definition.heading.org
       push: [heading-3, heading-start]
     - match: '^(\*{4})(?=\s)'
       captures:
-        1: punctuation.definition.heading.org
+        1: markup.heading punctuation.definition.heading.org
       push: [heading-4, heading-start]
     - match: '^(\*{5})(?=\s)'
       captures:
-        1: punctuation.definition.heading.org
+        1: markup.heading punctuation.definition.heading.org
       push: [heading-5, heading-start]
     - match: '^(\*{6})(?=\s)'
       captures:
-        1: punctuation.definition.heading.org
+        1: markup.heading punctuation.definition.heading.org
       push: [heading-6, heading-start]
     - match: '^(\*{7})(?=\s)'
       captures:
-        1: punctuation.definition.heading.org
+        1: markup.heading punctuation.definition.heading.org
       push: [heading-7, heading-start]
     - match: '^(\*{8,})(?=\s)'
       captures:
-        1: punctuation.definition.heading.org
+        1: markup.heading punctuation.definition.heading.org
       push: [heading-8, heading-start]
     - match: '^\s*#\+(?i:begin_src|begin_example|begin_export)\b.*$'
-      scope: punctuation.definition.block.org
+      scope: comment punctuation.definition.block.org
       push: raw-block
     - match: '^\s*#\+(?i:begin|end)_\w+.*$'
-      scope: punctuation.definition.block.org
+      scope: comment punctuation.definition.block.org
     - match: '^\s*(#\+\w+:)(.*)$'
       captures:
-        1: meta.preprocessor.keyword.org
+        1: comment meta.preprocessor meta.preprocessor.keyword.org
     - match: '^\s*#(\s.*)?$'
-      scope: comment.line.org
+      scope: comment comment.line.org
     - match: '^\s*(CLOCK:)'
       captures:
-        1: keyword.other.planning.org
+        1: keyword.other keyword.other.planning.org
     - match: '^(?=\s*(?:SCHEDULED|DEADLINE|CLOSED):)'
       push: planning
     - match: '^\s*:(?:END|[\w-]+):\s*$'
-      scope: meta.preprocessor.drawer.org
+      scope: support.function meta.preprocessor meta.preprocessor.drawer.org
     - match: '^\s*(:[\w-]+\+?:)(?=\s|$)'
       captures:
-        1: variable.other.property.org
+        1: entity.other.attribute-name variable.other.property variable.other.property.org
     - match: '^\s*(?=\|)'
       push: table
     - match: '^\s*([-+]|(?<=\s)\*|\d+[.)]|[a-zA-Z][.)])(?=\s|$)(?:\s+(?:(\[X\])|(\[[ -]\])))?'
       captures:
-        1: punctuation.definition.list.begin.org
-        2: markup.list.checked.org
-        3: markup.list.unchecked.org
+        1: keyword.operator punctuation.definition.list.begin.markdown punctuation.definition.list.begin.org
+        2: string markup.inserted markup.list.checked.org
+        3: keyword.operator markup.list.unchecked.org
     - include: inline
 
   heading-start:
     - match: '\s+({{todo}})(?=\s|$)'
       captures:
-        1: keyword.other.todo.org
+        1: keyword.control markup.deleted keyword.other.todo.org
       set: heading-priority
     - match: '\s+({{done}})(?=\s|$)'
       captures:
-        1: keyword.other.done.org
+        1: string markup.inserted keyword.other.done.org
       set: heading-priority
     - match: ''
       set: heading-priority
@@ -92,34 +92,34 @@ contexts:
   heading-priority:
     - match: '\s+(\[#[A-Z0-9]+\])'
       captures:
-        1: constant.other.priority.org
+        1: constant.numeric constant.other.priority.org
       pop: true
     - match: ''
       pop: true
 
   heading-1:
-    - meta_scope: markup.heading.1.org markup.heading.org
+    - meta_scope: entity.name.function markup.heading.org markup.heading.1.org
     - include: heading-rest
   heading-2:
-    - meta_scope: markup.heading.2.org markup.heading.org
+    - meta_scope: variable.parameter markup.heading.org markup.heading.2.org
     - include: heading-rest
   heading-3:
-    - meta_scope: markup.heading.3.org markup.heading.org
+    - meta_scope: keyword markup.heading.org markup.heading.3.org
     - include: heading-rest
   heading-4:
-    - meta_scope: markup.heading.4.org markup.heading.org
+    - meta_scope: comment markup.heading.org markup.heading.4.org
     - include: heading-rest
   heading-5:
-    - meta_scope: markup.heading.5.org markup.heading.org
+    - meta_scope: storage.type markup.heading.org markup.heading.5.org
     - include: heading-rest
   heading-6:
-    - meta_scope: markup.heading.6.org markup.heading.org
+    - meta_scope: constant.language markup.heading.org markup.heading.6.org
     - include: heading-rest
   heading-7:
-    - meta_scope: markup.heading.7.org markup.heading.org
+    - meta_scope: support.function markup.heading.org markup.heading.7.org
     - include: heading-rest
   heading-8:
-    - meta_scope: markup.heading.8.org markup.heading.org
+    - meta_scope: string markup.heading.org markup.heading.8.org
     - include: heading-rest
 
   heading-rest:
@@ -127,55 +127,54 @@ contexts:
       pop: true
     - match: '\s(:(?:[\w@#%]+:)+)[ \t]*$'
       captures:
-        1: entity.name.tag.org
+        1: entity.name.tag entity.name.tag.org
     - include: inline
 
   inline:
     - match: '<\d{4}-\d{2}-\d{2}[^>\n]*>(?:--<\d{4}-\d{2}-\d{2}[^>\n]*>)?'
-      scope: constant.other.timestamp.org
+      scope: constant.numeric constant.other.timestamp.org
     - match: '\[\d{4}-\d{2}-\d{2}[^\]\n]*\](?:--\[\d{4}-\d{2}-\d{2}[^\]\n]*\])?'
-      scope: comment.timestamp.org
+      scope: comment comment.timestamp.org
     - match: '\[\[[^\]\n]+\](?:\[[^\]\n]*\])?\]'
-      scope: markup.underline.link.org
+      scope: string.other.link markup.underline.link markup.underline.link.org
     - match: '\[fn:[^\]\n]*\]'
-      scope: markup.underline.link.footnote.org
+      scope: string.other.link markup.underline.link markup.underline.link.footnote.org
     - match: '\[(?:\d*%|\d*/\d*)\]'
-      scope: constant.numeric.cookie.org
+      scope: constant.numeric constant.numeric.cookie.org
     - match: '<<[^<>\n]+>>'
-      scope: entity.name.label.org
+      scope: entity.name.label entity.name.label.org
     - match: '{{{[^}\n]+}}}'
-      scope: entity.name.function.macro.org
+      scope: entity.name.function.preprocessor entity.name.function.macro.org
     - match: '{{pre}}=[^\s=](?:[^\n]*?[^\s])?={{post}}'
-      scope: markup.inline.raw.org
+      scope: string markup.inline.raw markup.inline.raw.org
     - match: '{{pre}}~[^\s~](?:[^\n]*?[^\s])?~{{post}}'
-      scope: markup.inline.raw.org
+      scope: string markup.inline.raw markup.inline.raw.org
     - match: '{{pre}}\*[^\s*](?:[^\n]*?[^\s])?\*{{post}}'
-      scope: markup.bold.org
+      scope: markup.bold markup.bold.org
     - match: '{{pre}}/[^\s/](?:[^\n]*?[^\s])?/{{post}}'
-      scope: markup.italic.org
+      scope: markup.italic markup.italic.org
     - match: '{{pre}}_[^\s_](?:[^\n]*?[^\s])?_{{post}}'
-      scope: markup.underline.org
+      scope: markup.underline markup.underline.org
     - match: '{{pre}}\+[^\s+](?:[^\n]*?[^\s])?\+{{post}}'
-      scope: markup.strikethrough.org
-
+      scope: markup.strikethrough markup.strikethrough.org
   planning:
     - match: '$'
       pop: true
     - match: '\b(?:SCHEDULED|DEADLINE|CLOSED):'
-      scope: keyword.other.planning.org
+      scope: keyword.other keyword.other.planning.org
     - include: inline
 
   table:
     - match: '$'
       pop: true
     - match: '\|'
-      scope: punctuation.separator.table.org
+      scope: comment punctuation.definition.table punctuation.separator.table.org
     - match: '(?<=\|)-[-+|]*'
-      scope: punctuation.separator.table.org
+      scope: comment punctuation.definition.table punctuation.separator.table.org
     - include: inline
 
   raw-block:
-    - meta_content_scope: markup.raw.block.org
+    - meta_content_scope: string markup.raw.block.org
     - match: '^\s*#\+(?i:end_\w+).*$'
-      scope: punctuation.definition.block.org
+      scope: comment punctuation.definition.block.org
       pop: true

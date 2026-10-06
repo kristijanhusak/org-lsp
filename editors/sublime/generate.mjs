@@ -164,11 +164,15 @@ const palette = [
 ];
 
 // The scopes of the server's tokens, from the TextMate scopes it names. A
-// selector for a modifier on any type (`*.bold`) is given for text.
+// selector for a modifier on any type (`*.bold`) is given for text. All of
+// them, as a stack with the most specific last: Sublime Text colors a token
+// by the last scope its color scheme has a color for, so a scheme without
+// one for `constant.other.timestamp.org` still colors it as
+// `constant.numeric`.
 const semanticTokens = Object.fromEntries(
   manifest.highlights
     .filter((look) => look.textmate.length > 0)
-    .map((look) => [look.token.replace(/^\*\./, 'text.'), look.textmate[0]]),
+    .map((look) => [look.token.replace(/^\*\./, 'text.'), [...look.textmate].reverse().join(' ')]),
 );
 
 const settingsPath = join(pkg, 'LSP-org.sublime-settings');
