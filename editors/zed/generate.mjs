@@ -1,5 +1,5 @@
 // Write the semantic token rules of the Zed extension
-// (languages/*/semantic_token_rules.json) from the server's manifest: how
+// (languages/org/semantic_token_rules.json) from the server's manifest: how
 // each of its token types and modifiers looks, in the names of Zed's
 // themes.
 //
@@ -100,7 +100,7 @@ const rules = selectors.sort((a, b) => rank(a) - rank(b)).map((selector) => rule
 const text = JSON.stringify(rules, null, 2) + '\n';
 
 let stale = false;
-for (const language of ['org', 'org-agenda']) {
+for (const language of ['org']) {
   const path = join(here, 'languages', language, 'semantic_token_rules.json');
   const before = existsSync(path) ? readFileSync(path, 'utf8') : '';
   if (before === text) continue;

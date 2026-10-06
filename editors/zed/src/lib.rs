@@ -81,7 +81,13 @@ impl zed::Extension for OrgLsp {
         }
         let command = match worktree.which("org-lsp") {
             Some(path) => path,
-            None => self.downloaded(id)?,
+            None => self.downloaded(id).map_err(|error| {
+                format!(
+                    "org-lsp is not on PATH, and its nightly build could not be downloaded ({error}). \
+                     Put `org-lsp` on PATH (`cargo install --path server/org-lsp` in a checkout), or name \
+                     the binary in Zed's settings: \"lsp\": {{ \"org-lsp\": {{ \"binary\": {{ \"path\": \"/path/to/org-lsp\" }} }} }}"
+                )
+            })?,
         };
         Ok(zed::Command { command, args: Vec::new(), env: Default::default() })
     }

@@ -197,9 +197,13 @@ impl Client {
     }
 
     fn open(&self, uri: &str, text: &str) {
+        self.open_as(uri, "org", text);
+    }
+
+    fn open_as(&self, uri: &str, language: &str, text: &str) {
         self.notify(
             "textDocument/didOpen",
-            json!({ "textDocument": { "uri": uri, "languageId": "org", "version": 1, "text": text } }),
+            json!({ "textDocument": { "uri": uri, "languageId": language, "version": 1, "text": text } }),
         );
     }
 
@@ -850,6 +854,49 @@ fn shows_the_clock_in_the_agenda() {
     assert!(view.contains("| work.org | *File time*      | *0:30* |"), "{view}");
     assert!(view.contains("| Write            | 0:30   |"), "the links show as their descriptions: {view}");
     client.shutdown();
+}
+
+/// An agenda written to a file, for clients without virtual documents, is
+/// highlighted with the agenda's tokens once the client opens it.
+#[test]
+fn highlights_the_agenda_file() {
+    let mut options = clock();
+    options["virtualDocuments"] = json!(false);
+    let capabilities = json!({ "window": { "showDocument": { "support": true } } });
+    let mut client = Client::start(capabilities, options, None);
+    const WORK_URI: &str = "file:///org/work.org";
+    client.open(WORK_URI, WORK);
+    let context = json!({ "textDocument": { "uri": WORK_URI }, "position": { "line": 1, "character": 0 } });
+    client.received.clear();
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.agenda.list", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    let agenda = shown.params["uri"].as_str().unwrap().to_string();
+    let text = std::fs::read_to_string(agenda.trim_start_matches("file://")).unwrap();
+    client.open_as(&agenda, "org-agenda", &text);
+    let tokens =
+        client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": agenda } })).unwrap();
+    let legend = &client.initialize["capabilities"]["semanticTokensProvider"]["legend"];
+    let structure = legend["tokenTypes"].as_array().unwrap().iter().position(|name| name == "agendaStructure").unwrap();
+    let data = tokens["data"].as_array().unwrap();
+    assert!(data.chunks(5).any(|token| token[3].as_u64() == Some(structure as u64)), "agenda tokens: {data:?}");
+    // Read-only, so that editors do not let it be edited; the server
+    // writes it again all the same.
+    let path = agenda.trim_start_matches("file://");
+    assert!(std::fs::metadata(path).unwrap().permissions().readonly());
+    let at = json!({ "textDocument": { "uri": agenda }, "position": { "line": 0, "character": 0 } });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.agenda.day", "arguments": [at] })).unwrap();
+    client.settle();
+    let errors = client.received.iter().filter(|message| message.method == "window/showMessage").collect::<Vec<_>>();
+    assert!(errors.is_empty(), "messages: {errors:?}");
+    let day = std::fs::read_to_string(path).unwrap();
+    assert_ne!(day, text);
+    assert!(std::fs::metadata(path).unwrap().permissions().readonly());
+    client.shutdown();
+    assert!(!std::path::Path::new(path).exists());
 }
 
 /// `v a` and `v A` (`org-agenda-archives-mode`): entries in archived trees,

@@ -13,8 +13,7 @@ A Zed extension that runs Org through the org-lsp server.
    ```json
    {
      "languages": {
-       "Org": { "semantic_tokens": "combined" },
-       "Org Agenda": { "semantic_tokens": "combined" }
+       "Org": { "semantic_tokens": "combined" }
      },
      "lsp": {
        "org-lsp": {
@@ -24,9 +23,15 @@ A Zed extension that runs Org through the org-lsp server.
    }
    ```
 
-The server needs nothing: the extension starts `org-lsp` from your PATH,
-or else downloads the nightly build for your platform once.
-`lsp.org-lsp.binary.path` names a server binary of your own.
+The extension starts `org-lsp` from your PATH (`cargo install --path
+server/org-lsp` in a checkout puts it in `~/.cargo/bin`), or else
+downloads the nightly build for your platform once. The download needs
+the repository to be public: GitHub answers 404 to Zed for a private
+one. `lsp.org-lsp.binary.path` names a server binary of your own:
+
+```json
+{ "lsp": { "org-lsp": { "binary": { "path": "/path/to/org-lsp/target/release/org-lsp" } } } }
+```
 
 Zed asks a language server for semantic tokens only when a language's
 `semantic_tokens` says so. `combined` colors Org files with the
@@ -54,6 +59,10 @@ are in the **code actions** (**editor: toggle code actions**, `ctrl-.` /
   also its state, priority and dates, clocking, refile, archive, and going
   to the entry.
 - In a capture buffer: file the entry, give up, or refile it.
+
+The agenda is a file the server writes (`Agenda.org-agenda`, in a
+directory of its own under the system's temporary one), opened as Org
+and read-only; the server writes it again when it changes.
 
 What a command asks for is asked with buttons: a TODO state, a priority,
 a refile target, a capture template, yes or no. Zed has no way to ask for

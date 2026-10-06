@@ -660,7 +660,48 @@ fn span_name(span: Span) -> String {
 fn capture_directory() -> PathBuf {
     static SERVERS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let server = SERVERS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    std::env::temp_dir().join(format!("org-lsp-capture-{}-{server}", std::process::id()))
+    temp_dir().join(format!("org-lsp-capture-{}-{server}", std::process::id()))
+}
+
+/// The directory for temporary files, with its links resolved. Editors
+/// that resolve them name the file the server shows by its real path
+/// (macOS's `/var/folders/…` is `/private/var/folders/…`), and the
+/// server knows its files by the path it gave them.
+fn temp_dir() -> PathBuf {
+    let temp = std::env::temp_dir();
+    // Not on Windows: there the real path is a `\\?\` one.
+    #[cfg(unix)]
+    if let Ok(real) = std::fs::canonicalize(&temp) {
+        return real;
+    }
+    temp
+}
+
+/// Write the agenda's file and leave it read-only: the agenda is to read,
+/// and editors that go by a file's permissions (Zed, Vim) then do not let
+/// it be edited.
+fn write_read_only(file: &Path, text: &str) -> std::io::Result<()> {
+    if std::fs::metadata(file).is_ok_and(|metadata| metadata.permissions().readonly()) {
+        set_writable(file)?;
+    }
+    std::fs::write(file, text)?;
+    let mut permissions = std::fs::metadata(file)?.permissions();
+    permissions.set_readonly(true);
+    std::fs::set_permissions(file, permissions)
+}
+
+/// Let the owner of `file` write it again.
+fn set_writable(file: &Path) -> std::io::Result<()> {
+    let mut permissions = std::fs::metadata(file)?.permissions();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        permissions.set_mode(permissions.mode() | 0o200);
+    }
+    #[cfg(not(unix))]
+    #[allow(clippy::permissions_set_readonly_false)]
+    permissions.set_readonly(false);
+    std::fs::set_permissions(file, permissions)
 }
 
 fn capabilities(encoding: Encoding) -> ServerCapabilities {
@@ -1624,7 +1665,7 @@ impl Server {
             }
             None => {
                 // The client cannot fetch the view, so it gets a file.
-                let directory = std::env::temp_dir().join(format!("org-lsp-{}", std::process::id()));
+                let directory = temp_dir().join(format!("org-lsp-{}", std::process::id()));
                 let file = directory.join(views::FILE_NAME);
                 if std::fs::create_dir_all(&directory).is_ok() {
                     if let Some(uri) = uri::from_path(&file) {
@@ -1640,7 +1681,7 @@ impl Server {
         let Some(open) = &self.view else { return };
         match &open.file {
             Some(file) => {
-                if let Err(error) = std::fs::write(file, &open.view.text) {
+                if let Err(error) = write_read_only(file, &open.view.text) {
                     self.show_message(MessageType::ERROR, format!("Cannot write the agenda: {error}"));
                 }
             }
@@ -1736,6 +1777,8 @@ impl Server {
 
     fn remove_view_file(&mut self) {
         if let Some(file) = self.view.as_ref().and_then(|open| open.file.as_ref()) {
+            // Windows does not remove a read-only file.
+            let _ = set_writable(file);
             let _ = std::fs::remove_file(file);
             if let Some(directory) = file.parent() {
                 let _ = std::fs::remove_dir(directory);
