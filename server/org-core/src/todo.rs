@@ -837,8 +837,13 @@ impl<'a> Editor<'a> {
         while let Some((start, repeater_end)) = next_repeater(&self.text, at, end) {
             if self.in_timestamp(&parse, repeater_end.min(end - 1)) {
                 let stamp = &self.text[start..repeater_end];
-                let repeater_start = stamp.rfind(' ').map_or(0, |index| index + 1);
-                return Some(stamp[repeater_start..].to_string());
+                let word = &stamp[stamp.rfind(' ').map_or(0, |index| index + 1)..];
+                // Group 1 of `org-repeat-re`: where `[.+]?\+N[hdwmy]` starts.
+                let repeater = word.char_indices().map(|(at, _)| &word[at..]).find(|rest| {
+                    let rest = rest.strip_prefix(['.', '+']).filter(|after| after.starts_with('+')).unwrap_or(rest);
+                    rest.strip_prefix('+').is_some_and(|after| after.starts_with(|c: char| c.is_ascii_digit()))
+                });
+                return Some(repeater.unwrap_or(word).to_string());
             }
             at = repeater_end;
         }

@@ -89,6 +89,21 @@ pub fn tag_group(text: &str) -> Option<(usize, usize)> {
     Some((tags_start - blanks, tags_start))
 }
 
+/// How many bytes `old` and `new` have in common at the start and at the
+/// end, each a whole number of characters.
+pub fn common_ends(old: &str, new: &str) -> (usize, usize) {
+    let mut prefix = old.bytes().zip(new.bytes()).take_while(|(a, b)| a == b).count();
+    while !old.is_char_boundary(prefix) {
+        prefix -= 1;
+    }
+    let max_suffix = old.len().min(new.len()) - prefix;
+    let mut suffix = old.bytes().rev().zip(new.bytes().rev()).take(max_suffix).take_while(|(a, b)| a == b).count();
+    while !old.is_char_boundary(old.len() - suffix) {
+        suffix -= 1;
+    }
+    (prefix, suffix)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

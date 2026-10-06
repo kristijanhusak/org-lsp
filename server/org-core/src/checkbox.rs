@@ -218,7 +218,7 @@ fn cookie_data(text: &str, at: usize) -> String {
     let mut at = next_line(text, line);
     while at < limit {
         let current = text[at..line_end(text, at)].trim();
-        if current.len() > 13 && current[..13].eq_ignore_ascii_case(":COOKIE_DATA:") {
+        if current.len() > 13 && current.get(..13).is_some_and(|key| key.eq_ignore_ascii_case(":COOKIE_DATA:")) {
             return current[13..].trim().to_string();
         }
         if current.eq_ignore_ascii_case(":END:") {
