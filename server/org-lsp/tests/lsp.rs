@@ -638,6 +638,40 @@ fn sends_virtual_indentation() {
     client.shutdown();
 }
 
+/// A client that does not show `org-lsp/virtualIndent` (Zed, Helix) gets
+/// `org-indent-mode`'s prefixes as inlay hints of blanks; one that does,
+/// or says so with the `virtualIndent` option, gets none.
+#[test]
+fn virtual_indentation_as_inlay_hints() {
+    let mut client = Client::start(json!({}), Value::Null);
+    assert!(client.initialize.capabilities.inlay_hint_provider.is_some());
+    client.open(&uri(), "#+STARTUP: indent\n* A\ntext\n** B\n- item\n");
+    let hints = client
+        .request::<lsp_types::request::InlayHintRequest>(lsp_types::InlayHintParams {
+            text_document: identifier(),
+            range: Range::new(Position::new(0, 0), Position::new(3, 0)),
+            work_done_progress_params: Default::default(),
+        })
+        .unwrap();
+    let shown: Vec<(u32, u32, String)> = hints
+        .iter()
+        .map(|hint| match &hint.label {
+            lsp_types::InlayHintLabel::String(label) => (hint.position.line, hint.position.character, label.clone()),
+            _ => panic!("a plain label"),
+        })
+        .collect();
+    assert_eq!(shown, [(2, 0, "  ".to_string()), (3, 0, " ".to_string())]);
+    client.shutdown();
+    for (capabilities, options) in [
+        (json!({ "experimental": { "orgVirtualIndent": true } }), Value::Null),
+        (json!({}), json!({ "virtualIndent": true })),
+    ] {
+        let client = Client::start(capabilities, options);
+        assert!(client.initialize.capabilities.inlay_hint_provider.is_none());
+        client.shutdown();
+    }
+}
+
 /// RET (`org-return`): the result carries the edit and where the cursor
 /// goes, for the editor to apply as the key is typed; in a source block's
 /// code the command does not apply, and the editor's own RET does.

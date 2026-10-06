@@ -161,6 +161,19 @@ def load_plugin():
     sublime.Region = Region
     sublime.OP_EQUAL, sublime.OP_NOT_EQUAL = 0, 1
     sublime.set_timeout = lambda f, delay=0: f()
+    sublime.LAYOUT_INLINE = 0
+    sublime.Phantom = lambda region, html, layout: types.SimpleNamespace(region=region, html=html, layout=layout)
+
+    class PhantomSet:
+        made = []
+
+        def __init__(self, view, key):
+            self.phantoms = []
+            PhantomSet.made.append(self)
+
+        def update(self, phantoms):
+            self.phantoms = phantoms
+    sublime.PhantomSet = PhantomSet
     sublime.messages = []
     sublime.status_message = sublime.messages.append
     sublime.settings = {}
@@ -301,6 +314,17 @@ class Tests(unittest.TestCase):
         self.plugin.OrgLspRunCommand(self.window).run(command='org.agenda.list')
         self.assertIsNone(self.window.opened)
         self.assertIn('org-lsp: the server is starting', self.sublime.messages)
+
+    def test_shows_org_indent_mode_prefixes_as_phantoms(self):
+        self.sublime.windows = lambda: [self.window]
+        self.plugin.show_virtual_indent({'uri': 'file:///notes/work.org', 'version': 1,
+                                         'lines': [[0, 0, 2, 0], [1, 2, 2, 0], [3, 4, 6, 1], [99, 2, 2, 0]]})
+        phantoms = self.sublime.PhantomSet.made[-1].phantoms
+        self.assertEqual([(p.region.a, p.html.count('&nbsp;')) for p in phantoms],
+                         [(self.view.text_point(1, 0), 2), (self.view.text_point(3, 0), 4)])
+        self.plugin.show_virtual_indent({'uri': 'file:///notes/work.org', 'version': 2, 'lines': []})
+        self.assertEqual(self.sublime.PhantomSet.made[-1].phantoms, [])
+        self.assertEqual(len(self.sublime.PhantomSet.made), 1)
 
     def test_a_key_keeps_its_own_meaning_where_the_command_does_not_apply(self):
         fallback = {'command': 'move', 'args': {'by': 'lines', 'forward': False, 'extend': True}}

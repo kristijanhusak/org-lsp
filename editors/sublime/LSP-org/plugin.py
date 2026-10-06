@@ -160,6 +160,8 @@ class OrgLsp(AbstractPlugin):
         # This package shows the documents the server asks it to.
         options = configuration.init_options
         options.set('showDocument', True)
+        # `org-indent-mode`'s prefixes, as phantoms (`org-lsp/virtualIndent`).
+        options.set('virtualIndent', True)
         return None
 
     # The server changed files from elsewhere (the agenda, a capture, a
@@ -171,6 +173,10 @@ class OrgLsp(AbstractPlugin):
     # The clock that runs, for the status bar.
     def m_org_lsp_clock(self, params) -> None:
         sublime.set_timeout(lambda: show_clock(params))
+
+    # How the lines of a file with `org-indent-mode` show.
+    def m_org_lsp_virtualIndent(self, params) -> None:
+        sublime.set_timeout(lambda: show_virtual_indent(params))
 
 
 class OrgLspUpdateServerCommand(sublime_plugin.WindowCommand):
@@ -231,6 +237,33 @@ def close(uri: str) -> None:
         view.run_command('save')
     view.set_scratch(True)
     view.close()
+
+
+# The phantoms of `org-indent-mode` by view; a set of phantoms shows only
+# while it is kept.
+indent_phantoms = {}
+
+
+def show_virtual_indent(params) -> None:
+    """Show the prefixes the server sent for a file (`org-lsp/virtualIndent`):
+    `lines` of `[line, prefix, wrap, hidden stars]`. Each prefix is a phantom
+    of blanks before its line. Sublime Text cannot repeat it on the lines a
+    long line wraps into, nor hide the leading stars."""
+    view = view_for((params or {}).get('uri', ''))
+    if not view:
+        return
+    rows = view.rowcol(view.size())[0] + 1
+    phantoms = []
+    for line, prefix, _wrap, _stars in (params or {}).get('lines', []):
+        # For older text than the view has: newer prefixes are on their way.
+        if prefix > 0 and line < rows:
+            point = view.text_point(line, 0)
+            html = '<body style="margin: 0; padding: 0">{}</body>'.format('&nbsp;' * prefix)
+            phantoms.append(sublime.Phantom(sublime.Region(point), html, sublime.LAYOUT_INLINE))
+    phantom_set = indent_phantoms.get(view.id())
+    if phantom_set is None:
+        phantom_set = indent_phantoms[view.id()] = sublime.PhantomSet(view, 'org-lsp-indent')
+    phantom_set.update(phantoms)
 
 
 def show_clock(params) -> None:

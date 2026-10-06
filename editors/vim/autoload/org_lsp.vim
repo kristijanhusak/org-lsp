@@ -20,6 +20,7 @@ let s:defaults = {
       \ 'startup_folded': 'showeverything',
       \ 'highlight': 1,
       \ 'src_highlight': 1,
+      \ 'virtual_indent': 1,
       \ 'win_split_mode': 'split',
       \ 'mappings': {
       \   'global': {
@@ -88,7 +89,16 @@ endfunction
 " shows the documents the server asks for, the agenda as the file the
 " server writes, whatever the client says.
 function! org_lsp#init_options() abort
-  return extend(deepcopy(org_lsp#config().settings), {'showDocument': v:true, 'virtualDocuments': v:false})
+  return extend(deepcopy(org_lsp#config().settings), {
+        \ 'showDocument': v:true,
+        \ 'virtualDocuments': v:false,
+        \ 'virtualIndent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
+        \ })
+endfunction
+
+" Whether text properties can be text of their own: Vim 9.0.0067 on.
+function! s:has_virtual_text() abort
+  return has('textprop') && has('patch-9.0.0067')
 endfunction
 
 function! s:warn(message) abort
@@ -911,6 +921,70 @@ function! org_lsp#handle_notification(method, params) abort
     call org_lsp#save(get(a:params, 'uris', []))
   elseif a:method ==# 'org-lsp/clock'
     call s:clock_update(a:params)
+  elseif a:method ==# 'org-lsp/virtualIndent'
+    call s:virtual_indent(a:params)
+  endif
+endfunction
+
+" ----- org-indent-mode
+
+" Leading stars hidden as Org hides them (`org-hide`): in the color of the
+" background.
+function! s:hidden_star_highlight() abort
+  let normal = get(hlget('Normal', 1), 0, {})
+  if has_key(normal, 'guibg') || has_key(normal, 'ctermbg')
+    execute 'highlight OrgLspHiddenStar'
+          \ . (has_key(normal, 'guibg') ? ' guifg=' . normal.guibg : '')
+          \ . (has_key(normal, 'ctermbg') ? ' ctermfg=' . normal.ctermbg : '')
+  else
+    highlight! default link OrgLspHiddenStar Ignore
+  endif
+endfunction
+
+function! s:indent_prop_types() abort
+  if empty(prop_type_get('org_lsp_indent'))
+    call s:hidden_star_highlight()
+    call prop_type_add('org_lsp_indent', {})
+    call prop_type_add('org_lsp_star', {'highlight': 'OrgLspHiddenStar', 'priority': 1000, 'combine': 0})
+    augroup org_lsp_hidden_star
+      autocmd!
+      autocmd ColorScheme * call s:hidden_star_highlight()
+    augroup END
+  endif
+endfunction
+
+" Show the prefixes the server sent for a file (`org-lsp/virtualIndent`):
+" `lines` of `[line, prefix, wrap, hidden stars]`. The prefixes are text of
+" their own before the lines; Vim cannot repeat them on the lines a long
+" line wraps into, where 'breakindent' lines those up with the line's own
+" text instead.
+function! s:virtual_indent(params) abort
+  let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
+  if nr < 0 || !bufloaded(nr) || !s:has_virtual_text()
+    return
+  endif
+  call s:indent_prop_types()
+  call prop_remove({'type': 'org_lsp_indent', 'bufnr': nr, 'all': 1})
+  call prop_remove({'type': 'org_lsp_star', 'bufnr': nr, 'all': 1})
+  let last = getbufinfo(nr)[0].linecount
+  for [line, prefix, wrap, stars] in a:params.lines
+    " For older text than the buffer has: newer prefixes are on their way.
+    if line >= last
+      continue
+    endif
+    if prefix > 0
+      call prop_add(line + 1, 1, {'type': 'org_lsp_indent', 'bufnr': nr, 'text': repeat(' ', prefix)})
+    endif
+    if stars > 0
+      call prop_add(line + 1, 1, {'type': 'org_lsp_star', 'bufnr': nr, 'length': stars})
+    endif
+  endfor
+  if !empty(a:params.lines)
+    for win in win_findbuf(nr)
+      call setwinvar(win, '&breakindent', 1)
+      call setwinvar(win, '&breakindentopt', 'list:-1')
+    endfor
+    call setbufvar(nr, '&formatlistpat', '^\s*\%([-+]\|\s\*\|\d\+[.)]\)\s\+')
   endif
 endfunction
 

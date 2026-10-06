@@ -80,6 +80,11 @@ or the TODO state, `Ctrl+C Ctrl+S` schedules, `Ctrl+C Ctrl+W` refiles,
 `Ctrl+C Ctrl+C` files the entry. Where a command does not apply,
 `Shift+arrows` select and `Tab` indents as usual.
 
+Files with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`)
+show indented by level, without being changed: blanks before the lines,
+as phantoms. The leading stars still show, and the lines a long line
+wraps into are not indented.
+
 The agenda and capture need no Org file open: from the Command Palette
 (`Org: Agenda commands`, `Org: Capture`, …) in any view, the package starts the
 server first, with a tab that says so and closes when the agenda opens.

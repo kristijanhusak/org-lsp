@@ -478,7 +478,8 @@ pub fn run(connection: Connection) -> Result<()> {
         date_prompt: raw_params.pointer("/capabilities/experimental/orgDatePrompt").and_then(Value::as_bool)
             == Some(true),
         virtual_indent: raw_params.pointer("/capabilities/experimental/orgVirtualIndent").and_then(Value::as_bool)
-            == Some(true),
+            == Some(true)
+            || options.virtual_indent == Some(true),
         tokens_refresh: raw_params
             .pointer("/capabilities/workspace/semanticTokens/refreshSupport")
             .and_then(Value::as_bool)
@@ -498,7 +499,7 @@ pub fn run(connection: Connection) -> Result<()> {
     };
 
     let result = InitializeResult {
-        capabilities: capabilities(client.encoding),
+        capabilities: capabilities(client.encoding, !client.virtual_indent),
         server_info: Some(ServerInfo {
             name: "org-lsp".to_string(),
             version: Some(env!("CARGO_PKG_VERSION").to_string()),
@@ -735,7 +736,9 @@ fn set_writable(file: &Path) -> std::io::Result<()> {
     std::fs::set_permissions(file, permissions)
 }
 
-fn capabilities(encoding: Encoding) -> ServerCapabilities {
+/// What the server does. `inlay_hints`: show `org-indent-mode`'s prefixes
+/// as inlay hints, for a client that does not show them otherwise.
+fn capabilities(encoding: Encoding, inlay_hints: bool) -> ServerCapabilities {
     ServerCapabilities {
         position_encoding: Some(encoding.kind()),
         text_document_sync: Some(TextDocumentSyncCapability::Options(TextDocumentSyncOptions {
@@ -771,6 +774,7 @@ fn capabilities(encoding: Encoding) -> ServerCapabilities {
         }),
         document_range_formatting_provider: Some(OneOf::Left(true)),
         document_formatting_provider: Some(OneOf::Left(true)),
+        inlay_hint_provider: inlay_hints.then_some(OneOf::Left(true)),
         experimental: Some(json!({ "org": manifest::manifest() })),
         ..Default::default()
     }
@@ -1026,6 +1030,7 @@ impl Server {
             lsp_types::request::OnTypeFormatting => on_type_formatting,
             lsp_types::request::RangeFormatting => range_formatting,
             lsp_types::request::Formatting => formatting,
+            lsp_types::request::InlayHintRequest => inlay_hints,
         }
     }
 
@@ -1160,6 +1165,35 @@ impl Server {
     fn folding_ranges(&mut self, params: FoldingRangeParams) -> Option<Vec<lsp_types::FoldingRange>> {
         let document = self.document(&params.text_document.uri)?;
         Some(folding::folding_ranges(&document.syntax(), &document.text, &document.index, self.separator_lines))
+    }
+
+    /// `org-indent-mode`'s prefixes as inlay hints of blanks at the start of
+    /// lines, for a client that does not show `org-lsp/virtualIndent`.
+    /// Hidden stars and the prefixes of wrapped lines cannot be shown so.
+    fn inlay_hints(&mut self, params: lsp_types::InlayHintParams) -> Option<Vec<lsp_types::InlayHint>> {
+        let document = self.document(&params.text_document.uri)?;
+        let text = &document.text;
+        if !self.display.indented(text) {
+            return Some(Vec::new());
+        }
+        let adapt = self.display.adapt(text, self.indent.adapt);
+        let (first, last) = (params.range.start.line as usize, params.range.end.line as usize);
+        Some(
+            org_core::indent::virtual_indentation(text, true, false, adapt)
+                .into_iter()
+                .filter(|line| line.prefix > 0 && (first..=last).contains(&line.line))
+                .map(|line| lsp_types::InlayHint {
+                    position: Position::new(line.line as u32, 0),
+                    label: lsp_types::InlayHintLabel::String(" ".repeat(line.prefix)),
+                    kind: None,
+                    text_edits: None,
+                    tooltip: None,
+                    padding_left: None,
+                    padding_right: None,
+                    data: None,
+                })
+                .collect(),
+        )
     }
 
     fn document_symbols(&mut self, params: DocumentSymbolParams) -> Option<DocumentSymbolResponse> {

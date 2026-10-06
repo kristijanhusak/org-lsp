@@ -15,6 +15,15 @@ language-servers = ["org-lsp"]
 
 `editors/helix/languages.toml` in this repository has the same.
 
+Files with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`)
+show indented by level, without being changed, through inlay hints of
+blanks before their lines, when Helix shows inlay hints:
+
+```toml
+[editor.lsp]
+display-inlay-hints = true
+```
+
 ## The server's options
 
 The server's options go in a `config` table under the server, which Helix

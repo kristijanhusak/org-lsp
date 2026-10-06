@@ -284,6 +284,22 @@ function! s:code_link_note() abort
 endfunction
 call s:test('source blocks in their syntax, links followed, notes added', function('s:code_link_note'))
 
+function! s:virtual_indent() abort
+  let file = s:work . '/notes/indented.org'
+  call writefile(['#+STARTUP: indent', '* A', 'text', '** B', '- item'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  " `org-indent-mode`: text before the lines, the file as it is.
+  call s:until('the prefixes', {-> !empty(prop_type_get('org_lsp_indent')) && !empty(prop_list(3, {'types': ['org_lsp_indent']}))})
+  call assert_equal('  ', prop_list(3, {'types': ['org_lsp_indent']})[0].text)
+  call assert_equal('    ', prop_list(5, {'types': ['org_lsp_indent']})[0].text)
+  call assert_equal('text', getline(3))
+  " The leading star of `** B` hidden.
+  call assert_equal(1, prop_list(4, {'types': ['org_lsp_star']})[0].length)
+  call assert_true(&breakindent)
+endfunction
+call s:test('org-indent-mode shows the file indented, unchanged', function('s:virtual_indent'))
+
 for error in v:errors
   call add(s:results, 'not ok - ' . error)
 endfor
