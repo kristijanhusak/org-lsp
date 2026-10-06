@@ -738,13 +738,39 @@ eq(line(1), '* A :x:', 'the headline before the selection as it was')
 
 -- 16b. Source blocks show their code in its language's colors.
 local code = vim.fn.tempname() .. '.org'
-vim.fn.writefile({ '* Code', '#+begin_src lua', 'local x = 1', '#+end_src', '', 'See [[*Code]].' }, code)
+vim.fn.writefile({
+  '* Code',
+  '#+begin_src lua',
+  'local x = 1',
+  '#+end_src',
+  '',
+  'See [[*Code]].',
+  '#+begin_export lua',
+  'return 2',
+  '#+end_export',
+  'Inline src_lua[:results none]{local y = 2} here.',
+  '#+begin_src emacs-lisp',
+  '(defun f () "doc")',
+  '#+end_src',
+}, code)
 vim.cmd.edit(code)
 wait('the server to attach to the file with code', function()
   return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
 end)
 local marks = vim.api.nvim_buf_get_extmarks(0, require('org-lsp.src').namespace, { 2, 0 }, { 2, -1 }, { details = true })
 eq(marks[1] and marks[1][4].hl_group, '@keyword.lua', '`local` in the colors of Lua')
+local function groups(row)
+  local found = {}
+  for _, mark in
+    ipairs(vim.api.nvim_buf_get_extmarks(0, require('org-lsp.src').namespace, { row, 0 }, { row, -1 }, { details = true }))
+  do
+    found[#found + 1] = mark[3] .. ':' .. mark[4].hl_group
+  end
+  return table.concat(found, ' ')
+end
+check(groups(7):find('0:@keyword', 1, true), 'an export block in its language: ' .. groups(7))
+check(groups(9):find('30:@keyword.lua', 1, true), 'inline code in its language: ' .. groups(9))
+check(groups(11):find('lisp', 1, true), 'Emacs Lisp, which has no tree-sitter parser, in Vim\'s syntax: ' .. groups(11))
 
 -- 16c. `<Leader>oo` (`org-open-at-point`) follows the link at the cursor.
 vim.api.nvim_win_set_cursor(0, { 6, 8 })

@@ -47,7 +47,7 @@ let g:org_lsp = {
 | `folding` | `1` | Fold with the server's folding ranges, and cycle with `<Tab>` / `<S-Tab>`. |
 | `startup_folded` | `'showeverything'` | `'overview'` opens files folded. |
 | `highlight` | `1` | Highlight with the server's tokens. |
-| `src_highlight` | `1` | Highlight the code of source blocks (`#+begin_src python`) with the syntax file of its language, as Emacs's `org-src-fontify-natively` does. |
+| `src_highlight` | `1` | Highlight the code of source and export blocks (`#+begin_src python`, `#+begin_export html`) and of inline source blocks (`src_python{…}`, to the first `}`) with the syntax file of its language, as Emacs's `org-src-fontify-natively` does. |
 | `win_split_mode` | `'split'` | How the agenda and capture buffers open: `'split'`, `'vsplit'`, `'current'`, or an Ex command that opens a window (`'botright split'`, `'tabnew'`). |
 | `mappings` | the server's | Keys by scope (`global`, `org`, `agenda`, `capture`), as for the Neovim plugin: a command maps to a key, a list of keys, or `0`; `0` for a scope (or for `mappings`) sets no keys there. |
 

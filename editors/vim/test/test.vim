@@ -237,12 +237,19 @@ call s:test('archives a subtree, and asks about each done one', function('s:arch
 
 function! s:code_link_note() abort
   let file = s:work . '/notes/code.org'
-  call writefile(['* Code', '#+begin_src python :results output', 'def greet():', '#+end_src', 'See [[*Code]].'], file)
+  call writefile(['* Code', '#+begin_src python :results output', 'def greet():', '#+end_src', 'See [[*Code]].',
+        \ '#+begin_export python', 'def bye():', '#+end_export', 'Then src_python[:exports code]{def hi(): pass} too.',
+        \ '#+begin_src emacs-lisp', '(defun f () 1)', '#+end_src'], file)
   execute 'edit' fnameescape(file)
   call s:until('the server', {-> org_lsp#ready(bufnr())})
   " The code of a source block in its language's syntax.
   call assert_match('^python', synIDattr(synID(3, 1, 1), 'name'))
   call assert_notmatch('^python', synIDattr(synID(5, 1, 1), 'name'))
+  " Export blocks, inline source blocks and Emacs Lisp too.
+  call assert_match('^python', synIDattr(synID(7, 1, 1), 'name'))
+  call assert_match('^python', synIDattr(synID(9, 32, 1), 'name'))
+  call assert_notmatch('^python', synIDattr(synID(9, 50, 1), 'name'))
+  call assert_match('^lisp', synIDattr(synID(11, 2, 1), 'name'))
   " `<Leader>oo` follows the link at the cursor.
   call cursor(5, 8)
   call feedkeys("\\oo", 'xt')

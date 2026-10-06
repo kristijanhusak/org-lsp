@@ -1199,11 +1199,30 @@ function! s:src_syntax() abort
     return
   endif
   let done = get(b:, 'org_lsp_src_languages', {})
-  for name in uniq(sort(filter(map(getline(1, '$'), {_, line -> matchstr(line, '\c^\s*#+begin_src\s\+\zs\S\+')}), '!empty(v:val)')))
-    if has_key(done, name)
+  " Source and export blocks (`#+begin_src LANG`, `#+begin_export LANG`),
+  " and inline source blocks (`src_LANG{CODE}`), by language.
+  let wanted = []
+  for line in getline(1, '$')
+    let block = matchlist(line, '\c^\s*#+begin_\(src\|export\)\s\+\(\S\+\)')
+    if !empty(block)
+      call add(wanted, [tolower(block[1]), block[2]])
       continue
     endif
-    let done[name] = 1
+    let at = 0
+    while 1
+      let [name, start, end] = matchstrpos(line, '\%(^\|[^[:alnum:]_-]\)\@<=src_\zs[^ \t[{]\+', at)
+      if start < 0
+        break
+      endif
+      call add(wanted, ['inline', name])
+      let at = end
+    endwhile
+  endfor
+  for [kind, name] in wanted
+    if has_key(done, kind . ':' . name)
+      continue
+    endif
+    let done[kind . ':' . name] = 1
     let lang = get(s:src_aliases, tolower(name), tolower(name))
     if lang !~# '^\w\+$' || empty(globpath(&runtimepath, 'syntax/' . lang . '.vim'))
       continue
@@ -1220,9 +1239,17 @@ function! s:src_syntax() abort
         let b:current_syntax = current
       endif
     endif
-    execute 'syntax region ' . cluster . ' keepend matchgroup=orgLspSrcDelimiter'
-          \ . ' start=/\c^\s*#+begin_src\s\+' . escape(name, '/\.*$^~[]') . '\%(\s\|$\).*$/'
-          \ . ' end=/\c^\s*#+end_src\>.*$/ contains=@' . cluster
+    let pattern = escape(name, '/\.*$^~[]')
+    if kind ==# 'inline'
+      " To the first `}`: braces in the code end it early.
+      execute 'syntax region ' . cluster . ' oneline keepend matchgroup=orgLspSrcDelimiter'
+            \ . ' start=/\%(^\|[^[:alnum:]_-]\)\@<=src_' . pattern . '\%(\[[^]]*\]\)\={/'
+            \ . ' end=/}/ contains=@' . cluster
+    else
+      execute 'syntax region ' . cluster . ' keepend matchgroup=orgLspSrcDelimiter'
+            \ . ' start=/\c^\s*#+begin_' . kind . '\s\+' . pattern . '\%(\s\|$\).*$/'
+            \ . ' end=/\c^\s*#+end_' . kind . '\>.*$/ contains=@' . cluster
+    endif
   endfor
   let b:org_lsp_src_languages = done
 endfunction

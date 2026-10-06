@@ -490,6 +490,25 @@ describe('Org files', () => {
     await vscode.workspace.getConfiguration('org-lsp').update('keys', undefined, vscode.ConfigurationTarget.Workspace);
   });
 
+  it('colors the code of source, export and inline source blocks in its language', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'code.org'));
+    const text = '* Code\n#+begin_src python\nimport os\n#+end_src\n#+BEGIN_EXPORT python\nimport sys\n#+END_EXPORT\n'
+      + 'Run src_python[:results none]{import re} now src_python{f({1})} and.\n';
+    await vscode.workspace.fs.writeFile(file, Buffer.from(text));
+    await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    const captured = await vscode.commands.executeCommand('_workbench.captureSyntaxTokens', file);
+    const scopes = (piece) => (captured.find((token) => token.c.trim() === piece) || { t: '' }).t;
+    for (const name of ['os', 'sys', 're']) {
+      assert.match(scopes(name), /meta\.embedded\.(block|inline)\.python/, `${name}: ${scopes(name)}`);
+    }
+    assert.match(scopes('import'), /keyword\.control\.import\.python/);
+    assert.doesNotMatch(scopes('now'), /python/, scopes('now'));
+    assert.doesNotMatch(scopes('and.'), /python/, scopes('and.'));
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('makes a new line as Org\'s RET does, and Enter is Enter in code', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'return.org'));
     await vscode.workspace.fs.writeFile(file, Buffer.from('* TODO Write the report :work:\n#+begin_src sh\necho\n#+end_src\n'));

@@ -298,7 +298,17 @@ impl Walker<'_> {
                 let ty = if node.kind() == CODE { TokenType::Code } else { TokenType::Verbatim };
                 self.children(node, Style { text: Some(ty), modifiers: 0 });
             }
-            CODE | INLINE_SRC_BLOCK | INLINE_BABEL_CALL => self.push(range, TokenType::Code, 0),
+            // The code of `src_LANG{CODE}` is the editor's to color in its
+            // language, as Emacs does with `org-src-fontify-natively`.
+            INLINE_SRC_BLOCK => match inline_src_body(&node.text().to_string()) {
+                Some((start, end)) => {
+                    let at = |offset: usize| range.start() + TextSize::from(offset as u32);
+                    self.push(TextRange::new(range.start(), at(start)), TokenType::Code, 0);
+                    self.push(TextRange::new(at(end), range.end()), TokenType::Code, 0);
+                }
+                None => self.push(range, TokenType::Code, 0),
+            },
+            CODE | INLINE_BABEL_CALL => self.push(range, TokenType::Code, 0),
             VERBATIM => self.push(range, TokenType::Verbatim, 0),
             TIMESTAMP => {
                 let inactive = node.first_token().is_some_and(|token| token.text().starts_with('['));
@@ -445,6 +455,28 @@ pub fn encode(
     encoded
 }
 
+/// Where the code of an inline source block (`src_LANG[HEADERS]{CODE}`)
+/// starts and ends in its text, when it has any.
+fn inline_src_body(text: &str) -> Option<(usize, usize)> {
+    let name = text.get(4..)?.find(['[', '{'])? + 4;
+    let mut at = name;
+    if text[at..].starts_with('[') {
+        let mut depth = 0;
+        for (offset, c) in text[at..].char_indices() {
+            match c {
+                '[' => depth += 1,
+                ']' => depth -= 1,
+                _ => {}
+            }
+            if depth == 0 {
+                at += offset + 1;
+                break;
+            }
+        }
+    }
+    (text[at..].starts_with('{') && text.ends_with('}') && at + 1 < text.len() - 1).then(|| (at + 1, text.len() - 1))
+}
+
 #[cfg(test)]
 mod tests {
     use expect_test::{expect, Expect};
@@ -494,6 +526,20 @@ mod tests {
 
     fn check(text: &str, expected: Expect) {
         expected.assert_eq(&render(text, Encoding::Utf16));
+    }
+
+    #[test]
+    fn the_code_of_inline_source_blocks_is_left_to_the_editor() {
+        check(
+            "src_lua{print({1})} src_sh[:results none]{ls} src_c{}\n",
+            expect![[r#"
+                0:0 "src_lua{" code
+                0:18 "}" code
+                0:20 "src_sh[:results none]{" code
+                0:44 "}" code
+                0:46 "src_c{}" code
+            "#]],
+        );
     }
 
     #[test]

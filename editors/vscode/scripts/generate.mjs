@@ -240,25 +240,39 @@ contributes.commands = [
   ),
 ];
 contributes.keybindings = keybindings;
-// Source blocks in their language's own grammar, as Emacs shows them with
-// `org-src-fontify-natively`. The server leaves a block's code alone; the
-// rest of an Org file is the server's.
+// Source and export blocks, and inline source blocks (`src_LANG{CODE}`),
+// in their language's own grammar, as Emacs shows them with
+// `org-src-fontify-natively`. The server leaves their code alone; the rest
+// of an Org file is the server's.
 const sourceLanguages = JSON.parse(readFileSync(join('..', 'src-languages.json'), 'utf8')).languages.filter(
   (language) => language.vscode,
 );
 const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const block = { name: 'punctuation.definition.block.org' };
+const inline = { name: 'markup.inline.raw.org' };
 const grammar = {
   name: 'Org',
   scopeName: 'text.org',
-  patterns: sourceLanguages.map(({ names, vscode: [scope, id] }) => ({
-    begin: `(?i)^\\s*#\\+begin_src\\s+(?:${names.map(escapeRegex).join('|')})(?=\\s|$).*$`,
-    end: '(?i)^\\s*#\\+end_src\\b.*$',
-    beginCaptures: { 0: block },
-    endCaptures: { 0: block },
-    contentName: `meta.embedded.block.${id}`,
-    patterns: [{ include: scope }],
-  })),
+  patterns: sourceLanguages.flatMap(({ names, vscode: [scope, id] }) => [
+    {
+      begin: `(?i)^\\s*#\\+begin_(src|export)\\s+(?:${names.map(escapeRegex).join('|')})(?=\\s|$).*$`,
+      end: '(?i)^\\s*#\\+end_\\1\\b.*$',
+      beginCaptures: { 0: block },
+      endCaptures: { 0: block },
+      contentName: `meta.embedded.block.${id}`,
+      patterns: [{ include: scope }],
+    },
+    {
+      // One match, so that the language's rules stop at the `}`; braces
+      // nest one level deep in the code.
+      match: `(?i)((?<![\\w-])src_(?:${names.map(escapeRegex).join('|')})(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})`,
+      captures: {
+        1: inline,
+        2: { name: `meta.embedded.inline.${id}`, patterns: [{ include: scope }] },
+        3: inline,
+      },
+    },
+  ]),
 };
 contributes.grammars = [
   {
@@ -266,7 +280,10 @@ contributes.grammars = [
     scopeName: grammar.scopeName,
     path: './syntaxes/org.tmLanguage.json',
     embeddedLanguages: Object.fromEntries(
-      sourceLanguages.map(({ vscode: [, id] }) => [`meta.embedded.block.${id}`, id]),
+      sourceLanguages.flatMap(({ vscode: [, id] }) => [
+        [`meta.embedded.block.${id}`, id],
+        [`meta.embedded.inline.${id}`, id],
+      ]),
     ),
   },
 ];

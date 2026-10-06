@@ -223,8 +223,9 @@ if (existsSync(settingsPath)) {
   }
 }
 
-// Source blocks in their language's own syntax: a rule for each language
-// Sublime Text ships, between the markers of Org.sublime-syntax.
+// Source and export blocks, and inline source blocks, in their language's
+// own syntax: rules for each language Sublime Text ships, between the
+// markers of Org.sublime-syntax.
 const sourceLanguages = JSON.parse(readFileSync(join(root, 'editors', 'src-languages.json'), 'utf8')).languages;
 const quote = (pattern) => `'${pattern.replace(/'/g, "''")}'`;
 const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -233,13 +234,23 @@ const embedded = sourceLanguages
   .map((language) => {
     const names = language.names.map(escapeRegex).join('|');
     return [
-      `    - match: ${quote(`^\\s*(?i:#\\+begin_src)\\s+(?i:${names})(?=\\s|$).*$`)}`,
+      // `#+begin_src LANG` to `#+end_src`, `#+begin_export LANG` to
+      // `#+end_export`.
+      `    - match: ${quote(`^\\s*(?i:#\\+begin_(src|export))\\s+(?i:${names})(?=\\s|$).*$`)}`,
       '      scope: comment punctuation.definition.block.org',
       `      embed: scope:${language.sublime}`,
       '      embed_scope: meta.embedded.block.org',
-      `      escape: ${quote('^\\s*(?i:#\\+end_src)\\b.*$')}`,
+      `      escape: ${quote('^\\s*(?i:#\\+end_\\1)\\b.*$')}`,
       '      escape_captures:',
       '        0: comment punctuation.definition.block.org',
+      // `src_LANG[HEADERS]{CODE}`, to the first `}`.
+      `    - match: ${quote(`(?<![\\w-])src_(?i:${names})(?:\\[[^\\]\\n]*\\])?\\{`)}`,
+      '      scope: markup.inline.raw.org',
+      `      embed: scope:${language.sublime}`,
+      '      embed_scope: meta.embedded.inline.org',
+      `      escape: ${quote('\\}')}`,
+      '      escape_captures:',
+      '        0: markup.inline.raw.org',
     ].join('\n');
   })
   .join('\n');
