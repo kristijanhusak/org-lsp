@@ -152,5 +152,8 @@ call s:test('clocks in and out, for the statusline', function('s:clock'))
 for error in v:errors
   call add(s:results, 'not ok - ' . error)
 endfor
-call writefile(s:results, $ORG_LSP_TEST_RESULT)
+" Written whole, then renamed: the runner stops Vim as soon as the file is
+" there.
+call writefile(s:results, $ORG_LSP_TEST_RESULT . '.part')
+call rename($ORG_LSP_TEST_RESULT . '.part', $ORG_LSP_TEST_RESULT)
 qa!
