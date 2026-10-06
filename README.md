@@ -36,6 +36,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Agenda: day, week, fortnight, month and year views, going to a date | yes | yes | yes, as a file | yes, as a file | code actions, as a file; no going to a date | no³ |
 | Agenda: list of all TODO entries, tags and property searches (`m`, `M`), custom commands and block agendas (`org-agenda-custom-commands`) | yes | yes | yes | yes | code actions; no searches | no³ |
 | Tag and property inheritance (`useTagInheritance`, `tagsExcludeFromInheritance`, `usePropertyInheritance`): file tags, parents' tags and properties in the agenda's tags and property searches, inherited tags shown in the agenda | yes | yes | yes | yes | yes | no³ |
+| Tangling, as `org-babel-tangle` does it: `:tangle`, header arguments from properties and `#+HEADER:`, Noweb references, comments, `:shebang`, `:tangle-mode`, `:mkdirp` | `<Leader>obt` | `Ctrl+C Ctrl+V t`, `Ctrl+.` in a block | `<Leader>obt` | `Ctrl+C Ctrl+V t` | code actions in a block | `Space a` in a block |
 | Refile, as `org-refile` does it, between files too | `<Leader>or` | command | `<Leader>or` | `Ctrl+C Ctrl+W` | code actions | no⁴ |
 | Following links, as `org-open-at-point` does: headlines, targets, custom IDs, `file:` links with search options, `id:` links, URLs, timestamps (their day's agenda), tags, footnotes, an entry's links to pick from; in the agenda the line's entry's links | `<Leader>oo`, go to definition | `Ctrl+C Ctrl+O`, go to definition | `<Leader>oo` | `Ctrl+C Ctrl+O` | go to definition (internal and file links) | go to definition |
 | Notes, as `org-add-note` takes them, in the entry's log or its drawer; in the agenda `z` | `<Leader>ona`, in a note buffer | `Ctrl+C Ctrl+Z` | `<Leader>ona` | `Ctrl+C Ctrl+Z` | no: Zed cannot ask for text | no⁴ |
@@ -296,7 +297,8 @@ both programs on them. See
 
 - Agenda: text search, stuck projects, filters, habits, diary entries and
   bulk actions; custom commands of those types.
-- Table formulas, setting tags with a command, export.
+- Table formulas, setting tags with a command, export; tangling's Emacs Lisp
+  (evaluated header arguments, `<<block()>>`), and other languages' `:var`.
 - The shifted cursor keys do nothing yet on list items, in tables and on
   property lines.
 - Fold cycling is still done by the Neovim plugin, not by the server.

@@ -142,6 +142,7 @@ pub const INSERT_TODO_HEADING_AFTER: &str = "org.insert.todo.heading.after";
 pub const REFILE: &str = "org.refile";
 pub const OPEN: &str = "org.open";
 pub const ADD_NOTE: &str = "org.add.note";
+pub const TANGLE: &str = "org.babel.tangle";
 pub const ARCHIVE_SUBTREE: &str = "org.archive.subtree";
 pub const ARCHIVE_SIBLING: &str = "org.archive.sibling";
 pub const ARCHIVE_TAG: &str = "org.archive.tag";
@@ -333,6 +334,13 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>ona")],
         input: Some(Input { kind: "note", prompt: "Note" }),
         ..edit(ADD_NOTE, "Add a note to the entry")
+    },
+    // `org-babel-tangle`: the code of the file's blocks with `:tangle`
+    // written to their files.
+    Command {
+        emacs: &[key(Org, "C-c C-v t"), key(Org, "C-c C-v C-t")],
+        vim: &[key(Org, "<Leader>obt")],
+        ..command(TANGLE, "Tangle the file's code blocks")
     },
     // `org-open-at-point`: a link, a timestamp, a footnote, a tag, or the
     // links of the entry; in the agenda the links of the line's entry

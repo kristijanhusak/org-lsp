@@ -1,0 +1,357 @@
+[
+ {
+  "name": "tangle yes: the file's name, the language's extension; blocks padded; untangled blocks left out",
+  "files": {
+   "notes.org": "* Code\n#+begin_src python :tangle yes\nimport os\nprint(os.getcwd())\n#+end_src\n\nText.\n#+begin_src python\nleft = 'out'\n#+end_src\n#+begin_src python :tangle yes\n  def f():\n      return 1\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "notes.python": "import os\nprint(os.getcwd())\n\ndef f():\n    return 1\n"
+   },
+   "modes": {},
+   "message": "Tangled 2 code blocks from notes.org"
+  }
+ },
+ {
+  "name": "a file name of its own, relative to the Org file, and several files",
+  "files": {
+   "a.org": "#+begin_src sh :tangle run.sh\necho one\n#+end_src\n#+begin_src emacs-lisp :tangle yes\n(message \"hi\")\n#+end_src\n#+begin_src sh :tangle run.sh\necho two\n#+end_src\n#+begin_src sh :tangle no\necho never\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "a.el": "(message \"hi\")\n",
+    "run.sh": "echo one\n\necho two\n"
+   },
+   "modes": {},
+   "message": "Tangled 3 code blocks from a.org"
+  }
+ },
+ {
+  "name": "header-args from #+PROPERTY, per language, from property drawers, inherited, and NAME+",
+  "files": {
+   "b.org": "#+PROPERTY: header-args :tangle yes\n#+PROPERTY: header-args:sh :tangle tools.sh\n* One\n#+begin_src python\nx = 1\n#+end_src\n#+begin_src sh\nls\n#+end_src\n* Two\n:PROPERTIES:\n:header-args: :tangle two.txt\n:header-args+: :padline no\n:END:\n** Child\n#+begin_src python\ny = 2\n#+end_src\n#+begin_src python\nz = 3\n#+end_src\n#+begin_src python :tangle no\nskipped = 1\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "b.python": "x = 1\n",
+    "tools.sh": "ls\n",
+    "two.txt": "y = 2\nz = 3\n"
+   },
+   "modes": {},
+   "message": "Tangled 4 code blocks from b.org"
+  }
+ },
+ {
+  "name": "#+HEADER lines win over the block's own line",
+  "files": {
+   "c.org": "#+header: :tangle from-header.txt\n#+begin_src text :tangle from-line.txt\nwhich\n#+end_src\n#+HEADER: :padline no\n#+begin_src text :tangle from-line.txt\nsecond\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "from-header.txt": "which\n",
+    "from-line.txt": "second\n"
+   },
+   "modes": {},
+   "message": "Tangled 2 code blocks from c.org"
+  }
+ },
+ {
+  "name": "commented and archived headings are left out; a block without language is not tangled by yes",
+  "files": {
+   "d.org": "* COMMENT Old\n#+begin_src sh :tangle d.sh\nold\n#+end_src\n* Kept :ARCHIVE:\n#+begin_src sh :tangle d.sh\narchived\n#+end_src\n* New\n#+begin_src sh :tangle d.sh\nnew\n#+end_src\n#+begin_src :tangle yes\nnolang\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "d.sh": "new\n"
+   },
+   "modes": {},
+   "message": "Tangled 1 code block from d.org"
+  }
+ },
+ {
+  "name": "indentation: common indentation removed, blank lines, leading blank lines trimmed, escaped lines",
+  "files": {
+   "e.org": "* E\n  #+begin_src python :tangle yes\n\n    def g():\n        ,* not a heading\n        ,#+ not a keyword\n\n        return 2\n  \n  #+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "e.python": "def g():\n    * not a heading\n    #+ not a keyword\n\n    return 2\n"
+   },
+   "modes": {},
+   "message": "Tangled 1 code block from e.org"
+  }
+ },
+ {
+  "name": "preserved indentation with -i and with org-src-preserve-indentation",
+  "files": {
+   "f.org": "#+begin_src python -i :tangle yes\n  if True:\n      pass\n#+end_src\n#+begin_src python :tangle other.py\n  kept = 1\n#+end_src\n"
+  },
+  "settings": {
+   "srcPreserveIndentation": false
+  },
+  "expected": {
+   "files": {
+    "f.python": "  if True:\n      pass\n",
+    "other.py": "kept = 1\n"
+   },
+   "modes": {},
+   "message": "Tangled 2 code blocks from f.org"
+  }
+ },
+ {
+  "name": "org-src-preserve-indentation on",
+  "files": {
+   "g.org": "#+begin_src python :tangle yes\n    indented = 1\n#+end_src\n"
+  },
+  "settings": {
+   "srcPreserveIndentation": true
+  },
+  "emacs": "(setq org-src-preserve-indentation t)",
+  "expected": {
+   "files": {
+    "g.python": "    indented = 1\n"
+   },
+   "modes": {},
+   "message": "Tangled 1 code block from g.org"
+  }
+ },
+ {
+  "name": "shebang, tangle-mode, mkdirp",
+  "files": {
+   "h.org": "#+begin_src sh :tangle bin/run :shebang #!/bin/sh :mkdirp yes\necho hi\n#+end_src\n#+begin_src sh :tangle bin/run\necho more\n#+end_src\n#+begin_src sh :tangle ro.sh :tangle-mode o600\necho ro\n#+end_src\n#+begin_src sh :tangle ex.sh :tangle-mode (identity #o755)\necho ex\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "bin/run": "#!/bin/sh\necho hi\n\necho more\n",
+    "ex.sh": "echo ex\n",
+    "ro.sh": "echo ro\n"
+   },
+   "modes": {
+    "bin/run": "755",
+    "ex.sh": "755",
+    "ro.sh": "600"
+   },
+   "message": "Tangled 4 code blocks from h.org"
+  }
+ },
+ {
+  "name": "padline no, prologue and epilogue",
+  "files": {
+   "i.org": "#+begin_src python :tangle yes :prologue # start :epilogue # end\nbody = 1\n#+end_src\n#+begin_src python :tangle yes :padline no\nnext = 2\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "i.python": "# start\nbody = 1\n# end\nnext = 2\n"
+   },
+   "modes": {},
+   "message": "Tangled 2 code blocks from i.org"
+  }
+ },
+ {
+  "name": "noweb: named blocks, prefixes on every line, noweb-ref blocks joined, nested references",
+  "files": {
+   "j.org": "#+name: imports\n#+begin_src python\nimport os\nimport sys\n#+end_src\n#+begin_src python :noweb-ref body\nprint(1)\n#+end_src\n#+begin_src python :noweb-ref body :noweb-sep \"\\n\\n\"\nprint(2)\n#+end_src\n#+begin_src python :noweb-ref body\nprint(3)\n#+end_src\n#+name: nested\n#+begin_src python :noweb yes\n# nested\n<<imports>>\n#+end_src\n#+begin_src python :tangle yes :noweb yes\n<<imports>>\ndef main():\n    <<body>>\n# <<missing>> stays empty\n<<nested>>\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "j.python": "import os\nimport sys\ndef main():\n    print(1)\n    print(2)\n    \n    print(3)\n#  stays empty\n# nested\nimport os\nimport sys\n"
+   },
+   "modes": {},
+   "message": "Tangled 1 code block from j.org"
+  }
+ },
+ {
+  "name": "noweb: no leaves references, strip-tangle removes them, tangle expands, noweb-prefix no",
+  "files": {
+   "k.org": "#+name: two\n#+begin_src text\na\nb\n#+end_src\n#+begin_src text :tangle no.txt\nx <<two>>\n#+end_src\n#+begin_src text :tangle strip.txt :noweb strip-tangle\nx <<two>> y\n#+end_src\n#+begin_src text :tangle tangle.txt :noweb tangle\nx <<two>> y\n#+end_src\n#+begin_src text :tangle plain.txt :noweb yes :noweb-prefix no\nx <<two>> y\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "no.txt": "x <<two>>\n",
+    "plain.txt": "x a\nb y\n",
+    "strip.txt": "x  y\n",
+    "tangle.txt": "x a\nx b y\n"
+   },
+   "modes": {},
+   "message": "Tangled 4 code blocks from k.org"
+  }
+ },
+ {
+  "name": "coderefs removed with -r, kept without it",
+  "files": {
+   "l.org": "#+begin_src python -r :tangle yes\nx = 1  (ref:one)\ny = 2\n#+end_src\n#+begin_src python :tangle kept.py\nz = 3  (ref:two)\n#+end_src\n#+begin_src python -r -l \"[[%s]]\" :tangle label.py\nw = 4  [[three]]\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "kept.py": "z = 3  (ref:two)\n",
+    "l.python": "x = 1\ny = 2\n",
+    "label.py": "w = 4\n"
+   },
+   "modes": {},
+   "message": "Tangled 3 code blocks from l.org"
+  }
+ },
+ {
+  "name": "nothing to tangle",
+  "files": {
+   "m.org": "* Nothing\n#+begin_src python\nx = 1\n#+end_src\n"
+  },
+  "expected": {
+   "files": {},
+   "modes": {},
+   "message": "Tangled 0 code blocks from m.org"
+  }
+ },
+ {
+  "name": "tangling into the Org file itself is refused",
+  "files": {
+   "n.org": "#+begin_src text :tangle n.org\nself\n#+end_src\n"
+  },
+  "expected": {
+   "error": "Not allowed to tangle into the same file as self"
+  }
+ },
+ {
+  "name": "blocks in lists and under deeper headings, extensions of elisp and other languages",
+  "files": {
+   "o.org": "* A\n** B\n- item\n  #+begin_src elisp :tangle yes\n  (setq a 1)\n  #+end_src\n#+begin_src js :tangle yes\nlet a = 1;\n#+end_src\n#+begin_src c++ :tangle yes\nint a;\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "o.c++": "int a;\n",
+    "o.el": "(setq a 1)\n",
+    "o.js": "let a = 1;\n"
+   },
+   "modes": {},
+   "message": "Tangled 3 code blocks from o.org"
+  }
+ },
+ {
+  "name": "header arguments with quoted values and several spaces",
+  "files": {
+   "p.org": "#+begin_src text :tangle   \"quoted name.txt\"   :padline   no\nq\n#+end_src\n#+begin_src text :tangle \"quoted name.txt\"\nr\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "quoted name.txt": "q\n\nr\n"
+   },
+   "modes": {},
+   "message": "Tangled 2 code blocks from p.org"
+  }
+ },
+ {
+  "name": "comments: link, both, org; named blocks; Org text before a block",
+  "files": {
+   "a.org": "* Heading one\nSome text\nmore text.\n#+begin_src python :tangle yes :comments link\nx = 1\n#+end_src\n#+name: named\n#+begin_src python :tangle yes :comments both\ny = 2\n#+end_src\n** Sub [1/2]\nOrg text\n  indented\n#+begin_src python :tangle yes :comments org\nz = 3\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "a.python": "# [[file:a.org::*Heading one][Heading one:1]]\nx = 1\n# Heading one:1 ends here\n\n\n# #+name: named\n\n# [[file:a.org::named][named]]\ny = 2\n# named ends here\n\n# Sub [1/2]\n# Org text\n#   indented\n\nz = 3\n"
+   },
+   "modes": {},
+   "message": "Tangled 3 code blocks from a.org"
+  }
+ },
+ {
+  "name": "comment syntax of several languages; a file in a directory links back",
+  "files": {
+   "b.org": "* H\n:PROPERTIES:\n:header-args: :comments yes\n:END:\n#+begin_src sh :tangle yes\nls\n#+end_src\n#+begin_src emacs-lisp :tangle yes\n(a)\n#+end_src\n#+begin_src c :tangle yes\nint a;\n#+end_src\n#+begin_src js :tangle sub/b.js :mkdirp yes\nlet a;\n#+end_src\n#+begin_src css :tangle yes\na {}\n#+end_src\n#+begin_src latex :tangle yes\n\\\\x\n#+end_src\n* TODO [#A] With CUSTOM_ID :tag:\n:PROPERTIES:\n:CUSTOM_ID: here\n:END:\n#+begin_src sh :tangle yes :comments link\npwd\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "b.c": "/* [[file:b.org::*H][H:3]] */\nint a;\n/* H:3 ends here */\n",
+    "b.css": "/* [[file:b.org::*H][H:5]] */\na {}\n/* H:5 ends here */\n",
+    "b.el": ";; [[file:b.org::*H][H:2]]\n(a)\n;; H:2 ends here\n",
+    "b.latex": "%% [[file:b.org::*H][H:6]]\n\\\\x\n%% H:6 ends here\n",
+    "b.sh": "# [[file:b.org::*H][H:1]]\nls\n# H:1 ends here\n\n# [[file:b.org::#here][With CUSTOM_ID:1]]\npwd\n# With CUSTOM_ID:1 ends here\n",
+    "sub/b.js": "// [[file:../b.org::*H][H:4]]\nlet a;\n// H:4 ends here\n"
+   },
+   "modes": {},
+   "message": "Tangled 7 code blocks from b.org"
+  }
+ },
+ {
+  "name": "noweb comments, and before the first headline",
+  "files": {
+   "d.org": "#+name: ref\n#+begin_src python\nr = 1\n#+end_src\n#+begin_src python :tangle yes :noweb yes :comments noweb\n<<ref>>\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "d.python": "# [[file:d.org::+begin_src python :tangle yes :noweb yes :comments noweb][No heading:2]]\n# [[file:d.org::ref][ref]]\nr = 1\n# ref ends here\n# No heading:2 ends here\n"
+   },
+   "modes": {},
+   "message": "Tangled 1 code block from d.org"
+  }
+ },
+ {
+  "name": "several #+HEADER lines: the first wins",
+  "files": {
+   "e.org": "#+header: :tangle first.txt\n#+header: :tangle second.txt\n#+begin_src text\nwhich\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "second.txt": "which\n"
+   },
+   "modes": {},
+   "message": "Tangled 1 code block from e.org"
+  }
+ },
+ {
+  "name": "Emacs Lisp variables, and its expansion ignoring prologues",
+  "files": {
+   "f.org": "#+begin_src emacs-lisp :tangle yes :var x=1 :var s=\"str\"\n(list x s)\n#+end_src\n#+begin_src emacs-lisp :tangle yes :prologue ;; p\n(b)\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "f.el": "(let ((x '1)\n      (s '\"str\"))\n(list x s)\n)\n\n(b)\n"
+   },
+   "modes": {},
+   "message": "Tangled 2 code blocks from f.org"
+  }
+ },
+ {
+  "name": "references to headlines by CUSTOM_ID",
+  "files": {
+   "g.org": "* Source\n:PROPERTIES:\n:CUSTOM_ID: src\n:END:\nline one\nline two\n** Child\nchild text\n* Other\n#+begin_src text :tangle yes :noweb yes\n- <<src>>\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "g.text": "- line one\n- line two\n- ** Child\n- child text\n"
+   },
+   "modes": {},
+   "message": "Tangled 1 code block from g.org"
+  }
+ },
+ {
+  "name": "tangle modes in other forms, and the first mode wins",
+  "files": {
+   "h.org": "#+begin_src sh :tangle a.sh :tangle-mode rwxr-x---\na\n#+end_src\n#+begin_src sh :tangle b.sh :tangle-mode u+x\nb\n#+end_src\n#+begin_src sh :tangle c.sh :tangle-mode o700\nc\n#+end_src\n#+begin_src sh :tangle c.sh :tangle-mode o755\nd\n#+end_src\n"
+  },
+  "expected": {
+   "files": {
+    "a.sh": "a\n",
+    "b.sh": "b\n",
+    "c.sh": "c\n\nd\n"
+   },
+   "modes": {
+    "a.sh": "750",
+    "b.sh": "744",
+    "c.sh": "700"
+   },
+   "message": "Tangled 4 code blocks from h.org"
+  }
+ },
+ {
+  "name": "blocks after other block types; a src block inside an example block is not one",
+  "files": {
+   "i.org": "#+begin_example\n#+begin_src python :tangle yes\nnot = 1\n#+end_src\n#+end_example\n#+BEGIN_SRC python :tangle yes\nUPPER = 1\n#+END_SRC\n"
+  },
+  "expected": {
+   "files": {
+    "i.python": "UPPER = 1\n"
+   },
+   "modes": {},
+   "message": "Tangled 1 code block from i.org"
+  }
+ }
+]
