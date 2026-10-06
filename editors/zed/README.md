@@ -13,8 +13,7 @@ A Zed extension that runs Org through the org-lsp server.
    ```json
    {
      "languages": {
-       "Org": { "semantic_tokens": "combined" },
-       "Org Agenda": { "semantic_tokens": "combined" }
+       "Org": { "semantic_tokens": "combined" }
      },
      "lsp": {
        "org-lsp": {
@@ -60,6 +59,10 @@ are in the **code actions** (**editor: toggle code actions**, `ctrl-.` /
   also its state, priority and dates, clocking, refile, archive, and going
   to the entry.
 - In a capture buffer: file the entry, give up, or refile it.
+
+The agenda is a file the server writes (`Agenda.org-agenda`, in a
+directory of its own under the system's temporary one), opened as Org
+and read-only; the server writes it again when it changes.
 
 What a command asks for is asked with buttons: a TODO state, a priority,
 a refile target, a capture template, yes or no. Zed has no way to ask for

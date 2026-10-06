@@ -1,8 +1,41 @@
 %YAML 1.2
 ---
-# The agenda, as the file the server writes. Highlighted by the server.
+# The agenda, as the file the server writes. The highlighting is the
+# server's (semantic tokens, with LSP's `semantic_highlighting` on); this
+# colors the plain shapes of its lines without them, or until they arrive.
+# The scopes are those of LSP-org.sublime-settings.
 name: Org Agenda
 file_extensions: [org-agenda]
 scope: text.org-agenda
 contexts:
-  main: []
+  main:
+    # A day of the agenda.
+    - match: '^(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b.*$'
+      scope: markup.heading.date.agenda.org
+    # A title, a block's separator.
+    - match: '^\S.*$'
+      scope: markup.heading.agenda.org
+    # The time grid.
+    - match: '^\s+\d{1,2}:\d\d\.{6} -+.*$'
+      scope: comment.time-grid.agenda.org
+    - match: '^(?=\s)'
+      push: entry
+
+  entry:
+    - match: '$'
+      pop: true
+    - match: '\bScheduled:'
+      scope: markup.inserted.scheduled.agenda.org
+    - match: '\bSched\.\s*\d+x:'
+      scope: markup.changed.scheduled.agenda.org
+    - match: '\bDeadline:|\bIn\s+-?\d+ d\.:|\b\d+ d\. ago:'
+      scope: markup.changed.deadline.agenda.org
+    - match: '\b(?:DONE|CANCELLED|CANCELED)\b'
+      scope: keyword.other.done.org
+    - match: '\b(?:TODO|NEXT|STARTED|WAITING|HOLD)\b'
+      scope: keyword.other.todo.org
+    - match: '\[#[A-Z0-9]+\]'
+      scope: constant.other.priority.org
+    - match: '\s(:(?:[\w@#%]+:+)+)\s*$'
+      captures:
+        1: entity.name.tag.org

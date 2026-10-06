@@ -50,7 +50,7 @@ still missing; see [Not done yet](#not-done-yet).
 ⁶ With LSP's `semantic_highlighting` on. The Sublime Text package is
 checked with stand-ins for Sublime Text and its LSP package, not in Sublime
 Text itself.
-⁷ With `"semantic_tokens": "combined"` for Org (and Org Agenda) in Zed's settings.
+⁷ With `"semantic_tokens": "combined"` for Org in Zed's settings.
 ⁸ Zed cannot run a server's command from a key or ask for text on its
 behalf: the commands are in its code actions, and what they ask for is
 asked with buttons (a state, a priority, a target, yes or no), but no date
@@ -178,8 +178,8 @@ has the details.
 
 `editors/zed` is a Zed extension: run **zed: install dev extension** and
 pick that folder. It uses `org-lsp` from PATH or downloads the nightly
-build. Turn on `"semantic_tokens": "combined"` for Org and Org Agenda for
-the server's highlighting. The commands, the agenda and capture among
+build. Turn on `"semantic_tokens": "combined"` for Org for the server's
+highlighting. The commands, the agenda and capture among
 them, are in the code actions, and what they ask for is asked with
 buttons; [editors/zed/README.md](editors/zed/README.md) has the settings
 and what Zed can and cannot do.

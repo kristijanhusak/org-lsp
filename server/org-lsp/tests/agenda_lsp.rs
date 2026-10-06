@@ -882,7 +882,21 @@ fn highlights_the_agenda_file() {
     let structure = legend["tokenTypes"].as_array().unwrap().iter().position(|name| name == "agendaStructure").unwrap();
     let data = tokens["data"].as_array().unwrap();
     assert!(data.chunks(5).any(|token| token[3].as_u64() == Some(structure as u64)), "agenda tokens: {data:?}");
+    // Read-only, so that editors do not let it be edited; the server
+    // writes it again all the same.
+    let path = agenda.trim_start_matches("file://");
+    assert!(std::fs::metadata(path).unwrap().permissions().readonly());
+    let at = json!({ "textDocument": { "uri": agenda }, "position": { "line": 0, "character": 0 } });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.agenda.day", "arguments": [at] })).unwrap();
+    client.settle();
+    let errors = client.received.iter().filter(|message| message.method == "window/showMessage").collect::<Vec<_>>();
+    assert!(errors.is_empty(), "messages: {errors:?}");
+    let day = std::fs::read_to_string(path).unwrap();
+    assert_ne!(day, text);
+    assert!(std::fs::metadata(path).unwrap().permissions().readonly());
     client.shutdown();
+    assert!(!std::path::Path::new(path).exists());
 }
 
 /// `v a` and `v A` (`org-agenda-archives-mode`): entries in archived trees,
