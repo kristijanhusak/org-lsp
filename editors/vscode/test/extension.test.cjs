@@ -392,6 +392,19 @@ describe('Org files', () => {
     await vscode.workspace.fs.delete(file);
   });
 
+  it('shows a file with org-indent-mode indented by level', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'virtual.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('#+STARTUP: indent\n* A\ntext\n** B\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    await until('the lines indented', () =>
+      JSON.stringify(api.virtualIndent(editor)) === JSON.stringify([[2, 2, 0], [3, 1, 1]]),
+    );
+    assert.equal(editor.document.lineAt(2).text, 'text', 'the file is not changed');
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    await vscode.workspace.fs.delete(file);
+  });
+
   it('changes the part of a timestamp at the cursor', async () => {
     moveTo(6, 19); // on the day of "DEADLINE: <2026-05-20 Wed>"
     await vscode.commands.executeCommand('org.timestamp.up');

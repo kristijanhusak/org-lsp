@@ -18,6 +18,8 @@ A case is a JSON object:
                           line opened after each line (`RET` at its end)
       "region": "..."     the document once `org-indent-region` has run
                           over all of it
+      "virtual": [...]    `[line-prefix, wrap-prefix]` of every line with
+                          `org-indent-mode`, in columns
     }
 
 or `{"error": "..."}` when Org stops with an error.
@@ -66,7 +68,20 @@ DRIVER = r"""
           (org-indent-line)
           (push (current-indentation) newlines))
         (kill-buffer buffer)))
-    (let* ((buffer (org-lsp-indent-buffer text))
+    (let* ((virtual
+            (let ((buffer (org-lsp-indent-buffer text)) (out '()))
+              (with-current-buffer buffer
+                (org-indent-mode 1)
+                (org-indent-add-properties (point-min) (point-max))
+                (dotimes (line count)
+                  (goto-char (point-min))
+                  (forward-line line)
+                  (push (vector (string-width (or (get-text-property (point) 'line-prefix) ""))
+                                (string-width (or (get-text-property (point) 'wrap-prefix) "")))
+                        out)))
+              (kill-buffer buffer)
+              (vconcat (nreverse out))))
+           (buffer (org-lsp-indent-buffer text))
            (region (with-current-buffer buffer
                      (org-indent-region (point-min) (point-max))
                      (buffer-substring-no-properties (point-min) (point-max)))))
@@ -74,7 +89,8 @@ DRIVER = r"""
       (with-temp-file out
         (insert (json-encode (list (cons 'lines (vconcat (nreverse lines)))
                                    (cons 'newline (vconcat (nreverse newlines)))
-                                   (cons 'region region))))))))
+                                   (cons 'region region)
+                                   (cons 'virtual virtual))))))))
 """
 
 

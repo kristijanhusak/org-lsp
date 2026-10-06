@@ -12,7 +12,7 @@ local M = {}
 --- its date prompt.
 M.capabilities = {
   workspace = { textDocumentContent = { dynamicRegistration = false } },
-  experimental = { orgDatePrompt = true },
+  experimental = { orgDatePrompt = true, orgVirtualIndent = true },
 }
 
 --- The manifest's sections for the documents the server owns, and the
@@ -293,6 +293,13 @@ M.handlers = {
   --- agenda, a capture or a refile) and `autoSave` is on: write them.
   ['org-lsp/save'] = function(_, params)
     M.save(params and params.uris or {})
+  end,
+
+  --- How far the lines of a file with `org-indent-mode` are shown indented.
+  ['org-lsp/virtualIndent'] = function(_, params)
+    if require('org-lsp').config.virtual_indent then
+      require('org-lsp.indent').virtual(params)
+    end
   end,
 
   --- A clock started or stopped: for the statusline.

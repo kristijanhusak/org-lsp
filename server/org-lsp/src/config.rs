@@ -57,6 +57,10 @@ pub struct Options {
     pub adapt_indentation: Option<serde_json::Value>,
     /// `org-src-preserve-indentation`
     pub src_preserve_indentation: Option<bool>,
+    /// `org-startup-indented`: show files with `org-indent-mode`.
+    pub startup_indented: Option<bool>,
+    /// `org-hide-leading-stars`
+    pub hide_leading_stars: Option<bool>,
     /// `org-edit-src-content-indentation`
     pub edit_src_content_indentation: Option<i64>,
     /// `org-cycle-separator-lines`: how many blank lines after a subtree
@@ -418,6 +422,14 @@ impl Options {
                 .edit_src_content_indentation
                 .and_then(|columns| usize::try_from(columns).ok())
                 .unwrap_or(defaults.src_content_indentation),
+        }
+    }
+
+    /// How files show: `org-startup-indented`, `org-hide-leading-stars`.
+    pub fn display(&self) -> org_core::indent::Display {
+        org_core::indent::Display {
+            startup_indented: self.startup_indented.unwrap_or(false),
+            hide_leading_stars: self.hide_leading_stars.unwrap_or(false),
         }
     }
 

@@ -181,6 +181,19 @@ cycleSeparatorLines = 2
 # and to what commands write. (org-adapt-indentation)
 adaptIndentation = false
 
+# Show files indented by level without changing them (`org-indent-mode`): the
+# text under a headline lines up with its title, and leading stars are hidden.
+# `#+STARTUP: indent` and `noindent` decide for a file. It turns
+# `adaptIndentation` off in such files, unless that is `"headline-data"`.
+# Editors that can show it: Neovim, and VS Code (not on wrapped lines).
+# (org-startup-indented)
+startupIndented = false
+
+# Hide all the stars of a headline but the last; they keep their place.
+# `#+STARTUP: hidestars` and `showstars` decide for a file.
+# (org-hide-leading-stars)
+hideLeadingStars = false
+
 # Leave the code of source blocks as it is indented when re-indenting.
 # (org-src-preserve-indentation)
 srcPreserveIndentation = false

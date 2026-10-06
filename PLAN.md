@@ -368,8 +368,14 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   lines, and the text of entries whose level changes on refile and
   capture (`org-fixup-indentation`). Checked against Emacs in
   `tests/indent` and in the TODO, planning, refile and capture cases.
-- Next: virtual indentation (`org-indent-mode`), then document
-  formatting (tables, tags).
+- Done: virtual indentation (`org-indent-mode`: `startupIndented`,
+  `#+STARTUP: indent`) and hidden leading stars (`hideLeadingStars`,
+  `#+STARTUP: hidestars`). The server sends each line's prefix
+  (`org-lsp/virtualIndent`), checked against Emacs's `line-prefix` and
+  `wrap-prefix` in `tests/indent`; Neovim shows them as inline virtual
+  text, VS Code as decorations. Neither can indent the lines a long line
+  wraps into (`wrap-prefix`); Helix cannot show them at all.
+- Next: document formatting (tables, tags).
 - `org-lint` checks as diagnostics.
 
 ### 14. Editors and distribution

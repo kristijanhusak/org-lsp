@@ -28,6 +28,7 @@ local SERVER = 'org_lsp'
 ---@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
 ---@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `hideEmphasisMarkers`), with 'conceallevel' 2 in Org windows.
 ---@field indent? boolean Whether the server indents as Org does: new lines through 'indentexpr' (`org-indent-line`), and `=` (`org-indent-region`), following `adaptIndentation`.
+---@field virtual_indent? boolean Whether files with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`) show indented by level, without being changed, and with hidden leading stars (`hideLeadingStars`, `#+STARTUP: hidestars`).
 ---@field win_split_mode? 'split'|'vsplit'|'float'|'current'|string|fun(bufnr: integer): integer? How the agenda and capture buffers open: 'split', 'vsplit', 'float', 'current', another Ex command that opens a window ('botright split', 'tabnew'), or a function that opens a window for the buffer and returns it.
 ---@field mappings? org_lsp.Mappings|false Keys by scope; `false` sets no keys at all. See docs/neovim/keys.md.
 
@@ -50,6 +51,7 @@ local defaults = {
   replace_syntax = true,
   conceal = true,
   indent = true,
+  virtual_indent = true,
   win_split_mode = 'split',
   mappings = {
     -- The keys that must work before the server has said anything.

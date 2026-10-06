@@ -1183,3 +1183,165 @@ pub fn fixup_entry(entry: &str, diff: isize, settings: &Settings) -> String {
     }
     new_lines.join("\n")
 }
+
+/// What the `#+STARTUP:` lines of a document say about how it shows:
+/// `indent` or `noindent`, `hidestars` or `showstars`. The last word wins.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Startup {
+    pub indent: Option<bool>,
+    pub hide_stars: Option<bool>,
+}
+
+pub fn startup(text: &str) -> Startup {
+    let mut out = Startup::default();
+    for line in text.lines() {
+        let line = line.trim_start_matches([' ', '\t']);
+        if !starts_with_ignore_case(line, "#+STARTUP:") {
+            continue;
+        }
+        for word in line["#+STARTUP:".len()..].split_whitespace() {
+            match word.to_ascii_lowercase().as_str() {
+                "indent" => out.indent = Some(true),
+                "noindent" => out.indent = Some(false),
+                "hidestars" => out.hide_stars = Some(true),
+                "showstars" => out.hide_stars = Some(false),
+                _ => {}
+            }
+        }
+    }
+    out
+}
+
+/// How a document shows: `org-indent-mode` and `org-hide-leading-stars`,
+/// from the options and the document's `#+STARTUP:`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Display {
+    /// `org-startup-indented`
+    pub startup_indented: bool,
+    /// `org-hide-leading-stars`
+    pub hide_leading_stars: bool,
+}
+
+impl Display {
+    /// Whether `org-indent-mode` is on in `text`.
+    pub fn indented(&self, text: &str) -> bool {
+        startup(text).indent.unwrap_or(self.startup_indented)
+    }
+
+    /// Whether the leading stars of headlines are hidden in `text`:
+    /// `org-indent-mode` hides them (`org-indent-mode-turns-on-hiding-stars`).
+    pub fn hides_stars(&self, text: &str) -> bool {
+        let startup = startup(text);
+        startup.indent.unwrap_or(self.startup_indented) || startup.hide_stars.unwrap_or(self.hide_leading_stars)
+    }
+
+    /// `org-adapt-indentation` in `text`: `org-indent-mode` turns it off,
+    /// unless it is `headline-data`
+    /// (`org-indent-mode-turns-off-org-adapt-indentation`).
+    pub fn adapt(&self, text: &str, adapt: Adapt) -> Adapt {
+        if adapt != Adapt::HeadlineData && self.indented(text) {
+            Adapt::Off
+        } else {
+            adapt
+        }
+    }
+}
+
+/// How `org-indent-mode` shows a line: `prefix` columns before it
+/// (`line-prefix`), `wrap` columns before the lines it wraps into
+/// (`wrap-prefix`), and how many of a headline's stars are hidden
+/// (`org-hide-leading-stars`: all but the last).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LinePrefix {
+    pub line: usize,
+    pub prefix: usize,
+    pub wrap: usize,
+    pub hidden_stars: usize,
+}
+
+/// `org-list-item-body-column` of `line` if it is a list item
+/// (`org-item-re`), else `None`.
+fn item_body_column(line: &str) -> Option<usize> {
+    let blanks = line.bytes().take_while(|b| matches!(b, b' ' | b'\t')).count();
+    let rest = &line[blanks..];
+    let bullet = match rest.bytes().next()? {
+        b'-' | b'+' => 1,
+        // A star at the start of the line is a headline's.
+        b'*' if blanks > 0 => 1,
+        b'0'..=b'9' => {
+            let digits = rest.bytes().take_while(u8::is_ascii_digit).count();
+            if !matches!(rest.as_bytes().get(digits), Some(b'.' | b')')) {
+                return None;
+            }
+            digits + 1
+        }
+        _ => return None,
+    };
+    if !matches!(rest.as_bytes().get(bullet), None | Some(b' ' | b'\t')) {
+        return None;
+    }
+    Some(width(line) + bullet + 1)
+}
+
+/// `org-indent-add-properties`: how each line of `text` shows with
+/// `org-indent-mode` (`indent`) and with hidden leading stars
+/// (`hide_stars`). `adapt` `headline-data` lines up the planning lines,
+/// drawers and clock lines of an entry with its headline's stars. Lines
+/// shown as they are, are left out.
+pub fn virtual_indentation(text: &str, indent: bool, hide_stars: bool, adapt: Adapt) -> Vec<LinePrefix> {
+    // `org-indent-indentation-per-level` is 2: a headline of level `n`
+    // has `n - 1` columns before its stars, so that its title starts at
+    // `2n`, where the text below it starts too.
+    let heading_prefix = |level: usize| level.saturating_sub(1);
+    let text_prefix = |level: usize| 2 * level;
+    let mut out = Vec::new();
+    let mut level = 0;
+    // Planning lines (and the blank lines after them, which belong to
+    // them) and clock lines are found by their element, as Org does.
+    let snapshot = (indent && adapt == Adapt::HeadlineData)
+        .then(|| Snapshot::new(text, &Settings { adapt, ..Settings::default() }));
+    let element_is = |at: usize, kinds: &[Kind]| {
+        snapshot.as_ref().is_some_and(|snapshot| {
+            snapshot.element_at(at).is_some_and(|index| kinds.contains(&snapshot.elements[index].kind))
+        })
+    };
+    // The empty line after a final line break is no line.
+    let lines: Vec<&str> = text.strip_suffix('\n').unwrap_or(text).split('\n').collect();
+    let mut start = 0;
+    for (number, line) in lines.into_iter().enumerate() {
+        let at = start;
+        start += line.len() + 1;
+        let stars = line.bytes().take_while(|b| *b == b'*').count();
+        let heading = stars > 0 && line.as_bytes().get(stars) == Some(&b' ');
+        let (prefix, wrap, hidden) = if heading {
+            level = stars;
+            let prefix = heading_prefix(stars);
+            (prefix, prefix + stars + 1, if hide_stars { stars - 1 } else { 0 })
+        } else if let Some(body) = item_body_column(line) {
+            (text_prefix(level), text_prefix(level) + body, 0)
+        } else {
+            let trimmed = line.trim_start_matches([' ', '\t']);
+            let property = trimmed.trim_end().eq_ignore_ascii_case(":PROPERTIES:")
+                || trimmed.trim_end().eq_ignore_ascii_case(":END:")
+                || (trimmed.starts_with(':')
+                    && trimmed[1..].split_whitespace().next().is_some_and(|key| key.len() > 1 && key.ends_with(':')));
+            let data = adapt == Adapt::HeadlineData
+                && indent
+                && (property
+                    || element_is(at, &[Kind::Planning])
+                    || (starts_with_ignore_case(trimmed, "CLOCK:") && element_is(at, &[Kind::Clock])));
+            if data {
+                let prefix = heading_prefix(level);
+                (prefix, prefix + level + 1, 0)
+            } else {
+                let prefix = text_prefix(level);
+                (prefix, prefix + width(line), 0)
+            }
+        };
+        let (prefix, wrap) = if indent { (prefix, wrap) } else { (0, 0) };
+        if prefix > 0 || wrap > 0 || hidden > 0 {
+            out.push(LinePrefix { line: number, prefix, wrap, hidden_stars: hidden });
+        }
+    }
+    out
+}

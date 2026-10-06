@@ -551,6 +551,31 @@ wait('the stray line to be re-indented', function()
   return line(4) == '  stray'
 end)
 
+-- 21. A file with `org-indent-mode` shows indented by level, without
+-- changing it: the text under a headline lines up with its title, and the
+-- leading stars are hidden.
+local virtual = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '#+STARTUP: indent', '* A', 'text', '** B' }, virtual)
+vim.cmd.edit(virtual)
+local virtual_ns = vim.api.nvim_create_namespace('org_lsp_virtual_indent')
+local function prefixes()
+  local found = {}
+  for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(0, virtual_ns, 0, -1, { details = true })) do
+    local details = mark[4]
+    if details.virt_text then
+      table.insert(found, { mark[2], #details.virt_text[1][1] })
+    elseif details.conceal then
+      table.insert(found, { mark[2], 'star', mark[3] })
+    end
+  end
+  return found
+end
+wait('the lines indented', function()
+  return #prefixes() > 0
+end)
+eq(prefixes(), { { 2, 2 }, { 3, 1 }, { 3, 'star', 0 } }, 'the text below A at 2, B after 1 column, one star hidden')
+eq(line(3), 'text', 'the file is not changed')
+
 -- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'

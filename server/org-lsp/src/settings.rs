@@ -276,6 +276,24 @@ pub const SETTINGS: &[Setting] = &[
          re-indenting (range formatting) and to what commands write.",
     ),
     setting(
+        "startupIndented",
+        "boolean",
+        "false",
+        "org-startup-indented",
+        "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up \
+         with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It \
+         turns `adaptIndentation` off in such files, unless that is `\"headline-data\"`. Editors that can show it: \
+         Neovim, and VS Code (not on wrapped lines).",
+    ),
+    setting(
+        "hideLeadingStars",
+        "boolean",
+        "false",
+        "org-hide-leading-stars",
+        "Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and \
+         `showstars` decide for a file.",
+    ),
+    setting(
         "srcPreserveIndentation",
         "boolean",
         "false",
@@ -570,6 +588,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("autoSave", BOOLEAN),
     ("cycleSeparatorLines", r#"{ "type": "integer" }"#),
     ("adaptIndentation", r#"{ "enum": [true, false, "headline-data"] }"#),
+    ("startupIndented", BOOLEAN),
+    ("hideLeadingStars", BOOLEAN),
     ("srcPreserveIndentation", BOOLEAN),
     ("editSrcContentIndentation", r#"{ "type": "integer", "minimum": 0 }"#),
     (

@@ -66,6 +66,10 @@ struct Client {
     /// The client shows the date prompt document and binds its keys; it
     /// says so with `experimental.orgDatePrompt`.
     date_prompt: bool,
+    /// The client shows `org-indent-mode`'s prefixes, which the server
+    /// sends (`org-lsp/virtualIndent`); it says so with
+    /// `experimental.orgVirtualIndent`.
+    virtual_indent: bool,
     /// The client rereads semantic tokens when asked.
     tokens_refresh: bool,
 }
@@ -365,6 +369,10 @@ struct Server {
     separator_lines: i64,
     /// `org-adapt-indentation` and its relatives.
     indent: org_core::indent::Settings,
+    /// `org-startup-indented` and `org-hide-leading-stars`.
+    display: org_core::indent::Display,
+    /// The documents the client was last told to show with prefixes.
+    virtually_indented: HashSet<String>,
     /// A fixed clock, for tests.
     clock: Option<Now>,
     /// The clock that runs, as the files say.
@@ -432,6 +440,8 @@ pub fn run(connection: Connection) -> Result<()> {
         show_document: window.and_then(|window| window.show_document.as_ref()).is_some_and(|show| show.support),
         date_prompt: raw_params.pointer("/capabilities/experimental/orgDatePrompt").and_then(Value::as_bool)
             == Some(true),
+        virtual_indent: raw_params.pointer("/capabilities/experimental/orgVirtualIndent").and_then(Value::as_bool)
+            == Some(true),
         tokens_refresh: raw_params
             .pointer("/capabilities/workspace/semanticTokens/refreshSupport")
             .and_then(Value::as_bool)
@@ -491,6 +501,8 @@ pub fn run(connection: Connection) -> Result<()> {
         prompt_copy: None,
         separator_lines: options.separator_lines(),
         indent: options.indent_settings(),
+        display: options.display(),
+        virtually_indented: HashSet::new(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
         running: None,
         clock_pending: false,
@@ -901,6 +913,7 @@ impl Server {
                 let key = document.uri.as_str().to_string();
                 self.documents.insert(key.clone(), Document::new(document.text, document.version, &self.todo));
                 self.sync_clock(&key);
+                self.publish_virtual_indent(&key);
             }
             DidChangeTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidChangeTextDocumentParams>(notification) else { return };
@@ -933,6 +946,7 @@ impl Server {
                     );
                 }
                 self.sync_clock(key);
+                self.publish_virtual_indent(key);
                 // An edit the server asked for has arrived: show its effect.
                 // Any other change means the user did something in between.
                 if self.edited.remove(key) {
@@ -957,6 +971,7 @@ impl Server {
                     return;
                 }
                 self.documents.remove(params.text_document.uri.as_str());
+                self.virtually_indented.remove(params.text_document.uri.as_str());
                 // The agenda was closed: stop rebuilding it.
                 if self.view.as_ref().is_some_and(|open| open.uri == params.text_document.uri) {
                     self.remove_view_file();
@@ -1095,8 +1110,9 @@ impl Server {
         let document = self.document(uri)?;
         let encoding = self.client.encoding;
         let offset = document.index.offset(&document.text, params.range.start, encoding);
-        let found =
-            actions::actions(&document.text, &document.parse, offset, only, &self.edit_settings, self.date_time());
+        let mut settings = self.edit_settings.clone();
+        settings.todo.adapt = self.adapt_in(&document.text);
+        let found = actions::actions(&document.text, &document.parse, offset, only, &settings, self.date_time());
         let to_lsp = |action: &actions::Action| {
             let edits = action
                 .edits
@@ -1144,7 +1160,7 @@ impl Server {
         let document = self.document(&position.text_document.uri)?;
         let (text, index) = (&document.text, &document.index);
         let offset = index.offset(text, Position::new(position.position.line, 0), encoding);
-        let edit = org_core::indent::indent_line(text, offset, &self.indent);
+        let edit = org_core::indent::indent_line(text, offset, &self.indent_in(text));
         Some(edit.into_iter().map(|edit| indent_edit(text, index, encoding, edit)).collect())
     }
 
@@ -1155,7 +1171,7 @@ impl Server {
         let (text, index) = (&document.text, &document.index);
         let start = index.offset(text, params.range.start, encoding);
         let end = index.offset(text, params.range.end, encoding);
-        let edits = org_core::indent::indent_region(text, start, end, &self.indent);
+        let edits = org_core::indent::indent_region(text, start, end, &self.indent_in(text));
         Some(edits.into_iter().map(|edit| indent_edit(text, index, encoding, edit)).collect())
     }
 
@@ -1699,7 +1715,7 @@ impl Server {
         let now = self.date_time();
         let text = &source.text;
         let outcome =
-            planning::run(command, text, source.offset, answer, repeated, now, &self.read_date, self.indent.adapt)?;
+            planning::run(command, text, source.offset, answer, repeated, now, &self.read_date, self.adapt_in(text))?;
         let encoding = self.client.encoding;
         let index = LineIndex::new(text);
         let edits: Vec<TextEdit> = actions::edits_between(text, &outcome.text)
@@ -2289,6 +2305,8 @@ impl Server {
         let target_file = position.iter().position(|at| *at == Some(*target_file)).expect("a readable file");
         let source = &readable[0].text;
         let other = (target_file != 0).then(|| loaded[target_file].as_ref().expect("read").text.as_str());
+        // The target file's `org-adapt-indentation`, as Emacs pastes there.
+        let settings = refile::Settings { adapt: self.adapt_in(other.unwrap_or(source)), ..settings };
         let refiled = refile::refile(source, offset, other, target.offset, &settings)?;
         let target_path = uri::to_path(&uris[target_file])
             .map_or_else(|| uris[target_file].as_str().to_string(), |path| path.display().to_string());
@@ -2429,7 +2447,7 @@ impl Server {
             empty_lines_before: template.empty_lines_before,
             empty_lines_after: template.empty_lines_after,
         };
-        let levels = self.refile.2;
+        let levels = refile::Settings { adapt: self.adapt_in(&snapshot), ..self.refile.2 };
         let placed = capture::place(&snapshot, &keywords, &target, kind, &filled, &properties, &levels)?;
         if template.immediate_finish == Some(true) {
             let done = placed.finish(placed.shown());
@@ -2565,7 +2583,7 @@ impl Server {
             capture.placed.finish(&edited)
         } else {
             let (target, kind, properties) = &capture.spec;
-            let levels = self.refile.2;
+            let levels = refile::Settings { adapt: self.adapt_in(&now), ..self.refile.2 };
             let placed = capture::place(&now, &keywords, target, *kind, &edited, properties, &levels)?;
             placed.finish(placed.shown())
         };
@@ -2683,6 +2701,7 @@ impl Server {
     ) -> std::result::Result<Value, Refusal> {
         let encoding = self.client.encoding;
         let (settings, now) = (self.edit_settings.clone(), self.date_time());
+        let (display, adapt) = (self.display, self.indent.adapt);
         let uri = context.text_document.uri.clone();
         let position = context.position;
         // On an agenda line the command goes to the entry in its file.
@@ -2755,6 +2774,8 @@ impl Server {
                 skip_note: extra.skip_note,
             };
             let explicit = matches!(command, EditCommand::Todo(TodoTarget::State(_)));
+            let mut settings = settings.clone();
+            settings.todo.adapt = display.adapt(text, adapt);
             let outcome = edit::run(&command, text, parse, offset, &call, &settings).map(|outcome| {
                 let edits: Vec<TextEdit> = actions::edits_between(text, &outcome.text)
                     .into_iter()
@@ -2955,6 +2976,49 @@ impl Server {
         let _ = self.sender.send(Message::Notification(notification));
     }
 
+    /// `org-indent-mode` for the client: how far each line of the document
+    /// `key` is shown indented, with its leading stars hidden, as
+    /// `org-lsp/virtualIndent` `{ uri, version, lines }`, each line
+    /// `[line, prefix, wrap, hidden stars]`. Sent after every change while
+    /// the document shows so, and once more when it stops.
+    fn publish_virtual_indent(&mut self, key: &str) {
+        if !self.client.virtual_indent {
+            return;
+        }
+        let Some(document) = self.documents.get(key) else { return };
+        let text = &document.text;
+        let (indent, hide_stars) = (self.display.indented(text), self.display.hides_stars(text));
+        let lines: Vec<[usize; 4]> = if indent || hide_stars {
+            let adapt = self.display.adapt(text, self.indent.adapt);
+            org_core::indent::virtual_indentation(text, indent, hide_stars, adapt)
+                .into_iter()
+                .map(|line| [line.line, line.prefix, line.wrap, line.hidden_stars])
+                .collect()
+        } else {
+            Vec::new()
+        };
+        if lines.is_empty() && !self.virtually_indented.remove(key) {
+            return;
+        }
+        if !lines.is_empty() {
+            self.virtually_indented.insert(key.to_string());
+        }
+        let params = json!({ "uri": key, "version": document.version, "lines": lines });
+        let notification = lsp_server::Notification::new("org-lsp/virtualIndent".to_string(), params);
+        let _ = self.sender.send(Message::Notification(notification));
+    }
+
+    /// `org-adapt-indentation` in a document: off where it shows with
+    /// `org-indent-mode`, unless it is `headline-data`.
+    fn adapt_in(&self, text: &str) -> org_core::indent::Adapt {
+        self.display.adapt(text, self.indent.adapt)
+    }
+
+    /// The indentation settings for a document.
+    fn indent_in(&self, text: &str) -> org_core::indent::Settings {
+        org_core::indent::Settings { adapt: self.adapt_in(text), ..self.indent.clone() }
+    }
+
     fn clock_status(&mut self, running: &RunningClock) -> Option<Value> {
         let now = clock::minutes_of(self.date_time());
         let started = clock::minutes_of(running.start);
@@ -3120,10 +3184,12 @@ impl Server {
                 changes.push((running.uri.clone(), version, text, out.text));
             }
         }
-        let settings = self.clock_settings.clone();
+        let mut settings = self.clock_settings.clone();
+        let (display, adapt) = (self.display, self.indent.adapt);
         let base = changes.iter().find(|(uri, ..)| *uri == file).map(|(_, _, _, new)| new.clone());
         let found = self.with_source(&file, |text, _, parse, outline, version| {
             let base = base.clone().unwrap_or_else(|| text.to_string());
+            settings.adapt = display.adapt(&base, adapt);
             let clocked = clock::clock_in(&base, parse.todo_keywords(), heading, &settings, now)?;
             let entry = &outline.entries[outline.entry_at(heading).ok_or("Before first headline")?];
             let repeat = entry.properties.iter().any(|(key, _)| key == "LAST_REPEAT");

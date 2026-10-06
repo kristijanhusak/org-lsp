@@ -277,10 +277,15 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     },
   };
   client = new LanguageClient('org-lsp', 'Org Language Server', serverOptions, clientOptions);
-  // This client shows the server's date prompt.
+  // This client shows the server's date prompt, and the prefixes of
+  // `org-indent-mode`.
   client.registerFeature({
     fillClientCapabilities(capabilities) {
-      capabilities.experimental = { ...(capabilities.experimental ?? {}), orgDatePrompt: true };
+      capabilities.experimental = {
+        ...(capabilities.experimental ?? {}),
+        orgDatePrompt: true,
+        orgVirtualIndent: true,
+      };
     },
     initialize() {},
     getState() {
@@ -295,6 +300,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     client.onNotification('org-lsp/save', (params: { uris?: string[] }) => saveAsked({ save: params.uris ?? [] }));
     // The clock that runs, for the status bar.
     client.onNotification('org-lsp/clock', (params: ClockReport | null) => showClock(params));
+    // How far the lines of a file with `org-indent-mode` show indented.
+    client.onNotification('org-lsp/virtualIndent', (params: VirtualIndent) => showVirtualIndent(params));
   } catch (error) {
     client = undefined;
     const message = error instanceof Error ? error.message : String(error);
@@ -457,12 +464,76 @@ function watchConcealing(context: vscode.ExtensionContext): void {
   );
 }
 
+// ----- virtual indentation
+
+/**
+ * `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`): the server
+ * says how far each line shows indented, `[line, prefix, wrap, hidden
+ * stars]`, for a version of the document. The prefix is a decoration
+ * before the line; VS Code has no way to indent the lines a long line
+ * wraps into. Hidden leading stars keep their place, invisible.
+ */
+interface VirtualIndent {
+  uri: string;
+  version: number;
+  lines: number[][];
+}
+
+const virtualIndents = new Map<string, VirtualIndent>();
+const prefixDecoration = vscode.window.createTextEditorDecorationType({});
+const hiddenStarDecoration = vscode.window.createTextEditorDecorationType({ opacity: '0' });
+
+/** The prefix of each line and its hidden stars, by editor; for the tests. */
+const virtualIndentShown = new Map<vscode.TextEditor, number[][]>();
+
+function showVirtualIndent(params: VirtualIndent): void {
+  const key = vscode.Uri.parse(params.uri).toString();
+  virtualIndents.set(key, params);
+  for (const editor of vscode.window.visibleTextEditors) {
+    if (editor.document.uri.toString() === key) {
+      indentVirtually(editor);
+    }
+  }
+}
+
+function indentVirtually(editor: vscode.TextEditor): void {
+  const known = virtualIndents.get(editor.document.uri.toString());
+  // For another version of the text, the decorations stay as they are
+  // until the prefixes of this one come.
+  if (known && known.version !== editor.document.version) {
+    return;
+  }
+  const prefixes: vscode.DecorationOptions[] = [];
+  const stars: vscode.Range[] = [];
+  const shown: number[][] = [];
+  for (const [line, prefix, , hidden] of known?.lines ?? []) {
+    if (line >= editor.document.lineCount) {
+      continue;
+    }
+    if (prefix > 0) {
+      const contentText = '\u00a0'.repeat(prefix);
+      prefixes.push({ range: new vscode.Range(line, 0, line, 0), renderOptions: { before: { contentText } } });
+    }
+    if (hidden > 0) {
+      stars.push(new vscode.Range(line, 0, line, hidden));
+    }
+    if (prefix > 0 || hidden > 0) {
+      shown.push([line, prefix, hidden]);
+    }
+  }
+  editor.setDecorations(prefixDecoration, prefixes);
+  editor.setDecorations(hiddenStarDecoration, stars);
+  virtualIndentShown.set(editor, shown);
+}
+
 /** What the extension offers other code: for its tests. */
 export interface Api {
   /** The text hidden in `editor` now. */
   concealed(editor: vscode.TextEditor): string[];
   /** What the status bar shows for the clock: empty when none runs. */
   clock(): string;
+  /** The lines of `editor` shown indented: `[line, prefix, hidden stars]`. */
+  virtualIndent(editor: vscode.TextEditor): number[][];
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
@@ -487,7 +558,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   await startClient(context);
   watchConcealing(context);
   concealVisible();
-  return { concealed: (editor) => concealedText.get(editor) ?? [], clock: clockText };
+  context.subscriptions.push(
+    prefixDecoration,
+    hiddenStarDecoration,
+    vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(indentVirtually)),
+  );
+  return {
+    concealed: (editor) => concealedText.get(editor) ?? [],
+    clock: clockText,
+    virtualIndent: (editor) => virtualIndentShown.get(editor) ?? [],
+  };
 }
 
 export function deactivate(): Promise<void> {

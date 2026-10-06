@@ -2,7 +2,15 @@
 --- column `org-indent-line` gives them ('indentexpr', from the server's
 --- on-type formatting), and `=` re-indents lines as `org-indent-region`
 --- does (range formatting). `adaptIndentation` decides how far text goes.
+---
+--- Files with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`)
+--- are shown indented without being changed: the server says how far each
+--- line goes (`org-lsp/virtualIndent`), and the prefixes are inline virtual
+--- text. Neovim cannot repeat it on the lines a long line wraps into;
+--- 'breakindent' lines those up with the line's own text instead.
 local M = {}
+
+local namespace = vim.api.nvim_create_namespace('org_lsp_virtual_indent')
 
 local SERVER = 'org_lsp'
 
@@ -68,6 +76,46 @@ function M.region(bufnr, first, last)
   local response = client:request_sync('textDocument/rangeFormatting', params, 2000, bufnr)
   if response and response.result and #response.result > 0 then
     vim.lsp.util.apply_text_edits(response.result, bufnr, client.offset_encoding)
+  end
+end
+
+--- Show the prefixes the server sent for a document (`org-lsp/virtualIndent`):
+--- `lines` of `[line, prefix, wrap, hidden stars]`, for its `version`.
+---@param params { uri: string, version: integer, lines: integer[][] }
+function M.virtual(params)
+  local bufnr = vim.uri_to_bufnr(params.uri)
+  -- For older text than the buffer has: newer prefixes are on their way.
+  if not vim.api.nvim_buf_is_loaded(bufnr) or vim.lsp.util.buf_versions[bufnr] ~= params.version then
+    return
+  end
+  vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
+  for _, line in ipairs(params.lines) do
+    local row, prefix, hidden = line[1], line[2], line[4]
+    if prefix > 0 then
+      pcall(vim.api.nvim_buf_set_extmark, bufnr, namespace, row, 0, {
+        virt_text = { { (' '):rep(prefix) } },
+        virt_text_pos = 'inline',
+        right_gravity = false,
+        undo_restore = false,
+      })
+    end
+    -- Hidden stars keep their place: each shows as a space.
+    for star = 0, hidden - 1 do
+      pcall(vim.api.nvim_buf_set_extmark, bufnr, namespace, row, star, {
+        end_col = star + 1,
+        conceal = ' ',
+        undo_restore = false,
+      })
+    end
+  end
+  -- A line that wraps goes on at its own indentation, a list item at its
+  -- text (without the prefix, which Neovim does not repeat there).
+  if #params.lines > 0 then
+    vim.bo[bufnr].formatlistpat = [[^\s*\%([-+]\|\s\*\|\d\+[.)]\)\s\+]]
+    for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+      vim.wo[win][0].breakindent = true
+      vim.wo[win][0].breakindentopt = 'list:-1'
+    end
   end
 end
 

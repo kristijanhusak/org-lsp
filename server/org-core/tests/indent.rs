@@ -99,6 +99,21 @@ fn indents_as_org_does() {
                 ));
             }
         }
+        // `org-indent-mode`: the prefixes of every line.
+        if let Some(virtual_lines) = expected.get("virtual").and_then(Value::as_array) {
+            let shown = indent::virtual_indentation(&text, true, false, settings.adapt);
+            for (number, wanted) in virtual_lines.iter().enumerate() {
+                let found = shown.iter().find(|prefix| prefix.line == number);
+                let got = found.map_or((0, 0), |prefix| (prefix.prefix, prefix.wrap));
+                let wanted = (wanted[0].as_u64().unwrap() as usize, wanted[1].as_u64().unwrap() as usize);
+                if got != wanted {
+                    failures.push(format!(
+                        "{name} virtual line {number}: {:?}\n  expected {wanted:?}\n  actual   {got:?}",
+                        text.split('\n').nth(number).unwrap()
+                    ));
+                }
+            }
+        }
         let edits = indent::indent_region(&text, 0, text.len(), &settings);
         let got = indent::apply(&text, &edits);
         let wanted = expected["region"].as_str().unwrap();
