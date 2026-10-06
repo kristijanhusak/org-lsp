@@ -41,7 +41,7 @@ The other options are in [configuration.md](configuration.md).
 | `cir` | `org.priority.down` | Lower the priority |
 | `<Leader>o,` | `org.priority` | Set the priority |
 | `<C-Space>` | `org.checkbox.toggle` | Toggle the checkbox |
-| `<CR>`¹ (insert mode) | `org.return` | New line, as Org's RET makes it |
+| `<CR>`¹ (insert mode), `<S-CR>`¹ (insert mode) | `org.return` | New line, as Org's RET makes it |
 | `<Leader><CR>` | `org.meta.return` | New heading, item or table row |
 | `<Leader>oiT` | `org.insert.todo.heading` | New TODO heading, or item with a checkbox |
 | `<Leader>oih` | `org.insert.heading.after` | New heading after the subtree |

@@ -371,20 +371,84 @@ local insert_keys = {}
 --- go on in insert mode (`org.meta.return`).
 local append_keys = {}
 
+--- The buffer-local insert-mode mappings the plugin's keys took the place
+--- of, by buffer and key.
+---@type table<integer, table<string, table>>
+local replaced = {}
+
+--- Set while the key's own meaning runs, so that a mapping of it that
+--- maps the key again (`imap <CR> …<CR>`) reaches Vim's own key and not
+--- the plugin's again.
+local passing = false
+
+--- What `key` does without the plugin: the buffer's mapping that the
+--- plugin's took the place of, else the global mapping (an autopairs
+--- plugin's `<CR>`), else the key itself.
+---@param bufnr integer
+---@param key string
+local function key_without_plugin(bufnr, key)
+  local code = vim.keycode(key)
+  local map = (replaced[bufnr] or {})[code]
+    or vim.iter(vim.api.nvim_get_keymap('i')):find(function(global)
+      return vim.keycode(global.lhs) == code
+    end)
+  -- Ahead of what is typed after it.
+  if not map then
+    return vim.api.nvim_feedkeys(code, 'ni', false)
+  end
+  local keys
+  if map.callback then
+    local result = map.callback()
+    if map.expr ~= 1 or type(result) ~= 'string' then
+      return
+    end
+    keys = map.replace_keycodes == 1 and vim.keycode(result) or result
+  elseif map.expr == 1 then
+    keys = vim.api.nvim_eval((map.rhs:gsub('<SID>', '<SNR>' .. (map.sid or 0) .. '_')))
+  else
+    keys = vim.keycode(map.rhs)
+  end
+  if map.noremap ~= 1 then
+    passing = true
+    vim.schedule(function()
+      passing = false
+    end)
+  end
+  vim.api.nvim_feedkeys(keys, (map.noremap == 1 and 'n' or 'm') .. 'i', false)
+end
+
+--- Whether a completion menu is open: Vim's, or nvim-cmp's or blink.cmp's.
+local function completing()
+  if vim.fn.pumvisible() == 1 then
+    return true
+  end
+  local cmp_ok, cmp = pcall(require, 'cmp')
+  if cmp_ok and type(cmp) == 'table' and type(cmp.visible) == 'function' and cmp.visible() then
+    return true
+  end
+  local blink_ok, blink = pcall(require, 'blink.cmp')
+  return blink_ok and type(blink) == 'table' and type(blink.is_visible) == 'function' and blink.is_visible() or false
+end
+
 --- Run `name`, whose result carries edits and a cursor (`org.return`), from
 --- insert mode: at once, so that what is typed next goes after it. The key
---- keeps its own meaning while the completion menu is open, with no server,
---- or where the command does not apply.
+--- keeps its own meaning (another plugin's mapping of it included) while a
+--- completion menu is open, with no server, or where the command does not
+--- apply.
 ---@param name string
 ---@param key string
 function M.insert_command(name, key)
   local bufnr = vim.api.nvim_get_current_buf()
   local client = running_client()
-  -- Ahead of what is typed after it.
   local function native()
-    vim.api.nvim_feedkeys(vim.keycode(key), 'ni', false)
+    key_without_plugin(bufnr, key)
   end
-  if vim.fn.pumvisible() == 1 or not client then
+  if passing then
+    -- The key mapped again by its own meaning: Vim's key, once.
+    passing = false
+    return vim.api.nvim_feedkeys(vim.keycode(key), 'ni', false)
+  end
+  if completing() or not client then
     return native()
   end
   local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
@@ -505,6 +569,14 @@ local function set_keys(scope, bufnr)
       end
       local key = native[lhs] and lhs or nil
       if insert_keys[name] then
+        -- A mapping of the buffer's that this one takes the place of (a
+        -- completion plugin's `<CR>`) is what the key does where the
+        -- command does not apply.
+        local before = vim.fn.maparg(lhs, 'i', false, true)
+        if before.buffer == 1 and before.desc ~= title then
+          replaced[bufnr] = replaced[bufnr] or {}
+          replaced[bufnr][vim.keycode(lhs)] = before
+        end
         vim.keymap.set('i', lhs, function()
           M.insert_command(name, lhs)
         end, { buffer = bufnr, desc = title })

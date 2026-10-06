@@ -276,6 +276,54 @@
   },
   {
     "keys": [
+      "shift+enter"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.return",
+      "fallback": {
+        "command": "insert",
+        "args": {
+          "characters": "\n"
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "setting.command_mode",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "auto_complete_visible",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "has_next_field",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "selection_empty",
+        "operator": "equal",
+        "operand": true,
+        "match_all": true
+      }
+    ]
+  },
+  {
+    "keys": [
       "alt+enter"
     ],
     "command": "org_lsp_run",

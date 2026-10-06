@@ -290,7 +290,7 @@ pub const COMMANDS: &[Command] = &[
     // code it refuses, and the editor's own RET applies.
     Command {
         emacs: &[native(Org, "RET")],
-        vim: &[insert_native(Org, "<CR>")],
+        vim: &[insert_native(Org, "<CR>"), insert_native(Org, "<S-CR>")],
         ..edit(RETURN, "New line, as Org's RET makes it")
     },
     // M-RET and its neighbours, carried in the result like `org.return`.

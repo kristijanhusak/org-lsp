@@ -425,11 +425,21 @@ let s:append_commands = {}
 " apply.
 function! org_lsp#insert_key(index) abort
   let entry = s:mapped[a:index]
+  if s:passing
+    " The key mapped again by its own meaning: Vim's key, once.
+    let s:passing = 0
+    return feedkeys(s:keycode(entry.lhs), 'ni')
+  endif
   if pumvisible() || empty(org_lsp#adapter()) || !org_lsp#ready(bufnr())
     return s:insert_fallback(entry.lhs)
   endif
   let [nr, context] = s:cursor_context()
+  let position = getcurpos()
   let answer = org_lsp#request_sync(nr, 'workspace/executeCommand', {'command': entry.name, 'arguments': [context]}, 1000)
+  " While it waits, coc.nvim moves the cursor a column to the left.
+  if getcurpos() != position
+    call setpos('.', position)
+  endif
   let result = get(answer, 'result', v:null)
   if !empty(get(answer, 'error', {})) || type(result) != v:t_dict || type(get(result, 'edits', 0)) != v:t_list
     return s:insert_fallback(entry.lhs)
@@ -450,14 +460,46 @@ function! s:apply_carried(uri, result) abort
   return column >= len(text)
 endfunction
 
+" Set while the key's own meaning runs, so that a mapping that maps the
+" key again (`imap <CR> …<CR>`) reaches Vim's own key and not the
+" plugin's again.
+let s:passing = 0
+
+function! s:stop_passing(...) abort
+  let s:passing = 0
+endfunction
+
+" The global insert-mode mapping of `lhs` (an autopairs plugin's `<CR>`),
+" which the buffer's mapping hides from maparg().
+function! s:global_map(lhs) abort
+  if !exists('*maplist')
+    return {}
+  endif
+  let code = s:keycode(a:lhs)
+  for map in maplist()
+    if !get(map, 'buffer', 0) && get(map, 'mode', '') =~# '[i!]' && s:keycode(map.lhs) ==# code
+      return map
+    endif
+  endfor
+  return {}
+endfunction
+
 " The key's meaning without the plugin: the buffer's mapping that the
-" plugin's took the place of (a completion plugin's `<CR>`), else the key.
+" plugin's took the place of (a completion plugin's `<CR>`), else the
+" global mapping, else the key.
 function! s:insert_fallback(lhs) abort
   let saved = get(get(b:, 'org_lsp_replaced', {}), a:lhs, {})
+  if empty(saved)
+    let saved = s:global_map(a:lhs)
+  endif
   if empty(saved)
     return feedkeys(s:keycode(a:lhs), 'ni')
   endif
   let rhs = saved.expr ? eval(substitute(saved.rhs, '<SID>', '<SNR>' . saved.sid . '_', 'g')) : s:keycode(saved.rhs)
+  if !saved.noremap
+    let s:passing = 1
+    call timer_start(0, function('s:stop_passing'))
+  endif
   call feedkeys(rhs, (saved.noremap ? 'n' : 'm') . 'i')
 endfunction
 
@@ -560,6 +602,12 @@ function! org_lsp#set_keys(scope) abort
       call add(s:mapped, {'name': name, 'native': get(native, lhs, 0) ? lhs : '', 'lhs': lhs, 'buffer': empty(buffer) ? 0 : bufnr()})
       let index = len(s:mapped) - 1
       if has_key(s:insert_commands, name)
+        " A mapping of the buffer's that this one takes the place of is
+        " what the key does where the command does not apply.
+        let before = maparg(lhs, 'i', 0, 1)
+        if !empty(buffer) && get(before, 'buffer', 0) && get(before, 'rhs', '') !~# 'org_lsp#insert_key'
+          let b:org_lsp_replaced = extend(get(b:, 'org_lsp_replaced', {}), {lhs: before})
+        endif
         execute printf('inoremap %s <silent> %s <Cmd>call org_lsp#insert_key(%d)<CR>', buffer, lhs, index)
         continue
       endif

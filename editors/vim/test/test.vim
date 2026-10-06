@@ -169,7 +169,7 @@ call s:test('clocks in and out, for the statusline', function('s:clock'))
 
 function! s:return() abort
   let file = s:work . '/notes/return.org'
-  call writefile(['* TODO Write the report :work:', '| a | bb |'], file)
+  call writefile(['* TODO Write the report :work:', '| a | bb |', '#+begin_src sh', 'echo', '#+end_src'], file)
   execute 'edit' fnameescape(file)
   call s:until('the server', {-> org_lsp#ready(bufnr())})
   call cursor(1, 12)
@@ -179,6 +179,27 @@ function! s:return() abort
   call cursor(3, 7)
   call feedkeys("a\<CR>y\<Esc>", 'xt')
   call s:until('the new row', {-> getline(4) ==# '|   | y   |'})
+  " Where RET does not apply, another plugin's global mapping of <CR> (as
+  " autopairs plugins make) does what it does, and one that maps <CR>
+  " again does not loop; <S-CR> is RET too.
+  " (A client's own buffer mapping of <CR>, which hides the global one,
+  " comes first: yegappan/lsp and coc.nvim make one.)
+  if empty(get(b:, 'org_lsp_replaced', {}))
+    inoremap <CR> <CR>#
+    call cursor(6, 4)
+    call feedkeys("a\<CR>w\<Esc>", 'xt')
+    call s:until('the global mapping in code', {-> getline(7) =~# '#w$'})
+    iunmap <CR>
+    imap <CR> <CR>%
+    call cursor(7, col('$'))
+    call feedkeys("a\<CR>u\<Esc>", 'xt')
+    call s:until('a remapping global mapping in code', {-> getline(8) =~# '%u$'})
+    iunmap <CR>
+  endif
+  call cursor(2, 5)
+  call feedkeys("a\<S-CR>v\<Esc>", 'xt')
+  call s:until('<S-CR> as RET', {-> getline(3) ==# 'vreport'})
+  call assert_equal('xthe', getline(2))
   silent write
 endfunction
 call s:test('RET in insert mode is as in Org', function('s:return'))

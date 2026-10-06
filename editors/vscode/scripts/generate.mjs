@@ -115,6 +115,7 @@ const fallbacks = {
   tab: ['tab'],
   // VS Code's own Enter, with its indentation.
   enter: [{ command: 'type', args: { text: '\n' } }],
+  'shift+enter': [{ command: 'type', args: { text: '\n' } }],
 };
 // In Org files, VSCodeVim's keys apply in Normal mode only, and keys that
 // start with a plain letter would take it from Vim (`c` of `cit`).
@@ -187,7 +188,7 @@ const keybindings = [...manifest.commands, ...ownCommands]
     if (vsKey === 'tab' || vsKey === 'shift+tab') {
       conditions.push(tabFree);
     }
-    if (vsKey === 'enter' && binding.in !== 'agenda' && binding.in !== 'calendar') {
+    if ((vsKey === 'enter' || vsKey === 'shift+enter') && binding.in !== 'agenda' && binding.in !== 'calendar') {
       conditions.push(enterFree);
     }
     const scopes = binding.in === 'global' ? globalScopes : [binding.in];
