@@ -9,6 +9,7 @@ Usage: org-lsp [--stdio]
        org-lsp config [--options JSON]
        org-lsp manifest
        org-lsp settings
+       org-lsp command ADDRESS TOKEN COMMAND ROW COLUMN
        org-lsp --version
 
 The server communicates over standard input and output.";
@@ -51,6 +52,17 @@ fn main() -> ExitCode {
             Err(error) => {
                 eprintln!("org-lsp config: {error}\n\n{}", org_lsp::cli::CONFIG_USAGE);
                 ExitCode::from(2)
+            }
+        };
+    }
+    if arguments.first().is_some_and(|argument| argument == "command") {
+        // What the script next to the agenda runs: a command for the
+        // server that wrote it (see `port`).
+        return match org_lsp::port::send(&arguments[1..]) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("org-lsp command: {error}");
+                ExitCode::FAILURE
             }
         };
     }

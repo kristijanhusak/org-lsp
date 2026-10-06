@@ -581,21 +581,6 @@ pub fn manifest() -> Value {
     Value::Array(commands)
 }
 
-/// The agenda's commands that have keys, in the table's order, with their
-/// keys as Emacs writes them: the agenda's code actions for a client that
-/// cannot run a command from a key (Zed). Its keymap picks one by its place
-/// in this list, so the list is the same on every line.
-pub fn agenda_menu() -> Vec<(&'static str, String)> {
-    COMMANDS
-        .iter()
-        .filter_map(|command| {
-            let keys: Vec<&str> =
-                command.emacs.iter().filter(|key| key.scope == Scope::Agenda).map(|key| key.key).collect();
-            (!keys.is_empty()).then(|| (command.id, keys.join(", ")))
-        })
-        .collect()
-}
-
 /// An Emacs key in Vim's notation: `C-c C-s` is `<C-c><C-s>`, `RET` is
 /// `<CR>`, `S-<right>` is `<S-Right>` and `v d` is `vd`.
 fn vim_notation(emacs: &str) -> String {
@@ -703,23 +688,6 @@ mod tests {
         assert!(emacs.contains(&("org.agenda.later".to_string(), "f".to_string())));
         assert_eq!(emacs.len(), keys("vim").len());
         assert!(COMMANDS.iter().all(|command| command.vim.iter().all(|key| key.scope != Scope::Agenda)));
-    }
-
-    #[test]
-    fn the_agenda_menu_is_in_the_manifest_s_order() {
-        // Zed's keymap (editors/zed/keymap.json) picks the agenda's code
-        // actions by their place, counted in the manifest.
-        let from_manifest: Vec<String> = manifest()
-            .as_array()
-            .unwrap()
-            .iter()
-            .filter(|command| {
-                command["keys"].as_array().unwrap().iter().any(|key| key["in"] == "agenda" && key["preset"] == "emacs")
-            })
-            .map(|command| command["command"].as_str().unwrap().to_string())
-            .collect();
-        let menu: Vec<String> = agenda_menu().into_iter().map(|(id, _)| id.to_string()).collect();
-        assert_eq!(menu, from_manifest);
     }
 
     #[test]

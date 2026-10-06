@@ -1,0 +1,596 @@
+[
+  {
+    "label": "Org agenda: go forward in time",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.later",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: go backward in time",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.earlier",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: go to today",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.today",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: go to a date",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.goto.date",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: day view",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.day",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: week view",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.week",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: fortnight view",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.fortnight",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: month view",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.month",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: year view",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.year",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: rebuild",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.redo",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: go to the entry",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.goto",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Save all Org files",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.save",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: log mode, what was closed and clocked",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.log",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: the clock report",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.clockreport",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: include archived trees",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.archives",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: include archived trees and archive files",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.agenda.archives.files",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Clock in",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.clock.in",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Clock out",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.clock.out",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Cancel the clock",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.clock.cancel",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Change the TODO state",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.todo",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Raise the priority",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.priority.up",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Lower the priority",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.priority.down",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Set the priority",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.priority",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Refile the entry",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.refile",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Archive the subtree",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.archive.subtree",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Archive the subtree under its Archive sibling",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.archive.sibling",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Toggle the ARCHIVE tag",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.archive.tag",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Archive with the default command",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.archive.default",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Archive with the default command, once confirmed",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.archive.confirm",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Move the date one day later",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.date.later",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Move the date one day earlier",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.date.earlier",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Schedule the entry",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.schedule",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Set the deadline of the entry",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.deadline",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  }
+]

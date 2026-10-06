@@ -109,12 +109,11 @@ impl zed::Extension for OrgLsp {
         };
         options.insert("virtualDocuments".to_string(), serde_json::Value::Bool(false));
         // Zed runs no command from a key and does nothing with a command's
-        // result: the commands come as code actions, and what they ask
-        // for is asked with buttons.
+        // result: the commands come as code actions, the agenda's through
+        // the command port that the extension's tasks call, and what they
+        // ask for is asked with buttons.
         options.insert("commandActions".to_string(), serde_json::Value::Bool(true));
         options.insert("messagePrompts".to_string(), serde_json::Value::Bool(true));
-        // Zed runs no code action in a read-only buffer.
-        options.insert("readOnlyAgenda".to_string(), serde_json::Value::Bool(false));
         Ok(Some(serde_json::Value::Object(options)))
     }
 }

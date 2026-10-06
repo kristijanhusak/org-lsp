@@ -137,8 +137,7 @@ the editor's own syntax.
 | `virtualDocuments` | boolean | from the client's capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
 | `showDocument` | boolean | from the client's capabilities | Whether the client shows the documents the server asks it to show (`window/showDocument`): the agenda, capture buffers, an entry's file. A client that announces that capability need not set this; the Vim plugin does, for the LSP clients that leave the request to it. |
 | `messagePrompts` | boolean | `false` | Ask what commands ask for (a key, one of a list) with `window/showMessageRequest`, and say what they have to say with `window/showMessage`, for a client that does nothing with a command's result. The Zed extension sets it. |
-| `commandActions` | boolean | `false` | Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked from a list, a new heading or item (M-RET and its neighbours), and in the agenda every command the agenda has a key for, in one order on every line and with the key in the title, for a client that cannot run a command from a key. The Zed extension sets it. |
-| `readOnlyAgenda` | boolean | `true` | Whether the file the agenda is written to, for a client without virtual documents, is read-only. The Zed extension turns it off: Zed runs no code action in a read-only buffer. |
+| `commandActions` | boolean | `false` | Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked from a list, a new heading or item (M-RET and its neighbours), for a client that cannot run a command from a key. The agenda's commands go through a local port instead: next to the agenda's file the server writes `org-lsp-command`, which runs `org-lsp-command COMMAND ROW COLUMN` where the cursor is, for the editor's keys to call. The Zed extension sets it. |
 
 <!-- END generated -->
 

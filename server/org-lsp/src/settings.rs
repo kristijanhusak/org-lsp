@@ -626,20 +626,10 @@ pub const SETTINGS: &[Setting] = &[
             "false",
             "",
             "Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked \
-             from a list, a new heading or item (M-RET and its neighbours), and in the agenda every command the \
-             agenda has a key for, in one order on every line and with the key in the title, for a client that \
-             cannot run a command from a key. The Zed extension sets it.",
-        )
-    },
-    Setting {
-        integration: true,
-        ..setting(
-            "readOnlyAgenda",
-            "boolean",
-            "true",
-            "",
-            "Whether the file the agenda is written to, for a client without virtual documents, is read-only. \
-             The Zed extension turns it off: Zed runs no code action in a read-only buffer.",
+             from a list, a new heading or item (M-RET and its neighbours), for a client that cannot run a \
+             command from a key. The agenda's commands go through a local port instead: next to the agenda's \
+             file the server writes `org-lsp-command`, which runs `org-lsp-command COMMAND ROW COLUMN` where \
+             the cursor is, for the editor's keys to call. The Zed extension sets it.",
         )
     },
 ];
@@ -780,7 +770,6 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("showDocument", BOOLEAN),
     ("messagePrompts", BOOLEAN),
     ("commandActions", BOOLEAN),
-    ("readOnlyAgenda", BOOLEAN),
 ];
 
 const BOOLEAN: &str = r#"{ "type": "boolean" }"#;

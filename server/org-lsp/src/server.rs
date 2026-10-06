@@ -48,7 +48,7 @@ use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target, TimeField};
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
-use crate::{actions, cli, commands, completion, custom, folding, highlight, manifest, symbols, uri};
+use crate::{actions, cli, commands, completion, custom, folding, highlight, manifest, port, symbols, uri};
 
 type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -75,10 +75,9 @@ struct Client {
     tokens_refresh: bool,
     /// Ask with `window/showMessageRequest` (`messagePrompts`).
     message_prompts: bool,
-    /// More commands as code actions (`commandActions`).
+    /// More commands as code actions, and the agenda's through the
+    /// command port (`commandActions`).
     command_actions: bool,
-    /// The agenda's file is read-only (`readOnlyAgenda`).
-    read_only_agenda: bool,
 }
 
 /// An outgoing request whose answer the server acts on.
@@ -345,6 +344,11 @@ impl Held {
 struct Server {
     client: Client,
     sender: crossbeam_channel::Sender<Message>,
+    /// Where the command port (`port`) sends what it is sent, and its
+    /// script once it is open: with `commandActions`, while the agenda is a
+    /// file.
+    port_sender: crossbeam_channel::Sender<port::Command>,
+    port: Option<PathBuf>,
     next_request: i32,
     pending: HashMap<RequestId, Pending>,
     /// What the command being run has to say, as Emacs says it in the echo
@@ -444,6 +448,7 @@ pub fn run(connection: Connection) -> Result<()> {
         eprintln!("org-lsp: {problem}");
     }
     let options = loaded.options;
+    let (port_sender, port_receiver) = crossbeam_channel::unbounded();
 
     let general = params.capabilities.general.as_ref();
     let text_document = params.capabilities.text_document.as_ref();
@@ -477,7 +482,6 @@ pub fn run(connection: Connection) -> Result<()> {
             .unwrap_or(false),
         message_prompts: options.message_prompts.unwrap_or(false),
         command_actions: options.command_actions.unwrap_or(false),
-        read_only_agenda: options.read_only_agenda.unwrap_or(true),
     };
     let client =
         Client { date_prompt: client.date_prompt && client.virtual_documents && client.show_document, ..client };
@@ -505,6 +509,8 @@ pub fn run(connection: Connection) -> Result<()> {
     let mut server = Server {
         client,
         sender: connection.sender.clone(),
+        port_sender,
+        port: None,
         next_request: 0,
         pending: HashMap::new(),
         message: None,
@@ -563,17 +569,25 @@ pub fn run(connection: Connection) -> Result<()> {
     if server.running.is_some() {
         server.publish_clock();
     }
-    for message in &connection.receiver {
-        match message {
-            Message::Request(request) => {
-                if connection.handle_shutdown(&request)? {
-                    break;
+    loop {
+        crossbeam_channel::select! {
+            recv(connection.receiver) -> message => match message {
+                Ok(Message::Request(request)) => {
+                    if connection.handle_shutdown(&request)? {
+                        break;
+                    }
+                    let response = server.request(request);
+                    connection.sender.send(Message::Response(response))?;
                 }
-                let response = server.request(request);
-                connection.sender.send(Message::Response(response))?;
+                Ok(Message::Notification(notification)) => server.notification(notification),
+                Ok(Message::Response(response)) => server.response(response),
+                Err(_) => break,
+            },
+            recv(port_receiver) -> command => {
+                if let Ok(command) = command {
+                    server.run_from_port(command);
+                }
             }
-            Message::Notification(notification) => server.notification(notification),
-            Message::Response(response) => server.response(response),
         }
     }
     server.remove_view_file();
@@ -1206,27 +1220,9 @@ impl Server {
         // With `commandActions`, what an editor runs from keys.
         let more = self.client.command_actions;
         if self.is_view(uri) && more {
-            // Every command the agenda has a key for, on every line, in
-            // one order: the client's keymap picks them by their place.
-            let actions = commands::agenda_menu()
-                .into_iter()
-                .filter(|(id, _)| actions::requested(id, only))
-                .map(|(id, keys)| {
-                    let title = format!("{keys}: {}", commands::title(id));
-                    CodeActionOrCommand::CodeAction(CodeAction {
-                        title: title.clone(),
-                        kind: Some(CodeActionKind::new(id)),
-                        command: Some(lsp_types::Command {
-                            title,
-                            command: id.to_string(),
-                            arguments: Some(vec![context.clone()]),
-                        }),
-                        ..Default::default()
-                    })
-                })
-                .chain([as_action(commands::AGENDA_DISPATCH)])
-                .collect();
-            return Some(actions);
+            // The agenda's file is read-only, where Zed runs no code
+            // action; its keys go through the command port instead.
+            return Some(Vec::new());
         }
         if self.is_view(uri) {
             // On an agenda line the actions are commands: the server
@@ -1673,6 +1669,7 @@ impl Server {
                 let directory = temp_dir().join(format!("org-lsp-{}", std::process::id()));
                 let file = directory.join(views::FILE_NAME);
                 if std::fs::create_dir_all(&directory).is_ok() {
+                    self.open_port(&directory);
                     if let Some(uri) = uri::from_path(&file) {
                         self.view = Some(OpenView { uri, file: Some(file), view, client: None, shown: None });
                     }
@@ -1681,17 +1678,47 @@ impl Server {
         }
     }
 
+    /// Open the command port next to the agenda's file, for a client that
+    /// cannot run a command from a key (`commandActions`).
+    fn open_port(&mut self, directory: &Path) {
+        if !self.client.command_actions || self.port.is_some() {
+            return;
+        }
+        match port::open(directory, self.port_sender.clone()) {
+            Ok(script) => self.port = Some(script),
+            Err(error) => self.show_message(MessageType::ERROR, format!("Cannot open the command port: {error}")),
+        }
+    }
+
+    /// Run a command the port was sent, where it says in the agenda, as
+    /// `workspace/executeCommand` runs it.
+    fn run_from_port(&mut self, sent: port::Command) {
+        let Some(uri) = self.view.as_ref().map(|open| open.uri.clone()) else { return };
+        let argument = json!({
+            "textDocument": { "uri": uri },
+            "position": { "line": sent.line, "character": sent.character },
+        });
+        let params = ExecuteCommandParams {
+            command: sent.command.clone(),
+            arguments: vec![argument.clone()],
+            work_done_progress_params: Default::default(),
+        };
+        match self.run_command(params) {
+            Ok(value) => {
+                if self.client.message_prompts {
+                    self.prompt_with_messages(sent.command, argument, &value);
+                }
+            }
+            Err(refusal) => self.show_message(MessageType::INFO, refusal.message().to_string()),
+        }
+    }
+
     /// Tell the client that the view has new text.
     fn publish_view(&mut self) {
         let Some(open) = &self.view else { return };
         match &open.file {
             Some(file) => {
-                let written = if self.client.read_only_agenda {
-                    write_read_only(file, &open.view.text)
-                } else {
-                    set_writable_if_present(file).and_then(|()| std::fs::write(file, &open.view.text))
-                };
-                if let Err(error) = written {
+                if let Err(error) = write_read_only(file, &open.view.text) {
                     self.show_message(MessageType::ERROR, format!("Cannot write the agenda: {error}"));
                 }
             }
@@ -1790,6 +1817,9 @@ impl Server {
             // Windows does not remove a read-only file.
             let _ = set_writable(file);
             let _ = std::fs::remove_file(file);
+            if let Some(script) = &self.port {
+                let _ = std::fs::remove_file(script);
+            }
             if let Some(directory) = file.parent() {
                 let _ = std::fs::remove_dir(directory);
             }
