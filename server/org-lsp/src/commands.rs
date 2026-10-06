@@ -58,6 +58,9 @@ const fn key(scope: Scope, key: &'static str) -> Key {
     Key { scope, key, native: false, insert: false, append: false }
 }
 
+/// How a leader key of Org files is listed for the agenda.
+const AGENDA_LEADER: Key = key(Scope::Agenda, "");
+
 const fn native(scope: Scope, key: &'static str) -> Key {
     Key { scope, key, native: true, insert: false, append: false }
 }
@@ -570,8 +573,24 @@ pub fn manifest() -> Value {
                 .filter(|key| key.scope == Scope::Agenda)
                 .map(|key| (vim_notation(key.key), key))
                 .collect();
+            // With the vim preset, a command of the agenda's also has the
+            // leader keys it has in Org files (`<Leader>ois`), where the
+            // hands look for them. Editors that cannot bind the leader
+            // leave them out, so the agenda's keys stay the same there.
+            let leader: Vec<(String, &Key)> = if agenda.is_empty() {
+                Vec::new()
+            } else {
+                command
+                    .vim
+                    .iter()
+                    .filter(|key| {
+                        key.scope == Scope::Org && key.key.starts_with("<Leader>") && !key.insert && !key.append
+                    })
+                    .map(|key| (key.key.to_string(), &AGENDA_LEADER))
+                    .collect()
+            };
             let emacs = command.emacs.iter().map(|key| (key.key.to_string(), key));
-            let vim = command.vim.iter().map(|key| (key.key.to_string(), key)).chain(agenda);
+            let vim = command.vim.iter().map(|key| (key.key.to_string(), key)).chain(agenda).chain(leader);
             let keys: Vec<Value> = [("emacs", emacs.collect::<Vec<_>>()), ("vim", vim.collect())]
                 .into_iter()
                 .flat_map(|(preset, keys)| {
@@ -706,7 +725,12 @@ mod tests {
         };
         let emacs = keys("emacs");
         assert!(emacs.contains(&("org.agenda.later".to_string(), "f".to_string())));
-        assert_eq!(emacs.len(), keys("vim").len());
+        // The same keys, and with the vim preset the leader keys of Org
+        // files besides.
+        let vim: Vec<(String, String)> =
+            keys("vim").into_iter().filter(|(_, key)| !key.starts_with("<Leader>")).collect();
+        assert_eq!(emacs.len(), vim.len());
+        assert!(keys("vim").contains(&("org.schedule".to_string(), "<Leader>ois".to_string())));
         assert!(COMMANDS.iter().all(|command| command.vim.iter().all(|key| key.scope != Scope::Agenda)));
     }
 

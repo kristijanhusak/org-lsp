@@ -640,5 +640,25 @@ end)
 check(vim.tbl_contains(vim.fn.readfile(work .. '_archive'), '* TODO Written elsewhere'), 'in the archive file')
 press('q')
 
+-- 15. With `,` as the leader, `,` (priority) waits for the leader keys of
+-- Org files, which the agenda has as well: `<Leader>ois` schedules.
+vim.g.mapleader = ','
+org_lsp.setup({ win_split_mode = 'split' })
+press('<F7>')
+wait_for_view('Global list of TODO items of type: ALL')
+eq(vim.fn.maparg(',', 'n', false, true).nowait, 0, '`,` waits for the leader keys')
+check(vim.fn.maparg(',ois', 'n') ~= '', 'the leader keys of Org files in the agenda')
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press(',ois')
+wait('the calendar of the schedule prompt', function()
+  return vim.bo.filetype == 'org-date'
+end)
+press('q')
+wait('the calendar to go', function()
+  return vim.bo.filetype ~= 'org-date'
+end)
+only_window()
+vim.g.mapleader = nil
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

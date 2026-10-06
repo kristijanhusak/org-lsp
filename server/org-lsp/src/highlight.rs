@@ -203,6 +203,19 @@ impl Walker<'_> {
     fn element(&mut self, parent: &SyntaxNode, element: SyntaxElement, style: Style) {
         let range = element.text_range();
         match element {
+            // Timestamps in a property's value, as `org-activate-dates`
+            // colors them wherever they are.
+            SyntaxElement::Token(token) if token.kind() == PROPERTY_VALUE => {
+                for (start, end) in timestamps_in(token.text()) {
+                    let at = |offset: usize| range.start() + TextSize::from(offset as u32);
+                    let inactive = token.text()[start..].starts_with('[');
+                    self.push(
+                        TextRange::new(at(start), at(end)),
+                        TokenType::Timestamp,
+                        if inactive { modifier::INACTIVE } else { 0 },
+                    );
+                }
+            }
             SyntaxElement::Token(token) => {
                 if let Some((ty, modifiers)) = self.token_style(parent.kind(), token.kind(), token.text(), style) {
                     self.push(range, ty, modifiers);
@@ -477,6 +490,56 @@ fn inline_src_body(text: &str) -> Option<(usize, usize)> {
     (text[at..].starts_with('{') && text.ends_with('}') && at + 1 < text.len() - 1).then(|| (at + 1, text.len() - 1))
 }
 
+/// Where `org-tsr-regexp-both` matches in `text`: a timestamp
+/// (`<2026-05-18 Mon>`, `[2026-05-18]`) or a range of two, not right
+/// after a `[`, as `org-activate-dates` finds them.
+fn timestamps_in(text: &str) -> Vec<(usize, usize)> {
+    let bytes = text.as_bytes();
+    // One timestamp starting at `at`: where it ends.
+    let stamp = |at: usize| -> Option<usize> {
+        if !matches!(bytes.get(at), Some(b'<' | b'[')) {
+            return None;
+        }
+        let date = bytes.get(at + 1..at + 11)?;
+        let digits = |range: std::ops::Range<usize>| date[range].iter().all(u8::is_ascii_digit);
+        if !(digits(0..4) && date[4] == b'-' && digits(5..7) && date[7] == b'-' && digits(8..10)) {
+            return None;
+        }
+        let mut end = at + 11;
+        if !matches!(bytes.get(end), Some(b'>' | b']')) {
+            // ` ` and the fewest characters up to a closing bracket.
+            if bytes.get(end) != Some(&b' ') {
+                return None;
+            }
+            end += 1 + text[end + 1..].find(['>', ']', '\n'])?;
+            if bytes[end] == b'\n' {
+                return None;
+            }
+        }
+        Some(end + 1)
+    };
+    let mut found = Vec::new();
+    let mut at = 0;
+    while at < bytes.len() {
+        let after_bracket = at > 0 && bytes[at - 1] == b'[';
+        match stamp(at).filter(|_| !after_bracket) {
+            Some(mut end) => {
+                // `--?-?` and a second timestamp make a range.
+                let dashes = bytes[end..].iter().take(3).take_while(|b| **b == b'-').count();
+                if dashes > 0 {
+                    if let Some(second) = stamp(end + dashes) {
+                        end = second;
+                    }
+                }
+                found.push((at, end));
+                at = end;
+            }
+            None => at += text[at..].chars().next().map_or(1, char::len_utf8),
+        }
+    }
+    found
+}
+
 #[cfg(test)]
 mod tests {
     use expect_test::{expect, Expect};
@@ -526,6 +589,21 @@ mod tests {
 
     fn check(text: &str, expected: Expect) {
         expected.assert_eq(&render(text, Encoding::Utf16));
+    }
+
+    #[test]
+    fn timestamps_in_property_values() {
+        check(
+            ":PROPERTIES:\n:CREATED: [2026-05-18 Mon 10:30]\n:SPAN: <2026-05-18>--<2026-05-20> and [[2026-01-01]]\n:END:\n",
+            expect![[r#"
+                0:0 ":PROPERTIES:" drawer
+                1:0 ":CREATED:" property
+                1:10 "[2026-05-18 Mon 10:30]" timestamp +inactive
+                2:0 ":SPAN:" property
+                2:7 "<2026-05-18>--<2026-05-20>" timestamp
+                3:0 ":END:" drawer
+            "#]],
+        );
     }
 
     #[test]
