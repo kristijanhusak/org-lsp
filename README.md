@@ -21,6 +21,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Folding | yes, with `<Tab>` / `<S-Tab>` cycling | yes | no² |
 | Concealing: links show their description, emphasis markers can hide (`org-link-descriptive`, `org-hide-emphasis-markers`) | yes | yes | no¹ |
 | Outline (document symbols) | yes | yes | yes |
+| Indentation, as `org-indent-line` and `org-indent-region` do it, under `adaptIndentation` (`org-adapt-indentation`); what commands write is indented the same way | new lines (`indentexpr`), `=` | new lines (format on type), Format Selection | `=` |
 | TODO state changes, as `org-todo` does them, with fast selection by key and notes (`TODO(t)`, `WAIT(w@/!)`) | `cit` / `ciT`, repeatable with `.` | commands, `Ctrl+.` | `Space a` |
 | Priorities, as `org-priority` changes them | `ciR` / `cir`, `<Leader>o,` | commands, `Ctrl+.` | `Space a` |
 | Timestamps: the part at the cursor, or the date by days | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>`, with counts | commands, `Ctrl+.` | `Space a` |
@@ -208,11 +209,13 @@ scripts/update-fold-fixtures.py            # what folding a subtree hides
 scripts/update-read-date-fixtures.py       # answers to the date prompt
 scripts/update-planning-fixtures.py        # schedule, deadline, timestamps
 scripts/update-calendar-fixtures.sh        # the calendar of the date prompt
+scripts/update-indent-fixtures.py          # org-indent-line and org-indent-region
 ```
 
 `scripts/fuzz-against-emacs.py`, `fuzz-agenda.py`, `fuzz-todo.py`,
-`fuzz-shift.py`, `fuzz-fold.py`, `fuzz-read-date.py` and
-`fuzz-planning.py` generate random documents (or answers) and compare
+`fuzz-shift.py`, `fuzz-fold.py`, `fuzz-read-date.py`,
+`fuzz-planning.py` and `fuzz-indent.py` generate random documents (or
+answers) and compare
 both programs on them. See
 `docs/parser.md`.
 

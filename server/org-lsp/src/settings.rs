@@ -267,6 +267,29 @@ pub const SETTINGS: &[Setting] = &[
          all of them stay outside. `0`: none does.",
     ),
     setting(
+        "adaptIndentation",
+        "boolean | \"headline-data\"",
+        "false",
+        "org-adapt-indentation",
+        "Indent the lines of an entry past its headline's stars: `true` for all of them, `\"headline-data\"` for \
+         the planning line, drawers and clock lines right below the headline. Applies to new lines, to \
+         re-indenting (range formatting) and to what commands write.",
+    ),
+    setting(
+        "srcPreserveIndentation",
+        "boolean",
+        "false",
+        "org-src-preserve-indentation",
+        "Leave the code of source blocks as it is indented when re-indenting.",
+    ),
+    setting(
+        "editSrcContentIndentation",
+        "number",
+        "2",
+        "org-edit-src-content-indentation",
+        "How far code is indented past its source block when re-indenting.",
+    ),
+    setting(
         "agenda.span",
         r#""day", "week", "fortnight", "month", "year", or a number of days"#,
         r#""week""#,
@@ -546,6 +569,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("hideEmphasisMarkers", BOOLEAN),
     ("autoSave", BOOLEAN),
     ("cycleSeparatorLines", r#"{ "type": "integer" }"#),
+    ("adaptIndentation", r#"{ "enum": [true, false, "headline-data"] }"#),
+    ("srcPreserveIndentation", BOOLEAN),
+    ("editSrcContentIndentation", r#"{ "type": "integer", "minimum": 0 }"#),
     (
         "agenda.span",
         r#"{ "anyOf": [{ "enum": ["day", "week", "fortnight", "month", "year"] }, { "type": "integer", "minimum": 1 }] }"#,

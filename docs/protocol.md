@@ -85,6 +85,9 @@ the editor's own syntax.
 | `hideEmphasisMarkers` | boolean | `false` | Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~`, as for links. (`org-hide-emphasis-markers`) |
 | `autoSave` | boolean | `true` | Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them. |
 | `cycleSeparatorLines` | number | `2` | With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`) |
+| `adaptIndentation` | boolean \| "headline-data" | `false` | Indent the lines of an entry past its headline's stars: `true` for all of them, `"headline-data"` for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (`org-adapt-indentation`) |
+| `srcPreserveIndentation` | boolean | `false` | Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`) |
+| `editSrcContentIndentation` | number | `2` | How far code is indented past its source block when re-indenting. (`org-edit-src-content-indentation`) |
 | `agenda.span` | "day", "week", "fortnight", "month", "year", or a number of days | `"week"` | How much time the agenda shows. (`org-agenda-span`) |
 | `agenda.startOnWeekday` | 0 to 6 (0 is Sunday), or false | `1` | The day a week or fortnight starts on; `false` starts it today. (`org-agenda-start-on-weekday`) |
 | `agenda.deadlineWarningDays` | number | `14` | How many days before a deadline it shows up. (`org-deadline-warning-days`) |

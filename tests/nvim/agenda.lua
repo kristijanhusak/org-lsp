@@ -204,14 +204,14 @@ vim.api.nvim_win_set_cursor(0, { 17, 0 })
 press('vd')
 wait_for_view('Day-agenda (W21):')
 eq(lines(), { 'Day-agenda (W21):', 'Wednesday  20 May 2026', '  work:       Deadline:   TODO Call the client' }, 'day view of the day under the cursor')
--- The month view is much longer: the cursor must land on today's line of
--- the new text, not on a line of the old one.
+-- The month view is much longer: the cursor must land on the day it was
+-- on in the new text, not on a line of the old one.
 press('vm')
 wait_for_view('Month-agenda (W18-W22):')
-wait_for_cursor('Monday     18 May 2026 W21')
+wait_for_cursor('Wednesday  20 May 2026')
 press('vw')
 wait_for_view('Week-agenda (W21):')
-wait_for_cursor('Monday     18 May 2026 W21')
+wait_for_cursor('Wednesday  20 May 2026')
 
 -- 4b. `J` goes to a date picked in the calendar (`org-agenda-goto-date`):
 -- the week of that day, with the cursor on it.

@@ -209,6 +209,20 @@ them out:
     // (org-cycle-separator-lines)
     "cycleSeparatorLines": 2,
 
+    // Indent the lines of an entry past its headline's stars: `true` for all
+    // of them, `"headline-data"` for the planning line, drawers and clock
+    // lines right below the headline. Applies to new lines, to re-indenting
+    // (range formatting) and to what commands write. (org-adapt-indentation)
+    "adaptIndentation": false,
+
+    // Leave the code of source blocks as it is indented when re-indenting.
+    // (org-src-preserve-indentation)
+    "srcPreserveIndentation": false,
+
+    // How far code is indented past its source block when re-indenting.
+    // (org-edit-src-content-indentation)
+    "editSrcContentIndentation": 2,
+
     "agenda": {
       // How much time the agenda shows. (org-agenda-span)
       "span": "week",

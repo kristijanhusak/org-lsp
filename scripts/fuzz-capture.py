@@ -72,6 +72,8 @@ def case(rng):
            "typed": rng.choice(["x", "Call Bob", "", "line\nmore"])}
     if "%^" in template:
         out["answers"] = [rng.choice(["Title", ""]), rng.choice(["fri", "+2d", "2026-06-01 10:00"])]
+    if rng.random() < 0.35:
+        out["options"] = {"adaptIndentation": rng.choice([True, "headline-data", False])}
     return out
 
 

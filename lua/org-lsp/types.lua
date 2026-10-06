@@ -34,6 +34,9 @@
 ---@field hideEmphasisMarkers? boolean Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~`, as for links. (`org-hide-emphasis-markers`)
 ---@field autoSave? boolean Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them.
 ---@field cycleSeparatorLines? integer With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`)
+---@field adaptIndentation? true|false|'headline-data' Indent the lines of an entry past its headline's stars: `true` for all of them, `"headline-data"` for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (`org-adapt-indentation`)
+---@field srcPreserveIndentation? boolean Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)
+---@field editSrcContentIndentation? integer How far code is indented past its source block when re-indenting. (`org-edit-src-content-indentation`)
 ---@field agenda? org_lsp.Settings.Agenda
 
 --- The options under `agenda`.

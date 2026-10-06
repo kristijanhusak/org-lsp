@@ -363,6 +363,8 @@ struct Server {
     prompt_copy: Option<Document>,
     /// `org-cycle-separator-lines`
     separator_lines: i64,
+    /// `org-adapt-indentation` and its relatives.
+    indent: org_core::indent::Settings,
     /// A fixed clock, for tests.
     clock: Option<Now>,
     /// The clock that runs, as the files say.
@@ -488,6 +490,7 @@ pub fn run(connection: Connection) -> Result<()> {
         date_prompt: None,
         prompt_copy: None,
         separator_lines: options.separator_lines(),
+        indent: options.indent_settings(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
         running: None,
         clock_pending: false,
@@ -635,9 +638,21 @@ fn capabilities(encoding: Encoding) -> ServerCapabilities {
             ..Default::default()
         })),
         execute_command_provider: Some(ExecuteCommandOptions { commands: commands::ids(), ..Default::default() }),
+        // `org-indent-line` on a new line, `org-indent-region` on a range.
+        document_on_type_formatting_provider: Some(lsp_types::DocumentOnTypeFormattingOptions {
+            first_trigger_character: "\n".to_string(),
+            more_trigger_character: None,
+        }),
+        document_range_formatting_provider: Some(OneOf::Left(true)),
         experimental: Some(json!({ "org": manifest::manifest() })),
         ..Default::default()
     }
+}
+
+/// An edit of `org_core::indent` as the client counts positions.
+fn indent_edit(text: &str, index: &LineIndex, encoding: Encoding, edit: org_core::indent::Edit) -> TextEdit {
+    let range = org_syntax::TextRange::new((edit.start as u32).into(), (edit.end as u32).into());
+    TextEdit { range: index.range(text, range, encoding), new_text: edit.text }
 }
 
 /// Parse the parameters of `request`, or produce the error response.
@@ -854,6 +869,8 @@ impl Server {
             CodeActionRequest => code_actions,
             GotoDefinition => definition,
             lsp_types::request::Completion => completion,
+            lsp_types::request::OnTypeFormatting => on_type_formatting,
+            lsp_types::request::RangeFormatting => range_formatting,
         }
     }
 
@@ -1119,6 +1136,29 @@ impl Server {
     }
 
     /// Completion as Org's `pcomplete` offers it, and file names in links.
+    /// `org-indent-line` on the line the cursor is on once a key was typed:
+    /// a new line, after `RET`.
+    fn on_type_formatting(&mut self, params: lsp_types::DocumentOnTypeFormattingParams) -> Option<Vec<TextEdit>> {
+        let position = params.text_document_position;
+        let encoding = self.client.encoding;
+        let document = self.document(&position.text_document.uri)?;
+        let (text, index) = (&document.text, &document.index);
+        let offset = index.offset(text, Position::new(position.position.line, 0), encoding);
+        let edit = org_core::indent::indent_line(text, offset, &self.indent);
+        Some(edit.into_iter().map(|edit| indent_edit(text, index, encoding, edit)).collect())
+    }
+
+    /// `org-indent-region` over the lines of the range.
+    fn range_formatting(&mut self, params: lsp_types::DocumentRangeFormattingParams) -> Option<Vec<TextEdit>> {
+        let encoding = self.client.encoding;
+        let document = self.document(&params.text_document.uri)?;
+        let (text, index) = (&document.text, &document.index);
+        let start = index.offset(text, params.range.start, encoding);
+        let end = index.offset(text, params.range.end, encoding);
+        let edits = org_core::indent::indent_region(text, start, end, &self.indent);
+        Some(edits.into_iter().map(|edit| indent_edit(text, index, encoding, edit)).collect())
+    }
+
     fn completion(&mut self, params: lsp_types::CompletionParams) -> Option<lsp_types::CompletionResponse> {
         let position = params.text_document_position;
         let encoding = self.client.encoding;
@@ -1658,7 +1698,8 @@ impl Server {
         self.last = Some(Last { command: id.to_string(), file: key.clone(), heading: None });
         let now = self.date_time();
         let text = &source.text;
-        let outcome = planning::run(command, text, source.offset, answer, repeated, now, &self.read_date)?;
+        let outcome =
+            planning::run(command, text, source.offset, answer, repeated, now, &self.read_date, self.indent.adapt)?;
         let encoding = self.client.encoding;
         let index = LineIndex::new(text);
         let edits: Vec<TextEdit> = actions::edits_between(text, &outcome.text)
@@ -2388,8 +2429,8 @@ impl Server {
             empty_lines_before: template.empty_lines_before,
             empty_lines_after: template.empty_lines_after,
         };
-        let tags_column = self.edit_settings.todo.tags_column;
-        let placed = capture::place(&snapshot, &keywords, &target, kind, &filled, &properties, tags_column)?;
+        let levels = self.refile.2;
+        let placed = capture::place(&snapshot, &keywords, &target, kind, &filled, &properties, &levels)?;
         if template.immediate_finish == Some(true) {
             let done = placed.finish(placed.shown());
             self.apply_capture(&target_uri, version, &snapshot, &done);
@@ -2524,8 +2565,8 @@ impl Server {
             capture.placed.finish(&edited)
         } else {
             let (target, kind, properties) = &capture.spec;
-            let tags_column = self.edit_settings.todo.tags_column;
-            let placed = capture::place(&now, &keywords, target, *kind, &edited, properties, tags_column)?;
+            let levels = self.refile.2;
+            let placed = capture::place(&now, &keywords, target, *kind, &edited, properties, &levels)?;
             placed.finish(placed.shown())
         };
         Ok((now, version, done))

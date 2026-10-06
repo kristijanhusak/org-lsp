@@ -488,3 +488,52 @@ fn binary_prints_its_version_and_rejects_unknown_arguments() {
     assert_eq!(unknown.status.code(), Some(2));
     assert!(String::from_utf8(unknown.stderr).unwrap().contains("unknown argument"));
 }
+
+/// `org-indent-line` on a new line (on-type formatting after `RET`) and
+/// `org-indent-region` on a range, under `adaptIndentation`.
+#[test]
+fn indents_new_lines_and_ranges() {
+    let mut client = Client::start(json!({}), json!({ "adaptIndentation": true }));
+    let capabilities = serde_json::to_value(&client.initialize.capabilities).unwrap();
+    assert_eq!(capabilities["documentOnTypeFormattingProvider"]["firstTriggerCharacter"], "\n");
+    assert_eq!(capabilities["documentRangeFormattingProvider"], true);
+    client.open(&uri(), "** Entry\n\n- item\n\nText\n");
+    let on_type = |client: &mut Client, line: u32, character: u32| {
+        client.request::<lsp_types::request::OnTypeFormatting>(lsp_types::DocumentOnTypeFormattingParams {
+            text_document_position: lsp_types::TextDocumentPositionParams {
+                text_document: identifier(),
+                position: Position::new(line, character),
+            },
+            ch: "\n".to_string(),
+            options: lsp_types::FormattingOptions { tab_size: 8, insert_spaces: true, ..Default::default() },
+        })
+    };
+    // The blank line below the headline: past the stars.
+    let edits = on_type(&mut client, 1, 0).unwrap();
+    assert_eq!(edits.len(), 1);
+    assert_eq!(edits[0].range, Range::new(Position::new(1, 0), Position::new(1, 0)));
+    assert_eq!(edits[0].new_text, "   ");
+    // A list item stays where it is.
+    assert_eq!(on_type(&mut client, 2, 0), Some(vec![]));
+
+    // Re-indented, and the property aligned.
+    client.notify::<lsp_types::notification::DidChangeTextDocument>(lsp_types::DidChangeTextDocumentParams {
+        text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri(), version: 2 },
+        content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+            range: None,
+            range_length: None,
+            text: "** Entry\n:PROPERTIES:\n:ID: x\n:END:\n- item\n\nText\n".to_string(),
+        }],
+    });
+    let edits = client
+        .request::<lsp_types::request::RangeFormatting>(lsp_types::DocumentRangeFormattingParams {
+            text_document: identifier(),
+            range: Range::new(Position::new(0, 0), Position::new(7, 0)),
+            options: lsp_types::FormattingOptions { tab_size: 8, insert_spaces: true, ..Default::default() },
+            work_done_progress_params: Default::default(),
+        })
+        .unwrap();
+    let changed: Vec<(u32, &str)> = edits.iter().map(|edit| (edit.range.start.line, edit.new_text.as_str())).collect();
+    assert_eq!(changed, [(1, "   "), (2, "   :ID:       x"), (3, "   "), (4, "   "), (6, "   ")]);
+    client.shutdown();
+}

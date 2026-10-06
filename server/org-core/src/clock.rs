@@ -8,6 +8,7 @@
 use org_syntax::TodoKeywords;
 
 use crate::date::DateTime;
+use crate::indent::Adapt;
 use crate::stamp::format_timestamp;
 use crate::timestr::parse_time_string;
 use crate::todo::{headline_level, Editor, Settings as TodoSettings};
@@ -20,11 +21,16 @@ pub struct Settings {
     pub drawer: Option<String>,
     /// `org-clock-out-remove-zero-time-clocks`
     pub remove_zero: bool,
+    /// `org-adapt-indentation`
+    pub adapt: Adapt,
+    /// `org-log-into-drawer`, which says whether a drawer is headline data
+    /// to indentation.
+    pub log_into_drawer: Option<String>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { drawer: Some("LOGBOOK".to_string()), remove_zero: false }
+        Settings { drawer: Some("LOGBOOK".to_string()), remove_zero: false, adapt: Adapt::Off, log_into_drawer: None }
     }
 }
 
@@ -181,20 +187,30 @@ pub fn clock_in(
     settings: &Settings,
     now: DateTime,
 ) -> Result<(String, usize), String> {
-    let todo_settings = TodoSettings::default();
+    let todo_settings = TodoSettings {
+        adapt: settings.adapt,
+        log_into_drawer: settings.log_into_drawer.clone(),
+        ..TodoSettings::default()
+    };
     let mut editor = Editor::new(text, keywords, &todo_settings, now);
     editor.go_to_heading(offset)?;
     let end = editor.entry_end();
     let line_text = format!("CLOCK: {}", clock_stamp(now));
+    // The `CLOCK:` line at the start of the line `at`, indented by
+    // `org-indent-line`.
+    let insert = |editor: &mut Editor, at: usize| {
+        editor.replace(at, at, &format!("{line_text}\n"));
+        editor.indent_line(at);
+        at
+    };
 
     // An existing drawer: at its top.
     if let Some(drawer) = settings.drawer.as_deref() {
         let mut line = editor.next_line(editor.heading);
         while line < end && line > editor.heading {
             if opens(editor.line(line), drawer) && editor.drawer_closes(line, end) {
-                let indent: String = editor.line(line).chars().take_while(|c| matches!(c, ' ' | '\t')).collect();
                 let at = editor.next_line(line);
-                editor.replace(at, at, &format!("{indent}{line_text}\n"));
+                let at = insert(&mut editor, at);
                 return Ok((editor.text, at));
             }
             let next = editor.next_line(line);
@@ -224,16 +240,21 @@ pub fn clock_in(
         (None, first) => {
             let at = first.copied().unwrap_or(meta);
             let (at, prefix) = line_start_for(&editor.text, at);
-            editor.replace(at, at, &format!("{prefix}{line_text}\n"));
-            Ok((editor.text, at + prefix.len()))
+            editor.replace(at, at, prefix);
+            let at = insert(&mut editor, at + prefix.len());
+            Ok((editor.text, at))
         }
-        // A new drawer.
+        // A new drawer, indented by `org-indent-region`, with the line in
+        // it.
         (Some(drawer), None) => {
             let (at, prefix) = line_start_for(&editor.text, meta);
-            let indent = editor.indentation_after(at);
-            let opening = format!("{indent}:{drawer}:\n");
-            editor.replace(at, at, &format!("{prefix}{opening}{indent}{line_text}\n{indent}:END:\n"));
-            Ok((editor.text, at + prefix.len() + opening.len()))
+            editor.replace(at, at, &format!("{prefix}:{drawer}:\n:END:\n"));
+            let start = at + prefix.len();
+            let end = editor.next_line(editor.next_line(start));
+            editor.indent_region(start, end);
+            let at = editor.next_line(start);
+            let at = insert(&mut editor, at);
+            Ok((editor.text, at))
         }
         // A new drawer, with the clock lines of the entry moved into it.
         (Some(drawer), Some(_)) => {
@@ -244,16 +265,29 @@ pub fn clock_in(
             }
             let meta = editor.end_of_meta_data();
             let (at, prefix) = line_start_for(&editor.text, meta);
-            // Emacs puts the new line after the ones it moved.
             let mut drawer_text = format!("{prefix}:{drawer}:\n");
-            for line in moved {
-                drawer_text.push_str(&line);
+            for line in &moved {
+                drawer_text.push_str(line);
                 drawer_text.push('\n');
             }
-            let line = at + drawer_text.len();
-            drawer_text.push_str(&format!("{line_text}\n:END:\n"));
+            drawer_text.push_str(":END:\n");
             editor.replace(at, at, &drawer_text);
-            Ok((editor.text, line))
+            let start = at + prefix.len();
+            let mut end_line = start;
+            for _ in 0..=moved.len() {
+                end_line = editor.next_line(end_line);
+            }
+            // Emacs's `org-indent-region` starts below the drawer's first
+            // line: the marker of the point it saved moved past it.
+            let first = editor.next_line(start);
+            editor.indent_region(first, editor.next_line(end_line));
+            // Emacs puts the new line after the ones it moved.
+            let mut line = start;
+            for _ in 0..=moved.len() {
+                line = editor.next_line(line);
+            }
+            let at = insert(&mut editor, line);
+            Ok((editor.text, at))
         }
     }
 }
@@ -446,6 +480,43 @@ mod tests {
         assert_eq!(parse_line("CLOCK: => 1:30").unwrap().minutes, Some(90));
         assert_eq!(parse_line("Some CLOCK: text"), None);
         assert_eq!(running("* a\n:LOGBOOK:\nCLOCK: [2026-10-05 Mon 10:30]\n:END:\n"), [(14, at(10, 30))]);
+    }
+
+    /// What Emacs 29 with Org 9.8 writes for `org-clock-in` under
+    /// `org-adapt-indentation`, clock lines shown as `CLOCK: STAMP`.
+    #[test]
+    fn indents_what_it_writes_as_org_does() {
+        let stamp = regex::Regex::new(r"CLOCK: \[[^]]*\](--\[[^]]*\] => +[0-9:]+)?").unwrap();
+        let cases = [
+            ("** Task\nBody\n", Adapt::All, true, "** Task\n   :LOGBOOK:\n   CLOCK: STAMP\n   :END:\nBody\n"),
+            ("** Task\nBody\n", Adapt::HeadlineData, true, "** Task\n   :LOGBOOK:\n   CLOCK: STAMP\n   :END:\nBody\n"),
+            ("** Task\nBody\n", Adapt::Off, true, "** Task\n:LOGBOOK:\nCLOCK: STAMP\n:END:\nBody\n"),
+            (
+                "** Task\nSCHEDULED: <2026-10-05 Mon>\nBody\n",
+                Adapt::All,
+                true,
+                "** Task\nSCHEDULED: <2026-10-05 Mon>\n:LOGBOOK:\nCLOCK: STAMP\n:END:\nBody\n",
+            ),
+            (
+                "** Task\n   :LOGBOOK:\n   CLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n   :END:\n",
+                Adapt::All,
+                true,
+                "** Task\n   :LOGBOOK:\n   CLOCK: STAMP\n   CLOCK: STAMP\n   :END:\n",
+            ),
+            (
+                "** Task\nCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\nBody\n",
+                Adapt::All,
+                true,
+                "** Task\n:LOGBOOK:\nCLOCK: STAMP\nCLOCK: STAMP\n:END:\nBody\n",
+            ),
+            ("** Task\nBody\n", Adapt::All, false, "** Task\n   CLOCK: STAMP\nBody\n"),
+            ("** Task\n   Body\n", Adapt::HeadlineData, false, "** Task\n   CLOCK: STAMP\n   Body\n"),
+        ];
+        for (text, adapt, drawer, expected) in cases {
+            let settings = Settings { adapt, drawer: drawer.then(|| "LOGBOOK".to_string()), ..Settings::default() };
+            let out = clock_in_at(text, 0, &settings);
+            assert_eq!(stamp.replace_all(&out, "CLOCK: STAMP"), expected, "{text:?} {adapt:?} {drawer}");
+        }
     }
 
     #[test]

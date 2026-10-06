@@ -530,6 +530,27 @@ wait('the statusline to drop the clock', function()
   return require('org-lsp').clock_status() == ''
 end)
 
+-- 20. Indentation by the server: a line opened below a list item starts
+-- at the item's text, as Org's RET has it, and `==` re-indents a line as
+-- `org-indent-region` does. `gq` is left to wrap text.
+local indented = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* Head', '- item', '     stray' }, indented)
+vim.cmd.edit(indented)
+wait('the server to attach to the file to indent', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+eq(vim.bo.indentexpr, "v:lua.require'org-lsp.indent'.expr()", 'indentexpr asks the server')
+eq(vim.bo.formatexpr, '', 'gq wraps text')
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press('obody<Esc>')
+eq(line(3), '  body', 'a new line in a list item starts at its text')
+vim.api.nvim_win_set_cursor(0, { 4, 0 })
+press('==')
+wait('the stray line to be re-indented', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return line(4) == '  stray'
+end)
+
 -- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'

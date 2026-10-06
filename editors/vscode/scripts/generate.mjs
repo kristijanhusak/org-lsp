@@ -134,7 +134,9 @@ const editorDefaults = {
 };
 contributes.configurationDefaults = {
   ...contributes.configurationDefaults,
-  [`[${ORG}]`]: editorDefaults,
+  // New lines are indented by the server, as Org's RET does
+  // (`org-indent-line`, on-type formatting).
+  [`[${ORG}]`]: { ...editorDefaults, 'editor.formatOnType': true },
   // The agenda is a list to read, not code: no gutter, guides or wrapping.
   [`[${AGENDA}]`]: {
     ...editorDefaults,

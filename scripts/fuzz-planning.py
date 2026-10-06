@@ -49,6 +49,8 @@ def case(rng, now):
         out["repeated"] = True
     # The settings the date commands read; the others do not matter here.
     options = {key: value for key, value in base.get("options", {}).items() if key in ("logDone",)}
+    if rng.random() < 0.35:
+        options["adaptIndentation"] = rng.choice([True, "headline-data", False])
     if options:
         out["options"] = options
     return out

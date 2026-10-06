@@ -359,8 +359,18 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 ### 13. Diagnostics and formatting
 
-- `org-lint` checks as diagnostics. Document formatting (tags, tables,
-  indentation).
+- Done: indentation as Org does it. `org-indent-line` on new lines
+  (on-type formatting after a line break: `indentexpr` in Neovim, format
+  on type in VS Code), `org-indent-region` on a range (range formatting:
+  `=` in Neovim and Helix, Format Selection in VS Code), and
+  `adaptIndentation` (`org-adapt-indentation`, `t` or `headline-data`)
+  for what commands write: planning lines, drawers, notes, `CLOCK:`
+  lines, and the text of entries whose level changes on refile and
+  capture (`org-fixup-indentation`). Checked against Emacs in
+  `tests/indent` and in the TODO, planning, refile and capture cases.
+- Next: virtual indentation (`org-indent-mode`), then document
+  formatting (tables, tags).
+- `org-lint` checks as diagnostics.
 
 ### 14. Editors and distribution
 
@@ -429,6 +439,7 @@ previews.
   | Date prompt | `tests/read-date/cases.json` | `scripts/update-read-date-fixtures.py` | `scripts/fuzz-read-date.py` |
   | Commands that ask for a date | `tests/planning/cases.json` | `scripts/update-planning-fixtures.py` | `scripts/fuzz-planning.py` |
   | Calendar of the date prompt | `tests/calendar/emacs.txt` | `scripts/update-calendar-fixtures.sh` | |
+  | Indentation | `tests/indent/cases.json` | `scripts/update-indent-fixtures.py` | `scripts/fuzz-indent.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.
 - VS Code: in `editors/vscode`, `npm run generate -- --check`, `npm run

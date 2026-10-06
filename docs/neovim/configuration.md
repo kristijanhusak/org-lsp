@@ -73,6 +73,12 @@ require('org-lsp').setup({
   -- 'conceallevel' 2 in Org windows; the cursor line shows everything.
   conceal = true,
 
+  -- Indent as Org does, with the server: new lines through 'indentexpr'
+  -- (`org-indent-line`, as on RET), and `=` re-indents the lines it moves
+  -- over (`org-indent-region`). `gq` still wraps text. How far text goes
+  -- follows `adaptIndentation`.
+  indent = true,
+
   -- How the agenda and capture buffers open; see below.
   win_split_mode = 'split',
 
@@ -309,6 +315,20 @@ require('org-lsp').setup({
     -- outside its fold. Negative: all of them stay outside. `0`: none does.
     -- (org-cycle-separator-lines)
     cycleSeparatorLines = 2,
+
+    -- Indent the lines of an entry past its headline's stars: `true` for all
+    -- of them, `"headline-data"` for the planning line, drawers and clock
+    -- lines right below the headline. Applies to new lines, to re-indenting
+    -- (range formatting) and to what commands write. (org-adapt-indentation)
+    adaptIndentation = false,
+
+    -- Leave the code of source blocks as it is indented when re-indenting.
+    -- (org-src-preserve-indentation)
+    srcPreserveIndentation = false,
+
+    -- How far code is indented past its source block when re-indenting.
+    -- (org-edit-src-content-indentation)
+    editSrcContentIndentation = 2,
 
     agenda = {
       -- How much time the agenda shows. (org-agenda-span)

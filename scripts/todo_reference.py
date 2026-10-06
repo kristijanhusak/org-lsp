@@ -100,6 +100,8 @@ def bindings(options):
             out["org-tags-column"] = str(value)
         elif key == "todoRepeatToState":
             out["org-todo-repeat-to-state"] = lisp_value(value)
+        elif key == "adaptIndentation":
+            out["org-adapt-indentation"] = "'headline-data" if value == "headline-data" else lisp_value(value)
         elif key == "todoKeywords":
             out["org-todo-keywords"] = "'((sequence " + " ".join(lisp_string(word) for word in value) + "))"
         else:

@@ -172,6 +172,8 @@ class Generator:
             options["tagsColumn"] = self.pick([-80, -40, 0, 30, 77])
         if self.chance(0.15):
             options["todoRepeatToState"] = self.pick([True, keywords[0], keywords[-1]])
+        if self.chance(0.35):
+            options["adaptIndentation"] = self.pick([True, "headline-data", False])
         roll = self.rng.random()
         command = "next" if roll < 0.5 else "previous" if roll < 0.65 else {"state": self.pick(keywords)}
         case = {"clock": self.now.strftime("%Y-%m-%d %H:%M"), "text": text, "command": command}
