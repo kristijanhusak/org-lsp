@@ -658,6 +658,7 @@ fn capabilities(encoding: Encoding) -> ServerCapabilities {
             more_trigger_character: None,
         }),
         document_range_formatting_provider: Some(OneOf::Left(true)),
+        document_formatting_provider: Some(OneOf::Left(true)),
         experimental: Some(json!({ "org": manifest::manifest() })),
         ..Default::default()
     }
@@ -885,6 +886,7 @@ impl Server {
             lsp_types::request::Completion => completion,
             lsp_types::request::OnTypeFormatting => on_type_formatting,
             lsp_types::request::RangeFormatting => range_formatting,
+            lsp_types::request::Formatting => formatting,
         }
     }
 
@@ -1175,6 +1177,27 @@ impl Server {
         let end = index.offset(text, params.range.end, encoding);
         let edits = org_core::indent::indent_region(text, start, end, &self.indent_in(text));
         Some(edits.into_iter().map(|edit| indent_edit(text, index, encoding, edit)).collect())
+    }
+
+    /// Every table aligned (`org-table-align`) and every headline's tags
+    /// in their column (`org-align-tags`).
+    fn formatting(&mut self, params: lsp_types::DocumentFormattingParams) -> Option<Vec<TextEdit>> {
+        let encoding = self.client.encoding;
+        let settings = org_core::format::Settings { tags_column: self.refile.2.tags_column };
+        let document = self.document(&params.text_document.uri)?;
+        let (text, index) = (&document.text, &document.index);
+        let starts: Vec<usize> = std::iter::once(0).chain(text.match_indices('\n').map(|(at, _)| at + 1)).collect();
+        let changes = org_core::format::format(text, document.parse.todo_keywords(), &settings);
+        Some(
+            changes
+                .into_iter()
+                .map(|(line, new)| {
+                    let start = starts[line];
+                    let end = text[start..].find('\n').map_or(text.len(), |at| start + at);
+                    indent_edit(text, index, encoding, org_core::indent::Edit { start, end, text: new })
+                })
+                .collect(),
+        )
     }
 
     fn completion(&mut self, params: lsp_types::CompletionParams) -> Option<lsp_types::CompletionResponse> {

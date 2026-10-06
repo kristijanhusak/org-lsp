@@ -15,27 +15,28 @@ still missing; see [Not done yet](#not-done-yet).
 
 ## What works
 
-| Feature | Neovim | VS Code | Vim | Sublime Text | Helix |
-| --- | --- | --- | --- | --- | --- |
-| Highlighting (semantic tokens) | yes | yes | yes | yes⁶ | no¹ |
-| Folding | yes, with `<Tab>` / `<S-Tab>` cycling | yes, with `Tab` / `Shift+Tab` cycling | yes, with `<Tab>` / `<S-Tab>` cycling | yes, with `Tab` / `Shift+Tab` cycling | no² |
-| Concealing: links show their description, emphasis markers can hide (`org-link-descriptive`, `org-hide-emphasis-markers`) | yes | yes | no | no | no¹ |
-| Outline (document symbols) | yes | yes | through the client | yes | yes |
-| Virtual indentation (`org-indent-mode`, `#+STARTUP: indent`) and hidden leading stars, without changing the file | yes, but not on wrapped lines | yes, but not on wrapped lines | no | no | no |
-| Indentation, as `org-indent-line` and `org-indent-region` do it, under `adaptIndentation` (`org-adapt-indentation`); what commands write is indented the same way | new lines (`indentexpr`), `=` | new lines (format on type), Format Selection | no | Format Selection | `=` |
-| TODO state changes, as `org-todo` does them, with fast selection by key and notes (`TODO(t)`, `WAIT(w@/!)`) | `cit` / `ciT`, repeatable with `.` | `Ctrl+C Ctrl+T`, `Shift+Left`/`Right`, `Ctrl+.` | `cit` / `ciT`, repeatable with `.` | `Ctrl+C Ctrl+T`, `Shift+Left`/`Right` | `Space a` |
-| Checkboxes, as `org-toggle-checkbox` does it, with parent boxes and the cookies that count them (`[1/3]`, `[33%]`) | `<C-Space>` | `Ctrl+C Ctrl+C`, `Ctrl+.` | `<C-Space>` | `Ctrl+C Ctrl+C` | `Space a` |
-| Priorities, as `org-priority` changes them | `ciR` / `cir`, `<Leader>o,` | commands, `Ctrl+.` | `ciR` / `cir`, `<Leader>o,` | `Shift+Up`/`Down`, `Ctrl+C ,` | `Space a` |
-| Timestamps: the part at the cursor, or the date by days | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>`, with counts | commands, `Ctrl+.` | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>` | `Shift+arrows` | `Space a` |
-| Schedule, deadline, insert a timestamp: dates typed as at Org's prompt, or picked in Emacs's calendar | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!` | commands, with a preview of the date | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!`; dates typed | `Ctrl+C Ctrl+S`, `Ctrl+C Ctrl+D`, `Ctrl+C .`, `Ctrl+C !`; dates typed | no⁴ |
-| Completion: TODO keywords and tags in headlines, `#+` keywords and `#+STARTUP:` values, drawers and property names, entities, and in links file names, headlines and custom IDs | with an LSP completion plugin | yes | through the client | yes | yes |
-| Agenda: day, week, fortnight, month and year views, going to a date | yes | yes | yes, as a file | yes, as a file | no³ |
-| Agenda: list of all TODO entries, tags and property searches (`m`, `M`), custom commands and block agendas (`org-agenda-custom-commands`) | yes | yes | yes | yes | no³ |
-| Refile, as `org-refile` does it, between files too | `<Leader>or` | command | `<Leader>or` | `Ctrl+C Ctrl+W` | no⁴ |
-| Capture, as `org-capture` does it: templates, prompts, a capture buffer | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | commands; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | `Ctrl+C c`; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | no⁴ |
-| Agenda: change an entry's state, priority or date, schedule it or set its deadline, go to its entry | yes | yes | yes | yes | no³ |
-| Clocking, as `org-clock-in` and `org-clock-out` do it, with the clock in the status line | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`; `clock_status()` | commands; the status bar | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`; `org_lsp#clock_status()` | `Ctrl+C Ctrl+X Ctrl+I`, `Ctrl+C Ctrl+X Ctrl+O`; the status bar | `Space a`⁵ |
-| Agenda: the clocked entry highlighted, log mode (what was closed and clocked each day), the clock report | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | no³ |
+| Feature | Neovim | VS Code | Vim | Sublime Text | Zed | Helix |
+| --- | --- | --- | --- | --- | --- | --- |
+| Highlighting (semantic tokens) | yes | yes | yes | yes⁶ | yes⁷ | no¹ |
+| Folding | yes, with `<Tab>` / `<S-Tab>` cycling | yes, with `Tab` / `Shift+Tab` cycling | yes, with `<Tab>` / `<S-Tab>` cycling | yes, with `Tab` / `Shift+Tab` cycling | Zed's own | no² |
+| Concealing: links show their description, emphasis markers can hide (`org-link-descriptive`, `org-hide-emphasis-markers`) | yes | yes | no | no | no | no¹ |
+| Outline (document symbols) | yes | yes | through the client | yes | yes | yes |
+| Virtual indentation (`org-indent-mode`, `#+STARTUP: indent`) and hidden leading stars, without changing the file | yes, but not on wrapped lines | yes, but not on wrapped lines | no | no | no | no |
+| Indentation, as `org-indent-line` and `org-indent-region` do it, under `adaptIndentation` (`org-adapt-indentation`); what commands write is indented the same way | new lines (`indentexpr`), `=` | new lines (format on type), Format Selection | no | Format Selection | format selections | `=` |
+| Formatting: every table aligned (`org-table-align`) and every headline's tags in their column (`org-align-tags`) | `vim.lsp.buf.format()` | Format Document | the client's format command | LSP: Format File | editor: format | `:format` |
+| TODO state changes, as `org-todo` does them, with fast selection by key and notes (`TODO(t)`, `WAIT(w@/!)`) | `cit` / `ciT`, repeatable with `.` | `Ctrl+C Ctrl+T`, `Shift+Left`/`Right`, `Ctrl+.` | `cit` / `ciT`, repeatable with `.` | `Ctrl+C Ctrl+T`, `Shift+Left`/`Right` | code actions (`ctrl-.`) | `Space a` |
+| Checkboxes, as `org-toggle-checkbox` does it, with parent boxes and the cookies that count them (`[1/3]`, `[33%]`) | `<C-Space>` | `Ctrl+C Ctrl+C`, `Ctrl+.` | `<C-Space>` | `Ctrl+C Ctrl+C` | code actions | `Space a` |
+| Priorities, as `org-priority` changes them | `ciR` / `cir`, `<Leader>o,` | commands, `Ctrl+.` | `ciR` / `cir`, `<Leader>o,` | `Shift+Up`/`Down`, `Ctrl+C ,` | code actions | `Space a` |
+| Timestamps: the part at the cursor, or the date by days | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>`, with counts | commands, `Ctrl+.` | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>` | `Shift+arrows` | code actions | `Space a` |
+| Schedule, deadline, insert a timestamp: dates typed as at Org's prompt, or picked in Emacs's calendar | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!` | commands, with a preview of the date | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!`; dates typed | `Ctrl+C Ctrl+S`, `Ctrl+C Ctrl+D`, `Ctrl+C .`, `Ctrl+C !`; dates typed | no⁸ | no⁴ |
+| Completion: TODO keywords and tags in headlines, `#+` keywords and `#+STARTUP:` values, drawers and property names, entities, and in links file names, headlines and custom IDs | with an LSP completion plugin | yes | through the client | yes | yes | yes |
+| Agenda: day, week, fortnight, month and year views, going to a date | yes | yes | yes, as a file | yes, as a file | no⁸ | no³ |
+| Agenda: list of all TODO entries, tags and property searches (`m`, `M`), custom commands and block agendas (`org-agenda-custom-commands`) | yes | yes | yes | yes | no⁸ | no³ |
+| Refile, as `org-refile` does it, between files too | `<Leader>or` | command | `<Leader>or` | `Ctrl+C Ctrl+W` | no⁸ | no⁴ |
+| Capture, as `org-capture` does it: templates, prompts, a capture buffer | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | commands; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | `Ctrl+C c`; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | no⁸ | no⁴ |
+| Agenda: change an entry's state, priority or date, schedule it or set its deadline, go to its entry | yes | yes | yes | yes | no⁸ | no³ |
+| Clocking, as `org-clock-in` and `org-clock-out` do it, with the clock in the status line | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`; `clock_status()` | commands; the status bar | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`; `org_lsp#clock_status()` | `Ctrl+C Ctrl+X Ctrl+I`, `Ctrl+C Ctrl+X Ctrl+O`; the status bar | code actions | `Space a`⁵ |
+| Agenda: the clocked entry highlighted, log mode (what was closed and clocked each day), the clock report | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | no⁸ | no³ |
 
 ¹ Helix does not consume semantic tokens; it highlights Org with its own grammar.
 ² Helix has no folding.
@@ -45,6 +46,9 @@ still missing; see [Not done yet](#not-done-yet).
 ⁶ With LSP's `semantic_highlighting` on. The Sublime Text package is
 checked with stand-ins for Sublime Text and its LSP package, not in Sublime
 Text itself.
+⁷ With `"semantic_tokens": "full"` for Org in Zed's settings.
+⁸ Zed cannot run a server's command from a key or ask for text on its
+behalf; the editing commands are in its code actions.
 
 Tested with Neovim 0.11.0 and 0.12.5, VSCodium 1.135, Vim 9.1 (with yegappan/lsp, vim-lsp, coc.nvim and ALE) and Helix 25.07.1.
 
@@ -161,6 +165,14 @@ PATH. It binds Emacs's keys in Org files (`Ctrl+C Ctrl+T`, `Tab`, …);
 `custom` instead. [editors/sublime/README.md](editors/sublime/README.md)
 has the details.
 
+### Zed
+
+`editors/zed` is a Zed extension: run **zed: install dev extension** and
+pick that folder. It uses `org-lsp` from PATH or downloads the nightly
+build. Turn on `"semantic_tokens": "full"` for Org for the server's
+highlighting; [editors/zed/README.md](editors/zed/README.md) has the
+settings and what Zed can and cannot do.
+
 ### Helix
 
 Put the `org-lsp` binary from the release on your `PATH`, or build it:
@@ -211,6 +223,7 @@ server/org-lsp/      the language server and command line
 editors/vscode/      VS Code extension
 editors/vim/         Vim plugin, with adapters for four LSP clients
 editors/sublime/     Sublime Text package (for sublimelsp/LSP)
+editors/zed/         Zed extension
 editors/helix/       Helix configuration
 docs/                protocol and parser notes; keys and configuration of each editor
 tests/               Org files and what Emacs makes of them
@@ -231,6 +244,7 @@ cd ../..
 CLIENTS=~/vim-clients editors/vim/test/run.sh   # the Vim plugin, with each LSP client
 node editors/sublime/generate.mjs      # the Sublime package's keys, after the server's change
 python3 editors/sublime/test/test_plugin.py
+node editors/zed/generate.mjs          # the Zed extension's token rules
 ```
 
 Everything is checked against Emacs. The files under `tests/` come with
@@ -251,11 +265,12 @@ scripts/update-read-date-fixtures.py       # answers to the date prompt
 scripts/update-planning-fixtures.py        # schedule, deadline, timestamps
 scripts/update-calendar-fixtures.sh        # the calendar of the date prompt
 scripts/update-indent-fixtures.py          # org-indent-line and org-indent-region
+scripts/update-format-fixtures.py          # org-table-align and org-align-tags
 ```
 
 `scripts/fuzz-against-emacs.py`, `fuzz-agenda.py`, `fuzz-todo.py`,
 `fuzz-shift.py`, `fuzz-fold.py`, `fuzz-read-date.py`,
-`fuzz-planning.py` and `fuzz-indent.py` generate random documents (or
+`fuzz-planning.py`, `fuzz-indent.py` and `fuzz-format.py` generate random documents (or
 answers) and compare
 both programs on them. See
 `docs/parser.md`.

@@ -1,0 +1,19 @@
+id = "org-lsp"
+name = "Org (org-lsp)"
+description = "Org mode through the org-lsp language server: highlighting, completion, outline, formatting, TODO states, priorities, timestamps and clocking."
+version = "0.1.0"
+schema_version = 1
+authors = ["Kristijan Husak"]
+repository = "https://github.com/kristijanhusak/org-lsp"
+
+[language_servers.org-lsp]
+name = "org-lsp"
+languages = ["Org", "Org Agenda"]
+
+[language_servers.org-lsp.language_ids]
+"Org" = "org"
+"Org Agenda" = "org-agenda"
+
+[grammars.org]
+repository = "https://github.com/milisims/tree-sitter-org"
+commit = "64cfbc213f5a83da17632c95382a5a0a2f3357c1"

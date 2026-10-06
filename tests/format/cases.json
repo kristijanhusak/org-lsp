@@ -1,0 +1,106 @@
+[
+ {
+  "text": "| a |bb|\n|---|\n|ccc| d |\n",
+  "expected": "| a   | bb |\n|-----+----|\n| ccc | d  |\n"
+ },
+ {
+  "text": "|Name|Count|\n|-\n|apples|3|\n|pears|12|\n",
+  "expected": "| Name   | Count |\n|--------+-------|\n| apples |     3 |\n| pears  |    12 |\n"
+ },
+ {
+  "text": "  | x | y\n  |1|2|3\n",
+  "expected": "  | x | y |   |\n  | 1 | 2 | 3 |\n"
+ },
+ {
+  "text": "| <r> | <c> | <l>|\n|a|b|c|\n|long cell|x|y|\n",
+  "expected": "|       <r> | <c> | <l> |\n|         a |  b  | c   |\n| long cell |  x  | y   |\n"
+ },
+ {
+  "text": "| 1 | 2 |\n| a | 3 |\n| b |  |\n",
+  "expected": "| 1 | 2 |\n| a | 3 |\n| b |   |\n"
+ },
+ {
+  "text": "| 1.5e3 | 0x1F | -2 | 3% | nan | inf |\n| a | b | c | d | e | f |\n",
+  "expected": "| 1.5e3 | 0x1F | -2 | 3% | nan | inf |\n|     a |    b |  c |  d |   e |   f |\n"
+ },
+ {
+  "text": "| [[https://orgmode.org][Org]] | x |\n| short | y |\n",
+  "expected": "| [[https://orgmode.org][Org]]   | x |\n| short | y |\n"
+ },
+ {
+  "text": "| [[https://orgmode.org]] | x |\n| y | z |\n",
+  "expected": "| [[https://orgmode.org]] | x |\n| y                   | z |\n"
+ },
+ {
+  "text": "| ünï | 😀 | 漢字 |\n| a | b | c |\n",
+  "expected": "| ünï | 😀 | 漢字 |\n| a   | b  | c    |\n"
+ },
+ {
+  "text": "|--+--|\n|--|\n",
+  "expected": "|---+---|\n|---+---|\n"
+ },
+ {
+  "text": "* Heading :tag:\nText\n| a | b |\n|c|\n\n#+begin_src\n|not|a table|\n#+end_src\n",
+  "expected": "* Heading                                                               :tag:\nText\n| a | b |\n| c |   |\n\n#+begin_src\n|not|a table|\n#+end_src\n"
+ },
+ {
+  "text": "* TODO Headline with tags :work:urgent:\n** Short :a:\n*** A much longer headline that goes on and on :x:\n",
+  "expected": "* TODO Headline with tags                                       :work:urgent:\n** Short                                                                  :a:\n*** A much longer headline that goes on and on                            :x:\n"
+ },
+ {
+  "text": "* H :t:\n|a|\n",
+  "expected": "* H                                                                       :t:\n| a |\n"
+ },
+ {
+  "text": "|a||b|\n||\n|\n",
+  "expected": "| a |   | b |\n|   |   |   |\n|   |   |   |\n"
+ },
+ {
+  "text": "| *bold* | =code= |\n| x | y |\n",
+  "expected": "| *bold* | =code= |\n| x      | y      |\n"
+ },
+ {
+  "text": "- item\n  | in | list |\n  |a|b|\n",
+  "expected": "- item\n  | in | list |\n  | a  | b    |\n"
+ },
+ {
+  "text": "|a|b|\n#+TBLFM: $2=$1\n",
+  "expected": "| a | b |\n#+TBLFM: $2=$1\n"
+ },
+ {
+  "text": "+---+---+\n| a | b |\n+---+---+\n",
+  "expected": "+---+---+\n| a | b |\n+---+---+\n"
+ },
+ {
+  "text": "| 3 | 4 |\n|   | 5 |\n| x |   |\n",
+  "expected": "| 3 | 4 |\n|   | 5 |\n| x |   |\n"
+ },
+ {
+  "text": "| <5> | b |\n| abcdefgh | c |\n",
+  "expected": "| <5>      | b |\n| abcdefgh | c |\n"
+ },
+ {
+  "text": "* Headline :tag:\n** Second :a:b:\n",
+  "tagsColumn": -77,
+  "expected": "* Headline                                                              :tag:\n** Second                                                               :a:b:\n"
+ },
+ {
+  "text": "* Headline :tag:\n** Second :a:b:\n",
+  "tagsColumn": -40,
+  "expected": "* Headline                         :tag:\n** Second                          :a:b:\n"
+ },
+ {
+  "text": "* Headline :tag:\n** Second :a:b:\n",
+  "tagsColumn": 30,
+  "expected": "* Headline                    :tag:\n** Second                     :a:b:\n"
+ },
+ {
+  "text": "* Headline :tag:\n** Second :a:b:\n",
+  "tagsColumn": 0,
+  "expected": "* Headline :tag:\n** Second :a:b:\n"
+ },
+ {
+  "text": "- item\n  |  bb\n|  1/2|long cell text|  *bold* |\n||\n",
+  "expected": "- item\n  | bb  |                |        |\n  | 1/2 | long cell text | *bold* |\n  |     |                |        |\n"
+ }
+]

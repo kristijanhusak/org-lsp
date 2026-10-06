@@ -1,0 +1,3 @@
+# The agenda, as the file the server writes. Highlighted by the server.
+name = "Org Agenda"
+path_suffixes = ["org-agenda"]

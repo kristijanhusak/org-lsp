@@ -54,16 +54,10 @@ others), as close to Emacs Org mode as it can get.
 
 ### Where to pick up
 
-Asked for on 2026-10-06 and not done yet, in this order (two items per
-PR, as agreed):
-
-1. **Zed.** An extension that starts the server for Org files and maps
-   the manifest's commands; Zed cannot open server-owned documents, so the
-   agenda goes through the file the server writes (as for Vim and Sublime
-   Text, with `showDocument` and `virtualDocuments: false`).
-2. **Formatting** (milestone 13): document formatting that aligns
-   tables and tags (`org-table-align`, `org-align-tags`), on top of the
-   range formatting that indents today.
+Everything asked for on 2026-10-06 is done (two items per PR, as agreed).
+Next, by the milestones below: diagnostics (milestone 13), table
+navigation and editing (milestone 12), and the leftovers listed after
+this.
 
 Done from that list in #24: nested emphasis highlighting, checkbox
 cookies. In #26: fold cycling in VS Code (`org-lsp.cycle`,
@@ -79,7 +73,14 @@ with each against the real server) and the Sublime Text package
 custom presets; tested against stand-ins, since Sublime Text cannot be
 downloaded in the workspace). The server's option `showDocument` lets a
 client that does not announce `window/showDocument` say it shows
-documents. Concealing emphasis markers already existed
+documents. In #28: document formatting (`textDocument/formatting`):
+every table aligned as `org-table-align` does it and every headline's
+tags in their column (`org-align-tags`), checked against Emacs
+(`tests/format`, `scripts/fuzz-format.py`); and the Zed extension
+(`editors/zed`: the server from PATH or the nightly release, the
+tree-sitter-org grammar for structure, semantic token rules generated
+from the manifest, the editing commands as code actions; Zed cannot run
+a server command from a key, so no agenda, capture or refile there). Concealing emphasis markers already existed
 (`hideEmphasisMarkers`, `org-hide-emphasis-markers`, off by default).
 
 Older leftovers, any time:
@@ -386,14 +387,20 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 ### 12. Tables
 
-- Align and navigate (`TAB`, `RET`), insert and move rows and columns,
-  as formatting and commands. Formulas later; they are a project of their
+- Done: alignment as part of document formatting (`org-table-align` on
+  every table).
+- Navigate (`TAB`, `RET`), insert and move rows and columns, as
+  commands. Formulas later; they are a project of their
   own.
 
 ### 13. Diagnostics and formatting
 
-- Next: document formatting (`textDocument/formatting`): align tables
-  and tags, and indent as `org-indent-region` does when asked.
+- Done: document formatting (`textDocument/formatting`): every table
+  aligned (`org-table-align`, with number columns to the right, `<r>`
+  `<c>` `<l>` cookies, links counted by what they show) and every
+  headline's tags in their column (`(org-align-tags t)`). Indentation
+  stays with range formatting, as Emacs keeps it apart.
+- Next: diagnostics.
 - Done: indentation as Org does it. `org-indent-line` on new lines
   (on-type formatting after a line break: `indentexpr` in Neovim, format
   on type in VS Code), `org-indent-region` on a range (range formatting:
@@ -480,6 +487,7 @@ previews.
   | Commands that ask for a date | `tests/planning/cases.json` | `scripts/update-planning-fixtures.py` | `scripts/fuzz-planning.py` |
   | Calendar of the date prompt | `tests/calendar/emacs.txt` | `scripts/update-calendar-fixtures.sh` | |
   | Indentation | `tests/indent/cases.json` | `scripts/update-indent-fixtures.py` | `scripts/fuzz-indent.py` |
+  | Formatting (tables, tags) | `tests/format/cases.json` | `scripts/update-format-fixtures.py` | `scripts/fuzz-format.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.
 - VS Code: in `editors/vscode`, `npm run generate -- --check`, `npm run
@@ -490,7 +498,11 @@ previews.
   branch, `ale`); Vim runs in tmux.
 - Sublime Text: `node editors/sublime/generate.mjs --check`,
   `python3 editors/sublime/test/test_plugin.py`.
-- CI runs six jobs: server, Neovim 0.11.0, Neovim stable, VS Code, Vim (with each of its four LSP clients), Sublime Text (generated files, the plugin against stand-ins).
+- Zed: `node editors/zed/generate.mjs --check`, `cargo build --target
+  wasm32-wasip2` in `editors/zed`; the queries are compiled against the
+  grammar with the tree-sitter CLI. Zed itself cannot run in the
+  workspace.
+- CI runs seven jobs: server, Neovim 0.11.0, Neovim stable, VS Code, Vim (with each of its four LSP clients), Sublime Text (generated files, the plugin against stand-ins), Zed (the build, generated rules, queries).
 
 ## Notes for whoever picks this up
 
