@@ -96,6 +96,8 @@ require('org-lsp').setup({
 
   -- How the agenda and capture buffers open; see below.
   win_split_mode = 'split',
+  -- And how big: lines, columns, or a part of the editor; see below.
+  win_split_size = nil,
 
   -- Keys by scope; see keys.md. `false` sets no keys at all.
   mappings = {
@@ -139,6 +141,19 @@ require('org-lsp').setup({
     })
   end,
 })
+```
+
+`win_split_size` says how big that window is: lines for a split, columns
+for a vertical one (`'vsplit'`, or a command with `vsplit`, `vnew` or
+`vertical`), or, below 1, that part of the editor. A float takes the part
+for both its sides (`0.8` unset), or the lines for its height. Unset, a
+split takes half of the window it splits. A function opens its own size.
+
+```lua
+-- The agenda below, 15 lines high.
+require('org-lsp').setup({ win_split_mode = 'botright split', win_split_size = 15 })
+-- Beside, a third of the editor wide.
+require('org-lsp').setup({ win_split_mode = 'vsplit', win_split_size = 0.33 })
 ```
 
 Closing the agenda (`q`) or finishing a capture closes the window that was

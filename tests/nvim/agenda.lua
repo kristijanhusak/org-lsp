@@ -531,6 +531,18 @@ eq({ windows(), vim.fn.winlayout()[1] }, { 2, 'row' }, 'vsplit: beside')
 press('q')
 eq(windows(), 1, 'vsplit: q closes it')
 
+-- `win_split_size`: lines, columns or a part of the editor.
+org_lsp.setup({ win_split_mode = 'botright split', win_split_size = 7 })
+press('<F7>')
+wait_for_view('Global list of TODO items of type: ALL')
+eq(vim.api.nvim_win_get_height(0), 7, 'a split of 7 lines')
+press('q')
+org_lsp.setup({ win_split_mode = 'vsplit', win_split_size = 0.25 })
+press('<F7>')
+wait_for_view('Global list of TODO items of type: ALL')
+eq(vim.api.nvim_win_get_width(0), math.floor(vim.o.columns * 0.25), 'a quarter of the editor wide')
+press('q')
+
 org_lsp.setup({ win_split_mode = 'float' })
 press('<F7>')
 wait_for_view('Global list of TODO items of type: ALL')
