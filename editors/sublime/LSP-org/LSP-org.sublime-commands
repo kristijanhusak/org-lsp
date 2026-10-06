@@ -196,6 +196,13 @@
     }
   },
   {
+    "caption": "Org: New line, as Org's RET makes it",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.return"
+    }
+  },
+  {
     "caption": "Org: Refile the entry",
     "command": "org_lsp_run",
     "args": {

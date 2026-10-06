@@ -1603,6 +1603,7 @@ impl Server {
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
+            commands::RETURN => self.org_return(&context.ok_or("This command needs the cursor position")?),
             // In a note buffer, the keys of a capture store or cancel the
             // note.
             commands::CAPTURE_FINISH | commands::CAPTURE_ABORT
@@ -2920,6 +2921,45 @@ impl Server {
         };
         let extra = Extra { key: Some(answer.clone()), ..Extra::default() };
         self.edit_with(&context, id, Some(EditCommand::Todo(TodoTarget::Next)), &extra)
+    }
+
+    /// `org-return` at `context`. The edit is not sent to be applied: the
+    /// result carries it, `{ "edits": [TextEdit], "cursor": Position }`,
+    /// for the editor to apply as the key is typed.
+    fn org_return(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let uri = &context.text_document.uri;
+        let text = self.document(uri).ok_or("This file is not open")?.text.clone();
+        let settings =
+            org_core::newline::Settings { indent: self.indent_in(&text), tags_column: self.refile.2.tags_column };
+        let document = self.document(uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, encoding);
+        let outcome = org_core::newline::org_return(&document.text, offset, document.parse.todo_keywords(), &settings)?;
+        let old = &document.text;
+        let new = &outcome.text;
+        // The edit: what lies between what both have at the start and at
+        // the end.
+        let mut prefix = old.bytes().zip(new.bytes()).take_while(|(a, b)| a == b).count();
+        while !old.is_char_boundary(prefix) || !new.is_char_boundary(prefix) {
+            prefix -= 1;
+        }
+        let limit = (old.len() - prefix).min(new.len() - prefix);
+        let mut suffix = old.bytes().rev().zip(new.bytes().rev()).take(limit).take_while(|(a, b)| a == b).count();
+        while !old.is_char_boundary(old.len() - suffix) || !new.is_char_boundary(new.len() - suffix) {
+            suffix -= 1;
+        }
+        let edit = indent_edit(
+            old,
+            &document.index,
+            encoding,
+            org_core::indent::Edit {
+                start: prefix,
+                end: old.len() - suffix,
+                text: new[prefix..new.len() - suffix].to_string(),
+            },
+        );
+        let cursor = LineIndex::new(new).position(new, outcome.cursor, encoding);
+        Ok(json!({ "edits": [edit], "cursor": cursor }))
     }
 
     /// The keys of fast TODO selection in the file of `context`: an Org

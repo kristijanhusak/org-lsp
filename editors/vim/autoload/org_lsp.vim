@@ -391,6 +391,64 @@ endfunction
 
 " ----- keys
 
+" The commands whose keys are typed in insert mode (`org.return`).
+let s:insert_commands = {}
+
+" Run a command whose result carries edits and a cursor (`org.return`)
+" from insert mode, at once. The key keeps its own meaning while the
+" completion menu shows, with no server, or where the command does not
+" apply.
+function! org_lsp#insert_key(index) abort
+  let entry = s:mapped[a:index]
+  if pumvisible() || empty(org_lsp#adapter()) || !org_lsp#ready(bufnr())
+    return s:insert_fallback(entry.lhs)
+  endif
+  let [nr, context] = s:cursor_context()
+  let answer = org_lsp#request_sync(nr, 'workspace/executeCommand', {'command': entry.name, 'arguments': [context]}, 1000)
+  let result = get(answer, 'result', v:null)
+  if !empty(get(answer, 'error', {})) || type(result) != v:t_dict || type(get(result, 'edits', 0)) != v:t_list
+    return s:insert_fallback(entry.lhs)
+  endif
+  call org_lsp#apply_edit({'changes': {context.textDocument.uri: result.edits}})
+  if type(get(result, 'cursor', 0)) == v:t_dict
+    let text = getline(result.cursor.line + 1)
+    call cursor(result.cursor.line + 1, s:byte(text, result.cursor.character) + 1)
+  endif
+endfunction
+
+" The key's meaning without the plugin: the buffer's mapping that the
+" plugin's took the place of (a completion plugin's `<CR>`), else the key.
+function! s:insert_fallback(lhs) abort
+  let saved = get(get(b:, 'org_lsp_replaced', {}), a:lhs, {})
+  if empty(saved)
+    return feedkeys(s:keycode(a:lhs), 'ni')
+  endif
+  let rhs = saved.expr ? eval(substitute(saved.rhs, '<SID>', '<SNR>' . saved.sid . '_', 'g')) : s:keycode(saved.rhs)
+  call feedkeys(rhs, (saved.noremap ? 'n' : 'm') . 'i')
+endfunction
+
+" Set the insert-mode keys of buffer `nr` again: an LSP client may have
+" mapped one of them (`<CR>`) after the plugin did. The client's mapping is
+" kept, for where the plugin's does not apply.
+function! org_lsp#remap_insert_keys(nr) abort
+  if a:nr != bufnr() || !exists('b:org_lsp_attached')
+    return
+  endif
+  let replaced = get(b:, 'org_lsp_replaced', {})
+  for index in range(len(s:mapped))
+    let entry = s:mapped[index]
+    if !has_key(s:insert_commands, entry.name) || get(entry, 'buffer', 0) != a:nr
+      continue
+    endif
+    let current = maparg(entry.lhs, 'i', 0, 1)
+    if get(current, 'buffer', 0) && get(current, 'rhs', '') !~# 'org_lsp#insert_key'
+      let replaced[entry.lhs] = current
+    endif
+    execute printf('inoremap <buffer> <silent> %s <Cmd>call org_lsp#insert_key(%d)<CR>', entry.lhs, index)
+  endfor
+  let b:org_lsp_replaced = replaced
+endfunction
+
 " The editing command that `.` repeats.
 let s:last_edit = {}
 
@@ -441,6 +499,9 @@ function! s:keys_in(scope) abort
         if get(key, 'native', v:false)
           let native[key.key] = 1
         endif
+        if get(key, 'mode', '') ==# 'insert'
+          let s:insert_commands[command.command] = 1
+        endif
       endif
     endfor
   endfor
@@ -459,8 +520,12 @@ function! org_lsp#set_keys(scope) abort
   for [name, list] in items(keys)
     let command = s:command(name)
     for lhs in list
-      call add(s:mapped, {'name': name, 'native': get(native, lhs, 0) ? lhs : ''})
+      call add(s:mapped, {'name': name, 'native': get(native, lhs, 0) ? lhs : '', 'lhs': lhs, 'buffer': empty(buffer) ? 0 : bufnr()})
       let index = len(s:mapped) - 1
+      if has_key(s:insert_commands, name)
+        execute printf('inoremap %s <silent> %s <Cmd>call org_lsp#insert_key(%d)<CR>', buffer, lhs, index)
+        continue
+      endif
       let nowait = a:scope ==# 'agenda' && empty(filter(copy(all), {_, o -> o !=# lhs && stridx(o, lhs) == 0})) ? '<nowait>' : ''
       if get(command, 'edits', v:false) && a:scope ==# 'org'
         execute printf('nnoremap %s <silent> <expr> %s org_lsp#repeatable(%d)', buffer, lhs, index)

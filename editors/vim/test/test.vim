@@ -149,6 +149,22 @@ function! s:clock() abort
 endfunction
 call s:test('clocks in and out, for the statusline', function('s:clock'))
 
+function! s:return() abort
+  let file = s:work . '/notes/return.org'
+  call writefile(['* TODO Write the report :work:', '| a | bb |'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(1, 12)
+  call feedkeys("a\<CR>x\<Esc>", 'xt')
+  call s:until('the split', {-> getline(2) ==# 'xthe report'})
+  call assert_equal('* TODO Write' . repeat(' ', 59) . ':work:', getline(1))
+  call cursor(3, 7)
+  call feedkeys("a\<CR>y\<Esc>", 'xt')
+  call s:until('the new row', {-> getline(4) ==# '|   | y   |'})
+  silent write
+endfunction
+call s:test('RET in insert mode is as in Org', function('s:return'))
+
 function! s:help() abort
   execute 'buffer' s:work_buf
   let popup = org_lsp#help()

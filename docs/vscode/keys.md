@@ -49,6 +49,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+T` | `org.todo` | Change the TODO state |
 | `Ctrl+C ,` | `org.priority` | Set the priority |
 | `Ctrl+C Ctrl+C` | `org.checkbox.toggle` | Toggle the checkbox |
+| `Enter`¹ | `org.return` | New line, as Org's RET makes it |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `Shift+Up`¹ | `org.shift.up` | Increase the timestamp part or raise the priority |
 | `Shift+Down`¹ | `org.shift.down` | Decrease the timestamp part or lower the priority |
@@ -132,6 +133,7 @@ The other options are in [configuration.md](configuration.md).
 | Keys | Command | What it does |
 | --- | --- | --- |
 | `Ctrl+Space` | `org.checkbox.toggle` | Toggle the checkbox |
+| `Enter`¹ | `org.return` | New line, as Org's RET makes it |
 | `Ctrl+A`¹ | `org.timestamp.up` | Increase the part of the timestamp at the cursor |
 | `Ctrl+X`¹ | `org.timestamp.down` | Decrease the part of the timestamp at the cursor |
 | `Shift+Up`¹ | `org.date.later` | Move the date one day later |
@@ -193,7 +195,8 @@ The other options are in [configuration.md](configuration.md).
 
 ¹ Where the command does not apply, the key does what it does without
 the extension: `Shift+Up` off a timestamp or headline selects, `Tab` off
-a headline, block or drawer indents.
+a headline, block or drawer indents, `Enter` in a source block's code
+is VS Code's own.
 
 #### The leader keys, for VSCodeVim
 
@@ -250,6 +253,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.priority.down` | Org: Lower the priority |
 | `org.priority` | Org: Set the priority |
 | `org.checkbox.toggle` | Org: Toggle the checkbox |
+| `org.return` | Org: New line, as Org's RET makes it |
 | `org.refile` | Org: Refile the entry |
 | `org.capture` | Org: Capture |
 | `org.capture.finish` | Org: Capture: finish |

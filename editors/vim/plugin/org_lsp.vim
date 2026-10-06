@@ -11,6 +11,8 @@ augroup org_lsp
   autocmd!
   autocmd FileType org,org-agenda call org_lsp#attach()
   autocmd ColorScheme * call org_lsp#define_highlights()
+  " A client maps keys of its own (yegappan/lsp's `<CR>`) when it attaches.
+  autocmd User LspAttached,lsp_buffer_enabled call org_lsp#remap_insert_keys(bufnr())
   " The LSP client plugins load after this one: register the server once
   " they all have.
   autocmd VimEnter * ++once call s:start()

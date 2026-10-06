@@ -39,6 +39,9 @@ impl Scope {
 pub struct Key {
     pub scope: Scope,
     pub key: &'static str,
+    /// For modal editors: the key is typed in insert mode, not in normal
+    /// mode.
+    pub insert: bool,
     /// The key has a meaning of its own in the editor, which should apply
     /// wherever the command does not: the server then refuses the command
     /// with `notApplicable` in the error data. `<C-a>` still increments a
@@ -47,11 +50,17 @@ pub struct Key {
 }
 
 const fn key(scope: Scope, key: &'static str) -> Key {
-    Key { scope, key, native: false }
+    Key { scope, key, native: false, insert: false }
 }
 
 const fn native(scope: Scope, key: &'static str) -> Key {
-    Key { scope, key, native: true }
+    Key { scope, key, native: true, insert: false }
+}
+
+/// A key of insert mode that keeps its own meaning where the command does
+/// not apply.
+const fn insert_native(scope: Scope, key: &'static str) -> Key {
+    Key { scope, key, native: true, insert: true }
 }
 
 pub struct Command {
@@ -105,6 +114,7 @@ pub const PRIORITY_UP: &str = "org.priority.up";
 pub const PRIORITY_DOWN: &str = "org.priority.down";
 pub const PRIORITY: &str = "org.priority";
 pub const CHECKBOX_TOGGLE: &str = "org.checkbox.toggle";
+pub const RETURN: &str = "org.return";
 pub const REFILE: &str = "org.refile";
 pub const CAPTURE: &str = "org.capture";
 pub const CAPTURE_FINISH: &str = "org.capture.finish";
@@ -271,6 +281,14 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c C-c")],
         vim: &[key(Org, "<C-Space>")],
         ..edit(CHECKBOX_TOGGLE, "Toggle the checkbox")
+    },
+    // `org-return`: the result carries the edit and the cursor, for the
+    // editor to apply at once, as the key is typed. In a source block's
+    // code it refuses, and the editor's own RET applies.
+    Command {
+        emacs: &[native(Org, "RET")],
+        vim: &[insert_native(Org, "<CR>")],
+        ..edit(RETURN, "New line, as Org's RET makes it")
     },
     Command {
         emacs: &[key(Org, "C-c C-w"), key(Agenda, "C-c C-w")],
@@ -465,6 +483,9 @@ pub fn manifest() -> Value {
                         let mut entry = json!({ "key": key.key, "in": key.scope.name(), "preset": preset });
                         if key.native {
                             entry["native"] = json!(true);
+                        }
+                        if key.insert {
+                            entry["mode"] = json!("insert");
                         }
                         entry
                     })

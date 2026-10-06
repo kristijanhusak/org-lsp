@@ -47,7 +47,7 @@ function cursor(running: LanguageClient): unknown[] {
  * at the cursor, so that the key keeps its own meaning there.
  */
 interface KeyArgs {
-  fallback: string[];
+  fallback: (string | { command: string; args?: unknown })[];
 }
 
 function keyArgs(args: unknown[]): KeyArgs | undefined {
@@ -56,10 +56,11 @@ function keyArgs(args: unknown[]): KeyArgs | undefined {
 }
 
 /** Run the first of `commands` that VS Code has. */
-async function fallBack(commands: string[]): Promise<void> {
-  for (const command of commands) {
+async function fallBack(commands: KeyArgs['fallback']): Promise<void> {
+  for (const entry of commands) {
+    const { command, args } = typeof entry === 'string' ? { command: entry, args: undefined } : entry;
     try {
-      await vscode.commands.executeCommand(command);
+      await vscode.commands.executeCommand(command, ...(args === undefined ? [] : [args]));
       return;
     } catch {
       // Not there (VSCodeVim's, without VSCodeVim): the next one.
@@ -69,6 +70,30 @@ async function fallBack(commands: string[]): Promise<void> {
 
 function notApplicable(error: unknown): boolean {
   return (error as { data?: { notApplicable?: unknown } } | null)?.data?.notApplicable === true;
+}
+
+/**
+ * A command whose result carries its edit and where the cursor goes
+ * (`org.return`): applied to the editor at hand, at once.
+ */
+async function applyCarried(running: LanguageClient, result: unknown): Promise<void> {
+  const carried = result as { edits?: unknown[]; cursor?: { line: number; character: number } } | null;
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || !Array.isArray(carried?.edits)) {
+    return;
+  }
+  const edits: vscode.TextEdit[] =
+    (await running.protocol2CodeConverter.asTextEdits(carried.edits as Parameters<typeof running.protocol2CodeConverter.asTextEdits>[0])) ?? [];
+  await editor.edit((builder) => {
+    for (const edit of edits) {
+      builder.replace(edit.range, edit.newText);
+    }
+  }, { undoStopBefore: false, undoStopAfter: false });
+  if (carried.cursor) {
+    const position = running.protocol2CodeConverter.asPosition(carried.cursor);
+    editor.selection = new vscode.Selection(position, position);
+    editor.revealRange(new vscode.Range(position, position));
+  }
 }
 
 /** Done when the date prompt the server asked to show is shown. */
@@ -254,13 +279,15 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
       // cursor. The server's reason for refusing a command is shown as is.
       executeCommand: async (name, args) => {
         const running = client;
-        if (!running) {
-          return undefined;
-        }
         const key = keyArgs(args);
+        if (!running) {
+          // A key keeps its own meaning without a server (Enter types).
+          return key ? fallBack(key.fallback) : undefined;
+        }
         const params = { command: name, arguments: args.length > 0 && !key ? args : cursor(running) };
         try {
           let result = await running.sendRequest('workspace/executeCommand', params);
+          await applyCarried(running, result);
           closeAsked(result);
           await saveAsked(result);
           sayAsked(result);
@@ -282,9 +309,13 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           }
           return result;
         } catch (error) {
-          if (key && notApplicable(error)) {
+          // A key keeps its own meaning where the command does not apply,
+          // and when it fails: Enter is never lost.
+          if (key) {
             await fallBack(key.fallback);
-            return undefined;
+            if (notApplicable(error)) {
+              return undefined;
+            }
           }
           void vscode.window.showWarningMessage(error instanceof Error ? error.message : String(error));
           return undefined;

@@ -456,6 +456,24 @@ describe('Org files', () => {
     await vscode.workspace.getConfiguration('org-lsp').update('keys', undefined, vscode.ConfigurationTarget.Workspace);
   });
 
+  it('makes a new line as Org\'s RET does, and Enter is Enter in code', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'return.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* TODO Write the report :work:\n#+begin_src sh\necho\n#+end_src\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    moveTo(0, 12);
+    await vscode.commands.executeCommand('org.return', { fallback: [{ command: 'type', args: { text: '\n' } }] });
+    await until('the split', () => editor.document.lineAt(1).text === 'the report');
+    assert.equal(editor.document.lineAt(0).text, '* TODO Write' + ' '.repeat(59) + ':work:');
+    assert.deepEqual([editor.selection.active.line, editor.selection.active.character], [1, 0]);
+    moveTo(3, 4);
+    await vscode.commands.executeCommand('org.return', { fallback: [{ command: 'type', args: { text: '\n' } }] });
+    await until('a plain new line in code', () => editor.document.lineAt(4).text.trim() === '' && editor.document.lineAt(5).text === '#+end_src');
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('changes the part of a timestamp at the cursor', async () => {
     moveTo(6, 19); // on the day of "DEADLINE: <2026-05-20 Wed>"
     await vscode.commands.executeCommand('org.timestamp.up');

@@ -155,7 +155,7 @@ fn align_field(field: &str, width: usize, align: char) -> String {
 }
 
 /// `org-table-align`: the lines of a table, aligned.
-fn align_table(lines: &[&str]) -> Vec<String> {
+pub(crate) fn align_table(lines: &[&str]) -> Vec<String> {
     let table: Vec<Row> = lines.iter().map(|line| row(line)).collect();
     let rows: Vec<&Vec<String>> = table
         .iter()

@@ -41,6 +41,7 @@ The other options are in [configuration.md](configuration.md).
 | `cir` | `org.priority.down` | Lower the priority |
 | `<Leader>o,` | `org.priority` | Set the priority |
 | `<C-Space>` | `org.checkbox.toggle` | Toggle the checkbox |
+| `<CR>`¹ (insert mode) | `org.return` | New line, as Org's RET makes it |
 | `<Leader>or` | `org.refile` | Refile the entry |
 | `<C-a>`¹ | `org.timestamp.up` | Increase the part of the timestamp at the cursor |
 | `<C-x>`¹ | `org.timestamp.down` | Decrease the part of the timestamp at the cursor |
@@ -125,7 +126,7 @@ The other options are in [configuration.md](configuration.md).
 
 ¹ Where the command does not apply, the key does what it does in any
 buffer: `<C-a>` off a timestamp still increments the number under the
-cursor.
+cursor, and `<CR>` in a source block's code is Vim's own.
 
 <!-- END generated -->
 

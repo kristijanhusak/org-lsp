@@ -168,6 +168,13 @@ Fri>`, `Deadline on <…>`, `Timestamp updated`, `Refile to "Projects" in
 file /home/me/org/work.org: done`, `Switched to day view`, `Capture
 process aborted and target buffer cleaned up`.
 
+A command that runs as a key is typed returns its edit instead of sending
+it: `org.return` answers `{ "edits": [TextEdit…], "cursor": Position }`,
+and the editor applies the edits to the document at hand and puts the
+cursor there before the next key is handled. (A `workspace/applyEdit`
+from the server, and a cursor moved after it, would race with what is
+typed next.)
+
 A command that cannot run answers with error code -32803
 (`RequestFailed`) and a message meant for the user, such as
 `No agenda is open`. When the command means nothing at the cursor (a
@@ -181,6 +188,7 @@ number.
 | Command | Does |
 | --- | --- |
 | `org.agenda.dispatch` | `org-agenda` (`C-c a`): asks for a view by its key, as Emacs's menu does (input kind `key`; `a` for the agenda, `t` for the TODO list, `m` / `M` for a tags search, and the commands of `agenda.customCommands`), and opens it. A prefix key of custom commands asks again, with the keys so far in the input's `context` (`keys`); `m` and `M` then ask for the match string (input kind `text`). |
+| `org.return` | `org-return` (RET): in a table, aligns it and goes to the same column of the next row, adding a row when there is none or the next is a rule; on a headline, puts the rest of the title on a new line with the tags kept in their column; in a list item, keeps the rest of the line in the item; else a new line. The new line is indented as `electric-indent-mode` indents in Org (`org-indent-line`), the blanks left at the end of the line removed. Returns `{ "edits", "cursor" }` (see above); in a source block's code, `notApplicable`. |
 | `org.agenda.list` | Opens the agenda for the current week or day. |
 | `org.agenda.todos` | Opens the list of all TODO entries. |
 | `org.agenda.later`, `org.agenda.earlier` | Moves the agenda one span forward or backward. |
@@ -370,7 +378,8 @@ time.
   nvim-orgmode's defaults in Vim notation (`cit`, `<CR>`, `vd`). A key
   marked `"native": true` keeps its own meaning where the command does
   not apply, such as `<C-a>` or `S-<up>`; see `notApplicable` under
-  [Commands](#commands).
+  [Commands](#commands). A `vim` key with `"mode": "insert"` is typed in
+  insert mode (`<CR>` of `org.return`); the others in normal mode.
 - **`agenda`**: how the agenda document is named; see below.
 - **`tokenTypes`**, **`tokenModifiers`**: the semantic token legend with
   descriptions. `standard` types are LSP's own.

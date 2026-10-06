@@ -63,7 +63,15 @@ class View:
         return self.text[region.begin():region.end()]
 
     def sel(self):
-        return [Region(self.cursor)]
+        view = self
+
+        class Selection(list):
+            def clear(self):
+                pass
+
+            def add(self, region):
+                view.cursor = region.b
+        return Selection([Region(self.cursor)])
 
     def size(self):
         return len(self.text)
@@ -159,6 +167,13 @@ def load_plugin():
             return Command.current
 
     api.AbstractPlugin = object
+    api.applied = []
+
+    class Done:
+        def then(self, callback):
+            callback(None)
+    api.apply_text_edits = lambda view, edits: (api.applied.append(edits), Done())[1]
+    api.position_to_offset = lambda position, view: view.text_point(position['line'], position['character'])
     api.LspTextCommand = Command
     api.LspWindowCommand = Command
     api.Request = lambda method, params: types.SimpleNamespace(method=method, params=params)
@@ -213,6 +228,12 @@ class Tests(unittest.TestCase):
         self.assertEqual(session.sent[1][1]['arguments'][0]['step'], 2)
         self.assertEqual(self.window.panels[0], ('quick', ['A', 'D'], 'Refile to'))
         self.assertIn('Refiled to D', self.sublime.messages)
+
+    def test_applies_the_edit_a_result_carries(self):
+        edits = [{'range': {'start': {'line': 0, 'character': 3}, 'end': {'line': 0, 'character': 3}}, 'newText': '\n'}]
+        self.run_command([('result', {'edits': edits, 'cursor': {'line': 1, 'character': 0}})], command='org.return')
+        self.assertEqual(sys.modules['LSP.plugin'].applied, [edits])
+        self.assertEqual(self.view.cursor, self.view.text_point(1, 0))
 
     def test_asks_for_text_and_keys(self):
         self.window.typed = '+1d'

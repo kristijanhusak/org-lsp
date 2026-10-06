@@ -633,6 +633,32 @@ fn sends_virtual_indentation() {
 
 /// `org-toggle-checkbox` as a code action: the box, and the cookie that
 /// counts it.
+/// RET (`org-return`): the result carries the edit and where the cursor
+/// goes, for the editor to apply as the key is typed; in a source block's
+/// code the command does not apply, and the editor's own RET does.
+#[test]
+fn returns_as_org_does() {
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri(), "* TODO Write the report :work:\n#+begin_src sh\necho\n#+end_src\n");
+    let run = |client: &mut Client, line: u32, character: u32| {
+        let context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        client.raw_request("workspace/executeCommand", json!({ "command": "org.return", "arguments": [context] }))
+    };
+    let result = run(&mut client, 0, 12).response_result.expect("a result");
+    let edit: TextEdit = serde_json::from_value(result["edits"][0].clone()).unwrap();
+    // The title split, the tags aligned again, the rest on a new line.
+    let line = "* TODO Write the report :work:";
+    let (start, end) = (edit.range.start.character as usize, edit.range.end.character as usize);
+    assert_eq!((edit.range.start.line, edit.range.end.line), (0, 0));
+    let changed = format!("{}{}{}", &line[..start], edit.new_text, &line[end..]);
+    assert_eq!(changed, format!("* TODO Write{}:work:\nthe report", " ".repeat(59)));
+    assert_eq!(result["cursor"], json!({ "line": 1, "character": 0 }));
+    let refused = run(&mut client, 2, 2).response_result.expect_err("a refusal");
+    assert_eq!(refused.data, Some(json!({ "notApplicable": true })));
+    client.shutdown();
+}
+
 #[test]
 fn toggles_checkboxes() {
     let mut client = Client::start(json!({}), Value::Null);

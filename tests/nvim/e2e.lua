@@ -593,6 +593,25 @@ check(vim.tbl_contains(help, 'Anywhere'), 'the global keys follow')
 press('q')
 eq(vim.api.nvim_get_current_win(), before_help, 'q closes the help')
 
+-- 23. RET in insert mode is Org's: a headline splits with its tags kept,
+-- a table goes to the next row, and in a source block's code it is RET.
+local returns = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* TODO Write the report :work:', '| a | bb |', '#+begin_src sh', 'echo', '#+end_src' }, returns)
+vim.cmd.edit(returns)
+wait('the server for RET', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 1, 11 })
+press('a<CR>x<Esc>')
+eq(vim.api.nvim_buf_get_lines(0, 0, 2, false), { '* TODO Write' .. (' '):rep(59) .. ':work:', 'xthe report' },
+  'the title split, the tags kept in their column')
+vim.api.nvim_win_set_cursor(0, { 3, 6 })
+press('a<CR>y<Esc>')
+eq(vim.api.nvim_buf_get_lines(0, 2, 4, false), { '| a | bb |', '|   | y   |' }, 'a new row, the cursor in its column')
+vim.api.nvim_win_set_cursor(0, { 6, 3 })
+press('a<CR>z<Esc>')
+eq(vim.api.nvim_buf_get_lines(0, 5, 7, false), { 'echo', '  z' }, 'in code, RET is RET (indented as the block content)')
+
 -- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'

@@ -113,12 +113,19 @@ const fallbacks = {
   'ctrl+a': ['extension.vim_ctrl+a', 'editor.action.selectAll'],
   'ctrl+x': ['extension.vim_ctrl+x', 'editor.action.clipboardCutAction'],
   tab: ['tab'],
+  // VS Code's own Enter, with its indentation.
+  enter: [{ command: 'type', args: { text: '\n' } }],
 };
 // In Org files, VSCodeVim's keys apply in Normal mode only, and keys that
 // start with a plain letter would take it from Vim (`c` of `cit`).
 const vimNormal = "(!vim.active || vim.mode == 'Normal')";
 // Tab does not cycle where VS Code needs it.
 const tabFree = '!suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus';
+// Nor Enter, which also leaves several cursors and read-only text alone.
+const enterFree =
+  '!suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorHasMultipleSelections && !editorReadonly';
+// VSCodeVim's insert mode, for the keys typed there.
+const vimInsert = "(!vim.active || vim.mode == 'Insert')";
 
 /** The commands of the extension itself, with their keys. */
 const ownCommands = [
@@ -157,15 +164,18 @@ const keybindings = [...manifest.commands, ...ownCommands]
     }
     const vsKey = key(emacs);
     const inText = binding.in === 'org' || binding.in === 'capture' || binding.in === 'global';
-    if (binding.preset === 'vim' && inText && !/[+]/.test(vsKey.split(' ')[0]) && vsKey.split(' ')[0].length === 1) {
+    if (binding.preset === 'vim' && inText && binding.mode !== 'insert' && !/[+]/.test(vsKey.split(' ')[0]) && vsKey.split(' ')[0].length === 1) {
       return [];
     }
     const conditions = [];
     if (binding.preset === 'vim' && (binding.in === 'org' || binding.in === 'capture')) {
-      conditions.push(vimNormal);
+      conditions.push(binding.mode === 'insert' ? vimInsert : vimNormal);
     }
     if (vsKey === 'tab' || vsKey === 'shift+tab') {
       conditions.push(tabFree);
+    }
+    if (vsKey === 'enter' && binding.in !== 'agenda' && binding.in !== 'calendar') {
+      conditions.push(enterFree);
     }
     const scopes = binding.in === 'global' ? globalScopes : [binding.in];
     return scopes.map((scope) => {

@@ -12,6 +12,8 @@ import shutil
 import sublime
 import sublime_plugin
 from LSP.plugin import AbstractPlugin
+from LSP.plugin import apply_text_edits
+from LSP.plugin import position_to_offset
 from LSP.plugin import LspTextCommand
 from LSP.plugin import LspWindowCommand
 from LSP.plugin import Request
@@ -121,10 +123,14 @@ class OrgLspRunCommand(LspWindowCommand):
 
     def run(self, command: str, fallback=None) -> None:
         session = self.session_by_name(SESSION)
-        if not session:
-            sublime.status_message('org-lsp: open an Org file first')
-            return
         view = self.window.active_view()
+        if not session:
+            # A key keeps its own meaning without a server (Enter types).
+            if fallback and view:
+                view.run_command(fallback['command'], fallback.get('args'))
+            else:
+                sublime.status_message('org-lsp: open an Org file first')
+            return
         if is_org(view):
             context = text_document_position_params(view, view.sel()[0].b)
         else:
@@ -141,13 +147,25 @@ class OrgLspRunCommand(LspWindowCommand):
 
     def failed(self, view, fallback, error) -> None:
         data = error.get('data') if isinstance(error, dict) else None
-        if fallback and isinstance(data, dict) and data.get('notApplicable'):
+        # A key keeps its own meaning where the command does not apply,
+        # and when it fails: Enter is never lost.
+        if fallback:
             view.run_command(fallback['command'], fallback.get('args'))
-        else:
+        if not (isinstance(data, dict) and data.get('notApplicable')):
             sublime.status_message('org-lsp: {}'.format(error.get('message', error) if isinstance(error, dict) else error))
 
     def done(self, session, view, command, context, fallback, result) -> None:
         result = result if isinstance(result, dict) else {}
+        # The edit and the cursor, carried in the result (`org.return`).
+        if isinstance(result.get('edits'), list):
+            cursor = result.get('cursor')
+
+            def place(_) -> None:
+                if cursor:
+                    point = position_to_offset(cursor, view)
+                    view.sel().clear()
+                    view.sel().add(sublime.Region(point))
+            apply_text_edits(view, result['edits']).then(lambda done: sublime.set_timeout(lambda: place(done)))
         if isinstance(result.get('save'), list):
             save(result['save'])
         if isinstance(result.get('message'), str):

@@ -1,0 +1,343 @@
+[
+ {
+  "text": "* TODO Write the report :work:\n",
+  "point": 12,
+  "expected": {
+   "text": "* TODO Write                                                           :work:\nthe report\n",
+   "point": 78
+  }
+ },
+ {
+  "text": "* TODO Write the report :work:\n",
+  "point": 23,
+  "expected": {
+   "text": "* TODO Write the report                                                :work:\n\n",
+   "point": 78
+  }
+ },
+ {
+  "text": "* TODO Write :work:\n",
+  "point": 4,
+  "expected": {
+   "text": "* TODO Write :work:\n\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "* TODO Write :work:\n",
+  "point": 16,
+  "expected": {
+   "text": "* TODO Write :work:\n\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "* TODO Write the report :work:\n",
+  "point": 30,
+  "expected": {
+   "text": "* TODO Write the report :work:\n\n",
+   "point": 31
+  }
+ },
+ {
+  "text": "* TODO Write\n",
+  "point": 0,
+  "expected": {
+   "text": "\n* TODO Write\n",
+   "point": 1
+  }
+ },
+ {
+  "text": "* Title\n",
+  "point": 2,
+  "expected": {
+   "text": "*\nTitle\n",
+   "point": 2
+  }
+ },
+ {
+  "text": "* Title\n",
+  "point": 1,
+  "expected": {
+   "text": "* Title\n\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "* TODO [#A] Title\n",
+  "point": 14,
+  "expected": {
+   "text": "* TODO [#A] Ti\ntle\n",
+   "point": 15
+  }
+ },
+ {
+  "text": "* TODO [#A] Title\n",
+  "point": 9,
+  "expected": {
+   "text": "* TODO [#A] Title\n\n",
+   "point": 18
+  }
+ },
+ {
+  "text": "* Title with no tags and spaces at the end   \n",
+  "point": 28,
+  "expected": {
+   "text": "* Title with no tags and spa\nces at the end\n",
+   "point": 29
+  }
+ },
+ {
+  "text": "* DONE\n",
+  "point": 6,
+  "expected": {
+   "text": "* DONE\n\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- item one\n",
+  "point": 8,
+  "expected": {
+   "text": "- item o\n  ne\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "- [ ] item one\n",
+  "point": 12,
+  "expected": {
+   "text": "- [ ] item o\n  ne\n",
+   "point": 15
+  }
+ },
+ {
+  "text": "- item one\n",
+  "point": 10,
+  "expected": {
+   "text": "- item one\n  \n",
+   "point": 13
+  }
+ },
+ {
+  "text": "- item one\n",
+  "point": 7,
+  "expected": {
+   "text": "- item\n  one\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "1. first item\n  continued\n",
+  "point": 12,
+  "expected": {
+   "text": "1. first ite\n   m\n  continued\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "- a\n  - bc\n",
+  "point": 9,
+  "expected": {
+   "text": "- a\n  - b\n    c\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "Some text here\n",
+  "point": 7,
+  "expected": {
+   "text": "Some te\nxt here\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "  Indented text\n",
+  "point": 13,
+  "expected": {
+   "text": "  Indented te\n  xt\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "Text with trailing      \n",
+  "point": 21,
+  "expected": {
+   "text": "Text with trailing\n\n",
+   "point": 19
+  }
+ },
+ {
+  "text": "\n",
+  "point": 0,
+  "expected": {
+   "text": "\n\n",
+   "point": 1
+  }
+ },
+ {
+  "text": "Line",
+  "point": 4,
+  "expected": {
+   "text": "Line\n",
+   "point": 5
+  }
+ },
+ {
+  "text": "| a | bb |\n| c | d |\n",
+  "point": 7,
+  "expected": {
+   "text": "| a | bb |\n| c | d  |\n",
+   "point": 17
+  }
+ },
+ {
+  "text": "| a | bb |\n| c | dd |\n",
+  "point": 18,
+  "expected": {
+   "text": "| a | bb |\n| c | dd |\n|   |    |\n",
+   "point": 28
+  }
+ },
+ {
+  "text": "| a | bb |\n|---+----|\n| c | d |\n",
+  "point": 25,
+  "expected": {
+   "text": "| a | bb |\n|---+----|\n| c | d  |\n|   |    |\n",
+   "point": 35
+  }
+ },
+ {
+  "text": "| a | bb |\n|---|\n",
+  "point": 7,
+  "expected": {
+   "text": "| a | bb |\n|   |    |\n|---+----|\n",
+   "point": 17
+  }
+ },
+ {
+  "text": "| a | b |\n",
+  "point": 0,
+  "expected": {
+   "text": "\n| a | b |\n",
+   "point": 1
+  }
+ },
+ {
+  "text": "| a | b |\n",
+  "point": 9,
+  "expected": {
+   "text": "| a | b |\n\n",
+   "point": 10
+  }
+ },
+ {
+  "text": "  | a | b |\n  | c |\n",
+  "point": 9,
+  "expected": {
+   "text": "  | a | b |\n  | c |   |\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "| a | b",
+  "point": 7,
+  "expected": {
+   "text": "| a | b\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "| x |\n| a | b | c |\n",
+  "point": 9,
+  "expected": {
+   "text": "| x |   |   |\n| a | b | c |\n|   |   |   |\n",
+   "point": 30
+  }
+ },
+ {
+  "text": "| ab | c |\n#+TBLFM: $2=1\n",
+  "point": 3,
+  "expected": {
+   "text": "| ab | c |\n|    |   |\n#+TBLFM: $2=1\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 23,
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:ID: x\n\n:END:\n",
+   "point": 24
+  }
+ },
+ {
+  "text": "* H\nbody\n",
+  "point": 8,
+  "expected": {
+   "text": "* H\nbody\n\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "#+begin_src sh\necho x\n#+end_src\n",
+  "point": 19,
+  "expected": {
+   "text": "#+begin_src sh\n  echo\n  x\n#+end_src\n",
+   "point": 24
+  }
+ },
+ {
+  "text": "* H\n  - item\n",
+  "point": 12,
+  "expected": {
+   "text": "* H\n  - item\n    \n",
+   "point": 17
+  }
+ },
+ {
+  "text": "* H\nbody\n",
+  "point": 8,
+  "adapt": "t",
+  "expected": {
+   "text": "* H\nbody\n\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "* H\n",
+  "point": 4,
+  "adapt": "t",
+  "expected": {
+   "text": "* H\n\n  ",
+   "point": 7
+  }
+ },
+ {
+  "text": "* TODO Split here :x:\nbody\n",
+  "point": 12,
+  "adapt": "t",
+  "expected": {
+   "text": "* TODO Split                                                              :x:\n  here\nbody\n",
+   "point": 80
+  }
+ },
+ {
+  "text": "- item\n",
+  "point": 6,
+  "adapt": "t",
+  "expected": {
+   "text": "- item\n  \n",
+   "point": 9
+  }
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 23,
+  "adapt": "t",
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:ID: x\n\n:END:\n",
+   "point": 24
+  }
+ }
+]
