@@ -79,6 +79,12 @@ or the TODO state, `Ctrl+C Ctrl+S` schedules, `Ctrl+C Ctrl+W` refiles,
 `Ctrl+C Ctrl+C` files the entry. Where a command does not apply,
 `Shift+arrows` select and `Tab` indents as usual.
 
+The agenda and capture need no Org file open: from the Command Palette
+(`Org: Agenda commands`, `Org: Capture`, …) in any view, the package starts the
+server first, with a tab that says so and closes when the agenda opens.
+Their keys are bound in Org files and the agenda only, where `Ctrl+C`
+does not copy.
+
 With `vim`, the Neovim plugin's keys that do not start with a plain letter
 or the leader are bound in command mode (`Tab`, `Ctrl+Space`, `Ctrl+A`,
 …). Bind the others yourself.

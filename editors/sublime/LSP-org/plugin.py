@@ -34,6 +34,8 @@ PACKAGE = __package__ or 'LSP-org'
 SESSION = 'LSP-org'
 SETTINGS = 'LSP-org.sublime-settings'
 CLOCK_KEY = 'org-lsp-clock'
+# How long to wait for the server to start, in steps of 200 ms.
+STARTING_TRIES = 150
 REPOSITORY = 'kristijanhusak/org-lsp'
 RELEASE = 'nightly'
 # The release's name for each platform Sublime Text runs on.
@@ -244,6 +246,12 @@ def show_clock(params) -> None:
                 view.erase_status(CLOCK_KEY)
 
 
+def starter_path() -> str:
+    """The file that starts the server when no Org file is open: an agenda
+    file, which LSP starts the server for."""
+    return os.path.join(sublime.cache_path(), PACKAGE, 'Starting.org-agenda')
+
+
 def is_org(view) -> bool:
     return bool(view) and view.match_selector(0, 'text.org | text.org-agenda')
 
@@ -258,6 +266,10 @@ class OrgLspRunCommand(LspWindowCommand):
     def is_enabled(self, **kwargs) -> bool:
         return True
 
+    # The view that started the server for a command run with no Org
+    # file open; it closes once the command is done.
+    starter = None
+
     def run(self, command: str, fallback=None) -> None:
         session = self.session_by_name(SESSION)
         view = self.window.active_view()
@@ -265,14 +277,49 @@ class OrgLspRunCommand(LspWindowCommand):
             # A key keeps its own meaning without a server (Enter types).
             if fallback and view:
                 view.run_command(fallback['command'], fallback.get('args'))
+            elif is_org(view):
+                sublime.status_message('org-lsp: the server is starting')
             else:
-                sublime.status_message('org-lsp: open an Org file first')
+                # The agenda, a capture: no Org file needs to be open.
+                self.start(lambda session: self.execute(session, view, command, {}, None))
             return
         if is_org(view):
             context = text_document_position_params(view, view.sel()[0].b)
         else:
             context = {}
         self.execute(session, view, command, context, fallback)
+
+    def start(self, then) -> None:
+        """Start the server, as LSP starts it: for a view it applies to.
+        The view is a file of the package's that says the server is
+        starting, and closes when the command is done; the agenda or the
+        capture buffer the command opens keeps the server running."""
+        path = starter_path()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w', encoding='utf-8') as out:
+            out.write('org-lsp is starting…\n')
+        self.close_starter()
+        OrgLspRunCommand.starter = self.window.open_file(path)
+        sublime.status_message('org-lsp: starting the server…')
+
+        def wait(tries: int) -> None:
+            session = self.session_by_name(SESSION)
+            # READY: the server has answered `initialize`.
+            if session and getattr(session, 'state', 1) == 1:
+                then(session)
+            elif tries > 0:
+                sublime.set_timeout(lambda: wait(tries - 1), 200)
+            else:
+                self.close_starter()
+                sublime.status_message('org-lsp: the server did not start; see the LSP log panel')
+        wait(STARTING_TRIES)
+
+    def close_starter(self) -> None:
+        starter = OrgLspRunCommand.starter
+        OrgLspRunCommand.starter = None
+        if starter and starter.is_valid():
+            starter.set_scratch(True)
+            starter.close()
 
     def execute(self, session, view, command, context, fallback) -> None:
         params = {'command': command, 'arguments': [context] if context else []}
@@ -286,6 +333,7 @@ class OrgLspRunCommand(LspWindowCommand):
         data = error.get('data') if isinstance(error, dict) else None
         # A key keeps its own meaning where the command does not apply,
         # and when it fails: Enter is never lost.
+        self.finish_start()
         if fallback:
             view.run_command(fallback['command'], fallback.get('args'))
         if not (isinstance(data, dict) and data.get('notApplicable')):
@@ -311,7 +359,17 @@ class OrgLspRunCommand(LspWindowCommand):
             close(result['close'])
         request = result.get('input')
         if isinstance(request, dict):
-            ask(self.window, request, lambda answer: self.answered(session, view, command, context, fallback, request, answer))
+            ask(self.window, request,
+                lambda answer: self.answered(session, view, command, context, fallback, request, answer),
+                self.finish_start)
+        else:
+            self.finish_start()
+
+    def finish_start(self) -> None:
+        """Close the view that started the server, once what the command
+        opened (the agenda) has had the time to open and keep the server."""
+        if OrgLspRunCommand.starter:
+            sublime.set_timeout(self.close_starter, 1000)
 
     def answered(self, session, view, command, context, fallback, request, answer) -> None:
         context = dict(context)
@@ -320,9 +378,10 @@ class OrgLspRunCommand(LspWindowCommand):
         self.execute(session, view, command, context, fallback)
 
 
-def ask(window, request, then) -> None:
+def ask(window, request, then, cancelled=None) -> None:
     """Ask what a command asks for: a key or one of a list in the quick
-    panel, or text in the input panel."""
+    panel, or text in the input panel. `cancelled` runs when it is given
+    up."""
     choices = request.get('choices')
     if choices:
         if request.get('kind') == 'key':
@@ -333,9 +392,11 @@ def ask(window, request, then) -> None:
         def picked(index: int) -> None:
             if index >= 0:
                 then(choices[index]['key'])
+            elif cancelled:
+                cancelled()
         window.show_quick_panel(items, picked, placeholder=request.get('prompt', ''))
         return
-    window.show_input_panel(request.get('prompt', '') + ':', request.get('value', ''), then, None, None)
+    window.show_input_panel(request.get('prompt', '') + ':', request.get('value', ''), then, None, cancelled)
 
 
 # ----- help
