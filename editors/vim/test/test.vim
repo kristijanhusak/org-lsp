@@ -140,6 +140,18 @@ function! s:agenda() abort
   call feedkeys('q', 'x')
   call s:until('the agenda closed', {-> s:agenda_window() == 0})
   call assert_equal(s:work_buf, bufnr())
+  " `win_split_size`: lines for a split. (coc.nvim opens documents where it
+  " opens them.)
+  if $ORG_LSP_TEST_CLIENT ==# 'coc'
+    return
+  endif
+  let g:org_lsp.win_split_size = 6
+  call org_lsp#run('org.agenda.list')
+  call s:until('the agenda of 6 lines', {-> s:agenda_window() != 0 && winheight(s:agenda_window()) == 6})
+  call win_gotoid(s:agenda_window())
+  call feedkeys('q', 'x')
+  call s:until('the agenda closed', {-> s:agenda_window() == 0})
+  call remove(g:org_lsp, 'win_split_size')
 endfunction
 call s:test('shows the agenda, moves through it, and closes it', function('s:agenda'))
 

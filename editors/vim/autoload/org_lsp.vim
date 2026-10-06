@@ -22,6 +22,7 @@ let s:defaults = {
       \ 'src_highlight': 1,
       \ 'virtual_indent': 1,
       \ 'win_split_mode': 'split',
+      \ 'win_split_size': 0,
       \ 'mappings': {
       \   'global': {
       \     'org.agenda.dispatch': '<Leader>oa',
@@ -735,8 +736,22 @@ function! s:open_apart(path) abort
   if mode !=# 'current'
     execute mode
     let w:org_lsp_opened = 1
+    call s:resize_apart(mode, org_lsp#config().win_split_size)
   endif
   execute 'edit' fnameescape(a:path)
+endfunction
+
+" `win_split_size`: lines for a split, columns for a vertical one (`vsplit`,
+" `vnew`, `vertical`), or below 1 that part of the editor; 0 leaves the
+" window as the command made it.
+function! s:resize_apart(mode, size) abort
+  if type(a:size) != v:t_number && type(a:size) != v:t_float || a:size <= 0
+    return
+  endif
+  let vertical = a:mode =~# '^\s*\S*\s*v' || a:mode =~# 'vert'
+  let total = vertical ? &columns : &lines - &cmdheight - 1
+  let size = max([1, min([total, float2nr(a:size < 1 ? total * a:size : a:size)])])
+  execute (vertical ? 'vertical ' : '') . 'resize ' . size
 endfunction
 
 function! s:is_agenda(path) abort

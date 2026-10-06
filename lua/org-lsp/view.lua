@@ -35,14 +35,27 @@ end
 ---@return integer
 local function open_window(bufnr, mode)
   local win
+  local size = require('org-lsp').config.win_split_size
+  if type(size) ~= 'number' or size <= 0 then
+    size = nil
+  end
+  --- `size` of `total`: a fraction of it, or lines or columns.
+  local function sized(total, default)
+    local value = size or default
+    if not value then
+      return nil
+    end
+    return math.max(1, math.min(total, value < 1 and math.floor(total * value) or math.floor(value)))
+  end
   if type(mode) == 'function' then
     win = mode(bufnr)
     if type(win) ~= 'number' or not vim.api.nvim_win_is_valid(win) then
       win = vim.api.nvim_get_current_win()
     end
   elseif mode == 'float' then
-    local height = math.max(1, math.floor((vim.o.lines - vim.o.cmdheight) * 0.8))
-    local width = math.max(1, math.floor(vim.o.columns * 0.8))
+    -- A fraction for both sides; lines for the height, the width then 80%.
+    local height = sized(vim.o.lines - vim.o.cmdheight - 2, 0.8)
+    local width = math.max(1, math.floor(vim.o.columns * (size and size < 1 and size or 0.8)))
     win = vim.api.nvim_open_win(bufnr, true, {
       relative = 'editor',
       row = math.floor((vim.o.lines - vim.o.cmdheight - height) / 2) - 1,
@@ -56,6 +69,14 @@ local function open_window(bufnr, mode)
   else
     vim.cmd(mode)
     win = vim.api.nvim_get_current_win()
+    if size then
+      -- `vsplit`, `vnew`, `vertical …`: the width; else the height.
+      if mode:match('^%s*%S*%s*v') or mode:match('vert') then
+        vim.api.nvim_win_set_width(win, sized(vim.o.columns))
+      else
+        vim.api.nvim_win_set_height(win, sized(vim.o.lines - vim.o.cmdheight - 1))
+      end
+    end
   end
   -- Closing the document closes a window opened for it too.
   if mode ~= 'current' then

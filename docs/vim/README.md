@@ -50,6 +50,7 @@ let g:org_lsp = {
 | `virtual_indent` | `1` | Show files with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`) indented by level without changing them, and their hidden leading stars in the color of the background, as Org's `org-hide` face does. Text properties of their own text: Vim 9.0.0067 or later. |
 | `src_highlight` | `1` | Highlight the code of source and export blocks (`#+begin_src python`, `#+begin_export html`) and of inline source blocks (`src_python{…}`, to the first `}`) with the syntax file of its language, as Emacs's `org-src-fontify-natively` does. |
 | `win_split_mode` | `'split'` | How the agenda and capture buffers open: `'split'`, `'vsplit'`, `'current'`, or an Ex command that opens a window (`'botright split'`, `'tabnew'`). |
+| `win_split_size` | `0` | How big the window `win_split_mode` opens is: lines for a split, columns for a vertical one (`vsplit`, `vnew`, `vertical`), or below 1 that part of the editor. `0` leaves it as the command makes it. |
 | `mappings` | the server's | Keys by scope (`global`, `org`, `agenda`, `capture`), as for the Neovim plugin: a command maps to a key, a list of keys, or `0`; `0` for a scope (or for `mappings`) sets no keys there. |
 
 The keys are the Neovim plugin's; [docs/neovim/keys.md](../neovim/keys.md)
@@ -73,10 +74,10 @@ set statusline=%f\ %=%{org_lsp#clock_status()}
   temporary directory), read again when it changes.
 - Nothing is concealed: Vim cannot hide text that text properties mark,
   so link brackets and emphasis markers show.
-- No virtual indentation, and new lines are not indented by the server.
+- New lines are not indented by the server.
 - With coc.nvim, the documents the server asks to show open where
   coc.nvim opens them (`coc.preferences.jumpCommand`), not as
-  `win_split_mode` says; and since coc.nvim passes on only an error's
+  `win_split_mode` and `win_split_size` say; and since coc.nvim passes on only an error's
   message, a key that keeps its own meaning (`<C-a>` off a timestamp)
   falls back to it whenever the server refuses.
 - With ALE, one server serves the session, started for the directory of
