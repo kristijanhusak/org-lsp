@@ -738,5 +738,131 @@
    "text": "* D [0/3]\n    - two words [0%]\n    - [@4] one [0%]\n\n    - [ ] \n\n    - [ ] a longer item text [0%]\n\n    - [ ] x [0%]",
    "point": 62
   }
+ },
+ {
+  "text": "* A\n1. one\n   1. a\n   2. b\n2. two\n",
+  "point": 18,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1. one\n   1. a\n   2. \n   3. b\n2. two\n",
+   "point": 25
+  }
+ },
+ {
+  "text": "* A\n1. one\n   1. a\n   2. b\n2. two\n",
+  "point": 26,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1. one\n   1. a\n   2. b\n   3. \n2. two\n",
+   "point": 33
+  }
+ },
+ {
+  "text": "* A\n1. one\n   1. a\n   2. b\n2. two\n",
+  "point": 10,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1. one\n2. \n   1. a\n   2. b\n3. two\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "* A\n1. one\n   1. a\n   2. b\n2. two\n",
+  "point": 33,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1. one\n   1. a\n   2. b\n2. two\n3. \n",
+   "point": 37
+  }
+ },
+ {
+  "text": "* A\n1) one\n   1) a\n   2) b\n      - x\n2) two\n",
+  "point": 18,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1) one\n   1) a\n   2) \n   3) b\n      - x\n2) two\n",
+   "point": 25
+  }
+ },
+ {
+  "text": "* A\n1) one\n   1) a\n   2) b\n      - x\n2) two\n",
+  "point": 36,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1) one\n   1) a\n   2) b\n      - x\n      - \n2) two\n",
+   "point": 45
+  }
+ },
+ {
+  "text": "* A\n- one\n  1. a\n  2. b\n- two\n",
+  "point": 16,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- one\n  1. a\n  2. \n  3. b\n- two\n",
+   "point": 22
+  }
+ },
+ {
+  "text": "* A\n- one\n  1. a\n  2. b\n- two\n",
+  "point": 9,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- one\n- \n  1. a\n  2. b\n- two\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "* A\n1. one\n   1. a\n      1. i\n      2. ii\n   2. b\n2. two\n3. three\n",
+  "point": 29,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1. one\n   1. a\n      1. i\n      2. \n      3. ii\n   2. b\n2. two\n3. three\n",
+   "point": 39
+  }
+ },
+ {
+  "text": "* A\n1. one\n   1. a\n      1. i\n      2. ii\n   2. b\n2. two\n3. three\n",
+  "point": 41,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1. one\n   1. a\n      1. i\n      2. ii\n      3. \n   2. b\n2. two\n3. three\n",
+   "point": 51
+  }
+ },
+ {
+  "text": "* A\n1. one\n   1. a\n      1. i\n      2. ii\n   2. b\n2. two\n3. three\n",
+  "point": 18,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1. one\n   1. a\n   2. \n      1. i\n      2. ii\n   3. b\n2. two\n3. three\n",
+   "point": 25
+  }
+ },
+ {
+  "text": "* A\n1. one\n   1. a\n      1. i\n      2. ii\n   2. b\n2. two\n3. three\n",
+  "point": 56,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1. one\n   1. a\n      1. i\n      2. ii\n   2. b\n2. two\n3. \n4. three\n",
+   "point": 60
+  }
+ },
+ {
+  "text": "* A\n1. one\n   1. a\n   2. b\n2. two\n",
+  "point": 18,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* A\n1. one\n   1. a\n   2. [ ] \n   3. b\n2. two\n",
+   "point": 29
+  }
+ },
+ {
+  "text": "* A\n1. one\n   1. a\n      1. i\n      2. ii\n   2. b\n2. two\n3. three\n",
+  "point": 29,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* A\n1. one\n   1. a\n      1. i\n      2. [ ] \n      3. ii\n   2. b\n2. two\n3. three\n",
+   "point": 43
+  }
  }
 ]

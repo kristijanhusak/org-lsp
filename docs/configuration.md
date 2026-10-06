@@ -421,6 +421,12 @@ linkDescriptive = true
 # (org-hide-emphasis-markers)
 hideEmphasisMarkers = false
 
+# RET on the first line of a list item makes the next item, numbered and with
+# a checkbox as M-RET (`org-meta-return`) makes it, the items after it
+# renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET
+# is Org's: a new line in the item.
+returnUsesMetaReturn = false
+
 # Save the files a command changes other than the one it was run in: an
 # entry's file changed from the agenda, the target of a capture or of a
 # refile. The editor saves them once it has made the change. Off, they are
@@ -775,6 +781,12 @@ now = "now - - - - - - - - - - - - - - - - - - - - - - - - -"
   // `+strike-through+`, `=verbatim=` and `~code~`, as for links.
   // (org-hide-emphasis-markers)
   "hideEmphasisMarkers": false,
+
+  // RET on the first line of a list item makes the next item, numbered and
+  // with a checkbox as M-RET (`org-meta-return`) makes it, the items after it
+  // renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off,
+  // RET is Org's: a new line in the item.
+  "returnUsesMetaReturn": false,
 
   // Save the files a command changes other than the one it was run in: an
   // entry's file changed from the agenda, the target of a capture or of a
