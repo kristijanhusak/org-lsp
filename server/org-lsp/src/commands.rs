@@ -143,6 +143,9 @@ pub const REFILE: &str = "org.refile";
 pub const OPEN: &str = "org.open";
 pub const ADD_NOTE: &str = "org.add.note";
 pub const TANGLE: &str = "org.babel.tangle";
+pub const TABLE_RECALCULATE: &str = "org.table.recalculate";
+pub const TABLE_RECALCULATE_LINE: &str = "org.table.recalculate.line";
+pub const TABLE_ITERATE: &str = "org.table.iterate";
 pub const ARCHIVE_SUBTREE: &str = "org.archive.subtree";
 pub const ARCHIVE_SIBLING: &str = "org.archive.sibling";
 pub const ARCHIVE_TAG: &str = "org.archive.tag";
@@ -342,6 +345,14 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>obt")],
         ..command(TANGLE, "Tangle the file's code blocks")
     },
+    // `org-table-recalculate`: the formulas of the `#+TBLFM:` line under
+    // the table. Emacs's `C-c *` recalculates the cursor's line (and the
+    // field formulas); with `C-u`, which no editor binds as a prefix,
+    // every line, and with `C-u C-u` until nothing changes. `C-c C-c` on
+    // the `#+TBLFM:` line applies that line's formulas to every line.
+    Command { vim: &[key(Org, "<Leader>o*")], ..edit(TABLE_RECALCULATE, "Recalculate the table") },
+    Command { emacs: &[key(Org, "C-c *")], ..edit(TABLE_RECALCULATE_LINE, "Recalculate the table's current line") },
+    edit(TABLE_ITERATE, "Recalculate the table until it does not change"),
     // `org-open-at-point`: a link, a timestamp, a footnote, a tag, or the
     // links of the entry; in the agenda the links of the line's entry
     // (`org-agenda-open-link`).

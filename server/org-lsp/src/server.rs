@@ -3644,8 +3644,17 @@ impl Server {
                     .into_iter()
                     .map(|edit| TextEdit { range: index.range(text, edit.range, encoding), new_text: edit.new_text })
                     .collect();
-                let message = heading.and_then(|heading| {
-                    headline_message(text, &outcome.text, heading, parse.todo_keywords(), reference.is_some(), explicit)
+                let message = outcome.message.clone().or_else(|| {
+                    heading.and_then(|heading| {
+                        headline_message(
+                            text,
+                            &outcome.text,
+                            heading,
+                            parse.todo_keywords(),
+                            reference.is_some(),
+                            explicit,
+                        )
+                    })
                 });
                 (edits, version, outcome.text, outcome.note, message)
             });

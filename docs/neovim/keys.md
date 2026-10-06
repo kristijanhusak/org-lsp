@@ -49,6 +49,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>or` | `org.refile` | Refile the entry |
 | `<Leader>ona` | `org.add.note` | Add a note to the entry |
 | `<Leader>obt` | `org.babel.tangle` | Tangle the file's code blocks |
+| `<Leader>o*` | `org.table.recalculate` | Recalculate the table |
 | `<Leader>oo` | `org.open` | Open the link or thing at the cursor |
 | `<Leader>o$` | `org.archive.subtree` | Archive the subtree |
 | `<Leader>oxA` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
@@ -138,6 +139,8 @@ The other options are in [configuration.md](configuration.md).
 | `org.agenda.list` | Agenda for the current week or day |
 | `org.agenda.todos` | List of all TODO entries |
 | `org.todo.next` | Cycle TODO state forward |
+| `org.table.recalculate.line` | Recalculate the table's current line |
+| `org.table.iterate` | Recalculate the table until it does not change |
 | `org.archive.done` | Archive the subtrees without open TODO items |
 | `org.archive.tag.done` | Tag the subtrees without open TODO items as archived |
 | `org.shift.up` | Increase the timestamp part or raise the priority |

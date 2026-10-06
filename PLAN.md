@@ -483,9 +483,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 ### Later or out of scope for now
 
-Export, Babel's evaluation, column view, table formulas, inline images,
-LaTeX previews. Done of Babel: tangling (`org-babel-tangle`), checked
-against Emacs in `tests/tangle/cases.json`.
+Export, Babel's evaluation, column view, inline images, LaTeX previews.
+Done of Babel: tangling (`org-babel-tangle`), checked against Emacs in
+`tests/tangle/cases.json`. Done: table formulas (`org-table-recalculate`,
+with the part of Calc they use in `org-core/src/calc.rs`), checked against
+Emacs in `tests/tblfm/cases.json`.
 
 ## Open questions
 

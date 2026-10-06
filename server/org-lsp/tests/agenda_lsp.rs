@@ -2966,3 +2966,74 @@ fn inheritance_options_apply_to_open_and_read_files() {
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }
+
+/// Table formulas: `org.table.recalculate` applies the `#+TBLFM:` line to
+/// every line, `org.table.recalculate.line` to the cursor's line,
+/// `org.table.iterate` until the table is stable, and `C-c C-c` on the
+/// `#+TBLFM:` line applies that line's formulas.
+#[test]
+fn recalculates_tables() {
+    const URI: &str = "file:///org/table.org";
+    let mut client = Client::editor(json!({}), None);
+    let start = "| a | b | c |\n|---+---+---|\n| 1 | 2 |   |\n| 3 | 4 |   |\n#+TBLFM: $3=$1*$2\n#+TBLFM: $3=$1+$2\n";
+    client.open(URI, start);
+    let mut version = 1;
+    let mut run = |client: &mut Client, text: &mut String, command: &str, line: u32| {
+        client.received.clear();
+        let at = json!({ "textDocument": { "uri": URI }, "position": { "line": line, "character": 2 } });
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
+        client.settle();
+        if let Some(edit) = client.received.iter().find(|request| request.method == "workspace/applyEdit") {
+            let (_, edits) = edits_of(edit);
+            *text = apply(text, &edits);
+            version += 1;
+            client.notify(
+                "textDocument/didChange",
+                json!({ "textDocument": { "uri": URI, "version": version }, "contentChanges": [{ "text": text }] }),
+            );
+            client.settle();
+        }
+        result
+    };
+    let mut text = start.to_string();
+    run(&mut client, &mut text, "org.table.recalculate.line", 3).unwrap();
+    assert_eq!(
+        text,
+        "| a | b |  c |\n|---+---+----|\n| 1 | 2 |    |\n| 3 | 4 | 12 |\n#+TBLFM: $3=$1*$2\n#+TBLFM: $3=$1+$2\n"
+    );
+    run(&mut client, &mut text, "org.table.recalculate", 0).unwrap();
+    assert_eq!(
+        text,
+        "| a | b |  c |\n|---+---+----|\n| 1 | 2 |  2 |\n| 3 | 4 | 12 |\n#+TBLFM: $3=$1*$2\n#+TBLFM: $3=$1+$2\n"
+    );
+    // The second formula line, with the key of `C-c C-c`.
+    run(&mut client, &mut text, "org.checkbox.toggle", 5).unwrap();
+    assert_eq!(
+        text,
+        "| a | b | c |\n|---+---+---|\n| 1 | 2 | 3 |\n| 3 | 4 | 7 |\n#+TBLFM: $3=$1*$2\n#+TBLFM: $3=$1+$2\n"
+    );
+    let result = run(&mut client, &mut text, "org.table.iterate", 2).unwrap();
+    assert_eq!(result["message"], "Convergence after 2 iterations");
+    assert_eq!(
+        text,
+        "| a | b |  c |\n|---+---+----|\n| 1 | 2 |  2 |\n| 3 | 4 | 12 |\n#+TBLFM: $3=$1*$2\n#+TBLFM: $3=$1+$2\n"
+    );
+    let result = run(&mut client, &mut text, "org.table.iterate", 2).unwrap();
+    assert_eq!(result["message"], "Table was already stable");
+    // Errors as Emacs gives them; outside a table, the command does not
+    // apply.
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": URI, "version": 100 }, "contentChanges": [{ "text": "text\n| 1 |  |\n#+TBLFM: $2=@-3\n" }] }),
+    );
+    client.settle();
+    let error = client
+        .request("workspace/executeCommand", json!({ "command": "org.table.recalculate", "arguments": [{ "textDocument": { "uri": URI }, "position": { "line": 1, "character": 1 } }] }))
+        .unwrap_err();
+    assert_eq!(error, "Row descriptor -3 leads outside table");
+    let refused = client
+        .request_raw("workspace/executeCommand", json!({ "command": "org.table.recalculate", "arguments": [{ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 1 } }] }))
+        .unwrap_err();
+    assert_eq!(refused.message, "Not at a table");
+    client.shutdown();
+}

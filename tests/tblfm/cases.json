@@ -1,0 +1,671 @@
+[
+ {
+  "name": "a column formula: every data line below the header",
+  "text": "| a | b | c |\n|---+---+---|\n| 1 | 2 |   |\n| 3 | 4 |   |\n#+TBLFM: $3=$1+$2\n",
+  "expected": {
+   "text": "| a | b | c |\n|---+---+---|\n| 1 | 2 | 3 |\n| 3 | 4 | 7 |\n#+TBLFM: $3=$1+$2\n"
+  }
+ },
+ {
+  "name": "no header: every data line",
+  "text": "| 1 | 2 |   |\n| 3 | 4 |   |\n#+TBLFM: $3=$1*$2\n",
+  "expected": {
+   "text": "| 1 | 2 |  2 |\n| 3 | 4 | 12 |\n#+TBLFM: $3=$1*$2\n"
+  }
+ },
+ {
+  "name": "division gives a float with 8 digits",
+  "text": "| 1 | 3 |  |\n| 6 | 3 |  |\n| 7 | 2 |  |\n#+TBLFM: $3=$1/$2\n",
+  "expected": {
+   "text": "| 1 | 3 | 0.33333333 |\n| 6 | 3 |          2 |\n| 7 | 2 |        3.5 |\n#+TBLFM: $3=$1/$2\n"
+  }
+ },
+ {
+  "name": "a format after ;",
+  "text": "| 1 | 3 |  |\n| 6 | 4 |  |\n#+TBLFM: $3=$1/$2;%.2f\n",
+  "expected": {
+   "text": "| 1 | 3 | 0.33 |\n| 6 | 4 | 1.50 |\n#+TBLFM: $3=$1/$2;%.2f\n"
+  }
+ },
+ {
+  "name": "fix and float modes",
+  "text": "| 1 | 3 |  |  |\n| 2 | 7 |  |  |\n#+TBLFM: $3=$1/$2;f3::$4=$1/$2;n3\n",
+  "expected": {
+   "text": "| 1 | 3 | 0.333 | 0.333 |\n| 2 | 7 | 0.286 | 0.286 |\n#+TBLFM: $3=$1/$2;f3::$4=$1/$2;n3\n"
+  }
+ },
+ {
+  "name": "fix mode on an integer",
+  "text": "| 4 | 2 |  |\n#+TBLFM: $3=$1/$2;f2\n",
+  "expected": {
+   "text": "| 4 | 2 | 2 |\n#+TBLFM: $3=$1/$2;f2\n"
+  }
+ },
+ {
+  "name": "vsum of a column range with hlines",
+  "text": "| x |\n|---|\n| 1 |\n| 2 |\n| 3 |\n|---|\n|   |\n#+TBLFM: @>$1=vsum(@I..@II)\n",
+  "expected": {
+   "text": "| x |\n|---|\n| 1 |\n| 2 |\n| 3 |\n|---|\n| 6 |\n#+TBLFM: @>$1=vsum(@I..@II)\n"
+  }
+ },
+ {
+  "name": "vsum of @2..@-1 from the last row",
+  "text": "| x | y |\n|---+---|\n| 1 | 5 |\n| 2 | 6 |\n|---+---|\n|   |   |\n#+TBLFM: @>$1=vsum(@2..@-1)::@>$2=vsum(@2..@-1)\n",
+  "expected": {
+   "text": "| x |  y |\n|---+----|\n| 1 |  5 |\n| 2 |  6 |\n|---+----|\n| 3 | 11 |\n#+TBLFM: @>$1=vsum(@2..@-1)::@>$2=vsum(@2..@-1)\n"
+  }
+ },
+ {
+  "name": "a row formula sets every column",
+  "text": "| 1 | 2 | 3 |\n| 4 | 5 | 6 |\n|   |   |   |\n#+TBLFM: @3=@1+@2\n",
+  "expected": {
+   "text": "| 1 | 2 | 3 |\n| 4 | 5 | 6 |\n| 5 | 7 | 9 |\n#+TBLFM: @3=@1+@2\n"
+  }
+ },
+ {
+  "name": "a range on the left",
+  "text": "| 1 | 2 | 3 |\n| 4 | 5 | 6 |\n|   |   |   |\n#+TBLFM: @3$1..@3$2=@1*10\n",
+  "expected": {
+   "text": "|  1 |  2 | 3 |\n|  4 |  5 | 6 |\n| 10 | 20 |   |\n#+TBLFM: @3$1..@3$2=@1*10\n"
+  }
+ },
+ {
+  "name": "field formulas win over the column formula",
+  "text": "| a | b |\n|---+---|\n| 1 |   |\n| 2 |   |\n| 3 |   |\n#+TBLFM: $2=$1*2::@3$2=100\n",
+  "expected": {
+   "text": "| a |   b |\n|---+-----|\n| 1 |   2 |\n| 2 | 100 |\n| 3 |   6 |\n#+TBLFM: $2=$1*2::@3$2=100\n"
+  }
+ },
+ {
+  "name": "relative references to the row above",
+  "text": "| n | sum |\n|---+-----|\n| 1 | 1   |\n| 2 |     |\n| 3 |     |\n#+TBLFM: @3$2..@>$2=@-1+$1\n",
+  "expected": {
+   "text": "| n | sum |\n|---+-----|\n| 1 |   1 |\n| 2 |   3 |\n| 3 |   6 |\n#+TBLFM: @3$2..@>$2=@-1+$1\n"
+  }
+ },
+ {
+  "name": "running total, iterated",
+  "text": "| n | sum |\n|---+-----|\n| 1 |     |\n| 2 |     |\n| 3 |     |\n#+TBLFM: $2=@-1+$1\n",
+  "expected": {
+   "text": "| n | sum     |\n|---+---------|\n| 1 | sum + 1 |\n| 2 | sum + 3 |\n| 3 | sum + 6 |\n#+TBLFM: $2=@-1+$1\n"
+  }
+ },
+ {
+  "name": "@# and $#",
+  "text": "| a | b | c |\n|---+---+---|\n|   |   |   |\n|   |   |   |\n#+TBLFM: $1=@#::$2=$#::$3=@#*10+$#\n",
+  "expected": {
+   "text": "| a | b |  c |\n|---+---+----|\n| 2 | 2 | 23 |\n| 3 | 2 | 33 |\n#+TBLFM: $1=@#::$2=$#::$3=@#*10+$#\n"
+  }
+ },
+ {
+  "name": "column names from the ! row",
+  "text": "| ! | qty | price | total |\n|---+-----+-------+-------|\n|   | 2   | 3     |       |\n|   | 4   | 5     |       |\n#+TBLFM: $total=$qty*$price\n",
+  "expected": {
+   "error": "Unknown field: total"
+  }
+ },
+ {
+  "name": "parameters from a $ row",
+  "text": "| ! | x | y |\n|   | 2 |   |\n|   | 3 |   |\n| $ | rate=10 |  |\n#+TBLFM: $3=$2*$rate\n",
+  "expected": {
+   "text": "| ! |       x | y |\n|   |       2 |   |\n|   |       3 |   |\n| $ | rate=10 |   |\n#+TBLFM: $3=$2*$rate\n"
+  }
+ },
+ {
+  "name": "named fields with _",
+  "text": "|   | 1 | 2 |\n| _ | a | b |\n|   |   |   |\n#+TBLFM: $a=10::$b=$a*2\n",
+  "expected": {
+   "text": "|   |  1 | 2      |\n| _ |  a | b      |\n|   | 10 | #ERROR |\n#+TBLFM: $a=10::$b=$a*2\n"
+  }
+ },
+ {
+  "name": "constants from the file",
+  "text": "#+CONSTANTS: c=3 k=2\n| 1 |  |\n| 2 |  |\n#+TBLFM: $2=$1*$c+$k\n",
+  "expected": {
+   "text": "#+CONSTANTS: c=3 k=2\n| 1 | 5 |\n| 2 | 8 |\n#+TBLFM: $2=$1*$c+$k\n"
+  }
+ },
+ {
+  "name": "an undefined name",
+  "text": "| 1 |  |\n#+TBLFM: $2=$1*$nothere\n",
+  "expected": {
+   "text": "| 1 | #ERROR |\n#+TBLFM: $2=$1*$nothere\n"
+  }
+ },
+ {
+  "name": "empty fields are 0 alone and dropped from ranges",
+  "text": "| 1 |   | 3 |  |  |\n#+TBLFM: $4=$2+1::$5=vmean($1..$3)\n",
+  "expected": {
+   "text": "| 1 |   | 3 | 1 | 2 |\n#+TBLFM: $4=$2+1::$5=vmean($1..$3)\n"
+  }
+ },
+ {
+  "name": "E keeps empty fields, N makes text numbers",
+  "text": "| 1 |   | 3 |  |  |\n#+TBLFM: $4=vlen($1..$3);E::$5=vsum($1..$3);N\n",
+  "expected": {
+   "text": "| 1 |   | 3 | 3 | 4 |\n#+TBLFM: $4=vlen($1..$3);E::$5=vsum($1..$3);N\n"
+  }
+ },
+ {
+  "name": "text stays a symbol",
+  "text": "| apples | 2 |  |\n#+TBLFM: $3=$1+$2\n",
+  "expected": {
+   "text": "| apples | 2 | apples + 2 |\n#+TBLFM: $3=$1+$2\n"
+  }
+ },
+ {
+  "name": "text with N is 0",
+  "text": "| apples | 2 |  |\n#+TBLFM: $3=$1+$2;N\n",
+  "expected": {
+   "text": "| apples | 2 | 2 |\n#+TBLFM: $3=$1+$2;N\n"
+  }
+ },
+ {
+  "name": "@< @> $< $>",
+  "text": "| 1 | 2 | 3 |\n| 4 | 5 | 6 |\n| 7 | 8 |   |\n#+TBLFM: @>$>=@<$<+@>$<\n",
+  "expected": {
+   "text": "| 1 | 2 | 3 |\n| 4 | 5 | 6 |\n| 7 | 8 | 8 |\n#+TBLFM: @>$>=@<$<+@>$<\n"
+  }
+ },
+ {
+  "name": "marked lines only",
+  "text": "|   | a | b |\n|---+---+---|\n| # | 1 |   |\n|   | 2 |   |\n| * | 3 |   |\n#+TBLFM: $3=$2*10\n",
+  "expected": {
+   "text": "|   | a |  b |\n|---+---+----|\n| # | 1 | 10 |\n|   | 2 |    |\n| * | 3 | 30 |\n#+TBLFM: $3=$2*10\n"
+  }
+ },
+ {
+  "name": "lines with _ ^ ! $ / are skipped",
+  "text": "| / | 1 |   |\n|   | 2 |   |\n#+TBLFM: $3=$2*10\n",
+  "expected": {
+   "text": "| / | 1 |    |\n|   | 2 | 20 |\n#+TBLFM: $3=$2*10\n"
+  }
+ },
+ {
+  "name": "current line only",
+  "text": "| a | b |\n|---+---|\n| 1 |   |\n| 2¦ |   |\n| 3 |   |\n#+TBLFM: $2=$1*2::@2$2=7\n",
+  "command": "line",
+  "expected": {
+   "text": "| a | b |\n|---+---|\n| 1 | 7 |\n| 2 | 4 |\n| 3 |   |\n#+TBLFM: $2=$1*2::@2$2=7\n"
+  }
+ },
+ {
+  "name": "the TBLFM line under the cursor",
+  "text": "| 1 |  |\n| 2 |  |\n#+TBLFM: $2=$1*2\n#+TBLFM: $2=$1*¦3\n",
+  "expected": {
+   "text": "| 1 | 3 |\n| 2 | 6 |\n#+TBLFM: $2=$1*2\n#+TBLFM: $2=$1*3\n"
+  }
+ },
+ {
+  "name": "a new column made by a column formula",
+  "text": "| 1 |\n| 2 |\n#+TBLFM: $2=$1+1\n",
+  "expected": {
+   "text": "| 1 | 2 |\n| 2 | 3 |\n#+TBLFM: $2=$1+1\n"
+  }
+ },
+ {
+  "name": "a field formula beyond the columns",
+  "text": "| 1 |\n| 2 |\n#+TBLFM: @1$3=5\n",
+  "expected": {
+   "error": "Missing columns in the table.  Aborting"
+  }
+ },
+ {
+  "name": "double definition",
+  "text": "| 1 |  |\n#+TBLFM: $2=1::$2=2\n",
+  "expected": {
+   "error": "Double definition ‘$2=’ in TBLFM line, please fix by hand"
+  }
+ },
+ {
+  "name": "assigning to an hline reference",
+  "text": "| 1 |\n|---|\n| 2 |\n#+TBLFM: @I$1=1\n",
+  "expected": {
+   "error": "Can’t assign to hline relative reference"
+  }
+ },
+ {
+  "name": "outside the table",
+  "text": "| 1 |  |\n| 2 |  |\n#+TBLFM: $2=@-2\n",
+  "expected": {
+   "error": "Row descriptor -2 leads outside table"
+  }
+ },
+ {
+  "name": "comparison and if",
+  "text": "| 5 | 3 |  |  |\n| 1 | 4 |  |  |\n#+TBLFM: $3=if($1>$2, 1, 0)::$4=$1 < $2\n",
+  "expected": {
+   "text": "| 5 | 3 | 1 | 0 |\n| 1 | 4 | 0 | 1 |\n#+TBLFM: $3=if($1>$2, 1, 0)::$4=$1 < $2\n"
+  }
+ },
+ {
+  "name": "functions",
+  "text": "| 4 |  |  |  |  |  |\n#+TBLFM: $2=sqrt($1)::$3=exp(0)::$4=$1^2::$5=round(2.567, 2)::$6=sin(30)\n",
+  "expected": {
+   "text": "| 4 | 2 | 1 | 16 | 2.57 | 0.5 |\n#+TBLFM: $2=sqrt($1)::$3=exp(0)::$4=$1^2::$5=round(2.567, 2)::$6=sin(30)\n"
+  }
+ },
+ {
+  "name": "radians",
+  "text": "| 0 |  |  |\n#+TBLFM: $2=cos($1);R::$3=cos(60)\n",
+  "expected": {
+   "text": "| 0 | 1 | 0.5 |\n#+TBLFM: $2=cos($1);R::$3=cos(60)\n"
+  }
+ },
+ {
+  "name": "vmax vmin vmedian vprod vcount",
+  "text": "| 3 | 1 | 2 |  |  |  |  |  |\n#+TBLFM: $4=vmax($1..$3)::$5=vmin($1..$3)::$6=vmedian($1..$3)::$7=vprod($1..$3)::$8=vcount($1..$3)\n",
+  "expected": {
+   "text": "| 3 | 1 | 2 | 3 | 1 | 2 | 6 | 3 |\n#+TBLFM: $4=vmax($1..$3)::$5=vmin($1..$3)::$6=vmedian($1..$3)::$7=vprod($1..$3)::$8=vcount($1..$3)\n"
+  }
+ },
+ {
+  "name": "floats in fields",
+  "text": "| 1.5 | 2.25 |  |\n| 0.1 | 0.2  |  |\n#+TBLFM: $3=$1+$2\n",
+  "expected": {
+   "text": "| 1.5 | 2.25 | 3.75 |\n| 0.1 |  0.2 |  0.3 |\n#+TBLFM: $3=$1+$2\n"
+  }
+ },
+ {
+  "name": "a printf with text",
+  "text": "| 0.5 |  |\n#+TBLFM: $2=$1*100;%.1f%%\n",
+  "expected": {
+   "text": "| 0.5 | 50.0% |\n#+TBLFM: $2=$1*100;%.1f%%\n"
+  }
+ },
+ {
+  "name": "percent parameter",
+  "text": "| 1 | 3 |  |\n| $ | %=%.3f |  |\n#+TBLFM: $3=$1/$2\n",
+  "expected": {
+   "text": "| 1 |      3 |   |\n| $ | %=%.3f |   |\n#+TBLFM: $3=$1/$2\n"
+  }
+ },
+ {
+  "name": "relative column references",
+  "text": "| 1 | 2 |  |\n#+TBLFM: $3=$-1+$-2\n",
+  "expected": {
+   "text": "| 1 | 2 | 3 |\n#+TBLFM: $3=$-1+$-2\n"
+  }
+ },
+ {
+  "name": "a range with columns in other rows",
+  "text": "| 1 | 2 |\n| 3 | 4 |\n|   |   |\n#+TBLFM: @3$1=vsum(@1$1..@2$2)\n",
+  "expected": {
+   "text": "|  1 | 2 |\n|  3 | 4 |\n| 10 |   |\n#+TBLFM: @3$1=vsum(@1$1..@2$2)\n"
+  }
+ },
+ {
+  "name": "hline references II and @I+1",
+  "text": "| h |\n|---|\n| 1 |\n| 2 |\n|---|\n| 3 |\n|---|\n|   |\n#+TBLFM: @>$1=@I+1 + @II+1\n",
+  "expected": {
+   "text": "| h |\n|---|\n| 1 |\n| 2 |\n|---|\n| 3 |\n|---|\n| 4 |\n#+TBLFM: @>$1=@I+1 + @II+1\n"
+  }
+ },
+ {
+  "name": "the table aligned after",
+  "text": "|a|b|\n|-|-|\n|10|  |\n|200||\n#+TBLFM: $2=$1*3\n",
+  "expected": {
+   "text": "|   a |   b |\n|-----+-----|\n|  10 |  30 |\n| 200 | 600 |\n#+TBLFM: $2=$1*3\n"
+  }
+ },
+ {
+  "name": "indented table",
+  "text": "  | 1 |  |\n  | 2 |  |\n  #+TBLFM: $2=$1+10\n",
+  "expected": {
+   "text": "  | 1 | 11 |\n  | 2 | 12 |\n  #+TBLFM: $2=$1+10\n"
+  }
+ },
+ {
+  "name": "blank lines before TBLFM",
+  "text": "| 1 |  |\n\n#+TBLFM: $2=$1+10\n",
+  "expected": {
+   "text": "| 1 | 11 |\n\n#+TBLFM: $2=$1+10\n"
+  }
+ },
+ {
+  "name": "no formulas: aligned only",
+  "text": "|a|bb|\n|1|2|\n",
+  "expected": {
+   "text": "|a|bb|\n|1|2|\n"
+  }
+ },
+ {
+  "name": "iterate until stable",
+  "text": "| 1 |  |  |\n#+TBLFM: $2=$3+1::$3=$1*2\n",
+  "command": "iterate",
+  "expected": {
+   "text": "| 1 | 3 | 2 |\n#+TBLFM: $2=$3+1::$3=$1*2\n"
+  }
+ },
+ {
+  "name": "iterate: already stable",
+  "text": "| 1 | 2 |\n#+TBLFM: $2=$1*2\n",
+  "command": "iterate",
+  "expected": {
+   "text": "| 1 | 2 |\n#+TBLFM: $2=$1*2\n"
+  }
+ },
+ {
+  "name": "symbolic results",
+  "text": "| x | 2 |  |  |\n#+TBLFM: $3=$1*$2::$4=$1/$2\n",
+  "expected": {
+   "text": "| x | 2 | 2 x | x / 2 |\n#+TBLFM: $3=$1*$2::$4=$1/$2\n"
+  }
+ },
+ {
+  "name": "division by zero",
+  "text": "| 1 | 0 |  |\n#+TBLFM: $3=$1/$2\n",
+  "expected": {
+   "text": "| 1 | 0 | 1/0 |\n#+TBLFM: $3=$1/$2\n"
+  }
+ },
+ {
+  "name": "a parse error",
+  "text": "| 1 | 2 |  |\n#+TBLFM: $3=$1+*$2\n",
+  "expected": {
+   "text": "| 1 | 2 | #ERROR |\n#+TBLFM: $3=$1+*$2\n"
+  }
+ },
+ {
+  "name": "negative numbers and modulo",
+  "text": "| -7 | 3 |  |  |\n#+TBLFM: $3=$1%$2::$4=-$1\n",
+  "expected": {
+   "text": "| -7 | 3 | 2 | 7 |\n#+TBLFM: $3=$1%$2::$4=-$1\n"
+  }
+ },
+ {
+  "name": "big integers",
+  "text": "| 123456789 | 987654321 |  |\n#+TBLFM: $3=$1*$2\n",
+  "expected": {
+   "text": "| 123456789 | 987654321 | 121932631112635269 |\n#+TBLFM: $3=$1*$2\n"
+  }
+ },
+ {
+  "name": "sci mode",
+  "text": "| 12345 |  |\n#+TBLFM: $2=$1;s3\n",
+  "expected": {
+   "text": "| 12345 | 12345 |\n#+TBLFM: $2=$1;s3\n"
+  }
+ },
+ {
+  "name": "%d of a float",
+  "text": "| 2.7 |  |\n#+TBLFM: $2=$1;%d\n",
+  "expected": {
+   "text": "| 2.7 | 2 |\n#+TBLFM: $2=$1;%d\n"
+  }
+ },
+ {
+  "name": "@0 is the current row",
+  "text": "| 1 | 2 |  |\n| 3 | 4 |  |\n#+TBLFM: $3=@0$1+@0$2\n",
+  "expected": {
+   "text": "| 1 | 2 | 3 |\n| 3 | 4 | 7 |\n#+TBLFM: $3=@0$1+@0$2\n"
+  }
+ },
+ {
+  "name": "a named field formula",
+  "text": "| 5 | 6 |\n| ^ | x |\n|   |   |\n#+TBLFM: $x=@1$1*3\n",
+  "expected": {
+   "text": "| 5 | 15 |\n| ^ |  x |\n|   |    |\n#+TBLFM: $x=@1$1*3\n"
+  }
+ },
+ {
+  "name": "dates: the days between",
+  "text": "| <2024-01-01 Mon> | <2024-01-10 Wed> |  |\n#+TBLFM: $3=$2-$1\n",
+  "expected": {
+   "text": "| <2024-01-01 Mon> | <2024-01-10 Wed> | 9 |\n#+TBLFM: $3=$2-$1\n"
+  }
+ },
+ {
+  "name": "inactive dates are dates too",
+  "text": "| [2024-01-01 Mon] | [2024-03-10 Sun] |  |\n#+TBLFM: $3=$2-$1\n",
+  "expected": {
+   "text": "| [2024-01-01 Mon] | [2024-03-10 Sun] | 69 |\n#+TBLFM: $3=$2-$1\n"
+  }
+ },
+ {
+  "name": "a date and days: a date, written inactive",
+  "text": "| <2024-01-01 Mon> |  |\n#+TBLFM: $2=$1+30\n",
+  "expected": {
+   "text": "| <2024-01-01 Mon> | [2024-01-31 Wed] |\n#+TBLFM: $2=$1+30\n"
+  }
+ },
+ {
+  "name": "dates with times: a fraction of days",
+  "text": "| <2024-01-01 Mon 10:00> | <2024-01-02 Tue 16:30> |  |\n#+TBLFM: $3=$2-$1\n",
+  "expected": {
+   "text": "| <2024-01-01 Mon 10:00> | <2024-01-02 Tue 16:30> | 1.270833 |\n#+TBLFM: $3=$2-$1\n"
+  }
+ },
+ {
+  "name": "a date with a time and days",
+  "text": "| <2024-01-01 Mon 10:00> |  |\n#+TBLFM: $2=$1+1.5\n",
+  "expected": {
+   "text": "| <2024-01-01 Mon 10:00> | [2024-01-02 Tue 22:00] |\n#+TBLFM: $2=$1+1.5\n"
+  }
+ },
+ {
+  "name": "the year of a date; a date alone",
+  "text": "| <2024-01-01 Mon> |  |  |\n#+TBLFM: $2=year($1)::$3=$1\n",
+  "expected": {
+   "text": "| <2024-01-01 Mon> | 2024 | [2024-01-01 Mon] |\n#+TBLFM: $2=year($1)::$3=$1\n"
+  }
+ },
+ {
+  "name": "text in fields: words, minus signs",
+  "text": "| 3 apples | 2 |  |\n| a-b | 2 |  |\n#+TBLFM: $3=$1+$2\n",
+  "expected": {
+   "text": "| 3 apples | 2 | 3 apples + 2 |\n| a-b      | 2 | a - b + 2    |\n#+TBLFM: $3=$1+$2\n"
+  }
+ },
+ {
+  "name": "N with a symbol: an error",
+  "text": "| 1 | 2 |  |\n#+TBLFM: $3=$1+x;N\n",
+  "expected": {
+   "text": "| 1 | 2 | #ERROR |\n#+TBLFM: $3=$1+x;N\n"
+  }
+ },
+ {
+  "name": "a range of rows and columns between hlines",
+  "text": "| 1 | 2 | 3 |\n|---+---+---|\n| 4 | 5 | 6 |\n| 7 | 8 | 9 |\n|---+---+---|\n|   |   |   |\n#+TBLFM: @>$1=vsum(@I$1..@II$3)\n",
+  "expected": {
+   "text": "|  1 | 2 | 3 |\n|----+---+---|\n|  4 | 5 | 6 |\n|  7 | 8 | 9 |\n|----+---+---|\n| 39 |   |   |\n#+TBLFM: @>$1=vsum(@I$1..@II$3)\n"
+  }
+ },
+ {
+  "name": "the hline above",
+  "text": "| 1 |\n|---|\n| 2 |\n| 3 |\n|---|\n|   |\n#+TBLFM: @>$1=vsum(@-I..@-1)\n",
+  "expected": {
+   "text": "| 1 |\n|---|\n| 2 |\n| 3 |\n|---|\n| 3 |\n#+TBLFM: @>$1=vsum(@-I..@-1)\n"
+  }
+ },
+ {
+  "name": "a table that starts with an hline",
+  "text": "|---|\n| 1 |\n| 2 |\n|---|\n|   |\n#+TBLFM: @>$1=vsum(@I..@II)\n",
+  "expected": {
+   "text": "|---|\n| 1 |\n| 2 |\n|---|\n| 3 |\n#+TBLFM: @>$1=vsum(@I..@II)\n"
+  }
+ },
+ {
+  "name": "the row below",
+  "text": "| 1 |  |\n| 2 |  |\n| 3 |  |\n#+TBLFM: @1$2..@2$2=@+1$1\n",
+  "expected": {
+   "text": "| 1 | 2 |\n| 2 | 3 |\n| 3 |   |\n#+TBLFM: @1$2..@2$2=@+1$1\n"
+  }
+ },
+ {
+  "name": "the last column on the left",
+  "text": "| 1 | 2 |  |\n#+TBLFM: $>=$1+$2\n",
+  "expected": {
+   "text": "| 1 | 2 | 3 |\n#+TBLFM: $>=$1+$2\n"
+  }
+ },
+ {
+  "name": "the row before the last",
+  "text": "| 1 |\n| 2 |\n|   |\n| 9 |\n#+TBLFM: @>>$1=@1+@2\n",
+  "expected": {
+   "text": "| 1 |\n| 2 |\n| 3 |\n| 9 |\n#+TBLFM: @>>$1=@1+@2\n"
+  }
+ },
+ {
+  "name": "formulas sorted as text: $10 before $2",
+  "text": "| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |\n#+TBLFM: $2=$10*2::$10=$1+100\n",
+  "expected": {
+   "text": "| 1 | 202 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 101 |\n#+TBLFM: $2=$10*2::$10=$1+100\n"
+  }
+ },
+ {
+  "name": "large and negative floats",
+  "text": "| 1234567.891 | -0.5 | 1e20 |  |  |  |\n#+TBLFM: $4=$1*1000::$5=$2*3::$6=$3*2\n",
+  "expected": {
+   "text": "| 1234567.891 | -0.5 | 1e20 | 1234567900. | -1.5 | 2e20 |\n#+TBLFM: $4=$1*1000::$5=$2*3::$6=$3*2\n"
+  }
+ },
+ {
+  "name": "the current line is an hline",
+  "text": "| a | b |\n|-¦--+---|\n| 1 |   |\n#+TBLFM: $2=$1*2::@2$2=5\n",
+  "command": "line",
+  "expected": {
+   "text": "| a | b |\n|---+---|\n| 1 | 5 |\n#+TBLFM: $2=$1*2::@2$2=5\n"
+  }
+ },
+ {
+  "name": "mean and standard deviation of floats",
+  "text": "| 1.5 | 2.5 | 4 |  |  |\n#+TBLFM: $4=vmean($1..$3)::$5=vsdev($1..$3)\n",
+  "expected": {
+   "text": "| 1.5 | 2.5 | 4 | 2.6666667 | 1.2583057 |\n#+TBLFM: $4=vmean($1..$3)::$5=vsdev($1..$3)\n"
+  }
+ },
+ {
+  "name": "E: an empty field is nan",
+  "text": "| 1 |   | 3 |  |  |\n#+TBLFM: $4=$2;E::$5=$1+$2;E\n",
+  "expected": {
+   "text": "| 1 |   | 3 | nan | nan |\n#+TBLFM: $4=$2;E::$5=$1+$2;E\n"
+  }
+ },
+ {
+  "name": "a relative row across an hline",
+  "text": "| 1 |  |\n|---+--|\n| 2 |  |\n#+TBLFM: @2$2=@-1$1\n",
+  "expected": {
+   "text": "| 1 |   |\n|---+---|\n| 2 | 1 |\n#+TBLFM: @2$2=@-1$1\n"
+  }
+ },
+ {
+  "name": "scientific notation",
+  "text": "| 0.000012345 | 123456789012 | 1234567890123 |  |  |  |\n#+TBLFM: $4=$1*1::$5=$2*1.0::$6=$3*1.0\n",
+  "expected": {
+   "text": "| 0.000012345 | 123456789012 | 1234567890123 | 1.2345e-5 | 123456790000. | 1.2345679e12 |\n#+TBLFM: $4=$1*1::$5=$2*1.0::$6=$3*1.0\n"
+  }
+ },
+ {
+  "name": "abs, floor, ceil, round",
+  "text": "| -2.5 |  |  |  |  |\n#+TBLFM: $2=abs($1)::$3=floor($1)::$4=ceil($1)::$5=round($1)\n",
+  "expected": {
+   "text": "| -2.5 | 2.5 | -3 | -2 | -3 |\n#+TBLFM: $2=abs($1)::$3=floor($1)::$4=ceil($1)::$5=round($1)\n"
+  }
+ },
+ {
+  "name": "two words multiply",
+  "text": "| foo | bar |  |\n#+TBLFM: $3=$1 $2\n",
+  "expected": {
+   "text": "| foo | bar | foo bar |\n#+TBLFM: $3=$1 $2\n"
+  }
+ },
+ {
+  "name": "&& and ||",
+  "text": "| 1 | 0 |  |  |\n#+TBLFM: $3=$1 && $2::$4=$1 || $2\n",
+  "expected": {
+   "text": "| 1 | 0 | 0 | 1 |\n#+TBLFM: $3=$1 && $2::$4=$1 || $2\n"
+  }
+ },
+ {
+  "name": "powers with floats and negative exponents",
+  "text": "| 2 |  |  |\n#+TBLFM: $2=$1^0.5::$3=$1^-1\n",
+  "expected": {
+   "text": "| 2 | 1.4142136 | 0.5 |\n#+TBLFM: $2=$1^0.5::$3=$1^-1\n"
+  }
+ },
+ {
+  "name": "durations: T writes HH:MM:SS",
+  "text": "| 1:30 | 2:15 |  |\n| 0:45:30 | 10:20 |  |\n#+TBLFM: $3=$1+$2;T\n",
+  "expected": {
+   "text": "|    1:30 |  2:15 | 03:45:00 |\n| 0:45:30 | 10:20 | 11:05:30 |\n#+TBLFM: $3=$1+$2;T\n"
+  }
+ },
+ {
+  "name": "durations: U writes HH:MM",
+  "text": "| 1:30 | 2:15 |  |\n#+TBLFM: $3=$1+$2;U\n",
+  "expected": {
+   "text": "| 1:30 | 2:15 | 03:45 |\n#+TBLFM: $3=$1+$2;U\n"
+  }
+ },
+ {
+  "name": "durations: t writes hours",
+  "text": "| 1:30 | 2:15 |  |\n#+TBLFM: $3=$1+$2;t\n",
+  "expected": {
+   "text": "| 1:30 | 2:15 | 3.75 |\n#+TBLFM: $3=$1+$2;t\n"
+  }
+ },
+ {
+  "name": "durations: a sum of a column",
+  "text": "| task | time |\n|------+------|\n| a | 1:30 |\n| b | 0:45 |\n| c | 2:10 |\n|------+------|\n| total |  |\n#+TBLFM: @>$2=vsum(@I..@II);T\n",
+  "expected": {
+   "text": "| task  |     time |\n|-------+----------|\n| a     |     1:30 |\n| b     |     0:45 |\n| c     |     2:10 |\n|-------+----------|\n| total | 04:25:00 |\n#+TBLFM: @>$2=vsum(@I..@II);T\n"
+  }
+ },
+ {
+  "name": "durations: negative and times numbers",
+  "text": "| 1:30 | 2:15 |  |  |\n#+TBLFM: $3=$1-$2;T::$4=$1*2;U\n",
+  "expected": {
+   "text": "| 1:30 | 2:15 | -00:45:00 | 03:00 |\n#+TBLFM: $3=$1-$2;T::$4=$1*2;U\n"
+  }
+ },
+ {
+  "name": "durations: a plain number is seconds",
+  "text": "| 90 | 3600 |  |\n#+TBLFM: $3=$1+$2;T\n",
+  "expected": {
+   "text": "| 90 | 3600 | 01:01:30 |\n#+TBLFM: $3=$1+$2;T\n"
+  }
+ },
+ {
+  "name": "durations: a single reference copies",
+  "text": "| 1:30 |  |\n#+TBLFM: $2=$1;T\n",
+  "expected": {
+   "text": "| 1:30 | 01:30:00 |\n#+TBLFM: $2=$1;T\n"
+  }
+ },
+ {
+  "name": "durations: empty fields",
+  "text": "| 1:30 |  |  |\n#+TBLFM: $3=$1+$2;T\n",
+  "expected": {
+   "text": "| 1:30 |   | 01:30:00 |\n#+TBLFM: $3=$1+$2;T\n"
+  }
+ },
+ {
+  "name": "timestamps with repeaters and ranges",
+  "text": "| <2024-01-01 Mon +1w> | <2024-01-05 Fri 10:00-12:00> |  |\n#+TBLFM: $3=$2-$1\n",
+  "expected": {
+   "text": "| <2024-01-01 Mon +1w> | <2024-01-05 Fri 10:00-12:00> | 4.416667 |\n#+TBLFM: $3=$2-$1\n"
+  }
+ },
+ {
+  "name": "a date before and after an hline",
+  "text": "| d |\n|---|\n| <2024-02-28 Wed> |\n|   |\n#+TBLFM: @3$1=@2$1+2\n",
+  "expected": {
+   "text": "| d                |\n|------------------|\n| <2024-02-28 Wed> |\n| [2024-03-01 Fri] |\n#+TBLFM: @3$1=@2$1+2\n"
+  }
+ },
+ {
+  "name": "month weekday hour minute",
+  "text": "| <2024-03-01 Fri 10:45> |  |  |  |  |\n#+TBLFM: $2=month($1)::$3=weekday($1)::$4=hour($1)::$5=minute($1)\n",
+  "expected": {
+   "text": "| <2024-03-01 Fri 10:45> | 3 | 5 | 10 | 45 |\n#+TBLFM: $2=month($1)::$3=weekday($1)::$4=hour($1)::$5=minute($1)\n"
+  }
+ },
+ {
+  "name": "vmax of dates",
+  "text": "| <2024-01-01 Mon> | <2024-01-05 Fri> |  |\n#+TBLFM: $3=vmax($1..$2)\n",
+  "expected": {
+   "text": "| <2024-01-01 Mon> | <2024-01-05 Fri> | [2024-01-05 Fri] |\n#+TBLFM: $3=vmax($1..$2)\n"
+  }
+ }
+]
