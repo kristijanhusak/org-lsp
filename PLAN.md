@@ -47,17 +47,53 @@ others), as close to Emacs Org mode as it can get.
 | 4e.1 | Fast TODO selection (`org-fast-todo-selection`) and the text of state notes (`@`) | #13 |
 | 4e.2 | Refile (`org-refile`, `org-agenda-refile`) | #14 |
 | 4e.3 | Capture (`org-capture`) | #15 |
+| — | Editor fixes, prebuilt binaries in CI, `scripts/install-vscode.sh`, tags from all agenda files | #16–#21 |
+| 5, 9, 11 | Custom agenda commands and block agendas, `m`/`M`, clocking, log mode, clock report, more completion | #22 |
+| 5, 13 | Block agenda cursor, separators, empty blocks; indentation (`org-indent-line`, `org-indent-region`, `adaptIndentation`) and virtual indentation (`org-indent-mode`) | #23 |
+| 8 | Emphasis keeps its style across spaces; toggle checkboxes with their cookies | #24 |
 
 ### Where to pick up
 
-Milestone 4e (TODO selection, refile, capture), asked for on
-2026-10-05, is done. Next, any of:
+Asked for on 2026-10-06 and not done yet, in this order (two items per
+PR, as agreed):
+
+1. **Fold cycling in VS Code.** Neovim cycles folds with `<Tab>` /
+   `<S-Tab>` (`lua/org-lsp/folds.lua`); VS Code has no command for it.
+   Add commands that do what `org-cycle` and `org-global-cycle` do
+   (folded, children, subtree; overview, contents, show all), bound in
+   Org files, and listed with the other commands. Better still, move
+   cycling into the server (milestone 6) so every editor gets it.
+2. **Key presets for VS Code and the editors other than Vim and
+   Neovim.** Org files get Emacs's keys by default (today VS Code has
+   keys only in the agenda, calendar and capture buffers). A setting
+   picks the preset: `emacs` (default), `vim` (the keys the Neovim plugin
+   uses, for VSCodeVim users), or `custom` (no keys bound; the user binds
+   the commands). The manifest already carries both key sets (`emacs`
+   and `vim` in `commands.rs`); the VS Code `package.json` generator
+   turns them into keybindings with a `when` on the setting.
+3. **Shims for Zed, Sublime Text and Vim.**
+   - Vim: one Vimscript plugin with the logic the Neovim plugin has, on
+     top of whichever LSP client is installed, with small adapters for
+     yegappan/lsp, vim-lsp, coc.nvim and ALE (open question 4).
+   - Zed: an extension that starts the server for Org files and maps the
+     manifest's commands; Zed cannot open server-owned documents, so the
+     agenda goes through the file the server writes.
+   - Sublime Text: an LSP-package configuration (sublimelsp/LSP) plus
+     key bindings from the manifest, with the same preset choice as
+     item 2.
+4. **Formatting** (milestone 13): document formatting that aligns
+   tables and tags (`org-table-align`, `org-align-tags`), on top of the
+   range formatting that indents today.
+
+Done from that list in #24: nested emphasis highlighting, checkbox
+cookies. Concealing emphasis markers already existed
+(`hideEmphasisMarkers`, `org-hide-emphasis-markers`, off by default).
+
+Older leftovers, any time:
 
 - The rest of capture (see 4e.3 below): item and checkitem templates,
   date trees, `%^g` tags, `%a` from the agenda.
-- The opt-in autosave option (open question 3).
-- The Vim plugin (open question 4).
-- Milestone 5 onwards.
+- Milestones 5 to 12 below.
 
 ### Milestone 3, merged: priorities and dates
 
@@ -363,6 +399,8 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 ### 13. Diagnostics and formatting
 
+- Next: document formatting (`textDocument/formatting`): align tables
+  and tags, and indent as `org-indent-region` does when asked.
 - Done: indentation as Org does it. `org-indent-line` on new lines
   (on-type formatting after a line break: `indentexpr` in Neovim, format
   on type in VS Code), `org-indent-region` on a range (range formatting:
@@ -379,7 +417,6 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   `wrap-prefix` in `tests/indent`; Neovim shows them as inline virtual
   text, VS Code as decorations. Neither can indent the lines a long line
   wraps into (`wrap-prefix`); Helix cannot show them at all.
-- Next: document formatting (tables, tags).
 - `org-lint` checks as diagnostics.
 
 ### 14. Editors and distribution
