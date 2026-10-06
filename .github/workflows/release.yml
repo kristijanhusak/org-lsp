@@ -1,21 +1,19 @@
 # Builds the server for each platform, and a VS Code package per platform
 # with the server inside, and puts them on a GitHub release:
 #
-# - a push to main updates the `nightly` prerelease, whose files keep the
-#   same links: .../releases/download/nightly/org-lsp-<platform>.tar.gz
+# - running it by hand on main (Actions > Release > Run workflow) updates
+#   the `nightly` prerelease, whose files keep the same links:
+#   .../releases/download/nightly/org-lsp-<platform>.tar.gz
 # - a version tag (`v0.2.0`) makes that release.
 #
-# A pull request that changes this file builds everything without
-# publishing; the files are then on the run's page.
+# Pushes to main and pull requests do not run it, to save Actions minutes;
+# put `branches: [main]` under `push` back to build each push to main.
 # scripts/install-vscode.sh installs the VS Code package from a release.
 name: Release
 
 on:
   push:
-    branches: [main]
     tags: ['v*']
-  pull_request:
-    paths: ['.github/workflows/release.yml']
   workflow_dispatch:
 
 permissions:
@@ -101,7 +99,7 @@ jobs:
   publish:
     needs: build
     # The platforms that built, also when one failed.
-    if: ${{ !cancelled() && github.event_name == 'push' }}
+    if: ${{ !cancelled() && (github.event_name == 'push' || github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
