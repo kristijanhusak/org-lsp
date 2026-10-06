@@ -1,0 +1,5 @@
+#+FILETAGS: :personal:
+* Garden :outside:
+** TODO Water plants :daily:
+SCHEDULED: <2026-10-05 Mon>
+*** TODO Buy hose

@@ -59,6 +59,38 @@
       "description": "Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`)",
       "default": -77
     },
+    "useTagInheritance": {
+      "items": {
+        "type": "string"
+      },
+      "type": [
+        "boolean",
+        "array",
+        "string"
+      ],
+      "description": "Which tags entries inherit from their parents and from `#+FILETAGS:`: `true` for all, `false` for none, a list of tags, or a regexp (Emacs syntax) tags must match. Inherited tags count in tag searches and show in the agenda. (`org-use-tag-inheritance`)",
+      "default": true
+    },
+    "tagsExcludeFromInheritance": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array",
+      "description": "Tags never inherited, when `useTagInheritance` is `true` or a regexp. (`org-tags-exclude-from-inheritance`)",
+      "default": []
+    },
+    "usePropertyInheritance": {
+      "items": {
+        "type": "string"
+      },
+      "type": [
+        "boolean",
+        "array",
+        "string"
+      ],
+      "description": "Which properties an entry without them takes from its parents, the file's property drawer and `#+PROPERTY:` lines, in property searches (`OWNER=\"alice\"`): `true` for all, `false` for none, a list of names, or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited. (`org-use-property-inheritance`)",
+      "default": false
+    },
     "clockIntoDrawer": {
       "type": [
         "boolean",

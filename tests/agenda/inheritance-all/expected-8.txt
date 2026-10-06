@@ -1,0 +1,5 @@
+Headlines with TAGS match: STAGE={review}
+  work:       Projects                                      :office::proj:crypt:
+  work:       TODO Write spec                             :office:crypt::urgent:
+  work:       TODO Review spec                                   :office:crypt::
+  work:       NEXT Fix typos                                     :office::crypt:

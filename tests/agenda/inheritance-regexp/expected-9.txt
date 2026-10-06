@@ -1,0 +1,8 @@
+Headlines with TAGS match: COLOR="blue green"
+  work:       Projects                                      :office::proj:crypt:
+  work:       TODO Write spec                                   :office::urgent:
+  work:       TODO Review spec                                         :office::
+  work:       NEXT Fix typos                                     :office::crypt:
+  work:       Errands                                             :office::home:
+  work:       TODO Groceries                                           :office::
+  work:       TODO Call plumber                                  :office::phone:

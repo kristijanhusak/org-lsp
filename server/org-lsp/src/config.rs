@@ -5,6 +5,7 @@
 use org_core::agenda::{Config as AgendaConfig, FutureRepeats, Span, TimeGrid};
 use org_core::archive::{ContextInfo, InheritedTags, MarkDone, Settings as ArchiveSettings};
 use org_core::edit::Settings as EditSettings;
+use org_core::outline::{Inherit, Inheritance};
 use org_core::priority::{self, Priorities};
 use org_core::read_date::{PreferFuture, Settings as ReadDateSettings};
 use org_core::refile::{OutlinePath, Select, Settings as RefileSettings};
@@ -30,6 +31,14 @@ pub struct Options {
     pub log_into_drawer: Option<DrawerOption>,
     /// `org-tags-column`
     pub tags_column: Option<i64>,
+    /// `org-use-tag-inheritance`: `true`, `false`, a list of tags or a
+    /// regexp.
+    pub use_tag_inheritance: Option<InheritOption>,
+    /// `org-tags-exclude-from-inheritance`
+    pub tags_exclude_from_inheritance: Option<Vec<String>>,
+    /// `org-use-property-inheritance`: `true`, `false`, a list of
+    /// properties or a regexp.
+    pub use_property_inheritance: Option<InheritOption>,
     /// `org-clock-into-drawer`: `true` for the drawer of `logIntoDrawer`
     /// (`LOGBOOK`), a drawer name, or `false` for none.
     pub clock_into_drawer: Option<DrawerOption>,
@@ -223,6 +232,47 @@ pub enum OutlinePathOption {
     Name(String),
 }
 
+/// `true`, `false`, a list of names, or a regexp.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum InheritOption {
+    Flag(bool),
+    Names(Vec<String>),
+    Matching(String),
+}
+
+impl InheritOption {
+    fn to_inherit(&self) -> Inherit {
+        match self {
+            InheritOption::Flag(true) => Inherit::All,
+            InheritOption::Flag(false) => Inherit::Nothing,
+            InheritOption::Names(names) => Inherit::Names(names.clone()),
+            InheritOption::Matching(pattern) => Inherit::Matching(pattern.clone()),
+        }
+    }
+}
+
+/// What entries inherit, from the options that say so; the command line
+/// reads these from its `--options` as well.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct InheritanceOptions {
+    pub use_tag_inheritance: Option<InheritOption>,
+    pub tags_exclude_from_inheritance: Option<Vec<String>>,
+    pub use_property_inheritance: Option<InheritOption>,
+}
+
+impl InheritanceOptions {
+    pub fn inheritance(&self) -> Inheritance {
+        let default = Inheritance::default();
+        Inheritance {
+            tags: self.use_tag_inheritance.as_ref().map_or(default.tags, InheritOption::to_inherit),
+            tags_excluded: self.tags_exclude_from_inheritance.clone().unwrap_or_default(),
+            properties: self.use_property_inheritance.as_ref().map_or(default.properties, InheritOption::to_inherit),
+        }
+    }
+}
+
 /// `false`, `true`, `"time"` or `"note"`.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -296,6 +346,17 @@ impl Options {
     }
 
     /// The default TODO sequence: `todoKeywords`, or Org's `TODO | DONE`.
+    /// `org-use-tag-inheritance`, `org-tags-exclude-from-inheritance` and
+    /// `org-use-property-inheritance`.
+    pub fn inheritance(&self) -> Inheritance {
+        InheritanceOptions {
+            use_tag_inheritance: self.use_tag_inheritance.clone(),
+            tags_exclude_from_inheritance: self.tags_exclude_from_inheritance.clone(),
+            use_property_inheritance: self.use_property_inheritance.clone(),
+        }
+        .inheritance()
+    }
+
     pub fn todo_keywords(&self) -> TodoKeywords {
         self.todo_keywords
             .clone()

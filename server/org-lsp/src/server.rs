@@ -555,7 +555,12 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_clockreport: options.agenda.start_with_clockreport_mode.unwrap_or(false),
         agenda_archives: options.agenda.archives_mode(),
         documents: HashMap::new(),
-        workspace: Workspace::new(options.agenda_files, folders),
+        workspace: {
+            let inheritance = options.inheritance();
+            let mut workspace = Workspace::new(options.agenda_files, folders);
+            workspace.inheritance = inheritance;
+            workspace
+        },
         view: None,
         edited: HashSet::new(),
         reveal: None,
@@ -1651,7 +1656,12 @@ impl Server {
         action: impl FnOnce(&str, &LineIndex, &Parse, &Outline, Option<i32>) -> T,
     ) -> Option<T> {
         if let Some(document) = self.documents.get(uri.as_str()) {
-            let outline = Outline::new(&document.parse, &document.text, &uri::file_stem(uri));
+            let outline = Outline::with_inheritance(
+                &document.parse,
+                &document.text,
+                &uri::file_stem(uri),
+                &self.workspace.inheritance,
+            );
             return Some(action(&document.text, &document.index, &document.parse, &outline, Some(document.version)));
         }
         let source = self.workspace.read(&uri::to_path(uri)?, &self.todo)?;
@@ -1660,8 +1670,14 @@ impl Server {
 
     /// The agenda files with their outlines, in agenda order.
     fn agenda_files(&mut self) -> Vec<(Uri, Held)> {
+        let inheritance = self.workspace.inheritance.clone();
         let open = |document: &Document, uri: &Uri| {
-            Held::Open(Box::new(Outline::new(&document.parse, &document.text, &uri::file_stem(uri))))
+            Held::Open(Box::new(Outline::with_inheritance(
+                &document.parse,
+                &document.text,
+                &uri::file_stem(uri),
+                &inheritance,
+            )))
         };
         if !self.workspace.is_configured() {
             // Nothing says where the agenda files are: use what is open.
@@ -1729,7 +1745,12 @@ impl Server {
                         let document = &self.documents[key];
                         (
                             uri.clone(),
-                            Held::Open(Box::new(Outline::new(&document.parse, &document.text, &uri::file_stem(&uri)))),
+                            Held::Open(Box::new(Outline::with_inheritance(
+                                &document.parse,
+                                &document.text,
+                                &uri::file_stem(&uri),
+                                &self.workspace.inheritance,
+                            ))),
                         )
                     }),
                     None => match (uri::from_path(&path), self.workspace.read(&path, &self.todo)) {
@@ -4140,7 +4161,7 @@ impl Server {
     fn followed(&mut self, file: &Uri, text: &str, heading: usize, from: (Position, &ViewLine)) -> Option<Follow> {
         let query = self.view.as_ref()?.view.query.clone();
         let parse = org_syntax::parse(text, &self.todo);
-        let outline = Outline::new(&parse, text, &uri::file_stem(file));
+        let outline = Outline::with_inheritance(&parse, text, &uri::file_stem(file), &self.workspace.inheritance);
         let view = self.render_with(query, Some((file, outline)));
         let (position, line) = from;
         let target = view.line_of(file, heading, (position.line, line))?;

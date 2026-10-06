@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::SystemTime;
 
-use org_core::outline::Outline;
+use org_core::outline::{Inheritance, Outline};
 use org_syntax::{Parse, TodoKeywords};
 
 use crate::line_index::LineIndex;
@@ -31,9 +31,9 @@ pub struct Source {
 }
 
 impl Source {
-    pub fn new(text: String, name: &str, todo: &TodoKeywords) -> Source {
+    pub fn new(text: String, name: &str, todo: &TodoKeywords, inheritance: &Inheritance) -> Source {
         let parse = org_syntax::parse(&text, todo);
-        let outline = Outline::new(&parse, &text, name);
+        let outline = Outline::with_inheritance(&parse, &text, name, inheritance);
         Source { index: LineIndex::new(&text), text, parse, outline }
     }
 }
@@ -50,6 +50,8 @@ pub struct Workspace {
     patterns: Vec<String>,
     folders: Vec<PathBuf>,
     cache: HashMap<PathBuf, Cached>,
+    /// What entries inherit, for the outlines of the files read.
+    pub inheritance: Inheritance,
 }
 
 fn is_org_file(path: &Path) -> bool {
@@ -157,7 +159,7 @@ fn glob(base: &Path, parts: &[&str], out: &mut Vec<PathBuf>) {
 
 impl Workspace {
     pub fn new(patterns: Vec<String>, folders: Vec<PathBuf>) -> Workspace {
-        Workspace { patterns, folders, cache: HashMap::new() }
+        Workspace { patterns, folders, cache: HashMap::new(), inheritance: Inheritance::default() }
     }
 
     /// Whether the agenda has a place to look for files.
@@ -234,7 +236,7 @@ impl Workspace {
         }
         let text = String::from_utf8_lossy(&std::fs::read(path).ok()?).into_owned();
         let name = path.file_stem().map(|stem| stem.to_string_lossy().into_owned()).unwrap_or_default();
-        let source = Rc::new(Source::new(text, &name, todo));
+        let source = Rc::new(Source::new(text, &name, todo, &self.inheritance));
         self.cache.insert(path.to_path_buf(), Cached { modified, len, source: source.clone() });
         Some(source)
     }

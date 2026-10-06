@@ -101,6 +101,31 @@ pub const SETTINGS: &[Setting] = &[
         "Where tags are aligned after a change to a headline. Negative: they end at that column.",
     ),
     setting(
+        "useTagInheritance",
+        "boolean, string[], string",
+        "true",
+        "org-use-tag-inheritance",
+        "Which tags entries inherit from their parents and from `#+FILETAGS:`: `true` for all, `false` for none, \
+         a list of tags, or a regexp (Emacs syntax) tags must match. Inherited tags count in tag searches and \
+         show in the agenda.",
+    ),
+    setting(
+        "tagsExcludeFromInheritance",
+        "string[]",
+        "[]",
+        "org-tags-exclude-from-inheritance",
+        "Tags never inherited, when `useTagInheritance` is `true` or a regexp.",
+    ),
+    setting(
+        "usePropertyInheritance",
+        "boolean, string[], string",
+        "false",
+        "org-use-property-inheritance",
+        "Which properties an entry without them takes from its parents, the file's property drawer and \
+         `#+PROPERTY:` lines, in property searches (`OWNER=\"alice\"`): `true` for all, `false` for none, a list \
+         of names, or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited.",
+    ),
+    setting(
         "clockIntoDrawer",
         "boolean, string",
         "true",
@@ -646,6 +671,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("logRepeat", r#"{ "enum": [false, "time", "note"] }"#),
     ("logIntoDrawer", r#"{ "type": ["boolean", "string"] }"#),
     ("tagsColumn", r#"{ "type": "integer" }"#),
+    ("useTagInheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
+    ("tagsExcludeFromInheritance", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("usePropertyInheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
     ("completeTagsAlwaysOfferAllAgendaTags", BOOLEAN),
     ("clockIntoDrawer", r#"{ "type": ["boolean", "string"] }"#),
     ("clockOutRemoveZeroTimeClocks", BOOLEAN),

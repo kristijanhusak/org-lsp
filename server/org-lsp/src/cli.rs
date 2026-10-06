@@ -86,6 +86,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     let mut start = None;
     let mut now = now();
     let mut options = AgendaOptions::default();
+    let mut inheritance = org_core::outline::Inheritance::default();
     let mut files = Vec::new();
 
     let mut arguments = arguments.iter();
@@ -103,7 +104,11 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             "--today" => now.today = parse_date(value("--today")?)?,
             "--now" => now.minute = parse_time(value("--now")?)?,
             "--options" => {
-                options = serde_json::from_str(value("--options")?).map_err(|error| format!("--options: {error}"))?
+                let json = value("--options")?;
+                options = serde_json::from_str(json).map_err(|error| format!("--options: {error}"))?;
+                inheritance = serde_json::from_str::<crate::config::InheritanceOptions>(json)
+                    .map_err(|error| format!("--options: {error}"))?
+                    .inheritance();
             }
             "--help" | "-h" => return Ok(format!("{USAGE}\n")),
             flag if flag.starts_with("--") => return Err(format!("unknown option `{flag}`")),
@@ -158,7 +163,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     for file in &files {
         let text = std::fs::read_to_string(file).map_err(|error| format!("{file}: {error}"))?;
         let parse = org_syntax::parse(&text, &default_todo);
-        outlines.push(Outline::new(&parse, &text, &file_name(Path::new(file))));
+        outlines.push(Outline::with_inheritance(&parse, &text, &file_name(Path::new(file)), &inheritance));
     }
     let block = |kind| vec![Block { kind, header: None, config: config.clone() }];
     let blocks = match view.as_str() {
