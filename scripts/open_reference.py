@@ -1,0 +1,141 @@
+"""Run Emacs's `org-open-at-point` over test cases and record what it does.
+
+A case is a JSON object:
+
+    {
+      "files": {"a.org": "See [[*B]]¦\\n* B\\n"},  files; ¦ marks the cursor,
+                                                  in exactly one of them
+      "answer": "1"                               optional: the key pressed
+                                                  when Emacs offers the links
+                                                  of an entry
+    }
+
+`reference(cases)` adds `expected` to each case, one of
+
+    {"goto": {"file": "a.org", "line": 2, "column": 0}}   where point went
+    {"external": "https://orgmode.org"}                    `browse-url`
+    {"system": "doc.pdf"}                                  the system's app
+    {"agenda": "2026-05-18", "span": 1}                    `org-agenda-list`
+    {"tags": "work"}                                       `org-tags-view`
+    {"error": "No link found"}                             a refusal
+
+with `"offered": "..."` as well when Emacs listed the entry's links to
+pick from. The `.org` files are the agenda files, where `id:` links are
+looked for. PDF and HTML files go to the system's application, as Org's
+`org-file-apps` has it by default. Set ORG_LISP_DIR to the `lisp`
+directory of an Org checkout to use that version instead of the one
+bundled with Emacs.
+"""
+
+import json
+import os
+import subprocess
+import tempfile
+
+from todo_reference import CURSOR, lisp_string, load, save  # noqa: F401
+
+DRIVER = r"""
+(require 'org)
+(require 'org-id)
+(require 'org-agenda)
+(require 'cl-lib)
+(defun org-lsp-open-case (files cursor-file offset answer out)
+  (dolist (buffer (buffer-list))
+    (when (buffer-file-name buffer)
+      (with-current-buffer buffer (set-buffer-modified-p nil))
+      (kill-buffer buffer)))
+  (let* ((recorded nil)
+         (offered nil)
+         (result
+          (condition-case err
+              (let* ((org-agenda-files (seq-filter (lambda (file) (string-suffix-p ".org" file)) files))
+                     (org-id-locations-file (make-temp-file "org-lsp-ids"))
+                     (org-id-locations nil)
+                     (org-id-track-globally t)
+                     (org-file-apps '((auto-mode . emacs) (directory . emacs)
+                                      ("\\.mm\\'" . "SYSTEM %s") ("\\.x?html?\\'" . "SYSTEM %s")
+                                      ("\\.pdf\\'" . "SYSTEM %s"))))
+                (org-id-update-id-locations org-agenda-files t)
+                (cl-letf (((symbol-function 'browse-url)
+                           (lambda (url &rest _) (setq recorded (format "external\0%s" url))))
+                          ((symbol-function 'org-agenda-list)
+                           (lambda (&optional _arg start-day span _with-hour)
+                             (setq recorded
+                                   (format "agenda\0%s\0%s"
+                                           (format-time-string "%Y-%m-%d" (org-time-from-absolute start-day) t)
+                                           span))))
+                          ((symbol-function 'org-tags-view)
+                           (lambda (&optional _todo-only match) (setq recorded (format "tags\0%s" match))))
+                          ((symbol-function 'start-process-shell-command)
+                           (lambda (_name _buffer command)
+                             (setq recorded (format "system\0%s" (file-name-nondirectory
+                                                                  (replace-regexp-in-string "\\`SYSTEM \\|['\"]" "" command))))
+                             nil))
+                          ((symbol-function 'yes-or-no-p) (lambda (&rest _) nil))
+                          ((symbol-function 'read-char-exclusive)
+                           (lambda (&rest _)
+                             (setq offered (with-current-buffer "*Select Link*" (buffer-string)))
+                             (string-to-char answer))))
+                  (switch-to-buffer (find-file-noselect cursor-file))
+                  (goto-char (1+ offset))
+                  (org-open-at-point)
+                  (or recorded
+                      (format "goto\0%s\0%d\0%d"
+                              (file-name-nondirectory (or (buffer-file-name) (buffer-name)))
+                              (line-number-at-pos) (current-column)))))
+            (error (format "error\0%s" (error-message-string err))))))
+    (with-temp-file out
+      (insert (or offered "") "\1" result))))
+"""
+
+
+def reference(cases):
+    """Fill in `expected` for every case."""
+    org_path = ["-L", os.environ["ORG_LISP_DIR"]] if os.environ.get("ORG_LISP_DIR") else []
+    with tempfile.TemporaryDirectory() as directory:
+        forms = [DRIVER]
+        outputs = []
+        for index, case in enumerate(cases):
+            folder = os.path.join(directory, f"case-{index}")
+            os.makedirs(folder)
+            paths = {}
+            cursor = None
+            for name, text in sorted(case["files"].items()):
+                paths[name] = os.path.join(folder, name)
+                os.makedirs(os.path.dirname(paths[name]), exist_ok=True)
+                if CURSOR in text:
+                    cursor = (paths[name], text.index(CURSOR))
+                with open(paths[name], "w", encoding="utf-8") as handle:
+                    handle.write(text.replace(CURSOR, "", 1))
+            target = os.path.join(folder, "out")
+            outputs.append((case, target))
+            files = " ".join(lisp_string(paths[name]) for name in sorted(paths))
+            forms.append(
+                f"(org-lsp-open-case (list {files}) {lisp_string(cursor[0])} {cursor[1]}"
+                f" {lisp_string(case.get('answer', '1'))} {lisp_string(target)})"
+            )
+        driver = os.path.join(directory, "driver.el")
+        with open(driver, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(forms))
+        subprocess.run(
+            ["emacs", "--batch", "-Q", *org_path, "-l", driver],
+            check=True,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            env=dict(os.environ, HOME=directory, TZ="UTC"),
+        )
+        for case, target in outputs:
+            with open(target, encoding="utf-8") as handle:
+                offered, result = handle.read().split("\1", 1)
+            kind, *values = result.split("\0")
+            if kind == "goto":
+                expected = {"goto": {"file": values[0], "line": int(values[1]), "column": int(values[2])}}
+            elif kind == "agenda":
+                expected = {"agenda": values[0], "span": int(values[1])}
+            else:
+                expected = {kind: values[0]}
+            if offered:
+                expected["offered"] = offered
+            case["expected"] = expected
+    return cases

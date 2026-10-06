@@ -109,10 +109,20 @@ fn note_lines(text: &str) -> Vec<&str> {
     lines
 }
 
-/// A state note that waits to be written.
+/// What a note is for, which its heading says (`org-log-note-headings`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Purpose {
+    /// `CLOSING NOTE`, for an entry done.
+    Done,
+    /// `State "DONE" from "TODO"`.
+    State,
+    /// `Note taken on`, of `org-add-note`.
+    Note,
+}
+
+/// A note that waits to be written.
 struct Note {
-    /// `State "DONE" from "TODO"` rather than `CLOSING NOTE`.
-    state_change: bool,
+    purpose: Purpose,
     state: Option<String>,
     previous: Option<String>,
     /// The user writes text for it (`@`); otherwise it records the time
@@ -707,10 +717,10 @@ impl<'a> Editor<'a> {
     fn store_note(&mut self, note: &Note, text: &str) {
         let quoted = |state: &Option<String>| state.as_ref().map(|state| format!("\"{state}\"")).unwrap_or_default();
         let time = format_timestamp(self.now, true, true, "");
-        let heading = if note.state_change {
-            format!("State {:<12} from {:<12} {time}", quoted(&note.state), quoted(&note.previous))
-        } else {
-            format!("CLOSING NOTE {time}")
+        let heading = match note.purpose {
+            Purpose::State => format!("State {:<12} from {:<12} {time}", quoted(&note.state), quoted(&note.previous)),
+            Purpose::Done => format!("CLOSING NOTE {time}"),
+            Purpose::Note => format!("Note taken on {time}"),
         };
 
         let mut at = match self.settings.log_into_drawer.clone() {
@@ -908,7 +918,7 @@ impl<'a> Editor<'a> {
         }
         if self.settings.log_repeat.is_some() && self.note.is_none() {
             self.note = Some(Note {
-                state_change: true,
+                purpose: Purpose::State,
                 state: done_word
                     .clone()
                     .or_else(|| self.keywords.names().find(|name| self.keywords.is_done(name)).map(str::to_string)),
@@ -1032,12 +1042,12 @@ impl<'a> Editor<'a> {
                 self.planning_closed(true);
                 if record.is_none() && self.settings.log_done == Some(Logging::Note) {
                     let (state, previous) = (state.clone(), this.clone());
-                    self.note = Some(Note { state_change: false, state, previous, text: true });
+                    self.note = Some(Note { purpose: Purpose::Done, state, previous, text: true });
                 }
             }
             if state.is_some() && record.is_some() {
                 let text = record == Some(Logging::Note);
-                self.note = Some(Note { state_change: true, state: state.clone(), previous: this.clone(), text });
+                self.note = Some(Note { purpose: Purpose::State, state: state.clone(), previous: this.clone(), text });
             }
         }
         self.align_tags(self.heading);
@@ -1164,6 +1174,23 @@ pub fn fast_selection(
     })
 }
 
+/// `org-add-note` (`C-c C-z`): a note with the text `note` (as written in
+/// the note buffer) for the entry at byte `offset`, at
+/// `org-log-beginning`, headed `Note taken on` and the time.
+pub fn add_note(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    settings: &Settings,
+    now: DateTime,
+    note: &str,
+) -> Result<String, String> {
+    let mut editor = Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None };
+    editor.go_to_heading(offset)?;
+    editor.store_note(&Note { purpose: Purpose::Note, state: None, previous: None, text: true }, note);
+    Ok(editor.text)
+}
+
 /// A state change that may want a note.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Changed {
@@ -1237,11 +1264,13 @@ pub fn change_state_noted(
             None
         }
         (Some(wanted), NoteText::Ask | NoteText::Skip) => {
-            let purpose = if wanted.state_change {
-                let name = |state: &Option<String>| state.clone().unwrap_or_default();
-                format!("state change from \"{}\" to \"{}\"", name(&wanted.previous), name(&wanted.state))
-            } else {
-                "closed todo item".to_string()
+            let purpose = match wanted.purpose {
+                Purpose::State => {
+                    let name = |state: &Option<String>| state.clone().unwrap_or_default();
+                    format!("state change from \"{}\" to \"{}\"", name(&wanted.previous), name(&wanted.state))
+                }
+                Purpose::Done => "closed todo item".to_string(),
+                Purpose::Note => "this entry".to_string(),
             };
             Some(WantedNote { purpose, state: wanted.state })
         }

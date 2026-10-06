@@ -30,6 +30,7 @@ use org_core::capture;
 use org_core::clock;
 use org_core::date::{Date, DateTime, Day};
 use org_core::edit::{self, Call, Command as EditCommand, Settings as EditSettings};
+use org_core::open::{self, Open};
 use org_core::outline::Outline;
 use org_core::planning::{self, Command as PlanningCommand, Prompt};
 use org_core::priority;
@@ -311,8 +312,10 @@ enum Reveal {
     /// client has fetched it, the number means nothing any more.
     At(Position),
     /// Into a block that was moved to other days: to the first line of
-    /// the day if it is shown there, else to today or the first day.
-    Block { block: usize, day: Option<Day> },
+    /// the day if it is shown there, else of the day at the same place
+    /// among the days shown (`org-day-cnt`), else to today or the first
+    /// day.
+    Block { block: usize, day: Option<Day>, count: Option<usize> },
 }
 
 impl Reveal {
@@ -321,7 +324,7 @@ impl Reveal {
         match self {
             Reveal::Home => Position::new(view.home_line(), 0),
             Reveal::At(position) => *position,
-            Reveal::Block { block, day } => Position::new(view.block_line(*block, *day), 0),
+            Reveal::Block { block, day, count } => Position::new(view.block_line(*block, *day, *count), 0),
         }
     }
 }
@@ -1462,8 +1465,163 @@ impl Server {
     /// From an agenda line to the entry it shows.
     fn definition(&mut self, params: GotoDefinitionParams) -> Option<GotoDefinitionResponse> {
         let position = params.text_document_position_params;
-        let reference = self.view_line(&position.text_document.uri, position.position.line)?.1.entry.clone()?;
-        self.locate(&reference).map(GotoDefinitionResponse::Scalar)
+        let uri = &position.text_document.uri;
+        if self.is_view(uri) {
+            let reference = self.view_line(uri, position.position.line)?.1.entry.clone()?;
+            return self.locate(&reference).map(GotoDefinitionResponse::Scalar);
+        }
+        // In an Org file: where a link (or a footnote) leads, when that is
+        // a place in a file.
+        let document = self.document(uri)?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, position.position, self.client.encoding);
+        let opened = open::at_point(&text, &document.parse, offset, None).ok()?;
+        self.open_location(uri, &text, &opened).ok().flatten().map(GotoDefinitionResponse::Scalar)
+    }
+
+    /// `org-open-at-point` (`C-c C-o`) in an Org file, and
+    /// `org-agenda-open-link` on an agenda line: the links of its entry.
+    fn open_at_point(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = &context.text_document.uri;
+        let (uri, text, offset) = if self.is_view(uri) {
+            let reference = self.entry_at(Some(context)).ok_or("No link to open here")?;
+            let found = self
+                .with_source(&reference.uri, |text, _, _, outline, _| {
+                    views::resolve(&reference, outline).map(|entry| (text.to_string(), outline.entries[entry].offset))
+                })
+                .flatten()
+                .ok_or("The entry is gone; rebuild the agenda")?;
+            (reference.uri.clone(), found.0, found.1)
+        } else {
+            let document = self.document(uri).ok_or("The document is not open")?;
+            let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+            (uri.clone(), document.text.clone(), offset)
+        };
+        let parse = org_syntax::parse(&text, &self.todo);
+        let answer = context.input.as_deref().and_then(|input| input.chars().next());
+        let opened = open::at_point(&text, &parse, offset, answer)?;
+        match &opened {
+            Open::External(url) => {
+                let target = url.parse::<Uri>().map_err(|_| format!("Cannot open {url}"))?;
+                self.show_external(target);
+            }
+            Open::File { path, system: true, .. } => {
+                let target =
+                    self.link_path(&uri, path).and_then(|path| uri::from_path(&path)).ok_or("Cannot open the file")?;
+                self.show_external(target);
+            }
+            Open::Agenda { date, span } => {
+                let span = if *span == 1 { Span::Day } else { Span::Days(*span) };
+                self.open_view_at(Query::Agenda { start: Some(date.to_day()), span }, Reveal::Home)?;
+            }
+            Open::Tags(tag) => {
+                self.open_view_at(Query::Tags { matching: tag.clone(), todo_only: false }, Reveal::Home)?;
+            }
+            Open::Choose(choices) => {
+                let choices: Vec<Value> = choices
+                    .iter()
+                    .map(|choice| json!({ "key": choice.key.to_string(), "label": choice.label }))
+                    .collect();
+                return Ok(json!({ "input": {
+                    "kind": "key",
+                    "prompt": "Select link to open",
+                    "value": "",
+                    "choices": choices,
+                } }));
+            }
+            Open::Nothing(message) => self.message = Some(message.clone()),
+            Open::Here(_) | Open::File { .. } | Open::Id(_) => {
+                let location = self.open_location(&uri, &text, &opened)?.ok_or("No link found")?;
+                let params = ShowDocumentParams {
+                    uri: location.uri,
+                    external: None,
+                    take_focus: Some(true),
+                    selection: Some(location.range),
+                };
+                self.send_request::<ShowDocument>(params, None);
+            }
+        }
+        Ok(Value::Null)
+    }
+
+    /// Ask the client to have the system open `target` (a URL, a PDF).
+    fn show_external(&mut self, target: Uri) {
+        let params = ShowDocumentParams { uri: target, external: Some(true), take_focus: None, selection: None };
+        self.send_request::<ShowDocument>(params, None);
+    }
+
+    /// A link's path as a file: relative to the file `from`, `~` for the
+    /// home directory.
+    fn link_path(&self, from: &Uri, path: &str) -> Option<PathBuf> {
+        let path = match path.strip_prefix('~') {
+            Some(rest) => PathBuf::from(std::env::var_os("HOME")?).join(rest.trim_start_matches('/')),
+            None => PathBuf::from(path),
+        };
+        if path.is_absolute() {
+            return Some(path);
+        }
+        Some(uri::to_path(from)?.parent()?.join(path))
+    }
+
+    /// The text of the file at `path`: as the editor has it when open
+    /// there, else from disk.
+    fn file_text(&self, path: &Path) -> Option<(Uri, String)> {
+        let open = self
+            .documents
+            .iter()
+            .find(|(key, _)| key.parse::<Uri>().ok().and_then(|key| uri::to_path(&key)).is_some_and(|key| key == path));
+        if let Some((key, document)) = open {
+            return Some((key.parse().ok()?, document.text.clone()));
+        }
+        let text = String::from_utf8_lossy(&std::fs::read(path).ok()?).into_owned();
+        Some((uri::from_path(path)?, text))
+    }
+
+    /// Where an opened link leads as a place in a file: in `text` itself
+    /// (of `uri`), in another file at its search option, or the entry
+    /// with an ID among the open files and the agenda files. None for what
+    /// is no place (a URL, an agenda).
+    fn open_location(&mut self, uri: &Uri, text: &str, opened: &Open) -> std::result::Result<Option<Location>, String> {
+        let encoding = self.client.encoding;
+        let at = |target: Uri, text: &str, offset: usize| {
+            let position = LineIndex::new(text).position(text, offset, encoding);
+            Location { uri: target, range: Range::new(position, position) }
+        };
+        match opened {
+            Open::Here(offset) => Ok(Some(at(uri.clone(), text, *offset))),
+            Open::File { path, search, system: false } => {
+                let path = self.link_path(uri, path).ok_or("Cannot open the file")?;
+                let Some(search) = search else {
+                    let target = uri::from_path(&path).ok_or("Cannot open the file")?;
+                    return Ok(Some(Location { uri: target, range: Range::default() }));
+                };
+                let (target, text) = self.file_text(&path).ok_or_else(|| format!("Cannot read {}", path.display()))?;
+                let org = path.extension().is_some_and(|extension| extension == "org" || extension == "org_archive");
+                let parse = org.then(|| org_syntax::parse(&text, &self.todo));
+                let offset = open::search_in_file(&text, parse.as_ref(), search)?;
+                Ok(Some(at(target, &text, offset)))
+            }
+            Open::Id(id) => {
+                // `org-id-find`: the files open in the editor, then the
+                // agenda files.
+                let mut paths: Vec<PathBuf> =
+                    self.documents.keys().filter_map(|key| uri::to_path(&key.parse().ok()?)).collect();
+                paths.sort();
+                for (file, _) in self.agenda_files() {
+                    if let Some(path) = uri::to_path(&file).filter(|path| !paths.contains(path)) {
+                        paths.push(path);
+                    }
+                }
+                for path in paths {
+                    let Some((target, text)) = self.file_text(&path) else { continue };
+                    if let Some(offset) = open::find_id(&org_syntax::parse(&text, &self.todo), id) {
+                        return Ok(Some(at(target, &text, offset)));
+                    }
+                }
+                Err(format!("Cannot find entry with ID \"{id}\""))
+            }
+            _ => Ok(None),
+        }
     }
 
     fn text_document_content(&mut self, params: &Value) -> Value {
@@ -1919,6 +2077,7 @@ impl Server {
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
+            commands::OPEN => self.open_at_point(&context.ok_or("This command needs the cursor position")?),
             id if id.starts_with("org.archive.") => {
                 self.archive(id, &context.ok_or("This command needs the cursor position")?)
             }
@@ -2142,7 +2301,7 @@ impl Server {
         let (block, _, span) = self.agenda_block(Some(line))?;
         let span = Span::from_days(span.days(day));
         let query = self.moved(block, Some(day), span);
-        Ok(self.open_view_at(query, Reveal::Block { block, day: Some(day) })?)
+        Ok(self.open_view_at(query, Reveal::Block { block, day: Some(day), count: None })?)
     }
 
     // ----- the date prompt
@@ -2383,14 +2542,21 @@ impl Server {
                 Ok(())
             }
             commands::AGENDA_LATER | commands::AGENDA_EARLIER | commands::AGENDA_TODAY => {
-                let (block, first, span) = self.agenda_block(self.view_cursor_line(context.as_ref()))?;
+                let line = self.view_cursor_line(context.as_ref());
+                let (block, first, span) = self.agenda_block(line)?;
                 let steps = context.as_ref().and_then(|context| context.count).unwrap_or(1);
                 let start = match command {
                     commands::AGENDA_LATER => Some(span.shift(first, steps)),
                     commands::AGENDA_EARLIER => Some(span.shift(first, -steps)),
                     _ => None,
                 };
-                Ok(self.open_view_at(self.moved(block, start, span), Reveal::Block { block, day: None })?)
+                // `org-agenda-later`: to the day at the same place among
+                // the days shown as the one the cursor was under.
+                let count = match command {
+                    commands::AGENDA_TODAY => None,
+                    _ => line.and_then(|line| self.view.as_ref()?.on_screen().day_count(line)),
+                };
+                Ok(self.open_view_at(self.moved(block, start, span), Reveal::Block { block, day: None, count })?)
             }
             commands::AGENDA_DAY
             | commands::AGENDA_WEEK
@@ -2412,7 +2578,7 @@ impl Server {
                         let open = self.view.as_ref().ok_or("No agenda is open")?;
                         let day = line.and_then(|line| open.on_screen().line(line)?.day);
                         let start = agenda::starting_day(day.unwrap_or(first), span, &self.agenda);
-                        (self.moved(block, Some(start), span), Reveal::Block { block, day })
+                        (self.moved(block, Some(start), span), Reveal::Block { block, day, count: None })
                     }
                     Err(_) => (Query::Agenda { start: None, span }, Reveal::Home),
                 };
@@ -3093,11 +3259,14 @@ impl Server {
             text = text.trim_start_matches([' ', '\t', '\n']);
         }
         let text = text.trim_end();
-        let target = TodoTarget::State((!note.state.is_empty()).then(|| note.state.clone()));
+        let command = match note.id.as_str() {
+            commands::ADD_NOTE => EditCommand::Note,
+            _ => EditCommand::Todo(TodoTarget::State((!note.state.is_empty()).then(|| note.state.clone()))),
+        };
         let extra = Extra { note: Some(text.to_string()), skip_note: cancelled, ..Extra::default() };
         // The change is the file's, as if made where it was asked for.
         self.origin = Some(note.context.text_document.uri.as_str().to_string());
-        self.edit_with(&note.context, &note.id, Some(EditCommand::Todo(target)), &extra)?;
+        self.edit_with(&note.context, &note.id, Some(command), &extra)?;
         Ok(json!({ "close": note.uri }))
     }
 
@@ -3429,6 +3598,11 @@ impl Server {
     /// and cycles when they have none.
     fn run_edit(&mut self, id: &str, context: Option<Context>) -> std::result::Result<Value, Refusal> {
         let context = context.ok_or("This command needs the cursor position")?;
+        // `org-add-note`: asks for the note, then writes the one given.
+        if id == commands::ADD_NOTE {
+            let extra = Extra { note: context.input.clone(), ..Extra::default() };
+            return self.edit_with(&context, id, Some(EditCommand::Note), &extra);
+        }
         if let Some(state) = &context.state {
             let target = TodoTarget::State((!state.is_empty()).then(|| state.clone()));
             let extra = Extra { note: Some(context.input.clone().unwrap_or_default()), ..Extra::default() };

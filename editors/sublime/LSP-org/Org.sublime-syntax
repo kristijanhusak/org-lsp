@@ -48,6 +48,256 @@ contexts:
       captures:
         1: markup.heading punctuation.definition.heading.org
       push: [heading-8, heading-start]
+    # Source blocks in their language's own syntax, as Emacs shows them with
+    # `org-src-fontify-natively`. Written by generate.mjs from
+    # editors/src-languages.json, between these lines.
+    # --- source blocks ---
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:python|py)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.python
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:js|javascript)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.js
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:ts|typescript)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.ts
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:sh|shell|bash|zsh)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.shell.bash
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:rust)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.rust
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:go)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.go
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:c)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.c
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:c\+\+|cpp)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.c++
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:java)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.java
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:ruby|rb)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.ruby
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:lua)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.lua
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:json)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.json
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:yaml|yml)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.yaml
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:html)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:text.html.basic
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:css)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.css
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:sql|sqlite)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.sql
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:emacs-lisp|elisp|lisp)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.lisp
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:clojure)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.clojure
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:perl)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.perl
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:r)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.r
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:haskell)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.haskell
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:ocaml)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.ocaml
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:scala)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.scala
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:erlang)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.erlang
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:php)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.php
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:csharp)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.cs
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:objc)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.objc
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:groovy)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.groovy
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:markdown|md)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:text.html.markdown
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:xml)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:text.xml
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:latex)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:text.tex.latex
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:diff)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.diff
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:makefile)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.makefile
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:bat)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.dosbatch
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    - match: '^\s*(?i:#\+begin_src)\s+(?i:dot)(?=\s|$).*$'
+      scope: comment punctuation.definition.block.org
+      embed: scope:source.dot
+      embed_scope: meta.embedded.block.org
+      escape: '^\s*(?i:#\+end_src)\b.*$'
+      escape_captures:
+        0: comment punctuation.definition.block.org
+    # --- end of source blocks ---
     - match: '^\s*#\+(?i:begin_src|begin_example|begin_export)\b.*$'
       scope: comment punctuation.definition.block.org
       push: raw-block

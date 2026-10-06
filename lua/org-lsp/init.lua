@@ -26,6 +26,7 @@ local SERVER = 'org_lsp'
 ---@field startup_folded? 'showeverything'|'overview' Fold state of a newly opened file.
 ---@field folding? boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
+---@field src_highlight? boolean Whether the code of source blocks (`#+begin_src python`) is highlighted by the tree-sitter parser of its language, as Emacs's `org-src-fontify-natively` shows it.
 ---@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `hideEmphasisMarkers`), with 'conceallevel' 2 in Org windows.
 ---@field indent? boolean Whether the server indents as Org does: new lines through 'indentexpr' (`org-indent-line`), and `=` (`org-indent-region`), following `adaptIndentation`.
 ---@field virtual_indent? boolean Whether files with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`) show indented by level, without being changed, and with hidden leading stars (`hideLeadingStars`, `#+STARTUP: hidestars`).
@@ -49,6 +50,7 @@ local defaults = {
   startup_folded = 'showeverything',
   folding = true,
   replace_syntax = true,
+  src_highlight = true,
   conceal = true,
   indent = true,
   virtual_indent = true,
@@ -629,6 +631,9 @@ local function on_attach(client, bufnr)
   end
   if M.config.conceal then
     conceal(bufnr)
+  end
+  if M.config.src_highlight then
+    require('org-lsp.src').attach(bufnr)
   end
   if M.config.indent and client:supports_method('textDocument/onTypeFormatting') then
     require('org-lsp.indent').attach(bufnr)

@@ -47,6 +47,8 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oih` | `org.insert.heading.after` | New heading after the subtree |
 | `<Leader>oit` | `org.insert.todo.heading.after` | New TODO heading after the subtree |
 | `<Leader>or` | `org.refile` | Refile the entry |
+| `<Leader>ona` | `org.add.note` | Add a note to the entry |
+| `<Leader>oo` | `org.open` | Open the link or thing at the cursor |
 | `<Leader>o$` | `org.archive.subtree` | Archive the subtree |
 | `<Leader>oxA` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
 | `<Leader>oA` | `org.archive.tag` | Toggle the ARCHIVE tag |
@@ -96,6 +98,8 @@ The other options are in [configuration.md](configuration.md).
 | `-`, `<S-Down>` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
 | `<C-c><C-w>` | `org.refile` | Refile the entry |
+| `z` | `org.add.note` | Add a note to the entry |
+| `<C-c><C-o>` | `org.open` | Open the link or thing at the cursor |
 | `$`, `<C-c><C-x><C-s>`, `<C-c>$` | `org.archive.subtree` | Archive the subtree |
 | `<C-c><C-x>A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
 | `<C-c><C-x>a` | `org.archive.tag` | Toggle the ARCHIVE tag |

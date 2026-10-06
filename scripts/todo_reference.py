@@ -7,7 +7,9 @@ A case is a JSON object:
       "text": "* TODO a¦\\n",          an Org document; ¦ marks the cursor
       "command": "next",               "next", "previous", {"state": "DONE"},
                                        or {"key": "d"}: `org-todo` with its
-                                       fast selection answered with that key
+                                       fast selection answered with that key;
+                                       "checkbox": `org-toggle-checkbox`;
+                                       "note": `org-add-note`
       "note": "Waiting",               optional: the text of the note, if the
                                        change asks for one
       "options": {"logDone": "time"}   optional: server settings
@@ -55,9 +57,9 @@ DRIVER = r"""
                          ((symbol-function 'read-char-exclusive)
                           (lambda (&rest _) (string-to-char key))))
                  (let ((org-lsp-note-text (or note "")))
-                   (if (eq arg 'checkbox)
-                       (org-toggle-checkbox)
-                     (org-todo arg))
+                   (cond ((eq arg 'checkbox) (org-toggle-checkbox))
+                         ((eq arg 'note) (org-add-note))
+                         (t (org-todo arg)))
                    (org-lsp-finish-notes)))
                (buffer-string))
            (quit "QUIT")
@@ -114,6 +116,8 @@ def bindings(options):
 def command_argument(command):
     if command == "checkbox":
         return "'checkbox"
+    if command == "note":
+        return "'note"
     if command == "next":
         return "'right"
     if command == "previous":

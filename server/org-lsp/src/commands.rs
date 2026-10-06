@@ -137,6 +137,8 @@ pub const INSERT_TODO_HEADING: &str = "org.insert.todo.heading";
 pub const INSERT_HEADING_AFTER: &str = "org.insert.heading.after";
 pub const INSERT_TODO_HEADING_AFTER: &str = "org.insert.todo.heading.after";
 pub const REFILE: &str = "org.refile";
+pub const OPEN: &str = "org.open";
+pub const ADD_NOTE: &str = "org.add.note";
 pub const ARCHIVE_SUBTREE: &str = "org.archive.subtree";
 pub const ARCHIVE_SIBLING: &str = "org.archive.sibling";
 pub const ARCHIVE_TAG: &str = "org.archive.tag";
@@ -319,6 +321,24 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>or")],
         input: Some(Input { kind: "choice", prompt: "Refile to" }),
         ..edit(REFILE, "Refile the entry")
+    },
+    // `org-add-note`: a note in the entry's log, written in a note buffer
+    // as a state change's note is; in the agenda the line's entry's
+    // (`org-agenda-add-note`).
+    Command {
+        emacs: &[key(Org, "C-c C-z"), key(Agenda, "z")],
+        vim: &[key(Org, "<Leader>ona")],
+        input: Some(Input { kind: "note", prompt: "Note" }),
+        ..edit(ADD_NOTE, "Add a note to the entry")
+    },
+    // `org-open-at-point`: a link, a timestamp, a footnote, a tag, or the
+    // links of the entry; in the agenda the links of the line's entry
+    // (`org-agenda-open-link`).
+    Command {
+        emacs: &[key(Org, "C-c C-o"), key(Agenda, "C-c C-o")],
+        vim: &[key(Org, "<Leader>oo")],
+        input: Some(Input { kind: "key", prompt: "Select link to open" }),
+        ..command(OPEN, "Open the link or thing at the cursor")
     },
     // `org-archive-subtree` and its relatives, in Org files and on agenda
     // lines (`org-agenda-archive`). The subtree goes to the archive

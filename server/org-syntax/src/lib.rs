@@ -27,6 +27,11 @@ mod parser;
 pub use config::{Logging, TodoKeywords};
 
 /// The names of the entities Org knows (`org-entities`), sorted.
+/// The link types Org knows (`org-link-types`): `https`, `file`, `id`…
+pub fn link_types() -> &'static [&'static str] {
+    objects::LINK_TYPES
+}
+
 pub fn entity_names() -> &'static [&'static str] {
     entities::ENTITIES
 }

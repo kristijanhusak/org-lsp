@@ -55,6 +55,8 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+Enter` | `org.insert.heading.after` | New heading after the subtree |
 | `Ctrl+Shift+Enter` | `org.insert.todo.heading.after` | New TODO heading after the subtree |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
+| `Ctrl+C Ctrl+Z` | `org.add.note` | Add a note to the entry |
+| `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
 | `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Shift+4` | `org.archive.subtree` | Archive the subtree |
 | `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
 | `Ctrl+C Ctrl+X a` | `org.archive.tag` | Toggle the ARCHIVE tag |
@@ -110,6 +112,8 @@ The other options are in [configuration.md](configuration.md).
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
+| `z` | `org.add.note` | Add a note to the entry |
+| `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
 | `Shift+4`, `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Shift+4` | `org.archive.subtree` | Archive the subtree |
 | `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
 | `Ctrl+C Ctrl+X a` | `org.archive.tag` | Toggle the ARCHIVE tag |
@@ -191,6 +195,8 @@ The other options are in [configuration.md](configuration.md).
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
+| `z` | `org.add.note` | Add a note to the entry |
+| `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
 | `Shift+4`, `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Shift+4` | `org.archive.subtree` | Archive the subtree |
 | `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
 | `Ctrl+C Ctrl+X a` | `org.archive.tag` | Toggle the ARCHIVE tag |
@@ -247,6 +253,8 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "i", "h"], "commands": ["org.insert.heading.after"] },
   { "before": ["<leader>", "o", "i", "t"], "commands": ["org.insert.todo.heading.after"] },
   { "before": ["<leader>", "o", "r"], "commands": ["org.refile"] },
+  { "before": ["<leader>", "o", "n", "a"], "commands": ["org.add.note"] },
+  { "before": ["<leader>", "o", "o"], "commands": ["org.open"] },
   { "before": ["<leader>", "o", "$"], "commands": ["org.archive.subtree"] },
   { "before": ["<leader>", "o", "x", "A"], "commands": ["org.archive.sibling"] },
   { "before": ["<leader>", "o", "A"], "commands": ["org.archive.tag"] },
@@ -298,6 +306,8 @@ every file; outside Org files the commands say they do not apply):
 | `org.insert.heading.after` | Org: New heading after the subtree |
 | `org.insert.todo.heading.after` | Org: New TODO heading after the subtree |
 | `org.refile` | Org: Refile the entry |
+| `org.add.note` | Org: Add a note to the entry |
+| `org.open` | Org: Open the link or thing at the cursor |
 | `org.archive.subtree` | Org: Archive the subtree |
 | `org.archive.sibling` | Org: Archive the subtree under its Archive sibling |
 | `org.archive.tag` | Org: Toggle the ARCHIVE tag |

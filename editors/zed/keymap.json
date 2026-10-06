@@ -167,6 +167,18 @@
           "task_name": "Org agenda: Refile the entry"
         }
       ],
+      "z": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: Add a note to the entry"
+        }
+      ],
+      "ctrl-c ctrl-o": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: Open the link or thing at the cursor"
+        }
+      ],
       "$": [
         "task::Spawn",
         {

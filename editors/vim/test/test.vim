@@ -235,6 +235,27 @@ function! s:archive() abort
 endfunction
 call s:test('archives a subtree, and asks about each done one', function('s:archive'))
 
+function! s:code_link_note() abort
+  let file = s:work . '/notes/code.org'
+  call writefile(['* Code', '#+begin_src python :results output', 'def greet():', '#+end_src', 'See [[*Code]].'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  " The code of a source block in its language's syntax.
+  call assert_match('^python', synIDattr(synID(3, 1, 1), 'name'))
+  call assert_notmatch('^python', synIDattr(synID(5, 1, 1), 'name'))
+  " `<Leader>oo` follows the link at the cursor.
+  call cursor(5, 8)
+  call feedkeys("\\oo", 'xt')
+  call s:until('the cursor on the headline', {-> line('.') == 1})
+  " `<Leader>ona` asks for a note and writes it in the entry.
+  let g:answers = ['Looked at it']
+  call feedkeys("\\ona", 'xt')
+  call s:until('the note in the entry', {-> index(getbufline(file, 1, '$'), '  Looked at it') >= 0})
+  silent! execute 'buffer' bufnr(file)
+  silent write
+endfunction
+call s:test('source blocks in their syntax, links followed, notes added', function('s:code_link_note'))
+
 for error in v:errors
   call add(s:results, 'not ok - ' . error)
 endfor

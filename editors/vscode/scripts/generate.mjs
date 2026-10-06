@@ -6,7 +6,7 @@
 //   npm run generate [-- path/to/org-lsp]     rewrite package.json
 //   npm run generate -- --check               fail if it is out of date
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { schemaProperties } from '../../../scripts/settings-schema.mjs';
 
@@ -240,6 +240,36 @@ contributes.commands = [
   ),
 ];
 contributes.keybindings = keybindings;
+// Source blocks in their language's own grammar, as Emacs shows them with
+// `org-src-fontify-natively`. The server leaves a block's code alone; the
+// rest of an Org file is the server's.
+const sourceLanguages = JSON.parse(readFileSync(join('..', 'src-languages.json'), 'utf8')).languages.filter(
+  (language) => language.vscode,
+);
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const block = { name: 'punctuation.definition.block.org' };
+const grammar = {
+  name: 'Org',
+  scopeName: 'text.org',
+  patterns: sourceLanguages.map(({ names, vscode: [scope, id] }) => ({
+    begin: `(?i)^\\s*#\\+begin_src\\s+(?:${names.map(escapeRegex).join('|')})(?=\\s|$).*$`,
+    end: '(?i)^\\s*#\\+end_src\\b.*$',
+    beginCaptures: { 0: block },
+    endCaptures: { 0: block },
+    contentName: `meta.embedded.block.${id}`,
+    patterns: [{ include: scope }],
+  })),
+};
+contributes.grammars = [
+  {
+    language: ORG,
+    scopeName: grammar.scopeName,
+    path: './syntaxes/org.tmLanguage.json',
+    embeddedLanguages: Object.fromEntries(
+      sourceLanguages.map(({ vscode: [, id] }) => [`meta.embedded.block.${id}`, id]),
+    ),
+  },
+];
 contributes.semanticTokenTypes = manifest.tokenTypes
   .filter((type) => !type.standard)
   .map((type) => ({ id: type.id, description: type.description }));
@@ -298,13 +328,18 @@ pkg.orgLsp = {
 };
 
 const after = JSON.stringify(pkg, null, 2) + '\n';
+const grammarPath = join('syntaxes', 'org.tmLanguage.json');
+const grammarText = JSON.stringify(grammar, null, 2) + '\n';
 if (check) {
-  if (after !== before) {
-    console.error('package.json is out of date with the server. Run: npm run generate');
+  const grammarBefore = existsSync(grammarPath) ? readFileSync(grammarPath, 'utf8') : '';
+  if (after !== before || grammarText !== grammarBefore) {
+    console.error('package.json or the grammar is out of date with the server. Run: npm run generate');
     process.exit(1);
   }
   console.log('package.json matches the server');
 } else {
   writeFileSync(path, after);
+  mkdirSync('syntaxes', { recursive: true });
+  writeFileSync(grammarPath, grammarText);
   console.log(`generated ${commands.length} commands, ${keybindings.length} keys, ${Object.keys(scopes).length} token looks`);
 }

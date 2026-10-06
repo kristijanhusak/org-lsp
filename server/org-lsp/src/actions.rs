@@ -50,6 +50,7 @@ pub fn command(id: &str) -> Option<Command> {
         SHIFT_LEFT => Command::Shift(Direction::Left),
         SHIFT_RIGHT => Command::Shift(Direction::Right),
         commands::CHECKBOX_TOGGLE => Command::Checkbox,
+        commands::ADD_NOTE => Command::Note,
         _ => return None,
     })
 }

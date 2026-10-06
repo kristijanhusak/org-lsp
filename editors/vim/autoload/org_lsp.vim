@@ -19,6 +19,7 @@ let s:defaults = {
       \ 'folding': 1,
       \ 'startup_folded': 'showeverything',
       \ 'highlight': 1,
+      \ 'src_highlight': 1,
       \ 'win_split_mode': 'split',
       \ 'mappings': {
       \   'global': {
@@ -683,7 +684,8 @@ endfunction
 " the window that shows them; an entry's file in the current window.
 function! org_lsp#show_document(params) abort
   if get(a:params, 'external', v:false)
-    return {'success': v:false}
+    call s:open_external(a:params.uri)
+    return {'success': v:true}
   endif
   let path = org_lsp#uri_to_path(a:params.uri)
   let win = bufwinid(path)
@@ -712,6 +714,17 @@ function! org_lsp#show_document(params) abort
     endif
   endif
   return {'success': v:true}
+endfunction
+
+" A URL or a file for the system to open (a link of `org-open-at-point`):
+" with Vim's own `:Open` where there is one, else the system's opener.
+function! s:open_external(uri) abort
+  if exists(':Open') == 2
+    execute 'Open' fnameescape(a:uri)
+    return
+  endif
+  let opener = has('mac') ? ['open'] : has('win32') ? ['cmd', '/c', 'start', ''] : ['xdg-open']
+  call job_start(opener + [a:uri], {'stoponexit': ''})
 endfunction
 
 " Write the files at `uris` that have changes.
@@ -1134,6 +1147,9 @@ function! s:refresh(nr) abort
   if config.highlight
     call s:update_tokens(a:nr)
   endif
+  if bufnr() == a:nr && &filetype ==# 'org'
+    call s:src_syntax()
+  endif
   if config.folding && getbufvar(a:nr, '&filetype') ==# 'org'
     call s:update_folds(a:nr)
   endif
@@ -1154,6 +1170,7 @@ function! org_lsp#attach() abort
     if s:is_capture(bufname(nr))
       call org_lsp#set_keys('capture')
     endif
+    call s:src_syntax()
   endif
   augroup org_lsp_buffer
     execute 'autocmd! * <buffer=' . nr . '>'
@@ -1163,6 +1180,51 @@ function! org_lsp#attach() abort
   " The client may still be starting the server: ask again until it
   " answers.
   call s:first_refresh(nr, 0)
+endfunction
+
+" Org's names for languages (`org-src-lang-modes`, Emacs's mode names)
+" where Vim's syntax file has another.
+let s:src_aliases = {
+      \ 'emacs-lisp': 'lisp', 'elisp': 'lisp', 'shell': 'sh', 'bash': 'sh',
+      \ 'js': 'javascript', 'ts': 'typescript', 'py': 'python', 'rb': 'ruby',
+      \ 'c++': 'cpp', 'yml': 'yaml', 'sqlite': 'sql', 'rs': 'rust',
+      \ }
+
+" Source blocks (`#+begin_src python`) in their language's syntax, as Emacs
+" shows them with `org-src-fontify-natively`: the language's syntax file
+" included once for each language the buffer has, as Vim's Markdown does
+" for fenced code. The server leaves a block's code to the editor.
+function! s:src_syntax() abort
+  if !org_lsp#config().src_highlight
+    return
+  endif
+  let done = get(b:, 'org_lsp_src_languages', {})
+  for name in uniq(sort(filter(map(getline(1, '$'), {_, line -> matchstr(line, '\c^\s*#+begin_src\s\+\zs\S\+')}), '!empty(v:val)')))
+    if has_key(done, name)
+      continue
+    endif
+    let done[name] = 1
+    let lang = get(s:src_aliases, tolower(name), tolower(name))
+    if lang !~# '^\w\+$' || empty(globpath(&runtimepath, 'syntax/' . lang . '.vim'))
+      continue
+    endif
+    let cluster = 'orgLspSrc_' . lang
+    if !has_key(done, '@' . lang)
+      let done['@' . lang] = 1
+      let current = get(b:, 'current_syntax', v:null)
+      unlet! b:current_syntax
+      execute 'silent! syntax include @' . cluster . ' syntax/' . lang . '.vim'
+      if current is v:null
+        unlet! b:current_syntax
+      else
+        let b:current_syntax = current
+      endif
+    endif
+    execute 'syntax region ' . cluster . ' keepend matchgroup=orgLspSrcDelimiter'
+          \ . ' start=/\c^\s*#+begin_src\s\+' . escape(name, '/\.*$^~[]') . '\%(\s\|$\).*$/'
+          \ . ' end=/\c^\s*#+end_src\>.*$/ contains=@' . cluster
+  endfor
+  let b:org_lsp_src_languages = done
 endfunction
 
 " Whether the server answers for buffer `nr`.

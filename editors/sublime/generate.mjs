@@ -223,7 +223,35 @@ if (existsSync(settingsPath)) {
   }
 }
 
+// Source blocks in their language's own syntax: a rule for each language
+// Sublime Text ships, between the markers of Org.sublime-syntax.
+const sourceLanguages = JSON.parse(readFileSync(join(root, 'editors', 'src-languages.json'), 'utf8')).languages;
+const quote = (pattern) => `'${pattern.replace(/'/g, "''")}'`;
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const embedded = sourceLanguages
+  .filter((language) => language.sublime)
+  .map((language) => {
+    const names = language.names.map(escapeRegex).join('|');
+    return [
+      `    - match: ${quote(`^\\s*(?i:#\\+begin_src)\\s+(?i:${names})(?=\\s|$).*$`)}`,
+      '      scope: comment punctuation.definition.block.org',
+      `      embed: scope:${language.sublime}`,
+      '      embed_scope: meta.embedded.block.org',
+      `      escape: ${quote('^\\s*(?i:#\\+end_src)\\b.*$')}`,
+      '      escape_captures:',
+      '        0: comment punctuation.definition.block.org',
+    ].join('\n');
+  })
+  .join('\n');
+const syntaxPath = join(pkg, 'Org.sublime-syntax');
+const syntaxBefore = readFileSync(syntaxPath, 'utf8');
+const begin = '    # --- source blocks ---\n';
+const end = '    # --- end of source blocks ---\n';
+const syntax =
+  syntaxBefore.slice(0, syntaxBefore.indexOf(begin) + begin.length) + embedded + '\n' + syntaxBefore.slice(syntaxBefore.indexOf(end));
+
 const files = {
+  'Org.sublime-syntax': syntax,
   'Default.sublime-keymap': JSON.stringify(bindings, null, 2) + '\n',
   'LSP-org.sublime-commands': JSON.stringify(palette, null, 2) + '\n',
   'LSP-org.sublime-settings': JSON.stringify(settings, null, 2) + '\n',

@@ -432,6 +432,42 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org agenda: Add a note to the entry",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.add.note",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Open the link or thing at the cursor",
+    "command": "$ZED_DIRNAME/org-lsp-command",
+    "args": [
+      "org.open",
+      "$ZED_ROW",
+      "$ZED_COLUMN"
+    ],
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: Archive the subtree",
     "command": "$ZED_DIRNAME/org-lsp-command",
     "args": [
