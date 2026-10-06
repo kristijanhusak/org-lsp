@@ -48,6 +48,32 @@ function! s:error(error) abort
   return type(a:error) == v:t_dict ? a:error : {'message': a:error, 'data': {'notApplicable': v:true}}
 endfunction
 
-function! org_lsp#adapter#coc#request(bufnr, method, params, Callback) abort
+" By buffer: the change count last seen, and when the server will have
+" heard of it, in seconds.
+let s:synced = {}
+
+function! s:now() abort
+  return reltimefloat(reltime())
+endfunction
+
+function! s:send(method, params, Callback) abort
   call CocRequestAsync(s:name, a:method, a:params, {error, result -> a:Callback(s:error(error), result)})
+endfunction
+
+" coc.nvim tells the server about a change 150 ms after it hears of it,
+" and a request does not wait for that: after a change, requests wait
+" until the server has the text they are about.
+function! org_lsp#adapter#coc#request(bufnr, method, params, Callback) abort
+  let tick = getbufvar(a:bufnr, 'changedtick')
+  let known = get(s:synced, a:bufnr, {'tick': tick, 'at': 0.0})
+  if known.tick != tick
+    silent! call coc#api#Buf_flush(a:bufnr)
+    let known = {'tick': tick, 'at': s:now() + 0.3}
+  endif
+  let s:synced[a:bufnr] = known
+  let wait = float2nr((known.at - s:now()) * 1000)
+  if wait <= 0
+    return s:send(a:method, a:params, a:Callback)
+  endif
+  call timer_start(wait, {-> s:send(a:method, a:params, a:Callback)})
 endfunction

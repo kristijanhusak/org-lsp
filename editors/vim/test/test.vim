@@ -132,8 +132,6 @@ function! s:capture() abort
   " The cursor is where `%?` was, for typing.
   call assert_equal([1, len('* TODO ')], [line('.'), col('.')])
   call setline(1, '* TODO Call mom')
-  " As after typing: coc.nvim sends changes to the server after a moment.
-  sleep 300m
   call feedkeys("\<C-c>", 'x')
   call s:until('the entry filed', {-> filereadable(s:work . '/notes/inbox.org') && index(readfile(s:work . '/notes/inbox.org'), '* TODO Call mom') >= 0})
   call s:until('the capture buffer closed', {-> fnamemodify(bufname(), ':t') !~# '^CAPTURE-'})
