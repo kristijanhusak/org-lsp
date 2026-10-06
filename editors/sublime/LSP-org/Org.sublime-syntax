@@ -1,0 +1,16 @@
+%YAML 1.2
+---
+# Org files, for the language server to attach to. The highlighting is the
+# server's (semantic tokens); this only marks headlines and comments until
+# it arrives.
+name: Org
+file_extensions: [org, org_archive]
+scope: text.org
+contexts:
+  main:
+    - match: '^(\*+)\s+(.*)$'
+      captures:
+        1: punctuation.definition.heading.org
+        2: markup.heading.org
+    - match: '^\s*#(\s.*)?$'
+      scope: comment.line.number-sign.org

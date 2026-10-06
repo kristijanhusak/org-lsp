@@ -57,16 +57,10 @@ others), as close to Emacs Org mode as it can get.
 Asked for on 2026-10-06 and not done yet, in this order (two items per
 PR, as agreed):
 
-1. **Shims for Zed, Sublime Text and Vim.**
-   - Vim: one Vimscript plugin with the logic the Neovim plugin has, on
-     top of whichever LSP client is installed, with small adapters for
-     yegappan/lsp, vim-lsp, coc.nvim and ALE (open question 4).
-   - Zed: an extension that starts the server for Org files and maps the
-     manifest's commands; Zed cannot open server-owned documents, so the
-     agenda goes through the file the server writes.
-   - Sublime Text: an LSP-package configuration (sublimelsp/LSP) plus
-     key bindings from the manifest, with the same preset choice as
-     VS Code's `org-lsp.keys` (emacs, vim, custom).
+1. **Zed.** An extension that starts the server for Org files and maps
+   the manifest's commands; Zed cannot open server-owned documents, so the
+   agenda goes through the file the server writes (as for Vim and Sublime
+   Text, with `showDocument` and `virtualDocuments: false`).
 2. **Formatting** (milestone 13): document formatting that aligns
    tables and tags (`org-table-align`, `org-align-tags`), on top of the
    range formatting that indents today.
@@ -78,7 +72,14 @@ server's folding ranges, since only the editor knows which folds are
 closed), and key presets (`org-lsp.keys`: `emacs` binds Emacs's keys in
 Org files too, `vim` the Neovim plugin's for VSCodeVim, `custom` none;
 keys with their own meaning fall back to it where the server says the
-command does not apply). Concealing emphasis markers already existed
+command does not apply). In #27: the Vim plugin (`editors/vim`, shared
+code plus adapters for yegappan/lsp, vim-lsp, coc.nvim and ALE, tested
+with each against the real server) and the Sublime Text package
+(`editors/sublime/LSP-org`, for sublimelsp/LSP, with the emacs, vim and
+custom presets; tested against stand-ins, since Sublime Text cannot be
+downloaded in the workspace). The server's option `showDocument` lets a
+client that does not announce `window/showDocument` say it shows
+documents. Concealing emphasis markers already existed
 (`hideEmphasisMarkers`, `org-hide-emphasis-markers`, off by default).
 
 Older leftovers, any time:
@@ -484,7 +485,12 @@ previews.
 - VS Code: in `editors/vscode`, `npm run generate -- --check`, `npm run
   check`, `npm run build`, `xvfb-run -a npm test` (VSCodium works locally
   through `VSCODE_EXECUTABLE`).
-- CI runs four jobs: server, Neovim 0.11.0, Neovim stable, VS Code.
+- Vim: `CLIENTS=dir editors/vim/test/run.sh`, with the four clients
+  checked out in `dir` (`lsp`, `vim-lsp`, `coc.nvim` on its `release`
+  branch, `ale`); Vim runs in tmux.
+- Sublime Text: `node editors/sublime/generate.mjs --check`,
+  `python3 editors/sublime/test/test_plugin.py`.
+- CI runs six jobs: server, Neovim 0.11.0, Neovim stable, VS Code, Vim (with each of its four LSP clients), Sublime Text (generated files, the plugin against stand-ins).
 
 ## Notes for whoever picks this up
 

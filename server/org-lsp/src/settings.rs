@@ -524,6 +524,20 @@ pub const SETTINGS: &[Setting] = &[
              announces that capability need not set this.",
         )
     },
+    Setting {
+        default: None,
+        unset: "from the client's capabilities",
+        integration: true,
+        ..setting(
+            "showDocument",
+            "boolean",
+            "",
+            "",
+            "Whether the client shows the documents the server asks it to show (`window/showDocument`): the \
+             agenda, capture buffers, an entry's file. A client that announces that capability need not set \
+             this; the Vim plugin does, for the LSP clients that leave the request to it.",
+        )
+    },
 ];
 
 /// The values each option takes, as JSON Schema: what editors complete and
@@ -647,6 +661,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         } } }"#,
     ),
     ("virtualDocuments", BOOLEAN),
+    ("showDocument", BOOLEAN),
 ];
 
 const BOOLEAN: &str = r#"{ "type": "boolean" }"#;

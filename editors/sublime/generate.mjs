@@ -1,0 +1,202 @@
+// Write the parts of the Sublime Text package that mirror the server: the
+// key bindings of both presets, the commands for the Command Palette, and
+// the scopes of the server's semantic tokens. They come from the server's
+// manifest, so nothing about Org is listed by hand in the package.
+//
+//   node editors/sublime/generate.mjs [path/to/org-lsp]   rewrite the files
+//   node editors/sublime/generate.mjs --check             fail if out of date
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const root = resolve(here, '..', '..');
+const pkg = join(here, 'LSP-org');
+const args = process.argv.slice(2);
+const check = args.includes('--check');
+const exe = process.platform === 'win32' ? 'org-lsp.exe' : 'org-lsp';
+const binary =
+  args.find((arg) => !arg.startsWith('--')) ??
+  ['release', 'debug'].map((profile) => join(root, 'target', profile, exe)).find(existsSync);
+if (!binary) {
+  console.error('No server binary found. Build it with: cargo build -p org-lsp');
+  process.exit(1);
+}
+const manifest = JSON.parse(execFileSync(resolve(binary), ['manifest'], { encoding: 'utf8' }));
+
+/** An Emacs key (`C-c C-t`, `S-<up>`, `RET`) as Sublime's list of keys. */
+function fromEmacs(emacs) {
+  const names = { RET: 'enter', TAB: 'tab', SPC: 'space', DEL: 'backspace', ESC: 'escape' };
+  const modifiers = { C: 'ctrl', M: 'alt', S: 'shift' };
+  return emacs.split(' ').map((stroke) => {
+    const parts = [];
+    let rest = stroke;
+    for (let match; (match = /^([CMS])-(.+)$/.exec(rest)); rest = match[2]) {
+      parts.push(modifiers[match[1]]);
+    }
+    const named = /^<(.+)>$/.exec(rest);
+    let base = names[rest] ?? (named ? named[1] : rest);
+    if (base.length === 1 && base !== base.toLowerCase()) {
+      parts.push('shift');
+      base = base.toLowerCase();
+    }
+    return [...parts, base].join('+');
+  });
+}
+
+/** A Vim key (`<C-Space>`, `cit`, `<S-Right>`) the same way; null for the leader. */
+function fromVim(vim) {
+  const named = { CR: 'enter', Tab: 'tab', Esc: 'escape', Space: 'space', BS: 'backspace' };
+  const modifiers = { C: 'ctrl', M: 'alt', A: 'alt', S: 'shift' };
+  const keys = [];
+  for (const [, special, plain] of vim.matchAll(/<([^>]+)>|(.)/g)) {
+    if (plain !== undefined) {
+      keys.push(plain.length === 1 && plain !== plain.toLowerCase() ? `shift+${plain.toLowerCase()}` : plain);
+      continue;
+    }
+    const parts = special.split('-');
+    const base = parts.pop();
+    if (base === 'Leader') return null;
+    keys.push([...parts.map((part) => modifiers[part]), named[base] ?? base.toLowerCase()].join('+'));
+  }
+  return keys;
+}
+
+const selector = {
+  org: 'text.org',
+  capture: 'text.org',
+  agenda: 'text.org-agenda',
+};
+// Keys for the whole editor are bound where Org's are.
+const globalScopes = ['org', 'agenda'];
+// What a key does where the command does not apply.
+const fallbacks = {
+  'shift+up': { command: 'move', args: { by: 'lines', forward: false, extend: true } },
+  'shift+down': { command: 'move', args: { by: 'lines', forward: true, extend: true } },
+  'shift+left': { command: 'move', args: { by: 'characters', forward: false, extend: true } },
+  'shift+right': { command: 'move', args: { by: 'characters', forward: true, extend: true } },
+  'ctrl+a': { command: 'nv_feed_key', args: { key: '<C-a>' } },
+  'ctrl+x': { command: 'nv_feed_key', args: { key: '<C-x>' } },
+  tab: { command: 'insert_best_completion', args: { default: '\t', exact: false } },
+};
+
+/** The package's own commands, with their keys. */
+const own = [
+  {
+    command: 'org_lsp_cycle',
+    title: 'Cycle the visibility of the subtree, block or drawer at the cursor',
+    keys: [
+      { key: 'TAB', in: 'org', preset: 'emacs', native: true },
+      { key: '<Tab>', in: 'org', preset: 'vim' },
+    ],
+  },
+  {
+    command: 'org_lsp_cycle_global',
+    title: 'Cycle the visibility of the whole file',
+    keys: [
+      { key: 'S-TAB', in: 'org', preset: 'emacs' },
+      { key: '<S-Tab>', in: 'org', preset: 'vim' },
+    ],
+  },
+];
+
+const ORDER = ['org', 'global', 'capture', 'agenda'];
+// Later bindings win in Sublime: a capture buffer's `C-c C-c` over an Org file's.
+const bindings = [...manifest.commands, ...own]
+  .flatMap((command) => command.keys.map((binding) => ({ ...binding, command: command.command })))
+  .filter((binding) => ORDER.includes(binding.in))
+  .sort((a, b) => ORDER.indexOf(a.in) - ORDER.indexOf(b.in))
+  .flatMap((binding) => {
+    const keys = binding.preset === 'emacs' ? fromEmacs(binding.key) : fromVim(binding.key);
+    if (keys === null) return [];
+    const inText = binding.in !== 'agenda';
+    // In Vim's command mode a plain first key belongs to Vim (`c` of `cit`).
+    if (binding.preset === 'vim' && inText && keys[0].length === 1) return [];
+    const scopes = binding.in === 'global' ? globalScopes : [binding.in];
+    return scopes.map((scope) => {
+      const context = [
+        { key: 'org_lsp.keys', operator: 'equal', operand: binding.preset },
+        { key: 'selector', operator: 'equal', operand: selector[scope] },
+      ];
+      if (scope === 'capture') context.push({ key: 'org_lsp.capture', operator: 'equal', operand: true });
+      if (binding.preset === 'vim' && inText) context.push({ key: 'setting.command_mode', operator: 'equal', operand: true });
+      if (keys[0] === 'tab' || keys[0] === 'shift+tab') {
+        context.push(
+          { key: 'auto_complete_visible', operator: 'equal', operand: false },
+          { key: 'has_next_field', operator: 'equal', operand: false },
+          { key: 'selection_empty', operator: 'equal', operand: true, match_all: true },
+        );
+      }
+      const own = binding.command.startsWith('org_lsp_');
+      const entry = own
+        ? { keys, command: binding.command, args: {} }
+        : { keys, command: 'org_lsp_run', args: { command: binding.command } };
+      if (binding.native) {
+        const fallback = fallbacks[keys[0]];
+        if (!fallback) throw new Error(`No fallback for the key ${keys.join(' ')} of ${binding.command}`);
+        entry.args.fallback = fallback;
+      }
+      if (Object.keys(entry.args).length === 0) delete entry.args;
+      entry.context = context;
+      return entry;
+    });
+  });
+
+// The Command Palette: every command of the server's and the package's.
+const palette = [
+  ...manifest.commands.map((command) => ({
+    caption: `Org: ${command.title}`,
+    command: 'org_lsp_run',
+    args: { command: command.command },
+  })),
+  ...own.map((command) => ({ caption: `Org: ${command.title}`, command: command.command })),
+];
+
+// The scopes of the server's tokens, from the TextMate scopes it names. A
+// selector for a modifier on any type (`*.bold`) is given for text.
+const semanticTokens = Object.fromEntries(
+  manifest.highlights
+    .filter((look) => look.textmate.length > 0)
+    .map((look) => [look.token.replace(/^\*\./, 'text.'), look.textmate[0]]),
+);
+
+const settingsPath = join(pkg, 'LSP-org.sublime-settings');
+const settings = {
+  // The server: `org-lsp` from PATH, or the path to the binary.
+  command: ['org-lsp'],
+  selector: 'text.org | text.org-agenda',
+  // The server's options, such as agendaFiles; see docs/configuration.md.
+  initializationOptions: {},
+  // The keys: "emacs" (the default), "vim" (for Vintage and NeoVintageous)
+  // or "custom" (none; bind the commands yourself).
+  org_keys: 'emacs',
+  semantic_tokens: semanticTokens,
+};
+if (existsSync(settingsPath)) {
+  // The user-facing values stay as they are; only the tokens are generated.
+  const before = JSON.parse(readFileSync(settingsPath, 'utf8'));
+  for (const key of ['command', 'selector', 'initializationOptions', 'org_keys']) {
+    if (key in before) settings[key] = before[key];
+  }
+}
+
+const files = {
+  'Default.sublime-keymap': JSON.stringify(bindings, null, 2) + '\n',
+  'LSP-org.sublime-commands': JSON.stringify(palette, null, 2) + '\n',
+  'LSP-org.sublime-settings': JSON.stringify(settings, null, 2) + '\n',
+};
+let stale = false;
+for (const [name, text] of Object.entries(files)) {
+  const path = join(pkg, name);
+  const before = existsSync(path) ? readFileSync(path, 'utf8') : '';
+  if (before === text) continue;
+  if (check) {
+    console.error(`${name} is out of date with the server. Run: node editors/sublime/generate.mjs`);
+    stale = true;
+  } else {
+    writeFileSync(path, text);
+  }
+}
+if (stale) process.exit(1);
+console.log(check ? 'the Sublime Text package matches the server' : `generated ${bindings.length} keys, ${palette.length} commands`);

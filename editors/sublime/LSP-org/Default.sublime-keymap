@@ -1,0 +1,2166 @@
+[
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+x",
+      "ctrl+i"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.in"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+x",
+      "ctrl+o"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.out"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+x",
+      "ctrl+q"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.cancel"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+x",
+      "ctrl+j"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.goto"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+t"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      ","
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.priority"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+c"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.checkbox.toggle"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+space"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.checkbox.toggle"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "setting.command_mode",
+        "operator": "equal",
+        "operand": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+w"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.refile"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+a"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timestamp.up",
+      "fallback": {
+        "command": "nv_feed_key",
+        "args": {
+          "key": "<C-a>"
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "setting.command_mode",
+        "operator": "equal",
+        "operand": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+x"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timestamp.down",
+      "fallback": {
+        "command": "nv_feed_key",
+        "args": {
+          "key": "<C-x>"
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "setting.command_mode",
+        "operator": "equal",
+        "operand": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+up"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.date.later",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "lines",
+          "forward": false,
+          "extend": true
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "setting.command_mode",
+        "operator": "equal",
+        "operand": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+down"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.date.earlier",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "lines",
+          "forward": true,
+          "extend": true
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "setting.command_mode",
+        "operator": "equal",
+        "operand": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+up"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shift.up",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "lines",
+          "forward": false,
+          "extend": true
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+down"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shift.down",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "lines",
+          "forward": true,
+          "extend": true
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+left"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shift.left",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "characters",
+          "forward": false,
+          "extend": true
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+right"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shift.right",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "characters",
+          "forward": true,
+          "extend": true
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+s"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.schedule"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+d"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.deadline"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "."
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timestamp.insert"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "!"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timestamp.insert.inactive"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "tab"
+    ],
+    "command": "org_lsp_cycle",
+    "args": {
+      "fallback": {
+        "command": "insert_best_completion",
+        "args": {
+          "default": "\t",
+          "exact": false
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "auto_complete_visible",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "has_next_field",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "selection_empty",
+        "operator": "equal",
+        "operand": true,
+        "match_all": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "tab"
+    ],
+    "command": "org_lsp_cycle",
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "setting.command_mode",
+        "operator": "equal",
+        "operand": true
+      },
+      {
+        "key": "auto_complete_visible",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "has_next_field",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "selection_empty",
+        "operator": "equal",
+        "operand": true,
+        "match_all": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+tab"
+    ],
+    "command": "org_lsp_cycle_global",
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "auto_complete_visible",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "has_next_field",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "selection_empty",
+        "operator": "equal",
+        "operand": true,
+        "match_all": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+tab"
+    ],
+    "command": "org_lsp_cycle_global",
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "setting.command_mode",
+        "operator": "equal",
+        "operand": true
+      },
+      {
+        "key": "auto_complete_visible",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "has_next_field",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "selection_empty",
+        "operator": "equal",
+        "operand": true,
+        "match_all": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "a"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.dispatch"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "a"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.dispatch"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "c"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.capture"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "c"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.capture"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+c"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.capture.finish"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "org_lsp.capture",
+        "operator": "equal",
+        "operand": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.capture.finish"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "org_lsp.capture",
+        "operator": "equal",
+        "operand": true
+      },
+      {
+        "key": "setting.command_mode",
+        "operator": "equal",
+        "operand": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+k"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.capture.abort"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "org_lsp.capture",
+        "operator": "equal",
+        "operand": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+w"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.capture.refile"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "org_lsp.capture",
+        "operator": "equal",
+        "operand": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "f"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.later"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "f"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.later"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "b"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.earlier"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "b"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.earlier"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "."
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.today"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "."
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.today"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "j"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.goto.date"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+j"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.goto.date"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "d"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.day"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "d"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.day"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "d"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.day"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "w"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.week"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "w"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.week"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "w"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.week"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "t"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.fortnight"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "t"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.fortnight"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "m"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.month"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "m"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.month"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "y"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.year"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "y"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.year"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "r"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.redo"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "g"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.redo"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "r"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.redo"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "enter"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.goto"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "tab"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.goto"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      },
+      {
+        "key": "auto_complete_visible",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "has_next_field",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "selection_empty",
+        "operator": "equal",
+        "operand": true,
+        "match_all": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "enter"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.goto"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "tab"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.goto"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      },
+      {
+        "key": "auto_complete_visible",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "has_next_field",
+        "operator": "equal",
+        "operand": false
+      },
+      {
+        "key": "selection_empty",
+        "operator": "equal",
+        "operand": true,
+        "match_all": true
+      }
+    ]
+  },
+  {
+    "keys": [
+      "s"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.save"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+x",
+      "ctrl+s"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.save"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "l"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.log"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "l"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.log"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "l"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.log"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+r"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.clockreport"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "shift+r"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.clockreport"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+r"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.clockreport"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+i"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.in"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+i"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.in"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+o"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.out"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+o"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.out"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+x"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.cancel"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+x"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.cancel"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+j"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.goto"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "t"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "t"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "+"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.priority.up"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+up"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.priority.up"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "+"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.priority.up"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "-"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.priority.down"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+down"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.priority.down"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "-"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.priority.down"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      ","
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.priority"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+w"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.refile"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+right"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.date.later"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+right"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.date.later"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+left"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.date.earlier"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+left"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.date.earlier"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+s"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.schedule"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+d"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.deadline"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  }
+]

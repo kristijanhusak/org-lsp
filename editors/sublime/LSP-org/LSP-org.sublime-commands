@@ -1,0 +1,437 @@
+[
+  {
+    "caption": "Org: Agenda commands",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.dispatch"
+    }
+  },
+  {
+    "caption": "Org: Agenda for the current week or day",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.list"
+    }
+  },
+  {
+    "caption": "Org: List of all TODO entries",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.todos"
+    }
+  },
+  {
+    "caption": "Org: Agenda: go forward in time",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.later"
+    }
+  },
+  {
+    "caption": "Org: Agenda: go backward in time",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.earlier"
+    }
+  },
+  {
+    "caption": "Org: Agenda: go to today",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.today"
+    }
+  },
+  {
+    "caption": "Org: Agenda: go to a date",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.goto.date"
+    }
+  },
+  {
+    "caption": "Org: Agenda: day view",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.day"
+    }
+  },
+  {
+    "caption": "Org: Agenda: week view",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.week"
+    }
+  },
+  {
+    "caption": "Org: Agenda: fortnight view",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.fortnight"
+    }
+  },
+  {
+    "caption": "Org: Agenda: month view",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.month"
+    }
+  },
+  {
+    "caption": "Org: Agenda: year view",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.year"
+    }
+  },
+  {
+    "caption": "Org: Agenda: rebuild",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.redo"
+    }
+  },
+  {
+    "caption": "Org: Agenda: go to the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.goto"
+    }
+  },
+  {
+    "caption": "Org: Save all Org files",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.save"
+    }
+  },
+  {
+    "caption": "Org: Agenda: log mode, what was closed and clocked",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.log"
+    }
+  },
+  {
+    "caption": "Org: Agenda: the clock report",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.clockreport"
+    }
+  },
+  {
+    "caption": "Org: Clock in",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.in"
+    }
+  },
+  {
+    "caption": "Org: Clock out",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.out"
+    }
+  },
+  {
+    "caption": "Org: Cancel the clock",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.cancel"
+    }
+  },
+  {
+    "caption": "Org: Go to the clocked entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.goto"
+    }
+  },
+  {
+    "caption": "Org: Change the TODO state",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo"
+    }
+  },
+  {
+    "caption": "Org: Cycle TODO state forward",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo.next"
+    }
+  },
+  {
+    "caption": "Org: Cycle TODO state backward",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo.previous"
+    }
+  },
+  {
+    "caption": "Org: Raise the priority",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.priority.up"
+    }
+  },
+  {
+    "caption": "Org: Lower the priority",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.priority.down"
+    }
+  },
+  {
+    "caption": "Org: Set the priority",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.priority"
+    }
+  },
+  {
+    "caption": "Org: Toggle the checkbox",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.checkbox.toggle"
+    }
+  },
+  {
+    "caption": "Org: Refile the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.refile"
+    }
+  },
+  {
+    "caption": "Org: Capture",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.capture"
+    }
+  },
+  {
+    "caption": "Org: Capture: finish",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.capture.finish"
+    }
+  },
+  {
+    "caption": "Org: Capture: abort",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.capture.abort"
+    }
+  },
+  {
+    "caption": "Org: Capture: refile the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.capture.refile"
+    }
+  },
+  {
+    "caption": "Org: Increase the part of the timestamp at the cursor",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timestamp.up"
+    }
+  },
+  {
+    "caption": "Org: Decrease the part of the timestamp at the cursor",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timestamp.down"
+    }
+  },
+  {
+    "caption": "Org: Move the date one day later",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.date.later"
+    }
+  },
+  {
+    "caption": "Org: Move the date one day earlier",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.date.earlier"
+    }
+  },
+  {
+    "caption": "Org: Increase the timestamp part or raise the priority",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shift.up"
+    }
+  },
+  {
+    "caption": "Org: Decrease the timestamp part or lower the priority",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shift.down"
+    }
+  },
+  {
+    "caption": "Org: Move the date a day earlier or cycle the TODO state backward",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shift.left"
+    }
+  },
+  {
+    "caption": "Org: Move the date a day later or cycle the TODO state forward",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shift.right"
+    }
+  },
+  {
+    "caption": "Org: Schedule the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.schedule"
+    }
+  },
+  {
+    "caption": "Org: Set the deadline of the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.deadline"
+    }
+  },
+  {
+    "caption": "Org: Insert or change a timestamp",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timestamp.insert"
+    }
+  },
+  {
+    "caption": "Org: Insert or change an inactive timestamp",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timestamp.insert.inactive"
+    }
+  },
+  {
+    "caption": "Org: Change the timestamp at the cursor",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timestamp.change"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: one day later",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.day.later"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: one day earlier",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.day.earlier"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: one week later",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.week.later"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: one week earlier",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.week.earlier"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: one month later",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.month.later"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: one month earlier",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.month.earlier"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: one year later",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.year.later"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: one year earlier",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.year.earlier"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: show the next months",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.scroll.later"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: show the previous months",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.scroll.earlier"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: go to today",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.today"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: take the day at the cursor",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.select"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: type the date",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.type"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: pick the time, or go back to the day",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.time"
+    }
+  },
+  {
+    "caption": "Org: Date prompt: cancel",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.calendar.cancel"
+    }
+  },
+  {
+    "caption": "Org: Cycle the visibility of the subtree, block or drawer at the cursor",
+    "command": "org_lsp_cycle"
+  },
+  {
+    "caption": "Org: Cycle the visibility of the whole file",
+    "command": "org_lsp_cycle_global"
+  }
+]
