@@ -359,12 +359,12 @@ do
   vim.ui.input = function(_, on_confirm)
     on_confirm(table.remove(answers, 1))
   end
-  press('<Leader>o,')
+  press(',')
   wait('the priority typed in the file', function()
     return home_line(1) == '* TODO [#A] Water plants'
   end)
   wait_for_cursor('  home:       Sched. 2x:  TODO [#A] Water plants')
-  press('<Leader>o,')
+  press(',')
   wait('the priority removed again', function()
     return home_line(1) == '* TODO Water plants'
   end)
@@ -375,7 +375,7 @@ end
 -- 6b. Scheduling from the agenda (`org-agenda-schedule`) opens the
 -- calendar on the entry's date; the day taken there goes to its file, and
 -- the cursor follows the entry.
-press('<Leader>ois')
+press('<C-c><C-s>')
 wait('the calendar on the scheduled day', in_calendar_on('16'))
 eq(vim.api.nvim_buf_get_lines(0, -2, -1, false), { 'SCHEDULED Date+time [2026-05-16]:    => <2026-05-16 Sat>' }, 'the minibuffer')
 press('j')
@@ -396,7 +396,7 @@ local input = vim.ui.input
 vim.ui.input = function(_, on_confirm)
   on_confirm('2026-05-16')
 end
-press('<Leader>ois')
+press('<C-c><C-s>')
 wait('the calendar on Saturday', in_calendar_on('23'))
 press('i')
 wait('the old date in the file again', function()
@@ -538,7 +538,7 @@ check(is_float(), 'float: a floating window')
 local agenda_float = vim.api.nvim_get_current_win()
 -- The calendar of a date prompt floats over it, at the bottom.
 vim.api.nvim_win_set_cursor(0, { 2, 0 })
-press('<Leader>ois')
+press('<C-c><C-s>')
 wait('the calendar over the float', function()
   return vim.bo.filetype == 'org-date'
 end)

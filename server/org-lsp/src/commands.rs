@@ -81,9 +81,13 @@ pub struct Command {
     /// "repeat the last change" key can make these repeatable.
     pub edits: bool,
     /// Default keys as Emacs has them, in its notation (`C-c C-t`, `RET`).
+    /// The agenda's keys are the same in every editor and for both
+    /// presets: Emacs's, but for those that would take a motion from modal
+    /// editors (`J` goes to a date, not `j`; the views are under `v`).
     pub emacs: &'static [Key],
     /// Default keys for modal editors, in Vim's notation (`<CR>`). These
-    /// are nvim-orgmode's defaults.
+    /// are nvim-orgmode's defaults. None for the agenda: the manifest
+    /// gives the Emacs keys there, in Vim's notation.
     pub vim: &'static [Key],
     /// What the command asks the user for before it can run, as the
     /// prompt the editor shows.
@@ -198,91 +202,52 @@ pub const COMMANDS: &[Command] = &[
     },
     command(AGENDA_LIST, "Agenda for the current week or day"),
     command(AGENDA_TODOS, "List of all TODO entries"),
+    Command { emacs: &[key(Agenda, "f")], ..command(AGENDA_LATER, "Agenda: go forward in time") },
+    Command { emacs: &[key(Agenda, "b")], ..command(AGENDA_EARLIER, "Agenda: go backward in time") },
+    Command { emacs: &[key(Agenda, ".")], ..command(AGENDA_TODAY, "Agenda: go to today") },
     Command {
-        emacs: &[key(Agenda, "f")],
-        vim: &[key(Agenda, "f")],
-        ..command(AGENDA_LATER, "Agenda: go forward in time")
-    },
-    Command {
-        emacs: &[key(Agenda, "b")],
-        vim: &[key(Agenda, "b")],
-        ..command(AGENDA_EARLIER, "Agenda: go backward in time")
-    },
-    Command { emacs: &[key(Agenda, ".")], vim: &[key(Agenda, ".")], ..command(AGENDA_TODAY, "Agenda: go to today") },
-    Command {
-        emacs: &[key(Agenda, "j")],
-        vim: &[key(Agenda, "J")],
+        emacs: &[key(Agenda, "J")],
         input: Some(Input { kind: "date", prompt: "Date" }),
         ..command(AGENDA_GOTO_DATE, "Agenda: go to a date")
     },
-    Command {
-        emacs: &[key(Agenda, "d"), key(Agenda, "v d")],
-        vim: &[key(Agenda, "vd")],
-        ..command(AGENDA_DAY, "Agenda: day view")
-    },
-    Command {
-        emacs: &[key(Agenda, "w"), key(Agenda, "v w")],
-        vim: &[key(Agenda, "vw")],
-        ..command(AGENDA_WEEK, "Agenda: week view")
-    },
-    Command {
-        emacs: &[key(Agenda, "v t")],
-        vim: &[key(Agenda, "vt")],
-        ..command(AGENDA_FORTNIGHT, "Agenda: fortnight view")
-    },
-    Command { emacs: &[key(Agenda, "v m")], vim: &[key(Agenda, "vm")], ..command(AGENDA_MONTH, "Agenda: month view") },
-    Command { emacs: &[key(Agenda, "v y")], vim: &[key(Agenda, "vy")], ..command(AGENDA_YEAR, "Agenda: year view") },
-    Command {
-        emacs: &[key(Agenda, "r"), key(Agenda, "g")],
-        vim: &[key(Agenda, "r")],
-        ..command(AGENDA_REDO, "Agenda: rebuild")
-    },
-    Command {
-        emacs: &[key(Agenda, "RET"), key(Agenda, "TAB")],
-        vim: &[key(Agenda, "<CR>"), key(Agenda, "<Tab>")],
-        ..command(AGENDA_GOTO, "Agenda: go to the entry")
-    },
+    Command { emacs: &[key(Agenda, "v d")], ..command(AGENDA_DAY, "Agenda: day view") },
+    Command { emacs: &[key(Agenda, "v w")], ..command(AGENDA_WEEK, "Agenda: week view") },
+    Command { emacs: &[key(Agenda, "v t")], ..command(AGENDA_FORTNIGHT, "Agenda: fortnight view") },
+    Command { emacs: &[key(Agenda, "v m")], ..command(AGENDA_MONTH, "Agenda: month view") },
+    Command { emacs: &[key(Agenda, "v y")], ..command(AGENDA_YEAR, "Agenda: year view") },
+    Command { emacs: &[key(Agenda, "r")], ..command(AGENDA_REDO, "Agenda: rebuild") },
+    Command { emacs: &[key(Agenda, "RET"), key(Agenda, "TAB")], ..command(AGENDA_GOTO, "Agenda: go to the entry") },
     Command { emacs: &[key(Agenda, "s"), key(Agenda, "C-x C-s")], ..command(AGENDA_SAVE, "Save all Org files") },
-    Command {
-        emacs: &[key(Agenda, "l"), key(Agenda, "v l")],
-        vim: &[key(Agenda, "vl")],
-        ..command(AGENDA_LOG, "Agenda: log mode, what was closed and clocked")
-    },
+    Command { emacs: &[key(Agenda, "v l")], ..command(AGENDA_LOG, "Agenda: log mode, what was closed and clocked") },
     Command {
         emacs: &[key(Agenda, "R"), key(Agenda, "v R")],
-        vim: &[key(Agenda, "R")],
         ..command(AGENDA_CLOCKREPORT, "Agenda: the clock report")
     },
     // `org-agenda-archives-mode`: archived trees (`v a`), and the archive
     // files too (`v A`).
-    Command {
-        emacs: &[key(Agenda, "v a")],
-        vim: &[key(Agenda, "va")],
-        ..command(AGENDA_ARCHIVES, "Agenda: include archived trees")
-    },
+    Command { emacs: &[key(Agenda, "v a")], ..command(AGENDA_ARCHIVES, "Agenda: include archived trees") },
     Command {
         emacs: &[key(Agenda, "v A")],
-        vim: &[key(Agenda, "vA")],
         ..command(AGENDA_ARCHIVES_FILES, "Agenda: include archived trees and archive files")
     },
     // `org-clock-in` and its relatives, in Org files and on agenda lines.
     Command {
         emacs: &[key(Org, "C-c C-x C-i"), key(Agenda, "I")],
-        vim: &[key(Org, "<Leader>oxi"), key(Agenda, "I")],
+        vim: &[key(Org, "<Leader>oxi")],
         ..edit(CLOCK_IN, "Clock in")
     },
     Command {
         emacs: &[key(Org, "C-c C-x C-o"), key(Agenda, "O")],
-        vim: &[key(Org, "<Leader>oxo"), key(Agenda, "O")],
+        vim: &[key(Org, "<Leader>oxo")],
         ..edit(CLOCK_OUT, "Clock out")
     },
     Command {
         emacs: &[key(Org, "C-c C-x C-q"), key(Agenda, "X")],
-        vim: &[key(Org, "<Leader>oxq"), key(Agenda, "X")],
+        vim: &[key(Org, "<Leader>oxq")],
         ..edit(CLOCK_CANCEL, "Cancel the clock")
     },
     Command {
-        emacs: &[key(Org, "C-c C-x C-j"), key(Agenda, "J")],
+        emacs: &[key(Org, "C-c C-x C-j")],
         vim: &[key(Global, "<Leader>oxj")],
         ..command(CLOCK_GOTO, "Go to the clocked entry")
     },
@@ -290,24 +255,24 @@ pub const COMMANDS: &[Command] = &[
     // and else the next one.
     Command {
         emacs: &[key(Org, "C-c C-t"), key(Agenda, "t")],
-        vim: &[key(Org, "cit"), key(Agenda, "t")],
+        vim: &[key(Org, "cit")],
         ..edit(TODO, "Change the TODO state")
     },
     Command { ..edit(TODO_NEXT, "Cycle TODO state forward") },
     Command { vim: &[key(Org, "ciT")], ..edit(TODO_PREVIOUS, "Cycle TODO state backward") },
     Command {
         emacs: &[key(Agenda, "+"), key(Agenda, "S-<up>")],
-        vim: &[key(Org, "ciR"), key(Agenda, "+")],
+        vim: &[key(Org, "ciR")],
         ..edit(PRIORITY_UP, "Raise the priority")
     },
     Command {
         emacs: &[key(Agenda, "-"), key(Agenda, "S-<down>")],
-        vim: &[key(Org, "cir"), key(Agenda, "-")],
+        vim: &[key(Org, "cir")],
         ..edit(PRIORITY_DOWN, "Lower the priority")
     },
     Command {
         emacs: &[key(Org, "C-c ,"), key(Agenda, ",")],
-        vim: &[key(Org, "<Leader>o,"), key(Agenda, "<Leader>o,")],
+        vim: &[key(Org, "<Leader>o,")],
         input: Some(Input { kind: "priority", prompt: "Priority" }),
         ..edit(PRIORITY, "Set the priority")
     },
@@ -351,7 +316,7 @@ pub const COMMANDS: &[Command] = &[
     },
     Command {
         emacs: &[key(Org, "C-c C-w"), key(Agenda, "C-c C-w")],
-        vim: &[key(Org, "<Leader>or"), key(Agenda, "<Leader>or")],
+        vim: &[key(Org, "<Leader>or")],
         input: Some(Input { kind: "choice", prompt: "Refile to" }),
         ..edit(REFILE, "Refile the entry")
     },
@@ -366,17 +331,17 @@ pub const COMMANDS: &[Command] = &[
             key(Agenda, "C-c C-x C-s"),
             key(Agenda, "C-c $"),
         ],
-        vim: &[key(Org, "<Leader>o$"), key(Agenda, "$")],
+        vim: &[key(Org, "<Leader>o$")],
         ..edit(ARCHIVE_SUBTREE, "Archive the subtree")
     },
     Command {
         emacs: &[key(Org, "C-c C-x A"), key(Agenda, "C-c C-x A")],
-        vim: &[key(Org, "<Leader>oxA"), key(Agenda, "<Leader>oxA")],
+        vim: &[key(Org, "<Leader>oxA")],
         ..edit(ARCHIVE_SIBLING, "Archive the subtree under its Archive sibling")
     },
     Command {
         emacs: &[key(Org, "C-c C-x a"), key(Agenda, "C-c C-x a")],
-        vim: &[key(Org, "<Leader>oA"), key(Agenda, "<Leader>oA")],
+        vim: &[key(Org, "<Leader>oA")],
         ..edit(ARCHIVE_TAG, "Toggle the ARCHIVE tag")
     },
     Command {
@@ -385,7 +350,6 @@ pub const COMMANDS: &[Command] = &[
     },
     Command {
         emacs: &[key(Agenda, "a")],
-        vim: &[key(Agenda, "a")],
         input: Some(Input { kind: "key", prompt: "Archive this subtree or entry?" }),
         ..edit(ARCHIVE_CONFIRM, "Archive with the default command, once confirmed")
     },
@@ -428,12 +392,12 @@ pub const COMMANDS: &[Command] = &[
     },
     Command {
         emacs: &[key(Agenda, "S-<right>")],
-        vim: &[native(Org, "<S-Up>"), key(Agenda, "<S-Right>")],
+        vim: &[native(Org, "<S-Up>")],
         ..edit(DATE_LATER, "Move the date one day later")
     },
     Command {
         emacs: &[key(Agenda, "S-<left>")],
-        vim: &[native(Org, "<S-Down>"), key(Agenda, "<S-Left>")],
+        vim: &[native(Org, "<S-Down>")],
         ..edit(DATE_EARLIER, "Move the date one day earlier")
     },
     // Org's shifted cursor keys, which act on what the cursor is on: a
@@ -453,12 +417,12 @@ pub const COMMANDS: &[Command] = &[
     },
     Command {
         emacs: &[key(Org, "C-c C-s"), key(Agenda, "C-c C-s")],
-        vim: &[key(Org, "<Leader>ois"), key(Agenda, "<Leader>ois")],
+        vim: &[key(Org, "<Leader>ois")],
         ..ask_date(SCHEDULE, "Schedule the entry", "Schedule")
     },
     Command {
         emacs: &[key(Org, "C-c C-d"), key(Agenda, "C-c C-d")],
-        vim: &[key(Org, "<Leader>oid"), key(Agenda, "<Leader>oid")],
+        vim: &[key(Org, "<Leader>oid")],
         ..ask_date(DEADLINE, "Set the deadline of the entry", "Deadline")
     },
     Command {
@@ -579,11 +543,20 @@ pub fn manifest() -> Value {
     let commands: Vec<Value> = COMMANDS
         .iter()
         .map(|command| {
-            let keys: Vec<Value> = [("emacs", command.emacs), ("vim", command.vim)]
+            // The agenda's keys, in Vim's notation for the vim preset.
+            let agenda: Vec<(String, &Key)> = command
+                .emacs
+                .iter()
+                .filter(|key| key.scope == Scope::Agenda)
+                .map(|key| (vim_notation(key.key), key))
+                .collect();
+            let emacs = command.emacs.iter().map(|key| (key.key.to_string(), key));
+            let vim = command.vim.iter().map(|key| (key.key.to_string(), key)).chain(agenda);
+            let keys: Vec<Value> = [("emacs", emacs.collect::<Vec<_>>()), ("vim", vim.collect())]
                 .into_iter()
                 .flat_map(|(preset, keys)| {
-                    keys.iter().map(move |key| {
-                        let mut entry = json!({ "key": key.key, "in": key.scope.name(), "preset": preset });
+                    keys.into_iter().map(move |(name, key)| {
+                        let mut entry = json!({ "key": name, "in": key.scope.name(), "preset": preset });
                         if key.native {
                             entry["native"] = json!(true);
                         }
@@ -606,6 +579,57 @@ pub fn manifest() -> Value {
         })
         .collect();
     Value::Array(commands)
+}
+
+/// The agenda's commands that have keys, in the table's order, with their
+/// keys as Emacs writes them: the agenda's code actions for a client that
+/// cannot run a command from a key (Zed). Its keymap picks one by its place
+/// in this list, so the list is the same on every line.
+pub fn agenda_menu() -> Vec<(&'static str, String)> {
+    COMMANDS
+        .iter()
+        .filter_map(|command| {
+            let keys: Vec<&str> =
+                command.emacs.iter().filter(|key| key.scope == Scope::Agenda).map(|key| key.key).collect();
+            (!keys.is_empty()).then(|| (command.id, keys.join(", ")))
+        })
+        .collect()
+}
+
+/// An Emacs key in Vim's notation: `C-c C-s` is `<C-c><C-s>`, `RET` is
+/// `<CR>`, `S-<right>` is `<S-Right>` and `v d` is `vd`.
+fn vim_notation(emacs: &str) -> String {
+    emacs
+        .split(' ')
+        .map(|key| {
+            let mut modifiers = Vec::new();
+            let mut base = key;
+            while base.len() > 2 && matches!(&base[..2], "C-" | "M-" | "S-") {
+                modifiers.push(&base[..1]);
+                base = &base[2..];
+            }
+            let named = match base.trim_start_matches('<').trim_end_matches('>') {
+                "RET" => Some("CR".to_string()),
+                "TAB" => Some("Tab".to_string()),
+                "SPC" => Some("Space".to_string()),
+                "ESC" => Some("Esc".to_string()),
+                "DEL" => Some("BS".to_string()),
+                name if base.starts_with('<') => {
+                    let mut chars = name.chars();
+                    chars.next().map(|first| first.to_uppercase().chain(chars).collect())
+                }
+                _ => None,
+            };
+            match (modifiers.is_empty(), named) {
+                (true, None) => base.to_string(),
+                (_, named) => {
+                    let base = named.unwrap_or_else(|| base.to_string());
+                    let prefix: String = modifiers.iter().map(|modifier| format!("{modifier}-")).collect();
+                    format!("<{prefix}{base}>")
+                }
+            }
+        })
+        .collect()
 }
 
 pub fn title(id: &str) -> &'static str {
@@ -632,6 +656,70 @@ mod tests {
             keys.dedup();
             assert_eq!(keys.len(), total, "a key is bound twice in one scope");
         }
+    }
+
+    #[test]
+    fn writes_emacs_keys_in_vim_notation() {
+        for (emacs, vim) in [
+            ("f", "f"),
+            ("J", "J"),
+            ("$", "$"),
+            ("v d", "vd"),
+            ("RET", "<CR>"),
+            ("TAB", "<Tab>"),
+            ("S-<right>", "<S-Right>"),
+            ("C-c C-s", "<C-c><C-s>"),
+            ("C-c C-x A", "<C-c><C-x>A"),
+            ("C-c C-x C-a", "<C-c><C-x><C-a>"),
+            ("C-c $", "<C-c>$"),
+            ("C-x C-s", "<C-x><C-s>"),
+        ] {
+            assert_eq!(vim_notation(emacs), vim, "{emacs}");
+        }
+    }
+
+    #[test]
+    fn the_agenda_has_the_same_keys_for_both_presets() {
+        let keys = |preset: &str| -> Vec<(String, String)> {
+            let mut keys: Vec<(String, String)> = manifest()
+                .as_array()
+                .unwrap()
+                .iter()
+                .flat_map(|command| {
+                    let id = command["command"].as_str().unwrap().to_string();
+                    command["keys"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .filter(|key| key["in"] == "agenda" && key["preset"] == preset)
+                        .map(move |key| (id.clone(), key["key"].as_str().unwrap().replace(' ', "")))
+                        .collect::<Vec<_>>()
+                })
+                .collect();
+            keys.sort();
+            keys
+        };
+        let emacs = keys("emacs");
+        assert!(emacs.contains(&("org.agenda.later".to_string(), "f".to_string())));
+        assert_eq!(emacs.len(), keys("vim").len());
+        assert!(COMMANDS.iter().all(|command| command.vim.iter().all(|key| key.scope != Scope::Agenda)));
+    }
+
+    #[test]
+    fn the_agenda_menu_is_in_the_manifest_s_order() {
+        // Zed's keymap (editors/zed/keymap.json) picks the agenda's code
+        // actions by their place, counted in the manifest.
+        let from_manifest: Vec<String> = manifest()
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|command| {
+                command["keys"].as_array().unwrap().iter().any(|key| key["in"] == "agenda" && key["preset"] == "emacs")
+            })
+            .map(|command| command["command"].as_str().unwrap().to_string())
+            .collect();
+        let menu: Vec<String> = agenda_menu().into_iter().map(|(id, _)| id.to_string()).collect();
+        assert_eq!(menu, from_manifest);
     }
 
     #[test]

@@ -1,0 +1,259 @@
+[
+  {
+    "context": "Editor && extension == org-agenda && !showing_code_actions",
+    "bindings": {
+      "q": "pane::CloseActiveItem",
+      "enter": "editor::GoToDefinition",
+      "tab": "editor::GoToDefinitionSplit",
+      "f": "editor::ToggleCodeActions",
+      "b": "editor::ToggleCodeActions",
+      ".": "editor::ToggleCodeActions",
+      "shift-j": "editor::ToggleCodeActions",
+      "r": "editor::ToggleCodeActions",
+      "s": "editor::ToggleCodeActions",
+      "shift-r": "editor::ToggleCodeActions",
+      "shift-i": "editor::ToggleCodeActions",
+      "shift-o": "editor::ToggleCodeActions",
+      "shift-x": "editor::ToggleCodeActions",
+      "t": "editor::ToggleCodeActions",
+      "+": "editor::ToggleCodeActions",
+      "-": "editor::ToggleCodeActions",
+      ",": "editor::ToggleCodeActions",
+      "$": "editor::ToggleCodeActions",
+      "a": "editor::ToggleCodeActions"
+    }
+  },
+  {
+    "context": "Editor && extension == org-agenda && showing_code_actions",
+    "bindings": {
+      "f": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 0
+        }
+      ],
+      "b": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 1
+        }
+      ],
+      ".": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 2
+        }
+      ],
+      "shift-j": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 3
+        }
+      ],
+      "v d": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 4
+        }
+      ],
+      "v w": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 5
+        }
+      ],
+      "v t": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 6
+        }
+      ],
+      "v m": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 7
+        }
+      ],
+      "v y": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 8
+        }
+      ],
+      "r": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 9
+        }
+      ],
+      "s": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 11
+        }
+      ],
+      "ctrl-x ctrl-s": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 11
+        }
+      ],
+      "v l": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 12
+        }
+      ],
+      "shift-r": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 13
+        }
+      ],
+      "v shift-r": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 13
+        }
+      ],
+      "v a": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 14
+        }
+      ],
+      "v shift-a": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 15
+        }
+      ],
+      "shift-i": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 16
+        }
+      ],
+      "shift-o": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 17
+        }
+      ],
+      "shift-x": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 18
+        }
+      ],
+      "t": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 19
+        }
+      ],
+      "+": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 20
+        }
+      ],
+      "shift-up": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 20
+        }
+      ],
+      "-": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 21
+        }
+      ],
+      "shift-down": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 21
+        }
+      ],
+      ",": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 22
+        }
+      ],
+      "ctrl-c ctrl-w": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 23
+        }
+      ],
+      "$": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 24
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-s": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 24
+        }
+      ],
+      "ctrl-c $": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 24
+        }
+      ],
+      "ctrl-c ctrl-x shift-a": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 25
+        }
+      ],
+      "ctrl-c ctrl-x a": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 26
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-a": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 27
+        }
+      ],
+      "a": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 28
+        }
+      ],
+      "shift-right": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 29
+        }
+      ],
+      "shift-left": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 30
+        }
+      ],
+      "ctrl-c ctrl-s": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 31
+        }
+      ],
+      "ctrl-c ctrl-d": [
+        "editor::ConfirmCodeAction",
+        {
+          "item_ix": 32
+        }
+      ]
+    }
+  }
+]

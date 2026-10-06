@@ -137,10 +137,23 @@ const ownCommands = [
       { key: '<Tab>', in: 'org', preset: 'vim' },
     ],
   },
+  // The agenda's keys are the same in every editor: `q` closes it and
+  // `g ?` lists its keys, as in Neovim and Vim.
   {
     command: 'org-lsp.help',
     title: 'Show the keys',
-    keys: [],
+    keys: [
+      { key: 'g ?', in: 'agenda', preset: 'emacs' },
+      { key: 'g?', in: 'agenda', preset: 'vim' },
+    ],
+  },
+  {
+    command: 'org-lsp.agenda.close',
+    title: 'Agenda: close',
+    keys: [
+      { key: 'q', in: 'agenda', preset: 'emacs' },
+      { key: 'q', in: 'agenda', preset: 'vim' },
+    ],
   },
   {
     command: 'org-lsp.cycleGlobal',

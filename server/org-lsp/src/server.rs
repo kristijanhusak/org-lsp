@@ -77,6 +77,8 @@ struct Client {
     message_prompts: bool,
     /// More commands as code actions (`commandActions`).
     command_actions: bool,
+    /// The agenda's file is read-only (`readOnlyAgenda`).
+    read_only_agenda: bool,
 }
 
 /// An outgoing request whose answer the server acts on.
@@ -475,6 +477,7 @@ pub fn run(connection: Connection) -> Result<()> {
             .unwrap_or(false),
         message_prompts: options.message_prompts.unwrap_or(false),
         command_actions: options.command_actions.unwrap_or(false),
+        read_only_agenda: options.read_only_agenda.unwrap_or(true),
     };
     let client =
         Client { date_prompt: client.date_prompt && client.virtual_documents && client.show_document, ..client };
@@ -681,13 +684,19 @@ fn temp_dir() -> PathBuf {
 /// and editors that go by a file's permissions (Zed, Vim) then do not let
 /// it be edited.
 fn write_read_only(file: &Path, text: &str) -> std::io::Result<()> {
-    if std::fs::metadata(file).is_ok_and(|metadata| metadata.permissions().readonly()) {
-        set_writable(file)?;
-    }
+    set_writable_if_present(file)?;
     std::fs::write(file, text)?;
     let mut permissions = std::fs::metadata(file)?.permissions();
     permissions.set_readonly(true);
     std::fs::set_permissions(file, permissions)
+}
+
+/// Let the owner of `file` write it again, if there is one.
+fn set_writable_if_present(file: &Path) -> std::io::Result<()> {
+    if std::fs::metadata(file).is_ok_and(|metadata| metadata.permissions().readonly()) {
+        set_writable(file)?;
+    }
+    Ok(())
 }
 
 /// Let the owner of `file` write it again.
@@ -1196,17 +1205,37 @@ impl Server {
         };
         // With `commandActions`, what an editor runs from keys.
         let more = self.client.command_actions;
+        if self.is_view(uri) && more {
+            // Every command the agenda has a key for, on every line, in
+            // one order: the client's keymap picks them by their place.
+            let actions = commands::agenda_menu()
+                .into_iter()
+                .filter(|(id, _)| actions::requested(id, only))
+                .map(|(id, keys)| {
+                    let title = format!("{keys}: {}", commands::title(id));
+                    CodeActionOrCommand::CodeAction(CodeAction {
+                        title: title.clone(),
+                        kind: Some(CodeActionKind::new(id)),
+                        command: Some(lsp_types::Command {
+                            title,
+                            command: id.to_string(),
+                            arguments: Some(vec![context.clone()]),
+                        }),
+                        ..Default::default()
+                    })
+                })
+                .chain([as_action(commands::AGENDA_DISPATCH)])
+                .collect();
+            return Some(actions);
+        }
         if self.is_view(uri) {
             // On an agenda line the actions are commands: the server
             // edits the entry's file and rebuilds the agenda.
             let (_, line) = self.view_line(uri, params.range.start.line)?;
-            let entry = line.entry.as_ref();
-            if entry.is_none() && !more {
-                return None;
-            }
-            let dated = entry.is_some_and(|entry| entry.marker.is_some());
+            let entry = line.entry.as_ref()?;
+            let dated = entry.marker.is_some();
             let running = self.running.is_some();
-            let on_entry = [
+            let ids = [
                 commands::TODO_NEXT,
                 commands::TODO_PREVIOUS,
                 commands::PRIORITY_UP,
@@ -1218,30 +1247,6 @@ impl Server {
                 commands::ARCHIVE_SUBTREE,
                 commands::AGENDA_GOTO,
             ];
-            let more_on_entry = [commands::TODO, commands::PRIORITY, commands::REFILE];
-            let anywhere = [
-                commands::AGENDA_LATER,
-                commands::AGENDA_EARLIER,
-                commands::AGENDA_TODAY,
-                commands::AGENDA_DAY,
-                commands::AGENDA_WEEK,
-                commands::AGENDA_REDO,
-                commands::AGENDA_LOG,
-                commands::AGENDA_CLOCKREPORT,
-                commands::AGENDA_ARCHIVES,
-                commands::AGENDA_ARCHIVES_FILES,
-                commands::AGENDA_DISPATCH,
-            ];
-            let mut ids: Vec<&str> = Vec::new();
-            if entry.is_some() {
-                ids.extend(on_entry);
-                if more {
-                    ids.extend(more_on_entry);
-                }
-            }
-            if more {
-                ids.extend(anywhere);
-            }
             let actions = ids
                 .into_iter()
                 .filter(|id| dated || !matches!(*id, commands::DATE_LATER | commands::DATE_EARLIER))
@@ -1681,7 +1686,12 @@ impl Server {
         let Some(open) = &self.view else { return };
         match &open.file {
             Some(file) => {
-                if let Err(error) = write_read_only(file, &open.view.text) {
+                let written = if self.client.read_only_agenda {
+                    write_read_only(file, &open.view.text)
+                } else {
+                    set_writable_if_present(file).and_then(|()| std::fs::write(file, &open.view.text))
+                };
+                if let Err(error) = written {
                     self.show_message(MessageType::ERROR, format!("Cannot write the agenda: {error}"));
                 }
             }

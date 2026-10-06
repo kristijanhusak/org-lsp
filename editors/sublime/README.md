@@ -73,14 +73,19 @@ With `emacs`, Org files get Emacs's keys: `Ctrl+C Ctrl+T` changes the TODO
 state, `Shift+arrows` change the priority, the timestamp under the cursor
 or the TODO state, `Ctrl+C Ctrl+S` schedules, `Ctrl+C Ctrl+W` refiles,
 `Ctrl+C c` captures, `Ctrl+C a` opens the agenda menu, `Tab` and
-`Shift+Tab` cycle folds as Org's TAB and S-TAB do. In the agenda Org's
-single letters work (`f`, `b`, `t`, `+`, `Enter`). In a capture buffer,
+`Shift+Tab` cycle folds as Org's TAB and S-TAB do. In a capture buffer,
 `Ctrl+C Ctrl+C` files the entry. Where a command does not apply,
 `Shift+arrows` select and `Tab` indents as usual.
 
 With `vim`, the Neovim plugin's keys that do not start with a plain letter
 or the leader are bound in command mode (`Tab`, `Ctrl+Space`, `Ctrl+A`,
-…), and the agenda's keys. Bind the others yourself.
+…). Bind the others yourself.
+
+The agenda has the same keys with either preset, and in every editor:
+Emacs's agenda keys (`f`, `b`, `.`, `t`, `+`, `Enter`, `Ctrl+C Ctrl+S`,
+…), with `Shift+J` for a date and the views under `v` (`v d`, `v w`), so
+that Vintage and NeoVintageous keep their motions; `q` closes the agenda
+and `g ?` lists its keys.
 
 `Default.sublime-keymap` has every binding, and the Command Palette lists
 every command under *Org:*. *Org: Show the keys* lists the keys bound in

@@ -88,6 +88,10 @@ pub struct Options {
     /// item; in the agenda, moving through time): for a client that cannot
     /// run a command from a key (Zed).
     pub command_actions: Option<bool>,
+    /// Whether the file the agenda is written to (without virtual
+    /// documents) is read-only, as it is unless the client says not:
+    /// Zed runs no code action in a read-only buffer.
+    pub read_only_agenda: Option<bool>,
     /// `org-refile-targets`: where entries can be refiled to. Without it,
     /// the top-level headlines of the entry's own file.
     pub refile_targets: Option<Vec<RefileTargetOption>>,

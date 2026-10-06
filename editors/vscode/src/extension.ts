@@ -890,6 +890,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     vscode.commands.registerCommand('org-lsp.cycle', cycle),
     vscode.commands.registerCommand('org-lsp.cycleGlobal', cycleGlobal),
     vscode.commands.registerCommand('org-lsp.help', () => help(context.extension.packageJSON)),
+    vscode.commands.registerCommand('org-lsp.agenda.close', () => vscode.commands.executeCommand('workbench.action.closeActiveEditor')),
     // A cycle goes on from the last one only when nothing came between.
     vscode.window.onDidChangeActiveTextEditor(() => (lastCycle = undefined)),
   );
