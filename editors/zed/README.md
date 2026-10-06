@@ -38,9 +38,11 @@ Zed asks a language server for semantic tokens only when a language's
 tree-sitter grammar and the server's tokens on top; `full` uses the
 server's tokens alone, without the grammar's colors.
 
-Source blocks (`#+begin_src python`) show their code in its language's
-colors, through the grammar's injections, with `combined` (with `full`
-there is no grammar to inject into).
+Source and export blocks (`#+begin_src python`, `#+begin_export html`)
+show their code in its language's colors, through the grammar's
+injections, with `combined` (with `full` there is no grammar to inject
+into). The grammar has no node for inline source blocks
+(`src_python{…}`), so their code is not colored.
 
 `initialization_options` are the server's options
 ([docs/configuration.md](../../docs/configuration.md)); the shared

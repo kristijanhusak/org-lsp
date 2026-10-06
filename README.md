@@ -18,7 +18,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Feature | Neovim | VS Code | Vim | Sublime Text | Zed | Helix |
 | --- | --- | --- | --- | --- | --- | --- |
 | Highlighting (semantic tokens) | yes | yes | yes | yes⁶ | yes⁷ | no¹ |
-| Code in source blocks in its language's colors (`org-src-fontify-natively`) | yes, with the language's tree-sitter parser | yes, for the languages VS Code ships | yes, with the language's syntax file | yes, for the languages Sublime Text ships | yes, with `"semantic_tokens": "combined"` | no |
+| Code in its language's colors (`org-src-fontify-natively`): source and export blocks, inline source blocks (`src_python{…}`) | yes, with the language's tree-sitter parser, else its Vim syntax file (Emacs Lisp) | yes, for the languages VS Code ships | yes, with the language's syntax file | yes, for the languages Sublime Text ships | blocks, with `"semantic_tokens": "combined"` | no |
 | Folding | yes, with `<Tab>` / `<S-Tab>` cycling | yes, with `Tab` / `Shift+Tab` cycling | yes, with `<Tab>` / `<S-Tab>` cycling | yes, with `Tab` / `Shift+Tab` cycling | Zed's own | no² |
 | Concealing: links show their description, emphasis markers can hide (`org-link-descriptive`, `org-hide-emphasis-markers`) | yes | yes | no | no | no | no¹ |
 | Outline (document symbols) | yes | yes | through the client | yes | yes | yes |
@@ -296,10 +296,7 @@ both programs on them. See
 
 - Agenda: text search, stuck projects, filters, habits, diary entries and
   bulk actions; custom commands of those types.
-- Archiving, tables, following links, setting tags with a command, export.
+- Table formulas, setting tags with a command, export.
 - The shifted cursor keys do nothing yet on list items, in tables and on
   property lines.
 - Fold cycling is still done by the Neovim plugin, not by the server.
-- No Vim or Zed integration.
-- Source blocks get no highlighting of their own; that needs editor support
-  for embedded languages.

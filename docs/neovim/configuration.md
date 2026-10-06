@@ -68,10 +68,12 @@ require('org-lsp').setup({
   -- arrives.
   replace_syntax = true,
 
-  -- Highlight the code of source blocks (`#+begin_src python`) with the
-  -- tree-sitter parser of its language and its highlight query, as
-  -- Emacs's `org-src-fontify-natively` does. A language whose parser is
-  -- not installed stays as it is.
+  -- Highlight the code of source and export blocks (`#+begin_src python`,
+  -- `#+begin_export html`) and of inline source blocks (`src_python{…}`)
+  -- with the tree-sitter parser of its language and its highlight query,
+  -- as Emacs's `org-src-fontify-natively` does; a language without a
+  -- parser (Emacs Lisp) with its Vim syntax file. A language with neither
+  -- stays as it is.
   src_highlight = true,
 
   -- Conceal what the server marks hidden: link brackets and targets

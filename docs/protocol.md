@@ -542,7 +542,7 @@ full legend with descriptions; this is an overview.
 | `bullet` | A list bullet or counter. |
 | `checkbox` | A checkbox; `checked` or `partial`. |
 | `link` | A link of any form, and citations. |
-| `code` | `~code~` and inline source blocks. |
+| `code` | `~code~`, and inline source blocks but for their code (`src_python{…}`), which is left to the editor to color in its language. |
 | `verbatim` | `=verbatim=` and fixed-width lines. |
 | `text` | Plain text that carries emphasis modifiers. |
 | `tableDelimiter` | Table borders and rule lines. |

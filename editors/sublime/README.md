@@ -41,8 +41,9 @@ restarts the server.
 by their patterns: headlines by level, TODO keywords, priorities, tags,
 planning lines and timestamps, drawers and properties, lists and
 checkboxes, links, emphasis, tables, blocks and comments, and the code of
-source blocks in its language's syntax for the languages Sublime Text
-ships (`#+begin_src python`); in the agenda
+source and export blocks and of inline source blocks in its language's
+syntax for the languages Sublime Text ships (`#+begin_src python`,
+`#+begin_export html`, `src_python{…}` to the first `}`); in the agenda
 the days, schedules, deadlines and the time grid. The server's colors
 (semantic tokens) go further, with the TODO keywords of your files, the
 agenda's today, weekends and overdue items, the clocked entry. LSP draws

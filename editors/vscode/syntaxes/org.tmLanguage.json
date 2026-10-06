@@ -3,8 +3,8 @@
   "scopeName": "text.org",
   "patterns": [
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:python|py)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:python|py)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -23,8 +23,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:js|javascript)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:python|py)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.python",
+          "patterns": [
+            {
+              "include": "source.python"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:js|javascript)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -43,8 +62,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:ts|typescript)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:js|javascript)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.javascript",
+          "patterns": [
+            {
+              "include": "source.js"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:ts|typescript)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -63,8 +101,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:sh|shell|bash|zsh)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:ts|typescript)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.typescript",
+          "patterns": [
+            {
+              "include": "source.ts"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:sh|shell|bash|zsh)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -83,8 +140,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:rust)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:sh|shell|bash|zsh)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.shellscript",
+          "patterns": [
+            {
+              "include": "source.shell"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:rust)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -103,8 +179,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:go)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:rust)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.rust",
+          "patterns": [
+            {
+              "include": "source.rust"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:go)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -123,8 +218,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:c)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:go)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.go",
+          "patterns": [
+            {
+              "include": "source.go"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:c)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -143,8 +257,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:c\\+\\+|cpp)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:c)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.c",
+          "patterns": [
+            {
+              "include": "source.c"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:c\\+\\+|cpp)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -163,8 +296,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:java)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:c\\+\\+|cpp)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.cpp",
+          "patterns": [
+            {
+              "include": "source.cpp"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:java)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -183,8 +335,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:ruby|rb)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:java)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.java",
+          "patterns": [
+            {
+              "include": "source.java"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:ruby|rb)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -203,8 +374,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:lua)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:ruby|rb)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.ruby",
+          "patterns": [
+            {
+              "include": "source.ruby"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:lua)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -223,8 +413,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:json)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:lua)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.lua",
+          "patterns": [
+            {
+              "include": "source.lua"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:json)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -243,8 +452,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:yaml|yml)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:json)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.json",
+          "patterns": [
+            {
+              "include": "source.json"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:yaml|yml)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -263,8 +491,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:html)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:yaml|yml)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.yaml",
+          "patterns": [
+            {
+              "include": "source.yaml"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:html)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -283,8 +530,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:css)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:html)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.html",
+          "patterns": [
+            {
+              "include": "text.html.basic"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:css)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -303,8 +569,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:sql|sqlite)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:css)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.css",
+          "patterns": [
+            {
+              "include": "source.css"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:sql|sqlite)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -323,8 +608,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:clojure)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:sql|sqlite)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.sql",
+          "patterns": [
+            {
+              "include": "source.sql"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:clojure)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -343,8 +647,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:perl)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:clojure)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.clojure",
+          "patterns": [
+            {
+              "include": "source.clojure"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:perl)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -363,8 +686,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:r)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:perl)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.perl",
+          "patterns": [
+            {
+              "include": "source.perl"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:r)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -383,8 +725,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:csharp)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:r)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.r",
+          "patterns": [
+            {
+              "include": "source.r"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:csharp)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -403,8 +764,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:objc)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:csharp)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.csharp",
+          "patterns": [
+            {
+              "include": "source.cs"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:objc)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -423,8 +803,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:groovy)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:objc)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.objective-c",
+          "patterns": [
+            {
+              "include": "source.objc"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:groovy)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -443,8 +842,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:markdown|md)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:groovy)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.groovy",
+          "patterns": [
+            {
+              "include": "source.groovy"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:markdown|md)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -463,8 +881,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:xml)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:markdown|md)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.markdown",
+          "patterns": [
+            {
+              "include": "text.html.markdown"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:xml)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -483,8 +920,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:latex)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:xml)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.xml",
+          "patterns": [
+            {
+              "include": "text.xml"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:latex)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -503,8 +959,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:diff)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:latex)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.latex",
+          "patterns": [
+            {
+              "include": "text.tex.latex"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:diff)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -523,8 +998,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:makefile)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:diff)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.diff",
+          "patterns": [
+            {
+              "include": "source.diff"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:makefile)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -543,8 +1037,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:bat)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:makefile)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.makefile",
+          "patterns": [
+            {
+              "include": "source.makefile"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:bat)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -563,8 +1076,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:dockerfile)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:bat)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.bat",
+          "patterns": [
+            {
+              "include": "source.batchfile"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:dockerfile)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -583,8 +1115,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:swift)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:dockerfile)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.dockerfile",
+          "patterns": [
+            {
+              "include": "source.dockerfile"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:swift)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -603,8 +1154,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:powershell)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:swift)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.swift",
+          "patterns": [
+            {
+              "include": "source.swift"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:powershell)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -623,8 +1193,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:fsharp)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:powershell)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.powershell",
+          "patterns": [
+            {
+              "include": "source.powershell"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:fsharp)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -643,8 +1232,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:julia)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:fsharp)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.fsharp",
+          "patterns": [
+            {
+              "include": "source.fsharp"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:julia)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -663,8 +1271,27 @@
       ]
     },
     {
-      "begin": "(?i)^\\s*#\\+begin_src\\s+(?:ini|conf)(?=\\s|$).*$",
-      "end": "(?i)^\\s*#\\+end_src\\b.*$",
+      "match": "(?i)((?<![\\w-])src_(?:julia)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.julia",
+          "patterns": [
+            {
+              "include": "source.julia"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
+    },
+    {
+      "begin": "(?i)^\\s*#\\+begin_(src|export)\\s+(?:ini|conf)(?=\\s|$).*$",
+      "end": "(?i)^\\s*#\\+end_\\1\\b.*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.block.org"
@@ -681,6 +1308,25 @@
           "include": "source.ini"
         }
       ]
+    },
+    {
+      "match": "(?i)((?<![\\w-])src_(?:ini|conf)(?:\\[[^\\]\\n]*\\])?\\{)((?:[^{}\\n]|\\{[^{}\\n]*\\})*)(\\})",
+      "captures": {
+        "1": {
+          "name": "markup.inline.raw.org"
+        },
+        "2": {
+          "name": "meta.embedded.inline.ini",
+          "patterns": [
+            {
+              "include": "source.ini"
+            }
+          ]
+        },
+        "3": {
+          "name": "markup.inline.raw.org"
+        }
+      }
     }
   ]
 }

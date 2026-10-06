@@ -1,8 +1,9 @@
 # Org (org-lsp) for VS Code
 
 Org mode support through the org-lsp language server: highlighting
-(the code of source blocks in its own language's colors, for the
-languages VS Code knows), folding, the outline, TODO states, priorities, timestamps and the agenda.
+(the code of source and export blocks and of inline source blocks in its
+own language's colors, for the languages VS Code knows), folding, the
+outline, TODO states, priorities, timestamps and the agenda.
 
 The extension is a thin client. It starts the server and tells it where
 the cursor is when a command runs. The commands, their keys and the token
