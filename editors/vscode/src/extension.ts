@@ -41,6 +41,36 @@ function cursor(running: LanguageClient): unknown[] {
   ];
 }
 
+/**
+ * What a key passes to its command (see scripts/generate.mjs): the commands
+ * to run instead, in turn, when the server says the command does not apply
+ * at the cursor, so that the key keeps its own meaning there.
+ */
+interface KeyArgs {
+  fallback: string[];
+}
+
+function keyArgs(args: unknown[]): KeyArgs | undefined {
+  const first = args[0] as Partial<KeyArgs> | undefined;
+  return args.length === 1 && Array.isArray(first?.fallback) ? (first as KeyArgs) : undefined;
+}
+
+/** Run the first of `commands` that VS Code has. */
+async function fallBack(commands: string[]): Promise<void> {
+  for (const command of commands) {
+    try {
+      await vscode.commands.executeCommand(command);
+      return;
+    } catch {
+      // Not there (VSCodeVim's, without VSCodeVim): the next one.
+    }
+  }
+}
+
+function notApplicable(error: unknown): boolean {
+  return (error as { data?: { notApplicable?: unknown } } | null)?.data?.notApplicable === true;
+}
+
 /** Done when the date prompt the server asked to show is shown. */
 let datePromptShown: Promise<void> = Promise.resolve();
 
@@ -227,7 +257,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         if (!running) {
           return undefined;
         }
-        const params = { command: name, arguments: args.length > 0 ? args : cursor(running) };
+        const key = keyArgs(args);
+        const params = { command: name, arguments: args.length > 0 && !key ? args : cursor(running) };
         try {
           let result = await running.sendRequest('workspace/executeCommand', params);
           closeAsked(result);
@@ -251,6 +282,10 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           }
           return result;
         } catch (error) {
+          if (key && notApplicable(error)) {
+            await fallBack(key.fallback);
+            return undefined;
+          }
           void vscode.window.showWarningMessage(error instanceof Error ? error.message : String(error));
           return undefined;
         }
@@ -526,6 +561,167 @@ function indentVirtually(editor: vscode.TextEditor): void {
   virtualIndentShown.set(editor, shown);
 }
 
+// ----- visibility cycling
+
+/**
+ * Org's TAB and S-TAB (`org-cycle`, `org-global-cycle`) over the server's
+ * folding ranges. VS Code does not say which folds are closed: a fold is
+ * closed when the line after its first is hidden, which `visibleRanges`
+ * shows. As in Emacs, the step after CHILDREN depends on the last command
+ * having been the same cycle.
+ */
+type CycleState = 'folded' | 'children' | 'subtree' | 'overview' | 'contents' | 'all';
+
+let lastCycle: { uri: string; version: number; line: number; state: CycleState } | undefined;
+
+const CYCLE_MESSAGES: Record<CycleState, string> = {
+  folded: 'FOLDED',
+  children: 'CHILDREN',
+  subtree: 'SUBTREE',
+  overview: 'OVERVIEW',
+  contents: 'CONTENTS...done',
+  all: 'SHOW ALL',
+};
+
+function remember(editor: vscode.TextEditor, line: number, state: CycleState): void {
+  lastCycle = { uri: editor.document.uri.toString(), version: editor.document.version, line, state };
+  vscode.window.setStatusBarMessage(CYCLE_MESSAGES[state], 2000);
+}
+
+/** The state the last cycle left at `line` of `editor`, if it was the last command there. */
+function lastState(editor: vscode.TextEditor, line: number): CycleState | undefined {
+  const last = lastCycle;
+  const same =
+    last && last.uri === editor.document.uri.toString() && last.version === editor.document.version && last.line === line;
+  return same ? last.state : undefined;
+}
+
+async function foldingRanges(document: vscode.TextDocument): Promise<vscode.FoldingRange[]> {
+  const ranges = await vscode.commands.executeCommand<vscode.FoldingRange[] | undefined>(
+    'vscode.executeFoldingRangeProvider',
+    document.uri,
+  );
+  return (ranges ?? []).filter((range) => range.end > range.start);
+}
+
+const visible = (editor: vscode.TextEditor, line: number) =>
+  editor.visibleRanges.some((range) => range.start.line <= line && line <= range.end.line);
+
+/** Whether the fold that starts at `line` is closed. */
+async function closed(editor: vscode.TextEditor, line: number): Promise<boolean> {
+  if (visible(editor, line + 1)) {
+    return false;
+  }
+  // The next line is hidden by a fold, or below the screen: with the line
+  // in the middle of the screen, it is in view unless folded.
+  const last = editor.visibleRanges[editor.visibleRanges.length - 1];
+  if (last && last.end.line <= line) {
+    const moved = new Promise<void>((resolve) => {
+      const done = vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
+        if (event.textEditor === editor) {
+          done.dispose();
+          resolve();
+        }
+      });
+      setTimeout(() => {
+        done.dispose();
+        resolve();
+      }, 300);
+    });
+    editor.revealRange(new vscode.Range(line, 0, line, 0), vscode.TextEditorRevealType.InCenter);
+    await moved;
+    return !visible(editor, line + 1);
+  }
+  return true;
+}
+
+const fold = (lines: number[]) =>
+  lines.length > 0
+    ? vscode.commands.executeCommand('editor.fold', { levels: 1, direction: 'up', selectionLines: lines })
+    : undefined;
+const unfoldAll = (line: number) =>
+  vscode.commands.executeCommand('editor.unfold', { levels: 1000, direction: 'down', selectionLines: [line] });
+
+/** The ranges right inside `outer`: in it, and in no other range in it. */
+function childrenOf(outer: vscode.FoldingRange, ranges: vscode.FoldingRange[]): vscode.FoldingRange[] {
+  const inside = ranges.filter((range) => range.start > outer.start && range.end <= outer.end);
+  return inside.filter(
+    (range) => !inside.some((other) => other !== range && other.start < range.start && range.end <= other.end),
+  );
+}
+
+/**
+ * `org-cycle` on the fold that starts at the cursor's line: FOLDED, then
+ * CHILDREN (its direct folds closed), then SUBTREE (all open). On a line
+ * that starts no fold, the `fallback` commands run (Tab's own), or without
+ * them the innermost fold around the cursor cycles.
+ */
+async function cycle(args?: Partial<KeyArgs>): Promise<void> {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    return;
+  }
+  const ranges = await foldingRanges(editor.document);
+  const line = editor.selection.active.line;
+  let current = ranges.find((range) => range.start === line);
+  if (!current) {
+    if (args?.fallback) {
+      await fallBack(args.fallback);
+      return;
+    }
+    current = ranges
+      .filter((range) => range.start < line && line <= range.end)
+      .sort((a, b) => b.start - a.start)[0];
+    if (!current) {
+      return;
+    }
+  }
+  const start = current.start;
+  if (await closed(editor, start)) {
+    await unfoldAll(start);
+    const children = [...new Set(childrenOf(current, ranges).map((range) => range.start))];
+    await fold(children);
+    remember(editor, start, children.length > 0 ? 'children' : 'subtree');
+  } else if (lastState(editor, start) === 'children') {
+    await unfoldAll(start);
+    remember(editor, start, 'subtree');
+  } else {
+    await fold([start]);
+    remember(editor, start, 'folded');
+  }
+}
+
+/**
+ * `org-global-cycle`: OVERVIEW (the top level only), then CONTENTS (every
+ * headline, the entries without subheadings closed), then SHOW ALL.
+ */
+async function cycleGlobal(): Promise<void> {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    return;
+  }
+  const state = lastState(editor, -1);
+  if (state === 'overview') {
+    const ranges = await foldingRanges(editor.document);
+    const headline = (range: vscode.FoldingRange) => /^\*+\s/.test(editor.document.lineAt(range.start).text);
+    const parents = new Set(
+      ranges
+        .filter(headline)
+        .filter((range) => ranges.some((inner) => inner.start > range.start && inner.end <= range.end && headline(inner)))
+        .map((range) => range.start),
+    );
+    await vscode.commands.executeCommand('editor.unfoldAll');
+    await fold([...new Set(ranges.map((range) => range.start))].filter((start) => !parents.has(start)));
+    remember(editor, -1, 'contents');
+  } else if (state === 'contents') {
+    await vscode.commands.executeCommand('editor.unfoldAll');
+    remember(editor, -1, 'all');
+  } else {
+    await vscode.commands.executeCommand('editor.foldAll');
+    remember(editor, -1, 'overview');
+  }
+}
+
 /** What the extension offers other code: for its tests. */
 export interface Api {
   /** The text hidden in `editor` now. */
@@ -558,6 +754,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   await startClient(context);
   watchConcealing(context);
   concealVisible();
+  context.subscriptions.push(
+    vscode.commands.registerCommand('org-lsp.cycle', cycle),
+    vscode.commands.registerCommand('org-lsp.cycleGlobal', cycleGlobal),
+    // A cycle goes on from the last one only when nothing came between.
+    vscode.window.onDidChangeActiveTextEditor(() => (lastCycle = undefined)),
+  );
   context.subscriptions.push(
     prefixDecoration,
     hiddenStarDecoration,

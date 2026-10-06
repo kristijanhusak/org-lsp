@@ -15,6 +15,8 @@ All commands are in the Command Palette under **Org**.
 
 | Command | What it does |
 | --- | --- |
+| `Org: Cycle the visibility of the subtree, block or drawer at the cursor` | Org's `TAB` (`Tab`): folded, its children, all of it |
+| `Org: Cycle the visibility of the whole file` | Org's `S-TAB` (`Shift+Tab`): the top level, every headline, everything |
 | `Org: Agenda for the current week or day` | Opens the agenda |
 | `Org: List of all TODO entries` | Opens the TODO list |
 | `Org: Agenda commands` | Asks which of the two to open |
@@ -47,13 +49,18 @@ with the day you moved to, if you did), `q` or `Ctrl+G` to give up.
 
 ## Keys
 
-Emacs's keys are bound where they take nothing from the editor: in the
-agenda (`f`, `b`, `t`, `+`, `Enter`, …), in the date prompt, and in capture
-buffers (`Ctrl+C Ctrl+C`). After a change of priority or date in the
-agenda, the cursor goes with the entry to its new line.
+Emacs's keys are bound in Org files (`Ctrl+C Ctrl+T`, `Ctrl+C Ctrl+S`,
+`Shift+arrows`, `Tab` and `Shift+Tab` to cycle folds, …), in capture
+buffers (`Ctrl+C Ctrl+C`), and Org's single letters in the agenda (`f`,
+`b`, `t`, `+`, `Enter`, …) and the date prompt. In Org files `Ctrl+C` waits
+for a second key instead of copying (`Ctrl+Insert` still copies). After a
+change of priority or date in the agenda, the cursor goes with the entry
+to its new line.
 
-Org files get no keys, because Emacs's keys there (`C-c C-t`, `S-<right>`)
-would take over copying and selecting. Add your own in `keybindings.json`:
+`org-lsp.keys` picks other keys: `vim` binds the Neovim plugin's keys for
+VSCodeVim (those VS Code can bind without taking them from Vim, in Normal
+mode), and `custom` binds none, for keys of your own in
+`keybindings.json`:
 
 ```json
 { "key": "alt+t", "command": "org.todo", "when": "editorTextFocus && editorLangId == 'org'" },
@@ -70,6 +77,7 @@ command, and how to add, change and remove keys.
 | `org-lsp.settings` | The server's options, for example `{ "agendaFiles": ["~/org"], "logDone": "time" }`. [docs/vscode/configuration.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/vscode/configuration.md) lists them with their defaults. |
 | `org-lsp.server.path` | Path to the server binary; see below. |
 | `org-lsp.conceal` | Hide link brackets and targets, and emphasis markers with `hideEmphasisMarkers`, except on the line with the cursor (default on). |
+| `org-lsp.keys` | Which keys are bound: `emacs` (the default), `vim` (for VSCodeVim) or `custom` (none). |
 | `org-lsp.winSplitMode` | Where the agenda and capture buffers open: `split` (below, the default), `vsplit` (beside), `float` (a window of its own) or `current`. |
 
 Without `agendaFiles`, the agenda is built from the Org files in the

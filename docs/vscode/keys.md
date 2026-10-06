@@ -1,19 +1,26 @@
 # Keys in VS Code
 
-The extension binds Emacs's keys, but only where they cost the editor
-little:
+The setting `org-lsp.keys` picks which keys the extension binds:
 
-- **In the agenda and the date prompt.** These are read-only, so Org's
-  single letters are free there.
-- **In a capture buffer.** A capture buffer is short-lived, and
-  `Ctrl+C Ctrl+C` is how it is finished. `Ctrl+C` then waits for a second
-  key, so it does not copy in a capture buffer.
+- **`emacs`** (the default): Emacs's keys, in Org files (`Ctrl+C Ctrl+T`,
+  `Tab`, `Shift+arrows`, …), in capture buffers, and Org's single letters
+  in the agenda and the date prompt, which are read-only. In Org files
+  `Ctrl+C` then waits for a second key instead of copying; `Ctrl+Insert`
+  and the context menu still copy.
+- **`vim`**: the Neovim plugin's keys, for VSCodeVim. In Org files, VS Code
+  binds only the keys that take nothing from Vim (`Tab`, `Shift+Tab`,
+  `Ctrl+Space`, `Ctrl+A`, `Ctrl+X`, `Shift+Up`/`Down`), in Normal mode;
+  the keys with the leader go in VSCodeVim's own settings, below. Keys
+  such as `cit` would take `c` from Vim, so they are not bound.
+- **`custom`**: no keys at all. Bind the commands yourself, as shown under
+  *Changing them* below.
 
-Org files get **no keys**. Emacs's keys there (`C-c C-t`, `S-<right>`)
-would take over copying and selecting. The commands are in the Command
-Palette under **Org**. The ones that change the text at the cursor are also
-under **Quick Fix…** (`Ctrl+.`). You can bind any of them to keys of your
-own, as shown under *Changing them* below.
+`Tab` and `Shift+Tab` cycle the visibility of a subtree and of the whole
+file, as Org's `TAB` and `S-TAB` do: folded, its children, all of it;
+the top level, every headline, everything. Off a headline, block or
+drawer, `Tab` is VS Code's own. The commands are also in the Command
+Palette under **Org**, and the ones that change the text at the cursor
+under **Quick Fix…** (`Ctrl+.`).
 
 The bindings are generated from the server's own description of its
 commands (`npm run generate` in `editors/vscode`). **Preferences: Open
@@ -29,7 +36,34 @@ The other options are in [configuration.md](configuration.md).
 
 <!-- BEGIN generated: keys -->
 
-### In a capture buffer
+### Emacs (`"org-lsp.keys": "emacs"`, the default)
+
+#### In Org files
+
+| Keys | Command | What it does |
+| --- | --- | --- |
+| `Ctrl+C Ctrl+X Ctrl+I` | `org.clock.in` | Clock in |
+| `Ctrl+C Ctrl+X Ctrl+O` | `org.clock.out` | Clock out |
+| `Ctrl+C Ctrl+X Ctrl+Q` | `org.clock.cancel` | Cancel the clock |
+| `Ctrl+C Ctrl+X Ctrl+J` | `org.clock.goto` | Go to the clocked entry |
+| `Ctrl+C Ctrl+T` | `org.todo` | Change the TODO state |
+| `Ctrl+C ,` | `org.priority` | Set the priority |
+| `Ctrl+C Ctrl+C` | `org.checkbox.toggle` | Toggle the checkbox |
+| `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
+| `Shift+Up`¹ | `org.shift.up` | Increase the timestamp part or raise the priority |
+| `Shift+Down`¹ | `org.shift.down` | Decrease the timestamp part or lower the priority |
+| `Shift+Left`¹ | `org.shift.left` | Move the date a day earlier or cycle the TODO state backward |
+| `Shift+Right`¹ | `org.shift.right` | Move the date a day later or cycle the TODO state forward |
+| `Ctrl+C Ctrl+S` | `org.schedule` | Schedule the entry |
+| `Ctrl+C Ctrl+D` | `org.deadline` | Set the deadline of the entry |
+| `Ctrl+C .` | `org.timestamp.insert` | Insert or change a timestamp |
+| `Ctrl+C !` | `org.timestamp.insert.inactive` | Insert or change an inactive timestamp |
+| `Tab`¹ | `org-lsp.cycle` | Cycle the visibility of the subtree, block or drawer at the cursor |
+| `Shift+Tab` | `org-lsp.cycleGlobal` | Cycle the visibility of the whole file |
+| `Ctrl+C a` | `org.agenda.dispatch` | Agenda commands |
+| `Ctrl+C c` | `org.capture` | Capture |
+
+#### In a capture buffer
 
 | Keys | Command | What it does |
 | --- | --- | --- |
@@ -37,10 +71,12 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+K` | `org.capture.abort` | Capture: abort |
 | `Ctrl+C Ctrl+W` | `org.capture.refile` | Capture: refile the entry |
 
-### In the agenda
+#### In the agenda
 
 | Keys | Command | What it does |
 | --- | --- | --- |
+| `Ctrl+C a` | `org.agenda.dispatch` | Agenda commands |
+| `Ctrl+C c` | `org.capture` | Capture |
 | `f` | `org.agenda.later` | Agenda: go forward in time |
 | `b` | `org.agenda.earlier` | Agenda: go backward in time |
 | `.` | `org.agenda.today` | Agenda: go to today |
@@ -69,7 +105,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+S` | `org.schedule` | Schedule the entry |
 | `Ctrl+C Ctrl+D` | `org.deadline` | Set the deadline of the entry |
 
-### In the date prompt
+#### In the date prompt
 
 | Keys | Command | What it does |
 | --- | --- | --- |
@@ -88,6 +124,99 @@ The other options are in [configuration.md](configuration.md).
 | `i` | `org.calendar.type` | Date prompt: type the date |
 | `t` | `org.calendar.time` | Date prompt: pick the time, or go back to the day |
 | `q`, `Ctrl+G` | `org.calendar.cancel` | Date prompt: cancel |
+
+### Vim (`"org-lsp.keys": "vim"`)
+
+#### In Org files
+
+| Keys | Command | What it does |
+| --- | --- | --- |
+| `Ctrl+Space` | `org.checkbox.toggle` | Toggle the checkbox |
+| `Ctrl+A`¹ | `org.timestamp.up` | Increase the part of the timestamp at the cursor |
+| `Ctrl+X`¹ | `org.timestamp.down` | Decrease the part of the timestamp at the cursor |
+| `Shift+Up`¹ | `org.date.later` | Move the date one day later |
+| `Shift+Down`¹ | `org.date.earlier` | Move the date one day earlier |
+| `Tab` | `org-lsp.cycle` | Cycle the visibility of the subtree, block or drawer at the cursor |
+| `Shift+Tab` | `org-lsp.cycleGlobal` | Cycle the visibility of the whole file |
+
+#### In a capture buffer
+
+| Keys | Command | What it does |
+| --- | --- | --- |
+| `Ctrl+C` | `org.capture.finish` | Capture: finish |
+
+#### In the agenda
+
+| Keys | Command | What it does |
+| --- | --- | --- |
+| `f` | `org.agenda.later` | Agenda: go forward in time |
+| `b` | `org.agenda.earlier` | Agenda: go backward in time |
+| `.` | `org.agenda.today` | Agenda: go to today |
+| `Shift+J` | `org.agenda.goto.date` | Agenda: go to a date |
+| `v d` | `org.agenda.day` | Agenda: day view |
+| `v w` | `org.agenda.week` | Agenda: week view |
+| `v t` | `org.agenda.fortnight` | Agenda: fortnight view |
+| `v m` | `org.agenda.month` | Agenda: month view |
+| `v y` | `org.agenda.year` | Agenda: year view |
+| `r` | `org.agenda.redo` | Agenda: rebuild |
+| `Enter`, `Tab` | `org.agenda.goto` | Agenda: go to the entry |
+| `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
+| `Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
+| `Shift+I` | `org.clock.in` | Clock in |
+| `Shift+O` | `org.clock.out` | Clock out |
+| `Shift+X` | `org.clock.cancel` | Cancel the clock |
+| `t` | `org.todo` | Change the TODO state |
+| `+` | `org.priority.up` | Raise the priority |
+| `-` | `org.priority.down` | Lower the priority |
+| `Shift+Right` | `org.date.later` | Move the date one day later |
+| `Shift+Left` | `org.date.earlier` | Move the date one day earlier |
+
+#### In the date prompt
+
+| Keys | Command | What it does |
+| --- | --- | --- |
+| `l`, `Shift+Right` | `org.calendar.day.later` | Date prompt: one day later |
+| `h`, `Shift+Left` | `org.calendar.day.earlier` | Date prompt: one day earlier |
+| `j`, `Shift+Down` | `org.calendar.week.later` | Date prompt: one week later |
+| `k`, `Shift+Up` | `org.calendar.week.earlier` | Date prompt: one week earlier |
+| `Alt+Shift+Right` | `org.calendar.month.later` | Date prompt: one month later |
+| `Alt+Shift+Left` | `org.calendar.month.earlier` | Date prompt: one month earlier |
+| `Alt+Shift+Down` | `org.calendar.year.later` | Date prompt: one year later |
+| `Alt+Shift+Up` | `org.calendar.year.earlier` | Date prompt: one year earlier |
+| `>` | `org.calendar.scroll.later` | Date prompt: show the next months |
+| `<` | `org.calendar.scroll.earlier` | Date prompt: show the previous months |
+| `.` | `org.calendar.today` | Date prompt: go to today |
+| `Enter` | `org.calendar.select` | Date prompt: take the day at the cursor |
+| `i` | `org.calendar.type` | Date prompt: type the date |
+| `t` | `org.calendar.time` | Date prompt: pick the time, or go back to the day |
+| `q`, `Escape` | `org.calendar.cancel` | Date prompt: cancel |
+
+¹ Where the command does not apply, the key does what it does without
+the extension: `Shift+Up` off a timestamp or headline selects, `Tab` off
+a headline, block or drawer indents.
+
+#### The leader keys, for VSCodeVim
+
+VS Code cannot bind keys that start with the leader without taking
+them from Vim. Add them to VSCodeVim's settings instead (they apply in
+every file; outside Org files the commands say they do not apply):
+
+```json
+"vim.normalModeKeyBindingsNonRecursive": [
+  { "before": ["<leader>", "o", "a"], "commands": ["org.agenda.dispatch"] },
+  { "before": ["<leader>", "o", "x", "i"], "commands": ["org.clock.in"] },
+  { "before": ["<leader>", "o", "x", "o"], "commands": ["org.clock.out"] },
+  { "before": ["<leader>", "o", "x", "q"], "commands": ["org.clock.cancel"] },
+  { "before": ["<leader>", "o", "x", "j"], "commands": ["org.clock.goto"] },
+  { "before": ["<leader>", "o", ","], "commands": ["org.priority"] },
+  { "before": ["<leader>", "o", "r"], "commands": ["org.refile"] },
+  { "before": ["<leader>", "o", "c"], "commands": ["org.capture"] },
+  { "before": ["<leader>", "o", "i", "s"], "commands": ["org.schedule"] },
+  { "before": ["<leader>", "o", "i", "d"], "commands": ["org.deadline"] },
+  { "before": ["<leader>", "o", "i", "."], "commands": ["org.timestamp.insert"] },
+  { "before": ["<leader>", "o", "i", "!"], "commands": ["org.timestamp.insert.inactive"] }
+]
+```
 
 ### Every command
 
@@ -154,6 +283,8 @@ The other options are in [configuration.md](configuration.md).
 | `org.calendar.type` | Org: Date prompt: type the date |
 | `org.calendar.time` | Org: Date prompt: pick the time, or go back to the day |
 | `org.calendar.cancel` | Org: Date prompt: cancel |
+| `org-lsp.cycle` | Org: Cycle the visibility of the subtree, block or drawer at the cursor |
+| `org-lsp.cycleGlobal` | Org: Cycle the visibility of the whole file |
 
 <!-- END generated -->
 
@@ -214,15 +345,15 @@ the tables above:
 ```
 
 The first two have no `when`, so they work anywhere, as Emacs's
-`C-c a` and `C-c c` do. Emacs's own `Ctrl+C` chords work too
-(`"ctrl+c ctrl+t"`), but then `Ctrl+C` no longer copies where they apply.
+`C-c a` and `C-c c` do. With `"org-lsp.keys": "custom"` these are the only
+keys there are.
 
 To **remove** a default key, add the same key and command with a `-` in
 front of the command. To **change** one, remove it and add the new key:
 
 ```json
 [
-  { "key": "j", "command": "-org.agenda.goto.date", "when": "editorTextFocus && editorLangId == 'org-agenda'" },
+  { "key": "j", "command": "-org.agenda.goto.date" },
   { "key": "shift+j", "command": "org.agenda.goto.date", "when": "editorTextFocus && editorLangId == 'org-agenda'" }
 ]
 ```

@@ -18,13 +18,13 @@ still missing; see [Not done yet](#not-done-yet).
 | Feature | Neovim | VS Code | Helix |
 | --- | --- | --- | --- |
 | Highlighting (semantic tokens) | yes | yes | no¹ |
-| Folding | yes, with `<Tab>` / `<S-Tab>` cycling | yes | no² |
+| Folding | yes, with `<Tab>` / `<S-Tab>` cycling | yes, with `Tab` / `Shift+Tab` cycling | no² |
 | Concealing: links show their description, emphasis markers can hide (`org-link-descriptive`, `org-hide-emphasis-markers`) | yes | yes | no¹ |
 | Outline (document symbols) | yes | yes | yes |
 | Virtual indentation (`org-indent-mode`, `#+STARTUP: indent`) and hidden leading stars, without changing the file | yes, but not on wrapped lines | yes, but not on wrapped lines | no |
 | Indentation, as `org-indent-line` and `org-indent-region` do it, under `adaptIndentation` (`org-adapt-indentation`); what commands write is indented the same way | new lines (`indentexpr`), `=` | new lines (format on type), Format Selection | `=` |
-| TODO state changes, as `org-todo` does them, with fast selection by key and notes (`TODO(t)`, `WAIT(w@/!)`) | `cit` / `ciT`, repeatable with `.` | commands, `Ctrl+.` | `Space a` |
-| Checkboxes, as `org-toggle-checkbox` does it, with parent boxes and the cookies that count them (`[1/3]`, `[33%]`) | `<C-Space>` | command, `Ctrl+.` | `Space a` |
+| TODO state changes, as `org-todo` does them, with fast selection by key and notes (`TODO(t)`, `WAIT(w@/!)`) | `cit` / `ciT`, repeatable with `.` | `Ctrl+C Ctrl+T`, `Shift+Left`/`Right`, `Ctrl+.` | `Space a` |
+| Checkboxes, as `org-toggle-checkbox` does it, with parent boxes and the cookies that count them (`[1/3]`, `[33%]`) | `<C-Space>` | `Ctrl+C Ctrl+C`, `Ctrl+.` | `Space a` |
 | Priorities, as `org-priority` changes them | `ciR` / `cir`, `<Leader>o,` | commands, `Ctrl+.` | `Space a` |
 | Timestamps: the part at the cursor, or the date by days | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>`, with counts | commands, `Ctrl+.` | `Space a` |
 | Schedule, deadline, insert a timestamp: dates typed as at Org's prompt, or picked in Emacs's calendar | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!` | commands, with a preview of the date | no⁴ |

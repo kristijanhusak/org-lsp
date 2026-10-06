@@ -103,7 +103,7 @@ function vscodeKey(key) {
     .join(' ');
 }
 
-/** The VS Code extension's keys, as its package.json binds them. */
+/** The VS Code extension's keys, as its package.json binds them, by preset. */
 function vscodeKeys() {
   const where = (when) =>
     when.includes(`'${manifest.agenda.languageId}'`)
@@ -112,21 +112,57 @@ function vscodeKeys() {
         ? 'calendar'
         : when.includes(manifest.capture.prefix)
           ? 'capture'
-          : 'other';
-  const titles = Object.fromEntries(manifest.commands.map((command) => [command.command, command.title]));
+          : 'org';
+  const titles = Object.fromEntries(vscode.contributes.commands.map((command) => [command.command, command.title]));
+  const presets = [
+    ['emacs', 'Emacs (`"org-lsp.keys": "emacs"`, the default)'],
+    ['vim', 'Vim (`"org-lsp.keys": "vim"`)'],
+  ];
   const sections = [];
-  for (const [scope, heading] of SCOPES) {
-    const byCommand = new Map();
-    for (const binding of vscode.contributes.keybindings) {
-      if (where(binding.when) !== scope) continue;
-      if (!byCommand.has(binding.command)) byCommand.set(binding.command, []);
-      byCommand.get(binding.command).push(code(vscodeKey(binding.key)));
+  for (const [preset, presetHeading] of presets) {
+    sections.push(`### ${presetHeading}`);
+    for (const [scope, heading] of SCOPES) {
+      const byCommand = new Map();
+      for (const binding of vscode.contributes.keybindings) {
+        if (!binding.when.includes(`keys == '${preset}'`) || where(binding.when) !== scope) continue;
+        if (!byCommand.has(binding.command)) byCommand.set(binding.command, []);
+        byCommand.get(binding.command).push(code(vscodeKey(binding.key)) + (binding.args?.fallback ? '¹' : ''));
+      }
+      if (byCommand.size === 0) continue;
+      const rows = [...byCommand].map(([command, keys]) => [keys.join(', '), code(command), cell(titles[command] ?? '')]);
+      sections.push(`#### ${heading}\n\n` + table(['Keys', 'Command', 'What it does'], rows));
     }
-    if (byCommand.size === 0) continue;
-    const rows = [...byCommand].map(([command, keys]) => [keys.join(', '), code(command), cell(titles[command] ?? '')]);
-    sections.push(`### ${heading}\n\n` + table(['Keys', 'Command', 'What it does'], rows));
   }
-  const every = manifest.commands.map((command) => [code(command.command), cell(`Org: ${command.title}`)]);
+  sections.push(
+    '¹ Where the command does not apply, the key does what it does without\n' +
+      'the extension: `Shift+Up` off a timestamp or headline selects, `Tab` off\n' +
+      'a headline, block or drawer indents.',
+  );
+  // VSCodeVim's own key bindings, for the keys VS Code cannot bind: those
+  // with the leader. They apply in every file.
+  const leader = manifest.commands.flatMap((command) =>
+    command.keys
+      .filter((key) => key.preset === 'vim' && key.key.startsWith('<Leader>') && ['global', 'org'].includes(key.in))
+      .map((key) => ({ before: ['<leader>', ...[...key.key.slice('<Leader>'.length)]], commands: [command.command] })),
+  );
+  const unique = [...new Map(leader.map((entry) => [entry.before.join(''), entry])).values()];
+  sections.push(
+    '#### The leader keys, for VSCodeVim\n\n' +
+      'VS Code cannot bind keys that start with the leader without taking\n' +
+      "them from Vim. Add them to VSCodeVim's settings instead (they apply in\n" +
+      'every file; outside Org files the commands say they do not apply):\n\n' +
+      '```json\n"vim.normalModeKeyBindingsNonRecursive": [\n' +
+      unique
+        .map((entry) => {
+          const list = (items) => items.map((item) => JSON.stringify(item)).join(', ');
+          return `  { "before": [${list(entry.before)}], "commands": [${list(entry.commands)}] }`;
+        })
+        .join(',\n') +
+      '\n]\n```',
+  );
+  const every = [...manifest.commands, ...vscode.contributes.commands.filter((command) => command.command.startsWith('org-lsp.cycle'))].map(
+    (command) => [code(command.command), cell(`Org: ${command.title}`)],
+  );
   sections.push('### Every command\n\n' + table(['Command', 'In the Command Palette'], every));
   return sections.join('\n\n');
 }
