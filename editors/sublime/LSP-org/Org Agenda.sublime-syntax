@@ -11,13 +11,13 @@ contexts:
   main:
     # A day of the agenda.
     - match: '^(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b.*$'
-      scope: markup.heading.date.agenda.org
+      scope: entity.name.section markup.heading markup.heading.date.agenda.org
     # A title, a block's separator.
     - match: '^\S.*$'
-      scope: markup.heading.agenda.org
+      scope: entity.name.section markup.heading markup.heading.agenda.org
     # The time grid.
     - match: '^\s+\d{1,2}:\d\d\.{6} -+.*$'
-      scope: comment.time-grid.agenda.org
+      scope: comment comment.time-grid.agenda.org
     - match: '^(?=\s)'
       push: entry
 
@@ -25,17 +25,17 @@ contexts:
     - match: '$'
       pop: true
     - match: '\bScheduled:'
-      scope: markup.inserted.scheduled.agenda.org
+      scope: string markup.inserted markup.inserted.scheduled.agenda.org
     - match: '\bSched\.\s*\d+x:'
-      scope: markup.changed.scheduled.agenda.org
+      scope: constant.numeric markup.changed markup.changed.scheduled.agenda.org
     - match: '\bDeadline:|\bIn\s+-?\d+ d\.:|\b\d+ d\. ago:'
-      scope: markup.changed.deadline.agenda.org
+      scope: constant.numeric markup.changed markup.changed.deadline.agenda.org
     - match: '\b(?:DONE|CANCELLED|CANCELED)\b'
-      scope: keyword.other.done.org
+      scope: string markup.inserted keyword.other.done.org
     - match: '\b(?:TODO|NEXT|STARTED|WAITING|HOLD)\b'
-      scope: keyword.other.todo.org
+      scope: keyword.control markup.deleted keyword.other.todo.org
     - match: '\[#[A-Z0-9]+\]'
-      scope: constant.other.priority.org
+      scope: constant.numeric constant.other.priority.org
     - match: '\s(:(?:[\w@#%]+:+)+)\s*$'
       captures:
-        1: entity.name.tag.org
+        1: entity.name.tag entity.name.tag.org

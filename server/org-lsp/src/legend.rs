@@ -103,14 +103,14 @@ const fn look(selector: &'static str, vim: &'static [&'static str], textmate: &'
 
 pub const LOOKS: &[Look] = &[
     look("headline", &[], &["markup.heading.org", "markup.heading", "entity.name.section"]),
-    look("headline.level1", &["@org.headline.level1", "Title"], &["markup.heading.1.org"]),
-    look("headline.level2", &["@org.headline.level2", "Constant"], &["markup.heading.2.org"]),
-    look("headline.level3", &["@org.headline.level3", "Identifier"], &["markup.heading.3.org"]),
-    look("headline.level4", &["@org.headline.level4", "Statement"], &["markup.heading.4.org"]),
-    look("headline.level5", &["@org.headline.level5", "PreProc"], &["markup.heading.5.org"]),
-    look("headline.level6", &["@org.headline.level6", "Type"], &["markup.heading.6.org"]),
-    look("headline.level7", &["@org.headline.level7", "Special"], &["markup.heading.7.org"]),
-    look("headline.level8", &["@org.headline.level8", "String"], &["markup.heading.8.org"]),
+    look("headline.level1", &["@org.headline.level1", "Title"], &["markup.heading.1.org", "entity.name.function"]),
+    look("headline.level2", &["@org.headline.level2", "Constant"], &["markup.heading.2.org", "variable.parameter"]),
+    look("headline.level3", &["@org.headline.level3", "Identifier"], &["markup.heading.3.org", "keyword"]),
+    look("headline.level4", &["@org.headline.level4", "Statement"], &["markup.heading.4.org", "comment"]),
+    look("headline.level5", &["@org.headline.level5", "PreProc"], &["markup.heading.5.org", "storage.type"]),
+    look("headline.level6", &["@org.headline.level6", "Type"], &["markup.heading.6.org", "constant.language"]),
+    look("headline.level7", &["@org.headline.level7", "Special"], &["markup.heading.7.org", "support.function"]),
+    look("headline.level8", &["@org.headline.level8", "String"], &["markup.heading.8.org", "string"]),
     look("stars", &[], &["punctuation.definition.heading.org", "markup.heading"]),
     look("stars.level1", &["@org.headline.level1", "Title"], &[]),
     look("stars.level2", &["@org.headline.level2", "Constant"], &[]),
@@ -139,13 +139,21 @@ pub const LOOKS: &[Look] = &[
     look("planning", &["@org.plan", "Constant"], &["keyword.other.planning.org", "keyword.other"]),
     look("timestamp", &["@org.timestamp.active", "@keyword"], &["constant.other.timestamp.org", "constant.numeric"]),
     look("timestamp.inactive", &["@org.timestamp.inactive", "@comment"], &["comment.timestamp.org", "comment"]),
-    look("drawer", &["@org.drawer", "@property"], &["meta.preprocessor.drawer.org", "meta.preprocessor"]),
+    look(
+        "drawer",
+        &["@org.drawer", "@property"],
+        &["meta.preprocessor.drawer.org", "meta.preprocessor", "support.function"],
+    ),
     look(
         "property",
         &["@org.properties.name", "@property"],
-        &["variable.other.property.org", "variable.other.property"],
+        &["variable.other.property.org", "variable.other.property", "entity.other.attribute-name"],
     ),
-    look("keyword", &["@org.directive", "@comment"], &["meta.preprocessor.keyword.org", "meta.preprocessor"]),
+    look(
+        "keyword",
+        &["@org.directive", "@comment"],
+        &["meta.preprocessor.keyword.org", "meta.preprocessor", "comment"],
+    ),
     look("block", &["@org.block", "@comment"], &["punctuation.definition.block.org", "comment"]),
     look("comment", &["@org.comment", "@comment"], &["comment.line.org", "comment"]),
     look(
@@ -157,7 +165,7 @@ pub const LOOKS: &[Look] = &[
     look(
         "checkbox.checked",
         &["@org.checkbox.checked", "@markup.list.checked"],
-        &["markup.list.checked.org", "markup.inserted"],
+        &["markup.list.checked.org", "markup.inserted", "string"],
     ),
     look("checkbox.partial", &["@org.checkbox.halfchecked", "@markup.list.unchecked"], &[]),
     look(
@@ -165,8 +173,8 @@ pub const LOOKS: &[Look] = &[
         &["@org.hyperlink", "@markup.link"],
         &["markup.underline.link.org", "markup.underline.link", "string.other.link"],
     ),
-    look("code", &["@org.code", "@markup.raw"], &["markup.inline.raw.org", "markup.inline.raw"]),
-    look("verbatim", &["@org.verbatim", "@markup.raw"], &["markup.inline.raw.org", "markup.inline.raw"]),
+    look("code", &["@org.code", "@markup.raw"], &["markup.inline.raw.org", "markup.inline.raw", "string"]),
+    look("verbatim", &["@org.verbatim", "@markup.raw"], &["markup.inline.raw.org", "markup.inline.raw", "string"]),
     look("text", &[], &[]),
     look(
         "tableDelimiter",
@@ -176,7 +184,7 @@ pub const LOOKS: &[Look] = &[
     look(
         "footnote",
         &["@org.footnote", "@markup.link.url"],
-        &["markup.underline.link.footnote.org", "markup.underline.link"],
+        &["markup.underline.link.footnote.org", "markup.underline.link", "string.other.link"],
     ),
     look("cookie", &["@org.priority.highest", "@number"], &["constant.numeric.cookie.org", "constant.numeric"]),
     look("target", &["@org.hyperlink.desc", "@markup.link.label"], &["entity.name.label.org", "entity.name.label"]),
@@ -210,12 +218,12 @@ pub const LOOKS: &[Look] = &[
     look(
         "agendaDate.today",
         &["@org.agenda.today", "@markup.strong"],
-        &["markup.bold.today.agenda.org", "markup.bold"],
+        &["markup.bold.today.agenda.org", "markup.bold", "markup.heading", "entity.name.section"],
     ),
     look(
         "agendaDate.weekend",
         &["@org.agenda.weekend", "@markup.italic"],
-        &["markup.italic.weekend.agenda.org", "markup.italic"],
+        &["markup.italic.weekend.agenda.org", "markup.italic", "markup.heading", "entity.name.section"],
     ),
     look(
         "agendaScheduled",
@@ -248,7 +256,7 @@ pub const LOOKS: &[Look] = &[
     look(
         "agendaTimeGrid.current",
         &["@org.agenda.time_grid.current", "@markup.strong"],
-        &["markup.bold.current-time.agenda.org", "markup.bold"],
+        &["markup.bold.current-time.agenda.org", "markup.bold", "comment"],
     ),
     // `org-agenda-clocking`: the line of the clocked entry, highlighted.
     look(

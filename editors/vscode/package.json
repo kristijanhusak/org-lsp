@@ -1573,28 +1573,36 @@
             "entity.name.section"
           ],
           "headline.level1": [
-            "markup.heading.1.org"
+            "markup.heading.1.org",
+            "entity.name.function"
           ],
           "headline.level2": [
-            "markup.heading.2.org"
+            "markup.heading.2.org",
+            "variable.parameter"
           ],
           "headline.level3": [
-            "markup.heading.3.org"
+            "markup.heading.3.org",
+            "keyword"
           ],
           "headline.level4": [
-            "markup.heading.4.org"
+            "markup.heading.4.org",
+            "comment"
           ],
           "headline.level5": [
-            "markup.heading.5.org"
+            "markup.heading.5.org",
+            "storage.type"
           ],
           "headline.level6": [
-            "markup.heading.6.org"
+            "markup.heading.6.org",
+            "constant.language"
           ],
           "headline.level7": [
-            "markup.heading.7.org"
+            "markup.heading.7.org",
+            "support.function"
           ],
           "headline.level8": [
-            "markup.heading.8.org"
+            "markup.heading.8.org",
+            "string"
           ],
           "stars": [
             "punctuation.definition.heading.org",
@@ -1632,15 +1640,18 @@
           ],
           "drawer": [
             "meta.preprocessor.drawer.org",
-            "meta.preprocessor"
+            "meta.preprocessor",
+            "support.function"
           ],
           "property": [
             "variable.other.property.org",
-            "variable.other.property"
+            "variable.other.property",
+            "entity.other.attribute-name"
           ],
           "keyword": [
             "meta.preprocessor.keyword.org",
-            "meta.preprocessor"
+            "meta.preprocessor",
+            "comment"
           ],
           "block": [
             "punctuation.definition.block.org",
@@ -1661,7 +1672,8 @@
           ],
           "checkbox.checked": [
             "markup.list.checked.org",
-            "markup.inserted"
+            "markup.inserted",
+            "string"
           ],
           "link": [
             "markup.underline.link.org",
@@ -1670,11 +1682,13 @@
           ],
           "code": [
             "markup.inline.raw.org",
-            "markup.inline.raw"
+            "markup.inline.raw",
+            "string"
           ],
           "verbatim": [
             "markup.inline.raw.org",
-            "markup.inline.raw"
+            "markup.inline.raw",
+            "string"
           ],
           "tableDelimiter": [
             "punctuation.separator.table.org",
@@ -1683,7 +1697,8 @@
           ],
           "footnote": [
             "markup.underline.link.footnote.org",
-            "markup.underline.link"
+            "markup.underline.link",
+            "string.other.link"
           ],
           "cookie": [
             "constant.numeric.cookie.org",
@@ -1733,11 +1748,15 @@
           ],
           "agendaDate.today": [
             "markup.bold.today.agenda.org",
-            "markup.bold"
+            "markup.bold",
+            "markup.heading",
+            "entity.name.section"
           ],
           "agendaDate.weekend": [
             "markup.italic.weekend.agenda.org",
-            "markup.italic"
+            "markup.italic",
+            "markup.heading",
+            "entity.name.section"
           ],
           "agendaScheduled": [
             "markup.inserted.scheduled.agenda.org",
@@ -1773,7 +1792,8 @@
           ],
           "agendaTimeGrid.current": [
             "markup.bold.current-time.agenda.org",
-            "markup.bold"
+            "markup.bold",
+            "comment"
           ],
           "agendaClocking": [
             "markup.highlight.clocking.agenda.org",
@@ -1818,28 +1838,36 @@
             "entity.name.section"
           ],
           "headline.level1": [
-            "markup.heading.1.org"
+            "markup.heading.1.org",
+            "entity.name.function"
           ],
           "headline.level2": [
-            "markup.heading.2.org"
+            "markup.heading.2.org",
+            "variable.parameter"
           ],
           "headline.level3": [
-            "markup.heading.3.org"
+            "markup.heading.3.org",
+            "keyword"
           ],
           "headline.level4": [
-            "markup.heading.4.org"
+            "markup.heading.4.org",
+            "comment"
           ],
           "headline.level5": [
-            "markup.heading.5.org"
+            "markup.heading.5.org",
+            "storage.type"
           ],
           "headline.level6": [
-            "markup.heading.6.org"
+            "markup.heading.6.org",
+            "constant.language"
           ],
           "headline.level7": [
-            "markup.heading.7.org"
+            "markup.heading.7.org",
+            "support.function"
           ],
           "headline.level8": [
-            "markup.heading.8.org"
+            "markup.heading.8.org",
+            "string"
           ],
           "stars": [
             "punctuation.definition.heading.org",
@@ -1877,15 +1905,18 @@
           ],
           "drawer": [
             "meta.preprocessor.drawer.org",
-            "meta.preprocessor"
+            "meta.preprocessor",
+            "support.function"
           ],
           "property": [
             "variable.other.property.org",
-            "variable.other.property"
+            "variable.other.property",
+            "entity.other.attribute-name"
           ],
           "keyword": [
             "meta.preprocessor.keyword.org",
-            "meta.preprocessor"
+            "meta.preprocessor",
+            "comment"
           ],
           "block": [
             "punctuation.definition.block.org",
@@ -1906,7 +1937,8 @@
           ],
           "checkbox.checked": [
             "markup.list.checked.org",
-            "markup.inserted"
+            "markup.inserted",
+            "string"
           ],
           "link": [
             "markup.underline.link.org",
@@ -1915,11 +1947,13 @@
           ],
           "code": [
             "markup.inline.raw.org",
-            "markup.inline.raw"
+            "markup.inline.raw",
+            "string"
           ],
           "verbatim": [
             "markup.inline.raw.org",
-            "markup.inline.raw"
+            "markup.inline.raw",
+            "string"
           ],
           "tableDelimiter": [
             "punctuation.separator.table.org",
@@ -1928,7 +1962,8 @@
           ],
           "footnote": [
             "markup.underline.link.footnote.org",
-            "markup.underline.link"
+            "markup.underline.link",
+            "string.other.link"
           ],
           "cookie": [
             "constant.numeric.cookie.org",
@@ -1978,11 +2013,15 @@
           ],
           "agendaDate.today": [
             "markup.bold.today.agenda.org",
-            "markup.bold"
+            "markup.bold",
+            "markup.heading",
+            "entity.name.section"
           ],
           "agendaDate.weekend": [
             "markup.italic.weekend.agenda.org",
-            "markup.italic"
+            "markup.italic",
+            "markup.heading",
+            "entity.name.section"
           ],
           "agendaScheduled": [
             "markup.inserted.scheduled.agenda.org",
@@ -2018,7 +2057,8 @@
           ],
           "agendaTimeGrid.current": [
             "markup.bold.current-time.agenda.org",
-            "markup.bold"
+            "markup.bold",
+            "comment"
           ],
           "agendaClocking": [
             "markup.highlight.clocking.agenda.org",
@@ -2063,28 +2103,36 @@
             "entity.name.section"
           ],
           "headline.level1": [
-            "markup.heading.1.org"
+            "markup.heading.1.org",
+            "entity.name.function"
           ],
           "headline.level2": [
-            "markup.heading.2.org"
+            "markup.heading.2.org",
+            "variable.parameter"
           ],
           "headline.level3": [
-            "markup.heading.3.org"
+            "markup.heading.3.org",
+            "keyword"
           ],
           "headline.level4": [
-            "markup.heading.4.org"
+            "markup.heading.4.org",
+            "comment"
           ],
           "headline.level5": [
-            "markup.heading.5.org"
+            "markup.heading.5.org",
+            "storage.type"
           ],
           "headline.level6": [
-            "markup.heading.6.org"
+            "markup.heading.6.org",
+            "constant.language"
           ],
           "headline.level7": [
-            "markup.heading.7.org"
+            "markup.heading.7.org",
+            "support.function"
           ],
           "headline.level8": [
-            "markup.heading.8.org"
+            "markup.heading.8.org",
+            "string"
           ],
           "stars": [
             "punctuation.definition.heading.org",
@@ -2122,15 +2170,18 @@
           ],
           "drawer": [
             "meta.preprocessor.drawer.org",
-            "meta.preprocessor"
+            "meta.preprocessor",
+            "support.function"
           ],
           "property": [
             "variable.other.property.org",
-            "variable.other.property"
+            "variable.other.property",
+            "entity.other.attribute-name"
           ],
           "keyword": [
             "meta.preprocessor.keyword.org",
-            "meta.preprocessor"
+            "meta.preprocessor",
+            "comment"
           ],
           "block": [
             "punctuation.definition.block.org",
@@ -2151,7 +2202,8 @@
           ],
           "checkbox.checked": [
             "markup.list.checked.org",
-            "markup.inserted"
+            "markup.inserted",
+            "string"
           ],
           "link": [
             "markup.underline.link.org",
@@ -2160,11 +2212,13 @@
           ],
           "code": [
             "markup.inline.raw.org",
-            "markup.inline.raw"
+            "markup.inline.raw",
+            "string"
           ],
           "verbatim": [
             "markup.inline.raw.org",
-            "markup.inline.raw"
+            "markup.inline.raw",
+            "string"
           ],
           "tableDelimiter": [
             "punctuation.separator.table.org",
@@ -2173,7 +2227,8 @@
           ],
           "footnote": [
             "markup.underline.link.footnote.org",
-            "markup.underline.link"
+            "markup.underline.link",
+            "string.other.link"
           ],
           "cookie": [
             "constant.numeric.cookie.org",
@@ -2223,11 +2278,15 @@
           ],
           "agendaDate.today": [
             "markup.bold.today.agenda.org",
-            "markup.bold"
+            "markup.bold",
+            "markup.heading",
+            "entity.name.section"
           ],
           "agendaDate.weekend": [
             "markup.italic.weekend.agenda.org",
-            "markup.italic"
+            "markup.italic",
+            "markup.heading",
+            "entity.name.section"
           ],
           "agendaScheduled": [
             "markup.inserted.scheduled.agenda.org",
@@ -2263,7 +2322,8 @@
           ],
           "agendaTimeGrid.current": [
             "markup.bold.current-time.agenda.org",
-            "markup.bold"
+            "markup.bold",
+            "comment"
           ],
           "agendaClocking": [
             "markup.highlight.clocking.agenda.org",
