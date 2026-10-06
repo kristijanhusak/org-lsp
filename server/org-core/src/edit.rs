@@ -153,7 +153,9 @@ pub fn run(
             };
             priority::change(text, parse.todo_keywords(), offset, *action, call.repeated, &priority).map(unplaced)
         }
-        Command::Checkbox => crate::checkbox::toggle(text, parse.todo_keywords(), offset).map(unplaced),
+        Command::Checkbox => {
+            crate::checkbox::toggle(text, parse.todo_keywords(), offset, settings.todo.tags_column).map(unplaced)
+        }
         Command::Timestamp { forward } => {
             let shift = Shift { n: steps(*forward), what: None, updown: true, counted: call.count.is_some() };
             stamp::change(text, offset, &shift, settings.timestamp_rounding_minutes).map(placed)

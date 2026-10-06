@@ -5,7 +5,8 @@
 
 use org_syntax::{SyntaxKind::*, SyntaxNode, TodoKeywords};
 
-use crate::todo::headline_level;
+use crate::text::tag_group;
+use crate::todo::{headline_level, tags_padding};
 use crate::Refusal;
 
 /// A list item and its checkbox.
@@ -132,7 +133,7 @@ fn end_of_meta_data(text: &str, heading: usize, limit: usize) -> usize {
 /// on a headline, those of all the items below it, as the first one goes.
 /// Parent boxes follow their children, and the cookies of the section are
 /// counted again.
-pub fn toggle(text: &str, keywords: &TodoKeywords, offset: usize) -> Result<String, Refusal> {
+pub fn toggle(text: &str, keywords: &TodoKeywords, offset: usize, tags_column: i64) -> Result<String, Refusal> {
     let root = parse(text, keywords);
     let lists = Lists::new(text, &root);
     let line = line_start(text, offset);
@@ -189,7 +190,7 @@ pub fn toggle(text: &str, keywords: &TodoKeywords, offset: usize) -> Result<Stri
             out.replace_range(at + 1..at + 2, &char::from(state).to_string());
         }
     }
-    Ok(update_counts(&out, keywords, offset))
+    Ok(update_counts(&out, keywords, offset, tags_column))
 }
 
 /// The start of the next headline after the line at `at`.
@@ -235,7 +236,10 @@ fn has_word(text: &str, word: &str) -> bool {
 /// `org-update-checkbox-count` for the section around byte `offset`: each
 /// statistics cookie there counts the checkboxes of what it is in (an
 /// item's children, or the lists of a drawer, a block or the section).
-pub fn update_counts(text: &str, keywords: &TodoKeywords, offset: usize) -> String {
+///
+/// A cookie on a headline with tags realigns them to `tags_column`, as
+/// `org-fix-tags-on-the-fly` does.
+pub fn update_counts(text: &str, keywords: &TodoKeywords, offset: usize, tags_column: i64) -> String {
     let root = parse(text, keywords);
     let lists = Lists::new(text, &root);
     let line = line_start(text, offset);
@@ -316,6 +320,15 @@ pub fn update_counts(text: &str, keywords: &TodoKeywords, offset: usize) -> Stri
     let mut out = text.to_string();
     for (begin, finish, new) in edits.into_iter().rev() {
         out.replace_range(begin..finish, &new);
+        let start = line_start(&out, begin);
+        let end = line_end(&out, begin);
+        let line = &out[start..end];
+        let before_tags = tag_group(line).is_some_and(|(_, tags)| start + tags > begin + new.len());
+        if headline_level(line).is_some() && before_tags {
+            if let Some((blanks, tags, padding)) = tags_padding(line, tags_column) {
+                out.replace_range(start + blanks..start + tags, &padding);
+            }
+        }
     }
     out
 }

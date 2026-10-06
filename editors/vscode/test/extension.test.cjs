@@ -128,6 +128,9 @@ describe('Org files', () => {
       'org.priority.up',
       'org.priority.down',
       'org.clock.in',
+      'org.archive.subtree',
+      'org.archive.sibling',
+      'org.archive.tag',
     ]);
     assert.ok(actions[0].edit.has(workUri));
     // Clocking in runs as a command: it may stop a clock in another file.
@@ -471,6 +474,37 @@ describe('Org files', () => {
     await until('a plain new line in code', () => editor.document.lineAt(4).text.trim() === '' && editor.document.lineAt(5).text === '#+end_src');
     await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
     await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
+  it('archives a subtree into the archive file, and asks about each done one', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'archive.org'));
+    const archive = vscode.Uri.file(path.join(workspace, 'archive.org_archive'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('Intro\n* DONE Old\nNotes.\n* DONE Older\n* TODO New\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    moveTo(1);
+    await vscode.commands.executeCommand('org.archive.subtree');
+    await until('the subtree archived', () => editor.document.lineAt(1).text === '* DONE Older');
+    const archived = Buffer.from(await vscode.workspace.fs.readFile(archive)).toString();
+    assert.ok(archived.includes('\n* DONE Old\n:PROPERTIES:\n'), archived);
+    const asked = [];
+    const showQuickPick = vscode.window.showQuickPick;
+    vscode.window.showQuickPick = async (items, options) => {
+      asked.push(options.placeHolder);
+      return items.find((item) => item.key === 'y');
+    };
+    try {
+      moveTo(0);
+      await vscode.commands.executeCommand('org.archive.done');
+      await until('the done subtree archived', () => editor.document.getText() === 'Intro\n* TODO New\n');
+      assert.deepEqual(asked, ['Move subtree to archive? (no open TODO items)']);
+    } finally {
+      vscode.window.showQuickPick = showQuickPick;
+    }
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.workspace.fs.delete(archive);
     await vscode.window.showTextDocument(document);
   });
 

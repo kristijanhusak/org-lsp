@@ -448,6 +448,7 @@ fn opens_the_agenda_from_open_documents() {
             "org.date.later",
             "org.date.earlier",
             "org.clock.in",
+            "org.archive.subtree",
             "org.agenda.goto"
         ]
     );
@@ -1350,6 +1351,7 @@ fn changes_dates_from_the_agenda() {
             "org.priority.up",
             "org.priority.down",
             "org.clock.in",
+            "org.archive.subtree",
             "org.agenda.goto"
         ]
     );
@@ -2114,6 +2116,100 @@ fn refiles_entries_between_files() {
         client.request("workspace/executeCommand", json!({ "command": "org.refile", "arguments": [at] })).unwrap();
     assert_eq!(asked["input"]["prompt"], "Refile to");
     assert_eq!(asked["input"]["choices"][0]["label"], "Write report (work.org)");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// Run a command at `at` of `uri`, apply the edit it asks for to `text`
+/// as an editor would, and return its result.
+fn run_edit(client: &mut Client, command: &str, uri: &str, at: (u32, u32), extra: Value, text: &mut String) -> Value {
+    client.received.clear();
+    let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": at.0, "character": at.1 } });
+    for (key, value) in extra.as_object().into_iter().flatten() {
+        context[key] = value.clone();
+    }
+    let result = client
+        .request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+        .unwrap_or_else(|error| panic!("{command} failed: {error}"));
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").cloned();
+    if let Some(request) = edit {
+        let (file, edits) = edits_of(&request);
+        *text = apply(text, &edits);
+        client.file_version += 1;
+        client.notify(
+            "textDocument/didChange",
+            json!({ "textDocument": { "uri": file, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+        );
+        client.settle();
+    }
+    result
+}
+
+/// `C-c C-x C-s` (`org-archive-subtree`): the subtree goes to the archive
+/// file, which is written when no editor has it open, and `$` does the
+/// same from the agenda. `C-c C-x a` tags a subtree as archived, and
+/// `C-u C-c C-x C-s` asks about each subtree without open TODO items.
+#[test]
+fn archives_subtrees() {
+    let root = workspace("archive");
+    let mut options = clock();
+    options["agendaFiles"] = json!([root.display().to_string()]);
+    let mut client = Client::editor(options, None);
+    let work = format!("file://{}/work.org", root.display());
+    let mut text = WORK.to_string();
+    client.open(&work, &text);
+
+    let result = run_edit(&mut client, "org.archive.subtree", &work, (3, 4), json!({}), &mut text);
+    let archive = root.join("work.org_archive");
+    assert_eq!(result, json!({ "message": format!("Subtree archived in file: {}", archive.display()) }));
+    assert_eq!(
+        text,
+        "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&archive).unwrap(),
+        format!(
+            "#    -*- mode: org -*-\n\n\nArchived entries from file {}/work.org\n\n\n\
+             * TODO Call [[https://example.com][the client]]\nDEADLINE: <2026-05-20 Wed>\n:PROPERTIES:\n\
+             :ARCHIVE_TIME: 2026-05-18 Mon 10:30\n:ARCHIVE_FILE: {}/work.org\n:ARCHIVE_CATEGORY: work\n\
+             :ARCHIVE_TODO: TODO\n:END:\n",
+            root.display(),
+            root.display()
+        )
+    );
+
+    // `$` on an agenda line.
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Write report")).unwrap() as u32;
+    run_edit(&mut client, "org.archive.subtree", VIEW, (line, 0), json!({}), &mut text);
+    assert_eq!(text, "#+CATEGORY: work\n* Meeting <2026-05-19 Tue 14:00-15:00>\n");
+    assert!(std::fs::read_to_string(&archive).unwrap().contains("\n* TODO [#A] Write report :office:\n"));
+    assert!(!client.refetch_view().contains("Write report"));
+
+    // The tag, on and off.
+    let result = run_edit(&mut client, "org.archive.tag", &work, (1, 0), json!({}), &mut text);
+    assert_eq!(result, json!({ "message": "Subtree archived" }));
+    assert!(text.lines().nth(1).unwrap().ends_with(" :ARCHIVE:"), "{text}");
+    run_edit(&mut client, "org.archive.tag", &work, (1, 0), json!({}), &mut text);
+    assert_eq!(text, "#+CATEGORY: work\n* Meeting <2026-05-19 Tue 14:00-15:00>\n");
+
+    // One question at a time, the answers so far in the context.
+    let done = format!("file://{}/done.org", root.display());
+    let mut text = "Intro\n* DONE A\n* TODO B\n* DONE C\n".to_string();
+    client.open(&done, &text);
+    let asked = run_edit(&mut client, "org.archive.done", &done, (0, 0), json!({}), &mut text);
+    assert_eq!(asked["input"]["prompt"], "Move subtree to archive? (no open TODO items)");
+    assert_eq!(asked["input"]["context"], json!({ "answers": "" }));
+    let asked =
+        run_edit(&mut client, "org.archive.done", &done, (0, 0), json!({ "input": "n", "answers": "" }), &mut text);
+    assert_eq!(asked["input"]["context"], json!({ "answers": "n" }));
+    let result =
+        run_edit(&mut client, "org.archive.done", &done, (0, 0), json!({ "input": "y", "answers": "n" }), &mut text);
+    assert_eq!(result, json!({ "message": "1 trees archived" }));
+    assert_eq!(text, "Intro\n* DONE A\n* TODO B\n");
+    assert!(std::fs::read_to_string(root.join("done.org_archive")).unwrap().contains("* DONE C\n"));
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }

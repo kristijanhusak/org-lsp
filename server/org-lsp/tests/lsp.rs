@@ -327,9 +327,16 @@ fn todo_cycle_round_trip() {
             + client.code_actions(&uri(), cursor, "org.priority").len(),
         4
     );
-    // And clocking in, with no clock running.
-    assert_eq!(client.code_actions(&uri(), cursor, "org").len(), 5);
+    // And clocking in, with no clock running, and the three ways to
+    // archive.
+    assert_eq!(client.code_actions(&uri(), cursor, "org").len(), 8);
     assert_eq!(client.code_actions(&uri(), cursor, "org.clock")[0].title, "Clock in");
+    let archive: Vec<String> =
+        client.code_actions(&uri(), cursor, "org.archive").iter().map(|action| action.title.clone()).collect();
+    assert_eq!(
+        archive,
+        ["Archive the subtree", "Archive the subtree under its Archive sibling", "Toggle the ARCHIVE tag"]
+    );
     // Nothing applies before the first headline or for unrelated kinds.
     assert!(client.code_actions(&uri(), Position::new(0, 3), "org").is_empty());
     assert!(client.code_actions(&uri(), cursor, "quickfix").is_empty());

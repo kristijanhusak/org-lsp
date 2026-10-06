@@ -51,6 +51,10 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+C` | `org.checkbox.toggle` | Toggle the checkbox |
 | `Enter`¹ | `org.return` | New line, as Org's RET makes it |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
+| `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Shift+4` | `org.archive.subtree` | Archive the subtree |
+| `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
+| `Ctrl+C Ctrl+X a` | `org.archive.tag` | Toggle the ARCHIVE tag |
+| `Ctrl+C Ctrl+X Ctrl+A` | `org.archive.default` | Archive with the default command |
 | `Shift+Up`¹ | `org.shift.up` | Increase the timestamp part or raise the priority |
 | `Shift+Down`¹ | `org.shift.down` | Decrease the timestamp part or lower the priority |
 | `Shift+Left`¹ | `org.shift.left` | Move the date a day earlier or cycle the TODO state backward |
@@ -101,6 +105,11 @@ The other options are in [configuration.md](configuration.md).
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
+| `Shift+4`, `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Shift+4` | `org.archive.subtree` | Archive the subtree |
+| `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
+| `Ctrl+C Ctrl+X a` | `org.archive.tag` | Toggle the ARCHIVE tag |
+| `Ctrl+C Ctrl+X Ctrl+A` | `org.archive.default` | Archive with the default command |
+| `a` | `org.archive.confirm` | Archive with the default command, once confirmed |
 | `Shift+Right` | `org.date.later` | Move the date one day later |
 | `Shift+Left` | `org.date.earlier` | Move the date one day earlier |
 | `Ctrl+C Ctrl+S` | `org.schedule` | Schedule the entry |
@@ -170,6 +179,8 @@ The other options are in [configuration.md](configuration.md).
 | `t` | `org.todo` | Change the TODO state |
 | `+` | `org.priority.up` | Raise the priority |
 | `-` | `org.priority.down` | Lower the priority |
+| `Shift+4` | `org.archive.subtree` | Archive the subtree |
+| `a` | `org.archive.confirm` | Archive with the default command, once confirmed |
 | `Shift+Right` | `org.date.later` | Move the date one day later |
 | `Shift+Left` | `org.date.earlier` | Move the date one day earlier |
 
@@ -213,6 +224,9 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "x", "j"], "commands": ["org.clock.goto"] },
   { "before": ["<leader>", "o", ","], "commands": ["org.priority"] },
   { "before": ["<leader>", "o", "r"], "commands": ["org.refile"] },
+  { "before": ["<leader>", "o", "$"], "commands": ["org.archive.subtree"] },
+  { "before": ["<leader>", "o", "x", "A"], "commands": ["org.archive.sibling"] },
+  { "before": ["<leader>", "o", "A"], "commands": ["org.archive.tag"] },
   { "before": ["<leader>", "o", "c"], "commands": ["org.capture"] },
   { "before": ["<leader>", "o", "i", "s"], "commands": ["org.schedule"] },
   { "before": ["<leader>", "o", "i", "d"], "commands": ["org.deadline"] },
@@ -255,6 +269,13 @@ every file; outside Org files the commands say they do not apply):
 | `org.checkbox.toggle` | Org: Toggle the checkbox |
 | `org.return` | Org: New line, as Org's RET makes it |
 | `org.refile` | Org: Refile the entry |
+| `org.archive.subtree` | Org: Archive the subtree |
+| `org.archive.sibling` | Org: Archive the subtree under its Archive sibling |
+| `org.archive.tag` | Org: Toggle the ARCHIVE tag |
+| `org.archive.default` | Org: Archive with the default command |
+| `org.archive.confirm` | Org: Archive with the default command, once confirmed |
+| `org.archive.done` | Org: Archive the subtrees without open TODO items |
+| `org.archive.tag.done` | Org: Tag the subtrees without open TODO items as archived |
 | `org.capture` | Org: Capture |
 | `org.capture.finish` | Org: Capture: finish |
 | `org.capture.abort` | Org: Capture: abort |

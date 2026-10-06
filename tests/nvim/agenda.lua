@@ -623,6 +623,21 @@ check(vim.iter(lines()):any(function(text)
 end), 'r is listed')
 press('<Esc>')
 eq(vim.api.nvim_get_current_win(), agenda_win, '<Esc> closes the help')
+
+-- 14. `$` archives the entry of the line, into the archive file next to
+-- its own, and the entry leaves the agenda.
+local written = vim.iter(lines()):enumerate():find(function(_, text)
+  return text:find('TODO Written elsewhere', 1, true) ~= nil
+end)
+vim.api.nvim_win_set_cursor(0, { written, 0 })
+press('$')
+wait('the entry archived', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return not vim.iter(lines()):any(function(text)
+    return text:find('TODO Written elsewhere', 1, true) ~= nil
+  end)
+end)
+check(vim.tbl_contains(vim.fn.readfile(work .. '_archive'), '* TODO Written elsewhere'), 'in the archive file')
 press('q')
 
 print(('ok: %d checks passed'):format(checks))

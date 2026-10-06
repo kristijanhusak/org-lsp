@@ -206,6 +206,66 @@ pub const SETTINGS: &[Setting] = &[
         "A refiled entry goes first under its target, not last.",
     ),
     setting(
+        "archiveLocation",
+        "string",
+        r#""%s_archive::""#,
+        "org-archive-location",
+        "Where archived subtrees go: a file, `::`, and a headline under which they go (they go to the end of the \
+         file without one). `%s` is the name of the file the subtree is in; an empty file part is that file. \
+         `datetree/` as the headline files them under year, month and day, by when they were closed. An \
+         `ARCHIVE` property of the entry or a parent, or a `#+ARCHIVE:` line, says otherwise.",
+    ),
+    setting(
+        "archiveReversedOrder",
+        "boolean",
+        "false",
+        "org-archive-reversed-order",
+        "An archived subtree goes first under its archive headline, not last.",
+    ),
+    setting(
+        "archiveMarkDone",
+        "boolean, string",
+        "false",
+        "org-archive-mark-done",
+        "Mark archived entries done: `true` for the first done keyword, or the keyword to use.",
+    ),
+    setting(
+        "archiveSubtreeAddInheritedTags",
+        r#"boolean, "infile""#,
+        r#""infile""#,
+        "org-archive-subtree-add-inherited-tags",
+        "Give an archived subtree the tags it inherited: always, never, or when it stays in its file.",
+    ),
+    setting(
+        "archiveSaveContextInfo",
+        "string[]",
+        r#"["time", "file", "olpath", "category", "todo", "itags"]"#,
+        "org-archive-save-context-info",
+        "What an archived entry keeps as `ARCHIVE_…` properties: `time`, `file`, `olpath` (its outline path), \
+         `category`, `todo`, `itags` (inherited tags), `ltags` (its own tags) and `olid` (its parent's ID).",
+    ),
+    setting(
+        "archiveSiblingHeading",
+        "string",
+        r#""Archive""#,
+        "org-archive-sibling-heading",
+        "The headline of the sibling `org.archive.sibling` archives under.",
+    ),
+    setting(
+        "archiveFileHeaderFormat",
+        "string, false",
+        r#""\nArchived entries from file %s\n\n""#,
+        "org-archive-file-header-format",
+        "What a new archive file starts with; `%s` is the path of the file the subtree came from.",
+    ),
+    setting(
+        "archiveDefaultCommand",
+        r#""subtree", "sibling", "tag""#,
+        r#""subtree""#,
+        "org-archive-default-command",
+        "What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it.",
+    ),
+    setting(
         "captureTemplates",
         "object[]",
         r#"[{ "key": "t", "description": "Task", "target": ["file+headline", "", "Tasks"], "template": "* TODO %?\n  %u\n  %a" }]"#,
@@ -579,6 +639,17 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("refileUseOutlinePath", r#"{ "enum": [true, false, "file", "full-file-path", "title"] }"#),
     ("reverseNoteOrder", BOOLEAN),
+    ("archiveLocation", STRING),
+    ("archiveReversedOrder", BOOLEAN),
+    ("archiveMarkDone", r#"{ "type": ["boolean", "string"] }"#),
+    ("archiveSubtreeAddInheritedTags", r#"{ "enum": [true, false, "infile"] }"#),
+    (
+        "archiveSaveContextInfo",
+        r#"{ "type": "array", "items": { "enum": ["time", "file", "olpath", "category", "todo", "itags", "ltags", "olid"] } }"#,
+    ),
+    ("archiveSiblingHeading", STRING),
+    ("archiveFileHeaderFormat", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
+    ("archiveDefaultCommand", r#"{ "enum": ["subtree", "sibling", "tag"] }"#),
     (
         "captureTemplates",
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.CaptureTemplate", "required": ["key", "description"], "additionalProperties": false, "properties": {
@@ -743,7 +814,7 @@ mod tests {
                 options.read_date_settings(),
                 options.refile_targets(),
                 options.refile_outline_path(),
-                options.refile_settings(),
+                (options.refile_settings(), options.archive_settings(), options.archive_default_command()),
                 options.capture_templates(),
                 options.org_directory(),
                 options.default_notes_file(),

@@ -25,6 +25,7 @@ use lsp_types::{
     TextDocumentSyncSaveOptions, TextEdit, Uri, WorkspaceEdit,
 };
 use org_core::agenda::{self, Config as AgendaConfig, Now, Span};
+use org_core::archive::{self, AllOutcome, Archived, Settings as ArchiveSettings};
 use org_core::capture;
 use org_core::clock;
 use org_core::date::{Date, DateTime, Day};
@@ -148,6 +149,9 @@ struct Context {
     /// The TODO state a change was asked for, when `input` is the text
     /// of the note that change wants (`""` for no keyword).
     state: Option<String>,
+    /// The answers to the questions of `org.archive.done` so far, `y` or
+    /// `n` each; `input` is then the next one.
+    answers: Option<String>,
 }
 
 /// What `org.capture` is run with. Capturing needs no document: from
@@ -347,6 +351,8 @@ struct Server {
     /// `org-refile-targets`, `org-refile-use-outline-path` and how a
     /// subtree is filed.
     refile: (Vec<RefileTarget>, OutlinePath, RefileSettings),
+    /// How archiving goes, and `org-archive-default-command`.
+    archive: (ArchiveSettings, String),
     /// `org-capture-templates`, `org-directory` and
     /// `org-default-notes-file`.
     capture_templates: Vec<CaptureTemplateOption>,
@@ -492,6 +498,7 @@ pub fn run(connection: Connection) -> Result<()> {
         edit_settings: options.edit_settings(),
         read_date: options.read_date_settings(),
         refile: (options.refile_targets(), options.refile_outline_path(), options.refile_settings()),
+        archive: (options.archive_settings(), options.archive_default_command().to_string()),
         capture_templates: options.capture_templates(),
         org_directory: options.org_directory(),
         default_notes_file: options.default_notes_file(),
@@ -1109,6 +1116,7 @@ impl Server {
                 commands::DATE_EARLIER,
                 commands::CLOCK_IN,
                 commands::CLOCK_OUT,
+                commands::ARCHIVE_SUBTREE,
                 commands::AGENDA_GOTO,
             ]
             .into_iter()
@@ -1150,13 +1158,19 @@ impl Server {
             CodeActionOrCommand::CodeAction(action.to_lsp(edit))
         };
         let mut result: Vec<CodeActionOrCommand> = found.iter().map(to_lsp).collect();
-        // Clocking, as commands: they may change another file too.
+        // Clocking and archiving, as commands: they may change another file
+        // too.
         let in_entry = Self::heading_above(&document.text, offset).is_some();
         let running = self.running.is_some();
         let context = json!({ "textDocument": { "uri": uri }, "position": params.range.start });
-        for (id, offered) in
-            [(commands::CLOCK_IN, in_entry), (commands::CLOCK_OUT, running), (commands::CLOCK_CANCEL, running)]
-        {
+        for (id, offered) in [
+            (commands::CLOCK_IN, in_entry),
+            (commands::CLOCK_OUT, running),
+            (commands::CLOCK_CANCEL, running),
+            (commands::ARCHIVE_SUBTREE, in_entry),
+            (commands::ARCHIVE_SIBLING, in_entry),
+            (commands::ARCHIVE_TAG, in_entry),
+        ] {
             if !offered || !actions::requested(id, only) {
                 continue;
             }
@@ -1603,6 +1617,9 @@ impl Server {
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
+            id if id.starts_with("org.archive.") => {
+                self.archive(id, &context.ok_or("This command needs the cursor position")?)
+            }
             commands::RETURN => self.org_return(&context.ok_or("This command needs the cursor position")?),
             // In a note buffer, the keys of a capture store or cancel the
             // note.
@@ -2219,6 +2236,154 @@ impl Server {
             (uri.clone(), document.index.offset(&document.text, context.position, self.client.encoding))
         };
         self.refile_from(file, offset, None, from_agenda, context.input.as_deref())
+    }
+
+    /// `org-archive-subtree` (`C-c C-x C-s`) and its relatives, in an Org
+    /// file or on an agenda line (`org-agenda-archive`). The archive file
+    /// gets an edit when an editor has it open, and is written here when
+    /// not, as Emacs saves it.
+    fn archive(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        self.last = None;
+        let yes_or_no = |prompt: &str, answers: Option<String>| {
+            let mut input = json!({
+                "kind": "key",
+                "prompt": prompt,
+                "value": "",
+                "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+            });
+            if let Some(answers) = answers {
+                input["context"] = json!({ "answers": answers });
+            }
+            json!({ "input": input })
+        };
+        let (defaults, default_command) = self.archive.clone();
+        let id = match id {
+            commands::ARCHIVE_CONFIRM => match context.input.as_deref() {
+                None => return Ok(yes_or_no("Archive this subtree or entry?", None)),
+                Some("y" | "Y" | " ") => commands::ARCHIVE_DEFAULT,
+                Some(_) => return Err("Abort".into()),
+            },
+            other => other,
+        };
+        let id = match (id, default_command.as_str()) {
+            (commands::ARCHIVE_DEFAULT, "sibling") => commands::ARCHIVE_SIBLING,
+            (commands::ARCHIVE_DEFAULT, "tag") => commands::ARCHIVE_TAG,
+            (commands::ARCHIVE_DEFAULT, _) => commands::ARCHIVE_SUBTREE,
+            (other, _) => other,
+        };
+        // The entry: its file and a place in it.
+        let uri = &context.text_document.uri;
+        let (file, offset) = if self.is_view(uri) {
+            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let offset = self
+                .with_source(&reference.uri, |_, _, _, outline, _| {
+                    views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
+                })
+                .flatten()
+                .ok_or("The entry is gone; rebuild the agenda")?;
+            (reference.uri, offset)
+        } else {
+            let document = self.document(uri).ok_or("The document is not open")?;
+            (uri.clone(), document.index.offset(&document.text, context.position, self.client.encoding))
+        };
+        let (text, version, keywords) = self
+            .with_source(&file, |text, _, parse, _, version| (text.to_string(), version, parse.todo_keywords().clone()))
+            .ok_or("Cannot read the file of this entry")?;
+        let adapt = self.adapt_in(&text);
+        let settings = ArchiveSettings {
+            levels: RefileSettings { adapt, ..defaults.levels },
+            todo: todo::Settings { adapt, ..defaults.todo.clone() },
+            ..defaults
+        };
+        let now = self.date_time();
+        let path = uri::to_path(&file);
+        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+        let archived = match id {
+            commands::ARCHIVE_SIBLING => {
+                let (source, cursor) = archive::to_sibling(&text, offset, &keywords, now, &settings)?;
+                Archived { source, files: Vec::new(), message: String::new(), cursor }
+            }
+            commands::ARCHIVE_TAG => {
+                let (source, message) = archive::toggle_tag(&text, offset, &settings)?;
+                Archived { source, files: Vec::new(), message, cursor: offset }
+            }
+            commands::ARCHIVE_SUBTREE | commands::ARCHIVE_DONE | commands::ARCHIVE_TAG_DONE => {
+                let path = path.ok_or("No file associated to buffer")?;
+                let where_ = archive::Context { path: &path, home: home.as_deref(), now };
+                // Another file as an editor has it, or as it is on disk.
+                let open: Vec<(PathBuf, String)> = self
+                    .documents
+                    .iter()
+                    .filter_map(|(key, document)| {
+                        Some((uri::to_path(&key.parse::<Uri>().ok()?)?, document.text.clone()))
+                    })
+                    .collect();
+                let mut read = |wanted: &Path| match open.iter().find(|(path, _)| path == wanted) {
+                    Some((_, text)) => Some(text.clone()),
+                    None => std::fs::read_to_string(wanted).ok(),
+                };
+                if id == commands::ARCHIVE_SUBTREE {
+                    archive::archive_subtree(&text, offset, &keywords, &where_, &settings, &mut read)?
+                } else {
+                    let mut answered = context.answers.clone().unwrap_or_default();
+                    if let Some(input) = context.input.as_deref() {
+                        answered.push(if matches!(input, "y" | "Y" | " ") { 'y' } else { 'n' });
+                    }
+                    let answers: Vec<bool> = answered.chars().map(|answer| answer == 'y').collect();
+                    let tag = id == commands::ARCHIVE_TAG_DONE;
+                    match archive::archive_all(&text, offset, &keywords, &where_, &settings, tag, &answers, &mut read)?
+                    {
+                        AllOutcome::Ask(question) => return Ok(yes_or_no(&question, Some(answered))),
+                        AllOutcome::Done(done) => done,
+                    }
+                }
+            }
+            _ => return Err(format!("Unknown command {id}").into()),
+        };
+        // The entry's file, and the archive files open in an editor, get
+        // edits; the others are written.
+        let mut documents = vec![(file.clone(), version, self.text_edits(&text, &archived.source))];
+        for written in &archived.files {
+            let open = uri::from_path(&written.path).and_then(|found| {
+                let key = self
+                    .documents
+                    .keys()
+                    .find(|key| {
+                        key.parse::<Uri>().ok().and_then(|uri| uri::to_path(&uri)).as_ref() == Some(&written.path)
+                    })
+                    .cloned()?;
+                Some((
+                    key.parse::<Uri>().unwrap_or(found),
+                    self.documents[&key].version,
+                    self.documents[&key].text.clone(),
+                ))
+            });
+            match open {
+                Some((uri, version, now)) => documents.push((uri, Some(version), self.text_edits(&now, &written.text))),
+                None => {
+                    if let Some(directory) = written.path.parent() {
+                        let _ = std::fs::create_dir_all(directory);
+                    }
+                    std::fs::write(&written.path, &written.text)
+                        .map_err(|error| format!("Cannot write {}: {error}", written.path.display()))?;
+                }
+            }
+        }
+        documents.retain(|(_, _, edits)| !edits.is_empty());
+        if !archived.message.is_empty() {
+            self.message = Some(archived.message);
+        }
+        if documents.is_empty() {
+            self.refresh_view();
+            return Ok(Value::Null);
+        }
+        for (uri, _, _) in &documents {
+            self.edited.insert(uri.as_str().to_string());
+        }
+        let edit = self.workspace_edits(documents);
+        let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+        self.apply_edit(params, Pending::Edit);
+        Ok(Value::Null)
     }
 
     /// Refile the entry at byte `offset` of `file`, which reads `text`

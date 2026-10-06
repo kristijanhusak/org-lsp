@@ -177,6 +177,24 @@ function! s:help() abort
 endfunction
 call s:test('g? lists the keys of the buffer', function('s:help'))
 
+function! s:archive() abort
+  let file = s:work . '/notes/archive.org'
+  call writefile(['Intro', '* DONE Old', 'Notes.', '* DONE Older', '* TODO New'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(2, 1)
+  call feedkeys("\\o$", 'xt')
+  call s:until('the subtree archived', {-> getline(2) ==# '* DONE Older'})
+  call s:until('the archive file', {-> filereadable(file . '_archive')})
+  call assert_true(index(readfile(file . '_archive'), '* DONE Old') >= 0, string(readfile(file . '_archive')))
+  let g:answers = ['y']
+  call cursor(1, 1)
+  call org_lsp#run('org.archive.done')
+  call s:until('the subtree without open TODO items archived', {-> getline(1, '$') ==# ['Intro', '* TODO New']})
+  silent write
+endfunction
+call s:test('archives a subtree, and asks about each done one', function('s:archive'))
+
 for error in v:errors
   call add(s:results, 'not ok - ' . error)
 endfor

@@ -43,6 +43,9 @@ The other options are in [configuration.md](configuration.md).
 | `<C-Space>` | `org.checkbox.toggle` | Toggle the checkbox |
 | `<CR>`¹ (insert mode) | `org.return` | New line, as Org's RET makes it |
 | `<Leader>or` | `org.refile` | Refile the entry |
+| `<Leader>o$` | `org.archive.subtree` | Archive the subtree |
+| `<Leader>oxA` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
+| `<Leader>oA` | `org.archive.tag` | Toggle the ARCHIVE tag |
 | `<C-a>`¹ | `org.timestamp.up` | Increase the part of the timestamp at the cursor |
 | `<C-x>`¹ | `org.timestamp.down` | Decrease the part of the timestamp at the cursor |
 | `<S-Up>`¹ | `org.date.later` | Move the date one day later |
@@ -86,6 +89,10 @@ The other options are in [configuration.md](configuration.md).
 | `-` | `org.priority.down` | Lower the priority |
 | `<Leader>o,` | `org.priority` | Set the priority |
 | `<Leader>or` | `org.refile` | Refile the entry |
+| `$` | `org.archive.subtree` | Archive the subtree |
+| `<Leader>oxA` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
+| `<Leader>oA` | `org.archive.tag` | Toggle the ARCHIVE tag |
+| `a` | `org.archive.confirm` | Archive with the default command, once confirmed |
 | `<S-Right>` | `org.date.later` | Move the date one day later |
 | `<S-Left>` | `org.date.earlier` | Move the date one day earlier |
 | `<Leader>ois` | `org.schedule` | Schedule the entry |
@@ -119,6 +126,9 @@ The other options are in [configuration.md](configuration.md).
 | `org.agenda.todos` | List of all TODO entries |
 | `org.agenda.save` | Save all Org files |
 | `org.todo.next` | Cycle TODO state forward |
+| `org.archive.default` | Archive with the default command |
+| `org.archive.done` | Archive the subtrees without open TODO items |
+| `org.archive.tag.done` | Tag the subtrees without open TODO items as archived |
 | `org.shift.up` | Increase the timestamp part or raise the priority |
 | `org.shift.down` | Decrease the timestamp part or lower the priority |
 | `org.shift.left` | Move the date a day earlier or cycle the TODO state backward |

@@ -116,6 +116,13 @@ pub const PRIORITY: &str = "org.priority";
 pub const CHECKBOX_TOGGLE: &str = "org.checkbox.toggle";
 pub const RETURN: &str = "org.return";
 pub const REFILE: &str = "org.refile";
+pub const ARCHIVE_SUBTREE: &str = "org.archive.subtree";
+pub const ARCHIVE_SIBLING: &str = "org.archive.sibling";
+pub const ARCHIVE_TAG: &str = "org.archive.tag";
+pub const ARCHIVE_DEFAULT: &str = "org.archive.default";
+pub const ARCHIVE_CONFIRM: &str = "org.archive.confirm";
+pub const ARCHIVE_DONE: &str = "org.archive.done";
+pub const ARCHIVE_TAG_DONE: &str = "org.archive.tag.done";
 pub const CAPTURE: &str = "org.capture";
 pub const CAPTURE_FINISH: &str = "org.capture.finish";
 pub const CAPTURE_ABORT: &str = "org.capture.abort";
@@ -295,6 +302,50 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>or"), key(Agenda, "<Leader>or")],
         input: Some(Input { kind: "choice", prompt: "Refile to" }),
         ..edit(REFILE, "Refile the entry")
+    },
+    // `org-archive-subtree` and its relatives, in Org files and on agenda
+    // lines (`org-agenda-archive`). The subtree goes to the archive
+    // location; another file is written when no editor has it open.
+    Command {
+        emacs: &[
+            key(Org, "C-c C-x C-s"),
+            key(Org, "C-c $"),
+            key(Agenda, "$"),
+            key(Agenda, "C-c C-x C-s"),
+            key(Agenda, "C-c $"),
+        ],
+        vim: &[key(Org, "<Leader>o$"), key(Agenda, "$")],
+        ..edit(ARCHIVE_SUBTREE, "Archive the subtree")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x A"), key(Agenda, "C-c C-x A")],
+        vim: &[key(Org, "<Leader>oxA"), key(Agenda, "<Leader>oxA")],
+        ..edit(ARCHIVE_SIBLING, "Archive the subtree under its Archive sibling")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x a"), key(Agenda, "C-c C-x a")],
+        vim: &[key(Org, "<Leader>oA"), key(Agenda, "<Leader>oA")],
+        ..edit(ARCHIVE_TAG, "Toggle the ARCHIVE tag")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x C-a"), key(Agenda, "C-c C-x C-a")],
+        ..edit(ARCHIVE_DEFAULT, "Archive with the default command")
+    },
+    Command {
+        emacs: &[key(Agenda, "a")],
+        vim: &[key(Agenda, "a")],
+        input: Some(Input { kind: "key", prompt: "Archive this subtree or entry?" }),
+        ..edit(ARCHIVE_CONFIRM, "Archive with the default command, once confirmed")
+    },
+    // Emacs's `C-u C-c C-x C-s` and `C-u C-c C-x a`; no editor binds
+    // `C-u` as a prefix, so these are commands without keys.
+    Command {
+        input: Some(Input { kind: "key", prompt: "Move subtree to archive?" }),
+        ..edit(ARCHIVE_DONE, "Archive the subtrees without open TODO items")
+    },
+    Command {
+        input: Some(Input { kind: "key", prompt: "Set ARCHIVE tag?" }),
+        ..edit(ARCHIVE_TAG_DONE, "Tag the subtrees without open TODO items as archived")
     },
     Command {
         emacs: &[key(Global, "C-c c")],

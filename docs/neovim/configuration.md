@@ -282,6 +282,44 @@ require('org-lsp').setup({
     -- (org-reverse-note-order)
     reverseNoteOrder = false,
 
+    -- Where archived subtrees go: a file, `::`, and a headline under which
+    -- they go (they go to the end of the file without one). `%s` is the name
+    -- of the file the subtree is in; an empty file part is that file.
+    -- `datetree/` as the headline files them under year, month and day, by
+    -- when they were closed. An `ARCHIVE` property of the entry or a parent,
+    -- or a `#+ARCHIVE:` line, says otherwise. (org-archive-location)
+    archiveLocation = '%s_archive::',
+
+    -- An archived subtree goes first under its archive headline, not last.
+    -- (org-archive-reversed-order)
+    archiveReversedOrder = false,
+
+    -- Mark archived entries done: `true` for the first done keyword, or the
+    -- keyword to use. (org-archive-mark-done)
+    archiveMarkDone = false,
+
+    -- Give an archived subtree the tags it inherited: always, never, or when
+    -- it stays in its file. (org-archive-subtree-add-inherited-tags)
+    archiveSubtreeAddInheritedTags = 'infile',
+
+    -- What an archived entry keeps as `ARCHIVE_…` properties: `time`, `file`,
+    -- `olpath` (its outline path), `category`, `todo`, `itags` (inherited
+    -- tags), `ltags` (its own tags) and `olid` (its parent's ID).
+    -- (org-archive-save-context-info)
+    archiveSaveContextInfo = { 'time', 'file', 'olpath', 'category', 'todo', 'itags' },
+
+    -- The headline of the sibling `org.archive.sibling` archives under.
+    -- (org-archive-sibling-heading)
+    archiveSiblingHeading = 'Archive',
+
+    -- What a new archive file starts with; `%s` is the path of the file the
+    -- subtree came from. (org-archive-file-header-format)
+    archiveFileHeaderFormat = '\nArchived entries from file %s\n\n',
+
+    -- What `org.archive.default` does: archive the subtree, archive it under
+    -- its sibling, or tag it. (org-archive-default-command)
+    archiveDefaultCommand = 'subtree',
+
     -- Capture templates. Each has a `key`, a `description`, a `type`
     -- (`entry`, the default, or `plain`), a `target` and a `template` (text,
     -- or a list of lines), and may have `prepend`, `emptyLines`,

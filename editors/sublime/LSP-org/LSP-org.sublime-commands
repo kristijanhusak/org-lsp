@@ -210,6 +210,55 @@
     }
   },
   {
+    "caption": "Org: Archive the subtree",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.archive.subtree"
+    }
+  },
+  {
+    "caption": "Org: Archive the subtree under its Archive sibling",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.archive.sibling"
+    }
+  },
+  {
+    "caption": "Org: Toggle the ARCHIVE tag",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.archive.tag"
+    }
+  },
+  {
+    "caption": "Org: Archive with the default command",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.archive.default"
+    }
+  },
+  {
+    "caption": "Org: Archive with the default command, once confirmed",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.archive.confirm"
+    }
+  },
+  {
+    "caption": "Org: Archive the subtrees without open TODO items",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.archive.done"
+    }
+  },
+  {
+    "caption": "Org: Tag the subtrees without open TODO items as archived",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.archive.tag.done"
+    }
+  },
+  {
     "caption": "Org: Capture",
     "command": "org_lsp_run",
     "args": {

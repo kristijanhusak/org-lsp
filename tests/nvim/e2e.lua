@@ -612,6 +612,50 @@ vim.api.nvim_win_set_cursor(0, { 6, 3 })
 press('a<CR>z<Esc>')
 eq(vim.api.nvim_buf_get_lines(0, 5, 7, false), { 'echo', '  z' }, 'in code, RET is RET (indented as the block content)')
 
+-- 24. `<Leader>o$` archives the subtree to the archive file, which is
+-- written as Emacs saves it, and `<Leader>oA` tags a subtree as archived.
+-- `org.archive.done` asks about each subtree without open TODO items.
+local archived = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ 'Intro', '* DONE Old', 'Notes.', '* DONE Older', '* TODO New' }, archived)
+vim.cmd.edit(archived)
+wait('the server to attach to the file to archive in', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press('<Leader>o$')
+wait('the subtree archived', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return line(2) == '* DONE Older'
+end)
+local archive_lines = vim.fn.readfile(archived .. '_archive')
+check(vim.tbl_contains(archive_lines, '* DONE Old') and vim.tbl_contains(archive_lines, ':ARCHIVE_CATEGORY: ' .. vim.fn.fnamemodify(archived, ':t:r')),
+  'the archive file has the subtree and where it came from:\n' .. table.concat(archive_lines, '\n'))
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+press('<Leader>oA')
+wait('the ARCHIVE tag', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return line(3):match(' :ARCHIVE:$') ~= nil
+end)
+press('<Leader>oA')
+wait('the ARCHIVE tag gone', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return line(3) == '* TODO New'
+end)
+local asked_about = {}
+plugin.read_key = function(prompt)
+  table.insert(asked_about, prompt)
+  return 'y'
+end
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+plugin.run('org.archive.done')
+wait('the answered subtree archived', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return #vim.api.nvim_buf_get_lines(0, 0, -1, false) == 2
+end)
+plugin.read_key = read_key
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { 'Intro', '* TODO New' }, 'the subtree said yes to went')
+eq(asked_about, { 'Move subtree to archive? (no open TODO items)' }, 'one question, for the one subtree left')
+
 -- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'
