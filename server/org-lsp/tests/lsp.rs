@@ -567,7 +567,31 @@ fn indents_new_lines_and_ranges() {
         })
         .unwrap();
     let changed: Vec<(u32, &str)> = edits.iter().map(|edit| (edit.range.start.line, edit.new_text.as_str())).collect();
-    assert_eq!(changed, [(1, "   "), (2, "   :ID:       x"), (3, "   "), (4, "   "), (6, "   ")]);
+    assert_eq!(
+        changed,
+        [(1, "   :PROPERTIES:"), (2, "   :ID:       x"), (3, "   :END:"), (4, "   - item"), (6, "   Text")]
+    );
+
+    // A table with a line in the range is aligned whole, and the tags of
+    // the headlines in it go to their column; the rest stays.
+    client.notify::<lsp_types::notification::DidChangeTextDocument>(lsp_types::DidChangeTextDocumentParams {
+        text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri(), version: 3 },
+        content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+            range: None,
+            range_length: None,
+            text: "* A :x:\n|a|bb|\n|ccc|d|\n* B :y:\n".to_string(),
+        }],
+    });
+    let edits = client
+        .request::<lsp_types::request::RangeFormatting>(lsp_types::DocumentRangeFormattingParams {
+            text_document: identifier(),
+            range: Range::new(Position::new(2, 0), Position::new(3, 0)),
+            options: lsp_types::FormattingOptions { tab_size: 8, insert_spaces: true, ..Default::default() },
+            work_done_progress_params: Default::default(),
+        })
+        .unwrap();
+    let changed: Vec<(u32, &str)> = edits.iter().map(|edit| (edit.range.start.line, edit.new_text.as_str())).collect();
+    assert_eq!(changed, [(1, "| a   | bb |"), (2, "| ccc | d  |")]);
     client.shutdown();
 }
 

@@ -264,6 +264,15 @@ function! org_lsp#run(name, ...) abort
   if empty(org_lsp#adapter())
     return s:warn('no LSP client found: install yegappan/lsp, vim-lsp, coc.nvim or ALE')
   endif
+  " Rebuilding reads the files again: those changed on disk while open
+  " here, and not changed here, are read again first ('autoread'), as the
+  " server takes an open file's text from the editor.
+  if a:name ==# 'org.agenda.redo'
+    let autoread = &autoread
+    set autoread
+    silent! checktime
+    let &autoread = autoread
+  endif
   let [nr, context] = s:cursor_context()
   if get(opts, 'count', 0) > 0
     let context.count = opts.count

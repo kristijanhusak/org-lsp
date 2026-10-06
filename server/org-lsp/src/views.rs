@@ -155,7 +155,7 @@ pub fn render(
             (*outline, path, crate::uri::file_name(uri))
         })
         .collect();
-    let (rendered, starts) = block_lines(blocks, &named, now);
+    let (rendered, starts) = block_lines(blocks, &named, now, false);
     let mut text = String::new();
     let mut lines = Vec::with_capacity(rendered.len());
     let mut tokens = Vec::new();
@@ -237,14 +237,16 @@ pub fn render(
 /// The text of the view `blocks` make, as Org prints it (`org-batch-agenda`):
 /// links as written.
 pub fn org_text(blocks: &[Block], files: &[(&Outline, String, String)], now: Now) -> String {
-    block_lines(blocks, files, now).0.into_iter().map(|(_, line)| line.text + "\n").collect()
+    block_lines(blocks, files, now, true).0.into_iter().map(|(_, line)| line.text + "\n").collect()
 }
 
 type BlockLines = (Vec<(usize, agenda::Line)>, Vec<Option<(Day, Span)>>);
 
 /// The lines of every block, with the block each belongs to, and the
-/// days and span of the blocks that are agendas.
-fn block_lines(blocks: &[Block], files: &[(&Outline, String, String)], now: Now) -> BlockLines {
+/// days and span of the blocks that are agendas. Emacs leaves a blank line
+/// above the separator between blocks; `blank` keeps it, as the agenda
+/// printed in a terminal does. The editor's agenda goes without.
+fn block_lines(blocks: &[Block], files: &[(&Outline, String, String)], now: Now, blank: bool) -> BlockLines {
     let outlines: Vec<&Outline> = files.iter().map(|(outline, _, _)| *outline).collect();
     let outlines = outlines.as_slice();
     let mut rendered: Vec<(usize, agenda::Line)> = Vec::new();
@@ -271,7 +273,9 @@ fn block_lines(blocks: &[Block], files: &[(&Outline, String, String)], now: Now)
         }
         // Between this block and what is above it.
         if !rendered.is_empty() {
-            rendered.extend(agenda::block_separator(config).into_iter().map(|line| (number, line)));
+            let separator = agenda::block_separator(config);
+            let skip = usize::from(!blank && separator.first().is_some_and(|line| line.text.is_empty()));
+            rendered.extend(separator.into_iter().skip(skip).map(|line| (number, line)));
         }
         let (start, end) = (view.start, view.end);
         rendered.extend(view.lines.into_iter().map(|line| (number, line)));

@@ -167,6 +167,15 @@ function M.run(name, opts)
     return own_commands[name][2]()
   end
   opts = opts or {}
+  -- Rebuilding reads the files again: those changed on disk while open
+  -- here, and not changed here, are read again first (`autoread`), as the
+  -- server takes an open file's text from the editor.
+  if name == 'org.agenda.redo' then
+    local autoread = vim.o.autoread
+    vim.o.autoread = true
+    vim.cmd('silent! checktime')
+    vim.o.autoread = autoread
+  end
   local count = opts.count and opts.count > 0 and opts.count or nil
   with_client(function(client)
     local context = vim.lsp.util.make_position_params(0, client.offset_encoding)

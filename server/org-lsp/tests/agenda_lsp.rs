@@ -658,7 +658,8 @@ fn runs_custom_agenda_commands() {
     assert_eq!(lines[0], "Day-agenda (W21):");
     assert_eq!(lines[1], "Monday     18 May 2026 W21");
     let separator = lines.iter().position(|line| line.starts_with("====")).unwrap();
-    assert_eq!(lines[separator - 1], "");
+    // No blank line above the separator, unlike Emacs.
+    assert_ne!(lines[separator - 1], "");
     assert_eq!(lines[separator + 1], "At the office");
     assert!(lines[separator + 2].contains("Write report"), "{text}");
 

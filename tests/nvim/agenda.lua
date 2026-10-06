@@ -597,5 +597,23 @@ wait('the capture to be given up', function()
 end)
 eq(vim.api.nvim_get_current_buf(), work_buf, 'capture: back in the file')
 
+-- 12. `r` rebuilds the agenda from the files as they are on disk, an open
+-- file that changed there and not here included.
+only_window()
+vim.cmd('silent write')
+press('<F7>')
+wait_for_view('Global list of TODO items of type: ALL')
+local on_disk = vim.fn.readfile(work)
+table.insert(on_disk, '* TODO Written elsewhere')
+vim.fn.writefile(on_disk, work)
+press('r')
+wait('the entry written elsewhere', function()
+  return vim.iter(lines()):any(function(text)
+    return text:find('TODO Written elsewhere', 1, true) ~= nil
+  end)
+end)
+eq(vim.api.nvim_buf_get_lines(work_buf, -2, -1, false), { '* TODO Written elsewhere' }, 'the open file read again')
+press('q')
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

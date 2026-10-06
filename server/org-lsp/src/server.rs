@@ -670,6 +670,26 @@ fn indent_edit(text: &str, index: &LineIndex, encoding: Encoding, edit: org_core
     TextEdit { range: index.range(text, range, encoding), new_text: edit.text }
 }
 
+/// The edits that turn `text` into `new`, which has the same lines: each
+/// line that differs, replaced.
+fn line_edits(text: &str, index: &LineIndex, encoding: Encoding, new: &str) -> Vec<TextEdit> {
+    let mut edits = Vec::new();
+    let mut start = 0;
+    for (old, new) in text.split('\n').zip(new.split('\n')) {
+        let end = start + old.len();
+        if old != new {
+            edits.push(indent_edit(
+                text,
+                index,
+                encoding,
+                org_core::indent::Edit { start, end, text: new.to_string() },
+            ));
+        }
+        start = end + 1;
+    }
+    edits
+}
+
 /// Parse the parameters of `request`, or produce the error response.
 fn parameters<P: DeserializeOwned>(request: Request) -> std::result::Result<(RequestId, P), Response> {
     let id = request.id.clone();
@@ -1168,15 +1188,30 @@ impl Server {
         Some(edit.into_iter().map(|edit| indent_edit(text, index, encoding, edit)).collect())
     }
 
-    /// `org-indent-region` over the lines of the range.
+    /// `org-indent-region` over the lines of the range, then the tables
+    /// that have a line there aligned (`org-table-align`) and the tags of its
+    /// headlines put in their column.
     fn range_formatting(&mut self, params: lsp_types::DocumentRangeFormattingParams) -> Option<Vec<TextEdit>> {
         let encoding = self.client.encoding;
+        let settings = org_core::format::Settings { tags_column: self.refile.2.tags_column };
+        let indent = self.indent_in(&self.document(&params.text_document.uri)?.text.clone());
         let document = self.document(&params.text_document.uri)?;
         let (text, index) = (&document.text, &document.index);
         let start = index.offset(text, params.range.start, encoding);
         let end = index.offset(text, params.range.end, encoding);
-        let edits = org_core::indent::indent_region(text, start, end, &self.indent_in(text));
-        Some(edits.into_iter().map(|edit| indent_edit(text, index, encoding, edit)).collect())
+        let indented = org_core::indent::apply(text, &org_core::indent::indent_region(text, start, end, &indent));
+        // A range that ends at the start of a line leaves that line out.
+        let first = text[..start].matches('\n').count();
+        let last = text[..end].matches('\n').count();
+        let last = if end > start && text[..end].ends_with('\n') { last - 1 } else { last };
+        let changes = org_core::format::format_lines(
+            &indented,
+            document.parse.todo_keywords(),
+            &settings,
+            first..=last.max(first),
+        );
+        let formatted = org_core::format::apply(&indented, &changes);
+        Some(line_edits(text, index, encoding, &formatted))
     }
 
     /// Every table aligned (`org-table-align`) and every headline's tags
@@ -1186,18 +1221,9 @@ impl Server {
         let settings = org_core::format::Settings { tags_column: self.refile.2.tags_column };
         let document = self.document(&params.text_document.uri)?;
         let (text, index) = (&document.text, &document.index);
-        let starts: Vec<usize> = std::iter::once(0).chain(text.match_indices('\n').map(|(at, _)| at + 1)).collect();
         let changes = org_core::format::format(text, document.parse.todo_keywords(), &settings);
-        Some(
-            changes
-                .into_iter()
-                .map(|(line, new)| {
-                    let start = starts[line];
-                    let end = text[start..].find('\n').map_or(text.len(), |at| start + at);
-                    indent_edit(text, index, encoding, org_core::indent::Edit { start, end, text: new })
-                })
-                .collect(),
-        )
+        let formatted = org_core::format::apply(text, &changes);
+        Some(line_edits(text, index, encoding, &formatted))
     }
 
     fn completion(&mut self, params: lsp_types::CompletionParams) -> Option<lsp_types::CompletionResponse> {
