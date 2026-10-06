@@ -13,7 +13,7 @@ A Zed extension that runs Org through the org-lsp server.
    ```json
    {
      "languages": {
-       "Org": { "semantic_tokens": "combined" }
+       "Org": { "semantic_tokens": "combined", "inlay_hints": { "enabled": true } }
      },
      "lsp": {
        "org-lsp": {
@@ -43,6 +43,16 @@ show their code in its language's colors, through the grammar's
 injections, with `combined` (with `full` there is no grammar to inject
 into). The grammar has no node for inline source blocks
 (`src_python{…}`), so their code is not colored.
+
+Files with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`)
+show indented by level, without being changed, through inlay hints of
+blanks before their lines, when Zed shows inlay hints for Org:
+
+```json
+{ "languages": { "Org": { "inlay_hints": { "enabled": true } } } }
+```
+
+The leading stars still show; Zed cannot hide them.
 
 `initialization_options` are the server's options
 ([docs/configuration.md](../../docs/configuration.md)); the shared

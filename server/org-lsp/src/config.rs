@@ -97,6 +97,9 @@ pub struct Options {
     /// item), and the agenda's commands through the command port (see
     /// `port`): for a client that cannot run a command from a key (Zed).
     pub command_actions: Option<bool>,
+    /// The client shows `org-lsp/virtualIndent`, as one announcing
+    /// `experimental.orgVirtualIndent` does.
+    pub virtual_indent: Option<bool>,
     /// `org-refile-targets`: where entries can be refiled to. Without it,
     /// the top-level headlines of the entry's own file.
     pub refile_targets: Option<Vec<RefileTargetOption>>,

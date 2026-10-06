@@ -646,6 +646,19 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "virtualIndent",
+            "boolean",
+            "false",
+            "",
+            "Whether the client shows `org-indent-mode`'s prefixes and hidden stars that the server sends \
+             (`org-lsp/virtualIndent`), as a client announcing `experimental.orgVirtualIndent` does: for the \
+             Vim plugin and the Sublime Text package, whose LSP clients announce nothing of the kind. A client \
+             that shows neither gets the prefixes as inlay hints instead.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "commandActions",
             "boolean",
             "false",
@@ -797,6 +810,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("virtualDocuments", BOOLEAN),
     ("showDocument", BOOLEAN),
     ("messagePrompts", BOOLEAN),
+    ("virtualIndent", BOOLEAN),
     ("commandActions", BOOLEAN),
 ];
 
