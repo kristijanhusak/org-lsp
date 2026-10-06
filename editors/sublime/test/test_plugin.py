@@ -99,11 +99,21 @@ class View:
         self.commands.append((name, args))
 
     def match_selector(self, point, selector):
-        scope = 'text.org-agenda' if self.name.endswith('.org-agenda') else 'text.org'
+        scope = 'text.org-agenda' if self.name.endswith('.org-agenda') else \
+            'text.org' if self.name.endswith('.org') else 'text.plain'
         return scope in [part.strip() for part in selector.split('|')]
 
     def file_name(self):
         return self.name
+
+    def is_valid(self):
+        return not getattr(self, 'closed', False)
+
+    def set_scratch(self, scratch):
+        self.scratch = scratch
+
+    def close(self):
+        self.closed = True
 
 
 class Window:
@@ -127,6 +137,12 @@ class Window:
 
     def views(self):
         return [self.view]
+
+    def open_file(self, path):
+        self.opened = View(open(path, encoding='utf-8').read(), path)
+        if getattr(self, 'on_open', None):
+            self.on_open(self.opened)
+        return self.opened
 
 
 class Session:
@@ -154,6 +170,8 @@ def load_plugin():
     sublime.arch = lambda: 'x64'
     sublime.packages = tempfile.mkdtemp()
     sublime.packages_path = lambda: sublime.packages
+    sublime.cache = tempfile.mkdtemp()
+    sublime.cache_path = lambda: sublime.cache
     package = os.path.join(HERE, '..', 'LSP-org')
     sublime.load_resource = lambda name: open(os.path.join(package, name.split('/')[-1]), encoding='utf-8').read()
     sublime.decode_value = json.loads
@@ -262,6 +280,27 @@ class Tests(unittest.TestCase):
              ('result', None)],
             command='org.capture')
         self.assertEqual(self.window.panels[1], ('quick', ['[t] Task'], 'Template'))
+
+    def test_starts_the_server_for_the_agenda_when_no_org_file_is_open(self):
+        self.view.name = '/notes/readme.txt'
+        session = Session([('result', None)])
+        self.Command.current = None
+
+        # LSP starts the server for the agenda file that is opened.
+        def started(view):
+            self.assertTrue(view.match_selector(0, 'text.org-agenda'))
+            self.Command.current = session
+        self.window.on_open = started
+        self.plugin.OrgLspRunCommand(self.window).run(command='org.agenda.list')
+        self.assertEqual(session.sent, [('workspace/executeCommand', {'command': 'org.agenda.list', 'arguments': []})])
+        self.assertTrue(self.window.opened.closed)
+        # In an Org file, the key waits for its server.
+        self.view.name = '/notes/work.org'
+        self.Command.current = None
+        self.window.opened = None
+        self.plugin.OrgLspRunCommand(self.window).run(command='org.agenda.list')
+        self.assertIsNone(self.window.opened)
+        self.assertIn('org-lsp: the server is starting', self.sublime.messages)
 
     def test_a_key_keeps_its_own_meaning_where_the_command_does_not_apply(self):
         fallback = {'command': 'move', 'args': {'by': 'lines', 'forward': False, 'extend': True}}
