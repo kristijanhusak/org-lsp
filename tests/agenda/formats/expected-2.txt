@@ -1,0 +1,7 @@
+Global list of TODO items of type: ALL
+        phone: Projects / Alpha / NEXT [#A] Call [[https://example.org][the client]]
+ 2:00   writing: Projects / TODO Write the report
+        office: Projects / Alpha / WAIT Past deadline
+ 0:30   office: TODO Scheduled in the past
+        office: TODO A very long category entry
+        home: Home / TODO Water plants

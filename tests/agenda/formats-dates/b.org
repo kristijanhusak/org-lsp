@@ -1,0 +1,5 @@
+#+TODO: TODO NEXT WAIT | DONE CANCELLED
+* Home :home:
+** TODO Water plants
+SCHEDULED: <2026-10-05 Mon 18:00>
+** CANCELLED Old thing

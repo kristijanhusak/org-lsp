@@ -1,0 +1,19 @@
+Day-agenda (W41):
+Monday      5 October 2026 W41
+  ----------------
+  2:00  Projects / TODO Write the report
+  ----------------
+  now - - - - - - - - - - - - - - - - - - - - - - - - -
+  ----------------
+  Meeting 
+  ----------------
+  ----------------
+  Home / TODO Water plants
+  ----------------
+  ----------------
+  Projects / Alpha / NEXT [#A] Call [[https://example.org][the client]]
+  0:30  TODO Scheduled in the past
+  Projects / Alpha / DONE Send the invoice
+  Projects / Alpha / WAIT Past deadline
+  Conference
+  TODO A very long category entry

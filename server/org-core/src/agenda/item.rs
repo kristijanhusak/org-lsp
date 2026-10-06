@@ -1,9 +1,9 @@
 //! One agenda line: how an entry's headline becomes the text shown.
 //!
 //! This is a port of `org-agenda-format-item` and the helpers around it.
-//! The format is the default one: two blanks, the category padded to
-//! twelve columns, the time when there is one, a leader such as
-//! `Scheduled:`, then the headline with its tags.
+//! The prefix before the headline follows `org-agenda-prefix-format`; by
+//! default two blanks, the category padded to twelve columns, the time
+//! when there is one, and a leader such as `Scheduled:`.
 
 use crate::outline::Tag;
 use crate::priority::Priorities;
@@ -79,13 +79,314 @@ pub struct Item {
     pub keyword_done: bool,
 }
 
-/// Which prefix format a line uses.
+/// What a specifier of `org-agenda-prefix-format` stands for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Prefix {
-    /// ` %i %-12:c%?-12t% s`
-    Agenda,
-    /// ` %i %-12:c`
-    Todo,
+enum Field {
+    /// `%c`
+    Category,
+    /// `%t`
+    Time,
+    /// `%l`: a blank per level.
+    Level,
+    /// `%s`: the leader, such as `Scheduled: `.
+    Extra,
+    /// `%i`: no icons here, so always empty.
+    Icon,
+    /// `%T`: the last tag.
+    Tag,
+    /// `%e`
+    Effort,
+    /// `%b`
+    Breadcrumbs,
+    /// `%(...)`: Emacs Lisp, which there is no Emacs to run.
+    Eval,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Part {
+    Text(String),
+    Field {
+        field: Field,
+        /// `%?`: nothing at all when the value is empty.
+        optional: bool,
+        /// `-`: padded on the right.
+        left: bool,
+        width: usize,
+        precision: Option<usize>,
+        /// A character appended to a value that is not empty: `%-12:c`.
+        suffix: Option<char>,
+    },
+}
+
+/// `org-compile-prefix-format`: an `org-agenda-prefix-format` string,
+/// read once.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PrefixFormat {
+    parts: Vec<Part>,
+    /// `org-prefix-has-time`: the time moves out of the headline.
+    has_time: bool,
+    /// `org-prefix-has-tag`
+    has_tag: bool,
+    pub has_breadcrumbs: bool,
+    /// `org-prefix-category-max-length`: the precision of `%c`.
+    category_max: Option<usize>,
+}
+
+impl PrefixFormat {
+    pub fn new(format: &str) -> PrefixFormat {
+        let mut parts = Vec::new();
+        let mut text = String::new();
+        let (mut has_time, mut has_tag, mut has_breadcrumbs, mut category_max) = (false, false, false, None);
+        let chars: Vec<char> = format.chars().collect();
+        let mut at = 0;
+        while at < chars.len() {
+            if chars[at] != '%' {
+                text.push(chars[at]);
+                at += 1;
+                continue;
+            }
+            match parse_specifier(&chars[at + 1..]) {
+                Some((spec, length)) => {
+                    if !text.is_empty() {
+                        parts.push(Part::Text(std::mem::take(&mut text)));
+                    }
+                    match spec.field {
+                        Field::Time => has_time = true,
+                        Field::Tag => has_tag = true,
+                        Field::Breadcrumbs => has_breadcrumbs = true,
+                        Field::Category => category_max = spec.precision,
+                        _ => {}
+                    }
+                    parts.push(Part::Field {
+                        field: spec.field,
+                        optional: spec.optional,
+                        left: spec.left,
+                        width: spec.width,
+                        precision: spec.precision,
+                        suffix: spec.suffix,
+                    });
+                    at += 1 + length;
+                }
+                None => {
+                    // `format` reads `%%` as `%`.
+                    text.push('%');
+                    at += if chars.get(at + 1) == Some(&'%') { 2 } else { 1 };
+                }
+            }
+        }
+        if !text.is_empty() {
+            parts.push(Part::Text(text));
+        }
+        PrefixFormat { parts, has_time, has_tag, has_breadcrumbs, category_max }
+    }
+}
+
+struct Specifier {
+    field: Field,
+    optional: bool,
+    left: bool,
+    width: usize,
+    precision: Option<usize>,
+    suffix: Option<char>,
+}
+
+/// A specifier after its `%`:
+/// `\(\?\)?\([-+]?[0-9.]*\)\([ .;,:!?=|/<>]?\)\([cltseib]\|(.+?)\)`,
+/// letters matched ignoring case as Emacs does; the length it takes.
+fn parse_specifier(chars: &[char]) -> Option<(Specifier, usize)> {
+    let mut at = 0;
+    let optional = chars.first() == Some(&'?');
+    if optional {
+        at += 1;
+    }
+    let mut flags = String::new();
+    if let Some(sign @ ('-' | '+')) = chars.get(at) {
+        flags.push(*sign);
+        at += 1;
+    }
+    while let Some(c) = chars.get(at).filter(|c| c.is_ascii_digit() || **c == '.') {
+        flags.push(*c);
+        at += 1;
+    }
+    let field_at = |at: usize| -> Option<(Field, usize)> {
+        let c = *chars.get(at)?;
+        if c == '(' {
+            // A Lisp form, to its matching parenthesis.
+            let mut depth = 0;
+            for (index, c) in chars[at..].iter().enumerate() {
+                match c {
+                    '(' => depth += 1,
+                    ')' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            return Some((Field::Eval, index + 1));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            return None;
+        }
+        let field = match c {
+            'c' => Field::Category,
+            't' => Field::Time,
+            'l' => Field::Level,
+            's' => Field::Extra,
+            'i' => Field::Icon,
+            'T' => Field::Tag,
+            'e' => Field::Effort,
+            'b' => Field::Breadcrumbs,
+            'C' | 'L' | 'S' | 'E' | 'I' | 'B' => Field::Eval,
+            _ => return None,
+        };
+        Some((field, 1))
+    };
+    let (suffix, (field, length)) = match field_at(at) {
+        Some(found) => (None, found),
+        None => {
+            let suffix = *chars.get(at).filter(|c| " .;,:!?=|/<>".contains(**c))?;
+            (Some(suffix), field_at(at + 1)?)
+        }
+    };
+    let left = flags.starts_with('-');
+    let digits = flags.trim_start_matches(['-', '+']);
+    let (width, precision) = match digits.split_once('.') {
+        Some((width, precision)) => (width, Some(precision.parse().unwrap_or(0))),
+        None => (digits, None),
+    };
+    let width = width.parse().unwrap_or(0);
+    let total = at + usize::from(suffix.is_some()) + length;
+    Some((Specifier { field, optional, left, width, precision, suffix }, total))
+}
+
+/// `format` with `%-W.Ps` or `%W.Ps`.
+fn format_string(value: &str, left: bool, width: usize, precision: Option<usize>) -> String {
+    let value: String = match precision {
+        Some(precision) => value.chars().take(precision).collect(),
+        None => value.to_string(),
+    };
+    if left {
+        pad_right(&value, width)
+    } else {
+        pad_left(&value, width)
+    }
+}
+
+/// `org-agenda-todo-keyword-format` and the like: `%s` in `format` given
+/// `value`, `%%` a percent sign.
+pub fn format_with(format: &str, value: &str) -> String {
+    let chars: Vec<char> = format.chars().collect();
+    let mut out = String::new();
+    let mut at = 0;
+    let mut used = false;
+    while at < chars.len() {
+        if chars[at] != '%' {
+            out.push(chars[at]);
+            at += 1;
+            continue;
+        }
+        let mut end = at + 1;
+        let left = chars.get(end) == Some(&'-');
+        if left {
+            end += 1;
+        }
+        let digits_start = end;
+        while chars.get(end).is_some_and(|c| c.is_ascii_digit() || *c == '.') {
+            end += 1;
+        }
+        let digits: String = chars[digits_start..end].iter().collect();
+        match chars.get(end) {
+            Some('%') => out.push('%'),
+            Some('s') if !used => {
+                used = true;
+                let (width, precision) = match digits.split_once('.') {
+                    Some((width, precision)) => (width, Some(precision.parse().unwrap_or(0))),
+                    None => (digits.as_str(), None),
+                };
+                out.push_str(&format_string(value, left, width.parse().unwrap_or(0), precision));
+            }
+            Some(other) => {
+                out.push('%');
+                out.extend(chars[at + 1..end].iter());
+                out.push(*other);
+            }
+            None => {
+                out.extend(chars[at..end].iter());
+                break;
+            }
+        }
+        at = end + 1;
+    }
+    out
+}
+
+/// `format` with `%d` directives (`Sched.%2dx: `, `(%d/%d): `), each
+/// taking the next of `numbers`.
+pub fn format_numbers(format: &str, numbers: &[i64]) -> String {
+    let chars: Vec<char> = format.chars().collect();
+    let mut out = String::new();
+    let mut at = 0;
+    let mut next = numbers.iter();
+    while at < chars.len() {
+        if chars[at] != '%' {
+            out.push(chars[at]);
+            at += 1;
+            continue;
+        }
+        let mut end = at + 1;
+        let mut flags = String::new();
+        while let Some(flag) = chars.get(end).filter(|c| matches!(c, '-' | '0' | '+' | ' ')) {
+            flags.push(*flag);
+            end += 1;
+        }
+        let digits_start = end;
+        while chars.get(end).is_some_and(char::is_ascii_digit) {
+            end += 1;
+        }
+        let width: usize = chars[digits_start..end].iter().collect::<String>().parse().unwrap_or(0);
+        match chars.get(end) {
+            Some('%') => out.push('%'),
+            Some('d') => {
+                let number = next.next().copied().unwrap_or(0);
+                let sign = if number < 0 {
+                    "-"
+                } else if flags.contains('+') {
+                    "+"
+                } else {
+                    ""
+                };
+                let digits = number.unsigned_abs().to_string();
+                let length = sign.len() + digits.len();
+                let padding = width.saturating_sub(length);
+                if flags.contains('-') {
+                    out.push_str(&format!("{sign}{digits}{}", " ".repeat(padding)));
+                } else if flags.contains('0') {
+                    out.push_str(&format!("{sign}{}{digits}", "0".repeat(padding)));
+                } else {
+                    out.push_str(&format!("{}{sign}{digits}", " ".repeat(padding)));
+                }
+            }
+            Some(other) => {
+                out.extend(chars[at..end].iter());
+                out.push(*other);
+            }
+            None => {
+                out.extend(chars[at..end].iter());
+                break;
+            }
+        }
+        at = end + 1;
+    }
+    out
+}
+
+/// `org-agenda-remove-tags`
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RemoveTags {
+    No,
+    Yes,
+    /// Only when the prefix shows a tag (`%T`).
+    Prefix,
 }
 
 /// Where to look for a time of day.
@@ -100,7 +401,7 @@ pub enum Dotime<'a> {
 }
 
 pub struct FormatInput<'a> {
-    pub prefix: Prefix,
+    pub format: &'a PrefixFormat,
     /// The leader, such as `Scheduled: `; may be empty.
     pub extra: &'a str,
     /// The headline after the stars.
@@ -112,6 +413,14 @@ pub struct FormatInput<'a> {
     pub remove_stamps: bool,
     /// What follows a start time without an end time, usually `......`.
     pub time_trailer: &'a str,
+    /// `%l`: a blank per level of the headline; empty for grid lines.
+    pub level: usize,
+    /// `%e`: the entry's `EFFORT` property.
+    pub effort: Option<&'a str>,
+    /// `%b`: the titles of the headlines above, each followed by the
+    /// separator.
+    pub breadcrumbs: &'a str,
+    pub remove_tags: RemoveTags,
 }
 
 pub struct Formatted {
@@ -234,7 +543,7 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
         };
         // The time moves to the prefix, so take it out of the headline,
         // unless what follows it is a closing bracket.
-        if input.prefix == Prefix::Agenda && !matched.is_empty() {
+        if input.format.has_time && !matched.is_empty() {
             if let Some(at) = txt.find(matched) {
                 let after = at + matched.len();
                 let spaces = txt[after..].bytes().take_while(|b| *b == b' ').count();
@@ -250,23 +559,54 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
         };
     }
 
+    // Tags in the prefix may take them out of the headline.
+    let remove_tags = match input.remove_tags {
+        RemoveTags::No => false,
+        RemoveTags::Yes => true,
+        RemoveTags::Prefix => input.format.has_tag,
+    };
+    if remove_tags {
+        if let Some((blanks, _)) = tag_group(&txt) {
+            txt.truncate(blanks);
+        }
+    }
+
     if input.remove_stamps {
         txt = remove_active_timestamps(&txt);
     }
 
-    let mut text = String::from("  ");
-    if input.category.is_empty() {
-        text.push_str(&pad_right("", 12));
-    } else {
-        text.push_str(&pad_right(&format!("{}:", input.category), 12));
+    // A category of `%.Nc` or more characters is cut to one less.
+    let mut category = input.category.to_string();
+    if let Some(max) = input.format.category_max.filter(|max| category.chars().count() >= *max) {
+        category = category.chars().take(max.saturating_sub(1)).collect();
     }
-    if input.prefix == Prefix::Agenda {
-        if !time.is_empty() {
-            text.push_str(&pad_right(&time, 12));
-        }
-        if !input.extra.is_empty() {
-            text.push_str(input.extra);
-            text.push(' ');
+    let level = " ".repeat(input.level);
+    let tag = input.tags.last().map_or("", |tag| tag.name.as_str());
+    let mut text = String::new();
+    for part in &input.format.parts {
+        match part {
+            Part::Text(literal) => text.push_str(literal),
+            Part::Field { field, optional, left, width, precision, suffix } => {
+                let value = match field {
+                    Field::Category => category.as_str(),
+                    Field::Time => time.as_str(),
+                    Field::Level => level.as_str(),
+                    Field::Extra => input.extra,
+                    Field::Icon | Field::Eval => "",
+                    Field::Tag => tag,
+                    Field::Effort => input.effort.unwrap_or(""),
+                    Field::Breadcrumbs => input.breadcrumbs,
+                };
+                if value.is_empty() && *optional {
+                    continue;
+                }
+                let value = if value.is_empty() {
+                    String::new()
+                } else {
+                    format!("{value}{}", suffix.map(String::from).unwrap_or_default())
+                };
+                text.push_str(&format_string(&value, *left, *width, *precision));
+            }
         }
     }
     let heading = text.len();
@@ -299,15 +639,24 @@ pub fn normalise_keyword<'k>(
     text: &mut String,
     heading: usize,
     mut keywords: impl Iterator<Item = &'k str>,
+    format: &str,
 ) -> Option<usize> {
     let rest = &text[heading..];
     let dots = rest.bytes().take_while(|b| *b == b'.').count();
     let after_dots = &rest[dots..];
     let keyword =
         keywords.find(|keyword| after_dots.strip_prefix(keyword).is_some_and(|after| after.starts_with(' ')))?;
-    let spaces_at = heading + dots + keyword.len();
+    let keyword_at = heading + dots;
+    let spaces_at = keyword_at + keyword.len();
     let spaces = text[spaces_at..].bytes().take_while(|b| *b == b' ').count();
-    text.replace_range(spaces_at..spaces_at + spaces, " ");
+    // `org-agenda-todo-keyword-format`, then one blank; nothing for an
+    // empty format.
+    if format.is_empty() {
+        text.replace_range(keyword_at..spaces_at + spaces, "");
+        return Some(0);
+    }
+    let formatted = format!("{} ", format_with(format, keyword));
+    text.replace_range(keyword_at..spaces_at + spaces, &formatted);
     Some(keyword.len())
 }
 
@@ -395,9 +744,9 @@ mod tests {
         Tag { name: name.to_string(), inherited }
     }
 
-    fn agenda(extra: &str, head: &str, tags: &[Tag], dotime: Dotime<'_>) -> String {
+    fn formatted(format: &str, extra: &str, head: &str, tags: &[Tag], dotime: Dotime<'_>) -> String {
         format_item(&FormatInput {
-            prefix: Prefix::Agenda,
+            format: &PrefixFormat::new(format),
             extra,
             head,
             category: "work",
@@ -405,8 +754,37 @@ mod tests {
             dotime,
             remove_stamps: false,
             time_trailer: "......",
+            level: 2,
+            effort: Some("1:30"),
+            breadcrumbs: "Top->Sub->",
+            remove_tags: RemoveTags::No,
         })
         .text
+    }
+
+    fn agenda(extra: &str, head: &str, tags: &[Tag], dotime: Dotime<'_>) -> String {
+        formatted(" %i %-12:c%?-12t% s", extra, head, tags, dotime)
+    }
+
+    #[test]
+    fn prefix_formats() {
+        let plain =
+            |format: &str| formatted(format, "Scheduled: ", "Task", &[tag("a", false), tag("z", false)], Dotime::No);
+        assert_eq!(plain(" %i %-12:c"), "  work:       Task :a:z:");
+        assert_eq!(plain("%l%c|%e|%T|%b"), "  work|1:30|z|Top->Sub->Task :a:z:");
+        assert_eq!(plain("%?-12t%s"), "Scheduled: Task :a:z:");
+        assert_eq!(plain("%-6.3:c|"), "wo:   |Task :a:z:");
+        assert_eq!(plain("%8c %(org-entry-get nil \"X\") 100%%"), "    work  100%Task :a:z:");
+        assert_eq!(plain("%x %c"), "%x workTask :a:z:");
+    }
+
+    #[test]
+    fn formats() {
+        assert_eq!(format_with("%-4s", "OK"), "OK  ");
+        assert_eq!(format_with("[%s]", "TODO"), "[TODO]");
+        assert_eq!(format_numbers("Sched.%2dx: ", &[3]), "Sched. 3x: ");
+        assert_eq!(format_numbers("In %3d d.: ", &[12]), "In  12 d.: ");
+        assert_eq!(format_numbers("(%d/%d): ", &[2, 5]), "(2/5): ");
     }
 
     #[test]
@@ -478,12 +856,18 @@ mod tests {
     fn keyword_spacing() {
         let keywords = ["TODO", "TODOX", "DONE"];
         let mut text = "  work:       TODO   Task".to_string();
-        assert_eq!(normalise_keyword(&mut text, 14, keywords.into_iter()), Some(4));
+        assert_eq!(normalise_keyword(&mut text, 14, keywords.into_iter(), "%-1s"), Some(4));
         assert_eq!(text, "  work:       TODO Task");
         let mut text = "  work:       TODOX Task".to_string();
-        assert_eq!(normalise_keyword(&mut text, 14, keywords.into_iter()), Some(5));
+        assert_eq!(normalise_keyword(&mut text, 14, keywords.into_iter(), "%-1s"), Some(5));
         let mut text = "  work:       TODO".to_string();
-        assert_eq!(normalise_keyword(&mut text, 14, keywords.into_iter()), None);
+        assert_eq!(normalise_keyword(&mut text, 14, keywords.into_iter(), "%-1s"), None);
+        let mut text = "  work:       DONE  Task".to_string();
+        assert_eq!(normalise_keyword(&mut text, 14, keywords.into_iter(), "%-6s"), Some(4));
+        assert_eq!(text, "  work:       DONE   Task");
+        let mut text = "  work:       DONE  Task".to_string();
+        assert_eq!(normalise_keyword(&mut text, 14, keywords.into_iter(), ""), Some(0));
+        assert_eq!(text, "  work:       Task");
     }
 
     #[test]

@@ -64,6 +64,15 @@ DEFAULTS = r"""
       org-deadline-past-days 10000
       org-agenda-tags-column -80
       org-agenda-custom-commands nil
+      org-agenda-prefix-format '((agenda . " %i %-12:c%?-12t% s") (todo . " %i %-12:c")
+                                 (tags . " %i %-12:c") (search . " %i %-12:c"))
+      org-agenda-todo-keyword-format "%-1s"
+      org-agenda-scheduled-leaders '("Scheduled: " "Sched.%2dx: ")
+      org-agenda-deadline-leaders '("Deadline:  " "In %3d d.: " "%2d d. ago: ")
+      org-agenda-timerange-leaders '("" "(%d/%d): ")
+      org-agenda-remove-tags nil
+      org-agenda-breadcrumbs-separator "->"
+      org-agenda-format-date 'org-agenda-format-date-aligned
       org-use-tag-inheritance t
       org-tags-exclude-from-inheritance nil
       org-use-property-inheritance nil

@@ -18,7 +18,8 @@ pub use display::{display, Displayed, Link, Segment, Style};
 pub use item::{align_tags, display_column, hidden_ranges, Face, Item, ItemKind, Source};
 pub use matcher::Matcher;
 
-use item::{format_item, normalise_keyword, priority, Dotime, FormatInput, Prefix};
+use item::{format_item, normalise_keyword, priority, Dotime, FormatInput};
+pub use item::{format_numbers, format_with, PrefixFormat, RemoveTags};
 
 use crate::date::{days_in_month, is_leap_year, iso_week, weekday, Date, Day, MONTH_NAMES, WEEKDAY_NAMES};
 use crate::outline::{Entry, LogKind, Outline};
@@ -139,6 +140,27 @@ impl Default for TimeGrid {
     }
 }
 
+/// `org-agenda-prefix-format`: the prefix of the lines of each kind of
+/// view.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PrefixFormats {
+    pub agenda: String,
+    pub todo: String,
+    pub tags: String,
+    pub search: String,
+}
+
+impl Default for PrefixFormats {
+    fn default() -> Self {
+        PrefixFormats {
+            agenda: " %i %-12:c%?-12t% s".to_string(),
+            todo: " %i %-12:c".to_string(),
+            tags: " %i %-12:c".to_string(),
+            search: " %i %-12:c".to_string(),
+        }
+    }
+}
+
 /// Agenda settings. The names and defaults are Org's.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Config {
@@ -197,6 +219,26 @@ pub struct Config {
     /// `org-agenda-archives-mode`: entries in archived trees are shown
     /// (`v a`). Archive files are the caller's to add (`v A`).
     pub archives: bool,
+    /// `org-agenda-prefix-format`
+    pub prefix_format: PrefixFormats,
+    /// `org-agenda-todo-keyword-format`
+    pub todo_keyword_format: String,
+    /// `org-agenda-scheduled-leaders`: on its day, and still open after it
+    /// (`%d` the days since).
+    pub scheduled_leaders: [String; 2],
+    /// `org-agenda-deadline-leaders`: on its day, before it (`%d` the days
+    /// left) and after it (the days since).
+    pub deadline_leaders: [String; 3],
+    /// `org-agenda-timerange-leaders`: a range within a day, and one over
+    /// days (`%d` the day of the range, `%d` its length).
+    pub timerange_leaders: [String; 2],
+    /// `org-agenda-remove-tags`
+    pub remove_tags: RemoveTags,
+    /// `org-agenda-breadcrumbs-separator`
+    pub breadcrumbs_separator: String,
+    /// `org-agenda-format-date` as a `format-time-string` format; `None`
+    /// for `org-agenda-format-date-aligned`.
+    pub format_date: Option<String>,
 }
 
 /// What log mode shows (`org-agenda-log-mode-items`).
@@ -240,6 +282,14 @@ impl Default for Config {
             compact_blocks: false,
             hide_empty_blocks: false,
             archives: false,
+            prefix_format: PrefixFormats::default(),
+            todo_keyword_format: "%-1s".to_string(),
+            scheduled_leaders: ["Scheduled: ".to_string(), "Sched.%2dx: ".to_string()],
+            deadline_leaders: ["Deadline:  ".to_string(), "In %3d d.: ".to_string(), "%2d d. ago: ".to_string()],
+            timerange_leaders: [String::new(), "(%d/%d): ".to_string()],
+            remove_tags: RemoveTags::No,
+            breadcrumbs_separator: "->".to_string(),
+            format_date: None,
         }
     }
 }
@@ -256,6 +306,56 @@ struct Builder<'a> {
     files: &'a [&'a Outline],
     config: &'a Config,
     today: Day,
+    /// The view's `org-agenda-prefix-format`, compiled.
+    format: PrefixFormat,
+}
+
+/// Which of `org-agenda-prefix-format`'s formats a view uses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ViewKind {
+    Agenda,
+    Todo,
+    Tags,
+}
+
+impl<'a> Builder<'a> {
+    fn new(files: &'a [&'a Outline], config: &'a Config, today: Day, kind: ViewKind) -> Builder<'a> {
+        let formats = &config.prefix_format;
+        let format = match kind {
+            ViewKind::Agenda => &formats.agenda,
+            ViewKind::Todo => &formats.todo,
+            ViewKind::Tags => &formats.tags,
+        };
+        Builder { files, config, today, format: PrefixFormat::new(format) }
+    }
+
+    /// `%b`: the titles above the entry, each followed by the separator
+    /// (`org-format-outline-path` in a window of 80 columns).
+    fn breadcrumbs(&self, file: usize, entry: usize) -> String {
+        if !self.format.has_breadcrumbs {
+            return String::new();
+        }
+        let outline = self.files[file];
+        let mut path = Vec::new();
+        let mut parent = outline.entries[entry].parent;
+        while let Some(index) = parent {
+            let above = &outline.entries[index];
+            path.push(crate::refile::heading_path_part(above.level, &above.head, &outline.todo));
+            parent = above.parent;
+        }
+        path.reverse();
+        let separator = &self.config.breadcrumbs_separator;
+        let mut joined = path.iter().map(|part| part.trim_end_matches([' ', '\t'])).collect::<Vec<_>>().join(separator);
+        let width = 79;
+        if joined.chars().count() > width {
+            joined = joined.chars().take(width - 2).collect::<String>() + "..";
+        }
+        if joined.is_empty() {
+            joined
+        } else {
+            joined + separator
+        }
+    }
 }
 
 impl Builder<'_> {
@@ -284,8 +384,9 @@ impl Builder<'_> {
     ) -> Item {
         let outline = self.files[file];
         let entry = &outline.entries[entry_index];
+        let breadcrumbs = self.breadcrumbs(file, entry_index);
         let formatted = format_item(&FormatInput {
-            prefix: if kind == ItemKind::Todo { Prefix::Todo } else { Prefix::Agenda },
+            format: &self.format,
             extra,
             head: &entry.head,
             category: &entry.category,
@@ -293,10 +394,16 @@ impl Builder<'_> {
             dotime,
             remove_stamps: kind == ItemKind::Timestamp,
             time_trailer: &self.config.time_grid.trailer,
+            level: entry.level,
+            effort: effort(entry),
+            breadcrumbs: &breadcrumbs,
+            remove_tags: self.config.remove_tags,
         });
         let mut text = formatted.text;
         let priority = priority(&text, outline.priorities.as_ref().unwrap_or(&self.config.priorities));
-        let keyword_len = normalise_keyword(&mut text, formatted.heading, outline.todo.names()).unwrap_or(0);
+        let keyword_len =
+            normalise_keyword(&mut text, formatted.heading, outline.todo.names(), &self.config.todo_keyword_format)
+                .unwrap_or(0);
         let keyword_done = outline.todo.is_done(&text[formatted.heading..formatted.heading + keyword_len]);
         Item {
             text,
@@ -334,12 +441,13 @@ impl Builder<'_> {
             if !shown || (entry.element_done && (self.config.skip_deadline_if_done || deadline != current)) {
                 continue;
             }
+            let [now, future, past] = &self.config.deadline_leaders;
             let extra = if is_today && deadline < self.today {
-                format!("{:2} d. ago: ", -diff)
+                format_numbers(past, &[-diff])
             } else if is_today && deadline > self.today {
-                format!("In {diff:3} d.: ")
+                format_numbers(future, &[diff])
             } else {
-                "Deadline:  ".to_string()
+                now.clone()
             };
             let fraction = 1.0 - diff as f64 / wdays.max(1) as f64;
             let face = if entry.element_done {
@@ -383,7 +491,8 @@ impl Builder<'_> {
             if hidden || (entry.element_done && (self.config.skip_scheduled_if_done || schedule != current)) {
                 continue;
             }
-            let extra = if is_today && past { format!("Sched.{diff:2}x: ") } else { "Scheduled: ".to_string() };
+            let [first, later] = &self.config.scheduled_leaders;
+            let extra = if is_today && past { format_numbers(later, &[diff]) } else { first.clone() };
             let face = if entry.element_done {
                 Face::Done
             } else if past {
@@ -413,11 +522,9 @@ impl Builder<'_> {
             if current < first || current > last || (entry.done && self.config.skip_timestamp_if_done) {
                 continue;
             }
-            let (extra, face) = if first == last {
-                (String::new(), Face::CalendarEvent)
-            } else {
-                (format!("({}/{}): ", 1 + current - first, 1 + last - first), Face::CalendarDateRange)
-            };
+            let leader = &self.config.timerange_leaders[usize::from(first != last)];
+            let extra = format_numbers(leader, &[1 + current - first, 1 + last - first]);
+            let face = if first == last { Face::CalendarEvent } else { Face::CalendarDateRange };
             // Times count on the first and on the last day.
             let dotime = match (first == current, last == current) {
                 (true, true) => Some(format!("<{}>--<{}>", block.first, block.second)),
@@ -491,6 +598,7 @@ impl Builder<'_> {
                 LogKind::Clock(clocked) => format!("Clocked:   ({clocked})"),
             };
             let entry = &outline.entries[log.entry];
+            let breadcrumbs = self.breadcrumbs(file, log.entry);
             // The note goes before the tags.
             let head = match &log.note {
                 None => entry.head.clone(),
@@ -502,7 +610,7 @@ impl Builder<'_> {
                 },
             };
             let formatted = format_item(&FormatInput {
-                prefix: Prefix::Agenda,
+                format: &self.format,
                 extra: &extra,
                 head: &head,
                 category: &entry.category,
@@ -510,9 +618,15 @@ impl Builder<'_> {
                 dotime: Dotime::Text(&log.time),
                 remove_stamps: false,
                 time_trailer: &self.config.time_grid.trailer,
+                level: entry.level,
+                effort: effort(entry),
+                breadcrumbs: &breadcrumbs,
+                remove_tags: self.config.remove_tags,
             });
             let mut text = formatted.text;
-            let keyword_len = normalise_keyword(&mut text, formatted.heading, outline.todo.names()).unwrap_or(0);
+            let keyword_len =
+                normalise_keyword(&mut text, formatted.heading, outline.todo.names(), &self.config.todo_keyword_format)
+                    .unwrap_or(0);
             let keyword_done = outline.todo.is_done(&text[formatted.heading..formatted.heading + keyword_len]);
             out.push(Item {
                 text,
@@ -551,7 +665,7 @@ impl Builder<'_> {
         }
         let line = |text: &str, time: &str, face: Face| {
             let formatted = format_item(&FormatInput {
-                prefix: Prefix::Agenda,
+                format: &self.format,
                 extra: "",
                 head: text,
                 category: "",
@@ -559,6 +673,10 @@ impl Builder<'_> {
                 dotime: Dotime::Text(time),
                 remove_stamps: false,
                 time_trailer: &grid.trailer,
+                level: 0,
+                effort: None,
+                breadcrumbs: "",
+                remove_tags: self.config.remove_tags,
             });
             Item {
                 text: formatted.text,
@@ -648,7 +766,7 @@ fn sort(items: &mut [Item], by_time: bool) {
 
 /// The entries shown for `current`, sorted, without the time grid.
 pub fn day_items(files: &[&Outline], current: Day, today: Day, config: &Config) -> Vec<Item> {
-    let builder = Builder { files, config, today };
+    let builder = Builder::new(files, config, today, ViewKind::Agenda);
     let mut items = Vec::new();
     for file in 0..files.len() {
         builder.day(file, current, &mut items);
@@ -660,7 +778,7 @@ pub fn day_items(files: &[&Outline], current: Day, today: Day, config: &Config) 
 /// `org-agenda-get-todos` over all files: every entry in a not-done state,
 /// or with one of `keywords` (`org-todo-list` with an argument).
 pub fn todo_items(files: &[&Outline], keywords: Option<&[String]>, config: &Config) -> Vec<Item> {
-    let builder = Builder { files, config, today: 0 };
+    let builder = Builder::new(files, config, 0, ViewKind::Todo);
     let mut items = Vec::new();
     for (file, outline) in files.iter().enumerate() {
         for (index, entry) in outline.entries.iter().enumerate() {
@@ -757,8 +875,12 @@ pub fn starting_day(day: Day, span: Span, config: &Config) -> Day {
     }
 }
 
-/// `org-agenda-format-date-aligned`
-fn date_heading(day: Day) -> String {
+/// `org-agenda-format-date`: a `format-time-string` format, or
+/// `org-agenda-format-date-aligned`.
+fn date_heading(day: Day, config: &Config) -> String {
+    if let Some(format) = &config.format_date {
+        return crate::capture::format_time(format, crate::date::DateTime { day, minute: 0 });
+    }
     let date = Date::from_day(day);
     let week = if weekday(day) == 1 { format!(" W{:02}", iso_week(day).0) } else { String::new() };
     format!(
@@ -773,7 +895,7 @@ fn date_heading(day: Day) -> String {
 /// `org-agenda-list`: the day or week agenda. `start_day` is the day the
 /// view should include; `None` means today.
 pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, config: &Config) -> View {
-    let builder = Builder { files, config, today: now.today };
+    let builder = Builder::new(files, config, now.today, ViewKind::Agenda);
     let start = span_start(start_day.unwrap_or(now.today), span, config);
     let ndays = span.days(start_day.unwrap_or(now.today));
     let last = start + ndays - 1;
@@ -801,7 +923,7 @@ pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, co
             continue;
         }
         lines.push(Line {
-            text: date_heading(day),
+            text: date_heading(day, config),
             kind: LineKind::Date { day, today: is_today, weekend: config.weekend_days.contains(&weekday(day)) },
             item: None,
         });
@@ -827,7 +949,7 @@ pub fn todo_view(files: &[&Outline], keywords: Option<&str>, config: &Config) ->
 /// `org-tags-view`: the entries `matcher` matches, only open TODO
 /// entries with `todo_only` (`tags-todo`).
 pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: Now, config: &Config) -> View {
-    let builder = Builder { files, config, today: now.today };
+    let builder = Builder::new(files, config, now.today, ViewKind::Tags);
     let clock = matcher::Clock { today: now.today, minute: now.minute };
     let mut items = Vec::new();
     for (file, outline) in files.iter().enumerate() {
@@ -871,6 +993,11 @@ pub fn block_separator(config: &Config) -> Vec<Line> {
     };
     let line = |text: &str| Line { text: text.to_string(), kind: LineKind::Separator, item: None };
     std::iter::once(line("")).chain(separator.split('\n').map(line)).collect()
+}
+
+/// `%e`: the entry's effort (`org-effort-property`).
+fn effort(entry: &Entry) -> Option<&str> {
+    entry.properties.iter().find(|(name, _)| name == "EFFORT").map(|(_, value)| value.as_str())
 }
 
 /// The entry an agenda line was made from.

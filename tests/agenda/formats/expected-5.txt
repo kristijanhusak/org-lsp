@@ -1,0 +1,11 @@
+Global list of TODO items of type: ALL
+|[#A] Call [[https://example.org][the client]]                                            :office::phone:
+2:00 |Write the report                                         :office::writing:
+|Past deadline                                                         :office::
+0:30 |Scheduled in the past                                            :office::
+|A very long category entry                                            :office::
+|Water plants                                                            :home::
+
+===============================================================================
+Headlines with TAGS match: home
+[home] TODO Water plants

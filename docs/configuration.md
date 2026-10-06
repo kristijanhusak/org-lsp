@@ -549,6 +549,35 @@ compactBlocks = false
 # Leave out the blocks of a block agenda that show no entries. Not in Org.
 hideEmptyBlocks = false
 
+# How a TODO keyword is written in the agenda: `%-4s` pads it to four columns,
+# so that the titles line up; an empty format leaves keywords out.
+# (org-agenda-todo-keyword-format)
+todoKeywordFormat = "%-1s"
+
+# The leader of a scheduled entry on its day, and on today when its day has
+# passed (`%d`: the days since). (org-agenda-scheduled-leaders)
+scheduledLeaders = ["Scheduled: ", "Sched.%2dx: "]
+
+# The leader of a deadline on its day, on today before it (`%d`: the days
+# left), and on today after it (`%d`: the days since).
+# (org-agenda-deadline-leaders)
+deadlineLeaders = ["Deadline:  ", "In %3d d.: ", "%2d d. ago: "]
+
+# The leader of a time range within a day, and of a range over days (`%d`:
+# which day of it, `%d`: how many days). (org-agenda-timerange-leaders)
+timerangeLeaders = ["", "(%d/%d): "]
+
+# Leave the tags out of the agenda's lines; `prefix` only when the prefix
+# shows a tag (`%T`). (org-agenda-remove-tags)
+removeTags = false
+
+# What goes between the headlines of `%b`. (org-agenda-breadcrumbs-separator)
+breadcrumbsSeparator = "->"
+
+# How the agenda writes a day, as `format-time-string` does: `%A %d %B %Y`,
+# `%a %Y-%m-%d`. (org-agenda-format-date)
+# formatDate = …  (unset: as `Wednesday   7 October 2026`, the week's number added on Mondays)
+
 # The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`,
 # `2026-10-01`. (org-agenda-start-day)
 # startDay = …  (unset: today)
@@ -591,6 +620,26 @@ line = "----------------"
 
 # The text of the line for the current time. (org-agenda-current-time-string)
 now = "now - - - - - - - - - - - - - - - - - - - - - - - - -"
+
+[agenda.prefixFormat]
+# What comes before the headline on a line of the agenda: `%c` the category,
+# `%t` the time, `%s` the leader (`Scheduled: `), `%e` the effort, `%l` a
+# blank per level, `%T` the last tag, `%b` the headlines above (breadcrumbs),
+# `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on the
+# left), `.N` cuts, `%?` leaves out an empty field, and a character before the
+# letter follows a value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is
+# left empty. (org-agenda-prefix-format)
+agenda = " %i %-12:c%?-12t% s"
+
+# The same, for the TODO list. (org-agenda-prefix-format)
+todo = " %i %-12:c"
+
+# The same, for tags searches. (org-agenda-prefix-format)
+tags = " %i %-12:c"
+
+# The same, for text searches, which the agenda does not have yet.
+# (org-agenda-prefix-format)
+search = " %i %-12:c"
 ```
 
 <!-- END generated -->
@@ -946,6 +995,59 @@ now = "now - - - - - - - - - - - - - - - - - - - - - - - - -"
     // Leave out the blocks of a block agenda that show no entries. Not in
     // Org.
     "hideEmptyBlocks": false,
+
+    "prefixFormat": {
+      // What comes before the headline on a line of the agenda: `%c` the
+      // category, `%t` the time, `%s` the leader (`Scheduled: `), `%e` the
+      // effort, `%l` a blank per level, `%T` the last tag, `%b` the headlines
+      // above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on
+      // the right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty
+      // field, and a character before the letter follows a value that is not
+      // empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty.
+      // (org-agenda-prefix-format)
+      "agenda": " %i %-12:c%?-12t% s",
+
+      // The same, for the TODO list. (org-agenda-prefix-format)
+      "todo": " %i %-12:c",
+
+      // The same, for tags searches. (org-agenda-prefix-format)
+      "tags": " %i %-12:c",
+
+      // The same, for text searches, which the agenda does not have yet.
+      // (org-agenda-prefix-format)
+      "search": " %i %-12:c"
+    },
+
+    // How a TODO keyword is written in the agenda: `%-4s` pads it to four
+    // columns, so that the titles line up; an empty format leaves keywords
+    // out. (org-agenda-todo-keyword-format)
+    "todoKeywordFormat": "%-1s",
+
+    // The leader of a scheduled entry on its day, and on today when its day
+    // has passed (`%d`: the days since). (org-agenda-scheduled-leaders)
+    "scheduledLeaders": ["Scheduled: ", "Sched.%2dx: "],
+
+    // The leader of a deadline on its day, on today before it (`%d`: the days
+    // left), and on today after it (`%d`: the days since).
+    // (org-agenda-deadline-leaders)
+    "deadlineLeaders": ["Deadline:  ", "In %3d d.: ", "%2d d. ago: "],
+
+    // The leader of a time range within a day, and of a range over days
+    // (`%d`: which day of it, `%d`: how many days).
+    // (org-agenda-timerange-leaders)
+    "timerangeLeaders": ["", "(%d/%d): "],
+
+    // Leave the tags out of the agenda's lines; `prefix` only when the prefix
+    // shows a tag (`%T`). (org-agenda-remove-tags)
+    "removeTags": false,
+
+    // What goes between the headlines of `%b`.
+    // (org-agenda-breadcrumbs-separator)
+    "breadcrumbsSeparator": "->",
+
+    // How the agenda writes a day, as `format-time-string` does: `%A %d %B
+    // %Y`, `%a %Y-%m-%d`. (org-agenda-format-date)
+    // "formatDate": unset: as `Wednesday   7 October 2026`, the week's number added on Mondays
 
     // The day the agenda starts from, as the date prompt reads it: `-1d`,
     // `+2d`, `2026-10-01`. (org-agenda-start-day)

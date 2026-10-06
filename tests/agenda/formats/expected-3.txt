@@ -1,0 +1,5 @@
+Headlines with TAGS match: phone|home
+work/   NEXT [#A] Call [[https://example.org][the client]]                                :office::phone:
+b/ Home                                                                   :home:
+b/  TODO Water plants                                                    :home::
+b/  CANCELLED Old thing                                                  :home::

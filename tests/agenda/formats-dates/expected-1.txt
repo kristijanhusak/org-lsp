@@ -1,0 +1,7 @@
+Global list of TODO items of type: ALL
+work                 %NEXT [#A] Call [[https://example.org][the client]]
+work                 %TODO Write the report
+work                 %WAIT Past deadline
+work                 %TODO Scheduled in the past
+averyvery            %TODO A very long category entry
+b                    %TODO Water plants

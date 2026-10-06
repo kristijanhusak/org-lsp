@@ -221,6 +221,14 @@ pub(crate) fn outline_path(text: &str, offset: usize, keywords: &TodoKeywords) -
     ancestors(text, offset).into_iter().map(|at| path_part(text, at, &file)).collect()
 }
 
+/// A headline's title as a part of an outline path, from its level and
+/// the text after its stars.
+pub(crate) fn heading_path_part(level: usize, head: &str, keywords: &TodoKeywords) -> String {
+    let line = format!("{} {head}", "*".repeat(level));
+    let file = File { text: &line, keywords, name: "", path: "", title: None };
+    path_part(&line, 0, &file)
+}
+
 /// The headlines above the one at `offset`, outermost first
 /// (`org-up-heading-safe`).
 fn ancestors(text: &str, offset: usize) -> Vec<usize> {

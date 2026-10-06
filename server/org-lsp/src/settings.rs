@@ -590,6 +590,95 @@ pub const SETTINGS: &[Setting] = &[
         "",
         "Leave out the blocks of a block agenda that show no entries. Not in Org.",
     ),
+    setting(
+        "agenda.prefixFormat.agenda",
+        "string",
+        r#"" %i %-12:c%?-12t% s""#,
+        "org-agenda-prefix-format",
+        "What comes before the headline on a line of the agenda: `%c` the category, `%t` the time, `%s` the \
+         leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the \
+         headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on \
+         the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a \
+         value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty.",
+    ),
+    setting(
+        "agenda.prefixFormat.todo",
+        "string",
+        r#"" %i %-12:c""#,
+        "org-agenda-prefix-format",
+        "The same, for the TODO list.",
+    ),
+    setting(
+        "agenda.prefixFormat.tags",
+        "string",
+        r#"" %i %-12:c""#,
+        "org-agenda-prefix-format",
+        "The same, for tags searches.",
+    ),
+    setting(
+        "agenda.prefixFormat.search",
+        "string",
+        r#"" %i %-12:c""#,
+        "org-agenda-prefix-format",
+        "The same, for text searches, which the agenda does not have yet.",
+    ),
+    setting(
+        "agenda.todoKeywordFormat",
+        "string",
+        r#""%-1s""#,
+        "org-agenda-todo-keyword-format",
+        "How a TODO keyword is written in the agenda: `%-4s` pads it to four columns, so that the titles line \
+         up; an empty format leaves keywords out.",
+    ),
+    setting(
+        "agenda.scheduledLeaders",
+        "string[]",
+        r#"["Scheduled: ", "Sched.%2dx: "]"#,
+        "org-agenda-scheduled-leaders",
+        "The leader of a scheduled entry on its day, and on today when its day has passed (`%d`: the days \
+         since).",
+    ),
+    setting(
+        "agenda.deadlineLeaders",
+        "string[]",
+        r#"["Deadline:  ", "In %3d d.: ", "%2d d. ago: "]"#,
+        "org-agenda-deadline-leaders",
+        "The leader of a deadline on its day, on today before it (`%d`: the days left), and on today after it \
+         (`%d`: the days since).",
+    ),
+    setting(
+        "agenda.timerangeLeaders",
+        "string[]",
+        r#"["", "(%d/%d): "]"#,
+        "org-agenda-timerange-leaders",
+        "The leader of a time range within a day, and of a range over days (`%d`: which day of it, `%d`: how \
+         many days).",
+    ),
+    setting(
+        "agenda.removeTags",
+        r#"boolean, "prefix""#,
+        "false",
+        "org-agenda-remove-tags",
+        "Leave the tags out of the agenda's lines; `prefix` only when the prefix shows a tag (`%T`).",
+    ),
+    setting(
+        "agenda.breadcrumbsSeparator",
+        "string",
+        r#""->""#,
+        "org-agenda-breadcrumbs-separator",
+        "What goes between the headlines of `%b`.",
+    ),
+    Setting {
+        default: None,
+        unset: "as `Wednesday   7 October 2026`, the week's number added on Mondays",
+        ..setting(
+            "agenda.formatDate",
+            "string",
+            "",
+            "org-agenda-format-date",
+            "How the agenda writes a day, as `format-time-string` does: `%A %d %B %Y`, `%a %Y-%m-%d`.",
+        )
+    },
     Setting {
         default: None,
         unset: "today",
@@ -800,6 +889,17 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("agenda.blockSeparator", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
     ("agenda.compactBlocks", BOOLEAN),
     ("agenda.hideEmptyBlocks", BOOLEAN),
+    ("agenda.prefixFormat.agenda", STRING),
+    ("agenda.prefixFormat.todo", STRING),
+    ("agenda.prefixFormat.tags", STRING),
+    ("agenda.prefixFormat.search", STRING),
+    ("agenda.todoKeywordFormat", STRING),
+    ("agenda.scheduledLeaders", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }"#),
+    ("agenda.deadlineLeaders", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 3, "maxItems": 3 }"#),
+    ("agenda.timerangeLeaders", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }"#),
+    ("agenda.removeTags", r#"{ "enum": [true, false, "prefix"] }"#),
+    ("agenda.breadcrumbsSeparator", STRING),
+    ("agenda.formatDate", STRING),
     (
         "agenda.customCommands",
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaCommand", "required": ["key", "description"], "additionalProperties": false, "properties": {

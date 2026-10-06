@@ -1,0 +1,19 @@
+Day-agenda (W41):
+Monday      5 October 2026 W41
+            8:00......             ----------------
+ work:        9:00...... Sched:      TODO Write the report     :office::writing:
+           10:00......             ----------------
+           10:30......             now - - - - - - - - - - - - - - - - - - - - - - - - -
+           12:00......             ----------------
+ work:      14:00-15:30             Meeting                       :office::meet:
+           14:00......             ----------------
+           16:00......             ----------------
+ b:          18:00...... Sched:      TODO Water plants                   :home::
+           18:00......             ----------------
+           20:00......             ----------------
+ work:        In 4:       NEXT [#A] Call [[https://example.org][the client]]              :office::phone:
+ work:      S. 3:       TODO Scheduled in the past                     :office::
+ work:        Sched:      DONE Send the invoice                        :office::
+ work:        Late 4:     WAIT Past deadline                           :office::
+ work:      Day 1 of 3: Conference                                     :office::
+ averyve:               TODO A very long category entry                :office::
