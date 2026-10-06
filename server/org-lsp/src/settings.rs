@@ -335,6 +335,15 @@ pub const SETTINGS: &[Setting] = &[
          and `~code~`, as for links.",
     ),
     setting(
+        "returnUsesMetaReturn",
+        "boolean",
+        "false",
+        "",
+        "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET \
+         (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's \
+         `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item.",
+    ),
+    setting(
         "autoSave",
         "boolean",
         "true",
@@ -745,6 +754,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("defaultNotesFile", STRING),
     ("linkDescriptive", BOOLEAN),
     ("hideEmphasisMarkers", BOOLEAN),
+    ("returnUsesMetaReturn", BOOLEAN),
     ("autoSave", BOOLEAN),
     ("cycleSeparatorLines", r#"{ "type": "integer" }"#),
     ("adaptIndentation", r#"{ "enum": [true, false, "headline-data"] }"#),

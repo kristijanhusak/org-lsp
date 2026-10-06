@@ -144,6 +144,8 @@ pub struct Options {
     pub hide_emphasis_markers: Option<bool>,
     /// Save the files a command changes other than the one it was run in.
     pub auto_save: Option<bool>,
+    /// RET on the first line of a list item makes the next item, as M-RET.
+    pub return_uses_meta_return: Option<bool>,
     /// The shared configuration file: `false` for none, or a path instead
     /// of the usual one. Read by `load`, before the options are.
     pub config_file: Option<serde_json::Value>,

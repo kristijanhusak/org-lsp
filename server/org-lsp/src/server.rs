@@ -361,6 +361,8 @@ struct Server {
     /// user's to save.
     origin: Option<String>,
     /// `autoSave`: save the files a command changes elsewhere.
+    /// `returnUsesMetaReturn`: RET on a list item makes the next item.
+    return_uses_meta_return: bool,
     auto_save: bool,
     /// What the highlighting marks as hidden.
     conceal: highlight::Conceal,
@@ -520,6 +522,7 @@ pub fn run(connection: Connection) -> Result<()> {
         message: None,
         origin: None,
         auto_save: options.auto_save.unwrap_or(true),
+        return_uses_meta_return: options.return_uses_meta_return.unwrap_or(false),
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         conceal: highlight::Conceal {
             links: options.link_descriptive.unwrap_or(true),
@@ -852,6 +855,19 @@ fn planning_command(id: &str) -> Option<PlanningCommand> {
         commands::TIMESTAMP_CHANGE => Some(PlanningCommand::Timestamp { inactive: false }),
         _ => None,
     }
+}
+
+/// Whether byte `offset` is on the first line of a list item, the line of
+/// its bullet.
+fn on_item_line(root: &org_syntax::SyntaxNode, text: &str, offset: usize) -> bool {
+    let line_start = text[..offset].rfind('\n').map_or(0, |at| at + 1);
+    let Some(token) = root.token_at_offset(org_syntax::TextSize::from(offset as u32)).left_biased() else {
+        return false;
+    };
+    token
+        .parent_ancestors()
+        .find(|node| node.kind() == org_syntax::SyntaxKind::LIST_ITEM)
+        .is_some_and(|item| usize::from(item.text_range().start()) >= line_start)
 }
 
 fn is_view_uri(uri: &Uri) -> bool {
@@ -3698,6 +3714,11 @@ impl Server {
             org_core::newline::Settings { indent: self.indent_in(&text), tags_column: self.refile.2.tags_column };
         let document = self.document(uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
+        // `returnUsesMetaReturn`: on the first line of a list item, the next
+        // item, numbered as M-RET numbers it.
+        if self.return_uses_meta_return && on_item_line(&document.parse.syntax(), &document.text, offset) {
+            return self.meta_return(commands::META_RETURN, context);
+        }
         let outcome = org_core::newline::org_return(&document.text, offset, document.parse.todo_keywords(), &settings)?;
         self.carried(context, outcome)
     }

@@ -698,6 +698,40 @@ fn returns_as_org_does() {
     client.shutdown();
 }
 
+/// `returnUsesMetaReturn`: RET on the line of an item's bullet makes the
+/// next item, numbered and the rest renumbered as M-RET does, in nested
+/// lists too; elsewhere in the item RET stays Org's.
+#[test]
+fn return_uses_meta_return_on_items() {
+    let mut client = Client::start(json!({}), json!({ "returnUsesMetaReturn": true }));
+    let text = "* A\n1. one\n   1. a\n   2. b\n      more\n2. two\n";
+    client.open(&uri(), text);
+    let mut run = |line: u32, character: u32| -> String {
+        let context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.return", "arguments": [context] }))
+            .response_result
+            .expect("a result");
+        let mut edits: Vec<TextEdit> = serde_json::from_value(result["edits"].clone()).unwrap();
+        // The text is ASCII: a character is a byte.
+        let offset = |at: Position| {
+            text.split_inclusive('\n').take(at.line as usize).map(str::len).sum::<usize>() + at.character as usize
+        };
+        edits.sort_by_key(|edit| std::cmp::Reverse(offset(edit.range.start)));
+        let mut changed = text.to_string();
+        for edit in edits {
+            changed.replace_range(offset(edit.range.start)..offset(edit.range.end), &edit.new_text);
+        }
+        changed
+    };
+    assert_eq!(run(2, 7), "* A\n1. one\n   1. a\n   2. \n   3. b\n      more\n2. two\n");
+    assert_eq!(run(1, 6), "* A\n1. one\n2. \n   1. a\n   2. b\n      more\n3. two\n");
+    // On a line of the item's text, a new line in the item.
+    assert_eq!(run(4, 10), "* A\n1. one\n   1. a\n   2. b\n      more\n      \n2. two\n");
+    client.shutdown();
+}
+
 /// M-RET, M-S-RET, C-RET and C-S-RET: the result carries the edit and the
 /// cursor, as with RET.
 #[test]
