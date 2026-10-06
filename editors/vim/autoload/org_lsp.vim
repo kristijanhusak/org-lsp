@@ -278,6 +278,12 @@ function! org_lsp#run(name, ...) abort
   if get(opts, 'count', 0) > 0
     let context.count = opts.count
   endif
+  " After the character under the cursor, as `a` types there.
+  if get(opts, 'append', 0) && nr == bufnr() && col('.') <= len(getline('.'))
+    let text = getline('.')
+    let after = col('.') - 1 + len(matchstr(text, '.', col('.') - 1))
+    let context.position.character = s:character(text, after)
+  endif
   " Filing a capture or a note takes the buffer's text as it is here: some
   " clients tell the server of the last changes only a while later.
   if index(['org.capture.finish', 'org.capture.refile'], a:name) >= 0
@@ -310,6 +316,15 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
     return
   endif
   let result = type(a:result) == v:t_dict ? a:result : {}
+  " The edit and the cursor, carried in the result (`org.meta.return`);
+  " from its key, typing goes on there, in insert mode, as with
+  " nvim-orgmode.
+  if type(get(result, 'edits', 0)) == v:t_list && bufnr() == a:bufnr
+    let at_end = s:apply_carried(a:context.textDocument.uri, result)
+    if get(a:opts, 'append', 0)
+      execute at_end ? 'startinsert!' : 'startinsert'
+    endif
+  endif
   " The agenda's file may have been written anew.
   call s:reload_agenda()
   if type(get(result, 'save', 0)) == v:t_list
@@ -399,6 +414,10 @@ endfunction
 " The commands whose keys are typed in insert mode (`org.return`).
 let s:insert_commands = {}
 
+" The commands whose keys act after the character under the cursor and go
+" on in insert mode (`org.meta.return`).
+let s:append_commands = {}
+
 " Run a command whose result carries edits and a cursor (`org.return`)
 " from insert mode, at once. The key keeps its own meaning while the
 " completion menu shows, with no server, or where the command does not
@@ -414,11 +433,20 @@ function! org_lsp#insert_key(index) abort
   if !empty(get(answer, 'error', {})) || type(result) != v:t_dict || type(get(result, 'edits', 0)) != v:t_list
     return s:insert_fallback(entry.lhs)
   endif
-  call org_lsp#apply_edit({'changes': {context.textDocument.uri: result.edits}})
-  if type(get(result, 'cursor', 0)) == v:t_dict
-    let text = getline(result.cursor.line + 1)
-    call cursor(result.cursor.line + 1, s:byte(text, result.cursor.character) + 1)
+  call s:apply_carried(context.textDocument.uri, result)
+endfunction
+
+" Apply the edits a command's result carries, and put the cursor where it
+" says. Whether the cursor is at the end of its line.
+function! s:apply_carried(uri, result) abort
+  call org_lsp#apply_edit({'changes': {a:uri: a:result.edits}})
+  if type(get(a:result, 'cursor', 0)) != v:t_dict
+    return v:false
   endif
+  let text = getline(a:result.cursor.line + 1)
+  let column = s:byte(text, a:result.cursor.character)
+  call cursor(a:result.cursor.line + 1, column + 1)
+  return column >= len(text)
 endfunction
 
 " The key's meaning without the plugin: the buffer's mapping that the
@@ -507,6 +535,9 @@ function! s:keys_in(scope) abort
         if get(key, 'mode', '') ==# 'insert'
           let s:insert_commands[command.command] = 1
         endif
+        if get(key, 'mode', '') ==# 'append'
+          let s:append_commands[command.command] = 1
+        endif
       endif
     endfor
   endfor
@@ -532,7 +563,9 @@ function! org_lsp#set_keys(scope) abort
         continue
       endif
       let nowait = a:scope ==# 'agenda' && empty(filter(copy(all), {_, o -> o !=# lhs && stridx(o, lhs) == 0})) ? '<nowait>' : ''
-      if get(command, 'edits', v:false) && a:scope ==# 'org'
+      if has_key(s:append_commands, name)
+        execute printf('nnoremap %s <silent> %s :<C-u>call org_lsp#run(%s, {''append'': 1})<CR>', buffer, lhs, string(name))
+      elseif get(command, 'edits', v:false) && a:scope ==# 'org'
         execute printf('nnoremap %s <silent> <expr> %s org_lsp#repeatable(%d)', buffer, lhs, index)
       else
         execute printf('nnoremap %s %s <silent> %s :<C-u>call org_lsp#key(%d, v:count)<CR>', buffer, nowait, lhs, index)

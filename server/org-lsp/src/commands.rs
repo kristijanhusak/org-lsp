@@ -42,6 +42,11 @@ pub struct Key {
     /// For modal editors: the key is typed in insert mode, not in normal
     /// mode.
     pub insert: bool,
+    /// For modal editors: a key of normal mode that acts as if the cursor
+    /// were after the character under it, as `a` types there, and leaves
+    /// insert mode on where the command puts the cursor. For the commands
+    /// that carry their edit in the result.
+    pub append: bool,
     /// The key has a meaning of its own in the editor, which should apply
     /// wherever the command does not: the server then refuses the command
     /// with `notApplicable` in the error data. `<C-a>` still increments a
@@ -50,17 +55,23 @@ pub struct Key {
 }
 
 const fn key(scope: Scope, key: &'static str) -> Key {
-    Key { scope, key, native: false, insert: false }
+    Key { scope, key, native: false, insert: false, append: false }
 }
 
 const fn native(scope: Scope, key: &'static str) -> Key {
-    Key { scope, key, native: true, insert: false }
+    Key { scope, key, native: true, insert: false, append: false }
 }
 
 /// A key of insert mode that keeps its own meaning where the command does
 /// not apply.
 const fn insert_native(scope: Scope, key: &'static str) -> Key {
-    Key { scope, key, native: true, insert: true }
+    Key { scope, key, native: true, insert: true, append: false }
+}
+
+/// A key of normal mode that acts after the character under the cursor
+/// and goes on in insert mode.
+const fn append(scope: Scope, key: &'static str) -> Key {
+    Key { scope, key, native: false, insert: false, append: true }
 }
 
 pub struct Command {
@@ -115,6 +126,10 @@ pub const PRIORITY_DOWN: &str = "org.priority.down";
 pub const PRIORITY: &str = "org.priority";
 pub const CHECKBOX_TOGGLE: &str = "org.checkbox.toggle";
 pub const RETURN: &str = "org.return";
+pub const META_RETURN: &str = "org.meta.return";
+pub const INSERT_TODO_HEADING: &str = "org.insert.todo.heading";
+pub const INSERT_HEADING_AFTER: &str = "org.insert.heading.after";
+pub const INSERT_TODO_HEADING_AFTER: &str = "org.insert.todo.heading.after";
 pub const REFILE: &str = "org.refile";
 pub const ARCHIVE_SUBTREE: &str = "org.archive.subtree";
 pub const ARCHIVE_SIBLING: &str = "org.archive.sibling";
@@ -296,6 +311,29 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[native(Org, "RET")],
         vim: &[insert_native(Org, "<CR>")],
         ..edit(RETURN, "New line, as Org's RET makes it")
+    },
+    // M-RET and its neighbours, carried in the result like `org.return`.
+    // From normal mode they act after the character under the cursor and
+    // typing goes on in insert mode, as with nvim-orgmode.
+    Command {
+        emacs: &[key(Org, "M-RET")],
+        vim: &[append(Org, "<Leader><CR>")],
+        ..edit(META_RETURN, "New heading, item or table row")
+    },
+    Command {
+        emacs: &[key(Org, "M-S-RET")],
+        vim: &[append(Org, "<Leader>oiT")],
+        ..edit(INSERT_TODO_HEADING, "New TODO heading, or item with a checkbox")
+    },
+    Command {
+        emacs: &[key(Org, "C-RET")],
+        vim: &[append(Org, "<Leader>oih")],
+        ..edit(INSERT_HEADING_AFTER, "New heading after the subtree")
+    },
+    Command {
+        emacs: &[key(Org, "C-S-RET")],
+        vim: &[append(Org, "<Leader>oit")],
+        ..edit(INSERT_TODO_HEADING_AFTER, "New TODO heading after the subtree")
     },
     Command {
         emacs: &[key(Org, "C-c C-w"), key(Agenda, "C-c C-w")],
@@ -534,6 +572,9 @@ pub fn manifest() -> Value {
                         let mut entry = json!({ "key": key.key, "in": key.scope.name(), "preset": preset });
                         if key.native {
                             entry["native"] = json!(true);
+                        }
+                        if key.append {
+                            entry["mode"] = json!("append");
                         }
                         if key.insert {
                             entry["mode"] = json!("insert");

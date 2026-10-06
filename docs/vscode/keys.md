@@ -50,6 +50,10 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C ,` | `org.priority` | Set the priority |
 | `Ctrl+C Ctrl+C` | `org.checkbox.toggle` | Toggle the checkbox |
 | `Enter`¹ | `org.return` | New line, as Org's RET makes it |
+| `Alt+Enter` | `org.meta.return` | New heading, item or table row |
+| `Alt+Shift+Enter` | `org.insert.todo.heading` | New TODO heading, or item with a checkbox |
+| `Ctrl+Enter` | `org.insert.heading.after` | New heading after the subtree |
+| `Ctrl+Shift+Enter` | `org.insert.todo.heading.after` | New TODO heading after the subtree |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Shift+4` | `org.archive.subtree` | Archive the subtree |
 | `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
@@ -223,6 +227,10 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "x", "q"], "commands": ["org.clock.cancel"] },
   { "before": ["<leader>", "o", "x", "j"], "commands": ["org.clock.goto"] },
   { "before": ["<leader>", "o", ","], "commands": ["org.priority"] },
+  { "before": ["<leader>", "<CR>"], "commands": ["org.meta.return"] },
+  { "before": ["<leader>", "o", "i", "T"], "commands": ["org.insert.todo.heading"] },
+  { "before": ["<leader>", "o", "i", "h"], "commands": ["org.insert.heading.after"] },
+  { "before": ["<leader>", "o", "i", "t"], "commands": ["org.insert.todo.heading.after"] },
   { "before": ["<leader>", "o", "r"], "commands": ["org.refile"] },
   { "before": ["<leader>", "o", "$"], "commands": ["org.archive.subtree"] },
   { "before": ["<leader>", "o", "x", "A"], "commands": ["org.archive.sibling"] },
@@ -268,6 +276,10 @@ every file; outside Org files the commands say they do not apply):
 | `org.priority` | Org: Set the priority |
 | `org.checkbox.toggle` | Org: Toggle the checkbox |
 | `org.return` | Org: New line, as Org's RET makes it |
+| `org.meta.return` | Org: New heading, item or table row |
+| `org.insert.todo.heading` | Org: New TODO heading, or item with a checkbox |
+| `org.insert.heading.after` | Org: New heading after the subtree |
+| `org.insert.todo.heading.after` | Org: New TODO heading after the subtree |
 | `org.refile` | Org: Refile the entry |
 | `org.archive.subtree` | Org: Archive the subtree |
 | `org.archive.sibling` | Org: Archive the subtree under its Archive sibling |

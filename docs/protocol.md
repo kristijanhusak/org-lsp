@@ -136,7 +136,7 @@ the editor's own syntax.
 | `virtualDocuments` | boolean | from the client's capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
 | `showDocument` | boolean | from the client's capabilities | Whether the client shows the documents the server asks it to show (`window/showDocument`): the agenda, capture buffers, an entry's file. A client that announces that capability need not set this; the Vim plugin does, for the LSP clients that leave the request to it. |
 | `messagePrompts` | boolean | `false` | Ask what commands ask for (a key, one of a list) with `window/showMessageRequest`, and say what they have to say with `window/showMessage`, for a client that does nothing with a command's result. The Zed extension sets it. |
-| `commandActions` | boolean | `false` | Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked from a list, and in the agenda moving through time, for a client that cannot run a command from a key. The Zed extension sets it. |
+| `commandActions` | boolean | `false` | Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked from a list, a new heading or item (M-RET and its neighbours), and in the agenda moving through time, for a client that cannot run a command from a key. The Zed extension sets it. |
 
 <!-- END generated -->
 
@@ -183,7 +183,10 @@ it: `org.return` answers `{ "edits": [TextEdit…], "cursor": Position }`,
 and the editor applies the edits to the document at hand and puts the
 cursor there before the next key is handled. (A `workspace/applyEdit`
 from the server, and a cursor moved after it, would race with what is
-typed next.)
+typed next.) `org.meta.return` and its neighbours answer the same way.
+With `"apply": true` in the context the server applies the edit itself
+and moves the cursor with `window/showDocument`; the code actions of
+`commandActions` run them so.
 
 A command that cannot run answers with error code -32803
 (`RequestFailed`) and a message meant for the user, such as
@@ -199,6 +202,9 @@ number.
 | --- | --- |
 | `org.agenda.dispatch` | `org-agenda` (`C-c a`): asks for a view by its key, as Emacs's menu does (input kind `key`; `a` for the agenda, `t` for the TODO list, `m` / `M` for a tags search, and the commands of `agenda.customCommands`), and opens it. A prefix key of custom commands asks again, with the keys so far in the input's `context` (`keys`); `m` and `M` then ask for the match string (input kind `text`). |
 | `org.return` | `org-return` (RET): in a table, aligns it and goes to the same column of the next row, adding a row when there is none or the next is a rule; on a headline, puts the rest of the title on a new line with the tags kept in their column; in a list item, keeps the rest of the line in the item; else a new line. The new line is indented as `electric-indent-mode` indents in Org (`org-indent-line`), the blanks left at the end of the line removed. Returns `{ "edits", "cursor" }` (see above); in a source block's code, `notApplicable`. |
+| `org.meta.return` | `org-meta-return` (M-RET): in a table, splits the field at the cursor, what follows it going in front of the field one row down (`org-table-wrap-region`); in a list, a new item (`org-insert-item`), what follows the cursor in it, before the item when the cursor is before its text, the bullets numbered again; else a new heading (`org-insert-heading`): above a headline from its start, the rest of the title in it from within the title, after the headline elsewhere on it, and a line of text turned into a heading from its start. Empty lines before the new heading as before the one the cursor is in (`org-blank-before-new-entry`'s `auto`). Returns `{ "edits", "cursor" }`. |
+| `org.insert.todo.heading` | `org-insert-todo-heading` (M-S-RET): in a list, a new item with a checkbox, the cookies that count them updated; else a new heading with the keyword of the heading before it at its level, unless that one is done or has none, then the first keyword. Returns `{ "edits", "cursor" }`. |
+| `org.insert.heading.after`, `org.insert.todo.heading.after` | `org-insert-heading-respect-content` (C-RET) and `org-insert-todo-heading-respect-content` (C-S-RET): a heading, or a TODO heading, at the level of the one the cursor is in, after its subtree. Returns `{ "edits", "cursor" }`. |
 | `org.agenda.list` | Opens the agenda for the current week or day. |
 | `org.agenda.todos` | Opens the list of all TODO entries. |
 | `org.agenda.later`, `org.agenda.earlier` | Moves the agenda one span forward or backward. |
@@ -394,7 +400,10 @@ time.
   marked `"native": true` keeps its own meaning where the command does
   not apply, such as `<C-a>` or `S-<up>`; see `notApplicable` under
   [Commands](#commands). A `vim` key with `"mode": "insert"` is typed in
-  insert mode (`<CR>` of `org.return`); the others in normal mode.
+  insert mode (`<CR>` of `org.return`); the others in normal mode. One with
+  `"mode": "append"` (`<Leader><CR>` of `org.meta.return`) acts as if the
+  cursor were after the character under it, as `a` types there, and leaves
+  the editor in insert mode where the command put the cursor.
 - **`agenda`**: how the agenda document is named; see below.
 - **`tokenTypes`**, **`tokenModifiers`**: the semantic token legend with
   descriptions. `standard` types are LSP's own.

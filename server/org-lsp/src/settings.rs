@@ -618,8 +618,8 @@ pub const SETTINGS: &[Setting] = &[
             "false",
             "",
             "Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked \
-             from a list, and in the agenda moving through time, for a client that cannot run a command from a \
-             key. The Zed extension sets it.",
+             from a list, a new heading or item (M-RET and its neighbours), and in the agenda moving through \
+             time, for a client that cannot run a command from a key. The Zed extension sets it.",
         )
     },
 ];

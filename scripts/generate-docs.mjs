@@ -144,7 +144,8 @@ function vscodeKeys() {
   const leader = manifest.commands.flatMap((command) =>
     command.keys
       .filter((key) => key.preset === 'vim' && key.key.startsWith('<Leader>') && ['global', 'org'].includes(key.in))
-      .map((key) => ({ before: ['<leader>', ...[...key.key.slice('<Leader>'.length)]], commands: [command.command] })),
+      // `<CR>` is one key to VSCodeVim, as `<leader>` is.
+      .map((key) => ({ before: ['<leader>', ...key.key.slice('<Leader>'.length).match(/<[^>]+>|./g)], commands: [command.command] })),
   );
   const unique = [...new Map(leader.map((entry) => [entry.before.join(''), entry])).values()];
   sections.push(

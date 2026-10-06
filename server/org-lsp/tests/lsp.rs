@@ -638,8 +638,6 @@ fn sends_virtual_indentation() {
     client.shutdown();
 }
 
-/// `org-toggle-checkbox` as a code action: the box, and the cookie that
-/// counts it.
 /// RET (`org-return`): the result carries the edit and where the cursor
 /// goes, for the editor to apply as the key is typed; in a source block's
 /// code the command does not apply, and the editor's own RET does.
@@ -666,6 +664,50 @@ fn returns_as_org_does() {
     client.shutdown();
 }
 
+/// M-RET, M-S-RET, C-RET and C-S-RET: the result carries the edit and the
+/// cursor, as with RET.
+#[test]
+fn inserts_headings_and_items_as_org_does() {
+    let mut client = Client::start(json!({}), Value::Null);
+    let text = "* TODO Write :work:\n- [ ] one\n** Sub\n* Next\n";
+    client.open(&uri(), text);
+    let mut run = |command: &str, line: u32, character: u32| -> (String, Value) {
+        let context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+            .expect("a result");
+        let edit: TextEdit = serde_json::from_value(result["edits"][0].clone()).unwrap();
+        // The text is ASCII: a character is a byte.
+        let offset = |at: Position| {
+            text.split_inclusive('\n').take(at.line as usize).map(str::len).sum::<usize>() + at.character as usize
+        };
+        let (start, end) = (offset(edit.range.start), offset(edit.range.end));
+        (format!("{}{}{}", &text[..start], edit.new_text, &text[end..]), result["cursor"].clone())
+    };
+    // In a list, an item; with a checkbox from M-S-RET.
+    assert_eq!(
+        run("org.meta.return", 1, 9),
+        ("* TODO Write :work:\n- [ ] one\n- \n** Sub\n* Next\n".to_string(), json!({ "line": 2, "character": 2 }))
+    );
+    assert_eq!(run("org.insert.todo.heading", 1, 9).0, "* TODO Write :work:\n- [ ] one\n- [ ] \n** Sub\n* Next\n");
+    // On the headline, a heading after it, with the keyword of M-S-RET.
+    assert_eq!(
+        run("org.insert.todo.heading", 0, 3),
+        ("* TODO Write :work:\n* TODO \n- [ ] one\n** Sub\n* Next\n".to_string(), json!({ "line": 1, "character": 7 }))
+    );
+    // C-RET and C-S-RET: after the subtree.
+    assert_eq!(run("org.insert.heading.after", 1, 0).0, "* TODO Write :work:\n- [ ] one\n** Sub\n* \n* Next\n");
+    assert_eq!(
+        run("org.insert.todo.heading.after", 0, 0).0,
+        "* TODO Write :work:\n- [ ] one\n** Sub\n* TODO \n* Next\n"
+    );
+    client.shutdown();
+}
+
+/// `org-toggle-checkbox` as a code action: the box, and the cookie that
+/// counts it.
 #[test]
 fn toggles_checkboxes() {
     let mut client = Client::start(json!({}), Value::Null);

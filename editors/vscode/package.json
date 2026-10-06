@@ -200,6 +200,26 @@
         "category": "Org"
       },
       {
+        "command": "org.meta.return",
+        "title": "New heading, item or table row",
+        "category": "Org"
+      },
+      {
+        "command": "org.insert.todo.heading",
+        "title": "New TODO heading, or item with a checkbox",
+        "category": "Org"
+      },
+      {
+        "command": "org.insert.heading.after",
+        "title": "New heading after the subtree",
+        "category": "Org"
+      },
+      {
+        "command": "org.insert.todo.heading.after",
+        "title": "New TODO heading after the subtree",
+        "category": "Org"
+      },
+      {
         "command": "org.refile",
         "title": "Refile the entry",
         "category": "Org"
@@ -2315,6 +2335,26 @@
             }
           ]
         }
+      },
+      {
+        "command": "org.meta.return",
+        "key": "alt+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.insert.todo.heading",
+        "key": "alt+shift+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.insert.heading.after",
+        "key": "ctrl+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.insert.todo.heading.after",
+        "key": "ctrl+shift+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
         "command": "org.refile",

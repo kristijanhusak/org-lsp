@@ -84,9 +84,9 @@ pub struct Options {
     /// command's result (Zed).
     pub message_prompts: Option<bool>,
     /// Offer more commands as code actions (the agenda, capture, refile,
-    /// a TODO state or a priority picked from a list; in the agenda, moving
-    /// through time): for a client that cannot run a command from a key
-    /// (Zed).
+    /// a TODO state or a priority picked from a list, a new heading or
+    /// item; in the agenda, moving through time): for a client that cannot
+    /// run a command from a key (Zed).
     pub command_actions: Option<bool>,
     /// `org-refile-targets`: where entries can be refiled to. Without it,
     /// the top-level headlines of the entry's own file.

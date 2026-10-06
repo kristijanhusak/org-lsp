@@ -203,6 +203,34 @@
     }
   },
   {
+    "caption": "Org: New heading, item or table row",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.meta.return"
+    }
+  },
+  {
+    "caption": "Org: New TODO heading, or item with a checkbox",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.insert.todo.heading"
+    }
+  },
+  {
+    "caption": "Org: New heading after the subtree",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.insert.heading.after"
+    }
+  },
+  {
+    "caption": "Org: New TODO heading after the subtree",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.insert.todo.heading.after"
+    }
+  },
+  {
     "caption": "Org: Refile the entry",
     "command": "org_lsp_run",
     "args": {

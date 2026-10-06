@@ -55,8 +55,13 @@ def save(path, cases):
         handle.write("\n")
 
 
-def reference(cases):
-    """Fill in `expected` for every case."""
+HANG = "Emacs did not finish"
+
+
+def reference(cases, timeout=None):
+    """Fill in `expected` for every case. With `timeout` (seconds for the
+    whole run), a case Emacs never finishes gets `{"error": HANG}` and the
+    cases after it run again."""
     org_path = ["-L", os.environ["ORG_LISP_DIR"]] if os.environ.get("ORG_LISP_DIR") else []
     with tempfile.TemporaryDirectory() as directory:
         forms = [DRIVER]
@@ -78,13 +83,25 @@ def reference(cases):
         driver = os.path.join(directory, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:
             handle.write("\n".join(forms))
-        subprocess.run(
-            ["emacs", "--batch", "-Q", *org_path, "-l", driver],
-            check=True,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        try:
+            subprocess.run(
+                ["emacs", "--batch", "-Q", *org_path, "-l", driver],
+                check=True,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired:
+            done = 0
+            while done < len(outputs) and os.path.exists(outputs[done][1]):
+                done += 1
+            for case, target in outputs[:done]:
+                with open(target, encoding="utf-8") as handle:
+                    case["expected"] = json.load(handle)
+            outputs[done][0]["expected"] = {"error": HANG}
+            reference(cases[done + 1:], timeout)
+            return cases
         for case, target in outputs:
             with open(target, encoding="utf-8") as handle:
                 case["expected"] = json.load(handle)

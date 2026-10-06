@@ -165,13 +165,35 @@ function! s:return() abort
 endfunction
 call s:test('RET in insert mode is as in Org', function('s:return'))
 
+function! s:meta_return() abort
+  let file = s:work . '/notes/meta.org'
+  call writefile(['* TODO Write :work:', '- one', '** Sub', '* Next'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  " After the character under the cursor: a new item after the last one.
+  call cursor(2, 5)
+  call feedkeys("\\\<CR>", 'xt')
+  call s:until('the new item', {-> getline(3) ==# '- '})
+  call assert_equal(['* TODO Write :work:', '- one', '- ', '** Sub', '* Next'], getline(1, '$'))
+  call assert_equal(3, line('.'))
+  call feedkeys("\<Esc>", 'xt')
+  " A TODO heading after the subtree.
+  call cursor(1, 1)
+  call feedkeys("\\oit", 'xt')
+  call s:until('the TODO heading', {-> getline(5) ==# '* TODO '})
+  call assert_equal(5, line('.'))
+  call feedkeys("\<Esc>", 'xt')
+  silent write
+endfunction
+call s:test('M-RET and its neighbours insert headings and items', function('s:meta_return'))
+
 function! s:help() abort
   execute 'buffer' s:work_buf
   let popup = org_lsp#help()
   call assert_true(popup > 0, 'a popup')
   let shown = getbufline(winbufnr(popup), 1, '$')
   call assert_equal('Org file', shown[0])
-  call assert_true(index(shown, '  cit          Change the TODO state') >= 0, string(shown))
+  call assert_true(index(shown, '  cit           Change the TODO state') >= 0, string(shown))
   call assert_true(match(shown, '^  g?\s\+Show the keys$') >= 0, 'g? is listed')
   call popup_close(popup)
 endfunction

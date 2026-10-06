@@ -2309,6 +2309,25 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     client.settle();
     assert!(client.notifications.iter().any(|notification| notification.method == "window/showMessage"
         && notification.params["message"].as_str().unwrap().contains("cannot ask for text")));
+
+    // The keys that insert a heading are actions too, which the server
+    // applies, the cursor then moved to the new heading.
+    let offered = kinds(&mut client, WORK_URI, 3, json!(["org"]));
+    assert!(offered.iter().any(|kind| kind == "org.insert.heading.after"), "{offered:?}");
+    client.open(WORK_URI, WORK);
+    client.received.clear();
+    let applied =
+        json!({ "textDocument": { "uri": WORK_URI }, "position": { "line": 1, "character": 3 }, "apply": true });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.insert.heading.after", "arguments": [applied] }))
+        .unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    let inserted = apply(WORK, &edits);
+    assert_eq!(inserted.lines().nth(3), Some("* "), "{inserted}");
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("moved");
+    assert_eq!(shown.params["selection"]["start"], json!({ "line": 3, "character": 2 }));
     client.shutdown();
 }
 

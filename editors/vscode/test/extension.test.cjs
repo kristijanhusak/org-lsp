@@ -477,6 +477,24 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('inserts items and headings as M-RET and its neighbours do', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'meta.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* TODO Write :work:\n- one\n** Sub\n* Next\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    moveTo(1, 5);
+    await vscode.commands.executeCommand('org.meta.return');
+    await until('the new item', () => editor.document.lineAt(2).text === '- ');
+    assert.deepEqual([editor.selection.active.line, editor.selection.active.character], [2, 2]);
+    moveTo(0, 0);
+    await vscode.commands.executeCommand('org.insert.todo.heading.after');
+    await until('the TODO heading after the subtree', () => editor.document.lineAt(4).text === '* TODO ');
+    assert.deepEqual([editor.selection.active.line, editor.selection.active.character], [4, 7]);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('archives a subtree into the archive file, and asks about each done one', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'archive.org'));
     const archive = vscode.Uri.file(path.join(workspace, 'archive.org_archive'));

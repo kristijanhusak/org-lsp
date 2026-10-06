@@ -1,0 +1,742 @@
+[
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 0,
+  "key": "M-RET",
+  "expected": {
+   "text": "* \n* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+   "point": 2
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 2,
+  "key": "M-RET",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\n* \nBody\n** Sub\n* Next\n",
+   "point": 38
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 7,
+  "key": "M-RET",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\n* \nBody\n** Sub\n* Next\n",
+   "point": 38
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 15,
+  "key": "M-RET",
+  "expected": {
+   "text": "* TODO [#A] Wri                                                        :work:\n* te the report\nBody\n** Sub\n* Next\n",
+   "point": 93
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 30,
+  "key": "M-RET",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\n* \nBody\n** Sub\n* Next\n",
+   "point": 38
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 35,
+  "key": "M-RET",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\n* \nBody\n** Sub\n* Next\n",
+   "point": 38
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 36,
+  "key": "M-RET",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\n* Body\n** Sub\n* Next\n",
+   "point": 38
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 40,
+  "key": "M-RET",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n* \n** Sub\n* Next\n",
+   "point": 43
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 0,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* TODO \n* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 2,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\n* TODO \nBody\n** Sub\n* Next\n",
+   "point": 43
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 7,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\n* TODO \nBody\n** Sub\n* Next\n",
+   "point": 43
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 15,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Wri                                                        :work:\n* TODO te the report\nBody\n** Sub\n* Next\n",
+   "point": 85
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 30,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\n* TODO \nBody\n** Sub\n* Next\n",
+   "point": 43
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 35,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\n* TODO \nBody\n** Sub\n* Next\n",
+   "point": 43
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 36,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\n* TODO Body\n** Sub\n* Next\n",
+   "point": 43
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 40,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n* TODO \n** Sub\n* Next\n",
+   "point": 48
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 0,
+  "key": "C-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* \n* Next\n",
+   "point": 50
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 2,
+  "key": "C-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* \n* Next\n",
+   "point": 50
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 7,
+  "key": "C-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* \n* Next\n",
+   "point": 50
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 15,
+  "key": "C-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* \n* Next\n",
+   "point": 50
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 30,
+  "key": "C-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* \n* Next\n",
+   "point": 50
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 35,
+  "key": "C-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* \n* Next\n",
+   "point": 50
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 36,
+  "key": "C-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* \n* Next\n",
+   "point": 50
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 40,
+  "key": "C-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* \n* Next\n",
+   "point": 50
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 0,
+  "key": "C-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* TODO \n* Next\n",
+   "point": 55
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 2,
+  "key": "C-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* TODO \n* Next\n",
+   "point": 55
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 7,
+  "key": "C-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* TODO \n* Next\n",
+   "point": 55
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 15,
+  "key": "C-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* TODO \n* Next\n",
+   "point": 55
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 30,
+  "key": "C-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* TODO \n* Next\n",
+   "point": 55
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 35,
+  "key": "C-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* TODO \n* Next\n",
+   "point": 55
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 36,
+  "key": "C-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* TODO \n* Next\n",
+   "point": 55
+  }
+ },
+ {
+  "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 40,
+  "key": "C-S-<return>",
+  "expected": {
+   "text": "* TODO [#A] Write the report :work:\nBody\n** Sub\n* TODO \n* Next\n",
+   "point": 55
+  }
+ },
+ {
+  "text": "* A\n\n* B\n\n* C\n",
+  "point": 8,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n\n* B\n\n* \n\n* C\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "* A\n\n* B\n",
+  "point": 3,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n\n* \n\n* B\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "* A\n\n* B\n\n* C",
+  "point": 13,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n\n* B\n\n* C\n\n* ",
+   "point": 17
+  }
+ },
+ {
+  "text": "* A\n* B\n* C\n",
+  "point": 7,
+  "key": "C-<return>",
+  "expected": {
+   "text": "* A\n* B\n* \n* C\n",
+   "point": 10
+  }
+ },
+ {
+  "text": "* A\n\n** B\n\n* C\n",
+  "point": 9,
+  "key": "C-<return>",
+  "expected": {
+   "text": "* A\n\n** B\n\n** \n\n* C\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "* DONE A\n",
+  "point": 8,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* DONE A\n* TODO \n",
+   "point": 16
+  }
+ },
+ {
+  "text": "* A\n",
+  "point": 3,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* A\n* TODO \n",
+   "point": 11
+  }
+ },
+ {
+  "text": "** NEXT A\n",
+  "point": 9,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "** NEXT A\n** TODO \n",
+   "point": 18
+  }
+ },
+ {
+  "text": "Intro text\n* A\n",
+  "point": 5,
+  "key": "M-RET",
+  "expected": {
+   "text": "Intro\n*  text\n* A\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "Intro text\n* A\n",
+  "point": 0,
+  "key": "M-RET",
+  "expected": {
+   "text": "* Intro text\n* A\n",
+   "point": 2
+  }
+ },
+ {
+  "text": "Intro\n\n* A\n",
+  "point": 6,
+  "key": "M-RET",
+  "expected": {
+   "text": "Intro\n\n* \n\n* A\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "key": "M-RET",
+  "expected": {
+   "text": "* ",
+   "point": 2
+  }
+ },
+ {
+  "text": "text",
+  "point": 4,
+  "key": "M-RET",
+  "expected": {
+   "text": "text\n* ",
+   "point": 7
+  }
+ },
+ {
+  "text": "* A\ntext here\n",
+  "point": 8,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\ntext\n*  here\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "* A\ntext here\n",
+  "point": 4,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n* text here\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "* A\n- one\n- two words\n  more\n- three\n",
+  "point": 15,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- one\n- two\n- words\n  more\n- three\n",
+   "point": 18
+  }
+ },
+ {
+  "text": "* A\n- one\n- two words\n  more\n- three\n",
+  "point": 15,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* A\n- one\n- two\n- [ ] words\n  more\n- three\n",
+   "point": 22
+  }
+ },
+ {
+  "text": "* A\n- one\n- two\n",
+  "point": 9,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- one\n- \n- two\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "* A\n- one\n- two\n",
+  "point": 6,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- \n- one\n- two\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "* A\n- one\n- two\n",
+  "point": 4,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- \n- one\n- two\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "* A\n- [ ] one\n- [X] two\n",
+  "point": 13,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- [ ] one\n- \n- [X] two\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "* A\n- [ ] one\n- [X] two\n",
+  "point": 13,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* A\n- [ ] one\n- [ ] \n- [X] two\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "* A\n- one\n- two\n",
+  "point": 9,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* A\n- one\n- [ ] \n- two\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "* A\n1. one\n2. two\n3. three\n",
+  "point": 10,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1. one\n2. \n3. two\n4. three\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "* A\n1) one\n2) two\n",
+  "point": 17,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1) one\n2) two\n3) \n",
+   "point": 21
+  }
+ },
+ {
+  "text": "* A\n+ one\n\n+ two\n\n+ three\n",
+  "point": 16,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n+ one\n\n+ two\n\n+ \n\n+ three\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "* A\n- term :: def\n- other :: x\n",
+  "point": 17,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- term :: def\n-  :: \n- other :: x\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "* A\n- one\n  - sub\n  - sub2\n- two\n",
+  "point": 17,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- one\n  - sub\n  - \n  - sub2\n- two\n",
+   "point": 22
+  }
+ },
+ {
+  "text": "* A\n- one\n  - sub\n- two\n",
+  "point": 17,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* A\n- one\n  - sub\n  - [ ] \n- two\n",
+   "point": 26
+  }
+ },
+ {
+  "text": "* A\n- one\n  continued\n- two\n",
+  "point": 21,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- one\n  continued\n- \n- two\n",
+   "point": 24
+  }
+ },
+ {
+  "text": "* A\n- [ ] one [0/1]\n  - [ ] sub\n",
+  "point": 31,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- [ ] one [0/1]\n  - [ ] sub\n  - \n",
+   "point": 36
+  }
+ },
+ {
+  "text": "* A\n- [ ] one [0/1]\n  - [ ] sub\n",
+  "point": 31,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* A\n- [ ] one [0/2]\n  - [ ] sub\n  - [ ] \n",
+   "point": 40
+  }
+ },
+ {
+  "text": "* A [0/1]\n- [ ] one\n",
+  "point": 19,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* A [0/2]\n- [ ] one\n- [ ] \n",
+   "point": 26
+  }
+ },
+ {
+  "text": "* A\n3. one\n4. two\n",
+  "point": 10,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n1. one\n2. \n3. two\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "* A\n1. [@3] one\n2. two\n",
+  "point": 15,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n3. [@3] one\n4. \n5. two\n",
+   "point": 19
+  }
+ },
+ {
+  "text": "* A\n- one",
+  "point": 9,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- one\n- ",
+   "point": 12
+  }
+ },
+ {
+  "text": "* A\n- one\n- two\n\n\n",
+  "point": 17,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n- one\n- two\n- \n",
+   "point": 18
+  }
+ },
+ {
+  "text": "* A\n| a | bb |\n| c | d |\n",
+  "point": 11,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n| a | b   |\n| c | b d |\n",
+   "point": 22
+  }
+ },
+ {
+  "text": "* A\n| a | bb |\n",
+  "point": 10,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n| a |    |\n|   | bb |\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "* A\n| a | bb |\n",
+  "point": 5,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n|   | bb |\n| a |    |\n",
+   "point": 17
+  }
+ },
+ {
+  "text": "* A\n| a | bb |\n|---+----|\n",
+  "point": 12,
+  "key": "M-RET",
+  "expected": {
+   "text": "* A\n| a | bb |\n|   |    |\n|---+----|\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "* A\n  - one\n  - two\n",
+  "point": 11,
+  "key": "M-RET",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n  - one\n  - \n  - two\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "** A\n   body\n",
+  "point": 4,
+  "key": "M-RET",
+  "adapt": "t",
+  "expected": {
+   "text": "** A\n** \n   body\n",
+   "point": 8
+  }
+ },
+ {
+  "text": ":LOGBOOK:\n- note\nCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n:END:\n      #+begin_src emacs-lisp -i\n      (message)\n      #+end_src\n\n \n \n      -----\n \n\n* c :tag:\n   :PROPERTIES:\n   :ID: 1\n   :Effort:   1:00\n   :END:\n \n- a\n  text of a\n- b\n",
+  "point": 240,
+  "key": "C-S-<return>",
+  "expected": {
+   "text": ":LOGBOOK:\n- note\nCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n:END:\n      #+begin_src emacs-lisp -i\n      (message)\n      #+end_src\n\n \n \n      -----\n \n\n* c :tag:\n   :PROPERTIES:\n   :ID: 1\n   :Effort:   1:00\n   :END:\n \n- a\n  text of a\n- b\n\n* TODO \n",
+   "point": 264
+  }
+ },
+ {
+  "text": "** d\n  SCHEDULED: <2026-10-05 Mon>\n\n*** c :tag:\n :LOGBOOK:\n - note\n CLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n :END:\n\\end{equation}\n**** d\n:NOTES:\ninside\n:END:\n\t*bold* start\n**** a\n      :NOTES:\n      inside\n      :END:\n:LOGBOOK:\n- note\n\nCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n:END:\n  #+begin_example\n    example\n  more\n  #+end_example\n**** a\n\t:LOGBOOK:\n- [X] checked item with text\n\t- note\n\tCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n\t:END:\n\t#+TITLE: x\n \n\n\n* Plain title\n",
+  "point": 437,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "** d\n  SCHEDULED: <2026-10-05 Mon>\n\n*** c :tag:\n :LOGBOOK:\n - note\n CLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n :END:\n\\end{equation}\n**** d\n:NOTES:\ninside\n:END:\n\t*bold* start\n**** a\n      :NOTES:\n      inside\n      :END:\n:LOGBOOK:\n- note\n\nCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n:END:\n  #+begin_example\n    example\n  more\n  #+end_example\n**** a\n\t:LOGBOOK:\n  [X] checked item with text\n\t- note\n- [ ] \n\tCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n\t:END:\n\t#+TITLE: x\n \n\n\n* Plain title\n",
+   "point": 442
+  }
+ },
+ {
+  "text": "* TODO b\n :PROPERTIES:\n :END:\n#+begin_verse\n  verse\nlines\n#+end_verse\n \na longer line of text\n1. first\n2. second\n   continued\n    :LOGBOOK:\n    - note\n    CLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n    :END:\n  \n** c :tag:\n:PROPERTIES:\n:END:\n\\begin{equation}\n   \\begin{equation}\n   *bold* start\n [fn:2] A footnote\n continued\n \n after one blank\n  \n* a\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n[fn:1] note\ntext\n",
+  "point": 132,
+  "key": "M-RET",
+  "expected": {
+   "text": "* TODO b\n :PROPERTIES:\n :END:\n#+begin_verse\n  verse\nlines\n#+end_verse\n \na longer line of text\n1. first\n2. second\n   continued\n    :L\n3. OGBOOK:\n    - note\n    CLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n    :END:\n  \n** c :tag:\n:PROPERTIES:\n:END:\n\\begin{equation}\n   \\begin{equation}\n   *bold* start\n [fn:2] A footnote\n continued\n \n after one blank\n  \n* a\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n[fn:1] note\ntext\n",
+   "point": 136
+  }
+ },
+ {
+  "text": "3. [@3] counted\n4. next\nSCHEDULED: <2026-10-05 Mon>\n- term :: description\n* A [0/2]\n- other :: x\n\n  \n  \n* c :tag:\n\n    1. first\n    2. second\n       continued\n\n\n    | a | b |\n    | a | b |\n \n** d\n      #+begin_verse\n        verse\n      lines\n      #+end_verse\n\n\n \n*** d\ntext\n*** TODO b\n    #+begin_src emacs-lisp -i\n    (message)\n    #+end_src\n    # comment\n\n\n  \n\n\n** DONE Done title :x:",
+  "point": 180,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "3. [@3] counted\n4. next\nSCHEDULED: <2026-10-05 Mon>\n- term :: description\n* A [0/2]\n- other :: x\n\n  \n  \n* c :tag:\n\n    1. first\n    2. second\n       continued\n\n\n    | a | b |\n    |\n\n* TODO  a | b |\n \n** d\n      #+begin_verse\n        verse\n      lines\n      #+end_verse\n\n\n \n*** d\ntext\n*** TODO b\n    #+begin_src emacs-lisp -i\n    (message)\n    #+end_src\n    # comment\n\n\n  \n\n\n** DONE Done title :x:",
+   "point": 189
+  }
+ },
+ {
+  "text": "* d\n   *bold* start\n\n* c :tag:\n      :PROPERTIES:\n      :END:\n      #+begin_quote\n      quoted\n      \n      again\n      #+end_quote\n\n* c :tag:\n    SCHEDULED: <2026-10-05 Mon>\n  \n** d\n- one\n  two\n\n- three\n      more text\n      DEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n- term :: definition\n- other :: more\n\n*** c :tag:\n :LOGBOOK:\n- [ ] parent [1/2]\n  - [X] one\n  - [ ] two\n - note\n CLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n :END:\n more text\n\n",
+  "point": 404,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* d\n   *bold* start\n\n* c :tag:\n      :PROPERTIES:\n      :END:\n      #+begin_quote\n      quoted\n      \n      again\n      #+end_quote\n\n* c :tag:\n    SCHEDULED: <2026-10-05 Mon>\n  \n** d\n- one\n  two\n\n- three\n      more text\n      DEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n- term :: definition\n- other :: more\n\n*** c :tag:\n :LOGBOOK:\n[-] parent [1/3]\n  - [X] one\n  - [ ] two\n - note\n CLOCK: [20\n- [ ] 26-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n :END:\n more text\n\n",
+   "point": 409
+  }
+ },
+ {
+  "text": "  | x |\n    | x |",
+  "point": 6,
+  "key": "M-RET",
+  "expected": {
+   "text": "  | x |\n  | x |\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "* D [1/3]\n    - two words [%]\n    3. [@4] one [%]\n\n    - [ ] a longer item text [%]\n\n    * [ ] x [%]",
+  "point": 55,
+  "key": "M-S-<return>",
+  "expected": {
+   "text": "* D [0/3]\n    - two words [0%]\n    - [@4] one [0%]\n\n    - [ ] \n\n    - [ ] a longer item text [0%]\n\n    - [ ] x [0%]",
+   "point": 62
+  }
+ }
+]

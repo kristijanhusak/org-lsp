@@ -164,6 +164,11 @@ struct Context {
     /// a capture or note buffer whose last changes the server may not have
     /// heard of yet.
     text: Option<String>,
+    /// For the commands whose result carries their edit (`org.return`):
+    /// have the server apply it instead, and move the cursor. Code actions
+    /// run them so.
+    #[serde(default)]
+    apply: bool,
 }
 
 /// What `org.capture` is run with. Capturing needs no document: from
@@ -1248,6 +1253,32 @@ impl Server {
                 result.push(as_action(id));
             }
         }
+        // The keys that insert a heading or an item: the server applies
+        // the edit and moves the cursor to it.
+        if more {
+            let mut applied = context.clone();
+            applied["apply"] = json!(true);
+            for id in [
+                commands::META_RETURN,
+                commands::INSERT_TODO_HEADING,
+                commands::INSERT_HEADING_AFTER,
+                commands::INSERT_TODO_HEADING_AFTER,
+            ] {
+                if actions::requested(id, only) {
+                    let title = commands::title(id).to_string();
+                    result.push(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: title.clone(),
+                        kind: Some(CodeActionKind::new(id)),
+                        command: Some(lsp_types::Command {
+                            title,
+                            command: id.to_string(),
+                            arguments: Some(vec![applied.clone()]),
+                        }),
+                        ..Default::default()
+                    }));
+                }
+            }
+        }
         Some(result)
     }
 
@@ -1751,6 +1782,12 @@ impl Server {
                 self.archive(id, &context.ok_or("This command needs the cursor position")?)
             }
             commands::RETURN => self.org_return(&context.ok_or("This command needs the cursor position")?),
+            commands::META_RETURN
+            | commands::INSERT_TODO_HEADING
+            | commands::INSERT_HEADING_AFTER
+            | commands::INSERT_TODO_HEADING_AFTER => {
+                self.meta_return(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
             // In a note buffer, the keys of a capture store or cancel the
             // note.
             commands::CAPTURE_FINISH | commands::CAPTURE_ABORT
@@ -3273,6 +3310,43 @@ impl Server {
         let document = self.document(uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
         let outcome = org_core::newline::org_return(&document.text, offset, document.parse.todo_keywords(), &settings)?;
+        self.carried(context, outcome)
+    }
+
+    /// M-RET (`org-meta-return`), M-S-RET (`org-insert-todo-heading`),
+    /// C-RET and C-S-RET (their `respect-content` forms) at `context`,
+    /// carried in the result as `org.return` is.
+    fn meta_return(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::meta_return;
+        let encoding = self.client.encoding;
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, encoding);
+        let keywords = document.parse.todo_keywords();
+        let settings = meta_return::Settings { tags_column: self.refile.2.tags_column };
+        let text = &document.text;
+        let outcome = match id {
+            commands::META_RETURN => meta_return::meta_return(text, offset, keywords, &settings)?,
+            commands::INSERT_TODO_HEADING => {
+                meta_return::insert_todo_heading(text, offset, keywords, &settings, false)?
+            }
+            commands::INSERT_HEADING_AFTER => meta_return::insert_heading_after(text, offset, keywords, &settings),
+            _ => meta_return::insert_todo_heading(text, offset, keywords, &settings, true)?,
+        };
+        self.carried(context, outcome)
+    }
+
+    /// The result of a command that carries its edit and the cursor after
+    /// it, `{ "edits": [TextEdit], "cursor": Position }`, for the editor to
+    /// apply at once. With `apply` in the context the server applies the
+    /// edit itself and moves the cursor there.
+    fn carried(
+        &mut self,
+        context: &Context,
+        outcome: org_core::newline::Outcome,
+    ) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let uri = &context.text_document.uri;
+        let document = self.document(uri).ok_or("This file is not open")?;
         let old = &document.text;
         let new = &outcome.text;
         // The edit: what lies between what both have at the start and at
@@ -3297,6 +3371,13 @@ impl Server {
             },
         );
         let cursor = LineIndex::new(new).position(new, outcome.cursor, encoding);
+        if context.apply {
+            let version = document.version;
+            let edit = self.workspace_edit(uri, Some(version), vec![edit]);
+            let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+            self.apply_edit(params, Pending::EditAndMove { uri: uri.clone(), position: cursor });
+            return Ok(Value::Null);
+        }
         Ok(json!({ "edits": [edit], "cursor": cursor }))
     }
 
