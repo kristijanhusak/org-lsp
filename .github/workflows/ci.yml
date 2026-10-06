@@ -1,9 +1,14 @@
 name: CI
 
+# Paused to save Actions minutes: runs only when started by hand
+# (Actions > CI > Run workflow). Put the push and pull_request triggers
+# back to run it on every change again:
+#
+#   push:
+#     branches: [main]
+#   pull_request:
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
