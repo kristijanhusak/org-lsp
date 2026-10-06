@@ -1,0 +1,6 @@
+Headlines with TAGS match: office-crypt
+  work:       TODO Write spec                                   :office::urgent:
+  work:       TODO Review spec                                         :office::
+  work:       Errands                                             :office::home:
+  work:       TODO Groceries                                           :office::
+  work:       TODO Call plumber                                  :office::phone:

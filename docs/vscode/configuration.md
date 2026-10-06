@@ -102,6 +102,23 @@ them out:
     // at that column. (org-tags-column)
     "tagsColumn": -77,
 
+    // Which tags entries inherit from their parents and from `#+FILETAGS:`:
+    // `true` for all, `false` for none, a list of tags, or a regexp (Emacs
+    // syntax) tags must match. Inherited tags count in tag searches and show
+    // in the agenda. (org-use-tag-inheritance)
+    "useTagInheritance": true,
+
+    // Tags never inherited, when `useTagInheritance` is `true` or a regexp.
+    // (org-tags-exclude-from-inheritance)
+    "tagsExcludeFromInheritance": [],
+
+    // Which properties an entry without them takes from its parents, the
+    // file's property drawer and `#+PROPERTY:` lines, in property searches
+    // (`OWNER="alice"`): `true` for all, `false` for none, a list of names,
+    // or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always
+    // inherited. (org-use-property-inheritance)
+    "usePropertyInheritance": false,
+
     // Where `CLOCK:` lines go: `true` for the drawer of `logIntoDrawer`
     // (`LOGBOOK` when that is not a name), the name of a drawer, or `false`
     // for the entry itself. (org-clock-into-drawer)

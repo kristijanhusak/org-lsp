@@ -1,0 +1,7 @@
+Global list of TODO items of type: ALL
+  home:       TODO Water plants                                          :daily:
+  home:       TODO Buy hose
+  work:       TODO Write spec                                           :urgent:
+  work:       TODO Review spec
+  work:       TODO Groceries
+  work:       TODO Call plumber                                          :phone:

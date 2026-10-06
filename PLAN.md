@@ -390,7 +390,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 ### 7. Tags and properties
 
-- Set tags with alignment and inheritance, tag groups.
+- Done: tag and property inheritance (`org-use-tag-inheritance`,
+  `org-tags-exclude-from-inheritance`, `org-use-property-inheritance`,
+  `#+PROPERTY:`, the file's property drawer, `NAME+` values).
+- Set tags with alignment, tag groups. `LOGGING` and other properties
+  that change what commands do, read with inheritance.
 - Properties: set, delete, allowed values (the shifted keys on a property
   line), column view if it can be shown at all.
 

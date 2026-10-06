@@ -17,6 +17,67 @@ pub struct Tag {
     pub inherited: bool,
 }
 
+/// Which tags or properties pass from an entry to its children (and from
+/// the file to its entries): Org's `t`, `nil`, a list of names, or a
+/// regexp, as `org-use-tag-inheritance` and
+/// `org-use-property-inheritance` take them.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum Inherit {
+    #[default]
+    All,
+    Nothing,
+    Names(Vec<String>),
+    /// An Emacs regexp, matched without regard to case.
+    Matching(String),
+}
+
+/// What entries inherit.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Inheritance {
+    /// `org-use-tag-inheritance`
+    pub tags: Inherit,
+    /// `org-tags-exclude-from-inheritance`
+    pub tags_excluded: Vec<String>,
+    /// `org-use-property-inheritance`
+    pub properties: Inherit,
+}
+
+impl Default for Inheritance {
+    fn default() -> Self {
+        Inheritance { tags: Inherit::All, tags_excluded: Vec::new(), properties: Inherit::Nothing }
+    }
+}
+
+impl Inheritance {
+    /// `org-remove-uninherited-tags`, for one tag: whether entries below
+    /// get it. The excluded tags count with `t` and a regexp, not with a
+    /// list.
+    pub fn inherits_tag(&self, tag: &str) -> bool {
+        let excluded = || self.tags_excluded.iter().any(|name| name == tag);
+        match &self.tags {
+            Inherit::All => !excluded(),
+            Inherit::Nothing => false,
+            Inherit::Names(names) => names.iter().any(|name| name == tag),
+            Inherit::Matching(pattern) => matches(pattern, tag) && !excluded(),
+        }
+    }
+
+    /// `org-property-inherit-p`
+    pub fn inherits_property(&self, name: &str) -> bool {
+        match &self.properties {
+            Inherit::All => true,
+            Inherit::Nothing => false,
+            Inherit::Names(names) => names.iter().any(|known| known.eq_ignore_ascii_case(name)),
+            Inherit::Matching(pattern) => matches(pattern, name),
+        }
+    }
+}
+
+/// `string-match` with `case-fold-search` on, as in an Org buffer.
+fn matches(pattern: &str, text: &str) -> bool {
+    crate::agenda::matcher::emacs_regex(pattern).is_some_and(|regex| regex.is_match(text))
+}
+
 /// A `SCHEDULED:`, `DEADLINE:` or `CLOSED:` timestamp.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Planning {
@@ -170,6 +231,13 @@ pub struct Outline {
     pub blocks: Vec<Block>,
     pub logs: Vec<Log>,
     pub clocks: Vec<ClockLine>,
+    /// The properties of the drawer before the first headline, keys in
+    /// upper case: the file's own, which every entry may inherit.
+    pub file_properties: Vec<(String, String)>,
+    /// `#+PROPERTY:` lines (`org-keyword-properties`), with `NAME+`
+    /// lines appended to the value before them.
+    pub keyword_properties: Vec<(String, String)>,
+    pub inheritance: Inheritance,
 }
 
 const ARCHIVE_TAG: &str = "ARCHIVE";
@@ -178,6 +246,11 @@ impl Outline {
     /// Build the model. `name` is the file name without directory and
     /// extension, which is the category of last resort.
     pub fn new(parse: &Parse, text: &str, name: &str) -> Outline {
+        Outline::with_inheritance(parse, text, name, &Inheritance::default())
+    }
+
+    /// Build the model with what entries inherit.
+    pub fn with_inheritance(parse: &Parse, text: &str, name: &str, inheritance: &Inheritance) -> Outline {
         let root = parse.syntax();
         let todo = parse.todo_keywords().clone();
         let file_tags = file_tags(&root);
@@ -201,6 +274,9 @@ impl Outline {
             blocks: Vec::new(),
             logs: Vec::new(),
             clocks: Vec::new(),
+            keyword_properties: keyword_properties(&root),
+            file_properties: top_properties,
+            inheritance: inheritance.clone(),
         };
         let file_archived = outline.file_tags.iter().any(|tag| tag == ARCHIVE_TAG);
         let inherited = Inherited {
@@ -216,6 +292,59 @@ impl Outline {
         outline.collect_blocks(&root, text);
         outline.collect_logs(text);
         outline
+    }
+
+    /// `org-entry-get` with `selective` inheritance, for a property that
+    /// is not one of Org's special ones: the entry's value, with its
+    /// `NAME+` values appended; when the property is inherited and the
+    /// entry has no `NAME`, those of its parents, the file's drawer and
+    /// `#+PROPERTY:` before them. `nil` means unset.
+    pub fn property(&self, entry: usize, name: &str) -> Option<String> {
+        let local = |properties: &[(String, String)]| {
+            let base = properties.iter().rev().find(|(key, _)| key.eq_ignore_ascii_case(name)).map(|(_, v)| v.clone());
+            let extra: Vec<String> = properties
+                .iter()
+                .filter(|(key, _)| key.strip_suffix('+').is_some_and(|key| key.eq_ignore_ascii_case(name)))
+                .map(|(_, value)| value.clone())
+                .collect();
+            (base, extra)
+        };
+        let not_nil = |value: String| (value != "nil").then_some(value);
+        if !self.inheritance.inherits_property(name) {
+            let (base, extra) = local(&self.entries[entry].properties);
+            // `org--property-local-values` drops a base value of `nil`.
+            let parts: Vec<String> = base.and_then(not_nil).into_iter().chain(extra).collect();
+            return (!parts.is_empty()).then(|| parts.join(" ")).and_then(not_nil);
+        }
+        // `org-entry-get-with-inheritance`: up the lineage, the file last.
+        let mut values: Vec<String> = Vec::new();
+        let mut found = false;
+        let mut at = Some(entry);
+        loop {
+            let properties = match at {
+                Some(index) => &self.entries[index].properties,
+                None => &self.file_properties,
+            };
+            let (base, extra) = local(properties);
+            let mut here: Vec<String> = base.iter().cloned().collect();
+            here.extend(extra);
+            here.append(&mut values);
+            values = here;
+            if base.is_some() {
+                found = true;
+                break;
+            }
+            match at {
+                Some(index) => at = self.entries[index].parent,
+                None => break,
+            }
+        }
+        if !found {
+            if let Some((_, global)) = self.keyword_properties.iter().find(|(key, _)| key.eq_ignore_ascii_case(name)) {
+                values.insert(0, global.clone());
+            }
+        }
+        (!values.is_empty()).then(|| values.join(" ")).and_then(not_nil)
     }
 
     /// The entry whose section contains byte `offset`.
@@ -265,8 +394,10 @@ impl Outline {
         let category = category_values(&properties, &inherited.category);
 
         // Inherited tags first, the entry's own last; of duplicates the
-        // most local one stays.
-        let mut tags: Vec<Tag> = inherited.tags.clone();
+        // most local one stays. File tags and those of parents pass as
+        // `org-use-tag-inheritance` says.
+        let mut tags: Vec<Tag> =
+            inherited.tags.iter().filter(|tag| self.inheritance.inherits_tag(&tag.name)).cloned().collect();
         tags.extend(own_tags.iter().map(|name| Tag { name: name.clone(), inherited: false }));
         let mut seen = Vec::new();
         let mut deduped: Vec<Tag> = Vec::new();
@@ -536,6 +667,27 @@ fn last_keyword_value(root: &SyntaxNode, key: &str) -> Option<String> {
 }
 
 /// `#+FILETAGS:` values, split on blanks and colons.
+/// `org-keyword-properties`: the `#+PROPERTY: NAME VALUE` lines in
+/// order, a `NAME+` line appending to the value of `NAME`.
+fn keyword_properties(root: &SyntaxNode) -> Vec<(String, String)> {
+    let mut properties: Vec<(String, String)> = Vec::new();
+    for value in keyword_values(root, "PROPERTY") {
+        let Some((key, rest)) = value.split_once([' ', '\t']) else { continue };
+        let rest = rest.trim_start_matches([' ', '\t']);
+        let (key, appending) = match key.strip_suffix('+') {
+            Some(key) => (key, true),
+            None => (key, false),
+        };
+        let previous = properties.iter().position(|(known, _)| known == key).map(|at| properties.remove(at).1);
+        let value = match previous {
+            Some(previous) if appending => format!("{previous} {rest}"),
+            _ => rest.to_string(),
+        };
+        properties.insert(0, (key.to_string(), value));
+    }
+    properties
+}
+
 fn file_tags(root: &SyntaxNode) -> Vec<String> {
     keyword_values(root, "FILETAGS")
         .iter()

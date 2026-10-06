@@ -64,6 +64,9 @@ DEFAULTS = r"""
       org-deadline-past-days 10000
       org-agenda-tags-column -80
       org-agenda-custom-commands nil
+      org-use-tag-inheritance t
+      org-tags-exclude-from-inheritance nil
+      org-use-property-inheritance nil
       org-agenda-time-grid '((daily today require-timed)
                              (800 1000 1200 1400 1600 1800 2000)
                              "......" "----------------"))

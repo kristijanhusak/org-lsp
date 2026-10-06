@@ -2932,3 +2932,37 @@ fn adds_a_note_from_a_note_buffer() {
     assert_eq!(finish(&mut client, "org.capture.abort", &buffer), None);
     client.shutdown();
 }
+
+/// `useTagInheritance` and `usePropertyInheritance` reach the outlines of
+/// open documents and of files read from disk alike.
+#[test]
+fn inheritance_options_apply_to_open_and_read_files() {
+    let root = workspace("inheritance");
+    let text = "* Projects :work:\n:PROPERTIES:\n:OWNER: alice\n:END:\n** TODO Child\n";
+    std::fs::write(root.join("disk.org"), text).unwrap();
+    let mut options = clock();
+    options["agendaFiles"] = json!([root.display().to_string()]);
+    options["useTagInheritance"] = json!(false);
+    options["usePropertyInheritance"] = json!(["OWNER"]);
+    let mut client = Client::editor(options, None);
+    let open = format!("file://{}/open.org", root.display());
+    std::fs::write(root.join("open.org"), "").unwrap();
+    client.open(&open, &text.replace("Child", "Open child"));
+    let tags_view = |client: &mut Client, matching: &str| {
+        let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 },
+            "keys": "m", "ask": "match", "input": matching });
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.agenda.dispatch", "arguments": [context] }))
+            .unwrap();
+        client.settle();
+        client.view_text(VIEW)
+    };
+    // The children do not get `work`, but do get OWNER.
+    let text = tags_view(&mut client, "work");
+    assert_eq!(text.matches("Projects").count(), 2, "{text}");
+    assert!(!text.contains("Child") && !text.contains("child"), "{text}");
+    let text = tags_view(&mut client, "OWNER=\"alice\"");
+    assert!(text.contains("TODO Child") && text.contains("TODO Open child"), "{text}");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}

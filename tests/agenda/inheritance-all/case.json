@@ -1,0 +1,61 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "week"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "tags",
+      "match": "proj"
+    },
+    {
+      "view": "tags",
+      "match": "office-crypt"
+    },
+    {
+      "view": "tags",
+      "match": "personal|outside"
+    },
+    {
+      "view": "tags",
+      "match": "OWNER=\"alice\""
+    },
+    {
+      "view": "tags",
+      "match": "OWNER=\"carol\""
+    },
+    {
+      "view": "tags",
+      "match": "OWNER={.}"
+    },
+    {
+      "view": "tags",
+      "match": "STAGE={review}"
+    },
+    {
+      "view": "tags",
+      "match": "COLOR=\"blue green\""
+    },
+    {
+      "view": "tags",
+      "match": "TEAM=\"core\""
+    },
+    {
+      "view": "tags-todo",
+      "match": "urgent|home"
+    }
+  ],
+  "options": {
+    "useTagInheritance": true,
+    "tagsExcludeFromInheritance": [
+      "proj"
+    ],
+    "usePropertyInheritance": true
+  },
+  "emacs": "(setq org-use-tag-inheritance t org-tags-exclude-from-inheritance '(\"proj\") org-use-property-inheritance t)"
+}

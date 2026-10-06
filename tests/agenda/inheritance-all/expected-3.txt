@@ -1,0 +1,4 @@
+Headlines with TAGS match: office-crypt
+  work:       Errands                                             :office::home:
+  work:       TODO Groceries                                      :office:home::
+  work:       TODO Call plumber                             :office:home::phone:

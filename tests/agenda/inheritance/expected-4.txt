@@ -1,0 +1,4 @@
+Headlines with TAGS match: personal|outside
+  home:       Garden                                         :personal::outside:
+  home:       TODO Water plants                        :personal:outside::daily:
+  home:       TODO Buy hose                            :personal:outside:daily::

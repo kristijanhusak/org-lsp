@@ -121,7 +121,7 @@ impl Matcher {
         if (todo_only || self.todo_only) && (todo.is_none() || entry.done) {
             return false;
         }
-        let holds = |term: &Term| term.negated != term.test.holds(entry, outline, clock);
+        let holds = |term: &Term| term.negated != term.test.holds(index, outline, clock);
         let any = |alternatives: &[Vec<Term>]| {
             alternatives.is_empty() || alternatives.iter().any(|terms| terms.iter().all(holds))
         };
@@ -353,14 +353,15 @@ fn string_to_number(text: &str) -> f64 {
 }
 
 impl Test {
-    fn holds(&self, entry: &Entry, outline: &Outline, clock: Clock) -> bool {
+    fn holds(&self, index: usize, outline: &Outline, clock: Clock) -> bool {
+        let entry = &outline.entries[index];
         match self {
             Test::Tag(tag) => entry.tags.iter().any(|candidate| candidate.name == *tag),
             Test::TagRegex(regex) => entry.tags.iter().any(|tag| regex.is_match(&tag.name)),
             Test::Keyword(keyword) => entry.todo.as_deref() == Some(keyword.as_str()),
             Test::KeywordRegex(regex) => regex.is_match(entry.todo.as_deref().unwrap_or("")),
             Test::Property { name, op, value, present } => {
-                let got = property_value(entry, outline, name);
+                let got = property_value(index, outline, name);
                 if *present && got.is_none() {
                     return false;
                 }
@@ -404,7 +405,8 @@ fn compare_text(a: &str, op: Op, b: &str) -> bool {
 
 /// `org-entry-get` for the matcher: the entry's own property, or one of
 /// Org's special properties.
-fn property_value(entry: &Entry, outline: &Outline, name: &str) -> Option<String> {
+fn property_value(index: usize, outline: &Outline, name: &str) -> Option<String> {
+    let entry = &outline.entries[index];
     let stamp = |planning: &Option<crate::outline::Planning>| {
         planning.as_ref().map(|planning| {
             let (open, close) = if planning.active { ('<', '>') } else { ('[', ']') };
@@ -427,7 +429,7 @@ fn property_value(entry: &Entry, outline: &Outline, name: &str) -> Option<String
         "TAGS" => tag_string(entry.tags.iter().filter(|tag| !tag.inherited).map(|tag| tag.name.as_str()).collect()),
         "ALLTAGS" => tag_string(entry.tags.iter().map(|tag| tag.name.as_str()).collect()),
         "ITEM" => Some(item_title(entry)),
-        _ => entry.properties.iter().find(|(key, _)| key == name).map(|(_, value)| value.clone()),
+        _ => outline.property(index, name),
     }
 }
 
