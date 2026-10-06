@@ -57,6 +57,9 @@
 ---@field startWithLogMode? boolean Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it). (`org-agenda-start-with-log-mode`)
 ---@field startWithClockreportMode? boolean Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)
 ---@field logModeItems? ('closed'|'clock'|'state')[] What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`)
+---@field blockSeparator? string|false What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block. (`org-agenda-block-separator`)
+---@field compactBlocks? boolean Leave out the separators between blocks and the header over agenda blocks. (`org-agenda-compact-blocks`)
+---@field hideEmptyBlocks? boolean Leave out the blocks of a block agenda that show no entries. Not in Org.
 ---@field startDay? string The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)
 ---@field customCommands? org_lsp.AgendaCommand[] Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`span`, `startDay`…). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)
 

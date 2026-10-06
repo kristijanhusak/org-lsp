@@ -284,8 +284,9 @@ enum Reveal {
     /// To a line of the current view. When the view changes before the
     /// client has fetched it, the number means nothing any more.
     At(Position),
-    /// To the first line of a day, in a view that was just opened.
-    Day(Day),
+    /// Into a block that was moved to other days: to the first line of
+    /// the day if it is shown there, else to today or the first day.
+    Block { block: usize, day: Option<Day> },
 }
 
 impl Reveal {
@@ -294,7 +295,7 @@ impl Reveal {
         match self {
             Reveal::Home => Position::new(view.home_line(), 0),
             Reveal::At(position) => *position,
-            Reveal::Day(day) => Position::new(view.day_line(*day), 0),
+            Reveal::Block { block, day } => Position::new(view.block_line(*block, *day), 0),
         }
     }
 }
@@ -1700,7 +1701,7 @@ impl Server {
         let (block, _, span) = self.agenda_block(Some(line))?;
         let span = Span::from_days(span.days(day));
         let query = self.moved(block, Some(day), span);
-        Ok(self.open_view_at(query, Reveal::Day(day))?)
+        Ok(self.open_view_at(query, Reveal::Block { block, day: Some(day) })?)
     }
 
     // ----- the date prompt
@@ -1929,7 +1930,7 @@ impl Server {
                     commands::AGENDA_EARLIER => Some(span.shift(first, -steps)),
                     _ => None,
                 };
-                Ok(self.open_view(self.moved(block, start, span))?)
+                Ok(self.open_view_at(self.moved(block, start, span), Reveal::Block { block, day: None })?)
             }
             commands::AGENDA_DAY
             | commands::AGENDA_WEEK
@@ -1946,15 +1947,16 @@ impl Server {
                 // The new span starts from the day under the cursor; from
                 // where there are no days, a new agenda.
                 let line = self.view_cursor_line(context.as_ref());
-                let query = match self.agenda_block(line) {
+                let (query, reveal) = match self.agenda_block(line) {
                     Ok((block, first, _)) => {
                         let open = self.view.as_ref().ok_or("No agenda is open")?;
-                        let day = line.and_then(|line| open.on_screen().line(line)?.day).unwrap_or(first);
-                        self.moved(block, Some(agenda::starting_day(day, span, &self.agenda)), span)
+                        let day = line.and_then(|line| open.on_screen().line(line)?.day);
+                        let start = agenda::starting_day(day.unwrap_or(first), span, &self.agenda);
+                        (self.moved(block, Some(start), span), Reveal::Block { block, day })
                     }
-                    Err(_) => Query::Agenda { start: None, span },
+                    Err(_) => (Query::Agenda { start: None, span }, Reveal::Home),
                 };
-                self.open_view(query)?;
+                self.open_view_at(query, reveal)?;
                 self.message = Some(format!("Switched to {} view", span_name(span)));
                 Ok(())
             }

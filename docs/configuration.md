@@ -443,6 +443,19 @@ startWithClockreportMode = false
 # (org-agenda-log-mode-items)
 logModeItems = ["closed", "clock"]
 
+# What goes between the blocks of a block agenda: one character repeated
+# across 79 columns, a longer text as it is, or `false` for nothing. In a
+# block's `settings`, the separator above that block.
+# (org-agenda-block-separator)
+blockSeparator = "="
+
+# Leave out the separators between blocks and the header over agenda blocks.
+# (org-agenda-compact-blocks)
+compactBlocks = false
+
+# Leave out the blocks of a block agenda that show no entries. Not in Org.
+hideEmptyBlocks = false
+
 # The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`,
 # `2026-10-01`. (org-agenda-start-day)
 # startDay = …  (unset: today)
@@ -733,6 +746,20 @@ now = "now - - - - - - - - - - - - - - - - - - - - - - - - -"
     // What log mode shows: `closed` entries, `clock` lines and `state`
     // changes. (org-agenda-log-mode-items)
     "logModeItems": ["closed", "clock"],
+
+    // What goes between the blocks of a block agenda: one character repeated
+    // across 79 columns, a longer text as it is, or `false` for nothing. In a
+    // block's `settings`, the separator above that block.
+    // (org-agenda-block-separator)
+    "blockSeparator": "=",
+
+    // Leave out the separators between blocks and the header over agenda
+    // blocks. (org-agenda-compact-blocks)
+    "compactBlocks": false,
+
+    // Leave out the blocks of a block agenda that show no entries. Not in
+    // Org.
+    "hideEmptyBlocks": false,
 
     // The day the agenda starts from, as the date prompt reads it: `-1d`,
     // `+2d`, `2026-10-01`. (org-agenda-start-day)

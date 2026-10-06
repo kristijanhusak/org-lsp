@@ -762,6 +762,13 @@ pub struct AgendaOptions {
     /// `org-agenda-start-day`: the day the agenda starts from, as the date
     /// prompt reads it (`-1d`, `2026-10-01`).
     pub start_day: Option<String>,
+    /// `org-agenda-block-separator`: a character to repeat, a text, or
+    /// `false`.
+    pub block_separator: Option<serde_json::Value>,
+    /// `org-agenda-compact-blocks`
+    pub compact_blocks: Option<bool>,
+    /// Leave out the empty blocks of a block agenda.
+    pub hide_empty_blocks: Option<bool>,
     /// `org-agenda-custom-commands`
     pub custom_commands: Option<Vec<CustomCommandOption>>,
 }
@@ -826,8 +833,18 @@ impl AgendaOptions {
             show_all_dates,
             tags_column,
             use_time_grid,
-            show_current_time_in_grid
+            show_current_time_in_grid,
+            compact_blocks,
+            hide_empty_blocks
         );
+        match &self.block_separator {
+            Some(serde_json::Value::Bool(false)) => config.block_separator = None,
+            Some(serde_json::Value::String(text)) if text.chars().count() == 1 => {
+                config.block_separator = Some(text.repeat(79));
+            }
+            Some(serde_json::Value::String(text)) => config.block_separator = Some(text.clone()),
+            _ => {}
+        }
         if let Some(span) = self.span.as_ref().and_then(SpanOption::to_span) {
             config.span = span;
         }

@@ -502,10 +502,11 @@ fn moves_through_time_and_changes_span() {
     assert_eq!(text, "Day-agenda (W21):\nWednesday  20 May 2026\n  work:       Deadline:   TODO Call the client\n");
     let (requests, text) = client.view_command("org.agenda.month", 1);
     assert!(text.starts_with("Month-agenda (W18-W22):\nFriday      1 May 2026\n"));
-    // The cursor goes to today, far below the one line the day view had.
+    // The cursor stays on the day it was on, far below the one line the
+    // day view had.
     assert_eq!(
         text.lines().nth(requests[1].params["selection"]["start"]["line"].as_u64().unwrap() as usize).unwrap(),
-        "Monday     18 May 2026 W21"
+        "Wednesday  20 May 2026"
     );
     let (_, text) = client.view_command("org.agenda.later", 0);
     assert!(text.starts_with("Month-agenda (W23-W27):\nMonday      1 June 2026 W23\n"));
@@ -682,6 +683,48 @@ fn runs_custom_agenda_commands() {
     let text = client.view_text(VIEW);
     assert!(text.starts_with("Headlines with TAGS match: office\n"), "{text}");
     assert!(text.contains("Write report"));
+    client.shutdown();
+}
+
+/// Moving an agenda block below others keeps the cursor in that block,
+/// and `hideEmptyBlocks` leaves out the blocks with nothing to show.
+#[test]
+fn moves_a_lower_block_and_hides_empty_ones() {
+    let mut options = clock();
+    options["agenda"] = json!({ "hideEmptyBlocks": true, "customCommands": [
+        { "key": "o", "description": "Office, then the day", "blocks": [
+            { "type": "tags", "match": "nowhere", "header": "Nothing here" },
+            { "type": "tags", "match": "office", "header": "At the office" },
+            { "type": "agenda", "settings": { "span": "day" } }
+        ] }
+    ] });
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    let result = client.request(
+        "workspace/executeCommand",
+        json!({ "command": "org.agenda.dispatch", "arguments": [{ "input": "o" }] }),
+    );
+    assert_eq!(result, Ok(Value::Null));
+    client.settle();
+    let text = client.refetch_view();
+    client.settle();
+    assert!(!text.contains("Nothing here"), "{text}");
+    assert!(text.starts_with("At the office\n"), "{text}");
+    let lines: Vec<&str> = text.lines().collect();
+    let monday = lines.iter().position(|line| line.starts_with("Monday")).unwrap() as u32;
+
+    let cursor = |requests: &[Request], text: &str| {
+        let shown = requests.iter().find(|request| request.method == "window/showDocument").unwrap();
+        let line = shown.params["selection"]["start"]["line"].as_u64().unwrap() as usize;
+        text.lines().nth(line).unwrap().to_string()
+    };
+    let (requests, text) = client.view_command("org.agenda.later", monday);
+    assert_eq!(cursor(&requests, &text), "Tuesday    19 May 2026");
+    let tuesday = text.lines().position(|line| line.starts_with("Tuesday")).unwrap() as u32;
+    let (requests, text) = client.view_command("org.agenda.week", tuesday);
+    assert_eq!(cursor(&requests, &text), "Tuesday    19 May 2026");
+    let (requests, text) = client.view_command("org.agenda.today", tuesday);
+    assert_eq!(cursor(&requests, &text), "Monday     18 May 2026 W21");
     client.shutdown();
 }
 

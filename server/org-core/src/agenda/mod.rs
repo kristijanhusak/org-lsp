@@ -185,6 +185,15 @@ pub struct Config {
     pub log_items: LogItems,
     /// `org-agenda-clockreport-mode`: the clock report, `R`.
     pub clockreport: bool,
+    /// `org-agenda-block-separator`: the lines between this block and
+    /// the one before it, in a block agenda; none with `None`.
+    pub block_separator: Option<String>,
+    /// `org-agenda-compact-blocks`: no separators between blocks, and no
+    /// header over agenda blocks.
+    pub compact_blocks: bool,
+    /// Leave out a block of a block agenda that shows no entries. Not in
+    /// Org.
+    pub hide_empty_blocks: bool,
 }
 
 /// What log mode shows (`org-agenda-log-mode-items`).
@@ -224,6 +233,9 @@ impl Default for Config {
             show_log: false,
             log_items: LogItems::default(),
             clockreport: false,
+            block_separator: Some(default_separator()),
+            compact_blocks: false,
+            hide_empty_blocks: false,
         }
     }
 }
@@ -770,7 +782,10 @@ pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, co
     } else {
         format!(" (W{first_week:02}-W{last_week:02})")
     };
-    let mut lines = vec![Line { text: format!("{}-agenda{weeks}:", span.name()), kind: LineKind::Header, item: None }];
+    let mut lines = Vec::new();
+    if !config.compact_blocks {
+        lines.push(Line { text: format!("{}-agenda{weeks}:", span.name()), kind: LineKind::Header, item: None });
+    }
 
     for day in start..=last {
         let is_today = day == now.today;
@@ -837,13 +852,21 @@ pub fn override_header(view: &mut View, header: &str) {
     }
 }
 
-/// `org-agenda-block-separator` between the blocks of a block agenda:
-/// `=` across the window, which in Emacs's batch mode is 79 columns.
-pub fn block_separator() -> [Line; 2] {
-    [
-        Line { text: String::new(), kind: LineKind::Separator, item: None },
-        Line { text: "=".repeat(79), kind: LineKind::Separator, item: None },
-    ]
+/// The default `org-agenda-block-separator`: `=` across the window,
+/// which in Emacs's batch mode is 79 columns.
+pub fn default_separator() -> String {
+    "=".repeat(79)
+}
+
+/// The lines between a block and the one before it in a block agenda, as
+/// its `org-agenda-block-separator` and `org-agenda-compact-blocks` have
+/// them: a blank line and the separator.
+pub fn block_separator(config: &Config) -> Vec<Line> {
+    let Some(separator) = config.block_separator.as_ref().filter(|_| !config.compact_blocks) else {
+        return Vec::new();
+    };
+    let line = |text: &str| Line { text: text.to_string(), kind: LineKind::Separator, item: None };
+    std::iter::once(line("")).chain(separator.split('\n').map(line)).collect()
 }
 
 /// The entry an agenda line was made from.

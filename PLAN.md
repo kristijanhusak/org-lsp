@@ -298,6 +298,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - Done: match by tags and properties (`m`, `M`), custom agenda commands
   and block agendas, log mode (`l`), the clock report (`R`). Checked
   against Emacs in `tests/agenda/custom` and `tests/agenda/clock`.
+- Done: block agendas keep the cursor in the agenda block that moves
+  (`f`, `b`, `.`, `d`/`w`, `j`), on the same day when it is still shown;
+  `blockSeparator` and `compactBlocks` (`org-agenda-block-separator`,
+  `org-agenda-compact-blocks`, checked against Emacs); `hideEmptyBlocks`
+  leaves out blocks with no entries (not in Org).
 - Search (`s`), filters (`/`, `<`, `=`, `_`, `|`), stuck projects, group
   tags in match strings, archives mode, entry text, follow mode.
 - Bulk marks and actions; hours and minutes on `S-<left>`/`S-<right>`.

@@ -426,6 +426,27 @@ pub const SETTINGS: &[Setting] = &[
         "org-agenda-log-mode-items",
         "What log mode shows: `closed` entries, `clock` lines and `state` changes.",
     ),
+    setting(
+        "agenda.blockSeparator",
+        "string | false",
+        r#""=""#,
+        "org-agenda-block-separator",
+        "What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block.",
+    ),
+    setting(
+        "agenda.compactBlocks",
+        "boolean",
+        "false",
+        "org-agenda-compact-blocks",
+        "Leave out the separators between blocks and the header over agenda blocks.",
+    ),
+    setting(
+        "agenda.hideEmptyBlocks",
+        "boolean",
+        "false",
+        "",
+        "Leave out the blocks of a block agenda that show no entries. Not in Org.",
+    ),
     Setting {
         default: None,
         unset: "today",
@@ -559,6 +580,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("agenda.startWithLogMode", BOOLEAN),
     ("agenda.startWithClockreportMode", BOOLEAN),
     ("agenda.logModeItems", r#"{ "type": "array", "items": { "enum": ["closed", "clock", "state"] } }"#),
+    ("agenda.blockSeparator", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
+    ("agenda.compactBlocks", BOOLEAN),
+    ("agenda.hideEmptyBlocks", BOOLEAN),
     (
         "agenda.customCommands",
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaCommand", "required": ["key", "description"], "additionalProperties": false, "properties": {
