@@ -11,6 +11,7 @@ pub mod checkbox;
 pub mod clock;
 pub mod date;
 pub mod edit;
+pub mod format;
 pub mod indent;
 pub mod outline;
 pub mod planning;

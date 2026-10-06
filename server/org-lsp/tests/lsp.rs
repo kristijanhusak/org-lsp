@@ -503,6 +503,28 @@ fn binary_prints_its_version_and_rejects_unknown_arguments() {
 /// `org-indent-line` on a new line (on-type formatting after `RET`) and
 /// `org-indent-region` on a range, under `adaptIndentation`.
 #[test]
+fn formats_tables_and_tags() {
+    let mut client = Client::start(json!({}), json!({ "tagsColumn": -20 }));
+    let capabilities = serde_json::to_value(&client.initialize.capabilities).unwrap();
+    assert_eq!(capabilities["documentFormattingProvider"], true);
+    client.open(&uri(), "* Ünï :t:\n|a|bb|\n|-\n|ccc|12|\nText\n");
+    let edits = client
+        .request::<lsp_types::request::Formatting>(lsp_types::DocumentFormattingParams {
+            text_document: identifier(),
+            options: lsp_types::FormattingOptions { tab_size: 8, insert_spaces: true, ..Default::default() },
+            work_done_progress_params: Default::default(),
+        })
+        .unwrap();
+    let changed: Vec<(u32, u32, &str)> =
+        edits.iter().map(|edit| (edit.range.start.line, edit.range.end.character, edit.new_text.as_str())).collect();
+    assert_eq!(
+        changed,
+        [(0, 9, "* Ünï            :t:"), (1, 6, "| a   | bb |"), (2, 2, "|-----+----|"), (3, 8, "| ccc | 12 |"),]
+    );
+    assert!(edits.iter().all(|edit| edit.range.start.character == 0 && edit.range.end.line == edit.range.start.line));
+}
+
+#[test]
 fn indents_new_lines_and_ranges() {
     let mut client = Client::start(json!({}), json!({ "adaptIndentation": true }));
     let capabilities = serde_json::to_value(&client.initialize.capabilities).unwrap();

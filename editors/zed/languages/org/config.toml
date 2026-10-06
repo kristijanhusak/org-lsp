@@ -1,0 +1,5 @@
+name = "Org"
+grammar = "org"
+path_suffixes = ["org", "org_archive"]
+line_comments = ["# "]
+tab_size = 2
