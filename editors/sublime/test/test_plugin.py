@@ -344,6 +344,19 @@ class Server(unittest.TestCase):
         self.assertEqual(path, 'Packages/LSP-org/LSP-org.sublime-settings')
         self.assertEqual(self.plugin.OrgLsp.name(), 'LSP-org')
 
+    def test_shows_the_agenda_document_in_the_agenda_syntax(self):
+        # LSP opens an `org-agenda:` document in the syntax its scheme
+        # names; without one, as plain text, which the session's selector
+        # does not match.
+        package = os.path.join(HERE, '..', 'LSP-org')
+        with open(os.path.join(package, 'LSP-org.sublime-settings')) as f:
+            settings = json.load(f)
+        syntax = settings['syntax_map']['org-agenda']
+        self.assertTrue(syntax.startswith('Packages/LSP-org/'))
+        with open(os.path.join(package, syntax[len('Packages/LSP-org/'):])) as f:
+            self.assertIn('scope: text.org-agenda', f.read())
+        self.assertIn('text.org-agenda', settings['selector'])
+
     def test_finds_the_server_on_the_search_path_with_cargo_s_folder(self):
         cargo = os.path.join(self.empty, '.cargo', 'bin')
         os.makedirs(cargo)

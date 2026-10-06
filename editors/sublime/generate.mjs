@@ -180,6 +180,10 @@ const settings = {
   // The server: `org-lsp` from PATH, or the path to the binary.
   command: ['org-lsp'],
   selector: 'text.org | text.org-agenda',
+  // LSP shows the agenda as a document of the server's own (`org-agenda:`)
+  // where it can fetch one, in the syntax named for its scheme: without
+  // one, as plain text, which neither the server nor the keys know.
+  syntax_map: { [manifest.agenda.scheme]: 'Packages/LSP-org/Org Agenda.sublime-syntax' },
   // The server's options, such as agendaFiles; see docs/configuration.md.
   initializationOptions: {},
   // The keys: "emacs" (the default), "vim" (for Vintage and NeoVintageous)

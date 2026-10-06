@@ -3,6 +3,9 @@
     "org-lsp"
   ],
   "selector": "text.org | text.org-agenda",
+  "syntax_map": {
+    "org-agenda": "Packages/LSP-org/Org Agenda.sublime-syntax"
+  },
   "initializationOptions": {},
   "org_keys": "emacs",
   "semantic_tokens": {
