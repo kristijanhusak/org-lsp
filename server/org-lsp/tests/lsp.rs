@@ -732,6 +732,53 @@ fn return_uses_meta_return_on_items() {
     client.shutdown();
 }
 
+/// `org.babel.tangle` writes the blocks' code to their files, as
+/// `org-babel-tangle` does, and says how many blocks went; in a source
+/// block it is a code action too.
+#[test]
+fn tangles_the_file() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-tangle-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    let text = "* Code\n#+begin_src sh :tangle bin/run.sh :mkdirp yes :shebang #!/bin/sh\necho one\n#+end_src\n#+begin_src python :tangle yes\nx = 1\n#+end_src\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri, text);
+    let context = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 0 } });
+    let actions = client
+        .raw_request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": uri.as_str() },
+                "range": { "start": { "line": 2, "character": 0 }, "end": { "line": 2, "character": 0 } },
+                "context": { "diagnostics": [] },
+            }),
+        )
+        .response_result
+        .unwrap();
+    assert!(
+        actions.as_array().unwrap().iter().any(|action| action["command"]["command"] == "org.babel.tangle"),
+        "{actions}"
+    );
+    let result = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.babel.tangle", "arguments": [context] }))
+        .response_result
+        .unwrap();
+    assert_eq!(result["message"], "Tangled 2 code blocks from notes.org");
+    assert_eq!(std::fs::read_to_string(directory.join("bin/run.sh")).unwrap(), "#!/bin/sh\necho one\n");
+    assert_eq!(std::fs::read_to_string(directory.join("notes.python")).unwrap(), "x = 1\n");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = std::fs::metadata(directory.join("bin/run.sh")).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o755);
+    }
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 /// M-RET, M-S-RET, C-RET and C-S-RET: the result carries the edit and the
 /// cursor, as with RET.
 #[test]

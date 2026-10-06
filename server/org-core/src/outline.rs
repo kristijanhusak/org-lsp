@@ -300,6 +300,13 @@ impl Outline {
     /// entry has no `NAME`, those of its parents, the file's drawer and
     /// `#+PROPERTY:` before them. `nil` means unset.
     pub fn property(&self, entry: usize, name: &str) -> Option<String> {
+        self.entry_property(Some(entry), name, self.inheritance.inherits_property(name))
+    }
+
+    /// `org-entry-get` at the entry `entry` (`None` before the first
+    /// headline, where the file's drawer is the entry), with inheritance
+    /// or without: `org-entry-get … 'inherit` for Babel's `header-args`.
+    pub fn entry_property(&self, entry: Option<usize>, name: &str, inherit: bool) -> Option<String> {
         let local = |properties: &[(String, String)]| {
             let base = properties.iter().rev().find(|(key, _)| key.eq_ignore_ascii_case(name)).map(|(_, v)| v.clone());
             let extra: Vec<String> = properties
@@ -310,8 +317,12 @@ impl Outline {
             (base, extra)
         };
         let not_nil = |value: String| (value != "nil").then_some(value);
-        if !self.inheritance.inherits_property(name) {
-            let (base, extra) = local(&self.entries[entry].properties);
+        let own = |at: Option<usize>| match at {
+            Some(index) => &self.entries[index].properties,
+            None => &self.file_properties,
+        };
+        if !inherit {
+            let (base, extra) = local(own(entry));
             // `org--property-local-values` drops a base value of `nil`.
             let parts: Vec<String> = base.and_then(not_nil).into_iter().chain(extra).collect();
             return (!parts.is_empty()).then(|| parts.join(" ")).and_then(not_nil);
@@ -319,13 +330,9 @@ impl Outline {
         // `org-entry-get-with-inheritance`: up the lineage, the file last.
         let mut values: Vec<String> = Vec::new();
         let mut found = false;
-        let mut at = Some(entry);
+        let mut at = entry;
         loop {
-            let properties = match at {
-                Some(index) => &self.entries[index].properties,
-                None => &self.file_properties,
-            };
-            let (base, extra) = local(properties);
+            let (base, extra) = local(own(at));
             let mut here: Vec<String> = base.iter().cloned().collect();
             here.extend(extra);
             here.append(&mut values);

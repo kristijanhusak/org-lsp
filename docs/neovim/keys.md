@@ -48,6 +48,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oit` | `org.insert.todo.heading.after` | New TODO heading after the subtree |
 | `<Leader>or` | `org.refile` | Refile the entry |
 | `<Leader>ona` | `org.add.note` | Add a note to the entry |
+| `<Leader>obt` | `org.babel.tangle` | Tangle the file's code blocks |
 | `<Leader>oo` | `org.open` | Open the link or thing at the cursor |
 | `<Leader>o$` | `org.archive.subtree` | Archive the subtree |
 | `<Leader>oxA` | `org.archive.sibling` | Archive the subtree under its Archive sibling |

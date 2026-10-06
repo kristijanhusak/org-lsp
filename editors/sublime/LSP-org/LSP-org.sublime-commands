@@ -259,6 +259,13 @@
     }
   },
   {
+    "caption": "Org: Tangle the file's code blocks",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.tangle"
+    }
+  },
+  {
     "caption": "Org: Open the link or thing at the cursor",
     "command": "org_lsp_run",
     "args": {

@@ -24,6 +24,7 @@ pub mod priority;
 pub mod read_date;
 pub mod refile;
 pub mod stamp;
+pub mod tangle;
 pub mod text;
 pub mod timestr;
 pub mod todo;

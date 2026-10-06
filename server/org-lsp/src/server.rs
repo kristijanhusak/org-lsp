@@ -857,6 +857,39 @@ fn planning_command(id: &str) -> Option<PlanningCommand> {
     }
 }
 
+/// Write a tangled file as `org-babel-tangle` writes it: only when its text
+/// changed, its directories made with `:mkdirp`, its mode set.
+fn write_tangled(file: &org_core::tangle::File) -> std::io::Result<()> {
+    if std::fs::read_to_string(&file.path).is_ok_and(|text| text == file.text) {
+        return Ok(());
+    }
+    if file.make_directories {
+        if let Some(parent) = file.path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+    }
+    std::fs::write(&file.path, &file.text)?;
+    #[cfg(unix)]
+    if let Some(mode) = file.mode {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&file.path, std::fs::Permissions::from_mode(mode))?;
+    }
+    Ok(())
+}
+
+/// Whether byte `offset` is in a source block.
+fn in_src_block(root: &org_syntax::SyntaxNode, offset: usize) -> bool {
+    let Some(token) = root.token_at_offset(org_syntax::TextSize::from(offset as u32)).left_biased() else {
+        return false;
+    };
+    token.parent_ancestors().filter(|node| node.kind() == org_syntax::SyntaxKind::BLOCK).any(|block| {
+        block
+            .children_with_tokens()
+            .find(|child| child.kind() == org_syntax::SyntaxKind::BLOCK_BEGIN)
+            .is_some_and(|begin| begin.to_string().trim_start().eq_ignore_ascii_case("#+begin_src"))
+    })
+}
+
 /// Whether byte `offset` is on the first line of a list item, the line of
 /// its bullet.
 fn on_item_line(root: &org_syntax::SyntaxNode, text: &str, offset: usize) -> bool {
@@ -1338,7 +1371,9 @@ impl Server {
         // too.
         let in_entry = Self::heading_above(&document.text, offset).is_some();
         let running = self.running.is_some();
+        let in_code = in_src_block(&document.parse.syntax(), offset);
         for (id, offered) in [
+            (commands::TANGLE, in_code),
             (commands::CLOCK_IN, in_entry),
             (commands::CLOCK_OUT, running),
             (commands::CLOCK_CANCEL, running),
@@ -2149,6 +2184,7 @@ impl Server {
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
             commands::OPEN => self.open_at_point(&context.ok_or("This command needs the cursor position")?),
+            commands::TANGLE => self.tangle(&context.ok_or("This command needs the cursor position")?),
             id if id.starts_with("org.archive.") => {
                 self.archive(id, &context.ok_or("This command needs the cursor position")?)
             }
@@ -3721,6 +3757,22 @@ impl Server {
         }
         let outcome = org_core::newline::org_return(&document.text, offset, document.parse.todo_keywords(), &settings)?;
         self.carried(context, outcome)
+    }
+
+    /// `org-babel-tangle`: write the code of the file's blocks to their
+    /// files, and say how many blocks went.
+    fn tangle(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = &context.text_document.uri;
+        let document = self.document(uri).ok_or("This file is not open")?;
+        let path = uri::to_path(uri).ok_or("Only a file on disk can be tangled")?;
+        let settings = org_core::tangle::Settings { preserve_indentation: self.refile.2.src_preserve_indentation };
+        let outcome = org_core::tangle::tangle(&document.text, &document.parse, &path, &settings)?;
+        for file in &outcome.files {
+            write_tangled(file).map_err(|error| format!("{}: {error}", file.path.display()))?;
+        }
+        let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+        self.message = Some(outcome.message(&name));
+        Ok(Value::Null)
     }
 
     /// M-RET (`org-meta-return`), M-S-RET (`org-insert-todo-heading`),

@@ -240,6 +240,11 @@
         "category": "Org"
       },
       {
+        "command": "org.babel.tangle",
+        "title": "Tangle the file's code blocks",
+        "category": "Org"
+      },
+      {
         "command": "org.open",
         "title": "Open the link or thing at the cursor",
         "category": "Org"
@@ -2526,6 +2531,16 @@
       {
         "command": "org.add.note",
         "key": "ctrl+c ctrl+z",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.tangle",
+        "key": "ctrl+c ctrl+v t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.tangle",
+        "key": "ctrl+c ctrl+v ctrl+t",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
