@@ -1,0 +1,8 @@
+%YAML 1.2
+---
+# The agenda, as the file the server writes. Highlighted by the server.
+name: Org Agenda
+file_extensions: [org-agenda]
+scope: text.org-agenda
+contexts:
+  main: []

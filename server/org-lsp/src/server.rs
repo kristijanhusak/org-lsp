@@ -437,7 +437,9 @@ pub fn run(connection: Connection) -> Result<()> {
         virtual_documents: options.virtual_documents.unwrap_or_else(|| {
             raw_params.pointer("/capabilities/workspace/textDocumentContent").is_some_and(|value| !value.is_null())
         }),
-        show_document: window.and_then(|window| window.show_document.as_ref()).is_some_and(|show| show.support),
+        show_document: options.show_document.unwrap_or_else(|| {
+            window.and_then(|window| window.show_document.as_ref()).is_some_and(|show| show.support)
+        }),
         date_prompt: raw_params.pointer("/capabilities/experimental/orgDatePrompt").and_then(Value::as_bool)
             == Some(true),
         virtual_indent: raw_params.pointer("/capabilities/experimental/orgVirtualIndent").and_then(Value::as_bool)

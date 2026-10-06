@@ -74,6 +74,9 @@ pub struct Options {
     /// document. Clients that announce LSP 3.18's `textDocumentContent`
     /// need not say so.
     pub virtual_documents: Option<bool>,
+    /// Whether the client shows documents on `window/showDocument`.
+    /// Clients that announce the capability need not say so.
+    pub show_document: Option<bool>,
     /// `org-refile-targets`: where entries can be refiled to. Without it,
     /// the top-level headlines of the entry's own file.
     pub refile_targets: Option<Vec<RefileTargetOption>>,

@@ -1,0 +1,24 @@
+" The configuration the tests run Vim with: the plugin, one LSP client
+" ($ORG_LSP_TEST_CLIENT) and the tests.
+set nocompatible
+let s:here = expand('<sfile>:p:h')
+let s:clients = $ORG_LSP_TEST_CLIENTS
+let s:client = $ORG_LSP_TEST_CLIENT
+let s:dirs = {'lsp': 'lsp', 'vim_lsp': 'vim-lsp', 'coc': 'coc.nvim', 'ale': 'ale'}
+let &runtimepath = s:here . '/..,' . s:clients . '/' . s:dirs[s:client] . ',' . &runtimepath
+let g:coc_data_home = $ORG_LSP_TEST_WORK . '/coc'
+let g:coc_config_home = $ORG_LSP_TEST_WORK . '/coc'
+let g:ale_lint_on_text_changed = 'never'
+let g:lsp_diagnostics_enabled = 0
+let g:org_lsp = {
+      \ 'cmd': [$ORG_LSP_BIN],
+      \ 'settings': {
+      \   'clock': {'today': '2026-05-18', 'now': '10:30'},
+      \   'agendaFiles': [$ORG_LSP_TEST_WORK . '/notes'],
+      \   'captureTemplates': [{'key': 't', 'description': 'Task', 'target': ['file', $ORG_LSP_TEST_WORK . '/notes/inbox.org'], 'template': '* TODO %?'}],
+      \ },
+      \ }
+set hidden
+filetype plugin indent on
+syntax on
+autocmd VimEnter * ++once call timer_start(100, {-> execute('source ' . (empty($ORG_LSP_TEST_FILE) ? s:here . '/test.vim' : $ORG_LSP_TEST_FILE))})
