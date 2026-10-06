@@ -90,25 +90,25 @@ The other options are in [configuration.md](configuration.md).
 | `R`, `vR` | `org.agenda.clockreport` | Agenda: the clock report |
 | `va` | `org.agenda.archives` | Agenda: include archived trees |
 | `vA` | `org.agenda.archives.files` | Agenda: include archived trees and archive files |
-| `I` | `org.clock.in` | Clock in |
-| `O` | `org.clock.out` | Clock out |
-| `X` | `org.clock.cancel` | Cancel the clock |
+| `I`, `<Leader>oxi` | `org.clock.in` | Clock in |
+| `O`, `<Leader>oxo` | `org.clock.out` | Clock out |
+| `X`, `<Leader>oxq` | `org.clock.cancel` | Cancel the clock |
 | `t` | `org.todo` | Change the TODO state |
 | `+`, `<S-Up>` | `org.priority.up` | Raise the priority |
 | `-`, `<S-Down>` | `org.priority.down` | Lower the priority |
-| `,` | `org.priority` | Set the priority |
-| `<C-c><C-w>` | `org.refile` | Refile the entry |
-| `z` | `org.add.note` | Add a note to the entry |
-| `<C-c><C-o>` | `org.open` | Open the link or thing at the cursor |
-| `$`, `<C-c><C-x><C-s>`, `<C-c>$` | `org.archive.subtree` | Archive the subtree |
-| `<C-c><C-x>A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
-| `<C-c><C-x>a` | `org.archive.tag` | Toggle the ARCHIVE tag |
+| `,`, `<Leader>o,` | `org.priority` | Set the priority |
+| `<C-c><C-w>`, `<Leader>or` | `org.refile` | Refile the entry |
+| `z`, `<Leader>ona` | `org.add.note` | Add a note to the entry |
+| `<C-c><C-o>`, `<Leader>oo` | `org.open` | Open the link or thing at the cursor |
+| `$`, `<C-c><C-x><C-s>`, `<C-c>$`, `<Leader>o$` | `org.archive.subtree` | Archive the subtree |
+| `<C-c><C-x>A`, `<Leader>oxA` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
+| `<C-c><C-x>a`, `<Leader>oA` | `org.archive.tag` | Toggle the ARCHIVE tag |
 | `<C-c><C-x><C-a>` | `org.archive.default` | Archive with the default command |
 | `a` | `org.archive.confirm` | Archive with the default command, once confirmed |
 | `<S-Right>` | `org.date.later` | Move the date one day later |
 | `<S-Left>` | `org.date.earlier` | Move the date one day earlier |
-| `<C-c><C-s>` | `org.schedule` | Schedule the entry |
-| `<C-c><C-d>` | `org.deadline` | Set the deadline of the entry |
+| `<C-c><C-s>`, `<Leader>ois` | `org.schedule` | Schedule the entry |
+| `<C-c><C-d>`, `<Leader>oid` | `org.deadline` | Set the deadline of the entry |
 
 ### In the date prompt
 

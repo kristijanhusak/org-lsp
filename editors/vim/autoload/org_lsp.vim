@@ -484,6 +484,25 @@ function! s:global_map(lhs) abort
   return {}
 endfunction
 
+" A key as typed, with the leader as it is set.
+function! s:typed(key) abort
+  return substitute(s:keycode(a:key), '\c<Leader>', escape(get(g:, 'mapleader', '\'), '\&'), 'g')
+endfunction
+
+" Whether `lhs` starts a longer key of `keys` or of the global keys set,
+" with the leader as it is set (`,` and `<Leader>ois` with `,` as the
+" leader): then it waits for more.
+function! s:starts_longer(lhs, keys) abort
+  let typed = s:typed(a:lhs)
+  for other in a:keys + map(filter(copy(s:mapped), {_, entry -> !entry.buffer}), {_, entry -> entry.lhs})
+    let other_typed = s:typed(other)
+    if other_typed !=# typed && stridx(other_typed, typed) == 0
+      return 1
+    endif
+  endfor
+  return 0
+endfunction
+
 " The key's meaning without the plugin: the buffer's mapping that the
 " plugin's took the place of (a completion plugin's `<CR>`), else the
 " global mapping, else the key.
@@ -611,7 +630,7 @@ function! org_lsp#set_keys(scope) abort
         execute printf('inoremap %s <silent> %s <Cmd>call org_lsp#insert_key(%d)<CR>', buffer, lhs, index)
         continue
       endif
-      let nowait = a:scope ==# 'agenda' && empty(filter(copy(all), {_, o -> o !=# lhs && stridx(o, lhs) == 0})) ? '<nowait>' : ''
+      let nowait = a:scope ==# 'agenda' && !s:starts_longer(lhs, all) ? '<nowait>' : ''
       if has_key(s:append_commands, name)
         execute printf('nnoremap %s <silent> %s :<C-u>call org_lsp#run(%s, {''append'': 1})<CR>', buffer, lhs, string(name))
       elseif get(command, 'edits', v:false) && a:scope ==# 'org'

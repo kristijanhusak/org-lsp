@@ -553,10 +553,16 @@ local function set_keys(scope, bufnr)
   -- these (`v` of `v d`) still waits.
   local nowait = {}
   if scope == 'agenda' or scope == 'calendar' then
+    -- A key waits for more when it starts a longer one of the buffer's,
+    -- or a global one, with the leader as it is set: `,` (priority) and
+    -- `<Leader>ois` (schedule) with `,` as the leader.
     local all = vim.iter(vim.tbl_values(keys)):flatten():totable()
+    local longer = vim.list_extend(vim.list_extend({}, all), global_keys)
     for _, lhs in ipairs(all) do
-      nowait[lhs] = not vim.iter(all):any(function(other)
-        return other ~= lhs and vim.startswith(other, lhs)
+      local code = vim.keycode(lhs)
+      nowait[lhs] = not vim.iter(longer):any(function(other)
+        local other_code = vim.keycode(other)
+        return other_code ~= code and vim.startswith(other_code, code)
       end)
     end
   end
