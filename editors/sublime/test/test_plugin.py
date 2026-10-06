@@ -358,6 +358,12 @@ class Server(unittest.TestCase):
         self.assertIn('text.org-agenda', settings['selector'])
         # And LSP attaches only views of the schemes the settings name.
         self.assertEqual(settings['schemes'], ['file', 'org-agenda'])
+        # LSP writes a refreshed agenda with `insert`, which indents each
+        # line by the one before it unless the syntax turns that off.
+        with open(os.path.join(package, 'Org Agenda.sublime-settings')) as f:
+            agenda_settings = f.read()
+        self.assertIn('"auto_indent": false', agenda_settings)
+        self.assertIn('"smart_indent": false', agenda_settings)
 
     def test_finds_the_server_on_the_search_path_with_cargo_s_folder(self):
         cargo = os.path.join(self.empty, '.cargo', 'bin')

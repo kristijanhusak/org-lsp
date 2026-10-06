@@ -1,0 +1,13 @@
+// The agenda's view: a list to read. LSP writes the agenda's new text
+// with the `insert` command, which would indent each line by the one
+// before it; nothing is indented here.
+{
+  "auto_indent": false,
+  "smart_indent": false,
+  "indent_to_bracket": false,
+  "trim_automatic_white_space": false,
+  "word_wrap": false,
+  "line_numbers": false,
+  "draw_indent_guides": false,
+  "spell_check": false,
+}

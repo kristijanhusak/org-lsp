@@ -1,7 +1,8 @@
 // Write the parts of the Zed extension that mirror the server's manifest:
 // the semantic token rules (languages/org/semantic_token_rules.json), how
-// each token type and modifier looks in the names of Zed's themes, and the
-// agenda's keys for the user's keymap (keymap.json).
+// each token type and modifier looks in the names of Zed's themes; a task
+// per agenda command (languages/org/tasks.json); and the agenda's keys for
+// the user's keymap (keymap.json).
 //
 //   node editors/zed/generate.mjs [path/to/org-lsp]   rewrite the files
 //   node editors/zed/generate.mjs --check             fail if out of date
@@ -100,11 +101,12 @@ const rules = selectors.sort((a, b) => rank(a) - rank(b)).map((selector) => rule
 const text = JSON.stringify(rules, null, 2) + '\n';
 
 // The agenda's keys. An extension cannot bind keys, and a key of Zed's
-// cannot run a language server's command; it can open the code actions
-// menu and pick an entry of it by its place. In the agenda the server
-// offers every command the agenda has a key for, in the manifest's order
-// (`commandActions`), so with the menu open each key picks its command:
-// `ctrl-.` (or the key itself, for the single ones) then `f`.
+// cannot run a language server's command, but it can run a task, and the
+// extension's tasks (languages/org/tasks.json) are there in Org buffers.
+// With `commandActions` the server writes `org-lsp-command` next to the
+// agenda, which runs a command where the cursor is: a task per agenda
+// command calls it, and keymap.json, for the user's keymap, binds the
+// agenda's keys to the tasks.
 /** An Emacs key (`C-c C-s`, `S-<right>`, `J`) in Zed's notation. */
 function zedKey(emacs) {
   const names = { RET: 'enter', TAB: 'tab', SPC: 'space', DEL: 'backspace', ESC: 'escape' };
@@ -127,36 +129,42 @@ function zedKey(emacs) {
     })
     .join(' ');
 }
-const menu = manifest.commands
+const agendaCommands = manifest.commands
   .map((command) => ({
     command: command.command,
+    label: `Org agenda: ${command.title.replace(/^Agenda: /, '')}`,
     keys: command.keys.filter((key) => key.in === 'agenda' && key.preset === 'emacs').map((key) => zedKey(key.key)),
   }))
   .filter((command) => command.keys.length > 0);
-const inMenu = {};
-const outside = {
-  // The agenda's own: close it, and go to a line's entry (the server
+const tasks = agendaCommands.map((command) => ({
+  label: command.label,
+  command: '$ZED_DIRNAME/org-lsp-command',
+  args: [command.command, '$ZED_ROW', '$ZED_COLUMN'],
+  tags: ['org-agenda'],
+  // Out of sight: a terminal shows only when the command fails.
+  reveal: 'never',
+  hide: 'on_success',
+  show_summary: false,
+  show_command: false,
+  allow_concurrent_runs: true,
+  use_new_terminal: false,
+}));
+const bindings = {
+  // Zed's own: close the agenda, and go to a line's entry (the server
   // answers go to definition there) in this pane or in a split.
   q: 'pane::CloseActiveItem',
   enter: 'editor::GoToDefinition',
   tab: 'editor::GoToDefinitionSplit',
 };
-menu.forEach((command, index) => {
+for (const command of agendaCommands) {
   for (const key of command.keys) {
-    // Enter picks the entry the menu has selected, as anywhere.
-    if (key === 'enter' || key === 'tab') continue;
-    inMenu[key] = ['editor::ConfirmCodeAction', { item_ix: index }];
-    // A key of one plain stroke opens the menu as well, so that it does
-    // not edit the agenda or move about in it (Vim's `.` and `f`).
-    if (/^[^ -]$|^-$|^shift-[a-z]$/.test(key) && !(key in outside)) outside[key] = 'editor::ToggleCodeActions';
+    if (!(key in bindings)) bindings[key] = ['task::Spawn', { task_name: command.label }];
   }
-});
-const keymap = [
-  { context: 'Editor && extension == org-agenda && !showing_code_actions', bindings: outside },
-  { context: 'Editor && extension == org-agenda && showing_code_actions', bindings: inMenu },
-];
+}
+const keymap = [{ context: 'Editor && extension == org-agenda', bindings }];
 const files = {
   [join(here, 'languages', 'org', 'semantic_token_rules.json')]: text,
+  [join(here, 'languages', 'org', 'tasks.json')]: JSON.stringify(tasks, null, 2) + '\n',
   [join(here, 'keymap.json')]: JSON.stringify(keymap, null, 2) + '\n',
 };
 
@@ -172,4 +180,4 @@ for (const [path, text] of Object.entries(files)) {
   }
 }
 if (stale) process.exit(1);
-console.log(check ? 'the Zed extension matches the server' : `generated ${rules.length} semantic token rules, ${menu.length} agenda keys`);
+console.log(check ? 'the Zed extension matches the server' : `generated ${rules.length} semantic token rules, ${tasks.length} agenda tasks`);

@@ -1,257 +1,236 @@
 [
   {
-    "context": "Editor && extension == org-agenda && !showing_code_actions",
+    "context": "Editor && extension == org-agenda",
     "bindings": {
       "q": "pane::CloseActiveItem",
       "enter": "editor::GoToDefinition",
       "tab": "editor::GoToDefinitionSplit",
-      "f": "editor::ToggleCodeActions",
-      "b": "editor::ToggleCodeActions",
-      ".": "editor::ToggleCodeActions",
-      "shift-j": "editor::ToggleCodeActions",
-      "r": "editor::ToggleCodeActions",
-      "s": "editor::ToggleCodeActions",
-      "shift-r": "editor::ToggleCodeActions",
-      "shift-i": "editor::ToggleCodeActions",
-      "shift-o": "editor::ToggleCodeActions",
-      "shift-x": "editor::ToggleCodeActions",
-      "t": "editor::ToggleCodeActions",
-      "+": "editor::ToggleCodeActions",
-      "-": "editor::ToggleCodeActions",
-      ",": "editor::ToggleCodeActions",
-      "$": "editor::ToggleCodeActions",
-      "a": "editor::ToggleCodeActions"
-    }
-  },
-  {
-    "context": "Editor && extension == org-agenda && showing_code_actions",
-    "bindings": {
       "f": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 0
+          "task_name": "Org agenda: go forward in time"
         }
       ],
       "b": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 1
+          "task_name": "Org agenda: go backward in time"
         }
       ],
       ".": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 2
+          "task_name": "Org agenda: go to today"
         }
       ],
       "shift-j": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 3
+          "task_name": "Org agenda: go to a date"
         }
       ],
       "v d": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 4
+          "task_name": "Org agenda: day view"
         }
       ],
       "v w": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 5
+          "task_name": "Org agenda: week view"
         }
       ],
       "v t": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 6
+          "task_name": "Org agenda: fortnight view"
         }
       ],
       "v m": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 7
+          "task_name": "Org agenda: month view"
         }
       ],
       "v y": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 8
+          "task_name": "Org agenda: year view"
         }
       ],
       "r": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 9
+          "task_name": "Org agenda: rebuild"
         }
       ],
       "s": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 11
+          "task_name": "Org agenda: Save all Org files"
         }
       ],
       "ctrl-x ctrl-s": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 11
+          "task_name": "Org agenda: Save all Org files"
         }
       ],
       "v l": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 12
+          "task_name": "Org agenda: log mode, what was closed and clocked"
         }
       ],
       "shift-r": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 13
+          "task_name": "Org agenda: the clock report"
         }
       ],
       "v shift-r": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 13
+          "task_name": "Org agenda: the clock report"
         }
       ],
       "v a": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 14
+          "task_name": "Org agenda: include archived trees"
         }
       ],
       "v shift-a": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 15
+          "task_name": "Org agenda: include archived trees and archive files"
         }
       ],
       "shift-i": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 16
+          "task_name": "Org agenda: Clock in"
         }
       ],
       "shift-o": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 17
+          "task_name": "Org agenda: Clock out"
         }
       ],
       "shift-x": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 18
+          "task_name": "Org agenda: Cancel the clock"
         }
       ],
       "t": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 19
+          "task_name": "Org agenda: Change the TODO state"
         }
       ],
       "+": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 20
+          "task_name": "Org agenda: Raise the priority"
         }
       ],
       "shift-up": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 20
+          "task_name": "Org agenda: Raise the priority"
         }
       ],
       "-": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 21
+          "task_name": "Org agenda: Lower the priority"
         }
       ],
       "shift-down": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 21
+          "task_name": "Org agenda: Lower the priority"
         }
       ],
       ",": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 22
+          "task_name": "Org agenda: Set the priority"
         }
       ],
       "ctrl-c ctrl-w": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 23
+          "task_name": "Org agenda: Refile the entry"
         }
       ],
       "$": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 24
+          "task_name": "Org agenda: Archive the subtree"
         }
       ],
       "ctrl-c ctrl-x ctrl-s": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 24
+          "task_name": "Org agenda: Archive the subtree"
         }
       ],
       "ctrl-c $": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 24
+          "task_name": "Org agenda: Archive the subtree"
         }
       ],
       "ctrl-c ctrl-x shift-a": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 25
+          "task_name": "Org agenda: Archive the subtree under its Archive sibling"
         }
       ],
       "ctrl-c ctrl-x a": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 26
+          "task_name": "Org agenda: Toggle the ARCHIVE tag"
         }
       ],
       "ctrl-c ctrl-x ctrl-a": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 27
+          "task_name": "Org agenda: Archive with the default command"
         }
       ],
       "a": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 28
+          "task_name": "Org agenda: Archive with the default command, once confirmed"
         }
       ],
       "shift-right": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 29
+          "task_name": "Org agenda: Move the date one day later"
         }
       ],
       "shift-left": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 30
+          "task_name": "Org agenda: Move the date one day earlier"
         }
       ],
       "ctrl-c ctrl-s": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 31
+          "task_name": "Org agenda: Schedule the entry"
         }
       ],
       "ctrl-c ctrl-d": [
-        "editor::ConfirmCodeAction",
+        "task::Spawn",
         {
-          "item_ix": 32
+          "task_name": "Org agenda: Set the deadline of the entry"
         }
       ]
     }

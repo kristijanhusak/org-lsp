@@ -85,13 +85,9 @@ pub struct Options {
     pub message_prompts: Option<bool>,
     /// Offer more commands as code actions (the agenda, capture, refile,
     /// a TODO state or a priority picked from a list, a new heading or
-    /// item; in the agenda, moving through time): for a client that cannot
-    /// run a command from a key (Zed).
+    /// item), and the agenda's commands through the command port (see
+    /// `port`): for a client that cannot run a command from a key (Zed).
     pub command_actions: Option<bool>,
-    /// Whether the file the agenda is written to (without virtual
-    /// documents) is read-only, as it is unless the client says not:
-    /// Zed runs no code action in a read-only buffer.
-    pub read_only_agenda: Option<bool>,
     /// `org-refile-targets`: where entries can be refiled to. Without it,
     /// the top-level headlines of the entry's own file.
     pub refile_targets: Option<Vec<RefileTargetOption>>,

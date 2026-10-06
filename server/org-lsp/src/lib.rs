@@ -18,6 +18,7 @@ pub mod highlight;
 pub mod legend;
 pub mod line_index;
 pub mod manifest;
+pub mod port;
 pub mod prompt;
 pub mod server;
 pub mod settings;
