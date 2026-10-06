@@ -54,15 +54,33 @@ are in the **code actions** (**editor: toggle code actions**, `ctrl-.` /
   M-S-RET, C-RET and C-S-RET make them), the cursor then in it; clock in
   and out; refile; archive; open the agenda (this week, the TODO list, or
   the agenda menu); capture.
-- In the agenda: move it through time (later, earlier, today, day,
-  week), rebuild it, log mode and the clock report; on an entry's line
-  also its state, priority and dates, clocking, refile, archive, and going
-  to the entry.
+- In the agenda: every command the agenda has a key for, each with its
+  key, in the same order on every line.
 - In a capture buffer: file the entry, give up, or refile it.
 
 The agenda is a file the server writes (`Agenda.org-agenda`, in a
-directory of its own under the system's temporary one), opened as Org
-and read-only; the server writes it again when it changes.
+directory of its own under the system's temporary one), opened as Org;
+the server writes it again when it changes.
+
+### The agenda's keys
+
+The agenda has the same keys in every editor: Emacs's agenda keys, with
+`J` for a date and the views under `v` (`v d`, `v w`), so that Vim mode
+keeps its motions. An extension cannot bind keys, and a key of Zed's
+cannot run a language server's command, but it can pick an entry of the
+code actions menu. [keymap.json](keymap.json) does that: paste its two
+blocks into your keymap (**zed: open keymap**). Then in the agenda
+
+- `ctrl-.` / `cmd-.` opens the menu, and an agenda key picks its command
+  there: `f` later, `b` earlier, `.` today, `v d` day view, `t` the TODO
+  state, `C-c C-s` (`ctrl-c ctrl-s`) schedule, …;
+- a single-key command's key opens the menu too, so `f f` goes forward
+  and `.` no longer repeats an edit in Vim mode;
+- `enter` goes to the entry of the line (`tab` in a split), and `q`
+  closes the agenda.
+
+The keymap follows the order the server offers the commands in; take it
+again after updating the extension.
 
 What a command asks for is asked with buttons: a TODO state, a priority,
 a refile target, a capture template, yes or no. Zed has no way to ask for
@@ -78,12 +96,12 @@ those dates in the file itself, where completion helps.
 - The commands above.
 
 Not there: the date prompt's calendar, the clock in the status bar, and
-keys of their own for the commands (bind `editor::ToggleCodeActions` to a
-key if the menu is too far away).
+keys of their own for the commands in Org files (bind
+`editor::ToggleCodeActions` to a key if the menu is too far away).
 
 ## Development
 
 `node editors/zed/generate.mjs` writes the semantic token rules
-(`languages/*/semantic_token_rules.json`) from the server's manifest;
-`--check` fails if they are out of date. `cargo build --target
+(`languages/org/semantic_token_rules.json`) and `keymap.json` from the
+server's manifest; `--check` fails if they are out of date. `cargo build --target
 wasm32-wasip2` in this folder builds the extension.

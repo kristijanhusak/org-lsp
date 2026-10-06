@@ -2312,6 +2312,7 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     options["commandActions"] = json!(true);
     options["messagePrompts"] = json!(true);
     options["virtualDocuments"] = json!(false);
+    options["readOnlyAgenda"] = json!(false);
     let capabilities = json!({
         "workspace": { "workspaceEdit": { "documentChanges": true } },
         "window": { "showDocument": { "support": true } },
@@ -2382,13 +2383,30 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     assert!(agenda.ends_with("Agenda.org-agenda"), "{agenda}");
     let agenda_text = std::fs::read_to_string(agenda.trim_start_matches("file://")).unwrap();
     client.open(&agenda, &agenda_text);
+    // There they are every command the agenda has a key for, the same on
+    // every line and in the same order, for a keymap to pick by place.
     let on_title = kinds(&mut client, &agenda, 0, json!(["org"]));
-    assert!(on_title.iter().any(|kind| kind == "org.agenda.later"), "{on_title:?}");
     let entry = agenda_text.lines().position(|line| line.contains("Write report")).unwrap() as u32;
     let on_entry = kinds(&mut client, &agenda, entry, json!(["org"]));
-    assert!(
-        on_entry.iter().any(|kind| kind == "org.todo.next") && on_entry.iter().any(|kind| kind == "org.agenda.later")
-    );
+    assert_eq!(on_title, on_entry);
+    assert_eq!(&on_title[..3], ["org.agenda.later", "org.agenda.earlier", "org.agenda.today"]);
+    for kind in ["org.todo", "org.schedule", "org.refile", "org.date.later"] {
+        assert!(on_title.iter().any(|offered| offered == kind), "{kind} in {on_title:?}");
+    }
+    let titles = client
+        .request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": agenda },
+                "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 0, "character": 0 } },
+                "context": { "diagnostics": [], "only": ["org"] }
+            }),
+        )
+        .unwrap();
+    assert_eq!(titles[0]["title"], "f: Agenda: go forward in time");
+    // Zed runs no code action in a read-only buffer: the Zed extension
+    // has the agenda's file left writable.
+    assert!(!std::fs::metadata(agenda.trim_start_matches("file://")).unwrap().permissions().readonly());
 
     // A question that wants typed text cannot be asked: the editor is told.
     client.notifications.clear();

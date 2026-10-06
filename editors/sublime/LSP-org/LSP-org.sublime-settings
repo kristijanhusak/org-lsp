@@ -6,6 +6,10 @@
   "syntax_map": {
     "org-agenda": "Packages/LSP-org/Org Agenda.sublime-syntax"
   },
+  "schemes": [
+    "file",
+    "org-agenda"
+  ],
   "initializationOptions": {},
   "org_keys": "emacs",
   "semantic_tokens": {

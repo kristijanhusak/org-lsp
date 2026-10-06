@@ -52,8 +52,11 @@ with the day you moved to, if you did), `q` or `Ctrl+G` to give up.
 
 Emacs's keys are bound in Org files (`Ctrl+C Ctrl+T`, `Ctrl+C Ctrl+S`,
 `Shift+arrows`, `Tab` and `Shift+Tab` to cycle folds, …), in capture
-buffers (`Ctrl+C Ctrl+C`), and Org's single letters in the agenda (`f`,
-`b`, `t`, `+`, `Enter`, …) and the date prompt. In Org files `Ctrl+C` waits
+buffers (`Ctrl+C Ctrl+C`), and the date prompt. The agenda has the same
+keys in every editor and with every `org-lsp.keys`: Emacs's agenda keys
+(`f`, `b`, `t`, `+`, `Enter`, `Ctrl+C Ctrl+S`, …), with `Shift+J` for a
+date and the views under `v` (`v d`, `v w`), so that VSCodeVim keeps its
+motions; `q` closes the agenda and `g ?` lists its keys. In Org files `Ctrl+C` waits
 for a second key instead of copying (`Ctrl+Insert` still copies). After a
 change of priority or date in the agenda, the cursor goes with the entry
 to its new line.

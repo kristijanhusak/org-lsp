@@ -107,8 +107,10 @@ instead of nvim-orgmode for those buffers, not next to it.
 The plugin binds nvim-orgmode's default keys: `cit` changes the TODO
 state, `ciR` / `cir` change the priority, `<C-a>` / `<C-x>` the part of
 the timestamp under the cursor, `<Leader>ois` schedules, `<Leader>or`
-refiles, `<Leader>oc` captures, `<Tab>` / `<S-Tab>` cycle folds, and in
-the agenda `f` / `b`, `t`, `+` / `-` and `<CR>` do what they do in Emacs.
+refiles, `<Leader>oc` captures, `<Tab>` / `<S-Tab>` cycle folds. The
+agenda has the keys it has in every editor: Emacs's (`f` / `b`, `t`,
+`+` / `-`, `<CR>`, `<C-c><C-s>`), with `J` for a date and the views
+under `v` (`vd`, `vw`), so that no motion is taken; `q` closes it.
 Counts work, and the editing keys repeat with `.`. `g?` shows the keys
 of the buffer at hand. Dates are asked for
 with Emacs's calendar, or typed as at Org's prompt (`fri 10:00`, `+2d`,

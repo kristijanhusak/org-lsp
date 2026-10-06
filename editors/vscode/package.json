@@ -440,6 +440,11 @@
         "category": "Org"
       },
       {
+        "command": "org-lsp.agenda.close",
+        "title": "Agenda: close",
+        "category": "Org"
+      },
+      {
         "command": "org-lsp.cycleGlobal",
         "title": "Cycle the visibility of the whole file",
         "category": "Org"
@@ -2680,7 +2685,7 @@
       },
       {
         "command": "org.agenda.goto.date",
-        "key": "j",
+        "key": "shift+j",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -2690,11 +2695,6 @@
       },
       {
         "command": "org.agenda.day",
-        "key": "d",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.day",
         "key": "v d",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
@@ -2702,11 +2702,6 @@
         "command": "org.agenda.day",
         "key": "v d",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.week",
-        "key": "w",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.agenda.week",
@@ -2751,11 +2746,6 @@
       {
         "command": "org.agenda.redo",
         "key": "r",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.agenda.redo",
-        "key": "g",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -2794,9 +2784,14 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
-        "command": "org.agenda.log",
-        "key": "l",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+        "command": "org.agenda.save",
+        "key": "s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.save",
+        "key": "ctrl+x ctrl+s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.agenda.log",
@@ -2824,6 +2819,11 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
+        "command": "org.agenda.clockreport",
+        "key": "v shift+r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
         "command": "org.agenda.archives",
         "key": "v a",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
@@ -2872,11 +2872,6 @@
         "command": "org.clock.cancel",
         "key": "shift+x",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.clock.goto",
-        "key": "shift+j",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.todo",
@@ -2904,6 +2899,11 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
+        "command": "org.priority.up",
+        "key": "shift+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
         "command": "org.priority.down",
         "key": "-",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
@@ -2919,14 +2919,29 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
+        "command": "org.priority.down",
+        "key": "shift+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
         "command": "org.priority",
         "key": ",",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
+        "command": "org.priority",
+        "key": ",",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
         "command": "org.refile",
         "key": "ctrl+c ctrl+w",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.refile",
+        "key": "ctrl+c ctrl+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.archive.subtree",
@@ -2949,9 +2964,24 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
+        "command": "org.archive.subtree",
+        "key": "ctrl+c ctrl+x ctrl+s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.archive.subtree",
+        "key": "ctrl+c shift+4",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
         "command": "org.archive.sibling",
         "key": "ctrl+c ctrl+x shift+a",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.archive.sibling",
+        "key": "ctrl+c ctrl+x shift+a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.archive.tag",
@@ -2959,9 +2989,19 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
+        "command": "org.archive.tag",
+        "key": "ctrl+c ctrl+x a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
         "command": "org.archive.default",
         "key": "ctrl+c ctrl+x ctrl+a",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.archive.default",
+        "key": "ctrl+c ctrl+x ctrl+a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.archive.confirm",
@@ -2999,9 +3039,39 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
+        "command": "org.schedule",
+        "key": "ctrl+c ctrl+s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
         "command": "org.deadline",
         "key": "ctrl+c ctrl+d",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.deadline",
+        "key": "ctrl+c ctrl+d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org-lsp.help",
+        "key": "g shift+/",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org-lsp.help",
+        "key": "g shift+/",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org-lsp.agenda.close",
+        "key": "q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org-lsp.agenda.close",
+        "key": "q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.calendar.day.later",

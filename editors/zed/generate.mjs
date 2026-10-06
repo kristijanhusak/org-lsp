@@ -1,7 +1,7 @@
-// Write the semantic token rules of the Zed extension
-// (languages/org/semantic_token_rules.json) from the server's manifest: how
-// each of its token types and modifiers looks, in the names of Zed's
-// themes.
+// Write the parts of the Zed extension that mirror the server's manifest:
+// the semantic token rules (languages/org/semantic_token_rules.json), how
+// each token type and modifier looks in the names of Zed's themes, and the
+// agenda's keys for the user's keymap (keymap.json).
 //
 //   node editors/zed/generate.mjs [path/to/org-lsp]   rewrite the files
 //   node editors/zed/generate.mjs --check             fail if out of date
@@ -99,9 +99,69 @@ const rank = (selector) =>
 const rules = selectors.sort((a, b) => rank(a) - rank(b)).map((selector) => rule(selector, looks[selector]));
 const text = JSON.stringify(rules, null, 2) + '\n';
 
+// The agenda's keys. An extension cannot bind keys, and a key of Zed's
+// cannot run a language server's command; it can open the code actions
+// menu and pick an entry of it by its place. In the agenda the server
+// offers every command the agenda has a key for, in the manifest's order
+// (`commandActions`), so with the menu open each key picks its command:
+// `ctrl-.` (or the key itself, for the single ones) then `f`.
+/** An Emacs key (`C-c C-s`, `S-<right>`, `J`) in Zed's notation. */
+function zedKey(emacs) {
+  const names = { RET: 'enter', TAB: 'tab', SPC: 'space', DEL: 'backspace', ESC: 'escape' };
+  const modifiers = { C: 'ctrl', M: 'alt', S: 'shift' };
+  return emacs
+    .split(' ')
+    .map((stroke) => {
+      const parts = [];
+      let rest = stroke;
+      for (let match; (match = /^([CMS])-(.+)$/.exec(rest)); rest = match[2]) {
+        parts.push(modifiers[match[1]]);
+      }
+      const named = /^<(.+)>$/.exec(rest);
+      let base = names[rest] ?? (named ? named[1] : rest);
+      if (base.length === 1 && base !== base.toLowerCase()) {
+        parts.push('shift');
+        base = base.toLowerCase();
+      }
+      return [...parts, base].join('-');
+    })
+    .join(' ');
+}
+const menu = manifest.commands
+  .map((command) => ({
+    command: command.command,
+    keys: command.keys.filter((key) => key.in === 'agenda' && key.preset === 'emacs').map((key) => zedKey(key.key)),
+  }))
+  .filter((command) => command.keys.length > 0);
+const inMenu = {};
+const outside = {
+  // The agenda's own: close it, and go to a line's entry (the server
+  // answers go to definition there) in this pane or in a split.
+  q: 'pane::CloseActiveItem',
+  enter: 'editor::GoToDefinition',
+  tab: 'editor::GoToDefinitionSplit',
+};
+menu.forEach((command, index) => {
+  for (const key of command.keys) {
+    // Enter picks the entry the menu has selected, as anywhere.
+    if (key === 'enter' || key === 'tab') continue;
+    inMenu[key] = ['editor::ConfirmCodeAction', { item_ix: index }];
+    // A key of one plain stroke opens the menu as well, so that it does
+    // not edit the agenda or move about in it (Vim's `.` and `f`).
+    if (/^[^ -]$|^-$|^shift-[a-z]$/.test(key) && !(key in outside)) outside[key] = 'editor::ToggleCodeActions';
+  }
+});
+const keymap = [
+  { context: 'Editor && extension == org-agenda && !showing_code_actions', bindings: outside },
+  { context: 'Editor && extension == org-agenda && showing_code_actions', bindings: inMenu },
+];
+const files = {
+  [join(here, 'languages', 'org', 'semantic_token_rules.json')]: text,
+  [join(here, 'keymap.json')]: JSON.stringify(keymap, null, 2) + '\n',
+};
+
 let stale = false;
-for (const language of ['org']) {
-  const path = join(here, 'languages', language, 'semantic_token_rules.json');
+for (const [path, text] of Object.entries(files)) {
   const before = existsSync(path) ? readFileSync(path, 'utf8') : '';
   if (before === text) continue;
   if (check) {
@@ -112,4 +172,4 @@ for (const language of ['org']) {
   }
 }
 if (stale) process.exit(1);
-console.log(check ? 'the Zed extension matches the server' : `generated ${rules.length} semantic token rules`);
+console.log(check ? 'the Zed extension matches the server' : `generated ${rules.length} semantic token rules, ${menu.length} agenda keys`);

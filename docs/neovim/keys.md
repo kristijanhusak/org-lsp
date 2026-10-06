@@ -83,26 +83,28 @@ The other options are in [configuration.md](configuration.md).
 | `vy` | `org.agenda.year` | Agenda: year view |
 | `r` | `org.agenda.redo` | Agenda: rebuild |
 | `<CR>`, `<Tab>` | `org.agenda.goto` | Agenda: go to the entry |
+| `s`, `<C-x><C-s>` | `org.agenda.save` | Save all Org files |
 | `vl` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
-| `R` | `org.agenda.clockreport` | Agenda: the clock report |
+| `R`, `vR` | `org.agenda.clockreport` | Agenda: the clock report |
 | `va` | `org.agenda.archives` | Agenda: include archived trees |
 | `vA` | `org.agenda.archives.files` | Agenda: include archived trees and archive files |
 | `I` | `org.clock.in` | Clock in |
 | `O` | `org.clock.out` | Clock out |
 | `X` | `org.clock.cancel` | Cancel the clock |
 | `t` | `org.todo` | Change the TODO state |
-| `+` | `org.priority.up` | Raise the priority |
-| `-` | `org.priority.down` | Lower the priority |
-| `<Leader>o,` | `org.priority` | Set the priority |
-| `<Leader>or` | `org.refile` | Refile the entry |
-| `$` | `org.archive.subtree` | Archive the subtree |
-| `<Leader>oxA` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
-| `<Leader>oA` | `org.archive.tag` | Toggle the ARCHIVE tag |
+| `+`, `<S-Up>` | `org.priority.up` | Raise the priority |
+| `-`, `<S-Down>` | `org.priority.down` | Lower the priority |
+| `,` | `org.priority` | Set the priority |
+| `<C-c><C-w>` | `org.refile` | Refile the entry |
+| `$`, `<C-c><C-x><C-s>`, `<C-c>$` | `org.archive.subtree` | Archive the subtree |
+| `<C-c><C-x>A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
+| `<C-c><C-x>a` | `org.archive.tag` | Toggle the ARCHIVE tag |
+| `<C-c><C-x><C-a>` | `org.archive.default` | Archive with the default command |
 | `a` | `org.archive.confirm` | Archive with the default command, once confirmed |
 | `<S-Right>` | `org.date.later` | Move the date one day later |
 | `<S-Left>` | `org.date.earlier` | Move the date one day earlier |
-| `<Leader>ois` | `org.schedule` | Schedule the entry |
-| `<Leader>oid` | `org.deadline` | Set the deadline of the entry |
+| `<C-c><C-s>` | `org.schedule` | Schedule the entry |
+| `<C-c><C-d>` | `org.deadline` | Set the deadline of the entry |
 
 ### In the date prompt
 
@@ -130,9 +132,7 @@ The other options are in [configuration.md](configuration.md).
 | --- | --- |
 | `org.agenda.list` | Agenda for the current week or day |
 | `org.agenda.todos` | List of all TODO entries |
-| `org.agenda.save` | Save all Org files |
 | `org.todo.next` | Cycle TODO state forward |
-| `org.archive.default` | Archive with the default command |
 | `org.archive.done` | Archive the subtrees without open TODO items |
 | `org.archive.tag.done` | Tag the subtrees without open TODO items as archived |
 | `org.shift.up` | Increase the timestamp part or raise the priority |

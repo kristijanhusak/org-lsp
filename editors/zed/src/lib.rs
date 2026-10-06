@@ -113,6 +113,8 @@ impl zed::Extension for OrgLsp {
         // for is asked with buttons.
         options.insert("commandActions".to_string(), serde_json::Value::Bool(true));
         options.insert("messagePrompts".to_string(), serde_json::Value::Bool(true));
+        // Zed runs no code action in a read-only buffer.
+        options.insert("readOnlyAgenda".to_string(), serde_json::Value::Bool(false));
         Ok(Some(serde_json::Value::Object(options)))
     }
 }

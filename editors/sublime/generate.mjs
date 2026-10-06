@@ -102,9 +102,29 @@ const own = [
   },
 ];
 
+// Keys without a palette entry of their own. The agenda's keys are the
+// same in every editor: `q` closes it and `g ?` lists its keys, as in
+// Neovim and Vim.
+const keysOnly = [
+  {
+    command: 'org_lsp_help',
+    keys: [
+      { key: 'g ?', in: 'agenda', preset: 'emacs' },
+      { key: 'g?', in: 'agenda', preset: 'vim' },
+    ],
+  },
+  {
+    command: 'close',
+    keys: [
+      { key: 'q', in: 'agenda', preset: 'emacs' },
+      { key: 'q', in: 'agenda', preset: 'vim' },
+    ],
+  },
+];
+
 const ORDER = ['org', 'global', 'capture', 'agenda'];
 // Later bindings win in Sublime: a capture buffer's `C-c C-c` over an Org file's.
-const bindings = [...manifest.commands, ...own]
+const bindings = [...manifest.commands, ...own, ...keysOnly]
   .flatMap((command) => command.keys.map((binding) => ({ ...binding, command: command.command })))
   .filter((binding) => ORDER.includes(binding.in))
   .sort((a, b) => ORDER.indexOf(a.in) - ORDER.indexOf(b.in))
@@ -131,7 +151,7 @@ const bindings = [...manifest.commands, ...own]
           { key: 'selection_empty', operator: 'equal', operand: true, match_all: true },
         );
       }
-      const own = binding.command.startsWith('org_lsp_');
+      const own = !binding.command.startsWith('org.');
       const entry = own
         ? { keys, command: binding.command, args: {} }
         : { keys, command: 'org_lsp_run', args: { command: binding.command } };
@@ -184,6 +204,10 @@ const settings = {
   // where it can fetch one, in the syntax named for its scheme: without
   // one, as plain text, which neither the server nor the keys know.
   syntax_map: { [manifest.agenda.scheme]: 'Packages/LSP-org/Org Agenda.sublime-syntax' },
+  // The schemes of the documents the server is for: LSP leaves a view of
+  // any other out (no tokens, no edits), and shows the agenda in a new tab
+  // each time the server asks, not knowing the one it has.
+  schemes: ['file', manifest.agenda.scheme],
   // The server's options, such as agendaFiles; see docs/configuration.md.
   initializationOptions: {},
   // The keys: "emacs" (the default), "vim" (for Vintage and NeoVintageous)

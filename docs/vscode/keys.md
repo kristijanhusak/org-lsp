@@ -89,23 +89,22 @@ The other options are in [configuration.md](configuration.md).
 | `f` | `org.agenda.later` | Agenda: go forward in time |
 | `b` | `org.agenda.earlier` | Agenda: go backward in time |
 | `.` | `org.agenda.today` | Agenda: go to today |
-| `j` | `org.agenda.goto.date` | Agenda: go to a date |
-| `d`, `v d` | `org.agenda.day` | Agenda: day view |
-| `w`, `v w` | `org.agenda.week` | Agenda: week view |
+| `Shift+J` | `org.agenda.goto.date` | Agenda: go to a date |
+| `v d` | `org.agenda.day` | Agenda: day view |
+| `v w` | `org.agenda.week` | Agenda: week view |
 | `v t` | `org.agenda.fortnight` | Agenda: fortnight view |
 | `v m` | `org.agenda.month` | Agenda: month view |
 | `v y` | `org.agenda.year` | Agenda: year view |
-| `r`, `g` | `org.agenda.redo` | Agenda: rebuild |
+| `r` | `org.agenda.redo` | Agenda: rebuild |
 | `Enter`, `Tab` | `org.agenda.goto` | Agenda: go to the entry |
 | `s`, `Ctrl+X Ctrl+S` | `org.agenda.save` | Save all Org files |
-| `l`, `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
+| `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
 | `v a` | `org.agenda.archives` | Agenda: include archived trees |
 | `v Shift+A` | `org.agenda.archives.files` | Agenda: include archived trees and archive files |
 | `Shift+I` | `org.clock.in` | Clock in |
 | `Shift+O` | `org.clock.out` | Clock out |
 | `Shift+X` | `org.clock.cancel` | Cancel the clock |
-| `Shift+J` | `org.clock.goto` | Go to the clocked entry |
 | `t` | `org.todo` | Change the TODO state |
 | `+`, `Shift+Up` | `org.priority.up` | Raise the priority |
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
@@ -120,6 +119,8 @@ The other options are in [configuration.md](configuration.md).
 | `Shift+Left` | `org.date.earlier` | Move the date one day earlier |
 | `Ctrl+C Ctrl+S` | `org.schedule` | Schedule the entry |
 | `Ctrl+C Ctrl+D` | `org.deadline` | Set the deadline of the entry |
+| `g ?` | `org-lsp.help` | Show the keys |
+| `q` | `org-lsp.agenda.close` | Agenda: close |
 
 #### In the date prompt
 
@@ -177,20 +178,30 @@ The other options are in [configuration.md](configuration.md).
 | `v y` | `org.agenda.year` | Agenda: year view |
 | `r` | `org.agenda.redo` | Agenda: rebuild |
 | `Enter`, `Tab` | `org.agenda.goto` | Agenda: go to the entry |
+| `s`, `Ctrl+X Ctrl+S` | `org.agenda.save` | Save all Org files |
 | `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
-| `Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
+| `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
 | `v a` | `org.agenda.archives` | Agenda: include archived trees |
 | `v Shift+A` | `org.agenda.archives.files` | Agenda: include archived trees and archive files |
 | `Shift+I` | `org.clock.in` | Clock in |
 | `Shift+O` | `org.clock.out` | Clock out |
 | `Shift+X` | `org.clock.cancel` | Cancel the clock |
 | `t` | `org.todo` | Change the TODO state |
-| `+` | `org.priority.up` | Raise the priority |
-| `-` | `org.priority.down` | Lower the priority |
-| `Shift+4` | `org.archive.subtree` | Archive the subtree |
+| `+`, `Shift+Up` | `org.priority.up` | Raise the priority |
+| `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
+| `,` | `org.priority` | Set the priority |
+| `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
+| `Shift+4`, `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Shift+4` | `org.archive.subtree` | Archive the subtree |
+| `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
+| `Ctrl+C Ctrl+X a` | `org.archive.tag` | Toggle the ARCHIVE tag |
+| `Ctrl+C Ctrl+X Ctrl+A` | `org.archive.default` | Archive with the default command |
 | `a` | `org.archive.confirm` | Archive with the default command, once confirmed |
 | `Shift+Right` | `org.date.later` | Move the date one day later |
 | `Shift+Left` | `org.date.earlier` | Move the date one day earlier |
+| `Ctrl+C Ctrl+S` | `org.schedule` | Schedule the entry |
+| `Ctrl+C Ctrl+D` | `org.deadline` | Set the deadline of the entry |
+| `g ?` | `org-lsp.help` | Show the keys |
+| `q` | `org-lsp.agenda.close` | Agenda: close |
 
 #### In the date prompt
 
