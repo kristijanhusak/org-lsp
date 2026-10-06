@@ -10,6 +10,7 @@ use crate::date::DateTime;
 use crate::outline::keyword_values;
 use crate::priority::{self, Action, Priorities};
 use crate::stamp::{self, Shift, Stamp, Unit};
+use crate::tblfm;
 use crate::timestr::parse_time_string;
 use crate::todo::{self, headline_level, Target};
 use crate::Refusal;
@@ -47,6 +48,9 @@ pub enum Command {
     /// `org-add-note`: the note of the call. Without one, the outcome
     /// asks for its text.
     Note,
+    /// `org-table-recalculate` and `org-table-iterate`: the table's
+    /// formulas, or those of the `#+TBLFM:` line at the cursor.
+    Table(tblfm::Mode),
 }
 
 /// Settings, named after Org's variables.
@@ -111,6 +115,8 @@ pub struct Outcome {
     /// The note a TODO state change wants, when the call gave no text for
     /// it. The text is then without the note.
     pub note: Option<todo::WantedNote>,
+    /// What to tell the user.
+    pub message: Option<String>,
 }
 
 /// Run `command` with the cursor at byte `offset` of `text`, whose parse
@@ -128,8 +134,13 @@ pub fn run(
         offset -= 1;
     }
     let steps = |forward: bool| call.count.unwrap_or(1) * if forward { 1 } else { -1 };
-    let unplaced = |text: String| Outcome { text, cursor: None, note: None };
-    let placed = |changed: stamp::Changed| Outcome { text: changed.text, cursor: Some(changed.cursor), note: None };
+    let unplaced = |text: String| Outcome { text, cursor: None, note: None, message: None };
+    let placed = |changed: stamp::Changed| Outcome {
+        text: changed.text,
+        cursor: Some(changed.cursor),
+        note: None,
+        message: None,
+    };
     match command {
         Command::Todo(target) => {
             let keywords = parse.todo_keywords();
@@ -139,7 +150,7 @@ pub fn run(
                 (None, false) => todo::NoteText::Ask,
             };
             todo::change_state_noted(text, keywords, offset, target, &settings.todo, call.now, note)
-                .map(|changed| Outcome { text: changed.text, cursor: None, note: changed.wants_note })
+                .map(|changed| Outcome { text: changed.text, cursor: None, note: changed.wants_note, message: None })
                 .map_err(|message| {
                     if message == "Before first headline" {
                         Refusal::NotHere(message)
@@ -172,11 +183,27 @@ pub fn run(
                 todo::add_note(text, parse.todo_keywords(), offset, &settings.todo, call.now, "")
                     .map_err(Refusal::NotHere)?;
                 let wanted = todo::WantedNote { purpose: "this entry".to_string(), state: None };
-                Ok(Outcome { text: text.to_string(), cursor: None, note: Some(wanted) })
+                Ok(Outcome { text: text.to_string(), cursor: None, note: Some(wanted), message: None })
             }
         },
+        // `C-c C-c` on a `#+TBLFM:` line applies its formulas.
+        Command::Checkbox if tblfm::on_formula_line(text, offset) => {
+            run(&Command::Table(tblfm::Mode::All), text, parse, offset, call, settings)
+        }
         Command::Checkbox => {
             crate::checkbox::toggle(text, parse.todo_keywords(), offset, settings.todo.tags_column).map(unplaced)
+        }
+        Command::Table(mode) => {
+            let outline = crate::outline::Outline::new(parse, text, "");
+            let entry = outline.entry_at(offset);
+            let property = |name: &str| outline.entry_property(entry, name, true);
+            match tblfm::recalculate(text, offset, *mode, &property) {
+                Ok(recalculated) => {
+                    Ok(Outcome { text: recalculated.text, cursor: None, note: None, message: recalculated.message })
+                }
+                Err(message) if message == "Not at a table" => Err(Refusal::NotHere(message)),
+                Err(message) => Err(Refusal::Failed(message)),
+            }
         }
         Command::Timestamp { forward } => {
             let shift = Shift { n: steps(*forward), what: None, updown: true, counted: call.count.is_some() };

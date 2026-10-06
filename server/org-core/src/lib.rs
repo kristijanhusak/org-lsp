@@ -6,6 +6,7 @@
 
 pub mod agenda;
 pub mod archive;
+pub mod calc;
 pub mod calendar;
 pub mod capture;
 pub mod checkbox;
@@ -25,6 +26,7 @@ pub mod read_date;
 pub mod refile;
 pub mod stamp;
 pub mod tangle;
+pub mod tblfm;
 pub mod text;
 pub mod timestr;
 pub mod todo;

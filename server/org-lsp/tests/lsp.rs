@@ -186,7 +186,8 @@ fn announces_capabilities() {
             "org.clock.in",
             "org.clock.out",
             "org.clock.cancel",
-            "org.checkbox.toggle"
+            "org.checkbox.toggle",
+            "org.table.recalculate"
         ])
     );
     let legend = &capabilities["semanticTokensProvider"]["legend"];
@@ -818,6 +819,26 @@ fn inserts_headings_and_items_as_org_does() {
         run("org.insert.todo.heading.after", 0, 0).0,
         "* TODO Write :work:\n- [ ] one\n** Sub\n* TODO \n* Next\n"
     );
+    client.shutdown();
+}
+
+/// Recalculating a table with formulas as a code action, in the table and
+/// on its `#+TBLFM:` line; none where nothing would change.
+#[test]
+fn recalculates_tables_as_a_code_action() {
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri(), "| 2 | 3 |   |\n#+TBLFM: $3=$1*$2\n");
+    for position in [Position::new(0, 2), Position::new(1, 3)] {
+        let actions = client.code_actions(&uri(), position, "org");
+        let kinds: Vec<&str> =
+            actions.iter().filter_map(|action| action.kind.as_ref().map(|kind| kind.as_str())).collect();
+        assert_eq!(kinds, ["org.table.recalculate"]);
+        assert_eq!(actions[0].title, "Recalculate the table");
+        let changed: Vec<String> = edits(&actions[0]).into_iter().map(|edit| edit.new_text).collect();
+        assert_eq!(changed, ["6"]);
+    }
+    client.open(&uri(), "| 2 | 3 | 6 |\n#+TBLFM: $3=$1*$2\n");
+    assert!(client.code_actions(&uri(), Position::new(0, 2), "org.table").is_empty());
     client.shutdown();
 }
 

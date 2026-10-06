@@ -37,6 +37,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Agenda: list of all TODO entries, tags and property searches (`m`, `M`), custom commands and block agendas (`org-agenda-custom-commands`) | yes | yes | yes | yes | code actions; no searches | no³ |
 | Tag and property inheritance (`useTagInheritance`, `tagsExcludeFromInheritance`, `usePropertyInheritance`): file tags, parents' tags and properties in the agenda's tags and property searches, inherited tags shown in the agenda | yes | yes | yes | yes | yes | no³ |
 | Tangling, as `org-babel-tangle` does it: `:tangle`, header arguments from properties and `#+HEADER:`, Noweb references, comments, `:shebang`, `:tangle-mode`, `:mkdirp` | `<Leader>obt` | `Ctrl+C Ctrl+V t`, `Ctrl+.` in a block | `<Leader>obt` | `Ctrl+C Ctrl+V t` | code actions in a block | `Space a` in a block |
+| Table formulas, as `org-table-recalculate` applies the `#+TBLFM:` line: column, field and range formulas, references by row, column, hline and name, parameters and constants, Calc's arithmetic, vectors, dates and durations, and its modes and formats (`;%.2f`, `;N`, `;T`); iterating until the table is stable | `<Leader>o*`; `<C-Space>` on a `#+TBLFM:` line | `Ctrl+C *` (the cursor's line), `Ctrl+C Ctrl+C` on a `#+TBLFM:` line, `Ctrl+.` in a table | `<Leader>o*`; `<C-Space>` on a `#+TBLFM:` line | `Ctrl+C *`, `Ctrl+C Ctrl+C` on a `#+TBLFM:` line | code actions in a table | `Space a` in a table |
 | Refile, as `org-refile` does it, between files too | `<Leader>or` | command | `<Leader>or` | `Ctrl+C Ctrl+W` | code actions | no⁴ |
 | Following links, as `org-open-at-point` does: headlines, targets, custom IDs, `file:` links with search options, `id:` links, URLs, timestamps (their day's agenda), tags, footnotes, an entry's links to pick from; in the agenda the line's entry's links | `<Leader>oo`, go to definition | `Ctrl+C Ctrl+O`, go to definition | `<Leader>oo` | `Ctrl+C Ctrl+O` | go to definition (internal and file links) | go to definition |
 | Notes, as `org-add-note` takes them, in the entry's log or its drawer; in the agenda `z` | `<Leader>ona`, in a note buffer | `Ctrl+C Ctrl+Z` | `<Leader>ona` | `Ctrl+C Ctrl+Z` | no: Zed cannot ask for text | no⁴ |
@@ -297,7 +298,9 @@ both programs on them. See
 
 - Agenda: text search, stuck projects, filters, habits, diary entries and
   bulk actions; custom commands of those types.
-- Table formulas, setting tags with a command, export; tangling's Emacs Lisp
+- Table formulas in Emacs Lisp, remote references, units and Calc's
+  fractions and symbolic mode; setting tags with a command, export;
+  tangling's Emacs Lisp
   (evaluated header arguments, `<<block()>>`), and other languages' `:var`.
 - The shifted cursor keys do nothing yet on list items, in tables and on
   property lines.

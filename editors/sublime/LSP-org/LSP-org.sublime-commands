@@ -266,6 +266,27 @@
     }
   },
   {
+    "caption": "Org: Recalculate the table",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.recalculate"
+    }
+  },
+  {
+    "caption": "Org: Recalculate the table's current line",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.recalculate.line"
+    }
+  },
+  {
+    "caption": "Org: Recalculate the table until it does not change",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.iterate"
+    }
+  },
+  {
     "caption": "Org: Open the link or thing at the cursor",
     "command": "org_lsp_run",
     "args": {

@@ -8,6 +8,7 @@ use lsp_types::{CodeAction, CodeActionKind};
 use org_core::date::DateTime;
 use org_core::edit::{self, Call, Command, Direction, Settings};
 use org_core::priority::Action as Priority;
+use org_core::tblfm::Mode;
 use org_core::todo::{self, Target};
 use org_syntax::{Parse, TextRange, TextSize};
 
@@ -32,6 +33,7 @@ pub const KINDS: &[&str] = &[
     commands::CLOCK_OUT,
     commands::CLOCK_CANCEL,
     commands::CHECKBOX_TOGGLE,
+    commands::TABLE_RECALCULATE,
 ];
 
 /// The command of this name as it runs in an Org file.
@@ -51,6 +53,9 @@ pub fn command(id: &str) -> Option<Command> {
         SHIFT_RIGHT => Command::Shift(Direction::Right),
         commands::CHECKBOX_TOGGLE => Command::Checkbox,
         commands::ADD_NOTE => Command::Note,
+        commands::TABLE_RECALCULATE => Command::Table(Mode::All),
+        commands::TABLE_RECALCULATE_LINE => Command::Table(Mode::Line),
+        commands::TABLE_ITERATE => Command::Table(Mode::Iterate),
         _ => return None,
     })
 }
@@ -135,6 +140,9 @@ pub fn actions(
         .filter_map(|kind| {
             let title = match *kind {
                 TODO_NEXT | TODO_PREVIOUS if keywords.is_empty() => return None,
+                // There it recalculates the table, which is an action of
+                // its own.
+                commands::CHECKBOX_TOGGLE if org_core::tblfm::on_formula_line(text, offset) => return None,
                 TODO_NEXT => format!("Cycle TODO state forward (→ {})", keywords.next(current).unwrap_or("none")),
                 TODO_PREVIOUS => {
                     format!("Cycle TODO state backward (→ {})", keywords.previous(current).unwrap_or("none"))

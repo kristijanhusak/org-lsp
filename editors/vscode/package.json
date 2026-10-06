@@ -245,6 +245,21 @@
         "category": "Org"
       },
       {
+        "command": "org.table.recalculate",
+        "title": "Recalculate the table",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.recalculate.line",
+        "title": "Recalculate the table's current line",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.iterate",
+        "title": "Recalculate the table until it does not change",
+        "category": "Org"
+      },
+      {
         "command": "org.open",
         "title": "Open the link or thing at the cursor",
         "category": "Org"
@@ -2541,6 +2556,11 @@
       {
         "command": "org.babel.tangle",
         "key": "ctrl+c ctrl+v ctrl+t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.recalculate.line",
+        "key": "ctrl+c shift+8",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
