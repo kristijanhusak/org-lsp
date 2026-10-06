@@ -35,7 +35,7 @@ fn line_end(text: &str, at: usize) -> usize {
 }
 
 /// The innermost element around `at`, by the parser's tree.
-fn ancestors_at(root: &SyntaxNode, at: usize) -> Vec<SyntaxNode> {
+pub(crate) fn ancestors_at(root: &SyntaxNode, at: usize) -> Vec<SyntaxNode> {
     let offset = (at.min(u32::MAX as usize) as u32).into();
     let mut node = root.clone();
     let mut out = vec![node.clone()];
@@ -54,7 +54,7 @@ fn ancestors_at(root: &SyntaxNode, at: usize) -> Vec<SyntaxNode> {
     }
 }
 
-fn is_table_line(line: &str) -> bool {
+pub(crate) fn is_table_line(line: &str) -> bool {
     line.trim_start_matches([' ', '\t']).starts_with('|')
 }
 
@@ -223,7 +223,7 @@ fn split_headline(text: &str, at: usize, keywords: &TodoKeywords, settings: &Set
 /// `org-table-next-row` after `org-table-align`: the cursor in the same
 /// column of the next row, in a new row when there is none or the next is
 /// a rule.
-fn next_row(text: &str, at: usize) -> Outcome {
+pub(crate) fn next_row(text: &str, at: usize) -> Outcome {
     let start = line_start(text, at);
     // The table: the lines that start with `|` around the cursor.
     let mut first = start;

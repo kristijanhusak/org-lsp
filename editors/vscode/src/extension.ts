@@ -681,6 +681,28 @@ function childrenOf(outer: vscode.FoldingRange, ranges: vscode.FoldingRange[]): 
   );
 }
 
+/** Whether `line` is a headline with the ARCHIVE tag of its own. */
+function archivedAt(editor: vscode.TextEditor, line: number): boolean {
+  return /^\*+\s(?:.*\s)?:(?:[\p{L}\p{N}_@#%]+:)*ARCHIVE:(?:[\p{L}\p{N}_@#%]+:)*\s*$/u.test(
+    editor.document.lineAt(line).text,
+  );
+}
+
+/**
+ * `org-cycle-hide-archived-subtrees`: the starts of the archived subtrees
+ * among `open`, the outermost ones, to fold again after cycling opened
+ * them. (Folding one in a closed fold would close the fold around it.)
+ */
+function archivedStarts(editor: vscode.TextEditor, open: vscode.FoldingRange[]): number[] {
+  const archived = open.filter((range) => archivedAt(editor, range.start));
+  const outermost = archived.filter(
+    (range) => !archived.some((other) => other.start < range.start && range.end <= other.end),
+  );
+  return [...new Set(outermost.map((range) => range.start))];
+}
+
+const staysClosed = () => vscode.window.setStatusBarMessage('Subtree is archived and stays closed', 4000);
+
 /**
  * `org-cycle` on the fold that starts at the cursor's line: FOLDED, then
  * CHILDREN (its direct folds closed), then SUBTREE (all open). On a line
@@ -708,13 +730,24 @@ async function cycle(args?: Partial<KeyArgs>): Promise<void> {
     }
   }
   const start = current.start;
+  const archived = archivedAt(editor, start);
   if (await closed(editor, start)) {
     await unfoldAll(start);
     const children = [...new Set(childrenOf(current, ranges).map((range) => range.start))];
     await fold(children);
+    // An archived subtree stays closed (`org-cycle-hide-archived-subtrees`).
+    if (archived) {
+      await fold([start]);
+      staysClosed();
+    }
     remember(editor, start, children.length > 0 ? 'children' : 'subtree');
   } else if (lastState(editor, start) === 'children') {
     await unfoldAll(start);
+    const inside = ranges.filter((range) => range.start >= start && range.end <= current.end);
+    await fold(archivedStarts(editor, inside));
+    if (archived) {
+      staysClosed();
+    }
     remember(editor, start, 'subtree');
   } else {
     await fold([start]);
@@ -743,9 +776,12 @@ async function cycleGlobal(): Promise<void> {
     );
     await vscode.commands.executeCommand('editor.unfoldAll');
     await fold([...new Set(ranges.map((range) => range.start))].filter((start) => !parents.has(start)));
+    // Archived subtrees stay closed, of those left open.
+    await fold(archivedStarts(editor, ranges.filter((range) => parents.has(range.start))));
     remember(editor, -1, 'contents');
   } else if (state === 'contents') {
     await vscode.commands.executeCommand('editor.unfoldAll');
+    await fold(archivedStarts(editor, await foldingRanges(editor.document)));
     remember(editor, -1, 'all');
   } else {
     await vscode.commands.executeCommand('editor.foldAll');

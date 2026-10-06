@@ -162,9 +162,10 @@ end
 --- Run a command: one of the editor's own, or one of the server's, which
 --- is told where the cursor is.
 ---@param name string e.g. 'org.todo.next'
----@param opts? { count?: integer, key?: string } the count typed before the
---- key, and the key to give back its own meaning if the command does not
---- apply at the cursor
+---@param opts? { count?: integer, key?: string, append?: boolean } the
+--- count typed before the key, the key to give back its own meaning if the
+--- command does not apply at the cursor, and whether the command acts after
+--- the character under the cursor and typing goes on in insert mode
 function M.run(name, opts)
   if own_commands[name] then
     return own_commands[name][2]()
@@ -183,6 +184,15 @@ function M.run(name, opts)
   with_client(function(client)
     local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
     context.count = count
+    if opts.append then
+      -- After the character under the cursor, as `a` types there.
+      local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+      local line = vim.api.nvim_get_current_line()
+      if col < #line then
+        local after = col + vim.str_utf_end(line, col + 1) + 1
+        context.position.character = vim.lsp.util.character_offset(0, row - 1, after, client.offset_encoding)
+      end
+    end
     local command = { title = name, command = name, arguments = { context } }
     local bufnr = vim.api.nvim_get_current_buf()
     local function handle(err, result)
@@ -194,6 +204,16 @@ function M.run(name, opts)
           vim.notify('org-lsp: ' .. tostring(err.message), vim.log.levels.WARN)
         end
         return
+      end
+      -- The edit and the cursor, carried in the result (`org.meta.return`);
+      -- from its key, typing goes on there, in insert mode, as with
+      -- nvim-orgmode.
+      if type(result) == 'table' and type(result.edits) == 'table' then
+        local at_end = M.apply_carried(result, bufnr, client)
+        if opts.append and vim.api.nvim_get_current_buf() == bufnr then
+          -- Normal mode keeps the cursor off the end of the line.
+          vim.cmd(at_end and 'startinsert!' or 'startinsert')
+        end
       end
       -- The server names files to save; those with changes are written.
       if type(result) == 'table' and type(result.save) == 'table' then
@@ -345,6 +365,10 @@ end
 --- The commands whose keys are typed in insert mode (`org.return`).
 local insert_keys = {}
 
+--- The commands whose keys act after the character under the cursor and
+--- go on in insert mode (`org.meta.return`).
+local append_keys = {}
+
 --- Run `name`, whose result carries edits and a cursor (`org.return`), from
 --- insert mode: at once, so that what is typed next goes after it. The key
 --- keeps its own meaning while the completion menu is open, with no server,
@@ -367,13 +391,25 @@ function M.insert_command(name, key)
   if type(result) ~= 'table' or type(result.edits) ~= 'table' then
     return native()
   end
+  M.apply_carried(result, bufnr, client)
+end
+
+--- Apply the edits a command's result carries to `bufnr`, and put the
+--- cursor where the result says.
+---@param result { edits: table[], cursor?: { line: integer, character: integer } }
+---@param bufnr integer
+---@param client vim.lsp.Client
+---@return boolean # whether the cursor goes at the end of its line
+function M.apply_carried(result, bufnr, client)
   vim.lsp.util.apply_text_edits(result.edits, bufnr, client.offset_encoding)
   local cursor = result.cursor
-  if cursor then
+  if cursor and vim.api.nvim_get_current_buf() == bufnr then
     local text = vim.api.nvim_buf_get_lines(bufnr, cursor.line, cursor.line + 1, false)[1] or ''
     local column = vim.str_byteindex(text, client.offset_encoding, cursor.character, false)
     pcall(vim.api.nvim_win_set_cursor, 0, { cursor.line + 1, column })
+    return column >= #text
   end
+  return false
 end
 
 --- The keys of a scope: the server's defaults for modal editors, with the
@@ -393,6 +429,7 @@ local function keys_in(scope)
         table.insert(keys[command.command], key.key)
         native[key.key] = key.native or nil
         insert_keys[command.command] = key.mode == 'insert' or nil
+        append_keys[command.command] = key.mode == 'append' or nil
       end
     end
   end
@@ -469,6 +506,10 @@ local function set_keys(scope, bufnr)
         vim.keymap.set('i', lhs, function()
           M.insert_command(name, lhs)
         end, { buffer = bufnr, desc = title })
+      elseif append_keys[name] then
+        vim.keymap.set('n', lhs, function()
+          M.run(name, { append = true })
+        end, { buffer = bufnr, desc = title })
       elseif command and command.edits and scope == 'org' then
         vim.keymap.set('n', lhs, repeatable(name, key), { buffer = bufnr, desc = title, expr = true })
       else
@@ -482,11 +523,15 @@ end
 
 -- ----- attaching
 
+--- The server's folds in window `win`, for the buffer it shows: once per
+--- buffer, as the options are local to it there and later changes of the
+--- user's are kept.
 local function set_window_folds(win)
-  if vim.w[win].org_lsp_folds then
+  local key = 'org_lsp_folds_' .. vim.api.nvim_win_get_buf(win)
+  if vim.w[win][key] then
     return
   end
-  vim.w[win].org_lsp_folds = true
+  vim.w[win][key] = true
   vim.wo[win][0].foldmethod = 'expr'
   vim.wo[win][0].foldexpr = 'v:lua.vim.lsp.foldexpr()'
   vim.wo[win][0].foldlevel = M.config.startup_folded == 'overview' and 0 or 99

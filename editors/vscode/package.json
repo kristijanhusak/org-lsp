@@ -140,6 +140,16 @@
         "category": "Org"
       },
       {
+        "command": "org.agenda.archives",
+        "title": "Agenda: include archived trees",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.archives.files",
+        "title": "Agenda: include archived trees and archive files",
+        "category": "Org"
+      },
+      {
         "command": "org.clock.in",
         "title": "Clock in",
         "category": "Org"
@@ -197,6 +207,26 @@
       {
         "command": "org.return",
         "title": "New line, as Org's RET makes it",
+        "category": "Org"
+      },
+      {
+        "command": "org.meta.return",
+        "title": "New heading, item or table row",
+        "category": "Org"
+      },
+      {
+        "command": "org.insert.todo.heading",
+        "title": "New TODO heading, or item with a checkbox",
+        "category": "Org"
+      },
+      {
+        "command": "org.insert.heading.after",
+        "title": "New heading after the subtree",
+        "category": "Org"
+      },
+      {
+        "command": "org.insert.todo.heading.after",
+        "title": "New TODO heading after the subtree",
         "category": "Org"
       },
       {
@@ -1123,6 +1153,15 @@
                   "markdownDescription": "Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)",
                   "default": false
                 },
+                "startWithArchivesMode": {
+                  "enum": [
+                    "trees",
+                    "files",
+                    false
+                  ],
+                  "markdownDescription": "Start the agenda with entries in archived trees (`trees`; `v a` toggles it), or those and the files the agenda files archive to (`files`; `v A`). (`org-agenda-start-with-archives-mode`)",
+                  "default": false
+                },
                 "logModeItems": {
                   "items": {
                     "enum": [
@@ -1518,6 +1557,10 @@
       {
         "id": "clocking",
         "description": "Agenda: part of the line of the entry the clock runs on"
+      },
+      {
+        "id": "archived",
+        "description": "A headline with the ARCHIVE tag"
       }
     ],
     "semanticTokenScopes": [
@@ -1739,6 +1782,10 @@
           "*.clocking": [
             "markup.highlight.clocking.agenda.org",
             "markup.inserted"
+          ],
+          "*.archived": [
+            "comment.archived.org",
+            "comment"
           ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
@@ -1981,6 +2028,10 @@
             "markup.highlight.clocking.agenda.org",
             "markup.inserted"
           ],
+          "*.archived": [
+            "comment.archived.org",
+            "comment"
+          ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
             "entity.name.function"
@@ -2222,6 +2273,10 @@
             "markup.highlight.clocking.agenda.org",
             "markup.inserted"
           ],
+          "*.archived": [
+            "comment.archived.org",
+            "comment"
+          ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
             "entity.name.function"
@@ -2315,6 +2370,26 @@
             }
           ]
         }
+      },
+      {
+        "command": "org.meta.return",
+        "key": "alt+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.insert.todo.heading",
+        "key": "alt+shift+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.insert.heading.after",
+        "key": "ctrl+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.insert.todo.heading.after",
+        "key": "ctrl+shift+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
         "command": "org.refile",
@@ -2686,6 +2761,26 @@
       {
         "command": "org.agenda.clockreport",
         "key": "shift+r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.archives",
+        "key": "v a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.archives",
+        "key": "v a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.archives.files",
+        "key": "v shift+a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.archives.files",
+        "key": "v shift+a",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {

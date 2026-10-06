@@ -72,6 +72,7 @@ const looks = {
   agendaTimeGrid: ['comment'],
   'agendaTimeGrid.current': ['emphasis.strong'],
   agendaClocking: ['emphasis.strong'],
+  '*.archived': ['comment'],
 };
 levels.forEach((style, index) => {
   looks[`headline.level${index + 1}`] = [style];
@@ -91,7 +92,10 @@ const selectors = manifest.highlights.map((look) => look.token).filter((token) =
 // thing the one earlier in the file wins (as a user's rules win over an
 // extension's): a type with a modifier first (`todoKeyword.done` over
 // `todoKeyword`), then the plain types, then the modifiers of any type.
-const rank = (selector) => (selector.startsWith('*.') ? 2 : selector.includes('.') ? 0 : 1);
+// An archived headline is shadowed over all its colors (`org-archived` is
+// prepended), so that one goes before everything.
+const rank = (selector) =>
+  selector === '*.archived' ? -1 : selector.startsWith('*.') ? 2 : selector.includes('.') ? 0 : 1;
 const rules = selectors.sort((a, b) => rank(a) - rank(b)).map((selector) => rule(selector, looks[selector]));
 const text = JSON.stringify(rules, null, 2) + '\n';
 

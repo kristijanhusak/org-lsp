@@ -1,0 +1,13 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    { "view": "agenda", "span": "week" },
+    { "view": "agenda", "span": "week", "archives": "trees" },
+    { "view": "agenda", "span": "week", "archives": "files" },
+    { "view": "todo" },
+    { "view": "todo", "archives": "trees" },
+    { "view": "todo", "archives": "files" },
+    { "view": "tags", "match": "TODO=\"TODO\"", "archives": "files" }
+  ]
+}

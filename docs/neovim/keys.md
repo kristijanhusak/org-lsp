@@ -42,6 +42,10 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>o,` | `org.priority` | Set the priority |
 | `<C-Space>` | `org.checkbox.toggle` | Toggle the checkbox |
 | `<CR>`¹ (insert mode) | `org.return` | New line, as Org's RET makes it |
+| `<Leader><CR>` | `org.meta.return` | New heading, item or table row |
+| `<Leader>oiT` | `org.insert.todo.heading` | New TODO heading, or item with a checkbox |
+| `<Leader>oih` | `org.insert.heading.after` | New heading after the subtree |
+| `<Leader>oit` | `org.insert.todo.heading.after` | New TODO heading after the subtree |
 | `<Leader>or` | `org.refile` | Refile the entry |
 | `<Leader>o$` | `org.archive.subtree` | Archive the subtree |
 | `<Leader>oxA` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
@@ -81,6 +85,8 @@ The other options are in [configuration.md](configuration.md).
 | `<CR>`, `<Tab>` | `org.agenda.goto` | Agenda: go to the entry |
 | `vl` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `R` | `org.agenda.clockreport` | Agenda: the clock report |
+| `va` | `org.agenda.archives` | Agenda: include archived trees |
+| `vA` | `org.agenda.archives.files` | Agenda: include archived trees and archive files |
 | `I` | `org.clock.in` | Clock in |
 | `O` | `org.clock.out` | Clock out |
 | `X` | `org.clock.cancel` | Cancel the clock |

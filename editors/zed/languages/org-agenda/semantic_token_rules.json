@@ -1,5 +1,13 @@
 [
   {
+    "token_modifiers": [
+      "archived"
+    ],
+    "style": [
+      "comment"
+    ]
+  },
+  {
     "token_type": "headline",
     "token_modifiers": [
       "level1"

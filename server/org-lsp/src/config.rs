@@ -84,9 +84,9 @@ pub struct Options {
     /// command's result (Zed).
     pub message_prompts: Option<bool>,
     /// Offer more commands as code actions (the agenda, capture, refile,
-    /// a TODO state or a priority picked from a list; in the agenda, moving
-    /// through time): for a client that cannot run a command from a key
-    /// (Zed).
+    /// a TODO state or a priority picked from a list, a new heading or
+    /// item; in the agenda, moving through time): for a client that cannot
+    /// run a command from a key (Zed).
     pub command_actions: Option<bool>,
     /// `org-refile-targets`: where entries can be refiled to. Without it,
     /// the top-level headlines of the entry's own file.
@@ -876,6 +876,8 @@ pub struct AgendaOptions {
     pub start_with_log_mode: Option<bool>,
     /// `org-agenda-start-with-clockreport-mode`
     pub start_with_clockreport_mode: Option<bool>,
+    /// `org-agenda-start-with-archives-mode`: `"trees"` or `"files"`.
+    pub start_with_archives_mode: Option<ArchivesOption>,
     /// `org-agenda-log-mode-items`: `closed`, `clock` and `state`.
     pub log_mode_items: Option<Vec<String>>,
     /// `org-agenda-start-day`: the day the agenda starts from, as the date
@@ -929,7 +931,34 @@ pub struct CustomBlockOption {
     pub settings: Option<serde_json::Value>,
 }
 
+/// What the agenda shows of archives (`org-agenda-archives-mode`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArchivesMode {
+    Off,
+    /// Entries in archived trees too (`trees`, `v a`).
+    Trees,
+    /// Those and the files the agenda files archive to (`t`, `v A`).
+    Files,
+}
+
+/// `agenda.startWithArchivesMode`: `"trees"`, `"files"` or `false`.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum ArchivesOption {
+    Flag(bool),
+    Name(String),
+}
+
 impl AgendaOptions {
+    /// The archives mode the agenda starts in.
+    pub fn archives_mode(&self) -> ArchivesMode {
+        match &self.start_with_archives_mode {
+            Some(ArchivesOption::Name(name)) if name == "trees" => ArchivesMode::Trees,
+            Some(ArchivesOption::Name(name)) if name == "files" => ArchivesMode::Files,
+            _ => ArchivesMode::Off,
+        }
+    }
+
     /// Org's defaults with the given settings applied. Values that make
     /// no sense are ignored.
     pub fn to_config(&self) -> AgendaConfig {
@@ -984,6 +1013,7 @@ impl AgendaOptions {
         }
         config.show_log = self.start_with_log_mode.unwrap_or(false);
         config.clockreport = self.start_with_clockreport_mode.unwrap_or(false);
+        config.archives = self.archives_mode() != ArchivesMode::Off;
         if let Some(items) = &self.log_mode_items {
             let has = |name: &str| items.iter().any(|item| item == name);
             config.log_items =

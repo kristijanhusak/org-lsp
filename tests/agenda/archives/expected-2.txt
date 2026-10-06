@@ -1,0 +1,13 @@
+Week-agenda (W41):
+Monday      5 October 2026 W41
+  home:       Scheduled:  TODO Archived file task                     :ARCHIVE::
+  work:       Scheduled:  TODO Write report
+Tuesday     6 October 2026
+  work:       Scheduled:  TODO Leftover task                          :ARCHIVE::
+  work:       Scheduled:  TODO Archived task
+Wednesday   7 October 2026
+  work:       14:00...... Meeting 
+Thursday    8 October 2026
+Friday      9 October 2026
+Saturday   10 October 2026
+Sunday     11 October 2026

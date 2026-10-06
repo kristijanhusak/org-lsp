@@ -54,9 +54,13 @@ pub struct Entry {
     /// appears more than once is kept at its most local position.
     pub tags: Vec<Tag>,
     pub category: String,
-    /// The entry or one of its parents is archived or commented, or the
-    /// whole file is archived. The agenda leaves such entries out.
-    pub skip: bool,
+    /// The entry or one of its parents is commented. The agenda leaves
+    /// such entries out.
+    pub commented: bool,
+    /// The entry or one of its parents has the ARCHIVE tag, or the whole
+    /// file has it. The agenda leaves such entries out unless archived
+    /// trees are asked for (`org-agenda-archives-mode`).
+    pub archived: bool,
     pub scheduled: Option<Planning>,
     pub deadline: Option<Planning>,
     pub closed: Option<Planning>,
@@ -65,6 +69,12 @@ pub struct Entry {
 }
 
 impl Entry {
+    /// Whether the agenda leaves the entry out (`org-agenda-skip`), with
+    /// archived trees included or not.
+    pub fn skipped(&self, archives: bool) -> bool {
+        self.commented || (self.archived && !archives)
+    }
+
     /// Whether the entry counts for the global TODO list: its headline has
     /// one of the not-done keywords, followed by blanks or nothing.
     pub fn is_open_todo(&self) -> bool {
@@ -196,7 +206,8 @@ impl Outline {
         let inherited = Inherited {
             tags: outline.file_tags.iter().map(|name| Tag { name: name.clone(), inherited: true }).collect(),
             category,
-            skip: file_archived,
+            commented: false,
+            archived: file_archived,
         };
         for headline in ast::headlines(&root) {
             outline.add_entry(&headline, text, None, &inherited);
@@ -237,7 +248,8 @@ impl Outline {
 
         let own_tags = headline.tags();
         let archived = own_tags.iter().any(|tag| tag == ARCHIVE_TAG);
-        let skip = inherited.skip || headline.is_commented() || archived;
+        let commented = inherited.commented || headline.is_commented();
+        let archived = inherited.archived || archived;
 
         let section = headline.section();
         let planning = section.as_ref().and_then(|section| section.children().find(|child| child.kind() == PLANNING));
@@ -278,7 +290,8 @@ impl Outline {
             element_done,
             tags: deduped,
             category: shown_category(&category),
-            skip,
+            commented,
+            archived,
             scheduled: planning.as_ref().and_then(|planning| planning_time(planning, "SCHEDULED:")),
             deadline: planning.as_ref().and_then(|planning| planning_time(planning, "DEADLINE:")),
             closed: planning.as_ref().and_then(|planning| planning_time(planning, "CLOSED:")),
@@ -287,7 +300,7 @@ impl Outline {
 
         let mut child_tags = inherited.tags.clone();
         child_tags.extend(own_tags.into_iter().map(|name| Tag { name, inherited: true }));
-        let for_children = Inherited { tags: child_tags, category, skip };
+        let for_children = Inherited { tags: child_tags, category, commented, archived };
         for child in headline.children() {
             self.add_entry(&child, text, Some(index), &for_children);
         }
@@ -363,13 +376,14 @@ impl Outline {
     /// The entry a timestamp counts for when the scan stops at `point`, or
     /// `None` when Org skips it there: in a date range, on a planning
     /// line, before the first headline, where the text is not a timestamp
-    /// to Org, or in an archived or commented subtree.
+    /// to Org, or in a commented subtree. (Archived subtrees are left out
+    /// by the agenda, unless it is asked for them.)
     ///
     /// `inside` is a byte of the timestamp, used to look at its context;
     /// `end` is where the timestamp text ends.
     fn stamp_entry(&self, root: &SyntaxNode, text: &str, point: usize, inside: usize, end: usize) -> Option<usize> {
         let entry = self.entry_at(point)?;
-        if self.entries[entry].skip || at_date_range(text, point) {
+        if self.entries[entry].commented || at_date_range(text, point) {
             return None;
         }
         let token = token_at(root, inside)?;
@@ -400,7 +414,7 @@ impl Outline {
 
     /// Date ranges, found the way `org-agenda-get-blocks` finds them: by
     /// scanning the text, wherever they are, except in comments, source
-    /// blocks and skipped subtrees.
+    /// blocks and commented subtrees.
     fn collect_blocks(&mut self, root: &SyntaxNode, text: &str) {
         let mut at = 0;
         while let Some(range) = next_date_range(text, at) {
@@ -411,7 +425,7 @@ impl Outline {
                 continue;
             }
             let Some(entry) = self.entry_at(range.end) else { continue };
-            if self.entries[entry].skip || in_source_block(root, range.end - 1) {
+            if self.entries[entry].commented || in_source_block(root, range.end - 1) {
                 continue;
             }
             self.blocks.push(Block {
@@ -428,7 +442,8 @@ impl Outline {
 struct Inherited {
     tags: Vec<Tag>,
     category: String,
-    skip: bool,
+    commented: bool,
+    archived: bool,
 }
 
 fn token_text(node: &SyntaxNode, kind: SyntaxKind) -> Option<String> {
@@ -926,9 +941,12 @@ mod tests {
     #[test]
     fn archived_and_commented_subtrees_are_skipped() {
         let text = "* a :ARCHIVE:\n** b\n* COMMENT c\n** d\n* TODO COMMENT e\n* COMMENTARY f\n* [#A] COMMENT\n";
-        let skips: Vec<bool> = outline(text).entries.iter().map(|entry| entry.skip).collect();
+        let skips: Vec<bool> = outline(text).entries.iter().map(|entry| entry.skipped(false)).collect();
         assert_eq!(skips, [true, true, true, true, true, false, true]);
-        assert!(outline("#+FILETAGS: :ARCHIVE:\n* a\n").entries[0].skip);
+        assert!(outline("#+FILETAGS: :ARCHIVE:\n* a\n").entries[0].skipped(false));
+        // With archived trees asked for, only the commented ones.
+        let skips: Vec<bool> = outline(text).entries.iter().map(|entry| entry.skipped(true)).collect();
+        assert_eq!(skips, [false, false, true, true, true, false, true]);
     }
 
     #[test]

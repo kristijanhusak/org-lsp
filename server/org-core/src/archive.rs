@@ -295,6 +295,39 @@ fn compute_location(spec: &str, context: &Context) -> Result<Location, Refusal> 
     Ok(Location { file, heading: format_name(&spec[split + 2..], &name) })
 }
 
+/// `org-all-archive-files`: the files the subtrees of `text` are archived
+/// to: the file's archive location (`#+ARCHIVE:` or `default`), then those
+/// of `ARCHIVE` properties, each once. Whether they exist is the caller's
+/// to check; a location that is not one is left out.
+pub fn archive_files(text: &str, keywords: &TodoKeywords, context: &Context, default: &str) -> Vec<PathBuf> {
+    let root = org_syntax::parse(text, keywords).syntax();
+    let mut specs = vec![keyword_values(&root, "ARCHIVE").into_iter().next().unwrap_or_else(|| default.to_string())];
+    // `:ARCHIVE:` lines in property drawers.
+    let mut in_drawer = false;
+    for line in text.lines() {
+        let trimmed = line.trim_matches([' ', '\t']);
+        if trimmed.eq_ignore_ascii_case(":PROPERTIES:") {
+            in_drawer = true;
+        } else if trimmed.eq_ignore_ascii_case(":END:") {
+            in_drawer = false;
+        } else if in_drawer {
+            let value = trimmed.get(..9).filter(|key| key.eq_ignore_ascii_case(":ARCHIVE:")).map(|_| &trimmed[9..]);
+            if let Some(value) = value.filter(|value| value.starts_with([' ', '\t'])) {
+                specs.push(value.trim().to_string());
+            }
+        }
+    }
+    let mut files: Vec<PathBuf> = Vec::new();
+    for spec in specs {
+        if let Ok(location) = compute_location(&spec, context) {
+            if !files.contains(&location.file) {
+                files.push(location.file);
+            }
+        }
+    }
+    files
+}
+
 /// The archive location of the entry at byte `offset`.
 pub fn location(
     text: &str,
@@ -1283,6 +1316,20 @@ mod tests {
         assert_eq!(found.file, PathBuf::from("/home/u/x.org"));
         assert!(compute_location("bad", &context).is_err());
         assert_eq!(abbreviate(Path::new("/home/u/notes/a.org"), context.home), "~/notes/a.org");
+    }
+
+    #[test]
+    fn lists_the_archive_files() {
+        let context = Context {
+            path: Path::new("/home/u/notes/a.org"),
+            home: Some(Path::new("/home/u")),
+            now: DateTime::new(Date::new(2026, 5, 18), 10, 30),
+        };
+        let keywords = TodoKeywords::default();
+        let files = |text: &str| archive_files(text, &keywords, &context, "%s_archive::");
+        assert_eq!(files("* a\n"), [PathBuf::from("/home/u/notes/a.org_archive")]);
+        let text = "#+ARCHIVE: old.org::\n* a\n:PROPERTIES:\n:ARCHIVE: ~/x.org::* X\n:END:\n* b\n:PROPERTIES:\n:ARCHIVE: old.org::\n:END:\n";
+        assert_eq!(files(text), [PathBuf::from("/home/u/notes/old.org"), PathBuf::from("/home/u/x.org")]);
     }
 
     #[test]

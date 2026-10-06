@@ -194,6 +194,9 @@ pub struct Config {
     /// Leave out a block of a block agenda that shows no entries. Not in
     /// Org.
     pub hide_empty_blocks: bool,
+    /// `org-agenda-archives-mode`: entries in archived trees are shown
+    /// (`v a`). Archive files are the caller's to add (`v A`).
+    pub archives: bool,
 }
 
 /// What log mode shows (`org-agenda-log-mode-items`).
@@ -236,6 +239,7 @@ impl Default for Config {
             block_separator: Some(default_separator()),
             compact_blocks: false,
             hide_empty_blocks: false,
+            archives: false,
         }
     }
 }
@@ -313,7 +317,7 @@ impl Builder<'_> {
         let is_today = current == self.today;
         for (index, entry) in self.files[file].entries.iter().enumerate() {
             let found = entry.deadline.as_ref().filter(|planning| planning.active && planning.searchable);
-            let Some(planning) = found.filter(|_| !entry.skip) else {
+            let Some(planning) = found.filter(|_| !entry.skipped(self.config.archives)) else {
                 continue;
             };
             let raw = planning.raw.as_str();
@@ -361,7 +365,7 @@ impl Builder<'_> {
         let is_today = current == self.today;
         for (index, entry) in self.files[file].entries.iter().enumerate() {
             let found = entry.scheduled.as_ref().filter(|planning| planning.active && planning.searchable);
-            let Some(planning) = found.filter(|_| !entry.skip) else {
+            let Some(planning) = found.filter(|_| !entry.skipped(self.config.archives)) else {
                 continue;
             };
             let raw = planning.raw.as_str();
@@ -478,7 +482,7 @@ impl Builder<'_> {
                 LogKind::Clock(_) => items.clock,
                 LogKind::State(_) => items.state,
             };
-            if !wanted || log.date.to_day() != current || outline.entries[log.entry].skip {
+            if !wanted || log.date.to_day() != current || outline.entries[log.entry].skipped(self.config.archives) {
                 continue;
             }
             let extra = match &log.kind {
@@ -664,7 +668,7 @@ pub fn todo_items(files: &[&Outline], keywords: Option<&[String]>, config: &Conf
                 Some(keywords) => entry.todo.as_ref().is_some_and(|todo| keywords.contains(todo)),
                 None => entry.is_open_todo(),
             };
-            if entry.skip || !wanted {
+            if entry.skipped(config.archives) || !wanted {
                 continue;
             }
             let mut item = builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::Headline);
@@ -828,7 +832,7 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
     let mut items = Vec::new();
     for (file, outline) in files.iter().enumerate() {
         for index in 0..outline.entries.len() {
-            if outline.entries[index].skip || !matcher.matches(outline, index, todo_only, clock) {
+            if outline.entries[index].skipped(config.archives) || !matcher.matches(outline, index, todo_only, clock) {
                 continue;
             }
             items.push(builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::Headline));

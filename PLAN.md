@@ -82,12 +82,23 @@ forms over every subtree without open TODO items; `$`, `a` and the
 `C-c C-x` keys in the agenda (`tests/archive`,
 `scripts/fuzz-archive.py`).
 
-Next, from that list: Emacs's RET does not continue lists, `M-RET`
-(`org-meta-return`: a new item or heading) and `M-S-RET` (a new TODO
-heading, or an item with a checkbox) do; they are not ported yet. Also
-open around archiving: the agenda's archives mode (`v a`, `v A`),
-archived subtrees staying folded when cycling
-(`org-cycle-hide-archived-subtrees`) and the `org-archived` face. Then,
+Then (asked for on 2026-10-06, "do those"): `M-RET` (`org-meta-return`:
+a new item, heading or table row), `M-S-RET` (`org-insert-todo-heading`:
+a TODO heading, or an item with a checkbox), `C-RET` and `C-S-RET` (the
+same after the subtree), with `org-list.el`'s list structure ported as
+it is (`server/org-core/src/list.rs`: `org-list-struct`,
+`org-list-insert-item`, `org-list-write-struct`, down to Emacs going on
+with stale match data where an item of the structure is no longer at the
+start of a line) (`tests/meta-return`, `scripts/fuzz-meta-return.py`).
+In Neovim and Vim their keys act after the character under the cursor
+and typing goes on in insert mode (`"mode": "append"`). Capture and note
+buffers are filed with the text the editor has (coc.nvim tells the server
+of changes late). Then the rest of archiving: the agenda's archives mode
+(`v a`, `v A`, `org-agenda-archives-mode`, `agenda.startWithArchivesMode`;
+`tests/agenda/archives`), archived subtrees staying closed when TAB and
+S-TAB open what is around them (`org-cycle-hide-archived-subtrees`, in
+Neovim, Vim and VS Code), and the `archived` token modifier
+(`org-archived`). Then,
 by the milestones below: diagnostics (milestone 13), table navigation
 and editing (milestone 12), and the leftovers listed after this.
 
@@ -371,9 +382,9 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 ### 6. Structure editing
 
-- Done: RET (`org-return`), refile, archive.
-- New headings and items (`M-RET` and relatives), promote and demote,
-  move subtrees, cut/copy/paste subtree, sort.
+- Done: RET (`org-return`), new headings, items and rows (`M-RET`,
+  `M-S-RET`, `C-RET`, `C-S-RET`), refile, archive.
+- Promote and demote, move subtrees, cut/copy/paste subtree, sort.
 - Fold cycling in the server (Neovim does it in Lua today,
   `lua/org-lsp/folds.lua`), sparse trees.
 
@@ -521,6 +532,7 @@ previews.
   | Indentation | `tests/indent/cases.json` | `scripts/update-indent-fixtures.py` | `scripts/fuzz-indent.py` |
   | Formatting (tables, tags) | `tests/format/cases.json` | `scripts/update-format-fixtures.py` | `scripts/fuzz-format.py` |
   | RET (`org-return`) | `tests/return/cases.json` | `scripts/update-return-fixtures.py` | `scripts/fuzz-return.py` |
+  | M-RET, M-S-RET, C-RET, C-S-RET | `tests/meta-return/cases.json` | `scripts/update-meta-return-fixtures.py` | `scripts/fuzz-meta-return.py` |
   | Archiving | `tests/archive/cases.json` | `scripts/update-archive-fixtures.py` | `scripts/fuzz-archive.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.

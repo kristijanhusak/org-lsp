@@ -46,6 +46,18 @@ function! s:on_message(conn_id, _, message) abort
     if method ==# 'window/showDocument' || method ==# 'workspace/applyEdit'
       call ale#lsp#SendResponse(a:conn_id, a:message.id, org_lsp#handle_request(method, a:message.params))
     endif
+    " ALE tells the server of changes when it lints; the server waits to
+    " see an edit it asked for (the clock's line), so tell it at once.
+    if method ==# 'workspace/applyEdit'
+      let edit = a:message.params.edit
+      let uris = keys(get(edit, 'changes', {})) + map(copy(get(edit, 'documentChanges', [])), 'get(get(v:val, "textDocument", {}), "uri", "")')
+      for uri in uris
+        let nr = bufnr(org_lsp#uri_to_path(uri))
+        if nr > 0 && bufloaded(nr)
+          call ale#lsp#NotifyForChanges(a:conn_id, nr)
+        endif
+      endfor
+    endif
   elseif !empty(method)
     call org_lsp#handle_notification(method, get(a:message, 'params', v:null))
   elseif has_key(a:message, 'id') && has_key(s:waiting, a:conn_id . ':' . a:message.id)

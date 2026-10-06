@@ -45,8 +45,10 @@ are in the **code actions** (**editor: toggle code actions**, `ctrl-.` /
 
 - In an Org file: change the TODO state (the next one, the previous one,
   or one picked from a list), the priority, the timestamp under the
-  cursor; toggle a checkbox; clock in and out; refile; archive; open the
-  agenda (this week, the TODO list, or the agenda menu); capture.
+  cursor; toggle a checkbox; a new heading, item or table row (as M-RET,
+  M-S-RET, C-RET and C-S-RET make them), the cursor then in it; clock in
+  and out; refile; archive; open the agenda (this week, the TODO list, or
+  the agenda menu); capture.
 - In the agenda: move it through time (later, earlier, today, day,
   week), rebuild it, log mode and the clock report; on an entry's line
   also its state, priority and dates, clocking, refile, archive, and going

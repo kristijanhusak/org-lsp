@@ -852,6 +852,46 @@ fn shows_the_clock_in_the_agenda() {
     client.shutdown();
 }
 
+/// `v a` and `v A` (`org-agenda-archives-mode`): entries in archived trees,
+/// then those and the files the agenda files archive to.
+#[test]
+fn includes_archives_when_asked() {
+    let root = std::env::temp_dir().join(format!("org-lsp-agenda-archives-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    std::fs::write(root.join("work.org"), "* TODO Write\n* Old :ARCHIVE:\n** TODO Leftover\n").unwrap();
+    std::fs::write(root.join("work.org_archive"), "* TODO Archived long ago\n").unwrap();
+    let root_uri = format!("file://{}", root.display());
+    let mut client = Client::editor(clock(), Some(&root_uri));
+    client.command("org.agenda.todos", VIEW, 0);
+    // Without the tags column.
+    let todos = |client: &mut Client| {
+        let view = client.view_text(VIEW);
+        view.lines().skip(1).map(|line| line.split("  :").next().unwrap().trim().to_string()).collect::<Vec<String>>()
+    };
+    assert_eq!(todos(&mut client), ["work:       TODO Write"]);
+    let run = |client: &mut Client, command: &str| {
+        let at = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
+        client.settle();
+        result.unwrap()["message"].clone()
+    };
+    assert_eq!(run(&mut client, "org.agenda.archives"), "Trees with :ARCHIVE: tag are included");
+    assert_eq!(todos(&mut client), ["work:       TODO Write", "work:       TODO Leftover"]);
+    assert_eq!(
+        run(&mut client, "org.agenda.archives.files"),
+        "Trees with :ARCHIVE: tag and all active archive files are included"
+    );
+    assert_eq!(
+        todos(&mut client),
+        ["work:       TODO Write", "work:       TODO Leftover", "work:       TODO Archived long ago"]
+    );
+    assert_eq!(run(&mut client, "org.agenda.archives.files"), "No archives are included");
+    assert_eq!(todos(&mut client), ["work:       TODO Write"]);
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 /// Run `command` at `line` and `character` of `uri`, and return its result
 /// with the files the server then asked the editor to save.
 fn run_saving(client: &mut Client, command: &str, uri: &str, at: (u32, u32), extra: Value) -> (Value, Vec<Value>) {
@@ -2309,6 +2349,25 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     client.settle();
     assert!(client.notifications.iter().any(|notification| notification.method == "window/showMessage"
         && notification.params["message"].as_str().unwrap().contains("cannot ask for text")));
+
+    // The keys that insert a heading are actions too, which the server
+    // applies, the cursor then moved to the new heading.
+    let offered = kinds(&mut client, WORK_URI, 3, json!(["org"]));
+    assert!(offered.iter().any(|kind| kind == "org.insert.heading.after"), "{offered:?}");
+    client.open(WORK_URI, WORK);
+    client.received.clear();
+    let applied =
+        json!({ "textDocument": { "uri": WORK_URI }, "position": { "line": 1, "character": 3 }, "apply": true });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.insert.heading.after", "arguments": [applied] }))
+        .unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    let inserted = apply(WORK, &edits);
+    assert_eq!(inserted.lines().nth(3), Some("* "), "{inserted}");
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("moved");
+    assert_eq!(shown.params["selection"]["start"], json!({ "line": 3, "character": 2 }));
     client.shutdown();
 }
 
@@ -2421,6 +2480,56 @@ fn captures_from_no_document() {
     let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the buffer");
     let buffer = show.params["uri"].as_str().unwrap();
     assert_eq!(std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap(), "* Groceries \n");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// `org.capture.finish` with the buffer's text: a client may tell the
+/// server of the last changes only after the command (coc.nvim waits),
+/// and the text it sends is what gets filed. Text sent from another
+/// buffer is not taken for the capture buffer's.
+#[test]
+fn files_the_capture_buffer_text_the_command_comes_with() {
+    let root = workspace("capture-text");
+    let notes = root.join("notes.org");
+    std::fs::write(&notes, "* Old\n").unwrap();
+    let mut options = clock();
+    options["defaultNotesFile"] = json!(notes.display().to_string());
+    options["captureTemplates"] = json!([{ "key": "n", "description": "Note", "template": "* %?" }]);
+    let mut client = Client::editor(options, None);
+    let notes_uri = format!("file://{}", notes.display());
+    client.open(&notes_uri, "* Old\n");
+    let at = json!({ "textDocument": { "uri": notes_uri }, "position": { "line": 0, "character": 0 }, "input": "n" });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [at] })).unwrap();
+    client.settle();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the buffer");
+    let buffer = show.params["uri"].as_str().unwrap().to_string();
+    let shown = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
+    client.open(&buffer, &shown);
+    let finish = |client: &mut Client, uri: &str, text: &str| {
+        client.received.clear();
+        let context =
+            json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "text": text });
+        client.request("workspace/executeCommand", json!({ "command": "org.capture.finish", "arguments": [context] }))
+    };
+    // No change of the buffer has reached the server; the text has it.
+    finish(&mut client, &buffer, "* Call mom\n").unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    assert_eq!(apply("* Old\n", &edits), "* Old\n* Call mom\n");
+
+    // From another buffer, its text is not the capture's.
+    let at = json!({ "textDocument": { "uri": notes_uri }, "position": { "line": 0, "character": 0 }, "input": "n" });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [at] })).unwrap();
+    client.settle();
+    finish(&mut client, &notes_uri, "* Not this\n").unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    assert!(!apply("* Old\n", &edits).contains("Not this"));
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }

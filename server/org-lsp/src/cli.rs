@@ -3,6 +3,7 @@
 //! ```text
 //! org-lsp agenda [--view agenda|todo|tags|tags-todo|custom] [--match M]
 //!                [--key KEYS] [--span day|week|N] [--start DATE]
+//!                [--log] [--clockreport] [--archives trees|files]
 //!                [--today DATE] [--now HH:MM] [--options JSON] FILE...
 //! ```
 //!
@@ -32,6 +33,8 @@ Options:
   --key KEYS           a command of the `customCommands` agenda option
   --log                log mode: what was closed and clocked each day
   --clockreport        the clock report under the agenda
+  --archives WHAT      trees: entries in archived trees too; files: those
+                       and the files the given ones archive to
   --span SPAN          day, week, fortnight, month, year or a number of days
   --start YYYY-MM-DD   a day the agenda should include (default: today)
   --today YYYY-MM-DD   pretend this is today
@@ -78,6 +81,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     let mut key = None;
     let mut log = false;
     let mut clockreport = false;
+    let mut archives = None;
     let mut span = None;
     let mut start = None;
     let mut now = now();
@@ -93,6 +97,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             "--key" => key = Some(value("--key")?.clone()),
             "--log" => log = true,
             "--clockreport" => clockreport = true,
+            "--archives" => archives = Some(value("--archives")?.clone()),
             "--span" => span = Some(value("--span")?.clone()),
             "--start" => start = Some(parse_date(value("--start")?)?),
             "--today" => now.today = parse_date(value("--today")?)?,
@@ -114,6 +119,38 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     config.clockreport |= clockreport;
     if let Some(span) = span {
         config.span = SpanOption::Name(span.clone()).to_span().ok_or_else(|| format!("`{span}` is not a span"))?;
+    }
+
+    // `org-agenda-archives-mode`: archived trees, and with `files` the
+    // files the given ones archive to (`org-add-archive-files`).
+    match archives.as_deref() {
+        None => {}
+        Some("trees") => config.archives = true,
+        Some("files") => {
+            config.archives = true;
+            let mut all: Vec<String> = Vec::new();
+            for file in &files {
+                let text = std::fs::read_to_string(file).map_err(|error| format!("{file}: {error}"))?;
+                let path = std::path::absolute(file).map_err(|error| format!("{file}: {error}"))?;
+                let home = std::env::var_os("HOME").map(std::path::PathBuf::from);
+                let context = org_core::archive::Context {
+                    path: &path,
+                    home: home.as_deref(),
+                    now: org_core::date::DateTime::new(Date::new(1970, 1, 1), 0, 0),
+                };
+                let found = org_core::archive::archive_files(&text, &TodoKeywords::default(), &context, "%s_archive::");
+                for name in std::iter::once(file.clone())
+                    .chain(found.into_iter().filter(|path| path.exists()).map(|path| path.display().to_string()))
+                {
+                    let same = |other: &String| std::path::absolute(other).ok() == std::path::absolute(&name).ok();
+                    if !all.iter().any(same) {
+                        all.push(name);
+                    }
+                }
+            }
+            files = all;
+        }
+        Some(other) => return Err(format!("`{other}` is not an archives mode; expected trees or files")),
     }
 
     let default_todo = TodoKeywords::default();

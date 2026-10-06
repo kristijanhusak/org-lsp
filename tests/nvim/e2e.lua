@@ -612,6 +612,66 @@ vim.api.nvim_win_set_cursor(0, { 6, 3 })
 press('a<CR>z<Esc>')
 eq(vim.api.nvim_buf_get_lines(0, 5, 7, false), { 'echo', '  z' }, 'in code, RET is RET (indented as the block content)')
 
+-- 23b. `<Leader><CR>` is M-RET: after the character under the cursor, a
+-- new item in a list, a heading on a headline, and typing goes on there in
+-- insert mode. `<Leader>oit` puts a TODO heading after the subtree. (A
+-- script never gets back to Neovim's main loop, where insert mode would
+-- start: what the plugin asks of it is what can be seen here.)
+local inserted = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* TODO Write :work:', '- one', '** Sub', '* Next' }, inserted)
+vim.cmd.edit(inserted)
+wait('the server for M-RET', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+local started
+local command = vim.cmd
+vim.cmd = setmetatable({}, {
+  __index = command,
+  __call = function(_, text)
+    -- Recorded, not run: insert mode would wait for the next test's keys.
+    if type(text) == 'string' and text:match('^startinsert') then
+      started = text
+      return
+    end
+    return command(text)
+  end,
+})
+vim.api.nvim_win_set_cursor(0, { 2, 4 })
+press('<Leader><CR>')
+wait('the new item', function()
+  return line(3) == '- '
+end)
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* TODO Write :work:', '- one', '- ', '** Sub', '* Next' },
+  'a new item after the one')
+eq({ vim.api.nvim_win_get_cursor(0)[1], started }, { 3, 'startinsert!' }, 'typing goes on after its bullet')
+started = nil
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+press('<Leader>oit')
+wait('the TODO heading after the subtree', function()
+  return line(5) == '* TODO '
+end)
+eq({ vim.api.nvim_win_get_cursor(0)[1], started }, { 5, 'startinsert!' }, 'typing goes on in the new heading')
+vim.cmd = command
+vim.cmd('silent! write')
+
+-- 23c. Archived subtrees stay closed when TAB and S-TAB open what is
+-- around them (`org-cycle-hide-archived-subtrees`).
+local with_archived = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* Project', 'Body', '** Old :ARCHIVE:', 'old body', '** New', 'new body' }, with_archived)
+vim.cmd.edit(with_archived)
+wait('folds of the file with an archived subtree', function()
+  return vim.fn.foldlevel(4) > 1
+end)
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+press('<Tab>')
+eq(vim.fn.foldclosed(1), 1, 'TAB folds the subtree')
+press('<Tab>')
+press('<Tab>')
+eq({ vim.fn.foldclosed(3), vim.fn.foldclosed(5) }, { 3, -1 }, 'all of it shown but the archived subtree')
+press('<S-Tab>')
+press('<S-Tab>')
+eq({ vim.fn.foldclosed(1), vim.fn.foldclosed(3), vim.fn.foldclosed(5) }, { -1, 3, -1 }, 'S-TAB shows all but it too')
+
 -- 24. `<Leader>o$` archives the subtree to the archive file, which is
 -- written as Emacs saves it, and `<Leader>oA` tags a subtree as archived.
 -- `org.archive.done` asks about each subtree without open TODO items.

@@ -448,6 +448,37 @@ describe('Org files', () => {
     await vscode.workspace.fs.delete(file);
   });
 
+  it('keeps archived subtrees closed as TAB and S-TAB open the rest', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'archived.org'));
+    const text = ['* A', 'text', '** B :ARCHIVE:', 'b text', '** C', 'c text', ''].join('\n');
+    await vscode.workspace.fs.writeFile(file, Buffer.from(text));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the folds', async () => {
+      const folds = await vscode.commands.executeCommand('vscode.executeFoldingRangeProvider', file);
+      return folds?.length === 3;
+    });
+    const hidden = () =>
+      [...Array(editor.document.lineCount - 1).keys()].filter(
+        (line) => !editor.visibleRanges.some((range) => range.start.line <= line && line <= range.end.line),
+      );
+    const shows = (what, lines) => until(what, () => JSON.stringify(hidden()) === JSON.stringify(lines));
+    moveTo(0);
+    await vscode.commands.executeCommand('org-lsp.cycle');
+    await shows('FOLDED', [1, 2, 3, 4, 5]);
+    await vscode.commands.executeCommand('org-lsp.cycle');
+    await shows('CHILDREN', [3, 5]);
+    await vscode.commands.executeCommand('org-lsp.cycle');
+    await shows('SUBTREE, but the archived one', [3]);
+    await vscode.commands.executeCommand('org-lsp.cycleGlobal');
+    await shows('OVERVIEW', [1, 2, 3, 4, 5]);
+    await vscode.commands.executeCommand('org-lsp.cycleGlobal');
+    await shows('CONTENTS', [3, 5]);
+    await vscode.commands.executeCommand('org-lsp.cycleGlobal');
+    await shows('SHOW ALL, but the archived one', [3]);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+  });
+
   it('lists the keys of the editor at hand', async () => {
     const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
     const shown = api.help(vscode.window.activeTextEditor);
@@ -472,6 +503,24 @@ describe('Org files', () => {
     moveTo(3, 4);
     await vscode.commands.executeCommand('org.return', { fallback: [{ command: 'type', args: { text: '\n' } }] });
     await until('a plain new line in code', () => editor.document.lineAt(4).text.trim() === '' && editor.document.lineAt(5).text === '#+end_src');
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
+  it('inserts items and headings as M-RET and its neighbours do', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'meta.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* TODO Write :work:\n- one\n** Sub\n* Next\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    moveTo(1, 5);
+    await vscode.commands.executeCommand('org.meta.return');
+    await until('the new item', () => editor.document.lineAt(2).text === '- ');
+    assert.deepEqual([editor.selection.active.line, editor.selection.active.character], [2, 2]);
+    moveTo(0, 0);
+    await vscode.commands.executeCommand('org.insert.todo.heading.after');
+    await until('the TODO heading after the subtree', () => editor.document.lineAt(4).text === '* TODO ');
+    assert.deepEqual([editor.selection.active.line, editor.selection.active.character], [4, 7]);
     await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
     await vscode.workspace.fs.delete(file);
     await vscode.window.showTextDocument(document);

@@ -127,6 +127,7 @@ the editor's own syntax.
 | `agenda.weekendDays` | number[] | `[6, 0]` | The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`) |
 | `agenda.startWithLogMode` | boolean | `false` | Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it). (`org-agenda-start-with-log-mode`) |
 | `agenda.startWithClockreportMode` | boolean | `false` | Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`) |
+| `agenda.startWithArchivesMode` | "trees" \| "files" \| false | `false` | Start the agenda with entries in archived trees (`trees`; `v a` toggles it), or those and the files the agenda files archive to (`files`; `v A`). (`org-agenda-start-with-archives-mode`) |
 | `agenda.logModeItems` | string[] | `["closed", "clock"]` | What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`) |
 | `agenda.blockSeparator` | string \| false | `"="` | What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block. (`org-agenda-block-separator`) |
 | `agenda.compactBlocks` | boolean | `false` | Leave out the separators between blocks and the header over agenda blocks. (`org-agenda-compact-blocks`) |
@@ -136,7 +137,7 @@ the editor's own syntax.
 | `virtualDocuments` | boolean | from the client's capabilities | Whether the client fetches the agenda with `workspace/textDocumentContent`. A client that announces that capability need not set this. |
 | `showDocument` | boolean | from the client's capabilities | Whether the client shows the documents the server asks it to show (`window/showDocument`): the agenda, capture buffers, an entry's file. A client that announces that capability need not set this; the Vim plugin does, for the LSP clients that leave the request to it. |
 | `messagePrompts` | boolean | `false` | Ask what commands ask for (a key, one of a list) with `window/showMessageRequest`, and say what they have to say with `window/showMessage`, for a client that does nothing with a command's result. The Zed extension sets it. |
-| `commandActions` | boolean | `false` | Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked from a list, and in the agenda moving through time, for a client that cannot run a command from a key. The Zed extension sets it. |
+| `commandActions` | boolean | `false` | Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked from a list, a new heading or item (M-RET and its neighbours), and in the agenda moving through time, for a client that cannot run a command from a key. The Zed extension sets it. |
 
 <!-- END generated -->
 
@@ -183,7 +184,10 @@ it: `org.return` answers `{ "edits": [TextEdit…], "cursor": Position }`,
 and the editor applies the edits to the document at hand and puts the
 cursor there before the next key is handled. (A `workspace/applyEdit`
 from the server, and a cursor moved after it, would race with what is
-typed next.)
+typed next.) `org.meta.return` and its neighbours answer the same way.
+With `"apply": true` in the context the server applies the edit itself
+and moves the cursor with `window/showDocument`; the code actions of
+`commandActions` run them so.
 
 A command that cannot run answers with error code -32803
 (`RequestFailed`) and a message meant for the user, such as
@@ -199,6 +203,9 @@ number.
 | --- | --- |
 | `org.agenda.dispatch` | `org-agenda` (`C-c a`): asks for a view by its key, as Emacs's menu does (input kind `key`; `a` for the agenda, `t` for the TODO list, `m` / `M` for a tags search, and the commands of `agenda.customCommands`), and opens it. A prefix key of custom commands asks again, with the keys so far in the input's `context` (`keys`); `m` and `M` then ask for the match string (input kind `text`). |
 | `org.return` | `org-return` (RET): in a table, aligns it and goes to the same column of the next row, adding a row when there is none or the next is a rule; on a headline, puts the rest of the title on a new line with the tags kept in their column; in a list item, keeps the rest of the line in the item; else a new line. The new line is indented as `electric-indent-mode` indents in Org (`org-indent-line`), the blanks left at the end of the line removed. Returns `{ "edits", "cursor" }` (see above); in a source block's code, `notApplicable`. |
+| `org.meta.return` | `org-meta-return` (M-RET): in a table, splits the field at the cursor, what follows it going in front of the field one row down (`org-table-wrap-region`); in a list, a new item (`org-insert-item`), what follows the cursor in it, before the item when the cursor is before its text, the bullets numbered again; else a new heading (`org-insert-heading`): above a headline from its start, the rest of the title in it from within the title, after the headline elsewhere on it, and a line of text turned into a heading from its start. Empty lines before the new heading as before the one the cursor is in (`org-blank-before-new-entry`'s `auto`). Returns `{ "edits", "cursor" }`. |
+| `org.insert.todo.heading` | `org-insert-todo-heading` (M-S-RET): in a list, a new item with a checkbox, the cookies that count them updated; else a new heading with the keyword of the heading before it at its level, unless that one is done or has none, then the first keyword. Returns `{ "edits", "cursor" }`. |
+| `org.insert.heading.after`, `org.insert.todo.heading.after` | `org-insert-heading-respect-content` (C-RET) and `org-insert-todo-heading-respect-content` (C-S-RET): a heading, or a TODO heading, at the level of the one the cursor is in, after its subtree. Returns `{ "edits", "cursor" }`. |
 | `org.agenda.list` | Opens the agenda for the current week or day. |
 | `org.agenda.todos` | Opens the list of all TODO entries. |
 | `org.agenda.later`, `org.agenda.earlier` | Moves the agenda one span forward or backward. |
@@ -209,13 +216,14 @@ number.
 | `org.agenda.goto` | Shows the entry of the agenda line under the cursor. |
 | `org.agenda.save` | `org-save-all-org-buffers`: returns `{ "save": [uri…] }`, the Org files the editor has open; the editor saves those with changes. |
 | `org.agenda.log`, `org.agenda.clockreport` | Turn log mode (`org-agenda-log-mode`: what was closed and clocked each day) or the clock report under the agenda (`org-agenda-clockreport-mode`) on or off. |
+| `org.agenda.archives`, `org.agenda.archives.files` | `org-agenda-archives-mode` (`v a`, `v A`): show the entries of archived trees too, which the agenda leaves out otherwise; with `.files`, also the files the agenda files archive to (their `#+ARCHIVE:` or `archiveLocation`, and their `ARCHIVE` properties) that exist. Each turns its mode off when it is on. |
 | `org.clock.in`, `org.clock.out`, `org.clock.cancel` | `org-clock-in`, `org-clock-out`, `org-clock-cancel`, on the entry at the cursor or of an agenda line. Clocking in stops a clock that runs elsewhere, in the same edit; the clock is a `CLOCK:` line in the `LOGBOOK` drawer, as `clockIntoDrawer` says. |
 | `org.clock.goto` | `org-clock-goto`: shows the entry the clock runs on, or the one clocked last. |
 | `org.todo` | `org-todo`: when the keywords have keys (`TODO(t)`), asks for one (`org-fast-todo-selection`) and sets the state it selects, a space clearing it; without keys, the next state. In an Org file or on an agenda line. |
 | `org.todo.next`, `org.todo.previous` | Changes the TODO state of the entry at the cursor, in an Org file or on an agenda line. |
 | `org.priority.up`, `org.priority.down` | Raises or lowers the priority of the entry at the cursor, in an Org file or on an agenda line. |
 | `org.capture` | `org-capture`: asks for a template's key (input kind `key`, groups one key at a time), then for what its `%^{…}` and `%^t` escapes want (kinds `text` and `date`), with `context` carrying the keys and answers so far. It then writes the filled template, as it will stand in its target, to a capture buffer (a file named `CAPTURE-<target>` in a directory of the server's own) and shows it with the cursor where `%?` was. |
-| `org.capture.finish` | `org-capture-finalize` (`C-c C-c` in the capture buffer): the buffer's text goes into the target file, and the result `{ "close": uri }` asks the editor to close the buffer (saving it first). A target that does not exist yet is written by the server. |
+| `org.capture.finish` | `org-capture-finalize` (`C-c C-c` in the capture buffer): the buffer's text goes into the target file, and the result `{ "close": uri }` asks the editor to close the buffer (saving it first). A target that does not exist yet is written by the server. The argument may carry the buffer's text as `text` (also for `org.capture.refile`, and for a note buffer): a client that tells the server of changes only a while after they are made (coc.nvim) sends it, and it is used when the command runs in that buffer. |
 | `org.capture.abort` | `org-capture-kill` (`C-c C-k`): closes the capture buffer; nothing changes. |
 | `org.capture.refile` | `org-capture-refile` (`C-c C-w`): the entry goes to its target and from there under a refile target picked as for `org.refile`. |
 | `org.refile` | `org-refile` (`org-agenda-refile` on an agenda line): offers the targets (an input of kind `choice`), named as Emacs names them (`Projects`, `Home (other.org)`, `Projects/Alpha/`), and moves the subtree under the one picked, as its last child, promoted or demoted to fit, into another file if need be (one `workspace/applyEdit` over both). |
@@ -394,7 +402,10 @@ time.
   marked `"native": true` keeps its own meaning where the command does
   not apply, such as `<C-a>` or `S-<up>`; see `notApplicable` under
   [Commands](#commands). A `vim` key with `"mode": "insert"` is typed in
-  insert mode (`<CR>` of `org.return`); the others in normal mode.
+  insert mode (`<CR>` of `org.return`); the others in normal mode. One with
+  `"mode": "append"` (`<Leader><CR>` of `org.meta.return`) acts as if the
+  cursor were after the character under it, as `a` types there, and leaves
+  the editor in insert mode where the command put the cursor.
 - **`agenda`**: how the agenda document is named; see below.
 - **`tokenTypes`**, **`tokenModifiers`**: the semantic token legend with
   descriptions. `standard` types are LSP's own.
@@ -578,6 +589,7 @@ faces:
 | `checked`, `partial` | `checkbox` |
 | `bold`, `italic`, `underline`, `strikethrough` | `text` and `headline` |
 | `today`, `weekend`, `past`, `imminent`, `distant`, `range`, `current` | the agenda types, as listed above |
+| `archived` | A headline with `:ARCHIVE:` in it, all of it but the stars (`org-archived`, a shadow over its other colors). |
 | `hidden` | Text Org hides: the brackets of a link, and its target when it has a description (`linkDescriptive`); emphasis markers (`hideEmphasisMarkers`). It comes as tokens of its own, so an editor that can conceal text conceals the tokens with this modifier: Neovim with extmarks in the semantic tokens' namespace, VS Code with decorations. |
 
 ## Writing an editor integration

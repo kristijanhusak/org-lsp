@@ -42,7 +42,7 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use crate::config::{self, CaptureTemplateOption, RefileFiles, RefileTarget};
+use crate::config::{self, ArchivesMode, CaptureTemplateOption, RefileFiles, RefileTarget};
 use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target, TimeField};
@@ -160,6 +160,15 @@ struct Context {
     /// The answers to the questions of `org.archive.done` so far, `y` or
     /// `n` each; `input` is then the next one.
     answers: Option<String>,
+    /// The text of the buffer the command runs in, as the editor has it:
+    /// a capture or note buffer whose last changes the server may not have
+    /// heard of yet.
+    text: Option<String>,
+    /// For the commands whose result carries their edit (`org.return`):
+    /// have the server apply it instead, and move the cursor. Code actions
+    /// run them so.
+    #[serde(default)]
+    apply: bool,
 }
 
 /// What `org.capture` is run with. Capturing needs no document: from
@@ -403,6 +412,8 @@ struct Server {
     /// Log mode (`l`) and the clock report (`R`) in the agenda.
     agenda_log: bool,
     agenda_clockreport: bool,
+    /// What the agenda shows of archives (`v a`, `v A`).
+    agenda_archives: ArchivesMode,
     documents: HashMap<String, Document>,
     workspace: Workspace,
     view: Option<OpenView>,
@@ -530,6 +541,7 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_out_when_done: options.clock_out_when_done.unwrap_or(true),
         agenda_log: options.agenda.start_with_log_mode.unwrap_or(false),
         agenda_clockreport: options.agenda.start_with_clockreport_mode.unwrap_or(false),
+        agenda_archives: options.agenda.archives_mode(),
         documents: HashMap::new(),
         workspace: Workspace::new(options.agenda_files, folders),
         view: None,
@@ -1175,6 +1187,8 @@ impl Server {
                 commands::AGENDA_REDO,
                 commands::AGENDA_LOG,
                 commands::AGENDA_CLOCKREPORT,
+                commands::AGENDA_ARCHIVES,
+                commands::AGENDA_ARCHIVES_FILES,
                 commands::AGENDA_DISPATCH,
             ];
             let mut ids: Vec<&str> = Vec::new();
@@ -1242,6 +1256,32 @@ impl Server {
         ] {
             if offered && actions::requested(id, only) {
                 result.push(as_action(id));
+            }
+        }
+        // The keys that insert a heading or an item: the server applies
+        // the edit and moves the cursor to it.
+        if more {
+            let mut applied = context.clone();
+            applied["apply"] = json!(true);
+            for id in [
+                commands::META_RETURN,
+                commands::INSERT_TODO_HEADING,
+                commands::INSERT_HEADING_AFTER,
+                commands::INSERT_TODO_HEADING_AFTER,
+            ] {
+                if actions::requested(id, only) {
+                    let title = commands::title(id).to_string();
+                    result.push(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: title.clone(),
+                        kind: Some(CodeActionKind::new(id)),
+                        command: Some(lsp_types::Command {
+                            title,
+                            command: id.to_string(),
+                            arguments: Some(vec![applied.clone()]),
+                        }),
+                        ..Default::default()
+                    }));
+                }
             }
         }
         Some(result)
@@ -1448,7 +1488,59 @@ impl Server {
                 files.push((uri, Held::Disk(source)));
             }
         }
+        if self.agenda_archives == ArchivesMode::Files {
+            let open: HashMap<PathBuf, String> = by_path.into_iter().map(|(path, key)| (path, key.clone())).collect();
+            files = self.with_archive_files(files, &open);
+        }
         files
+    }
+
+    /// `org-add-archive-files`: each agenda file followed by the files it
+    /// archives to that exist, each file once.
+    fn with_archive_files(&mut self, files: Vec<(Uri, Held)>, open: &HashMap<PathBuf, String>) -> Vec<(Uri, Held)> {
+        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+        let location = self.archive.0.location.clone();
+        let mut paths: Vec<PathBuf> = files.iter().filter_map(|(uri, _)| uri::to_path(uri)).collect();
+        let mut more: Vec<(usize, PathBuf)> = Vec::new();
+        for (index, (uri, _)) in files.iter().enumerate() {
+            let Some(path) = uri::to_path(uri) else { continue };
+            let text = match open.get(&path) {
+                Some(key) => self.documents[key].text.clone(),
+                None => match self.workspace.read(&path, &self.todo) {
+                    Some(source) => source.text.clone(),
+                    None => continue,
+                },
+            };
+            let context = archive::Context { path: &path, home: home.as_deref(), now: self.date_time() };
+            for file in archive::archive_files(&text, &self.todo, &context, &location) {
+                if file.exists() && !paths.contains(&file) {
+                    paths.push(file.clone());
+                    more.push((index, file));
+                }
+            }
+        }
+        let mut out = Vec::new();
+        let mut more = more.into_iter().peekable();
+        for (index, file) in files.into_iter().enumerate() {
+            out.push(file);
+            while let Some((_, path)) = more.next_if(|(after, _)| *after == index) {
+                let held = match open.get(&path) {
+                    Some(key) => key.parse::<Uri>().ok().map(|uri| {
+                        let document = &self.documents[key];
+                        (
+                            uri.clone(),
+                            Held::Open(Box::new(Outline::new(&document.parse, &document.text, &uri::file_stem(&uri)))),
+                        )
+                    }),
+                    None => match (uri::from_path(&path), self.workspace.read(&path, &self.todo)) {
+                        (Some(uri), Some(source)) => Some((uri, Held::Disk(source))),
+                        _ => None,
+                    },
+                };
+                out.extend(held);
+            }
+        }
+        out
     }
 
     /// Where the entry of an agenda line is now.
@@ -1499,6 +1591,7 @@ impl Server {
         for block in &mut blocks {
             block.config.show_log = self.agenda_log;
             block.config.clockreport = self.agenda_clockreport;
+            block.config.archives = self.agenda_archives != ArchivesMode::Off;
         }
         Ok(blocks)
     }
@@ -1747,6 +1840,12 @@ impl Server {
                 self.archive(id, &context.ok_or("This command needs the cursor position")?)
             }
             commands::RETURN => self.org_return(&context.ok_or("This command needs the cursor position")?),
+            commands::META_RETURN
+            | commands::INSERT_TODO_HEADING
+            | commands::INSERT_HEADING_AFTER
+            | commands::INSERT_TODO_HEADING_AFTER => {
+                self.meta_return(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
             // In a note buffer, the keys of a capture store or cancel the
             // note.
             commands::CAPTURE_FINISH | commands::CAPTURE_ABORT
@@ -1755,15 +1854,22 @@ impl Server {
                 }) =>
             {
                 let note = self.note.take().expect("a note");
-                self.finish_note(note, params.command == commands::CAPTURE_ABORT)
+                let text = context.and_then(|context| context.text);
+                self.finish_note(note, params.command == commands::CAPTURE_ABORT, text)
             }
-            commands::CAPTURE_FINISH => self.finish_capture(),
+            commands::CAPTURE_FINISH => {
+                let text = self.capture_buffer_text(context.as_ref());
+                self.finish_capture(text)
+            }
             commands::CAPTURE_ABORT => {
                 let capture = self.capture.take().ok_or("No capture is going on")?;
                 self.message = Some("Capture process aborted and target buffer cleaned up".to_string());
                 Ok(json!({ "close": capture.uri }))
             }
-            commands::CAPTURE_REFILE => self.refile_capture(context.and_then(|context| context.input).as_deref()),
+            commands::CAPTURE_REFILE => {
+                let text = self.capture_buffer_text(context.as_ref());
+                self.refile_capture(context.and_then(|context| context.input).as_deref(), text)
+            }
             id if id.starts_with("org.clock.") => self.clock_command(id, context.as_ref()),
             id if id == commands::TODO || actions::command(id).is_some() => self.run_edit(id, context),
             id if commands::input(id).is_some() => {
@@ -2171,6 +2277,25 @@ impl Server {
                 };
                 *flag = !*flag;
                 self.message = Some(format!("{name} is {}", if *flag { "on" } else { "off" }));
+                self.refresh_view();
+                Ok(())
+            }
+            commands::AGENDA_ARCHIVES | commands::AGENDA_ARCHIVES_FILES => {
+                self.view.as_ref().ok_or("No agenda is open")?;
+                // `org-agenda-archives-mode`, with or without the files.
+                self.agenda_archives = match (command, self.agenda_archives) {
+                    (commands::AGENDA_ARCHIVES_FILES, ArchivesMode::Files) => ArchivesMode::Off,
+                    (commands::AGENDA_ARCHIVES_FILES, _) => ArchivesMode::Files,
+                    (_, ArchivesMode::Off) => ArchivesMode::Trees,
+                    _ => ArchivesMode::Off,
+                };
+                self.message = Some(match self.agenda_archives {
+                    ArchivesMode::Off => "No archives are included".to_string(),
+                    ArchivesMode::Trees => "Trees with :ARCHIVE: tag are included".to_string(),
+                    ArchivesMode::Files => {
+                        "Trees with :ARCHIVE: tag and all active archive files are included".to_string()
+                    }
+                });
                 self.refresh_view();
                 Ok(())
             }
@@ -2865,10 +2990,18 @@ impl Server {
 
     /// `org-store-log-note`: the state change with the note written in its
     /// buffer, or without any (cancelled), and the buffer closed.
-    fn finish_note(&mut self, note: Noting, cancelled: bool) -> std::result::Result<Value, Refusal> {
-        let written = match self.document(&note.uri) {
-            Some(document) => document.text.clone(),
-            None => uri::to_path(&note.uri).and_then(|path| std::fs::read_to_string(path).ok()).unwrap_or_default(),
+    fn finish_note(
+        &mut self,
+        note: Noting,
+        cancelled: bool,
+        text: Option<String>,
+    ) -> std::result::Result<Value, Refusal> {
+        let written = match (text, self.document(&note.uri)) {
+            (Some(text), _) => text,
+            (None, Some(document)) => document.text.clone(),
+            (None, None) => {
+                uri::to_path(&note.uri).and_then(|path| std::fs::read_to_string(path).ok()).unwrap_or_default()
+            }
         };
         // The comment lines at the top go, and blanks at the end.
         let mut text = written.as_str();
@@ -2905,18 +3038,33 @@ impl Server {
         }
     }
 
-    /// The text of the capture buffer, as the editor has it.
-    fn capture_text(&self, capture: &Capturing) -> String {
-        match self.document(&capture.uri) {
-            Some(document) => document.text.clone(),
-            None => uri::to_path(&capture.uri).and_then(|path| std::fs::read_to_string(path).ok()).unwrap_or_default(),
+    /// The text a command came with, when it runs in the capture buffer.
+    fn capture_buffer_text(&self, context: Option<&Context>) -> Option<String> {
+        let context = context?;
+        let capture = self.capture.as_ref()?;
+        (context.text_document.uri == capture.uri).then(|| context.text.clone()).flatten()
+    }
+
+    /// The text of the capture buffer, as the editor has it: the text the
+    /// command came with, or the server's copy.
+    fn capture_text(&self, capture: &Capturing, given: Option<String>) -> String {
+        match (given, self.document(&capture.uri)) {
+            (Some(text), _) => text,
+            (None, Some(document)) => document.text.clone(),
+            (None, None) => {
+                uri::to_path(&capture.uri).and_then(|path| std::fs::read_to_string(path).ok()).unwrap_or_default()
+            }
         }
     }
 
     /// The target file once the capture buffer's text goes in: where the
     /// template was placed, or placed again when the file has changed.
-    fn captured(&mut self, capture: &Capturing) -> std::result::Result<(String, Option<i32>, String), Refusal> {
-        let edited = self.capture_text(capture);
+    fn captured(
+        &mut self,
+        capture: &Capturing,
+        given: Option<String>,
+    ) -> std::result::Result<(String, Option<i32>, String), Refusal> {
+        let edited = self.capture_text(capture, given);
         let (now, version, keywords) = self
             .with_source(&capture.target, |text, _, parse, _, version| {
                 (text.to_string(), version, parse.todo_keywords().clone())
@@ -2961,22 +3109,22 @@ impl Server {
     /// `org-capture-finalize` (`C-c C-c`): the text of the capture buffer
     /// goes to its target, and the buffer closes. The target is left for
     /// the user to save.
-    fn finish_capture(&mut self) -> std::result::Result<Value, Refusal> {
+    fn finish_capture(&mut self, text: Option<String>) -> std::result::Result<Value, Refusal> {
         let capture = self.capture.take().ok_or("No capture is going on")?;
-        let (now, version, done) = self.captured(&capture)?;
+        let (now, version, done) = self.captured(&capture, text)?;
         self.apply_capture(&capture.target, version, &now, &done);
         Ok(json!({ "close": capture.uri }))
     }
 
     /// `org-capture-refile` (`C-c C-w`): the entry goes to its target, and
     /// from there under a refile target.
-    fn refile_capture(&mut self, answer: Option<&str>) -> std::result::Result<Value, Refusal> {
+    fn refile_capture(&mut self, answer: Option<&str>, text: Option<String>) -> std::result::Result<Value, Refusal> {
         let capture = self.capture.take().ok_or("No capture is going on")?;
         if capture.spec.1 != capture::Kind::Entry {
             self.capture = Some(capture);
             return Err("Refiling from a capture buffer makes only sense for `entry'-type templates".into());
         }
-        let (_, _, done) = self.captured(&capture)?;
+        let (_, _, done) = self.captured(&capture, text)?;
         // The entry starts where the buffer's text does, after any blank lines.
         let start = capture.placed.start + done[capture.placed.start..].len()
             - done[capture.placed.start..].trim_start_matches(['\n', ' ', '\t']).len();
@@ -3239,6 +3387,43 @@ impl Server {
         let document = self.document(uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
         let outcome = org_core::newline::org_return(&document.text, offset, document.parse.todo_keywords(), &settings)?;
+        self.carried(context, outcome)
+    }
+
+    /// M-RET (`org-meta-return`), M-S-RET (`org-insert-todo-heading`),
+    /// C-RET and C-S-RET (their `respect-content` forms) at `context`,
+    /// carried in the result as `org.return` is.
+    fn meta_return(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::meta_return;
+        let encoding = self.client.encoding;
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, encoding);
+        let keywords = document.parse.todo_keywords();
+        let settings = meta_return::Settings { tags_column: self.refile.2.tags_column };
+        let text = &document.text;
+        let outcome = match id {
+            commands::META_RETURN => meta_return::meta_return(text, offset, keywords, &settings)?,
+            commands::INSERT_TODO_HEADING => {
+                meta_return::insert_todo_heading(text, offset, keywords, &settings, false)?
+            }
+            commands::INSERT_HEADING_AFTER => meta_return::insert_heading_after(text, offset, keywords, &settings),
+            _ => meta_return::insert_todo_heading(text, offset, keywords, &settings, true)?,
+        };
+        self.carried(context, outcome)
+    }
+
+    /// The result of a command that carries its edit and the cursor after
+    /// it, `{ "edits": [TextEdit], "cursor": Position }`, for the editor to
+    /// apply at once. With `apply` in the context the server applies the
+    /// edit itself and moves the cursor there.
+    fn carried(
+        &mut self,
+        context: &Context,
+        outcome: org_core::newline::Outcome,
+    ) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let uri = &context.text_document.uri;
+        let document = self.document(uri).ok_or("This file is not open")?;
         let old = &document.text;
         let new = &outcome.text;
         // The edit: what lies between what both have at the start and at
@@ -3263,6 +3448,13 @@ impl Server {
             },
         );
         let cursor = LineIndex::new(new).position(new, outcome.cursor, encoding);
+        if context.apply {
+            let version = document.version;
+            let edit = self.workspace_edit(uri, Some(version), vec![edit]);
+            let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+            self.apply_edit(params, Pending::EditAndMove { uri: uri.clone(), position: cursor });
+            return Ok(Value::Null);
+        }
         Ok(json!({ "edits": [edit], "cursor": cursor }))
     }
 

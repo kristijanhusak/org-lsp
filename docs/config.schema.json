@@ -650,6 +650,15 @@
           "description": "Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)",
           "default": false
         },
+        "startWithArchivesMode": {
+          "enum": [
+            "trees",
+            "files",
+            false
+          ],
+          "description": "Start the agenda with entries in archived trees (`trees`; `v a` toggles it), or those and the files the agenda files archive to (`files`; `v A`). (`org-agenda-start-with-archives-mode`)",
+          "default": false
+        },
         "logModeItems": {
           "items": {
             "enum": [

@@ -82,6 +82,7 @@ const MODIFIER_DESCRIPTIONS: &[&str] = &[
     "Agenda: the current time",
     "Text Org hides (link brackets and targets, emphasis markers); editors that can conceal text conceal it",
     "Agenda: part of the line of the entry the clock runs on",
+    "A headline with the ARCHIVE tag",
 ];
 
 /// The default look of the tokens a selector matches.
@@ -260,6 +261,8 @@ pub const LOOKS: &[Look] = &[
         &["@org.agenda.clocking", "Visual"],
         &["markup.highlight.clocking.agenda.org", "markup.inserted"],
     ),
+    // `org-archived`, which inherits `shadow`.
+    look("*.archived", &["@org.archived", "Comment"], &["comment.archived.org", "comment"]),
     // The date prompt, after Emacs's calendar and minibuffer faces.
     look("calendarHeader", &["Function"], &["entity.name.function.month.calendar.org", "entity.name.function"]),
     look("calendarWeekday", &["Constant"], &["constant.other.weekday.calendar.org", "constant.other"]),
