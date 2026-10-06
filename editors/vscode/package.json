@@ -2479,6 +2479,21 @@
         }
       },
       {
+        "command": "org.return",
+        "key": "shift+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && (!vim.active || vim.mode == 'Insert') && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorHasMultipleSelections && !editorReadonly",
+        "args": {
+          "fallback": [
+            {
+              "command": "type",
+              "args": {
+                "text": "\n"
+              }
+            }
+          ]
+        }
+      },
+      {
         "command": "org.meta.return",
         "key": "alt+enter",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"

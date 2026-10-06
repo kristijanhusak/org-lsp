@@ -611,6 +611,21 @@ eq(vim.api.nvim_buf_get_lines(0, 2, 4, false), { '| a | bb |', '|   | y   |' }, 
 vim.api.nvim_win_set_cursor(0, { 6, 3 })
 press('a<CR>z<Esc>')
 eq(vim.api.nvim_buf_get_lines(0, 5, 7, false), { 'echo', '  z' }, 'in code, RET is RET (indented as the block content)')
+-- Where RET does not apply, another plugin's mapping of `<CR>` (a global
+-- one, as autopairs plugins make) does what it does; `<S-CR>` is RET too.
+vim.keymap.set('i', '<CR>', '<CR>#')
+vim.api.nvim_win_set_cursor(0, { 7, 2 })
+press('a<CR>w<Esc>')
+eq(vim.api.nvim_buf_get_lines(0, 6, 8, false), { '  z', '  #w' }, 'the global mapping of <CR> in code')
+vim.api.nvim_win_set_cursor(0, { 2, 4 })
+press('a<S-CR>v<Esc>')
+eq(vim.api.nvim_buf_get_lines(0, 1, 3, false), { 'xthe', 'vreport' }, '<S-CR> is RET, the plugin\'s and not the global one')
+-- One that maps `<CR>` again reaches Vim's own key, not the plugin's again.
+vim.keymap.set('i', '<CR>', '<CR>%', { remap = true })
+vim.api.nvim_win_set_cursor(0, { 9, 4 })
+press('a<CR>u<Esc>')
+eq(vim.api.nvim_buf_get_lines(0, 8, 10, false), { '  #w', '  %u' }, 'a remapping global <CR> in code, without a loop')
+vim.keymap.del('i', '<CR>')
 
 -- 23b. `<Leader><CR>` is M-RET: after the character under the cursor, a
 -- new item in a list, a heading on a headline, and typing goes on there in

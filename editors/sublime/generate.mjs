@@ -80,6 +80,7 @@ const fallbacks = {
   'ctrl+x': { command: 'nv_feed_key', args: { key: '<C-x>' } },
   tab: { command: 'insert_best_completion', args: { default: '\t', exact: false } },
   enter: { command: 'insert', args: { characters: '\n' } },
+  'shift+enter': { command: 'insert', args: { characters: '\n' } },
 };
 
 /** The package's own commands, with their keys. */
@@ -144,7 +145,7 @@ const bindings = [...manifest.commands, ...own, ...keysOnly]
       if (binding.preset === 'vim' && inText) {
         context.push({ key: 'setting.command_mode', operator: 'equal', operand: binding.mode !== 'insert' });
       }
-      if (keys[0] === 'tab' || keys[0] === 'shift+tab' || (keys[0] === 'enter' && scope !== 'agenda')) {
+      if (keys[0] === 'tab' || keys[0] === 'shift+tab' || ((keys[0] === 'enter' || keys[0] === 'shift+enter') && scope !== 'agenda')) {
         context.push(
           { key: 'auto_complete_visible', operator: 'equal', operand: false },
           { key: 'has_next_field', operator: 'equal', operand: false },

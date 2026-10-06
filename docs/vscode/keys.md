@@ -153,7 +153,7 @@ The other options are in [configuration.md](configuration.md).
 | Keys | Command | What it does |
 | --- | --- | --- |
 | `Ctrl+Space` | `org.checkbox.toggle` | Toggle the checkbox |
-| `Enter`¹ | `org.return` | New line, as Org's RET makes it |
+| `Enter`¹, `Shift+Enter`¹ | `org.return` | New line, as Org's RET makes it |
 | `Ctrl+A`¹ | `org.timestamp.up` | Increase the part of the timestamp at the cursor |
 | `Ctrl+X`¹ | `org.timestamp.down` | Decrease the part of the timestamp at the cursor |
 | `Shift+Up`¹ | `org.date.later` | Move the date one day later |
