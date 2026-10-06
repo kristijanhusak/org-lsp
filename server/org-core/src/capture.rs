@@ -95,7 +95,7 @@ fn replace_unescaped(
 
 /// `format-time-string` for the directives a capture template is likely
 /// to use. Others stay as they are.
-fn format_time(format: &str, time: DateTime) -> String {
+pub(crate) fn format_time(format: &str, time: DateTime) -> String {
     let date = time.date();
     let (hour, minute) = (time.minute / 60, time.minute % 60);
     let mut out = String::new();

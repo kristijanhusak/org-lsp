@@ -1271,6 +1271,94 @@
                   "markdownDescription": "Leave out the blocks of a block agenda that show no entries. Not in Org.",
                   "default": false
                 },
+                "prefixFormat": {
+                  "type": "object",
+                  "properties": {
+                    "agenda": {
+                      "type": "string",
+                      "markdownDescription": "What comes before the headline on a line of the agenda: `%c` the category, `%t` the time, `%s` the leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty. (`org-agenda-prefix-format`)",
+                      "default": " %i %-12:c%?-12t% s"
+                    },
+                    "todo": {
+                      "type": "string",
+                      "markdownDescription": "The same, for the TODO list. (`org-agenda-prefix-format`)",
+                      "default": " %i %-12:c"
+                    },
+                    "tags": {
+                      "type": "string",
+                      "markdownDescription": "The same, for tags searches. (`org-agenda-prefix-format`)",
+                      "default": " %i %-12:c"
+                    },
+                    "search": {
+                      "type": "string",
+                      "markdownDescription": "The same, for text searches, which the agenda does not have yet. (`org-agenda-prefix-format`)",
+                      "default": " %i %-12:c"
+                    }
+                  }
+                },
+                "todoKeywordFormat": {
+                  "type": "string",
+                  "markdownDescription": "How a TODO keyword is written in the agenda: `%-4s` pads it to four columns, so that the titles line up; an empty format leaves keywords out. (`org-agenda-todo-keyword-format`)",
+                  "default": "%-1s"
+                },
+                "scheduledLeaders": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 2,
+                  "minItems": 2,
+                  "type": "array",
+                  "markdownDescription": "The leader of a scheduled entry on its day, and on today when its day has passed (`%d`: the days since). (`org-agenda-scheduled-leaders`)",
+                  "default": [
+                    "Scheduled: ",
+                    "Sched.%2dx: "
+                  ]
+                },
+                "deadlineLeaders": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 3,
+                  "minItems": 3,
+                  "type": "array",
+                  "markdownDescription": "The leader of a deadline on its day, on today before it (`%d`: the days left), and on today after it (`%d`: the days since). (`org-agenda-deadline-leaders`)",
+                  "default": [
+                    "Deadline:  ",
+                    "In %3d d.: ",
+                    "%2d d. ago: "
+                  ]
+                },
+                "timerangeLeaders": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 2,
+                  "minItems": 2,
+                  "type": "array",
+                  "markdownDescription": "The leader of a time range within a day, and of a range over days (`%d`: which day of it, `%d`: how many days). (`org-agenda-timerange-leaders`)",
+                  "default": [
+                    "",
+                    "(%d/%d): "
+                  ]
+                },
+                "removeTags": {
+                  "enum": [
+                    true,
+                    false,
+                    "prefix"
+                  ],
+                  "markdownDescription": "Leave the tags out of the agenda's lines; `prefix` only when the prefix shows a tag (`%T`). (`org-agenda-remove-tags`)",
+                  "default": false
+                },
+                "breadcrumbsSeparator": {
+                  "type": "string",
+                  "markdownDescription": "What goes between the headlines of `%b`. (`org-agenda-breadcrumbs-separator`)",
+                  "default": "->"
+                },
+                "formatDate": {
+                  "type": "string",
+                  "markdownDescription": "How the agenda writes a day, as `format-time-string` does: `%A %d %B %Y`, `%a %Y-%m-%d`. (`org-agenda-format-date`)"
+                },
                 "startDay": {
                   "type": "string",
                   "markdownDescription": "The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)"

@@ -1,0 +1,29 @@
+#+TODO: TODO NEXT WAIT | DONE CANCELLED
+#+CATEGORY: work
+#+FILETAGS: :office:
+* Projects
+** TODO Write the report :writing:
+SCHEDULED: <2026-10-05 Mon 09:00>
+:PROPERTIES:
+:EFFORT: 2:00
+:END:
+** Alpha [1/2]
+*** NEXT [#A] Call [[https://example.org][the client]] :phone:
+DEADLINE: <2026-10-09 Fri>
+*** DONE Send the invoice
+CLOSED: [2026-10-04 Sun 12:00] SCHEDULED: <2026-10-05 Mon>
+*** WAIT Past deadline
+DEADLINE: <2026-10-01 Thu>
+* TODO Scheduled in the past
+SCHEDULED: <2026-10-02 Fri>
+:PROPERTIES:
+:EFFORT: 0:30
+:END:
+* Conference
+<2026-10-05 Mon>--<2026-10-07 Wed>
+* Meeting <2026-10-05 Mon 14:00-15:30> :meet:
+* TODO A very long category entry
+:PROPERTIES:
+:CATEGORY: averyveryverylongcategory
+:END:
+SCHEDULED: <2026-10-05 Mon>

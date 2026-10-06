@@ -1,0 +1,22 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "week"
+    },
+    {
+      "view": "todo"
+    }
+  ],
+  "options": {
+    "formatDate": "%a %Y-%m-%d (%B %e, %A, day %j, week %V)",
+    "removeTags": true,
+    "prefixFormat": {
+      "agenda": "%8c %t %s",
+      "todo": "%-20.10c %%"
+    }
+  },
+  "emacs": "(setq org-agenda-format-date \"%a %Y-%m-%d (%B %e, %A, day %j, week %V)\" org-agenda-remove-tags t org-agenda-prefix-format '((agenda . \"%8c %t %s\") (todo . \"%-20.10c %%\")))"
+}

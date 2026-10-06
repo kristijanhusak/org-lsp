@@ -78,6 +78,14 @@
 ---@field blockSeparator? string|false What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block. (`org-agenda-block-separator`)
 ---@field compactBlocks? boolean Leave out the separators between blocks and the header over agenda blocks. (`org-agenda-compact-blocks`)
 ---@field hideEmptyBlocks? boolean Leave out the blocks of a block agenda that show no entries. Not in Org.
+---@field prefixFormat? org_lsp.Settings.Agenda.PrefixFormat
+---@field todoKeywordFormat? string How a TODO keyword is written in the agenda: `%-4s` pads it to four columns, so that the titles line up; an empty format leaves keywords out. (`org-agenda-todo-keyword-format`)
+---@field scheduledLeaders? string[] The leader of a scheduled entry on its day, and on today when its day has passed (`%d`: the days since). (`org-agenda-scheduled-leaders`)
+---@field deadlineLeaders? string[] The leader of a deadline on its day, on today before it (`%d`: the days left), and on today after it (`%d`: the days since). (`org-agenda-deadline-leaders`)
+---@field timerangeLeaders? string[] The leader of a time range within a day, and of a range over days (`%d`: which day of it, `%d`: how many days). (`org-agenda-timerange-leaders`)
+---@field removeTags? true|false|'prefix' Leave the tags out of the agenda's lines; `prefix` only when the prefix shows a tag (`%T`). (`org-agenda-remove-tags`)
+---@field breadcrumbsSeparator? string What goes between the headlines of `%b`. (`org-agenda-breadcrumbs-separator`)
+---@field formatDate? string How the agenda writes a day, as `format-time-string` does: `%A %d %B %Y`, `%a %Y-%m-%d`. (`org-agenda-format-date`)
 ---@field startDay? string The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)
 ---@field customCommands? org_lsp.AgendaCommand[] Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`span`, `startDay`…). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)
 
@@ -92,6 +100,13 @@
 ---@field trailer? string What follows a time that has no end time. (`org-agenda-time-grid`)
 ---@field line? string The text of a grid line. (`org-agenda-time-grid`)
 ---@field now? string The text of the line for the current time. (`org-agenda-current-time-string`)
+
+--- The options under `prefixFormat`.
+---@class org_lsp.Settings.Agenda.PrefixFormat
+---@field agenda? string What comes before the headline on a line of the agenda: `%c` the category, `%t` the time, `%s` the leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty. (`org-agenda-prefix-format`)
+---@field todo? string The same, for the TODO list. (`org-agenda-prefix-format`)
+---@field tags? string The same, for tags searches. (`org-agenda-prefix-format`)
+---@field search? string The same, for text searches, which the agenda does not have yet. (`org-agenda-prefix-format`)
 
 ---@class org_lsp.RefileTarget
 ---@field all? boolean Every headline

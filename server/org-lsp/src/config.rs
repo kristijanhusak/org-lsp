@@ -2,7 +2,7 @@
 //! line passes as JSON. Names are Org's variable names in camel case
 //! without the `org-agenda-` prefix.
 
-use org_core::agenda::{Config as AgendaConfig, FutureRepeats, Span, TimeGrid};
+use org_core::agenda::{Config as AgendaConfig, FutureRepeats, RemoveTags, Span, TimeGrid};
 use org_core::archive::{ContextInfo, InheritedTags, MarkDone, Settings as ArchiveSettings};
 use org_core::edit::Settings as EditSettings;
 use org_core::outline::{Inherit, Inheritance};
@@ -918,6 +918,16 @@ pub struct TimeGridOptions {
     pub now: Option<String>,
 }
 
+/// `org-agenda-prefix-format`, by kind of view.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct PrefixFormatOptions {
+    pub agenda: Option<String>,
+    pub todo: Option<String>,
+    pub tags: Option<String>,
+    pub search: Option<String>,
+}
+
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct AgendaOptions {
@@ -958,6 +968,22 @@ pub struct AgendaOptions {
     pub hide_empty_blocks: Option<bool>,
     /// `org-agenda-custom-commands`
     pub custom_commands: Option<Vec<CustomCommandOption>>,
+    /// `org-agenda-prefix-format`
+    pub prefix_format: PrefixFormatOptions,
+    /// `org-agenda-todo-keyword-format`
+    pub todo_keyword_format: Option<String>,
+    /// `org-agenda-scheduled-leaders`
+    pub scheduled_leaders: Option<Vec<String>>,
+    /// `org-agenda-deadline-leaders`
+    pub deadline_leaders: Option<Vec<String>>,
+    /// `org-agenda-timerange-leaders`
+    pub timerange_leaders: Option<Vec<String>>,
+    /// `org-agenda-remove-tags`: `true`, `false` or `"prefix"`.
+    pub remove_tags: Option<serde_json::Value>,
+    /// `org-agenda-breadcrumbs-separator`
+    pub breadcrumbs_separator: Option<String>,
+    /// `org-agenda-format-date`, as a `format-time-string` format.
+    pub format_date: Option<String>,
 }
 
 /// A command of `org-agenda-custom-commands`: one view (`type`, `match`),
@@ -1098,6 +1124,40 @@ impl AgendaOptions {
             )*};
         }
         set_grid!(daily, today, weekly, require_timed, remove_match, times, trailer, line, now);
+        let formats = &self.prefix_format;
+        let target = &mut config.prefix_format;
+        macro_rules! set_format {
+            ($($field:ident),*) => {$(
+                if let Some(value) = &formats.$field {
+                    target.$field = value.clone();
+                }
+            )*};
+        }
+        set_format!(agenda, todo, tags, search);
+        if let Some(format) = &self.todo_keyword_format {
+            config.todo_keyword_format = format.clone();
+        }
+        if let Some(Ok(leaders)) = self.scheduled_leaders.clone().map(<[String; 2]>::try_from) {
+            config.scheduled_leaders = leaders;
+        }
+        if let Some(Ok(leaders)) = self.deadline_leaders.clone().map(<[String; 3]>::try_from) {
+            config.deadline_leaders = leaders;
+        }
+        if let Some(Ok(leaders)) = self.timerange_leaders.clone().map(<[String; 2]>::try_from) {
+            config.timerange_leaders = leaders;
+        }
+        match &self.remove_tags {
+            Some(serde_json::Value::Bool(true)) => config.remove_tags = RemoveTags::Yes,
+            Some(serde_json::Value::Bool(false)) => config.remove_tags = RemoveTags::No,
+            Some(serde_json::Value::String(name)) if name == "prefix" => config.remove_tags = RemoveTags::Prefix,
+            _ => {}
+        }
+        if let Some(separator) = &self.breadcrumbs_separator {
+            config.breadcrumbs_separator = separator.clone();
+        }
+        if let Some(format) = &self.format_date {
+            config.format_date = Some(format.clone());
+        }
         config
     }
 }

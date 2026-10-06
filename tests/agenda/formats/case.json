@@ -1,0 +1,91 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "agenda",
+      "span": "week"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "tags",
+      "match": "phone|home"
+    },
+    {
+      "view": "custom",
+      "key": "b"
+    },
+    {
+      "view": "custom",
+      "key": "c"
+    }
+  ],
+  "options": {
+    "prefixFormat": {
+      "agenda": " %-10.8:c%l%?-12t%-12s",
+      "todo": " %-6e %T: %b",
+      "tags": "%c/%l"
+    },
+    "todoKeywordFormat": "%-4s",
+    "scheduledLeaders": [
+      "Sched: ",
+      "S.%2d: "
+    ],
+    "deadlineLeaders": [
+      "Due: ",
+      "In %d: ",
+      "Late %d: "
+    ],
+    "timerangeLeaders": [
+      "",
+      "Day %d of %d: "
+    ],
+    "breadcrumbsSeparator": " / ",
+    "removeTags": "prefix",
+    "customCommands": [
+      {
+        "key": "b",
+        "description": "Breadcrumbs",
+        "type": "agenda",
+        "settings": {
+          "span": "day",
+          "prefixFormat": {
+            "agenda": "  %?-6e%b"
+          },
+          "removeTags": true
+        }
+      },
+      {
+        "key": "c",
+        "description": "Blocks",
+        "blocks": [
+          {
+            "type": "todo",
+            "settings": {
+              "todoKeywordFormat": "",
+              "prefixFormat": {
+                "todo": "%?-5e|"
+              }
+            }
+          },
+          {
+            "type": "tags-todo",
+            "match": "home",
+            "settings": {
+              "prefixFormat": {
+                "tags": "[%T] "
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "emacs": "(setq org-agenda-prefix-format '((agenda . \" %-10.8:c%l%?-12t%-12s\") (todo . \" %-6e %T: %b\") (tags . \"%c/%l\") (search . \" %i %-12:c\"))\n      org-agenda-todo-keyword-format \"%-4s\"\n      org-agenda-scheduled-leaders '(\"Sched: \" \"S.%2d: \")\n      org-agenda-deadline-leaders '(\"Due: \" \"In %d: \" \"Late %d: \")\n      org-agenda-timerange-leaders '(\"\" \"Day %d of %d: \")\n      org-agenda-breadcrumbs-separator \" / \"\n      org-agenda-remove-tags 'prefix\n      org-agenda-custom-commands\n      '((\"b\" \"Breadcrumbs\" agenda \"\" ((org-agenda-span 'day) (org-agenda-prefix-format '((agenda . \"  %?-6e%b\"))) (org-agenda-remove-tags t)))\n        (\"c\" \"Blocks\" ((todo \"\" ((org-agenda-todo-keyword-format \"\") (org-agenda-prefix-format '((todo . \"%?-5e|\")))))\n                       (tags-todo \"home\" ((org-agenda-prefix-format '((tags . \"[%T] \")))))))))"
+}
