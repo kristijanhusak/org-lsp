@@ -356,6 +356,8 @@ class Server(unittest.TestCase):
         with open(os.path.join(package, syntax[len('Packages/LSP-org/'):])) as f:
             self.assertIn('scope: text.org-agenda', f.read())
         self.assertIn('text.org-agenda', settings['selector'])
+        # And LSP attaches only views of the schemes the settings name.
+        self.assertEqual(settings['schemes'], ['file', 'org-agenda'])
 
     def test_finds_the_server_on_the_search_path_with_cargo_s_folder(self):
         cargo = os.path.join(self.empty, '.cargo', 'bin')

@@ -184,6 +184,10 @@ const settings = {
   // where it can fetch one, in the syntax named for its scheme: without
   // one, as plain text, which neither the server nor the keys know.
   syntax_map: { [manifest.agenda.scheme]: 'Packages/LSP-org/Org Agenda.sublime-syntax' },
+  // The schemes of the documents the server is for: LSP leaves a view of
+  // any other out (no tokens, no edits), and shows the agenda in a new tab
+  // each time the server asks, not knowing the one it has.
+  schemes: ['file', manifest.agenda.scheme],
   // The server's options, such as agendaFiles; see docs/configuration.md.
   initializationOptions: {},
   // The keys: "emacs" (the default), "vim" (for Vintage and NeoVintageous)
