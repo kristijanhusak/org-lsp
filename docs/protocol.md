@@ -127,6 +127,7 @@ the editor's own syntax.
 | `agenda.weekendDays` | number[] | `[6, 0]` | The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`) |
 | `agenda.startWithLogMode` | boolean | `false` | Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it). (`org-agenda-start-with-log-mode`) |
 | `agenda.startWithClockreportMode` | boolean | `false` | Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`) |
+| `agenda.startWithArchivesMode` | "trees" \| "files" \| false | `false` | Start the agenda with entries in archived trees (`trees`; `v a` toggles it), or those and the files the agenda files archive to (`files`; `v A`). (`org-agenda-start-with-archives-mode`) |
 | `agenda.logModeItems` | string[] | `["closed", "clock"]` | What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`) |
 | `agenda.blockSeparator` | string \| false | `"="` | What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block. (`org-agenda-block-separator`) |
 | `agenda.compactBlocks` | boolean | `false` | Leave out the separators between blocks and the header over agenda blocks. (`org-agenda-compact-blocks`) |
@@ -215,6 +216,7 @@ number.
 | `org.agenda.goto` | Shows the entry of the agenda line under the cursor. |
 | `org.agenda.save` | `org-save-all-org-buffers`: returns `{ "save": [uri…] }`, the Org files the editor has open; the editor saves those with changes. |
 | `org.agenda.log`, `org.agenda.clockreport` | Turn log mode (`org-agenda-log-mode`: what was closed and clocked each day) or the clock report under the agenda (`org-agenda-clockreport-mode`) on or off. |
+| `org.agenda.archives`, `org.agenda.archives.files` | `org-agenda-archives-mode` (`v a`, `v A`): show the entries of archived trees too, which the agenda leaves out otherwise; with `.files`, also the files the agenda files archive to (their `#+ARCHIVE:` or `archiveLocation`, and their `ARCHIVE` properties) that exist. Each turns its mode off when it is on. |
 | `org.clock.in`, `org.clock.out`, `org.clock.cancel` | `org-clock-in`, `org-clock-out`, `org-clock-cancel`, on the entry at the cursor or of an agenda line. Clocking in stops a clock that runs elsewhere, in the same edit; the clock is a `CLOCK:` line in the `LOGBOOK` drawer, as `clockIntoDrawer` says. |
 | `org.clock.goto` | `org-clock-goto`: shows the entry the clock runs on, or the one clocked last. |
 | `org.todo` | `org-todo`: when the keywords have keys (`TODO(t)`), asks for one (`org-fast-todo-selection`) and sets the state it selects, a space clearing it; without keys, the next state. In an Org file or on an agenda line. |
@@ -587,6 +589,7 @@ faces:
 | `checked`, `partial` | `checkbox` |
 | `bold`, `italic`, `underline`, `strikethrough` | `text` and `headline` |
 | `today`, `weekend`, `past`, `imminent`, `distant`, `range`, `current` | the agenda types, as listed above |
+| `archived` | A headline with `:ARCHIVE:` in it, all of it but the stars (`org-archived`, a shadow over its other colors). |
 | `hidden` | Text Org hides: the brackets of a link, and its target when it has a description (`linkDescriptive`); emphasis markers (`hideEmphasisMarkers`). It comes as tokens of its own, so an editor that can conceal text conceals the tokens with this modifier: Neovim with extmarks in the semantic tokens' namespace, VS Code with decorations. |
 
 ## Writing an editor integration

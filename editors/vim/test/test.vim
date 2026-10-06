@@ -71,6 +71,24 @@ function! s:folds() abort
 endfunction
 call s:test('folds and cycles as TAB does', function('s:folds'))
 
+function! s:archived_folds() abort
+  let file = s:work . '/notes/archived.org'
+  call writefile(['* Project', 'Body', '** Old :ARCHIVE:', 'old body', '** New', 'new body'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('folds', {-> len(get(b:, 'org_lsp_fold_ranges', [])) == 3})
+  call cursor(1, 1)
+  call org_lsp#cycle()
+  call assert_equal(1, foldclosed(1))
+  call org_lsp#cycle()
+  call org_lsp#cycle()
+  call assert_equal([-1, 3, -1], [foldclosed(1), foldclosed(3), foldclosed(5)])
+  call org_lsp#global_cycle()
+  call org_lsp#global_cycle()
+  call assert_equal([-1, 3, -1], [foldclosed(1), foldclosed(3), foldclosed(5)])
+  execute 'buffer' s:work_buf
+endfunction
+call s:test('archived subtrees stay closed when cycling', function('s:archived_folds'))
+
 function! s:todo() abort
   call cursor(6, 3)
   call feedkeys('cit', 'x')

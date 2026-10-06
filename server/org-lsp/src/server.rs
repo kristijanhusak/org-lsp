@@ -42,7 +42,7 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use crate::config::{self, CaptureTemplateOption, RefileFiles, RefileTarget};
+use crate::config::{self, ArchivesMode, CaptureTemplateOption, RefileFiles, RefileTarget};
 use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target, TimeField};
@@ -412,6 +412,8 @@ struct Server {
     /// Log mode (`l`) and the clock report (`R`) in the agenda.
     agenda_log: bool,
     agenda_clockreport: bool,
+    /// What the agenda shows of archives (`v a`, `v A`).
+    agenda_archives: ArchivesMode,
     documents: HashMap<String, Document>,
     workspace: Workspace,
     view: Option<OpenView>,
@@ -539,6 +541,7 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_out_when_done: options.clock_out_when_done.unwrap_or(true),
         agenda_log: options.agenda.start_with_log_mode.unwrap_or(false),
         agenda_clockreport: options.agenda.start_with_clockreport_mode.unwrap_or(false),
+        agenda_archives: options.agenda.archives_mode(),
         documents: HashMap::new(),
         workspace: Workspace::new(options.agenda_files, folders),
         view: None,
@@ -1184,6 +1187,8 @@ impl Server {
                 commands::AGENDA_REDO,
                 commands::AGENDA_LOG,
                 commands::AGENDA_CLOCKREPORT,
+                commands::AGENDA_ARCHIVES,
+                commands::AGENDA_ARCHIVES_FILES,
                 commands::AGENDA_DISPATCH,
             ];
             let mut ids: Vec<&str> = Vec::new();
@@ -1483,7 +1488,59 @@ impl Server {
                 files.push((uri, Held::Disk(source)));
             }
         }
+        if self.agenda_archives == ArchivesMode::Files {
+            let open: HashMap<PathBuf, String> = by_path.into_iter().map(|(path, key)| (path, key.clone())).collect();
+            files = self.with_archive_files(files, &open);
+        }
         files
+    }
+
+    /// `org-add-archive-files`: each agenda file followed by the files it
+    /// archives to that exist, each file once.
+    fn with_archive_files(&mut self, files: Vec<(Uri, Held)>, open: &HashMap<PathBuf, String>) -> Vec<(Uri, Held)> {
+        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+        let location = self.archive.0.location.clone();
+        let mut paths: Vec<PathBuf> = files.iter().filter_map(|(uri, _)| uri::to_path(uri)).collect();
+        let mut more: Vec<(usize, PathBuf)> = Vec::new();
+        for (index, (uri, _)) in files.iter().enumerate() {
+            let Some(path) = uri::to_path(uri) else { continue };
+            let text = match open.get(&path) {
+                Some(key) => self.documents[key].text.clone(),
+                None => match self.workspace.read(&path, &self.todo) {
+                    Some(source) => source.text.clone(),
+                    None => continue,
+                },
+            };
+            let context = archive::Context { path: &path, home: home.as_deref(), now: self.date_time() };
+            for file in archive::archive_files(&text, &self.todo, &context, &location) {
+                if file.exists() && !paths.contains(&file) {
+                    paths.push(file.clone());
+                    more.push((index, file));
+                }
+            }
+        }
+        let mut out = Vec::new();
+        let mut more = more.into_iter().peekable();
+        for (index, file) in files.into_iter().enumerate() {
+            out.push(file);
+            while let Some((_, path)) = more.next_if(|(after, _)| *after == index) {
+                let held = match open.get(&path) {
+                    Some(key) => key.parse::<Uri>().ok().map(|uri| {
+                        let document = &self.documents[key];
+                        (
+                            uri.clone(),
+                            Held::Open(Box::new(Outline::new(&document.parse, &document.text, &uri::file_stem(&uri)))),
+                        )
+                    }),
+                    None => match (uri::from_path(&path), self.workspace.read(&path, &self.todo)) {
+                        (Some(uri), Some(source)) => Some((uri, Held::Disk(source))),
+                        _ => None,
+                    },
+                };
+                out.extend(held);
+            }
+        }
+        out
     }
 
     /// Where the entry of an agenda line is now.
@@ -1534,6 +1591,7 @@ impl Server {
         for block in &mut blocks {
             block.config.show_log = self.agenda_log;
             block.config.clockreport = self.agenda_clockreport;
+            block.config.archives = self.agenda_archives != ArchivesMode::Off;
         }
         Ok(blocks)
     }
@@ -2219,6 +2277,25 @@ impl Server {
                 };
                 *flag = !*flag;
                 self.message = Some(format!("{name} is {}", if *flag { "on" } else { "off" }));
+                self.refresh_view();
+                Ok(())
+            }
+            commands::AGENDA_ARCHIVES | commands::AGENDA_ARCHIVES_FILES => {
+                self.view.as_ref().ok_or("No agenda is open")?;
+                // `org-agenda-archives-mode`, with or without the files.
+                self.agenda_archives = match (command, self.agenda_archives) {
+                    (commands::AGENDA_ARCHIVES_FILES, ArchivesMode::Files) => ArchivesMode::Off,
+                    (commands::AGENDA_ARCHIVES_FILES, _) => ArchivesMode::Files,
+                    (_, ArchivesMode::Off) => ArchivesMode::Trees,
+                    _ => ArchivesMode::Off,
+                };
+                self.message = Some(match self.agenda_archives {
+                    ArchivesMode::Off => "No archives are included".to_string(),
+                    ArchivesMode::Trees => "Trees with :ARCHIVE: tag are included".to_string(),
+                    ArchivesMode::Files => {
+                        "Trees with :ARCHIVE: tag and all active archive files are included".to_string()
+                    }
+                });
                 self.refresh_view();
                 Ok(())
             }

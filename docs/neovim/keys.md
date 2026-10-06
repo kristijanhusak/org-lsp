@@ -85,6 +85,8 @@ The other options are in [configuration.md](configuration.md).
 | `<CR>`, `<Tab>` | `org.agenda.goto` | Agenda: go to the entry |
 | `vl` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `R` | `org.agenda.clockreport` | Agenda: the clock report |
+| `va` | `org.agenda.archives` | Agenda: include archived trees |
+| `vA` | `org.agenda.archives.files` | Agenda: include archived trees and archive files |
 | `I` | `org.clock.in` | Clock in |
 | `O` | `org.clock.out` | Clock out |
 | `X` | `org.clock.cancel` | Cancel the clock |

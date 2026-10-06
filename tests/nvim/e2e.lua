@@ -628,8 +628,10 @@ local command = vim.cmd
 vim.cmd = setmetatable({}, {
   __index = command,
   __call = function(_, text)
+    -- Recorded, not run: insert mode would wait for the next test's keys.
     if type(text) == 'string' and text:match('^startinsert') then
       started = text
+      return
     end
     return command(text)
   end,
@@ -651,6 +653,24 @@ end)
 eq({ vim.api.nvim_win_get_cursor(0)[1], started }, { 5, 'startinsert!' }, 'typing goes on in the new heading')
 vim.cmd = command
 vim.cmd('silent! write')
+
+-- 23c. Archived subtrees stay closed when TAB and S-TAB open what is
+-- around them (`org-cycle-hide-archived-subtrees`).
+local with_archived = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* Project', 'Body', '** Old :ARCHIVE:', 'old body', '** New', 'new body' }, with_archived)
+vim.cmd.edit(with_archived)
+wait('folds of the file with an archived subtree', function()
+  return vim.fn.foldlevel(4) > 1
+end)
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+press('<Tab>')
+eq(vim.fn.foldclosed(1), 1, 'TAB folds the subtree')
+press('<Tab>')
+press('<Tab>')
+eq({ vim.fn.foldclosed(3), vim.fn.foldclosed(5) }, { 3, -1 }, 'all of it shown but the archived subtree')
+press('<S-Tab>')
+press('<S-Tab>')
+eq({ vim.fn.foldclosed(1), vim.fn.foldclosed(3), vim.fn.foldclosed(5) }, { -1, 3, -1 }, 'S-TAB shows all but it too')
 
 -- 24. `<Leader>o$` archives the subtree to the archive file, which is
 -- written as Emacs saves it, and `<Leader>oA` tags a subtree as archived.

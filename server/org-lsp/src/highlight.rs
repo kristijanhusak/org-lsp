@@ -6,7 +6,7 @@
 //! to their own highlight groups; see `docs/protocol.md` for the legend.
 
 use lsp_types::{SemanticToken, SemanticTokenModifier, SemanticTokenType, SemanticTokensLegend};
-use org_syntax::{SyntaxElement, SyntaxKind, SyntaxKind::*, SyntaxNode, TextRange, TodoKeywords};
+use org_syntax::{SyntaxElement, SyntaxKind, SyntaxKind::*, SyntaxNode, TextRange, TextSize, TodoKeywords};
 
 use crate::line_index::{Encoding, LineIndex};
 
@@ -95,6 +95,7 @@ pub mod modifier {
         "current",
         "hidden",
         "clocking",
+        "archived",
     ];
 
     pub const DONE: u32 = 1 << 8;
@@ -117,6 +118,8 @@ pub mod modifier {
     pub const HIDDEN: u32 = 1 << 23;
     /// Agenda: the entry the clock runs on (`org-agenda-clocking`).
     pub const CLOCKING: u32 = 1 << 24;
+    /// A headline with `:ARCHIVE:` in it (`org-archived`).
+    pub const ARCHIVED: u32 = 1 << 25;
 
     /// Headline levels repeat after eight, like Org's level faces.
     pub fn level(level: usize) -> u32 {
@@ -327,14 +330,31 @@ impl Walker<'_> {
     fn headline(&mut self, node: &SyntaxNode) {
         let level = node.first_token().map_or(1, |stars| stars.text().len());
         let level = modifier::level(level);
+        // `org-archived`: what follows the stars of a headline with
+        // `:ARCHIVE:` in it.
+        let line = node.text().to_string();
+        let archived = line.split('\n').next().is_some_and(|line| line.contains(":ARCHIVE:"));
+        let mut after_stars = self.out.len();
         for child in node.children_with_tokens() {
+            if child.kind() == STARS {
+                self.push(child.text_range(), TokenType::Stars, level);
+                after_stars = self.out.len();
+                continue;
+            }
             match child.kind() {
-                STARS => self.push(child.text_range(), TokenType::Stars, level),
                 TITLE => {
                     let title = child.into_node().expect("TITLE is a node");
                     self.children(&title, Style { text: Some(TokenType::Headline), modifiers: level });
                 }
                 _ => self.element(node, child, Style::PLAIN),
+            }
+        }
+        if archived {
+            let headline_end = node.text_range().start() + TextSize::from(line.find('\n').unwrap_or(line.len()) as u32);
+            for token in &mut self.out[after_stars..] {
+                if token.range.start() < headline_end {
+                    token.modifiers |= modifier::ARCHIVED;
+                }
             }
         }
     }
@@ -547,6 +567,21 @@ mod tests {
                 1:0 "***" stars +level3
                 1:4 "DONE" todoKeyword +done
                 1:9 "x" headline +level3
+            "#]],
+        );
+    }
+
+    #[test]
+    fn archived_headlines() {
+        check(
+            "* TODO Old :x:ARCHIVE:\nbody\n* Plain\n",
+            expect![[r#"
+                0:0 "*" stars +level1
+                0:2 "TODO" todoKeyword +archived
+                0:7 "Old" headline +level1 +archived
+                0:11 ":x:ARCHIVE:" tag +archived
+                2:0 "*" stars +level1
+                2:2 "Plain" headline +level1
             "#]],
         );
     }

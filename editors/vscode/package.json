@@ -140,6 +140,16 @@
         "category": "Org"
       },
       {
+        "command": "org.agenda.archives",
+        "title": "Agenda: include archived trees",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.archives.files",
+        "title": "Agenda: include archived trees and archive files",
+        "category": "Org"
+      },
+      {
         "command": "org.clock.in",
         "title": "Clock in",
         "category": "Org"
@@ -1143,6 +1153,15 @@
                   "markdownDescription": "Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)",
                   "default": false
                 },
+                "startWithArchivesMode": {
+                  "enum": [
+                    "trees",
+                    "files",
+                    false
+                  ],
+                  "markdownDescription": "Start the agenda with entries in archived trees (`trees`; `v a` toggles it), or those and the files the agenda files archive to (`files`; `v A`). (`org-agenda-start-with-archives-mode`)",
+                  "default": false
+                },
                 "logModeItems": {
                   "items": {
                     "enum": [
@@ -1538,6 +1557,10 @@
       {
         "id": "clocking",
         "description": "Agenda: part of the line of the entry the clock runs on"
+      },
+      {
+        "id": "archived",
+        "description": "A headline with the ARCHIVE tag"
       }
     ],
     "semanticTokenScopes": [
@@ -1759,6 +1782,10 @@
           "*.clocking": [
             "markup.highlight.clocking.agenda.org",
             "markup.inserted"
+          ],
+          "*.archived": [
+            "comment.archived.org",
+            "comment"
           ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
@@ -2001,6 +2028,10 @@
             "markup.highlight.clocking.agenda.org",
             "markup.inserted"
           ],
+          "*.archived": [
+            "comment.archived.org",
+            "comment"
+          ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
             "entity.name.function"
@@ -2241,6 +2272,10 @@
           "*.clocking": [
             "markup.highlight.clocking.agenda.org",
             "markup.inserted"
+          ],
+          "*.archived": [
+            "comment.archived.org",
+            "comment"
           ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
@@ -2726,6 +2761,26 @@
       {
         "command": "org.agenda.clockreport",
         "key": "shift+r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.archives",
+        "key": "v a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.archives",
+        "key": "v a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.archives.files",
+        "key": "v shift+a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.archives.files",
+        "key": "v shift+a",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {

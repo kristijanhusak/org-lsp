@@ -937,6 +937,29 @@ endfunction
 
 " Cycle the subtree (or block, drawer) at the cursor, as Org's TAB does:
 " folded, children visible, everything visible.
+" Whether line `line` is a headline with the ARCHIVE tag of its own.
+function! s:archived(line) abort
+  let tags = matchstr(getline(a:line), '^\*\+\s\%(.*\s\)\=\zs:[[:alnum:]_@#%:]\+:\s*$')
+  return stridx(tags, ':ARCHIVE:') >= 0
+endfunction
+
+" `org-cycle-hide-archived-subtrees`: close the folds of archived headlines
+" from `start` to `finish`, after the cycling opened them. One in a fold
+" closed already is left alone: `foldclose` would close one around it.
+function! s:hide_archived(all, start, finish) abort
+  for range in a:all
+    if range[0] >= a:start && range[1] <= a:finish && foldclosed(range[0]) == -1 && s:archived(range[0])
+      execute 'silent! ' . range[0] . 'foldclose'
+    endif
+  endfor
+endfunction
+
+function! s:stays_closed(start) abort
+  if s:archived(a:start)
+    echomsg 'Subtree is archived and stays closed'
+  endif
+endfunction
+
 function! org_lsp#cycle() abort
   let all = s:fold_ranges(bufnr())
   let line = line('.')
@@ -960,21 +983,25 @@ function! org_lsp#cycle() abort
     for child in children
       execute 'silent! ' . child[0] . 'foldclose'
     endfor
-    return
+    call s:hide_archived(all, start, finish)
+    return s:stays_closed(start)
   endif
   for range in inner
     if foldclosed(range[0]) != -1
       execute printf('silent! %d,%dfoldopen!', start, finish)
-      return
+      call s:hide_archived(all, start, finish)
+      return s:stays_closed(start)
     endif
   endfor
   execute 'silent! ' . start . 'foldclose'
 endfunction
 
-" Cycle the whole file between overview (all folded) and all visible.
+" Cycle the whole file between overview (all folded) and all visible but
+" the archived subtrees.
 function! org_lsp#global_cycle() abort
   if &l:foldlevel == 0
     normal! zR
+    call s:hide_archived(s:fold_ranges(bufnr()), 1, line('$'))
   else
     normal! zM
   endif

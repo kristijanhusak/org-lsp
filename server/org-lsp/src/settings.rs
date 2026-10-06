@@ -521,6 +521,14 @@ pub const SETTINGS: &[Setting] = &[
         "Start the agenda with the clock report under it (`R` toggles it).",
     ),
     setting(
+        "agenda.startWithArchivesMode",
+        "\"trees\" | \"files\" | false",
+        "false",
+        "org-agenda-start-with-archives-mode",
+        "Start the agenda with entries in archived trees (`trees`; `v a` toggles it), or those and the files the \
+         agenda files archive to (`files`; `v A`).",
+    ),
+    setting(
         "agenda.logModeItems",
         "string[]",
         r#"["closed", "clock"]"#,
@@ -734,6 +742,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("agenda.startDay", STRING),
     ("agenda.startWithLogMode", BOOLEAN),
     ("agenda.startWithClockreportMode", BOOLEAN),
+    ("agenda.startWithArchivesMode", r#"{ "enum": ["trees", "files", false] }"#),
     ("agenda.logModeItems", r#"{ "type": "array", "items": { "enum": ["closed", "clock", "state"] } }"#),
     ("agenda.blockSeparator", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
     ("agenda.compactBlocks", BOOLEAN),

@@ -114,6 +114,8 @@ pub const AGENDA_SAVE: &str = "org.agenda.save";
 pub const AGENDA_GOTO_DATE: &str = "org.agenda.goto.date";
 pub const AGENDA_LOG: &str = "org.agenda.log";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
+pub const AGENDA_ARCHIVES: &str = "org.agenda.archives";
+pub const AGENDA_ARCHIVES_FILES: &str = "org.agenda.archives.files";
 pub const CLOCK_IN: &str = "org.clock.in";
 pub const CLOCK_OUT: &str = "org.clock.out";
 pub const CLOCK_CANCEL: &str = "org.clock.cancel";
@@ -250,6 +252,18 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Agenda, "R"), key(Agenda, "v R")],
         vim: &[key(Agenda, "R")],
         ..command(AGENDA_CLOCKREPORT, "Agenda: the clock report")
+    },
+    // `org-agenda-archives-mode`: archived trees (`v a`), and the archive
+    // files too (`v A`).
+    Command {
+        emacs: &[key(Agenda, "v a")],
+        vim: &[key(Agenda, "va")],
+        ..command(AGENDA_ARCHIVES, "Agenda: include archived trees")
+    },
+    Command {
+        emacs: &[key(Agenda, "v A")],
+        vim: &[key(Agenda, "vA")],
+        ..command(AGENDA_ARCHIVES_FILES, "Agenda: include archived trees and archive files")
     },
     // `org-clock-in` and its relatives, in Org files and on agenda lines.
     Command {

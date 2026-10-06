@@ -523,11 +523,15 @@ end
 
 -- ----- attaching
 
+--- The server's folds in window `win`, for the buffer it shows: once per
+--- buffer, as the options are local to it there and later changes of the
+--- user's are kept.
 local function set_window_folds(win)
-  if vim.w[win].org_lsp_folds then
+  local key = 'org_lsp_folds_' .. vim.api.nvim_win_get_buf(win)
+  if vim.w[win][key] then
     return
   end
-  vim.w[win].org_lsp_folds = true
+  vim.w[win][key] = true
   vim.wo[win][0].foldmethod = 'expr'
   vim.wo[win][0].foldexpr = 'v:lua.vim.lsp.foldexpr()'
   vim.wo[win][0].foldlevel = M.config.startup_folded == 'overview' and 0 or 99

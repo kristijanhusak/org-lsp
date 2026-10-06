@@ -448,6 +448,37 @@ describe('Org files', () => {
     await vscode.workspace.fs.delete(file);
   });
 
+  it('keeps archived subtrees closed as TAB and S-TAB open the rest', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'archived.org'));
+    const text = ['* A', 'text', '** B :ARCHIVE:', 'b text', '** C', 'c text', ''].join('\n');
+    await vscode.workspace.fs.writeFile(file, Buffer.from(text));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the folds', async () => {
+      const folds = await vscode.commands.executeCommand('vscode.executeFoldingRangeProvider', file);
+      return folds?.length === 3;
+    });
+    const hidden = () =>
+      [...Array(editor.document.lineCount - 1).keys()].filter(
+        (line) => !editor.visibleRanges.some((range) => range.start.line <= line && line <= range.end.line),
+      );
+    const shows = (what, lines) => until(what, () => JSON.stringify(hidden()) === JSON.stringify(lines));
+    moveTo(0);
+    await vscode.commands.executeCommand('org-lsp.cycle');
+    await shows('FOLDED', [1, 2, 3, 4, 5]);
+    await vscode.commands.executeCommand('org-lsp.cycle');
+    await shows('CHILDREN', [3, 5]);
+    await vscode.commands.executeCommand('org-lsp.cycle');
+    await shows('SUBTREE, but the archived one', [3]);
+    await vscode.commands.executeCommand('org-lsp.cycleGlobal');
+    await shows('OVERVIEW', [1, 2, 3, 4, 5]);
+    await vscode.commands.executeCommand('org-lsp.cycleGlobal');
+    await shows('CONTENTS', [3, 5]);
+    await vscode.commands.executeCommand('org-lsp.cycleGlobal');
+    await shows('SHOW ALL, but the archived one', [3]);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+  });
+
   it('lists the keys of the editor at hand', async () => {
     const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
     const shown = api.help(vscode.window.activeTextEditor);

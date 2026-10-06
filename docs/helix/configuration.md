@@ -302,6 +302,11 @@ startWithLogMode = false
 # (org-agenda-start-with-clockreport-mode)
 startWithClockreportMode = false
 
+# Start the agenda with entries in archived trees (`trees`; `v a` toggles it),
+# or those and the files the agenda files archive to (`files`; `v A`).
+# (org-agenda-start-with-archives-mode)
+startWithArchivesMode = false
+
 # What log mode shows: `closed` entries, `clock` lines and `state` changes.
 # (org-agenda-log-mode-items)
 logModeItems = ["closed", "clock"]

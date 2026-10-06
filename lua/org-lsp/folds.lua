@@ -23,10 +23,37 @@ local function ranges(bufnr)
   return out
 end
 
+--- Whether line `line` is a headline with the ARCHIVE tag of its own.
+---@param bufnr integer
+---@param line integer 1-based
+---@return boolean
+local function archived(bufnr, line)
+  local text = vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or ''
+  local tags = text:match('^%*+%s') and text:match('%s(:[%w_@#%%:]+:)%s*$')
+  return tags ~= nil and tags:find(':ARCHIVE:', 1, true) ~= nil
+end
+
+--- `org-cycle-hide-archived-subtrees`: close the folds of archived
+--- headlines from `start` to `finish`, after the cycling opened them.
+---@param bufnr integer
+---@param all integer[][]
+---@param start integer
+---@param finish integer
+local function hide_archived(bufnr, all, start, finish)
+  for _, range in ipairs(all) do
+    -- In a fold closed already, `foldclose` would close one around it.
+    if range[1] >= start and range[2] <= finish and vim.fn.foldclosed(range[1]) == -1 and archived(bufnr, range[1]) then
+      vim.cmd(('silent! %dfoldclose'):format(range[1]))
+    end
+  end
+end
+
 --- Cycle the subtree (or block, drawer, list item) at the cursor:
---- folded -> children visible -> everything visible -> folded.
+--- folded -> children visible -> everything visible -> folded. Archived
+--- subtrees stay closed, as `org-cycle-hide-archived-subtrees` keeps them.
 function M.cycle()
-  local all = ranges(vim.api.nvim_get_current_buf())
+  local bufnr = vim.api.nvim_get_current_buf()
+  local all = ranges(bufnr)
   if not all then
     return
   end
@@ -65,29 +92,42 @@ function M.cycle()
     end
   end
 
+  local function stays_closed()
+    if archived(bufnr, start) then
+      vim.notify('Subtree is archived and stays closed', vim.log.levels.INFO)
+    end
+  end
   if vim.fn.foldclosed(start) ~= -1 then
     -- Folded: show the direct children, each still folded.
     vim.cmd(('silent! %d,%dfoldopen!'):format(start, finish))
     for _, child in ipairs(children) do
       vim.cmd(('silent! %dfoldclose'):format(child[1]))
     end
-    return
+    hide_archived(bufnr, all, start, finish)
+    return stays_closed()
   end
   for _, range in ipairs(inner) do
     if vim.fn.foldclosed(range[1]) ~= -1 then
       -- Children: something inside is still folded, so show it all.
       vim.cmd(('silent! %d,%dfoldopen!'):format(start, finish))
-      return
+      hide_archived(bufnr, all, start, finish)
+      return stays_closed()
     end
   end
   -- Everything visible: fold it again.
   vim.cmd(('silent! %dfoldclose'):format(start))
 end
 
---- Cycle the whole file between overview (all folded) and everything visible.
+--- Cycle the whole file between overview (all folded) and everything
+--- visible but the archived subtrees.
 function M.global_cycle()
   if vim.wo.foldlevel == 0 then
     vim.cmd('normal! zR')
+    local bufnr = vim.api.nvim_get_current_buf()
+    local all = ranges(bufnr)
+    if all then
+      hide_archived(bufnr, all, 1, vim.api.nvim_buf_line_count(bufnr))
+    end
   else
     vim.cmd('normal! zM')
   end

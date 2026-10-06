@@ -12,14 +12,17 @@ A case is a directory with Org files and a `case.json`:
         {"view": "todo", "match": "NEXT|WAIT"},
         {"view": "tags", "match": "work-home"},
         {"view": "tags-todo", "match": "PRIORITY=\"A\""},
-        {"view": "custom", "key": "c"}
+        {"view": "custom", "key": "c"},
+        {"view": "todo", "archives": "trees"}   with archived trees
+                                                (`files`: archive files too)
       ],
       "options": {...},               optional: settings for org-lsp
       "emacs": "(setq ...)"           optional: the same settings for Emacs
     }
 
 `reference(cases)` writes `expected-N.txt` next to each `case.json`, one
-per run. Emacs runs under faketime, so both programs see the same clock.
+per run. Emacs runs under faketime, so both programs see the same clock
+(starting at it: a frozen clock makes Emacs wait forever where it pauses).
 Set ORG_LISP_DIR to the `lisp` directory of an Org checkout to use that
 version instead of the one bundled with Emacs.
 """
@@ -81,6 +84,12 @@ def shown(form):
 
 
 def run_form(run):
+    form = view_form(run)
+    archives = {"trees": "'trees", "files": "t"}.get(run.get("archives"))
+    return f"(let ((org-agenda-start-with-archives-mode {archives})) {form})" if archives else form
+
+
+def view_form(run):
     match = lisp_string(run.get("match", ""))
     if run["view"] == "todo":
         return shown(f"(org-todo-list {match})") if "match" in run else '(org-batch-agenda "t")'
@@ -148,7 +157,7 @@ def reference(directories):
             driver.write("\n".join(forms))
         try:
             subprocess.run(
-                ["faketime", f"{today} {now}:00", "emacs", "--batch", "-Q", *org_path, "-l", driver.name],
+                ["faketime", "-f", f"@{today} {now}:00", "emacs", "--batch", "-Q", *org_path, "-l", driver.name],
                 check=True,
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
@@ -180,6 +189,8 @@ def run_arguments(directory, case, run):
     for flag in ("log", "clockreport"):
         if run.get(flag):
             arguments.append("--" + flag)
+    if "archives" in run:
+        arguments += ["--archives", run["archives"]]
     if "options" in case:
         arguments += ["--options", json.dumps(case["options"])]
     return arguments + [os.path.join(directory, name) for name in org_files(directory)]

@@ -93,9 +93,12 @@ start of a line) (`tests/meta-return`, `scripts/fuzz-meta-return.py`).
 In Neovim and Vim their keys act after the character under the cursor
 and typing goes on in insert mode (`"mode": "append"`). Capture and note
 buffers are filed with the text the editor has (coc.nvim tells the server
-of changes late). Still open around archiving: the agenda's archives mode
-(`v a`, `v A`), archived subtrees staying folded when cycling
-(`org-cycle-hide-archived-subtrees`) and the `org-archived` face. Then,
+of changes late). Then the rest of archiving: the agenda's archives mode
+(`v a`, `v A`, `org-agenda-archives-mode`, `agenda.startWithArchivesMode`;
+`tests/agenda/archives`), archived subtrees staying closed when TAB and
+S-TAB open what is around them (`org-cycle-hide-archived-subtrees`, in
+Neovim, Vim and VS Code), and the `archived` token modifier
+(`org-archived`). Then,
 by the milestones below: diagnostics (milestone 13), table navigation
 and editing (milestone 12), and the leftovers listed after this.
 

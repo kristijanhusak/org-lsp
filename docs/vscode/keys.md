@@ -100,6 +100,8 @@ The other options are in [configuration.md](configuration.md).
 | `s`, `Ctrl+X Ctrl+S` | `org.agenda.save` | Save all Org files |
 | `l`, `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
+| `v a` | `org.agenda.archives` | Agenda: include archived trees |
+| `v Shift+A` | `org.agenda.archives.files` | Agenda: include archived trees and archive files |
 | `Shift+I` | `org.clock.in` | Clock in |
 | `Shift+O` | `org.clock.out` | Clock out |
 | `Shift+X` | `org.clock.cancel` | Cancel the clock |
@@ -177,6 +179,8 @@ The other options are in [configuration.md](configuration.md).
 | `Enter`, `Tab` | `org.agenda.goto` | Agenda: go to the entry |
 | `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
+| `v a` | `org.agenda.archives` | Agenda: include archived trees |
+| `v Shift+A` | `org.agenda.archives.files` | Agenda: include archived trees and archive files |
 | `Shift+I` | `org.clock.in` | Clock in |
 | `Shift+O` | `org.clock.out` | Clock out |
 | `Shift+X` | `org.clock.cancel` | Cancel the clock |
@@ -264,6 +268,8 @@ every file; outside Org files the commands say they do not apply):
 | `org.agenda.save` | Org: Save all Org files |
 | `org.agenda.log` | Org: Agenda: log mode, what was closed and clocked |
 | `org.agenda.clockreport` | Org: Agenda: the clock report |
+| `org.agenda.archives` | Org: Agenda: include archived trees |
+| `org.agenda.archives.files` | Org: Agenda: include archived trees and archive files |
 | `org.clock.in` | Org: Clock in |
 | `org.clock.out` | Org: Clock out |
 | `org.clock.cancel` | Org: Cancel the clock |

@@ -852,6 +852,46 @@ fn shows_the_clock_in_the_agenda() {
     client.shutdown();
 }
 
+/// `v a` and `v A` (`org-agenda-archives-mode`): entries in archived trees,
+/// then those and the files the agenda files archive to.
+#[test]
+fn includes_archives_when_asked() {
+    let root = std::env::temp_dir().join(format!("org-lsp-agenda-archives-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    std::fs::write(root.join("work.org"), "* TODO Write\n* Old :ARCHIVE:\n** TODO Leftover\n").unwrap();
+    std::fs::write(root.join("work.org_archive"), "* TODO Archived long ago\n").unwrap();
+    let root_uri = format!("file://{}", root.display());
+    let mut client = Client::editor(clock(), Some(&root_uri));
+    client.command("org.agenda.todos", VIEW, 0);
+    // Without the tags column.
+    let todos = |client: &mut Client| {
+        let view = client.view_text(VIEW);
+        view.lines().skip(1).map(|line| line.split("  :").next().unwrap().trim().to_string()).collect::<Vec<String>>()
+    };
+    assert_eq!(todos(&mut client), ["work:       TODO Write"]);
+    let run = |client: &mut Client, command: &str| {
+        let at = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
+        client.settle();
+        result.unwrap()["message"].clone()
+    };
+    assert_eq!(run(&mut client, "org.agenda.archives"), "Trees with :ARCHIVE: tag are included");
+    assert_eq!(todos(&mut client), ["work:       TODO Write", "work:       TODO Leftover"]);
+    assert_eq!(
+        run(&mut client, "org.agenda.archives.files"),
+        "Trees with :ARCHIVE: tag and all active archive files are included"
+    );
+    assert_eq!(
+        todos(&mut client),
+        ["work:       TODO Write", "work:       TODO Leftover", "work:       TODO Archived long ago"]
+    );
+    assert_eq!(run(&mut client, "org.agenda.archives.files"), "No archives are included");
+    assert_eq!(todos(&mut client), ["work:       TODO Write"]);
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 /// Run `command` at `line` and `character` of `uri`, and return its result
 /// with the files the server then asked the editor to save.
 fn run_saving(client: &mut Client, command: &str, uri: &str, at: (u32, u32), extra: Value) -> (Value, Vec<Value>) {
