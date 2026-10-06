@@ -37,8 +37,23 @@ Browse Packages…*), keeping the name `LSP-org`.
 *Org: Download the latest server* fetches the nightly build again and
 restarts the server.
 
-**Highlighting** from the server needs LSP's `"semantic_highlighting":
-true` (*Preferences → Package Settings → LSP → Settings*).
+**Highlighting.** The package's syntaxes color Org files and the agenda
+by their patterns: headlines by level, TODO keywords, priorities, tags,
+planning lines and timestamps, drawers and properties, lists and
+checkboxes, links, emphasis, tables, blocks and comments; in the agenda
+the days, schedules, deadlines and the time grid. The server's colors
+(semantic tokens) go further, with the TODO keywords of your files, the
+agenda's today, weekends and overdue items, the clocked entry. LSP draws
+them with `"semantic_highlighting": true` (*Preferences → Package
+Settings → LSP → Settings*) and a color scheme that allows them: LSP
+lets Sublime Text's own schemes do so, and another needs the rule
+*UI: Customize Color Scheme* adds, as
+[LSP's docs](https://lsp.sublimetext.io/features/#semantic-highlighting)
+say:
+
+```json
+{ "rules": [{ "scope": "meta.semantic-token", "background": "#00000101" }] }
+```
 
 ## Settings
 
