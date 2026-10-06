@@ -78,6 +78,16 @@ pub struct Options {
     /// Whether the client shows documents on `window/showDocument`.
     /// Clients that announce the capability need not say so.
     pub show_document: Option<bool>,
+    /// Ask what commands ask for (a key, one of a list) with
+    /// `window/showMessageRequest`, and say their messages with
+    /// `window/showMessage`: for a client that does nothing with a
+    /// command's result (Zed).
+    pub message_prompts: Option<bool>,
+    /// Offer more commands as code actions (the agenda, capture, refile,
+    /// a TODO state or a priority picked from a list; in the agenda, moving
+    /// through time): for a client that cannot run a command from a key
+    /// (Zed).
+    pub command_actions: Option<bool>,
     /// `org-refile-targets`: where entries can be refiled to. Without it,
     /// the top-level headlines of the entry's own file.
     pub refile_targets: Option<Vec<RefileTargetOption>>,

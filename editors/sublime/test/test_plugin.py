@@ -5,9 +5,13 @@ the answers.
     python3 editors/sublime/test/test_plugin.py
 """
 import importlib.util
+import io
 import json
 import os
+import stat
 import sys
+import tarfile
+import tempfile
 import types
 import unittest
 
@@ -146,6 +150,10 @@ def load_plugin():
     sublime.settings = {}
     sublime.load_settings = lambda name: types.SimpleNamespace(get=lambda k, d=None: sublime.settings.get(k, d))
     sublime.windows = lambda: []
+    sublime.platform = lambda: 'linux'
+    sublime.arch = lambda: 'x64'
+    sublime.packages = tempfile.mkdtemp()
+    sublime.packages_path = lambda: sublime.packages
     package = os.path.join(HERE, '..', 'LSP-org')
     sublime.load_resource = lambda name: open(os.path.join(package, name.split('/')[-1]), encoding='utf-8').read()
     sublime.decode_value = json.loads
@@ -166,7 +174,13 @@ def load_plugin():
         def session_by_name(self, name):
             return Command.current
 
-    api.AbstractPlugin = object
+    storage = tempfile.mkdtemp()
+
+    class AbstractPlugin:
+        @classmethod
+        def storage_path(cls):
+            return storage
+    api.AbstractPlugin = AbstractPlugin
     api.applied = []
 
     class Done:
@@ -299,6 +313,87 @@ class Tests(unittest.TestCase):
         capture = View('* TODO ', '/tmp/CAPTURE-1.org')
         self.assertTrue(listener.on_query_context(capture, 'org_lsp.capture', 0, True, True))
         self.assertIsNone(listener.on_query_context(self.view, 'other', 0, True, True))
+
+
+def archive(binary=b'#!/bin/sh\n'):
+    """The release's archive for Linux: `org-lsp` in a tar.gz."""
+    out = io.BytesIO()
+    with tarfile.open(fileobj=out, mode='w:gz') as files:
+        info = tarfile.TarInfo('org-lsp')
+        info.size = len(binary)
+        files.addfile(info, io.BytesIO(binary))
+    return out.getvalue()
+
+
+class Server(unittest.TestCase):
+    def setUp(self):
+        self.plugin, self.sublime, _ = load_plugin()
+        self.storage = self.plugin.OrgLsp.storage_path()
+        self.empty = tempfile.mkdtemp()
+        os.environ['PATH'], self.path = self.empty, os.environ.get('PATH', '')
+        self.home = os.environ.get('HOME')
+        os.environ['HOME'] = self.empty
+
+    def tearDown(self):
+        os.environ['PATH'] = self.path
+        if self.home is not None:
+            os.environ['HOME'] = self.home
+
+    def test_names_its_settings_whatever_lsp_makes_of_the_name(self):
+        _, path = self.plugin.OrgLsp.configuration()
+        self.assertEqual(path, 'Packages/LSP-org/LSP-org.sublime-settings')
+        self.assertEqual(self.plugin.OrgLsp.name(), 'LSP-org')
+
+    def test_finds_the_server_on_the_search_path_with_cargo_s_folder(self):
+        cargo = os.path.join(self.empty, '.cargo', 'bin')
+        os.makedirs(cargo)
+        binary = os.path.join(cargo, 'org-lsp')
+        open(binary, 'w').close()
+        os.chmod(binary, 0o755)
+        self.assertEqual(self.plugin.server_path(self.storage), binary)
+        self.assertFalse(self.plugin.OrgLsp.needs_update_or_installation())
+        configuration = types.SimpleNamespace(command=['org-lsp'], init_options=types.SimpleNamespace(set=lambda k, v: None))
+        self.plugin.OrgLsp.on_pre_start(None, None, [], configuration)
+        self.assertEqual(configuration.command, [binary])
+
+    def test_a_configured_command_is_used_as_it_is(self):
+        self.sublime.settings['command'] = ['~/bin/org-lsp']
+        self.assertEqual(self.plugin.server_path(self.storage), os.path.join(self.empty, 'bin', 'org-lsp'))
+
+    def test_finds_the_build_of_the_checkout_it_is_linked_from(self):
+        checkout = tempfile.mkdtemp()
+        os.makedirs(os.path.join(checkout, 'editors', 'sublime', 'LSP-org'))
+        os.makedirs(os.path.join(checkout, 'target', 'debug'))
+        build = os.path.join(checkout, 'target', 'debug', 'org-lsp')
+        open(build, 'w').close()
+        os.symlink(os.path.join(checkout, 'editors', 'sublime', 'LSP-org'), os.path.join(self.sublime.packages, 'LSP-org'))
+        self.assertEqual(self.plugin.server_path(self.storage), build)
+
+    def test_downloads_the_nightly_build_when_there_is_none(self):
+        self.assertTrue(self.plugin.OrgLsp.needs_update_or_installation())
+        self.assertIsNotNone(self.plugin.OrgLsp.can_start(None, None, [], None))
+        asked = []
+
+        class Response(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        def urlopen(url, timeout=None):
+            asked.append(url)
+            return Response(archive(b'server'))
+        self.plugin.urllib.request.urlopen = urlopen
+        self.plugin.OrgLsp.install_or_update()
+        self.assertEqual(asked, ['https://github.com/kristijanhusak/org-lsp/releases/download/nightly/org-lsp-linux-x86_64.tar.gz'])
+        binary = os.path.join(self.storage, 'LSP-org', 'org-lsp')
+        with open(binary, 'rb') as written:
+            self.assertEqual(written.read(), b'server')
+        self.assertTrue(os.stat(binary).st_mode & stat.S_IXUSR)
+        self.assertEqual(self.plugin.server_path(self.storage), binary)
+        self.assertFalse(self.plugin.OrgLsp.needs_update_or_installation())
+        self.assertIsNone(self.plugin.OrgLsp.can_start(None, None, [], None))
 
 
 class Help(unittest.TestCase):

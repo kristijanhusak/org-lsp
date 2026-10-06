@@ -4,48 +4,71 @@ A Zed extension that runs Org through the org-lsp server.
 
 ## Install
 
-In Zed, run **zed: install dev extension** and pick this folder
-(`editors/zed`); Zed builds it (with Rust from rustup) and installs it.
-The extension starts `org-lsp` from your PATH, or else downloads the
-nightly build for your platform once.
+1. Install Rust with [rustup](https://rustup.rs): Zed builds dev extensions
+   with it.
+2. In Zed, run **zed: install dev extension** and pick this folder
+   (`editors/zed` of a checkout). Zed builds the extension and installs it.
+3. Add to your settings (**zed: open settings**):
 
-Zed asks language servers for semantic tokens only when told to; the
-server's highlighting needs, in your settings:
+   ```json
+   {
+     "languages": {
+       "Org": { "semantic_tokens": "combined" },
+       "Org Agenda": { "semantic_tokens": "combined" }
+     },
+     "lsp": {
+       "org-lsp": {
+         "initialization_options": { "agendaFiles": ["~/org"] }
+       }
+     }
+   }
+   ```
 
-```json
-{
-  "languages": {
-    "Org": { "semantic_tokens": "full" }
-  },
-  "lsp": {
-    "org-lsp": {
-      "initialization_options": { "agendaFiles": ["~/org"] }
-    }
-  }
-}
-```
+The server needs nothing: the extension starts `org-lsp` from your PATH,
+or else downloads the nightly build for your platform once.
+`lsp.org-lsp.binary.path` names a server binary of your own.
+
+Zed asks a language server for semantic tokens only when a language's
+`semantic_tokens` says so. `combined` colors Org files with the
+tree-sitter grammar and the server's tokens on top; `full` uses the
+server's tokens alone, without the grammar's colors.
 
 `initialization_options` are the server's options
 ([docs/configuration.md](../../docs/configuration.md)); the shared
-`~/.config/org-lsp/config.toml` is read too. `lsp.org-lsp.binary.path`
-names a server binary of your own.
+`~/.config/org-lsp/config.toml` is read too.
+
+## Commands
+
+Zed cannot run a language server's command from a key, so the commands
+are in the **code actions** (**editor: toggle code actions**, `ctrl-.` /
+`cmd-.`), which list what applies where the cursor is:
+
+- In an Org file: change the TODO state (the next one, the previous one,
+  or one picked from a list), the priority, the timestamp under the
+  cursor; toggle a checkbox; clock in and out; refile; archive; open the
+  agenda (this week, the TODO list, or the agenda menu); capture.
+- In the agenda: move it through time (later, earlier, today, day,
+  week), rebuild it, log mode and the clock report; on an entry's line
+  also its state, priority and dates, clocking, refile, archive, and going
+  to the entry.
+- In a capture buffer: file the entry, give up, or refile it.
+
+What a command asks for is asked with buttons: a TODO state, a priority,
+a refile target, a capture template, yes or no. Zed has no way to ask for
+typed text, so the commands that want a date (schedule, deadline) or text
+(a template's `%^{…}` prompts, a tags search) say so and do nothing; set
+those dates in the file itself, where completion helps.
 
 ## What works
 
-- Highlighting from the server (with `semantic_tokens`); without it, the
-  tree-sitter grammar (tree-sitter-org) marks headlines, tags, drawers,
-  blocks and comments.
-- The outline, completion, formatting (**editor: format**: tables aligned,
-  tags in their column; on save if `format_on_save` is on), and the
-  server's indentation of a selection.
-- The editing commands in the code actions (**editor: toggle code
-  actions**, `ctrl-.` / `cmd-.`): change the TODO state, the priority, the
-  timestamp under the cursor, toggle a checkbox, clock in and out.
+- Highlighting from the server, completion, the outline, formatting
+  (**editor: format**: tables aligned, tags in their column; on save if
+  `format_on_save` is on), and the server's indentation of a selection.
+- The commands above.
 
-What does not: Zed cannot bind a key to one of the server's commands, or
-ask for text on a server's behalf, so the agenda, capture, refile and
-the commands that ask for a date are not available, nor is the clock in
-the status bar.
+Not there: the date prompt's calendar, the clock in the status bar, and
+keys of their own for the commands (bind `editor::ToggleCodeActions` to a
+key if the menu is too far away).
 
 ## Development
 

@@ -5,21 +5,49 @@ that runs Org through the org-lsp server.
 
 ## Install
 
-1. Install the LSP package (Package Control: *LSP*).
-2. Copy or link `editors/sublime/LSP-org` into Sublime Text's `Packages`
-   folder (*Preferences → Browse Packages…*), keeping the name `LSP-org`.
-3. Put `org-lsp` on your PATH, or set `command` in
-   *Preferences → Package Settings → LSP → Servers → LSP-org*.
-4. Turn on LSP's `"semantic_highlighting": true` for the server's
-   highlighting.
+From a checkout of this repository:
+
+```sh
+scripts/install-sublime.sh          # links editors/sublime/LSP-org into Packages
+scripts/install-sublime.sh --copy   # or copies it there
+```
+
+It finds Sublime Text's `Packages` folder (set `SUBLIME_PACKAGES` when it
+cannot), puts the package there as `LSP-org`, and adds
+[LSP](https://github.com/sublimelsp/LSP) to Package Control's packages, so
+that it is installed when Sublime Text starts. Then restart Sublime Text
+and open an `.org` file.
+
+By hand: install LSP with Package Control, and copy or link
+`editors/sublime/LSP-org` into the `Packages` folder (*Preferences →
+Browse Packages…*), keeping the name `LSP-org`.
+
+**The server.** Nothing to do: the package starts the first of
+
+1. the `command` set in the settings, when it is not the default
+   `["org-lsp"]`;
+2. `org-lsp` on PATH, or in `~/.cargo/bin`, `~/.local/bin`,
+   `/usr/local/bin` or `/opt/homebrew/bin` (Sublime Text started from a
+   desktop launcher often has a shorter PATH than a terminal);
+3. the build in the checkout the package is linked from
+   (`target/release/org-lsp`, then `target/debug/org-lsp`);
+4. the nightly build for your platform, downloaded once into Sublime
+   Text's `Package Storage/LSP-org`.
+
+*Org: Download the latest server* fetches the nightly build again and
+restarts the server.
+
+**Highlighting** from the server needs LSP's `"semantic_highlighting":
+true` (*Preferences → Package Settings → LSP → Settings*).
 
 ## Settings
 
-`LSP-org.sublime-settings`:
+*Preferences → Package Settings → LSP → Servers → LSP-org*, or
+*Preferences: LSP-org Settings* in the Command Palette:
 
 | Setting | Meaning |
 | --- | --- |
-| `command` | The server command. |
+| `command` | The server command; by default the package finds or downloads it (see above). |
 | `initializationOptions` | The server's options, such as `{"agendaFiles": ["~/org"]}`; see [docs/configuration.md](../../docs/configuration.md). The shared `~/.config/org-lsp/config.toml` is read too. |
 | `org_keys` | The keys: `emacs` (the default), `vim` (for Vintage and NeoVintageous, in command mode) or `custom` (none). |
 | `semantic_tokens` | The scopes of the server's tokens; generated. |

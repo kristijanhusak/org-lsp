@@ -55,6 +55,19 @@ others), as close to Emacs Org mode as it can get.
 
 ### Where to pick up
 
+After #29, on trying Sublime Text and Zed (2026-10-06): the Sublime
+package failed to register with current sublimelsp/LSP (it puts `LSP-`
+before a plugin's name to find its settings: `LSP-LSP-org`); it now names
+its settings file itself, finds the server in more places and downloads
+the nightly build when there is none, and `scripts/install-sublime.sh`
+installs it. In Zed no code action showed: Zed asks an extension's server
+only for the kinds the extension names (`quickfix`, `refactor`, … when it
+names none), so the extension names `org`, and the server takes the empty
+kind as all kinds. Zed also gets more commands as code actions
+(`commandActions`) and asks what they ask with buttons (`messagePrompts`,
+`window/showMessageRequest`). Zed's token rules are applied with the first
+in the file winning, so the rules with a modifier now come first.
+
 The second list asked for on 2026-10-06 is in #29: range formatting
 now aligns tables and tags as whole-file formatting does; custom agenda
 blocks without the blank line above their separator (in editors; the

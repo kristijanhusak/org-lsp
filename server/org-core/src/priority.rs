@@ -58,7 +58,7 @@ impl Priorities {
 
     /// Whether priorities are numbers (`org-priority-number-p` of the
     /// lowest one).
-    fn numeric(&self) -> bool {
+    pub fn numeric(&self) -> bool {
         (0..=64).contains(&self.lowest)
     }
 

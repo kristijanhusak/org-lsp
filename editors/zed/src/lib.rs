@@ -2,10 +2,10 @@
 //!
 //! Starts `org-lsp` for Org files: the one on PATH, or the nightly build,
 //! downloaded once. The server's options come from Zed's `lsp.org-lsp`
-//! settings. The agenda, the date prompt and capture buffers need an
-//! editor that runs the server's commands from keys, which Zed cannot do;
-//! what Zed gets is highlighting, completion, the outline, formatting and
-//! the editing commands in its code actions.
+//! settings. Zed cannot run a server's command from a key, so the commands
+//! are in its code actions (the agenda and capture among them), and what
+//! they ask for is asked with buttons; questions that want typed text (a
+//! date) cannot be asked.
 
 use std::fs;
 
@@ -102,6 +102,11 @@ impl zed::Extension for OrgLsp {
             _ => serde_json::Map::new(),
         };
         options.insert("virtualDocuments".to_string(), serde_json::Value::Bool(false));
+        // Zed runs no command from a key and does nothing with a command's
+        // result: the commands come as code actions, and what they ask
+        // for is asked with buttons.
+        options.insert("commandActions".to_string(), serde_json::Value::Bool(true));
+        options.insert("messagePrompts".to_string(), serde_json::Value::Bool(true));
         Ok(Some(serde_json::Value::Object(options)))
     }
 }

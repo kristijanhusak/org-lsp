@@ -2214,6 +2214,104 @@ fn archives_subtrees() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// A client that runs no command from a key and does nothing with a
+/// command's result (Zed): with `commandActions` the commands are code
+/// actions, the agenda among them, and with `messagePrompts` what they ask
+/// is asked with `window/showMessageRequest`, a button a choice.
+#[test]
+fn offers_commands_as_actions_and_asks_with_buttons() {
+    let mut options = clock();
+    options["todoKeywords"] = json!(["TODO(t)", "WAIT(w)", "|", "DONE(d)"]);
+    options["commandActions"] = json!(true);
+    options["messagePrompts"] = json!(true);
+    options["virtualDocuments"] = json!(false);
+    let capabilities = json!({
+        "workspace": { "workspaceEdit": { "documentChanges": true } },
+        "window": { "showDocument": { "support": true } },
+        "general": { "positionEncodings": ["utf-8"] }
+    });
+    let mut client = Client::start(capabilities, options, None);
+    const WORK_URI: &str = "file:///org/work.org";
+    let mut text = WORK.to_string();
+    client.open(WORK_URI, &text);
+    let kinds = |client: &mut Client, uri: &str, line: u32, only: Value| -> Vec<String> {
+        let actions = client
+            .request(
+                "textDocument/codeAction",
+                json!({
+                    "textDocument": { "uri": uri },
+                    "range": { "start": { "line": line, "character": 0 }, "end": { "line": line, "character": 0 } },
+                    "context": { "diagnostics": [], "only": only }
+                }),
+            )
+            .unwrap();
+        actions.as_array().unwrap().iter().map(|action| action["kind"].as_str().unwrap().to_string()).collect()
+    };
+    let offered = kinds(&mut client, WORK_URI, 1, json!(["org"]));
+    for kind in ["org.todo", "org.priority", "org.refile", "org.agenda.list", "org.agenda.todos", "org.capture"] {
+        assert!(offered.iter().any(|offered| offered == kind), "{kind} in {offered:?}");
+    }
+    // The empty kind is above all the others.
+    assert_eq!(kinds(&mut client, WORK_URI, 1, json!(["", "quickfix"])), offered);
+
+    // `org.todo` asks with buttons, and the one picked runs it again.
+    client.choice = Some("WAIT [w]".to_string());
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": WORK_URI }, "position": { "line": 1, "character": 0 } });
+    client.request("workspace/executeCommand", json!({ "command": "org.todo", "arguments": [context] })).unwrap();
+    client.settle();
+    let asked = client.received.iter().find(|request| request.method == "window/showMessageRequest").expect("asked");
+    let titles: Vec<&str> =
+        asked.params["actions"].as_array().unwrap().iter().map(|action| action["title"].as_str().unwrap()).collect();
+    assert!(titles.contains(&"WAIT [w]") && titles.contains(&"DONE [d]"), "{titles:?}");
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    text = apply(&text, &edits);
+    assert!(text.lines().nth(1).unwrap().starts_with("* WAIT [#A] Write report"), "{text}");
+
+    // What a command has to say comes as a message.
+    client.notifications.clear();
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.priority.down", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let said: Vec<&str> = client
+        .notifications
+        .iter()
+        .filter(|notification| notification.method == "window/showMessage")
+        .filter_map(|notification| notification.params["message"].as_str())
+        .collect();
+    assert_eq!(said, ["Priority of current item set to B"]);
+
+    // The agenda, from a code action, is a file shown to the editor; on its
+    // lines the actions move it through time too.
+    client.received.clear();
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.agenda.list", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    let agenda = shown.params["uri"].as_str().unwrap().to_string();
+    assert!(agenda.ends_with("Agenda.org-agenda"), "{agenda}");
+    let agenda_text = std::fs::read_to_string(agenda.trim_start_matches("file://")).unwrap();
+    client.open(&agenda, &agenda_text);
+    let on_title = kinds(&mut client, &agenda, 0, json!(["org"]));
+    assert!(on_title.iter().any(|kind| kind == "org.agenda.later"), "{on_title:?}");
+    let entry = agenda_text.lines().position(|line| line.contains("Write report")).unwrap() as u32;
+    let on_entry = kinds(&mut client, &agenda, entry, json!(["org"]));
+    assert!(
+        on_entry.iter().any(|kind| kind == "org.todo.next") && on_entry.iter().any(|kind| kind == "org.agenda.later")
+    );
+
+    // A question that wants typed text cannot be asked: the editor is told.
+    client.notifications.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.deadline", "arguments": [context] })).unwrap();
+    client.settle();
+    assert!(client.notifications.iter().any(|notification| notification.method == "window/showMessage"
+        && notification.params["message"].as_str().unwrap().contains("cannot ask for text")));
+    client.shutdown();
+}
+
 /// The shared configuration file's options apply, under the editor's, and
 /// a problem with it is shown to the user.
 #[test]

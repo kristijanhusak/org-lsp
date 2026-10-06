@@ -73,6 +73,10 @@ struct Client {
     virtual_indent: bool,
     /// The client rereads semantic tokens when asked.
     tokens_refresh: bool,
+    /// Ask with `window/showMessageRequest` (`messagePrompts`).
+    message_prompts: bool,
+    /// More commands as code actions (`commandActions`).
+    command_actions: bool,
 }
 
 /// An outgoing request whose answer the server acts on.
@@ -86,6 +90,10 @@ enum Pending {
     Reveal,
     /// The cursor of the date prompt is being moved to the selected day.
     PromptCursor,
+    /// A question of `command`, run with `argument`, asked with
+    /// `window/showMessageRequest` (`messagePrompts`); the answer runs it
+    /// again.
+    Answer { command: String, argument: Value, input: Value },
 }
 
 /// The agenda the client is showing.
@@ -454,6 +462,8 @@ pub fn run(connection: Connection) -> Result<()> {
             .pointer("/capabilities/workspace/semanticTokens/refreshSupport")
             .and_then(Value::as_bool)
             .unwrap_or(false),
+        message_prompts: options.message_prompts.unwrap_or(false),
+        command_actions: options.command_actions.unwrap_or(false),
     };
     let client =
         Client { date_prompt: client.date_prompt && client.virtual_documents && client.show_document, ..client };
@@ -560,6 +570,17 @@ pub fn run(connection: Connection) -> Result<()> {
 
 /// A command's result with what it has to say: `{ "message": … }` on top
 /// of whatever else the result holds.
+/// A choice of a question as a button: its label, and its key when it is
+/// picked by one.
+fn prompt_label(choice: &Value) -> String {
+    let label = choice.get("label").and_then(Value::as_str).unwrap_or("");
+    match choice.get("key").and_then(Value::as_str) {
+        Some(" ") => format!("{label} [SPC]"),
+        Some(key) if key != label && key.chars().count() == 1 => format!("{label} [{key}]"),
+        _ => label.to_string(),
+    }
+}
+
 fn with_message(result: Value, message: Option<String>) -> Value {
     match (result, message) {
         (result, None) => result,
@@ -863,6 +884,13 @@ impl Server {
                     open.moving_cursor = false;
                 }
             }
+            Some(Pending::Answer { command, argument, input }) => {
+                let picked =
+                    response.response_result.ok().and_then(|item| Some(item.get("title")?.as_str()?.to_string()));
+                if let Some(picked) = picked {
+                    self.answer_prompt(command, argument, &input, &picked);
+                }
+            }
             None => {}
         }
     }
@@ -879,14 +907,14 @@ impl Server {
                     },)*
                     ExecuteCommand::METHOD => match parameters::<ExecuteCommandParams>(request) {
                         Ok((id, params)) => {
-                            self.message = None;
-                            self.origin = params
-                                .arguments
-                                .first()
-                                .and_then(|argument| argument.pointer("/textDocument/uri")?.as_str())
-                                .map(str::to_string);
-                            match self.execute_command(params) {
-                                Ok(value) => respond(id, with_message(value, self.message.take())),
+                            let (command, argument) = (params.command.clone(), params.arguments.first().cloned());
+                            match self.run_command(params) {
+                                Ok(value) => {
+                                    if self.client.message_prompts {
+                                        self.prompt_with_messages(command, argument.unwrap_or(Value::Null), &value);
+                                    }
+                                    respond(id, value)
+                                }
                                 Err(refusal) => refused(id, refusal),
                             }
                         }
@@ -1099,15 +1127,33 @@ impl Server {
     fn code_actions(&mut self, params: CodeActionParams) -> Option<Vec<CodeActionOrCommand>> {
         let uri = &params.text_document.uri;
         let only = params.context.only.as_deref();
+        let context = json!({ "textDocument": { "uri": uri }, "position": params.range.start });
+        let as_action = |id: &'static str| {
+            let title = commands::title(id).to_string();
+            CodeActionOrCommand::CodeAction(CodeAction {
+                title: title.clone(),
+                kind: Some(CodeActionKind::new(id)),
+                command: Some(lsp_types::Command {
+                    title,
+                    command: id.to_string(),
+                    arguments: Some(vec![context.clone()]),
+                }),
+                ..Default::default()
+            })
+        };
+        // With `commandActions`, what an editor runs from keys.
+        let more = self.client.command_actions;
         if self.is_view(uri) {
             // On an agenda line the actions are commands: the server
             // edits the entry's file and rebuilds the agenda.
             let (_, line) = self.view_line(uri, params.range.start.line)?;
-            line.entry.as_ref()?;
-            let dated = line.entry.as_ref().is_some_and(|entry| entry.marker.is_some());
+            let entry = line.entry.as_ref();
+            if entry.is_none() && !more {
+                return None;
+            }
+            let dated = entry.is_some_and(|entry| entry.marker.is_some());
             let running = self.running.is_some();
-            let context = json!({ "textDocument": { "uri": uri }, "position": params.range.start });
-            let actions = [
+            let on_entry = [
                 commands::TODO_NEXT,
                 commands::TODO_PREVIOUS,
                 commands::PRIORITY_UP,
@@ -1118,26 +1164,42 @@ impl Server {
                 commands::CLOCK_OUT,
                 commands::ARCHIVE_SUBTREE,
                 commands::AGENDA_GOTO,
-            ]
-            .into_iter()
-            .filter(|id| dated || !matches!(*id, commands::DATE_LATER | commands::DATE_EARLIER))
-            .filter(|id| running || *id != commands::CLOCK_OUT)
-            .filter(|id| actions::requested(id, only))
-            .map(|id| {
-                let title = commands::title(id).to_string();
-                CodeActionOrCommand::CodeAction(CodeAction {
-                    title: title.clone(),
-                    kind: Some(CodeActionKind::new(id)),
-                    command: Some(lsp_types::Command {
-                        title,
-                        command: id.to_string(),
-                        arguments: Some(vec![context.clone()]),
-                    }),
-                    ..Default::default()
-                })
-            })
-            .collect();
+            ];
+            let more_on_entry = [commands::TODO, commands::PRIORITY, commands::REFILE];
+            let anywhere = [
+                commands::AGENDA_LATER,
+                commands::AGENDA_EARLIER,
+                commands::AGENDA_TODAY,
+                commands::AGENDA_DAY,
+                commands::AGENDA_WEEK,
+                commands::AGENDA_REDO,
+                commands::AGENDA_LOG,
+                commands::AGENDA_CLOCKREPORT,
+                commands::AGENDA_DISPATCH,
+            ];
+            let mut ids: Vec<&str> = Vec::new();
+            if entry.is_some() {
+                ids.extend(on_entry);
+                if more {
+                    ids.extend(more_on_entry);
+                }
+            }
+            if more {
+                ids.extend(anywhere);
+            }
+            let actions = ids
+                .into_iter()
+                .filter(|id| dated || !matches!(*id, commands::DATE_LATER | commands::DATE_EARLIER))
+                .filter(|id| running || *id != commands::CLOCK_OUT)
+                .filter(|id| actions::requested(id, only))
+                .map(as_action)
+                .collect();
             return Some(actions);
+        }
+        // The capture buffer: file, give up or refile.
+        if more && self.capture.as_ref().is_some_and(|capture| capture.uri == *uri) {
+            let ids = [commands::CAPTURE_FINISH, commands::CAPTURE_ABORT, commands::CAPTURE_REFILE];
+            return Some(ids.into_iter().filter(|id| actions::requested(id, only)).map(as_action).collect());
         }
         let document = self.document(uri)?;
         let encoding = self.client.encoding;
@@ -1162,7 +1224,6 @@ impl Server {
         // too.
         let in_entry = Self::heading_above(&document.text, offset).is_some();
         let running = self.running.is_some();
-        let context = json!({ "textDocument": { "uri": uri }, "position": params.range.start });
         for (id, offered) in [
             (commands::CLOCK_IN, in_entry),
             (commands::CLOCK_OUT, running),
@@ -1170,21 +1231,18 @@ impl Server {
             (commands::ARCHIVE_SUBTREE, in_entry),
             (commands::ARCHIVE_SIBLING, in_entry),
             (commands::ARCHIVE_TAG, in_entry),
+            (commands::TODO, more && in_entry),
+            (commands::PRIORITY, more && in_entry),
+            (commands::REFILE, more && in_entry),
+            (commands::CLOCK_GOTO, more && running),
+            (commands::AGENDA_LIST, more),
+            (commands::AGENDA_TODOS, more),
+            (commands::AGENDA_DISPATCH, more),
+            (commands::CAPTURE, more),
         ] {
-            if !offered || !actions::requested(id, only) {
-                continue;
+            if offered && actions::requested(id, only) {
+                result.push(as_action(id));
             }
-            let title = commands::title(id).to_string();
-            result.push(CodeActionOrCommand::CodeAction(CodeAction {
-                title: title.clone(),
-                kind: Some(CodeActionKind::new(id)),
-                command: Some(lsp_types::Command {
-                    title,
-                    command: id.to_string(),
-                    arguments: Some(vec![context.clone()]),
-                }),
-                ..Default::default()
-            }));
         }
         Some(result)
     }
@@ -1593,6 +1651,74 @@ impl Server {
     }
 
     // ----- commands
+
+    /// Run a command as `workspace/executeCommand` asks: its result, with
+    /// what it has to say.
+    fn run_command(&mut self, params: ExecuteCommandParams) -> std::result::Result<Value, Refusal> {
+        self.message = None;
+        self.origin = params
+            .arguments
+            .first()
+            .and_then(|argument| argument.pointer("/textDocument/uri")?.as_str())
+            .map(str::to_string);
+        let value = self.execute_command(params)?;
+        Ok(with_message(value, self.message.take()))
+    }
+
+    /// For a client that does nothing with a command's result
+    /// (`messagePrompts`): say its message with `window/showMessage`, and
+    /// ask what it asks for with `window/showMessageRequest`, one button a
+    /// choice.
+    fn prompt_with_messages(&mut self, command: String, argument: Value, result: &Value) {
+        if let Some(message) = result.get("message").and_then(Value::as_str) {
+            self.show_message(MessageType::INFO, message);
+        }
+        let Some(input) = result.get("input") else { return };
+        let prompt = input.get("prompt").and_then(Value::as_str).unwrap_or("").to_string();
+        let choices = input.get("choices").and_then(Value::as_array).cloned().unwrap_or_default();
+        if choices.is_empty() {
+            let message = format!("{prompt}: this editor cannot ask for text; use a date or text in the file instead");
+            self.show_message(MessageType::WARNING, message);
+            return;
+        }
+        let actions = choices
+            .iter()
+            .map(|choice| lsp_types::MessageActionItem { title: prompt_label(choice), properties: HashMap::new() })
+            .collect();
+        let params =
+            lsp_types::ShowMessageRequestParams { typ: MessageType::INFO, message: prompt, actions: Some(actions) };
+        let pending = Pending::Answer { command, argument, input: input.clone() };
+        self.send_request::<lsp_types::request::ShowMessageRequest>(params, Some(pending));
+    }
+
+    /// The answer to a question asked by [`Server::prompt_with_messages`]:
+    /// run the command again with it, as an editor does.
+    fn answer_prompt(&mut self, command: String, argument: Value, input: &Value, picked: &str) {
+        let choices = input.get("choices").and_then(Value::as_array).cloned().unwrap_or_default();
+        let Some(key) =
+            choices.iter().find(|choice| prompt_label(choice) == picked).and_then(|choice| choice.get("key"))
+        else {
+            return;
+        };
+        let mut argument = match argument {
+            Value::Object(fields) => fields,
+            _ => serde_json::Map::new(),
+        };
+        if let Some(Value::Object(context)) = input.get("context") {
+            argument.extend(context.clone());
+        }
+        argument.insert("input".to_string(), key.clone());
+        let argument = Value::Object(argument);
+        let params = ExecuteCommandParams {
+            command: command.clone(),
+            arguments: vec![argument.clone()],
+            work_done_progress_params: Default::default(),
+        };
+        match self.run_command(params) {
+            Ok(value) => self.prompt_with_messages(command, argument, &value),
+            Err(refusal) => self.show_message(MessageType::WARNING, refusal.message()),
+        }
+    }
 
     fn execute_command(&mut self, params: ExecuteCommandParams) -> std::result::Result<Value, Refusal> {
         let argument = params.arguments.into_iter().next();
@@ -2889,7 +3015,20 @@ impl Server {
         .unwrap_or(settings);
         let Some(answer) = &context.input else {
             let question = priority::question(&priorities);
-            return Ok(json!({ "input": { "kind": "priority", "prompt": question, "value": "" } }));
+            let mut input = json!({ "kind": "priority", "prompt": question, "value": "" });
+            // A client that asks with buttons gets the priorities to pick.
+            if self.client.message_prompts {
+                let name = |value: i64| match u8::try_from(value) {
+                    Ok(code) if !priorities.numeric() => char::from(code).to_string(),
+                    _ => value.to_string(),
+                };
+                let mut choices: Vec<Value> = (priorities.highest..=priorities.lowest)
+                    .map(|value| json!({ "key": name(value), "label": name(value) }))
+                    .collect();
+                choices.push(json!({ "key": " ", "label": "Remove" }));
+                input["choices"] = json!(choices);
+            }
+            return Ok(json!({ "input": input }));
         };
         let action = priority::read_answer(answer, &priorities)?;
         self.edit(context, commands::PRIORITY, Some(EditCommand::Priority(action)))?;
