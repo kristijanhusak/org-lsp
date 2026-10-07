@@ -3120,3 +3120,42 @@ fn aligns_tags_to_the_window() {
     assert_eq!(tags_end(&client.refetch_view()), 70);
     client.shutdown();
 }
+
+/// A hover over an agenda line shows its entry: the headline and its text,
+/// drawers folded, as Org in Markdown. Other lines, and Org files, have
+/// none.
+#[test]
+fn hover_shows_the_entry() {
+    let mut client = Client::editor(clock(), None);
+    let work = "\
+#+CATEGORY: work
+* TODO [#A] Write report                                            :office:
+SCHEDULED: <2026-05-18 Mon 09:00>
+:PROPERTIES:
+:ID: 1
+:END:
+Draft the summary.
+** Sub
+* Next
+";
+    client.open("file:///org/work.org", work);
+    client.command("org.agenda.list", "file:///org/work.org", 0);
+    client.show_view();
+    let hover = |client: &mut Client, uri: &str, line: u32| {
+        client
+            .request(
+                "textDocument/hover",
+                json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": 2 } }),
+            )
+            .unwrap()
+    };
+    let shown = hover(&mut client, VIEW, 3);
+    assert_eq!(shown["contents"]["kind"], "markdown");
+    assert_eq!(
+        shown["contents"]["value"],
+        "```org\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n:PROPERTIES:...\nDraft the summary.\n```"
+    );
+    assert_eq!(hover(&mut client, VIEW, 1), Value::Null);
+    assert_eq!(hover(&mut client, "file:///org/work.org", 1), Value::Null);
+    client.shutdown();
+}

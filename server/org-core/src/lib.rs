@@ -21,6 +21,7 @@ pub mod newline;
 pub mod open;
 pub mod outline;
 pub mod planning;
+pub mod preview;
 pub mod priority;
 pub mod read_date;
 pub mod refile;

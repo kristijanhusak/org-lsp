@@ -619,6 +619,17 @@ describe('The agenda', () => {
     assert.ok(found.some(([line, text, type]) => line === 3 && text === 'TODO' && type === 'todoKeyword'));
   });
 
+  it('shows the entry of a line on hover', async () => {
+    const uri = vscode.window.activeTextEditor.document.uri;
+    const hovers = await until('a hover', async () => {
+      const found = await vscode.commands.executeCommand('vscode.executeHoverProvider', uri, new vscode.Position(3, 30));
+      return found && found.length > 0 && found;
+    });
+    const text = hovers[0].contents.map((content) => content.value ?? content).join('\n');
+    assert.ok(text.includes('* TODO [#A] Write report :office:'), text);
+    assert.ok(text.includes('SCHEDULED: <2026-05-18 Mon 09:00>'), text);
+  });
+
   it('moves through time, with the cursor following the new text', async () => {
     await vscode.commands.executeCommand('org.agenda.later');
     await agenda('Week-agenda (W22):');

@@ -189,6 +189,9 @@ subtree at the cursor.
 - **`<Leader><CR>`** and its neighbours put the new heading, item or table
   row below the cursor's line, wherever on it the cursor is: never above
   it, and nothing is split. Typing goes on in insert mode.
+- **`K`** in the agenda (Neovim's hover) shows the line's entry in a float
+  at the cursor: its headline and its text, each drawer folded to its
+  first line (`:PROPERTIES:...`).
 - **`cid`** leaves the cursor where it was in the timestamp it changes,
   and a date asked for in the calendar goes back to the window it was
   asked from.
