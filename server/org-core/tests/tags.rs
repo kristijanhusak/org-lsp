@@ -46,7 +46,9 @@ fn run(case: &Value) -> Option<Result<String, String>> {
     let chosen = if tags::uses_fast_selection(&table, &settings) {
         let selection = Selection::new(&table);
         let mut state = State { current: tags::local_tags(line), groups: true, exit_after_next: settings.single_key };
-        let mut keys = case["typed"].as_str().unwrap().chars();
+        // A case that answers the completion prompt presses RET here.
+        let typed = if case.get("answer").is_some() { "\r" } else { case["typed"].as_str().unwrap() };
+        let mut keys = typed.chars();
         loop {
             let Some(key) = keys.next() else { return Some(Err("End of keyboard macro".to_string())) };
             let step = match tags::press(&mut state, key, &selection) {
@@ -58,6 +60,9 @@ fn run(case: &Value) -> Option<Result<String, String>> {
             };
             match step {
                 Step::Again | Step::Type => {}
+                // Keys left after the selection ended go into the
+                // buffer in Emacs: nothing to compare.
+                Step::Accept if keys.clone().next().is_some() => return None,
                 Step::Accept => break tags::parse_tags(&state.current.join(":")),
                 Step::Quit => return Some(Err("Quit".to_string())),
             }
@@ -78,6 +83,11 @@ fn sets_tags_as_emacs_does() {
     for case in &cases {
         // Emacs stuck at its prompt in batch mode: nothing to compare.
         if case["expected"]["error"] == "Emacs did not finish" {
+            continue;
+        }
+        // Emacs failing on its own: `!` with no exclusive groups makes its
+        // groups `t`, which the next tag added cannot go through.
+        if case["expected"]["error"].as_str().is_some_and(|error| error.starts_with("Wrong type argument")) {
             continue;
         }
         let Some(outcome) = run(case) else { continue };

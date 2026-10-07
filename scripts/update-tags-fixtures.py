@@ -28,7 +28,7 @@ DOCUMENTS = [
 ]
 FAST = ["\r", "w\r", "wo\r", "om\r", "owm\r", " \r", "w w\r", "ho\r", "!om\r", "\tnew\r\r",
         "x\r", "q", "ac\r", "ab\r", "cp\r", "a\r", "zz\r", "tw\r"]
-ANSWERS = ["", "new", "a:b", ":x:y:", "bad!char", "work::home"]
+ANSWERS = ["", "new", "a:b", ":x:y:", "bad!char", "é:ü", "one two", " spaced : tags ", "work::home"]
 OPTIONS = [
     {},
     {"org_fast_tag_selection_single_key": True},
@@ -49,8 +49,7 @@ for text in DOCUMENTS:
             for typed in FAST:
                 CASES.append({"text": text, "point": point, "typed": typed, "options": options})
             for answer in ANSWERS:
-                typed = "\x01\x0b" + answer + "\r"
-                CASES.append({"text": text, "point": point, "typed": typed, "answer": answer, "options": options})
+                CASES.append({"text": text, "point": point, "typed": "", "answer": answer, "options": options})
 
 if __name__ == "__main__":
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tests", "tags", "cases.json")

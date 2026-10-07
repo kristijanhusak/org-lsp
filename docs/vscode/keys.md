@@ -126,7 +126,6 @@ The other options are in [configuration.md](configuration.md).
 | `+`, `Shift+Up` | `org.priority.up` | Raise the priority |
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
-| `:` | `org.tags.set` | Set the tags of the headline |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
@@ -214,7 +213,6 @@ The other options are in [configuration.md](configuration.md).
 | `+`, `Shift+Up` | `org.priority.up` | Raise the priority |
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
-| `:` | `org.tags.set` | Set the tags of the headline |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |

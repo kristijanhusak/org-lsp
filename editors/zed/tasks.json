@@ -312,19 +312,6 @@
     "use_new_terminal": false
   },
   {
-    "label": "Org agenda: Set the tags of the headline",
-    "command": "$HOME/.local/state/org-lsp/agenda-command org.tags.set",
-    "tags": [
-      "org-agenda"
-    ],
-    "reveal": "never",
-    "hide": "on_success",
-    "show_summary": false,
-    "show_command": false,
-    "allow_concurrent_runs": true,
-    "use_new_terminal": false
-  },
-  {
     "label": "Org agenda: Refile the entry",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.refile",
     "tags": [

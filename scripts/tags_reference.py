@@ -3,8 +3,8 @@ document, where the cursor is, what is typed, and the options; record the
 document after it, or the error.
 
 A case has `text`, `point` (0-based), `typed` (the keys after `C-c C-q`,
-as characters: `\\r` for RET, `\\t` for TAB; at the completion prompt the
-answer, typed after the initial input is cleared) and `options`:
+as characters: `\\r` for RET, `\\t` for TAB), or `answer`, what the completion prompt returns when the
+tags are typed, and `options`:
 `org_tag_alist`, `org_tag_persistent_alist` (strings written as
 `#+TAGS:` lines), `org_use_fast_tag_selection` (`true`, `false` or
 `"auto"`), `org_fast_tag_selection_single_key`, `org_tags_sort_function`
@@ -20,7 +20,13 @@ DRIVER = r"""
 (require 'org)
 (require 'json)
 (setq-default indent-tabs-mode nil)
-(defun org-lsp-tags-case (in out point typed alist persistent fast single sort align)
+(require 'cl-lib)
+(defun org-lsp-tags-case (in out point typed answer alist persistent fast single sort align)
+  ;; The completion prompt answers at once, as `completing-read-multiple'
+  ;; splits what is typed; without an answer it is not expected.
+  (cl-letf (((symbol-function 'completing-read-multiple)
+             (lambda (&rest _)
+               (if answer (split-string answer "[ \t]*:[ \t]*" t) (error "Asked to type the tags")))))
   (let ((org-tag-alist (org-tag-string-to-alist alist))
         (org-tag-persistent-alist (org-tag-string-to-alist persistent))
         (org-use-fast-tag-selection fast)
@@ -32,11 +38,21 @@ DRIVER = r"""
       (org-mode)
       (switch-to-buffer (current-buffer))
       (goto-char (1+ point))
-      (setq last-command nil this-command nil real-this-command nil real-last-command nil)
+      (setq last-command nil this-command nil real-this-command nil real-last-command nil
+            unread-command-events nil)
       (let* ((buffer (current-buffer))
              (result
               (condition-case err
-                  (progn (execute-kbd-macro (concat (kbd "C-c C-q") typed)) nil)
+                  (progn
+                    (if answer
+                        ;; RET waits for fast tag selection, which takes it as
+                        ;; the answer; the completion prompt answers itself.
+                        (unwind-protect
+                            (progn (setq unread-command-events (list ?\r))
+                                   (call-interactively #'org-set-tags-command))
+                          (setq unread-command-events nil))
+                      (execute-kbd-macro (concat (kbd "C-c C-q") typed)))
+                    nil)
                 (error (error-message-string err))
                 (quit "Quit")))
              (text (with-current-buffer buffer (buffer-substring-no-properties (point-min) (point-max)))))
@@ -44,7 +60,7 @@ DRIVER = r"""
           (insert (json-encode
                    (if result
                        (list (cons 'error result))
-                     (list (cons 'text text))))))))))
+                     (list (cons 'text text)))))))))))
 """
 
 
@@ -104,6 +120,7 @@ def run(cases, timeout):
             forms.append(
                 f"(org-lsp-tags-case {lisp_string(source)} {lisp_string(target)} {case['point']}"
                 f" {lisp_string(case['typed'])}"
+                f" {lisp_string(case['answer']) if 'answer' in case else 'nil'}"
                 f" {lisp_string(options.get('org_tag_alist', ''))}"
                 f" {lisp_string(options.get('org_tag_persistent_alist', ''))}"
                 f" {lisp_value(options.get('org_use_fast_tag_selection'), 'auto')}"

@@ -4127,7 +4127,7 @@ impl Server {
         Ok(Value::Null)
     }
 
-    /// `org-set-tags-command` (`C-c C-q`; `:` in the agenda, for the line's
+    /// `org-set-tags-command` (`C-c C-q`; in the agenda for the line's
     /// entry). With fast tag selection it asks for one key at a time
     /// (input kind `key`), each turning a tag on or off, until RET; the
     /// tags so far travel in the input's `context` (`answers`: the mode,

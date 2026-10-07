@@ -3381,16 +3381,6 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
-        "command": "org.tags.set",
-        "key": "shift+;",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.tags.set",
-        "key": "shift+;",
-        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
-      },
-      {
         "command": "org.refile",
         "key": "ctrl+c ctrl+w",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"

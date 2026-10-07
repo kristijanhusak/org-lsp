@@ -185,8 +185,8 @@ pub fn current_alist(text: &str, settings: &Settings) -> Vec<TagEntry> {
     add_to_alist(&settings.persistent, &local)
 }
 
-/// `org-get-buffer-tags`: the tags of the headlines, in the order they
-/// first appear, then those of `#+FILETAGS:`.
+/// `org-get-buffer-tags`: the tags of the headlines and of `#+FILETAGS:`,
+/// last seen first, as `hash-table-keys` gives them back.
 pub fn buffer_tags(text: &str) -> Vec<String> {
     static FILETAGS: LazyLock<Regex> = LazyLock::new(|| {
         Regex::new(r"(?mi)^[ \t]*#\+FILETAGS:[ \t]*(.*?)[ \t]*$").expect("the keyword regexp is valid")
@@ -209,6 +209,7 @@ pub fn buffer_tags(text: &str) -> Vec<String> {
             }
         }
     }
+    tags.reverse();
     tags
 }
 
@@ -349,9 +350,10 @@ pub fn add_or_remove(tag: &str, current: &[String], groups: Option<&[Vec<String>
     out
 }
 
-/// The tags in the order fast selection shows them, as Emacs 29's `sort`
-/// (a stable merge sort) orders them with `org-fast-tag-selection`'s
-/// predicate: `a` before `b` when `b` is shown after `a`.
+/// The tags in the order fast selection shows them, as Emacs's `sort`
+/// orders them with `org-fast-tag-selection`'s predicate: `a` before `b`
+/// when `b` is shown after `a`. Tags not shown, or shown more than once,
+/// make the predicate no order, so how `sort` works decides.
 pub fn sort_shown(current: &[String], selection: &Selection) -> Vec<String> {
     let position = |tag: &str| selection.keys.iter().position(|(shown, _)| shown == tag);
     let before = |a: &String, b: &String| -> bool {
@@ -360,33 +362,43 @@ pub fn sort_shown(current: &[String], selection: &Selection) -> Vec<String> {
             None => false,
         }
     };
-    merge_sort(current.to_vec(), &before)
+    let mut tags = current.to_vec();
+    tim_sort(&mut tags, &before);
+    tags
 }
 
-/// Emacs 29's `sort` of a list: the first half and the second, each
-/// sorted, merged taking from the second only what goes before.
-fn merge_sort(list: Vec<String>, before: &dyn Fn(&String, &String) -> bool) -> Vec<String> {
+/// Emacs's `sort` (`tim_sort` in `sort.c`) for fewer than 64 elements:
+/// the run at the start (reversed when strictly descending), then a
+/// binary insertion of each element after it.
+fn tim_sort(list: &mut [String], before: &dyn Fn(&String, &String) -> bool) {
     let length = list.len();
     if length < 2 {
-        return list;
+        return;
     }
-    let mut front = list;
-    let back = front.split_off(length / 2);
-    let (front, back) = (merge_sort(front, before), merge_sort(back, before));
-    let mut out = Vec::with_capacity(length);
-    let (mut i, mut j) = (0, 0);
-    while i < front.len() && j < back.len() {
-        if before(&back[j], &front[i]) {
-            out.push(back[j].clone());
-            j += 1;
-        } else {
-            out.push(front[i].clone());
-            i += 1;
+    let mut run = 2;
+    if before(&list[1], &list[0]) {
+        while run < length && before(&list[run], &list[run - 1]) {
+            run += 1;
+        }
+        list[..run].reverse();
+    } else {
+        while run < length && !before(&list[run], &list[run - 1]) {
+            run += 1;
         }
     }
-    out.extend_from_slice(&front[i..]);
-    out.extend_from_slice(&back[j..]);
-    out
+    for start in run..length {
+        let pivot = list[start].clone();
+        let (mut low, mut high) = (0, start);
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if before(&pivot, &list[middle]) {
+                high = middle;
+            } else {
+                low = middle + 1;
+            }
+        }
+        list[low..=start].rotate_right(1);
+    }
 }
 
 /// What a key does in fast tag selection.

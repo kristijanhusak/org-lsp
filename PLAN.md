@@ -545,6 +545,8 @@ Emacs in `tests/tblfm/cases.json`.
   | Cut, copy, paste subtrees (`org-cut-subtree`, `org-copy-subtree`, `org-paste-subtree`, with the kill ring) | `tests/subtree/cases.json` | `scripts/update-subtree-fixtures.py` | `scripts/fuzz-subtree.py` |
   | Sorting entries (`org-sort-entries`, every sorting type, in the C locale at a fixed time) | `tests/sort/cases.json` | `scripts/update-sort-fixtures.py` | `scripts/fuzz-sort.py` |
   | Sparse trees (`org-occur`, `org-show-todo-tree`, `org-match-sparse-tree`, `org-check-deadlines` and the date checks): the matches | `tests/sparse/cases.json` | `scripts/update-sparse-fixtures.py` | |
+  | List items: the meta and shifted keys, `C-c C-c` and `C-c ^` on an item | `tests/lists/cases.json` | `scripts/update-lists-fixtures.py` | `scripts/fuzz-lists.py` |
+  | Setting tags (`org-set-tags-command`: fast tag selection by key, the completion prompt's answer) | `tests/tags/cases.json` | `scripts/update-tags-fixtures.py` | `scripts/fuzz-tags.py` |
   | Archiving | `tests/archive/cases.json` | `scripts/update-archive-fixtures.py` | `scripts/fuzz-archive.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.

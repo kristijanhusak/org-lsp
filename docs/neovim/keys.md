@@ -115,7 +115,7 @@ The other options are in [configuration.md](configuration.md).
 | `+`, `<S-Up>` | `org.priority.up` | Raise the priority |
 | `-`, `<S-Down>` | `org.priority.down` | Lower the priority |
 | `,`, `<Leader>o,` | `org.priority` | Set the priority |
-| `:`, `<Leader>ot` | `org.tags.set` | Set the tags of the headline |
+| `<Leader>ot` | `org.tags.set` | Set the tags of the headline |
 | `<C-c><C-w>`, `<Leader>or` | `org.refile` | Refile the entry |
 | `z`, `<Leader>ona` | `org.add.note` | Add a note to the entry |
 | `<C-c><C-o>`, `<Leader>oo` | `org.open` | Open the link or thing at the cursor |

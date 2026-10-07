@@ -98,6 +98,9 @@ pub struct Command {
     /// The command reads what the editor would paste: its context has the
     /// text in `clipboard` (Emacs's latest kill).
     pub clipboard: bool,
+    /// The command works on an agenda line, which has no key of its own
+    /// for it: the vim preset gives it its leader keys there.
+    pub in_agenda: bool,
 }
 
 /// Input a command asks for.
@@ -209,11 +212,11 @@ pub const CALENDAR_CANCEL: &str = "org.calendar.cancel";
 use Scope::{Agenda, Calendar, Capture, Global, Org};
 
 const fn command(id: &'static str, title: &'static str) -> Command {
-    Command { id, title, edits: false, emacs: &[], vim: &[], input: None, clipboard: false }
+    Command { id, title, edits: false, emacs: &[], vim: &[], input: None, clipboard: false, in_agenda: false }
 }
 
 const fn edit(id: &'static str, title: &'static str) -> Command {
-    Command { id, title, edits: true, emacs: &[], vim: &[], input: None, clipboard: false }
+    Command { id, title, edits: true, emacs: &[], vim: &[], input: None, clipboard: false, in_agenda: false }
 }
 
 const fn ask_date(id: &'static str, title: &'static str, prompt: &'static str) -> Command {
@@ -314,8 +317,9 @@ pub const COMMANDS: &[Command] = &[
     // (fast tag selection, each key turning its tag on or off until RET),
     // or typed; in the agenda for the line's entry.
     Command {
-        emacs: &[key(Org, "C-c C-q"), key(Agenda, ":")],
+        emacs: &[key(Org, "C-c C-q")],
         vim: &[key(Org, "<Leader>ot")],
+        in_agenda: true,
         input: Some(Input { kind: "key", prompt: "Tags" }),
         ..edit(SET_TAGS, "Set the tags of the headline")
     },
@@ -705,7 +709,7 @@ pub fn manifest() -> Value {
             // leader keys it has in Org files (`<Leader>ois`), where the
             // hands look for them. Editors that cannot bind the leader
             // leave them out, so the agenda's keys stay the same there.
-            let leader: Vec<(String, &Key)> = if agenda.is_empty() {
+            let leader: Vec<(String, &Key)> = if agenda.is_empty() && !command.in_agenda {
                 Vec::new()
             } else {
                 command
