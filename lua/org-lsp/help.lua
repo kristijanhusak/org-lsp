@@ -2,6 +2,7 @@
 --- files, capture buffers and the agenda. They are the keys this plugin
 --- set, the user's included, with what each does.
 local M = {}
+local notify = require('org-lsp.notify')
 
 local SCOPE_TITLES = {
   org = 'Org file',
@@ -68,7 +69,7 @@ end
 function M.show()
   local lines, headings = M.lines(M.scopes(vim.api.nvim_get_current_buf()))
   if #lines == 0 then
-    return vim.notify('org-lsp: no keys are set here', vim.log.levels.INFO)
+    return notify('org-lsp: no keys are set here', vim.log.levels.INFO)
   end
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)

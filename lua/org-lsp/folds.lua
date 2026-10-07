@@ -3,6 +3,7 @@
 --- The server says where folds are; opening and closing them is the
 --- editor's job. These two commands reproduce Org's TAB and S-TAB.
 local M = {}
+local notify = require('org-lsp.notify')
 
 --- The folding ranges of the current buffer, as { start, finish } pairs of
 --- 1-based line numbers, or nil when the server cannot be asked.
@@ -94,7 +95,7 @@ function M.cycle()
 
   local function stays_closed()
     if archived(bufnr, start) then
-      vim.notify('Subtree is archived and stays closed', vim.log.levels.INFO)
+      notify('Subtree is archived and stays closed', vim.log.levels.INFO)
     end
   end
   if vim.fn.foldclosed(start) ~= -1 then
