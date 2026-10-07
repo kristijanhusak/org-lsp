@@ -1175,6 +1175,32 @@ end)
 vim.cmd('redraw')
 eq(vim.api.nvim_win_get_cursor(0), { 21, 0 }, 'the cursor on its line, a line further down')
 eq(vim.fn.line('w0'), 1, 'and the window still starting with the first line')
+-- The file was changed where it was asked from: it stays unsaved, as in
+-- Emacs (`auto_save` is for the files a command changes elsewhere).
+check(vim.bo.modified, 'the file is not saved after a date went in')
+-- With 'scrolloff', which moves the cursor of a window that is scrolled:
+-- the cursor stays on its text and the window on its lines all the same,
+-- and the calendar shows whole.
+vim.o.scrolloff = 8
+vim.api.nvim_win_set_cursor(0, { 44, 2 })
+vim.cmd('normal! zz')
+local top = vim.fn.line('w0')
+vim.cmd('Org schedule')
+wait('the calendar with scrolloff', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return date_prompt() ~= nil
+end)
+eq(vim.wo[date_prompt()].scrolloff, 0, 'no scrolloff in the calendar')
+vim.cmd('redraw')
+press('<CR>')
+wait('the calendar to close with scrolloff', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return date_prompt() == nil and line(44):match('^SCHEDULED: ') ~= nil
+end)
+vim.cmd('redraw')
+eq(vim.api.nvim_win_get_cursor(0), { 45, 2 }, 'with scrolloff, the cursor on its line, a line further down')
+eq(vim.fn.line('w0'), top, 'with scrolloff, the window on its lines')
+vim.o.scrolloff = 0
 -- `calendar_win_mode` 'cursor': a floating window below the cursor.
 require('org-lsp').config.calendar_win_mode = 'cursor'
 vim.cmd('Org schedule')

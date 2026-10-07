@@ -107,6 +107,7 @@ impl DatePrompt {
         typed: String,
         now: DateTime,
         settings: &Settings,
+        months: usize,
     ) -> DatePrompt {
         let selected = default.unwrap_or(now).day;
         let mut prompt = DatePrompt {
@@ -118,7 +119,7 @@ impl DatePrompt {
             typed,
             selected,
             moved: false,
-            calendar: Calendar::around(selected),
+            calendar: Calendar::around(selected, months),
             text: String::new(),
             tokens: Vec::new(),
             reveal: true,
@@ -201,7 +202,7 @@ impl DatePrompt {
         self.selected = day;
         self.moved = true;
         if !self.calendar.shows(day) {
-            self.calendar = Calendar::around(day);
+            self.calendar = Calendar::around(day, self.calendar.months);
         }
         self.render(now, settings);
         self.reveal = true;
@@ -344,6 +345,7 @@ mod tests {
             "10:00".to_string(),
             now(),
             &Settings::default(),
+            3,
         )
     }
 

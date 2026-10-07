@@ -555,6 +555,14 @@ pub const SETTINGS: &[Setting] = &[
          `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
     ),
     setting(
+        "calendar_months",
+        "1 | 3",
+        "3",
+        "",
+        "How many months the calendar of the date prompt shows: 3 side by side, as Emacs's calendar shows them, \
+         the one with the selected day in the middle; or 1, that month alone, for a narrow window.",
+    ),
+    setting(
         "emacs",
         "string",
         r#""emacs""#,
@@ -1191,6 +1199,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_link_descriptive", BOOLEAN),
     ("org_hide_emphasis_markers", BOOLEAN),
     ("return_uses_meta_return", BOOLEAN),
+    ("calendar_months", r#"{ "enum": [1, 3] }"#),
     ("emacs", STRING),
     ("emacs_config_file", STRING),
     ("emacs_config", STRING),

@@ -195,12 +195,23 @@ the calendar Emacs shows with the prompt. `calendar_win_mode` says where.
 `'cursor'`), as `nvim_open_win()` takes it: `'rounded'` unset, `'none'` for
 none.
 
+The calendar shows three months, as Emacs's does; the server's
+`calendar_months` option set to `1` shows the month of the selected day
+alone, which suits a floating window:
+
 ```lua
-require('org-lsp').setup({ calendar_win_mode = 'cursor', calendar_border = 'single' })
+require('org-lsp').setup({
+  calendar_win_mode = 'cursor',
+  calendar_border = 'single',
+  settings = { calendar_months = 1 },
+})
 ```
 
-The window the calendar was asked from starts with the same line once the
-calendar closes, as in Emacs, also when the date went in above the cursor.
+Once the calendar closes, the window it was asked from shows what it
+showed before (`winsaveview()`, `winrestview()`): the same first line and
+the cursor on the same text, moved down with it when the date went in
+above, as in Emacs, whatever 'scrolloff' and 'splitkeep' are. The
+calendar itself shows whole, its months' names included.
 
 ## The clock in the statusline
 
@@ -573,6 +584,11 @@ require('org-lsp').setup({
     -- Off, RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`,
     -- Shift+Enter, with the vim keys) always does it.
     return_uses_meta_return = false,
+
+    -- How many months the calendar of the date prompt shows: 3 side by side,
+    -- as Emacs's calendar shows them, the one with the selected day in the
+    -- middle; or 1, that month alone, for a narrow window.
+    calendar_months = 3,
 
     -- The Emacs program, for what only Org itself does: export
     -- (`org.export.dispatch`). The server starts it (`emacs --batch -Q`) when

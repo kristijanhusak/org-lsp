@@ -29,37 +29,62 @@ end
 --- The lines the windows the plugin opens came from start with.
 local view_namespace = vim.api.nvim_create_namespace('org_lsp_view')
 
---- Remember the line the window `from` starts with, for when the window
---- about to open from it closes. A split takes lines from it, and with
---- 'splitkeep' "cursor" Neovim scrolls it then, and again when the split
---- closes; lines the command adds above its cursor in between leave it
---- scrolled. Emacs keeps the line a window starts with. The mark moves
---- with the edits.
+--- Remember the view of the window `from` (`winsaveview()`), for when the
+--- window about to open from it closes. A split takes lines from it, and
+--- with 'splitkeep' "cursor" or 'scrolloff' Neovim scrolls it then and
+--- moves its cursor, and again when the split closes; lines a command adds
+--- above the cursor in between leave both off. Emacs keeps the line a
+--- window starts with and the cursor on its text. The line the window
+--- starts with and, with `cursor`, the cursor are marks, which move with
+--- the edits; the rest of the view is kept as it was.
 ---@param from integer
+---@param cursor? boolean
 ---@return table
-local function keep_view(from)
+local function keep_view(from, cursor)
   local bufnr = vim.api.nvim_win_get_buf(from)
-  local top = vim.api.nvim_win_call(from, function()
-    return vim.fn.line('w0')
-  end)
-  local mark = vim.api.nvim_buf_set_extmark(bufnr, view_namespace, top - 1, 0, { right_gravity = false })
-  return { bufnr = bufnr, mark = mark }
+  local view = vim.api.nvim_win_call(from, vim.fn.winsaveview)
+  local kept = { bufnr = bufnr, view = view }
+  -- Lines put in where a mark is go before it: Emacs puts a planning line
+  -- in at the end of the headline's line, before the next line's start,
+  -- where the edit's difference puts it.
+  kept.top = vim.api.nvim_buf_set_extmark(bufnr, view_namespace, view.topline - 1, 0, {})
+  if cursor then
+    kept.cursor = vim.api.nvim_buf_set_extmark(bufnr, view_namespace, view.lnum - 1, view.col, {})
+  end
+  return kept
 end
 
---- The window `from` starts with the line `keep_view` remembered again.
+--- The window `from` shows what `keep_view` remembered again
+--- (`winrestview()`), the line it starts with and the cursor where the
+--- edits since took them.
 ---@param from integer
 ---@param kept? table
 local function restore_view(from, kept)
   if not kept or not vim.api.nvim_buf_is_valid(kept.bufnr) then
     return
   end
-  local row = vim.api.nvim_buf_get_extmark_by_id(kept.bufnr, view_namespace, kept.mark, {})[1]
-  vim.api.nvim_buf_del_extmark(kept.bufnr, view_namespace, kept.mark)
-  if row and vim.api.nvim_win_is_valid(from) and vim.api.nvim_win_get_buf(from) == kept.bufnr then
-    vim.api.nvim_win_call(from, function()
-      vim.fn.winrestview({ topline = row + 1 })
-    end)
+  local function take(mark)
+    if not mark then
+      return nil
+    end
+    local position = vim.api.nvim_buf_get_extmark_by_id(kept.bufnr, view_namespace, mark, {})
+    vim.api.nvim_buf_del_extmark(kept.bufnr, view_namespace, mark)
+    return position[1] and position or nil
   end
+  local top, cursor = take(kept.top), take(kept.cursor)
+  if not top or not vim.api.nvim_win_is_valid(from) or vim.api.nvim_win_get_buf(from) ~= kept.bufnr then
+    return
+  end
+  local view = { topline = top[1] + 1 }
+  if cursor then
+    view = vim.tbl_extend('force', kept.view, view, { lnum = cursor[1] + 1, col = cursor[2] })
+    if cursor[2] ~= kept.view.col then
+      view.curswant = cursor[2]
+    end
+  end
+  vim.api.nvim_win_call(from, function()
+    vim.fn.winrestview(view)
+  end)
 end
 
 --- Whether `win` shows nothing: a buffer without a name, unchanged and
@@ -114,11 +139,13 @@ end
 --- window it opened for it.
 ---@param bufnr integer
 ---@param mode string|fun(bufnr: integer): integer?
+---@param cursor? boolean whether the cursor of the window it opens from is
+--- put back where its text went when it closes (a capture or note buffer)
 ---@return integer
-local function open_window(bufnr, mode)
+local function open_window(bufnr, mode, cursor)
   local win
   local from = vim.api.nvim_get_current_win()
-  local kept = keep_view(from)
+  local kept = keep_view(from, cursor)
   local size = require('org-lsp').config.win_split_size
   if type(size) ~= 'number' or size <= 0 then
     size = nil
@@ -259,7 +286,7 @@ local function prompt_window(bufnr)
   local from = vim.api.nvim_get_current_win()
   local mode = require('org-lsp').config.calendar_win_mode or 'bottom'
   if not win then
-    local kept = keep_view(from)
+    local kept = keep_view(from, true)
     -- Asked from a floating window, such as the agenda in one, a split at
     -- the bottom would be under it: the calendar floats at the bottom
     -- instead.
@@ -320,6 +347,16 @@ local function prompt_window(bufnr)
   vim.wo[win][0].relativenumber = false
   vim.wo[win][0].signcolumn = 'no'
   vim.wo[win][0].wrap = false
+  -- The calendar shows whole: 'scrolloff' would scroll its months' names
+  -- away to keep the selected day off the window's edge, and the text of
+  -- another month may be longer than the window was.
+  vim.wo[win][0].scrolloff = 0
+  vim.wo[win][0].sidescrolloff = 0
+  if height <= vim.api.nvim_win_get_height(win) then
+    vim.api.nvim_win_call(win, function()
+      vim.fn.winrestview({ topline = 1, leftcol = 0 })
+    end)
+  end
   -- A calendar to move about in, never to type into.
   vim.schedule(function()
     if vim.api.nvim_get_current_win() == win then
@@ -505,7 +542,7 @@ M.handlers = {
       win = vim.fn.win_findbuf(bufnr)[1]
       if not win then
         vim.bo[bufnr].buflisted = true
-        win = open_window(bufnr, require('org-lsp').config.win_split_mode or 'split')
+        win = open_window(bufnr, require('org-lsp').config.win_split_mode or 'split', is_capture(params.uri))
       end
     elseif params.orgOtherWindow and not is_float(vim.api.nvim_get_current_win()) then
       -- An entry's file in another window (TAB in the agenda, and follow

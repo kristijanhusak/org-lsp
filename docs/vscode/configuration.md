@@ -398,6 +398,11 @@ them out:
     // Shift+Enter, with the vim keys) always does it.
     "return_uses_meta_return": false,
 
+    // How many months the calendar of the date prompt shows: 3 side by side,
+    // as Emacs's calendar shows them, the one with the selected day in the
+    // middle; or 1, that month alone, for a narrow window.
+    "calendar_months": 3,
+
     // The Emacs program, for what only Org itself does: export
     // (`org.export.dispatch`). The server starts it (`emacs --batch -Q`) when
     // that is first asked for and keeps it running, so that Org loads once.
