@@ -131,16 +131,10 @@ static COOKIE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^<([lrc])[0-9]*>$
 /// The width of a field as Org shows it: a link shows its description, or
 /// its target when it has none (`org-link-descriptive`).
 fn shown_width(cell: &str) -> usize {
-    let mut total = 0;
-    let mut rest = cell;
-    while let Some(open) = rest.find("[[") {
-        let Some(close) = rest[open + 2..].find("]]").map(|at| open + 2 + at) else { break };
-        total += width(&rest[..open]);
-        let inside = &rest[open + 2..close];
-        total += width(inside.split_once("][").map_or(inside, |(_, description)| description));
-        rest = &rest[close + 2..];
-    }
-    total + width(rest)
+    // A zero width space shows as a thin space (`glyphless-char-display`),
+    // which takes a column.
+    let shown = crate::agenda::report::display_format(cell);
+    width(&shown) + shown.matches('\u{200B}').count()
 }
 
 /// `org-table--align-field`.

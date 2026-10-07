@@ -67,6 +67,15 @@ pub struct Options {
     /// `org-clock-display-default-range`
     #[serde(rename = "org_clock_display_default_range")]
     pub clock_display_default_range: Option<String>,
+    /// `org-clock-clocktable-default-properties`, as the text of a plist.
+    #[serde(rename = "org_clock_clocktable_default_properties")]
+    pub clock_clocktable_default_properties: Option<String>,
+    /// `org-clock-total-time-cell-format`
+    #[serde(rename = "org_clock_total_time_cell_format")]
+    pub clock_total_time_cell_format: Option<String>,
+    /// `org-clock-file-time-cell-format`
+    #[serde(rename = "org_clock_file_time_cell_format")]
+    pub clock_file_time_cell_format: Option<String>,
     /// `org-clock-in-switch-to-state`
     #[serde(rename = "org_clock_in_switch_to_state")]
     pub clock_in_switch_to_state: Option<String>,
@@ -699,6 +708,27 @@ impl Options {
     }
 
     /// The settings of the commands that edit a document.
+    /// How clock tables are written; the clock, the keywords and the
+    /// inheritance come from the server.
+    pub fn clocktable_settings(&self) -> org_core::clocktable::Settings {
+        let defaults = org_core::clocktable::Settings::default();
+        org_core::clocktable::Settings {
+            default_properties: self
+                .clock_clocktable_default_properties
+                .clone()
+                .unwrap_or(defaults.default_properties.clone()),
+            total_time_cell_format: self
+                .clock_total_time_cell_format
+                .clone()
+                .unwrap_or(defaults.total_time_cell_format.clone()),
+            file_time_cell_format: self
+                .clock_file_time_cell_format
+                .clone()
+                .unwrap_or(defaults.file_time_cell_format.clone()),
+            ..defaults
+        }
+    }
+
     pub fn edit_settings(&self) -> EditSettings {
         let defaults = EditSettings::default();
         EditSettings {

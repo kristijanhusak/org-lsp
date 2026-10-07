@@ -4068,3 +4068,97 @@ fn searches_extra_files() {
     client.shutdown();
     std::fs::remove_dir_all(&directory).unwrap();
 }
+
+/// Clock tables: `C-c C-x C-r` inserts one for the subtree, `S-<right>` on
+/// its `#+BEGIN:` line moves its block a day on, `C-c C-c` there fills it
+/// in again, and `C-c C-x C-u` fills in one over the agenda files, the
+/// other open file among them.
+#[test]
+fn writes_clock_tables() {
+    let mut client = Client::editor(clock(), None);
+    let uri = "file:///org/work.org";
+    let mut text = "* Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n\
+                    ** Draft\nCLOCK: [2026-05-17 Sun 09:30]--[2026-05-17 Sun 10:00] =>  0:30\n"
+        .to_string();
+    client.open(uri, &text);
+    client.open("file:///org/home.org", "* Garden\nCLOCK: [2026-05-18 Mon 07:00]--[2026-05-18 Mon 07:20] =>  0:20\n");
+    let run = |client: &mut Client, text: &mut String, command: &str, line: u32, count: Option<i64>| {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": 0 } });
+        if let Some(count) = count {
+            context["count"] = json!(count);
+        }
+        let carried =
+            client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        *text = apply(text, carried["edits"].as_array().unwrap());
+        client.file_version += 1;
+        client.notify(
+            "textDocument/didChange",
+            json!({ "textDocument": { "uri": uri, "version": client.file_version }, "contentChanges": [{ "text": *text }] }),
+        );
+        client.settle();
+        carried["cursor"].clone()
+    };
+    let cursor = run(&mut client, &mut text, "org.clock.report", 0, None);
+    assert_eq!(cursor, json!({ "line": 1, "character": 0 }));
+    assert_eq!(
+        text.lines().take(9).collect::<Vec<_>>(),
+        [
+            "* Write",
+            "#+BEGIN: clocktable :scope subtree :maxlevel 2",
+            "#+CAPTION: Clock summary at [2026-05-18 Mon 10:30]",
+            "| Headline     | Time   |      |",
+            "|--------------+--------+------|",
+            "| *Total time* | *1:45* |      |",
+            "|--------------+--------+------|",
+            "| Write        | 1:45   |      |",
+            "| \\_  Draft    |        | 0:30 |",
+        ]
+    );
+    // A block, moved a day on and a day back: today's clocks.
+    text = text.replacen(":scope subtree :maxlevel 2", ":scope subtree :maxlevel 2 :block yesterday", 1);
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+    );
+    run(&mut client, &mut text, "org.shift.right", 1, None);
+    assert!(
+        text.contains(":block today\n#+CAPTION: Clock summary at [2026-05-18 Mon 10:30], for Monday, May 18, 2026.")
+    );
+    assert!(text.contains("| *Total time* | *1:15* |"), "{text}");
+    // `C-c C-c` on the `#+END:` line.
+    let end = text.lines().position(|line| line == "#+END:").unwrap() as u32;
+    text = text.replacen(":block today", ":block yesterday", 1);
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+    );
+    let cursor = run(&mut client, &mut text, "org.checkbox.toggle", end, None);
+    assert!(text.contains("| *Total time* | *0:30* |"), "{text}");
+    let end = text.lines().position(|line| line == "#+END:").unwrap() as u32;
+    assert_eq!(cursor, json!({ "line": end, "character": 0 }));
+    // Over the agenda files: the open files.
+    text = text.replacen(":scope subtree :maxlevel 2 :block yesterday", ":scope agenda :maxlevel 1", 1);
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+    );
+    run(&mut client, &mut text, "org.dblock.update", 3, None);
+    let table: Vec<&str> = text.lines().skip(3).take(9).collect();
+    assert_eq!(
+        table,
+        [
+            "| File     | Headline         | Time   |",
+            "|----------+------------------+--------|",
+            "|          | ALL *Total time* | *2:05* |",
+            "|----------+------------------+--------|",
+            "| home.org | *File time*      | *0:20* |",
+            "|          | Garden           | 0:20   |",
+            "|----------+------------------+--------|",
+            "| work.org | *File time*      | *1:45* |",
+            "|          | Write            | 1:45   |",
+        ]
+    );
+}

@@ -378,6 +378,30 @@ impl Reveal {
 }
 
 /// A source of agenda entries as the server holds it while it works.
+/// What a clock table reads beyond its own file.
+#[derive(Default)]
+struct ClocktableFiles {
+    agenda: Vec<String>,
+    /// By path: the open files, the agenda files.
+    texts: HashMap<String, String>,
+    /// By path: the files a file archives to that exist.
+    archives: HashMap<String, Vec<String>>,
+}
+
+impl org_core::clocktable::Files for ClocktableFiles {
+    fn agenda_files(&self) -> Vec<String> {
+        self.agenda.clone()
+    }
+
+    fn archive_files(&self, path: &str, _: &str) -> Vec<String> {
+        self.archives.get(path).cloned().unwrap_or_default()
+    }
+
+    fn read(&self, path: &str) -> Option<String> {
+        self.texts.get(path).cloned().or_else(|| std::fs::read_to_string(path).ok())
+    }
+}
+
 enum Held {
     Open(Box<Outline>),
     Disk(Rc<Source>),
@@ -493,6 +517,9 @@ struct Server {
     /// `org-clock-in-switch-to-state`, `org-clock-out-switch-to-state`
     clock_in_switch: Option<String>,
     clock_out_switch: Option<String>,
+    /// How clock tables are written: `org-clock-clocktable-default-properties`
+    /// and the cell formats.
+    clocktable: org_core::clocktable::Settings,
     /// The clock's status waits for the edit that writes its line.
     clock_pending: bool,
     /// Log mode (`l`) and the clock report (`R`) in the agenda.
@@ -684,6 +711,7 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_out_when_done: options.clock_out_when_done.unwrap_or(true),
         clock_in_switch: options.clock_in_switch_to_state.clone(),
         clock_out_switch: options.clock_out_switch_to_state.clone(),
+        clocktable: options.clocktable_settings(),
         agenda_log: options.agenda.start_with_log_mode.unwrap_or(false),
         agenda_clockreport: options.agenda.start_with_clockreport_mode.unwrap_or(false),
         agenda_archives: options.agenda.archives_mode(),
@@ -1880,6 +1908,8 @@ impl Server {
             (commands::REFILE, more && in_entry),
             (commands::SORT, more),
             (commands::CLOCK_GOTO, more && running),
+            (commands::CLOCK_REPORT, more),
+            (commands::DBLOCK_UPDATE, more && org_core::clocktable::in_block(&document.text, offset)),
             (commands::AGENDA_LIST, more),
             (commands::AGENDA_TODOS, more),
             (commands::AGENDA_DISPATCH, more),
@@ -3029,6 +3059,9 @@ impl Server {
                 self.clock_display.remove(&uri);
                 self.refresh_inlay_hints();
                 Ok(json!({ "message": "Temporary highlights/overlays removed from current buffer" }))
+            }
+            id @ (commands::CLOCK_REPORT | commands::DBLOCK_UPDATE) => {
+                self.clocktable(id, &context.ok_or("This command needs the cursor position")?)
             }
             id if id.starts_with("org.clock.") => self.clock_command(id, context.as_ref()),
             id if id == commands::TODO
@@ -5304,6 +5337,15 @@ impl Server {
             if let Some(result) = self.shift_item(id, &context) {
                 return result;
             }
+            // `org-clocktable-try-shift`: the block of a clock table.
+            if self.at_clocktable(&context, org_core::clocktable::at_clocktable_begin) {
+                return self.clocktable(id, &context);
+            }
+        }
+        // `C-c C-c` on the `#+BEGIN:` or `#+END:` line of a dynamic block
+        // fills it in again.
+        if id == commands::CHECKBOX_TOGGLE && self.at_clocktable(&context, org_core::clocktable::at_block_line) {
+            return self.clocktable(id, &context);
         }
         if id == commands::SET_TAGS {
             return self.set_tags(&context);
@@ -6371,6 +6413,87 @@ impl Server {
         Ok(
             json!({ "message": format!("{label}: {} ({} hours and {} minutes)", clock::duration(total), total / 60, total % 60) }),
         )
+    }
+
+    /// Whether `test` holds at the cursor of an Org file.
+    fn at_clocktable(&self, context: &Context, test: fn(&str, usize) -> bool) -> bool {
+        let Some(document) = self.document(&context.text_document.uri) else { return false };
+        test(&document.text, document.index.offset(&document.text, context.position, self.client.encoding))
+    }
+
+    /// Clock tables: `org-clock-report` (`C-c C-x C-r`), `org-dblock-update`
+    /// (`C-c C-x C-u`), `C-c C-c` on a dynamic block's `#+BEGIN:` or
+    /// `#+END:` line, and `S-<arrows>` on a clock table's `#+BEGIN:` line
+    /// (`org-clocktable-shift`).
+    fn clocktable(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::clocktable;
+        let uri = context.text_document.uri.clone();
+        if self.is_view(&uri) {
+            return Err(Refusal::NotHere("This command works in Org files".to_string()));
+        }
+        let encoding = self.client.encoding;
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        let path = uri::to_path(&uri).map(|path| path.to_string_lossy().into_owned());
+        let files = self.clocktable_files(path.as_deref());
+        let settings = clocktable::Settings {
+            now: self.date_time(),
+            keywords: self.todo.clone(),
+            inheritance: self.workspace.inheritance.clone(),
+            ..self.clocktable.clone()
+        };
+        let table = clocktable::Context { path: path.as_deref(), settings: &settings, files: &files };
+        let count = context.count.filter(|count| *count > 0);
+        let done = match id {
+            commands::CLOCK_REPORT => clocktable::report(&text, offset, count.is_some(), &table),
+            commands::DBLOCK_UPDATE => clocktable::update(&text, offset, count.is_some(), &table),
+            commands::CHECKBOX_TOGGLE => clocktable::update_here(&text, offset, &table),
+            _ => clocktable::shift(
+                &text,
+                offset,
+                matches!(id, commands::SHIFT_RIGHT | commands::SHIFT_UP),
+                count,
+                &table,
+            ),
+        }
+        .map_err(Refusal::Failed)?;
+        if let Some(message) = done.message {
+            self.message = Some(message);
+        }
+        self.carried(context, org_core::newline::Outcome { text: done.text, cursor: done.cursor })
+    }
+
+    /// The files a clock table may read: the agenda files, the files
+    /// they and the file at `path` archive to, and the open files; others
+    /// are read from disk when a table names them.
+    fn clocktable_files(&mut self, path: Option<&str>) -> ClocktableFiles {
+        let mut files = ClocktableFiles::default();
+        let open: HashMap<PathBuf, String> = self
+            .documents
+            .keys()
+            .filter_map(|key| Some((uri::to_path(&key.parse::<Uri>().ok()?)?, key.clone())))
+            .collect();
+        for (file, key) in &open {
+            files.texts.insert(file.to_string_lossy().into_owned(), self.documents[key].text.clone());
+        }
+        for (uri, held) in self.agenda_files() {
+            let Some(file) = uri::to_path(&uri) else { continue };
+            let name = file.to_string_lossy().into_owned();
+            let text = match &held {
+                Held::Open(outline) => outline.text.clone(),
+                Held::Disk(source) => source.text.clone(),
+            };
+            files.texts.entry(name.clone()).or_insert(text);
+            files.agenda.push(name);
+        }
+        let mut sources: Vec<String> = files.agenda.clone();
+        sources.extend(path.map(str::to_string));
+        for source in sources {
+            let archives = self.archives_of(Path::new(&source), &open);
+            files.archives.insert(source, archives.iter().map(|file| file.to_string_lossy().into_owned()).collect());
+        }
+        files
     }
 
     /// `text` with the entry at `heading` put in `state`

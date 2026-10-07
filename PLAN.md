@@ -88,9 +88,7 @@ few, checked against Emacs where Org decides the outcome:
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
   moving rows and columns, `C-c -` for a rule.
 - **Agenda (5):** done.
-- **Clocking (9):** clock tables in files (`#+BEGIN: clocktable`,
-  `C-c C-x C-r`), the clock history, idle time and
-  dangling clocks.
+- **Clocking (9):** the clock history, idle time and dangling clocks.
 - **Capture (10):** item and checkitem templates, date trees, `%^g`
   tags, `%a` from the agenda.
 - **Links and navigation (11):** store and insert links (`C-c l`,
@@ -468,8 +466,16 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - Done: `org-clock-display` (`C-c C-x C-d`), the times as inlay hints,
   with `org-clock-special-range` for its ranges, checked against Emacs
   in `tests/clock`.
-- Left: clock tables in files (`#+BEGIN: clocktable`, `C-c C-x C-r`),
-  idle time and resolving dangling clocks
+- Done: clock tables (`#+BEGIN: clocktable`): `org-clock-report`
+  (`C-c C-x C-r`), `org-dblock-update` (`C-c C-x C-u`, `C-c C-c` on the
+  block), `org-clocktable-shift` (`S-<arrows>` on the `#+BEGIN:` line),
+  with every parameter of `org-clocktable-write-default` and
+  `org-clocktable-steps`, checked against Emacs in `tests/clocktable`
+  (`scripts/clocktable_reference.py`). Not ported: `:formatter`, a
+  function as `:scope`, `org-clock-report-include-clocking-task`, other
+  dynamic blocks (`columnview`). In the batch Emacs of the reference a
+  zero width space takes a column in table alignment; so it does here.
+- Left: idle time and resolving dangling clocks
   with a question, the clock history (`C-u C-c C-x C-i`). (Effort
   estimates, `C-c C-x e`, came with the properties.)
 

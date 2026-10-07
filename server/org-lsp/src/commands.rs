@@ -156,6 +156,8 @@ pub const CLOCK_OUT: &str = "org.clock.out";
 pub const CLOCK_CANCEL: &str = "org.clock.cancel";
 pub const CLOCK_GOTO: &str = "org.clock.goto";
 pub const CLOCK_DISPLAY: &str = "org.clock.display";
+pub const CLOCK_REPORT: &str = "org.clock.report";
+pub const DBLOCK_UPDATE: &str = "org.dblock.update";
 pub const TODO: &str = "org.todo";
 pub const SET_TAGS: &str = "org.tags.set";
 pub const SET_PROPERTY: &str = "org.property.set";
@@ -396,6 +398,19 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c C-x C-d")],
         vim: &[key(Org, "<Leader>oxd")],
         ..command(CLOCK_DISPLAY, "Show the time clocked under each headline")
+    },
+    // Clock tables: `org-clock-report` inserts one or fills it in again,
+    // the first of the file with a count; `org-dblock-update` fills in the
+    // dynamic block the cursor is in, all of the file's with a count.
+    Command {
+        emacs: &[key(Org, "C-c C-x C-r")],
+        vim: &[key(Org, "<Leader>oxr")],
+        ..edit(CLOCK_REPORT, "Insert or update a clock table")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x C-u")],
+        vim: &[key(Org, "<Leader>oxu")],
+        ..edit(DBLOCK_UPDATE, "Update the dynamic block")
     },
     // `org-todo`: the state picked by key when the keywords have keys,
     // and else the next one.

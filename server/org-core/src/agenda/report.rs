@@ -48,7 +48,7 @@ pub fn entry_minutes(outline: &Outline, from: i64, to: i64) -> (Vec<i64>, i64) {
 
 /// `org-get-heading t t t t`: the title without keyword, priority,
 /// `COMMENT` and tags.
-fn heading_title(head: &str, todo: Option<&str>) -> String {
+pub(crate) fn heading_title(head: &str, todo: Option<&str>) -> String {
     let mut text = head;
     if let Some(todo) = todo {
         text = text.strip_prefix(todo).map_or(text, str::trim_start);
@@ -75,7 +75,7 @@ pub fn plain_heading(head: &str, todo: Option<&str>) -> String {
 }
 
 /// Statistics cookies out (`\[[0-9]*\(?:%\|/[0-9]*\)\]`).
-fn without_cookies(text: &str) -> String {
+pub(crate) fn without_cookies(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut rest = text;
     while let Some(open) = rest.find('[') {
@@ -104,12 +104,12 @@ fn without_cookies(text: &str) -> String {
 }
 
 /// `org-link--normalize-string`: cookies out, blanks packed.
-fn normalize(text: &str) -> String {
+pub(crate) fn normalize(text: &str) -> String {
     without_cookies(text).split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// `org-link-display-format`: links as their descriptions.
-fn display_format(text: &str) -> String {
+pub(crate) fn display_format(text: &str) -> String {
     let hidden = hidden_ranges(text);
     let mut out = String::with_capacity(text.len());
     let mut copied = 0;
@@ -122,7 +122,7 @@ fn display_format(text: &str) -> String {
 }
 
 /// `org-link-escape`: brackets and the backslashes before them.
-fn escape(target: &str) -> String {
+pub(crate) fn escape(target: &str) -> String {
     let mut out = String::with_capacity(target.len());
     let chars: Vec<char> = target.chars().collect();
     for (index, c) in chars.iter().enumerate() {
@@ -146,7 +146,7 @@ fn escape(target: &str) -> String {
 }
 
 /// `org-shorten-string`
-fn shorten(text: &str, max: usize) -> String {
+pub(crate) fn shorten(text: &str, max: usize) -> String {
     let chars: Vec<char> = text.chars().collect();
     if chars.len() <= max {
         return text.to_string();
