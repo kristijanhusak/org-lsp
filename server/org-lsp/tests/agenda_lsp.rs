@@ -766,6 +766,54 @@ fn filters_the_agenda() {
     client.shutdown();
 }
 
+/// `E` (`org-agenda-entry-text-mode`): the text of each entry under its
+/// line, at most as many lines as a count says; filtering turns it off,
+/// and a filtered view does not take it.
+#[test]
+fn shows_entry_text() {
+    let mut client = Client::editor(clock(), None);
+    client.open(
+        "file:///org/notes.org",
+        "* TODO First :office:\n:PROPERTIES:\n:ID: 1\n:END:\n  One.\n  Two.\n  Three.\n* TODO Second\n",
+    );
+    let run = |client: &mut Client, command: &str, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    run(&mut client, "org.agenda.dispatch", json!({ "input": "t" })).unwrap();
+    let plain = client.view_text(VIEW);
+    client.received.clear();
+    run(&mut client, "org.agenda.entry.text", json!({})).unwrap();
+    let text = client.view_text(VIEW);
+    let lines: Vec<&str> = text.lines().collect();
+    assert_eq!(lines[2..5], ["    > One.", "    > Two.", "    > Three."], "{text}");
+    assert!(lines[5].contains("TODO Second"), "{text}");
+    // The text's lines belong to the entry: a hover there shows it.
+    let hover = client
+        .request(
+            "textDocument/hover",
+            json!({ "textDocument": { "uri": VIEW }, "position": { "line": 3, "character": 6 } }),
+        )
+        .unwrap();
+    assert!(hover.to_string().contains("First"), "{hover}");
+    run(&mut client, "org.agenda.entry.text", json!({ "count": 1 })).unwrap();
+    let text = client.view_text(VIEW);
+    assert_eq!(text.lines().filter(|line| line.starts_with("    >")).count(), 1, "{text}");
+    // A tag filter turns it off, and while it filters `E` refuses.
+    run(&mut client, "org.agenda.filter", json!({ "input": "+office" })).unwrap();
+    assert!(!client.view_text(VIEW).contains("    >"));
+    let error = run(&mut client, "org.agenda.entry.text", json!({})).unwrap_err();
+    assert_eq!(error, "Can't show entry text in filtered views");
+    run(&mut client, "org.agenda.filter.remove", json!({})).unwrap();
+    assert_eq!(client.view_text(VIEW), plain);
+    client.shutdown();
+}
+
 /// `org-agenda-custom-commands`: a group of commands under a prefix key,
 /// a block agenda whose agenda block moves on its own (`f`), and the
 /// built-in tags search (`m`).

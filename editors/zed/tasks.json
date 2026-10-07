@@ -247,6 +247,19 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org agenda: entry text mode, some text of each entry under its line",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.entry.text",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: filter by tags, categories, effort and regexps",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.filter",
     "tags": [

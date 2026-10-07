@@ -119,6 +119,18 @@
           "task_name": "Org agenda: the clock report"
         }
       ],
+      "shift-e": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: entry text mode, some text of each entry under its line"
+        }
+      ],
+      "v shift-e": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: entry text mode, some text of each entry under its line"
+        }
+      ],
       "/": [
         "task::Spawn",
         {

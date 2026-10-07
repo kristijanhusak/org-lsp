@@ -4,6 +4,7 @@
 //! org-lsp agenda [--view agenda|todo|tags|tags-todo|custom] [--match M]
 //!                [--key KEYS] [--span day|week|N] [--start DATE]
 //!                [--log] [--clockreport] [--archives trees|files]
+//!                [--entry-text N] [--filters JSON]
 //!                [--today DATE] [--now HH:MM] [--options JSON] FILE...
 //! ```
 //!
@@ -33,6 +34,8 @@ Options:
   --key KEYS           a command of the `org_agenda_custom_commands` agenda option
   --log                log mode: what was closed and clocked each day
   --clockreport        the clock report under the agenda
+  --entry-text N       entry text mode: at most N lines of each entry's
+                       text under its line
   --archives WHAT      trees: entries in archived trees too; files: those
                        and the files the given ones archive to
   --span SPAN          day, week, fortnight, month, year or a number of days
@@ -87,6 +90,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     let mut clockreport = false;
     let mut archives = None;
     let mut filters: Option<serde_json::Value> = None;
+    let mut entry_text: Option<usize> = None;
     let mut span = None;
     let mut start = None;
     let mut now = now();
@@ -105,6 +109,10 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             "--log" => log = true,
             "--clockreport" => clockreport = true,
             "--archives" => archives = Some(value("--archives")?.clone()),
+            "--entry-text" => {
+                let count = value("--entry-text")?;
+                entry_text = Some(count.parse().map_err(|_| format!("--entry-text: `{count}` is not a number"))?);
+            }
             "--filters" => {
                 let json = value("--filters")?;
                 filters = Some(serde_json::from_str(json).map_err(|error| format!("--filters: {error}"))?);
@@ -204,7 +212,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
         outlines.push(Outline::with_inheritance(&parse, &text, &file_name(Path::new(file)), &inheritance));
     }
     let block = |kind| vec![Block { kind, header: None, config: config.clone() }];
-    let blocks = match view.as_str() {
+    let mut blocks = match view.as_str() {
         "agenda" => block(BlockKind::Agenda { start, span: config.span }),
         "todo" => block(BlockKind::Todo { keywords: matching }),
         "tags" | "tags-todo" => block(BlockKind::Tags {
@@ -230,6 +238,11 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             ))
         }
     };
+    if let Some(lines) = entry_text {
+        for block in &mut blocks {
+            block.config.entry_text = Some(lines);
+        }
+    }
     let named: Vec<(&Outline, String, String)> = outlines
         .iter()
         .zip(&files)

@@ -582,6 +582,22 @@ require('org-lsp').setup({
     -- changes. (org-agenda-log-mode-items)
     org_agenda_log_mode_items = { 'closed', 'clock' },
 
+    -- Start the agenda with some text of each entry under its line (`E`
+    -- toggles it). (org-agenda-start-with-entry-text-mode)
+    org_agenda_start_with_entry_text_mode = false,
+
+    -- The most lines of an entry's text `E` shows.
+    -- (org-agenda-entry-text-maxlines)
+    org_agenda_entry_text_maxlines = 5,
+
+    -- What each line of an entry's text starts with in the agenda.
+    -- (org-agenda-entry-text-leaders)
+    org_agenda_entry_text_leaders = '    > ',
+
+    -- Emacs regexps whose matches are left out of the entry text `E` shows.
+    -- (org-agenda-entry-text-exclude-regexps)
+    org_agenda_entry_text_exclude_regexps = {},
+
     -- What goes between the blocks of a block agenda: one character repeated
     -- across 79 columns, a longer text as it is, or `false` for nothing. In a
     -- block's `settings`, the separator above that block.

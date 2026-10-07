@@ -87,7 +87,7 @@ few, checked against Emacs where Org decides the outcome:
   properties and the `#+STARTUP:` logging words.
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
   moving rows and columns, `C-c -` for a rule.
-- **Agenda (5):** entry text, follow mode, bulk
+- **Agenda (5):** follow mode, bulk
   marks and actions, hours and minutes on `S-<left>`/`S-<right>`.
 - **Clocking (9):** clock tables in files (`#+BEGIN: clocktable`,
   `C-c C-x C-r`), effort estimates (`C-c C-x e`), `org-clock-display`,
@@ -364,7 +364,12 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   `tests/agenda/group-tags`.
 - Done: filters (`/`, `\`, `<`, `=`, `_`, `^`, `|`, `org-agenda-filter`
   and its relatives), checked against Emacs in `tests/agenda/filters`.
-- Entry text, follow mode.
+- Done: entry text mode (`E`, `org-agenda-entry-text-mode` and its
+  options), checked against Emacs in `tests/agenda/entry-text*`. Unlike
+  Emacs's display, the text of an entry an effort filter hides is not
+  shown (Emacs shows it under the visible line above when the line after
+  the hidden one is visible).
+- Follow mode.
 - Bulk marks and actions; hours and minutes on `S-<left>`/`S-<right>`.
 
 ### 6. Structure editing

@@ -1,0 +1,14 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {"view": "todo", "entry_text": 5},
+    {"view": "todo", "entry_text": 2},
+    {"view": "todo", "entry_text": 1},
+    {"view": "todo", "entry_text": 20},
+    {"view": "agenda", "span": "week", "entry_text": 5},
+    {"view": "tags", "match": "work|LEVEL=2", "entry_text": 5},
+    {"view": "search", "match": "text", "entry_text": 3},
+    {"view": "todo", "filters": [{"type": "effort", "filter": ["+<1:00"]}], "entry_text": 5}
+  ]
+}

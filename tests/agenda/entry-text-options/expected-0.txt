@@ -1,0 +1,9 @@
+Global list of TODO items of type: ALL
+  notes:      TODO First
+  Line with a word.
+  
+  Second paragraph.
+  notes:      TODO Second
+  Keep this one.
+  notes:      TODO Third
+    Blank lines first.

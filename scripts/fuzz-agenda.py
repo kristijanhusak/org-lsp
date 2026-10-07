@@ -160,6 +160,17 @@ class Generator:
             return self.planning()
         if roll < 0.86:
             return ""
+        if roll < 0.92:
+            # What entry text (`E`) cleans up: indentation, tabs, clock
+            # lines, drawers without an end.
+            return self.pick(["  ", "    ", "\t", " \t ", "", "   "]) + self.pick([
+                " ".join(self.pick(WORDS) for _ in range(2)),
+                "CLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00",
+                ":NOTE:\n" + self.pick(WORDS),
+                ":end:",
+                "closed: " + self.stamp(active=False),
+                "",
+            ])
         return " ".join(self.pick(WORDS) for _ in range(self.rng.randint(1, 4)))
 
     def document(self):
@@ -231,6 +242,7 @@ def main():
                 {"view": "agenda", "span": rng.choice(["day", "week", 3, "fortnight"]), "start": other},
                 {"view": "todo"},
                 {"view": rng.choice(["search", "search-todo"]), "match": search_string(rng)},
+                {"view": "todo", "entry_text": rng.choice([1, 2, 5, 9])},
             ],
         }
         with open(os.path.join(directory, "case.json"), "w", encoding="utf-8") as handle:

@@ -166,6 +166,11 @@
         "category": "Org"
       },
       {
+        "command": "org.agenda.entry.text",
+        "title": "Agenda: entry text mode, some text of each entry under its line",
+        "category": "Org"
+      },
+      {
         "command": "org.agenda.filter",
         "title": "Agenda: filter by tags, categories, effort and regexps",
         "category": "Org"
@@ -1539,6 +1544,30 @@
                 "closed",
                 "clock"
               ]
+            },
+            "org_agenda_start_with_entry_text_mode": {
+              "type": "boolean",
+              "markdownDescription": "Start the agenda with some text of each entry under its line (`E` toggles it). (`org-agenda-start-with-entry-text-mode`)",
+              "default": false
+            },
+            "org_agenda_entry_text_maxlines": {
+              "minimum": 1,
+              "type": "integer",
+              "markdownDescription": "The most lines of an entry's text `E` shows. (`org-agenda-entry-text-maxlines`)",
+              "default": 5
+            },
+            "org_agenda_entry_text_leaders": {
+              "type": "string",
+              "markdownDescription": "What each line of an entry's text starts with in the agenda. (`org-agenda-entry-text-leaders`)",
+              "default": "    > "
+            },
+            "org_agenda_entry_text_exclude_regexps": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "markdownDescription": "Emacs regexps whose matches are left out of the entry text `E` shows. (`org-agenda-entry-text-exclude-regexps`)",
+              "default": []
             },
             "org_agenda_block_separator": {
               "anyOf": [
@@ -3600,6 +3629,26 @@
       {
         "command": "org.agenda.clockreport",
         "key": "v shift+r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.entry.text",
+        "key": "shift+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.entry.text",
+        "key": "v shift+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.entry.text",
+        "key": "shift+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.entry.text",
+        "key": "v shift+e",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {

@@ -154,6 +154,13 @@
     }
   },
   {
+    "caption": "Org: Agenda: entry text mode, some text of each entry under its line",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.entry.text"
+    }
+  },
+  {
     "caption": "Org: Agenda: filter by tags, categories, effort and regexps",
     "command": "org_lsp_run",
     "args": {

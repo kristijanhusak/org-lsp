@@ -18,6 +18,8 @@ A case is a directory with Org files and a `case.json`:
         {"view": "stuck"},                       `org-agenda-list-stuck-projects`
         {"view": "todo", "filters": [...]}       with the agenda's filters (see
                                                 `filter_form`)
+        {"view": "todo", "entry_text": 5}       with entry text mode (`E`), at
+                                                most 5 lines an entry
         {"view": "todo", "archives": "trees"}   with archived trees
                                                 (`files`: archive files too)
       ],
@@ -51,7 +53,18 @@ PRELUDE = r"""
                 (error (format "ERROR: %S\n" err)))))
     (with-temp-file out (insert text))))
 (defun org-lsp-visible-string ()
-  "The agenda buffer without the lines its filters hide."
+  "The agenda buffer without the lines its filters hide, with the entry
+text `E' shows after the lines."
+  (let ((inhibit-read-only t))
+    (dolist (o (overlays-in (point-min) (point-max)))
+      ;; Not after a line the filters hide. (Emacs's display shows the
+      ;; text of a hidden line when the line after it is not hidden,
+      ;; under the visible line above; org-lsp leaves that out.)
+      (when (and (eq (overlay-get o 'org-overlay-type) 'agenda-entry-content)
+                 (not (eq (get-text-property (overlay-start o) 'invisible) 'org-filtered)))
+        (save-excursion
+          (goto-char (overlay-end o))
+          (insert (overlay-get o 'after-string))))))
   (let ((pos (point-min)) (out ""))
     (while (< pos (point-max))
       (let ((next (next-single-property-change pos 'invisible nil (point-max))))
@@ -66,6 +79,9 @@ PRELUDE = r"""
 
 # Everything a case may change, back to its default before the next one.
 DEFAULTS = r"""
+(setq org-agenda-entry-text-leaders "    > "
+      org-agenda-entry-text-exclude-regexps nil
+      org-agenda-entry-text-maxlines 5)
 (setq org-agenda-skip-scheduled-if-done nil
       org-agenda-skip-deadline-if-done nil
       org-agenda-skip-timestamp-if-done nil
@@ -139,8 +155,10 @@ def filter_form(step):
 
 def run_form(run):
     form = view_form(run)
-    if "filters" in run:
-        steps = " ".join(filter_form(step) for step in run["filters"])
+    if "filters" in run or "entry_text" in run:
+        steps = " ".join(filter_form(step) for step in run.get("filters", []))
+        if "entry_text" in run:
+            steps += f" (org-agenda-entry-text-mode {run['entry_text']})"
         form = (f"(progn (let ((standard-output #'ignore)) {form}) (set-buffer org-agenda-buffer-name)"
                 f" {steps} (princ (org-lsp-visible-string)))")
     archives = {"trees": "'trees", "files": "t"}.get(run.get("archives"))
@@ -259,6 +277,10 @@ def run_arguments(directory, case, run):
             arguments.append("--" + flag)
     if "archives" in run:
         arguments += ["--archives", run["archives"]]
+    if "entry_text" in run:
+        arguments += ["--entry-text", str(run["entry_text"])]
+    if "filters" in run:
+        arguments += ["--filters", json.dumps(run["filters"])]
     if "options" in case:
         arguments += ["--options", json.dumps(case["options"]).replace("{dir}", directory)]
     return arguments + [os.path.join(directory, name) for name in org_files(directory)]
