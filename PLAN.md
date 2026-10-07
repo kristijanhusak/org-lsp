@@ -101,8 +101,7 @@ few, checked against Emacs where Org decides the outcome:
 - **Diagnostics (13):** `org-lint` checks as diagnostics.
 - **Editors and distribution (14):** the Neovim plugin downloading the
   server instead of building it; publishing the VS Code extension
-  (Marketplace, Open VSX: the `publisher` is a placeholder); a licence
-  (open question 2). The agenda's hover is plain in VS Code, which has no
+  (Marketplace, Open VSX: the `publisher` is a placeholder). The agenda's hover is plain in VS Code, which has no
   grammar for Org's code blocks.
 - **Later:** export, Babel's evaluation, column view, inline images,
   LaTeX previews.
@@ -495,8 +494,7 @@ Emacs in `tests/tblfm/cases.json`.
 
 1. **Typed input over LSP only.** Decided: the editor's input box, and
    a calendar for dates; see milestone 4.
-2. **Licence.** The parser and the Org logic are ports of GPL code from
-   Emacs Org mode. The repository has no licence file yet. To be set later.
+2. **Licence.** Decided: MIT (`LICENSE`).
 3. **Saving after edits from the agenda.** Decided: saved by default
    (`auto_save`), unlike Emacs: the files a command changes other than the
    one it was run in (from the agenda, a capture or refile target) are

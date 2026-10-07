@@ -314,3 +314,7 @@ both programs on them. See
 - The shifted cursor keys do nothing yet on list items, in tables and on
   property lines.
 - Fold cycling is still done by the Neovim plugin, not by the server.
+
+## Licence
+
+MIT, see [LICENSE](LICENSE).
