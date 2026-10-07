@@ -42,6 +42,34 @@
     }
   },
   {
+    "caption": "Org: Agenda: search for another word",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.query.add"
+    }
+  },
+  {
+    "caption": "Org: Agenda: search without a word",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.query.subtract"
+    }
+  },
+  {
+    "caption": "Org: Agenda: search for another regexp",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.query.add.regexp"
+    }
+  },
+  {
+    "caption": "Org: Agenda: search without a regexp",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.query.subtract.regexp"
+    }
+  },
+  {
     "caption": "Org: Agenda: go to a date",
     "command": "org_lsp_run",
     "args": {

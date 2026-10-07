@@ -12,6 +12,9 @@ mod display;
 mod item;
 pub mod matcher;
 pub mod report;
+pub mod search;
+
+pub use search::SearchSettings;
 
 pub use crate::text::tag_group;
 pub use display::{display, Displayed, Link, Segment, Style};
@@ -232,6 +235,8 @@ pub struct Config {
     pub archives: bool,
     /// `org-agenda-prefix-format`
     pub prefix_format: PrefixFormats,
+    /// How the search view reads its search string.
+    pub search: SearchSettings,
     /// `org-agenda-todo-keyword-format`
     pub todo_keyword_format: String,
     /// `org-agenda-scheduled-leaders`: on its day, and still open after it
@@ -295,6 +300,7 @@ impl Default for Config {
             hide_empty_blocks: false,
             archives: false,
             prefix_format: PrefixFormats::default(),
+            search: SearchSettings::default(),
             todo_keyword_format: "%-1s".to_string(),
             scheduled_leaders: ["Scheduled: ".to_string(), "Sched.%2dx: ".to_string()],
             deadline_leaders: ["Deadline:  ".to_string(), "In %3d d.: ".to_string(), "%2d d. ago: ".to_string()],
@@ -328,6 +334,7 @@ enum ViewKind {
     Agenda,
     Todo,
     Tags,
+    Search,
 }
 
 impl<'a> Builder<'a> {
@@ -337,6 +344,7 @@ impl<'a> Builder<'a> {
             ViewKind::Agenda => &formats.agenda,
             ViewKind::Todo => &formats.todo,
             ViewKind::Tags => &formats.tags,
+            ViewKind::Search => &formats.search,
         };
         Builder { files, config, today, format: PrefixFormat::new(format) }
     }
@@ -981,6 +989,83 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
     let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
     lines.extend(items.into_iter().map(|item| item_line(item, config)));
     View { lines, start: 0, end: 0 }
+}
+
+/// `org-search-view`: the entries with the words, phrases and regexps of
+/// `string` (see [`search::parse`]), in file order; only open TODO
+/// entries with `todo_only` (`S`).
+pub fn search_view(
+    files: &[&Outline],
+    string: &str,
+    todo_only: bool,
+    now: Now,
+    config: &Config,
+) -> Result<View, String> {
+    let search = search::parse(string, todo_only, &config.search)?;
+    let builder = Builder::new(files, config, now.today, ViewKind::Search);
+    let max = config.search.max_level;
+    let deep = |outline: &Outline, entry: usize| max != 0 && outline.entries[entry].level > max;
+    let mut items = Vec::new();
+    for (file, outline) in files.iter().enumerate() {
+        let text = outline.text.as_str();
+        let Some(first) = outline.entries.first() else { continue };
+        // `org-not-done-regexp` of the file, after the stars.
+        let open: Vec<String> =
+            outline.todo.names().filter(|name| !outline.todo.is_done(name)).map(regex::escape).collect();
+        let todo = regex::RegexBuilder::new(&format!(r"\A\*+[ \t]+\b(?:{})\b", open.join("|")))
+            .case_insensitive(true)
+            .build()
+            .map_err(|error| error.to_string())?;
+        let mut at = floor_char(text, first.offset.saturating_sub(1));
+        while let Some((_, last_end)) = search.regexp.find_at(text, at) {
+            // `org-back-to-heading`, then up to an entry the view shows.
+            let Some(mut entry) = outline.entries.iter().rposition(|entry| entry.offset <= last_end) else { break };
+            while deep(outline, entry) && entry > 0 {
+                entry -= 1;
+            }
+            let begin = outline.entries[entry].offset;
+            let mut next = entry + 1;
+            while next < outline.entries.len() && deep(outline, next) {
+                next += 1;
+            }
+            let end = outline.entries.get(next).map_or(text.len(), |entry| entry.offset);
+            let before_end = floor_char(text, end.saturating_sub(1));
+            let line_end = text[begin..].find('\n').map_or(text.len(), |at| begin + at);
+            let seen = &text[begin..if search.headline_only { line_end } else { end }];
+            let wanted = !outline.entries[entry].skipped(config.archives)
+                && !search.minus.iter().any(|pattern| pattern.is_match(seen))
+                && (!search.todo_only || todo.is_match(seen))
+                && search.plus.iter().all(|pattern| pattern.is_match(seen));
+            let resume = if wanted {
+                items.push(builder.item(file, entry, ItemKind::Todo, Face::Default, "", Dotime::Headline));
+                before_end.max(last_end)
+            } else {
+                before_end
+            };
+            // Always on: an empty match at the end of an entry.
+            at = if resume > at { resume } else { next_char(text, at) };
+            if at >= text.len() {
+                break;
+            }
+        }
+    }
+    // Every line has the same priority (1000), and `category-keep` keeps
+    // the order: as found.
+    let header = format!("Search words: {string}");
+    let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
+    lines.extend(items.into_iter().map(|item| item_line(item, config)));
+    Ok(View { lines, start: 0, end: 0 })
+}
+
+fn floor_char(text: &str, mut at: usize) -> usize {
+    while !text.is_char_boundary(at) {
+        at -= 1;
+    }
+    at
+}
+
+fn next_char(text: &str, at: usize) -> usize {
+    text[at..].chars().next().map_or(text.len(), |c| at + c.len_utf8())
 }
 
 /// `org-agenda-overriding-header`: another header for a view, or none

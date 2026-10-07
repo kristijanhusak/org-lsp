@@ -23,6 +23,30 @@
           "task_name": "Org agenda: go to today"
         }
       ],
+      "[": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: search for another word"
+        }
+      ],
+      "]": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: search without a word"
+        }
+      ],
+      "{": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: search for another regexp"
+        }
+      ],
+      "}": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: search without a regexp"
+        }
+      ],
       "shift-j": [
         "task::Spawn",
         {

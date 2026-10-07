@@ -105,6 +105,10 @@ The other options are in [configuration.md](configuration.md).
 | `f` | `org.agenda.later` | Agenda: go forward in time |
 | `b` | `org.agenda.earlier` | Agenda: go backward in time |
 | `.` | `org.agenda.today` | Agenda: go to today |
+| `[` | `org.agenda.query.add` | Agenda: search for another word |
+| `]` | `org.agenda.query.subtract` | Agenda: search without a word |
+| `Shift+[` | `org.agenda.query.add.regexp` | Agenda: search for another regexp |
+| `Shift+]` | `org.agenda.query.subtract.regexp` | Agenda: search without a regexp |
 | `Shift+J` | `org.agenda.goto.date` | Agenda: go to a date |
 | `v d` | `org.agenda.day` | Agenda: day view |
 | `v w` | `org.agenda.week` | Agenda: week view |
@@ -192,6 +196,10 @@ The other options are in [configuration.md](configuration.md).
 | `f` | `org.agenda.later` | Agenda: go forward in time |
 | `b` | `org.agenda.earlier` | Agenda: go backward in time |
 | `.` | `org.agenda.today` | Agenda: go to today |
+| `[` | `org.agenda.query.add` | Agenda: search for another word |
+| `]` | `org.agenda.query.subtract` | Agenda: search without a word |
+| `Shift+[` | `org.agenda.query.add.regexp` | Agenda: search for another regexp |
+| `Shift+]` | `org.agenda.query.subtract.regexp` | Agenda: search without a regexp |
 | `Shift+J` | `org.agenda.goto.date` | Agenda: go to a date |
 | `v d` | `org.agenda.day` | Agenda: day view |
 | `v w` | `org.agenda.week` | Agenda: week view |
@@ -305,6 +313,10 @@ every file; outside Org files the commands say they do not apply):
 | `org.agenda.later` | Org: Agenda: go forward in time |
 | `org.agenda.earlier` | Org: Agenda: go backward in time |
 | `org.agenda.today` | Org: Agenda: go to today |
+| `org.agenda.query.add` | Org: Agenda: search for another word |
+| `org.agenda.query.subtract` | Org: Agenda: search without a word |
+| `org.agenda.query.add.regexp` | Org: Agenda: search for another regexp |
+| `org.agenda.query.subtract.regexp` | Org: Agenda: search without a regexp |
 | `org.agenda.goto.date` | Org: Agenda: go to a date |
 | `org.agenda.day` | Org: Agenda: day view |
 | `org.agenda.week` | Org: Agenda: week view |

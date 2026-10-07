@@ -987,6 +987,8 @@ describe('The agenda', () => {
       '[t] List of all TODO entries',
       '[m] Match a TAGS/PROP/TODO query',
       '[M] Like m, but only TODO entries',
+      '[s] Search for keywords',
+      '[S] Like s, but only TODO entries',
     ]);
     await agenda('Global list of TODO items of type: ALL');
   });

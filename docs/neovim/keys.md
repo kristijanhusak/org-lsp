@@ -94,6 +94,10 @@ The other options are in [configuration.md](configuration.md).
 | `f` | `org.agenda.later` | Agenda: go forward in time |
 | `b` | `org.agenda.earlier` | Agenda: go backward in time |
 | `.` | `org.agenda.today` | Agenda: go to today |
+| `[` | `org.agenda.query.add` | Agenda: search for another word |
+| `]` | `org.agenda.query.subtract` | Agenda: search without a word |
+| `{` | `org.agenda.query.add.regexp` | Agenda: search for another regexp |
+| `}` | `org.agenda.query.subtract.regexp` | Agenda: search without a regexp |
 | `J` | `org.agenda.goto.date` | Agenda: go to a date |
 | `vd` | `org.agenda.day` | Agenda: day view |
 | `vw` | `org.agenda.week` | Agenda: week view |

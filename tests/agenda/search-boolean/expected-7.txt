@@ -1,0 +1,2 @@
+Search words: receipts
+  work:       DONE Collect receipts                                    :office::

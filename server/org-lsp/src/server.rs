@@ -2228,6 +2228,9 @@ impl Server {
             Query::Tags { matching, todo_only } => {
                 one(views::BlockKind::Tags { matcher: org_core::agenda::Matcher::new(matching), todo_only: *todo_only })
             }
+            Query::Search { string, todo_only } => {
+                one(views::BlockKind::Search { string: string.clone(), todo_only: *todo_only })
+            }
             Query::Custom { keys, moved } => {
                 let commands = self.agenda_options.custom_commands.as_deref().unwrap_or_default();
                 let command = custom::find(commands, keys).ok_or_else(|| format!("No agenda command `{keys}`"))?;
@@ -2551,6 +2554,10 @@ impl Server {
         }
         let context: Option<Context> = argument.and_then(|value| serde_json::from_value(value).ok());
         match params.command.as_str() {
+            commands::AGENDA_QUERY_ADD
+            | commands::AGENDA_QUERY_SUBTRACT
+            | commands::AGENDA_QUERY_ADD_REGEXP
+            | commands::AGENDA_QUERY_SUBTRACT_REGEXP => self.manipulate_query(&params.command, context.as_ref()),
             id if id.starts_with("org.calendar.") => self.calendar_command(id, context.as_ref()),
             // `org-save-all-org-buffers`: the server cannot save; the
             // editor saves the files it names that have changes.
@@ -3139,6 +3146,9 @@ impl Server {
             self.open_view(Query::Tags { matching, todo_only: prefix == "M" })?;
             return Ok(Value::Null);
         }
+        if get("ask").as_deref() == Some("search") {
+            return self.search(input.unwrap_or_default(), prefix == "S");
+        }
         let keys = format!("{prefix}{}", input.as_deref().unwrap_or(""));
         let commands = self.agenda_options.custom_commands.clone().unwrap_or_default();
         // The user's commands come first, as in Emacs.
@@ -3153,6 +3163,8 @@ impl Server {
             ("t", commands::title(commands::AGENDA_TODOS)),
             ("m", "Match a TAGS/PROP/TODO query"),
             ("M", "Like m, but only TODO entries"),
+            ("s", "Search for keywords"),
+            ("S", "Like s, but only TODO entries"),
         ];
         let next = custom::next_keys(&commands, &keys);
         if input.is_none() || !next.is_empty() {
@@ -3184,8 +3196,64 @@ impl Server {
                     "context": { "keys": keys, "ask": "match" },
                 } }))
             }
+            "s" | "S" => return Ok(self.search_input(&keys, "")),
             _ => return Err("No agenda command for this key".into()),
         }
+        Ok(Value::Null)
+    }
+
+    /// The question of `org-search-view`: the search string, starting
+    /// from `value`.
+    fn search_input(&self, keys: &str, value: &str) -> Value {
+        let prompt =
+            if self.agenda.search.always_boolean { "[+-]Word/{Regexp} ..." } else { "Phrase or [+-]Word/{Regexp} ..." };
+        json!({ "input": {
+            "kind": "text",
+            "prompt": prompt,
+            "value": value,
+            "context": { "keys": keys, "ask": "search" },
+        } })
+    }
+
+    /// `org-agenda-manipulate-query` (`[`, `]`, `{`, `}`): in a search
+    /// view, its search string asked for again with ` +`, ` -`, ` +{}` or
+    /// ` -{}` after it (a space only when it was not Boolean); the answer
+    /// (`input`) is searched for as the view was.
+    fn manipulate_query(&mut self, command: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
+        let line = self.view_cursor_line(context);
+        let open = self.view.as_ref().ok_or("No agenda is open")?;
+        let block = line.and_then(|line| open.on_screen().line(line)).map_or(0, |line| line.block);
+        let blocks = self.blocks(&open.view.query).map_err(Refusal::Failed)?;
+        let (string, todo_only) = match blocks.get(block).map(|block| &block.kind) {
+            Some(views::BlockKind::Search { string, todo_only }) => (string.clone(), *todo_only),
+            Some(views::BlockKind::Agenda { .. }) => {
+                return Err("Inactive timestamps in the agenda are not supported yet".into());
+            }
+            Some(views::BlockKind::Tags { .. }) => {
+                return Err("Cannot manipulate query for tags-type agenda buffers".into())
+            }
+            _ => return Err("Cannot manipulate query for todo-type agenda buffers".into()),
+        };
+        if let Some(input) = context.and_then(|context| context.input.clone()) {
+            return self.search(input, todo_only);
+        }
+        let added = match command {
+            commands::AGENDA_QUERY_ADD => " +",
+            commands::AGENDA_QUERY_SUBTRACT => " -",
+            commands::AGENDA_QUERY_ADD_REGEXP => " +{}",
+            _ => " -{}",
+        };
+        let string = org_core::agenda::search::manipulate(&string, added, &self.agenda.search);
+        Ok(self.search_input(if todo_only { "S" } else { "s" }, &string))
+    }
+
+    /// `org-search-view` for `string`, which Org must be able to read.
+    fn search(&mut self, string: String, todo_only: bool) -> std::result::Result<Value, Refusal> {
+        if !string.chars().any(|c| !c.is_whitespace()) {
+            return Ok(Value::Null);
+        }
+        org_core::agenda::search::parse(&string, todo_only, &self.agenda.search).map_err(Refusal::Failed)?;
+        self.open_view(Query::Search { string, todo_only })?;
         Ok(Value::Null)
     }
 
@@ -3207,6 +3275,7 @@ impl Server {
             None => Err(match open.view.query {
                 Query::Todo => "The TODO list has no dates to move through",
                 Query::Tags { .. } => "A tags view has no dates to move through",
+                Query::Search { .. } => "A search view has no dates to move through",
                 _ => "This block has no dates to move through",
             }
             .into()),

@@ -238,6 +238,8 @@ pub struct Outline {
     /// lines appended to the value before them.
     pub keyword_properties: Vec<(String, String)>,
     pub inheritance: Inheritance,
+    /// The text the outline was made from, for the search view.
+    pub text: String,
 }
 
 const ARCHIVE_TAG: &str = "ARCHIVE";
@@ -264,6 +266,7 @@ impl Outline {
         let category = category_values(&top_properties, &from_file);
 
         let mut outline = Outline {
+            text: text.to_string(),
             category: shown_category(&category),
             file_tags,
             todo,

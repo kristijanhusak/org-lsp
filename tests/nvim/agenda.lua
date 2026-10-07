@@ -101,6 +101,8 @@ eq(menu, {
     't List of all TODO entries',
     'm Match a TAGS/PROP/TODO query',
     'M Like m, but only TODO entries',
+    's Search for keywords',
+    'S Like s, but only TODO entries',
   },
 }, 'the menu of views')
 eq(vim.api.nvim_buf_get_name(0), 'org-agenda:/Org%20Agenda', 'the agenda is a document of the server')
@@ -791,6 +793,31 @@ press('O')
 wait('the highlight to go', function()
   return #highlighted() == 0
 end)
+only_window()
+
+-- 18. `s` searches the files for words (`org-search-view`); `]` asks for
+-- the search string again, with a word to leave out started.
+do
+  local input = vim.ui.input
+  local asked
+  local answers = { '+water', '+water -plants' }
+  vim.ui.input = function(opts, on_confirm)
+    asked = opts.default
+    on_confirm(table.remove(answers, 1))
+  end
+  choice = 's'
+  press('\\oa')
+  wait_for_view('Search words: +water')
+  check(vim.iter(lines()):any(function(text)
+    return text:find('TODO Water plants', 1, true) ~= nil
+  end), 'the entry with the word')
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  press(']')
+  wait_for_view('Search words: +water -plants')
+  eq(asked, '+water -', 'the search string, a word to leave out started')
+  eq(lines(), { 'Search words: +water -plants' }, 'no entry left')
+  vim.ui.input = input
+end
 only_window()
 
 print(('ok: %d checks passed'):format(checks))

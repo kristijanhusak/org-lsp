@@ -86,7 +86,7 @@ few, checked against Emacs where Org decides the outcome:
   properties that change what commands do.
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
   moving rows and columns, `C-c -` for a rule.
-- **Agenda (5):** search (`s`), filters (`/`, `<`, `=`, `_`, `|`), stuck
+- **Agenda (5):** filters (`/`, `<`, `=`, `_`, `|`), stuck
   projects, group tags in match strings, entry text, follow mode, bulk
   marks and actions, hours and minutes on `S-<left>`/`S-<right>`.
 - **Clocking (9):** clock tables in files (`#+BEGIN: clocktable`,
@@ -355,8 +355,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - Done: archives mode (`v a`, `v A`), prefix formats
   (`org-agenda-prefix-format`), TAB in another window, tags at the
   window's edge, the entry of a line on hover.
-- Search (`s`), filters (`/`, `<`, `=`, `_`, `|`), stuck projects, group
-  tags in match strings, entry text, follow mode.
+- Done: the search view (`s`, `S`, `org-search-view`, with
+  `[`, `]`, `{`, `}`), checked against Emacs; not yet
+  `org-agenda-text-search-extra-files`.
+- Filters (`/`, `<`, `=`, `_`, `|`), stuck projects, group tags in match
+  strings, entry text, follow mode.
 - Bulk marks and actions; hours and minutes on `S-<left>`/`S-<right>`.
 
 ### 6. Structure editing

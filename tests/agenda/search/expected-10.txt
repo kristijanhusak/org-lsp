@@ -1,0 +1,4 @@
+Search words: *+report -todo
+  b:          Plain heading with report in the title
+  b:          Report in capitals
+  b:          reporting is a longer word

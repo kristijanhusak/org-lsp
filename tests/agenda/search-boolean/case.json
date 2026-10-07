@@ -1,0 +1,43 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "search",
+      "match": "report budget"
+    },
+    {
+      "view": "search",
+      "match": "report"
+    },
+    {
+      "view": "search",
+      "match": "report -alice"
+    },
+    {
+      "view": "search",
+      "match": "{^Alice} budget"
+    },
+    {
+      "view": "search",
+      "match": "port"
+    },
+    {
+      "view": "search",
+      "match": "re port"
+    },
+    {
+      "view": "search",
+      "match": "\"the plan\" budget"
+    },
+    {
+      "view": "search",
+      "match": "receipts"
+    }
+  ],
+  "options": {
+    "org_agenda_search_view_always_boolean": true,
+    "org_agenda_search_view_force_full_words": true
+  },
+  "emacs": "(setq org-agenda-search-view-always-boolean t org-agenda-search-view-force-full-words t)"
+}

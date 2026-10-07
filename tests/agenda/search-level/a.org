@@ -1,0 +1,28 @@
+#+CATEGORY: work
+#+TODO: TODO NEXT | DONE
+Text before the first headline mentions report.
+* TODO Write the report :office:
+The quarterly report is due.
+It covers the budget and the plan.
+** NEXT Ask Alice about the budget
+Alice knows the numbers.
+** DONE Collect receipts
+Receipts for the report.
+* Meeting notes
+:PROPERTIES:
+:CATEGORY: meetings
+:END:
+Spoke about the
+report and the
+plan, at length.
+** Weekly sync :sync:
+Nothing about money.
+*** Deep detail
+The budget again, deeply.
+* COMMENT Hidden things
+The report is hidden here.
+* Archived :ARCHIVE:
+The report was archived.
+* Words with punctuation
+Re-port, re.port and [brackets] and a+b and C++ and 50% done.
+Café crème and naïve résumé.

@@ -1,0 +1,2 @@
+Search words: money
+  meetings:   Meeting notes

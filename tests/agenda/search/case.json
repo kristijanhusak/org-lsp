@@ -1,0 +1,174 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "search",
+      "match": "report"
+    },
+    {
+      "view": "search",
+      "match": "the report"
+    },
+    {
+      "view": "search",
+      "match": "budget plan"
+    },
+    {
+      "view": "search",
+      "match": "the\\ budget"
+    },
+    {
+      "view": "search",
+      "match": "+report -budget"
+    },
+    {
+      "view": "search",
+      "match": "+budget +alice"
+    },
+    {
+      "view": "search",
+      "match": "+report +{qu[a-z]+ly}"
+    },
+    {
+      "view": "search",
+      "match": "{^Alice}"
+    },
+    {
+      "view": "search",
+      "match": "-report"
+    },
+    {
+      "view": "search",
+      "match": "*report"
+    },
+    {
+      "view": "search",
+      "match": "*+report -todo"
+    },
+    {
+      "view": "search",
+      "match": "!report"
+    },
+    {
+      "view": "search",
+      "match": "*!report"
+    },
+    {
+      "view": "search",
+      "match": "+\"the plan\""
+    },
+    {
+      "view": "search",
+      "match": "+\"report and the\""
+    },
+    {
+      "view": "search",
+      "match": ":report"
+    },
+    {
+      "view": "search",
+      "match": ":+report"
+    },
+    {
+      "view": "search",
+      "match": "+re.port"
+    },
+    {
+      "view": "search",
+      "match": "+C++"
+    },
+    {
+      "view": "search",
+      "match": "+50%"
+    },
+    {
+      "view": "search",
+      "match": "+[brackets]"
+    },
+    {
+      "view": "search",
+      "match": "+caf\u00e9"
+    },
+    {
+      "view": "search",
+      "match": "R\u00c9SUM\u00c9"
+    },
+    {
+      "view": "search",
+      "match": "+{rep.rt}"
+    },
+    {
+      "view": "search",
+      "match": "+{^\\*+ TODO}"
+    },
+    {
+      "view": "search",
+      "match": "+report +\"quarterly report\" -alice"
+    },
+    {
+      "view": "search",
+      "match": "-{Alice} +budget"
+    },
+    {
+      "view": "search",
+      "match": "spoke about the report"
+    },
+    {
+      "view": "search",
+      "match": "*"
+    },
+    {
+      "view": "search",
+      "match": "+"
+    },
+    {
+      "view": "search",
+      "match": "{"
+    },
+    {
+      "view": "search",
+      "match": "+{} +report"
+    },
+    {
+      "view": "search",
+      "match": "+-report"
+    },
+    {
+      "view": "search",
+      "match": "\"budget\""
+    },
+    {
+      "view": "search",
+      "match": "+\"budget"
+    },
+    {
+      "view": "search",
+      "match": "re port"
+    },
+    {
+      "view": "search",
+      "match": "printer"
+    },
+    {
+      "view": "search",
+      "match": "*Report in"
+    },
+    {
+      "view": "search-todo",
+      "match": "report"
+    },
+    {
+      "view": "search-todo",
+      "match": "+budget"
+    },
+    {
+      "view": "search-todo",
+      "match": "budget"
+    },
+    {
+      "view": "search-todo",
+      "match": "*report"
+    }
+  ]
+}

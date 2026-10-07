@@ -1,0 +1,34 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "search",
+      "match": "budget"
+    },
+    {
+      "view": "search",
+      "match": "money"
+    },
+    {
+      "view": "search",
+      "match": "report"
+    },
+    {
+      "view": "search",
+      "match": "+deeply"
+    },
+    {
+      "view": "search",
+      "match": "*detail"
+    },
+    {
+      "view": "search",
+      "match": "Alice"
+    }
+  ],
+  "options": {
+    "org_agenda_search_view_max_outline_level": 1
+  },
+  "emacs": "(setq org-agenda-search-view-max-outline-level 1)"
+}

@@ -86,6 +86,7 @@ fn block_kind(
         "todo" => BlockKind::Todo { keywords: Some(matching.to_string()).filter(|text| !text.trim().is_empty()) },
         "tags" => BlockKind::Tags { matcher: Matcher::new(matching), todo_only: false },
         "tags-todo" => BlockKind::Tags { matcher: Matcher::new(matching), todo_only: true },
+        "search" => BlockKind::Search { string: matching.to_string(), todo_only: false },
         other => {
             return Err(format!(
             "Custom agenda commands of type `{other}` are not supported; use agenda, alltodo, todo, tags or tags-todo"

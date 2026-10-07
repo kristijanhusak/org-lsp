@@ -1,0 +1,2 @@
+Search words: +café
+  work:       Words with punctuation
