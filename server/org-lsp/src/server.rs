@@ -176,6 +176,11 @@ struct Context {
     /// run them so.
     #[serde(default)]
     apply: bool,
+    /// For M-RET and its neighbours: the new heading, item or row goes
+    /// below the cursor's line, never above it and splitting nothing, as
+    /// from the keys of modal editors (`<Leader><CR>`).
+    #[serde(default)]
+    below: bool,
 }
 
 /// What `org.capture` is run with. Capturing needs no document: from
@@ -2499,7 +2504,20 @@ impl Server {
         if edits.is_empty() {
             return Ok(());
         }
-        let pending = match (target, outcome.cursor) {
+        // `cid` leaves the cursor where it was in the timestamp it changed,
+        // as nvim-orgmode does, not after it as `C-c .` does.
+        let cursor = match org_core::stamp::Stamp::around(text, source.offset) {
+            Some(old) if id == commands::TIMESTAMP_CHANGE => org_core::stamp::Stamp::at(&outcome.text, old.start)
+                .map_or(outcome.cursor, |new| {
+                    let mut at = source.offset.clamp(new.start, new.end - 1);
+                    while !outcome.text.is_char_boundary(at) {
+                        at -= 1;
+                    }
+                    Some(at)
+                }),
+            _ => outcome.cursor,
+        };
+        let pending = match (target, cursor) {
             // From the agenda, its cursor follows the entry, as after the
             // agenda's other commands.
             (Target::Entry { line, character, row, .. }, _) => {
@@ -3926,7 +3944,7 @@ impl Server {
         let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
         let keywords = document.parse.todo_keywords();
-        let settings = meta_return::Settings { tags_column: self.refile.2.tags_column };
+        let settings = meta_return::Settings { tags_column: self.refile.2.tags_column, below: context.below };
         let text = &document.text;
         let outcome = match id {
             commands::META_RETURN => meta_return::meta_return(text, offset, keywords, &settings)?,
@@ -3964,16 +3982,17 @@ impl Server {
         while !old.is_char_boundary(old.len() - suffix) || !new.is_char_boundary(new.len() - suffix) {
             suffix -= 1;
         }
-        let edit = indent_edit(
-            old,
-            &document.index,
-            encoding,
-            org_core::indent::Edit {
-                start: prefix,
-                end: old.len() - suffix,
-                text: new[prefix..new.len() - suffix].to_string(),
-            },
-        );
+        let (mut start, mut end) = (prefix, old.len() - suffix);
+        let mut text = new[prefix..new.len() - suffix].to_string();
+        // Lines added after the last one go after its end, not after the
+        // final newline: on a line past the buffer's last, Neovim 0.11.0
+        // leaves an empty line behind them.
+        if start == old.len() && suffix == 0 && old.ends_with('\n') && text.ends_with('\n') {
+            (start, end) = (start - 1, start - 1);
+            text.pop();
+            text.insert(0, '\n');
+        }
+        let edit = indent_edit(old, &document.index, encoding, org_core::indent::Edit { start, end, text });
         let cursor = LineIndex::new(new).position(new, outcome.cursor, encoding);
         if context.apply {
             let version = document.version;

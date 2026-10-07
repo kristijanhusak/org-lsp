@@ -822,6 +822,42 @@ fn inserts_headings_and_items_as_org_does() {
     client.shutdown();
 }
 
+/// From the keys of modal editors (`below`), M-RET puts the new item
+/// after the item, even from its bullet; and lines added after a file's
+/// last line go after its end, not after its final newline.
+#[test]
+fn inserts_below_the_line() {
+    let mut client = Client::start(json!({}), Value::Null);
+    let mut run = |text: &str, command: &str, context: Value| -> (String, TextEdit, Value) {
+        client.open(&uri(), text);
+        let mut context = context;
+        context["textDocument"] = json!({ "uri": uri().as_str() });
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+            .expect("a result");
+        let edit: TextEdit = serde_json::from_value(result["edits"][0].clone()).unwrap();
+        // The text is ASCII: a character is a byte.
+        let offset = |at: Position| {
+            text.split_inclusive('\n').take(at.line as usize).map(str::len).sum::<usize>() + at.character as usize
+        };
+        let (start, end) = (offset(edit.range.start), offset(edit.range.end));
+        (format!("{}{}{}", &text[..start], edit.new_text, &text[end..]), edit, result["cursor"].clone())
+    };
+    let (changed, _, cursor) = run(
+        "1. one\n   more\n2. two\n",
+        "org.meta.return",
+        json!({ "position": { "line": 0, "character": 0 }, "below": true }),
+    );
+    assert_eq!(changed, "1. one\n   more\n2. \n3. two\n");
+    assert_eq!(cursor, json!({ "line": 2, "character": 3 }));
+    let (changed, edit, _) = run("| a | bb |\n", "org.return", json!({ "position": { "line": 0, "character": 3 } }));
+    assert_eq!(changed, "| a | bb |\n|   |    |\n");
+    assert_eq!(edit.range, Range::new(Position::new(0, 10), Position::new(0, 10)));
+    assert_eq!(edit.new_text, "\n|   |    |");
+    client.shutdown();
+}
+
 /// Recalculating a table with formulas as a code action, in the table and
 /// on its `#+TBLFM:` line; none where nothing would change.
 #[test]

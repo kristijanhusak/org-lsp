@@ -385,6 +385,23 @@ wait('the calendar to close when cancelled', function()
   return prompt_window() == nil
 end)
 eq(line(2), 'SCHEDULED: <2026-06-11 Thu 09:00 +2w>', 'cancelling changes nothing')
+-- `cid` changes the timestamp at the cursor, and the cursor stays where it
+-- was in it.
+vim.api.nvim_win_set_cursor(0, { 2, 21 })
+press('cid')
+wait('the calendar for cid', on_prompt_day('11'))
+press('l')
+wait('a day later for cid', on_prompt_day('12'))
+press('<CR>')
+becomes(2, 'SCHEDULED: <2026-06-12 Fri 09:00 +2w>', 'changed with cid')
+wait('the calendar to close after cid', function()
+  return prompt_window() == nil
+end)
+-- Moved away here, the server puts it back once its edit is in.
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+wait('the cursor to stay on the day', function()
+  return vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 2, 21 })
+end)
 vim.ui.input = input
 
 -- 14. With keys on the keywords, `org.todo` (`cit` by default, `gt` as
@@ -620,6 +637,20 @@ eq(vim.api.nvim_buf_get_lines(0, 6, 8, false), { '  z', '  #w' }, 'the global ma
 vim.api.nvim_win_set_cursor(0, { 2, 4 })
 press('a<S-CR>v<Esc>')
 eq(vim.api.nvim_buf_get_lines(0, 1, 3, false), { 'xthe', 'vreport' }, '<S-CR> is RET, the plugin\'s and not the global one')
+-- With a completion menu open, `<CR>` is the menu's, and `<S-CR>` still
+-- RET: the entry taken, then the next row.
+local completed = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '| alpha | alps |', '| al |' }, completed)
+vim.cmd.edit(completed)
+wait('the server for RET with a completion menu', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 2, 4 })
+press('i<C-n><S-CR>z<Esc>')
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '| alpha | alps |', '| alpha |      |', '| z      |      |' },
+  '<S-CR> with the menu open')
+vim.cmd('silent! write')
+vim.cmd.edit(returns)
 -- One that maps `<CR>` again reaches Vim's own key, not the plugin's again.
 vim.keymap.set('i', '<CR>', '<CR>%', { remap = true })
 vim.api.nvim_win_set_cursor(0, { 9, 4 })
@@ -627,9 +658,8 @@ press('a<CR>u<Esc>')
 eq(vim.api.nvim_buf_get_lines(0, 8, 10, false), { '  #w', '  %u' }, 'a remapping global <CR> in code, without a loop')
 vim.keymap.del('i', '<CR>')
 
--- 23b. `<Leader><CR>` is M-RET: after the character under the cursor, a
--- new item in a list, a heading on a headline, and typing goes on there in
--- insert mode. `<Leader>oit` puts a TODO heading after the subtree. (A
+-- 23b. `<Leader><CR>` is M-RET: below the cursor's line, a new item in a
+-- list, a heading on a headline, and typing goes on there in insert mode. `<Leader>oit` puts a TODO heading after the subtree. (A
 -- script never gets back to Neovim's main loop, where insert mode would
 -- start: what the plugin asks of it is what can be seen here.)
 local inserted = vim.fn.tempname() .. '.org'
@@ -666,6 +696,31 @@ wait('the TODO heading after the subtree', function()
   return line(5) == '* TODO '
 end)
 eq({ vim.api.nvim_win_get_cursor(0)[1], started }, { 5, 'startinsert!' }, 'typing goes on in the new heading')
+vim.cmd('silent! write')
+-- On a numbered item's bullet, the next item goes after the item, its
+-- text left whole and those after it renumbered; in a table, a new row
+-- below.
+local numbered = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '1. one', '   more', '2. two', '', '| a | bb |', '| c | d  |' }, numbered)
+command.edit(numbered)
+wait('the server for M-RET in a numbered list', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+started = nil
+press('<Leader><CR>')
+wait('the new numbered item', function()
+  return line(3) == '2. '
+end)
+eq(vim.api.nvim_buf_get_lines(0, 0, 5, false), { '1. one', '   more', '2. ', '3. two', '' }, 'below the item, numbered')
+eq({ vim.api.nvim_win_get_cursor(0)[1], started }, { 3, 'startinsert!' }, 'typing goes on after its number')
+vim.api.nvim_win_set_cursor(0, { 6, 2 })
+press('<Leader><CR>')
+wait('the new row', function()
+  return line(7) == '|   |    |'
+end)
+eq(vim.api.nvim_buf_get_lines(0, 5, -1, false), { '| a | bb |', '|   |    |', '| c | d  |' }, 'a row below')
+eq(vim.api.nvim_win_get_cursor(0), { 7, 2 }, 'in its first field')
 vim.cmd = command
 vim.cmd('silent! write')
 

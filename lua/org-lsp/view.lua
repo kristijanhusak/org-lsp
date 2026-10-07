@@ -80,6 +80,7 @@ end
 ---@return integer
 local function open_window(bufnr, mode)
   local win
+  local from = vim.api.nvim_get_current_win()
   local size = require('org-lsp').config.win_split_size
   if type(size) ~= 'number' or size <= 0 then
     size = nil
@@ -126,6 +127,9 @@ local function open_window(bufnr, mode)
   -- Closing the document closes a window opened for it too.
   if mode ~= 'current' then
     vim.w[win].org_lsp_opened = true
+    if win ~= from then
+      vim.w[win].org_lsp_from = from
+    end
   end
   if vim.api.nvim_win_get_buf(win) ~= bufnr then
     vim.api.nvim_win_set_buf(win, bufnr)
@@ -159,6 +163,7 @@ end
 ---@return integer
 local function prompt_window(bufnr)
   local win = vim.fn.win_findbuf(bufnr)[1]
+  local from = vim.api.nvim_get_current_win()
   -- Asked from a floating window, such as the agenda in one, a split at the
   -- bottom would be under it: the calendar floats at the bottom instead.
   local bottom = function(height)
@@ -167,11 +172,13 @@ local function prompt_window(bufnr)
   if not win and is_float(vim.api.nvim_get_current_win()) then
     win = vim.api.nvim_open_win(bufnr, true, vim.tbl_extend('force', bottom(1), { zindex = 100 }))
     vim.w[win].org_lsp_opened = true
+    vim.w[win].org_lsp_from = from
     vim.fn.bufload(bufnr)
   elseif not win then
     vim.cmd('botright split')
     win = vim.api.nvim_get_current_win()
     vim.w[win].org_lsp_opened = true
+    vim.w[win].org_lsp_from = from
     -- The split takes the folding of the window it came from. The calendar
     -- has nothing to fold, and asking the server for folds of a buffer
     -- that is about to go trips an assertion in Neovim 0.11.0: turn it
@@ -220,7 +227,14 @@ end
 function M.close_buffer(bufnr)
   for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
     if vim.w[win].org_lsp_opened and #vim.api.nvim_list_wins() > 1 then
+      -- Back to the window it was opened from, where the cursor was, not
+      -- the one that takes its place on the screen.
+      local from = vim.w[win].org_lsp_from
+      local current = vim.api.nvim_get_current_win() == win
       vim.api.nvim_win_close(win, true)
+      if current and from and from ~= win and vim.api.nvim_win_is_valid(from) then
+        vim.api.nvim_set_current_win(from)
+      end
     else
       vim.api.nvim_win_call(win, function()
         local previous = vim.fn.bufnr('#')

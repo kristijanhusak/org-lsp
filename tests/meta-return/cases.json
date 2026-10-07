@@ -864,5 +864,599 @@
    "text": "* A\n1. one\n   1. a\n      1. i\n      2. [ ] \n      3. ii\n   2. b\n2. two\n3. three\n",
    "point": 43
   }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 0,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n2. \n3. two\n",
+   "point": 28
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 0,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n2. [ ] \n3. two\n",
+   "point": 32
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 1,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n2. \n3. two\n",
+   "point": 28
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 1,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n2. [ ] \n3. two\n",
+   "point": 32
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 2,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n2. \n3. two\n",
+   "point": 28
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 2,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n2. [ ] \n3. two\n",
+   "point": 32
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 3,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n2. \n3. two\n",
+   "point": 28
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 3,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n2. [ ] \n3. two\n",
+   "point": 32
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 5,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n2. \n3. two\n",
+   "point": 28
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 5,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n2. [ ] \n3. two\n",
+   "point": 32
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 9,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n2. \n3. two\n",
+   "point": 28
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 9,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n2. [ ] \n3. two\n",
+   "point": 32
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 17,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n   2. \n2. two\n",
+   "point": 31
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 17,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n   2. [ ] \n2. two\n",
+   "point": 35
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 20,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n   2. \n2. two\n",
+   "point": 31
+  }
+ },
+ {
+  "text": "1. one\n   more\n   1. sub\n2. two\n",
+  "point": 20,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "1. one\n   more\n   1. sub\n   2. [ ] \n2. two\n",
+   "point": 35
+  }
+ },
+ {
+  "text": "- one\n- two\n",
+  "point": 0,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "- one\n- \n- two\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "- one\n- two\n",
+  "point": 0,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "- one\n- [ ] \n- two\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "- one\n- two\n",
+  "point": 2,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "- one\n- \n- two\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "- one\n- two\n",
+  "point": 2,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "- one\n- [ ] \n- two\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "- one\n- two\n",
+  "point": 4,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "- one\n- \n- two\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "- one\n- two\n",
+  "point": 4,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "- one\n- [ ] \n- two\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "- one\n- two\n",
+  "point": 6,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "- one\n- two\n- \n",
+   "point": 14
+  }
+ },
+ {
+  "text": "- one\n- two\n",
+  "point": 6,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "- one\n- two\n- [ ] \n",
+   "point": 18
+  }
+ },
+ {
+  "text": "- [ ] box\n- [X] done\n",
+  "point": 0,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "- [ ] box\n- \n- [X] done\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "- [ ] box\n- [X] done\n",
+  "point": 0,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "- [ ] box\n- [ ] \n- [X] done\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "- [ ] box\n- [X] done\n",
+  "point": 4,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "- [ ] box\n- \n- [X] done\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "- [ ] box\n- [X] done\n",
+  "point": 4,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "- [ ] box\n- [ ] \n- [X] done\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "- [ ] box\n- [X] done\n",
+  "point": 7,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "- [ ] box\n- \n- [X] done\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "- [ ] box\n- [X] done\n",
+  "point": 7,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "- [ ] box\n- [ ] \n- [X] done\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "* TODO Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 0,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "* TODO Write the report :work:\n* \nBody\n** Sub\n* Next\n",
+   "point": 33
+  }
+ },
+ {
+  "text": "* TODO Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 0,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "* TODO Write the report :work:\n* TODO \nBody\n** Sub\n* Next\n",
+   "point": 38
+  }
+ },
+ {
+  "text": "* TODO Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 2,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "* TODO Write the report :work:\n* \nBody\n** Sub\n* Next\n",
+   "point": 33
+  }
+ },
+ {
+  "text": "* TODO Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 2,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "* TODO Write the report :work:\n* TODO \nBody\n** Sub\n* Next\n",
+   "point": 38
+  }
+ },
+ {
+  "text": "* TODO Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 10,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "* TODO Write the report :work:\n* \nBody\n** Sub\n* Next\n",
+   "point": 33
+  }
+ },
+ {
+  "text": "* TODO Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 10,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "* TODO Write the report :work:\n* TODO \nBody\n** Sub\n* Next\n",
+   "point": 38
+  }
+ },
+ {
+  "text": "* TODO Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 30,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "* TODO Write the report :work:\n* \nBody\n** Sub\n* Next\n",
+   "point": 33
+  }
+ },
+ {
+  "text": "* TODO Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 30,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "* TODO Write the report :work:\n* TODO \nBody\n** Sub\n* Next\n",
+   "point": 38
+  }
+ },
+ {
+  "text": "* TODO Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 33,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "* TODO Write the report :work:\nBody\n* \n** Sub\n* Next\n",
+   "point": 38
+  }
+ },
+ {
+  "text": "* TODO Write the report :work:\nBody\n** Sub\n* Next\n",
+  "point": 33,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "* TODO Write the report :work:\nBody\n* TODO \n** Sub\n* Next\n",
+   "point": 43
+  }
+ },
+ {
+  "text": "Text here\nmore\n",
+  "point": 0,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "Text here\n* \nmore\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "Text here\nmore\n",
+  "point": 0,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "Text here\n* TODO \nmore\n",
+   "point": 17
+  }
+ },
+ {
+  "text": "Text here\nmore\n",
+  "point": 4,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "Text here\n* \nmore\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "Text here\nmore\n",
+  "point": 4,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "Text here\n* TODO \nmore\n",
+   "point": 17
+  }
+ },
+ {
+  "text": "Text here\nmore\n",
+  "point": 12,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "Text here\nmore\n* \n",
+   "point": 17
+  }
+ },
+ {
+  "text": "Text here\nmore\n",
+  "point": 12,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "Text here\nmore\n* TODO \n",
+   "point": 22
+  }
+ },
+ {
+  "text": "| a | bb |\n|---+----|\n| c | d  |\n",
+  "point": 0,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "| a | bb |\n|   |    |\n|---+----|\n| c | d  |\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "| a | bb |\n|---+----|\n| c | d  |\n",
+  "point": 0,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "| a | bb |\n* TODO \n|---+----|\n| c | d  |\n",
+   "point": 18
+  }
+ },
+ {
+  "text": "| a | bb |\n|---+----|\n| c | d  |\n",
+  "point": 3,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "| a | bb |\n|   |    |\n|---+----|\n| c | d  |\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "| a | bb |\n|---+----|\n| c | d  |\n",
+  "point": 3,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "| a | bb |\n* TODO \n|---+----|\n| c | d  |\n",
+   "point": 18
+  }
+ },
+ {
+  "text": "| a | bb |\n|---+----|\n| c | d  |\n",
+  "point": 12,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "| a | bb |\n|---+----|\n|   |    |\n| c | d  |\n",
+   "point": 24
+  }
+ },
+ {
+  "text": "| a | bb |\n|---+----|\n| c | d  |\n",
+  "point": 12,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "| a | bb |\n|---+----|\n* TODO \n| c | d  |\n",
+   "point": 29
+  }
+ },
+ {
+  "text": "| a | bb |\n|---+----|\n| c | d  |\n",
+  "point": 24,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "| a | bb |\n|---+----|\n| c | d  |\n|   |    |\n",
+   "point": 35
+  }
+ },
+ {
+  "text": "| a | bb |\n|---+----|\n| c | d  |\n",
+  "point": 24,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "| a | bb |\n|---+----|\n| c | d  |\n* TODO \n",
+   "point": 40
+  }
+ },
+ {
+  "text": "| a | bb |\n| c | d  |\n#+TBLFM: @2$1=@1$1::@1$2=remote(x,@2$2)\n",
+  "point": 3,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "| a | bb |\n|   |    |\n| c | d  |\n#+TBLFM: @3$1=@1$1::@1$2=remote(x,@2$2)\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "| a | bb |\n| c | d  |\n#+TBLFM: @2$1=@1$1::@1$2=remote(x,@2$2)\n",
+  "point": 3,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "| a | bb |\n* TODO \n| c | d  |\n#+TBLFM: @2$1=@1$1::@1$2=remote(x,@2$2)\n",
+   "point": 18
+  }
+ },
+ {
+  "text": "| a | bb",
+  "point": 4,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "| a | bb |\n|   |    |\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "| a | bb",
+  "point": 4,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "| a | bb\n* TODO ",
+   "point": 16
+  }
+ },
+ {
+  "text": "| # | x |\n| # | y |\n",
+  "point": 6,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "| # | x |\n| # |   |\n| # | y |\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "| # | x |\n| # | y |\n",
+  "point": 6,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "| # | x |\n* TODO \n| # | y |\n",
+   "point": 17
+  }
+ },
+ {
+  "text": "- term :: def\n- other :: more\n",
+  "point": 0,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "- term :: def\n-  :: \n- other :: more\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "- term :: def\n- other :: more\n",
+  "point": 0,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "- term :: def\n- [ ]  :: \n- other :: more\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "- term :: def\n- other :: more\n",
+  "point": 5,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "- term :: def\n-  :: \n- other :: more\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "- term :: def\n- other :: more\n",
+  "point": 5,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "- term :: def\n- [ ]  :: \n- other :: more\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "3. [@3] counted\n4. next\n",
+  "point": 0,
+  "key": "below:M-RET",
+  "expected": {
+   "text": "3. [@3] counted\n4. \n5. next\n",
+   "point": 19
+  }
+ },
+ {
+  "text": "3. [@3] counted\n4. next\n",
+  "point": 0,
+  "key": "below:M-S-<return>",
+  "expected": {
+   "text": "3. [@3] counted\n4. [ ] \n5. next\n",
+   "point": 23
+  }
  }
 ]

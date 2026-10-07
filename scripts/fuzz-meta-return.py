@@ -29,7 +29,7 @@ fuzz_indent = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(fuzz_indent)
 
 ROOT = os.path.dirname(HERE)
-KEYS = ["M-RET", "M-RET", "M-S-<return>", "M-S-<return>", "C-<return>", "C-S-<return>"]
+KEYS = ["M-RET", "M-RET", "M-S-<return>", "M-S-<return>", "C-<return>", "C-S-<return>", "below:M-RET", "below:M-S-<return>"]
 EXTRA = [
     "* TODO [#A] A title here :work:home:",
     "** DONE Done title :x:",

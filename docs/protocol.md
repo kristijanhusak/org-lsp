@@ -211,7 +211,12 @@ from the server, and a cursor moved after it, would race with what is
 typed next.) `org.meta.return` and its neighbours answer the same way.
 With `"apply": true` in the context the server applies the edit itself
 and moves the cursor with `window/showDocument`; the code actions of
-`commandActions` run them so.
+`commandActions` run them so. With `"below": true`, `org.meta.return`
+and its neighbours put the new heading, item or table row below the
+cursor's line, as nvim-orgmode's `<Leader><CR>` does: never above it and
+splitting nothing, as Emacs does from the end of the line with
+`org-M-RET-may-split-line` nil (in a table, `org-table-insert-row` with
+its argument).
 
 A command that cannot run answers with error code -32803
 (`RequestFailed`) and a message meant for the user, such as
@@ -429,9 +434,9 @@ time.
   not apply, such as `<C-a>` or `S-<up>`; see `notApplicable` under
   [Commands](#commands). A `vim` key with `"mode": "insert"` is typed in
   insert mode (`<CR>` of `org.return`); the others in normal mode. One with
-  `"mode": "append"` (`<Leader><CR>` of `org.meta.return`) acts as if the
-  cursor were after the character under it, as `a` types there, and leaves
-  the editor in insert mode where the command put the cursor.
+  `"mode": "append"` (`<Leader><CR>` of `org.meta.return`) runs with
+  `"below": true` in the context, and leaves the editor in insert mode
+  where the command put the cursor.
 - **`agenda`**: how the agenda document is named; see below.
 - **`tokenTypes`**, **`tokenModifiers`**: the semantic token legend with
   descriptions. `standard` types are LSP's own.

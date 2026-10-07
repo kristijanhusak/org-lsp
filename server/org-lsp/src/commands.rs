@@ -71,8 +71,8 @@ const fn insert_native(scope: Scope, key: &'static str) -> Key {
     Key { scope, key, native: true, insert: true, append: false }
 }
 
-/// A key of normal mode that acts after the character under the cursor
-/// and goes on in insert mode.
+/// A key of normal mode that acts below the cursor's line (`below` in the
+/// command's context) and goes on in insert mode.
 const fn append(scope: Scope, key: &'static str) -> Key {
     Key { scope, key, native: false, insert: false, append: true }
 }
@@ -306,8 +306,8 @@ pub const COMMANDS: &[Command] = &[
         ..edit(RETURN, "New line, as Org's RET makes it")
     },
     // M-RET and its neighbours, carried in the result like `org.return`.
-    // From normal mode they act after the character under the cursor and
-    // typing goes on in insert mode, as with nvim-orgmode.
+    // From normal mode they act below the cursor's line (`below` in the
+    // context) and typing goes on in insert mode, as with nvim-orgmode.
     Command {
         emacs: &[key(Org, "M-RET")],
         vim: &[append(Org, "<Leader><CR>")],
