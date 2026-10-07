@@ -52,85 +52,51 @@ others), as close to Emacs Org mode as it can get.
 | 5, 13 | Block agenda cursor, separators, empty blocks; indentation (`org-indent-line`, `org-indent-region`, `adaptIndentation`) and virtual indentation (`org-indent-mode`) | #23 |
 | 8 | Emphasis keeps its style across spaces; toggle checkboxes with their cookies | #24 |
 | 6, 13 | Range formatting aligns tables and tags; agenda blocks without the blank line; `r` reads changed files; help (`g?`); RET as `org-return`; archiving | #29 |
+| 6, 14 | `M-RET`, `M-S-RET`, `C-RET`, `C-S-RET`; the agenda's archives mode; archived subtrees stay closed; the agenda's keys the same in every editor; Sublime and Zed fixes | #30–#38 |
+| 11, 7 | Follow links (`org-open-at-point`), notes (`org-add-note`), source and export blocks in their language's colors, tag and property inheritance | #39, #42, #43 |
+| 6, 8 | RET falls back to other plugins' `<CR>`; numbered lists continue (`returnUsesMetaReturn`, `<S-CR>` as `org.return.item`); `<Leader><CR>` adds below | #44, #48, #55, #57 |
+| 13, 14 | Virtual indentation in Vim, Sublime Text, Zed and Helix; `win_split_size`; Sublime opens the agenda with no Org file open | #41, #46, #47, #56 |
+| Later, 12 | Tangling (`org-babel-tangle`); table formulas (`org-table-recalculate`, with the part of Calc they use) | #49, #50 |
+| 5 | Agenda formats (`org-agenda-prefix-format` and the options around it); TAB in another window; tags at the window's edge (`agenda.tagsColumn` `"auto"`); Zed runs the agenda's keys at once | #51, #52, #54 |
+| 11, 5 | A hover over an agenda line shows its entry (`textDocument/hover`, `org-lsp/preview`); `K` shows it highlighted in Neovim and Vim | #59–#61 |
+| — | Fixes: repeating entries' message, the cursor after date changes, Neovim's flicker on server edits | #53, #55, #58 |
 
 ### Where to pick up
 
-After #29, on trying Sublime Text and Zed (2026-10-06): the Sublime
-package failed to register with current sublimelsp/LSP (it puts `LSP-`
-before a plugin's name to find its settings: `LSP-LSP-org`); it now names
-its settings file itself, finds the server in more places and downloads
-the nightly build when there is none, and `scripts/install-sublime.sh`
-installs it. In Zed no code action showed: Zed asks an extension's server
-only for the kinds the extension names (`quickfix`, `refactor`, … when it
-names none), so the extension names `org`, and the server takes the empty
-kind as all kinds. Zed also gets more commands as code actions
-(`commandActions`) and asks what they ask with buttons (`messagePrompts`,
-`window/showMessageRequest`). Zed's token rules are applied with the first
-in the file winning, so the rules with a modifier now come first.
+As of #61 (2026-10-07). What is left, by milestone; each is a PR or a
+few, checked against Emacs where Org decides the outcome:
 
-The second list asked for on 2026-10-06 is in #29: range formatting
-now aligns tables and tags as whole-file formatting does; custom agenda
-blocks without the blank line above their separator (in editors; the
-CLI keeps Emacs's); `r` reads files changed on disk first; a help window
-of the buffer's keys (`g?` in Neovim and Vim, a command elsewhere); RET
-as `org-return` (`tests/return`, `scripts/fuzz-return.py`); and
-archiving: `org-archive-subtree` with every way Org names a location
-(`archiveLocation`, `ARCHIVE` properties, `#+ARCHIVE:`, date trees),
-the context properties, inherited tags and `archiveMarkDone`;
-`org-archive-to-archive-sibling`; `org-toggle-archive-tag`; the `C-u`
-forms over every subtree without open TODO items; `$`, `a` and the
-`C-c C-x` keys in the agenda (`tests/archive`,
-`scripts/fuzz-archive.py`).
-
-Then (asked for on 2026-10-06, "do those"): `M-RET` (`org-meta-return`:
-a new item, heading or table row), `M-S-RET` (`org-insert-todo-heading`:
-a TODO heading, or an item with a checkbox), `C-RET` and `C-S-RET` (the
-same after the subtree), with `org-list.el`'s list structure ported as
-it is (`server/org-core/src/list.rs`: `org-list-struct`,
-`org-list-insert-item`, `org-list-write-struct`, down to Emacs going on
-with stale match data where an item of the structure is no longer at the
-start of a line) (`tests/meta-return`, `scripts/fuzz-meta-return.py`).
-In Neovim and Vim their keys act after the character under the cursor
-and typing goes on in insert mode (`"mode": "append"`). Capture and note
-buffers are filed with the text the editor has (coc.nvim tells the server
-of changes late). Then the rest of archiving: the agenda's archives mode
-(`v a`, `v A`, `org-agenda-archives-mode`, `agenda.startWithArchivesMode`;
-`tests/agenda/archives`), archived subtrees staying closed when TAB and
-S-TAB open what is around them (`org-cycle-hide-archived-subtrees`, in
-Neovim, Vim and VS Code), and the `archived` token modifier
-(`org-archived`). Then,
-by the milestones below: diagnostics (milestone 13), table navigation
-and editing (milestone 12), and the leftovers listed after this.
-
-Done from that list in #24: nested emphasis highlighting, checkbox
-cookies. In #26: fold cycling in VS Code (`org-lsp.cycle`,
-`org-lsp.cycleGlobal` on `Tab` / `Shift+Tab`, in the extension over the
-server's folding ranges, since only the editor knows which folds are
-closed), and key presets (`org-lsp.keys`: `emacs` binds Emacs's keys in
-Org files too, `vim` the Neovim plugin's for VSCodeVim, `custom` none;
-keys with their own meaning fall back to it where the server says the
-command does not apply). In #27: the Vim plugin (`editors/vim`, shared
-code plus adapters for yegappan/lsp, vim-lsp, coc.nvim and ALE, tested
-with each against the real server) and the Sublime Text package
-(`editors/sublime/LSP-org`, for sublimelsp/LSP, with the emacs, vim and
-custom presets; tested against stand-ins, since Sublime Text cannot be
-downloaded in the workspace). The server's option `showDocument` lets a
-client that does not announce `window/showDocument` say it shows
-documents. In #28: document formatting (`textDocument/formatting`):
-every table aligned as `org-table-align` does it and every headline's
-tags in their column (`org-align-tags`), checked against Emacs
-(`tests/format`, `scripts/fuzz-format.py`); and the Zed extension
-(`editors/zed`: the server from PATH or the nightly release, the
-tree-sitter-org grammar for structure, semantic token rules generated
-from the manifest, the editing commands as code actions; Zed cannot run
-a server command from a key, so no agenda, capture or refile there). Concealing emphasis markers already existed
-(`hideEmphasisMarkers`, `org-hide-emphasis-markers`, off by default).
-
-Older leftovers, any time:
-
-- The rest of capture (see 4e.3 below): item and checkitem templates,
-  date trees, `%^g` tags, `%a` from the agenda.
-- Milestones 5 to 12 below.
+- **Structure editing (6):** promote and demote (`M-<left>`/`M-<right>`,
+  `M-S-<left>`/`M-S-<right>`), move subtrees (`M-<up>`/`M-<down>`), cut,
+  copy and paste subtrees, sorting (`org-sort`), sparse trees.
+- **Lists (8):** cycle bullets (`S-<left>`/`S-<right>` on an item),
+  indent and outdent items, move items, renumber.
+- **Tags and properties (7):** set tags (`C-c C-q`, with fast tag
+  selection and alignment), tag groups; set and delete properties
+  (`C-c C-x p`), allowed values on the shifted keys; `LOGGING` and other
+  properties that change what commands do.
+- **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
+  moving rows and columns, `C-c -` for a rule.
+- **Agenda (5):** search (`s`), filters (`/`, `<`, `=`, `_`, `|`), stuck
+  projects, group tags in match strings, entry text, follow mode, bulk
+  marks and actions, hours and minutes on `S-<left>`/`S-<right>`.
+- **Clocking (9):** clock tables in files (`#+BEGIN: clocktable`,
+  `C-c C-x C-r`), effort estimates (`C-c C-x e`), `org-clock-display`,
+  the clock history, idle time and dangling clocks,
+  `org-clock-in-switch-to-state`.
+- **Capture (10):** item and checkitem templates, date trees, `%^g`
+  tags, `%a` from the agenda.
+- **Links and navigation (11):** store and insert links (`C-c l`,
+  `C-c C-l`), `documentLink`, backlinks as references, workspace
+  symbols, renaming tags and headings, hover in Org files.
+- **Diagnostics (13):** `org-lint` checks as diagnostics.
+- **Editors and distribution (14):** the Neovim plugin downloading the
+  server instead of building it; publishing the VS Code extension
+  (Marketplace, Open VSX: the `publisher` is a placeholder); a licence
+  (open question 2). The agenda's hover is plain in VS Code, which has no
+  grammar for Org's code blocks.
+- **Later:** export, Babel's evaluation, column view, inline images,
+  LaTeX previews.
 
 ### Milestone 3, merged: priorities and dates
 
@@ -376,8 +342,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   `blockSeparator` and `compactBlocks` (`org-agenda-block-separator`,
   `org-agenda-compact-blocks`, checked against Emacs); `hideEmptyBlocks`
   leaves out blocks with no entries (not in Org).
+- Done: archives mode (`v a`, `v A`), prefix formats
+  (`org-agenda-prefix-format`), TAB in another window, tags at the
+  window's edge, the entry of a line on hover.
 - Search (`s`), filters (`/`, `<`, `=`, `_`, `|`), stuck projects, group
-  tags in match strings, archives mode, entry text, follow mode.
+  tags in match strings, entry text, follow mode.
 - Bulk marks and actions; hours and minutes on `S-<left>`/`S-<right>`.
 
 ### 6. Structure editing
@@ -426,8 +395,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 ### 11. Links, completion, navigation
 
-- Follow links (`textDocument/definition`, `documentLink`), store and
-  insert links, `id:` links across files, backlinks as references.
+- Done: follow links (`org-open-at-point`, `textDocument/definition`),
+  `id:` links across files; notes (`org-add-note`); completion of
+  properties, link targets, block names and `#+` keywords, and tags from
+  the agenda files; hover over agenda lines.
+- `documentLink`, store and insert links, backlinks as references.
 - Completion: TODO keywords and tags in headlines are done (server
   only); still to do: properties, link targets, block names, `#+`
   keywords, and tags from the agenda files as well as the file. Hover. Workspace symbols. Rename of tags and headings.
@@ -436,9 +408,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 - Done: alignment as part of document formatting (`org-table-align` on
   every table).
-- Navigate (`TAB`, `RET`), insert and move rows and columns, as
-  commands. Formulas later; they are a project of their
-  own.
+- Done: `RET` to the next row, `M-RET` for a new row; formulas
+  (`org-table-recalculate`, `C-c *`, `#+TBLFM`), checked against Emacs in
+  `tests/tblfm`.
+- Navigate (`TAB`, `S-TAB`), insert, delete and move rows and columns,
+  as commands.
 
 ### 13. Diagnostics and formatting
 

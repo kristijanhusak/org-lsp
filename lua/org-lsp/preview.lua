@@ -22,15 +22,21 @@ local function org_lines(value)
   return lines
 end
 
---- The width of the float: as wide as the longest line and a blank on
---- each side, within the editor.
+--- The blank columns on each side of the text.
+local PADDING = 2
+
+--- The narrowest the float is: room for a headline and its planning line.
+local MIN_WIDTH = 50
+
+--- The width of the float: as wide as the longest line with the blanks
+--- on each side, at least `MIN_WIDTH`, within the editor.
 ---@param lines string[]
 local function width_of(lines)
   local width = 1
   for _, line in ipairs(lines) do
     width = math.max(width, vim.fn.strdisplaywidth(line))
   end
-  return math.min(width + 2, math.max(1, vim.o.columns - 4))
+  return math.min(math.max(width + 2 * PADDING, MIN_WIDTH), math.max(1, vim.o.columns - 4))
 end
 
 --- Open `lines` in a float below the cursor of the current window, the
@@ -62,8 +68,8 @@ function M.open(client, lines)
   vim.wo[win].wrap = true
   vim.wo[win].linebreak = true
   vim.wo[win].foldenable = false
-  -- A blank on the left, as on the right.
-  vim.wo[win].foldcolumn = '1'
+  -- The blanks on the left; those on the right are in the width.
+  vim.wo[win].foldcolumn = tostring(PADDING)
   vim.api.nvim_win_set_hl_ns(win, vim.api.nvim_create_namespace('org_lsp_preview'))
   vim.api.nvim_set_hl(vim.api.nvim_create_namespace('org_lsp_preview'), 'FoldColumn', { link = 'NormalFloat' })
   vim.lsp.buf_attach_client(buf, client.id)
