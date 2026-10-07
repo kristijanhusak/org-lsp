@@ -285,6 +285,14 @@ require('org-lsp').setup({
     -- (org-clock-out-when-done)
     org_clock_out_when_done = true,
 
+    -- The TODO state an entry is put in when the clock starts on it (`NEXT`),
+    -- unless it has it already. (org-clock-in-switch-to-state)
+    -- org_clock_in_switch_to_state = nil, -- unset: none
+
+    -- The TODO state an entry is put in when the clock stops on it.
+    -- (org-clock-out-switch-to-state)
+    -- org_clock_out_switch_to_state = nil, -- unset: none
+
     -- Completing a tag offers the tags of every agenda file, after those of
     -- the file. Off, only the file's own. Setting tags offers them too.
     -- (org-complete-tags-always-offer-all-agenda-tags)

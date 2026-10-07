@@ -162,6 +162,28 @@ pub const SETTINGS: &[Setting] = &[
         "org-clock-out-when-done",
         "Marking the clocked entry done stops the clock.",
     ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_clock_in_switch_to_state",
+            "string",
+            "",
+            "org-clock-in-switch-to-state",
+            "The TODO state an entry is put in when the clock starts on it (`NEXT`), unless it has it already.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_clock_out_switch_to_state",
+            "string",
+            "",
+            "org-clock-out-switch-to-state",
+            "The TODO state an entry is put in when the clock stops on it.",
+        )
+    },
     setting(
         "org_complete_tags_always_offer_all_agenda_tags",
         "boolean",
@@ -943,6 +965,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_clock_into_drawer", r#"{ "type": ["boolean", "string"] }"#),
     ("org_clock_out_remove_zero_time_clocks", BOOLEAN),
     ("org_clock_out_when_done", BOOLEAN),
+    ("org_clock_in_switch_to_state", STRING),
+    ("org_clock_out_switch_to_state", STRING),
     ("org_todo_repeat_to_state", r#"{ "anyOf": [{ "type": "string" }, { "const": true }] }"#),
     ("org_priority_highest", PRIORITY),
     ("org_priority_lowest", PRIORITY),
