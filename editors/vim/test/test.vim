@@ -167,6 +167,16 @@ function! s:agenda() abort
 endfunction
 call s:test('shows the agenda, moves through it, and closes it', function('s:agenda'))
 
+" Put the cursor on the line with `text`, and whether it is still there a
+" moment later.
+function! s:stays_on(text) abort
+  if getline('.') !~# a:text
+    call cursor(search(a:text, 'n'), 30)
+  endif
+  sleep 200m
+  return getline('.') =~# a:text
+endfunction
+
 " A hover over an entry, as the LSP client shows one, has its headline and
 " its text.
 function! s:agenda_hover() abort
@@ -174,7 +184,10 @@ function! s:agenda_hover() abort
   call s:until('the agenda', {-> s:agenda_window() != 0})
   call win_gotoid(s:agenda_window())
   call s:until('its text', {-> search('Write report', 'n') > 0})
-  call cursor(search('Write report', 'n'), 30)
+  " The agenda shows today first, which moves the cursor there, and again
+  " once it knows the window's width: the cursor goes to the entry once
+  " that is done.
+  call s:until('the cursor to stay on the entry', function('s:stays_on', ['Write report']))
   let client = $ORG_LSP_TEST_CLIENT
   if client ==# 'coc'
     call CocActionAsync('doHover')
