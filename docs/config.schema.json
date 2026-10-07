@@ -132,6 +132,11 @@
       "description": "The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up. (`org-clock-display-default-range`)",
       "default": "thisyear"
     },
+    "org_clock_idle_time": {
+      "minimum": 1,
+      "type": "integer",
+      "description": "After how many minutes without a message from the editor a clock that runs asks what to do with the idle time: keep it, subtract it (and clock out), or cancel the clock. (`org-clock-idle-time`)"
+    },
     "org_clock_history_length": {
       "minimum": 1,
       "type": "integer",

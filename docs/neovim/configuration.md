@@ -289,6 +289,11 @@ require('org-lsp').setup({
     -- (org-clock-display-default-range)
     org_clock_display_default_range = 'thisyear',
 
+    -- After how many minutes without a message from the editor a clock that
+    -- runs asks what to do with the idle time: keep it, subtract it (and
+    -- clock out), or cancel the clock. (org-clock-idle-time)
+    -- org_clock_idle_time = nil, -- unset: none
+
     -- How many entries clocked into the clock history keeps, for
     -- `org.clock.in` with a count and `org.clock.in.last`.
     -- (org-clock-history-length)

@@ -305,6 +305,9 @@ pub const PREVIEW: &str = "org-lsp/preview";
 /// "textDocument", "position" }`. In follow mode (`F`) the entry there
 /// shows in another window.
 pub const AGENDA_CURSOR: &str = "org-lsp/agendaCursor";
+/// Moves the fixed clock of a server started with one (the `clock`
+/// option), for tests: `{ "today": "2026-05-18", "now": "10:30" }`.
+pub const SET_CLOCK: &str = "org-lsp/setClock";
 
 /// The name of a capture buffer starts with this, as Emacs names it.
 pub const CAPTURE_PREFIX: &str = "CAPTURE-";
@@ -521,6 +524,13 @@ struct Server {
     clock_interrupted: Option<(Uri, String)>,
     /// `org-clock-out-time`: when the last clock stopped.
     clock_out_time: Option<DateTime>,
+    /// `org-clock-idle-time`: after how many minutes without a message
+    /// from the editor a clock that runs is a question.
+    clock_idle_time: Option<i64>,
+    /// When the editor last sent something, in minutes.
+    last_activity: Option<i64>,
+    /// When the idle time asked about began.
+    idle_since: Option<i64>,
     /// `org-clock-into-drawer` and its relatives.
     clock_settings: org_core::clock::Settings,
     /// `org-clock-out-when-done`
@@ -723,6 +733,9 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_default_task: None,
         clock_interrupted: None,
         clock_out_time: None,
+        clock_idle_time: options.clock_idle_time.filter(|minutes| *minutes > 0),
+        last_activity: None,
+        idle_since: None,
         clock_settings: options.clock_settings(),
         clock_out_when_done: options.clock_out_when_done.unwrap_or(true),
         clock_in_switch: options.clock_in_switch_to_state.clone(),
@@ -1329,6 +1342,7 @@ impl Server {
 
     fn request(&mut self, request: Request) -> Response {
         self.drop_closed_view();
+        self.notice_activity();
         macro_rules! dispatch {
             ($($request:ty => $handler:ident,)*) => {
                 match request.method.as_str() {
@@ -1424,6 +1438,15 @@ impl Server {
         fn parse<P: DeserializeOwned>(notification: Notification) -> Option<P> {
             serde_json::from_value(notification.params).ok()
         }
+        // A fixed clock moved on, for tests.
+        if notification.method == SET_CLOCK && self.clock.is_some() {
+            let clock: Option<crate::config::ClockOption> = parse(notification);
+            if let Some(now) = clock.and_then(|clock| clock.to_now()) {
+                self.clock = Some(now);
+            }
+            return;
+        }
+        self.notice_activity();
         let reopened = notification.method == DidOpenTextDocument::METHOD
             && self.view.as_ref().is_some_and(|open| {
                 notification.params.pointer("/textDocument/uri").and_then(Value::as_str) == Some(open.uri.as_str())
@@ -5925,6 +5948,11 @@ impl Server {
     /// The clock that runs in the files the server knows, the latest one
     /// if there are several.
     fn find_running(&mut self) -> Option<RunningClock> {
+        self.open_clocks().into_iter().max_by_key(|running| clock::minutes_of(running.start))
+    }
+
+    /// The clocks that run in the open files and the agenda files.
+    fn open_clocks(&mut self) -> Vec<RunningClock> {
         let mut found: Vec<RunningClock> = Vec::new();
         for (key, document) in &self.documents {
             let Ok(uri) = key.parse::<Uri>() else { continue };
@@ -5942,7 +5970,7 @@ impl Server {
                 }
             }
         }
-        found.into_iter().max_by_key(|running| clock::minutes_of(running.start))
+        found
     }
 
     /// Follow a document that changed: its running clock may be gone, or
@@ -6528,6 +6556,8 @@ impl Server {
         match id {
             commands::CLOCK_IN => self.clock_in(context.ok_or("This command needs the cursor position")?),
             commands::CLOCK_IN_LAST => self.clock_in_last(context.ok_or("This command needs the cursor position")?),
+            commands::CLOCK_RESOLVE => self.resolve_dangling(context),
+            commands::CLOCK_RESOLVE_IDLE => self.resolve_idle(context),
             commands::CLOCK_OUT | commands::CLOCK_CANCEL => {
                 let running = self.running.clone().ok_or("No active clock")?;
                 let Some((text, version, line)) = self.clock_line(&running) else {
@@ -6632,6 +6662,148 @@ impl Server {
                 .map(|entry| entry.offset)
         })
         .flatten()
+    }
+
+    /// Note a message from the editor: one after `org-clock-idle-time`
+    /// without any while a clock runs asks what to do with the idle time
+    /// (`org-resolve-clocks-if-idle`).
+    fn notice_activity(&mut self) {
+        let now = clock::minutes_of(self.date_time());
+        if let (Some(idle), Some(last)) = (self.clock_idle_time, self.last_activity) {
+            if self.running.is_some() && self.idle_since.is_none() && now - last > idle {
+                self.idle_since = Some(last);
+                let question = self.idle_question(last, now);
+                let uri = self.running.as_ref().map(|running| running.uri.as_str().to_string()).unwrap_or_default();
+                let argument = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 } });
+                self.prompt_with_messages(commands::CLOCK_RESOLVE_IDLE.to_string(), argument, &question);
+            }
+        }
+        self.last_activity = Some(now);
+    }
+
+    /// What `org-clock-resolve` asks after idle time.
+    fn idle_question(&self, since: i64, now: i64) -> Value {
+        let choices = [
+            ("k", "Keep the idle time"),
+            ("s", "Subtract the idle time"),
+            ("S", "Subtract the idle time and clock out"),
+            ("C", "Cancel the clock"),
+            ("i", "Ignore"),
+        ];
+        let choices: Vec<Value> = choices.iter().map(|(key, label)| json!({ "key": key, "label": label })).collect();
+        json!({ "input": {
+            "kind": "choice",
+            "prompt": format!("Clocked in & idle for {:.1} mins", (now - since) as f64),
+            "value": "",
+            "choices": choices,
+        } })
+    }
+
+    /// The answer to the idle question: the time kept (`k`), the clock
+    /// stopped when the idle time began and started again now (`s`) or
+    /// not (`S`), the clock canceled (`C`). A clock that ran less than a
+    /// minute before is canceled instead of stopped.
+    fn resolve_idle(&mut self, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
+        let since = self.idle_since.take().ok_or("No idle time to resolve")?;
+        let answer = context.and_then(|context| context.input.clone()).unwrap_or_default();
+        let running = self.running.clone().ok_or("No active clock")?;
+        let start = clock::minutes_of(running.start);
+        let barely_started = since - start < 1;
+        let stop = DateTime { day: since.div_euclid(1440), minute: since.rem_euclid(1440) };
+        match answer.as_str() {
+            "s" | "S" | "C" => {
+                let (text, version, line) = self.clock_line(&running).ok_or("Clock start time is gone")?;
+                let heading = Self::heading_above(&text, line);
+                let new_text = if answer == "C" || barely_started {
+                    clock::cancel(&text, line, &self.clock_settings)?
+                } else {
+                    self.clock_out_time = Some(stop);
+                    clock::clock_out(&text, line, stop, &self.clock_settings)?.text
+                };
+                self.running = None;
+                let change = (running.uri.clone(), version, text, new_text);
+                if let (true, Some(heading)) = (answer == "s", heading) {
+                    // The clock line is under its headline, which stays.
+                    let now = self.date_time();
+                    return self.clock_in_after(running.uri, heading, now, vec![change]);
+                }
+                self.send_texts(vec![change]);
+                self.publish_clock();
+                Ok(Value::Null)
+            }
+            _ => Ok(Value::Null),
+        }
+    }
+
+    /// `org-resolve-clocks`: the first clock that runs in the files beside
+    /// the clocked one (a dangling clock), with what to do with it: run on
+    /// as the clock (`k`), stopped now (`K`), started again now (`s`),
+    /// canceled (`S`, `C`), left as it is (`i`).
+    fn resolve_dangling(&mut self, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
+        let current = self.running.clone();
+        let dangling: Vec<RunningClock> = self
+            .open_clocks()
+            .into_iter()
+            .filter(|clock| {
+                current.as_ref().is_none_or(|running| {
+                    !(running.uri == clock.uri && running.start == clock.start && running.head == clock.head)
+                })
+            })
+            .collect();
+        let Some(clock) = dangling.first().cloned() else {
+            return Ok(json!({ "message": "No dangling clocks" }));
+        };
+        let now = self.date_time();
+        let Some(answer) = context.and_then(|context| context.input.clone()) else {
+            let minutes = clock::minutes_of(now) - clock::minutes_of(clock.start);
+            let choices = [
+                ("k", "Keep it: the clock runs on it"),
+                ("K", "Keep it and clock out now"),
+                ("s", "Subtract it: the clock starts again now"),
+                ("S", "Subtract it and clock out"),
+                ("C", "Cancel it"),
+                ("i", "Ignore"),
+            ];
+            let choices: Vec<Value> =
+                choices.iter().map(|(key, label)| json!({ "key": key, "label": label })).collect();
+            return Ok(json!({ "input": {
+                "kind": "choice",
+                "prompt": format!("Dangling clock started {minutes} mins ago"),
+                "value": "",
+                "choices": choices,
+            } }));
+        };
+        let (text, version, line) = self.clock_line(&clock).ok_or("Clock start time is gone")?;
+        let heading = Self::heading_above(&text, line).ok_or("Clock start time is gone")?;
+        match answer.as_str() {
+            // The dangling clock becomes the clock; the one that ran stops.
+            "k" => {
+                if let Some(running) = current {
+                    if let Some((other, other_version, other_line)) = self.clock_line(&running) {
+                        let out = clock::clock_out(&other, other_line, now, &self.clock_settings)?;
+                        self.clock_out_time = Some(now);
+                        self.send_texts(vec![(running.uri, other_version, other, out.text)]);
+                    }
+                }
+                self.running = Some(clock);
+                self.publish_clock();
+            }
+            "K" => {
+                let out = clock::clock_out(&text, line, now, &self.clock_settings)?;
+                self.clock_out_time = Some(now);
+                self.send_texts(vec![(clock.uri, version, text, out.text)]);
+            }
+            "s" | "S" | "C" => {
+                let canceled = clock::cancel(&text, line, &self.clock_settings)?;
+                let change = (clock.uri.clone(), version, text, canceled);
+                if answer == "s" {
+                    return self.clock_in_after(clock.uri, heading, now, vec![change]);
+                }
+                self.send_texts(vec![change]);
+            }
+            _ => {}
+        }
+        Ok(Value::Null)
     }
 
     /// `org-clock-select-task`: the default task (`d`), the interrupted
@@ -6760,13 +6932,37 @@ impl Server {
     /// The clock started on the entry at `heading` of `file` at `start`;
     /// one that runs elsewhere stops now.
     fn clock_in_at(&mut self, file: Uri, heading: usize, start: DateTime) -> std::result::Result<Value, Refusal> {
+        self.clock_in_after(file, heading, start, Vec::new())
+    }
+
+    /// [`Server::clock_in_at`] after `changes` to the files, made in the
+    /// same edit.
+    fn clock_in_after(
+        &mut self,
+        file: Uri,
+        heading: usize,
+        start: DateTime,
+        changes: Vec<(Uri, Option<i32>, String, String)>,
+    ) -> std::result::Result<Value, Refusal> {
         let now = self.date_time();
-        let mut changes: Vec<(Uri, Option<i32>, String, String)> = Vec::new();
+        let mut changes = changes;
         let mut heading = heading;
         let title = self.entry_title(&file, heading);
         let mut interrupted = None;
         if let Some(running) = self.running.clone() {
-            if let Some((text, version, line)) = self.clock_line(&running) {
+            // Its line, in the text a change before made of its file.
+            let prior = changes.iter().position(|(uri, ..)| *uri == running.uri);
+            let found = match prior {
+                Some(index) => {
+                    let base = changes[index].3.clone();
+                    running_lines(&base)
+                        .into_iter()
+                        .find(|(_, start, head)| *start == running.start && *head == running.head)
+                        .map(|(line, ..)| (base, changes[index].1, line))
+                }
+                None => self.clock_line(&running),
+            };
+            if let Some((text, version, line)) = found {
                 // Already on this entry: the clock continues.
                 if running.uri == file && Self::heading_above(&text, line) == Some(heading) {
                     let title = self
@@ -6793,7 +6989,10 @@ impl Server {
                 if running.uri == file && line < heading {
                     heading = heading + out_text.len() - text.len();
                 }
-                changes.push((running.uri.clone(), version, text, out_text));
+                match prior {
+                    Some(index) => changes[index].3 = out_text,
+                    None => changes.push((running.uri.clone(), version, text, out_text)),
+                }
             }
         }
         let mut settings = self.clock_settings.clone();

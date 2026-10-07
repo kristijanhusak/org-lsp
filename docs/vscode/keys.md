@@ -323,6 +323,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "a"], "commands": ["org.agenda.dispatch"] },
   { "before": ["<leader>", "o", "x", "i"], "commands": ["org.clock.in"] },
   { "before": ["<leader>", "o", "x", "x"], "commands": ["org.clock.in.last"] },
+  { "before": ["<leader>", "o", "x", "R"], "commands": ["org.clock.resolve"] },
   { "before": ["<leader>", "o", "x", "o"], "commands": ["org.clock.out"] },
   { "before": ["<leader>", "o", "x", "q"], "commands": ["org.clock.cancel"] },
   { "before": ["<leader>", "o", "x", "j"], "commands": ["org.clock.goto"] },
@@ -416,6 +417,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.agenda.archives.files` | Org: Agenda: include archived trees and archive files |
 | `org.clock.in` | Org: Clock in |
 | `org.clock.in.last` | Org: Clock in the last clocked task |
+| `org.clock.resolve` | Org: Resolve a dangling clock |
 | `org.clock.out` | Org: Clock out |
 | `org.clock.cancel` | Org: Cancel the clock |
 | `org.clock.goto` | Org: Go to the clocked entry |
