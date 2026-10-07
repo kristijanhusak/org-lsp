@@ -91,7 +91,7 @@ few, checked against Emacs where Org decides the outcome:
 - **Links and navigation (11):** store and insert links (`C-c l`,
   `C-c C-l`), `documentLink`, backlinks as references, workspace
   symbols, renaming tags and headings, hover in Org files.
-- **Diagnostics (13):** `org-lint` checks as diagnostics.
+- **Diagnostics (13):** done.
 - **Editors and distribution (14):** the Neovim plugin downloading the
   server instead of building it; publishing the VS Code extension
   (Marketplace, Open VSX: the `publisher` is a placeholder). The agenda's hover is plain in VS Code, which has no
@@ -558,27 +558,28 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   `wrap-prefix` in `tests/indent`; Neovim shows them as inline virtual
   text, VS Code as decorations. Neither can indent the lines a long line
   wraps into (`wrap-prefix`); Helix cannot show them at all.
-- Done, in part: `org-lint` as diagnostics (`org_lint`, `org_lint_ignore`),
+- Done: `org-lint` as diagnostics (`org_lint`, `org_lint_ignore`),
   on every change, a warning or, for checkers of low trust, information,
-  the checker's name as the code. 47 checkers, in Org's order:
+  the checker's name as the code. 59 checkers, in Org's order:
   misplaced headings, duplicates (custom IDs, names, targets, footnote
   definitions), affiliated keywords (orphaned, obsolete, before an
   independent keyword), deprecated syntax (export blocks, header
   properties, `CATEGORY`, `QUOTE`, `file+`, percent escapes, include
   markup), blocks without a language or backend, Babel calls and header
   arguments (unknown ones and values, empty ones, for every language's
-  own, from `scripts/update-lint-tables.py`), links (fuzzy, custom ID,
-  coderef, local files, brackets around them), properties (special,
-  effort, `ID`, the drawer misplaced), footnotes, keywords without a
-  colon, blocks and drawers left open, planning (misplaced, inactive,
-  repeaters), indented diary sexps, spurious colons in tags, setup files
-  and bibliographies that do not exist, `#+PRINT_BIBLIOGRAPHY:`, export
-  options (`#+OPTIONS:` items, misspelled properties), beamer frames.
-  Not yet: `wrong-include-link-parameter`,
-  `invalid-macro-argument-and-template`, `named-result`,
-  `extraneous-element-in-footnote-section`, `invalid-image-alignment`,
-  `invalid-cite-export-declaration`, `incomplete-citation`, `item-number`,
-  `priority`, `LaTeX-$`, `timestamp-syntax`, `clock-syntax`.
+  own, from `scripts/update-lint-tables.py`), named results whose block
+  does not export them, links (fuzzy, custom ID, coderef, local files,
+  brackets around them), `#+INCLUDE:` (missing files, searches that find
+  nothing), macros (undefined, missing templates, arguments they do not
+  use or lack), properties (special, effort, `ID`, the drawer
+  misplaced), footnotes (and what does not belong in their section),
+  keywords without a colon, blocks and drawers left open, planning
+  (misplaced, inactive, repeaters), indented diary sexps, spurious colons
+  in tags, setup files and bibliographies that do not exist,
+  `#+PRINT_BIBLIOGRAPHY:`, `#+CITE_EXPORT:`, citations left open, export
+  options (`#+OPTIONS:` items, misspelled properties), beamer frames,
+  `#+ATTR_ORG: :align`, item numbers, priorities, `$` as LaTeX, and
+  timestamps and clock lines that do not read back as written.
   Left out: `suspicious-language-in-src-block` (it asks Emacs which major
   modes it has), `invalid-id-link` (Org never reports it in a file: an ID
   it does not know falls back on the current file). Differences:

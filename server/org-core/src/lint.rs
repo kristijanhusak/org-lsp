@@ -32,6 +32,15 @@ pub struct Context<'a> {
     /// Whether a file exists, given its name as the link or keyword
     /// writes it (relative to the text's directory, or with `~`).
     pub file_exists: &'a dyn Fn(&str) -> bool,
+    /// `org-priority-highest` and its relatives, unless the text has a
+    /// `#+PRIORITIES:` line.
+    pub priorities: crate::priority::Priorities,
+    /// The text of a file, given its name as an `#+INCLUDE:` line writes
+    /// it.
+    pub read_file: &'a dyn Fn(&str) -> Option<String>,
+    /// The name of the text's file, without its directory (the
+    /// `input-file` macro).
+    pub file_name: &'a dyn Fn() -> Option<String>,
 }
 
 /// A checker's reports: places and messages.
@@ -1254,6 +1263,591 @@ impl Doc<'_> {
         out
     }
 
+    fn priority(&self) -> Found {
+        static COOKIE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"\[#([A-Z]|[0-9]|[1-5][0-9]|6[0-4])\] ?").expect("a valid regex"));
+        static BAD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A\[#([^\[\]]*)(\]*)").expect("a valid regex"));
+        let priorities = keywords(&self.root)
+            .find(|node| keyword_key(node) == "PRIORITIES")
+            .and_then(|node| crate::priority::Priorities::from_keyword(&keyword_value(&node)))
+            .unwrap_or(self.context.priorities);
+        let mut out = Vec::new();
+        for node in self.root.descendants().filter(|node| node.kind() == SyntaxKind::HEADLINE) {
+            let line = headline_line(self.text, &node);
+            let after = self.after_keyword(line);
+            // `org-priority-regexp` starts with `.*?`: the first cookie of
+            // the line.
+            let rest = &line[after..];
+            let found = COOKIE.captures(rest).filter(|captures| {
+                // `looking-at` with a lazy `.*?`: anywhere on the line.
+                captures.get(0).is_some()
+            });
+            match found {
+                Some(captures) => {
+                    let text = captures.get(1).map_or("", |found| found.as_str());
+                    let value = match text.parse::<i64>() {
+                        Ok(number) => number,
+                        Err(_) => i64::from(u32::from(text.chars().next().unwrap_or('A'))),
+                    };
+                    let valid = (0..=64).contains(&value) || (65..=90).contains(&value);
+                    let bounded = valid && priorities.lowest >= value && value >= priorities.highest;
+                    if valid && !bounded {
+                        out.push((range(&node).0, format!("Out-of-bounds priority '{text}'")));
+                    }
+                }
+                None => {
+                    // The title after the keyword and COMMENT.
+                    let mut title = rest.trim_start_matches([' ', '\t']);
+                    if let Some(after) = title.strip_prefix("COMMENT") {
+                        if after.is_empty() || after.starts_with([' ', '\t']) {
+                            title = after.trim_start_matches([' ', '\t']);
+                        }
+                    }
+                    if let Some(captures) = BAD.captures(title) {
+                        let message = if captures.get(2).is_none_or(|found| found.as_str().is_empty()) {
+                            format!("Malformed priority '{}'", &captures[0])
+                        } else {
+                            format!("Invalid priority '{}'", &captures[1])
+                        };
+                        out.push((range(&node).0, message));
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    /// Where a headline's title starts: after its stars, its TODO keyword
+    /// and the blanks after them.
+    fn after_keyword(&self, line: &str) -> usize {
+        let stars = line.bytes().take_while(|b| *b == b'*').count();
+        let mut at = stars + line[stars..].len() - line[stars..].trim_start_matches([' ', '\t']).len();
+        let keywords = self.parse.todo_keywords();
+        if let Some(keyword) = keywords
+            .names()
+            .find(|name| line[at..].strip_prefix(name).is_some_and(|rest| rest.is_empty() || rest.starts_with(' ')))
+        {
+            at += keyword.len();
+            at += line[at..].len() - line[at..].trim_start_matches([' ', '\t']).len();
+        }
+        at
+    }
+
+    fn item_number(&self) -> Found {
+        let mut out = Vec::new();
+        for list in self.root.descendants().filter(|node| node.kind() == SyntaxKind::LIST) {
+            // The items of the list, with their counters.
+            let mut previous: Vec<Option<String>> = Vec::new();
+            for item in list.children().filter(|child| child.kind() == SyntaxKind::LIST_ITEM) {
+                // The bullet and the blanks after it, as `:bullet` has it.
+                let bullet = item
+                    .children_with_tokens()
+                    .filter_map(|child| child.into_token())
+                    .find(|token| token.kind() == SyntaxKind::BULLET)
+                    .map(|token| {
+                        let end = usize::from(token.text_range().end());
+                        let blanks = self.text[end..].len() - self.text[end..].trim_start_matches([' ', '\t']).len();
+                        format!("{}{}", token.text(), &self.text[end..end + blanks])
+                    })
+                    .unwrap_or_default();
+                let counter = token(&item, SyntaxKind::COUNTER_SET)
+                    .map(|counter| counter.trim_start_matches("[@").trim_end_matches(']').to_string());
+                // `get-relative-number`: from the nearest counter before.
+                let mut seq = 0;
+                let mut found = counter.clone();
+                let mut index = previous.len();
+                while found.is_none() && index > 0 {
+                    index -= 1;
+                    seq += 1;
+                    found = previous[index].clone();
+                }
+                let true_number = match found {
+                    None => seq + 1,
+                    Some(counter) => counter_number(&counter).map_or(seq + 1, |number| number + seq),
+                };
+                previous.push(counter.clone());
+                if counter.is_some() {
+                    continue;
+                }
+                let bullet_number = if let Some(letter) = bullet.chars().find(char::is_ascii_alphabetic) {
+                    Some(i64::from(u32::from(letter.to_ascii_uppercase())) - 64)
+                } else {
+                    let digits: String =
+                        bullet.chars().skip_while(|c| !c.is_ascii_digit()).take_while(char::is_ascii_digit).collect();
+                    digits.parse::<i64>().ok()
+                };
+                let Some(bullet_number) = bullet_number else { continue };
+                if bullet_number != true_number {
+                    out.push((
+                        range(&item).0,
+                        format!(
+                            "Bullet counter \"{bullet}\" is not the same with item position {true_number}.  Consider adding manual [@{bullet_number}] counter."
+                        ),
+                    ));
+                }
+            }
+        }
+        out.sort_by_key(|(at, _)| *at);
+        out
+    }
+
+    fn extraneous_element_in_footnote_section(&self) -> Found {
+        self.root
+            .descendants()
+            .filter(|node| node.kind() == SyntaxKind::HEADLINE && headline_raw_value(node) == "Footnotes")
+            .filter(|headline| {
+                let mut stack: Vec<SyntaxNode> = headline.children().collect();
+                stack.reverse();
+                while let Some(node) = stack.pop() {
+                    let kind = node.kind();
+                    let skipped = matches!(
+                        kind,
+                        SyntaxKind::COMMENT
+                            | SyntaxKind::FOOTNOTE_DEFINITION
+                            | SyntaxKind::PROPERTY_DRAWER
+                            | SyntaxKind::SECTION
+                    ) || (kind == SyntaxKind::BLOCK
+                        && block_type(&node).0.eq_ignore_ascii_case("comment"));
+                    let commented_headline = kind == SyntaxKind::HEADLINE
+                        && ast::Headline::cast(node.clone()).is_some_and(|headline| headline.is_commented());
+                    if is_element(&node) && !skipped && !commented_headline {
+                        return true;
+                    }
+                    if matches!(kind, SyntaxKind::FOOTNOTE_DEFINITION | SyntaxKind::PROPERTY_DRAWER) {
+                        continue;
+                    }
+                    let mut children: Vec<SyntaxNode> = node.children().collect();
+                    children.reverse();
+                    stack.extend(children);
+                }
+                false
+            })
+            .map(|headline| {
+                (range(&headline).0, "Extraneous elements in footnote section are not exported".to_string())
+            })
+            .collect()
+    }
+
+    fn invalid_image_alignment(&self) -> Found {
+        static CENTER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r":center\s+(\S+)").expect("a valid regex"));
+        static ALIGN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r":align\s+(\S+)").expect("a valid regex"));
+        let mut out = Vec::new();
+        for paragraph in self.root.descendants().filter(|node| node.kind() == SyntaxKind::PARAGRAPH) {
+            // `(car (org-element-property :attr_org p))`: the first line.
+            let Some(attributes) = paragraph
+                .children()
+                .take_while(ast::is_affiliated_keyword)
+                .find(|keyword| keyword_key(keyword) == "ATTR_ORG")
+                .map(|keyword| keyword_value(&keyword))
+            else {
+                continue;
+            };
+            let at = range(&paragraph).0;
+            let mut reports = Vec::new();
+            if let Some(value) = ALIGN.captures(&attributes).and_then(|captures| captures.get(1)) {
+                if !matches!(value.as_str(), "left" | "center" | "right") {
+                    reports.push((
+                        at,
+                        format!(
+                            "\"{}\" not a supported value for #+ATTR_ORG keyword attribute \":align\".",
+                            value.as_str()
+                        ),
+                    ));
+                }
+            }
+            if let Some(value) = CENTER.captures(&attributes).and_then(|captures| captures.get(1)) {
+                if value.as_str() != "t" {
+                    reports.push((
+                        at,
+                        format!(
+                            "\"{}\" not a supported value for #+ATTR_ORG keyword attribute \":center\".",
+                            value.as_str()
+                        ),
+                    ));
+                }
+            }
+            reports.reverse();
+            out.extend(reports);
+        }
+        out
+    }
+
+    fn invalid_cite_export_declaration(&self) -> Found {
+        keywords(&self.root)
+            .filter(|node| keyword_key(node) == "CITE_EXPORT")
+            .filter_map(|node| {
+                let value = keyword_value(&node);
+                let at = range(&node).0;
+                if value.is_empty() {
+                    return Some((at, "Missing export processor name".to_string()));
+                }
+                match read_processor_declaration(&value) {
+                    Some(name) if matches!(name.as_str(), "basic" | "biblatex" | "bibtex" | "csl" | "natbib") => None,
+                    Some(name) => Some((at, format!("Unknown cite export processor {name}"))),
+                    None => Some((at, "Invalid cite export processor declaration".to_string())),
+                }
+            })
+            .collect()
+    }
+
+    fn incomplete_citation(&self) -> Found {
+        static PREFIX: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"\[cite(?:/[/_a-z0-9-]+)?:").expect("a valid regex"));
+        let mut out = Vec::new();
+        for token in self.root.descendants_with_tokens().filter_map(|element| element.into_token()) {
+            if token.kind() != SyntaxKind::TEXT || !PREFIX.is_match(token.text()) {
+                continue;
+            }
+            let Some(parent) = token.parent() else { continue };
+            let at = match parent.kind() {
+                SyntaxKind::PARAGRAPH => post_affiliated(self.text, &parent),
+                SyntaxKind::BOLD | SyntaxKind::ITALIC | SyntaxKind::UNDERLINE | SyntaxKind::STRIKE_THROUGH => {
+                    range(&parent).0 + 1
+                }
+                SyntaxKind::TABLE_CELL => {
+                    let (start, end) = range(&parent);
+                    let cell = &self.text[start..end];
+                    start + cell.len() - cell.trim_start_matches(['|', ' ', '\t']).len()
+                }
+                // In a title: where the headline's contents start.
+                SyntaxKind::TITLE => {
+                    let Some(headline) = parent.parent() else { continue };
+                    let next = line_end(self.text, range(&headline).0) + 1;
+                    if next >= range(&headline).1 {
+                        continue;
+                    }
+                    next
+                }
+                _ => continue,
+            };
+            out.push((at, "Possibly incomplete citation markup".to_string()));
+        }
+        out
+    }
+
+    fn latex_dollar(&self) -> Found {
+        static AMBIGUOUS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\$\.[0-9]").expect("a valid regex"));
+        let mut out: Found = AMBIGUOUS
+            .find_iter(self.text)
+            .filter(|found| self.allows_latex(found.end()))
+            .map(|found| {
+                (
+                    found.end(),
+                    "$ symbol potentially matching LaTeX fragment boundary.  Consider using \\dollar entity."
+                        .to_string(),
+                )
+            })
+            .collect();
+        out.reverse();
+        out
+    }
+
+    /// Whether the object or element at `at` is a LaTeX fragment or may
+    /// hold one (`org-element-restriction`).
+    fn allows_latex(&self, at: usize) -> bool {
+        let Ok(offset) = org_syntax::TextSize::try_from(at.min(self.text.len().saturating_sub(1))) else {
+            return false;
+        };
+        let Some(token) = self.root.token_at_offset(offset).left_biased() else { return false };
+        for node in token.parent_ancestors() {
+            match node.kind() {
+                SyntaxKind::LATEX_FRAGMENT => return true,
+                SyntaxKind::CODE | SyntaxKind::VERBATIM | SyntaxKind::LINK | SyntaxKind::PLAIN_LINK => return false,
+                SyntaxKind::PARAGRAPH
+                | SyntaxKind::TITLE
+                | SyntaxKind::TABLE_CELL
+                | SyntaxKind::ITEM_TAG
+                | SyntaxKind::BOLD
+                | SyntaxKind::ITALIC
+                | SyntaxKind::UNDERLINE
+                | SyntaxKind::STRIKE_THROUGH
+                | SyntaxKind::SUBSCRIPT
+                | SyntaxKind::SUPERSCRIPT
+                | SyntaxKind::FOOTNOTE_REFERENCE => return true,
+                SyntaxKind::KEYWORD => return true,
+                _ if is_element(&node) => return false,
+                _ => {}
+            }
+        }
+        false
+    }
+
+    fn timestamp_syntax(&self) -> Found {
+        self.root
+            .descendants()
+            .filter(|node| node.kind() == SyntaxKind::TIMESTAMP)
+            .filter(|node| {
+                !node.ancestors().any(|ancestor| matches!(ancestor.kind(), SyntaxKind::PLANNING | SyntaxKind::CLOCK))
+            })
+            .filter_map(|node| {
+                let (start, end) = range(&node);
+                let stamp = self.text[start..end].trim_end_matches([' ', '\t']);
+                // Both with the blanks after the timestamp (`:post-blank`).
+                let stamp_end = start + stamp.len();
+                let blanks =
+                    self.text[stamp_end..].len() - self.text[stamp_end..].trim_start_matches([' ', '\t']).len();
+                let actual = self.text[start..stamp_end + blanks].to_string();
+                let parsed = Timestamp::parse(stamp)?;
+                let expected = format!("{}{}", parsed.interpret(), &self.text[stamp_end..stamp_end + blanks]);
+                (expected != actual)
+                    .then(|| (start, format!("Potentially malformed timestamp {actual}.  Parsed as: {expected}")))
+            })
+            .collect()
+    }
+
+    fn clock_syntax(&self) -> Found {
+        self.root
+            .descendants()
+            .filter(|node| node.kind() == SyntaxKind::CLOCK)
+            .filter_map(|node| {
+                let (start, end) = range(&node);
+                let actual = self.text[start..end].trim_matches([' ', '\t', '\n', '\r']).to_string();
+                let line = &self.text[start..line_end(self.text, start)];
+                let after = line.find("CLOCK:")? + 6;
+                let rest = line[after..].trim_start_matches([' ', '\t']);
+                let stamp_end = timestamp_end(rest)?;
+                let value = Timestamp::parse(&rest[..stamp_end])?;
+                let duration = rest.find("=> ").and_then(|arrow| {
+                    let tail = rest[arrow + 3..].trim_start_matches([' ', '\t']);
+                    let word = tail.trim_end_matches([' ', '\t']);
+                    (!word.is_empty() && !word.contains([' ', '\t'])).then(|| word.to_string())
+                });
+                let mut expected = format!("CLOCK: {}", value.interpret());
+                if let Some(duration) = duration {
+                    let parts: Vec<&str> = duration.split(':').filter(|part| !part.is_empty()).collect();
+                    let hours = parts.first().copied().unwrap_or("");
+                    let minutes = parts.get(1).copied().unwrap_or("");
+                    expected.push_str(&format!(" => {hours:>2}:{minutes:>2}"));
+                }
+                let expected = expected.trim_end().to_string();
+                (expected != actual).then(|| {
+                    (start, format!("Potentially malformed CLOCK: line\n           {actual}\nParsed as: {expected}"))
+                })
+            })
+            .collect()
+    }
+
+    fn invalid_macro_argument_and_template(&self) -> Found {
+        static PLACEHOLDER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\$([1-9][0-9]*)").expect("a valid regex"));
+        let placeholders = |template: &str| -> Vec<usize> {
+            let mut out: Vec<usize> =
+                PLACEHOLDER.captures_iter(template).filter_map(|found| found[1].parse().ok()).collect();
+            out.sort_unstable();
+            out.dedup();
+            out
+        };
+        let mut out = Vec::new();
+        // The templates of the file's `#+MACRO:` lines, the last
+        // definition of a name over the others.
+        let mut defined: Vec<(String, String)> = Vec::new();
+        for node in keywords(&self.root).filter(|node| keyword_key(node) == "MACRO") {
+            let value = keyword_value(&node);
+            let at = post_affiliated(self.text, &node);
+            let name_end = value.find(char::is_whitespace).unwrap_or(value.len());
+            if value.is_empty() {
+                out.push((at, "Missing name in MACRO keyword".to_string()));
+                continue;
+            }
+            let name = value[..name_end].to_string();
+            let template = value[name_end..].trim().to_string();
+            if template.is_empty() {
+                // Org gives the name to `list`, not to `format`.
+                out.push((at, "Missing template in macro \"%s\"".to_string()));
+            } else {
+                let numbers = placeholders(&template);
+                if numbers != (1..=numbers.last().copied().unwrap_or(0)).collect::<Vec<_>>() {
+                    out.push((at, format!("Unused placeholders in macro \"{name}\"")));
+                }
+            }
+            let definition = value[name_end..].trim_start_matches([' ', '\t']).to_string();
+            match defined.iter_mut().find(|(known, _)| *known == name) {
+                Some(entry) => entry.1 = definition,
+                None => defined.push((name, definition)),
+            }
+        }
+        let input_file = (self.context.file_name)();
+        for node in self.root.descendants().filter(|node| node.kind() == SyntaxKind::MACRO) {
+            let text = node.text().to_string();
+            let inner = text.trim_start_matches("{{{").trim_end_matches("}}}");
+            let (name, args) = match inner.find('(') {
+                Some(open) if inner.ends_with(')') => {
+                    let raw = inner[open + 1..inner.len() - 1].trim_matches([' ', '\t', '\n', '\r']);
+                    let collapsed =
+                        raw.split([' ', '\t', '\r', '\n']).filter(|part| !part.is_empty()).collect::<Vec<_>>();
+                    // Runs of blanks as one space, as `org-element` reads them.
+                    let mut joined = String::new();
+                    let mut chars = raw.chars().peekable();
+                    while let Some(c) = chars.next() {
+                        if matches!(c, ' ' | '\t' | '\r' | '\n') {
+                            while chars.peek().is_some_and(|next| matches!(next, ' ' | '\t' | '\r' | '\n')) {
+                                chars.next();
+                            }
+                            joined.push(' ');
+                        } else {
+                            joined.push(c);
+                        }
+                    }
+                    let _ = collapsed;
+                    (inner[..open].to_ascii_lowercase(), Some(macro_arguments(&joined)))
+                }
+                _ => (inner.to_ascii_lowercase(), None),
+            };
+            let args = args.unwrap_or_default();
+            let at = range(&node).0;
+            let builtin = ["author", "date", "email", "title", "results"].contains(&name.as_str());
+            let template: Option<Option<String>> = if builtin {
+                Some(Some("$1".to_string()))
+            } else if let Some((_, definition)) =
+                defined.iter().rev().find(|(known, _)| known.eq_ignore_ascii_case(&name))
+            {
+                // An `(eval …)` template is a function: no arity to check.
+                Some((!definition.starts_with("(eval")).then(|| definition.clone()))
+            } else if name == "input-file" {
+                input_file.clone().map(Some)
+            } else if matches!(name.as_str(), "keyword" | "modification-time" | "n" | "property" | "time") {
+                Some(None)
+            } else {
+                None
+            };
+            let arity = match (name.as_str(), &template) {
+                (_, None) => {
+                    out.push((at, format!("Undefined macro {}", quoted(&name))));
+                    continue;
+                }
+                ("keyword", _) => (1, 1),
+                ("modification-time", _) => (1, 2),
+                ("n", _) => (0, 2),
+                ("property", _) => (1, 2),
+                ("time", _) => (1, 1),
+                (_, Some(None)) => continue,
+                (_, Some(Some(template))) => {
+                    let numbers = placeholders(template);
+                    match numbers.iter().max() {
+                        Some(max) => (*max, *max),
+                        None => (0, 0),
+                    }
+                }
+            };
+            let count = args.len();
+            if count + 1 < arity.0 {
+                out.push((at, format!("Missing arguments in macro {}", quoted(&name))));
+            } else if count < arity.0 {
+                out.push((at, format!("Missing argument in macro {}", quoted(&name))));
+            } else if count > arity.1 + 1 {
+                let spurious: Vec<&str> = args[arity.1..].iter().map(|arg| crate::text::trim(arg)).collect();
+                out.push((at, format!("Spurious arguments in macro {}: {}", quoted(&name), spurious.join(", "))));
+            } else if count > arity.1 {
+                out.push((at, format!("Spurious argument in macro {}: {}", quoted(&name), args[count - 1])));
+            }
+        }
+        out.reverse();
+        out
+    }
+
+    fn wrong_include_link_parameter(&self) -> Found {
+        static LOCATION: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r#"\A("[^\n]+?"|\S+)[ \t]*"#).expect("a valid regex"));
+        keywords(&self.root)
+            .filter(|node| keyword_key(node) == "INCLUDE")
+            .filter_map(|node| {
+                let value = keyword_value(&node);
+                let at = post_affiliated(self.text, &node);
+                let Some(path) =
+                    LOCATION.captures(&value).and_then(|found| found.get(1)).map(|found| strip_quotes(found.as_str()))
+                else {
+                    return Some((at, "Missing location argument in INCLUDE keyword".to_string()));
+                };
+                let (file, search) = match path.find("::") {
+                    Some(split) => (path[..split].to_string(), Some(path[split + 2..].to_string())),
+                    None => (path.clone(), None),
+                };
+                let file = Some(file).filter(|file| not_blank(file));
+                let search = search.filter(|search| not_blank(search));
+                if file.as_deref().is_some_and(is_url) {
+                    return None;
+                }
+                if let Some(file) = &file {
+                    if !(self.context.file_exists)(file) {
+                        return Some((at, "Non-existent file argument in INCLUDE keyword".to_string()));
+                    }
+                }
+                let search = search?;
+                let target = match &file {
+                    Some(file) => (self.context.read_file)(file)?,
+                    None => self.text.to_string(),
+                };
+                let parse = org_syntax::parse(&target, &Default::default());
+                crate::open::search(&target, &parse, &search)
+                    .is_err()
+                    .then(|| (at, format!("Invalid search part \"{search}\" in INCLUDE keyword")))
+            })
+            .collect()
+    }
+
+    fn named_result(&self) -> Found {
+        let outline = crate::outline::Outline::new(self.parse, self.text, "");
+        let mut out = Vec::new();
+        for node in self.root.descendants().filter(is_element) {
+            let (Some(results), Some(name)) = (element_results(&node), element_name(&node)) else { continue };
+            let origin = if not_blank(&results) {
+                self.root
+                    .descendants()
+                    .filter(|other| other.kind() == SyntaxKind::BLOCK)
+                    .find(|block| element_name(block).is_some_and(|block_name| words(&block_name) == words(&results)))
+            } else {
+                // The element before it.
+                std::iter::successors(node.prev_sibling(), |previous| previous.prev_sibling()).find(is_element)
+            };
+            let Some(origin) = origin.filter(|origin| {
+                origin.kind() == SyntaxKind::BLOCK && block_type(origin).0.eq_ignore_ascii_case("src")
+            }) else {
+                continue;
+            };
+            if !matches!(self.exports(&origin, &outline).as_str(), "results" | "both") {
+                out.push((
+                    range(&node).0,
+                    format!(
+                        "Links to \"{name}\" will not be valid during export unless the parent source block has :exports results or both"
+                    ),
+                ));
+            }
+        }
+        out
+    }
+
+    /// The `:exports` of a source block, as `org-babel-get-src-block-info`
+    /// merges its header arguments: the defaults, the language's, the
+    /// `header-args` properties, the block's.
+    fn exports(&self, block: &SyntaxNode, outline: &crate::outline::Outline) -> String {
+        use crate::lint_tables::{EXPORTS_DEFAULT, LANGUAGE_EXPORTS};
+        let (language, parameters) = src_parts(&block_type(block).1);
+        let mut exports = language
+            .as_deref()
+            .and_then(|language| LANGUAGE_EXPORTS.iter().find(|(known, _)| *known == language))
+            .map_or(EXPORTS_DEFAULT, |(_, exports)| *exports)
+            .to_string();
+        let entry =
+            crate::properties::heading_at(self.text, range(block).0).and_then(|heading| outline.entry_at(heading));
+        let mut layers = vec![outline.entry_property(entry, "header-args", true)];
+        if let Some(language) = &language {
+            layers.push(outline.entry_property(entry, &format!("header-args:{language}"), true));
+        }
+        layers.push(parameters);
+        let mut headers = element_headers(block);
+        headers.reverse();
+        layers.extend(headers.into_iter().map(Some));
+        for layer in layers.into_iter().flatten() {
+            for (key, value, _) in headers_of(Some(&layer)) {
+                if key == ":exports" {
+                    if let Some(value) = value {
+                        exports = value;
+                    }
+                }
+            }
+        }
+        exports
+    }
+
     fn beamer_frame(&self) -> Found {
         static FRAME: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r"\\(?:begin|end)\{orgframe\}").expect("a valid regex"));
@@ -1419,6 +2013,302 @@ struct Datum {
     call: bool,
 }
 
+/// The number of a counter (`[@3]`, `[@c]`), as `get-relative-number`
+/// reads it.
+fn counter_number(counter: &str) -> Option<i64> {
+    if let Some(letter) = counter.chars().find(char::is_ascii_alphabetic) {
+        return Some(i64::from(u32::from(letter.to_ascii_uppercase())) - 64);
+    }
+    let digits: String = counter.chars().skip_while(|c| !c.is_ascii_digit()).take_while(char::is_ascii_digit).collect();
+    digits.parse().ok()
+}
+
+/// `org-cite-read-processor-declaration`: the processor's name, or none
+/// when the declaration does not read.
+fn read_processor_declaration(value: &str) -> Option<String> {
+    let text = value.trim_start_matches([' ', '\t', '\n']);
+    if text.starts_with(['"', '(', '[', '\'', '`', ',', '#', '?', ')', ']']) {
+        return None;
+    }
+    let end = text
+        .find(|c: char| c.is_whitespace() || matches!(c, '(' | ')' | '[' | ']' | '"' | '\'' | ';' | '`' | ','))
+        .unwrap_or(text.len());
+    let name = &text[..end];
+    static NUMBER: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"\A[-+]?(?:[0-9]+\.?|[0-9]*\.[0-9]+(?:e[-+]?[0-9]+)?|[0-9]+e[-+]?[0-9]+)\z").expect("a valid regex")
+    });
+    if name.is_empty() || NUMBER.is_match(name) {
+        return None;
+    }
+    let mut rest = &text[end..];
+    for _ in 0..2 {
+        rest = rest.trim_start_matches([' ', '\t']);
+        if rest.is_empty() {
+            break;
+        }
+        if let Some(inner) = rest.strip_prefix('"') {
+            let mut escaped = false;
+            let mut close = None;
+            for (index, c) in inner.char_indices() {
+                match c {
+                    '\\' if !escaped => escaped = true,
+                    '"' if !escaped => {
+                        close = Some(index);
+                        break;
+                    }
+                    _ => escaped = false,
+                }
+            }
+            rest = &inner[close? + 1..];
+        } else {
+            let word = rest.find([' ', '\t']).unwrap_or(rest.len());
+            rest = &rest[word..];
+        }
+    }
+    rest.trim_start_matches([' ', '\t']).is_empty().then(|| name.to_string())
+}
+
+/// A repeater's mark, value, unit, and the deadline's value and unit.
+type Repeater = (String, i64, char, Option<(i64, char)>);
+
+/// A timestamp as `org-element-timestamp-parser` reads it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Timestamp {
+    active: bool,
+    /// The sexp of a diary timestamp (`(diary-float t 1 1)`).
+    diary: Option<String>,
+    start: Option<(i64, i64, i64)>,
+    start_time: (Option<i64>, Option<i64>),
+    end: Option<(i64, i64, i64)>,
+    end_time: (Option<i64>, Option<i64>),
+    daterange: bool,
+    timerange: bool,
+    /// Mark, value, unit, and the deadline's value and unit.
+    repeater: Option<Repeater>,
+    /// `-` or `--`, value, unit.
+    warning: Option<(String, i64, char)>,
+}
+
+/// `org-ts-regexp0` on a timestamp's date part: year, month, day, hour,
+/// minute.
+#[allow(clippy::type_complexity)]
+fn parse_time_string(text: &str) -> Option<((i64, i64, i64), (Option<i64>, Option<i64>))> {
+    static TIME: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"([0-9]{4})-([0-9]{2})-([0-9]{2})(?: +[^\]+0-9>\r\n -]+)?(?: +([0-9]{1,2}):([0-9]{2}))?")
+            .expect("a valid regex")
+    });
+    let captures = TIME.captures(text)?;
+    let number = |index: usize| captures.get(index).and_then(|found| found.as_str().parse::<i64>().ok());
+    Some(((number(1)?, number(2)?, number(3)?), (number(4), number(5))))
+}
+
+/// Where the timestamp that `text` starts with ends
+/// (`org-element--timestamp-raw-value-regexp`).
+fn timestamp_end(text: &str) -> Option<usize> {
+    static RAW: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(&format!(r"\A([<\[](%%)?.*?)[\]>](?:--({}))?", TS_BOTH)).expect("a valid regex"));
+    RAW.find(text).map(|found| found.end())
+}
+
+/// `org-ts-regexp-both`, its date inside the brackets as a group.
+const TS_BOTH: &str = r"[\[<]([0-9]{4}-[0-9]{2}-[0-9]{2}(?: [^\]\r\n>]*?)?)[\]>]";
+
+impl Timestamp {
+    /// The timestamp `text` starts with.
+    fn parse(text: &str) -> Option<Timestamp> {
+        static RAW: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(&format!(r"\A([<\[](%%)?.*?)[\]>](?:--({}))?", TS_BOTH)).expect("a valid regex")
+        });
+        static DIARY: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"\A<%%(\([^>\n]+\))([^\n>]*)>").expect("a valid regex"));
+        static RANGE: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"[012]?[0-9]:[0-5][0-9](-([012]?[0-9]):([0-5][0-9]))").expect("a valid regex")
+        });
+        static REPEATER: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"(\+|\+\+|\.\+)([0-9]+)([hdwmy])(?:/([0-9]+)([hdwmy]))?").expect("a valid regex")
+        });
+        static WARNING: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"(-)?-([0-9]+)([hdwmy])").expect("a valid regex"));
+        let raw = RAW.captures(text)?;
+        let raw_value = raw.get(0)?.as_str();
+        let active = text.starts_with('<');
+        let diary = raw.get(2).is_some();
+        let (date_start, diary_sexp) = if diary {
+            let found = DIARY.captures(text)?;
+            (found.get(2).map_or(String::new(), |rest| rest.as_str().to_string()), Some(found[1].to_string()))
+        } else {
+            (raw.get(1).map_or(String::new(), |start| start.as_str().to_string()), None)
+        };
+        let date_end = raw.get(3).map(|end| end.as_str().to_string());
+        let time_range = RANGE.captures(&date_start).and_then(|found| {
+            Some((found.get(2)?.as_str().parse::<i64>().ok()?, found.get(3)?.as_str().parse::<i64>().ok()?))
+        });
+        let repeater = if diary {
+            None
+        } else {
+            REPEATER.captures(raw_value).map(|found| {
+                let deadline = match (found.get(4), found.get(5)) {
+                    (Some(value), Some(unit)) => {
+                        Some((value.as_str().parse().unwrap_or(0), unit.as_str().chars().next().unwrap_or('d')))
+                    }
+                    _ => None,
+                };
+                (found[1].to_string(), found[2].parse().unwrap_or(0), found[3].chars().next().unwrap_or('d'), deadline)
+            })
+        };
+        let warning = if diary {
+            None
+        } else {
+            WARNING.captures(raw_value).map(|found| {
+                let kind = if found.get(1).is_some() { "--" } else { "-" };
+                (kind.to_string(), found[2].parse().unwrap_or(0), found[3].chars().next().unwrap_or('d'))
+            })
+        };
+        let mut stamp = Timestamp {
+            active,
+            diary: diary_sexp,
+            start: None,
+            start_time: (None, None),
+            end: None,
+            end_time: (None, None),
+            daterange: date_end.is_some(),
+            timerange: date_end.is_none() && time_range.is_some(),
+            repeater,
+            warning,
+        };
+        if diary {
+            static DIARY_TIME: LazyLock<Regex> = LazyLock::new(|| {
+                Regex::new(r"([012]?[0-9]):([0-5][0-9])(-([012]?[0-9]):([0-5][0-9]))?").expect("a valid regex")
+            });
+            if let Some(found) = DIARY_TIME.captures(&date_start) {
+                let number = |index: usize| found.get(index).and_then(|part| part.as_str().parse::<i64>().ok());
+                stamp.start_time = (number(1), number(2));
+                stamp.end_time = (number(4), number(5));
+            }
+            stamp.timerange = time_range.is_some();
+            return Some(stamp);
+        }
+        let (start, start_time) = parse_time_string(&date_start)?;
+        stamp.start = Some(start);
+        stamp.start_time = start_time;
+        let end = date_end.as_deref().and_then(parse_time_string);
+        stamp.end = Some(end.map_or(start, |(date, _)| date));
+        stamp.end_time = (
+            end.and_then(|(_, time)| time.0).or(time_range.map(|range| range.0)).or(start_time.0),
+            end.and_then(|(_, time)| time.1).or(time_range.map(|range| range.1)).or(start_time.1),
+        );
+        Some(stamp)
+    }
+
+    /// `org-element-timestamp-interpreter`
+    fn interpret(&self) -> String {
+        let (open, close) = if self.active || self.diary.is_some() { ('<', '>') } else { ('[', ']') };
+        let repeat = self.repeater.as_ref().map_or(String::new(), |(mark, value, unit, deadline)| {
+            let mut out = format!("{mark}{value}{unit}");
+            if let Some((value, unit)) = deadline {
+                out.push_str(&format!("/{value}{unit}"));
+            }
+            out
+        });
+        let warning = self.warning.as_ref().map_or(String::new(), |(kind, value, unit)| format!("{kind}{value}{unit}"));
+        let mut end = String::new();
+        if !repeat.is_empty() {
+            end.push(' ');
+            end.push_str(&repeat);
+        }
+        if !warning.is_empty() {
+            end.push(' ');
+            end.push_str(&warning);
+        }
+        end.push(close);
+        let format = |date: (i64, i64, i64), time: (Option<i64>, Option<i64>)| {
+            let (hour, minute) = match time {
+                (Some(hour), Some(minute)) => (Some(hour), Some(minute)),
+                _ => (None, None),
+            };
+            let moment = crate::date::DateTime::new(
+                crate::date::Date::new(date.0, date.1, date.2),
+                hour.unwrap_or(0),
+                minute.unwrap_or(0),
+            );
+            let day = moment.date();
+            let mut out = format!(
+                "{:04}-{:02}-{:02} {}",
+                day.year,
+                day.month,
+                day.day,
+                crate::date::WEEKDAY_ABBREVIATIONS[crate::date::weekday(moment.day)]
+            );
+            if hour.is_some() {
+                out.push_str(&format!(" {:02}:{:02}", moment.minute / 60, moment.minute % 60));
+            }
+            out
+        };
+        let mut out = String::new();
+        out.push(open);
+        match &self.diary {
+            Some(sexp) => {
+                out.push_str("%%");
+                out.push_str(sexp);
+                if let (Some(hour), Some(minute)) = self.start_time {
+                    out.push_str(&format!(" {hour:02}:{minute:02}"));
+                }
+                if self.timerange {
+                    let hour = self.end_time.0.or(self.start_time.0).unwrap_or(0);
+                    let minute = self.end_time.1.or(self.start_time.1).unwrap_or(0);
+                    out.push_str(&format!("-{hour:02}:{minute:02}"));
+                }
+            }
+            None => {
+                let start = self.start.unwrap_or((1970, 1, 1));
+                out.push_str(&format(start, self.start_time));
+                if self.timerange {
+                    let hour = self.end_time.0.or(self.start_time.0).unwrap_or(0);
+                    let minute = self.end_time.1.or(self.start_time.1).unwrap_or(0);
+                    out.push_str(&format!("-{hour:02}:{minute:02}"));
+                } else if self.daterange {
+                    out.push_str(&end);
+                    out.push_str("--");
+                    out.push(open);
+                    out.push_str(&format(self.end.unwrap_or(start), self.end_time));
+                }
+            }
+        }
+        out.push_str(&end);
+        out
+    }
+}
+
+/// `org-macro-extract-arguments`: the arguments of a macro, split at
+/// the commas a backslash does not escape.
+fn macro_arguments(text: &str) -> Vec<String> {
+    let mut out = vec![String::new()];
+    let mut backslashes = 0;
+    for c in text.chars() {
+        match c {
+            '\\' => backslashes += 1,
+            ',' => {
+                let last = out.last_mut().expect("an argument");
+                last.push_str(&"\\".repeat(backslashes / 2));
+                if backslashes % 2 == 0 {
+                    out.push(String::new());
+                } else {
+                    last.push(',');
+                }
+                backslashes = 0;
+            }
+            _ => {
+                let last = out.last_mut().expect("an argument");
+                last.push_str(&"\\".repeat(backslashes));
+                backslashes = 0;
+                last.push(c);
+            }
+        }
+    }
+    out.last_mut().expect("an argument").push_str(&"\\".repeat(backslashes));
+    out
+}
+
 /// The repeater of a timestamp's text: its mark (`+`, `++`, `.+`), value
 /// and unit.
 fn repeater_of(stamp: &str) -> Option<(String, i64, char)> {
@@ -1555,7 +2445,14 @@ type Checker<'d> = (&'static str, &'static str, fn(&Doc<'d>) -> Found);
 fn checkers<'d>() -> Vec<Checker<'d>> {
     vec![
         ("planning-inactive", "high", Doc::planning_inactive),
+        ("clock-syntax", "low", Doc::clock_syntax),
+        ("timestamp-syntax", "low", Doc::timestamp_syntax),
         ("beamer-frame", "low", Doc::beamer_frame),
+        ("LaTeX-$", "low", Doc::latex_dollar),
+        ("priority", "nil", Doc::priority),
+        ("item-number", "nil", Doc::item_number),
+        ("incomplete-citation", "low", Doc::incomplete_citation),
+        ("invalid-cite-export-declaration", "nil", Doc::invalid_cite_export_declaration),
         ("missing-print-bibliography", "nil", Doc::missing_print_bibliography),
         ("non-existent-bibliography", "nil", Doc::non_existent_bibliography),
         ("spurious-colons", "nil", Doc::spurious_colons),
@@ -1567,16 +2464,20 @@ fn checkers<'d>() -> Vec<Checker<'d>> {
         ("misplaced-planning-info", "low", Doc::misplaced_planning_info),
         ("mismatched-planning-repeaters", "low", Doc::mismatched_planning_repeaters),
         ("invalid-block", "low", Doc::invalid_block),
+        ("invalid-image-alignment", "high", Doc::invalid_image_alignment),
         ("invalid-keyword-syntax", "low", Doc::invalid_keyword_syntax),
+        ("extraneous-element-in-footnote-section", "nil", Doc::extraneous_element_in_footnote_section),
         ("unreferenced-footnote-definition", "nil", Doc::unreferenced_footnote_definition),
         ("undefined-footnote-reference", "nil", Doc::undefined_footnote_reference),
         ("invalid-id-property", "nil", Doc::invalid_id_property),
         ("invalid-effort-property", "nil", Doc::invalid_effort_property),
         ("obsolete-properties-drawer", "nil", Doc::obsolete_properties_drawer),
         ("special-property-in-properties-drawer", "nil", Doc::special_property_in_properties_drawer),
+        ("invalid-macro-argument-and-template", "low", Doc::invalid_macro_argument_and_template),
         ("misspelled-export-option", "low", Doc::misspelled_export_option),
         ("unknown-options-item", "low", Doc::unknown_options_item),
         ("obsolete-include-markup", "low", Doc::obsolete_include_markup),
+        ("wrong-include-link-parameter", "low", Doc::wrong_include_link_parameter),
         ("non-existent-setupfile-parameter", "low", Doc::non_existent_setupfile_parameter),
         ("link-to-local-file", "low", Doc::link_to_local_file),
         ("unclosed-brackets-in-link-description", "low", Doc::brackets_inside_description),
@@ -1586,6 +2487,7 @@ fn checkers<'d>() -> Vec<Checker<'d>> {
         ("invalid-coderef-link", "nil", Doc::invalid_coderef_link),
         ("deprecated-category-setup", "nil", Doc::deprecated_category_setup),
         ("empty-header-argument", "low", Doc::empty_header_argument),
+        ("named-result", "high", Doc::named_result),
         ("wrong-header-value", "low", Doc::wrong_header_value),
         ("wrong-header-argument", "nil", Doc::wrong_header_argument),
         ("invalid-babel-call-block", "nil", Doc::invalid_babel_call_block),

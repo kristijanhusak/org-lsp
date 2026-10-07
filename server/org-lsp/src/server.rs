@@ -7186,7 +7186,24 @@ impl Server {
             };
             path.exists()
         };
-        let context = org_core::lint::Context { file_exists: &exists };
+        let resolve = |name: &str| {
+            let path = match name.strip_prefix('~') {
+                Some(rest) => PathBuf::from(std::env::var_os("HOME")?).join(rest.trim_start_matches('/')),
+                None => PathBuf::from(name),
+            };
+            Some(match (&directory, path.is_absolute()) {
+                (Some(directory), false) => directory.join(path),
+                _ => path,
+            })
+        };
+        let read = |name: &str| resolve(name).and_then(|path| std::fs::read_to_string(path).ok());
+        let file_name = || uri::to_path(uri).and_then(|path| Some(path.file_name()?.to_string_lossy().into_owned()));
+        let context = org_core::lint::Context {
+            file_exists: &exists,
+            priorities: self.edit_settings.priorities,
+            read_file: &read,
+            file_name: &file_name,
+        };
         let encoding = self.client.encoding;
         org_core::lint::lint(text, parse, &context)
             .into_iter()

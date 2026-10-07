@@ -50,5 +50,12 @@
       (options_items . ,(vconcat (delete-dups allowed)))
       (common_options . ,(vconcat (reverse common-options)))
       (backend_options . ,(vconcat (mapcar (lambda (entry) (vector (car entry) (vconcat (mapcar #'symbol-name (cdr entry))))) options-alist)))
+      (default_exports . ,(delq nil
+                                (mapcar (lambda (lang)
+                                          (let* ((v (intern (format "org-babel-default-header-args:%s" lang)))
+                                                 (exports (and (boundp v) (cdr (assq :exports (symbol-value v))))))
+                                            (and exports (vector lang exports))))
+                                        (append languages '("C++" "D" "cpp" "elisp" "sh" "bash" "zsh")))))
+      (exports_default . ,(cdr (assq :exports org-babel-default-header-args)))
       (default_properties . ,(vconcat org-default-properties))
       (special_properties . ,(vconcat org-special-properties))))))
