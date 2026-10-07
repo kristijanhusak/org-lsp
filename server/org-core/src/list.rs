@@ -1734,6 +1734,36 @@ pub fn cycle_bullet(text: &str, at: usize, previous: bool) -> Result<Edited, Ref
     Ok(Edited { text: buffer.text, cursor })
 }
 
+/// `org-cycle-list-bullet` with the bullet given (`1.`, `-`): the item at
+/// `at` and its siblings take it. `marker` follows the edits.
+pub(crate) fn set_bullet(text: &str, at: usize, new: &str, marker: usize) -> Result<(String, usize), Refusal> {
+    let (_, mut list, index) = item_here(text, at)?;
+    let parents_of = parents(&list);
+    let prevs_of = prevs(&list);
+    let mut first = index;
+    while let Some(prev) = prevs_of[first] {
+        first = prev;
+    }
+    let old = list.clone();
+    list[first].bullet = bullet_string(new);
+    let mut buffer = Buffer { text: text.to_string(), point: marker, md: MatchData::default() };
+    if fix_bul(&mut list, &prevs_of) {
+        buffer.md = MatchData::string();
+    }
+    fix_ind(&mut list, &parents_of, None);
+    apply_struct(&mut buffer, &list, &old)?;
+    Ok((buffer.text, buffer.point))
+}
+
+/// [`repair`] with the point at `at` and `marker` following the edits.
+pub(crate) fn repair_with_marker(text: &str, at: usize, marker: usize) -> Result<(String, usize), Refusal> {
+    let (_, mut list, _) = item_here(text, at)?;
+    let parents_of = parents(&list);
+    let mut buffer = Buffer { text: text.to_string(), point: marker, md: MatchData::default() };
+    write_struct(&mut buffer, &mut list, &parents_of, None)?;
+    Ok((buffer.text, buffer.point))
+}
+
 /// What `C-c C-c` does on the line of an item (`org-ctrl-c-ctrl-c`), with
 /// the structure org-element gives the list from `begin` (up to
 /// `limit`): the item's checkbox toggled if it has one, and the list's

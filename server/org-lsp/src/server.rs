@@ -312,22 +312,66 @@ pub const SET_CLOCK: &str = "org-lsp/setClock";
 /// The name of a capture buffer starts with this, as Emacs names it.
 pub const CAPTURE_PREFIX: &str = "CAPTURE-";
 
+/// Where a capture template goes, before the server finds it.
+enum TargetSpec {
+    /// In the target file.
+    File(capture::Target),
+    /// `(clock)`: under the entry clocked now.
+    Clock,
+    /// `(id …)`: under the entry with this ID.
+    Id(String),
+    /// `(file+olp+datetree …)`: the date tree under this outline path.
+    DateTree(Vec<String>, Vec<capture::Group>),
+}
+
 /// The kind and target of a capture template.
-fn capture_spec(template: &CaptureTemplateOption) -> std::result::Result<(capture::Kind, capture::Target), Refusal> {
+fn capture_spec(template: &CaptureTemplateOption) -> std::result::Result<(capture::Kind, TargetSpec), Refusal> {
     let kind = match template.kind.as_deref() {
         None | Some("entry") => capture::Kind::Entry,
         Some("plain") => capture::Kind::Plain,
-        Some(other) => return Err(format!("Capture templates of type `{other}` are not supported yet").into()),
+        Some("item") => capture::Kind::Item,
+        Some("checkitem") => capture::Kind::CheckItem,
+        Some("table-line") => capture::Kind::TableLine,
+        Some(other) => return Err(format!("Capture templates of type `{other}` are not supported").into()),
     };
+    let rest = || template.target.get(2..).unwrap_or_default().to_vec();
     let target = match template.target.first().map(String::as_str) {
-        Some("file") => capture::Target::File,
-        Some("file+headline") => capture::Target::Headline(template.target.get(2).cloned().unwrap_or_default()),
-        Some("file+olp") => capture::Target::Path(template.target.get(2..).unwrap_or_default().to_vec()),
-        Some(other) => return Err(format!("Capture targets of type `{other}` are not supported yet").into()),
+        Some("file") => TargetSpec::File(capture::Target::File),
+        Some("file+headline") => {
+            TargetSpec::File(capture::Target::Headline(template.target.get(2).cloned().unwrap_or_default()))
+        }
+        Some("file+olp") => TargetSpec::File(capture::Target::Path(rest())),
+        Some("file+regexp") => {
+            TargetSpec::File(capture::Target::Regexp(template.target.get(2).cloned().unwrap_or_default()))
+        }
+        Some("file+olp+datetree") => {
+            let tree = template.tree_type.as_ref().map(|tree| tree.names()).unwrap_or_default();
+            TargetSpec::DateTree(rest(), capture::Group::parse(&tree)?)
+        }
+        Some("clock") => TargetSpec::Clock,
+        Some("id") => TargetSpec::Id(template.target.get(1).cloned().unwrap_or_default()),
+        Some(other) => return Err(format!("Invalid capture target specification: {other}").into()),
         // No target: the end of `org_default_notes_file`, as `["file", ""]`.
-        None => capture::Target::File,
+        None => TargetSpec::File(capture::Target::File),
     };
     Ok((kind, target))
+}
+
+/// The template of a capture template, or the default of its type when
+/// it has none (`org-capture-set-plist`).
+fn template_text(template: &CaptureTemplateOption) -> String {
+    let text = template.template.as_ref().map(|text| text.text()).unwrap_or_default();
+    if !text.trim().is_empty() {
+        return text;
+    }
+    match template.kind.as_deref() {
+        Some("item") => "- %?",
+        Some("checkitem") => "- [ ] %?",
+        Some("table-line") => "| %? |",
+        Some("plain") => "",
+        _ => "* %?\n  %a",
+    }
+    .to_string()
 }
 
 /// What an editing command was told besides its name.
@@ -2371,26 +2415,34 @@ impl Server {
                 Ok(Some(at(target, &text, offset)))
             }
             Open::Id(id) => {
-                // `org-id-find`: the files open in the editor, then the
-                // agenda files.
-                let mut paths: Vec<PathBuf> =
-                    self.documents.keys().filter_map(|key| uri::to_path(&key.parse().ok()?)).collect();
-                paths.sort();
-                for (file, _) in self.agenda_files() {
-                    if let Some(path) = uri::to_path(&file).filter(|path| !paths.contains(path)) {
-                        paths.push(path);
-                    }
-                }
-                for path in paths {
-                    let Some((target, text)) = self.file_text(&path) else { continue };
-                    if let Some(offset) = open::find_id(&org_syntax::parse(&text, &self.todo), id) {
-                        return Ok(Some(at(target, &text, offset)));
-                    }
-                }
-                Err(format!("Cannot find entry with ID \"{id}\""))
+                let (target, offset) = self.find_id(id).ok_or_else(|| format!("Cannot find entry with ID \"{id}\""))?;
+                let (_, text) = self
+                    .file_text(&uri::to_path(&target).ok_or("Cannot read the file")?)
+                    .ok_or("Cannot read the file")?;
+                Ok(Some(at(target, &text, offset)))
             }
             _ => Ok(None),
         }
+    }
+
+    /// `org-id-find`: the file and the headline of the entry with this
+    /// `ID`, in the files open in the editor, then in the agenda files.
+    fn find_id(&mut self, id: &str) -> Option<(Uri, usize)> {
+        let mut paths: Vec<PathBuf> =
+            self.documents.keys().filter_map(|key| uri::to_path(&key.parse().ok()?)).collect();
+        paths.sort();
+        for (file, _) in self.agenda_files() {
+            if let Some(path) = uri::to_path(&file).filter(|path| !paths.contains(path)) {
+                paths.push(path);
+            }
+        }
+        for path in paths {
+            let Some((target, text)) = self.file_text(&path) else { continue };
+            if let Some(offset) = open::find_id(&org_syntax::parse(&text, &self.todo), id) {
+                return Some((target, offset));
+            }
+        }
+        None
     }
 
     fn text_document_content(&mut self, params: &Value) -> Value {
@@ -4497,7 +4549,7 @@ impl Server {
         if answering.is_none() {
             keys.push_str(context.input.as_deref().unwrap_or(""));
         }
-        let chosen = templates.iter().find(|template| template.key == keys && template.template.is_some());
+        let chosen = templates.iter().find(|template| template.key == keys && !template.is_group());
         let Some(template) = chosen.cloned() else {
             // The templates and groups one key further.
             let next: Vec<Value> = templates
@@ -4507,7 +4559,7 @@ impl Server {
                 })
                 .map(|template| {
                     let key = template.key.chars().last().map(String::from).unwrap_or_default();
-                    let label = if template.template.is_some() {
+                    let label = if !template.is_group() {
                         template.description.clone()
                     } else {
                         format!("{}...", template.description)
@@ -4541,15 +4593,36 @@ impl Server {
             (Some(uri), Some(position)) => self.link_to(uri, position),
             _ => String::new(),
         };
-        let fill_context = capture::Context {
-            now: self.date_time(),
-            file,
-            initial: String::new(),
-            annotation,
-            user_name: String::new(),
-        };
-        let text = template.template.as_ref().map(|text| text.text()).unwrap_or_default();
-        let filled = match capture::fill(&text, &fill_context, &answers, &self.read_date)? {
+        // `:time-prompt`: the date of the tree entry is asked first, and
+        // stands for the time of the capture.
+        let now = self.date_time();
+        let mut default_time = now;
+        let mut tree_date = now.date();
+        let mut asked = answers.as_slice();
+        if template.time_prompt == Some(true) {
+            let Some((answer, rest)) = answers.split_first() else {
+                let context = json!({ "keys": keys, "answers": answers });
+                return Ok(json!({ "input": {
+                    "kind": "date",
+                    "prompt": "Date for tree entry",
+                    "value": "",
+                    "context": context,
+                } }));
+            };
+            let read = org_core::read_date::read_date(answer, None, now, &self.read_date)?;
+            tree_date = read.date;
+            let (hour, minute) = match read.time {
+                Some(time) => time,
+                None if read.date == now.date() => (now.minute / 60, now.minute % 60),
+                None => (0, 0),
+            };
+            default_time = DateTime::new(read.date, hour, minute);
+            asked = rest;
+        }
+        let fill_context =
+            capture::Context { now: default_time, file, initial: String::new(), annotation, user_name: String::new() };
+        let text = template_text(&template);
+        let filled = match capture::fill(&text, &fill_context, asked, &self.read_date)? {
             capture::Filled::Text(filled) => filled,
             capture::Filled::Ask(question) => {
                 let context = json!({ "keys": keys, "answers": answers });
@@ -4566,9 +4639,30 @@ impl Server {
             }
         };
         // The target.
-        let (kind, target) = capture_spec(&template)?;
-        let path = self.capture_file(template.target.get(1).map(String::as_str).unwrap_or(""));
-        let target_uri = uri::from_path(&path).ok_or("Cannot name the target file")?;
+        let (kind, spec) = capture_spec(&template)?;
+        let (target_uri, target) = match spec {
+            TargetSpec::File(target) => {
+                let path = self.capture_file(template.target.get(1).map(String::as_str).unwrap_or(""));
+                (uri::from_path(&path).ok_or("Cannot name the target file")?, target)
+            }
+            TargetSpec::DateTree(path, groups) => {
+                let file = self.capture_file(template.target.get(1).map(String::as_str).unwrap_or(""));
+                let uri = uri::from_path(&file).ok_or("Cannot name the target file")?;
+                (uri, capture::Target::DateTree { path, date: tree_date, groups })
+            }
+            TargetSpec::Clock => {
+                let running = self.running.clone().ok_or("No running clock that could be used as capture target")?;
+                let (text, _, line) =
+                    self.clock_line(&running).ok_or("No running clock that could be used as capture target")?;
+                let heading =
+                    Self::heading_above(&text, line).ok_or("No running clock that could be used as capture target")?;
+                (running.uri, capture::Target::Heading(heading))
+            }
+            TargetSpec::Id(id) => {
+                let (uri, heading) = self.find_id(&id).ok_or_else(|| format!("Cannot find target ID \"{id}\""))?;
+                (uri, capture::Target::Heading(heading))
+            }
+        };
         let (snapshot, version, keywords) = self
             .with_source(&target_uri, |text, _, parse, _, version| {
                 (text.to_string(), version, parse.todo_keywords().clone())
@@ -4579,11 +4673,12 @@ impl Server {
             empty_lines: template.empty_lines,
             empty_lines_before: template.empty_lines_before,
             empty_lines_after: template.empty_lines_after,
+            table_line_pos: template.table_line_pos.clone(),
         };
         let levels = refile::Settings { adapt: self.adapt_in(&snapshot), ..self.refile.2 };
         let placed = capture::place(&snapshot, &keywords, &target, kind, &filled, &properties, &levels)?;
         if template.immediate_finish == Some(true) {
-            let done = placed.finish(placed.shown());
+            let done = placed.finalize(placed.shown(), &keywords, &self.edit_settings.todo, self.date_time());
             self.apply_capture(&target_uri, version, &snapshot, &done);
             return Ok(Value::Null);
         }
@@ -4738,13 +4833,14 @@ impl Server {
                 (text.to_string(), version, parse.todo_keywords().clone())
             })
             .unwrap_or_else(|| (String::new(), None, self.todo.clone()));
+        let (todo, time) = (&self.edit_settings.todo, self.date_time());
         let done = if now == capture.snapshot {
-            capture.placed.finish(&edited)
+            capture.placed.finalize(&edited, &keywords, todo, time)
         } else {
             let (target, kind, properties) = &capture.spec;
             let levels = refile::Settings { adapt: self.adapt_in(&now), ..self.refile.2 };
             let placed = capture::place(&now, &keywords, target, *kind, &edited, properties, &levels)?;
-            placed.finish(placed.shown())
+            placed.finalize(placed.shown(), &keywords, todo, time)
         };
         Ok((now, version, done))
     }

@@ -14,6 +14,8 @@ A case is a JSON object:
         "empty_lines_after": 0, "immediate_finish": false
       },
       "answers": ["fri"],                     what is typed at the prompts
+      "clock_in": ["notes.org", "Tasks"],     optional: a clock started on
+                                              that headline first
       "typed": "Call Bob",                    what is typed in the capture
       "options": {"org_adapt_indentation": true}   optional: server settings
     }                                         buffer, where the cursor is
@@ -35,6 +37,7 @@ from todo_reference import CURSOR, lisp_string, load, save  # noqa: F401
 DRIVER = r"""
 (require 'org)
 (require 'org-capture)
+(require 'org-clock)
 (require 'cl-lib)
 (setq org-read-date-popup-calendar nil)
 ;; Under a faked clock files seem changed on disk; nobody is there to ask.
@@ -45,7 +48,7 @@ DRIVER = r"""
   (if (and (or (null answer) (equal answer "")) default)
       (if (consp default) (car default) default)
     (or answer "")))
-(defun org-lsp-capture-case (files from template answers typed out)
+(defun org-lsp-capture-case (files from template answers typed out &optional clock)
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer)
       (with-current-buffer buffer (set-buffer-modified-p nil))
@@ -66,6 +69,11 @@ DRIVER = r"""
                              (org-lsp-answer (pop answers) default)))
                           ((symbol-function 'y-or-n-p) (lambda (&rest _) t))
                           ((symbol-function 'yes-or-no-p) (lambda (&rest _) t)))
+                  (when clock
+                    (with-current-buffer (find-file-noselect (car clock))
+                      (goto-char (point-min))
+                      (re-search-forward (concat "^\\*+ .*" (regexp-quote (cadr clock))))
+                      (org-clock-in)))
                   (set-buffer (if from (find-file-noselect from) (get-buffer-create "*scratch*")))
                   (org-capture nil "t")
                   (let ((capture (seq-find (lambda (buffer) (string-prefix-p "CAPTURE-" (buffer-name buffer)))
@@ -85,6 +93,7 @@ DRIVER = r"""
                      (concat (file-name-nondirectory file) "\0" (buffer-string))))
                  files "\0"))
             (error (format "ERROR: %S" err)))))
+    (when (org-clocking-p) (org-clock-cancel))
     (with-temp-file out
       (insert (or shown "") "\2" result))))
 """
@@ -95,7 +104,7 @@ def template_form(template, paths):
     target = template["target"]
     kind = target[0]
     rest = target[1:]
-    if kind in ("file", "file+headline", "file+olp", "file+olp+datetree"):
+    if kind in ("file", "file+headline", "file+olp", "file+olp+datetree", "file+regexp"):
         rest = [paths[rest[0]]] + rest[1:]
     target_form = "(" + kind + " " + " ".join(lisp_string(part) for part in rest) + ")"
     properties = []
@@ -105,15 +114,29 @@ def template_form(template, paths):
         "empty_lines_before": ":empty-lines-before",
         "empty_lines_after": ":empty-lines-after",
         "immediate_finish": ":immediate-finish",
+        "time_prompt": ":time-prompt",
+        "table_line_pos": ":table-line-pos",
     }
     for key, name in names.items():
         if key in template:
             value = template[key]
+            if isinstance(value, str):
+                value = lisp_string(value)
             properties.append(f"{name} {'t' if value is True else 'nil' if value is False else value}")
+    if "tree_type" in template:
+        tree = template["tree_type"]
+        tree = "(" + " ".join(tree) + ")" if isinstance(tree, list) else tree
+        properties.append(f":tree-type '{tree}")
     return (
         f"(list \"t\" \"Task\" '{template.get('type', 'entry')} '{target_form}"
         f" {lisp_string(template['template'])} {' '.join(properties)})"
     )
+
+
+def clock_form(clock, paths):
+    if not clock:
+        return "nil"
+    return f"(list {lisp_string(paths[clock[0]])} {lisp_string(clock[1])})"
 
 
 def reference(cases):
@@ -144,7 +167,8 @@ def reference(cases):
                 forms.append(
                     f"(let ((org-adapt-indentation {adapt}))"
                     f" (org-lsp-capture-case (list {files}) {source} {template_form(case['template'], paths)}"
-                    f" (list {answers}) {lisp_string(case.get('typed', ''))} {lisp_string(target)}))"
+                    f" (list {answers}) {lisp_string(case.get('typed', ''))} {lisp_string(target)}"
+                    f" {clock_form(case.get('clock_in'), paths)}))"
                 )
             driver = os.path.join(directory, f"driver-{clock[:10]}.el")
             with open(driver, "w", encoding="utf-8") as handle:

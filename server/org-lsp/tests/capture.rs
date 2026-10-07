@@ -7,7 +7,7 @@
 
 use std::path::PathBuf;
 
-use org_core::capture::{fill, place, Context, Filled, Kind, Properties, Target};
+use org_core::capture::{fill, place, Context, Filled, Group, Kind, Properties, Target};
 use org_core::date::DateTime;
 use org_core::indent::Adapt;
 use org_core::read_date::Settings;
@@ -25,10 +25,31 @@ fn run(case: &Value) -> Result<(String, String, String), String> {
     let template = &case["template"];
     let now = clock(case["clock"].as_str().unwrap());
     let file = case["from"].as_str().map(|name| (name.to_string(), format!("/{name}")));
-    let context = Context { now, file, initial: String::new(), annotation: String::new(), user_name: String::new() };
     // Prompts take the answers in order, and nothing once they run out.
     let mut answers: Vec<String> =
         case["answers"].as_array().into_iter().flatten().map(|answer| answer.as_str().unwrap().to_string()).collect();
+    // `:time-prompt`: the date of the tree comes first, and stands for
+    // the time of the capture.
+    let mut default_time = now;
+    let mut tree_date = now.date();
+    if template["time_prompt"].as_bool() == Some(true) {
+        let answer = if answers.is_empty() { String::new() } else { answers.remove(0) };
+        let read = org_core::read_date::read_date(&answer, None, now, &Settings::default())?;
+        tree_date = read.date;
+        let (hour, minute) = match read.time {
+            Some(time) => time,
+            None if read.date == now.date() => (now.minute / 60, now.minute % 60),
+            None => (0, 0),
+        };
+        default_time = DateTime::new(read.date, hour, minute);
+    }
+    let context = Context {
+        now: default_time,
+        file,
+        initial: String::new(),
+        annotation: String::new(),
+        user_name: String::new(),
+    };
     let given = answers.len();
     let text = loop {
         match fill(template["template"].as_str().unwrap(), &context, &answers, &Settings::default())
@@ -41,16 +62,61 @@ fn run(case: &Value) -> Result<(String, String, String), String> {
     };
     let target_spec: Vec<&str> =
         template["target"].as_array().unwrap().iter().map(|part| part.as_str().unwrap()).collect();
-    let name = target_spec[1].to_string();
-    let target = match target_spec[0] {
-        "file" => Target::File,
-        "file+headline" => Target::Headline(target_spec[2].to_string()),
-        "file+olp" => Target::Path(target_spec[2..].iter().map(|part| part.to_string()).collect()),
-        other => return Err(format!("no target {other}")),
+    // The clock's file, clocked in first.
+    let mut files: serde_json::Map<String, Value> = case["files"].as_object().unwrap().clone();
+    let mut clocked = None;
+    if let Some(clock_in) = case["clock_in"].as_array() {
+        let (name, title) = (clock_in[0].as_str().unwrap(), clock_in[1].as_str().unwrap());
+        let text = files[name].as_str().unwrap().to_string();
+        let heading = text
+            .lines()
+            .scan(0, |at, line| {
+                let start = *at;
+                *at += line.len() + 1;
+                Some((start, line))
+            })
+            .find(|(_, line)| line.starts_with('*') && line.contains(title))
+            .map(|(start, _)| start)
+            .unwrap();
+        let keywords = TodoKeywords::from_document(&text).unwrap_or_default();
+        let (text, _) = org_core::clock::clock_in(&text, &keywords, heading, &Default::default(), now)
+            .map_err(|error| error.to_string())?;
+        files.insert(name.to_string(), Value::String(text));
+        clocked = Some((name.to_string(), heading));
+    }
+    let (name, target) = match target_spec[0] {
+        "clock" => {
+            let (name, heading) = clocked.ok_or("No running clock that could be used as capture target")?;
+            (name, Target::Heading(heading))
+        }
+        kind => {
+            let name = target_spec[1].to_string();
+            let rest: Vec<String> = target_spec[2..].iter().map(|part| part.to_string()).collect();
+            let target = match kind {
+                "file" => Target::File,
+                "file+headline" => Target::Headline(rest[0].clone()),
+                "file+olp" => Target::Path(rest),
+                "file+regexp" => Target::Regexp(rest[0].clone()),
+                "file+olp+datetree" => {
+                    let tree: Vec<String> = match &template["tree_type"] {
+                        Value::String(name) => vec![name.clone()],
+                        Value::Array(names) => names.iter().map(|name| name.as_str().unwrap().to_string()).collect(),
+                        _ => Vec::new(),
+                    };
+                    let groups = Group::parse(&tree).map_err(|refusal| refusal.message().to_string())?;
+                    Target::DateTree { path: rest, date: tree_date, groups }
+                }
+                other => return Err(format!("no target {other}")),
+            };
+            (name, target)
+        }
     };
     let kind = match template["type"].as_str() {
         None | Some("entry") => Kind::Entry,
         Some("plain") => Kind::Plain,
+        Some("item") => Kind::Item,
+        Some("checkitem") => Kind::CheckItem,
+        Some("table-line") => Kind::TableLine,
         Some(other) => return Err(format!("no type {other}")),
     };
     let number = |key: &str| template[key].as_u64().map(|n| n as usize);
@@ -59,8 +125,9 @@ fn run(case: &Value) -> Result<(String, String, String), String> {
         empty_lines: number("empty_lines"),
         empty_lines_before: number("empty_lines_before"),
         empty_lines_after: number("empty_lines_after"),
+        table_line_pos: template["table_line_pos"].as_str().map(str::to_string),
     };
-    let original = case["files"][&name].as_str().unwrap();
+    let original = files[&name].as_str().unwrap();
     let keywords = TodoKeywords::from_document(original).unwrap_or_default();
     let adapt = match case.pointer("/options/org_adapt_indentation") {
         Some(Value::Bool(true)) => Adapt::All,
@@ -75,7 +142,8 @@ fn run(case: &Value) -> Result<(String, String, String), String> {
     let buffer = format!("{}¦{}", &shown[..at], &shown[at..]);
     let typed = case["typed"].as_str().unwrap_or("");
     let edited = format!("{}{typed}{}", &shown[..at], &shown[at..]);
-    Ok((name, buffer, placed.finish(&edited)))
+    let settings = org_core::todo::Settings::default();
+    Ok((name, buffer, placed.finalize(&edited, &keywords, &settings, now)))
 }
 
 #[test]

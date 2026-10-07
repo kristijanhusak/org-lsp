@@ -55,7 +55,7 @@
 ---@field org_archive_sibling_heading? string The headline of the sibling `org.archive.sibling` archives under. (`org-archive-sibling-heading`)
 ---@field org_archive_file_header_format? string|false What a new archive file starts with; `%s` is the path of the file the subtree came from. (`org-archive-file-header-format`)
 ---@field org_archive_default_command? 'subtree'|'sibling'|'tag' What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it. (`org-archive-default-command`)
----@field org_capture_templates? org_lsp.CaptureTemplate[] Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, or `plain`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after` and `immediate_finish`. The target is a list: `file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path. An empty path is `org_default_notes_file`, and without a target the entry goes at the end of `org_default_notes_file`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)
+---@field org_capture_templates? org_lsp.CaptureTemplate[] Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, `plain`, `item`, `checkitem` or `table-line`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after`, `immediate_finish`, `tree_type`, `time_prompt` and `table_line_pos`. The target is a list: `file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and the headlines of an outline path, maybe none, for a date tree under them; `id` and an ID; or `clock`, the entry clocked now. An empty path is `org_default_notes_file`, and without a target the entry goes at the end of `org_default_notes_file`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)
 ---@field org_directory? string Where the relative paths of capture targets are. (`org-directory`)
 ---@field org_default_notes_file? string The target of a capture template whose file is empty. (`org-default-notes-file`)
 ---@field org_link_descriptive? boolean Show a link as its description (or its target, when it has none) and hide the rest: the brackets, and the target of a link with a description. The text is marked `hidden` in the highlighting, and editors that can conceal text conceal it. (`org-link-descriptive`)
@@ -131,9 +131,12 @@
 ---@field immediate_finish? boolean Capture without a capture buffer
 ---@field key string The keys that pick the template
 ---@field prepend? boolean First under the target, not last
----@field target? string[] `file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path
+---@field table_line_pos? string Where a table line goes: `II-1` is above the second rule
+---@field target? string[] `file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and maybe an outline path; `id` and an ID; or `clock`
 ---@field template? string|string[] The template, or its lines
----@field type? 'entry'|'plain' An Org entry (the default), or plain text
+---@field time_prompt? boolean Ask for the date of the date tree entry
+---@field tree_type? 'day'|'week'|'month'|('year'|'quarter'|'month'|'week'|'day')[] The levels of a date tree
+---@field type? 'entry'|'plain'|'item'|'checkitem'|'table-line' An Org entry (the default), plain text, a list item, a checkbox item or a table line
 
 ---@class org_lsp.AgendaCommand
 ---@field blocks? org_lsp.AgendaBlock[] Views shown one after the other

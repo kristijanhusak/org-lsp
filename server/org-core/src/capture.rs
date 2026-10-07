@@ -316,6 +316,49 @@ pub enum Target {
     Headline(String),
     /// `(file+olp … "A" "B")`: under this outline path.
     Path(Vec<String>),
+    /// `(file+regexp … "regexp")`: at the first match of the regexp, its
+    /// start with `:prepend`, else its end.
+    Regexp(String),
+    /// `(file+olp+datetree … "A")`: under the outline path, which may be
+    /// empty, the date tree's entry for `date`, made when missing.
+    DateTree { path: Vec<String>, date: crate::date::Date, groups: Vec<Group> },
+    /// `(clock)`, `(id …)`: under the headline that starts here.
+    Heading(usize),
+}
+
+/// A level of a date tree (`:tree-type`): `(year month day)` by default,
+/// `week` is `(year week day)`, `month` is `(year month)`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Group {
+    Year,
+    Quarter,
+    Month,
+    Week,
+    Day,
+}
+
+impl Group {
+    /// The groups of a `:tree-type`: `day` (or none), `week`, `month`, or
+    /// the names of the levels.
+    pub fn parse(tree_type: &[String]) -> Result<Vec<Group>, Refusal> {
+        match tree_type {
+            [] => Ok(vec![Group::Year, Group::Month, Group::Day]),
+            [one] if one == "day" => Ok(vec![Group::Year, Group::Month, Group::Day]),
+            [one] if one == "week" => Ok(vec![Group::Year, Group::Week, Group::Day]),
+            [one] if one == "month" => Ok(vec![Group::Year, Group::Month]),
+            names => names
+                .iter()
+                .map(|name| match name.as_str() {
+                    "year" => Ok(Group::Year),
+                    "quarter" => Ok(Group::Quarter),
+                    "month" => Ok(Group::Month),
+                    "week" => Ok(Group::Week),
+                    "day" => Ok(Group::Day),
+                    other => Err(Refusal::Failed(format!("Unrecognized datetree grouping elements ({other})"))),
+                })
+                .collect(),
+        }
+    }
 }
 
 /// What a template makes (its type).
@@ -324,10 +367,13 @@ pub enum Kind {
     #[default]
     Entry,
     Plain,
+    Item,
+    CheckItem,
+    TableLine,
 }
 
 /// The template's properties that change where it goes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Properties {
     /// `:prepend`
     pub prepend: bool,
@@ -337,6 +383,9 @@ pub struct Properties {
     pub empty_lines_before: Option<usize>,
     /// `:empty-lines-after`
     pub empty_lines_after: Option<usize>,
+    /// `:table-line-pos`: where a table line goes, `II-1` (above the
+    /// second rule).
+    pub table_line_pos: Option<String>,
 }
 
 /// A template placed in its target file.
@@ -349,6 +398,8 @@ pub struct Placed {
     pub end: usize,
     /// Where the cursor goes, in `text`.
     pub cursor: usize,
+    /// A table line: the table is aligned when the capture finishes.
+    pub align_table: bool,
 }
 
 impl Placed {
@@ -362,10 +413,68 @@ impl Placed {
     /// newline at the end (`require-final-newline`).
     pub fn finish(&self, edited: &str) -> String {
         let mut text = format!("{}{edited}{}", &self.text[..self.start], &self.text[self.end..]);
+        // A table line: the table aligned, when the capture is a table line.
+        if self.align_table {
+            let start = self.text[..self.start].rfind('\n').map_or(0, |at| at + 1);
+            let is_table = |line: &str| line.trim_start_matches([' ', '\t']).starts_with('|');
+            if is_table(line_of(&text, start)) {
+                let mut first = start;
+                while first > 0 {
+                    let previous = text[..first - 1].rfind('\n').map_or(0, |at| at + 1);
+                    if !is_table(line_of(&text, previous)) {
+                        break;
+                    }
+                    first = previous;
+                }
+                let mut end = start;
+                while end < text.len() && is_table(line_of(&text, end)) {
+                    end = text[end..].find('\n').map_or(text.len(), |at| end + at + 1);
+                }
+                // With formulas, the table is calculated again, which
+                // aligns it (`org-table-fix-formulas` is not ported).
+                let recalculated = crate::tblfm::has_formulas(&text, start)
+                    .then(|| crate::tblfm::recalculate(&text, start, crate::tblfm::Mode::All, &|_| None).ok())
+                    .flatten();
+                match recalculated {
+                    Some(done) => text = done.text,
+                    None => {
+                        let lines: Vec<&str> = text[first..end].lines().collect();
+                        let mut aligned = crate::format::align_table(&lines).join("\n");
+                        if text[first..end].ends_with('\n') {
+                            aligned.push('\n');
+                        }
+                        text.replace_range(first..end, &aligned);
+                    }
+                }
+            }
+        }
         if !text.is_empty() && !text.ends_with('\n') {
             text.push('\n');
         }
         text
+    }
+}
+
+impl Placed {
+    /// [`Placed::finish`], then what `org-capture-finalize` does after:
+    /// the statistics cookies of the captured entry's parent
+    /// (`org-update-parent-todo-statistics`) and of its section
+    /// (`org-update-checkbox-count`).
+    pub fn finalize(
+        &self,
+        edited: &str,
+        keywords: &TodoKeywords,
+        settings: &crate::todo::Settings,
+        now: DateTime,
+    ) -> String {
+        let text = self.finish(edited);
+        let Some(heading) = heading_at(&text, self.start.min(text.len())) else { return text };
+        let mut editor = crate::todo::Editor::new(&text, keywords, settings, now);
+        editor.heading = heading;
+        editor.update_parent_statistics();
+        let text = editor.text;
+        let heading = heading_at(&text, self.start.min(text.len())).unwrap_or(heading);
+        crate::checkbox::update_counts(&text, keywords, heading, settings.tags_column)
     }
 }
 
@@ -504,66 +613,293 @@ fn title_matches(line: &str, title: &str, keywords: &TodoKeywords) -> bool {
     COOKIE.captures(found).is_some_and(|captures| &captures[1] == title)
 }
 
-/// The headline `target` names in `text`, adding a missing
-/// `file+headline` one at the end, or none for the file itself.
-fn find_target(text: &mut String, target: &Target, keywords: &TodoKeywords) -> Result<Option<usize>, Refusal> {
-    let headlines = |text: &str| -> Vec<usize> {
-        let mut out = Vec::new();
-        let mut at = 0;
-        for line in text.split_inclusive('\n') {
-            if headline_level(line.trim_end_matches('\n')).is_some() {
-                out.push(at);
-            }
-            at += line.len();
+/// Where a target puts the template: the headline it is under
+/// (`:target-entry-p`), and the place a regexp found (`:exact-position`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct Location {
+    heading: Option<usize>,
+    exact: Option<usize>,
+}
+
+fn headlines(text: &str) -> Vec<usize> {
+    let mut out = Vec::new();
+    let mut at = 0;
+    for line in text.split_inclusive('\n') {
+        if headline_level(line.trim_end_matches('\n')).is_some() {
+            out.push(at);
         }
-        out
-    };
+        at += line.len();
+    }
+    out
+}
+
+/// `org-find-olp`: the headline of `path`, each part once at its level
+/// inside the last.
+fn find_path(text: &str, path: &[String], keywords: &TodoKeywords) -> Result<Option<usize>, Refusal> {
+    let (mut lmin, mut lmax) = (1, 1);
+    let (mut from, mut to) = (0, text.len());
+    let mut found = None;
+    for title in path {
+        let matches: Vec<usize> = headlines(text)
+            .into_iter()
+            .filter(|at| (from..to).contains(at))
+            .filter(|at| title_matches(line_of(text, *at), title, keywords))
+            .filter(|at| headline_level(line_of(text, *at)).is_some_and(|level| (lmin..=lmax).contains(&level)))
+            .collect();
+        match matches.as_slice() {
+            [] => return Err(Refusal::Failed(format!("Heading not found on level {lmax}: {title}"))),
+            [one] => {
+                let level = headline_level(line_of(text, *one)).unwrap_or(1);
+                found = Some(*one);
+                from = *one;
+                to = subtree_end(text, *one);
+                lmin = level + 1;
+                lmax = lmin;
+            }
+            _ => return Err(Refusal::Failed(format!("Heading not unique on level {lmax}: {title}"))),
+        }
+    }
+    Ok(found)
+}
+
+/// Where `target` puts the template in `text` (`org-capture-set-target-location`),
+/// adding a missing `file+headline` headline at the end and the missing
+/// levels of a date tree.
+fn find_target(
+    text: &mut String,
+    target: &Target,
+    keywords: &TodoKeywords,
+    prepend: bool,
+) -> Result<Location, Refusal> {
+    let heading = |at: usize| Location { heading: Some(at), exact: None };
     match target {
-        Target::File => Ok(None),
+        Target::File => Ok(Location::default()),
+        Target::Heading(at) => {
+            let at = (*at).min(text.len());
+            let start = text[..at].rfind('\n').map_or(0, |index| index + 1);
+            Ok(heading(start))
+        }
         Target::Headline(title) => {
             let found = headlines(text).into_iter().find(|at| title_matches(line_of(text, *at), title, keywords));
             if let Some(found) = found {
-                return Ok(Some(found));
+                return Ok(heading(found));
             }
             if !text.is_empty() && !text.ends_with('\n') {
                 text.push('\n');
             }
             let at = text.len();
             text.push_str(&format!("* {title}\n"));
-            Ok(Some(at))
+            Ok(heading(at))
         }
-        Target::Path(path) => {
-            // `org-find-olp`: each part once at its level, inside the last.
-            let (mut lmin, mut lmax) = (1, 1);
-            let (mut from, mut to) = (0, text.len());
-            let mut found = None;
-            for title in path {
-                let matches: Vec<usize> = headlines(text)
-                    .into_iter()
-                    .filter(|at| (from..to).contains(at))
-                    .filter(|at| title_matches(line_of(text, *at), title, keywords))
-                    .filter(|at| headline_level(line_of(text, *at)).is_some_and(|level| (lmin..=lmax).contains(&level)))
-                    .collect();
-                match matches.as_slice() {
-                    [] => return Err(Refusal::Failed(format!("Heading not found on level {lmax}: {title}"))),
-                    [one] => {
-                        let level = headline_level(line_of(text, *one)).unwrap_or(1);
-                        found = Some(*one);
-                        from = *one;
-                        to = subtree_end(text, *one);
-                        lmin = level + 1;
-                        lmax = lmin;
-                    }
-                    _ => return Err(Refusal::Failed(format!("Heading not unique on level {lmax}: {title}"))),
-                }
-            }
-            Ok(found)
+        Target::Path(path) => Ok(Location { heading: find_path(text, path, keywords)?, exact: None }),
+        Target::Regexp(regexp) => {
+            let Some(regexp) = crate::agenda::matcher::emacs_buffer_regex(regexp) else {
+                return Err(Refusal::Failed(format!("Invalid regexp: {regexp}")));
+            };
+            let found = regexp.find(text).ok_or_else(|| Refusal::Failed("No match for target regexp".to_string()))?;
+            let exact = if prepend { found.start() } else { found.end() };
+            let start = text[..exact].rfind('\n').map_or(0, |index| index + 1);
+            let at_heading = headline_level(line_of(text, start)).is_some();
+            Ok(Location { heading: at_heading.then_some(start), exact: Some(exact) })
+        }
+        Target::DateTree { path, date, groups } => {
+            let base = if path.is_empty() { None } else { find_path(text, path, keywords)? };
+            Ok(heading(datetree(text, base, *date, groups, keywords)?))
         }
     }
 }
 
 fn line_of(text: &str, at: usize) -> &str {
     text[at..].split('\n').next().unwrap_or("")
+}
+
+/// `org-entry-end-position`: the next headline after the line of `at`,
+/// or the end.
+fn entry_end(text: &str, at: usize) -> usize {
+    let start = text[..at].rfind('\n').map_or(0, |index| index + 1);
+    next_heading(text, start).unwrap_or(text.len())
+}
+
+// ----- date trees
+
+/// The titles of the levels of a date tree for `date`, with the regexp
+/// whose first group orders a level's headlines
+/// (`org-datetree-find-create-entry`).
+fn datetree_levels(date: crate::date::Date, groups: &[Group]) -> Vec<(String, &'static str)> {
+    let day = date.to_day();
+    let (week, iso_year) = iso_week(day);
+    let has = |group: Group| groups.contains(&group);
+    let year = if has(Group::Week) { iso_year } else { date.year };
+    let month = if has(Group::Week) {
+        // The month of the week's Thursday, as for its year.
+        let fourth = crate::date::Date::new(iso_year, 1, 4).to_day();
+        let monday = fourth - ((weekday(fourth) as i64 + 6) % 7) + (week - 1) * 7;
+        crate::date::Date::from_day(monday + 3).month
+    } else {
+        date.month
+    };
+    let quarter =
+        if has(Group::Week) && !has(Group::Month) { (1 + (week - 1) / 13).min(4) } else { 1 + (month - 1) / 3 };
+    let mut out = Vec::new();
+    for group in [Group::Year, Group::Quarter, Group::Month, Group::Week, Group::Day] {
+        if !has(group) {
+            continue;
+        }
+        out.push(match group {
+            Group::Year => (year.to_string(), r"([12][0-9]{3})"),
+            Group::Quarter => (format!("{year}-Q{quarter}"), r"([12][0-9]{3}-Q[1-4])"),
+            Group::Month => {
+                (format!("{year:04}-{month:02} {}", MONTH_NAMES[(month - 1) as usize]), r"([12][0-9]{3}-[01][0-9]) \w+")
+            }
+            Group::Week => (format!("{iso_year:04}-W{week:02}"), r"([12][0-9]{3}-W[0-5][0-9])"),
+            Group::Day => (
+                format!("{:04}-{:02}-{:02} {}", date.year, date.month, date.day, WEEKDAY_NAMES[weekday(day)]),
+                r"([12][0-9]{3}-[01][0-9]-[0123][0-9]) \w+",
+            ),
+        });
+    }
+    out
+}
+
+/// The end of the subtree at `heading` as `org-narrow-to-subtree` narrows
+/// to it within `limit`: before the newline that ends it, unless it ends
+/// the region.
+fn narrowed_subtree_end(text: &str, heading: usize, limit: usize) -> usize {
+    let end = subtree_end(text, heading).min(limit);
+    if end == limit {
+        end
+    } else {
+        end - 1
+    }
+}
+
+/// `org-datetree-find-create-hierarchy`: the headline of `date`'s entry in
+/// the date tree under `base` (or the file's, or the one under the
+/// headline with a `DATE_TREE` or `WEEK_TREE` property), the missing
+/// levels made.
+fn datetree(
+    text: &mut String,
+    base: Option<usize>,
+    date: crate::date::Date,
+    groups: &[Group],
+    keywords: &TodoKeywords,
+) -> Result<usize, Refusal> {
+    let (mut start, mut end, mut level) = (0, text.len(), 1);
+    let legacy = if groups == [Group::Year, Group::Month, Group::Day] || groups == [Group::Year, Group::Month] {
+        Some("DATE_TREE")
+    } else if groups == [Group::Year, Group::Week, Group::Day] {
+        Some("WEEK_TREE")
+    } else {
+        None
+    };
+    let root = match base {
+        Some(base) => Some(base),
+        None => legacy.and_then(|name| property_heading(text, name)),
+    };
+    if let Some(root) = root {
+        start = root;
+        end = narrowed_subtree_end(text, root, text.len());
+        level = headline_level(line_of(text, root)).unwrap_or(0) + 1;
+    }
+    let mut found = start;
+    for (title, pattern) in datetree_levels(date, groups) {
+        let regex = Regex::new(pattern).expect("a valid regex");
+        let key = |title: &str| regex.captures(title).map(|found| found[1].to_string());
+        let wanted = key(&title).expect("a date tree title matches its regexp");
+        let compare = |line: &str| -> Option<std::cmp::Ordering> {
+            let level = headline_level(line)?;
+            let (from, to) = complex_heading_title(line, level, keywords)?;
+            key(&line[from..to]).map(|other| other.cmp(&wanted))
+        };
+        // The first headline at the level that is not before the date.
+        let sibling = headlines(text)
+            .into_iter()
+            .filter(|at| (start..end).contains(at))
+            .filter(|at| headline_level(line_of(text, *at)) == Some(level))
+            .find(|at| compare(line_of(text, *at)).is_some_and(|order| order != std::cmp::Ordering::Less));
+        let mut buffer = Buffer { text: std::mem::take(text), point: 0 };
+        if let Some(sibling) = sibling {
+            if compare(line_of(&buffer.text, sibling)) == Some(std::cmp::Ordering::Equal) {
+                *text = buffer.text;
+                found = sibling;
+                start = sibling;
+                end = narrowed_subtree_end(text, sibling, end);
+                level += 1;
+                continue;
+            }
+            buffer.point = sibling;
+        } else {
+            buffer.point = end;
+            if !buffer.bolp() {
+                buffer.insert("\n");
+                end += 1;
+            }
+        }
+        // Blanks before the place go, the new headline goes in.
+        let kept = start + buffer.text[start..buffer.point].trim_end_matches([' ', '\t', '\n']).len();
+        let removed = buffer.point - kept;
+        buffer.text.replace_range(kept..buffer.point, "");
+        buffer.point = kept;
+        end -= removed;
+        let blank = blank_before_heading_in(&buffer.text, buffer.point, start, end);
+        let inserted = format!("{}\n{} {title}\n", if blank { "\n" } else { "" }, "*".repeat(level));
+        buffer.insert(&inserted);
+        end += inserted.len();
+        let heading = buffer.line_start(buffer.point - 1);
+        *text = buffer.text;
+        found = heading;
+        start = heading;
+        end = narrowed_subtree_end(text, heading, end);
+        level += 1;
+    }
+    Ok(found)
+}
+
+/// `org--blank-before-heading-p` with the buffer narrowed to
+/// `start..end`: whether the line before the headline at `point` (or the
+/// next one, at the start of the region) is blank.
+fn blank_before_heading_in(text: &str, point: usize, start: usize, end: usize) -> bool {
+    let inside: Vec<usize> = headlines(text).into_iter().filter(|at| (start..end).contains(at)).collect();
+    let line_start = text[..point].rfind('\n').map_or(0, |at| at + 1).max(start);
+    let heading = match inside.iter().rev().find(|at| **at <= line_start) {
+        Some(heading) => *heading,
+        None => match inside.iter().find(|at| **at > line_start) {
+            Some(next) => *next,
+            None => return false,
+        },
+    };
+    let blank_before = |at: usize| {
+        at > start && {
+            let previous = text[..at - 1].rfind('\n').map_or(0, |index| index + 1);
+            line_of(text, previous).trim_matches([' ', '\t']).is_empty()
+        }
+    };
+    if heading > start {
+        return blank_before(heading);
+    }
+    match inside.iter().find(|at| **at > heading) {
+        Some(next) => blank_before(*next),
+        None => false,
+    }
+}
+
+/// `org-find-property`: the first headline with the property `name`.
+fn property_heading(text: &str, name: &str) -> Option<usize> {
+    let wanted = format!(":{}:", name.to_lowercase());
+    let mut at = 0;
+    let mut in_drawer = false;
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim();
+        if trimmed.eq_ignore_ascii_case(":PROPERTIES:") {
+            in_drawer = true;
+        } else if trimmed.eq_ignore_ascii_case(":END:") {
+            in_drawer = false;
+        } else if in_drawer && trimmed.to_lowercase().starts_with(&wanted) {
+            return heading_at(text, at);
+        }
+        at += line.len();
+    }
+    None
 }
 
 /// Put the expanded `template` into `text` as `kind` at `target`.
@@ -577,11 +913,14 @@ pub fn place(
     levels: &LevelSettings,
 ) -> Result<Placed, Refusal> {
     let mut text = text.to_string();
-    let heading = find_target(&mut text, target, keywords)?;
-    let mut buffer = Buffer { text, point: heading.unwrap_or(0) };
+    let location = find_target(&mut text, target, keywords, properties.prepend)?;
+    let point = location.exact.or(location.heading).unwrap_or(0);
+    let mut buffer = Buffer { text, point };
     let (start, end) = match kind {
-        Kind::Entry => place_entry(&mut buffer, heading, template, properties, levels)?,
-        Kind::Plain => place_plain(&mut buffer, heading, template, properties),
+        Kind::Entry => place_entry(&mut buffer, location.heading, template, properties, levels)?,
+        Kind::Plain => place_plain(&mut buffer, location, template, properties),
+        Kind::Item | Kind::CheckItem => place_item(&mut buffer, location, template, properties)?,
+        Kind::TableLine => place_table_line(&mut buffer, location, template, properties)?,
     };
     // `org-capture--position-cursor`: at the first `%?`, which goes.
     let (mut end, mut cursor) = (end, start);
@@ -590,9 +929,8 @@ pub fn place(
         cursor = start + at;
         end -= 2;
     }
-    Ok(Placed { text: buffer.text, start, end, cursor })
+    Ok(Placed { text: buffer.text, start, end, cursor, align_table: kind == Kind::TableLine })
 }
-
 /// `org-capture-place-entry`
 fn place_entry(
     buffer: &mut Buffer,
@@ -659,12 +997,13 @@ fn place_entry(
 }
 
 /// `org-capture-place-plain-text`
-fn place_plain(buffer: &mut Buffer, heading: Option<usize>, template: &str, properties: &Properties) -> (usize, usize) {
-    match heading {
-        Some(heading) if properties.prepend => buffer.point = end_of_meta_data(&buffer.text, heading),
-        Some(_) => buffer.next_heading(),
-        None if properties.prepend => buffer.point = 0,
-        None => buffer.point = buffer.text.len(),
+fn place_plain(buffer: &mut Buffer, location: Location, template: &str, properties: &Properties) -> (usize, usize) {
+    match (location.heading, location.exact) {
+        (Some(heading), _) if properties.prepend => buffer.point = end_of_meta_data(&buffer.text, heading, true),
+        (Some(_), _) => buffer.next_heading(),
+        (None, Some(exact)) => buffer.point = exact,
+        (None, None) if properties.prepend => buffer.point = 0,
+        (None, None) => buffer.point = buffer.text.len(),
     }
     if !buffer.bolp() {
         buffer.insert("\n");
@@ -682,9 +1021,262 @@ fn place_plain(buffer: &mut Buffer, heading: Option<usize>, template: &str, prop
     (start, end)
 }
 
-/// `org-end-of-meta-data` with FULL `t`: past the planning line, the
-/// property drawer, clock lines, other drawers and blank lines.
-fn end_of_meta_data(text: &str, heading: usize) -> usize {
+/// `org-remove-indentation`: the indentation the lines share, gone.
+fn remove_indentation(text: &str) -> String {
+    let common = text.lines().filter(|line| !line.trim().is_empty()).map(crate::list::indentation).min().unwrap_or(0);
+    if common == 0 {
+        return text.to_string();
+    }
+    text.split_inclusive('\n')
+        .map(|line| {
+            let mut column = 0;
+            let mut cut = 0;
+            for (index, c) in line.char_indices() {
+                if column >= common || !matches!(c, ' ' | '\t') {
+                    cut = index;
+                    break;
+                }
+                column = if c == '\t' { column / 8 * 8 + 8 } else { column + 1 };
+                cut = index + c.len_utf8();
+            }
+            &line[cut..]
+        })
+        .collect()
+}
+
+/// `org-item-beginning-re`
+static ITEM_START: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)^[ \t]*(?:[-+*]|[0-9]+[.)])(?:[ \t]+|$)").unwrap());
+
+/// `org-capture-place-item`
+fn place_item(
+    buffer: &mut Buffer,
+    location: Location,
+    template: &str,
+    properties: &Properties,
+) -> Result<(usize, usize), Refusal> {
+    static ITEM_RE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"\A[ \t]*(?:[-+*]|[0-9]+[.)])(?:[ \t]+|$)").unwrap());
+    static ORDERED: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[A-Za-z0-9][.)]").unwrap());
+    let prepend = properties.prepend;
+    let mut template = remove_indentation(template);
+    if !ITEM_RE.is_match(&template) {
+        template = format!("- {}", template.split('\n').collect::<Vec<_>>().join("\n  "));
+    }
+    // Where to look for a list.
+    let (beg, end) = match (location.exact, location.heading) {
+        (Some(exact), _) => (buffer.line_start(exact), entry_end(&buffer.text, exact)),
+        (None, Some(heading)) => {
+            let next = buffer.text[heading..].find('\n').map_or(buffer.text.len(), |at| heading + at + 1);
+            (next, entry_end(&buffer.text, heading))
+        }
+        (None, None) => (0, buffer.text.len()),
+    };
+    // The first plain list there.
+    let mut list: Option<crate::list::Struct> = None;
+    for found in ITEM_START.find_iter(&buffer.text[beg..end.max(beg)]) {
+        let at = beg + found.start();
+        if headline_level(line_of(&buffer.text, at)).is_some() || !crate::list::at_item(&buffer.text, at) {
+            continue;
+        }
+        let structure = crate::list::structure(&buffer.text, at);
+        if structure.is_empty() {
+            continue;
+        }
+        list = Some(structure);
+        break;
+    }
+    match &list {
+        Some(items) => {
+            buffer.point = if prepend {
+                items[0].pos
+            } else {
+                let last = items.iter().map(|item| item.end).max().unwrap_or(items[0].pos);
+                // Before the blank lines after the list.
+                let mut at = last;
+                while at > items[0].pos {
+                    let previous = buffer.line_start(at - 1);
+                    if line_of(&buffer.text, previous).trim().is_empty() {
+                        at = previous;
+                    } else {
+                        break;
+                    }
+                }
+                at
+            };
+        }
+        None => {
+            buffer.point = beg;
+            let before_first = heading_at(&buffer.text, beg).is_none();
+            buffer.point = if !prepend {
+                end
+            } else if before_first {
+                beg
+            } else {
+                let heading = heading_at(&buffer.text, beg).expect("a heading");
+                end_of_meta_data(&buffer.text, heading, false).max(beg)
+            };
+        }
+    }
+    let item = list.is_some();
+    if !buffer.bolp() {
+        buffer.insert("\n");
+    }
+    if !(item && prepend) {
+        let lines = if item {
+            properties.empty_lines_before.or(properties.empty_lines).unwrap_or(0).min(1)
+        } else {
+            properties.empty_lines_before.or(properties.empty_lines).unwrap_or(0)
+        };
+        buffer.empty_lines_before(lines);
+    }
+    let start = buffer.line_start(buffer.point);
+    let inserted = format!("{}\n", template.trim_matches([' ', '\t', '\n', '\r']));
+    buffer.insert(&inserted);
+    let mut end = buffer.point;
+    if let Some(items) = &list {
+        let indent = items[0].ind.max(0) as usize;
+        if indent > 0 {
+            let mut at = start;
+            while at < end {
+                buffer.text.insert_str(at, &" ".repeat(indent));
+                end += indent;
+                at = buffer.text[at..].find('\n').map_or(buffer.text.len(), |newline| at + newline + 1);
+            }
+        }
+        // A new first item takes the list's kind of bullet.
+        if prepend {
+            let ordered = items[0].bullet.trim().starts_with(|c: char| c.is_ascii_digit());
+            if ordered != ORDERED.is_match(&template) {
+                let (text, marker) =
+                    crate::list::set_bullet(&buffer.text, start, if ordered { "1." } else { "-" }, end)?;
+                buffer.text = text;
+                end = marker;
+            }
+        }
+        let (text, marker) = crate::list::repair_with_marker(&buffer.text, start, end)?;
+        buffer.text = text;
+        end = marker;
+    }
+    buffer.point = end;
+    if !(item && !prepend) {
+        let lines = if item {
+            properties.empty_lines_after.or(properties.empty_lines).unwrap_or(0).min(1)
+        } else {
+            properties.empty_lines_after.or(properties.empty_lines).unwrap_or(0)
+        };
+        buffer.empty_lines_after(lines);
+    }
+    Ok((start, (end - 1).max(start)))
+}
+
+/// `org-table-dataline-regexp`, `org-table-hline-regexp`
+fn is_table_line(line: &str) -> bool {
+    line.trim_start_matches([' ', '\t']).starts_with('|')
+}
+
+fn is_hline(line: &str) -> bool {
+    line.trim_start_matches([' ', '\t']).starts_with("|-")
+}
+
+/// `org-capture-place-table-line`
+fn place_table_line(
+    buffer: &mut Buffer,
+    location: Location,
+    template: &str,
+    properties: &Properties,
+) -> Result<(usize, usize), Refusal> {
+    static POSITION: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(I+)([-+][0-9]+)").unwrap());
+    let template = template.trim_matches([' ', '\t', '\n', '\r']);
+    let starts_bare = template.trim_start_matches([' ', '\t']).chars().next().is_some_and(|c| c != '|');
+    let text = if starts_bare { format!("| {template}") } else { format!("{template}\n") };
+    let (beg, end) = match (location.exact, location.heading) {
+        (Some(exact), _) => (buffer.line_start(exact), entry_end(&buffer.text, exact)),
+        (None, None) => (0, buffer.text.len()),
+        (None, Some(heading)) => {
+            let next = buffer.text[heading..].find('\n').map_or(buffer.text.len(), |at| heading + at + 1);
+            (next, next_heading(&buffer.text, heading).unwrap_or(buffer.text.len()))
+        }
+    };
+    // The first table there, or a new one.
+    let mut table: Option<(usize, usize)> = None;
+    let mut at = beg;
+    while at < end {
+        let line = line_of(&buffer.text, at);
+        let data = is_table_line(line) && !is_hline(line);
+        if data && !line.trim_start().starts_with("+-") {
+            let mut first = at;
+            while first > 0 {
+                let previous = buffer.line_start(first - 1);
+                if !is_table_line(line_of(&buffer.text, previous)) {
+                    break;
+                }
+                first = previous;
+            }
+            let mut last = at;
+            while last < buffer.text.len() && is_table_line(line_of(&buffer.text, last)) {
+                last = buffer.text[last..].find('\n').map_or(buffer.text.len(), |newline| last + newline + 1);
+            }
+            table = Some((first, last));
+            break;
+        }
+        at = buffer.text[at..].find('\n').map_or(buffer.text.len(), |newline| at + newline + 1);
+    }
+    let (first, last) = match table {
+        Some(found) => found,
+        None => {
+            buffer.point = end;
+            if !buffer.bolp() {
+                buffer.insert("\n");
+            }
+            let origin = buffer.point;
+            buffer.insert("|   |\n|---|\n");
+            (origin, buffer.point)
+        }
+    };
+    // The place in the table.
+    let lines: Vec<usize> = {
+        let mut out = Vec::new();
+        let mut at = first;
+        while at < last {
+            out.push(at);
+            at = buffer.text[at..].find('\n').map_or(last, |newline| at + newline + 1);
+        }
+        out
+    };
+    let position = properties.table_line_pos.as_deref().and_then(|spec| POSITION.captures(spec));
+    buffer.point = if let Some(found) = position {
+        let hlines: Vec<usize> =
+            lines.iter().enumerate().filter(|(_, at)| is_hline(line_of(&buffer.text, **at))).map(|(n, _)| n).collect();
+        let spec = properties.table_line_pos.clone().unwrap_or_default();
+        let invalid = || Refusal::Failed(format!("Invalid table line specification \"{spec}\""));
+        let line = *hlines.get(found[1].len() - 1).ok_or_else(invalid)?;
+        let delta: i64 = found[2].parse().map_err(|_| invalid())?;
+        let target = line as i64 + delta + if delta < 0 { 0 } else { -1 } + 1;
+        let target = target.clamp(0, lines.len() as i64) as usize;
+        lines.get(target).copied().unwrap_or(last)
+    } else if properties.prepend {
+        match lines.iter().position(|at| is_hline(line_of(&buffer.text, *at))) {
+            None => first,
+            Some(hline) => {
+                lines[hline + 1..].iter().copied().find(|at| !is_hline(line_of(&buffer.text, *at))).unwrap_or(last)
+            }
+        }
+    } else {
+        last
+    };
+    if !buffer.bolp() {
+        buffer.insert("\n");
+    }
+    let start = buffer.point;
+    buffer.insert(&text);
+    let end = buffer.point;
+    Ok((start, (end - 1).max(start)))
+}
+
+/// `org-end-of-meta-data`: past the planning line and the property
+/// drawer, and with `full` clock lines, other drawers and blank lines.
+fn end_of_meta_data(text: &str, heading: usize, full: bool) -> usize {
     static PLANNING: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[ \t]*(?:CLOSED|DEADLINE|SCHEDULED):").unwrap());
     static DRAWER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[ \t]*:((?:\w|[-_])+):[ \t]*$").unwrap());
     static END: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[ \t]*:END:[ \t]*$").unwrap());
@@ -704,7 +1296,7 @@ fn end_of_meta_data(text: &str, heading: usize) -> usize {
             at = next_line(inner);
         }
     }
-    if at < text.len() && headline_level(line(at)).is_none() {
+    if full && at < text.len() && headline_level(line(at)).is_none() {
         let entry_end = next_heading(text, heading).unwrap_or(text.len());
         while at < text.len() {
             let current = line(at);

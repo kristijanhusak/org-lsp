@@ -4346,3 +4346,69 @@ fn asks_about_idle_time() {
         "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 11:15]\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:35] =>  0:05\n:END:\n"
     );
 }
+
+/// The capture types and targets past `entry` and `plain`: an item under a
+/// headline, a date tree entry for a date asked first, a table line, the
+/// clocked entry and an entry by its ID.
+#[test]
+fn captures_items_tables_date_trees_and_the_clock() {
+    let root = workspace("capture-more");
+    let notes = root.join("notes.org");
+    let text = "* Shopping\n- milk\n* Table\n| a |\n|---|\n* Linked\n:PROPERTIES:\n:ID: abc-123\n:END:\n";
+    std::fs::write(&notes, text).unwrap();
+    let mut options = clock();
+    options["org_default_notes_file"] = json!(notes.display().to_string());
+    options["org_capture_templates"] = json!([
+        { "key": "i", "description": "Item", "type": "item", "target": ["file+headline", "", "Shopping"],
+          "template": "%^{What}", "immediate_finish": true },
+        { "key": "j", "description": "Journal", "target": ["file+olp+datetree", ""], "template": "* %^{Title} %U",
+          "time_prompt": true, "immediate_finish": true },
+        { "key": "t", "description": "Row", "type": "table-line", "target": ["file+headline", "", "Table"],
+          "template": "| new |", "immediate_finish": true },
+        { "key": "c", "description": "Clocked", "type": "item", "target": ["clock"], "immediate_finish": true },
+        { "key": "d", "description": "By ID", "type": "plain", "target": ["id", "abc-123"],
+          "template": "Note", "immediate_finish": true }
+    ]);
+    let uri = format!("file://{}", notes.display());
+    let mut client = Client::editor(options, None);
+    client.open(&uri, text);
+    let mut current = text.to_string();
+    let capture = |client: &mut Client, current: &mut String, key: &str, answers: &[&str]| {
+        let mut context =
+            json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "input": key });
+        let mut asked = Vec::new();
+        for answer in answers {
+            let result = client
+                .request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [context] }))
+                .unwrap();
+            asked.push(result["input"]["prompt"].as_str().unwrap_or("").to_string());
+            context = result["input"]["context"].clone();
+            context["input"] = json!(answer);
+        }
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [context] }));
+        client.settle();
+        apply_received(client, &uri, current);
+        (asked, result)
+    };
+    let (asked, _) = capture(&mut client, &mut current, "i", &["eggs"]);
+    assert_eq!(asked, ["What"]);
+    assert!(current.starts_with("* Shopping\n- milk\n- eggs\n* Table"), "{current}");
+    let (asked, _) = capture(&mut client, &mut current, "j", &["2026-03-05", "Spring"]);
+    assert_eq!(asked, ["Date for tree entry", "Title"]);
+    assert!(
+        current.ends_with("* 2026\n** 2026-03 March\n*** 2026-03-05 Thursday\n**** Spring [2026-03-05 Thu 00:00]\n"),
+        "{current}"
+    );
+    let _ = capture(&mut client, &mut current, "t", &[]);
+    assert!(current.contains("* Table\n| a   |\n|-----|\n| new |\n* Linked"), "{current}");
+    // No clock runs: the clock target is refused.
+    let (_, refused) = capture(&mut client, &mut current, "c", &[]);
+    let refused = refused.unwrap_err();
+    assert!(refused.contains("No running clock"), "{refused}");
+    let _ = capture(&mut client, &mut current, "d", &[]);
+    assert!(current.contains(":ID: abc-123\n:END:\nNote\n"), "{current}");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
