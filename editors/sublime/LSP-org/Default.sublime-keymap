@@ -280,7 +280,7 @@
     ],
     "command": "org_lsp_run",
     "args": {
-      "command": "org.return",
+      "command": "org.return.item",
       "fallback": {
         "command": "insert",
         "args": {

@@ -235,7 +235,8 @@ function! s:return() abort
   call s:until('the new row', {-> getline(4) ==# '|   | y   |'})
   " Where RET does not apply, another plugin's global mapping of <CR> (as
   " autopairs plugins make) does what it does, and one that maps <CR>
-  " again does not loop; <S-CR> is RET too.
+  " again does not loop; <S-CR> is RET too, but for making the next item
+  " on a list item.
   " (A client's own buffer mapping of <CR>, which hides the global one,
   " comes first: yegappan/lsp and coc.nvim make one.)
   if empty(get(b:, 'org_lsp_replaced', {}))
@@ -262,10 +263,27 @@ function! s:return() abort
   execute 'edit' fnameescape(completed)
   call s:until('the server for RET with the menu', {-> org_lsp#ready(bufnr())})
   call cursor(2, 5)
+  " The menu takes nothing in, so that the server has the text even from
+  " a client that tells it of a change only once Vim waits for a key.
+  let completeopt = &completeopt
+  set completeopt=menu,menuone,noinsert,noselect
   call feedkeys("i\<C-n>\<S-CR>z\<Esc>", 'xt')
+  let &completeopt = completeopt
   call s:until('<S-CR> with the menu open', {-> getline(3) ==# '| z      |      |'})
-  " (yegappan/lsp's own completion selects no entry: `al` stays.)
-  call assert_match('^| al', getline(2))
+  call assert_equal('| al    |      |', getline(2))
+  silent write
+  " On a list item, <S-CR> makes the next item, numbered; <CR> is Org's
+  " RET, a new line in the item.
+  let listed = s:work . '/notes/listed.org'
+  call writefile(['1. one', '2. two'], listed)
+  execute 'edit' fnameescape(listed)
+  call s:until('the server for <S-CR> on a list', {-> org_lsp#ready(bufnr())})
+  call cursor(1, 1)
+  call feedkeys("A\<S-CR>next\<Esc>", 'xt')
+  call s:until('the next item', {-> getline(2) ==# '2. next'})
+  call assert_equal(['1. one', '2. next', '3. two'], getline(1, '$'))
+  call feedkeys("A\<CR>more\<Esc>", 'xt')
+  call s:until('a new line in the item', {-> getline(3) ==# '   more'})
   silent write
 endfunction
 call s:test('RET in insert mode is as in Org', function('s:return'))

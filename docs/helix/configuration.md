@@ -231,7 +231,8 @@ hideEmphasisMarkers = false
 # RET on the first line of a list item makes the next item, numbered and with
 # a checkbox as M-RET (`org-meta-return`) makes it, the items after it
 # renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET
-# is Org's: a new line in the item.
+# is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter,
+# with the vim keys) always does it.
 returnUsesMetaReturn = false
 
 # Save the files a command changes other than the one it was run in: an

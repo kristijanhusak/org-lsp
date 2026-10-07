@@ -224,6 +224,13 @@
     }
   },
   {
+    "caption": "Org: New line; on a list item, the next item",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.return.item"
+    }
+  },
+  {
     "caption": "Org: New heading, item or table row",
     "command": "org_lsp_run",
     "args": {
