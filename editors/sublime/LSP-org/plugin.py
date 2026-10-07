@@ -194,10 +194,13 @@ class OrgLsp(AbstractPlugin):
         if not session:
             return None
         if not (params or {}).get('orgOtherWindow'):
-            default = getattr(session, 'on_window_show_document', None)
-            if default:
-                return default(params)
-            return session.m_window_showDocument(params, request_id)
+            # LSP's own handler, with the request's id: the decorated
+            # `on_window_show_document` of recent versions returns the
+            # response for the session to send, the `m_window_showDocument`
+            # of older ones sends it itself.
+            default = getattr(session, 'on_window_show_document', None) \
+                or getattr(session, 'm_window_showDocument', None)
+            return default(params, request_id) if default else None
         window = session.window
         sublime.set_timeout(lambda: show_in_other_group(window, params))
         session.send_response(Response(request_id, {'success': True}))
