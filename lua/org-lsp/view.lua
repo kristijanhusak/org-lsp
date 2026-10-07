@@ -26,6 +26,42 @@ local function is_float(win)
   return vim.api.nvim_win_get_config(win).relative ~= ''
 end
 
+--- The lines the windows the plugin opens came from start with.
+local view_namespace = vim.api.nvim_create_namespace('org_lsp_view')
+
+--- Remember the line the window `from` starts with, for when the window
+--- about to open from it closes. A split takes lines from it, and with
+--- 'splitkeep' "cursor" Neovim scrolls it then, and again when the split
+--- closes; lines the command adds above its cursor in between leave it
+--- scrolled. Emacs keeps the line a window starts with. The mark moves
+--- with the edits.
+---@param from integer
+---@return table
+local function keep_view(from)
+  local bufnr = vim.api.nvim_win_get_buf(from)
+  local top = vim.api.nvim_win_call(from, function()
+    return vim.fn.line('w0')
+  end)
+  local mark = vim.api.nvim_buf_set_extmark(bufnr, view_namespace, top - 1, 0, { right_gravity = false })
+  return { bufnr = bufnr, mark = mark }
+end
+
+--- The window `from` starts with the line `keep_view` remembered again.
+---@param from integer
+---@param kept? table
+local function restore_view(from, kept)
+  if not kept or not vim.api.nvim_buf_is_valid(kept.bufnr) then
+    return
+  end
+  local row = vim.api.nvim_buf_get_extmark_by_id(kept.bufnr, view_namespace, kept.mark, {})[1]
+  vim.api.nvim_buf_del_extmark(kept.bufnr, view_namespace, kept.mark)
+  if row and vim.api.nvim_win_is_valid(from) and vim.api.nvim_win_get_buf(from) == kept.bufnr then
+    vim.api.nvim_win_call(from, function()
+      vim.fn.winrestview({ topline = row + 1 })
+    end)
+  end
+end
+
 --- Whether `win` shows nothing: a buffer without a name, unchanged and
 --- empty.
 ---@param win integer
@@ -82,6 +118,7 @@ end
 local function open_window(bufnr, mode)
   local win
   local from = vim.api.nvim_get_current_win()
+  local kept = keep_view(from)
   local size = require('org-lsp').config.win_split_size
   if type(size) ~= 'number' or size <= 0 then
     size = nil
@@ -128,9 +165,12 @@ local function open_window(bufnr, mode)
   -- Closing the document closes a window opened for it too.
   if mode ~= 'current' then
     vim.w[win].org_lsp_opened = true
-    if win ~= from then
-      vim.w[win].org_lsp_from = from
-    end
+  end
+  if mode ~= 'current' and win ~= from then
+    vim.w[win].org_lsp_from = from
+    vim.w[win].org_lsp_from_view = kept
+  else
+    restore_view(from, kept)
   end
   if vim.api.nvim_win_get_buf(win) ~= bufnr then
     vim.api.nvim_win_set_buf(win, bufnr)
@@ -158,41 +198,121 @@ local function opens_apart(uri)
   return is_capture(uri)
 end
 
---- The date prompt pops up in a window at the bottom, as Emacs's calendar
---- does, as high as its text. Returns that window.
+--- How many lines the text of `bufnr` has, and how wide its widest is.
+---@param bufnr integer
+---@return integer, integer
+local function text_size(bufnr)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local width = 1
+  for _, line in ipairs(lines) do
+    width = math.max(width, vim.fn.strdisplaywidth(line))
+  end
+  return #lines, width
+end
+
+--- Where the floating window of the date prompt goes, as high and as wide
+--- as `height` and `width`: at the bottom, in the middle, or below the
+--- cursor of the window it was asked from (above it when there is no room
+--- below), `anchor` saying where that cursor was on the screen.
+---@param place 'bottom'|'float'|'cursor'
+---@param height integer
+---@param width integer
+---@param anchor? { row: integer, col: integer }
+---@return vim.api.keyset.win_config
+local function prompt_float(place, height, width, anchor)
+  local border = require('org-lsp').config.calendar_border
+  if border == nil then
+    border = 'rounded'
+  end
+  local framed = border ~= 'none' and border ~= '' and border ~= false
+  local edge = framed and 2 or 0
+  local lines = vim.o.lines - vim.o.cmdheight
+  width = math.min(width, vim.o.columns - edge)
+  height = math.min(height, lines - edge - 1)
+  if place == 'bottom' then
+    -- Along the whole bottom, as the split it stands for.
+    return { relative = 'editor', row = lines - height - 1, col = 0, width = vim.o.columns, height = height, border = 'none' }
+  end
+  local config = { relative = 'editor', width = width, height = height, border = framed and border or 'none' }
+  if place == 'cursor' and anchor then
+    local below = anchor.row
+    if below + height + edge > lines - 1 then
+      -- No room below: above the cursor's line.
+      below = math.max(0, anchor.row - 1 - height - edge)
+    end
+    config.row = below
+    config.col = math.max(0, math.min(anchor.col, vim.o.columns - width - edge))
+  else
+    config.row = math.max(0, math.floor((lines - height - edge) / 2) - 1)
+    config.col = math.floor((vim.o.columns - width - edge) / 2)
+  end
+  return config
+end
+
+--- The date prompt pops up in a window as `calendar_win_mode` says: by
+--- default at the bottom, as Emacs's calendar does, as high as its text.
+--- Returns that window.
 ---@param bufnr integer
 ---@return integer
 local function prompt_window(bufnr)
   local win = vim.fn.win_findbuf(bufnr)[1]
   local from = vim.api.nvim_get_current_win()
-  -- Asked from a floating window, such as the agenda in one, a split at the
-  -- bottom would be under it: the calendar floats at the bottom instead.
-  local bottom = function(height)
-    return { relative = 'editor', row = vim.o.lines - vim.o.cmdheight - height - 1, col = 0, width = vim.o.columns, height = height }
-  end
-  if not win and is_float(vim.api.nvim_get_current_win()) then
-    win = vim.api.nvim_open_win(bufnr, true, vim.tbl_extend('force', bottom(1), { zindex = 100 }))
-    vim.w[win].org_lsp_opened = true
-    vim.w[win].org_lsp_from = from
-    vim.fn.bufload(bufnr)
-  elseif not win then
-    vim.cmd('botright split')
-    win = vim.api.nvim_get_current_win()
-    vim.w[win].org_lsp_opened = true
-    vim.w[win].org_lsp_from = from
-    -- The split takes the folding of the window it came from. The calendar
-    -- has nothing to fold, and asking the server for folds of a buffer
-    -- that is about to go trips an assertion in Neovim 0.11.0: turn it
-    -- off before the calendar is loaded here.
+  local mode = require('org-lsp').config.calendar_win_mode or 'bottom'
+  if not win then
+    local kept = keep_view(from)
+    -- Asked from a floating window, such as the agenda in one, a split at
+    -- the bottom would be under it: the calendar floats at the bottom
+    -- instead.
+    local place = mode
+    if place == 'bottom' and is_float(from) then
+      place = 'bottom float'
+    end
+    if type(mode) == 'function' then
+      win = mode(bufnr)
+      if type(win) ~= 'number' or not vim.api.nvim_win_is_valid(win) then
+        win = vim.api.nvim_get_current_win()
+      end
+    elseif place == 'bottom float' or place == 'float' or place == 'cursor' then
+      local anchor
+      if place == 'cursor' then
+        local cursor = vim.api.nvim_win_get_cursor(from)
+        local screen = vim.fn.screenpos(from, cursor[1], cursor[2] + 1)
+        -- The row below the cursor's, counted from 0.
+        anchor = { row = screen.row, col = math.max(0, screen.col - 1) }
+      end
+      local config = prompt_float(place == 'bottom float' and 'bottom' or place, 1, 1, anchor)
+      win = vim.api.nvim_open_win(bufnr, true, vim.tbl_extend('force', config, { zindex = 100, style = 'minimal' }))
+      vim.w[win].org_lsp_prompt_place = place == 'bottom float' and 'bottom' or place
+      vim.w[win].org_lsp_prompt_anchor = anchor
+    else
+      vim.cmd(mode == 'bottom' and 'botright split' or mode)
+      win = vim.api.nvim_get_current_win()
+    end
+    if win ~= from then
+      vim.w[win].org_lsp_opened = true
+      vim.w[win].org_lsp_from = from
+      vim.w[win].org_lsp_from_view = kept
+    else
+      restore_view(from, kept)
+    end
+    -- The window takes the folding of the window it came from. The
+    -- calendar has nothing to fold, and asking the server for folds of a
+    -- buffer that is about to go trips an assertion in Neovim 0.11.0:
+    -- turn it off before the calendar is loaded here.
     vim.wo[win].foldmethod = 'manual'
     vim.wo[win].foldenable = false
-    vim.api.nvim_win_set_buf(win, bufnr)
+    if vim.api.nvim_win_get_buf(win) ~= bufnr then
+      vim.api.nvim_win_set_buf(win, bufnr)
+    end
     vim.fn.bufload(bufnr)
   end
-  local height = vim.api.nvim_buf_line_count(bufnr)
-  if is_float(win) then
-    vim.api.nvim_win_set_config(win, bottom(height))
-  else
+  local height, width = text_size(bufnr)
+  local place = vim.w[win].org_lsp_prompt_place
+  if is_float(win) and place then
+    vim.api.nvim_win_set_config(win, prompt_float(place, height, width, vim.w[win].org_lsp_prompt_anchor))
+  elseif not is_float(win) and type(mode) == 'string' and not mode:match('v') then
+    -- A split as high as the calendar, but one beside the window
+    -- (`vsplit`, `vertical …`).
     vim.api.nvim_win_set_height(win, height)
   end
   vim.wo[win][0].winfixheight = true
@@ -231,8 +351,12 @@ function M.close_buffer(bufnr)
       -- Back to the window it was opened from, where the cursor was, not
       -- the one that takes its place on the screen.
       local from = vim.w[win].org_lsp_from
+      local kept = vim.w[win].org_lsp_from_view
       local current = vim.api.nvim_get_current_win() == win
       vim.api.nvim_win_close(win, true)
+      if from and from ~= win then
+        restore_view(from, kept)
+      end
       if current and from and from ~= win and vim.api.nvim_win_is_valid(from) then
         vim.api.nvim_set_current_win(from)
       end
@@ -349,12 +473,12 @@ M.handlers = {
   --- buffer after a delay; the server should hear of this one at once,
   --- because the next press of the same key builds on it.
   ['workspace/applyEdit'] = function(err, params, ctx)
-    local result = vim.lsp.handlers['workspace/applyEdit'](err, params, ctx)
     local edit = params.edit or {}
     local uris = vim.tbl_keys(edit.changes or {})
     for _, change in ipairs(edit.documentChanges or {}) do
       table.insert(uris, change.textDocument and change.textDocument.uri)
     end
+    local result = vim.lsp.handlers['workspace/applyEdit'](err, params, ctx)
     local client = vim.lsp.get_client_by_id(ctx.client_id)
     for _, uri in ipairs(uris) do
       send_changes(client, vim.uri_to_bufnr(uri))

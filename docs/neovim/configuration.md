@@ -99,6 +99,12 @@ require('org-lsp').setup({
   -- And how big: lines, columns, or a part of the editor; see below.
   win_split_size = nil,
 
+  -- Where the date prompt's calendar opens: 'bottom', 'float', 'cursor';
+  -- see below.
+  calendar_win_mode = 'bottom',
+  -- The border of a floating calendar.
+  calendar_border = 'rounded',
+
   -- Keys by scope; see keys.md. `false` sets no keys at all.
   mappings = {
     global = {
@@ -160,7 +166,32 @@ Closing the agenda (`q`) or finishing a capture closes the window that was
 opened for it; with `'current'`, the window goes back to the buffer it
 showed before. Going to an entry from the agenda opens the entry's file in
 the agenda's window, or, from a floating window, in the window under it.
-The date prompt's calendar always opens at the bottom.
+The window the agenda or a capture buffer was opened from starts with the
+same line again when they close, as in Emacs.
+
+## Where the calendar opens
+
+Commands that ask for a date (`org.deadline`, `org.schedule`, `cid` …) show
+the calendar Emacs shows with the prompt. `calendar_win_mode` says where.
+
+| Value | Opens it |
+| --- | --- |
+| `'bottom'` | In a split along the bottom, as high as the calendar, as Emacs does (the default); asked from a floating window, in a floating window along the bottom |
+| `'float'` | In a floating window in the middle of the editor |
+| `'cursor'` | In a floating window below the cursor, or above it when there is no room below |
+| another Ex command | With that command, such as `'topleft split'` |
+| a function | With the function, which is given the buffer and returns the window it opened |
+
+`calendar_border` is the border of the floating window (`'float'`,
+`'cursor'`), as `nvim_open_win()` takes it: `'rounded'` unset, `'none'` for
+none.
+
+```lua
+require('org-lsp').setup({ calendar_win_mode = 'cursor', calendar_border = 'single' })
+```
+
+The window the calendar was asked from starts with the same line once the
+calendar closes, as in Emacs, also when the date went in above the cursor.
 
 ## The clock in the statusline
 
