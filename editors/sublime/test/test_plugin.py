@@ -156,6 +156,10 @@ class Session:
     def __init__(self, answers):
         self.answers = answers
         self.sent = []
+        self.capabilities = {'experimental.org.commands': [{'command': 'org.paste.subtree', 'clipboard': True}]}
+
+    def get_capability(self, path):
+        return self.capabilities.get(path)
 
     def send_request(self, request, on_result, on_error=None):
         self.sent.append((request.method, request.params))
@@ -170,6 +174,9 @@ def load_plugin():
     sublime.set_timeout = lambda f, delay=0: f()
     sublime.LAYOUT_INLINE = 0
     sublime.DRAW_NO_OUTLINE = 256
+    sublime.clipboard = ''
+    sublime.get_clipboard = lambda: sublime.clipboard
+    sublime.set_clipboard = lambda text: setattr(sublime, 'clipboard', text)
     sublime.ENCODED_POSITION = 1
     sublime.Phantom = lambda region, html, layout: types.SimpleNamespace(region=region, html=html, layout=layout)
 
@@ -293,6 +300,14 @@ class Tests(unittest.TestCase):
         self.run_command([('result', {'edits': edits, 'cursor': {'line': 1, 'character': 0}})], command='org.return')
         self.assertEqual(sys.modules['LSP.plugin'].applied, [edits])
         self.assertEqual(self.view.cursor, self.view.text_point(1, 0))
+
+    def test_cut_and_copied_text_goes_to_the_clipboard_and_pastes_from_it(self):
+        self.sublime.clipboard = '* X\n'
+        session = self.run_command([('result', {'copy': '** B\n'})], command='org.copy.subtree')
+        self.assertEqual(self.sublime.clipboard, '** B\n')
+        self.assertNotIn('clipboard', session.sent[-1][1]['arguments'][0])
+        session = self.run_command([('result', None)], command='org.paste.subtree')
+        self.assertEqual(session.sent[-1][1]['arguments'][0]['clipboard'], '** B\n')
 
     def test_asks_for_text_and_keys(self):
         self.window.typed = '+1d'

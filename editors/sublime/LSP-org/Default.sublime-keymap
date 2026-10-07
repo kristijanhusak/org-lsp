@@ -571,6 +571,75 @@
   {
     "keys": [
       "ctrl+c",
+      "ctrl+x",
+      "ctrl+w"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.cut.subtree"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+x",
+      "alt+w"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.copy.subtree"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+x",
+      "ctrl+y"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.paste.subtree"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
       "ctrl+w"
     ],
     "command": "org_lsp_run",

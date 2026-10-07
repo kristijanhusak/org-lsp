@@ -353,6 +353,8 @@ pkg.orgLsp = {
   capturePrefix: manifest.capture.prefix,
   datePromptUri: manifest.datePrompt.uri,
   languages: [ORG, AGENDA, DATE],
+  // The commands that read the clipboard (`"clipboard": true`).
+  clipboardCommands: manifest.commands.filter((command) => command.clipboard).map((command) => command.command),
 };
 
 const after = JSON.stringify(pkg, null, 2) + '\n';

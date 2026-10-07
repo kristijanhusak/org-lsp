@@ -783,6 +783,34 @@ wait('the text line shifted as Vim shifts it', function()
 end)
 vim.cmd('silent! write')
 
+-- 23e. `<Leader>osy` copies the subtree into the register it was typed
+-- with, `<Leader>osd` cuts it, and `<Leader>osp` pastes the register as a
+-- subtree at the level of the headlines around.
+local clipboard = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A', '** B', 'text', '** C' }, clipboard)
+vim.cmd.edit(clipboard)
+wait('the server for the subtree clipboard', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press('"a<Leader>osy')
+wait('the subtree in register a', function()
+  return vim.fn.getreg('a') == '** B\ntext\n'
+end)
+eq(vim.fn.getregtype('a'), 'V', 'by lines')
+press('<Leader>osd')
+wait('the subtree cut', function()
+  return vim.deep_equal(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* A', '** C' })
+end)
+eq(vim.fn.getreg('"'), '** B\ntext\n', 'what was cut is in the unnamed register')
+vim.fn.setreg('"', '* X\n', 'l')
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+press('<Leader>osp')
+wait('the register pasted as a subtree', function()
+  return vim.deep_equal(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* X', '* A', '** C' })
+end)
+vim.cmd('silent! write')
+
 -- 23c. Archived subtrees stay closed when TAB and S-TAB open what is
 -- around them (`org-cycle-hide-archived-subtrees`).
 local with_archived = vim.fn.tempname() .. '.org'

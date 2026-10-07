@@ -189,6 +189,9 @@ struct Context {
     /// from the keys of modal editors (`<Leader><CR>`).
     #[serde(default)]
     below: bool,
+    /// What the editor would paste, for the commands that read it
+    /// (`"clipboard": true` in the manifest).
+    clipboard: Option<String>,
 }
 
 /// What `org.capture` is run with. Capturing needs no document: from
@@ -384,6 +387,9 @@ struct Server {
     /// What the command being run has to say, as Emacs says it in the echo
     /// area. It goes back with the command's result.
     message: Option<String>,
+    /// The last subtree cut or copied, to paste where the editor does not
+    /// say what its clipboard has.
+    kill: Option<String>,
     /// The document the command being run was run in, whose edits are the
     /// user's to save.
     origin: Option<String>,
@@ -556,6 +562,7 @@ pub fn run(connection: Connection) -> Result<()> {
         next_request: 0,
         pending: HashMap::new(),
         message: None,
+        kill: None,
         origin: None,
         auto_save: options.auto_save.unwrap_or(true),
         return_uses_meta_return: options.return_uses_meta_return.unwrap_or(false),
@@ -1571,13 +1578,17 @@ impl Server {
         if more {
             let mut applied = context.clone();
             applied["apply"] = json!(true);
-            for id in [
-                commands::META_RETURN,
-                commands::INSERT_TODO_HEADING,
-                commands::INSERT_HEADING_AFTER,
-                commands::INSERT_TODO_HEADING_AFTER,
+            // And the subtree to and from the server's own clipboard.
+            for (id, offered) in [
+                (commands::META_RETURN, true),
+                (commands::INSERT_TODO_HEADING, true),
+                (commands::INSERT_HEADING_AFTER, true),
+                (commands::INSERT_TODO_HEADING_AFTER, true),
+                (commands::CUT_SUBTREE, in_entry),
+                (commands::COPY_SUBTREE, in_entry),
+                (commands::PASTE_SUBTREE, self.kill.is_some()),
             ] {
-                if actions::requested(id, only) {
+                if offered && actions::requested(id, only) {
                     let title = commands::title(id).to_string();
                     result.push(CodeActionOrCommand::CodeAction(CodeAction {
                         title: title.clone(),
@@ -2481,6 +2492,9 @@ impl Server {
             | commands::META_UP
             | commands::META_DOWN => {
                 self.structure(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
+            commands::CUT_SUBTREE | commands::COPY_SUBTREE | commands::PASTE_SUBTREE => {
+                self.subtree_clipboard(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::META_RETURN
             | commands::INSERT_TODO_HEADING
@@ -4157,6 +4171,37 @@ impl Server {
             _ => structure::move_subtree(&text, offset, count)?,
         };
         self.carried(context, outcome)
+    }
+
+    /// `org-cut-subtree`, `org-copy-subtree` and `org-paste-subtree`. What
+    /// is cut or copied goes back in `copy`, for the editor's clipboard,
+    /// and stays with the server; pasting takes the editor's clipboard, or
+    /// else that.
+    fn subtree_clipboard(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::structure;
+        let encoding = self.client.encoding;
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        if id == commands::PASTE_SUBTREE {
+            let tree = context.clipboard.clone().or_else(|| self.kill.clone()).unwrap_or_default();
+            let settings =
+                structure::Settings { tags_column: self.refile.2.tags_column, indent: self.indent_in(&text) };
+            let level = context.count.filter(|count| *count > 0).map(|count| count as usize);
+            let (outcome, message) = structure::paste_subtree(&text, offset, &tree, level, &settings)?;
+            self.message = Some(message);
+            return self.carried(context, outcome);
+        }
+        let count = context.count.filter(|count| *count > 0).unwrap_or(1) as usize;
+        let cut = id == commands::CUT_SUBTREE;
+        let (outcome, copied, message) = structure::copy_subtree(&text, offset, count, cut)?;
+        self.message = Some(message);
+        self.kill = Some(copied.clone());
+        let mut result = if cut { self.carried(context, outcome)? } else { json!({}) };
+        if let Value::Object(fields) = &mut result {
+            fields.insert("copy".to_string(), json!(copied));
+        }
+        Ok(result)
     }
 
     /// The result of a command that carries its edit and the cursor after

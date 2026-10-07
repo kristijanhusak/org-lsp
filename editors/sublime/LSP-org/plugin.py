@@ -379,6 +379,14 @@ def starter_path() -> str:
     return os.path.join(sublime.cache_path(), PACKAGE, 'Starting.org-agenda')
 
 
+def reads_clipboard(session, command: str) -> bool:
+    """Whether the server's manifest says `command` reads the clipboard."""
+    get = getattr(session, 'get_capability', None)
+    commands = (get('experimental.org.commands') if get else None) or []
+    return any(isinstance(entry, dict) and entry.get('command') == command and entry.get('clipboard')
+               for entry in commands)
+
+
 def is_org(view) -> bool:
     return bool(view) and view.match_selector(0, 'text.org | text.org-agenda')
 
@@ -412,6 +420,9 @@ class OrgLspRunCommand(LspWindowCommand):
             return
         if is_org(view):
             context = text_document_position_params(view, view.sel()[0].b)
+            # What the command reads as Emacs's latest kill: the clipboard.
+            if reads_clipboard(session, command):
+                context['clipboard'] = sublime.get_clipboard()
         else:
             context = {}
         self.execute(session, view, command, context, fallback)
@@ -478,6 +489,9 @@ class OrgLspRunCommand(LspWindowCommand):
                     view.sel().clear()
                     view.sel().add(sublime.Region(point))
             apply_text_edits(view, result['edits']).then(lambda done: sublime.set_timeout(lambda: place(done)))
+        # What was cut or copied goes to the clipboard.
+        if isinstance(result.get('copy'), str):
+            sublime.set_clipboard(result['copy'])
         if isinstance(result.get('save'), list):
             save(result['save'])
         if isinstance(result.get('message'), str):

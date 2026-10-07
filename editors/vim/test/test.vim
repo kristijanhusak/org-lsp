@@ -408,6 +408,28 @@ function! s:structure() abort
 endfunction
 call s:test('<< and >> promote and demote headlines, and move subtrees', function('s:structure'))
 
+" `\osd` cuts the subtree into the register, `\osy` copies it, and `\osp`
+" pastes the register as a subtree, at the level of the headlines around.
+function! s:subtree_clipboard() abort
+  let file = s:work . '/notes/clipboard.org'
+  call writefile(['* A', '** B', 'text', '** C'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(2, 1)
+  call feedkeys('"a\osy', 'xt')
+  call s:until('the subtree in register a', {-> getreg('a') ==# "** B\ntext\n"})
+  call assert_equal('V', getregtype('a'))
+  call feedkeys("\\osd", 'xt')
+  call s:until('the subtree cut', {-> getline(1, '$') == ['* A', '** C']})
+  call assert_equal("** B\ntext\n", getreg('"'))
+  call cursor(1, 1)
+  call setreg('"', "* X\n", 'l')
+  call feedkeys("\\osp", 'xt')
+  call s:until('the register pasted', {-> getline(1, '$') == ['* X', '* A', '** C']})
+  silent write
+endfunction
+call s:test('cuts, copies and pastes subtrees through registers', function('s:subtree_clipboard'))
+
 function! s:help() abort
   execute 'buffer' s:work_buf
   let popup = org_lsp#help()

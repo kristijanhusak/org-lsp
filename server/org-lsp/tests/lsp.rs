@@ -939,6 +939,60 @@ fn edits_the_structure() {
     client.shutdown();
 }
 
+/// Cutting, copying and pasting subtrees: what is cut or copied comes
+/// back in `copy`, and pasting takes `clipboard`, or else the server's
+/// last cut or copy.
+#[test]
+fn cuts_copies_and_pastes_subtrees() {
+    let mut client = Client::start(json!({}), Value::Null);
+    let text = "* A\n** B\ntext\n** C\n";
+    client.open(&uri(), text);
+    let mut run = |command: &str, line: u32, extra: Value| -> Value {
+        let mut context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+            .unwrap()
+    };
+    let copied = run("org.copy.subtree", 2, json!({}));
+    assert_eq!(copied["copy"], "** B\ntext\n");
+    assert_eq!(copied["message"], "Copied: Subtree(s) with 10 characters");
+    assert!(copied.get("edits").is_none());
+    let cut = run("org.cut.subtree", 1, json!({ "count": 2 }));
+    assert_eq!(cut["copy"], "** B\ntext\n** C\n");
+    assert_eq!(cut["edits"][0]["newText"], "");
+    assert_eq!(cut["message"], "Cut: Subtree(s) with 15 characters");
+    // The text is ASCII: a character is a byte.
+    let applied = |result: &Value| {
+        let edit: TextEdit = serde_json::from_value(result["edits"][0].clone()).unwrap();
+        let offset = |at: Position| {
+            text.split_inclusive('\n').take(at.line as usize).map(str::len).sum::<usize>() + at.character as usize
+        };
+        let (start, end) = (offset(edit.range.start), offset(edit.range.end));
+        format!("{}{}{}", &text[..start], edit.new_text, &text[end..])
+    };
+    let pasted = run("org.paste.subtree", 0, json!({ "clipboard": "* X\n" }));
+    assert_eq!(applied(&pasted), "* X\n* A\n** B\ntext\n** C\n");
+    assert_eq!(pasted["message"], "Clipboard pasted as level 1 subtree");
+    // Without a clipboard: the last cut, at the level of the headline after.
+    let pasted = run("org.paste.subtree", 3, json!({}));
+    assert_eq!(applied(&pasted), "* A\n** B\ntext\n** B\ntext\n** C\n** C\n");
+    assert_eq!(pasted["cursor"], json!({ "line": 3, "character": 0 }));
+    let error = client
+        .raw_request(
+            "workspace/executeCommand",
+            json!({ "command": "org.paste.subtree", "arguments": [{ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 }, "clipboard": "text" }] }),
+        )
+        .response_result
+        .unwrap_err();
+    assert_eq!(error.message, "The clipboard is not a (set of) tree(s)");
+    client.shutdown();
+}
+
 /// Recalculating a table with formulas as a code action, in the table and
 /// on its `#+TBLFM:` line; none where nothing would change.
 #[test]

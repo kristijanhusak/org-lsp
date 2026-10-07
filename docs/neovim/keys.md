@@ -53,6 +53,9 @@ The other options are in [configuration.md](configuration.md).
 | `>s` | `org.shiftmeta.right` | Demote the subtree |
 | `<Leader>oK` | `org.meta.up` | Move the subtree up |
 | `<Leader>oJ` | `org.meta.down` | Move the subtree down |
+| `<Leader>osd` | `org.cut.subtree` | Cut the subtree |
+| `<Leader>osy` | `org.copy.subtree` | Copy the subtree |
+| `<Leader>osp` | `org.paste.subtree` | Paste the subtree |
 | `<Leader>or` | `org.refile` | Refile the entry |
 | `<Leader>ona` | `org.add.note` | Add a note to the entry |
 | `<Leader>obt` | `org.babel.tangle` | Tangle the file's code blocks |

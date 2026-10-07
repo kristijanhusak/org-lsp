@@ -292,6 +292,12 @@ function! org_lsp#run(name, ...) abort
   if get(opts, 'count', 0) > 0
     let context.count = opts.count
   endif
+  " The register the key was typed with (`"a`), as `y` and `p` take it;
+  " what the command reads as Emacs's latest kill comes from there.
+  let opts = extend(copy(opts), {'register': v:register}, 'keep')
+  if get(s:command(a:name), 'clipboard', v:false)
+    let context.clipboard = getreg(opts.register)
+  endif
   " Below the cursor's line, as nvim-orgmode's `<Leader><CR>` puts it:
   " never above it, and nothing split.
   if get(opts, 'append', 0)
@@ -337,6 +343,10 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
     if get(a:opts, 'append', 0)
       execute at_end ? 'startinsert!' : 'startinsert'
     endif
+  endif
+  " What was cut or copied goes to the register, by lines.
+  if type(get(result, 'copy', 0)) == v:t_string
+    call setreg(get(a:opts, 'register', '"'), result.copy, 'l')
   endif
   " The agenda's file may have been written anew.
   call s:reload_agenda()

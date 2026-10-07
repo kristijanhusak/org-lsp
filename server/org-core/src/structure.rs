@@ -372,3 +372,195 @@ pub fn indent_element(
     let message = if drawer { "Drawer at point indented" } else { "Block at point indented" };
     Ok(Some((Outcome { text: buffer.text, cursor: buffer.point }, message)))
 }
+
+// ----- cut, copy and paste
+
+/// `org-forward-heading-same-level` with `invisible-ok`, `count` times
+/// from the headline at `heading`: the last headline of its level found
+/// before one of a higher level.
+fn forward_same_level(text: &str, heading: usize, count: usize) -> usize {
+    let Some(level) = level_at(text, heading) else { return heading };
+    let mut result = heading;
+    let mut at = heading;
+    let mut count = count;
+    while count > 0 {
+        at = next_heading(text, at);
+        let Some(found) = level_at(text, at).filter(|_| at < text.len()) else { break };
+        if found < level {
+            break;
+        }
+        if found == level {
+            count -= 1;
+            result = at;
+        }
+    }
+    result
+}
+
+/// `C-c C-x M-w` (`org-copy-subtree`) and, with `cut`, `C-c C-x C-w`
+/// (`org-cut-subtree`): the subtree the cursor is in and `count - 1`
+/// siblings after it. Returns the text after it, the cursor, and what was
+/// copied; and what Org says.
+pub fn copy_subtree(text: &str, at: usize, count: usize, cut: bool) -> Result<(Outcome, String, String), Refusal> {
+    let mut beg = line_start(text, at.min(text.len()));
+    while level_at(text, beg).is_none() {
+        if beg == 0 {
+            return Err(Refusal::NotHere("Before first heading".to_string()));
+        }
+        beg = line_start(text, beg - 1);
+    }
+    let last = forward_same_level(text, beg, count.max(1) - 1);
+    let end = subtree_end(text, last);
+    let copied = text[beg..end].to_string();
+    let mut buffer = Buffer { text: text.to_string(), point: at };
+    if cut {
+        buffer.delete(beg, end);
+    }
+    let message =
+        format!("{}: Subtree(s) with {} characters", if cut { "Cut" } else { "Copied" }, copied.chars().count());
+    Ok((Outcome { text: buffer.text, cursor: buffer.point }, copied, message))
+}
+
+/// `org-kill-is-subtree-p`: whether `tree` starts with a headline, after
+/// blank lines, and has none of a higher level after it.
+pub fn is_subtree(tree: &str) -> bool {
+    let skipped = tree.len() - tree.trim_start_matches([' ', '\t', '\n', '\r']).len();
+    // The blanks skipped end with a newline, or there are none.
+    if skipped > 0 && !tree[..skipped].ends_with('\n') {
+        return false;
+    }
+    let Some(first) = level_at(tree, skipped) else { return false };
+    let mut at = skipped;
+    loop {
+        at = next_heading(tree, at);
+        if at >= tree.len() {
+            return true;
+        }
+        if level_at(tree, at).is_some_and(|level| level < first) {
+            return false;
+        }
+    }
+}
+
+/// `C-c C-x C-y` (`org-paste-subtree`) of `tree` at `at`, with a level of
+/// its own when `level` is given (a numeric prefix): at the start of a
+/// headline before it, else before the next headline, its levels shifted
+/// to the deeper of the headlines around it, or to the level of the stars
+/// of an otherwise empty headline the cursor is on. The cursor goes to
+/// the start of what was pasted. Returns what Org says too.
+pub fn paste_subtree(
+    text: &str,
+    at: usize,
+    tree: &str,
+    level: Option<usize>,
+    settings: &Settings,
+) -> Result<(Outcome, String), Refusal> {
+    if !is_subtree(tree) {
+        return Err(Refusal::Failed("The clipboard is not a (set of) tree(s)".to_string()));
+    }
+    let at = at.min(text.len());
+    let bol = line_start(text, at);
+    let current = line(text, bol);
+    let old_level = {
+        let mut start = 0;
+        loop {
+            if let Some(found) = level_at(tree, start) {
+                break found as isize;
+            }
+            if start >= tree.len() {
+                break -1;
+            }
+            start = next_line(tree, start);
+            if start >= tree.len() {
+                break -1;
+            }
+        }
+    };
+    // An empty headline of stars the cursor is after says the level.
+    let indicator = level.is_none()
+        && !current.is_empty()
+        && current.trim_end_matches([' ', '\t']).bytes().all(|b| b == b'*')
+        && !text[at..].starts_with('*');
+    let force = if indicator {
+        Some(current.bytes().take_while(|b| *b == b'*').count())
+    } else if let Some(level) = level {
+        Some(level)
+    } else if at == bol && level_at(text, bol).is_some() {
+        level_at(text, bol)
+    } else {
+        None
+    };
+    let previous = if level_at(text, bol).is_some() {
+        level_at(text, bol)
+    } else {
+        previous_heading(text, bol).and_then(|heading| level_at(text, heading))
+    }
+    .unwrap_or(1);
+    // `org-next-visible-heading` stops at the end of the text, on the last
+    // line when no newline ends it.
+    let next = {
+        let found = next_heading(text, bol);
+        if found < text.len() {
+            level_at(text, found)
+        } else {
+            level_at(text, line_start(text, found))
+        }
+    }
+    .unwrap_or(1);
+    let new_level = force.unwrap_or(previous.max(next)) as isize;
+    let shift = if old_level == -1 || old_level == new_level { 0 } else { new_level - old_level };
+    let mut buffer = Buffer { text: text.to_string(), point: at };
+    if indicator {
+        let end = next_line(&buffer.text, bol);
+        buffer.delete(bol, end);
+    }
+    let point = buffer.point;
+    let here = point == line_start(&buffer.text, point) && level_at(&buffer.text, point).is_some();
+    if !here {
+        buffer.point = next_heading(&buffer.text, line_start(&buffer.text, point));
+        if buffer.point > 0 && buffer.point == buffer.text.len() && !buffer.text.ends_with('\n') {
+            let end = buffer.text.len();
+            buffer.text.push('\n');
+            buffer.point = end + 1;
+        }
+    }
+    let start = buffer.point;
+    let mut pasted = tree.to_string();
+    if !pasted.ends_with('\n') {
+        pasted.push('\n');
+    }
+    buffer.text.insert_str(start, &pasted);
+    let mut end = start + pasted.len();
+    let first = start + (pasted.len() - pasted.trim_start_matches([' ', '\t', '\n', '\r']).len());
+    // `org-map-region` of `org-promote` or `org-demote`, a level at a time,
+    // over the headlines pasted.
+    let step = shift.signum();
+    for _ in 0..shift.unsigned_abs() {
+        let mut heading = first;
+        while heading < end {
+            if level_at(&buffer.text, heading).is_some() {
+                let before = buffer.text.len();
+                change_level_within(&mut buffer, heading, step, end, settings)?;
+                end = end + buffer.text.len() - before;
+            }
+            heading = next_line(&buffer.text, heading);
+        }
+    }
+    let message = format!("Clipboard pasted as level {new_level} subtree");
+    Ok((Outcome { text: buffer.text, cursor: first }, message))
+}
+
+/// `change_level` within text that ends at `limit` (the narrowing of
+/// `org-paste-subtree`): the text of the last entry ends there.
+fn change_level_within(
+    buffer: &mut Buffer,
+    heading: usize,
+    change: isize,
+    limit: usize,
+    settings: &Settings,
+) -> Result<(), Refusal> {
+    let rest = buffer.text.split_off(limit);
+    let result = change_level(buffer, heading, change, settings);
+    buffer.text.push_str(&rest);
+    result
+}
