@@ -707,6 +707,34 @@
     }
   },
   {
+    "caption": "Org: Agenda: move the time one hour later",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.date.later.hours"
+    }
+  },
+  {
+    "caption": "Org: Agenda: move the time one hour earlier",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.date.earlier.hours"
+    }
+  },
+  {
+    "caption": "Org: Agenda: move the time later by the rounding minutes",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.date.later.minutes"
+    }
+  },
+  {
+    "caption": "Org: Agenda: move the time earlier by the rounding minutes",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.date.earlier.minutes"
+    }
+  },
+  {
     "caption": "Org: Increase the timestamp part, raise the priority, or go to the previous item",
     "command": "org_lsp_run",
     "args": {

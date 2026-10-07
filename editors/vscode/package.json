@@ -561,6 +561,26 @@
         "category": "Org"
       },
       {
+        "command": "org.date.later.hours",
+        "title": "Agenda: move the time one hour later",
+        "category": "Org"
+      },
+      {
+        "command": "org.date.earlier.hours",
+        "title": "Agenda: move the time one hour earlier",
+        "category": "Org"
+      },
+      {
+        "command": "org.date.later.minutes",
+        "title": "Agenda: move the time later by the rounding minutes",
+        "category": "Org"
+      },
+      {
+        "command": "org.date.earlier.minutes",
+        "title": "Agenda: move the time earlier by the rounding minutes",
+        "category": "Org"
+      },
+      {
         "command": "org.shift.up",
         "title": "Increase the timestamp part, raise the priority, or go to the previous item",
         "category": "Org"

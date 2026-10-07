@@ -211,6 +211,13 @@ pub const TIMESTAMP_UP: &str = "org.timestamp.up";
 pub const TIMESTAMP_DOWN: &str = "org.timestamp.down";
 pub const DATE_LATER: &str = "org.date.later";
 pub const DATE_EARLIER: &str = "org.date.earlier";
+pub const DATE_LATER_HOURS: &str = "org.date.later.hours";
+pub const DATE_EARLIER_HOURS: &str = "org.date.earlier.hours";
+pub const DATE_LATER_MINUTES: &str = "org.date.later.minutes";
+pub const DATE_EARLIER_MINUTES: &str = "org.date.earlier.minutes";
+/// The agenda's commands that move a timestamp.
+pub const AGENDA_DATE_COMMANDS: &[&str] =
+    &[DATE_LATER, DATE_EARLIER, DATE_LATER_HOURS, DATE_EARLIER_HOURS, DATE_LATER_MINUTES, DATE_EARLIER_MINUTES];
 pub const SHIFT_UP: &str = "org.shift.up";
 pub const SHIFT_DOWN: &str = "org.shift.down";
 pub const SHIFT_LEFT: &str = "org.shift.left";
@@ -703,6 +710,13 @@ pub const COMMANDS: &[Command] = &[
         vim: &[native(Org, "<S-Down>")],
         ..edit(DATE_EARLIER, "Move the date one day earlier")
     },
+    // In the agenda, by hours and by minutes (Emacs's `C-u S-<right>` and
+    // `C-u C-u S-<right>`); `S-<right>` and `S-<left>` right after one of
+    // these go on by the same unit, as in Emacs.
+    edit(DATE_LATER_HOURS, "Agenda: move the time one hour later"),
+    edit(DATE_EARLIER_HOURS, "Agenda: move the time one hour earlier"),
+    edit(DATE_LATER_MINUTES, "Agenda: move the time later by the rounding minutes"),
+    edit(DATE_EARLIER_MINUTES, "Agenda: move the time earlier by the rounding minutes"),
     // Org's shifted cursor keys, which act on what the cursor is on: a
     // timestamp, the headline, or a list item (its list's bullets cycled,
     // or the cursor to the item before or after, carried in the result as

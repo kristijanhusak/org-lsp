@@ -450,6 +450,10 @@ every file; outside Org files the commands say they do not apply):
 | `org.timestamp.down` | Org: Decrease the part of the timestamp at the cursor |
 | `org.date.later` | Org: Move the date one day later |
 | `org.date.earlier` | Org: Move the date one day earlier |
+| `org.date.later.hours` | Org: Agenda: move the time one hour later |
+| `org.date.earlier.hours` | Org: Agenda: move the time one hour earlier |
+| `org.date.later.minutes` | Org: Agenda: move the time later by the rounding minutes |
+| `org.date.earlier.minutes` | Org: Agenda: move the time earlier by the rounding minutes |
 | `org.shift.up` | Org: Increase the timestamp part, raise the priority, or go to the previous item |
 | `org.shift.down` | Org: Decrease the timestamp part, lower the priority, or go to the next item |
 | `org.shift.left` | Org: Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
