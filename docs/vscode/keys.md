@@ -82,6 +82,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `Ctrl+C Ctrl+Z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+V t`, `Ctrl+C Ctrl+V Ctrl+T` | `org.babel.tangle` | Tangle the file's code blocks |
+| `Ctrl+C Ctrl+E` | `org.export.dispatch` | Export the file through Emacs |
 | `Ctrl+C Shift+8` | `org.table.recalculate.line` | Recalculate the table's current line |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
 | `Ctrl+C l` | `org.link.store` | Store a link to the place at the cursor |
@@ -363,6 +364,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "r"], "commands": ["org.refile"] },
   { "before": ["<leader>", "o", "n", "a"], "commands": ["org.add.note"] },
   { "before": ["<leader>", "o", "b", "t"], "commands": ["org.babel.tangle"] },
+  { "before": ["<leader>", "o", "e"], "commands": ["org.export.dispatch"] },
   { "before": ["<leader>", "o", "*"], "commands": ["org.table.recalculate"] },
   { "before": ["<leader>", "o", "o"], "commands": ["org.open"] },
   { "before": ["<leader>", "o", "l", "s"], "commands": ["org.link.store"] },
@@ -477,6 +479,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.refile` | Org: Refile the entry |
 | `org.add.note` | Org: Add a note to the entry |
 | `org.babel.tangle` | Org: Tangle the file's code blocks |
+| `org.export.dispatch` | Org: Export the file through Emacs |
 | `org.table.recalculate` | Org: Recalculate the table |
 | `org.table.recalculate.line` | Org: Recalculate the table's current line |
 | `org.table.iterate` | Org: Recalculate the table until it does not change |

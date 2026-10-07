@@ -95,8 +95,9 @@ few, checked against Emacs where Org decides the outcome:
 - **Editors and distribution (14):** publishing the VS Code extension
   (Marketplace, Open VSX: the `publisher` is a placeholder). The agenda's hover is plain in VS Code, which has no
   grammar for Org's code blocks.
-- **Later:** export, Babel's evaluation, column view, inline images,
-  LaTeX previews.
+- **Export (15):** done, through Emacs.
+- **Later:** Babel's evaluation (through Emacs too), column view, inline
+  images, LaTeX previews.
 
 ### Milestone 3, merged: priorities and dates
 
@@ -601,9 +602,32 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - An options schema in the manifest, so editors can offer settings:
   done (`settings` in the manifest, `docs/config.schema.json`).
 
+### 15. Export, through Emacs
+
+What only Org itself can do, Emacs does (see "Emacs" in
+`docs/protocol.md`): one `emacs --batch` the server starts when first
+needed and keeps, talked to by `server/org-lsp/src/bridge.el` from a
+thread of its own; the user's configuration from `emacs_config_file` and
+`emacs_config` (inline Elisp), loaded before Org. Emacs is optional.
+
+- Done: `org-export-dispatch` (`org.export.dispatch`, `C-c C-e`) with the
+  menus of the backends Emacs has, the body-only, subtree and force
+  options, publishing (current file, project, a chosen project, all); the
+  document as the editor has it; exports to a buffer shown as a file,
+  files to open shown in the editor or by the system; Emacs's yes-or-no
+  questions asked in the editor (`org-confirm-babel-evaluate`). Checked
+  by `exports_through_emacs` in `tests/lsp.rs` with Org 9.8.10 and the
+  Org 9.6 Emacs 29 ships; CI installs Emacs for it.
+- Left: the async (`C-a`) and visible-only (`C-v`) options (folds are the
+  editor's), the export stack (`&`), inserting a template (`#`); questions
+  that want typed text (they fail the command).
+- Next through Emacs: Babel's evaluation (`C-c C-c` on a block,
+  `#+CALL:`, sessions), then capture's `%(…)` and `function` targets, and
+  LaTeX previews.
+
 ### Later or out of scope for now
 
-Export, Babel's evaluation, column view, inline images, LaTeX previews.
+Column view, inline images.
 Done of Babel: tangling (`org-babel-tangle`), checked against Emacs in
 `tests/tangle/cases.json`. Done: table formulas (`org-table-recalculate`,
 with the part of Calc they use in `org-core/src/calc.rs`), checked against

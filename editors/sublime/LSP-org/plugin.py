@@ -86,6 +86,17 @@ def say(message, view=None, error=False) -> None:
     sublime.set_timeout(hide, 4000)
 
 
+def key_name(key: str) -> str:
+    """How a key of a key input shows: Emacs's names for the blank ones,
+    and `C-b` for a control character."""
+    names = {' ': 'SPC', '\r': 'RET', '\t': 'TAB'}
+    if key in names:
+        return names[key]
+    if len(key) == 1 and 0 < ord(key) < 32:
+        return 'C-' + chr(ord(key) + 96)
+    return key
+
+
 # ----- the server binary
 
 def executable() -> str:
@@ -565,8 +576,7 @@ def ask(window, request, then, cancelled=None) -> None:
     choices = request.get('choices')
     if choices:
         if request.get('kind') == 'key':
-            names = {' ': 'SPC', '\r': 'RET', '\t': 'TAB'}
-            items = ['[{}] {}'.format(names.get(c['key'], c['key']), c['label']) for c in choices]
+            items = ['[{}] {}'.format(key_name(c['key']), c['label']) for c in choices]
         else:
             items = [c['label'] for c in choices]
 

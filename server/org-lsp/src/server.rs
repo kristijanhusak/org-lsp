@@ -114,6 +114,8 @@ enum Pending {
     Reveal,
     /// The cursor of the date prompt is being moved to the selected day.
     PromptCursor,
+    /// A yes-or-no question of Emacs's, whose answer it waits for.
+    EmacsQuestion(crossbeam_channel::Sender<bool>),
     /// A question of `command`, run with `argument`, asked with
     /// `window/showMessageRequest` (`message_prompts`); the answer runs it
     /// again.
@@ -548,6 +550,17 @@ struct Server {
     captures: u32,
     /// Where the capture and note buffers go, one directory each.
     capture_directory: PathBuf,
+    /// Emacs, for export (`emacs`); it starts when first asked.
+    emacs: crate::emacs::Emacs,
+    /// The export menu and the publishing projects, once Emacs gave them:
+    /// its configuration does not change while it runs.
+    export_menu: Option<Value>,
+    publish_projects: Option<Value>,
+    /// The exports Emacs is making, by tag: what each is.
+    exports: HashMap<u64, String>,
+    /// Where exports to a buffer are written to be shown.
+    export_directory: PathBuf,
+    next_export: u64,
     /// Where the agenda's file goes, for a client that cannot fetch it.
     view_directory: PathBuf,
     /// The date prompt that waits for an answer, in clients that show it.
@@ -789,6 +802,16 @@ pub fn run(connection: Connection) -> Result<()> {
         note: None,
         captures: 0,
         capture_directory: server_directory("capture"),
+        emacs: crate::emacs::Emacs::new(crate::emacs::Settings {
+            program: options.emacs.clone().unwrap_or_default(),
+            config_file: options.emacs_config_file.clone().filter(|file| !file.is_empty()),
+            config: options.emacs_config.clone().filter(|config| !config.trim().is_empty()),
+        }),
+        export_menu: None,
+        publish_projects: None,
+        exports: HashMap::new(),
+        export_directory: server_directory("export"),
+        next_export: 0,
         view_directory: server_directory("view"),
         date_prompt: None,
         prompt_copy: None,
@@ -858,6 +881,7 @@ pub fn run(connection: Connection) -> Result<()> {
     if server.running.is_some() {
         server.publish_clock();
     }
+    let emacs_events = server.emacs.events().clone();
     loop {
         crossbeam_channel::select! {
             recv(connection.receiver) -> message => match message {
@@ -877,12 +901,18 @@ pub fn run(connection: Connection) -> Result<()> {
                     server.run_from_port(command);
                 }
             }
+            recv(emacs_events) -> event => {
+                if let Ok(event) = event {
+                    server.emacs_event(event);
+                }
+            }
         }
     }
     server.remove_view_file();
     if server.captures > 0 {
         let _ = std::fs::remove_dir_all(&server.capture_directory);
     }
+    let _ = std::fs::remove_dir_all(&server.export_directory);
     Ok(())
 }
 
@@ -939,9 +969,62 @@ fn prompt_label(choice: &Value) -> String {
         Some(" ") => format!("{label} [SPC]"),
         Some("\r") => format!("{label} [RET]"),
         Some("\t") => format!("{label} [TAB]"),
+        Some(key) if key.len() == 1 && key.as_bytes()[0] < 32 => {
+            format!("{label} [C-{}]", char::from(key.as_bytes()[0] + 96))
+        }
         Some(key) if key != label && key.chars().count() == 1 => format!("{label} [{key}]"),
         _ => label.to_string(),
     }
+}
+
+/// The question of `org.export.dispatch` at `step` (none for the first
+/// key, a backend's key, or `P`), as Emacs's dispatcher shows it: the
+/// options with their state, then the backends or the entries of one.
+fn export_question(menu: &Value, step: Option<&str>, options: &str) -> Value {
+    let on = |letter: char| options.contains(letter);
+    let mut choices = vec![
+        json!({ "key": "\u{2}", "label": format!("Body only: {}", if on('b') { "On" } else { "Off" }) }),
+        json!({ "key": "\u{13}", "label": format!("Export scope: {}", if on('s') { "Subtree" } else { "Buffer" }) }),
+        json!({ "key": "\u{6}", "label": format!("Force publishing: {}", if on('f') { "On" } else { "Off" }) }),
+    ];
+    let tops = menu.as_array().cloned().unwrap_or_default();
+    match step {
+        None => {
+            for top in &tops {
+                choices.push(json!({ "key": top.get("key"), "label": top.get("label") }));
+            }
+            choices.push(json!({ "key": "P", "label": "Publish" }));
+            choices.push(json!({ "key": "q", "label": "Exit" }));
+        }
+        Some("P") => {
+            for (key, label) in
+                [("f", "Current file"), ("p", "Current project"), ("x", "Choose project"), ("a", "All projects")]
+            {
+                choices.push(json!({ "key": key, "label": label }));
+            }
+            choices.push(json!({ "key": "q", "label": "Main menu" }));
+        }
+        Some(first) => {
+            let top = tops.iter().find(|top| top.get("key").and_then(Value::as_str) == Some(first));
+            for entry in top.and_then(|top| top.get("entries")?.as_array()).into_iter().flatten() {
+                choices.push(json!({ "key": entry.get("key"), "label": entry.get("label") }));
+            }
+            choices.push(json!({ "key": "q", "label": "Main menu" }));
+        }
+    }
+    let prompt = match step {
+        None => "Export command".to_string(),
+        Some("P") => "Publish".to_string(),
+        Some(first) => tops
+            .iter()
+            .find(|top| top.get("key").and_then(Value::as_str) == Some(first))
+            .and_then(|top| top.get("label")?.as_str())
+            .unwrap_or("Export command")
+            .to_string(),
+    };
+    // The main menu's step is empty, so that it replaces the one before.
+    let context = json!({ "answers": options, "step": step.unwrap_or("") });
+    json!({ "input": { "kind": "key", "prompt": prompt, "value": "", "choices": choices, "context": context } })
 }
 
 fn with_message(result: Value, message: Option<String>) -> Value {
@@ -1415,6 +1498,11 @@ impl Server {
                 if let Some(open) = self.date_prompt.as_mut() {
                     open.moving_cursor = false;
                 }
+            }
+            Some(Pending::EmacsQuestion(answer)) => {
+                let picked =
+                    response.response_result.ok().and_then(|item| Some(item.get("title")?.as_str()?.to_string()));
+                let _ = answer.send(picked.as_deref() == Some("Yes"));
             }
             Some(Pending::Answer { command, argument, input }) => {
                 let picked =
@@ -3478,6 +3566,7 @@ impl Server {
                 &context.ok_or("This command needs the cursor position")?,
             ),
             commands::TANGLE => self.tangle(&context.ok_or("This command needs the cursor position")?),
+            commands::EXPORT => self.export(&context.ok_or("This command needs the cursor position")?),
             id if id.starts_with("org.archive.") => {
                 self.archive(id, &context.ok_or("This command needs the cursor position")?)
             }
@@ -6302,6 +6391,240 @@ impl Server {
         let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
         self.message = Some(outcome.message(&name));
         Ok(Value::Null)
+    }
+
+    /// `org-export-dispatch` (`C-c C-e`): Org's export menu, run by Emacs.
+    /// Without an answer it asks for the first key: a backend from the
+    /// menu Emacs makes of the backends it has, `P` to publish, or one of
+    /// the options to turn on or off (`C-b` body only, `C-s` the subtree at
+    /// the cursor, `C-f` force publishing). A backend's key asks for one of
+    /// its entries (`step` is then the backend's key, `answers` the options
+    /// on, as letters). The entry runs in Emacs on the document as the
+    /// editor has it; what it makes comes later (see
+    /// [`Server::emacs_event`]).
+    fn export(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = &context.text_document.uri;
+        let path = uri::to_path(uri).ok_or("Only a file on disk can be exported")?;
+        if self.document(uri).is_none() {
+            return Err("This file is not open".into());
+        }
+        let menu = self.export_menu()?;
+        let mut options = context.answers.clone().unwrap_or_default();
+        let step = context.step.clone().filter(|step| !step.is_empty());
+        let Some(key) = context.input.as_deref() else {
+            return Ok(export_question(&menu, step.as_deref(), &options));
+        };
+        let option = match key {
+            "\u{2}" => Some('b'),
+            "\u{13}" => Some('s'),
+            "\u{6}" => Some('f'),
+            _ => None,
+        };
+        if let Some(option) = option {
+            if options.contains(option) {
+                options.retain(|letter| letter != option);
+            } else {
+                options.push(option);
+            }
+            return Ok(export_question(&menu, step.as_deref(), &options));
+        }
+        match step.as_deref() {
+            None if key == "q" => Ok(Value::Null),
+            None if key == "P" => Ok(export_question(&menu, Some("P"), &options)),
+            None => {
+                let top = menu
+                    .as_array()
+                    .and_then(|tops| tops.iter().find(|top| top.get("key").and_then(Value::as_str) == Some(key)))
+                    .ok_or_else(|| format!("No export command under {key}"))?;
+                if top.get("entries").is_some_and(|entries| entries.as_array().is_some()) {
+                    Ok(export_question(&menu, Some(key), &options))
+                } else {
+                    let label = top.get("label").and_then(Value::as_str).unwrap_or(key).to_string();
+                    self.start_export(context, &path, key, None, None, &options, label)
+                }
+            }
+            Some(_) if key == "q" => Ok(export_question(&menu, None, &options)),
+            Some("P") => {
+                let label = match key {
+                    "f" => "Publishing the current file",
+                    "p" => "Publishing the current project",
+                    "a" => "Publishing all projects",
+                    "x" => {
+                        let projects = match &self.publish_projects {
+                            Some(projects) => projects.clone(),
+                            None => {
+                                let projects = self
+                                    .emacs
+                                    .call("publish-projects", json!({}), std::time::Duration::from_secs(60))
+                                    .map_err(Refusal::Failed)?;
+                                self.publish_projects = Some(projects.clone());
+                                projects
+                            }
+                        };
+                        let choices: Vec<Value> = projects
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .filter_map(Value::as_str)
+                            .map(|name| json!({ "key": name, "label": name }))
+                            .collect();
+                        if choices.is_empty() {
+                            return Err("No projects in org-publish-project-alist".into());
+                        }
+                        return Ok(json!({ "input": {
+                            "kind": "choice", "prompt": "Publish project", "value": "", "choices": choices,
+                            "context": { "step": "P:x", "answers": options },
+                        } }));
+                    }
+                    _ => return Err(format!("No publishing command under {key}").into()),
+                };
+                self.start_export(context, &path, "P", Some(key), None, &options, label.to_string())
+            }
+            Some("P:x") => {
+                let label = format!("Publishing {key}");
+                self.start_export(context, &path, "P", Some("x"), Some(key), &options, label)
+            }
+            Some(first) => {
+                let entry = menu
+                    .as_array()
+                    .and_then(|tops| tops.iter().find(|top| top.get("key").and_then(Value::as_str) == Some(first)))
+                    .and_then(|top| top.get("entries")?.as_array())
+                    .and_then(|entries| {
+                        entries.iter().find(|entry| entry.get("key").and_then(Value::as_str) == Some(key))
+                    })
+                    .ok_or_else(|| format!("No export command under {first} {key}"))?;
+                let label = entry.get("label").and_then(Value::as_str).unwrap_or(key).to_string();
+                let first = first.to_string();
+                self.start_export(context, &path, &first, Some(key), None, &options, label)
+            }
+        }
+    }
+
+    /// The export menu, from Emacs the first time.
+    fn export_menu(&mut self) -> std::result::Result<Value, Refusal> {
+        if let Some(menu) = &self.export_menu {
+            return Ok(menu.clone());
+        }
+        let menu =
+            self.emacs.call("export-menu", json!({}), std::time::Duration::from_secs(120)).map_err(Refusal::Failed)?;
+        self.export_menu = Some(menu.clone());
+        Ok(menu)
+    }
+
+    /// Have Emacs run the menu entry `first` `second` on the document of
+    /// `context`, at its cursor.
+    #[allow(clippy::too_many_arguments)]
+    fn start_export(
+        &mut self,
+        context: &Context,
+        path: &Path,
+        first: &str,
+        second: Option<&str>,
+        project: Option<&str>,
+        options: &str,
+        label: String,
+    ) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, encoding);
+        let point = document.text[..offset].chars().count() + 1;
+        let names: Vec<&str> = options
+            .chars()
+            .filter_map(|letter| match letter {
+                'b' => Some("body"),
+                's' => Some("subtree"),
+                'f' => Some("force"),
+                _ => None,
+            })
+            .collect();
+        let agenda_files: Vec<String> =
+            self.workspace.files().iter().map(|file| file.to_string_lossy().into_owned()).collect();
+        let params = json!({
+            "file": path.to_string_lossy(),
+            "text": document.text,
+            "point": point,
+            "first": first,
+            "second": second,
+            "project": project,
+            "options": names,
+            "agenda_files": agenda_files,
+        });
+        self.next_export += 1;
+        let tag = self.next_export;
+        self.exports.insert(tag, label.clone());
+        self.emacs.start(tag, "export", params);
+        self.message = Some(format!("{label}…"));
+        Ok(Value::Null)
+    }
+
+    /// What Emacs has for the server: a question to ask in the editor, or
+    /// what an export made, to show.
+    fn emacs_event(&mut self, event: crate::emacs::Event) {
+        match event {
+            crate::emacs::Event::Ask { prompt, answer } => {
+                let actions = ["Yes", "No"]
+                    .into_iter()
+                    .map(|title| lsp_types::MessageActionItem { title: title.to_string(), properties: HashMap::new() })
+                    .collect();
+                let params = lsp_types::ShowMessageRequestParams {
+                    typ: MessageType::INFO,
+                    message: prompt,
+                    actions: Some(actions),
+                };
+                self.send_request::<lsp_types::request::ShowMessageRequest>(
+                    params,
+                    Some(Pending::EmacsQuestion(answer)),
+                );
+            }
+            crate::emacs::Event::Done { tag, result } => {
+                let label = self.exports.remove(&tag).unwrap_or_default();
+                match result {
+                    Err(error) => self.show_message(MessageType::ERROR, format!("{label}: {error}")),
+                    Ok(result) => self.exported(&result),
+                }
+            }
+        }
+    }
+
+    /// Show what an export made: the text of an export to a buffer as a
+    /// file of its own; a file to be opened in the editor, or by the
+    /// system when it is no text (HTML, PDF, ODT); else where it went.
+    fn exported(&mut self, result: &Value) {
+        if let Some(text) = result.get("text").and_then(Value::as_str) {
+            let name = result.get("name").and_then(Value::as_str).unwrap_or("Org Export").trim_matches('*');
+            let extension = result.get("extension").and_then(Value::as_str).unwrap_or("txt");
+            let file = self.export_directory.join(format!("{name}.{extension}"));
+            let written = std::fs::create_dir_all(&self.export_directory).and_then(|()| std::fs::write(&file, text));
+            if let Err(error) = written {
+                self.show_message(MessageType::ERROR, format!("Cannot write {}: {error}", file.display()));
+                return;
+            }
+            if let Some(uri) = uri::from_path(&file) {
+                let params = ShowDocumentParams { uri, external: None, take_focus: Some(true), selection: None };
+                self.send_request::<ShowDocument>(params, None);
+            }
+            return;
+        }
+        if result.get("published").is_some() {
+            self.show_message(MessageType::INFO, "Publishing done");
+            return;
+        }
+        let Some(file) = result.get("file").and_then(Value::as_str) else { return };
+        let path = PathBuf::from(file);
+        if result.get("open").and_then(Value::as_bool) == Some(true) {
+            let extension = path.extension().map(|extension| extension.to_string_lossy().to_lowercase());
+            let external = !matches!(
+                extension.as_deref(),
+                Some("org" | "txt" | "md" | "tex" | "texi" | "ics" | "el" | "csv" | "json" | "xml")
+            );
+            if let Some(uri) = uri::from_path(&path) {
+                let params =
+                    ShowDocumentParams { uri, external: Some(external), take_focus: Some(!external), selection: None };
+                self.send_request::<ShowDocument>(params, None);
+                return;
+            }
+        }
+        self.show_message(MessageType::INFO, format!("Exported to {file}"));
     }
 
     /// M-RET (`org-meta-return`), M-S-RET (`org-insert-todo-heading`),

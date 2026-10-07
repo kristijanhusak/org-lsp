@@ -139,6 +139,9 @@ the editor's own syntax.
 | `org_link_descriptive` | boolean | `true` | Show a link as its description (or its target, when it has none) and hide the rest: the brackets, and the target of a link with a description. The text is marked `hidden` in the highlighting, and editors that can conceal text conceal it. (`org-link-descriptive`) |
 | `org_hide_emphasis_markers` | boolean | `false` | Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~`, as for links. (`org-hide-emphasis-markers`) |
 | `return_uses_meta_return` | boolean | `false` | RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it. |
+| `emacs` | string | `"emacs"` | The Emacs program, for what only Org itself does: export (`org.export.dispatch`). The server starts it (`emacs --batch -Q`) when that is first asked for and keeps it running, so that Org loads once. Without Emacs, everything else works as before. |
+| `emacs_config_file` | string | none | A file of Emacs Lisp that Emacs loads before Org, for the variables export reads (`org-export-backends`, `org-html-…`, `org-latex-…`, `org-publish-project-alist`): a file of its own, or your init file. `~/` is the home directory. |
+| `emacs_config` | string | none | Emacs Lisp that Emacs evaluates after `emacs_config_file` and before loading Org, for a few settings without a file: `(setq org-export-with-toc nil)`, or `(add-to-list 'load-path "~/src/org-mode/lisp")` for another Org. A yes-or-no question Emacs asks while it works (`org-confirm-babel-evaluate`) is asked in the editor. |
 | `auto_save` | boolean | `true` | Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them. |
 | `org_cycle_separator_lines` | number | `2` | With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`) |
 | `org_adapt_indentation` | boolean \| "headline-data" | `false` | Indent the lines of an entry past its headline's stars: `true` for all of them, `"headline-data"` for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (`org-adapt-indentation`) |
@@ -333,6 +336,7 @@ number.
 | `org.effort.set`, `org.effort.increase` | `org-set-effort` (`C-c C-x e`; `e` in the agenda): one of `Effort_ALL` (kind `choice`) or any duration Org reads (`1:30`, `2h`, `1d 3:00`); `org-inc-effort` (`C-c C-x E`): the allowed value after the entry's. |
 | `org.ordered.toggle` | `org-toggle-ordered-property` (`C-c C-x o`): sets `ORDERED` to `t`, or takes it out. |
 | `org.cite.insert`, `org.cite.insert.prefix` | `org-cite-insert` (`C-c C-x @`) with Org's `basic` processor, and with the prefix argument (`C-u C-c C-x @`). Elsewhere than on a citation: keys one at a time (kind `choice`, step `keys`, the keys picked so far in `answers` separated by `;`, each choice labelled with its line of Org's completion table, and `(done)` once one is picked), then with the prefix argument a style (step `new-style`; `(default)` or one of `oc-basic`'s styles); the citation goes in at the cursor with the keys last picked first, as Org puts them, and the cursor after it. On a citation's style, another style (step `style`); on its global prefix or suffix, a key (step `key`) before the first reference or after the last; on a reference, a key before it (at its prefix or the `@`), after it (at its suffix), or in place of its key. With the prefix argument on a citation, it goes with the blanks around it as `org-cite-delete-citation` takes them, or on a reference that reference. Refused where Org allows no citation (`Cannot insert a citation here`: a keyword line, a block other than a verse block, a drawer's lines, a link, a timestamp, a headline's stars or tags, …) and without a bibliography (`No bibliography set`). |
+| `org.export.dispatch` | `org-export-dispatch` (`C-c C-e`), run by Emacs itself (the `emacs` option; see "Emacs" below). Without an answer, a key input (prompt `Export command`) whose choices are the options as Org's dispatcher shows them (`\u0002` C-b `Body only: Off`, `\u0013` C-s `Export scope: Buffer`, `\u0006` C-f `Force publishing: Off`: each answer turns one on or off and asks again), then the first keys of the menus of the backends Emacs has (`h` `Export to HTML`, `l`, `t`, `o`, `c`, and those of backends the configuration loads), `P` `Publish` and `q` `Exit`. The context carries the options on as letters in `answers` (`b`, `s`, `f`) and the menu in `step` (empty for the first). A backend's key asks for one of its entries (step its key, prompt its label, `q` back to the first menu); `P` for `f`, `p`, `x` (then a project of `org-publish-project-alist`, kind `choice`, step `P:x`) or `a`. The entry then runs in Emacs on the document as the editor has it, the point where the cursor is, and the command returns at once (`As HTML file…`). When Emacs is done: an export to a buffer is written to a file of the server's (`Org HTML Export.html`) and shown with `window/showDocument`; a file to be opened is shown in the editor when it is text (`.org`, `.txt`, `.md`, `.tex`, …), else by the system (`external`); any other file is announced (`Exported to /path/notes.html`); an error is shown with `window/showMessage`. A yes-or-no question Emacs asks meanwhile (`Evaluate this emacs-lisp code block on your system?`) comes as `window/showMessageRequest` with `Yes` and `No`. |
 | `org.checkbox.toggle` | `C-c C-c` in a property drawer is `org-property-action`: asks for `s` (set), `d` (delete), `D` (delete globally) or `c` (compute, refused: org-lsp has no column view), as kind `key` with `step` `action`, then goes on as those commands. `C-c C-c` on a list item (`org-ctrl-c-ctrl-c`): toggles its checkbox if it has one, and puts the list right: indentation, bullets, numbers, the boxes of parents (`ORDERED` entries unchecking what follows an unchecked box). At the start of a list's first line only that item's box is toggled; on a statistics cookie the cookies are counted again. On a headline, `org-toggle-checkbox`: the boxes of the items below it. On a `#+TBLFM:` line, `org.table.recalculate`; in a table, `org-table-align` (at the very start of the table, where Emacs finds the table itself, `org.table.recalculate`). The cookies that count checkboxes follow. |
 | `org.schedule`, `org.deadline` | Asks for a date and sets the entry's `SCHEDULED:` or `DEADLINE:`, in an Org file or on an agenda line (`org-agenda-schedule`, `org-agenda-deadline`). |
 | `org.timestamp.insert`, `org.timestamp.insert.inactive` | Asks for a date and inserts a timestamp at the cursor, or changes the one there. Org files only. |
@@ -456,6 +460,33 @@ told about. A key held down sends the next command before an editor that
 batches its `didChange` notifications (Neovim waits 150 ms) has reported
 the previous edit, and that press is lost. An integration should send the
 change as soon as it has applied a `workspace/applyEdit`.
+
+## Emacs
+
+What only Org itself can do, the server has Emacs do: export
+(`org.export.dispatch`). Emacs is optional; without it those commands
+fail with `Cannot start Emacs (…)` and nothing else changes.
+
+The server starts one `emacs --batch -Q` the first time it is needed and
+keeps it running, so that Org loads once (a second or so) and each
+request costs only its own work. It talks to it over standard input and
+output with the Lisp in `server/org-lsp/src/bridge.el`, from a thread of
+its own: an export never holds up the server's other answers. Emacs
+loads, in this order, `emacs_config_file`, then evaluates `emacs_config`,
+then loads Org (`org`, `ox`, `ox-publish`): settings made before Org loads
+are kept (`org-export-backends` to add Markdown, a `load-path` for another
+Org), and the configuration may load Org itself. A request carries the
+document's text as the editor has it, unsaved changes and all, in a
+buffer that visits the file's path (so that `#+INCLUDE:`, `#+SETUPFILE:`
+and the output's name work as they would in Emacs), with the file's safe
+local variables. `org-agenda-files` is the server's agenda files.
+
+Emacs must not read the terminal: a yes-or-no question it asks comes to
+the editor as `window/showMessageRequest`; any other question it would
+ask fails the command with `Emacs asked a question org-lsp cannot
+answer: …`. When Emacs stops (an error in the configuration), the command
+fails with what it last wrote on its standard error, and the next one
+starts it again.
 
 ## The manifest
 

@@ -1361,3 +1361,176 @@ fn citations_follow_the_bibliography() {
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+/// The next message from the server that `wanted` picks, within a minute.
+fn next_from_server(client: &Client, wanted: impl Fn(&Message) -> bool) -> Message {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    loop {
+        let left = deadline.saturating_duration_since(std::time::Instant::now());
+        let message = client.connection.receiver.recv_timeout(left).expect("the server says something");
+        if wanted(&message) {
+            return message;
+        }
+    }
+}
+
+#[test]
+fn exports_through_emacs() {
+    // Emacs is optional; CI's Rust job has none unless it says otherwise.
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("exports_through_emacs: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-export-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    // The editor's text, unsaved: what Emacs exports.
+    let text = "#+TITLE: Notes\n* Héllo\nFirst.\n* Code\n#+begin_src emacs-lisp :exports results\n(+ 1 2)\n#+end_src\n";
+    std::fs::write(&file, "* On disk\n").unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    // Another Org for Emacs, as `emacs_config` can load it.
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    client.open(&uri, text);
+    let context = |position: (u32, u32), extra: Value| {
+        let mut context = json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": { "line": position.0, "character": position.1 },
+        });
+        for (key, value) in extra.as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        context
+    };
+    let run = |client: &mut Client, argument: Value| {
+        client
+            .raw_request(
+                "workspace/executeCommand",
+                json!({ "command": "org.export.dispatch", "arguments": [argument] }),
+            )
+            .response_result
+            .expect("a result")
+    };
+    let keys = |result: &Value| -> Vec<String> {
+        result["input"]["choices"].as_array().unwrap().iter().map(|choice| format!("{}", choice["key"])).collect()
+    };
+
+    // The menu is Emacs's: its backends, the options, publishing.
+    let menu = run(&mut client, context((0, 0), json!({})));
+    assert_eq!(menu["input"]["kind"], "key", "{menu}");
+    assert_eq!(menu["input"]["prompt"], "Export command");
+    let first = keys(&menu);
+    for key in [r#""\u0002""#, r#""\u0013""#, r#""h""#, r#""l""#, r#""t""#, r#""P""#] {
+        assert!(first.contains(&key.to_string()), "{key} in {first:?}");
+    }
+    assert_eq!(menu["input"]["context"], json!({ "answers": "", "step": "" }));
+
+    // An option turned on is shown on.
+    let scoped = run(&mut client, context((2, 0), json!({ "input": "\u{13}", "answers": "", "step": "" })));
+    assert_eq!(scoped["input"]["context"]["answers"], "s");
+    assert!(scoped["input"]["choices"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|choice| choice["label"] == "Export scope: Subtree"));
+
+    // A backend's entries.
+    let html = run(&mut client, context((0, 0), json!({ "input": "h", "answers": "", "step": "" })));
+    assert_eq!(html["input"]["prompt"], "Export to HTML");
+    assert!(keys(&html).contains(&r#""o""#.to_string()), "{html}");
+
+    // To a file: Emacs says where it went once it is done.
+    let started = run(&mut client, context((0, 0), json!({ "input": "h", "answers": "", "step": "h" })));
+    assert_eq!(started["message"], "As HTML file…");
+    let Message::Request(question) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Request(request) if request.method == "window/showMessageRequest"),
+    ) else {
+        unreachable!()
+    };
+    // Babel asks before it evaluates, in the editor.
+    assert!(
+        question.params["message"].as_str().unwrap().contains("Evaluate this emacs-lisp code block"),
+        "{:?}",
+        question.params
+    );
+    client.connection.sender.send(Message::Response(Response::new_ok(question.id, json!({ "title": "Yes" })))).unwrap();
+    let Message::Notification(done) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Notification(notification) if notification.method == "window/showMessage"),
+    ) else {
+        unreachable!()
+    };
+    let html_file = directory.join("notes.html");
+    assert_eq!(done.params["message"], format!("Exported to {}", html_file.display()));
+    let written = std::fs::read_to_string(&html_file).unwrap();
+    assert!(
+        written.contains("Héllo") && written.contains("<title>Notes</title>") && written.contains("\n3\n</pre>"),
+        "{written}"
+    );
+
+    // To a buffer, of the subtree at the cursor, the question answered no:
+    // a file the editor is asked to show.
+    run(&mut client, context((2, 0), json!({ "input": "U", "answers": "s", "step": "t" })));
+    let Message::Request(show) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Request(request) if request.method == "window/showDocument"),
+    ) else {
+        unreachable!()
+    };
+    let shown: Uri = serde_json::from_value(show.params["uri"].clone()).unwrap();
+    assert!(
+        shown.as_str().ends_with("Org%20ASCII%20Export.txt") || shown.as_str().ends_with("Org ASCII Export.txt"),
+        "{shown:?}"
+    );
+    let path = std::path::PathBuf::from(percent_decode(shown.path().as_str()));
+    let exported = std::fs::read_to_string(&path).unwrap();
+    assert!(exported.contains("HÉLLO") && exported.contains("First.") && !exported.contains("Code"), "{exported}");
+    client.connection.sender.send(Message::Response(Response::new_ok(show.id, json!({ "success": true })))).unwrap();
+
+    // An entry that is not there.
+    let response = client.raw_request(
+        "workspace/executeCommand",
+        json!({ "command": "org.export.dispatch", "arguments": [context((0, 0), json!({ "input": "z", "answers": "", "step": "" }))] }),
+    );
+    assert!(response.response_result.unwrap_err().message.contains("No export command under z"));
+
+    client.shutdown();
+    assert!(!path.exists(), "the exports to a buffer go with the server");
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+fn export_says_when_emacs_cannot_start() {
+    let mut client = Client::start(json!({}), json!({ "emacs": "/nonexistent/emacs" }));
+    client.open(&uri(), "* A\n");
+    let response = client.raw_request(
+        "workspace/executeCommand",
+        json!({ "command": "org.export.dispatch", "arguments": [{ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } }] }),
+    );
+    let error = response.response_result.expect_err("an error").message;
+    assert!(error.contains("Cannot start Emacs (`/nonexistent/emacs`, the `emacs` option)"), "{error}");
+    client.shutdown();
+}
+
+fn percent_decode(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut out = Vec::new();
+    let mut index = 0;
+    while index < bytes.len() {
+        if bytes[index] == b'%' && index + 2 < bytes.len() {
+            if let Ok(byte) = u8::from_str_radix(&text[index + 1..index + 3], 16) {
+                out.push(byte);
+                index += 3;
+                continue;
+            }
+        }
+        out.push(bytes[index]);
+        index += 1;
+    }
+    String::from_utf8(out).unwrap()
+}

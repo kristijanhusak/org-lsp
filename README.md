@@ -49,6 +49,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Tag and property inheritance (`org_use_tag_inheritance`, `org_tags_exclude_from_inheritance`, `org_use_property_inheritance`): file tags, parents' tags and properties in the agenda's tags and property searches, inherited tags shown in the agenda | yes | yes | yes | yes | yes | no³ |
 | Agenda lines formatted as Org formats them, to your taste: `org_agenda_prefix_format` (`org-agenda-prefix-format`, with the category, time, leader, effort, level, last tag and breadcrumbs), the leaders of scheduled entries, deadlines and ranges, `todoKeywordFormat`, `removeTags`, `formatDate`; in custom commands and their blocks too | yes | yes | yes | yes | yes | no³ |
 | Tangling, as `org-babel-tangle` does it: `:tangle`, header arguments from properties and `#+HEADER:`, Noweb references, comments, `:shebang`, `:tangle-mode`, `:mkdirp` | `<Leader>obt` | `Ctrl+C Ctrl+V t`, `Ctrl+.` in a block | `<Leader>obt` | `Ctrl+C Ctrl+V t` | code actions in a block | `Space a` in a block |
+| Export and publishing, by Emacs itself (`org-export-dispatch`): Org's menu with the backends your Emacs has (HTML, LaTeX and PDF, plain text, ODT, iCalendar, Markdown and others once loaded), body only, the subtree at the cursor, publishing projects; the file or buffer it makes is shown. Needs Emacs (`emacs`, `emacs_config_file`, `emacs_config`) | `<Leader>oe` | `Ctrl+C Ctrl+E` | `<Leader>oe` | `Ctrl+C Ctrl+E` | no | no |
 | Table editing, as `org-table.el` does it: `TAB`/`S-TAB` from field to field (a row made past the last), moving, inserting and deleting columns and rows, rules, blanking a field, sorting the rows; the `#+TBLFM:` line follows the columns and rows | `<Tab>`/`<S-Tab>` on a table line, `<<`/`>>`, `<s`/`>s`, `<Leader>oK`/`<Leader>oJ`, `<Leader>oTd`, `<Leader>oTO`/`<Leader>oTo`, `<Leader>o-`, `<Leader>o<CR>`, `<Leader>o<Space>`, `<Leader>o^` | `Tab`/`Shift+Tab`, `Alt+arrows`, `Alt+Shift+arrows`, `Ctrl+C -`, `Ctrl+C Enter`, `Ctrl+C ^` | `<Tab>`/`<S-Tab>` on a table line, `<<`/`>>`, `<s`/`>s`, `<Leader>oK`/`<Leader>oJ`, `<Leader>oTd`, `<Leader>oTO`/`<Leader>oTo`, `<Leader>o-`, `<Leader>o<CR>`, `<Leader>o<Space>`, `<Leader>o^` | `Tab`/`Shift+Tab`, `Alt+arrows`, `Alt+Shift+arrows`, `Ctrl+C -`, `Ctrl+C Enter`, `Ctrl+C ^` | code actions in a table | `Space a` in a table |
 | Table formulas, as `org-table-recalculate` applies the `#+TBLFM:` line: column, field and range formulas, references by row, column, hline and name, parameters and constants, Calc's arithmetic, vectors, dates and durations, and its modes and formats (`;%.2f`, `;N`, `;T`); iterating until the table is stable | `<Leader>o*`; `<C-Space>` on a `#+TBLFM:` line | `Ctrl+C *` (the cursor's line), `Ctrl+C Ctrl+C` on a `#+TBLFM:` line, `Ctrl+.` in a table | `<Leader>o*`; `<C-Space>` on a `#+TBLFM:` line | `Ctrl+C *`, `Ctrl+C Ctrl+C` on a `#+TBLFM:` line | code actions in a table | `Space a` in a table |
 | Refile, as `org-refile` does it, between files too | `<Leader>or` | command | `<Leader>or` | `Ctrl+C Ctrl+W` | code actions | no⁴ |
@@ -244,6 +245,25 @@ set once for every editor. An editor's own settings go on top, and
 [docs/configuration.md](docs/configuration.md) has the details and every
 option with its default.
 
+### Exporting through Emacs
+
+Export is Org's own: with Emacs installed (Org 9.6 or newer), `C-c C-e`
+(`<Leader>oe` in Vim and Neovim) opens Org's export menu, and Emacs makes
+the file. The server starts Emacs the first time and keeps it running.
+Your export settings go in a file Emacs loads before Org, or inline:
+
+```toml
+# ~/.config/org-lsp/config.toml
+emacs_config_file = "~/.config/org-lsp/export.el"
+emacs_config = '''
+(setq org-export-backends '(ascii html icalendar latex md odt))
+(setq org-html-validation-link nil)
+'''
+```
+
+A question Emacs asks while exporting (whether to evaluate a code block)
+is asked in the editor.
+
 ### Other editors
 
 Point the editor's LSP client at `org-lsp` for the `org` file type. The
@@ -328,7 +348,7 @@ both programs on them. See
 - Agenda: habits and diary entries;
   custom commands of those types.
 - Table formulas in Emacs Lisp, remote references, units and Calc's
-  fractions and symbolic mode; export;
+  fractions and symbolic mode;
   tangling's Emacs Lisp
   (evaluated header arguments, `<<block()>>`), and other languages' `:var`.
 - The shifted cursor keys do nothing yet in tables (Org moves the field

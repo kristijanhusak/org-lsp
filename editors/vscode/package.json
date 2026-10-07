@@ -531,6 +531,11 @@
         "category": "Org"
       },
       {
+        "command": "org.export.dispatch",
+        "title": "Export the file through Emacs",
+        "category": "Org"
+      },
+      {
         "command": "org.table.recalculate",
         "title": "Recalculate the table",
         "category": "Org"
@@ -1565,6 +1570,19 @@
               "type": "boolean",
               "markdownDescription": "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
               "default": false
+            },
+            "emacs": {
+              "type": "string",
+              "markdownDescription": "The Emacs program, for what only Org itself does: export (`org.export.dispatch`). The server starts it (`emacs --batch -Q`) when that is first asked for and keeps it running, so that Org loads once. Without Emacs, everything else works as before.",
+              "default": "emacs"
+            },
+            "emacs_config_file": {
+              "type": "string",
+              "markdownDescription": "A file of Emacs Lisp that Emacs loads before Org, for the variables export reads (`org-export-backends`, `org-html-…`, `org-latex-…`, `org-publish-project-alist`): a file of its own, or your init file. `~/` is the home directory."
+            },
+            "emacs_config": {
+              "type": "string",
+              "markdownDescription": "Emacs Lisp that Emacs evaluates after `emacs_config_file` and before loading Org, for a few settings without a file: `(setq org-export-with-toc nil)`, or `(add-to-list 'load-path \"~/src/org-mode/lisp\")` for another Org. A yes-or-no question Emacs asks while it works (`org-confirm-babel-evaluate`) is asked in the editor."
             },
             "auto_save": {
               "type": "boolean",
@@ -3496,6 +3514,11 @@
       {
         "command": "org.babel.tangle",
         "key": "ctrl+c ctrl+v ctrl+t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.export.dispatch",
+        "key": "ctrl+c ctrl+e",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

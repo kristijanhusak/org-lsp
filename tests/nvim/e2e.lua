@@ -1143,6 +1143,8 @@ for i = 1, 79 do
 end
 local long = vim.fn.tempname() .. '.org'
 vim.fn.writefile(long_lines, long)
+-- One window, whatever an earlier step left open, for the lines it shows.
+vim.cmd('silent! only')
 vim.cmd.edit(long)
 wait('the server to attach to the long file', function()
   return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
@@ -1189,6 +1191,14 @@ wait('the floating calendar to close', function()
   return date_prompt() == nil
 end)
 require('org-lsp').config.calendar_win_mode = 'bottom'
+
+-- Keys of a key input show as Emacs names them: the export menu's options
+-- are control keys.
+eq(
+  vim.tbl_map(require('org-lsp').key_name, { '\2', '\19', ' ', '\r', 'h' }),
+  { 'C-b', 'C-s', 'SPC', 'RET', 'h' },
+  'key names'
+)
 
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

@@ -665,6 +665,13 @@
     }
   },
   {
+    "caption": "Org: Export the file through Emacs",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.export.dispatch"
+    }
+  },
+  {
     "caption": "Org: Recalculate the table",
     "command": "org_lsp_run",
     "args": {

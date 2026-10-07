@@ -447,11 +447,21 @@ endfunction
 
 " Read one key, as Emacs does at its fast selection prompts: the choices
 " are listed in a popup at the bottom; <Esc> or CTRL-C cancels.
+" How a key of a key input shows: Emacs's names for the blank ones, and
+" C-b for a control character.
+function! org_lsp#key_name(key) abort
+  let names = {' ': 'SPC', "\r": 'RET', "\t": 'TAB'}
+  if has_key(names, a:key)
+    return names[a:key]
+  endif
+  let code = strlen(a:key) == 1 ? char2nr(a:key) : -1
+  return code > 0 && code < 32 ? 'C-' .. nr2char(code + 96) : a:key
+endfunction
+
 function! org_lsp#read_key(prompt, choices) abort
   let popup = 0
   if !empty(a:choices) && exists('*popup_create')
-    let names = {' ': 'SPC', "\r": 'RET', "\t": 'TAB'}
-    let lines = map(copy(a:choices), {_, c -> printf('[%s] %s', get(names, c.key, c.key), c.label)})
+    let lines = map(copy(a:choices), {_, c -> printf('[%s] %s', org_lsp#key_name(c.key), c.label)})
     let popup = popup_create(lines, {
           \ 'line': &lines - &cmdheight - len(lines) - 1, 'col': 1,
           \ 'border': [], 'title': ' ' . a:prompt . ' ', 'zindex': 300,

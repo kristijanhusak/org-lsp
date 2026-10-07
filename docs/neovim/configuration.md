@@ -574,6 +574,26 @@ require('org-lsp').setup({
     -- Shift+Enter, with the vim keys) always does it.
     return_uses_meta_return = false,
 
+    -- The Emacs program, for what only Org itself does: export
+    -- (`org.export.dispatch`). The server starts it (`emacs --batch -Q`) when
+    -- that is first asked for and keeps it running, so that Org loads once.
+    -- Without Emacs, everything else works as before.
+    emacs = 'emacs',
+
+    -- A file of Emacs Lisp that Emacs loads before Org, for the variables
+    -- export reads (`org-export-backends`, `org-html-…`, `org-latex-…`,
+    -- `org-publish-project-alist`): a file of its own, or your init file.
+    -- `~/` is the home directory.
+    -- emacs_config_file = nil, -- unset: none
+
+    -- Emacs Lisp that Emacs evaluates after `emacs_config_file` and before
+    -- loading Org, for a few settings without a file: `(setq
+    -- org-export-with-toc nil)`, or `(add-to-list 'load-path
+    -- "~/src/org-mode/lisp")` for another Org. A yes-or-no question Emacs
+    -- asks while it works (`org-confirm-babel-evaluate`) is asked in the
+    -- editor.
+    -- emacs_config = nil, -- unset: none
+
     -- Save the files a command changes other than the one it was run in: an
     -- entry's file changed from the agenda, the target of a capture or of a
     -- refile. The editor saves them once it has made the change. Off, they

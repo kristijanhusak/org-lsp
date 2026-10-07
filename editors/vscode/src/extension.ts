@@ -73,9 +73,13 @@ async function fallBack(commands: KeyArgs['fallback']): Promise<void> {
   }
 }
 
-/** How a key of a key input shows: Emacs's names for the blank ones. */
+/** How a key of a key input shows: Emacs's names for the blank ones, and
+ * `C-b` for a control character. */
 function keyName(key: string): string {
-  return ({ ' ': 'SPC', '\r': 'RET', '\t': 'TAB' } as Record<string, string>)[key] ?? key;
+  const named = ({ ' ': 'SPC', '\r': 'RET', '\t': 'TAB' } as Record<string, string>)[key];
+  if (named) return named;
+  const code = key.length === 1 ? key.charCodeAt(0) : -1;
+  return code > 0 && code < 32 ? `C-${String.fromCharCode(code + 96)}` : key;
 }
 
 function notApplicable(error: unknown): boolean {
