@@ -301,6 +301,27 @@
     }
   },
   {
+    "caption": "Org: Cut the subtree",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.cut.subtree"
+    }
+  },
+  {
+    "caption": "Org: Copy the subtree",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.copy.subtree"
+    }
+  },
+  {
+    "caption": "Org: Paste the subtree",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.paste.subtree"
+    }
+  },
+  {
     "caption": "Org: Refile the entry",
     "command": "org_lsp_run",
     "args": {

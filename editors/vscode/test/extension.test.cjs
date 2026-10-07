@@ -563,6 +563,25 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('cuts, copies and pastes subtrees through the clipboard', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'clipboard.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* A\n** B\ntext\n** C\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    moveTo(1, 0);
+    await vscode.commands.executeCommand('org.copy.subtree');
+    await until('the subtree copied', async () => (await vscode.env.clipboard.readText()) === '** B\ntext\n');
+    await vscode.commands.executeCommand('org.cut.subtree');
+    await until('the subtree cut', () => editor.document.getText() === '* A\n** C\n');
+    await vscode.env.clipboard.writeText('* X\n');
+    moveTo(0, 0);
+    await vscode.commands.executeCommand('org.paste.subtree');
+    await until('the clipboard pasted', () => editor.document.getText() === '* X\n* A\n** C\n');
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('archives a subtree into the archive file, and asks about each done one', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'archive.org'));
     const archive = vscode.Uri.file(path.join(workspace, 'archive.org_archive'));

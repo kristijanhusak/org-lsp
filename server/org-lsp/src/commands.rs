@@ -95,6 +95,9 @@ pub struct Command {
     /// What the command asks the user for before it can run, as the
     /// prompt the editor shows.
     pub input: Option<Input>,
+    /// The command reads what the editor would paste: its context has the
+    /// text in `clipboard` (Emacs's latest kill).
+    pub clipboard: bool,
 }
 
 /// Input a command asks for.
@@ -144,6 +147,9 @@ pub const SHIFT_META_LEFT: &str = "org.shiftmeta.left";
 pub const SHIFT_META_RIGHT: &str = "org.shiftmeta.right";
 pub const META_UP: &str = "org.meta.up";
 pub const META_DOWN: &str = "org.meta.down";
+pub const CUT_SUBTREE: &str = "org.cut.subtree";
+pub const COPY_SUBTREE: &str = "org.copy.subtree";
+pub const PASTE_SUBTREE: &str = "org.paste.subtree";
 pub const INSERT_TODO_HEADING: &str = "org.insert.todo.heading";
 pub const INSERT_HEADING_AFTER: &str = "org.insert.heading.after";
 pub const INSERT_TODO_HEADING_AFTER: &str = "org.insert.todo.heading.after";
@@ -200,11 +206,11 @@ pub const CALENDAR_CANCEL: &str = "org.calendar.cancel";
 use Scope::{Agenda, Calendar, Capture, Global, Org};
 
 const fn command(id: &'static str, title: &'static str) -> Command {
-    Command { id, title, edits: false, emacs: &[], vim: &[], input: None }
+    Command { id, title, edits: false, emacs: &[], vim: &[], input: None, clipboard: false }
 }
 
 const fn edit(id: &'static str, title: &'static str) -> Command {
-    Command { id, title, edits: true, emacs: &[], vim: &[], input: None }
+    Command { id, title, edits: true, emacs: &[], vim: &[], input: None, clipboard: false }
 }
 
 const fn ask_date(id: &'static str, title: &'static str, prompt: &'static str) -> Command {
@@ -362,6 +368,24 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[native(Org, "M-<down>")],
         vim: &[key(Org, "<Leader>oJ")],
         ..edit(META_DOWN, "Move the subtree down")
+    },
+    // The subtree to and from the clipboard: the result of cutting and
+    // copying has the text to put there in `copy`.
+    Command {
+        emacs: &[key(Org, "C-c C-x C-w")],
+        vim: &[key(Org, "<Leader>osd")],
+        ..edit(CUT_SUBTREE, "Cut the subtree")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x M-w")],
+        vim: &[key(Org, "<Leader>osy")],
+        ..command(COPY_SUBTREE, "Copy the subtree")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x C-y")],
+        vim: &[key(Org, "<Leader>osp")],
+        clipboard: true,
+        ..edit(PASTE_SUBTREE, "Paste the subtree")
     },
     Command {
         emacs: &[key(Org, "C-c C-w"), key(Agenda, "C-c C-w")],
@@ -620,7 +644,8 @@ pub fn input(id: &str) -> Option<&'static Input> {
 /// `{ "command", "title", "edits", "keys": [{ "key", "in", "preset" }] }`.
 /// A key that keeps its own meaning where the command does not apply has
 /// `"native": true` as well. A command that asks for something has
-/// `"input": { "kind", "prompt" }`.
+/// `"input": { "kind", "prompt" }`; one that reads the clipboard,
+/// `"clipboard": true`.
 pub fn manifest() -> Value {
     let commands: Vec<Value> = COMMANDS
         .iter()
@@ -672,6 +697,9 @@ pub fn manifest() -> Value {
                 json!({ "command": command.id, "title": command.title, "edits": command.edits, "keys": keys });
             if let Some(input) = &command.input {
                 entry["input"] = json!({ "kind": input.kind, "prompt": input.prompt });
+            }
+            if command.clipboard {
+                entry["clipboard"] = json!(true);
             }
             entry
         })

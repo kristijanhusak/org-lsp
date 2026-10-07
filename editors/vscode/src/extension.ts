@@ -289,11 +289,13 @@ async function preview(
 async function startClient(context: vscode.ExtensionContext): Promise<void> {
   const command = serverCommand(context);
   const serverOptions: ServerOptions = { command, args: [] };
-  const { languages, agendaScheme, capturePrefix, datePromptUri } = context.extension.packageJSON.orgLsp as {
+  const { languages, agendaScheme, capturePrefix, datePromptUri, clipboardCommands } = context.extension.packageJSON
+    .orgLsp as {
     languages: string[];
     agendaScheme: string;
     capturePrefix: string;
     datePromptUri: string;
+    clipboardCommands: string[];
   };
   // The agenda and capture buffers open apart from the file at hand.
   const apart = (uri: string): boolean => {
@@ -318,9 +320,18 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           return key ? fallBack(key.fallback) : undefined;
         }
         const params = { command: name, arguments: args.length > 0 && !key ? args : cursor(running) };
+        // What the command reads as Emacs's latest kill: the clipboard.
+        if (clipboardCommands.includes(name) && params.arguments[0]) {
+          params.arguments[0] = { ...(params.arguments[0] as object), clipboard: await vscode.env.clipboard.readText() };
+        }
         try {
           let result = await running.sendRequest('workspace/executeCommand', params);
           await applyCarried(running, result);
+          // What was cut or copied goes to the clipboard.
+          const copied = (result as { copy?: unknown } | null)?.copy;
+          if (typeof copied === 'string') {
+            await vscode.env.clipboard.writeText(copied);
+          }
           closeAsked(result);
           await saveAsked(result);
           sayAsked(result);

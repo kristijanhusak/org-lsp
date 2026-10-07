@@ -187,9 +187,15 @@ function M.run(name, opts)
     vim.o.autoread = autoread
   end
   local count = opts.count and opts.count > 0 and opts.count or nil
+  -- The register the key was typed with (`"a`), as `y` and `p` take it.
+  local register = vim.v.register
   with_client(function(client)
     local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
     context.count = count
+    -- What the command reads as Emacs's latest kill: the register.
+    if (server_command(name) or {}).clipboard then
+      context.clipboard = vim.fn.getreg(register)
+    end
     if opts.append then
       -- Below the cursor's line, as nvim-orgmode's `<Leader><CR>` puts it:
       -- never above it, and nothing split.
@@ -216,6 +222,10 @@ function M.run(name, opts)
           -- Normal mode keeps the cursor off the end of the line.
           vim.cmd(at_end and 'startinsert!' or 'startinsert')
         end
+      end
+      -- What was cut or copied goes to the register, by lines.
+      if type(result) == 'table' and type(result.copy) == 'string' then
+        vim.fn.setreg(register, result.copy, 'l')
       end
       -- The server names files to save; those with changes are written.
       if type(result) == 'table' and type(result.save) == 'table' then

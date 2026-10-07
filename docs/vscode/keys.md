@@ -60,6 +60,9 @@ The other options are in [configuration.md](configuration.md).
 | `Alt+Shift+Right`¹ | `org.shiftmeta.right` | Demote the subtree |
 | `Alt+Up`¹ | `org.meta.up` | Move the subtree up |
 | `Alt+Down`¹ | `org.meta.down` | Move the subtree down |
+| `Ctrl+C Ctrl+X Ctrl+W` | `org.cut.subtree` | Cut the subtree |
+| `Ctrl+C Ctrl+X Alt+W` | `org.copy.subtree` | Copy the subtree |
+| `Ctrl+C Ctrl+X Ctrl+Y` | `org.paste.subtree` | Paste the subtree |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `Ctrl+C Ctrl+Z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+V t`, `Ctrl+C Ctrl+V Ctrl+T` | `org.babel.tangle` | Tangle the file's code blocks |
@@ -265,6 +268,9 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "i", "t"], "commands": ["org.insert.todo.heading.after"] },
   { "before": ["<leader>", "o", "K"], "commands": ["org.meta.up"] },
   { "before": ["<leader>", "o", "J"], "commands": ["org.meta.down"] },
+  { "before": ["<leader>", "o", "s", "d"], "commands": ["org.cut.subtree"] },
+  { "before": ["<leader>", "o", "s", "y"], "commands": ["org.copy.subtree"] },
+  { "before": ["<leader>", "o", "s", "p"], "commands": ["org.paste.subtree"] },
   { "before": ["<leader>", "o", "r"], "commands": ["org.refile"] },
   { "before": ["<leader>", "o", "n", "a"], "commands": ["org.add.note"] },
   { "before": ["<leader>", "o", "b", "t"], "commands": ["org.babel.tangle"] },
@@ -328,6 +334,9 @@ every file; outside Org files the commands say they do not apply):
 | `org.shiftmeta.right` | Org: Demote the subtree |
 | `org.meta.up` | Org: Move the subtree up |
 | `org.meta.down` | Org: Move the subtree down |
+| `org.cut.subtree` | Org: Cut the subtree |
+| `org.copy.subtree` | Org: Copy the subtree |
+| `org.paste.subtree` | Org: Paste the subtree |
 | `org.refile` | Org: Refile the entry |
 | `org.add.note` | Org: Add a note to the entry |
 | `org.babel.tangle` | Org: Tangle the file's code blocks |

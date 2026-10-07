@@ -1,0 +1,6667 @@
+[
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "cut",
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "copy",
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* X\nx text\n** Y\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* Deep                                                                    :t:\n** Deeper\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n\n\n* Lead\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 8,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* No newline\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n*** X\nx text\n**** Y\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* Deep                                                                    :t:\n** Deeper\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "cut",
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "copy",
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* X\nx text\n** Y\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* Deep                                                                    :t:\n** Deeper\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n\n\n* Lead\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 8,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* No newline\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n*** X\nx text\n**** Y\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* Deep                                                                    :t:\n** Deeper\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* D\n** E\n",
+   "point": 6,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n",
+   "point": 6,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* X\nx text\n** Y\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* Deep                                                                    :t:\n** Deeper\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n\n\n* Lead\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 8,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* No newline\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n*** X\nx text\n**** Y\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 6,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* Deep                                                                    :t:\n** Deeper\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* D\n** E\n",
+   "point": 6,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 7,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n",
+   "point": 6,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 7,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** X\nx text\n*** Y\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** Deep :t:\n*** Deeper\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n\n\n** Lead\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 17,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** No newline\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n*** X\nx text\n**** Y\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** Deep :t:\n*** Deeper\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* D\n** E\n",
+   "point": 6,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 10,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n",
+   "point": 6,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 10,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** X\nx text\n*** Y\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** Deep :t:\n*** Deeper\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n\n\n** Lead\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 17,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** No newline\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n*** X\nx text\n**** Y\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** Deep :t:\n*** Deeper\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* D\n** E\n",
+   "point": 6,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 11,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n",
+   "point": 6,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 11,
+   "kill": "* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** X\nx text\n*** Y\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** Deep :t:\n*** Deeper\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n\n\n** Lead\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 17,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** No newline\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n*** X\nx text\n**** Y\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** Deep :t:\n*** Deeper\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* A\ntext\n* D\n** E\n",
+   "point": 15,
+   "kill": "** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n* A\ntext\n* D\n** E\n",
+   "point": 15,
+   "kill": "** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** X\nx text\n*** Y\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** Deep :t:\n*** Deeper\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n\n\n** Lead\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 17,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** No newline\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n*** X\nx text\n**** Y\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** Deep :t:\n*** Deeper\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* A\ntext\n* D\n** E\n",
+   "point": 15,
+   "kill": "** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 16,
+   "kill": "** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n* A\ntext\n* D\n** E\n",
+   "point": 15,
+   "kill": "** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 16,
+   "kill": "** B :tag:\n*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** X\nx text\n**** Y\n*** C\n\n* D\n** E\n",
+   "point": 26,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** Deep                                                                  :t:\n**** Deeper\n*** C\n\n* D\n** E\n",
+   "point": 26,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n\n\n*** Lead\n*** C\n\n* D\n** E\n",
+   "point": 28,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** No newline\n*** C\n\n* D\n** E\n",
+   "point": 26,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** X\nx text\n**** Y\n*** C\n\n* D\n** E\n",
+   "point": 26,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 16,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** Deep                                                                  :t:\n**** Deeper\n*** C\n\n* D\n** E\n",
+   "point": 26,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n* D\n** E\n",
+   "point": 26,
+   "kill": "*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 26,
+   "kill": "*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n* D\n** E\n",
+   "point": 26,
+   "kill": "*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 26,
+   "kill": "*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** X\nx text\n**** Y\n*** C\n\n* D\n** E\n",
+   "point": 26,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** Deep                                                                  :t:\n**** Deeper\n*** C\n\n* D\n** E\n",
+   "point": 26,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n\n\n*** Lead\n*** C\n\n* D\n** E\n",
+   "point": 28,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** No newline\n*** C\n\n* D\n** E\n",
+   "point": 26,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** X\nx text\n**** Y\n*** C\n\n* D\n** E\n",
+   "point": 26,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 26,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** Deep                                                                  :t:\n**** Deeper\n*** C\n\n* D\n** E\n",
+   "point": 26,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n* D\n** E\n",
+   "point": 26,
+   "kill": "*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 27,
+   "kill": "*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n* D\n** E\n",
+   "point": 26,
+   "kill": "*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 27,
+   "kill": "*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n*** X\nx text\n**** Y\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n*** Deep                                                                  :t:\n**** Deeper\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n\n\n*** Lead\n* D\n** E\n",
+   "point": 35,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n*** No newline\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n*** X\nx text\n**** Y\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 27,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n*** Deep                                                                  :t:\n**** Deeper\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n* D\n** E\n",
+   "point": 26,
+   "kill": "*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 32,
+   "kill": "*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n* D\n** E\n",
+   "point": 26,
+   "kill": "*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 32,
+   "kill": "*** C\n\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n*** X\nx text\n**** Y\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n*** Deep                                                                  :t:\n**** Deeper\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n\n\n*** Lead\n* D\n** E\n",
+   "point": 35,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n*** No newline\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n*** X\nx text\n**** Y\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 32,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n*** Deep                                                                  :t:\n**** Deeper\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n",
+   "point": 33,
+   "kill": "* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 33,
+   "kill": "* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n",
+   "point": 33,
+   "kill": "* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 33,
+   "kill": "* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* X\nx text\n** Y\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* Deep                                                                    :t:\n** Deeper\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n\n\n* Lead\n* D\n** E\n",
+   "point": 35,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* No newline\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n*** X\nx text\n**** Y\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 33,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* Deep                                                                    :t:\n** Deeper\n* D\n** E\n",
+   "point": 33,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n",
+   "point": 33,
+   "kill": "* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 34,
+   "kill": "* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n",
+   "point": 33,
+   "kill": "* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 34,
+   "kill": "* D\n** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** X\nx text\n*** Y\n** E\n",
+   "point": 37,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** Deep :t:\n*** Deeper\n** E\n",
+   "point": 37,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n\n\n** Lead\n** E\n",
+   "point": 39,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** No newline\n** E\n",
+   "point": 37,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n*** X\nx text\n**** Y\n** E\n",
+   "point": 37,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 34,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** Deep :t:\n*** Deeper\n** E\n",
+   "point": 37,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n",
+   "point": 37,
+   "kill": "** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 37,
+   "kill": "** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n",
+   "point": 37,
+   "kill": "** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 37,
+   "kill": "** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** X\nx text\n*** Y\n** E\n",
+   "point": 37,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** Deep :t:\n*** Deeper\n** E\n",
+   "point": 37,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n\n\n** Lead\n** E\n",
+   "point": 39,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** No newline\n** E\n",
+   "point": 37,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n*** X\nx text\n**** Y\n** E\n",
+   "point": 37,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 37,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** Deep :t:\n*** Deeper\n** E\n",
+   "point": 37,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n",
+   "point": 37,
+   "kill": "** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 38,
+   "kill": "** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n",
+   "point": 37,
+   "kill": "** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 38,
+   "kill": "** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n** X\nx text\n*** Y\n",
+   "point": 42,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n** Deep :t:\n*** Deeper\n",
+   "point": 42,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n\n\n** Lead\n",
+   "point": 44,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n** No newline\n",
+   "point": 42,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n*** X\nx text\n**** Y\n",
+   "point": 42,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 38,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n** Deep :t:\n*** Deeper\n",
+   "point": 42,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "cut",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n",
+   "point": 37,
+   "kill": "** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "copy",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 42,
+   "kill": "** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n",
+   "point": 37,
+   "kill": "** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+   "point": 42,
+   "kill": "** E\n"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n** X\nx text\n*** Y\n",
+   "point": 42,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n** Deep :t:\n*** Deeper\n",
+   "point": 42,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n\n\n** Lead\n",
+   "point": 44,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n** No newline\n",
+   "point": 42,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n*** X\nx text\n**** Y\n",
+   "point": 42,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n",
+  "point": 42,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Intro\n* A\ntext\n** B :tag:\n*** C\n\n* D\n** E\n** Deep :t:\n*** Deeper\n",
+   "point": 42,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "cut",
+  "expected": {
+   "text": "* Second",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "copy",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* X\nx text\n** Y\n* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* Deep                                                                    :t:\n** Deeper\n* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "\n\n* Lead\n* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 2,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* No newline\n* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "*** X\nx text\n**** Y\n* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 0,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* Deep                                                                    :t:\n** Deeper\n* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "cut",
+  "expected": {
+   "text": "* Second",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "copy",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 1,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 1,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** X\nx text\n*** Y\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** Deep :t:\n*** Deeper\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n\n\n** Lead\n** DONE Child\n* Second",
+   "point": 55,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** No newline\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n*** X\nx text\n**** Y\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 1,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** Deep :t:\n*** Deeper\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "cut",
+  "expected": {
+   "text": "* Second",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "copy",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 20,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 20,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** X\nx text\n*** Y\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** Deep :t:\n*** Deeper\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n\n\n** Lead\n** DONE Child\n* Second",
+   "point": 55,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** No newline\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n*** X\nx text\n**** Y\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 20,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** Deep :t:\n*** Deeper\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "cut",
+  "expected": {
+   "text": "* Second",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "copy",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 21,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 21,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** X\nx text\n*** Y\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** Deep :t:\n*** Deeper\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n\n\n** Lead\n** DONE Child\n* Second",
+   "point": 55,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** No newline\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n*** X\nx text\n**** Y\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 21,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** Deep :t:\n*** Deeper\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "cut",
+  "expected": {
+   "text": "* Second",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "copy",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 48,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 48,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** X\nx text\n*** Y\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** Deep :t:\n*** Deeper\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n\n\n** Lead\n** DONE Child\n* Second",
+   "point": 55,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** No newline\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n*** X\nx text\n**** Y\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 48,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** Deep :t:\n*** Deeper\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "cut",
+  "expected": {
+   "text": "* Second",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "copy",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 49,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 49,
+   "kill": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** X\nx text\n*** Y\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** Deep :t:\n*** Deeper\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n\n\n** Lead\n** DONE Child\n* Second",
+   "point": 55,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** No newline\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n*** X\nx text\n**** Y\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 49,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** Deep :t:\n*** Deeper\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "cut",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n* Second",
+   "point": 53,
+   "kill": "** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "copy",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n* Second",
+   "point": 53,
+   "kill": "** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** X\nx text\n*** Y\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** Deep :t:\n*** Deeper\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n\n\n** Lead\n** DONE Child\n* Second",
+   "point": 55,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** No newline\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n*** X\nx text\n**** Y\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 53,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** Deep :t:\n*** Deeper\n** DONE Child\n* Second",
+   "point": 53,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "cut",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n* Second",
+   "point": 53,
+   "kill": "** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "copy",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 54,
+   "kill": "** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n* Second",
+   "point": 53,
+   "kill": "** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 54,
+   "kill": "** DONE Child\n"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n** X\nx text\n*** Y\n* Second",
+   "point": 67,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n** Deep :t:\n*** Deeper\n* Second",
+   "point": 67,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n\n\n** Lead\n* Second",
+   "point": 69,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n** No newline\n* Second",
+   "point": 67,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n*** X\nx text\n**** Y\n* Second",
+   "point": 67,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 54,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n** Deep :t:\n*** Deeper\n* Second",
+   "point": 67,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "cut",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n",
+   "point": 67,
+   "kill": "* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "copy",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 67,
+   "kill": "* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n",
+   "point": 67,
+   "kill": "* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 67,
+   "kill": "* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* X\nx text\n** Y\n* Second",
+   "point": 67,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Deep                                                                    :t:\n** Deeper\n* Second",
+   "point": 67,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n\n\n* Lead\n* Second",
+   "point": 69,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* No newline\n* Second",
+   "point": 67,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n*** X\nx text\n**** Y\n* Second",
+   "point": 67,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 67,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Deep                                                                    :t:\n** Deeper\n* Second",
+   "point": 67,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "cut",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n",
+   "point": 67,
+   "kill": "* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "copy",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 68,
+   "kill": "* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n",
+   "point": 67,
+   "kill": "* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 68,
+   "kill": "* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second\n* X\nx text\n** Y\n",
+   "point": 76,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 76,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second\n\n\n* Lead\n",
+   "point": 78,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second\n* No newline\n",
+   "point": 76,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second\n*** X\nx text\n**** Y\n",
+   "point": 76,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 68,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 76,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "cut",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n",
+   "point": 67,
+   "kill": "* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "copy",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 75,
+   "kill": "* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n",
+   "point": 67,
+   "kill": "* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+   "point": 75,
+   "kill": "* Second"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second\n* X\nx text\n** Y\n",
+   "point": 76,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 76,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second\n\n\n* Lead\n",
+   "point": 78,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second\n* No newline\n",
+   "point": 76,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second\n*** X\nx text\n**** Y\n",
+   "point": 76,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second",
+  "point": 75,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* TODO First :work:\nSCHEDULED: <2026-05-18 Mon>\nBody\n** DONE Child\n* Second\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 76,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "cut",
+  "expected": {
+   "text": "* E\n",
+   "point": 0,
+   "kill": "* A\n** B\n** C\n** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 0,
+   "kill": "* A\n** B\n** C\n** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "kill": "* A\n** B\n** C\n** D\n* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 0,
+   "kill": "* A\n** B\n** C\n** D\n* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* X\nx text\n** Y\n* A\n** B\n** C\n** D\n* E\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* Deep                                                                    :t:\n** Deeper\n* A\n** B\n** C\n** D\n* E\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "\n\n* Lead\n* A\n** B\n** C\n** D\n* E\n",
+   "point": 2,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* No newline\n* A\n** B\n** C\n** D\n* E\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "*** X\nx text\n**** Y\n* A\n** B\n** C\n** D\n* E\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* Deep                                                                    :t:\n** Deeper\n* A\n** B\n** C\n** D\n* E\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "cut",
+  "expected": {
+   "text": "* E\n",
+   "point": 0,
+   "kill": "* A\n** B\n** C\n** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 1,
+   "kill": "* A\n** B\n** C\n** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "kill": "* A\n** B\n** C\n** D\n* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 1,
+   "kill": "* A\n** B\n** C\n** D\n* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n** X\nx text\n*** Y\n** B\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n** Deep :t:\n*** Deeper\n** B\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n\n\n** Lead\n** B\n** C\n** D\n* E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n** No newline\n** B\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n*** X\nx text\n**** Y\n** B\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n** Deep :t:\n*** Deeper\n** B\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "cut",
+  "expected": {
+   "text": "* A\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "** B\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "** B\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* A\n** D\n* E\n",
+   "point": 4,
+   "kill": "** B\n** C\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "** B\n** C\n** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n** X\nx text\n*** Y\n** B\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n** Deep :t:\n*** Deeper\n** B\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n\n\n** Lead\n** B\n** C\n** D\n* E\n",
+   "point": 6,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n** No newline\n** B\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n*** X\nx text\n**** Y\n** B\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n** Deep :t:\n*** Deeper\n** B\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "cut",
+  "expected": {
+   "text": "* A\n** C\n** D\n* E\n",
+   "point": 4,
+   "kill": "** B\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 5,
+   "kill": "** B\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* A\n** D\n* E\n",
+   "point": 4,
+   "kill": "** B\n** C\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 5,
+   "kill": "** B\n** C\n** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n** B\n** X\nx text\n*** Y\n** C\n** D\n* E\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n** B\n** Deep :t:\n*** Deeper\n** C\n** D\n* E\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n** B\n\n\n** Lead\n** C\n** D\n* E\n",
+   "point": 11,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n** B\n** No newline\n** C\n** D\n* E\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n** B\n*** X\nx text\n**** Y\n** C\n** D\n* E\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n** B\n** Deep :t:\n*** Deeper\n** C\n** D\n* E\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "cut",
+  "expected": {
+   "text": "* A\n** B\n** D\n* E\n",
+   "point": 9,
+   "kill": "** C\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 9,
+   "kill": "** C\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* A\n** B\n* E\n",
+   "point": 9,
+   "kill": "** C\n** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 9,
+   "kill": "** C\n** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n** B\n** X\nx text\n*** Y\n** C\n** D\n* E\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n** B\n** Deep :t:\n*** Deeper\n** C\n** D\n* E\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n** B\n\n\n** Lead\n** C\n** D\n* E\n",
+   "point": 11,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n** B\n** No newline\n** C\n** D\n* E\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n** B\n*** X\nx text\n**** Y\n** C\n** D\n* E\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 9,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n** B\n** Deep :t:\n*** Deeper\n** C\n** D\n* E\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "cut",
+  "expected": {
+   "text": "* A\n** B\n** D\n* E\n",
+   "point": 9,
+   "kill": "** C\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 10,
+   "kill": "** C\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* A\n** B\n* E\n",
+   "point": 9,
+   "kill": "** C\n** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 10,
+   "kill": "** C\n** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** X\nx text\n*** Y\n** D\n* E\n",
+   "point": 14,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** Deep :t:\n*** Deeper\n** D\n* E\n",
+   "point": 14,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n\n\n** Lead\n** D\n* E\n",
+   "point": 16,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n** B\n** C\n** No newline\n** D\n* E\n",
+   "point": 14,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n*** X\nx text\n**** Y\n** D\n* E\n",
+   "point": 14,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n** B\n** C\n** Deep :t:\n*** Deeper\n** D\n* E\n",
+   "point": 14,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "cut",
+  "expected": {
+   "text": "* A\n** B\n** C\n* E\n",
+   "point": 14,
+   "kill": "** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 14,
+   "kill": "** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* A\n** B\n** C\n* E\n",
+   "point": 14,
+   "kill": "** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 14,
+   "kill": "** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** X\nx text\n*** Y\n** D\n* E\n",
+   "point": 14,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** Deep :t:\n*** Deeper\n** D\n* E\n",
+   "point": 14,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n\n\n** Lead\n** D\n* E\n",
+   "point": 16,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n** B\n** C\n** No newline\n** D\n* E\n",
+   "point": 14,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n*** X\nx text\n**** Y\n** D\n* E\n",
+   "point": 14,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 14,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n** B\n** C\n** Deep :t:\n*** Deeper\n** D\n* E\n",
+   "point": 14,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "cut",
+  "expected": {
+   "text": "* A\n** B\n** C\n* E\n",
+   "point": 14,
+   "kill": "** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 15,
+   "kill": "** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* A\n** B\n** C\n* E\n",
+   "point": 14,
+   "kill": "** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 15,
+   "kill": "** D\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n** X\nx text\n*** Y\n* E\n",
+   "point": 19,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n** Deep :t:\n*** Deeper\n* E\n",
+   "point": 19,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n\n\n** Lead\n* E\n",
+   "point": 21,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n** No newline\n* E\n",
+   "point": 19,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n*** X\nx text\n**** Y\n* E\n",
+   "point": 19,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 15,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n** Deep :t:\n*** Deeper\n* E\n",
+   "point": 19,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "cut",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n",
+   "point": 19,
+   "kill": "* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 19,
+   "kill": "* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n",
+   "point": 19,
+   "kill": "* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 19,
+   "kill": "* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* X\nx text\n** Y\n* E\n",
+   "point": 19,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* Deep                                                                    :t:\n** Deeper\n* E\n",
+   "point": 19,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n\n\n* Lead\n* E\n",
+   "point": 21,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* No newline\n* E\n",
+   "point": 19,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n*** X\nx text\n**** Y\n* E\n",
+   "point": 19,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 19,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* Deep                                                                    :t:\n** Deeper\n* E\n",
+   "point": 19,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "cut",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n",
+   "point": 19,
+   "kill": "* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 20,
+   "kill": "* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n",
+   "point": 19,
+   "kill": "* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 20,
+   "kill": "* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n* X\nx text\n** Y\n",
+   "point": 23,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 23,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n\n\n* Lead\n",
+   "point": 25,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n* No newline\n",
+   "point": 23,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n*** X\nx text\n**** Y\n",
+   "point": 23,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 20,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 23,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "cut",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n",
+   "point": 19,
+   "kill": "* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 23,
+   "kill": "* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n",
+   "point": 19,
+   "kill": "* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n",
+   "point": 23,
+   "kill": "* E\n"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n* X\nx text\n** Y\n",
+   "point": 23,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 23,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n\n\n* Lead\n",
+   "point": 25,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n* No newline\n",
+   "point": 23,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n*** X\nx text\n**** Y\n",
+   "point": 23,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n** B\n** C\n** D\n* E\n",
+  "point": 23,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n** B\n** C\n** D\n* E\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 23,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "cut",
+  "expected": {
+   "text": "* B\n",
+   "point": 0,
+   "kill": "* A\n**\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 0,
+   "kill": "* A\n**\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "kill": "* A\n**\n* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 0,
+   "kill": "* A\n**\n* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* X\nx text\n** Y\n* A\n**\n* B\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* Deep                                                                    :t:\n** Deeper\n* A\n**\n* B\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "\n\n* Lead\n* A\n**\n* B\n",
+   "point": 2,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* No newline\n* A\n**\n* B\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "*** X\nx text\n**** Y\n* A\n**\n* B\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* Deep                                                                    :t:\n** Deeper\n* A\n**\n* B\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "cut",
+  "expected": {
+   "text": "* B\n",
+   "point": 0,
+   "kill": "* A\n**\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 1,
+   "kill": "* A\n**\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "kill": "* A\n**\n* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 1,
+   "kill": "* A\n**\n* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n**\n* X\nx text\n** Y\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n**\n* Deep                                                                    :t:\n** Deeper\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n**\n\n\n* Lead\n* B\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n**\n* No newline\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n**\n*** X\nx text\n**** Y\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n**\n* Deep                                                                    :t:\n** Deeper\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "cut",
+  "expected": {
+   "text": "* B\n",
+   "point": 0,
+   "kill": "* A\n**\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 4,
+   "kill": "* A\n**\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "kill": "* A\n**\n* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 4,
+   "kill": "* A\n**\n* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n**\n* X\nx text\n** Y\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n**\n* Deep                                                                    :t:\n** Deeper\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n**\n\n\n* Lead\n* B\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n**\n* No newline\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n**\n*** X\nx text\n**** Y\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 4,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n**\n* Deep                                                                    :t:\n** Deeper\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "cut",
+  "expected": {
+   "text": "* B\n",
+   "point": 0,
+   "kill": "* A\n**\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 5,
+   "kill": "* A\n**\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "kill": "* A\n**\n* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 5,
+   "kill": "* A\n**\n* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n**\n* X\nx text\n** Y\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n**\n* Deep                                                                    :t:\n** Deeper\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n**\n\n\n* Lead\n* B\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n**\n* No newline\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n**\n*** X\nx text\n**** Y\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 5,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n**\n* Deep                                                                    :t:\n** Deeper\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "cut",
+  "expected": {
+   "text": "* A\n**\n",
+   "point": 7,
+   "kill": "* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 7,
+   "kill": "* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* A\n**\n",
+   "point": 7,
+   "kill": "* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 7,
+   "kill": "* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n**\n* X\nx text\n** Y\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n**\n* Deep                                                                    :t:\n** Deeper\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n**\n\n\n* Lead\n* B\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n**\n* No newline\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n**\n*** X\nx text\n**** Y\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n**\n* Deep                                                                    :t:\n** Deeper\n* B\n",
+   "point": 7,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "cut",
+  "expected": {
+   "text": "* A\n**\n",
+   "point": 7,
+   "kill": "* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 8,
+   "kill": "* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* A\n**\n",
+   "point": 7,
+   "kill": "* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 8,
+   "kill": "* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n**\n* B\n* X\nx text\n** Y\n",
+   "point": 11,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n**\n* B\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 11,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n**\n* B\n\n\n* Lead\n",
+   "point": 13,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n**\n* B\n* No newline\n",
+   "point": 11,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n**\n* B\n*** X\nx text\n**** Y\n",
+   "point": 11,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 8,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n**\n* B\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 11,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "cut",
+  "expected": {
+   "text": "* A\n**\n",
+   "point": 7,
+   "kill": "* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "copy",
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 11,
+   "kill": "* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "text": "* A\n**\n",
+   "point": 7,
+   "kill": "* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "text": "* A\n**\n* B\n",
+   "point": 11,
+   "kill": "* B\n"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* A\n**\n* B\n* X\nx text\n** Y\n",
+   "point": 11,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* A\n**\n* B\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 11,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "* A\n**\n* B\n\n\n* Lead\n",
+   "point": 13,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* A\n**\n* B\n* No newline\n",
+   "point": 11,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "* A\n**\n* B\n*** X\nx text\n**** Y\n",
+   "point": 11,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* A\n**\n* B\n",
+  "point": 11,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n**\n* B\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 11,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "cut",
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "copy",
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "* X\nx text\n** Y\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "* Deep                                                                    :t:\n** Deeper\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "\n\n* Lead\n",
+   "point": 2,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "* No newline\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "*** X\nx text\n**** Y\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* Deep                                                                    :t:\n** Deeper\n",
+   "point": 0,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "cut",
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "copy",
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Just text\n* X\nx text\n** Y\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Just text\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Just text\n\n\n* Lead\n",
+   "point": 12,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Just text\n* No newline\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Just text\n*** X\nx text\n**** Y\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 0,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Just text\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "cut",
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "copy",
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Just text\n* X\nx text\n** Y\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Just text\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Just text\n\n\n* Lead\n",
+   "point": 12,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Just text\n* No newline\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Just text\n*** X\nx text\n**** Y\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 1,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Just text\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "cut",
+  "expected": {
+   "error": "Before first headline at position 11 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "copy",
+  "expected": {
+   "error": "Before first headline at position 11 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "cut",
+  "count": 2,
+  "expected": {
+   "error": "Before first headline at position 11 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "copy",
+  "count": 3,
+  "expected": {
+   "error": "Before first headline at position 11 in buffer  *temp*"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "expected": {
+   "text": "Just text\n* X\nx text\n** Y\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "expected": {
+   "text": "Just text\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "\n\n* Lead\n",
+  "expected": {
+   "text": "Just text\n\n\n* Lead\n",
+   "point": 12,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "not a tree\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "*** Three\n* One\n",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "* No newline",
+  "expected": {
+   "text": "Just text\n* No newline\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "  * indented",
+  "expected": {
+   "error": "The kill is not a (set of) tree(s).  Use ‘C-y’ to yank anyway"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "* X\nx text\n** Y\n",
+  "level": 3,
+  "expected": {
+   "text": "Just text\n*** X\nx text\n**** Y\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "Just text\n",
+  "point": 10,
+  "op": "paste",
+  "kill": "** Deep :t:\n*** Deeper\n",
+  "adapt": "t",
+  "expected": {
+   "text": "Just text\n* Deep                                                                    :t:\n** Deeper\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ }
+]

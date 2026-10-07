@@ -270,6 +270,21 @@
         "category": "Org"
       },
       {
+        "command": "org.cut.subtree",
+        "title": "Cut the subtree",
+        "category": "Org"
+      },
+      {
+        "command": "org.copy.subtree",
+        "title": "Copy the subtree",
+        "category": "Org"
+      },
+      {
+        "command": "org.paste.subtree",
+        "title": "Paste the subtree",
+        "category": "Org"
+      },
+      {
         "command": "org.refile",
         "title": "Refile the entry",
         "category": "Org"
@@ -2751,6 +2766,21 @@
         }
       },
       {
+        "command": "org.cut.subtree",
+        "key": "ctrl+c ctrl+x ctrl+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.copy.subtree",
+        "key": "ctrl+c ctrl+x alt+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.paste.subtree",
+        "key": "ctrl+c ctrl+x ctrl+y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
         "command": "org.refile",
         "key": "ctrl+c ctrl+w",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
@@ -3700,6 +3730,9 @@
       "org",
       "org-agenda",
       "org-date"
+    ],
+    "clipboardCommands": [
+      "org.paste.subtree"
     ]
   }
 }
