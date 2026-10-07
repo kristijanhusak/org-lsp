@@ -163,6 +163,7 @@ The plugin adds keys of its own, which only an editor can carry out:
 | `<Tab>` | `cycle` | `org` | Cycle the visibility of the subtree at the cursor |
 | `<S-Tab>` | `global_cycle` | `org` | Cycle the visibility of the whole file |
 | `q` | `quit` | `agenda` | Close the agenda |
+| `K` | `hover` | `agenda` | Show the entry of the line in a float, highlighted |
 | `g?` | `help` | `org`, `agenda` | Show the keys of the buffer in a window (`q` closes it) |
 
 A capture buffer is an Org file, so it has the keys of Org files as well
@@ -189,9 +190,11 @@ subtree at the cursor.
 - **`<Leader><CR>`** and its neighbours put the new heading, item or table
   row below the cursor's line, wherever on it the cursor is: never above
   it, and nothing is split. Typing goes on in insert mode.
-- **`K`** in the agenda (Neovim's hover) shows the line's entry in a float
-  at the cursor: its headline and its text, each drawer folded to its
-  first line (`:PROPERTIES:...`).
+- **`K`** in the agenda shows the line's entry in a float at the cursor:
+  its headline and its text, each drawer folded to its first line
+  (`:PROPERTIES:...`), highlighted as Org files are. A second `K` goes
+  into the float, `q` there closes it, and moving the cursor closes it
+  too.
 - **`cid`** leaves the cursor where it was in the timestamp it changes,
   and a date asked for in the calendar goes back to the window it was
   asked from.
@@ -278,7 +281,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
 Keys set this way are not repeated by `.`; keys set through `mappings`
 are. `run` also takes the plugin's own names (`cycle`, `global_cycle`,
-`quit`).
+`quit`, `hover`).
 
 ### From the command line
 

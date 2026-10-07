@@ -55,7 +55,9 @@ let g:org_lsp = {
 
 The keys are the Neovim plugin's; [docs/neovim/keys.md](../neovim/keys.md)
 lists them (the date prompt's calendar aside). `g?` in an Org file or the
-agenda shows the keys set there, yours included, in a popup. `:Org agenda`, `:Org
+agenda shows the keys set there, yours included, in a popup. `K` in the
+agenda shows the entry of the line in a popup at the cursor, highlighted
+as Org files are; moving the cursor closes it. `:Org agenda`, `:Org
 capture`, `:Org todo next` … run any command.
 
 For the clock in the statusline:

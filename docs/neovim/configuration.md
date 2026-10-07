@@ -107,7 +107,7 @@ require('org-lsp').setup({
       ['org.clock.goto'] = '<Leader>oxj',
     },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>' },
-    agenda = { quit = 'q' },
+    agenda = { quit = 'q', hover = 'K' },
   },
 })
 ```

@@ -715,26 +715,41 @@ eq({ vim.bo.filetype, vim.api.nvim_win_get_cursor(0) }, { 'org-agenda', { 2, 0 }
 only_window()
 vim.g.mapleader = nil
 
--- 16. A hover (`K`) over an entry shows it in a float at the cursor: the
--- headline and its text.
+-- 16. `K` over an entry shows it in a float at the cursor: the headline
+-- and its text, in an Org buffer highlighted by the server. Moving the
+-- cursor closes it.
 choice = 'a'
 press('\\oa')
 wait_for_view('Week-agenda (W21):')
+local before_hover = lines()
 vim.api.nvim_win_set_cursor(0, { 4, 30 })
-vim.lsp.buf.hover()
-local hovered
+press('K')
+local float
 wait('the entry in a float', function()
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     if vim.api.nvim_win_get_config(win).relative ~= '' then
-      local text = table.concat(vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), 0, -1, false), '\n')
-      if text:find('* TODO [#A] Write the report :office:', 1, true) then
-        hovered = text
-        return true
-      end
+      float = win
+      return true
     end
   end
 end)
-check(hovered:find('SCHEDULED: <2026-05-18 Mon 09:00>', 1, true) ~= nil, 'with its text')
+local float_buf = vim.api.nvim_win_get_buf(float)
+eq(vim.api.nvim_buf_get_lines(float_buf, 0, 2, false), { '* TODO [#A] Write the report :office:', 'SCHEDULED: <2026-05-18 Mon 09:00>' },
+  'the headline and its text, as Org')
+eq(vim.bo[float_buf].filetype, 'org', 'an Org buffer')
+wait('the server\'s highlighting in the float', function()
+  local tokens = vim.lsp.semantic_tokens.get_at_pos(float_buf, 0, 2)
+  return tokens ~= nil and tokens[1] ~= nil and tokens[1].type == 'todoKeyword'
+end)
+eq(vim.api.nvim_get_current_win() ~= float, true, 'the cursor stays in the agenda')
+eq(lines(), before_hover, 'the shown entry is no file of the agenda')
+press('j')
+-- (A script never gets back to Neovim's main loop, which reports the
+-- moved cursor.)
+vim.api.nvim_exec_autocmds('CursorMoved', { buffer = 0 })
+wait('the float to close', function()
+  return not vim.api.nvim_win_is_valid(float)
+end)
 only_window()
 
 print(('ok: %d checks passed'):format(checks))

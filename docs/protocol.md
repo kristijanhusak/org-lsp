@@ -15,7 +15,8 @@ the agenda document and the semantic tokens.
 | `textDocument/codeAction` | The commands that apply at the cursor. See [Commands](#commands). |
 | `workspace/executeCommand` | Every command. See [Commands](#commands). |
 | `textDocument/definition` | In the agenda: from a line to its entry. |
-| `textDocument/hover` | In the agenda: the line's entry, its headline and its text up to the next heading, each drawer folded to its first line as Emacs shows a folded drawer (`:PROPERTIES:...`), as Org in a fenced block of Markdown. Elsewhere none. |
+| `textDocument/hover` | In the agenda: the line's entry, its headline and its text up to the next heading, each drawer folded to its first line as Emacs shows a folded drawer (`:PROPERTIES:...`), as Org in a fenced block of Markdown. Elsewhere none. An editor that shows the entry in an Org buffer of its own can have it highlighted by opening that buffer as an Org document with a URI that is no file (Neovim: `org-preview:/1`); such a document is no file of an agenda built from the open files. |
+| `org-lsp/preview` | The same text of an agenda line's entry with its semantic tokens, for an editor that shows it in a popup of its own: `{ "text", "data" }` (`data` as in `SemanticTokens`), or null. Params: `TextDocumentPositionParams`. |
 | `textDocument/completion` | In a headline: TODO keywords for the first word after the stars, and the file's tags after a `:` in the headline's tags (`pcomplete`). `:` triggers it. |
 | `workspace/textDocumentContent` | The text of the agenda. See [The agenda document](#the-agenda-document). |
 | `textDocument/onTypeFormatting` | After a line break: `org-indent-line` on the new line (Org's `RET`), following `adaptIndentation`. No edit when the line is indented right, or when Org leaves such a line as it is (headlines, the first line of a list item, the code of a source block). |

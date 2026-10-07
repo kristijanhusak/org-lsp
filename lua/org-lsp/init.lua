@@ -35,7 +35,7 @@ local SERVER = 'org_lsp'
 ---@field mappings? org_lsp.Mappings|false Keys by scope; `false` sets no keys at all. See docs/neovim/keys.md.
 
 --- Keys by scope. In a scope, a command (`org.todo`, or one of the plugin's
---- own: `cycle`, `global_cycle`, `quit`, `help`) maps to a key, a list of keys, or
+--- own: `cycle`, `global_cycle`, `quit`, `help`, `hover`) maps to a key, a list of keys, or
 --- `false`; commands that are not listed keep the server's default keys.
 --- `false` instead of a scope's table sets no keys in that scope.
 ---@class org_lsp.Mappings
@@ -64,7 +64,7 @@ local defaults = {
       ['org.clock.goto'] = '<Leader>oxj',
     },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>', help = 'g?' },
-    agenda = { quit = 'q', help = 'g?' },
+    agenda = { quit = 'q', help = 'g?', hover = 'K' },
   },
 }
 
@@ -89,6 +89,9 @@ local own_commands = {
   end },
   quit = { 'Agenda: close', function()
     require('org-lsp.view').close_buffer(vim.api.nvim_get_current_buf())
+  end },
+  hover = { 'Agenda: show the entry of the line', function()
+    require('org-lsp.preview').show()
   end },
 }
 
@@ -540,7 +543,7 @@ function M.keys(scope)
   for _, command in ipairs(M.manifest and M.manifest.commands or {}) do
     add(command.command, command.title)
   end
-  for _, name in ipairs({ 'cycle', 'global_cycle', 'quit', 'help' }) do
+  for _, name in ipairs({ 'cycle', 'global_cycle', 'quit', 'hover', 'help' }) do
     add(name, own_commands[name][1])
   end
   -- Keys of the user's for commands neither knows of.
@@ -717,10 +720,15 @@ local function on_attach(client, bufnr)
   if M.manifest.datePrompt and vim.bo[bufnr].filetype == M.manifest.datePrompt.languageId then
     return set_keys('calendar', bufnr)
   end
-  set_keys('org', bufnr)
+  -- An agenda entry in a float (`K`): highlighted as any Org file, with
+  -- no keys, indenting or folds.
+  local preview = vim.b[bufnr].org_lsp_preview
+  if not preview then
+    set_keys('org', bufnr)
+  end
   -- A capture buffer is an Org file with keys of its own on top.
   local prefix = M.manifest.capture and M.manifest.capture.prefix
-  if prefix and vim.startswith(vim.fs.basename(vim.api.nvim_buf_get_name(bufnr)), prefix) then
+  if not preview and prefix and vim.startswith(vim.fs.basename(vim.api.nvim_buf_get_name(bufnr)), prefix) then
     set_keys('capture', bufnr)
   end
   if M.config.replace_syntax and client:supports_method('textDocument/semanticTokens/full') then
@@ -731,6 +739,9 @@ local function on_attach(client, bufnr)
   end
   if M.config.src_highlight then
     require('org-lsp.src').attach(bufnr)
+  end
+  if preview then
+    return
   end
   if M.config.indent and client:supports_method('textDocument/onTypeFormatting') then
     require('org-lsp.indent').attach(bufnr)
