@@ -384,7 +384,7 @@ fn title(headline: &str, keywords: &TodoKeywords) -> String {
 
 /// `org-sort-remove-invisible`: the text without emphasis markers, links
 /// as their descriptions or, without one, their targets.
-fn visible(title: &str) -> String {
+pub(crate) fn visible(title: &str) -> String {
     let mut out = String::new();
     write_visible(&org_syntax::parse_objects(title), &mut out);
     out
@@ -429,7 +429,7 @@ fn write_visible(node: &SyntaxNode, out: &mut String) {
 
 /// `string-to-number`: the number at the start of `text`, after blanks,
 /// or 0.
-fn string_to_number(text: &str) -> f64 {
+pub(crate) fn string_to_number(text: &str) -> f64 {
     static NUMBER: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"^[ \t\n]*([-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][-+]?[0-9]+)?)").unwrap());
     NUMBER
@@ -449,7 +449,7 @@ fn priority_value(value: &str) -> i64 {
 
 /// `org-parse-time-string` of the first timestamp in `text`: its date,
 /// and its time or midnight.
-fn parse_time(text: &str) -> Option<DateTime> {
+pub(crate) fn parse_time(text: &str) -> Option<DateTime> {
     static TIME: LazyLock<Regex> = LazyLock::new(|| {
         Regex::new(r"(\d{4})-(\d{2})-(\d{2})(?: +[^\]+0-9>\r\n -]+)?(?: +(\d{1,2}):(\d{2}))?").unwrap()
     });
@@ -458,7 +458,7 @@ fn parse_time(text: &str) -> Option<DateTime> {
     Some(DateTime::new(Date::new(number(1), number(2), number(3)), number(4), number(5)))
 }
 
-fn seconds(time: DateTime) -> f64 {
+pub(crate) fn seconds(time: DateTime) -> f64 {
     ((time.day * 1440 + time.minute) * 60) as f64
 }
 

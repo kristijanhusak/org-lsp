@@ -918,6 +918,11 @@ async function cycle(args?: Partial<KeyArgs>): Promise<void> {
   if (!editor) {
     return;
   }
+  // In a table, TAB goes to the next field (`org-table-next-field`).
+  if (atTable(editor)) {
+    await vscode.commands.executeCommand('org.table.next.field');
+    return;
+  }
   const ranges = await foldingRanges(editor.document);
   const line = editor.selection.active.line;
   let current = ranges.find((range) => range.start === line);
@@ -959,6 +964,11 @@ async function cycle(args?: Partial<KeyArgs>): Promise<void> {
   }
 }
 
+/** Whether the cursor is on a line of a table. */
+function atTable(editor: vscode.TextEditor): boolean {
+  return /^\s*\|/.test(editor.document.lineAt(editor.selection.active.line).text);
+}
+
 /**
  * `org-global-cycle`: OVERVIEW (the top level only), then CONTENTS (every
  * headline, the entries without subheadings closed), then SHOW ALL.
@@ -966,6 +976,11 @@ async function cycle(args?: Partial<KeyArgs>): Promise<void> {
 async function cycleGlobal(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
+    return;
+  }
+  // In a table, S-TAB goes to the previous field.
+  if (atTable(editor)) {
+    await vscode.commands.executeCommand('org.table.previous.field');
     return;
   }
   const state = lastState(editor, -1);

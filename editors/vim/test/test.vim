@@ -508,7 +508,7 @@ function! s:help() abort
   call assert_true(popup > 0, 'a popup')
   let shown = getbufline(winbufnr(popup), 1, '$')
   call assert_equal('Org file', shown[0])
-  call assert_true(index(shown, '  cit           Change the TODO state') >= 0, string(shown))
+  call assert_true(match(shown, '^  cit\s\+Change the TODO state$') >= 0, string(shown))
   call assert_true(match(shown, '^  g?\s\+Show the keys$') >= 0, 'g? is listed')
   call popup_close(popup)
 endfunction

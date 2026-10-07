@@ -53,13 +53,19 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oiT` | `org.insert.todo.heading` | New TODO heading, or item with a checkbox |
 | `<Leader>oih` | `org.insert.heading.after` | New heading after the subtree |
 | `<Leader>oit` | `org.insert.todo.heading.after` | New TODO heading after the subtree |
-| `<<`¹ | `org.meta.left` | Promote the heading; outdent the item |
-| `>>`¹ | `org.meta.right` | Demote the heading; indent the item, the drawer or the block |
-| `<s` | `org.shiftmeta.left` | Promote the subtree; outdent the item with its children |
-| `>s` | `org.shiftmeta.right` | Demote the subtree; indent the item with its children |
-| `<Leader>oK` | `org.meta.up` | Move the subtree or the item up |
-| `<Leader>oJ` | `org.meta.down` | Move the subtree or the item down |
-| `<Leader>o^` | `org.sort` | Sort the entries |
+| `<<`¹ | `org.meta.left` | Promote the heading; outdent the item; move the table column left |
+| `>>`¹ | `org.meta.right` | Demote the heading; indent the item, the drawer or the block; move the table column right |
+| `<s` | `org.shiftmeta.left` | Promote the subtree; outdent the item with its children; delete the table column |
+| `>s` | `org.shiftmeta.right` | Demote the subtree; indent the item with its children; insert a table column |
+| `<Leader>oK` | `org.meta.up` | Move the subtree, the item or the table row up |
+| `<Leader>oJ` | `org.meta.down` | Move the subtree, the item or the table row down |
+| `<Leader>oTd` | `org.shiftmeta.up` | Delete the table row |
+| `<Leader>oTO` | `org.shiftmeta.down` | Insert a table row above |
+| `<Leader>oTo` | `org.table.insert.row.below` | Insert a table row below |
+| `<Leader>o-` | `org.table.hline` | Insert a rule below the table row |
+| `<Leader>o<CR>` | `org.table.hline.move` | Insert a rule below the table row and go below it |
+| `<Leader>o<Space>` | `org.table.blank.field` | Blank the table field |
+| `<Leader>o^` | `org.sort` | Sort the entries, the items or the table rows |
 | `<Leader>o/` | `org.sparse.tree` | Show a sparse tree |
 | `<Leader>osd` | `org.cut.subtree` | Cut the subtree |
 | `<Leader>osy` | `org.copy.subtree` | Copy the subtree |
@@ -170,6 +176,9 @@ The other options are in [configuration.md](configuration.md).
 | `org.property.delete` | Delete a property of the entry |
 | `org.property.delete.globally` | Delete a property from every entry of the file |
 | `org.ordered.toggle` | Toggle whether subtasks must be done in order (ORDERED) |
+| `org.table.next.field` | Go to the next table field, making a row after the last |
+| `org.table.previous.field` | Go to the previous table field |
+| `org.table.hline.above` | Insert a rule above the table row |
 | `org.table.recalculate.line` | Recalculate the table's current line |
 | `org.table.iterate` | Recalculate the table until it does not change |
 | `org.archive.done` | Archive the subtrees without open TODO items |

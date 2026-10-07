@@ -350,49 +350,112 @@
     }
   },
   {
-    "caption": "Org: Promote the heading; outdent the item",
+    "caption": "Org: Promote the heading; outdent the item; move the table column left",
     "command": "org_lsp_run",
     "args": {
       "command": "org.meta.left"
     }
   },
   {
-    "caption": "Org: Demote the heading; indent the item, the drawer or the block",
+    "caption": "Org: Demote the heading; indent the item, the drawer or the block; move the table column right",
     "command": "org_lsp_run",
     "args": {
       "command": "org.meta.right"
     }
   },
   {
-    "caption": "Org: Promote the subtree; outdent the item with its children",
+    "caption": "Org: Promote the subtree; outdent the item with its children; delete the table column",
     "command": "org_lsp_run",
     "args": {
       "command": "org.shiftmeta.left"
     }
   },
   {
-    "caption": "Org: Demote the subtree; indent the item with its children",
+    "caption": "Org: Demote the subtree; indent the item with its children; insert a table column",
     "command": "org_lsp_run",
     "args": {
       "command": "org.shiftmeta.right"
     }
   },
   {
-    "caption": "Org: Move the subtree or the item up",
+    "caption": "Org: Move the subtree, the item or the table row up",
     "command": "org_lsp_run",
     "args": {
       "command": "org.meta.up"
     }
   },
   {
-    "caption": "Org: Move the subtree or the item down",
+    "caption": "Org: Move the subtree, the item or the table row down",
     "command": "org_lsp_run",
     "args": {
       "command": "org.meta.down"
     }
   },
   {
-    "caption": "Org: Sort the entries",
+    "caption": "Org: Delete the table row",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shiftmeta.up"
+    }
+  },
+  {
+    "caption": "Org: Insert a table row above",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shiftmeta.down"
+    }
+  },
+  {
+    "caption": "Org: Insert a table row below",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.insert.row.below"
+    }
+  },
+  {
+    "caption": "Org: Go to the next table field, making a row after the last",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.next.field"
+    }
+  },
+  {
+    "caption": "Org: Go to the previous table field",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.previous.field"
+    }
+  },
+  {
+    "caption": "Org: Insert a rule below the table row",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.hline"
+    }
+  },
+  {
+    "caption": "Org: Insert a rule above the table row",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.hline.above"
+    }
+  },
+  {
+    "caption": "Org: Insert a rule below the table row and go below it",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.hline.move"
+    }
+  },
+  {
+    "caption": "Org: Blank the table field",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.blank.field"
+    }
+  },
+  {
+    "caption": "Org: Sort the entries, the items or the table rows",
     "command": "org_lsp_run",
     "args": {
       "command": "org.sort"

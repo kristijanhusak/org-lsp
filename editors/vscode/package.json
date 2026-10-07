@@ -307,37 +307,82 @@
       },
       {
         "command": "org.meta.left",
-        "title": "Promote the heading; outdent the item",
+        "title": "Promote the heading; outdent the item; move the table column left",
         "category": "Org"
       },
       {
         "command": "org.meta.right",
-        "title": "Demote the heading; indent the item, the drawer or the block",
+        "title": "Demote the heading; indent the item, the drawer or the block; move the table column right",
         "category": "Org"
       },
       {
         "command": "org.shiftmeta.left",
-        "title": "Promote the subtree; outdent the item with its children",
+        "title": "Promote the subtree; outdent the item with its children; delete the table column",
         "category": "Org"
       },
       {
         "command": "org.shiftmeta.right",
-        "title": "Demote the subtree; indent the item with its children",
+        "title": "Demote the subtree; indent the item with its children; insert a table column",
         "category": "Org"
       },
       {
         "command": "org.meta.up",
-        "title": "Move the subtree or the item up",
+        "title": "Move the subtree, the item or the table row up",
         "category": "Org"
       },
       {
         "command": "org.meta.down",
-        "title": "Move the subtree or the item down",
+        "title": "Move the subtree, the item or the table row down",
+        "category": "Org"
+      },
+      {
+        "command": "org.shiftmeta.up",
+        "title": "Delete the table row",
+        "category": "Org"
+      },
+      {
+        "command": "org.shiftmeta.down",
+        "title": "Insert a table row above",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.insert.row.below",
+        "title": "Insert a table row below",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.next.field",
+        "title": "Go to the next table field, making a row after the last",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.previous.field",
+        "title": "Go to the previous table field",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.hline",
+        "title": "Insert a rule below the table row",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.hline.above",
+        "title": "Insert a rule above the table row",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.hline.move",
+        "title": "Insert a rule below the table row and go below it",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.blank.field",
+        "title": "Blank the table field",
         "category": "Org"
       },
       {
         "command": "org.sort",
-        "title": "Sort the entries",
+        "title": "Sort the entries, the items or the table rows",
         "category": "Org"
       },
       {
@@ -2973,6 +3018,36 @@
             "editor.action.moveLinesDownAction"
           ]
         }
+      },
+      {
+        "command": "org.shiftmeta.up",
+        "key": "alt+shift+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "editor.action.copyLinesUpAction"
+          ]
+        }
+      },
+      {
+        "command": "org.shiftmeta.down",
+        "key": "alt+shift+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "editor.action.copyLinesDownAction"
+          ]
+        }
+      },
+      {
+        "command": "org.table.hline",
+        "key": "ctrl+c -",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.hline.move",
+        "key": "ctrl+c enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
         "command": "org.sort",

@@ -1322,6 +1322,10 @@ function! s:stays_closed(start) abort
 endfunction
 
 function! org_lsp#cycle() abort
+  " In a table, TAB goes to the next field (`org-table-next-field`).
+  if getline('.') =~# '^\s*|'
+    return org_lsp#run('org.table.next.field')
+  endif
   let all = s:fold_ranges(bufnr())
   let line = line('.')
   let current = []
@@ -1360,6 +1364,10 @@ endfunction
 " Cycle the whole file between overview (all folded) and all visible but
 " the archived subtrees.
 function! org_lsp#global_cycle() abort
+  " In a table, S-TAB goes to the previous field.
+  if getline('.') =~# '^\s*|'
+    return org_lsp#run('org.table.previous.field')
+  endif
   if &l:foldlevel == 0
     normal! zR
     call s:hide_archived(s:fold_ranges(bufnr()), 1, line('$'))
