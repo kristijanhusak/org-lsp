@@ -60,6 +60,7 @@ others), as close to Emacs Org mode as it can get.
 | 5 | Agenda formats (`org-agenda-prefix-format` and the options around it); TAB in another window; tags at the window's edge (`org_agenda_tags_column` `"auto"`); Zed runs the agenda's keys at once | #51, #52, #54 |
 | 11, 5 | A hover over an agenda line shows its entry (`textDocument/hover`, `org-lsp/preview`); `K` shows it highlighted in Neovim and Vim | #59–#61 |
 | 6, 5, 14 | Structure editing: promote, demote and move subtrees; the clocked agenda line highlighted edge to edge and moving with the clock (`org-lsp/lineHighlights`), no flicker when the agenda refreshes; options named after Org's variables (`org_agenda_files`; old names read with a message) | #63, #64, #65 |
+| 8 | Lists: indent, outdent and move items, cycle bullets, next and previous item, `C-c C-c` repairing and renumbering (`org-ctrl-c-ctrl-c`), sorting items (`org-sort-list`) | #69 |
 | — | Fixes: repeating entries' message, the cursor after date changes, Neovim's flicker on server edits | #53, #55, #58 |
 
 ### Where to pick up
