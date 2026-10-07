@@ -382,7 +382,12 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   completed, the entry on hover (`plain`), following a key
   (`org-cite-basic-goto`), unknown keys as diagnostics with the close
   keys to put instead.
-- Left: `org-cite-insert` (`C-c C-x @`), export.
+- Done: `org-cite-insert` (`C-c C-x @`, `C-u` for its prefix argument):
+  a new citation, a key added or replaced, the style changed, a citation
+  or a reference deleted, and where a citation may go
+  (`org-cite--allowed-p` over `org-element-context`); checked against
+  Emacs in `tests/cite/insert.json` (`scripts/fuzz-cite-insert.py`).
+- Left: export.
 
 ### 7. Tags and properties
 

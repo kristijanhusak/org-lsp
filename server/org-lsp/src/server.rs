@@ -2746,6 +2746,10 @@ impl Server {
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
             commands::OPEN => self.open_at_point(&context.ok_or("This command needs the cursor position")?),
+            commands::CITE_INSERT | commands::CITE_INSERT_PREFIX => self.cite_insert(
+                params.command == commands::CITE_INSERT_PREFIX,
+                &context.ok_or("This command needs the cursor position")?,
+            ),
             commands::TANGLE => self.tangle(&context.ok_or("This command needs the cursor position")?),
             id if id.starts_with("org.archive.") => {
                 self.archive(id, &context.ok_or("This command needs the cursor position")?)
@@ -5326,6 +5330,129 @@ impl Server {
     /// The entry of `key` in a bibliography, and the file it is in.
     fn cite_entry<'a>(files: &'a [Rc<BibFile>], key: &str) -> Option<(&'a BibFile, &'a org_core::cite::Entry)> {
         files.iter().find_map(|file| file.entries.iter().find(|entry| entry.key == key).map(|entry| (&**file, entry)))
+    }
+
+    /// `org-cite-insert` (`C-c C-x @`), with the prefix argument `arg`
+    /// (`C-u`), and the `basic` processor's questions: keys one at a time
+    /// (step `keys`, those picked so far in `answers` separated by `;`)
+    /// until `(done)`, then with `arg` a style (step `new-style`); one key
+    /// (step `key`) to add to a citation or to replace the one at the
+    /// cursor; a style (step `style`) on the style of a citation. With
+    /// `arg` on a citation, it goes, or the reference at the cursor.
+    fn cite_insert(&mut self, arg: bool, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::cite::{self, Insert};
+        let uri = context.text_document.uri.clone();
+        if self.is_view(&uri) {
+            return Err(Refusal::NotHere("This command works in Org files".to_string()));
+        }
+        let encoding = self.client.encoding;
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let (text, parse, version) = (document.text.clone(), document.parse.clone(), document.version);
+        let offset = document.index.offset(&text, context.position, encoding);
+        let step = context.step.clone();
+        let answer = context.input.clone();
+        if step.is_some() && answer.is_none() {
+            return Ok(Value::Null);
+        }
+        let answer = answer.unwrap_or_default();
+        let action = cite::insert(&text, &parse, offset, arg).map_err(Refusal::Failed)?;
+        // The completion table: each key with its line.
+        let table = |server: &mut Self| -> std::result::Result<Vec<Value>, Refusal> {
+            let files = server.bibliography(&uri, &text);
+            let mut choices = Vec::new();
+            for file in &files {
+                for entry in &file.entries {
+                    let line = entry.completion().map_err(Refusal::Failed)?;
+                    choices.push(json!({ "key": entry.key, "label": line.trim_end() }));
+                }
+            }
+            if choices.is_empty() {
+                return Err(Refusal::Failed("No bibliography set".to_string()));
+            }
+            Ok(choices)
+        };
+        let ask = |kind: &str, prompt: String, choices: Vec<Value>, step: &str, answers: Option<String>| {
+            let mut context = json!({ "step": step });
+            if let Some(answers) = answers {
+                context["answers"] = json!(answers);
+            }
+            json!({ "input": { "kind": kind, "prompt": prompt, "value": "", "choices": choices, "context": context } })
+        };
+        let styles = || -> Vec<Value> {
+            std::iter::once(json!({ "key": "", "label": "(default)" }))
+                .chain(cite::STYLES.iter().map(|style| json!({ "key": style, "label": style })))
+                .collect()
+        };
+        let style_prompt = "Style (\"\" for default)".to_string();
+        let (changes, cursor) = match action {
+            Insert::Delete(changes) => (changes, None),
+            Insert::Style { start, end } => {
+                if step.as_deref() != Some("style") {
+                    return Ok(ask("choice", style_prompt, styles(), "style", None));
+                }
+                let style = if answer.trim().is_empty() { String::new() } else { format!("/{answer}") };
+                (vec![cite::Change { start, end, text: style }], None)
+            }
+            Insert::Key { place, reference } => {
+                if step.as_deref() != Some("key") {
+                    return Ok(ask("choice", "Key".to_string(), table(self)?, "key", None));
+                }
+                if answer.is_empty() && reference {
+                    return Err(Refusal::Failed("Aborted".to_string()));
+                }
+                (vec![place.change(&answer)], None)
+            }
+            Insert::New { at, style } => {
+                let mut keys: Vec<String> = context
+                    .answers
+                    .as_deref()
+                    .unwrap_or_default()
+                    .split(';')
+                    .filter(|key| !key.is_empty())
+                    .map(str::to_string)
+                    .collect();
+                let style_answer = match step.as_deref() {
+                    Some("keys") if !answer.trim().is_empty() => {
+                        keys.push(answer.clone());
+                        None
+                    }
+                    Some("keys") if keys.is_empty() => return Err(Refusal::Failed("Aborted".to_string())),
+                    Some("keys") if style => {
+                        return Ok(ask("choice", style_prompt, styles(), "new-style", Some(keys.join(";"))));
+                    }
+                    Some("keys") => Some(String::new()),
+                    Some("new-style") => Some(answer.clone()),
+                    _ => None,
+                };
+                match style_answer {
+                    Some(style) => {
+                        let citation = cite::new_citation(&keys, &style);
+                        let cursor = at + citation.len();
+                        (vec![cite::Change { start: at, end: at, text: citation }], Some(cursor))
+                    }
+                    None => {
+                        let mut choices = table(self)?;
+                        if !keys.is_empty() {
+                            choices.push(json!({ "key": "", "label": "(done)" }));
+                        }
+                        let prompt = cite::keys_prompt(&keys).trim_end_matches([':', ' ']).to_string();
+                        return Ok(ask("choice", prompt, choices, "keys", Some(keys.join(";"))));
+                    }
+                }
+            }
+        };
+        let new = cite::apply(&text, &changes);
+        let edits = self.text_edits(&text, &new);
+        let edit = self.workspace_edit(&uri, Some(version), edits);
+        let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+        match cursor {
+            Some(cursor) => {
+                let position = LineIndex::new(&new).position(&new, cursor, encoding);
+                self.apply_edit(params, Pending::EditAndMove { uri, position });
+            }
+            None => self.apply_edit(params, Pending::Edit),
+        }
+        Ok(Value::Null)
     }
 
     /// Where following `key` goes (`org-cite-basic-goto`): its entry in

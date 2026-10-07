@@ -3334,6 +3334,86 @@ fn sets_tags_by_key_and_from_the_agenda() {
     client.shutdown();
 }
 
+/// `org-cite-insert` (`C-c C-x @`): keys one at a time from the
+/// bibliography until done, a style with the prefix argument; on a
+/// citation a key added after the others; with the prefix argument on a
+/// reference, that reference goes.
+#[test]
+fn inserts_and_deletes_citations() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-cite-insert-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    std::fs::write(
+        directory.join("refs.bib"),
+        "@book{knuth1984, author = {Knuth, Donald E.}, title = {The {\\TeX}book}, year = 1984}\n@misc{doe2020, title = {A Study}}\n",
+    )
+    .unwrap();
+    let uri = format!("file://{}", directory.join("notes.org").display());
+    let uri = uri.as_str();
+    let mut text = "#+bibliography: refs.bib\n\nSee here.\n".to_string();
+    let mut client = Client::editor(json!({}), None);
+    client.open(uri, &text);
+    let ask = |client: &mut Client, command: &str, position: (u32, u32), extra: Value| {
+        let mut context =
+            json!({ "textDocument": { "uri": uri }, "position": { "line": position.0, "character": position.1 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+    };
+    let asked = ask(&mut client, "org.cite.insert", (2, 4), json!({})).unwrap();
+    assert_eq!(asked["input"]["kind"], "choice");
+    assert_eq!(asked["input"]["prompt"], "Key (empty input exits)");
+    assert_eq!(asked["input"]["context"], json!({ "step": "keys", "answers": "" }));
+    let choices = asked["input"]["choices"].as_array().unwrap();
+    assert_eq!(choices.len(), 2, "no (done) before a key: {choices:?}");
+    assert_eq!(choices[0]["key"], "knuth1984");
+    assert_eq!(choices[0]["label"], "Knuth, Donald E.           1984  The {\\TeX}book");
+    let asked =
+        ask(&mut client, "org.cite.insert", (2, 4), json!({ "step": "keys", "answers": "", "input": "knuth1984" }))
+            .unwrap();
+    assert_eq!(asked["input"]["prompt"], "Key (empty input exits) knuth1984");
+    assert_eq!(asked["input"]["choices"].as_array().unwrap().last().unwrap(), &json!({ "key": "", "label": "(done)" }));
+    client.edit(
+        "org.cite.insert",
+        uri,
+        (2, 4),
+        json!({ "step": "keys", "answers": "knuth1984", "input": "" }),
+        &mut text,
+    );
+    assert_eq!(text, "#+bibliography: refs.bib\n\nSee [cite:@knuth1984]here.\n");
+    // On the citation's closing bracket: a key after the others.
+    let asked = ask(&mut client, "org.cite.insert", (2, 20), json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Key");
+    assert_eq!(asked["input"]["context"], json!({ "step": "key" }));
+    client.edit("org.cite.insert", uri, (2, 20), json!({ "step": "key", "input": "doe2020" }), &mut text);
+    assert_eq!(text, "#+bibliography: refs.bib\n\nSee [cite:@knuth1984;@doe2020]here.\n");
+    // On the style: which one.
+    let asked = ask(&mut client, "org.cite.insert", (2, 6), json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Style (\"\" for default)");
+    assert_eq!(asked["input"]["choices"][0], json!({ "key": "", "label": "(default)" }));
+    client.edit("org.cite.insert", uri, (2, 6), json!({ "step": "style", "input": "text" }), &mut text);
+    assert_eq!(text, "#+bibliography: refs.bib\n\nSee [cite/text:@knuth1984;@doe2020]here.\n");
+    // `C-u`: the reference at the cursor goes.
+    client.edit("org.cite.insert.prefix", uri, (2, 30), json!({}), &mut text);
+    assert_eq!(text, "#+bibliography: refs.bib\n\nSee [cite/text:@knuth1984]here.\n");
+    // Where no citation may go, and without a bibliography.
+    let error = ask(&mut client, "org.cite.insert", (0, 3), json!({})).unwrap_err();
+    assert_eq!(error, "Cannot insert a citation here");
+    client.open("file:///org/plain.org", "Text\n");
+    let error = client
+        .request(
+            "workspace/executeCommand",
+            json!({ "command": "org.cite.insert", "arguments": [{
+                "textDocument": { "uri": "file:///org/plain.org" }, "position": { "line": 0, "character": 0 },
+            }] }),
+        )
+        .unwrap_err();
+    assert_eq!(error, "No bibliography set");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 /// `org-set-property` asks for a name, then a value: one of the allowed
 /// ones when `NAME_ALL` says which; `S-<right>` goes to the next of them,
 /// `C-c C-c` in the drawer asks what to do, and the effort is set from
