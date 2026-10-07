@@ -425,8 +425,23 @@ function! org_lsp#prompt(input) abort
     return picked > 0 && picked <= len(a:input.choices) ? a:input.choices[picked - 1].key : v:null
   endif
   let cancelled = "\x01cancelled"
+  if !empty(get(a:input, 'completions', []))
+    " Typed, completed from a list (Emacs's `completing-read`).
+    let s:completions = a:input.completions
+    let answer = input({'prompt': a:input.prompt . ': ', 'default': get(a:input, 'value', ''),
+          \ 'completion': 'customlist,org_lsp#complete_input', 'cancelreturn': cancelled})
+    return answer ==# cancelled ? v:null : answer
+  endif
   let answer = inputdialog(a:input.prompt . ': ', get(a:input, 'value', ''), cancelled)
   return answer ==# cancelled ? v:null : answer
+endfunction
+
+let s:completions = []
+
+" The completions of what a command asks to be typed, beginning with what
+" is typed, without regard to case.
+function! org_lsp#complete_input(lead, line, pos) abort
+  return filter(copy(s:completions), {_, c -> stridx(tolower(c), tolower(a:lead)) == 0})
 endfunction
 
 " Read one key, as Emacs does at its fast selection prompts: the choices

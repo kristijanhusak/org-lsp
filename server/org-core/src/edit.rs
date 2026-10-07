@@ -9,6 +9,7 @@ use org_syntax::Parse;
 use crate::date::DateTime;
 use crate::outline::keyword_values;
 use crate::priority::{self, Action, Priorities};
+use crate::properties;
 use crate::stamp::{self, Shift, Stamp, Unit};
 use crate::tblfm;
 use crate::timestr::parse_time_string;
@@ -53,6 +54,17 @@ pub enum Command {
     Table(tblfm::Mode),
     /// `org-set-tags`: the entry's tags, as picked.
     Tags(Vec<String>),
+    /// `org-set-property`: the property `name` set to `value`, or for
+    /// `TODO` and `PRIORITY` the keyword or the priority.
+    Property { name: String, value: String },
+    /// `org-delete-property`
+    DeleteProperty(String),
+    /// `org-delete-property-globally`
+    DeletePropertyGlobally(String),
+    /// `org-set-effort` with this value, or `org-inc-effort` without.
+    Effort(Option<String>),
+    /// `org-toggle-ordered-property`
+    Ordered,
 }
 
 /// Settings, named after Org's variables.
@@ -68,6 +80,8 @@ pub struct Settings {
     pub timestamp_rounding_minutes: i64,
     /// The tag table and how tags are set.
     pub tags: crate::tags::Settings,
+    /// `org-global-properties`
+    pub global_properties: Vec<(String, String)>,
 }
 
 impl Default for Settings {
@@ -78,6 +92,7 @@ impl Default for Settings {
             priority_start_cycle_with_default: true,
             timestamp_rounding_minutes: 5,
             tags: crate::tags::Settings::default(),
+            global_properties: Vec::new(),
         }
     }
 }
@@ -114,6 +129,17 @@ pub fn shifts_item(text: &str, offset: usize) -> bool {
 fn on_headline(text: &str, offset: usize) -> bool {
     let start = text[..offset].rfind('\n').map_or(0, |index| index + 1);
     headline_level(text[start..].split('\n').next().unwrap_or("")).is_some()
+}
+
+/// What the property commands need of `parse` and `settings`.
+pub fn property_context(parse: &Parse, settings: &Settings, category: &str) -> properties::Context {
+    properties::Context {
+        keywords: parse.todo_keywords().clone(),
+        priorities: document_priorities(parse).unwrap_or(settings.priorities),
+        globals: settings.global_properties.clone(),
+        settings: settings.todo.clone(),
+        category: category.to_string(),
+    }
 }
 
 /// What a command made of the document.
@@ -236,6 +262,50 @@ pub fn run(
                 Err(message) => Err(Refusal::Failed(message)),
             }
         }
+        Command::Property { name, value } => {
+            let context = property_context(parse, settings, "");
+            let failed = |message: String| {
+                if message == "Before first headline" {
+                    Refusal::NotHere(message)
+                } else {
+                    Refusal::Failed(message)
+                }
+            };
+            match properties::set(text, offset, name, value, &context).map_err(failed)? {
+                properties::Change::None => Ok(unplaced(text.to_string())),
+                properties::Change::Text(text) => Ok(unplaced(text)),
+                properties::Change::Todo(state) => {
+                    run(&Command::Todo(Target::State(state)), text, parse, offset, call, settings)
+                }
+                properties::Change::Priority(value) => {
+                    let action = match value {
+                        Some(value) => Action::Set(priority::value(&value).unwrap_or(0)),
+                        None => Action::Remove,
+                    };
+                    run(&Command::Priority(action), text, parse, offset, call, settings)
+                }
+            }
+        }
+        Command::DeleteProperty(name) => {
+            let (text, _, _) = properties::delete(text, offset, name);
+            Ok(Outcome { text, cursor: None, note: None, message: Some(format!("Property \"{name}\" deleted")) })
+        }
+        Command::DeletePropertyGlobally(name) => {
+            let (text, count) = properties::delete_globally(text, name);
+            let message = format!("Property \"{name}\" removed from {count} entries");
+            Ok(Outcome { text, cursor: None, note: None, message: Some(message) })
+        }
+        Command::Effort(value) => {
+            let context = property_context(parse, settings, "");
+            let (text, message) =
+                properties::set_effort(text, offset, value.as_deref(), &context).map_err(Refusal::Failed)?;
+            Ok(Outcome { text, cursor: None, note: None, message: Some(message) })
+        }
+        Command::Ordered => {
+            let context = property_context(parse, settings, "");
+            let (text, message) = properties::toggle_ordered(text, offset, &context).map_err(Refusal::NotHere)?;
+            Ok(Outcome { text, cursor: None, note: None, message: Some(message) })
+        }
         Command::Tags(tags) => {
             let heading = crate::tags::heading_at(text, offset)?;
             let settings = crate::tags::Settings { tags_column: settings.todo.tags_column, ..settings.tags.clone() };
@@ -300,7 +370,16 @@ pub fn run(
                     let cursor = crate::list::next_item(text, offset, *direction == Direction::Up)?;
                     return Ok(Outcome { text: text.to_string(), cursor: Some(cursor), note: None, message: None });
                 }
-                _ => return Err(Refusal::NotHere("No timestamp, headline or item here".to_string())),
+                // On a property line: its next or previous allowed value
+                // (`org-property-next-allowed-value`).
+                Direction::Left | Direction::Right if properties::property_at(text, offset).is_some() => {
+                    let context = property_context(parse, settings, "");
+                    let (text, cursor) =
+                        properties::next_allowed(text, offset, *direction == Direction::Left, &context)
+                            .map_err(Refusal::Failed)?;
+                    return Ok(Outcome { text, cursor: Some(cursor), note: None, message: None });
+                }
+                _ => return Err(Refusal::NotHere("No timestamp, headline, item or property here".to_string())),
             };
             run(&next, text, parse, offset, call, settings)
         }

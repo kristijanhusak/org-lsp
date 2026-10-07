@@ -257,6 +257,13 @@ require('org-lsp').setup({
     -- inherited. (org-use-property-inheritance)
     org_use_property_inheritance = false,
 
+    -- Properties every entry inherits, after those of `#+PROPERTY:` lines:
+    -- chiefly the allowed values of a property, which setting it offers and
+    -- `S-<right>` and `S-<left>` go through on its line (`{ "Effort_ALL":
+    -- "0:10 0:30 1:00 2:00" }`; `:ETC` allows others too).
+    -- (org-global-properties)
+    org_global_properties = {  },
+
     -- Where `CLOCK:` lines go: `true` for the drawer of `org_log_into_drawer`
     -- (`LOGBOOK` when that is not a name), the name of a drawer, or `false`
     -- for the entry itself. (org-clock-into-drawer)

@@ -306,7 +306,7 @@ impl<'a> Editor<'a> {
     }
 
     /// The end of the line holding `at`, before its line break.
-    fn line_end(&self, at: usize) -> usize {
+    pub(crate) fn line_end(&self, at: usize) -> usize {
         self.text[at..].find('\n').map_or(self.text.len(), |index| at + index)
     }
 
@@ -354,7 +354,7 @@ impl<'a> Editor<'a> {
 
     /// The property drawer of the entry: the start of its first line and
     /// of its `:END:` line.
-    fn property_drawer(&self) -> Option<(usize, usize)> {
+    pub(crate) fn property_drawer(&self) -> Option<(usize, usize)> {
         let mut line = self.planning_line().unwrap_or(self.heading);
         if self.line_end(line) == self.text.len() {
             return None;

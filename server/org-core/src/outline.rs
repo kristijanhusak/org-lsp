@@ -310,6 +310,19 @@ impl Outline {
     /// headline, where the file's drawer is the entry), with inheritance
     /// or without: `org-entry-get … 'inherit` for Babel's `header-args`.
     pub fn entry_property(&self, entry: Option<usize>, name: &str, inherit: bool) -> Option<String> {
+        self.entry_property_with(entry, name, inherit, &[])
+    }
+
+    /// [`Outline::entry_property`], with `globals` (`org-global-properties`
+    /// and then `org-global-properties-fixed`) after `#+PROPERTY:` when
+    /// nothing up the lineage sets the property.
+    pub fn entry_property_with(
+        &self,
+        entry: Option<usize>,
+        name: &str,
+        inherit: bool,
+        globals: &[(String, String)],
+    ) -> Option<String> {
         let local = |properties: &[(String, String)]| {
             let base = properties.iter().rev().find(|(key, _)| key.eq_ignore_ascii_case(name)).map(|(_, v)| v.clone());
             let extra: Vec<String> = properties
@@ -350,7 +363,13 @@ impl Outline {
             }
         }
         if !found {
-            if let Some((_, global)) = self.keyword_properties.iter().find(|(key, _)| key.eq_ignore_ascii_case(name)) {
+            let global = self
+                .keyword_properties
+                .iter()
+                .chain(globals)
+                .find(|(key, _)| key.eq_ignore_ascii_case(name))
+                .map(|(_, value)| value);
+            if let Some(global) = global {
                 values.insert(0, global.clone());
             }
         }

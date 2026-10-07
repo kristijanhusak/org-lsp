@@ -185,6 +185,18 @@
           "task_name": "Org agenda: Set the priority"
         }
       ],
+      "ctrl-c ctrl-x p": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: Set a property of the entry"
+        }
+      ],
+      "e": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: Set the effort of the entry"
+        }
+      ],
       "ctrl-c ctrl-w": [
         "task::Spawn",
         {

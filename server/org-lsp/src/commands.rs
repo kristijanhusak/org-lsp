@@ -140,6 +140,12 @@ pub const CLOCK_CANCEL: &str = "org.clock.cancel";
 pub const CLOCK_GOTO: &str = "org.clock.goto";
 pub const TODO: &str = "org.todo";
 pub const SET_TAGS: &str = "org.tags.set";
+pub const SET_PROPERTY: &str = "org.property.set";
+pub const DELETE_PROPERTY: &str = "org.property.delete";
+pub const DELETE_PROPERTY_GLOBALLY: &str = "org.property.delete.globally";
+pub const SET_EFFORT: &str = "org.effort.set";
+pub const INCREASE_EFFORT: &str = "org.effort.increase";
+pub const TOGGLE_ORDERED: &str = "org.ordered.toggle";
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
 pub const PRIORITY_UP: &str = "org.priority.up";
@@ -318,6 +324,42 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>o,")],
         input: Some(Input { kind: "priority", prompt: "Priority" }),
         ..edit(PRIORITY, "Set the priority")
+    },
+    // `org-set-property`: the name (completing those of the file and those
+    // Org uses), then the value (one of its allowed values, `NAME_ALL`, or
+    // any, completing the file's values); in the agenda for the line's
+    // entry. `C-c C-c` in a property drawer asks what to do first
+    // (`org-property-action`).
+    Command {
+        emacs: &[key(Org, "C-c C-x p"), key(Agenda, "C-c C-x p")],
+        vim: &[key(Org, "<Leader>oxp")],
+        input: Some(Input { kind: "text", prompt: "Property" }),
+        ..edit(SET_PROPERTY, "Set a property of the entry")
+    },
+    Command {
+        input: Some(Input { kind: "choice", prompt: "Property" }),
+        ..edit(DELETE_PROPERTY, "Delete a property of the entry")
+    },
+    Command {
+        input: Some(Input { kind: "text", prompt: "Globally remove property" }),
+        ..edit(DELETE_PROPERTY_GLOBALLY, "Delete a property from every entry of the file")
+    },
+    // `org-set-effort`: one of `Effort_ALL`, or any duration; in the
+    // agenda for the line's entry. `org-inc-effort`: the next of them.
+    Command {
+        emacs: &[key(Org, "C-c C-x e"), key(Agenda, "e")],
+        vim: &[key(Org, "<Leader>oxe")],
+        input: Some(Input { kind: "text", prompt: "Effort" }),
+        ..edit(SET_EFFORT, "Set the effort of the entry")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x E")],
+        vim: &[key(Org, "<Leader>oxE")],
+        ..edit(INCREASE_EFFORT, "Set the effort to the next allowed value")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x o")],
+        ..edit(TOGGLE_ORDERED, "Toggle whether subtasks must be done in order (ORDERED)")
     },
     // `C-c C-c` on an item (`org-ctrl-c-ctrl-c`): its checkbox toggled and
     // the list repaired (indentation, bullets, numbers, checkboxes); at

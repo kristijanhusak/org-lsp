@@ -50,6 +50,10 @@ pub struct Options {
     /// properties or a regexp.
     #[serde(rename = "org_use_property_inheritance")]
     pub use_property_inheritance: Option<InheritOption>,
+    /// `org-global-properties`: properties every entry inherits, such as
+    /// the allowed values of one (`Effort_ALL`).
+    #[serde(rename = "org_global_properties")]
+    pub global_properties: Option<std::collections::BTreeMap<String, String>>,
     /// `org-clock-into-drawer`: `true` for the drawer of `org_log_into_drawer`
     /// (`LOGBOOK`), a drawer name, or `false` for none.
     #[serde(rename = "org_clock_into_drawer")]
@@ -685,6 +689,7 @@ impl Options {
                 .filter(|minutes| *minutes >= 0)
                 .unwrap_or(defaults.timestamp_rounding_minutes),
             tags: self.tag_settings(),
+            global_properties: self.global_properties.clone().unwrap_or_default().into_iter().collect(),
         }
     }
 

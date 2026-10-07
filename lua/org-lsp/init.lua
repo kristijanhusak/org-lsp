@@ -270,7 +270,14 @@ function M.run(name, opts)
             answered(choice and choice.key)
           end)
         end
-        vim.ui.input({ prompt = input.prompt .. ': ', default = input.value }, function(answer)
+        -- Text that may be typed, completed from a list (Emacs's
+        -- `completing-read`).
+        local completion
+        if input.completions and #input.completions > 0 then
+          M.completions = input.completions
+          completion = 'customlist,v:lua.OrgLspCompleteInput'
+        end
+        vim.ui.input({ prompt = input.prompt .. ': ', default = input.value, completion = completion }, function(answer)
           -- An input that runs in insert mode may leave it behind in the
           -- calendar it was asked from, which is never typed into.
           vim.schedule(function()
@@ -285,6 +292,17 @@ function M.run(name, opts)
     end
     client:exec_cmd(command, { bufnr = bufnr }, handle)
   end)
+end
+
+--- The completions of the text a command asks for, beginning with what is
+--- typed, without regard to case.
+---@param lead string
+---@return string[]
+function _G.OrgLspCompleteInput(lead)
+  local lower = lead:lower()
+  return vim.tbl_filter(function(candidate)
+    return candidate:lower():sub(1, #lower) == lower
+  end, M.completions or {})
 end
 
 local sparse_namespace = vim.api.nvim_create_namespace('org_lsp_sparse')

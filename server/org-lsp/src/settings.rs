@@ -126,6 +126,15 @@ pub const SETTINGS: &[Setting] = &[
          of names, or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited.",
     ),
     setting(
+        "org_global_properties",
+        "{ [name]: string }",
+        "{}",
+        "org-global-properties",
+        "Properties every entry inherits, after those of `#+PROPERTY:` lines: chiefly the allowed values of a \
+         property, which setting it offers and `S-<right>` and `S-<left>` go through on its line \
+         (`{ \"Effort_ALL\": \"0:10 0:30 1:00 2:00\" }`; `:ETC` allows others too).",
+    ),
+    setting(
         "org_clock_into_drawer",
         "boolean, string",
         "true",
@@ -838,6 +847,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_use_tag_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
     ("org_tags_exclude_from_inheritance", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_use_property_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
+    ("org_global_properties", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_complete_tags_always_offer_all_agenda_tags", BOOLEAN),
     ("org_tag_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_tag_persistent_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),

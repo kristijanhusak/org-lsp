@@ -239,6 +239,8 @@ interface Input {
   value: string;
   /** What to choose from: a key (kind `key`) or a name, and how it shows. */
   choices?: { key: string; label: string }[];
+  /** Text that may be typed, offered as it is typed (kind `text`). */
+  completions?: string[];
   /** What to send back with the answer, besides it. */
   context?: Record<string, unknown>;
 }
@@ -257,11 +259,45 @@ async function ask(input: Input, typed: (text: string) => Promise<vscode.InputBo
     const picked = await vscode.window.showQuickPick(items, { placeHolder: input.prompt, ignoreFocusOut: true });
     return picked?.key;
   }
+  if (input.completions?.length) return typeOrPick(input, input.completions);
   return vscode.window.showInputBox({
     prompt: input.prompt,
     value: input.value,
     ignoreFocusOut: true,
     validateInput: input.kind === 'date' ? typed : undefined,
+  });
+}
+
+/**
+ * Text typed with `completions` offered, as Emacs's `completing-read`
+ * offers them: what is typed is the first item, so that it can be taken
+ * as it is; an empty answer stands for the prompt's default.
+ */
+function typeOrPick(input: Input, completions: string[]): Promise<string | undefined> {
+  const pick = vscode.window.createQuickPick();
+  pick.title = input.prompt;
+  pick.placeholder = input.prompt;
+  pick.ignoreFocusOut = true;
+  const items = (typed: string) => {
+    const others = completions.map((label) => ({ label }));
+    if (!typed || completions.includes(typed)) return others;
+    return [{ label: typed, description: 'as typed' }, ...others];
+  };
+  pick.items = items(input.value);
+  pick.value = input.value;
+  pick.onDidChangeValue((typed) => (pick.items = items(typed)));
+  return new Promise((resolve) => {
+    let answered = false;
+    pick.onDidAccept(() => {
+      answered = true;
+      resolve(pick.value === '' ? '' : (pick.selectedItems[0]?.label ?? pick.value));
+      pick.hide();
+    });
+    pick.onDidHide(() => {
+      if (!answered) resolve(undefined);
+      pick.dispose();
+    });
+    pick.show();
   });
 }
 
