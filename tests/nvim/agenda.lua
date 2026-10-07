@@ -737,6 +737,19 @@ local float_buf = vim.api.nvim_win_get_buf(float)
 eq(vim.api.nvim_buf_get_lines(float_buf, 0, 2, false), { '* TODO [#A] Write the report :office:', 'SCHEDULED: <2026-05-18 Mon 09:00>' },
   'the headline and its text, as Org')
 eq(vim.bo[float_buf].filetype, 'org', 'an Org buffer')
+local longest = 0
+for _, text in ipairs(vim.api.nvim_buf_get_lines(float_buf, 0, -1, false)) do
+  longest = math.max(longest, vim.fn.strdisplaywidth(text))
+end
+eq(vim.api.nvim_win_get_width(float), longest + 2, 'as wide as its longest line, with a blank on each side')
+-- Not indented as `org-indent-mode` indents: wider than the float.
+require('org-lsp.indent').virtual({
+  uri = vim.uri_from_bufnr(float_buf),
+  version = vim.lsp.util.buf_versions[float_buf],
+  lines = { { 1, 2, 2, 0 } },
+})
+local indent_ns = vim.api.nvim_get_namespaces()['org_lsp_virtual_indent']
+eq(indent_ns and #vim.api.nvim_buf_get_extmarks(float_buf, indent_ns, 0, -1, {}) or 0, 0, 'no virtual indentation in the float')
 wait('the server\'s highlighting in the float', function()
   local tokens = vim.lsp.semantic_tokens.get_at_pos(float_buf, 0, 2)
   return tokens ~= nil and tokens[1] ~= nil and tokens[1].type == 'todoKeyword'
