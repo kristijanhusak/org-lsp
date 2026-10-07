@@ -620,6 +620,19 @@
           "default": true,
           "markdownDescription": "Hide what Org hides: link brackets and targets (`linkDescriptive`), and emphasis markers with `hideEmphasisMarkers`. It shows on the lines with a cursor."
         },
+        "org-lsp.messages": {
+          "type": "string",
+          "enum": [
+            "notification",
+            "statusBar"
+          ],
+          "enumDescriptions": [
+            "As notifications, in the corner of the window.",
+            "In the status bar for a few seconds, as Emacs's echo area shows them."
+          ],
+          "default": "notification",
+          "markdownDescription": "How Org's messages show (`Priority of current item set to A`, `Effort is now 1:00`). Errors always show as notifications."
+        },
         "org-lsp.winSplitMode": {
           "type": "string",
           "enum": [

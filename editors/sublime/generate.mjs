@@ -222,12 +222,15 @@ const settings = {
   // The keys: "emacs" (the default), "vim" (for Vintage and NeoVintageous)
   // or "custom" (none; bind the commands yourself).
   org_keys: 'emacs',
+  // How Org's messages show: "popup" (at the cursor, for a few seconds)
+  // or "status" (in the status bar only).
+  org_messages: 'popup',
   semantic_tokens: semanticTokens,
 };
 if (existsSync(settingsPath)) {
   // The user-facing values stay as they are; only the tokens are generated.
   const before = JSON.parse(readFileSync(settingsPath, 'utf8'));
-  for (const key of ['command', 'selector', 'initializationOptions', 'org_keys']) {
+  for (const key of ['command', 'selector', 'initializationOptions', 'org_keys', 'org_messages']) {
     if (key in before) settings[key] = before[key];
   }
 }
