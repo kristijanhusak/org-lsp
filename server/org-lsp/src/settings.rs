@@ -448,7 +448,8 @@ pub const SETTINGS: &[Setting] = &[
         "Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, `plain`, \
          `item`, `checkitem` or `table-line`), a `target` and a `template` (text, or a list of lines), and may \
          have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after`, `immediate_finish`, \
-         `tree_type`, `time_prompt` and `table_line_pos`. The target is a list: `file` and a path; \
+         `tree_type`, `time_prompt`, `table_line_pos`, `clock_in`, `clock_keep`, `clock_resume` and \
+         `jump_to_captured`. The target is a list: `file` and a path; \
          `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; \
          `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and the headlines of an \
          outline path, maybe none, for a date tree under them; `id` and an ID; or `clock`, the entry clocked \
@@ -1075,7 +1076,11 @@ const SCHEMAS: &[(&str, &str)] = &[
             "immediate_finish": { "type": "boolean", "description": "Capture without a capture buffer" },
             "tree_type": { "anyOf": [{ "enum": ["day", "week", "month"] }, { "type": "array", "items": { "enum": ["year", "quarter", "month", "week", "day"] } }], "description": "The levels of a date tree" },
             "time_prompt": { "type": "boolean", "description": "Ask for the date of the date tree entry" },
-            "table_line_pos": { "type": "string", "description": "Where a table line goes: `II-1` is above the second rule" }
+            "table_line_pos": { "type": "string", "description": "Where a table line goes: `II-1` is above the second rule" },
+            "clock_in": { "type": "boolean", "description": "Clock the captured entry while the capture goes on" },
+            "clock_keep": { "type": "boolean", "description": "Keep the clock running when the capture is filed" },
+            "clock_resume": { "type": "boolean", "description": "Start the clock the capture stopped again" },
+            "jump_to_captured": { "type": "boolean", "description": "Show the captured entry in its file" }
         } } }"#,
     ),
     ("org_directory", STRING),

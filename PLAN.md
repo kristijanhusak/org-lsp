@@ -88,8 +88,6 @@ few, checked against Emacs where Org decides the outcome:
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
   moving rows and columns, `C-c -` for a rule.
 - **Agenda (5):** done.
-- **Capture (10):** `%^g` tags and the other escapes that ask, `%a` from
-  the agenda, `:clock-in` and its relatives.
 - **Links and navigation (11):** store and insert links (`C-c l`,
   `C-c C-l`), `documentLink`, backlinks as references, workspace
   symbols, renaming tags and headings, hover in Org files.
@@ -313,10 +311,14 @@ show one. In four pull requests:
    `file+olp+datetree` (`:tree-type`, `:time-prompt`, the `DATE_TREE`
    property), `clock` and `id` targets, and the statistics cookies and
    table alignment of `org-capture-finalize`, checked against Emacs in the
-   same file (213 cases). Not yet: `function` targets; `%^g`, `%^G`, `%^p`, `%^C`, `%^L`;
-   `%(…)` and `%[file]`; `%c`, `%x`, `%k`, `%K` and `%:keyword` are
-   empty; templates' contexts; `:jump-to-captured`, `:clock-in` and the
-   like. Differences: the target is not saved (as for every edit here;
+   same file (213 cases). Then `%^g`, `%^G` (aligned on a headline),
+   `%^{Prop}p` (into the entry's drawer), `%^C` and `%^L` (the initial
+   content: no clipboard here), `%k` and `%K` (checked in the same file,
+   228 cases); `:clock-in`, `:clock-keep`, `:clock-resume` and
+   `:jump-to-captured`; `%a` from an agenda line links to its entry.
+   Not yet: `function` targets;
+   `%(…)` and `%[file]`; `%c`, `%x` and `%:keyword` are empty;
+   templates' contexts. Differences: the target is not saved (as for every edit here;
    see the autosave question); a `file+headline` headline that is not
    there is added when the capture finishes, not when it starts, so
    aborting leaves no trace; the date prompts are input boxes, without

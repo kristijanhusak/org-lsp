@@ -55,7 +55,7 @@
 ---@field org_archive_sibling_heading? string The headline of the sibling `org.archive.sibling` archives under. (`org-archive-sibling-heading`)
 ---@field org_archive_file_header_format? string|false What a new archive file starts with; `%s` is the path of the file the subtree came from. (`org-archive-file-header-format`)
 ---@field org_archive_default_command? 'subtree'|'sibling'|'tag' What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it. (`org-archive-default-command`)
----@field org_capture_templates? org_lsp.CaptureTemplate[] Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, `plain`, `item`, `checkitem` or `table-line`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after`, `immediate_finish`, `tree_type`, `time_prompt` and `table_line_pos`. The target is a list: `file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and the headlines of an outline path, maybe none, for a date tree under them; `id` and an ID; or `clock`, the entry clocked now. An empty path is `org_default_notes_file`, and without a target the entry goes at the end of `org_default_notes_file`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)
+---@field org_capture_templates? org_lsp.CaptureTemplate[] Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, `plain`, `item`, `checkitem` or `table-line`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after`, `immediate_finish`, `tree_type`, `time_prompt`, `table_line_pos`, `clock_in`, `clock_keep`, `clock_resume` and `jump_to_captured`. The target is a list: `file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and the headlines of an outline path, maybe none, for a date tree under them; `id` and an ID; or `clock`, the entry clocked now. An empty path is `org_default_notes_file`, and without a target the entry goes at the end of `org_default_notes_file`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)
 ---@field org_directory? string Where the relative paths of capture targets are. (`org-directory`)
 ---@field org_default_notes_file? string The target of a capture template whose file is empty. (`org-default-notes-file`)
 ---@field org_link_descriptive? boolean Show a link as its description (or its target, when it has none) and hide the rest: the brackets, and the target of a link with a description. The text is marked `hidden` in the highlighting, and editors that can conceal text conceal it. (`org-link-descriptive`)
@@ -124,11 +124,15 @@
 ---@field todo? string The headlines with this TODO keyword
 
 ---@class org_lsp.CaptureTemplate
+---@field clock_in? boolean Clock the captured entry while the capture goes on
+---@field clock_keep? boolean Keep the clock running when the capture is filed
+---@field clock_resume? boolean Start the clock the capture stopped again
 ---@field description string What the menu shows
 ---@field empty_lines? integer Blank lines before and after
 ---@field empty_lines_after? integer Blank lines after
 ---@field empty_lines_before? integer Blank lines before
 ---@field immediate_finish? boolean Capture without a capture buffer
+---@field jump_to_captured? boolean Show the captured entry in its file
 ---@field key string The keys that pick the template
 ---@field prepend? boolean First under the target, not last
 ---@field table_line_pos? string Where a table line goes: `II-1` is above the second rule

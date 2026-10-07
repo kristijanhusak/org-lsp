@@ -67,6 +67,8 @@ DRIVER = r"""
                           ((symbol-function 'completing-read)
                            (lambda (_prompt _collection &optional _predicate _require _initial _history default &rest _)
                              (org-lsp-answer (pop answers) default)))
+                          ((symbol-function 'completing-read-multiple)
+                           (lambda (&rest _) (split-string (or (pop answers) "") "[ \t]*:[ \t]*" t)))
                           ((symbol-function 'y-or-n-p) (lambda (&rest _) t))
                           ((symbol-function 'yes-or-no-p) (lambda (&rest _) t)))
                   (when clock
