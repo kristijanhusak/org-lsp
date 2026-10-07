@@ -22,7 +22,9 @@ local SERVER = 'org_lsp'
 --- be left out. Annotate a table of your own with `---@type org_lsp.Config`
 --- to have them completed and checked.
 ---@class org_lsp.Config
----@field cmd? string[] Server command. Found automatically when unset.
+---@field cmd? string[] Server command. Found automatically when unset: a build in the plugin's directory, `org-lsp` on PATH, or the one `download` fetched.
+---@field download? boolean Whether a server is downloaded when none is found: the build of `release` for this platform, into `stdpath('data')/org-lsp` (needs `curl` and `tar`). `:OrgLspDownload` downloads it again, to update it.
+---@field release? string The release `download` and `:OrgLspDownload` fetch the server from: 'nightly' (built from the latest `main`), or a version tag such as 'v0.2.0'.
 ---@field settings? org_lsp.Settings The server's options, such as `org_agenda_files` and `org_todo_keywords`; see docs/neovim/configuration.md.
 ---@field startup_folded? 'showeverything'|'overview' Fold state of a newly opened file.
 ---@field folding? boolean Whether to fold with the server's folding ranges.
@@ -50,6 +52,8 @@ local SERVER = 'org_lsp'
 
 local defaults = {
   cmd = nil,
+  download = true,
+  release = 'nightly',
   settings = {},
   startup_folded = 'showeverything',
   folding = true,
@@ -106,7 +110,8 @@ local function plugin_root()
 end
 
 --- The server command: the configured one, a build inside the plugin
---- directory, or `org-lsp` on PATH. Returns nil when none is found.
+--- directory, `org-lsp` on PATH, or the downloaded one. Returns nil when
+--- none is found.
 ---@return string[]|nil
 function M.server_command()
   if M.config.cmd then
@@ -120,12 +125,16 @@ function M.server_command()
   if vim.fn.executable('org-lsp') == 1 then
     return { 'org-lsp' }
   end
+  local downloaded = require('org-lsp.download').path()
+  if vim.fn.executable(downloaded) == 1 then
+    return { downloaded }
+  end
   return nil
 end
 
 local function warn_missing_server()
   notify(
-    'org-lsp: the server binary was not found. Run :OrgLspBuild (needs cargo), '
+    'org-lsp: the server binary was not found. Run :OrgLspDownload, :OrgLspBuild (needs cargo), '
       .. 'put `org-lsp` on your PATH, or set `cmd` in the configuration.',
     vim.log.levels.WARN
   )
@@ -786,7 +795,7 @@ end
 local function on_init(client)
   M.manifest = (client.server_capabilities.experimental or {}).org
   if not M.manifest then
-    return notify('org-lsp: the server is older than this plugin; run :OrgLspBuild', vim.log.levels.WARN)
+    return notify('org-lsp: the server is older than this plugin; run :OrgLspDownload or :OrgLspBuild', vim.log.levels.WARN)
   end
   require('org-lsp.highlights').define(M.manifest)
   require('org-lsp.view').setup(M.manifest)
@@ -873,6 +882,35 @@ local function enable()
   return true
 end
 
+--- Start the server (again) in the Org buffers that are open: stop the
+--- one that runs, then attach them as opening them would have.
+local function restart()
+  local client = running_client()
+  if client then
+    client:stop()
+  end
+  local function attach()
+    if client and not client:is_stopped() then
+      return vim.defer_fn(attach, 100)
+    end
+    for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_is_loaded(bufnr) and vim.bo[bufnr].filetype == 'org' then
+        vim.api.nvim_exec_autocmds('FileType', { group = 'nvim.lsp.enable', buffer = bufnr, modeline = false })
+      end
+    end
+  end
+  attach()
+end
+
+--- Download the server, then start it (or restart it, when one runs).
+local function download()
+  require('org-lsp.download').run(M.config.release, function()
+    if enable() then
+      restart()
+    end
+  end)
+end
+
 --- Build the server with cargo inside the plugin directory, then start it.
 local function build()
   if vim.fn.executable('cargo') == 0 then
@@ -952,12 +990,24 @@ function M.start()
     end,
   })
   vim.api.nvim_create_user_command('OrgLspBuild', build, { desc = 'Build the org-lsp server with cargo' })
+  vim.api.nvim_create_user_command('OrgLspDownload', download, { desc = 'Download the org-lsp server' })
   vim.api.nvim_create_user_command('Org', function(opts)
     user_command(opts.fargs)
   end, { nargs = '*', complete = complete_user_command, desc = 'Run an Org command' })
   set_keys('global')
   if not enable() then
-    vim.api.nvim_create_autocmd('FileType', { group = group, pattern = 'org', once = true, callback = warn_missing_server })
+    vim.api.nvim_create_autocmd('FileType', {
+      group = group,
+      pattern = 'org',
+      once = true,
+      callback = function()
+        if M.config.download and not M.server_command() then
+          download()
+        elseif not enable() then
+          warn_missing_server()
+        end
+      end,
+    })
   end
 end
 

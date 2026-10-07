@@ -92,8 +92,7 @@ few, checked against Emacs where Org decides the outcome:
   `C-c C-l`), `documentLink`, backlinks as references, workspace
   symbols, renaming tags and headings, hover in Org files.
 - **Diagnostics (13):** done.
-- **Editors and distribution (14):** the Neovim plugin downloading the
-  server instead of building it; publishing the VS Code extension
+- **Editors and distribution (14):** publishing the VS Code extension
   (Marketplace, Open VSX: the `publisher` is a placeholder). The agenda's hover is plain in VS Code, which has no
   grammar for Org's code blocks.
 - **Later:** export, Babel's evaluation, column view, inline images,
@@ -595,8 +594,9 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   has no agenda), Zed.
 - Prebuilt server binaries and a release workflow: done
   (`.github/workflows/release.yml`, a `nightly` prerelease from `main`,
-  `scripts/install-vscode.sh`). Left: the Neovim plugin downloading the
-  binary instead of building it, and publishing the extension to the
+  `scripts/install-vscode.sh`), the Neovim plugin downloading the server
+  when none is found (`download`, `release`, `:OrgLspDownload`;
+  `tests/nvim/download.lua`). Left: publishing the extension to the
   Marketplace and Open VSX.
 - An options schema in the manifest, so editors can offer settings:
   done (`settings` in the manifest, `docs/config.schema.json`).

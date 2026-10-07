@@ -16,7 +16,8 @@ function M.check()
   local cmd = org_lsp.server_command()
   if not cmd then
     health.error('Server binary not found', {
-      'Run :OrgLspBuild (needs cargo)',
+      'Run :OrgLspDownload',
+      'or :OrgLspBuild (needs cargo)',
       'or put `org-lsp` on your PATH',
       'or set `cmd` in the configuration',
     })
@@ -26,7 +27,9 @@ function M.check()
     return vim.system({ cmd[1], '--version' }, { text = true }):wait(5000)
   end)
   if ok and result.code == 0 then
-    health.ok(vim.trim(result.stdout) .. ' (' .. cmd[1] .. ')')
+    local download = require('org-lsp.download')
+    local release = cmd[1] == download.path() and download.version()
+    health.ok(vim.trim(result.stdout) .. ' (' .. cmd[1] .. (release and ', downloaded: ' .. release or '') .. ')')
   else
     health.error('Could not run ' .. cmd[1])
   end

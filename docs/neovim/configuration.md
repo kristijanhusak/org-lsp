@@ -11,7 +11,7 @@ Either set `vim.g.org_lsp` before the plugin loads, which suits lazy.nvim's
 ```lua
 {
   'kristijanhusak/org-lsp',
-  build = 'cargo build --release -p org-lsp',
+  build = ':OrgLspDownload',
   init = function()
     vim.g.org_lsp = { settings = { org_agenda_files = { '~/org' } } }
   end,
@@ -51,9 +51,18 @@ These are the defaults:
 ```lua
 require('org-lsp').setup({
   -- The server command. Unset, the plugin uses the server it built
-  -- (target/release/org-lsp in the plugin's directory), or else
-  -- `org-lsp` from PATH.
+  -- (target/release/org-lsp in the plugin's directory), `org-lsp` from
+  -- PATH, or the one it downloaded.
   cmd = nil,
+
+  -- When no server is found, download the build of `release` for this
+  -- platform into stdpath('data')/org-lsp (needs curl and tar), then
+  -- start it. `:OrgLspDownload` downloads it again, to update it.
+  download = true,
+
+  -- The release to download: 'nightly' (built from the latest main), or
+  -- a version tag such as 'v0.2.0'.
+  release = 'nightly',
 
   -- The server's options, passed to it as they are. See below.
   settings = {},
