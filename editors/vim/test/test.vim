@@ -408,6 +408,33 @@ function! s:structure() abort
 endfunction
 call s:test('<< and >> promote and demote headlines, and move subtrees', function('s:structure'))
 
+" On list items `>>` and `<<` indent and outdent the item, `\oJ` moves
+" it with the cursor, `<S-Right>` cycles the bullets and `<C-Space>`
+" (`C-c C-c`) renumbers the list.
+function! s:list_items() abort
+  let file = s:work . '/notes/items.org'
+  call writefile(['- a', '- b', '  - c', '- d'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(2, 3)
+  call feedkeys('>>', 'xt')
+  call s:until('the item indented', {-> getline(2) ==# '  - b'})
+  call feedkeys('<<', 'xt')
+  call s:until('and outdented back', {-> getline(2) ==# '- b'})
+  call feedkeys("\\oJ", 'xt')
+  call s:until('the item moved down', {-> getline(1, '$') == ['- a', '- d', '- b', '  - c']})
+  call assert_equal([3, 3], [line('.'), col('.')])
+  call feedkeys("\<S-Right>", 'xt')
+  call s:until('the bullets cycled', {-> getline(1, '$') == ['+ a', '+ d', '+ b', '  - c']})
+  silent %delete _
+  call setline(1, ['1. a', '3. b', '7. c'])
+  call cursor(2, 2)
+  call feedkeys("\<C-Space>", 'xt')
+  call s:until('the list renumbered', {-> getline(1, '$') == ['1. a', '2. b', '3. c']})
+  silent write
+endfunction
+call s:test('the meta and shifted keys on list items', function('s:list_items'))
+
 " `\osd` cuts the subtree into the register, `\osy` copies it, and `\osp`
 " pastes the register as a subtree, at the level of the headlines around.
 function! s:subtree_clipboard() abort

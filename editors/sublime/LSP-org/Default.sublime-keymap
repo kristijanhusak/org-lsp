@@ -1150,6 +1150,40 @@
   },
   {
     "keys": [
+      "shift+left"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shift.left",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "characters",
+          "forward": false,
+          "extend": true
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "setting.command_mode",
+        "operator": "equal",
+        "operand": true
+      }
+    ]
+  },
+  {
+    "keys": [
       "shift+right"
     ],
     "command": "org_lsp_run",
@@ -1174,6 +1208,40 @@
         "key": "selector",
         "operator": "equal",
         "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+right"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shift.right",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "characters",
+          "forward": true,
+          "extend": true
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      },
+      {
+        "key": "setting.command_mode",
+        "operator": "equal",
+        "operand": true
       }
     ]
   },

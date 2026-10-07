@@ -45,6 +45,7 @@ DRIVER = r"""
       (goto-char (1+ point))
       (if (string-prefix-p "below:" key)
           (org-lsp-below (substring key 6))
+        (setq last-command nil this-command nil real-this-command nil real-last-command nil)
         (execute-kbd-macro (kbd key)))
       (let ((text (buffer-substring-no-properties (point-min) (point-max)))
             (at (1- (point))))
@@ -71,13 +72,13 @@ def save(path, cases):
 HANG = "Emacs did not finish"
 
 
-def reference(cases, timeout=None):
+def reference(cases, timeout=None, preamble=""):
     """Fill in `expected` for every case. With `timeout` (seconds for the
     whole run), a case Emacs never finishes gets `{"error": HANG}` and the
-    cases after it run again."""
+    cases after it run again. `preamble` is Lisp to run first."""
     org_path = ["-L", os.environ["ORG_LISP_DIR"]] if os.environ.get("ORG_LISP_DIR") else []
     with tempfile.TemporaryDirectory() as directory:
-        forms = [DRIVER]
+        forms = [DRIVER, preamble]
         outputs = []
         for index, case in enumerate(cases):
             source = os.path.join(directory, f"in-{index}.org")
@@ -113,7 +114,7 @@ def reference(cases, timeout=None):
                 with open(target, encoding="utf-8") as handle:
                     case["expected"] = json.load(handle)
             outputs[done][0]["expected"] = {"error": HANG}
-            reference(cases[done + 1:], timeout)
+            reference(cases[done + 1:], timeout, preamble)
             return cases
         for case, target in outputs:
             with open(target, encoding="utf-8") as handle:

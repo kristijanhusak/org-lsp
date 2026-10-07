@@ -47,12 +47,12 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oiT` | `org.insert.todo.heading` | New TODO heading, or item with a checkbox |
 | `<Leader>oih` | `org.insert.heading.after` | New heading after the subtree |
 | `<Leader>oit` | `org.insert.todo.heading.after` | New TODO heading after the subtree |
-| `<<`¹ | `org.meta.left` | Promote the heading |
-| `>>`¹ | `org.meta.right` | Demote the heading; indent the drawer or block |
-| `<s` | `org.shiftmeta.left` | Promote the subtree |
-| `>s` | `org.shiftmeta.right` | Demote the subtree |
-| `<Leader>oK` | `org.meta.up` | Move the subtree up |
-| `<Leader>oJ` | `org.meta.down` | Move the subtree down |
+| `<<`¹ | `org.meta.left` | Promote the heading; outdent the item |
+| `>>`¹ | `org.meta.right` | Demote the heading; indent the item, the drawer or the block |
+| `<s` | `org.shiftmeta.left` | Promote the subtree; outdent the item with its children |
+| `>s` | `org.shiftmeta.right` | Demote the subtree; indent the item with its children |
+| `<Leader>oK` | `org.meta.up` | Move the subtree or the item up |
+| `<Leader>oJ` | `org.meta.down` | Move the subtree or the item down |
 | `<Leader>o^` | `org.sort` | Sort the entries |
 | `<Leader>o/` | `org.sparse.tree` | Show a sparse tree |
 | `<Leader>osd` | `org.cut.subtree` | Cut the subtree |
@@ -70,6 +70,8 @@ The other options are in [configuration.md](configuration.md).
 | `<C-x>`¹ | `org.timestamp.down` | Decrease the part of the timestamp at the cursor |
 | `<S-Up>`¹ | `org.date.later` | Move the date one day later |
 | `<S-Down>`¹ | `org.date.earlier` | Move the date one day earlier |
+| `<S-Left>`¹ | `org.shift.left` | Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
+| `<S-Right>`¹ | `org.shift.right` | Move the date a day later, or cycle the TODO state or the list's bullets forward |
 | `<Leader>ois` | `org.schedule` | Schedule the entry |
 | `<Leader>oid` | `org.deadline` | Set the deadline of the entry |
 | `<Leader>oi.` | `org.timestamp.insert` | Insert or change a timestamp |
@@ -156,10 +158,8 @@ The other options are in [configuration.md](configuration.md).
 | `org.table.iterate` | Recalculate the table until it does not change |
 | `org.archive.done` | Archive the subtrees without open TODO items |
 | `org.archive.tag.done` | Tag the subtrees without open TODO items as archived |
-| `org.shift.up` | Increase the timestamp part or raise the priority |
-| `org.shift.down` | Decrease the timestamp part or lower the priority |
-| `org.shift.left` | Move the date a day earlier or cycle the TODO state backward |
-| `org.shift.right` | Move the date a day later or cycle the TODO state forward |
+| `org.shift.up` | Increase the timestamp part, raise the priority, or go to the previous item |
+| `org.shift.down` | Decrease the timestamp part, lower the priority, or go to the next item |
 
 ¹ Where the command does not apply, the key does what it does in any
 buffer: `<C-a>` off a timestamp still increments the number under the

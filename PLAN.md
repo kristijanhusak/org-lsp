@@ -71,10 +71,13 @@ few, checked against Emacs where Org decides the outcome:
   (`tests/structure`); cut, copy and paste subtrees through the editor's
   register or clipboard (`tests/subtree`); sorting entries
   (`tests/sort`); sparse trees (`tests/sparse`), folded by the editor
-  (Neovim, Vim, VS Code, Sublime Text). Sorting list items and table
-  lines come with the lists and the tables.
-- **Lists (8):** cycle bullets (`S-<left>`/`S-<right>` on an item),
-  indent and outdent items, move items, renumber.
+  (Neovim, Vim, VS Code, Sublime Text). Sorting table lines comes with
+  the tables.
+- **Lists (8):** done: indent, outdent and move items, cycle bullets,
+  the next and previous item, `C-c C-c` repairing and renumbering, and
+  sorting items (`tests/lists`). Left: `C-c -` turning lines into items
+  and back (`org-toggle-item`), `C-c *` (`org-toggle-heading`), radio
+  lists.
 - **Tags and properties (7):** set tags (`C-c C-q`, with fast tag
   selection and alignment), tag groups; set and delete properties
   (`C-c C-x p`), allowed values on the shifted keys; `LOGGING` and other
@@ -172,7 +175,9 @@ Differences from Emacs in this milestone, all deliberate:
   change in between. The server cannot see cursor movement.
 - `org-timestamp-up-day` called by name on a headline sets the first TODO
   keyword in Emacs. No key leads there; the server refuses instead.
-- Shifted cursor keys on list items and in tables do nothing yet.
+- Shifted cursor keys in tables do nothing yet.
+- Sorting list items (`C-c ^`) by a function of one's own (`f`) is
+  refused.
 - A repeater timestamp that stands *before* a stray priority cookie in a
   headline is not moved when the entry repeats.
 
@@ -380,9 +385,16 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   headline), parent boxes from their children, and the cookies that count
   checkboxes (`org-update-checkbox-count`), checked against Emacs in
   `tests/todo`. Cookies that count TODO entries were done with `org-todo`.
-- Cycle bullets,
-  renumber, indent and outdent, move items. This also completes the
-  shifted cursor keys.
+- Done: the meta keys on items (`org-indent-item`, `org-outdent-item`,
+  their `-tree` forms, `org-move-item-up` and `-down`), the shifted keys
+  (`org-cycle-list-bullet`, `org-previous-item`, `org-next-item`),
+  `C-c C-c` on an item as `org-ctrl-c-ctrl-c` does it (the box toggled,
+  the list repaired from org-element's structure, `ORDERED` entries),
+  and `org-sort-list`, checked against Emacs in `tests/lists` and by
+  `scripts/fuzz-lists.py`. The cookies that count checkboxes count the
+  lists as org-element splits them.
+- Left: `org-toggle-item` (`C-c -`), `org-toggle-heading` (`C-c *`),
+  radio lists, `org-list-use-circular-motion`.
 
 ### 9. Clocking
 

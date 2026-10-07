@@ -427,6 +427,8 @@ struct Server {
     captures: u32,
     /// Where the capture and note buffers go, one directory each.
     capture_directory: PathBuf,
+    /// Where the agenda's file goes, for a client that cannot fetch it.
+    view_directory: PathBuf,
     /// The date prompt that waits for an answer, in clients that show it.
     date_prompt: Option<DatePrompt>,
     /// The client's copy of the date prompt document, which it may keep
@@ -585,7 +587,8 @@ pub fn run(connection: Connection) -> Result<()> {
         capture: None,
         note: None,
         captures: 0,
-        capture_directory: capture_directory(),
+        capture_directory: server_directory("capture"),
+        view_directory: server_directory("view"),
         date_prompt: None,
         prompt_copy: None,
         separator_lines: options.separator_lines(),
@@ -771,12 +774,12 @@ fn span_name(span: Span) -> String {
     }
 }
 
-/// A directory for the capture buffers of a server: one of its own, also
-/// when a process runs more than one (the tests).
-fn capture_directory() -> PathBuf {
+/// A directory for the capture buffers or the agenda file of a server:
+/// one of its own, also when a process runs more than one (the tests).
+fn server_directory(kind: &str) -> PathBuf {
     static SERVERS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let server = SERVERS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    temp_dir().join(format!("org-lsp-capture-{}-{server}", std::process::id()))
+    temp_dir().join(format!("org-lsp-{kind}-{}-{server}", std::process::id()))
 }
 
 /// The directory for temporary files, with its links resolved. Editors
@@ -1590,6 +1593,43 @@ impl Server {
                 }));
             }
         }
+        // On a list item: outdenting, indenting and moving it.
+        if !org_core::structure::at_heading(&document.text, offset) && org_core::list::at_item(&document.text, offset) {
+            let text = &document.text;
+            let keywords = document.parse.todo_keywords();
+            let ids = [
+                commands::META_LEFT,
+                commands::META_RIGHT,
+                commands::SHIFT_META_LEFT,
+                commands::SHIFT_META_RIGHT,
+                commands::META_UP,
+                commands::META_DOWN,
+            ];
+            for id in ids {
+                if !actions::requested(id, only) {
+                    continue;
+                }
+                let Ok(edited) = item_structure(id, text, offset, keywords, self.refile.2.tags_column) else {
+                    continue;
+                };
+                if edited.text == *text {
+                    continue;
+                }
+                let edits = actions::edits_between(text, &edited.text)
+                    .into_iter()
+                    .map(|edit| TextEdit {
+                        range: document.index.range(text, edit.range, encoding),
+                        new_text: edit.new_text,
+                    })
+                    .collect();
+                result.push(CodeActionOrCommand::CodeAction(CodeAction {
+                    title: commands::title(id).to_string(),
+                    kind: Some(CodeActionKind::new(id)),
+                    edit: Some(self.workspace_edit(uri, Some(document.version), edits)),
+                    ..Default::default()
+                }));
+            }
+        }
         // Clocking and archiving, as commands: they may change another file
         // too.
         let in_entry = Self::heading_above(&document.text, offset).is_some();
@@ -2214,7 +2254,7 @@ impl Server {
             }
             None => {
                 // The client cannot fetch the view, so it gets a file.
-                let directory = temp_dir().join(format!("org-lsp-{}", std::process::id()));
+                let directory = self.view_directory.clone();
                 let file = directory.join(views::FILE_NAME);
                 if std::fs::create_dir_all(&directory).is_ok() {
                     self.open_port();
@@ -4100,6 +4140,11 @@ impl Server {
             let extra = Extra { note: Some(context.input.clone().unwrap_or_default()), ..Extra::default() };
             return self.edit_with(&context, id, Some(EditCommand::Todo(target)), &extra);
         }
+        if matches!(id, commands::SHIFT_LEFT | commands::SHIFT_RIGHT | commands::SHIFT_UP | commands::SHIFT_DOWN) {
+            if let Some(result) = self.shift_item(id, &context) {
+                return result;
+            }
+        }
         if id != commands::TODO {
             return self.edit_with(&context, id, None, &Extra::default());
         }
@@ -4185,8 +4230,10 @@ impl Server {
     /// Org's meta keys for structure editing (`org-metaleft`,
     /// `org-metaright`, `org-shiftmetaleft`, `org-shiftmetaright`,
     /// `org-metaup`, `org-metadown`): on a headline, promoting, demoting
-    /// and moving subtrees; `M-<right>` on a drawer or block indents it.
-    /// Carried in the result as `org.return` is.
+    /// and moving subtrees; `M-<right>` on a drawer or block indents it;
+    /// on a list item, outdenting, indenting and moving it, alone or with
+    /// its children (`org-outdent-item`, `org-indent-item-tree`,
+    /// `org-move-item-up`, …). Carried in the result as `org.return` is.
     fn structure(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
         use org_core::structure;
         let encoding = self.client.encoding;
@@ -4203,10 +4250,16 @@ impl Server {
                 return self.carried(context, outcome);
             }
         }
+        let tags_column = self.refile.2.tags_column;
+        if !structure::at_heading(&text, offset) && org_core::list::at_item(&text, offset) {
+            let edited = item_structure(id, &text, offset, &keywords, tags_column)?;
+            let outcome = org_core::newline::Outcome { text: edited.text, cursor: edited.cursor };
+            return self.carried(context, outcome);
+        }
         if !structure::at_heading(&text, offset) {
             return Err(Refusal::NotHere("Not at a headline".to_string()));
         }
-        let settings = structure::Settings { tags_column: self.refile.2.tags_column, indent: self.indent_in(&text) };
+        let settings = structure::Settings { tags_column, indent: self.indent_in(&text) };
         let count = context.count.filter(|count| *count > 0).unwrap_or(1) as isize;
         let outcome = match id {
             commands::META_LEFT => structure::change_levels(&text, offset, -1, false, &keywords, &settings)?,
@@ -4217,6 +4270,29 @@ impl Server {
             _ => structure::move_subtree(&text, offset, count)?,
         };
         self.carried(context, outcome)
+    }
+
+    /// Org's shifted cursor keys on a list item in an Org file, carried in
+    /// the result as `org.return` is: the bullets cycled
+    /// (`org-cycle-list-bullet`), or the cursor to the next or previous
+    /// item (`org-next-item`, `org-previous-item`). None elsewhere.
+    fn shift_item(&mut self, id: &str, context: &Context) -> Option<std::result::Result<Value, Refusal>> {
+        let encoding = self.client.encoding;
+        let document = self.document(&context.text_document.uri)?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        if !org_core::edit::shifts_item(&text, offset) {
+            return None;
+        }
+        let outcome = match id {
+            commands::SHIFT_LEFT | commands::SHIFT_RIGHT => {
+                org_core::list::cycle_bullet(&text, offset, id == commands::SHIFT_LEFT)
+                    .map(|edited| org_core::newline::Outcome { text: edited.text, cursor: edited.cursor })
+            }
+            _ => org_core::list::next_item(&text, offset, id == commands::SHIFT_UP)
+                .map(|cursor| org_core::newline::Outcome { text: text.clone(), cursor }),
+        };
+        Some(outcome.and_then(|outcome| self.carried(context, outcome)))
     }
 
     /// `org-sparse-tree` (`C-c /`): asks what to show, as a key, and then
@@ -4396,8 +4472,22 @@ impl Server {
         if current.trim_start().starts_with('|') {
             return Err(Refusal::Failed("Sorting the lines of a table is not supported yet".to_string()));
         }
+        // `org-sort-list` on an item.
         if org_core::list::at_item(&text, offset) {
-            return Err(Refusal::Failed("Sorting the items of a list is not supported yet".to_string()));
+            let Some(answer) = context.input.as_deref() else {
+                let types = sort::LIST_TYPES;
+                let mut choices: Vec<Value> =
+                    types.iter().map(|(key, label)| json!({ "key": key.to_string(), "label": label })).collect();
+                choices.extend(types.iter().map(|(key, label)| {
+                    json!({ "key": key.to_ascii_uppercase().to_string(), "label": format!("{label}, reversed") })
+                }));
+                let input = json!({ "kind": "key", "prompt": "Sort plain list", "value": "", "choices": choices });
+                return Ok(json!({ "input": input }));
+            };
+            let kind = answer.chars().next().ok_or("Abort")?;
+            let outcome = sort::sort_list(&text, offset, kind, self.date_time())?;
+            self.message = Some("Sorting items...done".to_string());
+            return self.carried(context, outcome);
         }
         let Some(answer) = context.input.as_deref() else {
             let mut choices: Vec<Value> =
@@ -4948,5 +5038,26 @@ impl Server {
             from: position.line,
             position: Position::new(target, position.character),
         })
+    }
+}
+
+/// Org's meta keys on a list item: `M-<left>` and `M-<right>` outdent and
+/// indent it alone, with `S-` its children too; `M-<up>` and `M-<down>`
+/// move it with its children.
+fn item_structure(
+    id: &str,
+    text: &str,
+    offset: usize,
+    keywords: &org_syntax::TodoKeywords,
+    tags_column: i64,
+) -> std::result::Result<org_core::list::Edited, Refusal> {
+    use org_core::list;
+    match id {
+        commands::META_LEFT => list::indent_item(text, offset, -1, false, keywords, tags_column),
+        commands::META_RIGHT => list::indent_item(text, offset, 1, false, keywords, tags_column),
+        commands::SHIFT_META_LEFT => list::indent_item(text, offset, -1, true, keywords, tags_column),
+        commands::SHIFT_META_RIGHT => list::indent_item(text, offset, 1, true, keywords, tags_column),
+        commands::META_UP => list::move_item(text, offset, false),
+        _ => list::move_item(text, offset, true),
     }
 }

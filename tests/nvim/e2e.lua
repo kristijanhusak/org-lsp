@@ -783,6 +783,41 @@ wait('the text line shifted as Vim shifts it', function()
 end)
 vim.cmd('silent! write')
 
+-- 23h. On list items: `>>` and `<<` indent and outdent the item,
+-- `<Leader>oJ` moves it with the cursor, `<S-Right>` cycles the bullets,
+-- and `<C-Space>` (`C-c C-c`) renumbers the list.
+local items = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '- a', '- b', '  - c', '- d' }, items)
+vim.cmd.edit(items)
+wait('the server for list items', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 2, 2 })
+press('>>')
+wait('the item indented', function()
+  return line(2) == '  - b'
+end)
+press('<<')
+wait('and outdented back', function()
+  return line(2) == '- b'
+end)
+press('<Leader>oJ')
+wait('the item moved down', function()
+  return vim.deep_equal(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '- a', '- d', '- b', '  - c' })
+end)
+eq(vim.api.nvim_win_get_cursor(0), { 3, 2 }, 'the cursor goes with it')
+press('<S-Right>')
+wait('the bullets cycled', function()
+  return vim.deep_equal(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '+ a', '+ d', '+ b', '  - c' })
+end)
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { '1. a', '3. b', '7. c' })
+vim.api.nvim_win_set_cursor(0, { 2, 1 })
+press('<C-Space>')
+wait('the list renumbered', function()
+  return vim.deep_equal(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '1. a', '2. b', '3. c' })
+end)
+vim.cmd('silent! write')
+
 -- 23e. `<Leader>osy` copies the subtree into the register it was typed
 -- with, `<Leader>osd` cuts it, and `<Leader>osp` pastes the register as a
 -- subtree at the level of the headlines around.
