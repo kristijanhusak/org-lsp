@@ -33,6 +33,8 @@ local SERVER = 'org_lsp'
 ---@field virtual_indent? boolean Whether files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`) show indented by level, without being changed, and with hidden leading stars (`org_hide_leading_stars`, `#+STARTUP: hidestars`).
 ---@field win_split_mode? 'split'|'vsplit'|'float'|'current'|string|fun(bufnr: integer): integer? How the agenda and capture buffers open: 'split', 'vsplit', 'float', 'current', another Ex command that opens a window ('botright split', 'tabnew'), or a function that opens a window for the buffer and returns it.
 ---@field win_split_size? number The size of the window `win_split_mode` opens: lines for a split, columns for a vertical one, or with a number below 1 that part of the editor ('float' takes the part for both sides, 0.8 when unset). Unset, a split takes half of the window it splits.
+---@field calendar_win_mode? 'bottom'|'float'|'cursor'|string|fun(bufnr: integer): integer? Where the date prompt's calendar opens: 'bottom' in a split along the bottom, as Emacs shows it; 'float' in a floating window in the middle; 'cursor' in a floating window below the cursor (above it when there is no room); another Ex command that opens a window ('topleft split'); or a function that opens a window for the buffer and returns it.
+---@field calendar_border? string|string[] The border of the calendar's floating window ('float', 'cursor'), as `nvim_open_win()` takes it; 'rounded' when unset, 'none' for none.
 ---@field mappings? org_lsp.Mappings|false Keys by scope; `false` sets no keys at all. See docs/neovim/keys.md.
 
 --- Keys by scope. In a scope, a command (`org.todo`, or one of the plugin's
@@ -57,6 +59,7 @@ local defaults = {
   indent = true,
   virtual_indent = true,
   win_split_mode = 'split',
+  calendar_win_mode = 'bottom',
   mappings = {
     -- The keys that must work before the server has said anything.
     global = {

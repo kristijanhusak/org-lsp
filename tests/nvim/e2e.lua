@@ -1134,5 +1134,61 @@ wait('both boxes counted', function()
   return line(1) == '* Tasks [2/2]'
 end)
 
+-- The calendar takes lines from the window it was asked from, which
+-- Neovim scrolls then, and again when it closes; the line it starts with
+-- is the same after the date went in above the cursor, as in Emacs.
+local long_lines = { '#+TITLE: Long' }
+for i = 1, 79 do
+  table.insert(long_lines, i % 4 == 1 and ('* TODO Heading ' .. i) or ('text ' .. i))
+end
+local long = vim.fn.tempname() .. '.org'
+vim.fn.writefile(long_lines, long)
+vim.cmd.edit(long)
+wait('the server to attach to the long file', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+local function date_prompt()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'org-date' then
+      return win
+    end
+  end
+end
+vim.cmd('normal! gg')
+vim.api.nvim_win_set_cursor(0, { 20, 0 })
+vim.cmd('redraw')
+eq(vim.fn.line('w0'), 1, 'the long file from its start')
+-- The keys of Org files are off since 17.
+vim.cmd('Org schedule')
+wait('the calendar from the long file', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return date_prompt() ~= nil
+end)
+vim.cmd('redraw')
+press('<CR>')
+wait('the calendar to close in the long file', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return date_prompt() == nil and line(19) == 'SCHEDULED: ' .. line(19):sub(12)
+end)
+vim.cmd('redraw')
+eq(vim.api.nvim_win_get_cursor(0), { 21, 0 }, 'the cursor on its line, a line further down')
+eq(vim.fn.line('w0'), 1, 'and the window still starting with the first line')
+-- `calendar_win_mode` 'cursor': a floating window below the cursor.
+require('org-lsp').config.calendar_win_mode = 'cursor'
+vim.cmd('Org schedule')
+wait('the calendar at the cursor', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return date_prompt() ~= nil
+end)
+local float = vim.api.nvim_win_get_config(date_prompt())
+eq({ float.relative, float.border ~= nil }, { 'editor', true }, 'a floating calendar with a border')
+eq(float.height, vim.api.nvim_buf_line_count(vim.api.nvim_win_get_buf(date_prompt())), 'as high as its text')
+press('q')
+wait('the floating calendar to close', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return date_prompt() == nil
+end)
+require('org-lsp').config.calendar_win_mode = 'bottom'
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')
