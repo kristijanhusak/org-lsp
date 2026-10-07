@@ -68,6 +68,10 @@ pub struct Options {
     /// also offers those of the agenda files.
     #[serde(rename = "org_complete_tags_always_offer_all_agenda_tags")]
     pub complete_tags_always_offer_all_agenda_tags: Option<bool>,
+    /// `org-cite-global-bibliography`: bibliography files for every
+    /// document, after those of its `#+BIBLIOGRAPHY:` lines.
+    #[serde(rename = "org_cite_global_bibliography")]
+    pub cite_global_bibliography: Option<Vec<String>>,
     /// `org-tag-alist`: the tags offered when a file has no `#+TAGS:`
     /// line, written like one (`"work(w) { @office(o) @home(h) }"`), or as
     /// its words.

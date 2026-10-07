@@ -374,6 +374,16 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - Fold cycling in the server (Neovim does it in Lua today,
   `lua/org-lsp/folds.lua`), sparse trees.
 
+### Citations
+
+- Done: reading bibliographies as `oc-basic` does (`#+BIBLIOGRAPHY:`,
+  `org-cite-global-bibliography`; BibTeX as `bibtex.el` parses it, CSL-JSON),
+  checked against Emacs in `tests/cite` (`scripts/fuzz-cite.py`); keys
+  completed, the entry on hover (`plain`), following a key
+  (`org-cite-basic-goto`), unknown keys as diagnostics with the close
+  keys to put instead.
+- Left: `org-cite-insert` (`C-c C-x @`), export.
+
 ### 7. Tags and properties
 
 - Done: tag and property inheritance (`org-use-tag-inheritance`,

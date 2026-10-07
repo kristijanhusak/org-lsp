@@ -290,6 +290,13 @@ require('org-lsp').setup({
     -- (org-complete-tags-always-offer-all-agenda-tags)
     org_complete_tags_always_offer_all_agenda_tags = false,
 
+    -- Bibliography files for the citations of every document (`[cite:@key]`),
+    -- after those its `#+BIBLIOGRAPHY:` lines name: BibTeX (`.bib`,
+    -- `.bibtex`) or CSL-JSON (`.json`). Their entries are completed after
+    -- `@`, shown over a key, and where following a key goes; a key none has
+    -- is marked. (org-cite-global-bibliography)
+    org_cite_global_bibliography = {},
+
     -- The tags offered when setting tags in a file without a `#+TAGS:` line,
     -- written like one: `"work(w) home(h) { @office(o) @home(m) } [ GTD :
     -- Control Persp ]"` gives `work` the key `w`, makes `@office` and `@home`

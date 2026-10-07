@@ -10,6 +10,7 @@ pub mod calc;
 pub mod calendar;
 pub mod capture;
 pub mod checkbox;
+pub mod cite;
 pub mod clock;
 pub mod date;
 pub mod edit;

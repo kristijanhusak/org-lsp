@@ -171,6 +171,15 @@ pub const SETTINGS: &[Setting] = &[
          file's own. Setting tags offers them too.",
     ),
     setting(
+        "org_cite_global_bibliography",
+        "string[]",
+        "[]",
+        "org-cite-global-bibliography",
+        "Bibliography files for the citations of every document (`[cite:@key]`), after those its \
+         `#+BIBLIOGRAPHY:` lines name: BibTeX (`.bib`, `.bibtex`) or CSL-JSON (`.json`). Their entries are \
+         completed after `@`, shown over a key, and where following a key goes; a key none has is marked.",
+    ),
+    setting(
         "org_tag_alist",
         "string, string[]",
         r#""""#,
@@ -864,6 +873,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_use_property_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
     ("org_global_properties", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_complete_tags_always_offer_all_agenda_tags", BOOLEAN),
+    ("org_cite_global_bibliography", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_tag_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_tag_persistent_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_use_fast_tag_selection", r#"{ "enum": [true, false, "auto"] }"#),

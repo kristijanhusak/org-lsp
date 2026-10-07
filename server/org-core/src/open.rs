@@ -28,6 +28,9 @@ pub enum Open {
     Tags(String),
     /// The links of an entry to pick from, by key.
     Choose(Vec<Choice>),
+    /// A citation (`org-cite-follow`): the key of the reference at the
+    /// place, or else all keys of the citation, one to pick.
+    Citation(Vec<String>),
     /// Nothing to open; what Emacs says then.
     Nothing(String),
 }
@@ -50,6 +53,17 @@ pub fn at_point(text: &str, parse: &Parse, offset: usize, answer: Option<char>) 
         match node.kind() {
             SyntaxKind::LINK | SyntaxKind::PLAIN_LINK | SyntaxKind::ANGLE_LINK => return open_link(&node, text, parse),
             SyntaxKind::TIMESTAMP => return timestamp(&node.text().to_string()).ok_or_else(|| NO_LINK.to_string()),
+            SyntaxKind::CITATION => {
+                let start = usize::from(node.text_range().start());
+                let references = crate::cite::references(&node.text().to_string(), start);
+                // On a reference, its key; elsewhere, all keys.
+                let keys =
+                    match references.iter().find(|reference| reference.part.0 <= offset && offset < reference.part.1) {
+                        Some(reference) => vec![reference.key.clone()],
+                        None => references.iter().map(|reference| reference.key.clone()).collect(),
+                    };
+                return Ok(Open::Citation(keys));
+            }
             SyntaxKind::FOOTNOTE_REFERENCE => return footnote_reference(&node, &root),
             SyntaxKind::FOOTNOTE_DEFINITION => {
                 // On the label only, not on the blanks after it.

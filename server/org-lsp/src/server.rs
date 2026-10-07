@@ -382,6 +382,14 @@ impl Held {
     }
 }
 
+/// A bibliography file and its entries.
+#[derive(Debug)]
+struct BibFile {
+    path: PathBuf,
+    text: String,
+    entries: Vec<org_core::cite::Entry>,
+}
+
 struct Server {
     client: Client,
     sender: crossbeam_channel::Sender<Message>,
@@ -454,6 +462,13 @@ struct Server {
     display: org_core::indent::Display,
     /// The documents the client was last told to show with prefixes.
     virtually_indented: HashSet<String>,
+    /// `org-cite-global-bibliography`
+    cite_global: Vec<String>,
+    /// The bibliography files read, with when each changed and its size,
+    /// to read one again when it changes.
+    bibliographies: HashMap<PathBuf, (Option<std::time::SystemTime>, u64, Rc<BibFile>)>,
+    /// The documents the server published citation diagnostics for.
+    cite_diagnosed: HashSet<String>,
     /// A fixed clock, for tests.
     clock: Option<Now>,
     /// The clock that runs, as the files say.
@@ -610,6 +625,9 @@ pub fn run(connection: Connection) -> Result<()> {
         indent: options.indent_settings(),
         display: options.display(),
         virtually_indented: HashSet::new(),
+        cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
+        bibliographies: HashMap::new(),
+        cite_diagnosed: HashSet::new(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
         running: None,
         clock_pending: false,
@@ -1279,6 +1297,7 @@ impl Server {
                 self.documents.insert(key.clone(), Document::new(document.text, document.version, &self.todo));
                 self.sync_clock(&key);
                 self.publish_virtual_indent(&key);
+                self.publish_citation_diagnostics(&key);
             }
             DidChangeTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidChangeTextDocumentParams>(notification) else { return };
@@ -1314,6 +1333,7 @@ impl Server {
                 }
                 self.sync_clock(key);
                 self.publish_virtual_indent(key);
+                self.publish_citation_diagnostics(key);
                 // An edit the server asked for has arrived: show its effect.
                 // Any other change means the user did something in between.
                 if self.edited.remove(key) {
@@ -1569,6 +1589,21 @@ impl Server {
             CodeActionOrCommand::CodeAction(action.to_lsp(edit))
         };
         let mut result: Vec<CodeActionOrCommand> = found.iter().map(to_lsp).collect();
+        // On an unknown citation key, the close keys to put instead, as a
+        // click on it offers them in Emacs (`org-cite-basic--set-keymap`).
+        for diagnostic in &params.context.diagnostics {
+            let keys = diagnostic.data.as_ref().and_then(|data| data.get("citationKeys")).and_then(Value::as_array);
+            for key in keys.into_iter().flatten().filter_map(Value::as_str) {
+                let edits = vec![TextEdit { range: diagnostic.range, new_text: format!("@{key}") }];
+                result.push(CodeActionOrCommand::CodeAction(CodeAction {
+                    title: format!("Replace with @{key}"),
+                    kind: Some(CodeActionKind::QUICKFIX),
+                    diagnostics: Some(vec![diagnostic.clone()]),
+                    edit: Some(self.workspace_edit(uri, Some(document.version), edits)),
+                    ..Default::default()
+                }));
+            }
+        }
         // On a headline: promoting, demoting and moving it, as edits, where
         // they would do something.
         if org_core::structure::at_heading(&document.text, offset) {
@@ -1770,6 +1805,22 @@ impl Server {
             document.text[line_start..].starts_with('*')
         });
         let agenda_tags = if self.all_agenda_tags && on_headline { self.agenda_tags() } else { Vec::new() };
+        // The bibliography, read only after an `@` in a citation.
+        let citation_keys: Vec<(String, String)> = {
+            let document = self.document(&uri)?;
+            let offset = document.index.offset(&document.text, position.position, encoding);
+            let line_start = document.text[..offset].rfind('\n').map_or(0, |at| at + 1);
+            if completion::citation_key_start(&document.text[line_start..offset]).is_some() {
+                let text = document.text.clone();
+                self.bibliography(&uri, &text)
+                    .iter()
+                    .flat_map(|file| file.entries.iter())
+                    .map(|entry| (entry.key.clone(), entry.completion().unwrap_or_default()))
+                    .collect()
+            } else {
+                Vec::new()
+            }
+        };
         let document = self.document(&uri)?;
         let offset = document.index.offset(&document.text, position.position, encoding);
         let directory = uri::to_path(&uri).and_then(|path| path.parent().map(Path::to_path_buf));
@@ -1797,6 +1848,7 @@ impl Server {
             directory: directory.as_deref(),
             list_directory: &list_directory,
             read_file: &read_file,
+            citation_keys: &citation_keys,
         };
         let (start, items) = completion::complete(&document.text, offset, &context)?;
         let range = Range::new(document.index.position(&document.text, start, encoding), position.position);
@@ -1816,7 +1868,12 @@ impl Server {
                     completion::Kind::Folder => lsp_types::CompletionItemKind::FOLDER,
                     completion::Kind::Heading => lsp_types::CompletionItemKind::REFERENCE,
                     completion::Kind::Entity => lsp_types::CompletionItemKind::CONSTANT,
+                    completion::Kind::Citation => lsp_types::CompletionItemKind::REFERENCE,
                 }),
+                // Matched against what is typed too: `doe` finds a key by
+                // its author.
+                filter_text: candidate.detail.as_ref().map(|detail| format!("{} {detail}", candidate.label)),
+                detail: candidate.detail,
                 text_edit: Some(lsp_types::CompletionTextEdit::Edit(TextEdit { range, new_text: candidate.insert })),
                 label: candidate.label,
                 ..Default::default()
@@ -1852,6 +1909,17 @@ impl Server {
         let text = document.text.clone();
         let offset = document.index.offset(&text, position.position, self.client.encoding);
         let opened = open::at_point(&text, &document.parse, offset, None).ok()?;
+        // A citation: the entries of its keys.
+        if let Open::Citation(keys) = &opened {
+            let files = self.bibliography(uri, &text);
+            let locations: Vec<Location> =
+                keys.iter().filter_map(|key| Self::cite_location(&files, key, self.client.encoding).ok()).collect();
+            return match locations.len() {
+                0 => None,
+                1 => locations.into_iter().next().map(GotoDefinitionResponse::Scalar),
+                _ => Some(GotoDefinitionResponse::Array(locations)),
+            };
+        }
         self.open_location(uri, &text, &opened).ok().flatten().map(GotoDefinitionResponse::Scalar)
     }
 
@@ -1859,6 +1927,9 @@ impl Server {
     /// each drawer folded, as Org in a fenced block of Markdown.
     fn hover(&mut self, params: lsp_types::HoverParams) -> Option<lsp_types::Hover> {
         let position = params.text_document_position_params;
+        if !self.is_view(&position.text_document.uri) {
+            return self.citation_hover(&position.text_document.uri, position.position);
+        }
         let text = self.entry_preview(&position.text_document.uri, position.position.line)?;
         Some(lsp_types::Hover {
             contents: lsp_types::HoverContents::Markup(lsp_types::MarkupContent {
@@ -1952,6 +2023,33 @@ impl Server {
                 } }));
             }
             Open::Nothing(message) => self.message = Some(message.clone()),
+            // `org-cite-basic-goto`: the entry of the key, picked among
+            // the citation's when it has more than one.
+            Open::Citation(keys) => {
+                let key = match (keys.as_slice(), context.input.as_deref()) {
+                    ([], _) => return Err("No citation key here".into()),
+                    ([key], _) => key.clone(),
+                    (_, Some(answer)) => answer.to_string(),
+                    _ => {
+                        let choices: Vec<Value> = keys.iter().map(|key| json!({ "key": key, "label": key })).collect();
+                        return Ok(json!({ "input": {
+                            "kind": "choice",
+                            "prompt": "Select citation key",
+                            "value": "",
+                            "choices": choices,
+                        } }));
+                    }
+                };
+                let files = self.bibliography(&uri, &text);
+                let location = Self::cite_location(&files, &key, self.client.encoding).map_err(Refusal::Failed)?;
+                let params = ShowDocumentParams {
+                    uri: location.uri,
+                    external: None,
+                    take_focus: Some(true),
+                    selection: Some(location.range),
+                };
+                self.send_request::<ShowDocument>(params, None);
+            }
             Open::Here(_) | Open::File { .. } | Open::Id(_) => {
                 let location = self.open_location(&uri, &text, &opened)?.ok_or("No link found")?;
                 let params = ShowDocumentParams {
@@ -5181,6 +5279,158 @@ impl Server {
         };
         self.clock_pending = false;
         let notification = lsp_server::Notification::new("org-lsp/clock".to_string(), params);
+        let _ = self.sender.send(Message::Notification(notification));
+    }
+
+    // ----- citations
+
+    /// The bibliography of the document `uri` with text `text`, as
+    /// `org-cite-basic--parse-bibliography` lists it: the files of its
+    /// `#+BIBLIOGRAPHY:` keywords (relative to it) and of
+    /// `org_cite_global_bibliography`, the last first. A file Org cannot
+    /// read is left out (Emacs then fails for the whole bibliography).
+    fn bibliography(&mut self, uri: &Uri, text: &str) -> Vec<Rc<BibFile>> {
+        let names = org_core::cite::bibliography_files(
+            &org_core::cite::bibliography_keywords(text, &self.todo),
+            &self.cite_global,
+        );
+        let mut files = Vec::new();
+        for name in names {
+            let Some(path) = self.link_path(uri, &name) else { continue };
+            // `file-truename`
+            let Ok(path) = std::fs::canonicalize(&path) else { continue };
+            let Ok(metadata) = std::fs::metadata(&path) else { continue };
+            let (modified, len) = (metadata.modified().ok(), metadata.len());
+            let cached = self
+                .bibliographies
+                .get(&path)
+                .filter(|(when, size, _)| *when == modified && *size == len && modified.is_some())
+                .map(|(_, _, file)| file.clone());
+            let file = match cached {
+                Some(file) => file,
+                None => {
+                    let Ok(bytes) = std::fs::read(&path) else { continue };
+                    let text = String::from_utf8_lossy(&bytes).replace("\r\n", "\n");
+                    let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+                    let entries = org_core::cite::parse_file(&name, &text).unwrap_or_default();
+                    let file = Rc::new(BibFile { path: path.clone(), text, entries });
+                    self.bibliographies.insert(path, (modified, len, file.clone()));
+                    file
+                }
+            };
+            files.insert(0, file);
+        }
+        files
+    }
+
+    /// The entry of `key` in a bibliography, and the file it is in.
+    fn cite_entry<'a>(files: &'a [Rc<BibFile>], key: &str) -> Option<(&'a BibFile, &'a org_core::cite::Entry)> {
+        files.iter().find_map(|file| file.entries.iter().find(|entry| entry.key == key).map(|entry| (&**file, entry)))
+    }
+
+    /// Where following `key` goes (`org-cite-basic-goto`): its entry in
+    /// its bibliography file, or the start of the file when Org finds no
+    /// entry there.
+    fn cite_location(files: &[Rc<BibFile>], key: &str, encoding: Encoding) -> std::result::Result<Location, String> {
+        let (file, _) = Self::cite_entry(files, key).ok_or_else(|| format!("Cannot find citation key: \"{key}\""))?;
+        let name = file.path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+        let at = org_core::cite::entry_position(&name, &file.text, key).unwrap_or(0);
+        let position = LineIndex::new(&file.text).position(&file.text, at, encoding);
+        let uri = uri::from_path(&file.path).ok_or("Cannot open the bibliography")?;
+        Ok(Location { uri, range: Range::new(position, position) })
+    }
+
+    /// Over a citation key, its entry as the help echo of `oc-basic` shows
+    /// it (`Doe, Roe. Title, Publisher, 2020.`), or for a key the
+    /// bibliography does not have, the keys close to it.
+    fn citation_hover(&mut self, uri: &Uri, position: Position) -> Option<lsp_types::Hover> {
+        let document = self.document(uri)?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, position, self.client.encoding);
+        let (start, citation) = org_core::cite::citation_at(&document.parse, offset)?;
+        let references = org_core::cite::references(&citation, start);
+        let reference = org_core::cite::key_at(&references, offset)?.clone();
+        let files = self.bibliography(uri, &text);
+        let value = match Self::cite_entry(&files, &reference.key) {
+            Some((_, entry)) => entry.plain().unwrap_or_else(|error| error),
+            None => {
+                let keys: Vec<String> =
+                    files.iter().flat_map(|file| file.entries.iter().map(|entry| entry.key.clone())).collect();
+                let close = org_core::cite::close_keys(&reference.key, &keys);
+                if close.is_empty() {
+                    format!("Unknown citation key: @{}", reference.key)
+                } else {
+                    format!("Suggestions: {}", close.iter().map(|key| key.as_str()).collect::<Vec<_>>().join(" "))
+                }
+            }
+        };
+        let document = self.document(uri)?;
+        let encoding = self.client.encoding;
+        let range = Range::new(
+            document.index.position(&text, reference.start, encoding),
+            document.index.position(&text, reference.end, encoding),
+        );
+        Some(lsp_types::Hover {
+            contents: lsp_types::HoverContents::Markup(lsp_types::MarkupContent {
+                kind: lsp_types::MarkupKind::PlainText,
+                value,
+            }),
+            range: Some(range),
+        })
+    }
+
+    /// The citation keys of the document `key` that its bibliography does
+    /// not have, as diagnostics (the `error` face of `oc-basic`), with the
+    /// keys close to each (`org-cite-basic--close-keys`) to substitute.
+    fn publish_citation_diagnostics(&mut self, key: &str) {
+        let Some(document) = self.documents.get(key) else { return };
+        let Ok(uri) = key.parse::<Uri>() else { return };
+        let (text, parse, version) = (document.text.clone(), document.parse.clone(), document.version);
+        let mut diagnostics = Vec::new();
+        if text.contains("[cite") {
+            let files = self.bibliography(&uri, &text);
+            let keys: Vec<String> =
+                files.iter().flat_map(|file| file.entries.iter().map(|entry| entry.key.clone())).collect();
+            let encoding = self.client.encoding;
+            let Some(document) = self.documents.get(key) else { return };
+            for node in parse.syntax().descendants().filter(|node| node.kind() == org_syntax::SyntaxKind::CITATION) {
+                let start = usize::from(node.text_range().start());
+                for reference in org_core::cite::references(&node.text().to_string(), start) {
+                    if keys.contains(&reference.key) {
+                        continue;
+                    }
+                    let close: Vec<String> =
+                        org_core::cite::close_keys(&reference.key, &keys).into_iter().cloned().collect();
+                    let mut message = format!("Unknown citation key: @{}", reference.key);
+                    if !close.is_empty() {
+                        message.push_str(&format!(" (suggestions: {})", close.join(" ")));
+                    }
+                    let range = Range::new(
+                        document.index.position(&text, reference.start, encoding),
+                        document.index.position(&text, reference.end, encoding),
+                    );
+                    diagnostics.push(lsp_types::Diagnostic {
+                        range,
+                        severity: Some(lsp_types::DiagnosticSeverity::ERROR),
+                        source: Some("org-lsp".to_string()),
+                        message,
+                        data: Some(json!({ "citationKeys": close })),
+                        ..Default::default()
+                    });
+                }
+            }
+        }
+        if diagnostics.is_empty() && !self.cite_diagnosed.remove(key) {
+            return;
+        }
+        if !diagnostics.is_empty() {
+            self.cite_diagnosed.insert(key.to_string());
+        }
+        let params = lsp_types::PublishDiagnosticsParams { uri, diagnostics, version: Some(version) };
+        let notification = lsp_server::Notification::new(
+            <lsp_types::notification::PublishDiagnostics as lsp_types::notification::Notification>::METHOD.to_string(),
+            params,
+        );
         let _ = self.sender.send(Message::Notification(notification));
     }
 
