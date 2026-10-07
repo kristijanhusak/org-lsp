@@ -30,6 +30,7 @@ pub mod priority;
 pub mod properties;
 pub mod read_date;
 pub mod refile;
+pub mod rename;
 pub mod sort;
 pub mod sparse;
 pub mod stamp;
