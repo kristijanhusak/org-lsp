@@ -431,6 +431,30 @@ class Tests(unittest.TestCase):
         self.assertEqual(window.opened, ('/a.org:3:1', self.sublime.ENCODED_POSITION, 1))
         self.assertEqual(window.active, 1)
 
+    def test_other_documents_are_shown_as_lsp_shows_them(self):
+        """The agenda itself, and any document but an entry's from TAB, go
+        to LSP's own handler, which takes the request's id: the decorated
+        `on_window_show_document` of recent versions answers with the
+        response the session sends, the `m_window_showDocument` of older
+        ones sends it itself."""
+        agenda = {'uri': 'file:///tmp/Agenda.org-agenda', 'takeFocus': True}
+
+        class Recent:
+            def on_window_show_document(self, params, request_id):
+                return ('response', params, request_id)
+
+        class Older:
+            def m_window_showDocument(self, params, request_id):
+                self.shown = (params, request_id)
+
+        recent = Recent()
+        handler = self.plugin.OrgLsp(lambda: recent)
+        self.assertEqual(handler.m_window_showDocument(agenda, 7), ('response', agenda, 7))
+        older = Older()
+        handler = self.plugin.OrgLsp(lambda: older)
+        self.assertIsNone(handler.m_window_showDocument(agenda, 8))
+        self.assertEqual(older.shown, (agenda, 8))
+
     def test_tells_the_server_how_wide_the_agenda_is(self):
         sent = []
         session = types.SimpleNamespace(send_notification=sent.append)
