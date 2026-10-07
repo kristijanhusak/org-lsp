@@ -12,7 +12,7 @@ local M = {}
 --- its date prompt.
 M.capabilities = {
   workspace = { textDocumentContent = { dynamicRegistration = false } },
-  experimental = { orgDatePrompt = true, orgVirtualIndent = true },
+  experimental = { orgDatePrompt = true, orgVirtualIndent = true, orgLineHighlights = true },
 }
 
 --- The manifest's sections for the documents the server owns, and the
@@ -257,6 +257,21 @@ function M.close(uri)
   M.close_buffer(vim.uri_to_bufnr(uri))
 end
 
+--- Tell the server of the changes to `bufnr` now, not after Neovim's
+--- usual delay. Neovim's change tracking does that without touching the
+--- highlighting; asking for new highlighting does it too, but drops the
+--- old highlighting until the new arrives, which flickers.
+---@param client vim.lsp.Client?
+---@param bufnr integer
+local function send_changes(client, bufnr)
+  local ok, changetracking = pcall(require, 'vim.lsp._changetracking')
+  if client and ok and type(changetracking) == 'table' and type(changetracking.flush) == 'function' then
+    changetracking.flush(client, bufnr)
+  else
+    vim.lsp.semantic_tokens.force_refresh(bufnr)
+  end
+end
+
 ---@param bufnr integer
 ---@param text string
 local function set_text(bufnr, text)
@@ -269,8 +284,23 @@ local function set_text(bufnr, text)
   for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
     saved[win] = vim.api.nvim_win_call(win, vim.fn.winsaveview)
   end
+  -- Only the lines that changed: the others keep their highlighting
+  -- until the new arrives.
+  local old = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local first = 1
+  while first <= #old and first <= #lines and old[first] == lines[first] do
+    first = first + 1
+  end
+  local last_old, last_new = #old, #lines
+  while last_old >= first and last_new >= first and old[last_old] == lines[last_new] do
+    last_old, last_new = last_old - 1, last_new - 1
+  end
   vim.bo[bufnr].modifiable = true
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  if #old == 1 and old[1] == '' then
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  elseif first <= last_old or first <= last_new then
+    vim.api.nvim_buf_set_lines(bufnr, first - 1, last_old, false, vim.list_slice(lines, first, last_new))
+  end
   vim.bo[bufnr].modifiable = false
   vim.bo[bufnr].modified = false
   for win, view in pairs(saved) do
@@ -278,10 +308,10 @@ local function set_text(bufnr, text)
       vim.fn.winrestview(view)
     end)
   end
-  -- Highlight the new text now, not after the usual delay. This also sends
-  -- the change to the server at once, which is what the server waits for
-  -- before it moves the cursor to a line of the new text.
-  vim.lsp.semantic_tokens.force_refresh(bufnr)
+  -- Send the change to the server at once, which is what the server waits
+  -- for before it moves the cursor to a line of the new text; the new
+  -- highlighting follows.
+  send_changes(vim.lsp.get_clients({ bufnr = bufnr, name = 'org_lsp' })[1], bufnr)
 end
 
 --- Fill a new buffer of the server's scheme and attach the server to it,
@@ -302,20 +332,7 @@ local function load(bufnr, language)
   vim.lsp.buf_attach_client(bufnr, client.id)
 end
 
---- Tell the server of the changes to `bufnr` now, not after Neovim's
---- usual delay. Neovim's change tracking does that without touching the
---- highlighting; asking for new highlighting does it too, but drops the
---- old highlighting until the new arrives, which flickers.
----@param client vim.lsp.Client?
----@param bufnr integer
-local function send_changes(client, bufnr)
-  local ok, changetracking = pcall(require, 'vim.lsp._changetracking')
-  if client and ok and type(changetracking) == 'table' and type(changetracking.flush) == 'function' then
-    changetracking.flush(client, bufnr)
-  else
-    vim.lsp.semantic_tokens.force_refresh(bufnr)
-  end
-end
+local line_highlights = vim.api.nvim_create_namespace('org_lsp_line_highlights')
 
 M.handlers = {
   --- The server edits a file for a command. Neovim reports changes to a
@@ -400,6 +417,24 @@ M.handlers = {
   ['org-lsp/virtualIndent'] = function(_, params)
     if require('org-lsp').config.virtual_indent then
       require('org-lsp.indent').virtual(params)
+    end
+  end,
+
+  --- Lines of the agenda highlighted from edge to edge, as Emacs's
+  --- overlays cover them: the entry the clock runs on.
+  ['org-lsp/lineHighlights'] = function(_, params)
+    for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_is_loaded(bufnr) and vim.uri_from_bufnr(bufnr) == params.uri then
+        vim.api.nvim_buf_clear_namespace(bufnr, line_highlights, 0, -1)
+        local count = vim.api.nvim_buf_line_count(bufnr)
+        for _, line in ipairs(params.lines or {}) do
+          if line.line < count then
+            -- The group of the token of the same name.
+            local group = ('@lsp.type.%s.%s'):format(line.highlight, vim.bo[bufnr].filetype)
+            vim.api.nvim_buf_set_extmark(bufnr, line_highlights, line.line, 0, { line_hl_group = group })
+          end
+        end
+      end
     end
   end,
 

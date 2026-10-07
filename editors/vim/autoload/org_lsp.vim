@@ -94,6 +94,7 @@ function! org_lsp#init_options() abort
         \ 'showDocument': v:true,
         \ 'virtualDocuments': v:false,
         \ 'virtualIndent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
+        \ 'lineHighlights': v:true,
         \ })
 endfunction
 
@@ -796,12 +797,43 @@ function! s:is_capture(path) abort
 endfunction
 
 " The agenda is a file the server writes: read it again when it has.
+" Reading drops the highlighting; the lines that stayed get theirs back at
+" once, from the tokens they had, until the new tokens come.
 function! s:reload_agenda() abort
   for info in getbufinfo({'bufloaded': 1})
     if s:is_agenda(info.name)
+      let old = getbufline(info.bufnr, 1, '$')
       execute 'checktime' info.bufnr
+      call s:repaint_kept(info.bufnr, old)
     endif
   endfor
+endfunction
+
+" Paint buffer `nr` with the tokens it had when it had the lines `old`:
+" those of the lines before and after the part that changed.
+function! s:repaint_kept(nr, old) abort
+  let tokens = get(s:painted, a:nr, [])
+  let new = getbufline(a:nr, 1, '$')
+  if empty(tokens) || new ==# a:old
+    return
+  endif
+  let first = 0
+  while first < len(a:old) && first < len(new) && a:old[first] ==# new[first]
+    let first += 1
+  endwhile
+  let [last_old, last_new] = [len(a:old) - 1, len(new) - 1]
+  while last_old >= first && last_new >= first && a:old[last_old] ==# new[last_new]
+    let [last_old, last_new] = [last_old - 1, last_new - 1]
+  endwhile
+  let kept = []
+  for token in tokens
+    if token[0] < first
+      call add(kept, token)
+    elseif token[0] > last_old
+      call add(kept, [token[0] + last_new - last_old] + token[1:])
+    endif
+  endfor
+  call s:paint_absolute(a:nr, new, kept)
 endfunction
 
 " `window/showDocument`: the agenda and capture buffers open apart, or in
@@ -1011,6 +1043,33 @@ function! org_lsp#handle_notification(method, params) abort
     call s:clock_update(a:params)
   elseif a:method ==# 'org-lsp/virtualIndent'
     call s:virtual_indent(a:params)
+  elseif a:method ==# 'org-lsp/lineHighlights'
+    call s:line_highlights(a:params)
+  endif
+endfunction
+
+" Lines of the agenda highlighted from edge to edge, as Emacs's overlays
+" cover them (`org-lsp/lineHighlights`): the entry the clock runs on. Signs
+" without text, which colour their lines; and the tokens again, which
+" moved with them.
+function! s:line_highlights(params) abort
+  let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
+  if nr < 0 || !bufloaded(nr)
+    return
+  endif
+  if empty(s:selectors)
+    call org_lsp#define_highlights()
+  endif
+  call sign_unplace('org_lsp_lines', {'buffer': nr})
+  for line in get(a:params, 'lines', [])
+    let name = 'org_lsp_line_' . line.highlight
+    if empty(sign_getdefined(name))
+      call sign_define(name, {'linehl': s:group_name(line.highlight)})
+    endif
+    call sign_place(0, 'org_lsp_lines', name, nr, {'lnum': line.line + 1})
+  endfor
+  if org_lsp#config().highlight
+    call s:update_tokens(nr)
   endif
 endfunction
 
@@ -1347,32 +1406,45 @@ function! s:got_tokens(nr, tick, error, result) abort
   call s:paint(a:nr, getbufline(a:nr, 1, '$'), get(a:result, 'data', []))
 endfunction
 
+" The tokens each buffer was last painted with, as
+" `[line, character, length, type, modifiers]`.
+let s:painted = {}
+
 " Highlight the `lines` of buffer `nr` with the semantic tokens `data`.
 function! s:paint(nr, lines, data) abort
+  let tokens = []
+  let data = a:data
+  let line = 0
+  let character = 0
+  for i in range(0, len(data) - 1, 5)
+    let line += data[i]
+    let character = data[i] == 0 ? character + data[i + 1] : data[i + 1]
+    call add(tokens, [line, character, data[i + 2], data[i + 3], data[i + 4]])
+  endfor
+  call s:paint_absolute(a:nr, a:lines, tokens)
+endfunction
+
+function! s:paint_absolute(nr, lines, tokens) abort
   if empty(s:selectors)
     call org_lsp#define_highlights()
   endif
+  let s:painted[a:nr] = a:tokens
   let manifest = org_lsp#manifest()
   let types = map(copy(manifest.tokenTypes), 'v:val.id')
   let modifiers = map(copy(manifest.tokenModifiers), 'v:val.id')
   let props = {}
-  let data = a:data
-  let line = 0
-  let character = 0
   let lines = a:lines
-  for i in range(0, len(data) - 1, 5)
-    let line += data[i]
-    let character = data[i] == 0 ? character + data[i + 1] : data[i + 1]
-    let type = get(types, data[i + 3], '')
+  for [line, character, length, type_index, modifier_bits] in a:tokens
+    let type = get(types, type_index, '')
     let text = get(lines, line, '')
     let start = s:byte(text, character)
-    let end = s:byte(text, character + data[i + 2])
+    let end = s:byte(text, character + length)
     if end <= start
       continue
     endif
     let selectors = [type]
     for bit in range(len(modifiers))
-      if and(data[i + 4], 1 << bit)
+      if and(modifier_bits, 1 << bit)
         call add(selectors, '*.' . modifiers[bit])
         call add(selectors, type . '.' . modifiers[bit])
       endif

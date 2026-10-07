@@ -2567,6 +2567,18 @@
         }
       }
     ],
+    "colors": [
+      {
+        "id": "org.agendaClockingBackground",
+        "description": "Org agenda: the background of the line of the entry the clock runs on (`org-agenda-clocking`), from edge to edge.",
+        "defaults": {
+          "dark": "editor.selectionHighlightBackground",
+          "light": "editor.selectionHighlightBackground",
+          "highContrast": "editor.selectionHighlightBackground",
+          "highContrastLight": "editor.selectionHighlightBackground"
+        }
+      }
+    ],
     "keybindings": [
       {
         "command": "org.clock.in",

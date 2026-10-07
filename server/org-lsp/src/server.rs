@@ -56,6 +56,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 /// LSP 3.18 methods that `lsp-types` does not know yet.
 const TEXT_DOCUMENT_CONTENT: &str = "workspace/textDocumentContent";
 const TEXT_DOCUMENT_CONTENT_REFRESH: &str = "workspace/textDocumentContent/refresh";
+const LINE_HIGHLIGHTS: &str = "org-lsp/lineHighlights";
 
 /// What the server remembers about the client.
 struct Client {
@@ -72,6 +73,10 @@ struct Client {
     /// sends (`org-lsp/virtualIndent`); it says so with
     /// `experimental.orgVirtualIndent`.
     virtual_indent: bool,
+    /// Highlights lines of the agenda from edge to edge as the server
+    /// says (`org-lsp/lineHighlights`): `experimental.orgLineHighlights`,
+    /// or the option `lineHighlights`.
+    line_highlights: bool,
     /// The client rereads semantic tokens when asked.
     tokens_refresh: bool,
     /// Ask with `window/showMessageRequest` (`messagePrompts`).
@@ -116,6 +121,9 @@ struct OpenView {
     /// The client closed its file. It goes unless the next message opens
     /// it again, as coc.nvim does when it reads the file anew.
     closing: bool,
+    /// The lines last highlighted from edge to edge in the client's copy
+    /// (`org-lsp/lineHighlights`).
+    highlighted: Option<Vec<u32>>,
 }
 
 impl OpenView {
@@ -501,6 +509,9 @@ pub fn run(connection: Connection) -> Result<()> {
         virtual_indent: raw_params.pointer("/capabilities/experimental/orgVirtualIndent").and_then(Value::as_bool)
             == Some(true)
             || options.virtual_indent == Some(true),
+        line_highlights: raw_params.pointer("/capabilities/experimental/orgLineHighlights").and_then(Value::as_bool)
+            == Some(true)
+            || options.line_highlights == Some(true),
         tokens_refresh: raw_params
             .pointer("/capabilities/workspace/semanticTokens/refreshSupport")
             .and_then(Value::as_bool)
@@ -1187,6 +1198,7 @@ impl Server {
                 if self.is_view(&document.uri) {
                     if let Some(open) = self.view.as_mut().filter(|open| open.uri == document.uri) {
                         open.client = Some(Document::new(document.text, document.version, &self.todo));
+                        open.highlighted = None;
                         open.forget_shown();
                     }
                     self.reveal_when_current();
@@ -1214,6 +1226,8 @@ impl Server {
                     if let Some(copy) = open.client.as_mut() {
                         copy.apply(params.content_changes, params.text_document.version, encoding, todo);
                     }
+                    // New lines: highlighted anew, whatever was before.
+                    open.highlighted = None;
                     open.forget_shown();
                     self.reveal_when_current();
                     return;
@@ -2132,7 +2146,15 @@ impl Server {
             Some(open) => open.replace(view),
             None if self.client.virtual_documents => {
                 if let Ok(uri) = views::VIRTUAL_URI.parse() {
-                    self.view = Some(OpenView { uri, file: None, view, client: None, shown: None, closing: false });
+                    self.view = Some(OpenView {
+                        uri,
+                        file: None,
+                        view,
+                        client: None,
+                        shown: None,
+                        closing: false,
+                        highlighted: None,
+                    });
                 }
             }
             None => {
@@ -2142,8 +2164,15 @@ impl Server {
                 if std::fs::create_dir_all(&directory).is_ok() {
                     self.open_port();
                     if let Some(uri) = uri::from_path(&file) {
-                        self.view =
-                            Some(OpenView { uri, file: Some(file), view, client: None, shown: None, closing: false });
+                        self.view = Some(OpenView {
+                            uri,
+                            file: Some(file),
+                            view,
+                            client: None,
+                            shown: None,
+                            closing: false,
+                            highlighted: None,
+                        });
                     }
                 }
             }
@@ -2234,6 +2263,7 @@ impl Server {
     /// Move the cursor as `open_view` wanted, if the client by now shows
     /// the text that the line number belongs to.
     fn reveal_when_current(&mut self) {
+        self.publish_line_highlights();
         if self.view.as_ref().is_some_and(OpenView::is_current) {
             let reveal = self.reveal.take();
             let position = reveal.zip(self.view.as_ref()).map(|(reveal, open)| reveal.position(&open.view));
@@ -2241,6 +2271,27 @@ impl Server {
                 self.show_view(position);
             }
         }
+    }
+
+    /// Tell the client which lines of the view it shows are highlighted
+    /// from edge to edge, as an overlay of Emacs's covers the whole line
+    /// (`org-agenda-clocking`): `org-lsp/lineHighlights`
+    /// `{ uri, lines: [{ line, highlight }] }`, once the client shows the
+    /// current text and when they change.
+    fn publish_line_highlights(&mut self) {
+        if !self.client.line_highlights {
+            return;
+        }
+        let Some(open) = self.view.as_mut().filter(|open| open.is_current()) else { return };
+        if open.highlighted.as_ref() == Some(&open.view.clocking) {
+            return;
+        }
+        open.highlighted = Some(open.view.clocking.clone());
+        let lines: Vec<Value> =
+            open.view.clocking.iter().map(|line| json!({ "line": line, "highlight": "agendaClocking" })).collect();
+        let params = json!({ "uri": open.uri, "lines": lines });
+        let notification = lsp_server::Notification::new(LINE_HIGHLIGHTS.to_string(), params);
+        let _ = self.sender.send(Message::Notification(notification));
     }
 
     /// Show `query` in the client, with the cursor on today's date.
@@ -2285,6 +2336,8 @@ impl Server {
         let view = self.render(query);
         let Some(open) = &mut self.view else { return };
         let changed = view.text != open.view.text;
+        // The same text highlighted anew: the entry the clock runs on.
+        let recoloured = !changed && view.tokens != open.view.tokens;
         // The same text may still stand for entries that moved.
         open.replace(view);
         if let Some(follow) = self.follow.take_if(|follow| follow.text == open.view.text) {
@@ -2298,6 +2351,9 @@ impl Server {
         if changed {
             self.publish_view();
         } else {
+            if recoloured && self.client.tokens_refresh {
+                self.send_raw_request("workspace/semanticTokens/refresh", Value::Null, None);
+            }
             self.reveal_when_current();
         }
     }

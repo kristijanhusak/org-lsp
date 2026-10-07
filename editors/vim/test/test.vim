@@ -257,6 +257,27 @@ function! s:clock() abort
 endfunction
 call s:test('clocks in and out, for the statusline', function('s:clock'))
 
+" Clocking in from the agenda colours the entry's line from edge to edge,
+" with a sign without text; canceling the clock takes it away.
+function! s:agenda_clocking() abort
+  call org_lsp#run('org.agenda.list')
+  call s:until('the agenda', {-> s:agenda_window() != 0})
+  call win_gotoid(s:agenda_window())
+  call s:until('its text', {-> getline(1) =~# '^Week-agenda'})
+  let line = search('Write report', 'n')
+  call cursor(line, 1)
+  let Placed = {-> map(sign_getplaced(bufnr(), {'group': 'org_lsp_lines'})[0].signs, '[v:val.lnum, v:val.name]')}
+  call org_lsp#run('org.clock.in')
+  call s:until('the clocked line', {-> !empty(Placed())})
+  call assert_equal([[line, 'org_lsp_line_agendaClocking']], Placed())
+  call assert_equal('OrgLsp_agendaClocking', sign_getdefined('org_lsp_line_agendaClocking')[0].linehl)
+  call org_lsp#run('org.clock.cancel')
+  call s:until('the line plain again', {-> empty(Placed())})
+  call feedkeys('q', 'x')
+  call s:until('the agenda closed', {-> s:agenda_window() == 0})
+endfunction
+call s:test('highlights the clocked line of the agenda', function('s:agenda_clocking'))
+
 function! s:return() abort
   let file = s:work . '/notes/return.org'
   call writefile(['* TODO Write the report :work:', '| a | bb |', '#+begin_src sh', 'echo', '#+end_src'], file)

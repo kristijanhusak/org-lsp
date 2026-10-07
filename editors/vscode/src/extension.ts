@@ -388,6 +388,7 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         ...(capabilities.experimental ?? {}),
         orgDatePrompt: true,
         orgVirtualIndent: true,
+        orgLineHighlights: true,
       };
     },
     initialize() {},
@@ -405,6 +406,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     client.onNotification('org-lsp/clock', (params: ClockReport | null) => showClock(params));
     // How far the lines of a file with `org-indent-mode` show indented.
     client.onNotification('org-lsp/virtualIndent', (params: VirtualIndent) => showVirtualIndent(params));
+    // Lines of the agenda highlighted from edge to edge: the clocked entry.
+    client.onNotification('org-lsp/lineHighlights', (params: LineHighlights) => showLineHighlights(params));
   } catch (error) {
     client = undefined;
     const message = error instanceof Error ? error.message : String(error);
@@ -627,6 +630,52 @@ function indentVirtually(editor: vscode.TextEditor): void {
   editor.setDecorations(prefixDecoration, prefixes);
   editor.setDecorations(hiddenStarDecoration, stars);
   virtualIndentShown.set(editor, shown);
+}
+
+// ----- line highlights
+
+/** `org-lsp/lineHighlights`: lines highlighted from edge to edge. */
+interface LineHighlights {
+  uri: string;
+  lines: { line: number; highlight: string }[];
+}
+
+const lineHighlights = new Map<string, LineHighlights>();
+/** A theme's token colours have no background: a decoration's has. */
+const lineDecorations: Record<string, vscode.TextEditorDecorationType> = {
+  agendaClocking: vscode.window.createTextEditorDecorationType({
+    isWholeLine: true,
+    backgroundColor: new vscode.ThemeColor('org.agendaClockingBackground'),
+  }),
+};
+
+/** The lines of each editor highlighted, by highlight; for the tests. */
+const lineHighlightsShown = new Map<vscode.TextEditor, [number, string][]>();
+
+function showLineHighlights(params: LineHighlights): void {
+  const key = vscode.Uri.parse(params.uri).toString();
+  lineHighlights.set(key, params);
+  for (const editor of vscode.window.visibleTextEditors) {
+    if (editor.document.uri.toString() === key) {
+      highlightLines(editor);
+    }
+  }
+}
+
+function highlightLines(editor: vscode.TextEditor): void {
+  const known = lineHighlights.get(editor.document.uri.toString());
+  const shown: [number, string][] = [];
+  for (const [highlight, decoration] of Object.entries(lineDecorations)) {
+    const lines = (known?.lines ?? []).filter(
+      (line) => line.highlight === highlight && line.line < editor.document.lineCount,
+    );
+    editor.setDecorations(
+      decoration,
+      lines.map((line) => new vscode.Range(line.line, 0, line.line, 0)),
+    );
+    shown.push(...lines.map((line): [number, string] => [line.line, highlight]));
+  }
+  lineHighlightsShown.set(editor, shown);
 }
 
 // ----- visibility cycling
@@ -897,6 +946,8 @@ export interface Api {
   clock(): string;
   /** The lines of `editor` shown indented: `[line, prefix, hidden stars]`. */
   virtualIndent(editor: vscode.TextEditor): number[][];
+  /** The lines of `editor` highlighted from edge to edge: `[line, highlight]`. */
+  lineHighlights(editor: vscode.TextEditor): [number, string][];
   /** What `org-lsp.help` lists for `editor`: `[key, title]`. */
   help(editor: vscode.TextEditor): string[][];
 }
@@ -935,11 +986,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     prefixDecoration,
     hiddenStarDecoration,
     vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(indentVirtually)),
+    ...Object.values(lineDecorations),
+    vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(highlightLines)),
   );
   return {
     concealed: (editor) => concealedText.get(editor) ?? [],
     clock: clockText,
     virtualIndent: (editor) => virtualIndentShown.get(editor) ?? [],
+    lineHighlights: (editor) => lineHighlightsShown.get(editor) ?? [],
     help: (editor) => helpItems(context.extension.packageJSON, editor).map((item) => [item.key, item.title]),
   };
 }

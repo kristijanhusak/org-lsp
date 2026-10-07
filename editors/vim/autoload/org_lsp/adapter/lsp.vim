@@ -16,6 +16,7 @@ function! org_lsp#adapter#lsp#register(cmd, options, filetypes) abort
         \   'org-lsp/save': function('s:notification'),
         \   'org-lsp/clock': function('s:notification'),
         \   'org-lsp/virtualIndent': function('s:notification'),
+        \   'org-lsp/lineHighlights': function('s:notification'),
         \ },
         \ }])
 endfunction

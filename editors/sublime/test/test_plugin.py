@@ -95,6 +95,13 @@ class View:
     def change_count(self):
         return self.changes
 
+    def add_regions(self, key, regions, scope='', icon='', flags=0):
+        self.regions = getattr(self, 'regions', {})
+        self.regions[key] = (regions, scope, flags)
+
+    def erase_regions(self, key):
+        getattr(self, 'regions', {}).pop(key, None)
+
     def run_command(self, name, args=None):
         self.commands.append((name, args))
 
@@ -162,6 +169,7 @@ def load_plugin():
     sublime.OP_EQUAL, sublime.OP_NOT_EQUAL = 0, 1
     sublime.set_timeout = lambda f, delay=0: f()
     sublime.LAYOUT_INLINE = 0
+    sublime.DRAW_NO_OUTLINE = 256
     sublime.ENCODED_POSITION = 1
     sublime.Phantom = lambda region, html, layout: types.SimpleNamespace(region=region, html=html, layout=layout)
 
@@ -331,6 +339,18 @@ class Tests(unittest.TestCase):
         self.plugin.show_virtual_indent({'uri': 'file:///notes/work.org', 'version': 2, 'lines': []})
         self.assertEqual(self.sublime.PhantomSet.made[-1].phantoms, [])
         self.assertEqual(len(self.sublime.PhantomSet.made), 1)
+
+    def test_highlights_lines_from_edge_to_edge(self):
+        self.sublime.windows = lambda: [self.window]
+        self.plugin.show_line_highlights({'uri': 'file:///notes/work.org',
+                                          'lines': [{'line': 1, 'highlight': 'agendaClocking'},
+                                                    {'line': 99, 'highlight': 'agendaClocking'}]})
+        regions, scope, _ = self.view.regions['org-lsp-line-agendaClocking']
+        start = self.view.text_point(1, 0)
+        self.assertEqual(regions, [Region(start, self.view.text_point(2, 0))], 'the line and its newline')
+        self.assertIn('markup.highlight.clocking.agenda.org', scope)
+        self.plugin.show_line_highlights({'uri': 'file:///notes/work.org', 'lines': []})
+        self.assertNotIn('org-lsp-line-agendaClocking', self.view.regions)
 
     def test_a_key_keeps_its_own_meaning_where_the_command_does_not_apply(self):
         fallback = {'command': 'move', 'args': {'by': 'lines', 'forward': False, 'extend': True}}

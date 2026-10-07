@@ -103,6 +103,9 @@ pub struct Options {
     /// The client shows `org-lsp/virtualIndent`, as one announcing
     /// `experimental.orgVirtualIndent` does.
     pub virtual_indent: Option<bool>,
+    /// The client shows `org-lsp/lineHighlights`, as one announcing
+    /// `experimental.orgLineHighlights` does.
+    pub line_highlights: Option<bool>,
     /// `org-refile-targets`: where entries can be refiled to. Without it,
     /// the top-level headlines of the entry's own file.
     pub refile_targets: Option<Vec<RefileTargetOption>>,
