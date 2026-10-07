@@ -683,6 +683,12 @@ def children_of(outer, ranges):
         o is not r and o['startLine'] < r['startLine'] and r['endLine'] <= o['endLine'] for o in inside)]
 
 
+def at_table(view) -> bool:
+    """Whether the cursor is on a line of a table."""
+    line = view.substr(view.line(view.sel()[0].b))
+    return line.lstrip(' \t').startswith('|')
+
+
 class OrgLspCycleCommand(LspTextCommand):
     """Org's TAB (`org-cycle`) on the fold that starts at the cursor's line:
     FOLDED, CHILDREN, SUBTREE. On a line that starts no fold, `fallback`
@@ -693,6 +699,10 @@ class OrgLspCycleCommand(LspTextCommand):
     def run(self, edit, fallback=None) -> None:
         session = self.session_by_name(SESSION)
         if not session:
+            return
+        # In a table, TAB goes to the next field (`org-table-next-field`).
+        if at_table(self.view):
+            self.view.window().run_command('org_lsp_run', {'command': 'org.table.next.field'})
             return
         params = {'textDocument': text_document_identifier(self.view)}
         session.send_request(
@@ -736,6 +746,10 @@ class OrgLspCycleGlobalCommand(LspTextCommand):
     def run(self, edit) -> None:
         session = self.session_by_name(SESSION)
         if not session:
+            return
+        # In a table, S-TAB goes to the previous field.
+        if at_table(self.view):
+            self.view.window().run_command('org_lsp_run', {'command': 'org.table.previous.field'})
             return
         params = {'textDocument': text_document_identifier(self.view)}
         session.send_request(

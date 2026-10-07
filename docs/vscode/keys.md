@@ -60,13 +60,17 @@ The other options are in [configuration.md](configuration.md).
 | `Alt+Shift+Enter` | `org.insert.todo.heading` | New TODO heading, or item with a checkbox |
 | `Ctrl+Enter` | `org.insert.heading.after` | New heading after the subtree |
 | `Ctrl+Shift+Enter` | `org.insert.todo.heading.after` | New TODO heading after the subtree |
-| `Alt+Left`¹ | `org.meta.left` | Promote the heading; outdent the item |
-| `Alt+Right`¹ | `org.meta.right` | Demote the heading; indent the item, the drawer or the block |
-| `Alt+Shift+Left`¹ | `org.shiftmeta.left` | Promote the subtree; outdent the item with its children |
-| `Alt+Shift+Right`¹ | `org.shiftmeta.right` | Demote the subtree; indent the item with its children |
-| `Alt+Up`¹ | `org.meta.up` | Move the subtree or the item up |
-| `Alt+Down`¹ | `org.meta.down` | Move the subtree or the item down |
-| `Ctrl+C Shift+6` | `org.sort` | Sort the entries |
+| `Alt+Left`¹ | `org.meta.left` | Promote the heading; outdent the item; move the table column left |
+| `Alt+Right`¹ | `org.meta.right` | Demote the heading; indent the item, the drawer or the block; move the table column right |
+| `Alt+Shift+Left`¹ | `org.shiftmeta.left` | Promote the subtree; outdent the item with its children; delete the table column |
+| `Alt+Shift+Right`¹ | `org.shiftmeta.right` | Demote the subtree; indent the item with its children; insert a table column |
+| `Alt+Up`¹ | `org.meta.up` | Move the subtree, the item or the table row up |
+| `Alt+Down`¹ | `org.meta.down` | Move the subtree, the item or the table row down |
+| `Alt+Shift+Up`¹ | `org.shiftmeta.up` | Delete the table row |
+| `Alt+Shift+Down`¹ | `org.shiftmeta.down` | Insert a table row above |
+| `Ctrl+C -` | `org.table.hline` | Insert a rule below the table row |
+| `Ctrl+C Enter` | `org.table.hline.move` | Insert a rule below the table row and go below it |
+| `Ctrl+C Shift+6` | `org.sort` | Sort the entries, the items or the table rows |
 | `Ctrl+C /` | `org.sparse.tree` | Show a sparse tree |
 | `Ctrl+C Ctrl+X Ctrl+W` | `org.cut.subtree` | Cut the subtree |
 | `Ctrl+C Ctrl+X Alt+W` | `org.copy.subtree` | Copy the subtree |
@@ -296,6 +300,12 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "i", "t"], "commands": ["org.insert.todo.heading.after"] },
   { "before": ["<leader>", "o", "K"], "commands": ["org.meta.up"] },
   { "before": ["<leader>", "o", "J"], "commands": ["org.meta.down"] },
+  { "before": ["<leader>", "o", "T", "d"], "commands": ["org.shiftmeta.up"] },
+  { "before": ["<leader>", "o", "T", "O"], "commands": ["org.shiftmeta.down"] },
+  { "before": ["<leader>", "o", "T", "o"], "commands": ["org.table.insert.row.below"] },
+  { "before": ["<leader>", "o", "-"], "commands": ["org.table.hline"] },
+  { "before": ["<leader>", "o", "<CR>"], "commands": ["org.table.hline.move"] },
+  { "before": ["<leader>", "o", "<Space>"], "commands": ["org.table.blank.field"] },
   { "before": ["<leader>", "o", "^"], "commands": ["org.sort"] },
   { "before": ["<leader>", "o", "/"], "commands": ["org.sparse.tree"] },
   { "before": ["<leader>", "o", "s", "d"], "commands": ["org.cut.subtree"] },
@@ -371,13 +381,22 @@ every file; outside Org files the commands say they do not apply):
 | `org.insert.todo.heading` | Org: New TODO heading, or item with a checkbox |
 | `org.insert.heading.after` | Org: New heading after the subtree |
 | `org.insert.todo.heading.after` | Org: New TODO heading after the subtree |
-| `org.meta.left` | Org: Promote the heading; outdent the item |
-| `org.meta.right` | Org: Demote the heading; indent the item, the drawer or the block |
-| `org.shiftmeta.left` | Org: Promote the subtree; outdent the item with its children |
-| `org.shiftmeta.right` | Org: Demote the subtree; indent the item with its children |
-| `org.meta.up` | Org: Move the subtree or the item up |
-| `org.meta.down` | Org: Move the subtree or the item down |
-| `org.sort` | Org: Sort the entries |
+| `org.meta.left` | Org: Promote the heading; outdent the item; move the table column left |
+| `org.meta.right` | Org: Demote the heading; indent the item, the drawer or the block; move the table column right |
+| `org.shiftmeta.left` | Org: Promote the subtree; outdent the item with its children; delete the table column |
+| `org.shiftmeta.right` | Org: Demote the subtree; indent the item with its children; insert a table column |
+| `org.meta.up` | Org: Move the subtree, the item or the table row up |
+| `org.meta.down` | Org: Move the subtree, the item or the table row down |
+| `org.shiftmeta.up` | Org: Delete the table row |
+| `org.shiftmeta.down` | Org: Insert a table row above |
+| `org.table.insert.row.below` | Org: Insert a table row below |
+| `org.table.next.field` | Org: Go to the next table field, making a row after the last |
+| `org.table.previous.field` | Org: Go to the previous table field |
+| `org.table.hline` | Org: Insert a rule below the table row |
+| `org.table.hline.above` | Org: Insert a rule above the table row |
+| `org.table.hline.move` | Org: Insert a rule below the table row and go below it |
+| `org.table.blank.field` | Org: Blank the table field |
+| `org.sort` | Org: Sort the entries, the items or the table rows |
 | `org.sparse.tree` | Org: Show a sparse tree |
 | `org.cut.subtree` | Org: Cut the subtree |
 | `org.copy.subtree` | Org: Copy the subtree |

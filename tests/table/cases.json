@@ -1,0 +1,3429 @@
+[
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "TAB",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 33,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "TAB",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 46,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "TAB",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 52,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "TAB",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 33,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "<backtab>",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 7,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "<backtab>",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 33,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "<backtab>",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 39,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "<backtab>",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 13,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<left>",
+  "expected": {
+   "text": "Text\n| bb | a   |\n|----+-----|\n|  2 | 1   |\n|    | ccc |\n#+TBLFM: $1=$2*2::@3$2=5\n",
+   "point": 7,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<left>",
+  "expected": {
+   "text": "Text\n| bb | a   |\n|----+-----|\n|  2 | 1   |\n|    | ccc |\n#+TBLFM: $1=$2*2::@3$2=5\n",
+   "point": 33,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot move column further left"
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot move column further left"
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<right>",
+  "expected": {
+   "error": "Cannot move column further right"
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<right>",
+  "expected": {
+   "error": "Cannot move column further right"
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<right>",
+  "expected": {
+   "text": "Text\n| bb | a   |\n|----+-----|\n|  2 | 1   |\n|    | ccc |\n#+TBLFM: $1=$2*2::@3$2=5\n",
+   "point": 51,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<right>",
+  "expected": {
+   "text": "Text\n| bb | a   |\n|----+-----|\n|  2 | 1   |\n|    | ccc |\n#+TBLFM: $1=$2*2::@3$2=5\n",
+   "point": 38,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<up>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<up>",
+  "expected": {
+   "text": "Text\n| a | bb |\n| 1 |  2 |\n|---+----|\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 24,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<up>",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| ccc |  |\n| 1 |  2 |\n#+TBLFM: $2=$1*2::@2$1=5\n",
+   "point": 30,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<up>",
+  "expected": {
+   "text": "Text\n|---+----|\n| a | bb |\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 6,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<down>",
+  "expected": {
+   "text": "Text\n|---+----|\n| a | bb |\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 23,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<down>",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| ccc |  |\n| 1 |  2 |\n#+TBLFM: $2=$1*2::@2$1=5\n",
+   "point": 46,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<down>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-<down>",
+  "expected": {
+   "text": "Text\n| a | bb |\n| 1 |  2 |\n|---+----|\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 28,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "Text\n| a   |\n|-----|\n| 1   |\n| ccc |\n#+TBLFM: @3$1=5\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "Text\n| a   |\n|-----|\n| 1   |\n| ccc |\n#+TBLFM: @3$1=5\n",
+   "point": 28,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "Text\n| bb |\n|----|\n|  2 |\n|    |\n#+TBLFM: $1=$INVALID*2::\n",
+   "point": 28,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "Text\n| bb |\n|----|\n|  2 |\n|    |\n#+TBLFM: $1=$INVALID*2::\n",
+   "point": 21,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "Text\n| a   |   | bb |\n|-----+---+----|\n| 1   |   |  2 |\n| ccc |   |    |\n#+TBLFM: $3=$1*2::@3$1=5\n",
+   "point": 13,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "Text\n| a   |   | bb |\n|-----+---+----|\n| 1   |   |  2 |\n| ccc |   |    |\n#+TBLFM: $3=$1*2::@3$1=5\n",
+   "point": 47,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "Text\n|   | a   | bb |\n|---+-----+----|\n|   | 1   |  2 |\n|   | ccc |    |\n#+TBLFM: $3=$2*2::@3$2=5\n",
+   "point": 58,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "Text\n|   | a   | bb |\n|---+-----+----|\n|   | 1   |  2 |\n|   | ccc |    |\n#+TBLFM: $3=$2*2::@3$2=5\n",
+   "point": 41,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "Text\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@2$1=5\n",
+   "point": 12,
+   "killed": "| a | bb |\n"
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| ccc |  |\n#+TBLFM: $2=$1*2::@2$1=5\n",
+   "point": 35,
+   "killed": "| 1 |  2 |\n"
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n#+TBLFM: $2=$1*2::\n",
+   "point": 30,
+   "killed": "| ccc |  |\n"
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "Text\n| a | bb |\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 17,
+   "killed": "|---+----|\n"
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "Text\n|     |    |\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@4$1=5\n",
+   "point": 7,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n|     |    |\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@4$1=5\n",
+   "point": 33,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n|     |    |\n| ccc |    |\n#+TBLFM: $2=$1*2::@4$1=5\n",
+   "point": 46,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|     |    |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@4$1=5\n",
+   "point": 20,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|     |    |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@4$1=5\n",
+   "point": 20,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n|     |    |\n| ccc |    |\n#+TBLFM: $2=$1*2::@4$1=5\n",
+   "point": 46,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n|     |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 59,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n|     |    |\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@4$1=5\n",
+   "point": 33,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n|---+----|\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 35,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n|-----+--|\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 41,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 17,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "Text\n|---+----|\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 23,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 46,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n|-----+--|\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 52,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 28,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n|     |    |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 33,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n|-----+----|\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 59,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n|-----+----|\n|     |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 72,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 46,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "text": "Text\n| a |    |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 11,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |    |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 33,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n|     |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 40,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 13,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 39,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 46,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Text\n| a   | bb |\n|-----+----|\n| 1   |  2 |\n| ccc |    |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 19,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| ccc |  |\n| 1 |  2 |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 35,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 41,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ a",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 35,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| ccc |  |\n| 1 |  2 |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 41,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| ccc |  |\n| 1 |  2 |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 35,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| ccc |  |\n| 1 |  2 |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 41,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 35,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 41,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ t",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ t",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 35,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ t",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 41,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ t",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n| a | b¦b |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2¦ |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 35,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| c¦cc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "Text\n| a | bb |\n|---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+   "point": 41,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a | bb |\n|¦---+----|\n| 1 |  2 |\n| ccc |  |\n#+TBLFM: $2=$1*2::@3$1=5\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "| a | b¦ |\n",
+  "key": "TAB",
+  "expected": {
+   "text": "| a | b |\n|   |   |\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "| a | b¦ |\n|---+---|\n| c | d |\n",
+  "key": "TAB",
+  "expected": {
+   "text": "| a | b |\n|---+---|\n| c | d |\n",
+   "point": 22,
+   "killed": null
+  }
+ },
+ {
+  "text": "| a | b¦ |",
+  "key": "TAB",
+  "expected": {
+   "text": "| a | b |\n|   |   |\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "| ¦a | b |\n",
+  "key": "<backtab>",
+  "expected": {
+   "error": "Cannot move to previous table field"
+  }
+ },
+ {
+  "text": "| [[https://orgmode.org][Org]] | x¦ |\n| y | z |\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "| [[https://orgmode.org][Org]] | x |\n|-----+---|\n| y | z |\n",
+   "point": 34,
+   "killed": null
+  }
+ },
+ {
+  "text": "| [[https://orgmode.org][Org]] | x |\n| y¦ | z |\n",
+  "key": "M-<up>",
+  "expected": {
+   "text": "| y | z |\n| [[https://orgmode.org][Org]] | x |\n",
+   "point": 3,
+   "killed": null
+  }
+ },
+ {
+  "text": "| 10 | b |\n| 9¦ | a |\n| 100 | c |\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "| 9 | a |\n| 10 | b |\n| 100 | c |\n",
+   "point": 13,
+   "killed": null
+  }
+ },
+ {
+  "text": "| <2024-03-01 Fri> |\n| 1:30¦ |\n| [2023-01-02] |\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "| <2024-03-01 Fri> |\n| [2023-01-02] |\n| 1:30 |\n",
+   "point": 27,
+   "killed": null
+  }
+ },
+ {
+  "text": "¦| b |\n| a |\n",
+  "key": "C-c ^ a",
+  "expected": {
+   "error": "Asked: Use column N for sorting: "
+  }
+ },
+ {
+  "text": "| a | b¦ | c |\n#+TBLFM: $3=$1+$2::@1$2=5\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "| a | c |\n#+TBLFM: $2=$1+$INVALID::\n",
+   "point": 6,
+   "killed": null
+  }
+ },
+ {
+  "text": "| a | b |\n| c¦ | d |\n#+TBLFM: @2$1=1::$2=remote(t,@2$1)\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "| a | b |\n#+TBLFM: $2=remote(t,@2$1)\n",
+   "point": 3,
+   "killed": "| c | d |\n"
+  }
+ },
+ {
+  "text": "Para\n\n  |été   ¦|\n  | \tx |  \n  |  <r5> |1   |\n  |1h |\n  |  -4   |2:05   |\n#+TBLFM: $2=$1*2::@1=2::@2$2=$1\n\n* Next\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Para\n\n  |  été |      |\n  |    x |      |\n  | <r5> |    1 |\n  |   1h |      |\n  |   -4 | 2:05 |\n#+TBLFM: $2=$1*2::@1=2::@2$2=$1\n\n* Next\n",
+   "point": 10,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n| 22   |ccc |[2023-01-02]|\n|  1   |1h¦ |  1h   |",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "* Head\n| 22   |ccc |[2023-01-02]|\n|  1   |1h |  1h   |",
+   "point": 44,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|---+----|¦\n|--+--|\n|  1h   |[[file:a.org]]   |\nAfter\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Para\n\n\t| Zeta   | <2024-03-01 Fri>   |  Zeta | a   |\n\t|--+---+--+---|\n\t| 22   | bb   |  1h  ¦ |  ccc |\n\t|  1| été | <r5> | 3.5   | <2024-03-01 Fri> |\n\t|  10:30   |  | ccc   |été|\n\t|----+-+-----+-|\nAfter\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Para\n\n\t|  Zeta | <2024-03-01 Fri> | Zeta | a   |                  |\n\t|-------+------------------+------+-----+------------------|\n\t|    22 | bb               |   1h | ccc |                  |\n\t|     1 | été              | <r5> | 3.5 | <2024-03-01 Fri> |\n\t| 10:30 |                  |  ccc | été |                  |\n\t|-------+------------------+------+-----+------------------|\nAfter\n",
+   "point": 160,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| <r5>|\n|----¦|",
+  "key": "C-c -",
+  "expected": {
+   "text": "Text\n| <r5>|\n|----||----|\n",
+   "point": 10,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|  bb   |22 \n|  été   |  <r5> |\n|  ccc |  \n|  |  2:05|  \nText between\n|--|\n|  <r5> |\n|b¦b|\n|  22 \nAfter\n",
+  "key": "TAB",
+  "expected": {
+   "text": "Para\n\n|  bb   |22 \n|  été   |  <r5> |\n|  ccc |  \n|  |  2:05|  \nText between\n|------|\n| <r5> |\n|   bb |\n|   22 |\nAfter\n",
+   "point": 105,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n¦|--|\n|  3.5 \n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "Text\n|  3.5 \n",
+   "point": 5,
+   "killed": "|--|\n"
+  }
+ },
+ {
+  "text": "Para\n\n| 22| bb | [[https://x.org][link]]|  \n|  bb   |  <r5>   |[[file:a.org]]   \n|  ¦3.5 |<l>| 22 |\n|  ccc|  bb |3.5 |  \n|  22| <2024-03-01 Fri>   |\n| [2023-01-02]   | x y|x y|\n#+TBLFM: @2$2=$1::$3=vsum(@2..@3)\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Para\n\n|           22 |               bb | [[https://x.org][link]]       |\n|           bb |             <r5> | [[file:a.org]] |\n|          3.5 |              <l> | 22         |\n|          ccc |               bb | 3.5        |\n|           22 | <2024-03-01 Fri> |            |\n| [2023-01-02] |              x y | x y        |\n#+TBLFM: @2$2=$1::$3=vsum(@2..@3)\n",
+   "point": 129,
+   "killed": null
+  }
+ },
+ {
+  "text": "| foo bar baz   |foo bar baz | ccc |   \n|--¦--+-----+-----+---|\n|  [[file:a.org]]   | 10:30 ||  \n\n* Next\n",
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot move column further left"
+  }
+ },
+ {
+  "text": "|  bb |  22 |\n|  22 |  <2024-03-01 Fri> |  \n|  <2024-03-01 Fri>   ¦|\n|  [[https://x.org][link]] |  \n\n* Next\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "| bb               |               22 |\n| 22               | <2024-03-01 Fri> |\n| <2024-03-01 Fri> |                  |\n|                  |                  |\n| [[https://x.org][link]]             |                  |\n\n* Next\n",
+   "point": 122,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |  x y   \n  |-+-----|\n  |  | x y \n  | foo bar baz|[2023-01¦-02]|  \n  | [[https://x.org][link]]   |  ccc   |\tx |\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "* Head\n  |  x y   \n  |-+-----|\n  |  | x y \n  | foo bar baz|[2023-01-02]|  \n  | [[https://x.org][link]]   |  ccc   |\tx |\n",
+   "point": 67,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|ccc|\n|日本|¦\n| x y   |\n#+TBLFM: @2$2=$1\n",
+  "key": "M-<left>",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n| 1| a |  <r5> |\n|-----+---+--+----|\n| b¦b   |  2:05   |  Zeta   |\n|22|*bold*   | [2023-01-02] | 日本|\tx \n| bb|a   |  <l>   |  |  \nAfter\n",
+  "key": "M-<up>",
+  "expected": {
+   "text": "Text\n| 1| a |  <r5> |\n| bb   |  2:05   |  Zeta   |\n|-----+---+--+----|\n|22|*bold*   | [2023-01-02] | 日本|\tx \n| bb|a   |  <l>   |  |  \nAfter\n",
+   "point": 25,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|----|\n¦|10:30   \n|---|\n|ccc |\n\n* Next\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "Para\n\n|---+-------|\n|   | 10:30 |\n|---+-------|\n|   |   ccc |\n\n* Next\n",
+   "point": 22,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|  a|[[file¦:a.org]] |  \n#+TBLFM: @3$1=5\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "* Head\n#+TBLFM: @2$1=5\n",
+   "point": 6,
+   "killed": "|  a|[[file:a.org]] |  \n"
+  }
+ },
+ {
+  "text": "Text\n  |1h   |3.5   |\n  |-----+---|\n¦  | |   |\n#+TBLFM: @1=2::$2=$1*2\n",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "Text\n  |1h   |3.5   |\n  |-----+---|\n  |-+---|\n  | |   |\n#+TBLFM: @1=2::$2=$1*2\n",
+   "point": 46,
+   "killed": null
+  }
+ },
+ {
+  "text": "\t|  10:30|  été |\n\t|  [2023-01-02] |10:30 \n\t|-4|<2024-03-01 Fr¦i> |\n",
+  "key": "M-<up>",
+  "expected": {
+   "text": "\t|  10:30|  été |\n\t|-4|<2024-03-01 Fri> |\n\t|  [2023-01-02] |10:30 \n",
+   "point": 37,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n\t|[¦2023-01-02] |\n\t|\tx |a   \n\t| x y |  x y   |  \n\t| [[https://x.org][link]]|\n\n* Next\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "Para\n\n\t|\tx |a   \n\t| x y |  x y   |  \n\t| [[https://x.org][link]]|\n\n* Next\n",
+   "point": 9,
+   "killed": "\t|[2023-01-02] |\n"
+  }
+ },
+ {
+  "text": "\t|1   |¦été|\n\t| |  Zeta |   |\n\t|[2023-01-02] |  [2023-01-02]   | 1h \n\t|*bold*|2:05|  foo bar baz | 1   |\n\t|22   |  x y|  <2024-03-01 Fri>   |-4\n",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "\t|              |              |                  |    |\n\t|            1 | été          |                  |    |\n\t|              | Zeta         |                  |    |\n\t| [2023-01-02] | [2023-01-02] | 1h               |    |\n\t|       *bold* | 2:05         | foo bar baz      |  1 |\n\t|           22 | x y          | <2024-03-01 Fri> | -4 |\n",
+   "point": 3,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n¦| [2023-01-02] |\n\n* Next\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Text\n| [2023-01-02] |\n|--------------|\n\n* Next\n",
+   "point": 5,
+   "killed": null
+  }
+ },
+ {
+  "text": "  |¦ \tx   |\n  |[[file:a.org]]\n  |  [[https://x.org][link]]|\n  |  Zeta |\n  |日本\n  | 2:05 |  \n",
+  "key": "C-c ^ t",
+  "expected": {
+   "text": "  | \tx   |\n  |[[file:a.org]]\n  |  [[https://x.org][link]]|\n  |  Zeta |\n  |日本\n  | 2:05 |  \n",
+   "point": 3,
+   "killed": null
+  }
+ },
+ {
+  "text": "| <r5>|  ccc   |  \tx|\n|  [[file:a.org]]   |  foo bar baz   |  10:30   \n| Zeta| bb |\n|  a | 10:30   | <r5>|  \n| Zeta   | <r5> |\n| | ¦ bb |\n#+TBLFM: $3=vsum(@2..@3)::@3$1=5::$1=remote(t,@1$1)",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "|       <r5> |         ccc |     x |\n| [[file:a.org]] | foo bar baz | 10:30 |\n|       Zeta |          bb |       |\n|          a |       10:30 |  <r5> |\n|       Zeta |        <r5> |       |\n|            |             |       |\n|            |          bb |       |\n#+TBLFM: $3=vsum(@2..@3)::@3$1=5::$1=remote(t,@1$1)",
+   "point": 191,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n  |  ccc |<2024-03-01 Fri>   |bb|2:05|\n  ¦|--+-+--+----|\n  |<r5> |1h| 3.5 | |\n  |1   |<r5>   | [[file:a.org]]|[2023-01-02]   \n  | | <r5>   | 3.5   | |\n  |  1h   |bb |foo bar baz| *bold*   |\n#+TBLFM: @1=2::$1=remote(t,@1$1)::$3=vsum(@2..@3)\nAfter\n",
+  "key": "C-c ^ a",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "* Head\n  | 22 |  [2023-01-02]|<l>   |\n  | 3.5   |\n  |--+----|\n  | *bold* | \tx¦|\n  |  <2024-03-01 Fri> |  a   |  \n  |a |  \nAfter\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "text": "* Head\n  | 22 |  [2023-01-02]|<l>   |\n  | 3.5   |\n  |--+----|\n  | *bold* | \tx|\n  |  <2024-03-01 Fri> |  a   |  \n  |a |  \nAfter\n",
+   "point": 77,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|x y| -4 |*bold*   |\n|  *bold*   |  |\n| été   |  bb   |  22|\n|  |    |ccc |¦\n| -4|22|\n#+TBLFM: @1=2::@2$2=$1\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "* Head\n|x y| -4 |*bold*   |\n|  *bold*   |  |\n| été   |  bb   |  22|\n| -4|22|\n#+TBLFM: @1=2::@2$2=$1\n",
+   "point": 76,
+   "killed": "|  |    |ccc |\n"
+  }
+ },
+ {
+  "text": "Para\n\n\t| <r5> ¦  |  *bold*   |\n\t|--|\n\t| a |  \n\t|<r5> |  \n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "Para\n\n\t| <r5> | *bold* |\n\t|      |        |\n\t|------+--------|\n\t|    a |        |\n\t| <r5> |        |\n",
+   "point": 28,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n¦\t|   |\n#+TBLFM: $3=vsum(@2..@3)::@1=2\n",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "Para\n\n\t|   |\n\t|   |\n#+TBLFM: $3=vsum(@3..@4)::@2=2\n",
+   "point": 9,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |----|\n  |<2024-0¦3-01 Fri> |\n  |[[https://x.org][link]]   |  \n  |  \tx |  \n  |-4 |  \n  |  [[https://x.org][link]]   |  \n\n* Next\n",
+  "key": "TAB",
+  "expected": {
+   "text": "* Head\n  |------------------|\n  | <2024-03-01 Fri> |\n  | [[https://x.org][link]]             |\n  | x                |\n  |------------------|\n  | [[https://x.org][link]]             |\n\n* Next\n",
+   "point": 57,
+   "killed": null
+  }
+ },
+ {
+  "text": "  |日本   |3.5 | <l> \n  |-+----+---|\n  | 1h|3.5   | cc¦c   |",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "  |日本   |3.5 | <l> \n  |-+----+---|\n  | 1h|3.5   | ccc   |",
+   "point": 52,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n  |---+---+-----|\n  |-4   |22 |  22   ¦|  \n  | 1h|  <r5> |\n#+TBLFM: @1=2\n\n* Next\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Para\n\n  |----+------|\n  |----+------|\n  | 1h | <r5> |\n#+TBLFM: @1=2\n\n* Next\n",
+   "point": 37,
+   "killed": null
+  }
+ },
+ {
+  "text": "  | <l>|\n  |  [[f¦ile:a.org]] |\n#+TBLFM: @2$2=$1",
+  "key": "C-c RET",
+  "expected": {
+   "text": "  | <l>        |\n  | [[file:a.org]] |\n  |------------|\n  |            |\n#+TBLFM: @2$2=$1",
+   "point": 59,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  | \t¦x\nAfter\n",
+  "key": "<backtab>",
+  "expected": {
+   "error": "Cannot move to previous table field"
+  }
+ },
+ {
+  "text": "Para\n\n  |[2023-01-02] |\n¦  |---+---|\n  |--+-|\nAfter\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "Para\n\n  | [2023-01-02] |   |\n  |--------------+---|\n  |              |   |\n  |--------------+---|\nAfter\n",
+   "point": 56,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n\t|--+----+---|\n\t| 22|  foo bar baz   |  bb   |  \n\t|-----+----¦+--|\n\t| ccc   |  |Zeta   |  |  \n\t|1h | foo bar baz   | foo bar baz   |\n\t| -4   |<r5> |[2023-01-02] |\n\n  | 10:30   |",
+  "key": "C-c ^ a",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "* Head\n  | Z¦eta   | bb|\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "* Head\n  | Zeta   | bb|\n  |--------+---|\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "\t|[[https://x.org][link]]|  2:05|\n\t|---|\n¦\t| été |\n#+TBLFM: @3$1=5\n\n* Next\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "\t| [[https://x.org][link]] | 2:05 |\n\t|------+------|\n\t| été  |      |\n\t|      |      |\n#+TBLFM: @4$1=5\n\n* Next\n",
+   "point": 73,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|¦a   |  1 |été \n\n* Next\n",
+  "key": "TAB",
+  "expected": {
+   "text": "Para\n\n| a | 1 | été |\n\n* Next\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|  [[https://x.org][link]] |  Zeta \n|  ¦|\n#+TBLFM: $3=vsum(@2..@3)\nAfter\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Para\n\n|  [[https://x.org][link]] |  Zeta \n|  |\n|--|\n#+TBLFM: $3=vsum(@2..@3)\nAfter\n",
+   "point": 45,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|¦----|\n| a |\n| \tx |  \n|  日本 \n|   |\n\n* Next\n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "Text\n|------|\n|------|\n| a    |\n| x    |\n| 日本 |\n|      |\n\n* Next\n",
+   "point": 25,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|   |日本   | |  été   |\n\t|  |  Zeta| ¦ 1   |\n#+TBLFM: $2=$1*2::@2$2=$1\n",
+  "key": "M-<right>",
+  "expected": {
+   "error": "Cannot move column further right"
+  }
+ },
+ {
+  "text": "Para\n\n|  x y   | été|\n|  [2023-01-02] |\n| *bol¦d*   |x y|\n#+TBLFM: $2=$1*2::@2$2=$1\n\n* Next\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Para\n\n|  x y   | été|\n|  [2023-01-02] |\n| *bold*   |x y|\n|----------+---|\n#+TBLFM: $2=$1*2::@2$2=$1\n\n* Next\n",
+   "point": 46,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n  ¦|-----|\n  |  [[file:a.org]]   |",
+  "key": "M-<up>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "Text\n|----+---|\n|  x y   |[[https://x.org][link]] |\tx|¦\n|1h   | 日本   |  1h|\n|日本|  \n|1   |\n#+TBLFM: $1=remote(t,@1$1)::@1=2::$2=$1*2",
+  "key": "C-c ^ t",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "\t| ét¦é   |Zeta \n#+TBLFM: $3=vsum(@2..@3)::@2$2=$1::@3$1=5\nAfter\n",
+  "key": "TAB",
+  "expected": {
+   "text": "\t| été | Zeta |\n#+TBLFM: $3=vsum(@2..@3)::@2$2=$1::@3$1=5\nAfter\n",
+   "point": 9,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n\t| <l> |3.5|  \n\t|----+-|\n¦\t|   \n\t|-----+-|\n\t|1h   |<2024-03-01 Fri>|    |\n\t| 2:05 | <2024-03-01 Fri>|  10:30   |\n#+TBLFM: $2=$1*2\n\n* Next\n",
+  "key": "M-<up>",
+  "expected": {
+   "text": "Text\n\t| <l> |3.5|  \n\t|   \n\t|----+-|\n\t|-----+-|\n\t|1h   |<2024-03-01 Fri>|    |\n\t| 2:05 | <2024-03-01 Fri>|  10:30   |\n#+TBLFM: $2=$1*2\n\n* Next\n",
+   "point": 20,
+   "killed": null
+  }
+ },
+ {
+  "text": "|  \tx   |[[file:a.org]]   | <2024-03-01 Fri¦>   |",
+  "key": "TAB",
+  "expected": {
+   "text": "| x | [[file:a.org]] | <2024-03-01 Fri> |\n|   |            |                  |\n",
+   "point": 44,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n  |[2023-01-02]| ccc|  10:30 |\n  | x y |  \tx|  été|<r5> |\n  |  ¦ |  été   |10:30|日本   |1|\n#+TBLFM: $3=vsum(@2..@3)",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "Text\n  | [2023-01-02] | ccc | 10:30 |      |   |\n  | x y          | x   |   été | <r5> |   |\n  |              | été | 10:30 | 日本 | 1 |\n  |              |     |       |      |   |\n#+TBLFM: $3=vsum(@2..@3)",
+   "point": 139,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n\t|  <r5> \n\t| Zeta   |\n\t¦|---|\n\t|bb   |",
+  "key": "M-<right>",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n|¦-----|\n|-|\nAfter\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n| 10:30|a| 日本 |   |  \n|[[https://x.org][link]]|  22   |  ccc| [[file:a.org]] |\n|--+-----+--+----|\n| 10:30   |  1   | [[file:a.org]]| [2023-01-02]\n|22|日本 |  [2023-01-02]| 2¦:05 |<2024-03-01 Fri>|\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "text": "Text\n| 10:30|a| 日本 |   |  \n|[[https://x.org][link]]|  22   |  ccc| [[file:a.org]] |\n|--+-----+--+----|\n| 10:30   |  1   | [[file:a.org]]| [2023-01-02]\n|22|日本 |  [2023-01-02]|      |<2024-03-01 Fri>|\n",
+   "point": 175,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n  |x y|  <2024-03-01 Fri>   |\n  |  ccc |[2023-01-02]   |  1 |\n  |  3.5|[[https://x.org][link]] \n  |bb|  [2023-01-02] ¦|\n#+TBLFM: @1=2::$1=remote(t,@1$1)::@2$2=$1\n\n* Next\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "Text\n  |x y|  <2024-03-01 Fri>   |\n  |  ccc |[2023-01-02]   |  1 |\n  |  3.5|[[https://x.org][link]] \n  |bb|  [2023-01-02] |\n#+TBLFM: @1=2::$1=remote(t,@1$1)::@2$2=$1\n\n* Next\n",
+   "point": 122,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|  *bold* |\n|--|\n| [[https://x.org][link]]   |¦ \tx   \n|  Zeta|\n#+TBLFM: $3=vsum(@2..@3)::@2$2=$1::$1=remote(t,@1$1)\n\n* Next\n",
+  "key": "M-<left>",
+  "expected": {
+   "text": "Text\n| *bold* |   |\n|--------+---|\n| [[https://x.org][link]]   | x |\n| Zeta   |   |\n#+TBLFM: $3=vsum(@2..@3)::@2$1=$2::$2=remote(t,@1$1)\n\n* Next\n",
+   "point": 37,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| été   | a|\n|--¦--|\n|  -4   |\n|  foo bar baz|\n#+TBLFM: $2=$1*2::@1=2::@2$2=$1",
+  "key": "C-c ^ N",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "* Head\n|  [2023-01-02]|\n|¦  2:05|\n#+TBLFM: $1=remote(t,@1$1)::$3=vsum(@2..@3)::@3$1=5\nAfter\n",
+  "key": "<backtab>",
+  "expected": {
+   "text": "* Head\n| [2023-01-02] |\n|         2:05 |\n#+TBLFM: $1=remote(t,@1$1)::$3=vsum(@2..@3)::@3$1=5\nAfter\n",
+   "point": 9,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|*bold* | 10:30   |  ¦22 | 1   \n|日本 |x y|  foo bar baz |  1h   |\n| 3.5| foo bar baz|22| <r5>   |\tx |\n| <l> |bb   | été |  [[file:a.org]] | [[file:a.org]]   |\n|  *bold*|3.5|  été   | -4|22|  \nAfter\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "Text\n| *bold* | 10:30       | 22          |          1 |            |\n|        |             |             |            |            |\n| 日本   | x y         | foo bar baz |         1h |            |\n| 3.5    | foo bar baz | 22          |       <r5> | x          |\n| <l>    | bb          | été         | [[file:a.org]] | [[file:a.org]] |\n| *bold* | 3.5         | été         |         -4 | 22         |\nAfter\n",
+   "point": 72,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n¦|-|\n| [2023-01-02]   |\n|[2023-01-02]   \n|-----|\n| x y \nAfter\n",
+  "key": "C-c ^ t",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "* Head\n  | [[file:a.org]] |  [2023-01-02] |<r5> \n  | |  <202¦4-03-01 Fri>|  1|3.5   |\n  |a | x y |\n  | \tx|  10:30 |  \n  |日本|[[file:a.org]] | [[file:a.org]]   |\n#+TBLFM: @3$1=5\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "text": "* Head\n  |a | x y |\n  |日本|[[file:a.org]] | [[file:a.org]]   |\n  | [[file:a.org]] |  [2023-01-02] |<r5> \n  | |  <2024-03-01 Fri>|  1|3.5   |\n  | \tx|  10:30 |  \n#+TBLFM: @3$1=5\n",
+   "point": 31,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n| \tx   | <l>   |¦\n|[[file:a.org]]   | *bold*| bb|\n| 日本   |  \n| 1h | a   |\n|  |\n|  ccc |     |\n",
+  "key": "M-<left>",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Para\n\n|a   | été   |été|  foo bar baz   |22 \n|  日本|x y| ¦<2024-03-01 Fri>|  Zeta|  \n|[[file:a.org]]   |[[https://x.org][link]]   | -4|    | [2023-01-02] |  \n|  foo bar baz||2:05   |  bb   | |\n|-----+-+---+-|",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "Para\n\n|  日本|x y| <2024-03-01 Fri>|  Zeta|  \n|  foo bar baz||2:05   |  bb   | |\n|a   | été   |été|  foo bar baz   |22 \n|[[file:a.org]]   |[[https://x.org][link]]   | -4|    | [2023-01-02] |  \n|-----+-+---+-|",
+   "point": 57,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|¦\nAfter\n",
+  "key": "M-<right>",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "  | Zeta |\n  |  <l>  ¦ \n  | bb|  \n#+TBLFM: @1=2::@3$1=5::$2=$1*2",
+  "key": "C-c ^ t",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n|<2024-03-01 Fri>   |   | 2:05 |\n|  日本   |10:30   | <r5>| [[https://x.org][link]]   |\n| *bold*|[[https://x.org][link]]   | [[https://x.or¦g][link]]|\n#+TBLFM: @1=2\n",
+  "key": "M-<left>",
+  "expected": {
+   "text": "Text\n| <2024-03-01 Fri> | 2:05 |       |      |\n| 日本             | <r5> | 10:30 | [[https://x.org][link]] |\n| *bold*           | [[https://x.org][link]] |  [[https://x.org][link]] |      |\n#+TBLFM: @1=2\n",
+   "point": 129,
+   "killed": null
+  }
+ },
+ {
+  "text": "¦| Zeta   |\n#+TBLFM: @1=2::$1=remote(t,@1$1)\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Para\n\n\t¦|日本   |\n\t|  22   |\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "error": "Asked: Use column N for sorting: "
+  }
+ },
+ {
+  "text": "Para\n\n  |  bb   ¦| a   |22 |  \n  |-+---+-|\nAfter\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "Para\n\n  |  bb   | a   |22 |  \n  |-+---+-|\nAfter\n",
+   "point": 16,
+   "killed": null
+  }
+ },
+ {
+  "text": "|1h   | ccc\n|  <2024-03-01 Fri>   |[2023-01-02] ¦|\n|----+-----+---|\n#+TBLFM: @3$1=5\n",
+  "key": "M-<right>",
+  "expected": {
+   "error": "Cannot move column further right"
+  }
+ },
+ {
+  "text": "  |<l>|  [[https://x.org][link]]   \n¦  |  bb   |été|  a |  \n  |-+---+----|\n  |  a   |  1 |  été |\n  |<2024-03-01 Fri>| foo bar baz |  foo bar baz|\n  | \tx   |[2023-01-02]   | 日本   |\nAfter\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n  |  10:30| été| |\n  |  été| ¦<r5>|  foo bar baz | |\n  |  [[file:a.org]]   | 2:05| [[file:a.org]] |  été   |\n  |  <2024-03-01 Fri> |日本|  -4\n#+TBLFM: $2=$1*2\n\n* Next\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "text": "Text\n  |  <2024-03-01 Fri> |日本|  -4\n  |  10:30| été| |\n  |  été| <r5>|  foo bar baz | |\n  |  [[file:a.org]]   | 2:05| [[file:a.org]] |  été   |\n#+TBLFM: $2=$1*2\n\n* Next\n",
+   "point": 46,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n  |  *bold*   |  日本 | bb|\n  |  1h|1h|été |  ccc   |\n  |  a   |  [2023-01-02]|  <r5> |  \n  | *bold*| <l>|  22   |  \n  |x y | <l> | 22 |\n  | *bold*   |-4 ¦| [[https://x.org][link]]|\n#+TBLFM: $2=$1*2::$3=vsum(@2..@3)::@2$2=$1\n",
+  "key": "M-<left>",
+  "expected": {
+   "text": "Para\n\n  | 日本         | *bold* |   bb |     |\n  | 1h           | 1h     |  été | ccc |\n  | [2023-01-02] | a      | <r5> |     |\n  | <l>          | *bold* |   22 |     |\n  | <l>          | x y    |   22 |     |\n  |--------------+--------+------+-----|\n#+TBLFM: $1=$2*2::$3=vsum(@2..@3)::@2$1=$2\n",
+   "point": 212,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|22 ¦\n|   | 2:05\n#+TBLFM: @1=2::$3=vsum(@2..@3)::@3$1=5\nText between\n  | x y   |ccc |1   |\n  |  2:05 |   |  -4 |\n  |[2023-01-02] |日本   |  日本   |\n  |  22   | x y   |[2023-01-02]   |-4|\n  | 1h| [2023-01-02]   |*bold*   |\n#+TBLFM: @3$1=5",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "* Head\n|----+------|\n| 22 |      |\n|    | 2:05 |\n#+TBLFM: @1=2::$3=vsum(@2..@3)::@3$1=5\nText between\n  | x y   |ccc |1   |\n  |  2:05 |   |  -4 |\n  |[2023-01-02] |日本   |  日本   |\n  |  22   | x y   |[2023-01-02]   |-4|\n  | 1h| [2023-01-02]   |*bold*   |\n#+TBLFM: @3$1=5",
+   "point": 23,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n| [2023-01-02] |  -4  ¦ |  \n|<r5>|     |foo bar baz   |  \n",
+  "key": "C-c ^ t",
+  "expected": {
+   "text": "Para\n\n| [2023-01-02] |  -4   |  \n|<r5>|     |foo bar baz   |  \n",
+   "point": 28,
+   "killed": null
+  }
+ },
+ {
+  "text": "| |ccc   |foo bar baz|Zeta   |\n|  1|<r5>   |  ccc | 10:30 |¦\n|  foo bar baz|  [[https://x.org][link]] | [2023-01-02]|[[https://x.org][link]]   |\n| x y   |  10:30   |  *bold*|bb \n|--+-----+--+-----|",
+  "key": "C-c ^ n",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Para\n\n|-----+----|\n|\tx|  ccc   |\nText between\n| 2:05|  <l>|  1¦h|\n#+TBLFM: @1=2\nAfter\n",
+  "key": "M-<down>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "Para\n\n|  22   |  \n¦|1|  ",
+  "key": "M-<left>",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n  |a|¦\n  |  *bold* |\n  |Zeta |\n\n* Next\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "Text\n  | a      |\n  |        |\n  | *bold* |\n  | Zeta   |\n\n* Next\n",
+   "point": 22,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n| foo bar baz|ccc| 2:05 \n| foo bar baz|  <r5>\n|  [2023-01-02] | a| 日本   |-4\n| <r¦5>|3.5   |\n#+TBLFM: @1=2::$2=$1*2",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "Para\n\n|  foo bar baz |  ccc | 2:05 |    |\n|  foo bar baz | <r5> |      |    |\n| [2023-01-02] |    a | 日本 | -4 |\n|         <r5> |  3.5 |      |    |\n|              |      |      |    |\n#+TBLFM: @1=2::$2=$1*2",
+   "point": 150,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|--¦-+----+----+--|\n|10:30|<l> | 1h| 1 |  \n|  <2024-03-01 Fri> |foo bar baz   | 10:30 |\n|[2023-01-02] |  [[https://x.org][link]]   |a | ccc|\n| été   |  2:05|  3.5|a |\n|--+---+-----+-|\nAfter\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "* Head\n| 2:05|  3.5|  \n|----+-|\n|ccc   |-4\n|  1h| 10:30   | <l>|  \n|  Zeta| ¦ \tx   \n| | |\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "* Head\n| 2:05|  3.5|  \n|----+-|\n|  1h| 10:30   | <l>|  \n|ccc   |-4\n|  Zeta|  \tx   \n| | |\n",
+   "point": 76,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n¦\t| 日本   |  \n\t| <2024-03-01 Fri>\n\t|a |  \n\t| [[https://x.org][link]] |  \n\t|<r5>| ccc|\n\t|  a |  \n#+TBLFM: @2$2=$1::$1=remote(t,@1$1)\n",
+  "key": "M-<left>",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "* Head\n\t|<2024-03-01 Fri>|  a   |foo bar baz|  <2024-03-01 Fri> \n\t|[[file:a.org]]   |  <r5>|1h|\n\t|  \tx |bb|2:05| [[https://x.org][link]] ||\n\t| <2024-03-01 Fri> | 3.5   |    | a   |  \n\t|  10:30 |日本|1h |\n\t|  1|  x y   |x y| <l>|\nText between\n\t|ccc| bb |\n\t|---+-|\n\t|-----+-|\n\t| <2024-03-01 Fri>   | <l> | *bold*   |\n\t|  ccc   |  1 |\n\t¦| 1\n\n* Next\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "error": "Asked: Use column N for sorting: "
+  }
+ },
+ {
+  "text": "\t|-----+-+-----|\n\t|[2023-01-02]|  [[file:a.org]]   |  \n\t| <l>   |¦ 22   |\tx|\n\t|a | 22|  [[https://x.org][link]]   | foo bar baz |\n\t|----+----+--|\n#+TBLFM: @3$1=5::$2=$1*2",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "\t|--------------+------+-------------|\n\t| [2023-01-02] |      |             |\n\t| <l>          | x    |             |\n\t| a            | [[https://x.org][link]] | foo bar baz |\n\t|--------------+------+-------------|\n#+TBLFM: @3$1=5::",
+   "point": 96,
+   "killed": null
+  }
+ },
+ {
+  "text": "  |  [[https://x.org][link]]   | été|\n  |  été |\n  |1h|¦  |\n\n* Next\n",
+  "key": "TAB",
+  "expected": {
+   "text": "  | [[https://x.org][link]] | été |\n  | été  |     |\n  | 1h   |     |\n  |      |     |\n\n* Next\n",
+   "point": 74,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |  1 |-4   |  <l> \n  |a |  3¦.5|\n  |  1h | foo bar baz   |",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "* Head\n  |a |  3.5|\n  |  1h | foo bar baz   |\n  |  1 |-4   |  <l> ",
+   "point": 29,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|   |  *bold*   |  *bold*   \n\n\t|2:05   |  foo bar baz   |  |\n\t¦|*bold* | 22| 日本|  foo bar baz|\n\t|2:05 |<r5>|   |\n\t| <2024-03-01 Fri>   |  [2023-01-02] |   |  \tx|  bb \nAfter\n",
+  "key": "TAB",
+  "expected": {
+   "text": "* Head\n|   |  *bold*   |  *bold*   \n\n\t|             2:05 |  foo bar baz |      |             |    |\n\t|           *bold* |           22 | 日本 | foo bar baz |    |\n\t|             2:05 |         <r5> |      |             |    |\n\t| <2024-03-01 Fri> | [2023-01-02] |      | x           | bb |\nAfter\n",
+   "point": 103,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n\t|  3.5   | <r5>|\n\t| 1 |  2:05   | <2024-03-01 ¦Fri>\n\t||[[file:a.org]]   |   |\n\t|1h   |  1| [2023-01-02] |\n\t|---+--+-|\n#+TBLFM: $2=$1*2::$1=remote(t,@1$1)\n\n* Next\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "Para\n\n\t|  3.5   | <r5>|\n\t| 1 |  2:05   | <2024-03-01 Fri>\n\t||[[file:a.org]]   |   |\n\t|1h   |  1| [2023-01-02] |\n\t|---+--+-|\n#+TBLFM: $2=$1*2::$1=remote(t,@1$1)\n\n* Next\n",
+   "point": 53,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n  |bb|\n  |  1| ¦ x y   |\n  |  \tx\nAfter\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Text\n  | bb |     |\n  | 1  | x y |\n  | x  |     |\nAfter\n",
+   "point": 29,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|  \tx |ccc |Zeta|\n| |22  ¦ ||\n|-----+-----+----+---|\n| |  [[file:a.org]] | 日本|x y|\n#+TBLFM: $3=vsum(@2..@3)::@3$1=5::$1=remote(t,@1$1)\n\n* Next\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "Para\n\n| x |   | ccc        | Zeta |     |\n|   |   | 22         |      |     |\n|---+---+------------+------+-----|\n|   |   | [[file:a.org]] | 日本 | x y |\n#+TBLFM: $4=vsum(@2..@3)::@3$1=5::$1=remote(t,@1$1)\n\n* Next\n",
+   "point": 48,
+   "killed": null
+  }
+ },
+ {
+  "text": "|<2024-03-01 Fri>   |\n| 22  ¦ |\n| x y |  <l> |\n|3.5   \nAfter\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "|<2024-03-01 Fri>   |\n| x y |  <l> |\n|3.5   \nAfter\n",
+   "point": 28,
+   "killed": "| 22   |\n"
+  }
+ },
+ {
+  "text": "Text\n|  *bold*|\n|2:05 |\n| ¦ |\n|1|\n|--|\n|  Zeta   |Zeta   ",
+  "key": "TAB",
+  "expected": {
+   "text": "Text\n| *bold* |      |\n|   2:05 |      |\n|        |      |\n|      1 |      |\n|--------+------|\n|   Zeta | Zeta |\n",
+   "point": 52,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| 2:05   |  1h   |  \n|Zeta   |\n|22   |  *bo¦ld* \n\n|  -4 |  bb |\nAfter\n",
+  "key": "C-c ^ t",
+  "expected": {
+   "text": "Text\n|Zeta   |\n|22   |  *bold* \n| 2:05   |  1h   |  \n\n|  -4 |  bb |\nAfter\n",
+   "point": 44,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|--+-----|\n\t|----+-|\n\t| <l>   | Zeta|\n\t|[2023-01-02]\n\t|  x y|  Zeta|\n\t|¦  a |  2:05\n\n* Next\n",
+  "key": "M-<down>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "Para\n\n|¦  [2023-01-02] |  3.5   \n#+TBLFM: @2$2=$1",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "Para\n\n|  [2023-01-02] |  3.5   \n#+TBLFM: @2$2=$1",
+   "point": 7,
+   "killed": null
+  }
+ },
+ {
+  "text": "|1 \n|  [2023-01-02] |  \n#+TBLFM: $1=remote(t,@1$1)::@2$2=$1::$3=vsum(@2..@3)\nText between\n|---|\n| 2:05   |\n|a |\n|10:30   |\n|  <2024-03-01 Fri>|\n¦|Zeta |\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "error": "Asked: Use column N for sorting: "
+  }
+ },
+ {
+  "text": "Text\n\t|----+---+----|\n\t| 2:05 | x y|\n\t|a   |22|\n\t|  3.5 |\tx   |1h   |\n\t| [[file:a.org]]   |<l> | ccc |\n\t| 日本|été   |2:¦05   |\n#+TBLFM: @2$2=$1::@3$1=5",
+  "key": "TAB",
+  "expected": {
+   "text": "Text\n\t|------------+-----+------|\n\t| 2:05       | x y |      |\n\t| a          | 22  |      |\n\t| 3.5        | x   | 1h   |\n\t| [[file:a.org]] | <l> | ccc  |\n\t| 日本       | été | 2:05 |\n\t|            |     |      |\n#+TBLFM: @2$2=$1::@3$1=5",
+   "point": 184,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n  |  [[file:a.org]]| 1\n  |¦  <r5> |a   |\n  |ccc |  \n#+TBLFM: @3$1=5\nAfter\n",
+  "key": "M-<down>",
+  "expected": {
+   "text": "Para\n\n  |  [[file:a.org]]| 1\n  |ccc |  \n  |  <r5> |a   |\n#+TBLFM: @2$1=5\nAfter\n",
+   "point": 43,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n  | a   | <r5> | <2024-03-01 Fri>   |\n  |  <l> | été   ¦| <r5>|  x y   | <l>|\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Text\n  | a   | <r5> | <2024-03-01 Fri>   |\n  |  <l> | été   | <r5>|  x y   | <l>|\n  |------+-------+-----+--------+----|\n",
+   "point": 60,
+   "killed": null
+  }
+ },
+ {
+  "text": "  |a| 10:30   |x y |¦\nAfter\n",
+  "key": "TAB",
+  "expected": {
+   "text": "  | a | 10:30 | x y |\n  |   |       |     |\nAfter\n",
+   "point": 26,
+   "killed": null
+  }
+ },
+ {
+  "text": "\t|  1h | bb\n\t|a   |foo bar baz|  \n\t|<r5> |  bb|[2023-01-0¦2]   |\n\t|2:05   | <l> |\n#+TBLFM: $3=vsum(@2..@3)\n",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "\t|   1h | bb          |              |\n\t|    a | foo bar baz |              |\n\t|      |             |              |\n\t| <r5> | bb          | [2023-01-02] |\n\t| 2:05 | <l>         |              |\n#+TBLFM: $3=vsum(@2..@4)\n",
+   "point": 81,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n  |  <2024-03¦-01 Fri> ||22   |  2:05   |",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "Text\n  |  <2024-03-01 Fri> ||22   |  2:05   |",
+   "point": 18,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|--+---|\n|-+--|\n|  3.5   ¦| |22 |  \n|  <r5>\n| <l>| Zeta   |\n\n* Next\n",
+  "key": "<backtab>",
+  "expected": {
+   "error": "Cannot move to previous table field"
+  }
+ },
+ {
+  "text": "* Head\n  | -4 |  日本 |     |\n  |a ¦  |  bb   |[[https://x.org][link]] |\n",
+  "key": "M-<right>",
+  "expected": {
+   "text": "* Head\n  | 日本 | -4 |      |\n  | bb   |  a | [[https://x.org][link]] |\n",
+   "point": 39,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n| <¦2024-03-01 Fri>| 1h   |\n#+TBLFM: $3=vsum(@2..@3)\nAfter\n",
+  "key": "M-<up>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "Para\n\n|<r5>\n|-¦+----|\n|<l> | \tx \n|foo bar baz   |1h |  \n#+TBLFM: @2$2=$1::$1=remote(t,@1$1)::$3=vsum(@2..@3)\nAfter\n",
+  "key": "C-c ^ t",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "  |\tx |  <r5> |\n  |22 |  Zeta   |\n  |-----+-|¦\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "  |  x | <r5> |\n  | 22 | Zeta |\n  |----+------|\n",
+   "point": 47,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|[20¦23-01-02]   |\n#+TBLFM: $3=vsum(@2..@3)::@1=2::$2=$1*2\nAfter\n",
+  "key": "<backtab>",
+  "expected": {
+   "error": "Cannot move to previous table field"
+  }
+ },
+ {
+  "text": "  |  Zeta   | été   |été   \n  |  <l¦>   |日本   |\n  |a| ccc | [[https://x.org][link]]   |\n\n* Next\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "  |  Zeta   | été   |été   \n  |  <l>   |日本   |\n  |a| ccc | [[https://x.org][link]]   |\n\n* Next\n",
+   "point": 35,
+   "killed": null
+  }
+ },
+ {
+  "text": "  | ccc|foo bar baz| 3.5   |a |\n  | été |   ||  été   |  \n  |  [2023-01-02] | 22¦   |  |\n  |-----+-----+-+-----|\n  |2:05   |日本 |  <r5>   |  foo bar baz|  [2023-01-02] |\n  |[[https://x.org][link]]|  [2023-01-02] |<l>   | 日本|  [[https://x.org][link]]|",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "  | été |   ||  été   |  \n  |  [2023-01-02] | 22   |  |\n  | ccc|foo bar baz| 3.5   |a |\n  |-----+-----+-+-----|\n  |2:05   |日本 |  <r5>   |  foo bar baz|  [2023-01-02] |\n  |[[https://x.org][link]]|  [2023-01-02] |<l>   | 日本|  [[https://x.org][link]]|",
+   "point": 78,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|  ccc   |Zeta   | 1   |¦<l> |  \n| a|  2:05 |  [[https://x.org][link]] |*bold* |\n| |  日本   |<2024-03-01 Fri>|a   |  <r5>|\n| 日本|été|  [[https://x.org][link]]   | [[file:a.org]] |  \n|<2024-03-01 Fri> | [[https://x.org][link]] |  bb|\n\n* Next\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "* Head\n|  ccc   |Zeta   | 1   |<l> |  \n| a|  2:05 |  [[https://x.org][link]] |*bold* |\n| |  日本   |<2024-03-01 Fri>|a   |  <r5>|\n| 日本|été|  [[https://x.org][link]]   | [[file:a.org]] |  \n|<2024-03-01 Fri> | [[https://x.org][link]] |  bb|\n\n* Next\n",
+   "point": 31,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|   |  Zeta |a|  \n#+TBLFM: $3=vsum(@2..@3)::@1=2::@2$2=$1\n\n  |¦-+----|\n  |  <r5> |\n#+TBLFM: @2$2=$1",
+  "key": "M-<down>",
+  "expected": {
+   "text": "* Head\n\t|   |  Zeta |a|  \n#+TBLFM: $3=vsum(@2..@3)::@1=2::@2$2=$1\n\n  |  <r5> |\n  |-+----|\n#+TBLFM: @2$2=$1",
+   "point": 82,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|-+-+---+----|\n|ccc|<l>|¦Zeta | *bold*   | 2:05   |\n|bb   | [[file:a.org]]   | 1h |\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "Para\n\n|-----+------------+---+------+--------+------|\n| ccc | <l>        |   | Zeta | *bold* | 2:05 |\n| bb  | [[file:a.org]] |   | 1h   |        |      |\n",
+   "point": 75,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|[[https://x.or¦g][link]]|  Zeta   || bb   |\n|-----+---+-----+--|\n|-----+--+-----+--|\n|--+-----+--+----|\n#+TBLFM: $3=vsum(@2..@3)::@1=2\n\n* Next\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "Para\n\n|[[https://x.org][link]]|  Zeta   || bb   |\n|-----+---+-----+--|\n|-----+--+-----+--|\n|--+-----+--+----|\n#+TBLFM: $3=vsum(@2..@3)::@1=2\n\n* Next\n",
+   "point": 24,
+   "killed": null
+  }
+ },
+ {
+  "text": "  |ccc| ét¦é   |22 |  \n#+TBLFM: $1=remote(t,@1$1)\nAfter\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "  |ccc| été   |22 |  \n#+TBLFM: $1=remote(t,@1$1)\nAfter\n",
+   "point": 10,
+   "killed": null
+  }
+ },
+ {
+  "text": "  |10:30| Zeta |3.5\n  |   |22| -4 |  \n  |[[https://x.org][link]]   |   |22 |10:30   |\n ¦ |<r5>   | 10:30 |  \n#+TBLFM: @2$2=$1::@1=2::$1=remote(t,@1$1)",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "  | 10:30 |  Zeta | 3.5 |       |\n  |       |    22 |  -4 |       |\n  |  [[https://x.org][link]] |       |  22 | 10:30 |\n  |       |       |     |       |\n  |  <r5> | 10:30 |     |       |\n#+TBLFM: @2$2=$1::@1=2::$1=remote(t,@1$1)",
+   "point": 125,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|  日本 |  22| 2:05\n| x y   | <2024-03-01 Fri>   |  |a|  \n|    |22|  f¦oo bar baz   |  \n|<l>   |  <2024-03-01 Fri>|  <2024-03-01 Fri>   |\n|-----+----+----|\n#+TBLFM: $3=vsum(@2..@3)",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "Text\n|  日本 |  22| 2:05\n| x y   | <2024-03-01 Fri>   |  |a|  \n|    |22|  foo bar baz   |  \n|<l>   |  <2024-03-01 Fri>|  <2024-03-01 Fri>   |\n|-----+----+----|\n#+TBLFM: $3=vsum(@2..@3)",
+   "point": 73,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| *b¦old*   \n|  10:30 | |\n| 3.5| <l>   |\n|--+---|\n\n* Next\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "Text\n| *bold*   \n| 3.5| <l>   |\n|  10:30 | |\n|--+---|\n\n* Next\n",
+   "point": 9,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |  ¦foo bar baz| 1h   | a|  10:30   |Zeta   |  \n  |10:30   | <l>|  été   | bb |\n  | été|  <l>   |1h   | 1   |  \n#+TBLFM: @1=2::$1=remote(t,@1$1)\n",
+  "key": "<backtab>",
+  "expected": {
+   "error": "Cannot move to previous table field"
+  }
+ },
+ {
+  "text": "* Head\n| *¦bold* |   |  3.5 |10:30 |\n|-----+---+----+--|\n|  été   |   | <2024-03-01 Fri>   | <l> |  \n|10:30   | bb |Zeta |  x y |",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "* Head\n|--------+---+------+------|\n| *bold* |   |  3.5 |10:30 |\n|-----+---+----+--|\n|  été   |   | <2024-03-01 Fri>   | <l> |  \n|10:30   | bb |Zeta |  x y |",
+   "point": 39,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|  <l> |<2024-03-01 Fri> ¦  |  |\n|3.5   |1|-4   \n#+TBLFM: @3$1=5::@2$2=$1",
+  "key": "C-c -",
+  "expected": {
+   "text": "Para\n\n|  <l> |<2024-03-01 Fri>   |  |\n|------+-------------------+--|\n|3.5   |1|-4   \n#+TBLFM: @3$1=5::@2$2=$1",
+   "point": 31,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|1 |  été   |   |2:05 ||  \n| 10:3¦0   | <l>   |  a   | bb|  \n#+TBLFM: @1=2::$2=$1*2\nAfter\n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "Para\n\n|     1 | été |   | 2:05 |   |\n| 10:30 | <l> | a |   bb |   |\n|-------+-----+---+------+---|\n|       |     |   |      |   |\n#+TBLFM: @1=2::$2=$1*2\nAfter\n",
+   "point": 101,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|  [[file:a.org]]   | foo bar baz   |  1   |  \n#+TBLFM: $1=remote(t,@1$1)::@2$2=$1::$3=vsum(@2..@3)\n\n|  |\n|-----|\n| 22\n|¦--|\n| 10:30   \n",
+  "key": "C-c ^ A",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "\t|¦ x y|  <2024-03-01 Fri>   \n\t|\tx   |  \n\t|1h   | Zeta   |\n\t||Zeta   |-4 |\n\t| 10:30   | Zeta \n\t|[2023-01-02]|ccc   \n\n  |----|\n  | bb|Zeta\n  |----|\n\n* Next\n",
+  "key": "<backtab>",
+  "expected": {
+   "error": "Cannot move to previous table field"
+  }
+ },
+ {
+  "text": "Text\n  |---+----|\n  |22   |  |\n  ||  [2023-01-02] \n  |  3.5 | foo bar baz ¦|  日本|",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "Text\n  |---+----|\n  |22   |  |\n  ||  [2023-01-02] \n  |  3.5 | foo bar baz |  日本|",
+   "point": 74,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| -4   | 1h   ¦| [2023-01-02] |  \n|   |  bb|   |  <r5>   |\n|-+----+---+---|\n| [[file:a.org]]   | 3.5|  [[file:a.org]]   |  -4|  \nAfter\n",
+  "key": "TAB",
+  "expected": {
+   "text": "Text\n|         -4 | 1h  | [2023-01-02] |      |\n|            | bb  |              | <r5> |\n|------------+-----+--------------+------|\n| [[file:a.org]] | 3.5 | [[file:a.org]]   |   -4 |\nAfter\n",
+   "point": 26,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  | ccc   |¦1h |  1 | Zeta|\n  |  été|  *bold* |  ccc   |[[https://x.org][link]] |  \n  |ccc   | *bold*|  22|\nAfter\n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "* Head\n  | ccc | 1h     |   1 | Zeta |\n  |-----+--------+-----+------|\n  | été | *bold* | ccc | [[https://x.org][link]] |\n  | ccc | *bold* |  22 |      |\nAfter\n",
+   "point": 75,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|<r5> |  [[https://x.org][link]]   |  bb \n|22   |  bb   | ¦x y   |\n|[[file:a.org]]   |日本 | -4   |\n|a \n|  3.5   | été|\n|[2023-01-02]|  22   |\n#+TBLFM: $2=$1*2::@2$2=$1::$1=remote(t,@1$1)\nAfter\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "* Head\n|         <r5> | [[https://x.org][link]] |   | bb  |\n|           22 | bb   |   | x y |\n|   [[file:a.org]] | 日本 |   | -4  |\n|              | a    |   |     |\n|          3.5 | été  |   |     |\n| [2023-01-02] | 22   |   |     |\n#+TBLFM: $2=$1*2::@2$2=$1::$1=remote(t,@1$1)\nAfter\n",
+   "point": 84,
+   "killed": null
+  }
+ },
+ {
+  "text": "¦| | \n| <r5>|  x y   |\n|日本 |  [[https://x.org][link]]   |\n#+TBLFM: $3=vsum(@2..@3)::@3$1=5\n\n* Next\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "| | \n|-| \n| <r5>|  x y   |\n|日本 |  [[https://x.org][link]]   |\n#+TBLFM: $3=vsum(@2..@3)::@3$1=5\n\n* Next\n",
+   "point": 0,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n  |-+-+-----|\n  |-4|  [[https://x.org][link]]   |[2023-01-02]|\n  | ¦ 2:05 |foo bar baz   |*bold* |\n  |2:05   | [[file:a.org]]|  10:30 | |  \n  |  a   |ccc|\n  |<2024-03-01 Fri>   | foo bar baz| \tx|été|",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "Para\n\n  |-+-+-----|\n  |-4|  [[https://x.org][link]]   |[2023-01-02]|\n  |2:05   | [[file:a.org]]|  10:30 | |  \n  |  a   |ccc|\n  |<2024-03-01 Fri>   | foo bar baz| \tx|été|",
+   "point": 73,
+   "killed": "  |  2:05 |foo bar baz   |*bold* |\n"
+  }
+ },
+ {
+  "text": "Text\n|  *bold*   |  1h|  <2024-03-01 Fri>| a   \n¦| [[file:a.org]] | |\n#+TBLFM: @2$2=$1::$1=remote(t,@1$1)",
+  "key": "M-<down>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "Para\n\n| -4 |\n| 2:¦05|\n| [[https://x.org][link]]   |\n",
+  "key": "TAB",
+  "expected": {
+   "text": "Para\n\n|   -4 |\n| 2:05 |\n| [[https://x.org][link]] |\n",
+   "point": 26,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|  [2023-01-02]  ¦ |\nAfter\n",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "Para\n\n|  [2023-01-02]   |\nAfter\n",
+   "point": 23,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|--¦-+----|\n|[2023-01-02] | été| 3.5 \n|     |  <l>   |\n#+TBLFM: $2=$1*2",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "* Head\n|--------------+-----+-----|\n|              |     |     |\n| [2023-01-02] | été | 3.5 |\n|              | <l> |     |\n#+TBLFM: $2=$1*2",
+   "point": 38,
+   "killed": null
+  }
+ },
+ {
+  "text": "  |-+----+--|\n  |  *bold*   |  1 |  1||\n  |---+---+---|\n  |¦ <2024-03-01 Fri>| -4 |été   |\n#+TBLFM: $1=remote(t,@1$1)::@3$1=5::$2=$1*2\n",
+  "key": "C-c ^ t",
+  "expected": {
+   "text": "  |-+----+--|\n  |  *bold*   |  1 |  1||\n  |---+---+---|\n  | <2024-03-01 Fri>| -4 |été   |\n#+TBLFM: $1=remote(t,@1$1)::@3$1=5::$2=$1*2\n",
+   "point": 59,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n| été   |Zeta   |  <r5>   |\n|  *bold* |日本| |\n|  1h|  [[file:a.org]]   | -4 ¦\n| bb|foo bar baz | <r5>   |  bb|\n#+TBLFM: @2$2=$1::$3=vsum(@2..@3)",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "* Head\n| été    | Zeta        | <r5> |    |\n| *bold* | 日本        |      |    |\n| 1h     | [[file:a.org]]  |   -4 |    |\n|        |             |      |    |\n| bb     | foo bar baz | <r5> | bb |\n#+TBLFM: @2$2=$1::$3=vsum(@2..@3)",
+   "point": 122,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|  foo bar baz|1 |  22   |\n| [[file:a.org]]|<r5> | [[file:a.org]]|  1h   |  \n|ccc | -4 |  <r5> |\n|     | Zeta   | été |ccc   \n|  2:05|  [¦[https://x.org][link]]   |a| ccc\n|  bb   | 日本 |22|  <l>|  \n#+TBLFM: $2=$1*2::$1=remote(t,@1$1)::@3$1=5",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "text": "Para\n\n|  foo bar baz|1 |  22   |\n| [[file:a.org]]|<r5> | [[file:a.org]]|  1h   |  \n|ccc | -4 |  <r5> |\n|     | Zeta   | été |ccc   \n|  2:05|         |a| ccc\n|  bb   | 日本 |22|  <l>|  \n#+TBLFM: $2=$1*2::$1=remote(t,@1$1)::@3$1=5",
+   "point": 141,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|<2024-03-01 Fri>|foo bar baz|<r5>   |  \n| <l>   |  *b¦old*   |\n|10:30 |\n|---+----|\n|  a   |  -4   |-4   |\n\n* Next\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "Text\n|<2024-03-01 Fri>|foo bar baz|<r5>   |  \n| <l>   |  *bold*   |\n|10:30 |\n|---+----|\n|  a   |  -4   |-4   |\n\n* Next\n",
+   "point": 59,
+   "killed": null
+  }
+ },
+ {
+  "text": "¦|22   |1h| |été|\nAfter\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Para\n\n|----+--|\n|  foo bar baz   |  ¦foo bar baz   \n| foo bar baz| -4|\n#+TBLFM: $1=remote(t,@1$1)\nAfter\n",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "Para\n\n|-------------+-------------|\n|             |             |\n| foo bar baz | foo bar baz |\n| foo bar baz |          -4 |\n#+TBLFM: $1=remote(t,@1$1)\nAfter\n",
+   "point": 38,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| a|*bold*| [2023-01-02]   | foo bar baz   |x y |\n|  x y|<2024-03-01 Fri>| <r5¦>|\n#+TBLFM: @1=2::@2$2=$1",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Text\n| a   | *bold*           | [2023-01-02] | foo bar baz | x y |\n| x y | <2024-03-01 Fri> |         <r5> |             |     |\n#+TBLFM: @1=2::@2$2=$1",
+   "point": 94,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t| ccc   |  x y   |\n\t|  foo bar baz| été   |foo bar baz|  \n\t|-----+-¦--+-|\n#+TBLFM: $1=remote(t,@1$1)\n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "* Head\n\t| ccc         | x y |             |\n\t| foo bar baz | été | foo bar baz |\n\t|-------------+-----+-------------|\n\t|-------------+-----+-------------|\n |             |     |             |\n#+TBLFM: $1=remote(t,@1$1)\n",
+   "point": 158,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|  1   |1   | |\n|--+-----+-----|\n|-----+-----+----|\n|  *bold*   |  |  \n|été |¦  [[file:a.org]]| ccc|\n",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "Text\n|  1   |1   | |\n|--+-----+-----|\n|-----+-----+----|\n|  *bold*   |  |  \n|----+------------+----|\n|été |  [[file:a.org]]| ccc|\n",
+   "point": 107,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|---+--+-|\n|-+----+---|\n|   |  été   |  \n|---+----+---|\n|--+-----+----|\n|[2023-01-02]|1h¦ |  22 | ccc|\n\n* Next\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Text\n|---+--+-|\n|-+----+---|\n|   |  été   |  \n|---+----+---|\n|--+-----+----|\n|[2023-01-02]|1h |  22 | ccc|\n|------------+---+-----+----|\n\n* Next\n",
+   "point": 93,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n\t|a|  10:30   |  \n\n\t|2:05 |  foo bar baz   |  <l>|  \n\t| *bold* |\tx|22   |\n\t|----+--+----|\n\t|  [2023-01-02] |¦ <l> |     |\n\t|  été|été | 10:30   \nAfter\n",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "Para\n\n\t|a|  10:30   |  \n\n\t|2:05 |  foo bar baz   |  <l>|  \n\t| *bold* |\tx|22   |\n\t|----+--+----|\n\t|  [2023-01-02] | <l> |     |\n\t|  été|été | 10:30   \nAfter\n",
+   "point": 114,
+   "killed": null
+  }
+ },
+ {
+  "text": "|  [[https://x.org][link]]   |¦  x y |  été |  \n|  3.5||foo bar baz   |  \n|<l>| 2:05|  *bold*   |\n\n* Next\n",
+  "key": "<backtab>",
+  "expected": {
+   "text": "| [[https://x.org][link]] |  x y | été         |\n| 3.5  |      | foo bar baz |\n| <l>  | 2:05 | *bold*      |\n\n* Next\n",
+   "point": 2,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|-----+--+-+-|\n|  a |3.5 |Zeta   | [[https://x.org][link]]|\n#+TBLFM: $1=remote(t,@1$1)\n\n|  [2023-01-02] |\n| ¦ <l>   |\n#+TBLFM: @1=2\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "Text\n|-----+--+-+-|\n|  a |3.5 |Zeta   | [[https://x.org][link]]|\n#+TBLFM: $1=remote(t,@1$1)\n\n| [2023-01-02] |\n| <l>          |\n|              |\n#+TBLFM: @1=2\n",
+   "point": 129,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n\t| <r5> |1 |bb |\n\t| [[https://x.org][link]] | <l>\n\t|    |\n\t|Zeta ¦  |",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "Text\n\t| 1   | bb |\n\t| <l> |    |\n\t|     |    |\n\t|     |    |\n",
+   "point": 50,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|  [2023-01-02]| 日本|  -4 |\n#+TBLFM: @1=2::$2=$1*2::$1=remote(t,@1$1)\nText between\n\t¦|2:05|\n\t| \tx   |  3.5   |\n\t| ccc   |[[file:a.org]]|\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "error": "Asked: Use column N for sorting: "
+  }
+ },
+ {
+  "text": "Text\n  |  <2024-0¦3-01 Fri>|  22 | \tx |  ",
+  "key": "TAB",
+  "expected": {
+   "text": "Text\n  | <2024-03-01 Fri> | 22 | x |\n",
+   "point": 28,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n\t|  <l>   | <l>   |\n\t|  [2023-01-02]   | [[file:a.org]] |   \n¦\t|<r5>   |bb   |-4|\n\t|----+-+-----|\n\t|x y   |  3.5 |  a| [[file:a.org]]   |\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "error": "Asked: Use column N for sorting: "
+  }
+ },
+ {
+  "text": "* Head\n|----|\n| ccc |\n| ccc |  \n|<r5¦>   \n|-----|\nAfter\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "* Head\n|----|\n| ccc |\n| ccc |  \n|<r5>   \n|-----|\nAfter\n",
+   "point": 36,
+   "killed": null
+  }
+ },
+ {
+  "text": "  |bb |\tx   |  -4|\n ¦ |  日本| a |  3.5   \n  | <r5>   |x y   |[2023-01-02]   |",
+  "key": "C-c -",
+  "expected": {
+   "text": "  |   bb | x   |           -4 |\n  | 日本 | a   |          3.5 |\n  |------+-----+--------------|\n  | <r5> | x y | [2023-01-02] |\n",
+   "point": 32,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |日本| [[file:a.org]] \n  |  [¦[https://x.org][link]] |été   |  \n  |  <r5>|\nAfter\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "* Head\n  | [[file:a.org]] |\n  | été        |\n  |            |\nAfter\n",
+   "point": 32,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|  10:30   |\nText between\n\t|été  ¦ |22   |     | 2:05   |    |\nAfter\n",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "Para\n\n|  10:30   |\nText between\n\t|------+-----+-----+--------+----|\n\t|été   |22   |     | 2:05   |    |\nAfter\n",
+   "point": 75,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|3.5 | été|  2:05 |\n|  [[file:a.org]]| -4   | |\n|*bold*| x y   | a | ¦été   |\n| x y |  [2023-01-02] |  日本|\n|  bb |  22 |  a   |\n\n* Next\n",
+  "key": "M-<down>",
+  "expected": {
+   "text": "* Head\n|3.5 | été|  2:05 |\n|  [[file:a.org]]| -4   | |\n| x y |  [2023-01-02] |  日本|\n|*bold*| x y   | a | été   |\n|  bb |  22 |  a   |\n\n* Next\n",
+   "point": 105,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n\t| [[https://x.org][link]]   |  été |\n\t|    \n\t| Zeta |\n\t| ¦ \n\t|foo bar baz\n\n* Next\n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "Text\n\t| [[https://x.org][link]]        | été |\n\t|             |     |\n\t| Zeta        |     |\n\t|             |     |\n\t|             |     |\n\t| foo bar baz |     |\n\n* Next\n",
+   "point": 133,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|<r5>   | a |   |\n|a   |日本 |10:30   ¦|\n| <r5>|Zeta|  *bold* |  \n|---+----+-----|\n|1h |  [2023-01-02]|  10:30   |\n|a | 22   | |\n#+TBLFM: @1=2::$1=remote(t,@1$1)\n",
+  "key": "<backtab>",
+  "expected": {
+   "text": "Text\n| <r5> | a            |        |\n|    a | 日本         |  10:30 |\n| <r5> | Zeta         | *bold* |\n|------+--------------+--------|\n|   1h | [2023-01-02] |  10:30 |\n|    a | 22           |        |\n#+TBLFM: @1=2::$1=remote(t,@1$1)\n",
+   "point": 47,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|1h|  x y | [2023-01-02]   \n|  | 1 |  |  3.5 \n| a | -4   |\n|Zeta   |Z¦eta |\n\n* Next\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "Text\n| a | -4   |\n|1h|  x y | [2023-01-02]   \n|Zeta   |Zeta |\n|  | 1 |  |  3.5 \n\n* Next\n",
+   "point": 72,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|-----|\n| ccc   |\n|x y¦\n|--|\n|Zeta |\n|-|\n#+TBLFM: @3$1=5::$2=$1*2::$3=vsum(@2..@3)\n\n* Next\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "* Head\n|---+------|\n|   | ccc  |\n|   | x y  |\n|---+------|\n|   | Zeta |\n|---+------|\n#+TBLFM: @3$2=5::$3=$2*2::$4=vsum(@2..@3)\n\n* Next\n",
+   "point": 35,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|  22 |\n|[[https://x.org][link]]|\n|foo bar baz |\n|¦ Zeta |\n|x y   | 2:05   ",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "* Head\n|  22 |\n|[[https://x.org][link]]|\n|foo bar baz |\n| Zeta |\n|x y   | 2:05   ",
+   "point": 57,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n  |<r5>|  22 | foo bar baz   |<r5>   |\n  |   |  a |  1 |  bb |\n  |[2023-01-02]| été   | Zeta   |1   |\n  |-+---+---+-|\n  | été|3.5|  10:30 |  *bold*¦ |\n#+TBLFM: @2$2=$1\n\n* Next\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "text": "Text\n  |<r5>|  22 | foo bar baz   |<r5>   |\n  |   |  a |  1 |  bb |\n  |[2023-01-02]| été   | Zeta   |1   |\n  |-+---+---+-|\n  | été|3.5|  10:30 |  *bold* |\n#+TBLFM: @2$2=$1\n\n* Next\n",
+   "point": 152,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|  bb |¦  \n|Zeta|\n|  a   |\n|<r5>\n",
+  "key": "M-<up>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "  |-----+--|\n  |  x¦ y|2:05   \n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "  |------|\n  | 2:05 |\n",
+   "point": 15,
+   "killed": null
+  }
+ },
+ {
+  "text": "¦|  10:30|  Zeta | x y |\n|-+--+-|\n|  bb | 日本   |a|\n#+TBLFM: $1=remote(t,@1$1)::@1=2::$2=$1*2",
+  "key": "C-c ^ n",
+  "expected": {
+   "error": "Asked: Use column N for sorting: "
+  }
+ },
+ {
+  "text": "Para\n\n| ¦3.5 |  22| a   |\n|||  <r5>   \n|   |  10:30 |日本 |\n| [[https://x.org][link]]   | [2023-01-02]   | a   |été |\n| *bold*|x y|<r5>\nAfter\n",
+  "key": "M-<down>",
+  "expected": {
+   "text": "Para\n\n|||  <r5>   \n| 3.5 |  22| a   |\n|   |  10:30 |日本 |\n| [[https://x.org][link]]   | [2023-01-02]   | a   |été |\n| *bold*|x y|<r5>\nAfter\n",
+   "point": 21,
+   "killed": null
+  }
+ },
+ {
+  "text": "\t|bb|  [2023-01-02]|  [[https://x.org][link]]|  \n\t|<r5>   | foo bar baz |3.5   |  1h   |  \n\t|  <l> |10:30|<r5> \n\t| a   |  [20¦23-01-02]| 10:30   |\nAfter\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "\t|   bb | [2023-01-02] |  [[https://x.org][link]] |    |\n\t| <r5> | foo bar baz  |   3.5 | 1h |\n\t|  <l> | 10:30        |  <r5> |    |\n\t|    a | [2023-01-02] | 10:30 |    |\n\t|      |              |       |    |\nAfter\n",
+   "point": 174,
+   "killed": null
+  }
+ },
+ {
+  "text": "\t|Zeta   |¦\n#+TBLFM: $3=vsum(@2..@3)::$2=$1*2\n",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "\t|      |\n\t| Zeta |\n#+TBLFM: $3=vsum(@3..@4)::$2=$1*2\n",
+   "point": 3,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|-¦--+----+--+---|\n| a |Zeta   |  1   |foo bar baz |\n| | 1|2:05\n|  1h | \tx | 日本| 1h   |\n|  <2024-03-01 Fri>| été|\tx|  |\n#+TBLFM: @2$2=$1::$3=vsum(@2..@3)\n\n* Next\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n| 22 |  été|[[https://x.org][link]]   |[[file:a.org]]   |\n|  x y | 2:05| 10:30   |  foo bar baz|\n|----¦+--+---+--|\n|ccc   |[[file:a.org]]|  x y\n|ccc | ccc |  10:30| <l>|  a   |\n#+TBLFM: @2$2=$1::$1=remote(t,@1$1)::$3=vsum(@2..@3)",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "Text\n|   | 22  | été        |  [[https://x.org][link]] | [[file:a.org]]  |   |\n|   | x y | 2:05       | 10:30 | foo bar baz |   |\n|---+-----+------------+-------+-------------+---|\n|   | ccc | [[file:a.org]] |   x y |             |   |\n|   | ccc | ccc        | 10:30 | <l>         | a |\n#+TBLFM: @2$3=$2::$2=remote(t,@1$1)::$4=vsum(@2..@3)",
+   "point": 183,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|  22| [[file:a.org]] |\n| ¦<l>   | 日本|  \n|----+-----|\n#+TBLFM: $1=remote(t,@1$1)::@1=2\n\n* Next\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "text": "Para\n\n|  22| [[file:a.org]] |\n|       | 日本|  \n|----+-----|\n#+TBLFM: $1=remote(t,@1$1)::@1=2\n\n* Next\n",
+   "point": 32,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| Zeta| x y | 1|x ¦y   |\n|10:30|  [2023-01-02]|  <2024-03-01 Fri>| [[file:a.org]]   |\nAfter\n",
+  "key": "M-<down>",
+  "expected": {
+   "text": "Text\n|10:30|  [2023-01-02]|  <2024-03-01 Fri>| [[file:a.org]]   |\n| Zeta| x y | 1|x y   |\nAfter\n",
+   "point": 84,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n  | ccc   |  Zeta   |    \nText between\n| bb | 1   |\n| x y |  \n| \tx |  \n|  3.5|-4 |  \tx   |  \n|¦ 10:30   |  \nAfter\n",
+  "key": "M-<down>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "Text\n\t|  10:30|\n\t|[2023-01-02]   | *bold*| a   |  \n\t|Zeta|foo bar b¦az   |  \nAfter\n",
+  "key": "M-<left>",
+  "expected": {
+   "text": "Text\n\t| 10:30       |              |   |\n\t| *bold*      | [2023-01-02] | a |\n\t| foo bar baz | Zeta         |   |\nAfter\n",
+   "point": 80,
+   "killed": null
+  }
+ },
+ {
+  "text": "| <l> | x y|ccc   |  \n|  22   | ccc| [[file:a.org]]   |  \n| -4 |\tx   ¦| [2023-01-02] |  \n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "| <l> |   | x y | ccc          |\n| 22  |   | ccc | [[file:a.org]]   |\n| -4  |   | x   | [2023-01-02] |\n",
+   "point": 78,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n\t|-4|<l> |bb   |\n\t|  été | ccc   |    |  3.5|\n\t| [[file:a.org]] |  ¦|  \n\t| *bold*   |x y   |été |\n\t|  foo bar baz |x y |\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "Text\n\t|-4|<l> |bb   |\n\t|  été | ccc   |    |  3.5|\n\t| [[file:a.org]] |  |  \n\t| *bold*   |x y   |été |\n\t|  foo bar baz |x y |\n",
+   "point": 72,
+   "killed": null
+  }
+ },
+ {
+  "text": "\t|  3.¦5   | été\n\t| [[https://x.org][link]]|  <r5> |\nAfter\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "\t|  3.5   | été\n\t| [[https://x.org][link]]|  <r5> |\nAfter\n",
+   "point": 6,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|2:05 |<2024-03-01 Fri> |22   | [[file:a.org]]   |\n| -4   |  *bold*   | ccc|-4 |\n|  日本   | | <2024-03-01 ¦Fri>|\n| |  [2023-01-02] | <2024-03-01 Fri>   |日本 |\n\n|bb   |  [2023-01-02]   |  <2024-03-01 Fri>   |  *bold*   |",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "Para\n\n|2:05 |<2024-03-01 Fri> |22   | [[file:a.org]]   |\n| -4   |  *bold*   | ccc|-4 |\n| |  [2023-01-02] | <2024-03-01 Fri>   |日本 |\n\n|bb   |  [2023-01-02]   |  <2024-03-01 Fri>   |  *bold*   |",
+   "point": 113,
+   "killed": "|  日本   | | <2024-03-01 Fri>|\n"
+  }
+ },
+ {
+  "text": "|  été |\n|  <r5>   |\n|22 |\n| ¦  |\n#+TBLFM: $3=vsum(@2..@3)::$2=$1*2\nText between\n|  bb|été   |\nAfter\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "|  été |\n| <r5> |\n|   22 |\n|      |\n|      |\n#+TBLFM: $3=vsum(@2..@3)::$2=$1*2\nText between\n|  bb|été   |\nAfter\n",
+   "point": 38,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n  |  [[file:a.org]]|  -4 | | <r5>   |  \n  | | \tx   |3.5|<r5>   |\n  |---+-+-¦----+---|\nAfter\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n|  -4   |été |été   |Zeta\n|  1h   |  |2:05 |  \n¦|-4 | |  a|  \n|<2024-03-01 Fri> |  |  |\n|---+-----+-----|",
+  "key": "C-c ^ a",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "\t|22|\n¦\t|  ccc |\n\t|--+----|\n\t|--+-|\n\t| 1h| [2023-01-02] |\n\t|  -4| -4   \n#+TBLFM: $3=vsum(@2..@3)::$2=$1*2::@1=2\n\n* Next\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "error": "Asked: Use column N for sorting: "
+  }
+ },
+ {
+  "text": "Para\n\n\t|---¦+-----|\n\t| -4|\n\t| |  a   | |\n\t|1h|<l>   \n\t|  bb||  \n\t|22 |  été |\nAfter\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n  | 1 |ccc| | 10:30   |\n  |3.5|  ¦22|1h   |[[https://x.org][link]]   |  \n  | 3.5 |  Zeta|日本   |  \n\n* Next\n",
+  "key": "M-<down>",
+  "expected": {
+   "text": "Text\n  | 1 |ccc| | 10:30   |\n  | 3.5 |  Zeta|日本   |  \n  |3.5|  22|1h   |[[https://x.org][link]]   |  \n\n* Next\n",
+   "point": 63,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|  <r5> |  foo bar baz   ¦\n#+TBLFM: $1=remote(t,@1$1)::@1=2::@2$2=$1",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "* Head\n\t|------+-------------|\n\t| <r5> | foo bar baz |\n#+TBLFM: $1=remote(t,@1$1)::@1=2::@2$2=$1",
+   "point": 41,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |<2024-03-01 Fri>| \tx |  3.5   | foo bar baz   |\n  |-----+-----+--+-----|\n  ¦|    |<2024-03-01 Fri>   | bb   |  \n  | a|10:30 |  | 1h|<l>   |\nAfter\n",
+  "key": "M-<left>",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "|  1h |  日本 |\n|a |日本¦|\n|---+-----|",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "|  1h |  日本 |\n|a |日本|\n|---+-----|",
+   "point": 20,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|  3.5   |*bold*|Zeta¦   |  \n|ccc   |  x y| a   |  \n\n* Next\n",
+  "key": "TAB",
+  "expected": {
+   "text": "Para\n\n| 3.5 | *bold* | Zeta |\n| ccc | x y    | a    |\n\n* Next\n",
+   "point": 32,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n| [2023-01-02]   |\n|--|\n|-|\n|ccc   ¦|   |\n|     | 10:30   |\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "* Head\n| [2023-01-02]   |\n|--|\n|-|\n|ccc   |   |\n|     | 10:30   |\n",
+   "point": 42,
+   "killed": null
+  }
+ },
+ {
+  "text": "  |-+----+---+-----|\n  | 1h   | 3.5|  日本|\n  |-----+--+---+--|¦\n  |<r5>|  [[file:a.org]]|foo bar baz |\n  | [[file:a.org]]|| a|\n  | -4|3.5 |<r5>|  2:05 |  10:30|\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "  |------------+------------+-------------+------+-------|\n  |         1h |        3.5 |        日本 |      |       |\n  |------------+------------+-------------+------+-------|\n  |            |            |             |      |       |\n  |       <r5> | [[file:a.org]] | foo bar baz |      |       |\n  | [[file:a.org]] |            |           a |      |       |\n  |         -4 |        3.5 |        <r5> | 2:05 | 10:30 |\n",
+   "point": 179,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n\t|--|\n\t| ¦    |\n\n* Next\n",
+  "key": "M-<right>",
+  "expected": {
+   "error": "Cannot move column further right"
+  }
+ },
+ {
+  "text": "Text\n  |  [[https://x.org][link]]   |  [2023-01-02]| 日本|\n  |  x y|  1¦0:30   | 10:30|\n#+TBLFM: $3=vsum(@2..@3)::$1=remote(t,@1$1)",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "Text\n  |  [[https://x.org][link]]   |  [2023-01-02]| 日本|\n  |  x y|  10:30   | 10:30|\n#+TBLFM: $3=vsum(@2..@3)::$1=remote(t,@1$1)",
+   "point": 69,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |  -4| 2:05 |\n  |---+-----|¦\n  | 1h   | [[https://x.org][link]]   |foo bar baz |\n#+TBLFM: $1=remote(t,@1$1)::$3=vsum(@2..@3)::$2=$1*2\nAfter\n",
+  "key": "C-u M-S-<down>",
+  "expected": {
+   "text": "* Head\n  | -4 | 2:05 |             |\n  |----+------+-------------|\n  |    |      |             |\n  | 1h | [[https://x.org][link]] | foo bar baz |\n#+TBLFM: $1=remote(t,@1$1)::$3=vsum(@3..@4)::$2=$1*2\nAfter\n",
+   "point": 71,
+   "killed": null
+  }
+ },
+ {
+  "text": "\t| |  1|  ¦\n#+TBLFM: @1=2",
+  "key": "M-<down>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "Para\n\n  |---+---+---|\n  |-+-----+-|\n#+TBLFM: @3$1=5\nText between\n  |--+---+-+--|\n  |  <2024-03-01 Fri>   |  <¦r5> |<l>   | [2023-01-02]   |\n",
+  "key": "M-<right>",
+  "expected": {
+   "text": "Para\n\n  |---+---+---|\n  |-+-----+-|\n#+TBLFM: @3$1=5\nText between\n  |------------------+-----+------+--------------|\n  | <2024-03-01 Fri> | <l> | <r5> | [2023-01-02] |\n",
+   "point": 145,
+   "killed": null
+  }
+ },
+ {
+  "text": "  ¦| été |\n  | \tx|     |\n  | 1\n#+TBLFM: @2$2=$1::@1=2::$3=vsum(@2..@3)\n\n* Next\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "\t|----+-----|\n\t¦||  \n\t|  <l> |  ccc |\nAfter\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "error": "Asked: Use column N for sorting: "
+  }
+ },
+ {
+  "text": "* Head\n\t|--|\n\t|  <2024-03-0¦1 Fri> |\n\t| 3.5   |\n\t| 1h |\n\t|  *bold*   |[[file:a.org]]   |\n\t| |[[file:a.org]]   |\n",
+  "key": "TAB",
+  "expected": {
+   "text": "* Head\n\t|------------------+------------|\n\t| <2024-03-01 Fri> |            |\n\t| 3.5              |            |\n\t| 1h               |            |\n\t| *bold*           | [[file:a.org]] |\n\t|                  | [[file:a.org]] |\n",
+   "point": 64,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|  1h   |x y \n\t| 10:30   |  ccc|¦\n\n* Next\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Para\n\n| x y|10:30|22 |¦ 22   \n#+TBLFM: @1=2::@2$2=$1::$1=remote(t,@1$1)\nText between\n|     |\n|<l>   |\n|  foo bar baz |\n|x y| [[https://x.org][link]]|\n|    |\n|<l>|\n#+TBLFM: @1=2\nAfter\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "Para\n\n| x y|10:30|22 | 22   \n#+TBLFM: @1=2::@2$2=$1::$1=remote(t,@1$1)\nText between\n|     |\n|<l>   |\n|  foo bar baz |\n|x y| [[https://x.org][link]]|\n|    |\n|<l>|\n#+TBLFM: @1=2\nAfter\n",
+   "point": 22,
+   "killed": null
+  }
+ },
+ {
+  "text": "¦|1h|[[file:a.org]]   |\n#+TBLFM: @1=2::$3=vsum(@2..@3)\n\n* Next\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "|1h|[[file:a.org]]   |\n|--+-------------|\n#+TBLFM: @1=2::$3=vsum(@2..@3)\n\n* Next\n",
+   "point": 0,
+   "killed": null
+  }
+ },
+ {
+  "text": "\t| 3¦.5 |<l> | \tx | x y\n\t| x y |  22 |  été|  \n\t| foo bar baz|-4\n\t|----+-+----|\n#+TBLFM: @1=2\n\n* Next\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "text": "\t|     |<l> | \tx | x y\n\t| x y |  22 |  été|  \n\t| foo bar baz|-4\n\t|----+-+----|\n#+TBLFM: @1=2\n\n* Next\n",
+   "point": 3,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n| bb ¦|  \n|-|\n\n* Next\n",
+  "key": "<backtab>",
+  "expected": {
+   "error": "Cannot move to previous table field"
+  }
+ },
+ {
+  "text": "Text\n| |\n|  ¦bb \n|bb |  a |  \n|----|\n|  [2023-01-02] | |\n|-|\n\n* Next\n",
+  "key": "M-<right>",
+  "expected": {
+   "text": "Text\n|    |              |\n| bb |              |\n| a  | bb           |\n|----+--------------|\n|    | [2023-01-02] |\n|----+--------------|\n\n* Next\n",
+   "point": 29,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|----+----+----+--|\n|¦   |  |a |Zeta \n#+TBLFM: @2$2=$1::@1=2\nText between\n|[2023-01-02] | 10:30|  \n|foo bar baz   |\n|  10:30|\n|  1h   |  10:30   | Zeta \n|  x y |  \tx|  *bold* |\n#+TBLFM: @3$1=5::$2=$1*2\n\n* Next\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "* Head\n|---+---+------|\n|   | a | Zeta |\n#+TBLFM: @2$1=$INVALID::@1=2\nText between\n|[2023-01-02] | 10:30|  \n|foo bar baz   |\n|  10:30|\n|  1h   |  10:30   | Zeta \n|  x y |  \tx|  *bold* |\n#+TBLFM: @3$1=5::$2=$1*2\n\n* Next\n",
+   "point": 26,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n\t|  ¦22|  a|\nAfter\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "Text\n\t| a |\nAfter\n",
+   "point": 8,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n\t|  été   |[2023-01-0¦2]|\n\t| \tx|[2023-01-02]   |  日本 |  [[file:a.org]] \n\n* Next\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "Text\n\t|  été   |[2023-01-02]|\n\t| \tx|[2023-01-02]   |  日本 |  [[file:a.org]] \n\n* Next\n",
+   "point": 26,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |  bb   | |<2024-03-01¦ Fri>   |\n  |  |    |  \n  |10:30 |bb |\n  | 日本|3.5\n  |  -4|[[https://x.org][link]]   |   \n\n* Next\n",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "* Head\n  |  |    |  \n  |10:30 |bb |\n  |  -4|[[https://x.org][link]]   |   \n  | 日本|3.5\n  |  bb   | |<2024-03-01 Fri>   |\n\n* Next\n",
+   "point": 20,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |  \tx| a   \n  | ccc   |[[¦https://x.org][link]] |  |\n#+TBLFM: @1=2\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "text": "* Head\n  | ccc   |[[https://x.org][link]] |  |\n  |  \tx| a   \n#+TBLFM: @1=2\n",
+   "point": 56,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n¦\t|  3.5   | 2:05 |",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "* Head\n\t|     |      |\n\t| 3.5 | 2:05 |\n",
+   "point": 10,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|----|\n| ¦ \n|-|\n|  日本 |\n|----|\n\n* Next\n",
+  "key": "TAB",
+  "expected": {
+   "text": "Para\n\n|------|\n|      |\n|------|\n| 日本 |\n|------|\n\n* Next\n",
+   "point": 35,
+   "killed": null
+  }
+ },
+ {
+  "text": "| 22   | 2:05|\n|  [[file:a.org]]   |ccc   \n|  Zeta   |  \tx |\n|22 ¦  |\nAfter\n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "|         22 | 2:05 |\n| [[file:a.org]] | ccc  |\n|       Zeta | x    |\n|         22 |      |\n|------------+------|\n|            |      |\nAfter\n",
+   "point": 116,
+   "killed": null
+  }
+ },
+ {
+  "text": "\t|1 | <l> |bb |1h   |  \n\t| ccc   | 10:30 |  |¦\n\t|--+--+----+---|\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "\t| a | 日本| *bold*|[[https://x.org][link]]   |  \n\t|Zeta | 10:30| 1   | *bold*\n\t| -4   | 日本 |\tx   |  foo bar baz   |\n\t| 3.5   |été|  Zeta   |*bold*|\n\t|[[https://x.org][link]]| bb|  [[file:a.org]]   | été|  \nText between\n\t| 1h ¦|  22   |\n\t| <r5> | 1h|  1 |\n\t|22|  <2024-03-01 Fri>   |\n#+TBLFM: $2=$1*2::$3=vsum(@2..@3)::@3$1=5\n\n* Next\n",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "\t| a | 日本| *bold*|[[https://x.org][link]]   |  \n\t|Zeta | 10:30| 1   | *bold*\n\t| -4   | 日本 |\tx   |  foo bar baz   |\n\t| 3.5   |été|  Zeta   |*bold*|\n\t|[[https://x.org][link]]| bb|  [[file:a.org]]   | été|  \nText between\n\t|----+-------|\n\t| 1h |  22   |\n\t| <r5> | 1h|  1 |\n\t|22|  <2024-03-01 Fri>   |\n#+TBLFM: $2=$1*2::$3=vsum(@2..@3)::@3$1=5\n\n* Next\n",
+   "point": 240,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n| x y| | 1h |\n¦|    |  x y |  | ccc|\n|22   |  <r5>   |  \n|2:05|<l>| 2:05   |1|\n| 日本   | <l>| 22 |  \n\n  |  <r5> |\n  |  a|a |\n  |   |ccc   |   |[[https://x.org][link]] |  \n#+TBLFM: @2$2=$1::$2=$1*2::@1=2\nAfter\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "Para\n\n| x y| | 1h |\n|22   |  <r5>   |  \n|2:05|<l>| 2:05   |1|\n| 日本   | <l>| 22 |  \n\n  |  <r5> |\n  |  a|a |\n  |   |ccc   |   |[[https://x.org][link]] |  \n#+TBLFM: @2$2=$1::$2=$1*2::@1=2\nAfter\n",
+   "point": 20,
+   "killed": "|    |  x y |  | ccc|\n"
+  }
+ },
+ {
+  "text": "Text\n| 22   |-4| 22|[[https://x.org][li¦nk]] |\n|  2:05   |  |  |  1h |\n#+TBLFM: $1=remote(t,@1$1)::@1=2\nText between\n|1|  Zeta |  3.5|\nAfter\n",
+  "key": "M-<up>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "* Head\n| x y|¦ [2023-01-02]|  \n\n* Next\n",
+  "key": "M-<down>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "Para\n\n\t|¦*bold*   \n\t| 10:30   | \tx   |\n\t|-+----|\n\t| Zeta|\n#+TBLFM: $3=vsum(@2..@3)\n",
+  "key": "<backtab>",
+  "expected": {
+   "error": "Cannot move to previous table field"
+  }
+ },
+ {
+  "text": "Text\n¦\t| Zeta|  Zeta | \tx|\n\t|  [2023-01-02]   |  日本   | 10:30\n\t| a |a |  \n\t| 日本 | 10:30   |  [2023-01-02] |\n\t|-+-----+--|\n#+TBLFM: $1=remote(t,@1$1)::@2$2=$1\nAfter\n",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "Text\n\t|              |       |              |\n\t| Zeta         | Zeta  | x            |\n\t| [2023-01-02] | 日本  | 10:30        |\n\t| a            | a     |              |\n\t| 日本         | 10:30 | [2023-01-02] |\n\t|--------------+-------+--------------|\n#+TBLFM: $1=remote(t,@1$1)::@3$2=$1\nAfter\n",
+   "point": 8,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|  ccc|<2024-03-01 Fri>   |  [[file:a.org]]   |  2:05   |  \n| 1h   | <r5>   | bb|  10:30|\n|-+----+-----|\n|  ccc  ¦ |    \n|---+--+-|\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "Text\n|   | ccc | <2024-03-01 Fri> | [[file:a.org]] |  2:05 |\n|   | 1h  |             <r5> | bb         | 10:30 |\n|---+-----+------------------+------------+-------|\n|   | ccc |                  |            |       |\n|---+-----+------------------+------------+-------|\n",
+   "point": 167,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|b¦b|\n\t|-----+--|\n\t|  bb|10:30 |\n\t|--+----|\n",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "* Head\n\t|bb|\n\t|-----+--|\n\t|  bb|10:30 |\n\t|--+----|\n",
+   "point": 10,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n| [[file:a.org]]|\n| 2:05 | <2024-03-01 Fri> |\n| 10:30|\n|¦ ccc   |10:30   \n| a|\n#+TBLFM: @1=2\n\n* Next\n",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "* Head\n| [[file:a.org]] |                  |\n| 2:05       | <2024-03-01 Fri> |\n| 10:30      |                  |\n|            |                  |\n| ccc        |            10:30 |\n| a          |                  |\n#+TBLFM: @1=2\n\n* Next\n",
+   "point": 115,
+   "killed": null
+  }
+ },
+ {
+  "text": "| *bold*   | \tx | ccc   |*bold*   |  *bold*   |\n|  [[file:a.org]]|  a|  x y|[[file:a.org]] |\n|x y | [[https://x.org][link]]| 1h |  -4   |\n| a   ¦| 3.5 | 日本   |  \n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "|   | *bold*     | x    | ccc  | *bold*     | *bold* |\n|   | [[file:a.org]] | a    | x y  | [[file:a.org]] |        |\n|   | x y        | [[https://x.org][link]] | 1h   | -4         |        |\n|   | a          | 3.5  | 日本 |            |        |\n",
+   "point": 194,
+   "killed": null
+  }
+ },
+ {
+  "text": "|  1¦h|  <r5>   \n|  Zeta|  *bold*   |\n|ccc |été \n| x y   |\nText between\n\t|  [[file:a.org]] |<l>|\n\t|*bold* |  <r5>| Zeta |\n#+TBLFM: $3=vsum(@2..@3)::$2=$1*2\nAfter\n",
+  "key": "C-c ^ t",
+  "expected": {
+   "text": "|  Zeta|  *bold*   |\n|ccc |été \n| x y   |\n|  1h|  <r5>   \nText between\n\t|  [[file:a.org]] |<l>|\n\t|*bold* |  <r5>| Zeta |\n#+TBLFM: $3=vsum(@2..@3)::$2=$1*2\nAfter\n",
+   "point": 4,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|  été   |  Zeta |1   |  *bold*   |  1h|\n|<2024-03-01 Fri>   |*bold*   |  foo bar baz|\n|10:30 |  x y| ¦1 | *bold*   \n#+TBLFM: @2$2=$1::$3=vsum(@2..@3)::$1=remote(t,@1$1)\nAfter\n",
+  "key": "M-<right>",
+  "expected": {
+   "error": "Cannot move column further right"
+  }
+ },
+ {
+  "text": "  |   |  ccc   | fo¦o bar baz|  \n  |----+---+---|\n  |<r5>   |  1   |  \tx|\n  |  3.5| -4 |[[file:a.org]] |\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "  |      | ccc |   | foo bar baz |\n  |------+-----+---+-------------|\n  | <r5> |   1 |   | x           |\n  |  3.5 |  -4 |   | [[file:a.org]]  |\n",
+   "point": 17,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n\t|-----+---+-|\n\t|---+-+-|\n\t|<l>|<r5>   |  \n\t|   |  [[h¦ttps://x.org][link]]   |  a   |  \n\t|  a | 3.5   |2:05|  \n#+TBLFM: @3$1=5::$1=remote(t,@1$1)\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Text\n\t|-----+---+-|\n\t|---+-+-|\n\t|<l>|<r5>   |  \n\t|   |  [[https://x.org][link]]   |  a   |  \n\t|---+---------+------|  \n\t|  a | 3.5   |2:05|  \n#+TBLFM: @3$1=5::$1=remote(t,@1$1)\n",
+   "point": 73,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n\t| b¦b|  ccc |  \n#+TBLFM: @2$2=$1::@3$1=5::$2=$1*2\nText between\n  |  1 | 1 \n#+TBLFM: $1=remote(t,@1$1)::@3$1=5",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "Para\n\n\t| bb|  ccc |  \n#+TBLFM: @2$2=$1::@3$1=5::$2=$1*2\nText between\n  |  1 | 1 \n#+TBLFM: $1=remote(t,@1$1)::@3$1=5",
+   "point": 10,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n| [[https://x.org][link]] |\n|-4| Zeta |\n|  [2023-0¦1-02]   \n|--|\n|<2024-03-01 Fri> |  3.5|\n|-|\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "Para\n\n|   | [[https://x.org][link]]             |     |\n|---+------------------+-----|\n|   | [2023-01-02]     |     |\n|---+------------------+-----|\n|   | <2024-03-01 Fri> | 3.5 |\n|---+------------------+-----|\n",
+   "point": 89,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |----+---+--|\n  | <2024-03-01 Fri>|  \tx| 1|\n  | 日本 |  ¦\tx| 3.5| x y |  \n  |  2:05|10:30 |  ccc   | 10:30|\n  |été|日本 |\n#+TBLFM: $1=remote(t,@1$1)::$2=$1*2\n\n* Next\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "* Head\n  |------------------+-------+-----+-------|\n  | <2024-03-01 Fri> | x     |   1 |       |\n  | 日本             | x     | 3.5 |   x y |\n  | 2:05             | 10:30 | ccc | 10:30 |\n  | été              | 日本  |     |       |\n#+TBLFM: $1=remote(t,@1$1)::$2=$1*2\n\n* Next\n",
+   "point": 118,
+   "killed": null
+  }
+ },
+ {
+  "text": "| x y \n|  a |\n| [[file:a.org]]   |  \n| -4 |\n\n|10:30|  ¦Zeta| <r5>   |  a \n#+TBLFM: $2=$1*2::$3=vsum(@2..@3)::@1=2",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "text": "| x y \n|  a |\n| [[file:a.org]]   |  \n| -4 |\n\n|10:30|      | <r5>   |  a \n#+TBLFM: $2=$1*2::$3=vsum(@2..@3)::@1=2",
+   "point": 53,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n| Zeta|[[https://x.org][link]] | <r5> | foo bar baz   ¦|\n#+TBLFM: @3$1=5",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "Para\n\n| Zeta|[[https://x.org][link]] | <r5> | foo bar baz   |\n#+TBLFM: @3$1=5",
+   "point": 60,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|  <r5> | 3.5|  10:30|\n| ccc |foo bar baz |[[file:a.org]] |  22|\n|22 | <2024-03-01 Fri>|  <r5> | \tx   \n|----+---+---+---|\n|  1h | été   |  ccc|    |  [[https://x.org][link]]|\n|  ccc   |bb| <l>   |10:30 ¦|\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "* Head\n| <r5> | 3.5              |      10:30 |       |      |\n|  ccc | foo bar baz      | [[file:a.org]] |    22 |      |\n|   22 | <2024-03-01 Fri> |       <r5> |     x |      |\n|------+------------------+------------+-------+------|\n|   1h | été              |        ccc |       | [[https://x.org][link]] |\n|  ccc | bb               |        <l> | 10:30 |      |\n",
+   "point": 351,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|---|\n| 日本|\n|  foo bar ba¦z|\n|  日本|  1 |\n| 2:05   |\n#+TBLFM: $1=remote(t,@1$1)\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "Text\n|---|\n| 日本|\n|  日本|  1 |\n| 2:05   |\n#+TBLFM: $1=remote(t,@1$1)\n",
+   "point": 28,
+   "killed": "|  foo bar baz|\n"
+  }
+ },
+ {
+  "text": "Text\n| a   |ccc   |日本 \n|----+--+--+-----|\n|  日本 |  | [2023-01-02]   |  [2023-01-02]   \n|  <2024-03-01 Fri> | <2024-03-01 Fri> | -4   |22|\n|  *bold* |  Zeta |22   |  ccc   |\tx|  \n|  x y | <2024-03-01 Fri>|  -4¦ | [2023-01-02]|  <l> |  \n#+TBLFM: @2$2=$1::$3=vsum(@2..@3)\nAfter\n",
+  "key": "M-<left>",
+  "expected": {
+   "text": "Text\n| a                |          ccc | 日本             |              |     |\n|------------------+--------------+------------------+--------------+-----|\n| 日本             | [2023-01-02] |                  | [2023-01-02] |     |\n| <2024-03-01 Fri> |           -4 | <2024-03-01 Fri> | 22           |     |\n| *bold*           |           22 | Zeta             | ccc          | x   |\n| x y              |           -4 | <2024-03-01 Fri> | [2023-01-02] | <l> |\n#+TBLFM: @2$3=$1::$2=vsum(@2..@3)\nAfter\n",
+   "point": 402,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|  <2024-03-01 Fri>   |\tx|\n|Zeta|¦  |\nAfter\n",
+  "key": "M-<down>",
+  "expected": {
+   "error": "Cannot move row further"
+  }
+ },
+ {
+  "text": "Text\n  |[[https://x.org][link]]   | <l>   |  22 | <202¦4-03-01 Fri> |\n  |  2:05   |été|  été|  \tx |\n  | -4|[[https://x.org][link]]| 3.5 |  [2023-01-02]   |  \n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "Text\n  | [[https://x.org][link]] | <l>  |  22 | <2024-03-01 Fri> |\n  |------+------+-----+------------------|\n  | 2:05 | été  | été | x                |\n  |   -4 | [[https://x.org][link]] | 3.5 | [2023-01-02]     |\n",
+   "point": 114,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n  |--+-----+---+----|\n  ¦|  [2023-01-02]|<r5>|  \tx|Zeta   |  \n  |-+---+-----+----|\n  | 1   | \tx|    |  [[file:a.org]]|\n#+TBLFM: @3$1=5\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "error": "Asked: Use column N for sorting: "
+  }
+ },
+ {
+  "text": "* Head\n  |1 |  22| [[https://x.org][link]] |\n  |  <2024-03-01 Fri> |  10:30 |  été \n  |2:05|a|1|<r5>|  \n  | <r5> | Zeta| |10:30|  *bold* \n  |  [2023-01-02]   |     | *bold*|x y \nText between\n  |--+-|\n  |¦ 1h |x y   |  \nAfter\n",
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot move column further left"
+  }
+ },
+ {
+  "text": "Para\n\n| 10:30|<r5>\n|ccc |2:05   |\n|1h |3.5| 10:30 |\n|<2024-03-01 Fri>   |  foo bar baz|\n|  <l>   |\tx|   |\n|ccc¦ |Zeta |  1h\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Para\n\n| 10:30            |        <r5> |       |\n| ccc              |        2:05 |       |\n| 1h               |         3.5 | 10:30 |\n| <2024-03-01 Fri> | foo bar baz |       |\n| <l>              |           x |       |\n| ccc              |        Zeta |    1h |\n",
+   "point": 223,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n  |-----+---+-----+----|\n  |-----+---+-----+---|\n  |  22|  22   |2:05|  <2024-03-01 Fri>|\n  | 1 | 10:30 | 日本   | cc¦c   |\n#+TBLFM: $1=remote(t,@1$1)::@1=2::@3$1=5\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "Text\n  |-----+---+-----+----|\n  |-----+---+-----+---|\n  |  22|  22   |2:05|  <2024-03-01 Fri>|\n  | 1 | 10:30 | 日本   | ccc   |\n#+TBLFM: $1=remote(t,@1$1)::@1=2::@3$1=5\n",
+   "point": 120,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n\t|  a ¦\n\t|<r5>|\n\t|-----|\n\t|-|\n\t|-4 |\n#+TBLFM: @3$1=5\n",
+  "key": "TAB",
+  "expected": {
+   "text": "Text\n\t|    a |\n\t| <r5> |\n\t|------|\n\t|------|\n\t|------|\n#+TBLFM: @3$1=5\n",
+   "point": 18,
+   "killed": null
+  }
+ },
+ {
+  "text": "\t| été |  [2023-01-02] | 1h   |\n\t|-¦----+---+--|\n\t|-----+-+--|\n\t|[[file:a.org]]   |x y   | bb |\n\t| <l>| 10:30 |  \nAfter\n",
+  "key": "M-<right>",
+  "expected": {
+   "text": "\t| [2023-01-02] | été        | 1h |\n\t|--------------+------------+----|\n\t|--------------+------------+----|\n\t| x y          | [[file:a.org]] | bb |\n\t| 10:30        | <l>        |    |\nAfter\n",
+   "point": 126,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n\t|  bb   |日本   |-4|\n\t| ¦2:05   |\n\t| 22|\n\t| bb|  2:05 |",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "Para\n\n\t|   |   bb | 日本 | -4 |\n\t|   | 2:05 |      |    |\n\t|   |   22 |      |    |\n\t|   |   bb | 2:05 |    |\n",
+   "point": 33,
+   "killed": null
+  }
+ },
+ {
+  "text": "|----|\n||¦\nAfter\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n| bb   |  Zeta |  \n|\n| <2024-03-01 Fri> |  日本|  x y   |\n| 日本   |  ccc   | [[https://x.org][link]]\n|1h |  <r5>   |\n#+TBLFM: @1=2::$3=vsum(@2..@3)\nText between\n|foo bar baz   | <2024-03-¦01 Fri> \n|  [2023-01-02] |bb   |  \n|-----+----|\n|  <2024-03-01 Fri> |  <l> | -4   |\n|  <l>   |<r5> |  \n|  [[https://x.org][link]]|[[https://x.org][link]]|  été|  \n#+TBLFM: @2$2=$1::$2=$1*2::$3=vsum(@2..@3)\nAfter\n",
+  "key": "M-<right>",
+  "expected": {
+   "text": "Text\n| bb   |  Zeta |  \n|\n| <2024-03-01 Fri> |  日本|  x y   |\n| 日本   |  ccc   | [[https://x.org][link]]\n|1h |  <r5>   |\n#+TBLFM: @1=2::$3=vsum(@2..@3)\nText between\n| foo bar baz      | <2024-03-01 Fri> |      |\n| [2023-01-02]     |               bb |      |\n|------------------+------------------+------|\n| <2024-03-01 Fri> |               -4 | <l>  |\n| <l>              |             <r5> |      |\n| [[https://x.org][link]]             |              été | [[https://x.org][link]] |\n#+TBLFM: @2$3=$1::$3=$1*2::$2=vsum(@2..@3)\nAfter\n",
+   "point": 184,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n\t|  3.5 | [[f¦ile:a.org]]|  Zeta |22|  \n\t|--+-+-----+--|\n\t|\tx   | [2023-01-02]   | Zeta |  a   |\n#+TBLFM: @3$1=5",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "Text\n\t|  3.5 | [[file:a.org]]|  Zeta |22|  \n\t|--+-+-----+--|\n\t|\tx   | [2023-01-02]   | Zeta |  a   |\n#+TBLFM: @3$1=5",
+   "point": 18,
+   "killed": null
+  }
+ },
+ {
+  "text": "  |  ¦*bold*   | \tx   |  <l>|  x y \n  |  |  foo bar baz|x y |\n  |-4   |  ccc   | été |\n  | <l>   |  ccc | [[file:a.org]]   |  \n#+TBLFM: @3$1=5::@2$2=$1::@1=2",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "  |  *bold*   | \tx   |  <l>|  x y \n  |  |  foo bar baz|x y |\n  |-4   |  ccc   | été |\n  | <l>   |  ccc | [[file:a.org]]   |  \n#+TBLFM: @3$1=5::@2$2=$1::@1=2",
+   "point": 5,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|  ccc |<r5¦>   |[[https://x.org][link]] |  x y |\n\t|--+--+-----+-|\nAfter\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "* Head\n\t| ccc | [[https://x.org][link]] | x y |\n\t|-----+------+-----|\nAfter\n",
+   "point": 16,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n| ccc | 2:05 |  \n|22 |\n|  <r5>|  x y |\n|3.5|  foo ¦bar baz   |\n|---+----|\n| 3.5   |ccc|  ",
+  "key": "TAB",
+  "expected": {
+   "text": "Para\n\n|  ccc | 2:05        |\n|   22 |             |\n| <r5> | x y         |\n|  3.5 | foo bar baz |\n|------+-------------|\n|  3.5 | ccc         |\n",
+   "point": 123,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n| c¦cc   \n|foo bar baz   |  foo bar baz   |  <2024-03-01 Fri>",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "* Head\n| ccc         |             |                  |\n| foo bar baz | foo bar baz | <2024-03-01 Fri> |\n",
+   "point": 9,
+   "killed": null
+  }
+ },
+ {
+  "text": "| ¦<2024-03-01 Fri> |3.5   |\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "| <2024-03-01 Fri> |3.5   |\n",
+   "point": 2,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n  |3.5   |  <r5>|\n  | [2023-01-02]|a   |  \n  |Zeta   |  <2024-03-01 Fr¦i> |  \n#+TBLFM: $2=$1*2",
+  "key": "<backtab>",
+  "expected": {
+   "text": "Para\n\n  | 3.5          |             <r5> |\n  | [2023-01-02] |                a |\n  | Zeta         | <2024-03-01 Fri> |\n#+TBLFM: $2=$1*2",
+   "point": 86,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|  *bold*|\n|¦22|été|\n|  été   |  \n| 1   |\nAfter\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "* Head\n| *bold* |     |\n|     22 | été |\n|    été |     |\n|      1 |     |\nAfter\n",
+   "point": 26,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|  foo bar baz | <2024-03-01 Fri>   | <l>   |  \tx¦|",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "Text\n|  foo bar baz | <2024-03-01 Fri>   | <l>   |  \tx|",
+   "point": 54,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|  <l>   | 10:30   |[2023-01-02]   |\n\t|----+----+----|\n\t|  x y   | \tx |¦  *bold* |\n\t|bb|  日本| bb \n\t|---+-----+----|",
+  "key": "M-<down>",
+  "expected": {
+   "text": "* Head\n\t|  <l>   | 10:30   |[2023-01-02]   |\n\t|----+----+----|\n\t|bb|  日本| bb \n\t|  x y   | \tx |  *bold* |\n\t|---+-----+----|",
+   "point": 94,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| <2024-03-01 Fri>   |  [2023-01-02]|  <r5> | -4|\n|-----¦+-+---+-|\n",
+  "key": "TAB",
+  "expected": {
+   "text": "Text\n| <2024-03-01 Fri> | [2023-01-02] | <r5> | -4 |\n|------------------+--------------+------+----|\n|                  |              |      |    |\n",
+   "point": 103,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |ccc |  |\n  |\tx|\n  |été |\n  |2:05 |\n  | été |\n  | 日本   | |\n\n|  [[fil¦e:a.org]] |2:05| bb\n|1 |[[https://x.org][link]] | 22   |foo bar baz |\n|ccc   | x y|  3.5 | 日本 |\n#+TBLFM: $2=$1*2::@1=2\nAfter\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "* Head\n  |ccc |  |\n  |\tx|\n  |été |\n  |2:05 |\n  | été |\n  | 日本   | |\n\n| 2:05 |  bb |             |\n| [[https://x.org][link]] |  22 | foo bar baz |\n| x y  | 3.5 | 日本        |\n#+TBLFM: $1=$INVALID*2::@1=2\nAfter\n",
+   "point": 71,
+   "killed": null
+  }
+ },
+ {
+  "text": "|  日本| 10:30 |*bold*   |  \n| a |foo bar baz | x y |\n¦|1h|日本   |  foo bar baz|\n|  \tx|  x y|  foo bar baz \n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "|  日本| 10:30 |*bold*   |  \n| a |foo bar baz | x y |\n|  \tx|  x y|  foo bar baz \n",
+   "point": 52,
+   "killed": "|1h|日本   |  foo bar baz|\n"
+  }
+ },
+ {
+  "text": "* Head\n  |  10:30 |  \tx|x y¦ | <l>   \n  | \tx   | <2024-03-01 Fri> |\n  |*bold*   |22   \n  |  a   |   |  Zeta \n#+TBLFM: $2=$1*2::@2$2=$1::@1=2",
+  "key": "C-c -",
+  "expected": {
+   "text": "* Head\n  | 10:30  | x                | x y  | <l> |\n  |--------+------------------+------+-----|\n  | x      | <2024-03-01 Fri> |      |     |\n  | *bold* | 22               |      |     |\n  | a      |                  | Zeta |     |\n#+TBLFM: $2=$1*2::@2$2=$1::@1=2",
+   "point": 39,
+   "killed": null
+  }
+ },
+ {
+  "text": "|1h| 10:30| 日本 |Zeta   \n| 日本   |-4 | Zeta |[[file:a.org]]\n|10:30 |Zeta| [[https://x.org][link]]   |  *bold* |  \tx |\n| -4|  [[https://x.org][link]]| 3.5   |\n| x y|3.5   ¦| 2:05   | 10:30\nAfter\n",
+  "key": "M-<right>",
+  "expected": {
+   "text": "| 1h    | 日本 | 10:30 | Zeta       |   |\n| 日本  | Zeta |    -4 | [[file:a.org]] |   |\n| 10:30 | [[https://x.org][link]] |  Zeta | *bold*     | x |\n| -4    | 3.5  |  [[https://x.org][link]] |            |   |\n| x y   | 2:05 |   3.5 | 10:30      |   |\nAfter\n",
+   "point": 223,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n\t|--+----+-----+----|\n\t|  [2023-01-02]   |2:05   |<r5>|  22|  \n\t|¦ x y   | <l>   | \n\t|  <l>   |bb   |  <l> |    \n#+TBLFM: $2=$1*2::@3$1=5",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "Text\n\t|---+--------------+------+------+----|\n\t|   | [2023-01-02] | 2:05 | <r5> | 22 |\n\t|   | x y          | <l>  |      |    |\n\t|   | <l>          | bb   |  <l> |    |\n#+TBLFM: $3=$2*2::@3$2=5",
+   "point": 90,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |  Zeta   | 1h| <l>   |foo b¦ar baz\n#+TBLFM: @2$2=$1::$2=$1*2\nText between\n|  *bold*   |\n#+TBLFM: $1=remote(t,@1$1)::@1=2::@2$2=$1",
+  "key": "<backtab>",
+  "expected": {
+   "text": "* Head\n  | Zeta | 1h | <l> | foo bar baz |\n#+TBLFM: @2$2=$1::$2=$1*2\nText between\n|  *bold*   |\n#+TBLFM: $1=remote(t,@1$1)::@1=2::@2$2=$1",
+   "point": 23,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|  2:05| foo bar baz |  <l>|\n|été |10:30 | \tx|\n|-----+-----+---¦-|\n| 1 |1|  \n#+TBLFM: $2=$1*2::@1=2\n\n* Next\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Text\n|  2:05| foo bar baz |  <l>|\n|été |10:30 | \tx|\n|-----+-----+----|\n|-----+-----+----|\n| 1 |1|  \n#+TBLFM: $2=$1*2::@1=2\n\n* Next\n",
+   "point": 68,
+   "killed": null
+  }
+ },
+ {
+  "text": "  | *bold* | été   |\n  | 1h   |  ccc¦|\n  | 10:30 |3.5 |  \n  |  [[https://x.org][link]] |10:30 | 3.5| 22 \n  |x y|2:05 | ccc|[[https://x.org][link]]   |\nText between\n|  Zeta |2:05   |\n|[[https://x.org][link]]|  été|\n|  [[file:a.org]]\n| x y | <r5>   |\n\n* Next\n",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "  |  [[https://x.org][link]] |10:30 | 3.5| 22 \n  |x y|2:05 | ccc|[[https://x.org][link]]   |\n  | 10:30 |3.5 |  \n  | 1h   |  ccc|\n  | *bold* | été   |\nText between\n|  Zeta |2:05   |\n|[[https://x.org][link]]|  été|\n|  [[file:a.org]]\n| x y | <r5>   |\n\n* Next\n",
+   "point": 62,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n  |  été |a |  Zeta ¦|  \n  |  22|22|  [[https://x.org][link]]| 22 |\n  |<r5>   |  [2023-01-02] | \n\n* Next\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "* Head\n  |  été |a |  Zeta |  \n  |  22|22|  [[https://x.org][link]]| 22 |\n  |<r5>   |  [2023-01-02] | \n\n* Next\n",
+   "point": 27,
+   "killed": null
+  }
+ },
+ {
+  "text": "  | Zeta | [[https://x.org][link]] | 22 \n  |---+-----+-----|\n  | [2023-01-02] | <2024-03-01 Fri> |\n  |[[https://x.org][link]]   |  2:05   |\n  |  [2023-01-02] |  <l>   | |\n¦  |-+-+-----|\nAfter\n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "  | Zeta         | [[https://x.org][link]]             | 22 |\n  |--------------+------------------+----|\n  | [2023-01-02] | <2024-03-01 Fri> |    |\n  | [[https://x.org][link]]         | 2:05             |    |\n  | [2023-01-02] | <l>              |    |\n  |--------------+------------------+----|\n  |--------------+------------------+----|\n  |              |                  |    |\nAfter\n",
+   "point": 343,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n¦\t| |\n\t|  ccc|\n\n|<r5>   |[[file:a.org]] |\tx   |  \n| 1| x y   | \n|  [[https://x.org][link]]|a |\n|\tx | a| <r5>   |3.5 |\n\n* Next\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "| été   |¦ a |  \n| foo bar baz   |  [[file:a.org]]|\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "| été         | a          |\n| foo bar baz | [[file:a.org]] |\n",
+   "point": 16,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n\t|  3.5 |\n\t| 1h |\n\t| a   |\n\t| ¦ x y \n\t|22 \n",
+  "key": "<backtab>",
+  "expected": {
+   "text": "Para\n\n\t| 3.5 |\n\t| 1h  |\n\t| a   |\n\t| x y |\n\t| 22  |\n",
+   "point": 27,
+   "killed": null
+  }
+ },
+ {
+  "text": "\t|été| \tx |\n\t|     \n\t| \tx   |\n\t|\tx\n\t|a ¦|\n\n* Next\n",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "\t|été| \tx |\n\t|     \n\t| \tx   |\n\t|\tx\n\t|--|\n\t|a |\n\n* Next\n",
+   "point": 45,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n  | <2024-03-01 Fri>|日本|10:30|\n  |--¦---+-|\n#+TBLFM: $1=remote(t,@1$1)",
+  "key": "C-c ^ A",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "* Head\n|<2024-03-01 Fri> | Zeta|\n|\tx   |    |22 |\n| [[https://x.or¦g][link]]   | ccc \n|  bb   | 10:30 |\n\n* Next\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "* Head\n|<2024-03-01 Fri> | Zeta|\n|\tx   |    |22 |\n| [[https://x.org][link]]   | ccc \n|  bb   | 10:30 |\n\n* Next\n",
+   "point": 69,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n| 1h \n| foo bar baz|  -4   |  \n|  日本   \n|  [[file:a.org]] \n|-¦-|\n|  [[file:a.org]] ",
+  "key": "C-c ^ n",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "Text\n\t|1¦   |  \n\t| 3.5 |\n\t|  Zeta |  \tx   |\n\t|----|\n\t| a   |\n#+TBLFM: $3=vsum(@2..@3)",
+  "key": "M-<down>",
+  "expected": {
+   "text": "Text\n\t| 3.5 |\n\t|1   |  \n\t|  Zeta |  \tx   |\n\t|----|\n\t| a   |\n#+TBLFM: $3=vsum(@1..@3)",
+   "point": 17,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n\t|--+-----+-+-----|\n\t|2:05|    |\tx|<l>|  2:¦05   |\n",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "Para\n\n\t|--+-----+-+-----|\n\t|----+----+---------+---+---------|\n\t|2:05|    |\tx|<l>|  2:05   |\n",
+   "point": 86,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n| \tx|  \n| 10:30\n|foo bar baz |  3.5 |¦\n|-----|\n#+TBLFM: $2=$1*2",
+  "key": "C-c ^ t",
+  "expected": {
+   "error": "Not in table data field"
+  }
+ },
+ {
+  "text": "  |   |\n  | foo bar baz|\n  | |\n  |  ¦\tx   | 3.5 | 2:05 |\n  |bb |<2024-03-01 Fri> |10:30   |\n  |---+--|\n#+TBLFM: $1=remote(t,@1$1)::@1=2::@3$1=5\nAfter\n",
+  "key": "C-c ^ N",
+  "expected": {
+   "text": "  |   |\n  | foo bar baz|\n  | |\n  |  \tx   | 3.5 | 2:05 |\n  |bb |<2024-03-01 Fri> |10:30   |\n  |---+--|\n#+TBLFM: $1=remote(t,@1$1)::@1=2::@3$1=5\nAfter\n",
+   "point": 36,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n  |  été   |22   |  <l> |  \n  |----¦+-+----|\n  |日本|   |[[https://x.org][link]]| <l>|\n  |----+-----+----|\n  |   |1   |  日本|\n  |Zeta |  1h |<l> |  1h|\nAfter\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Para\n\n  |  été   |22   |  <l> |  \n  |----+-+----|\n  |----+-+----|\n  |日本|   |[[https://x.org][link]]| <l>|\n  |----+-----+----|\n  |   |1   |  日本|\n  |Zeta |  1h |<l> |  1h|\nAfter\n",
+   "point": 41,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|[2023-01-02]   |\n| 2:05\n|Zeta |\n\n| ¦<2024-03-01 Fri>|  1h| 1 |10:30   \n",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "Para\n\n|[2023-01-02]   |\n| 2:05\n|Zeta |\n\n|------------------+----+---+-------|\n| <2024-03-01 Fri> | 1h | 1 | 10:30 |\n",
+   "point": 80,
+   "killed": null
+  }
+ },
+ {
+  "text": "  |¦ 3.5   |\n  | 10:30\n  | \tx |\n  |  -4|\n#+TBLFM: @1=2\n\n* Next\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "  | 10:30\n  | \tx |\n  |  -4|\n#+TBLFM: @INVALID=2\n\n* Next\n",
+   "point": 3,
+   "killed": "  | 3.5   |\n"
+  }
+ },
+ {
+  "text": "|1h|<l>   |\n| <l>|  foo bar baz   | 3.5   |[[https://x.org][link]]   |\n| <r5>   | <l>|\n|  foo bar baz| foo bar baz |  bb   |  <r5>\n|  [[https://x.org][lin¦k]]   |été   | Zeta|\n#+TBLFM: @1=2::$2=$1*2\nAfter\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "|1h|<l>   |\n| <l>|  foo bar baz   | 3.5   |[[https://x.org][link]]   |\n| <r5>   | <l>|\n|  foo bar baz| foo bar baz |  bb   |  <r5>\n|  [[https://x.org][link]]   |été   | Zeta|\n|---------+------+-----|\n#+TBLFM: @1=2::$2=$1*2\nAfter\n",
+   "point": 154,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|ccc|-4|10:30   |  \tx|\n|  10:30 |  *bold*|   \n| 3.5|  été |\tx | <r5>   |\n|   |1h |ccc   |  \n|ccc|  *bold*|  *bold* |  été   |\n|  *bold*   |[2¦023-01-02]   |  ",
+  "key": "<backtab>",
+  "expected": {
+   "text": "Text\n| ccc    | -4           | 10:30  |    x |\n| 10:30  | *bold*       |        |      |\n| 3.5    | été          | x      | <r5> |\n|        | 1h           | ccc    |      |\n| ccc    | *bold*       | *bold* |  été |\n| *bold* | [2023-01-02] |        |      |\n",
+   "point": 217,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|2¦:05|*bold* | <l>|1h \n\t|----+----+-----+-|\n\t| [[https://x.org][link]] |  [2023-01-02]   |  <r5> |  -4|\nAfter\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "* Head\n\t| *bold*       | <l>  | 1h |\n\t|--------------+------+----|\n\t| [2023-01-02] | <r5> | -4 |\nAfter\n",
+   "point": 10,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n\t|  [[https://x.org][link]] | x y   |\n\t|2:05   | ¦ 10:30|  \n\t|  \tx|   |\n\t|---+-----|\n\t|-+--|\nAfter\n",
+  "key": "fn:org-table-blank-field",
+  "expected": {
+   "text": "Text\n\t|  [[https://x.org][link]] | x y   |\n\t|2:05   |       |  \n\t|  \tx|   |\n\t|---+-----|\n\t|-+--|\nAfter\n",
+   "point": 54,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t| <r5>|[[file:a.org]]   |\n\t|----¦-+----|\n#+TBLFM: @3$1=5\nAfter\n",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "* Head\n\t| <r5>|[[file:a.org]]   |\n |-----+----|\n\t|-----+----|\n#+TBLFM: @3$1=5\nAfter\n",
+   "point": 54,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|3.5   | a   |3.5 |\n\t| \tx |  <2024-03-01 Fri> |  x y |\n\t|  été |  22 ¦|  \n#+TBLFM: @3$1=5::@2$2=$1::$2=$1*2\nAfter\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "* Head\n\t| 3.5 | a                | 3.5 |\n\t| x   | <2024-03-01 Fri> | x y |\n\t| été | 22               |     |\n#+TBLFM: @3$1=5::@2$2=$1::$2=$1*2\nAfter\n",
+   "point": 84,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|-----+-+---+-|\n\t|  [[https://x.org][link]] | <l>   | 2:05|[2023-01-02]   |\n\t|  Zeta |日本 | *bold*|  \n\t|  <l>| <2024-03-01 Fri>|[[file:a.org]]   |  <2024-03-01 Fri>|\n\t| [[https://x.org][link]]   |  1h¦|ccc   |    |-4 \nAfter\n",
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "* Head\n\t|------+---+------------------+------------+------------------+----|\n\t| [[https://x.org][link]] |   | <l>              | 2:05       | [2023-01-02]     |    |\n\t| Zeta |   | 日本             | *bold*     |                  |    |\n\t| <l>  |   | <2024-03-01 Fri> | [[file:a.org]] | <2024-03-01 Fri> |    |\n\t| [[https://x.org][link]] |   | 1h               | ccc        |                  | -4 |\nAfter\n",
+   "point": 337,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|a |日本 |  \tx |\n\t|----+---+-|\n\t|  ccc |  *bold*|2:05|¦  2:05   |\n\t|-+-----+-----|\n",
+  "key": "C-c ^ a",
+  "expected": {
+   "text": "* Head\n\t|a |日本 |  \tx |\n\t|----+---+-|\n\t|  ccc |  *bold*|2:05|  2:05   |\n\t|-+-----+-----|\n",
+   "point": 60,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|-4|*bold*   \n|---+-----|\n|  [[https:¦//x.org][link]]|<l>   |\n| 1h |     \n#+TBLFM: @3$1=5\n\n* Next\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "* Head\n|-----|\n|-----|\n| <l> |\n|     |\n#+TBLFM: \n\n* Next\n",
+   "point": 25,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|*bold* |  [[https://x.org][link]]|\n|-----+----|\n|  10:30 | 3.5|\n|---+----|\n|-+-|\n| foo bar baz|  <2024-¦03-01 Fri>|\n\n* Next\n",
+  "key": "C-c ^ n",
+  "expected": {
+   "text": "* Head\n|*bold* |  [[https://x.org][link]]|\n|-----+----|\n|  10:30 | 3.5|\n|---+----|\n|-+-|\n| foo bar baz|  <2024-03-01 Fri>|\n\n* Next\n",
+   "point": 111,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n|¦bb|",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Text\n| bb |\n",
+   "point": 7,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|-4   |\n\t| 日本| foo bar b¦az |\n\t|--|\n\t| bb   |\n\t|[[file:a.org]] |\n\n* Next\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "* Head\n\t|-4   |\n\t| 日本| foo bar baz |\n\t|-----+-------------|\n\t|--|\n\t| bb   |\n\t|[[file:a.org]] |\n\n* Next\n",
+   "point": 32,
+   "killed": null
+  }
+ },
+ {
+  "text": "Para\n\n|bb |[[file:a.org]] |foo bar baz|  日本|  \n|  [[https://x.org][link]]   |  bb   | [[https://x.org][link]] |  <2024-03-01 Fri> |<r5> |\n|bb| a|  3.5   | ¦ -4|\n|-----+--+-----+----|\n|----+---+-----+---|\n|   |\tx|2:05 |1h | Zeta   |  \n#+TBLFM: @1=2::$1=remote(t,@1$1)\nAfter\n",
+  "key": "C-c ^ A",
+  "expected": {
+   "text": "Para\n\n|bb |[[file:a.org]] |foo bar baz|  日本|  \n|  [[https://x.org][link]]   |  bb   | [[https://x.org][link]] |  <2024-03-01 Fri> |<r5> |\n|bb| a|  3.5   |  -4|\n|-----+--+-----+----|\n|----+---+-----+---|\n|   |\tx|2:05 |1h | Zeta   |  \n#+TBLFM: @1=2::$1=remote(t,@1$1)\nAfter\n",
+   "point": 155,
+   "killed": null
+  }
+ },
+ {
+  "text": "  |  22   |\n  |---+-¦|\n  | a| bb|  1h \n  |a| [[https://x.org][link]] |  1h   |\n  |  3.5   |  22   \n  | <l>|  \n#+TBLFM: @3$1=5\nAfter\n",
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "  | 22  |    |\n  |-----+----|\n  | a   | 1h |\n  | a   | 1h |\n  | 3.5 | 22 |\n  | <l> |    |\n#+TBLFM: @3$1=5\nAfter\n",
+   "point": 40,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n| 3.5\n|  10:30|1h   |\n|-¦+----|\n\n* Next\n",
+  "key": "M-S-<down>",
+  "expected": {
+   "text": "Text\n|   3.5 |    |\n| 10:30 | 1h |\n|       |    |\n|-------+----|\n\n* Next\n",
+   "point": 37,
+   "killed": null
+  }
+ },
+ {
+  "text": "|  [[file:a.org]]   |\n|  10:30|\n|¦ -4\n|--|\n|<l>|3.5   |  \n#+TBLFM: $3=vsum(@2..@3)::@1=2\n\n* Next\n",
+  "key": "C-c ^ T",
+  "expected": {
+   "text": "|  10:30|\n|  [[file:a.org]]   |\n| -4\n|--|\n|<l>|3.5   |  \n#+TBLFM: $3=vsum(@2..@3)::@1=2\n\n* Next\n",
+   "point": 33,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|a   |  [[file:a.or¦g]]|\n#+TBLFM: $2=$1*2::@1=2",
+  "key": "C-c RET",
+  "expected": {
+   "text": "* Head\n\t| a | [[file:a.org]] |\n\t|---+------------|\n |   |            |\n#+TBLFM: $2=$1*2::@1=2",
+   "point": 54,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n\t|-4|foo bar baz   | a \n\t|bb |1h |  \n\t|| -4|  été\n¦\t|  1   |10:30|  été|  \n\t|  été| ccc|  22 |\n\t|[2023-01-02]|  <r5>| [2023-01-02] |",
+  "key": "C-u C-c -",
+  "expected": {
+   "text": "* Head\n\t|-4|foo bar baz   | a \n\t|bb |1h |  \n\t|| -4|  été\n\t|------+-----+-----|  \n\t|  1   |10:30|  été|  \n\t|  été| ccc|  22 |\n\t|[2023-01-02]|  <r5>| [2023-01-02] |",
+   "point": 81,
+   "killed": null
+  }
+ },
+ {
+  "text": "\t| été | Zeta \n\t|Zeta| 2:05|\n\t|foo bar baz |  \n\t| | a   \n\t|    |¦\n\t|  -4   |[[file:a.org]]   |  1h ",
+  "key": "C-c RET",
+  "expected": {
+   "text": "\t| été         | Zeta       |    |\n\t| Zeta        | 2:05       |    |\n\t| foo bar baz |            |    |\n\t|             | a          |    |\n\t|             |            |    |\n\t|-------------+------------+----|\n\t| -4          | [[file:a.org]] | 1h |\n",
+   "point": 213,
+   "killed": null
+  }
+ },
+ {
+  "text": "Text\n  |ccc | 3.5   |  Zeta   |10:30|\n  |-----+---+---¦-|\n#+TBLFM: @3$1=5::$1=remote(t,@1$1)::$3=vsum(@2..@3)\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "Text\n  | ccc | 3.5 | Zeta | 10:30 |\n  |-----+-----+------+-------|\n#+TBLFM: @3$1=5::$1=remote(t,@1$1)::$3=vsum(@2..@3)\n",
+   "point": 39,
+   "killed": null
+  }
+ },
+ {
+  "text": "* Head\n|<r5> |  \tx   | -4   | 22 |  \n|3.5 |  \tx|  日本| [2023-01-02]|  1 |\n|[[file:a.org]] | bb|x y|  22|10:30   |\n|  [[https://x.org][link]] |[[https://x.¦org][link]] |  x y   |\n#+TBLFM: @2$2=$1\n\n* Next\n",
+  "key": "M-S-<up>",
+  "expected": {
+   "text": "* Head\n|<r5> |  \tx   | -4   | 22 |  \n|3.5 |  \tx|  日本| [2023-01-02]|  1 |\n|[[file:a.org]] | bb|x y|  22|10:30   |\n#+TBLFM: @2$2=$1\n\n* Next\n",
+   "point": 84,
+   "killed": "|  [[https://x.org][link]] |[[https://x.org][link]] |  x y   |\n"
+  }
+ },
+ {
+  "text": "Text\n|ccc| [[https://x.org][link]]   |¦  22|a   |  [[https://x.org][link]] |\n#+TBLFM: @1=2::$3=vsum(@2..@3)::$2=$1*2\nAfter\n",
+  "key": "C-c -",
+  "expected": {
+   "text": "Text\n|ccc| [[https://x.org][link]]   |  22|a   |  [[https://x.org][link]] |\n|---+--------+----+----+-------|\n#+TBLFM: @1=2::$3=vsum(@2..@3)::$2=$1*2\nAfter\n",
+   "point": 38,
+   "killed": null
+  }
+ }
+]

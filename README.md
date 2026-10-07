@@ -47,6 +47,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Tag and property inheritance (`org_use_tag_inheritance`, `org_tags_exclude_from_inheritance`, `org_use_property_inheritance`): file tags, parents' tags and properties in the agenda's tags and property searches, inherited tags shown in the agenda | yes | yes | yes | yes | yes | no³ |
 | Agenda lines formatted as Org formats them, to your taste: `org_agenda_prefix_format` (`org-agenda-prefix-format`, with the category, time, leader, effort, level, last tag and breadcrumbs), the leaders of scheduled entries, deadlines and ranges, `todoKeywordFormat`, `removeTags`, `formatDate`; in custom commands and their blocks too | yes | yes | yes | yes | yes | no³ |
 | Tangling, as `org-babel-tangle` does it: `:tangle`, header arguments from properties and `#+HEADER:`, Noweb references, comments, `:shebang`, `:tangle-mode`, `:mkdirp` | `<Leader>obt` | `Ctrl+C Ctrl+V t`, `Ctrl+.` in a block | `<Leader>obt` | `Ctrl+C Ctrl+V t` | code actions in a block | `Space a` in a block |
+| Table editing, as `org-table.el` does it: `TAB`/`S-TAB` from field to field (a row made past the last), moving, inserting and deleting columns and rows, rules, blanking a field, sorting the rows; the `#+TBLFM:` line follows the columns and rows | `<Tab>`/`<S-Tab>` on a table line, `<<`/`>>`, `<s`/`>s`, `<Leader>oK`/`<Leader>oJ`, `<Leader>oTd`, `<Leader>oTO`/`<Leader>oTo`, `<Leader>o-`, `<Leader>o<CR>`, `<Leader>o<Space>`, `<Leader>o^` | `Tab`/`Shift+Tab`, `Alt+arrows`, `Alt+Shift+arrows`, `Ctrl+C -`, `Ctrl+C Enter`, `Ctrl+C ^` | `<Tab>`/`<S-Tab>` on a table line, `<<`/`>>`, `<s`/`>s`, `<Leader>oK`/`<Leader>oJ`, `<Leader>oTd`, `<Leader>oTO`/`<Leader>oTo`, `<Leader>o-`, `<Leader>o<CR>`, `<Leader>o<Space>`, `<Leader>o^` | `Tab`/`Shift+Tab`, `Alt+arrows`, `Alt+Shift+arrows`, `Ctrl+C -`, `Ctrl+C Enter`, `Ctrl+C ^` | code actions in a table | `Space a` in a table |
 | Table formulas, as `org-table-recalculate` applies the `#+TBLFM:` line: column, field and range formulas, references by row, column, hline and name, parameters and constants, Calc's arithmetic, vectors, dates and durations, and its modes and formats (`;%.2f`, `;N`, `;T`); iterating until the table is stable | `<Leader>o*`; `<C-Space>` on a `#+TBLFM:` line | `Ctrl+C *` (the cursor's line), `Ctrl+C Ctrl+C` on a `#+TBLFM:` line, `Ctrl+.` in a table | `<Leader>o*`; `<C-Space>` on a `#+TBLFM:` line | `Ctrl+C *`, `Ctrl+C Ctrl+C` on a `#+TBLFM:` line | code actions in a table | `Space a` in a table |
 | Refile, as `org-refile` does it, between files too | `<Leader>or` | command | `<Leader>or` | `Ctrl+C Ctrl+W` | code actions | no⁴ |
 | Following links, as `org-open-at-point` does: headlines, targets, custom IDs, `file:` links with search options, `id:` links, URLs, timestamps (their day's agenda), tags, footnotes, an entry's links to pick from; in the agenda the line's entry's links | `<Leader>oo`, go to definition | `Ctrl+C Ctrl+O`, go to definition | `<Leader>oo` | `Ctrl+C Ctrl+O` | go to definition (internal and file links) | go to definition |
@@ -297,6 +298,7 @@ scripts/update-planning-fixtures.py        # schedule, deadline, timestamps
 scripts/update-calendar-fixtures.sh        # the calendar of the date prompt
 scripts/update-indent-fixtures.py          # org-indent-line and org-indent-region
 scripts/update-format-fixtures.py          # org-table-align and org-align-tags
+scripts/update-table-fixtures.py           # org-table.el's editing commands
 ```
 
 `scripts/fuzz-against-emacs.py`, `fuzz-agenda.py`, `fuzz-todo.py`,
@@ -311,11 +313,11 @@ both programs on them. See
 - Agenda: stuck projects, filters, habits, diary entries and bulk actions;
   custom commands of those types.
 - Table formulas in Emacs Lisp, remote references, units and Calc's
-  fractions and symbolic mode; setting tags with a command, export;
+  fractions and symbolic mode; export;
   tangling's Emacs Lisp
   (evaluated header arguments, `<<block()>>`), and other languages' `:var`.
-- The shifted cursor keys do nothing yet on list items, in tables and on
-  property lines.
+- The shifted cursor keys do nothing yet in tables (Org moves the field
+  there).
 - Fold cycling is still done by the Neovim plugin, not by the server.
 
 ## Licence

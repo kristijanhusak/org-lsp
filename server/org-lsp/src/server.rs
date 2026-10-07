@@ -1025,6 +1025,43 @@ fn write_tangled(file: &org_core::tangle::File) -> std::io::Result<()> {
 }
 
 /// Whether byte `offset` is in a source block.
+/// Whether byte `offset` is on a line of an Org table (`org-at-table-p`):
+/// one that starts with `|`, in a table rather than a block.
+fn at_org_table(text: &str, root: &org_syntax::SyntaxNode, offset: usize) -> bool {
+    if !org_core::table::at_table(text, offset) {
+        return false;
+    }
+    let line = text[..offset].rfind('\n').map_or(0, |at| at + 1);
+    let first = line + text[line..].len() - text[line..].trim_start_matches([' ', '\t']).len();
+    let Some(token) = root.token_at_offset(org_syntax::TextSize::from(first as u32)).right_biased() else {
+        return false;
+    };
+    token.parent_ancestors().any(|node| node.kind() == org_syntax::SyntaxKind::TABLE)
+}
+
+/// The table command a command is in a table.
+fn table_command(id: &str) -> Option<org_core::table::Command> {
+    use org_core::table::Command;
+    Some(match id {
+        commands::META_LEFT => Command::MoveColumn { left: true },
+        commands::META_RIGHT => Command::MoveColumn { left: false },
+        commands::META_UP => Command::MoveRow { up: true },
+        commands::META_DOWN => Command::MoveRow { up: false },
+        commands::SHIFT_META_LEFT => Command::DeleteColumn,
+        commands::SHIFT_META_RIGHT => Command::InsertColumn,
+        commands::SHIFT_META_UP => Command::KillRow,
+        commands::SHIFT_META_DOWN => Command::InsertRow { below: false },
+        commands::TABLE_INSERT_ROW_BELOW => Command::InsertRow { below: true },
+        commands::TABLE_NEXT_FIELD => Command::NextField,
+        commands::TABLE_PREVIOUS_FIELD => Command::PreviousField,
+        commands::TABLE_HLINE => Command::InsertHline { above: false },
+        commands::TABLE_HLINE_ABOVE => Command::InsertHline { above: true },
+        commands::TABLE_HLINE_MOVE => Command::HlineAndMove,
+        commands::TABLE_BLANK_FIELD => Command::BlankField,
+        _ => return None,
+    })
+}
+
 fn in_src_block(root: &org_syntax::SyntaxNode, offset: usize) -> bool {
     let Some(token) = root.token_at_offset(org_syntax::TextSize::from(offset as u32)).left_biased() else {
         return false;
@@ -1669,6 +1706,45 @@ impl Server {
                     continue;
                 }
                 let edits = actions::edits_between(text, &edited.text)
+                    .into_iter()
+                    .map(|edit| TextEdit {
+                        range: document.index.range(text, edit.range, encoding),
+                        new_text: edit.new_text,
+                    })
+                    .collect();
+                result.push(CodeActionOrCommand::CodeAction(CodeAction {
+                    title: commands::title(id).to_string(),
+                    kind: Some(CodeActionKind::new(id)),
+                    edit: Some(self.workspace_edit(uri, Some(document.version), edits)),
+                    ..Default::default()
+                }));
+            }
+        }
+        // In a table: moving, inserting and deleting its rows and columns,
+        // rules, a blank field.
+        if at_org_table(&document.text, &document.parse.syntax(), offset) {
+            let text = &document.text;
+            let ids = [
+                commands::META_LEFT,
+                commands::META_RIGHT,
+                commands::META_UP,
+                commands::META_DOWN,
+                commands::SHIFT_META_LEFT,
+                commands::SHIFT_META_RIGHT,
+                commands::SHIFT_META_UP,
+                commands::SHIFT_META_DOWN,
+                commands::TABLE_INSERT_ROW_BELOW,
+                commands::TABLE_HLINE,
+                commands::TABLE_HLINE_ABOVE,
+                commands::TABLE_BLANK_FIELD,
+            ];
+            for id in ids {
+                let Some(command) = table_command(id).filter(|_| actions::requested(id, only)) else { continue };
+                let Ok(done) = org_core::table::run(text, offset, command) else { continue };
+                if done.text == *text {
+                    continue;
+                }
+                let edits = actions::edits_between(text, &done.text)
                     .into_iter()
                     .map(|edit| TextEdit {
                         range: document.index.range(text, edit.range, encoding),
@@ -2765,6 +2841,19 @@ impl Server {
             | commands::META_UP
             | commands::META_DOWN => {
                 self.structure(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
+            commands::SHIFT_META_UP
+            | commands::SHIFT_META_DOWN
+            | commands::TABLE_NEXT_FIELD
+            | commands::TABLE_PREVIOUS_FIELD
+            | commands::TABLE_INSERT_ROW_BELOW
+            | commands::TABLE_HLINE
+            | commands::TABLE_HLINE_ABOVE
+            | commands::TABLE_HLINE_MOVE
+            | commands::TABLE_BLANK_FIELD => {
+                let context = context.ok_or("This command needs the cursor position")?;
+                let command = table_command(&params.command).ok_or("Unknown command")?;
+                self.table(command, &context)
             }
             commands::SORT => self.sort(&context.ok_or("This command needs the cursor position")?),
             commands::SPARSE_TREE => self.sparse_tree(&context.ok_or("This command needs the cursor position")?),
@@ -4390,6 +4479,14 @@ impl Server {
     /// Whether `C-c C-c` at `context` is `org-property-action`: in the
     /// property drawer of an entry of an Org file, or answering its
     /// questions.
+    /// Whether the cursor of `context` is on a line of an Org table.
+    fn at_table(&self, context: &Context) -> bool {
+        let uri = &context.text_document.uri;
+        let Some(document) = self.document(uri).filter(|_| !self.is_view(uri)) else { return false };
+        let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+        at_org_table(&document.text, &document.parse.syntax(), offset)
+    }
+
     fn at_property_drawer(&self, context: &Context) -> bool {
         if context.step.is_some() {
             return true;
@@ -4719,6 +4816,10 @@ impl Server {
         if id == commands::SET_TAGS {
             return self.set_tags(&context);
         }
+        // `C-c C-c` in a table aligns it (`org-table-align`).
+        if id == commands::CHECKBOX_TOGGLE && self.at_table(&context) {
+            return self.table(org_core::table::Command::Align, &context);
+        }
         if PROPERTY_COMMANDS.contains(&id) || (id == commands::CHECKBOX_TOGGLE && self.at_property_drawer(&context)) {
             return self.property_command(id, &context);
         }
@@ -4817,6 +4918,10 @@ impl Server {
         let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
         let text = document.text.clone();
         let offset = document.index.offset(&text, context.position, encoding);
+        // In a table, the keys move, insert and delete its rows and columns.
+        if at_org_table(&text, &document.parse.syntax(), offset) {
+            return self.table(table_command(id).ok_or("Unknown command")?, context);
+        }
         let keywords = document.parse.todo_keywords().clone();
         if id == commands::META_RIGHT {
             let settings = self.indent_in(&text);
@@ -4847,6 +4952,37 @@ impl Server {
             _ => structure::move_subtree(&text, offset, count)?,
         };
         self.carried(context, outcome)
+    }
+
+    /// A command of `org-table.el` on the table at the cursor, carried in
+    /// the result as `org.return` is; the row `org-table-kill-row` takes
+    /// is in `copy`, for the editor's register or clipboard.
+    fn table(&mut self, command: org_core::table::Command, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::table;
+        let encoding = self.client.encoding;
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        if !at_org_table(&text, &document.parse.syntax(), offset) {
+            return Err(Refusal::NotHere("Not at a table".to_string()));
+        }
+        let done = match table::run(&text, offset, command) {
+            Ok(done) => done,
+            // `C-c C-c` at the start of the table.
+            Err(error) if error == table::RECALCULATE => {
+                return self.edit_with(context, commands::TABLE_RECALCULATE, None, &Extra::default());
+            }
+            Err(error) => return Err(Refusal::Failed(error)),
+        };
+        if let Some(killed) = &done.killed {
+            self.kill = Some(killed.clone());
+        }
+        let outcome = org_core::newline::Outcome { text: done.text, cursor: done.cursor };
+        let mut result = self.carried(context, outcome)?;
+        if let (Some(killed), Some(fields)) = (done.killed, result.as_object_mut()) {
+            fields.insert("copy".to_string(), json!(killed));
+        }
+        Ok(result)
     }
 
     /// Org's shifted cursor keys on a list item in an Org file, carried in
@@ -5035,6 +5171,45 @@ impl Server {
     /// `org-sort` (`C-c ^`) on entries (`org-sort-entries`): asks for the
     /// sorting type, as a key, and for `r` and `R` the property, among
     /// those of the file; the cursor goes to the start of what was sorted.
+    /// `org-table-sort-lines`: the column when the cursor is before the
+    /// first one (step `column`), then the sorting type.
+    fn sort_table(&mut self, context: &Context, text: &str, offset: usize) -> std::result::Result<Value, Refusal> {
+        use org_core::table;
+        let before_first = text[text[..offset].rfind('\n').map_or(0, |at| at + 1)..offset].trim().is_empty();
+        let column: Option<usize> = match (context.step.as_deref(), context.answers.as_deref()) {
+            (Some("column"), _) => {
+                let Some(answer) = context.input.as_deref() else { return Ok(Value::Null) };
+                Some(answer.trim().parse().map_err(|_| Refusal::Failed(format!("Not a number: {answer}")))?)
+            }
+            (_, Some(column)) => column.parse().ok(),
+            _ => None,
+        };
+        if before_first && column.is_none() && context.input.is_none() {
+            return Ok(json!({ "input": {
+                "kind": "text", "prompt": table::ASK_COLUMN, "value": "", "context": { "step": "column" },
+            } }));
+        }
+        let answer = match context.step.as_deref() {
+            Some("column") => None,
+            _ => context.input.as_deref(),
+        };
+        let Some(answer) = answer else {
+            let types = table::SORT_TYPES;
+            let mut choices: Vec<Value> =
+                types.iter().map(|(key, label)| json!({ "key": key.to_string(), "label": label })).collect();
+            choices.extend(types.iter().map(|(key, label)| {
+                json!({ "key": key.to_ascii_uppercase().to_string(), "label": format!("{label}, reversed") })
+            }));
+            let mut input = json!({ "kind": "key", "prompt": "Sort Table", "value": "", "choices": choices });
+            if let Some(column) = column {
+                input["context"] = json!({ "step": "type", "answers": column.to_string() });
+            }
+            return Ok(json!({ "input": input }));
+        };
+        let kind = answer.chars().next().ok_or("Abort")?;
+        self.table(table::Command::Sort { kind, column }, context)
+    }
+
     fn sort(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
         use org_core::sort;
         let encoding = self.client.encoding;
@@ -5044,10 +5219,8 @@ impl Server {
         let keywords = document.parse.todo_keywords().clone();
         let priorities = edit::document_priorities(&document.parse).unwrap_or(self.edit_settings.priorities);
         // Org sorts the lines of a table and the items of a list there.
-        let line = text[..offset].rfind('\n').map_or(0, |at| at + 1);
-        let current = text[line..].lines().next().unwrap_or("");
-        if current.trim_start().starts_with('|') {
-            return Err(Refusal::Failed("Sorting the lines of a table is not supported yet".to_string()));
+        if at_org_table(&text, &document.parse.syntax(), offset) {
+            return self.sort_table(context, &text, offset);
         }
         // `org-sort-list` on an item.
         if org_core::list::at_item(&text, offset) {

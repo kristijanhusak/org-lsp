@@ -163,6 +163,15 @@ pub const SHIFT_META_LEFT: &str = "org.shiftmeta.left";
 pub const SHIFT_META_RIGHT: &str = "org.shiftmeta.right";
 pub const META_UP: &str = "org.meta.up";
 pub const META_DOWN: &str = "org.meta.down";
+pub const SHIFT_META_UP: &str = "org.shiftmeta.up";
+pub const SHIFT_META_DOWN: &str = "org.shiftmeta.down";
+pub const TABLE_NEXT_FIELD: &str = "org.table.next.field";
+pub const TABLE_PREVIOUS_FIELD: &str = "org.table.previous.field";
+pub const TABLE_INSERT_ROW_BELOW: &str = "org.table.insert.row.below";
+pub const TABLE_HLINE: &str = "org.table.hline";
+pub const TABLE_HLINE_ABOVE: &str = "org.table.hline.above";
+pub const TABLE_HLINE_MOVE: &str = "org.table.hline.move";
+pub const TABLE_BLANK_FIELD: &str = "org.table.blank.field";
 pub const SORT: &str = "org.sort";
 pub const SPARSE_TREE: &str = "org.sparse.tree";
 pub const CUT_SUBTREE: &str = "org.cut.subtree";
@@ -437,43 +446,73 @@ pub const COMMANDS: &[Command] = &[
         ..edit(INSERT_TODO_HEADING_AFTER, "New TODO heading after the subtree")
     },
     // Structure editing on Org's meta keys: what they do depends on where
-    // the cursor is (a headline or a list item here; elsewhere the key's
-    // own meaning).
+    // the cursor is (a table, a headline or a list item here; elsewhere the
+    // key's own meaning).
     Command {
         emacs: &[native(Org, "M-<left>")],
         vim: &[native(Org, "<<")],
-        ..edit(META_LEFT, "Promote the heading; outdent the item")
+        ..edit(META_LEFT, "Promote the heading; outdent the item; move the table column left")
     },
     Command {
         emacs: &[native(Org, "M-<right>")],
         vim: &[native(Org, ">>")],
-        ..edit(META_RIGHT, "Demote the heading; indent the item, the drawer or the block")
+        ..edit(META_RIGHT, "Demote the heading; indent the item, the drawer or the block; move the table column right")
     },
     Command {
         emacs: &[native(Org, "M-S-<left>")],
         vim: &[key(Org, "<s")],
-        ..edit(SHIFT_META_LEFT, "Promote the subtree; outdent the item with its children")
+        ..edit(SHIFT_META_LEFT, "Promote the subtree; outdent the item with its children; delete the table column")
     },
     Command {
         emacs: &[native(Org, "M-S-<right>")],
         vim: &[key(Org, ">s")],
-        ..edit(SHIFT_META_RIGHT, "Demote the subtree; indent the item with its children")
+        ..edit(SHIFT_META_RIGHT, "Demote the subtree; indent the item with its children; insert a table column")
     },
     Command {
         emacs: &[native(Org, "M-<up>")],
         vim: &[key(Org, "<Leader>oK")],
-        ..edit(META_UP, "Move the subtree or the item up")
+        ..edit(META_UP, "Move the subtree, the item or the table row up")
     },
     Command {
         emacs: &[native(Org, "M-<down>")],
         vim: &[key(Org, "<Leader>oJ")],
-        ..edit(META_DOWN, "Move the subtree or the item down")
+        ..edit(META_DOWN, "Move the subtree, the item or the table row down")
     },
+    // The tables of `org-table.el`: `M-S-<up>` and `M-S-<down>` delete and
+    // insert a row; `TAB` and `S-TAB` (which the editors send where they
+    // cycle folds, on a table line) go from field to field; `C-c -` and
+    // `C-c RET` put a rule under the row; `C-c SPC` blanks the field
+    // (`orgtbl-mode`'s key, which Org mode 9.8 leaves unbound).
+    Command {
+        emacs: &[native(Org, "M-S-<up>")],
+        vim: &[key(Org, "<Leader>oTd")],
+        ..edit(SHIFT_META_UP, "Delete the table row")
+    },
+    Command {
+        emacs: &[native(Org, "M-S-<down>")],
+        vim: &[key(Org, "<Leader>oTO")],
+        ..edit(SHIFT_META_DOWN, "Insert a table row above")
+    },
+    Command { vim: &[key(Org, "<Leader>oTo")], ..edit(TABLE_INSERT_ROW_BELOW, "Insert a table row below") },
+    edit(TABLE_NEXT_FIELD, "Go to the next table field, making a row after the last"),
+    edit(TABLE_PREVIOUS_FIELD, "Go to the previous table field"),
+    Command {
+        emacs: &[key(Org, "C-c -")],
+        vim: &[key(Org, "<Leader>o-")],
+        ..edit(TABLE_HLINE, "Insert a rule below the table row")
+    },
+    edit(TABLE_HLINE_ABOVE, "Insert a rule above the table row"),
+    Command {
+        emacs: &[key(Org, "C-c RET")],
+        vim: &[key(Org, "<Leader>o<CR>")],
+        ..edit(TABLE_HLINE_MOVE, "Insert a rule below the table row and go below it")
+    },
+    Command { vim: &[key(Org, "<Leader>o<Space>")], ..edit(TABLE_BLANK_FIELD, "Blank the table field") },
     Command {
         emacs: &[key(Org, "C-c ^")],
         vim: &[key(Org, "<Leader>o^")],
         input: Some(Input { kind: "key", prompt: "Sort" }),
-        ..edit(SORT, "Sort the entries")
+        ..edit(SORT, "Sort the entries, the items or the table rows")
     },
     Command {
         emacs: &[key(Org, "C-c /")],

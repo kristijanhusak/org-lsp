@@ -840,6 +840,33 @@ wait('the list renumbered', function()
 end)
 vim.cmd('silent! write')
 
+-- 23i. In a table: `<Tab>` aligns it and goes to the next field, making a
+-- row past the last; `>>` moves the column right, and the formulas follow.
+local tables = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '|a|bb|', '|1|2|', '#+TBLFM: $2=$1*2' }, tables)
+vim.cmd.edit(tables)
+wait('the server for tables', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 2, 3 })
+press('<Tab>')
+wait('the table aligned and a row made', function()
+  return vim.deep_equal(
+    vim.api.nvim_buf_get_lines(0, 0, -1, false),
+    { '| a | bb |', '| 1 |  2 |', '|   |    |', '#+TBLFM: $2=$1*2' }
+  )
+end)
+eq(vim.api.nvim_win_get_cursor(0), { 3, 2 }, 'the cursor in the new row')
+vim.api.nvim_win_set_cursor(0, { 1, 2 })
+press('>>')
+wait('the column moved right', function()
+  return vim.deep_equal(
+    vim.api.nvim_buf_get_lines(0, 0, -1, false),
+    { '| bb | a |', '|  2 | 1 |', '|    |   |', '#+TBLFM: $1=$2*2' }
+  )
+end)
+vim.cmd('silent! write')
+
 -- 23e. `<Leader>osy` copies the subtree into the register it was typed
 -- with, `<Leader>osd` cuts it, and `<Leader>osp` pastes the register as a
 -- subtree at the level of the headlines around.

@@ -468,8 +468,14 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - Done: `RET` to the next row, `M-RET` for a new row; formulas
   (`org-table-recalculate`, `C-c *`, `#+TBLFM`), checked against Emacs in
   `tests/tblfm`.
-- Navigate (`TAB`, `S-TAB`), insert, delete and move rows and columns,
-  as commands.
+- Done: `org-table.el`'s editing commands: `TAB`, `S-TAB`, moving,
+  inserting and deleting rows and columns, rules (`C-c -`, `C-c RET`),
+  blanking a field, `C-c C-c`, `org-table-sort-lines`, with
+  `org-table-fix-formulas`; checked against Emacs in `tests/table`
+  (`scripts/fuzz-table.py`).
+- Left: the cut/copy/paste of rectangular regions, `org-table-copy-down`
+  (`S-RET`), `org-table-edit-field`, formulas in a field evaluated on
+  `TAB`, shrunk columns (`<5>`), `C-c |` from a region.
 
 ### 13. Diagnostics and formatting
 

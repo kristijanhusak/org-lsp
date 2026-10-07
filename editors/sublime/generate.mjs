@@ -87,6 +87,8 @@ const fallbacks = {
   'alt+right': { command: 'move', args: { by: 'subword_ends', forward: true } },
   'alt+shift+left': { command: 'move', args: { by: 'subwords', forward: false, extend: true } },
   'alt+shift+right': { command: 'move', args: { by: 'subword_ends', forward: true, extend: true } },
+  'alt+shift+up': { command: 'select_lines', args: { forward: false } },
+  'alt+shift+down': { command: 'select_lines', args: { forward: true } },
   'alt+up': { command: 'swap_line_up' },
   'alt+down': { command: 'swap_line_down' },
 };

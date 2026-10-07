@@ -3334,6 +3334,95 @@ fn sets_tags_by_key_and_from_the_agenda() {
     client.shutdown();
 }
 
+/// The tables of `org-table.el`: the meta keys move and delete columns
+/// and rows there, `TAB` goes to the next field and makes a row past the
+/// last, `C-c C-c` aligns, `C-c -` puts a rule under the row, sorting asks
+/// for the type (and the column before the first one), a deleted row goes
+/// to the register, and the `#+TBLFM:` line follows the columns.
+#[test]
+fn edits_tables() {
+    let mut client = Client::editor(json!({}), None);
+    let uri = "file:///org/table.org";
+    let mut text = "| a | bb |\n| 3 | 1 |\n| 2 | 4 |\n#+TBLFM: $2=$1*2\n".to_string();
+    client.open(uri, &text);
+    let run = |client: &mut Client, command: &str, line: u32, character: u32, extra: Value| {
+        let mut context =
+            json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": character } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+    };
+    // `M-<right>` on the first column: the columns swap, so do the formulas.
+    let carried = run(&mut client, "org.meta.right", 0, 2, json!({})).unwrap();
+    let edits = carried["edits"].as_array().unwrap().clone();
+    text = apply(&text, &edits);
+    assert_eq!(text, "| bb | a |\n|  1 | 3 |\n|  4 | 2 |\n#+TBLFM: $1=$2*2\n");
+    assert_eq!(carried["cursor"], json!({ "line": 0, "character": 7 }));
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": 2 }, "contentChanges": [{ "text": text }] }),
+    );
+    // `TAB` in the last field: a new row.
+    let carried = run(&mut client, "org.table.next.field", 2, 8, json!({})).unwrap();
+    let after = apply(&text, carried["edits"].as_array().unwrap());
+    assert_eq!(after, "| bb | a |\n|  1 | 3 |\n|  4 | 2 |\n|    |   |\n#+TBLFM: $1=$2*2\n");
+    assert_eq!(carried["cursor"], json!({ "line": 3, "character": 2 }));
+    // Sorting asks for the type, then sorts by the cursor's column (the
+    // first line too: no rule sets it apart).
+    let asked = run(&mut client, "org.sort", 1, 8, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Sort Table");
+    assert_eq!(asked["input"]["choices"][1], json!({ "key": "n", "label": "numeric" }));
+    let carried = run(&mut client, "org.sort", 1, 8, json!({ "input": "N" })).unwrap();
+    assert_eq!(
+        apply(&text, carried["edits"].as_array().unwrap()),
+        "|  1 | 3 |\n|  4 | 2 |\n| bb | a |\n#+TBLFM: $1=$2*2\n"
+    );
+    // Before the first column it asks which.
+    let asked = run(&mut client, "org.sort", 1, 0, json!({})).unwrap();
+    assert_eq!(asked["input"]["kind"], "text");
+    assert_eq!(asked["input"]["context"], json!({ "step": "column" }));
+    let asked = run(&mut client, "org.sort", 1, 0, json!({ "step": "column", "input": "1" })).unwrap();
+    assert_eq!(asked["input"]["context"], json!({ "step": "type", "answers": "1" }));
+    let carried = run(&mut client, "org.sort", 1, 0, json!({ "step": "type", "answers": "1", "input": "N" })).unwrap();
+    assert_eq!(
+        apply(&text, carried["edits"].as_array().unwrap()),
+        "|  4 | 2 |\n|  1 | 3 |\n| bb | a |\n#+TBLFM: $1=$2*2\n"
+    );
+    // `M-S-<up>`: the row goes, to the register.
+    let carried = run(&mut client, "org.shiftmeta.up", 1, 3, json!({})).unwrap();
+    assert_eq!(carried["copy"], "|  1 | 3 |\n");
+    assert_eq!(apply(&text, carried["edits"].as_array().unwrap()), "| bb | a |\n|  4 | 2 |\n#+TBLFM: $1=$2*2\n");
+    // `C-c -` and `C-c C-c`.
+    let carried = run(&mut client, "org.table.hline", 0, 2, json!({})).unwrap();
+    assert_eq!(
+        apply(&text, carried["edits"].as_array().unwrap()),
+        "| bb | a |\n|----+---|\n|  1 | 3 |\n|  4 | 2 |\n#+TBLFM: $1=$2*2\n"
+    );
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": 3 }, "contentChanges": [{ "text": "|a|b|\n|1|22|\n" }] }),
+    );
+    let carried = run(&mut client, "org.checkbox.toggle", 1, 1, json!({})).unwrap();
+    assert_eq!(apply("|a|b|\n|1|22|\n", carried["edits"].as_array().unwrap()), "| a |  b |\n| 1 | 22 |\n");
+    // Code actions offer what the keys do there.
+    let actions = client
+        .request(
+            "textDocument/codeAction",
+            json!({ "textDocument": { "uri": uri }, "range": { "start": { "line": 1, "character": 1 }, "end": { "line": 1, "character": 1 } }, "context": { "diagnostics": [] } }),
+        )
+        .unwrap();
+    let titles: Vec<&str> = actions.as_array().unwrap().iter().filter_map(|action| action["title"].as_str()).collect();
+    assert!(titles.contains(&"Delete the table row"), "{titles:?}");
+    // Not in a table: the table's own commands refuse.
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": 4 }, "contentChanges": [{ "text": "Text\n" }] }),
+    );
+    assert_eq!(run(&mut client, "org.table.hline", 0, 0, json!({})).unwrap_err(), "Not at a table");
+    client.shutdown();
+}
+
 /// `org-cite-insert` (`C-c C-x @`): keys one at a time from the
 /// bibliography until done, a style with the prefix argument; on a
 /// citation a key added after the others; with the prefix argument on a

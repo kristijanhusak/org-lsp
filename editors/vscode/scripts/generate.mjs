@@ -121,6 +121,8 @@ const fallbacks = {
   'alt+down': ['editor.action.moveLinesDownAction'],
   'alt+shift+left': [{ command: 'cursorWordLeftSelect', platform: 'darwin' }, 'editor.action.smartSelect.shrink'],
   'alt+shift+right': [{ command: 'cursorWordRightSelect', platform: 'darwin' }, 'editor.action.smartSelect.expand'],
+  'alt+shift+up': ['editor.action.copyLinesUpAction'],
+  'alt+shift+down': ['editor.action.copyLinesDownAction'],
   // VS Code's own Enter, with its indentation.
   enter: [{ command: 'type', args: { text: '\n' } }],
   'shift+enter': [{ command: 'type', args: { text: '\n' } }],

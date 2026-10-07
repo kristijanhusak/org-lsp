@@ -53,6 +53,10 @@ end
 --- folded -> children visible -> everything visible -> folded. Archived
 --- subtrees stay closed, as `org-cycle-hide-archived-subtrees` keeps them.
 function M.cycle()
+  -- In a table, TAB goes to the next field (`org-table-next-field`).
+  if vim.api.nvim_get_current_line():match('^%s*|') then
+    return require('org-lsp').run('org.table.next.field')
+  end
   local bufnr = vim.api.nvim_get_current_buf()
   local all = ranges(bufnr)
   if not all then
@@ -122,6 +126,10 @@ end
 --- Cycle the whole file between overview (all folded) and everything
 --- visible but the archived subtrees.
 function M.global_cycle()
+  -- In a table, S-TAB goes to the previous field (`org-table-previous-field`).
+  if vim.api.nvim_get_current_line():match('^%s*|') then
+    return require('org-lsp').run('org.table.previous.field')
+  end
   if vim.wo.foldlevel == 0 then
     vim.cmd('normal! zR')
     local bufnr = vim.api.nvim_get_current_buf()
