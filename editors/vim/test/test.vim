@@ -167,6 +167,34 @@ function! s:agenda() abort
 endfunction
 call s:test('shows the agenda, moves through it, and closes it', function('s:agenda'))
 
+" A hover over an entry, as the LSP client shows one, has its headline and
+" its text.
+function! s:agenda_hover() abort
+  call org_lsp#run('org.agenda.list')
+  call s:until('the agenda', {-> s:agenda_window() != 0})
+  call win_gotoid(s:agenda_window())
+  call s:until('its text', {-> search('Write report', 'n') > 0})
+  call cursor(search('Write report', 'n'), 30)
+  let client = $ORG_LSP_TEST_CLIENT
+  if client ==# 'coc'
+    call CocActionAsync('doHover')
+  elseif client ==# 'ale'
+    let g:ale_hover_to_preview = 1
+    ALEHover
+  else
+    LspHover
+  endif
+  let Shown = {-> join(flatten(map(popup_list(), {_, id -> getbufline(winbufnr(id), 1, '$')}))
+        \ + flatten(map(filter(range(1, winnr('$')), {_, w -> getwinvar(w, '&previewwindow')}), {_, w -> getbufline(winbufnr(w), 1, '$')})), "\n")}
+  call s:until('the entry in a popup', {-> Shown() =~# 'TODO \[#A\] Write report :office:'})
+  call assert_match('SCHEDULED: <2026-05-\d\d', Shown())
+  call popup_clear(1)
+  pclose
+  call feedkeys('q', 'x')
+  call s:until('the agenda closed', {-> s:agenda_window() == 0})
+endfunction
+call s:test('a hover shows the entry of an agenda line', function('s:agenda_hover'))
+
 function! s:agenda_tab() abort
   " coc.nvim opens documents where it opens them.
   if $ORG_LSP_TEST_CLIENT ==# 'coc'

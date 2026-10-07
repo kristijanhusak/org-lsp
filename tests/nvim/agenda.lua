@@ -715,5 +715,27 @@ eq({ vim.bo.filetype, vim.api.nvim_win_get_cursor(0) }, { 'org-agenda', { 2, 0 }
 only_window()
 vim.g.mapleader = nil
 
+-- 16. A hover (`K`) over an entry shows it in a float at the cursor: the
+-- headline and its text.
+choice = 'a'
+press('\\oa')
+wait_for_view('Week-agenda (W21):')
+vim.api.nvim_win_set_cursor(0, { 4, 30 })
+vim.lsp.buf.hover()
+local hovered
+wait('the entry in a float', function()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_get_config(win).relative ~= '' then
+      local text = table.concat(vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), 0, -1, false), '\n')
+      if text:find('* TODO [#A] Write the report :office:', 1, true) then
+        hovered = text
+        return true
+      end
+    end
+  end
+end)
+check(hovered:find('SCHEDULED: <2026-05-18 Mon 09:00>', 1, true) ~= nil, 'with its text')
+only_window()
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

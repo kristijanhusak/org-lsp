@@ -417,7 +417,7 @@ fn positions_use_the_negotiated_encoding() {
 #[test]
 fn unknown_requests_and_documents() {
     let mut client = Client::start(json!({}), Value::Null);
-    let response = client.raw_request("textDocument/hover", json!({}));
+    let response = client.raw_request("textDocument/signatureHelp", json!({}));
     assert_eq!(response.response_result.unwrap_err().code, lsp_server::ErrorCode::MethodNotFound as i32);
 
     let response = client.raw_request("textDocument/foldingRange", json!({ "wrong": true }));

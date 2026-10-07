@@ -804,6 +804,7 @@ fn capabilities(encoding: Encoding, inlay_hints: bool, cursor: bool) -> ServerCa
         folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
         document_symbol_provider: Some(OneOf::Left(true)),
         definition_provider: Some(OneOf::Left(true)),
+        hover_provider: Some(lsp_types::HoverProviderCapability::Simple(true)),
         completion_provider: Some(lsp_types::CompletionOptions {
             trigger_characters: Some([":", "+", "[", "/", "*", "#", "\\"].iter().map(|c| c.to_string()).collect()),
             ..Default::default()
@@ -1129,6 +1130,7 @@ impl Server {
             DocumentSymbolRequest => document_symbols,
             CodeActionRequest => code_actions,
             GotoDefinition => definition,
+            lsp_types::request::HoverRequest => hover,
             lsp_types::request::Completion => completion,
             lsp_types::request::OnTypeFormatting => on_type_formatting,
             lsp_types::request::RangeFormatting => range_formatting,
@@ -1676,6 +1678,30 @@ impl Server {
         let offset = document.index.offset(&text, position.position, self.client.encoding);
         let opened = open::at_point(&text, &document.parse, offset, None).ok()?;
         self.open_location(uri, &text, &opened).ok().flatten().map(GotoDefinitionResponse::Scalar)
+    }
+
+    /// Over an agenda line, the entry it shows: its headline and its text,
+    /// each drawer folded, as Org in a fenced block of Markdown.
+    fn hover(&mut self, params: lsp_types::HoverParams) -> Option<lsp_types::Hover> {
+        let position = params.text_document_position_params;
+        let uri = &position.text_document.uri;
+        if !self.is_view(uri) {
+            return None;
+        }
+        let reference = self.view_line(uri, position.position.line)?.1.entry.clone()?;
+        let text = self
+            .with_source(&reference.uri, |text, _, _, outline, _| {
+                views::resolve(&reference, outline)
+                    .map(|entry| org_core::preview::entry(text, outline.entries[entry].offset))
+            })
+            .flatten()?;
+        Some(lsp_types::Hover {
+            contents: lsp_types::HoverContents::Markup(lsp_types::MarkupContent {
+                kind: lsp_types::MarkupKind::Markdown,
+                value: org_core::preview::markdown(&text),
+            }),
+            range: None,
+        })
     }
 
     /// `org-open-at-point` (`C-c C-o`) in an Org file, and

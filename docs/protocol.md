@@ -15,6 +15,7 @@ the agenda document and the semantic tokens.
 | `textDocument/codeAction` | The commands that apply at the cursor. See [Commands](#commands). |
 | `workspace/executeCommand` | Every command. See [Commands](#commands). |
 | `textDocument/definition` | In the agenda: from a line to its entry. |
+| `textDocument/hover` | In the agenda: the line's entry, its headline and its text up to the next heading, each drawer folded to its first line as Emacs shows a folded drawer (`:PROPERTIES:...`), as Org in a fenced block of Markdown. Elsewhere none. |
 | `textDocument/completion` | In a headline: TODO keywords for the first word after the stars, and the file's tags after a `:` in the headline's tags (`pcomplete`). `:` triggers it. |
 | `workspace/textDocumentContent` | The text of the agenda. See [The agenda document](#the-agenda-document). |
 | `textDocument/onTypeFormatting` | After a line break: `org-indent-line` on the new line (Org's `RET`), following `adaptIndentation`. No edit when the line is indented right, or when Org leaves such a line as it is (headlines, the first line of a list item, the code of a source block). |
