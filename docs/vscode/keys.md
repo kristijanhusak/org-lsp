@@ -52,6 +52,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X e` | `org.effort.set` | Set the effort of the entry |
 | `Ctrl+C Ctrl+X Shift+E` | `org.effort.increase` | Set the effort to the next allowed value |
 | `Ctrl+C Ctrl+X o` | `org.ordered.toggle` | Toggle whether subtasks must be done in order (ORDERED) |
+| `Ctrl+C Ctrl+X Shift+2` | `org.cite.insert` | Insert a citation, or edit the one at the cursor |
 | `Ctrl+C Ctrl+Q` | `org.tags.set` | Set the tags of the headline |
 | `Ctrl+C Ctrl+C` | `org.checkbox.toggle` | Toggle the checkbox |
 | `Enter`¹ | `org.return` | New line, as Org's RET makes it |
@@ -286,6 +287,8 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "x", "p"], "commands": ["org.property.set"] },
   { "before": ["<leader>", "o", "x", "e"], "commands": ["org.effort.set"] },
   { "before": ["<leader>", "o", "x", "E"], "commands": ["org.effort.increase"] },
+  { "before": ["<leader>", "o", "i", "c"], "commands": ["org.cite.insert"] },
+  { "before": ["<leader>", "o", "i", "C"], "commands": ["org.cite.insert.prefix"] },
   { "before": ["<leader>", "o", "t"], "commands": ["org.tags.set"] },
   { "before": ["<leader>", "<CR>"], "commands": ["org.meta.return"] },
   { "before": ["<leader>", "o", "i", "T"], "commands": ["org.insert.todo.heading"] },
@@ -358,6 +361,8 @@ every file; outside Org files the commands say they do not apply):
 | `org.effort.set` | Org: Set the effort of the entry |
 | `org.effort.increase` | Org: Set the effort to the next allowed value |
 | `org.ordered.toggle` | Org: Toggle whether subtasks must be done in order (ORDERED) |
+| `org.cite.insert` | Org: Insert a citation, or edit the one at the cursor |
+| `org.cite.insert.prefix` | Org: Delete the citation or reference at the cursor, or insert one with a style |
 | `org.tags.set` | Org: Set the tags of the headline |
 | `org.checkbox.toggle` | Org: Toggle the checkbox |
 | `org.return` | Org: New line, as Org's RET makes it |

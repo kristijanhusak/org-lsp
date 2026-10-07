@@ -43,6 +43,8 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oxp` | `org.property.set` | Set a property of the entry |
 | `<Leader>oxe` | `org.effort.set` | Set the effort of the entry |
 | `<Leader>oxE` | `org.effort.increase` | Set the effort to the next allowed value |
+| `<Leader>oic` | `org.cite.insert` | Insert a citation, or edit the one at the cursor |
+| `<Leader>oiC` | `org.cite.insert.prefix` | Delete the citation or reference at the cursor, or insert one with a style |
 | `<Leader>ot` | `org.tags.set` | Set the tags of the headline |
 | `<C-Space>` | `org.checkbox.toggle` | Toggle the checkbox |
 | `<CR>`¹ (insert mode) | `org.return` | New line, as Org's RET makes it |

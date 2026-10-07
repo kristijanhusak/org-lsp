@@ -146,6 +146,8 @@ pub const DELETE_PROPERTY_GLOBALLY: &str = "org.property.delete.globally";
 pub const SET_EFFORT: &str = "org.effort.set";
 pub const INCREASE_EFFORT: &str = "org.effort.increase";
 pub const TOGGLE_ORDERED: &str = "org.ordered.toggle";
+pub const CITE_INSERT: &str = "org.cite.insert";
+pub const CITE_INSERT_PREFIX: &str = "org.cite.insert.prefix";
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
 pub const PRIORITY_UP: &str = "org.priority.up";
@@ -360,6 +362,23 @@ pub const COMMANDS: &[Command] = &[
     Command {
         emacs: &[key(Org, "C-c C-x o")],
         ..edit(TOGGLE_ORDERED, "Toggle whether subtasks must be done in order (ORDERED)")
+    },
+    // `org-cite-insert` with the `basic` processor: a new citation of keys
+    // picked from the bibliography, or on a citation its style, a key
+    // before or after the others, or the key at the cursor replaced. With
+    // the prefix argument (`C-u C-c C-x @`) the citation or the reference
+    // at the cursor goes, and a new citation asks for a style too; no
+    // editor binds `C-u` as a prefix, so that is a command of its own.
+    Command {
+        emacs: &[key(Org, "C-c C-x @")],
+        vim: &[key(Org, "<Leader>oic")],
+        input: Some(Input { kind: "choice", prompt: "Key" }),
+        ..edit(CITE_INSERT, "Insert a citation, or edit the one at the cursor")
+    },
+    Command {
+        vim: &[key(Org, "<Leader>oiC")],
+        input: Some(Input { kind: "choice", prompt: "Key" }),
+        ..edit(CITE_INSERT_PREFIX, "Delete the citation or reference at the cursor, or insert one with a style")
     },
     // `C-c C-c` on an item (`org-ctrl-c-ctrl-c`): its checkbox toggled and
     // the list repaired (indentation, bullets, numbers, checkboxes); at

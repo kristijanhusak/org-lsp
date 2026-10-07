@@ -280,6 +280,20 @@
     }
   },
   {
+    "caption": "Org: Insert a citation, or edit the one at the cursor",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.cite.insert"
+    }
+  },
+  {
+    "caption": "Org: Delete the citation or reference at the cursor, or insert one with a style",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.cite.insert.prefix"
+    }
+  },
+  {
     "caption": "Org: Set the tags of the headline",
     "command": "org_lsp_run",
     "args": {

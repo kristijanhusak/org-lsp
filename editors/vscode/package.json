@@ -256,6 +256,16 @@
         "category": "Org"
       },
       {
+        "command": "org.cite.insert",
+        "title": "Insert a citation, or edit the one at the cursor",
+        "category": "Org"
+      },
+      {
+        "command": "org.cite.insert.prefix",
+        "title": "Delete the citation or reference at the cursor, or insert one with a style",
+        "category": "Org"
+      },
+      {
         "command": "org.tags.set",
         "title": "Set the tags of the headline",
         "category": "Org"
@@ -2801,6 +2811,11 @@
       {
         "command": "org.ordered.toggle",
         "key": "ctrl+c ctrl+x o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.cite.insert",
+        "key": "ctrl+c ctrl+x shift+2",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
