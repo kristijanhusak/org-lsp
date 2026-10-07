@@ -595,12 +595,14 @@ pub(crate) struct Inserted {
     pub cursor: usize,
 }
 
-/// `org-insert-item` at byte `pos`, with a checkbox when `checkbox`. None
-/// when `pos` is not in an item.
+/// `org-insert-item` at byte `pos`, with a checkbox when `checkbox`, and
+/// after the item at `pos` when `below`. None when `pos` is not in an
+/// item.
 pub(crate) fn insert_item(
     text: &str,
     pos: usize,
     checkbox: bool,
+    below: bool,
     keywords: &org_syntax::TodoKeywords,
     tags_column: i64,
 ) -> Result<Option<Inserted>, Refusal> {
@@ -619,7 +621,7 @@ pub(crate) fn insert_item(
     let desc = descriptive.then_some(" :: ");
     let mut buffer = Buffer { text: text.to_string(), point: pos, md: MatchData::default() };
     let mut list = list;
-    insert_in_struct(&mut buffer, pos, &mut list, checkbox, desc);
+    insert_in_struct(&mut buffer, pos, &mut list, checkbox, below, desc);
     let parents_of = parents(&list);
     write_struct(&mut buffer, &mut list, &parents_of, None)?;
     let mut text = buffer.text;
@@ -730,7 +732,17 @@ impl MatchData {
 const ARGUMENT_ERROR: &str = "Wrong type argument: integer-or-marker-p, nil";
 
 /// `org-list-insert-item`: the new item in the text and in `list`.
-fn insert_in_struct(buffer: &mut Buffer, pos: usize, list: &mut Struct, checkbox: bool, after_bullet: Option<&str>) {
+/// With `below`, the new item goes after the item at `pos`, whatever
+/// part of it `pos` is in, and nothing of it is cut: as with
+/// `org-M-RET-may-split-line` nil and the point after the bullet.
+fn insert_in_struct(
+    buffer: &mut Buffer,
+    pos: usize,
+    list: &mut Struct,
+    checkbox: bool,
+    below: bool,
+    after_bullet: Option<&str>,
+) {
     let text = buffer.text.clone();
     // The item that contains `pos`, or the last one.
     let mut found = None;
@@ -762,10 +774,11 @@ fn insert_in_struct(buffer: &mut Buffer, pos: usize, list: &mut Struct, checkbox
                     tag.end() + after.len() - after.trim_start_matches([' ', '\t']).len()
                 }
             };
-            pos <= item + limit
+            !below && pos <= item + limit
         }
-        None => true,
+        None => !below,
     };
+    let split_line = !below;
     let prevs_of = prevs(list);
     let blank_nb = separating_blank_lines(&text, pos, list, item_index, &prevs_of, &mut buffer.md);
     let ind = list[item_index].ind;
@@ -774,7 +787,7 @@ fn insert_in_struct(buffer: &mut Buffer, pos: usize, list: &mut Struct, checkbox
     let mut text = text;
     let mut pos = pos;
     // The text after the cursor goes to the new item.
-    let text_cut = if !beforep {
+    let text_cut = if !beforep && split_line {
         let mut cut_from = pos;
         if item_end < pos {
             let from = item_end.saturating_sub(1);
@@ -810,10 +823,10 @@ fn insert_in_struct(buffer: &mut Buffer, pos: usize, list: &mut Struct, checkbox
             if other.end > item {
                 other.end = shift(other.end, size_offset);
             }
-        } else if index == item_index && !beforep {
+        } else if index == item_index && !beforep && split_line {
             other.pos = p + item_size;
             other.end = shift(other.end, size_offset);
-        } else if !beforep && p >= pos && p <= item_end_no_blank {
+        } else if split_line && !beforep && p >= pos && p <= item_end_no_blank {
             let offset = pos as isize
                 - item as isize
                 - ind as isize

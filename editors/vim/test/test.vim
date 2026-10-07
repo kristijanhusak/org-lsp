@@ -255,6 +255,18 @@ function! s:return() abort
   call s:until('<S-CR> as RET', {-> getline(3) ==# 'vreport'})
   call assert_equal('xthe', getline(2))
   silent write
+  " With the completion menu open, <CR> is the menu's, and <S-CR> still
+  " RET: the menu closed, then the next row.
+  let completed = s:work . '/notes/completed.org'
+  call writefile(['| alpha | alps |', '| al |'], completed)
+  execute 'edit' fnameescape(completed)
+  call s:until('the server for RET with the menu', {-> org_lsp#ready(bufnr())})
+  call cursor(2, 5)
+  call feedkeys("i\<C-n>\<S-CR>z\<Esc>", 'xt')
+  call s:until('<S-CR> with the menu open', {-> getline(3) ==# '| z      |      |'})
+  " (yegappan/lsp's own completion selects no entry: `al` stays.)
+  call assert_match('^| al', getline(2))
+  silent write
 endfunction
 call s:test('RET in insert mode is as in Org', function('s:return'))
 
@@ -263,7 +275,7 @@ function! s:meta_return() abort
   call writefile(['* TODO Write :work:', '- one', '** Sub', '* Next'], file)
   execute 'edit' fnameescape(file)
   call s:until('the server', {-> org_lsp#ready(bufnr())})
-  " After the character under the cursor: a new item after the last one.
+  " Below the cursor's line: a new item after the last one.
   call cursor(2, 5)
   call feedkeys("\\\<CR>", 'xt')
   call s:until('the new item', {-> getline(3) ==# '- '})
@@ -275,6 +287,19 @@ function! s:meta_return() abort
   call feedkeys("\\oit", 'xt')
   call s:until('the TODO heading', {-> getline(5) ==# '* TODO '})
   call assert_equal(5, line('.'))
+  call feedkeys("\<Esc>", 'xt')
+  silent write
+  " On a numbered item's bullet, the next item goes after the item, its
+  " text left whole.
+  let numbered = s:work . '/notes/numbered.org'
+  call writefile(['1. one', '   more', '2. two'], numbered)
+  execute 'edit' fnameescape(numbered)
+  call s:until('the server for the numbered list', {-> org_lsp#ready(bufnr())})
+  call cursor(1, 1)
+  call feedkeys("\\\<CR>", 'xt')
+  call s:until('the new numbered item', {-> getline(3) ==# '2. '})
+  call assert_equal(['1. one', '   more', '2. ', '3. two'], getline(1, '$'))
+  call assert_equal(3, line('.'))
   call feedkeys("\<Esc>", 'xt')
   silent write
 endfunction

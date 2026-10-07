@@ -710,6 +710,8 @@ press('q')
 wait('the calendar to go', function()
   return vim.bo.filetype ~= 'org-date'
 end)
+-- Back where it was asked from, not in the window under it.
+eq({ vim.bo.filetype, vim.api.nvim_win_get_cursor(0) }, { 'org-agenda', { 2, 0 } }, 'back on the agenda line')
 only_window()
 vim.g.mapleader = nil
 

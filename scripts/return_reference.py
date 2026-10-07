@@ -5,7 +5,12 @@ A case is a JSON object:
     {
       "text": "* a\\n",     an Org document
       "point": 3,         where the cursor is, in characters from the start
-      "key": "RET",       the key pressed: "RET" or "M-RET"
+      "key": "RET",       the key pressed: "RET" or "M-RET"; "below:M-RET"
+                          or "below:M-S-<return>" is the key of modal
+                          editors, below the line: the command from the
+                          end of the line with `org-M-RET-may-split-line`
+                          nil, in a table `org-table-insert-row` with its
+                          argument
       "adapt": "nil"      org-adapt-indentation: nil, t or headline-data
     }
 
@@ -25,6 +30,12 @@ DRIVER = r"""
 (require 'json)
 (setq-default indent-tabs-mode nil)
 (electric-indent-mode 1)
+(defun org-lsp-below (key)
+  (let ((org-M-RET-may-split-line nil))
+    (end-of-line)
+    (cond ((and (equal key "M-RET") (org-at-table-p)) (org-table-insert-row '(4)))
+          ((equal key "M-RET") (org-meta-return))
+          (t (org-insert-todo-heading nil)))))
 (defun org-lsp-return-case (in out point key adapt)
   (let ((org-adapt-indentation adapt))
     (with-temp-buffer
@@ -32,7 +43,9 @@ DRIVER = r"""
       (org-mode)
       (switch-to-buffer (current-buffer))
       (goto-char (1+ point))
-      (execute-kbd-macro (kbd key))
+      (if (string-prefix-p "below:" key)
+          (org-lsp-below (substring key 6))
+        (execute-kbd-macro (kbd key)))
       (let ((text (buffer-substring-no-properties (point-min) (point-max)))
             (at (1- (point))))
         (with-temp-file out

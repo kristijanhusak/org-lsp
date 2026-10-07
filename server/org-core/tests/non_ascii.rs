@@ -105,7 +105,7 @@ fn commands_finish_on_text_of_several_bytes() {
         for &at in &positions {
             let return_settings = newline::Settings { indent: indent::Settings::default(), tags_column: -77 };
             run("org_return", at, &mut || drop(newline::org_return(&text, at, &keywords, &return_settings)));
-            let meta = meta_return::Settings { tags_column: -77 };
+            let meta = meta_return::Settings { tags_column: -77, below: false };
             run("meta_return", at, &mut || drop(meta_return::meta_return(&text, at, &keywords, &meta)));
             run("insert_todo_heading", at, &mut || {
                 drop(meta_return::insert_todo_heading(&text, at, &keywords, &meta, false))

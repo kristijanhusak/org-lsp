@@ -178,6 +178,14 @@ subtree at the cursor.
 - **Keys with a meaning of their own** (marked ¹) give it back where the
   command does not apply, so `<C-a>`, `<C-x>`, `<S-Up>` and `<S-Down>`
   still work on ordinary numbers and lines.
+- **RET and a completion menu**: while one is open (Vim's, nvim-cmp's or
+  blink.cmp's), `<CR>` is the menu's; `<S-CR>` closes it and is Org's RET.
+- **`<Leader><CR>`** and its neighbours put the new heading, item or table
+  row below the cursor's line, wherever on it the cursor is: never above
+  it, and nothing is split. Typing goes on in insert mode.
+- **`cid`** leaves the cursor where it was in the timestamp it changes,
+  and a date asked for in the calendar goes back to the window it was
+  asked from.
 - **Questions** are asked in the editor's own way:
   - a date (`<Leader>ois`, `J` in the agenda) opens Emacs's calendar at
     the bottom, with the keys under *In the date prompt*; `i` there asks

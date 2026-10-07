@@ -290,11 +290,10 @@ function! org_lsp#run(name, ...) abort
   if get(opts, 'count', 0) > 0
     let context.count = opts.count
   endif
-  " After the character under the cursor, as `a` types there.
-  if get(opts, 'append', 0) && nr == bufnr() && col('.') <= len(getline('.'))
-    let text = getline('.')
-    let after = col('.') - 1 + len(matchstr(text, '.', col('.') - 1))
-    let context.position.character = s:character(text, after)
+  " Below the cursor's line, as nvim-orgmode's `<Leader><CR>` puts it:
+  " never above it, and nothing split.
+  if get(opts, 'append', 0)
+    let context.below = v:true
   endif
   " Filing a capture or a note takes the buffer's text as it is here: some
   " clients tell the server of the last changes only a while later.
@@ -426,14 +425,15 @@ endfunction
 " The commands whose keys are typed in insert mode (`org.return`).
 let s:insert_commands = {}
 
-" The commands whose keys act after the character under the cursor and go
-" on in insert mode (`org.meta.return`).
+" The commands whose keys act below the cursor's line and go on in insert
+" mode (`org.meta.return`).
 let s:append_commands = {}
 
 " Run a command whose result carries edits and a cursor (`org.return`)
-" from insert mode, at once. The key keeps its own meaning while the
-" completion menu shows, with no server, or where the command does not
-" apply.
+" from insert mode, at once. The key keeps its own meaning with no server,
+" or where the command does not apply. While the completion menu shows,
+" <CR> is the menu's; another key for the command (<S-CR>) closes it and
+" runs the command.
 function! org_lsp#insert_key(index) abort
   let entry = s:mapped[a:index]
   if s:passing
@@ -441,8 +441,15 @@ function! org_lsp#insert_key(index) abort
     let s:passing = 0
     return feedkeys(s:keycode(entry.lhs), 'ni')
   endif
-  if pumvisible() || empty(org_lsp#adapter()) || !org_lsp#ready(bufnr())
+  if empty(org_lsp#adapter()) || !org_lsp#ready(bufnr())
+        \ || pumvisible() && s:keycode(entry.lhs) ==# "\<CR>"
     return s:insert_fallback(entry.lhs)
+  endif
+  if pumvisible()
+    " Another key for the command (<S-CR>): the menu takes its entry with
+    " <C-y>, then the key again, ahead of what is typed after it.
+    call feedkeys(s:keycode(entry.lhs), 'mi')
+    return feedkeys("\<C-y>", 'ni')
   endif
   let [nr, context] = s:cursor_context()
   let position = getcurpos()
@@ -734,8 +741,10 @@ endfunction
 function! s:open_apart(path) abort
   let mode = org_lsp#config().win_split_mode
   if mode !=# 'current'
+    let from = win_getid()
     execute mode
     let w:org_lsp_opened = 1
+    let w:org_lsp_from = from
     call s:resize_apart(mode, org_lsp#config().win_split_size)
   endif
   execute 'edit' fnameescape(a:path)
@@ -901,7 +910,14 @@ endfunction
 function! org_lsp#close_buffer(nr) abort
   for win in win_findbuf(a:nr)
     if getwinvar(win, 'org_lsp_opened', 0) && winnr('$') > 1
+      " Back to the window it was opened from, not the one that takes its
+      " place on the screen.
+      let from = getwinvar(win, 'org_lsp_from', 0)
+      let current = win == win_getid()
       call win_execute(win, 'close!')
+      if current && from != win && win_id2win(from) > 0
+        call win_gotoid(from)
+      endif
     else
       call win_execute(win, 'if bufnr("#") > 0 && bufnr("#") != ' . a:nr . ' | buffer! # | else | enew! | endif')
     endif

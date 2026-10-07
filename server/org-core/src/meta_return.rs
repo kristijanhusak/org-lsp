@@ -7,7 +7,10 @@
 //! the heading the cursor is in. Checked against Emacs in
 //! `tests/meta-return`.
 
+use std::sync::LazyLock;
+
 use org_syntax::{SyntaxKind::TABLE, TodoKeywords};
+use regex::Regex;
 
 use crate::date::{Date, DateTime};
 use crate::format;
@@ -20,6 +23,13 @@ use crate::Refusal;
 pub struct Settings {
     /// `org-tags-column`.
     pub tags_column: i64,
+    /// The new heading, item or table row goes below the line of the
+    /// cursor, as nvim-orgmode's `<Leader><CR>` puts it: as Emacs does
+    /// from the end of the line with `org-M-RET-may-split-line` nil, a
+    /// table row with `org-table-insert-row`'s argument, and an item after
+    /// the item even where its bullet has nothing after it. Nothing is
+    /// split, and nothing goes above.
+    pub below: bool,
 }
 
 /// Text and a point, edited as Emacs edits a buffer.
@@ -230,7 +240,7 @@ fn insert_heading(buffer: &mut Buffer, keywords: &TodoKeywords, settings: &Setti
             buffer.point = buffer.eol();
             return;
         }
-        let title = title_range(line(&buffer.text, bol), keywords);
+        let title = title_range(line(&buffer.text, bol), keywords).filter(|_| !settings.below);
         if let Some((_, end)) = title.filter(|(start, end)| (bol + start..=bol + end).contains(&buffer.point)) {
             let split = buffer.text[buffer.point..bol + end].to_string();
             buffer.text.replace_range(buffer.point..bol + end, "");
@@ -347,6 +357,15 @@ fn follow(old: &str, new: &str, at: usize) -> usize {
     }
 }
 
+/// Where the command acts: below the line, from its end.
+fn place(text: &str, at: usize, settings: &Settings) -> usize {
+    if settings.below {
+        line_end(text, at)
+    } else {
+        at
+    }
+}
+
 fn at_table(text: &str, at: usize, keywords: &TodoKeywords) -> bool {
     let start = line_start(text, at);
     if !is_table_line(line(text, start)) {
@@ -358,10 +377,12 @@ fn at_table(text: &str, at: usize, keywords: &TodoKeywords) -> bool {
 
 /// M-RET (`org-meta-return`) at byte `at` of `text`.
 pub fn meta_return(text: &str, at: usize, keywords: &TodoKeywords, settings: &Settings) -> Result<Outcome, Refusal> {
-    if at_table(text, at, keywords) {
-        return wrap_field(text, at);
+    let at = place(text, at, settings);
+    // From the end of the line, the table is the line's.
+    if at_table(text, if settings.below { line_start(text, at) } else { at }, keywords) {
+        return if settings.below { Ok(insert_row_below(text, at)) } else { wrap_field(text, at) };
     }
-    if let Some(inserted) = list::insert_item(text, at, false, keywords, settings.tags_column)? {
+    if let Some(inserted) = list::insert_item(text, at, false, settings.below, keywords, settings.tags_column)? {
         return Ok(Outcome { text: inserted.text, cursor: inserted.cursor });
     }
     let mut buffer = Buffer { text: text.to_string(), point: at };
@@ -379,8 +400,9 @@ pub fn insert_todo_heading(
     settings: &Settings,
     respect_content: bool,
 ) -> Result<Outcome, Refusal> {
+    let at = place(text, at, settings);
     if !respect_content {
-        if let Some(inserted) = list::insert_item(text, at, true, keywords, settings.tags_column)? {
+        if let Some(inserted) = list::insert_item(text, at, true, settings.below, keywords, settings.tags_column)? {
             return Ok(Outcome { text: inserted.text, cursor: inserted.cursor });
         }
     }
@@ -426,6 +448,106 @@ fn wrap_field(text: &str, at: usize) -> Result<Outcome, Refusal> {
     Ok(align(&out, moved.cursor))
 }
 
+/// `org-table-insert-row` with its argument, from the end of the row at
+/// `at`: a row of blanks like it below it, the cursor in its first field,
+/// and the formulas after the table that name the rows after it by number
+/// (`@3`) moved along with them (`org-table-fix-formulas`).
+fn insert_row_below(text: &str, at: usize) -> Outcome {
+    static END_BAR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\|[ \t]*$").expect("valid"));
+    static MARKER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[ \t]*\| *[#*$] *\|").expect("valid"));
+    let mut text = text.to_string();
+    let mut at = at;
+    if at == text.len() {
+        text.push('\n');
+    }
+    if !END_BAR.is_match(line(&text, line_start(&text, at))) {
+        let aligned = align(&text, at);
+        text = aligned.text;
+        at = aligned.cursor;
+    }
+    let start = line_start(&text, at);
+    let end = line_end(&text, start);
+    let current = text[start..end].to_string();
+    let mut new = clean_line(&current);
+    // Fix the first field if necessary.
+    if let Some(marker) = MARKER.find(&current) {
+        if new.is_char_boundary(marker.end()) {
+            new.replace_range(..marker.end(), marker.as_str());
+        }
+    }
+    let row = (end + 1).min(text.len());
+    text.insert_str(row, &format!("{new}\n"));
+    let bar = new.find('|').map_or(0, |bar| bar + 1);
+    let cursor = row + bar + usize::from(new[bar..].starts_with(' '));
+    // The data lines from the table's start to the new row.
+    let mut first = row;
+    while first > 0 {
+        let previous = line_start(&text, first - 1);
+        if !is_table_line(line(&text, previous)) {
+            break;
+        }
+        first = previous;
+    }
+    let dline = text[first..row].split_terminator('\n').filter(|line| is_data_line(line)).count() + 1;
+    let text = fix_formulas(&text, row, dline - 1);
+    Outcome { text, cursor }
+}
+
+/// `org-table-dataline-regexp`
+fn is_data_line(line: &str) -> bool {
+    let rest = line.trim_start_matches([' ', '\t']);
+    rest.starts_with('|') && rest[1..].chars().next().is_some_and(|c| c != '-' && c != '\n')
+}
+
+/// `org-table-clean-line`: the row with only bars and blanks, as wide as
+/// it was.
+fn clean_line(line: &str) -> String {
+    static FIELD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\|([ \t]*?[^ \t\r\n|][^\r\n|]*)\|").expect("valid"));
+    if line.trim_start_matches([' ', '\t']).starts_with("|-") {
+        return line.chars().map(|c| if c == '|' || c == '+' { '|' } else { ' ' }).collect();
+    }
+    let mut line = line.to_string();
+    while let Some(field) = FIELD.captures(&line).and_then(|found| found.get(1)).map(|field| field.range()) {
+        let blanks = " ".repeat(crate::text::width(&line[field.clone()]));
+        line.replace_range(field, &blanks);
+    }
+    line
+}
+
+/// `org-table-fix-formulas` for `@`: in the `#+TBLFM` lines after the table
+/// that the row at `row` is in, the row numbers above `limit` one more.
+fn fix_formulas(text: &str, row: usize, limit: usize) -> String {
+    static TBLFM: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)^[ \t]*#\+tblfm:").expect("valid"));
+    static ROW: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@([0-9]+)").expect("valid"));
+    static REMOTE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"remote\([^)]+?\)").expect("valid"));
+    let mut at = row;
+    while at < text.len() && is_table_line(line(text, at)) {
+        at = (line_end(text, at) + 1).min(text.len());
+    }
+    let mut out = text[..at].to_string();
+    while at < text.len() && TBLFM.is_match(line(text, at)) {
+        let current = line(text, at);
+        let remote: Vec<_> = REMOTE.find_iter(current).map(|found| found.range()).collect();
+        let fixed = ROW.replace_all(current, |found: &regex::Captures| {
+            let whole = found.get(0).expect("a match");
+            let number = found[1].parse::<usize>().unwrap_or(0);
+            if number > limit && !remote.iter().any(|span| span.start <= whole.start() && whole.start() < span.end) {
+                format!("@{}", number + 1)
+            } else {
+                whole.as_str().to_string()
+            }
+        });
+        out.push_str(&fixed);
+        at += current.len();
+        if at < text.len() {
+            out.push('\n');
+            at += 1;
+        }
+    }
+    out.push_str(&text[at..]);
+    out
+}
+
 /// `org-table-align` on the table at `at`, the cursor at the start of its
 /// field after (`org-table-save-field`).
 fn align(text: &str, at: usize) -> Outcome {
@@ -463,4 +585,28 @@ fn align(text: &str, at: usize) -> Outcome {
         out.push('\n');
     }
     Outcome { text: out, cursor: row_start + cursor }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// From the keys of modal editors the new item goes below even an item
+    /// with nothing after its bullet, which Emacs puts it before.
+    #[test]
+    fn below_an_empty_item() {
+        let keywords = TodoKeywords::default();
+        let settings = Settings { tags_column: -77, below: true };
+        for (text, at, expected, cursor) in
+            [("1. \n2. two\n", 0, "1. \n2. \n3. two\n", 7), ("- [ ] \n", 2, "- [ ] \n- [ ] \n", 13)]
+        {
+            let outcome = if text.contains('[') {
+                insert_todo_heading(text, at, &keywords, &settings, false)
+            } else {
+                meta_return(text, at, &keywords, &settings)
+            }
+            .unwrap();
+            assert_eq!((outcome.text.as_str(), outcome.cursor), (expected, cursor), "{text:?}");
+        }
+    }
 }

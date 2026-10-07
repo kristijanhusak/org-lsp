@@ -167,8 +167,8 @@ end
 ---@param name string e.g. 'org.todo.next'
 ---@param opts? { count?: integer, key?: string, append?: boolean } the
 --- count typed before the key, the key to give back its own meaning if the
---- command does not apply at the cursor, and whether the command acts after
---- the character under the cursor and typing goes on in insert mode
+--- command does not apply at the cursor, and whether the command acts below
+--- the cursor's line and typing goes on in insert mode
 function M.run(name, opts)
   if own_commands[name] then
     return own_commands[name][2]()
@@ -188,13 +188,9 @@ function M.run(name, opts)
     local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
     context.count = count
     if opts.append then
-      -- After the character under the cursor, as `a` types there.
-      local row, col = unpack(vim.api.nvim_win_get_cursor(0))
-      local line = vim.api.nvim_get_current_line()
-      if col < #line then
-        local after = col + vim.str_utf_end(line, col + 1) + 1
-        context.position.character = vim.lsp.util.character_offset(0, row - 1, after, client.offset_encoding)
-      end
+      -- Below the cursor's line, as nvim-orgmode's `<Leader><CR>` puts it:
+      -- never above it, and nothing split.
+      context.below = true
     end
     local command = { title = name, command = name, arguments = { context } }
     local bufnr = vim.api.nvim_get_current_buf()
@@ -368,8 +364,8 @@ end
 --- The commands whose keys are typed in insert mode (`org.return`).
 local insert_keys = {}
 
---- The commands whose keys act after the character under the cursor and
---- go on in insert mode (`org.meta.return`).
+--- The commands whose keys act below the cursor's line and go on in
+--- insert mode (`org.meta.return`).
 local append_keys = {}
 
 --- The buffer-local insert-mode mappings the plugin's keys took the place
@@ -431,11 +427,27 @@ local function completing()
   return blink_ok and type(blink) == 'table' and type(blink.is_visible) == 'function' and blink.is_visible() or false
 end
 
+--- Close the completion menu that is open, nvim-cmp's or blink.cmp's.
+--- Returns whether none is open now: Vim's own closes only once the
+--- mapping is done.
+local function close_completion()
+  local cmp_ok, cmp = pcall(require, 'cmp')
+  if cmp_ok and type(cmp) == 'table' and type(cmp.visible) == 'function' and cmp.visible() then
+    cmp.close()
+  end
+  local blink_ok, blink = pcall(require, 'blink.cmp')
+  if blink_ok and type(blink) == 'table' and type(blink.is_visible) == 'function' and blink.is_visible() then
+    blink.hide()
+  end
+  return vim.fn.pumvisible() == 0
+end
+
 --- Run `name`, whose result carries edits and a cursor (`org.return`), from
 --- insert mode: at once, so that what is typed next goes after it. The key
---- keeps its own meaning (another plugin's mapping of it included) while a
---- completion menu is open, with no server, or where the command does not
---- apply.
+--- keeps its own meaning (another plugin's mapping of it included) with no
+--- server, or where the command does not apply. While a completion menu is
+--- open, `<CR>` is the menu's; another key for the command (`<S-CR>`)
+--- closes the menu and runs it.
 ---@param name string
 ---@param key string
 function M.insert_command(name, key)
@@ -449,8 +461,14 @@ function M.insert_command(name, key)
     passing = false
     return vim.api.nvim_feedkeys(vim.keycode(key), 'ni', false)
   end
-  if completing() or not client then
+  if not client or completing() and vim.keycode(key) == vim.keycode('<CR>') then
     return native()
+  end
+  if completing() and not close_completion() then
+    -- Vim's menu takes its entry with `<C-y>`, then the key again, ahead
+    -- of what is typed after it.
+    vim.api.nvim_feedkeys(vim.keycode(key), 'mi', false)
+    return vim.api.nvim_feedkeys(vim.keycode('<C-y>'), 'ni', false)
   end
   local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
   local response = client:request_sync('workspace/executeCommand', { command = name, arguments = { context } }, 1000, bufnr)
