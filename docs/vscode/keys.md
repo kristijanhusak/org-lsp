@@ -156,7 +156,8 @@ The other options are in [configuration.md](configuration.md).
 | Keys | Command | What it does |
 | --- | --- | --- |
 | `Ctrl+Space` | `org.checkbox.toggle` | Toggle the checkbox |
-| `Enter`¹, `Shift+Enter`¹ | `org.return` | New line, as Org's RET makes it |
+| `Enter`¹ | `org.return` | New line, as Org's RET makes it |
+| `Shift+Enter`¹ | `org.return.item` | New line; on a list item, the next item |
 | `Ctrl+A`¹ | `org.timestamp.up` | Increase the part of the timestamp at the cursor |
 | `Ctrl+X`¹ | `org.timestamp.down` | Decrease the part of the timestamp at the cursor |
 | `Shift+Up`¹ | `org.date.later` | Move the date one day later |
@@ -308,6 +309,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.priority` | Org: Set the priority |
 | `org.checkbox.toggle` | Org: Toggle the checkbox |
 | `org.return` | Org: New line, as Org's RET makes it |
+| `org.return.item` | Org: New line; on a list item, the next item |
 | `org.meta.return` | Org: New heading, item or table row |
 | `org.insert.todo.heading` | Org: New TODO heading, or item with a checkbox |
 | `org.insert.heading.after` | Org: New heading after the subtree |

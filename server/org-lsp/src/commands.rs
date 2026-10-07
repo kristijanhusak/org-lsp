@@ -136,6 +136,7 @@ pub const PRIORITY_DOWN: &str = "org.priority.down";
 pub const PRIORITY: &str = "org.priority";
 pub const CHECKBOX_TOGGLE: &str = "org.checkbox.toggle";
 pub const RETURN: &str = "org.return";
+pub const RETURN_ITEM: &str = "org.return.item";
 pub const META_RETURN: &str = "org.meta.return";
 pub const INSERT_TODO_HEADING: &str = "org.insert.todo.heading";
 pub const INSERT_HEADING_AFTER: &str = "org.insert.heading.after";
@@ -302,9 +303,13 @@ pub const COMMANDS: &[Command] = &[
     // code it refuses, and the editor's own RET applies.
     Command {
         emacs: &[native(Org, "RET")],
-        vim: &[insert_native(Org, "<CR>"), insert_native(Org, "<S-CR>")],
+        vim: &[insert_native(Org, "<CR>")],
         ..edit(RETURN, "New line, as Org's RET makes it")
     },
+    // RET as `returnUsesMetaReturn` makes it, on a key of its own: on the
+    // line of a list item's bullet, the next item, numbered as M-RET
+    // numbers it; elsewhere Org's RET.
+    Command { vim: &[insert_native(Org, "<S-CR>")], ..edit(RETURN_ITEM, "New line; on a list item, the next item") },
     // M-RET and its neighbours, carried in the result like `org.return`.
     // From normal mode they act below the cursor's line (`below` in the
     // context) and typing goes on in insert mode, as with nvim-orgmode.

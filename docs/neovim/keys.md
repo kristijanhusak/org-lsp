@@ -41,7 +41,8 @@ The other options are in [configuration.md](configuration.md).
 | `cir` | `org.priority.down` | Lower the priority |
 | `<Leader>o,` | `org.priority` | Set the priority |
 | `<C-Space>` | `org.checkbox.toggle` | Toggle the checkbox |
-| `<CR>`¹ (insert mode), `<S-CR>`¹ (insert mode) | `org.return` | New line, as Org's RET makes it |
+| `<CR>`¹ (insert mode) | `org.return` | New line, as Org's RET makes it |
+| `<S-CR>`¹ (insert mode) | `org.return.item` | New line; on a list item, the next item |
 | `<Leader><CR>` | `org.meta.return` | New heading, item or table row |
 | `<Leader>oiT` | `org.insert.todo.heading` | New TODO heading, or item with a checkbox |
 | `<Leader>oih` | `org.insert.heading.after` | New heading after the subtree |
@@ -179,7 +180,12 @@ subtree at the cursor.
   command does not apply, so `<C-a>`, `<C-x>`, `<S-Up>` and `<S-Down>`
   still work on ordinary numbers and lines.
 - **RET and a completion menu**: while one is open (Vim's, nvim-cmp's or
-  blink.cmp's), `<CR>` is the menu's; `<S-CR>` closes it and is Org's RET.
+  blink.cmp's), `<CR>` is the menu's; `<S-CR>` closes it and runs its
+  command.
+- **`<S-CR>`** is RET that continues lists: on the line of a list item's
+  bullet it makes the next item, numbered and with a checkbox as M-RET
+  makes it, and elsewhere it is Org's RET. `<CR>` does that too with
+  `returnUsesMetaReturn`.
 - **`<Leader><CR>`** and its neighbours put the new heading, item or table
   row below the cursor's line, wherever on it the cursor is: never above
   it, and nothing is split. Typing goes on in insert mode.

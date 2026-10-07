@@ -215,6 +215,11 @@
         "category": "Org"
       },
       {
+        "command": "org.return.item",
+        "title": "New line; on a list item, the next item",
+        "category": "Org"
+      },
+      {
         "command": "org.meta.return",
         "title": "New heading, item or table row",
         "category": "Org"
@@ -1001,7 +1006,7 @@
             },
             "returnUsesMetaReturn": {
               "type": "boolean",
-              "markdownDescription": "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item.",
+              "markdownDescription": "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
               "default": false
             },
             "autoSave": {
@@ -2604,7 +2609,7 @@
         }
       },
       {
-        "command": "org.return",
+        "command": "org.return.item",
         "key": "shift+enter",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && (!vim.active || vim.mode == 'Insert') && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorHasMultipleSelections && !editorReadonly",
         "args": {

@@ -629,7 +629,8 @@ vim.api.nvim_win_set_cursor(0, { 6, 3 })
 press('a<CR>z<Esc>')
 eq(vim.api.nvim_buf_get_lines(0, 5, 7, false), { 'echo', '  z' }, 'in code, RET is RET (indented as the block content)')
 -- Where RET does not apply, another plugin's mapping of `<CR>` (a global
--- one, as autopairs plugins make) does what it does; `<S-CR>` is RET too.
+-- one, as autopairs plugins make) does what it does; `<S-CR>` is RET too,
+-- but for making the next item on a list item.
 vim.keymap.set('i', '<CR>', '<CR>#')
 vim.api.nvim_win_set_cursor(0, { 7, 2 })
 press('a<CR>w<Esc>')
@@ -649,6 +650,20 @@ vim.api.nvim_win_set_cursor(0, { 2, 4 })
 press('i<C-n><S-CR>z<Esc>')
 eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '| alpha | alps |', '| alpha |      |', '| z      |      |' },
   '<S-CR> with the menu open')
+vim.cmd('silent! write')
+-- On a list item, `<S-CR>` makes the next item, numbered; `<CR>` is Org's
+-- RET, a new line in the item.
+local listed = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '1. one', '2. two' }, listed)
+vim.cmd.edit(listed)
+wait('the server for <S-CR> on a list', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+press('A<S-CR>next<Esc>')
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '1. one', '2. next', '3. two' }, '<S-CR> makes the next item')
+press('A<CR>more<Esc>')
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '1. one', '2. next', '   more', '3. two' }, '<CR> stays in the item')
 vim.cmd('silent! write')
 vim.cmd.edit(returns)
 -- One that maps `<CR>` again reaches Vim's own key, not the plugin's again.

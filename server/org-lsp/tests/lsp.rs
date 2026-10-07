@@ -733,6 +733,32 @@ fn return_uses_meta_return_on_items() {
     client.shutdown();
 }
 
+/// `org.return.item` (`<S-CR>`) makes the next item without
+/// `returnUsesMetaReturn`, while `org.return` stays Org's RET.
+#[test]
+fn return_item_makes_the_next_item() {
+    let mut client = Client::start(json!({}), Value::Null);
+    let text = "1. one\n2. two\n";
+    client.open(&uri(), text);
+    let mut run = |command: &str| -> String {
+        let context = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 6 } });
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+            .expect("a result");
+        let edit: TextEdit = serde_json::from_value(result["edits"][0].clone()).unwrap();
+        // The text is ASCII: a character is a byte.
+        let offset = |at: Position| {
+            text.split_inclusive('\n').take(at.line as usize).map(str::len).sum::<usize>() + at.character as usize
+        };
+        let (start, end) = (offset(edit.range.start), offset(edit.range.end));
+        format!("{}{}{}", &text[..start], edit.new_text, &text[end..])
+    };
+    assert_eq!(run("org.return.item"), "1. one\n2. \n3. two\n");
+    assert_eq!(run("org.return"), "1. one\n   \n2. two\n");
+    client.shutdown();
+}
+
 /// `org.babel.tangle` writes the blocks' code to their files, as
 /// `org-babel-tangle` does, and says how many blocks went; in a source
 /// block it is a code action too.

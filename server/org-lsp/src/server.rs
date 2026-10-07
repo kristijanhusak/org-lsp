@@ -2316,7 +2316,10 @@ impl Server {
             id if id.starts_with("org.archive.") => {
                 self.archive(id, &context.ok_or("This command needs the cursor position")?)
             }
-            commands::RETURN => self.org_return(&context.ok_or("This command needs the cursor position")?),
+            commands::RETURN | commands::RETURN_ITEM => self.org_return(
+                &context.ok_or("This command needs the cursor position")?,
+                params.command == commands::RETURN_ITEM,
+            ),
             commands::META_RETURN
             | commands::INSERT_TODO_HEADING
             | commands::INSERT_HEADING_AFTER
@@ -3902,7 +3905,7 @@ impl Server {
     /// `org-return` at `context`. The edit is not sent to be applied: the
     /// result carries it, `{ "edits": [TextEdit], "cursor": Position }`,
     /// for the editor to apply as the key is typed.
-    fn org_return(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+    fn org_return(&mut self, context: &Context, items: bool) -> std::result::Result<Value, Refusal> {
         let encoding = self.client.encoding;
         let uri = &context.text_document.uri;
         let text = self.document(uri).ok_or("This file is not open")?.text.clone();
@@ -3910,9 +3913,9 @@ impl Server {
             org_core::newline::Settings { indent: self.indent_in(&text), tags_column: self.refile.2.tags_column };
         let document = self.document(uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
-        // `returnUsesMetaReturn`: on the first line of a list item, the next
-        // item, numbered as M-RET numbers it.
-        if self.return_uses_meta_return && on_item_line(&document.parse.syntax(), &document.text, offset) {
+        // `returnUsesMetaReturn`, and `org.return.item` always: on the first
+        // line of a list item, the next item, numbered as M-RET numbers it.
+        if (items || self.return_uses_meta_return) && on_item_line(&document.parse.syntax(), &document.text, offset) {
             return self.meta_return(commands::META_RETURN, context);
         }
         let outcome = org_core::newline::org_return(&document.text, offset, document.parse.todo_keywords(), &settings)?;
