@@ -169,6 +169,17 @@ pub const SETTINGS: &[Setting] = &[
         "org-clock-display-default-range",
         "The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up.",
     ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_clock_idle_time",
+            "integer",
+            "",
+            "org-clock-idle-time",
+            "After how many minutes without a message from the editor a clock that runs asks what to do with the idle time: keep it, subtract it (and clock out), or cancel the clock.",
+        )
+    },
     setting(
         "org_clock_history_length",
         "integer",
@@ -1004,6 +1015,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         "org_clock_display_default_range",
         r#"{ "enum": ["today", "yesterday", "thisweek", "lastweek", "thismonth", "lastmonth", "thisyear", "lastyear", "untilnow"] }"#,
     ),
+    ("org_clock_idle_time", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_clock_history_length", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_clock_clocktable_default_properties", STRING),
     ("org_clock_total_time_cell_format", STRING),

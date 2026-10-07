@@ -301,6 +301,13 @@
     }
   },
   {
+    "caption": "Org: Resolve a dangling clock",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.resolve"
+    }
+  },
+  {
     "caption": "Org: Clock out",
     "command": "org_lsp_run",
     "args": {

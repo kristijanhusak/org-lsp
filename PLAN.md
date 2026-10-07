@@ -88,7 +88,6 @@ few, checked against Emacs where Org decides the outcome:
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
   moving rows and columns, `C-c -` for a rule.
 - **Agenda (5):** done.
-- **Clocking (9):** idle time and dangling clocks.
 - **Capture (10):** item and checkitem templates, date trees, `%^g`
   tags, `%a` from the agenda.
 - **Links and navigation (11):** store and insert links (`C-c l`,
@@ -481,8 +480,12 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   `org-clock-in-last` (`C-c C-x C-x`). The history is kept by file and
   title, for as long as the server runs (`org-clock-persist` is not
   ported).
-- Left: idle time and resolving dangling clocks
-  with a question. (Effort
+- Done: dangling clocks (`org-resolve-clocks`, `org.clock.resolve`:
+  `k`, `K`, `s`, `S`, `C`, `i`) and idle time (`org-clock-idle-time`,
+  asked with `window/showMessageRequest`). Idle is the time without a
+  message from the editor, not the system's idle time; the answers that
+  ask for minutes (`k`/`g`/`t` with a number) and `j` are not ported:
+  keeping keeps all of it. (Effort
   estimates, `C-c C-x e`, came with the properties.)
 
 ### 10. Capture

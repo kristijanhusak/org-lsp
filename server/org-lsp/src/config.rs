@@ -67,6 +67,9 @@ pub struct Options {
     /// `org-clock-display-default-range`
     #[serde(rename = "org_clock_display_default_range")]
     pub clock_display_default_range: Option<String>,
+    /// `org-clock-idle-time`, in minutes.
+    #[serde(rename = "org_clock_idle_time")]
+    pub clock_idle_time: Option<i64>,
     /// `org-clock-history-length`
     #[serde(rename = "org_clock_history_length")]
     pub clock_history_length: Option<usize>,

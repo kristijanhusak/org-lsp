@@ -20,6 +20,7 @@
 ---@field org_clock_out_remove_zero_time_clocks? boolean Clocking out after less than a minute removes the `CLOCK:` line. (`org-clock-out-remove-zero-time-clocks`)
 ---@field org_clock_out_when_done? boolean Marking the clocked entry done stops the clock. (`org-clock-out-when-done`)
 ---@field org_clock_display_default_range? 'today'|'yesterday'|'thisweek'|'lastweek'|'thismonth'|'lastmonth'|'thisyear'|'lastyear'|'untilnow' The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up. (`org-clock-display-default-range`)
+---@field org_clock_idle_time? integer After how many minutes without a message from the editor a clock that runs asks what to do with the idle time: keep it, subtract it (and clock out), or cancel the clock. (`org-clock-idle-time`)
 ---@field org_clock_history_length? integer How many entries clocked into the clock history keeps, for `org.clock.in` with a count and `org.clock.in.last`. (`org-clock-history-length`)
 ---@field org_clock_clocktable_default_properties? string The parameters a new clock table gets on its `#+BEGIN:` line from `org.clock.report` (`C-c C-x C-r`), after `:scope`, as Emacs Lisp reads them (`:maxlevel 3 :link t`). (`org-clock-clocktable-default-properties`)
 ---@field org_clock_total_time_cell_format? string How a clock table writes its total time and the words before it; `%s` is the text. (`org-clock-total-time-cell-format`)

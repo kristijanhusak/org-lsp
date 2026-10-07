@@ -153,6 +153,9 @@ pub const AGENDA_ARCHIVES: &str = "org.agenda.archives";
 pub const AGENDA_ARCHIVES_FILES: &str = "org.agenda.archives.files";
 pub const CLOCK_IN: &str = "org.clock.in";
 pub const CLOCK_IN_LAST: &str = "org.clock.in.last";
+pub const CLOCK_RESOLVE: &str = "org.clock.resolve";
+/// The answer to the question about idle time, which the server asks.
+pub const CLOCK_RESOLVE_IDLE: &str = "org.clock.resolve.idle";
 pub const CLOCK_OUT: &str = "org.clock.out";
 pub const CLOCK_CANCEL: &str = "org.clock.cancel";
 pub const CLOCK_GOTO: &str = "org.clock.goto";
@@ -385,6 +388,8 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>oxx")],
         ..edit(CLOCK_IN_LAST, "Clock in the last clocked task")
     },
+    // `org-resolve-clocks`: a clock left running beside the clock.
+    Command { vim: &[key(Org, "<Leader>oxR")], ..edit(CLOCK_RESOLVE, "Resolve a dangling clock") },
     Command {
         emacs: &[key(Org, "C-c C-x C-o"), key(Agenda, "O")],
         vim: &[key(Org, "<Leader>oxo")],
