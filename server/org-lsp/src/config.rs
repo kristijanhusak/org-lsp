@@ -67,6 +67,9 @@ pub struct Options {
     /// `org-clock-display-default-range`
     #[serde(rename = "org_clock_display_default_range")]
     pub clock_display_default_range: Option<String>,
+    /// `org-clock-history-length`
+    #[serde(rename = "org_clock_history_length")]
+    pub clock_history_length: Option<usize>,
     /// `org-clock-clocktable-default-properties`, as the text of a plist.
     #[serde(rename = "org_clock_clocktable_default_properties")]
     pub clock_clocktable_default_properties: Option<String>,

@@ -289,6 +289,11 @@ require('org-lsp').setup({
     -- (org-clock-display-default-range)
     org_clock_display_default_range = 'thisyear',
 
+    -- How many entries clocked into the clock history keeps, for
+    -- `org.clock.in` with a count and `org.clock.in.last`.
+    -- (org-clock-history-length)
+    org_clock_history_length = 5,
+
     -- The parameters a new clock table gets on its `#+BEGIN:` line from
     -- `org.clock.report` (`C-c C-x C-r`), after `:scope`, as Emacs Lisp reads
     -- them (`:maxlevel 3 :link t`). (org-clock-clocktable-default-properties)

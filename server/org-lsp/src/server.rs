@@ -510,6 +510,17 @@ struct Server {
     /// The entry clocked last: its file and headline, for
     /// `org.clock.goto` when no clock runs.
     last_clocked: Option<(Uri, String)>,
+    /// `org-clock-history`: the entries clocked into, the last first, by
+    /// file and title; at most `org-clock-history-length`.
+    clock_history: Vec<(Uri, String)>,
+    clock_history_length: usize,
+    /// `org-clock-default-task`, marked by clocking in with `C-u C-u`.
+    clock_default_task: Option<(Uri, String)>,
+    /// `org-clock-interrupted-task`: the entry whose clock the last
+    /// clock-in stopped.
+    clock_interrupted: Option<(Uri, String)>,
+    /// `org-clock-out-time`: when the last clock stopped.
+    clock_out_time: Option<DateTime>,
     /// `org-clock-into-drawer` and its relatives.
     clock_settings: org_core::clock::Settings,
     /// `org-clock-out-when-done`
@@ -707,6 +718,11 @@ pub fn run(connection: Connection) -> Result<()> {
         running: None,
         clock_pending: false,
         last_clocked: None,
+        clock_history: Vec::new(),
+        clock_history_length: options.clock_history_length.unwrap_or(5).max(1),
+        clock_default_task: None,
+        clock_interrupted: None,
+        clock_out_time: None,
         clock_settings: options.clock_settings(),
         clock_out_when_done: options.clock_out_when_done.unwrap_or(true),
         clock_in_switch: options.clock_in_switch_to_state.clone(),
@@ -1908,6 +1924,7 @@ impl Server {
             (commands::REFILE, more && in_entry),
             (commands::SORT, more),
             (commands::CLOCK_GOTO, more && running),
+            (commands::CLOCK_IN_LAST, more && !self.clock_history.is_empty()),
             (commands::CLOCK_REPORT, more),
             (commands::DBLOCK_UPDATE, more && org_core::clocktable::in_block(&document.text, offset)),
             (commands::AGENDA_LIST, more),
@@ -6510,6 +6527,7 @@ impl Server {
         self.last = None;
         match id {
             commands::CLOCK_IN => self.clock_in(context.ok_or("This command needs the cursor position")?),
+            commands::CLOCK_IN_LAST => self.clock_in_last(context.ok_or("This command needs the cursor position")?),
             commands::CLOCK_OUT | commands::CLOCK_CANCEL => {
                 let running = self.running.clone().ok_or("No active clock")?;
                 let Some((text, version, line)) = self.clock_line(&running) else {
@@ -6519,6 +6537,7 @@ impl Server {
                 };
                 let (new_text, message) = if id == commands::CLOCK_OUT {
                     let out = clock::clock_out(&text, line, self.date_time(), &self.clock_settings)?;
+                    self.clock_out_time = Some(self.date_time());
                     let switched = match Self::heading_above(&text, line) {
                         Some(heading) => self.switch_state(&out.text, heading, self.clock_out_switch.as_deref())?,
                         None => out.text,
@@ -6577,6 +6596,147 @@ impl Server {
     /// `org-clock-in` on the entry at the cursor, or on the entry of an
     /// agenda line. A clock that runs elsewhere stops first.
     fn clock_in(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let count = context.count.unwrap_or(0);
+        // `C-u`: an entry of the history.
+        if count == 4 {
+            return self.clock_in_selected(context);
+        }
+        let (file, heading) = self.clock_target(context)?;
+        // `C-u C-u`: the entry becomes the default task.
+        if count == 16 {
+            self.clock_default_task = self.entry_title(&file, heading).map(|title| (file.clone(), title));
+        }
+        // `C-u C-u C-u`: from when the last clock stopped.
+        let now = self.date_time();
+        let start = if count == 64 { self.clock_out_time.unwrap_or(now) } else { now };
+        self.clock_in_at(file, heading, start)
+    }
+
+    /// The title of the entry at `heading` of `uri`, as the clock history
+    /// knows it: the headline without keyword, priority and tags.
+    fn entry_title(&mut self, uri: &Uri, heading: usize) -> Option<String> {
+        self.with_source(uri, |_, _, _, outline, _| {
+            let entry = &outline.entries[outline.entry_at(heading)?];
+            Some(org_core::agenda::report::plain_heading(&entry.head, entry.todo.as_deref()))
+        })
+        .flatten()
+    }
+
+    /// Where the entry with `title` starts in `uri`.
+    fn find_title(&mut self, uri: &Uri, title: &str) -> Option<usize> {
+        self.with_source(uri, |_, _, _, outline, _| {
+            outline
+                .entries
+                .iter()
+                .find(|entry| org_core::agenda::report::plain_heading(&entry.head, entry.todo.as_deref()) == title)
+                .map(|entry| entry.offset)
+        })
+        .flatten()
+    }
+
+    /// `org-clock-select-task`: the default task (`d`), the interrupted
+    /// one (`i`), the clocked one (`c`) and the history (`1`, `2`…), to
+    /// pick from; asked as a choice, then clocked into.
+    fn clock_in_selected(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        // The history without repeats in a row.
+        let mut recent: Vec<(Uri, String)> = Vec::new();
+        for task in &self.clock_history {
+            if recent.last() != Some(task) {
+                recent.push(task.clone());
+            }
+        }
+        if recent.is_empty() {
+            return Err("No recent clock".into());
+        }
+        let mut tasks: Vec<(String, Uri, String)> = Vec::new();
+        if let Some((uri, title)) = self.clock_default_task.clone() {
+            tasks.push(("d".to_string(), uri, title));
+        }
+        if let Some((uri, title)) = self.clock_interrupted.clone() {
+            tasks.push(("i".to_string(), uri, title));
+        }
+        if let Some(running) = self.running.clone() {
+            if let Some(title) = self
+                .clock_line(&running)
+                .and_then(|(text, _, line)| Self::heading_above(&text, line))
+                .and_then(|heading| self.entry_title(&running.uri, heading))
+            {
+                tasks.push(("c".to_string(), running.uri, title));
+            }
+        }
+        let mut number = 0;
+        for (uri, title) in recent {
+            number += 1;
+            let key = if number < 10 { char::from(b'0' + number as u8) } else { char::from(b'A' + number as u8 - 10) };
+            tasks.push((key.to_string(), uri, title));
+        }
+        // What each line shows: the category and the headline.
+        let mut found: Vec<(String, Uri, usize, String)> = Vec::new();
+        for (key, uri, title) in tasks {
+            let Some(heading) = self.find_title(&uri, &title) else { continue };
+            let label = self
+                .with_source(&uri, |_, _, _, outline, _| {
+                    let entry = &outline.entries[outline.entry_at(heading)?];
+                    let head = match org_core::text::tag_group(&entry.head) {
+                        Some((blanks, _)) => entry.head[..blanks].trim_end(),
+                        None => entry.head.as_str(),
+                    };
+                    Some(format!("{:<12}  {head}", entry.category))
+                })
+                .flatten()
+                .unwrap_or_default();
+            found.push((key, uri, heading, label));
+        }
+        let Some(answer) = context.input.clone() else {
+            let choices: Vec<Value> =
+                found.iter().map(|(key, _, _, label)| json!({ "key": key, "label": label })).collect();
+            return Ok(json!({ "input": {
+                "kind": "choice",
+                "prompt": "Clock-in on task: ",
+                "value": "",
+                "choices": choices,
+            } }));
+        };
+        if answer == "q" || answer == "x" {
+            return Err("Abort".into());
+        }
+        let (_, uri, heading, _) = found
+            .into_iter()
+            .find(|(key, ..)| *key == answer)
+            .ok_or_else(|| format!("Invalid task choice {answer}"))?;
+        let now = self.date_time();
+        self.clock_in_at(uri, heading, now)
+    }
+
+    /// `org-clock-in-last` (`C-c C-x C-x`): the clock again on the entry
+    /// clocked last; with `C-u`, one picked from the history, and with
+    /// `C-u C-u` from when the last clock stopped.
+    fn clock_in_last(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let count = context.count.unwrap_or(0);
+        if count == 4 {
+            return self.clock_in_selected(context);
+        }
+        let Some((uri, title)) = self.clock_history.first().cloned() else {
+            self.message = Some("No last clock".to_string());
+            return Ok(Value::Null);
+        };
+        let heading = self.find_title(&uri, &title).ok_or("The entry clocked last is gone")?;
+        let now = self.date_time();
+        let start = if count == 16 { self.clock_out_time.unwrap_or(now) } else { now };
+        let already = self.running.is_some();
+        let result = self.clock_in_at(uri.clone(), heading, start)?;
+        if !already {
+            let file = uri::to_path(&uri)
+                .and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
+                .unwrap_or_default();
+            self.message = Some(format!("Clocking back: {title} (in {file})"));
+        }
+        Ok(result)
+    }
+
+    /// The file and the headline the clock goes to: the entry at the
+    /// cursor, or that of an agenda line.
+    fn clock_target(&mut self, context: &Context) -> std::result::Result<(Uri, usize), Refusal> {
         let encoding = self.client.encoding;
         let uri = context.text_document.uri.clone();
         let (file, heading) = if self.is_view(&uri) {
@@ -6594,9 +6754,17 @@ impl Server {
             let heading = Self::heading_above(&document.text, offset).ok_or("Before first headline")?;
             (uri, heading)
         };
+        Ok((file, heading))
+    }
+
+    /// The clock started on the entry at `heading` of `file` at `start`;
+    /// one that runs elsewhere stops now.
+    fn clock_in_at(&mut self, file: Uri, heading: usize, start: DateTime) -> std::result::Result<Value, Refusal> {
         let now = self.date_time();
         let mut changes: Vec<(Uri, Option<i32>, String, String)> = Vec::new();
         let mut heading = heading;
+        let title = self.entry_title(&file, heading);
+        let mut interrupted = None;
         if let Some(running) = self.running.clone() {
             if let Some((text, version, line)) = self.clock_line(&running) {
                 // Already on this entry: the clock continues.
@@ -6611,7 +6779,11 @@ impl Server {
                     self.message = Some(format!("Clock continues in \"{title}\""));
                     return Ok(Value::Null);
                 }
+                interrupted = Self::heading_above(&text, line)
+                    .and_then(|running_heading| self.entry_title(&running.uri, running_heading))
+                    .map(|title| (running.uri.clone(), title));
                 let out = clock::clock_out(&text, line, now, &self.clock_settings)?;
+                self.clock_out_time = Some(now);
                 let out_text = match Self::heading_above(&text, line) {
                     Some(running_heading) => {
                         self.switch_state(&out.text, running_heading, self.clock_out_switch.as_deref())?
@@ -6636,7 +6808,7 @@ impl Server {
                 None => base,
             };
             settings.adapt = display.adapt(&base, adapt);
-            let clocked = clock::clock_in(&base, parse.todo_keywords(), heading, &settings, now)?;
+            let clocked = clock::clock_in(&base, parse.todo_keywords(), heading, &settings, start)?;
             let entry = &outline.entries[outline.entry_at(heading).ok_or("Before first headline")?];
             let repeat = entry.properties.iter().any(|(key, _)| key == "LAST_REPEAT");
             // The headline as the clock leaves it, its state switched.
@@ -6649,11 +6821,19 @@ impl Server {
             None => changes.push((file.clone(), version, old, new_text)),
         }
         self.send_texts(changes);
-        self.running = Some(RunningClock { uri: file.clone(), start: now, head: head.clone() });
+        self.running = Some(RunningClock { uri: file.clone(), start, head: head.clone() });
+        self.clock_interrupted = interrupted;
+        // `org-clock-history-push`
+        if let Some(title) = title {
+            let task = (file.clone(), title);
+            self.clock_history.retain(|other| *other != task);
+            self.clock_history.truncate(self.clock_history_length - 1);
+            self.clock_history.insert(0, task);
+        }
         self.last_clocked = Some((file, head));
         let shown = if repeat { "showing task time since last repeat." } else { "showing entire task time." };
         self.message =
-            Some(format!("Clock starts at {} - {shown}", org_core::stamp::format_timestamp(now, true, true, "")));
+            Some(format!("Clock starts at {} - {shown}", org_core::stamp::format_timestamp(start, true, true, "")));
         self.publish_clock();
         Ok(Value::Null)
     }
@@ -6704,6 +6884,7 @@ impl Server {
         };
         let head = new_text[headline..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();
         self.last_clocked = Some((file.clone(), head));
+        self.clock_out_time = Some(self.date_time());
         self.running = None;
         self.publish_clock();
         let encoding = self.client.encoding;

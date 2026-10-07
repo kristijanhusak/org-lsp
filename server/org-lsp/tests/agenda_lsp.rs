@@ -4162,3 +4162,73 @@ fn writes_clock_tables() {
         ]
     );
 }
+
+/// The clock history: `C-u C-c C-x C-i` offers the interrupted entry and
+/// the recent ones, `C-c C-x C-x` clocks back into the last, `C-u C-u`
+/// marks the default task and `C-u C-u C-u` starts when the last clock
+/// stopped.
+#[test]
+fn clocks_in_from_the_history() {
+    let mut client = Client::editor(clock(), None);
+    let uri = "file:///org/work.org";
+    let mut text = "* TODO Write :office:\n* Read\n* Call\n".to_string();
+    client.open(uri, &text);
+    let run = |client: &mut Client, text: &mut String, command: &str, line: u32, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        for request in std::mem::take(&mut client.received) {
+            if request.method == "workspace/applyEdit" {
+                let (_, edits) = edits_of(&request);
+                *text = apply(text, &edits);
+                client.file_version += 1;
+                client.notify(
+                    "textDocument/didChange",
+                    json!({ "textDocument": { "uri": uri, "version": client.file_version }, "contentChanges": [{ "text": *text }] }),
+                );
+                client.settle();
+            }
+        }
+        result
+    };
+    // Nothing clocked yet.
+    let error = run(&mut client, &mut text, "org.clock.in", 0, json!({ "count": 4 })).unwrap_err();
+    assert!(format!("{error:?}").contains("No recent clock"), "{error:?}");
+    let answer = run(&mut client, &mut text, "org.clock.in.last", 0, json!({})).unwrap();
+    assert_eq!(answer["message"], "No last clock");
+    run(&mut client, &mut text, "org.clock.in", 0, json!({})).unwrap();
+    let read = text.lines().position(|line| line == "* Read").unwrap() as u32;
+    run(&mut client, &mut text, "org.clock.in", read, json!({})).unwrap();
+    let asked = run(&mut client, &mut text, "org.clock.in", 0, json!({ "count": 4 })).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Clock-in on task: ");
+    assert_eq!(
+        asked["input"]["choices"],
+        json!([
+            { "key": "i", "label": "work          TODO Write" },
+            { "key": "c", "label": "work          Read" },
+            { "key": "1", "label": "work          Read" },
+            { "key": "2", "label": "work          TODO Write" },
+        ])
+    );
+    // The interrupted entry, picked.
+    run(&mut client, &mut text, "org.clock.in", 2, json!({ "count": 4, "input": "i" })).unwrap();
+    assert_eq!(text.lines().nth(2).unwrap(), "CLOCK: [2026-05-18 Mon 10:30]", "{text}");
+    let write_clock = text.lines().filter(|line| line.starts_with("CLOCK: [2026-05-18 Mon 10:30]")).count();
+    assert_eq!(write_clock, 3, "{text}");
+    run(&mut client, &mut text, "org.clock.out", 0, json!({})).unwrap();
+    // Back into the last one.
+    let answer = run(&mut client, &mut text, "org.clock.in.last", 2, json!({})).unwrap();
+    assert_eq!(answer["message"], "Clocking back: Write (in work.org)");
+    run(&mut client, &mut text, "org.clock.out", 0, json!({})).unwrap();
+    // `C-u C-u`: the default task, offered as `d`.
+    let call = text.lines().position(|line| line == "* Call").unwrap() as u32;
+    run(&mut client, &mut text, "org.clock.in", call, json!({ "count": 16 })).unwrap();
+    let asked = run(&mut client, &mut text, "org.clock.in", 0, json!({ "count": 4 })).unwrap();
+    assert_eq!(asked["input"]["choices"][0], json!({ "key": "d", "label": "work          Call" }));
+    let error = run(&mut client, &mut text, "org.clock.in", 0, json!({ "count": 4, "input": "z" })).unwrap_err();
+    assert!(format!("{error:?}").contains("Invalid task choice z"), "{error:?}");
+}

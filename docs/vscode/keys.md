@@ -43,6 +43,7 @@ The other options are in [configuration.md](configuration.md).
 | Keys | Command | What it does |
 | --- | --- | --- |
 | `Ctrl+C Ctrl+X Ctrl+I` | `org.clock.in` | Clock in |
+| `Ctrl+C Ctrl+X Ctrl+X` | `org.clock.in.last` | Clock in the last clocked task |
 | `Ctrl+C Ctrl+X Ctrl+O` | `org.clock.out` | Clock out |
 | `Ctrl+C Ctrl+X Ctrl+Q` | `org.clock.cancel` | Cancel the clock |
 | `Ctrl+C Ctrl+X Ctrl+J` | `org.clock.goto` | Go to the clocked entry |
@@ -321,6 +322,7 @@ every file; outside Org files the commands say they do not apply):
 "vim.normalModeKeyBindingsNonRecursive": [
   { "before": ["<leader>", "o", "a"], "commands": ["org.agenda.dispatch"] },
   { "before": ["<leader>", "o", "x", "i"], "commands": ["org.clock.in"] },
+  { "before": ["<leader>", "o", "x", "x"], "commands": ["org.clock.in.last"] },
   { "before": ["<leader>", "o", "x", "o"], "commands": ["org.clock.out"] },
   { "before": ["<leader>", "o", "x", "q"], "commands": ["org.clock.cancel"] },
   { "before": ["<leader>", "o", "x", "j"], "commands": ["org.clock.goto"] },
@@ -413,6 +415,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.agenda.archives` | Org: Agenda: include archived trees |
 | `org.agenda.archives.files` | Org: Agenda: include archived trees and archive files |
 | `org.clock.in` | Org: Clock in |
+| `org.clock.in.last` | Org: Clock in the last clocked task |
 | `org.clock.out` | Org: Clock out |
 | `org.clock.cancel` | Org: Cancel the clock |
 | `org.clock.goto` | Org: Go to the clocked entry |

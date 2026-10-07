@@ -266,6 +266,11 @@
         "category": "Org"
       },
       {
+        "command": "org.clock.in.last",
+        "title": "Clock in the last clocked task",
+        "category": "Org"
+      },
+      {
         "command": "org.clock.out",
         "title": "Clock out",
         "category": "Org"
@@ -979,6 +984,12 @@
               ],
               "markdownDescription": "The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up. (`org-clock-display-default-range`)",
               "default": "thisyear"
+            },
+            "org_clock_history_length": {
+              "minimum": 1,
+              "type": "integer",
+              "markdownDescription": "How many entries clocked into the clock history keeps, for `org.clock.in` with a count and `org.clock.in.last`. (`org-clock-history-length`)",
+              "default": 5
             },
             "org_clock_clocktable_default_properties": {
               "type": "string",
@@ -3044,6 +3055,11 @@
       {
         "command": "org.clock.in",
         "key": "ctrl+c ctrl+x ctrl+i",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.in.last",
+        "key": "ctrl+c ctrl+x ctrl+x",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
