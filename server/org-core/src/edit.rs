@@ -150,7 +150,12 @@ pub fn run(
                 (None, false) => todo::NoteText::Ask,
             };
             todo::change_state_noted(text, keywords, offset, target, &settings.todo, call.now, note)
-                .map(|changed| Outcome { text: changed.text, cursor: None, note: changed.wants_note, message: None })
+                .map(|changed| Outcome {
+                    text: changed.text,
+                    cursor: None,
+                    note: changed.wants_note,
+                    message: changed.message,
+                })
                 .map_err(|message| {
                     if message == "Before first headline" {
                         Refusal::NotHere(message)

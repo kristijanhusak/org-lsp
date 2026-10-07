@@ -648,15 +648,16 @@ fn with_message(result: Value, message: Option<String>) -> Value {
 
 /// What Emacs says about a change to the headline at `heading`: the
 /// priority it now has, or, for a change made from the agenda where the
-/// entry is out of sight, its TODO state. A state set to the one it had is
-/// worth a word as well.
+/// entry is out of sight, its TODO state. A state asked for (`requested`)
+/// that the entry already had is worth a word as well; not one the entry
+/// comes back to, as a repeating entry marked done does.
 fn headline_message(
     old: &str,
     new: &str,
     heading: usize,
     keywords: &TodoKeywords,
     from_agenda: bool,
-    explicit: bool,
+    requested: Option<&Option<String>>,
 ) -> Option<String> {
     let line = old[..heading.min(old.len())].matches('\n').count();
     let state = |text: &str| {
@@ -678,7 +679,7 @@ fn headline_message(
         return Some(format!("TODO state changed to {}", keyword.unwrap_or_default()));
     }
     // A state picked by its key that the entry already has.
-    if keyword == old_keyword && explicit {
+    if requested.is_some_and(|requested| *requested == old_keyword) {
         return Some(format!("TODO state was already {}", keyword.unwrap_or_default()));
     }
     None
@@ -3689,7 +3690,11 @@ impl Server {
                 note: extra.note.clone(),
                 skip_note: extra.skip_note,
             };
-            let explicit = matches!(command, EditCommand::Todo(TodoTarget::State(_)));
+            // A state asked for by name: Emacs says so when the entry has it.
+            let requested = match &command {
+                EditCommand::Todo(TodoTarget::State(state)) => Some(state.clone()),
+                _ => None,
+            };
             let mut settings = settings.clone();
             settings.todo.adapt = display.adapt(text, adapt);
             let outcome = edit::run(&command, text, parse, offset, &call, &settings).map(|outcome| {
@@ -3705,7 +3710,7 @@ impl Server {
                             heading,
                             parse.todo_keywords(),
                             reference.is_some(),
-                            explicit,
+                            requested.as_ref(),
                         )
                     })
                 });

@@ -1007,6 +1007,11 @@ fn says_what_it_did_and_saves_what_it_changed_elsewhere() {
     assert!(saved.is_empty());
     let (result, _) = run_saving(&mut client, "org.todo", "file:///org/work.org", (1, 0), json!({ "input": "t" }));
     assert_eq!(result, json!({ "message": "TODO state was already TODO" }));
+    // A repeating entry marked done is open again, its date moved on: Org
+    // says where to, not that the state was already TODO.
+    client.open("file:///org/repeat.org", "* TODO Water\nSCHEDULED: <2026-05-18 Mon +1w>\n");
+    let (result, _) = run_saving(&mut client, "org.todo", "file:///org/repeat.org", (0, 0), json!({ "input": "d" }));
+    assert_eq!(result, json!({ "message": "Entry repeats: SCHEDULED: <2026-05-25 Mon +1w>" }));
 
     // `cid`: the timestamp at the cursor changes, inactive as it was; off a
     // timestamp there is nothing to change.
