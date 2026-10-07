@@ -73,6 +73,11 @@ async function fallBack(commands: KeyArgs['fallback']): Promise<void> {
   }
 }
 
+/** How a key of a key input shows: Emacs's names for the blank ones. */
+function keyName(key: string): string {
+  return ({ ' ': 'SPC', '\r': 'RET', '\t': 'TAB' } as Record<string, string>)[key] ?? key;
+}
+
 function notApplicable(error: unknown): boolean {
   return (error as { data?: { notApplicable?: unknown } } | null)?.data?.notApplicable === true;
 }
@@ -246,7 +251,7 @@ async function ask(input: Input, typed: (text: string) => Promise<vscode.InputBo
   if (input.choices) {
     // A key shows with its choice, as Org's fast selection lists them.
     const items = input.choices.map((choice) => ({
-      label: input.kind === 'key' ? `[${choice.key === ' ' ? 'SPC' : choice.key}] ${choice.label}` : choice.label,
+      label: input.kind === 'key' ? `[${keyName(choice.key)}] ${choice.label}` : choice.label,
       key: choice.key,
     }));
     const picked = await vscode.window.showQuickPick(items, { placeHolder: input.prompt, ignoreFocusOut: true });

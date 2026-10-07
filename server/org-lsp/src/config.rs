@@ -64,6 +64,26 @@ pub struct Options {
     /// also offers those of the agenda files.
     #[serde(rename = "org_complete_tags_always_offer_all_agenda_tags")]
     pub complete_tags_always_offer_all_agenda_tags: Option<bool>,
+    /// `org-tag-alist`: the tags offered when a file has no `#+TAGS:`
+    /// line, written like one (`"work(w) { @office(o) @home(h) }"`), or as
+    /// its words.
+    #[serde(rename = "org_tag_alist")]
+    pub tag_alist: Option<TagsOption>,
+    /// `org-tag-persistent-alist`: tags offered in every file.
+    #[serde(rename = "org_tag_persistent_alist")]
+    pub tag_persistent_alist: Option<TagsOption>,
+    /// `org-use-fast-tag-selection`: `true`, `false` or `"auto"`.
+    #[serde(rename = "org_use_fast_tag_selection")]
+    pub use_fast_tag_selection: Option<serde_json::Value>,
+    /// `org-fast-tag-selection-single-key`
+    #[serde(rename = "org_fast_tag_selection_single_key")]
+    pub fast_tag_selection_single_key: Option<bool>,
+    /// `org-tags-sort-function`: `"string<"` or `"string>"`.
+    #[serde(rename = "org_tags_sort_function")]
+    pub tags_sort_function: Option<String>,
+    /// `org-auto-align-tags`
+    #[serde(rename = "org_auto_align_tags")]
+    pub auto_align_tags: Option<bool>,
     /// `org-todo-repeat-to-state`: a keyword, or `true` for the state the
     /// entry had before it was marked done.
     #[serde(rename = "org_todo_repeat_to_state")]
@@ -348,6 +368,23 @@ impl LogOption {
             LogOption::Name(name) if name == "note" => Some(Logging::Note),
             LogOption::Name(name) if name == "time" => Some(Logging::Time),
             LogOption::Name(_) => None,
+        }
+    }
+}
+
+/// A tag table: a `#+TAGS:` line, or its words.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum TagsOption {
+    Line(String),
+    Words(Vec<String>),
+}
+
+impl TagsOption {
+    fn to_alist(&self) -> Vec<org_core::tags::TagEntry> {
+        match self {
+            TagsOption::Line(line) => org_core::tags::tag_string_to_alist(line),
+            TagsOption::Words(words) => org_core::tags::tag_string_to_alist(&words.join(" ")),
         }
     }
 }
@@ -647,6 +684,31 @@ impl Options {
                 .timestamp_rounding_minutes
                 .filter(|minutes| *minutes >= 0)
                 .unwrap_or(defaults.timestamp_rounding_minutes),
+            tags: self.tag_settings(),
+        }
+    }
+
+    /// The tag table and how tags are set (`org-tag-alist` and its
+    /// relatives).
+    pub fn tag_settings(&self) -> org_core::tags::Settings {
+        use org_core::tags::{Fast, Settings, Sort};
+        let defaults = Settings::default();
+        Settings {
+            alist: self.tag_alist.as_ref().map(TagsOption::to_alist).unwrap_or_default(),
+            persistent: self.tag_persistent_alist.as_ref().map(TagsOption::to_alist).unwrap_or_default(),
+            fast: match &self.use_fast_tag_selection {
+                Some(serde_json::Value::Bool(true)) => Fast::Always,
+                Some(serde_json::Value::Bool(false)) => Fast::Never,
+                _ => Fast::Auto,
+            },
+            single_key: self.fast_tag_selection_single_key.unwrap_or(defaults.single_key),
+            sort: match self.tags_sort_function.as_deref() {
+                Some("string<") => Some(Sort::Ascending),
+                Some("string>") => Some(Sort::Descending),
+                _ => None,
+            },
+            auto_align: self.auto_align_tags.unwrap_or(defaults.auto_align),
+            tags_column: self.tags_column.unwrap_or(defaults.tags_column),
         }
     }
 

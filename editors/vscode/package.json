@@ -205,6 +205,11 @@
         "category": "Org"
       },
       {
+        "command": "org.tags.set",
+        "title": "Set the tags of the headline",
+        "category": "Org"
+      },
+      {
         "command": "org.checkbox.toggle",
         "title": "Toggle the checkbox",
         "category": "Org"
@@ -715,8 +720,56 @@
             },
             "org_complete_tags_always_offer_all_agenda_tags": {
               "type": "boolean",
-              "markdownDescription": "Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. (`org-complete-tags-always-offer-all-agenda-tags`)",
+              "markdownDescription": "Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. Setting tags offers them too. (`org-complete-tags-always-offer-all-agenda-tags`)",
               "default": false
+            },
+            "org_tag_alist": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "string",
+                "array"
+              ],
+              "markdownDescription": "The tags offered when setting tags in a file without a `#+TAGS:` line, written like one: `\"work(w) home(h) { @office(o) @home(m) } [ GTD : Control Persp ]\"` gives `work` the key `w`, makes `@office` and `@home` exclusive, and groups `Control` and `Persp` under `GTD`; `\\n` starts a new line. A list of these words does as well. Unset, the tags used in the file are offered. (`org-tag-alist`)",
+              "default": ""
+            },
+            "org_tag_persistent_alist": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "string",
+                "array"
+              ],
+              "markdownDescription": "Tags offered in every file, before those of `#+TAGS:` or `org_tag_alist`, written the same way. (`org-tag-persistent-alist`)",
+              "default": ""
+            },
+            "org_use_fast_tag_selection": {
+              "enum": [
+                true,
+                false,
+                "auto"
+              ],
+              "markdownDescription": "Pick tags by key, each key turning its tag on or off until RET: `auto` when some tag has a key, `true` always (keys are given to the tags without one), `false` never: the tags are typed instead. (`org-use-fast-tag-selection`)",
+              "default": "auto"
+            },
+            "org_fast_tag_selection_single_key": {
+              "type": "boolean",
+              "markdownDescription": "In fast tag selection, the first key that changes the tags also ends it. (`org-fast-tag-selection-single-key`)",
+              "default": false
+            },
+            "org_tags_sort_function": {
+              "enum": [
+                "string<",
+                "string>"
+              ],
+              "markdownDescription": "Sort the tags of a headline when they are set: alphabetically, or the other way. (`org-tags-sort-function`)"
+            },
+            "org_auto_align_tags": {
+              "type": "boolean",
+              "markdownDescription": "Align the tags of a headline to `org_tags_column` when they are set. (`org-auto-align-tags`)",
+              "default": true
             },
             "org_todo_repeat_to_state": {
               "anyOf": [
@@ -2622,6 +2675,11 @@
       {
         "command": "org.priority",
         "key": "ctrl+c ,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.tags.set",
+        "key": "ctrl+c ctrl+q",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

@@ -604,6 +604,32 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('sets tags a key at a time until RET', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'tags.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('#+TAGS: work(w) home(h)\n* Task\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    const showQuickPick = vscode.window.showQuickPick;
+    const keys = ['w', 'h', '\r'];
+    const asked = [];
+    vscode.window.showQuickPick = async (items, options) => {
+      asked.push(options.placeHolder);
+      const key = keys.shift();
+      return items.find((item) => item.key === key);
+    };
+    try {
+      moveTo(1, 0);
+      await vscode.commands.executeCommand('org.tags.set');
+      await until('the tags set', () => editor.document.lineAt(1).text === '* Task' + ' '.repeat(60) + ':work:home:');
+      assert.deepEqual(asked, ['Tags', 'Tags :work:', 'Tags :work:home:']);
+    } finally {
+      vscode.window.showQuickPick = showQuickPick;
+    }
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('sorts the children of an entry by the key picked', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'sorting.org'));
     await vscode.workspace.fs.writeFile(file, Buffer.from('* Parent\n** b\n** C\ntext\n** a\n'));

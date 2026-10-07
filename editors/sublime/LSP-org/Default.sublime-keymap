@@ -138,6 +138,28 @@
   {
     "keys": [
       "ctrl+c",
+      "ctrl+q"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.tags.set"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
       "ctrl+c"
     ],
     "command": "org_lsp_run",

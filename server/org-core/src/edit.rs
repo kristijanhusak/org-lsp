@@ -51,6 +51,8 @@ pub enum Command {
     /// `org-table-recalculate` and `org-table-iterate`: the table's
     /// formulas, or those of the `#+TBLFM:` line at the cursor.
     Table(tblfm::Mode),
+    /// `org-set-tags`: the entry's tags, as picked.
+    Tags(Vec<String>),
 }
 
 /// Settings, named after Org's variables.
@@ -64,6 +66,8 @@ pub struct Settings {
     /// The second number of `org-time-stamp-rounding-minutes`: the step
     /// in which minutes change.
     pub timestamp_rounding_minutes: i64,
+    /// The tag table and how tags are set.
+    pub tags: crate::tags::Settings,
 }
 
 impl Default for Settings {
@@ -73,6 +77,7 @@ impl Default for Settings {
             priorities: Priorities::default(),
             priority_start_cycle_with_default: true,
             timestamp_rounding_minutes: 5,
+            tags: crate::tags::Settings::default(),
         }
     }
 }
@@ -230,6 +235,11 @@ pub fn run(
                 Err(message) if message == "Not at a table" => Err(Refusal::NotHere(message)),
                 Err(message) => Err(Refusal::Failed(message)),
             }
+        }
+        Command::Tags(tags) => {
+            let heading = crate::tags::heading_at(text, offset)?;
+            let settings = crate::tags::Settings { tags_column: settings.todo.tags_column, ..settings.tags.clone() };
+            Ok(unplaced(crate::tags::set_tags(text, heading, tags, &settings)))
         }
         Command::Timestamp { forward } => {
             let shift = Shift { n: steps(*forward), what: None, updown: true, counted: call.count.is_some() };

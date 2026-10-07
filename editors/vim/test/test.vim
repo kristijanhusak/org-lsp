@@ -233,6 +233,20 @@ function! s:agenda_tab() abort
 endfunction
 call s:test('TAB shows the entry in another window', function('s:agenda_tab'))
 
+" `\ot` sets tags a key at a time, until RET.
+function! s:set_tags() abort
+  let file = s:work . '/notes/tags.org'
+  call writefile(['#+TAGS: work(w) home(h)', '* Task'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(2, 1)
+  let g:answers = ['w', 'h', "\r"]
+  call feedkeys("\\ot", 'xt')
+  call s:until('the tags set', {-> getline(2) ==# '* Task' . repeat(' ', 77 - 6 - 11) . ':work:home:'})
+  silent write
+endfunction
+call s:test('sets tags by key', function('s:set_tags'))
+
 function! s:capture() abort
   let g:answers = ['t']
   call org_lsp#run('org.capture')

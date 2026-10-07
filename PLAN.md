@@ -61,6 +61,7 @@ others), as close to Emacs Org mode as it can get.
 | 11, 5 | A hover over an agenda line shows its entry (`textDocument/hover`, `org-lsp/preview`); `K` shows it highlighted in Neovim and Vim | #59–#61 |
 | 6, 5, 14 | Structure editing: promote, demote and move subtrees; the clocked agenda line highlighted edge to edge and moving with the clock (`org-lsp/lineHighlights`), no flicker when the agenda refreshes; options named after Org's variables (`org_agenda_files`; old names read with a message) | #63, #64, #65 |
 | 8 | Lists: indent, outdent and move items, cycle bullets, next and previous item, `C-c C-c` repairing and renumbering (`org-ctrl-c-ctrl-c`), sorting items (`org-sort-list`) | #69 |
+| 7 | Setting tags (`org-set-tags-command`): fast tag selection with exclusive groups, or typed; the tag options | #70 |
 | — | Fixes: repeating entries' message, the cursor after date changes, Neovim's flicker on server edits | #53, #55, #58 |
 
 ### Where to pick up
@@ -79,8 +80,8 @@ few, checked against Emacs where Org decides the outcome:
   sorting items (`tests/lists`). Left: `C-c -` turning lines into items
   and back (`org-toggle-item`), `C-c *` (`org-toggle-heading`), radio
   lists.
-- **Tags and properties (7):** set tags (`C-c C-q`, with fast tag
-  selection and alignment), tag groups; set and delete properties
+- **Tags and properties (7):** done: set tags (`C-c C-q`, with fast tag
+  selection and alignment, exclusive groups). Left: set and delete properties
   (`C-c C-x p`), allowed values on the shifted keys; `LOGGING` and other
   properties that change what commands do.
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
@@ -375,8 +376,15 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - Done: tag and property inheritance (`org-use-tag-inheritance`,
   `org-tags-exclude-from-inheritance`, `org-use-property-inheritance`,
   `#+PROPERTY:`, the file's property drawer, `NAME+` values).
-- Set tags with alignment, tag groups. `LOGGING` and other properties
-  that change what commands do, read with inheritance.
+- Done: setting tags (`org-set-tags-command`, `org-agenda-set-tags`):
+  fast tag selection by key with exclusive groups, the completion prompt
+  otherwise, `org-tag-alist`, `org-tag-persistent-alist`,
+  `org-use-fast-tag-selection`, `org-fast-tag-selection-single-key`,
+  `org-tags-sort-function`, `org-auto-align-tags`, checked against Emacs
+  in `tests/tags`.
+- Left: setting `#+FILETAGS:` (Emacs refuses too), group tags in match
+  strings (with the agenda), `LOGGING` and other properties that change
+  what commands do, read with inheritance.
 - Properties: set, delete, allowed values (the shifted keys on a property
   line), column view if it can be shown at all.
 
@@ -538,6 +546,8 @@ Emacs in `tests/tblfm/cases.json`.
   | Cut, copy, paste subtrees (`org-cut-subtree`, `org-copy-subtree`, `org-paste-subtree`, with the kill ring) | `tests/subtree/cases.json` | `scripts/update-subtree-fixtures.py` | `scripts/fuzz-subtree.py` |
   | Sorting entries (`org-sort-entries`, every sorting type, in the C locale at a fixed time) | `tests/sort/cases.json` | `scripts/update-sort-fixtures.py` | `scripts/fuzz-sort.py` |
   | Sparse trees (`org-occur`, `org-show-todo-tree`, `org-match-sparse-tree`, `org-check-deadlines` and the date checks): the matches | `tests/sparse/cases.json` | `scripts/update-sparse-fixtures.py` | |
+  | List items: the meta and shifted keys, `C-c C-c` and `C-c ^` on an item | `tests/lists/cases.json` | `scripts/update-lists-fixtures.py` | `scripts/fuzz-lists.py` |
+  | Setting tags (`org-set-tags-command`: fast tag selection by key, the completion prompt's answer) | `tests/tags/cases.json` | `scripts/update-tags-fixtures.py` | `scripts/fuzz-tags.py` |
   | Archiving | `tests/archive/cases.json` | `scripts/update-archive-fixtures.py` | `scripts/fuzz-archive.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.

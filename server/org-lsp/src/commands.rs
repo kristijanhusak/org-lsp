@@ -98,6 +98,9 @@ pub struct Command {
     /// The command reads what the editor would paste: its context has the
     /// text in `clipboard` (Emacs's latest kill).
     pub clipboard: bool,
+    /// The command works on an agenda line, which has no key of its own
+    /// for it: the vim preset gives it its leader keys there.
+    pub in_agenda: bool,
 }
 
 /// Input a command asks for.
@@ -132,6 +135,7 @@ pub const CLOCK_OUT: &str = "org.clock.out";
 pub const CLOCK_CANCEL: &str = "org.clock.cancel";
 pub const CLOCK_GOTO: &str = "org.clock.goto";
 pub const TODO: &str = "org.todo";
+pub const SET_TAGS: &str = "org.tags.set";
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
 pub const PRIORITY_UP: &str = "org.priority.up";
@@ -208,11 +212,11 @@ pub const CALENDAR_CANCEL: &str = "org.calendar.cancel";
 use Scope::{Agenda, Calendar, Capture, Global, Org};
 
 const fn command(id: &'static str, title: &'static str) -> Command {
-    Command { id, title, edits: false, emacs: &[], vim: &[], input: None, clipboard: false }
+    Command { id, title, edits: false, emacs: &[], vim: &[], input: None, clipboard: false, in_agenda: false }
 }
 
 const fn edit(id: &'static str, title: &'static str) -> Command {
-    Command { id, title, edits: true, emacs: &[], vim: &[], input: None, clipboard: false }
+    Command { id, title, edits: true, emacs: &[], vim: &[], input: None, clipboard: false, in_agenda: false }
 }
 
 const fn ask_date(id: &'static str, title: &'static str, prompt: &'static str) -> Command {
@@ -309,7 +313,17 @@ pub const COMMANDS: &[Command] = &[
     // the list repaired (indentation, bullets, numbers, checkboxes); at
     // the start of a list only its first item's box is toggled, and on a
     // statistics cookie the cookies are counted. On a headline,
-    // `org-toggle-checkbox` for the items below it. The cookies that count
+    // `org-set-tags-command`: the tags picked by key from the tag table
+    // (fast tag selection, each key turning its tag on or off until RET),
+    // or typed; in the agenda for the line's entry.
+    Command {
+        emacs: &[key(Org, "C-c C-q")],
+        vim: &[key(Org, "<Leader>ot")],
+        in_agenda: true,
+        input: Some(Input { kind: "key", prompt: "Tags" }),
+        ..edit(SET_TAGS, "Set the tags of the headline")
+    },
+    // `C-c C-c` on an item (`org-ctrl-c-ctrl-c`) for the items below it. The cookies that count
     // checkboxes follow.
     Command {
         emacs: &[key(Org, "C-c C-c")],
@@ -695,7 +709,7 @@ pub fn manifest() -> Value {
             // leader keys it has in Org files (`<Leader>ois`), where the
             // hands look for them. Editors that cannot bind the leader
             // leave them out, so the agenda's keys stay the same there.
-            let leader: Vec<(String, &Key)> = if agenda.is_empty() {
+            let leader: Vec<(String, &Key)> = if agenda.is_empty() && !command.in_agenda {
                 Vec::new()
             } else {
                 command

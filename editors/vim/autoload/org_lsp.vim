@@ -434,7 +434,8 @@ endfunction
 function! org_lsp#read_key(prompt, choices) abort
   let popup = 0
   if !empty(a:choices) && exists('*popup_create')
-    let lines = map(copy(a:choices), {_, c -> printf('[%s] %s', c.key ==# ' ' ? 'SPC' : c.key, c.label)})
+    let names = {' ': 'SPC', "\r": 'RET', "\t": 'TAB'}
+    let lines = map(copy(a:choices), {_, c -> printf('[%s] %s', get(names, c.key, c.key), c.label)})
     let popup = popup_create(lines, {
           \ 'line': &lines - &cmdheight - len(lines) - 1, 'col': 1,
           \ 'border': [], 'title': ' ' . a:prompt . ' ', 'zindex': 300,
