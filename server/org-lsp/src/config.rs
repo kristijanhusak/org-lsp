@@ -64,6 +64,9 @@ pub struct Options {
     /// `org-clock-out-when-done`: a done state stops the clock on the entry.
     #[serde(rename = "org_clock_out_when_done")]
     pub clock_out_when_done: Option<bool>,
+    /// `org-clock-display-default-range`
+    #[serde(rename = "org_clock_display_default_range")]
+    pub clock_display_default_range: Option<String>,
     /// `org-clock-in-switch-to-state`
     #[serde(rename = "org_clock_in_switch_to_state")]
     pub clock_in_switch_to_state: Option<String>,

@@ -811,6 +811,10 @@ local function on_attach(client, bufnr)
   local preview = vim.b[bufnr].org_lsp_preview
   if not preview then
     set_keys('org', bufnr)
+    -- The times of `org-clock-display` (`<Leader>oxd`) are inlay hints.
+    if vim.lsp.inlay_hint and client:supports_method('textDocument/inlayHint') then
+      vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
+    end
   end
   -- A capture buffer is an Org file with keys of its own on top.
   local prefix = M.manifest.capture and M.manifest.capture.prefix

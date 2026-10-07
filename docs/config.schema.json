@@ -117,6 +117,21 @@
       "description": "Marking the clocked entry done stops the clock. (`org-clock-out-when-done`)",
       "default": true
     },
+    "org_clock_display_default_range": {
+      "enum": [
+        "today",
+        "yesterday",
+        "thisweek",
+        "lastweek",
+        "thismonth",
+        "lastmonth",
+        "thisyear",
+        "lastyear",
+        "untilnow"
+      ],
+      "description": "The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up. (`org-clock-display-default-range`)",
+      "default": "thisyear"
+    },
     "org_clock_in_switch_to_state": {
       "type": "string",
       "description": "The TODO state an entry is put in when the clock starts on it (`NEXT`), unless it has it already. (`org-clock-in-switch-to-state`)"

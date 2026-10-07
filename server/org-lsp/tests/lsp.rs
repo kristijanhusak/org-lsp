@@ -641,7 +641,7 @@ fn sends_virtual_indentation() {
 
 /// A client that does not show `org-lsp/virtualIndent` (Zed, Helix) gets
 /// `org-indent-mode`'s prefixes as inlay hints of blanks; one that does,
-/// or says so with the `virtualIndent` option, gets none.
+/// or says so with the `virtualIndent` option, gets none of those.
 #[test]
 fn virtual_indentation_as_inlay_hints() {
     let mut client = Client::start(json!({}), Value::Null);
@@ -667,8 +667,19 @@ fn virtual_indentation_as_inlay_hints() {
         (json!({ "experimental": { "orgVirtualIndent": true } }), Value::Null),
         (json!({}), json!({ "virtual_indent": true })),
     ] {
-        let client = Client::start(capabilities, options);
-        assert!(client.initialize.capabilities.inlay_hint_provider.is_none());
+        // Hints are offered (`org-clock-display`'s times), but no
+        // prefixes among them.
+        let mut client = Client::start(capabilities, options);
+        assert!(client.initialize.capabilities.inlay_hint_provider.is_some());
+        client.open(&uri(), "#+STARTUP: indent\n* A\ntext\n** B\n- item\n");
+        let hints = client
+            .request::<lsp_types::request::InlayHintRequest>(lsp_types::InlayHintParams {
+                text_document: identifier(),
+                range: Range::new(Position::new(0, 0), Position::new(3, 0)),
+                work_done_progress_params: Default::default(),
+            })
+            .unwrap();
+        assert!(hints.is_empty(), "{hints:?}");
         client.shutdown();
     }
 }

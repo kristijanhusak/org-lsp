@@ -117,11 +117,20 @@ pub fn running(text: &str) -> Vec<(usize, DateTime)> {
         .collect()
 }
 
-/// `org-duration-from-minutes` with Org's default format: `h:mm`.
+/// `org-duration-from-minutes` with Org's default format
+/// (`org-duration-format`): `h:mm`, after the days when there are any
+/// (`1d 2:30`).
 pub fn duration(minutes: i64) -> String {
     let sign = if minutes < 0 { "-" } else { "" };
     let minutes = minutes.abs();
-    format!("{sign}{}:{:02}", minutes / 60, minutes % 60)
+    let days = minutes / 1440;
+    let rest = minutes % 1440;
+    let time = format!("{}:{:02}", rest / 60, rest % 60);
+    if days > 0 {
+        format!("{sign}{days}d {time}")
+    } else {
+        format!("{sign}{time}")
+    }
 }
 
 /// `org-duration-to-minutes`: `1:30`, `1:30:00`, `90` (minutes), `2h`,
@@ -622,7 +631,8 @@ mod tests {
     fn durations() {
         assert_eq!(duration(0), "0:00");
         assert_eq!(duration(75), "1:15");
-        assert_eq!(duration(1565), "26:05");
+        assert_eq!(duration(1565), "1d 2:05");
+        assert_eq!(duration(1440), "1d 0:00");
         assert_eq!(duration_to_minutes("1:30"), Some(90.0));
         assert_eq!(duration_to_minutes("45"), Some(45.0));
         assert_eq!(duration_to_minutes("2h"), Some(120.0));

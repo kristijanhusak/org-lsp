@@ -965,8 +965,24 @@ fn clocking_matches_emacs() {
         let mut text = case["text"].as_str().unwrap().to_string();
         client.open(URI, &text);
         let mut result = Ok(());
+        let mut message = Value::Null;
         for step in case["steps"].as_array().unwrap() {
             let step: Vec<&str> = step.as_array().unwrap().iter().map(|part| part.as_str().unwrap()).collect();
+            // `org-clock-display`, with a range picked when one is given.
+            if step[0] == "display" {
+                let mut context = json!({ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } });
+                if let Some(range) = step.get(1) {
+                    context["count"] = json!(16);
+                    context["input"] = json!(range);
+                }
+                let shown = client.request(
+                    "workspace/executeCommand",
+                    json!({ "command": "org.clock.display", "arguments": [context] }),
+                );
+                client.settle();
+                message = shown.map(|value| value["message"].clone()).unwrap_or(Value::Null);
+                continue;
+            }
             let line = match step.get(1) {
                 Some(needle) => text.lines().position(|line| line.starts_with('*') && line.contains(needle)).unwrap(),
                 None => 0,
@@ -995,7 +1011,32 @@ fn clocking_matches_emacs() {
             }
         }
         let expected = case["expected"].as_str().unwrap();
-        let same = if expected.starts_with("ERROR") { result.is_err() } else { result.is_ok() && text == expected };
+        let mut same = if expected.starts_with("ERROR") { result.is_err() } else { result.is_ok() && text == expected };
+        // The times shown after the headlines, and what is said.
+        if let Some(display) = case.get("display") {
+            let range = json!({ "start": { "line": 0, "character": 0 }, "end": { "line": 1000, "character": 0 } });
+            let hints = client
+                .request("textDocument/inlayHint", json!({ "textDocument": { "uri": URI }, "range": range }))
+                .unwrap();
+            let shown: Vec<Value> = hints
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|hint| {
+                    json!([
+                        hint["position"]["line"],
+                        hint["label"].as_str().unwrap().trim().trim_start_matches('·').trim()
+                    ])
+                })
+                .collect();
+            if shown != *display.as_array().unwrap() || message != case["message"] {
+                same = false;
+                failures.push_str(&format!(
+                    "\ncase {index}: shown {shown:?} {message}\n  emacs {display} {}\n",
+                    case["message"]
+                ));
+            }
+        }
         if !same {
             failures.push_str(&format!(
                 "\ncase {index}: {:?} {result:?}\n--- emacs\n{expected}\n--- org-lsp\n{text}\n",

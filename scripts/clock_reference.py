@@ -8,11 +8,16 @@ A case is a JSON object:
       "steps": [["in", "a"], ["in", "b"], ["out"]],
                                           `org-clock-in` on the headline
                                           with that text, `org-clock-out`,
-                                          `org-clock-cancel`
+                                          `org-clock-cancel`;
+                                          `["display"]`: `org-clock-display`,
+                                          `["display", "today"]` with a range
+                                          picked (`C-u C-u`)
       "options": {"org_clock_in_switch_to_state": "NEXT"}   optional
     }
 
-`reference(cases)` adds `expected`: the file after the steps, or `ERROR: …`.
+`reference(cases)` adds `expected`: the file after the steps, or `ERROR: …`;
+after a display, `display`: the line and time of each headline's overlay,
+and `message`.
 Emacs runs under faketime, so both programs see the same clock. Set
 ORG_LISP_DIR to the `lisp` directory of an Org checkout to use that version
 instead of the one bundled with Emacs.
@@ -20,6 +25,7 @@ instead of the one bundled with Emacs.
 
 import json
 import os
+import re
 import subprocess
 import tempfile
 
@@ -28,7 +34,9 @@ from todo_reference import lisp_string, lisp_value
 
 DRIVER = r"""
 (require 'org-clock)
+(defvar org-lsp-shown nil)
 (defun org-lsp-clock-case (file out steps)
+  (setq org-lsp-shown nil)
   (remove-hook 'post-command-hook 'org-add-log-note)
   (setq org-log-setup nil)
   (when (org-clocking-p) (org-clock-cancel))
@@ -41,14 +49,32 @@ DRIVER = r"""
                     (re-search-forward (concat "^\\*+ .*" (regexp-quote (cadr step))))
                     (org-clock-in))
                    ("out" (org-clock-out))
-                   ("cancel" (org-clock-cancel)))
+                   ("cancel" (org-clock-cancel))
+                   ("display"
+                    (if (cadr step)
+                        (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) (cadr step))))
+                          (org-clock-display '(16)))
+                      (org-clock-display))
+                    (setq org-lsp-shown
+                          (concat
+                           (mapconcat
+                            (lambda (o)
+                              (format "%d %s" (line-number-at-pos (overlay-start o))
+                                      (string-trim (car (last (split-string (overlay-get o 'display) "·+"))))))
+                            (sort (copy-sequence org-clock-overlays)
+                                  (lambda (a b) (< (overlay-start a) (overlay-start b))))
+                            "\n")
+                           "\0"
+                           (with-current-buffer "*Messages*"
+                             (save-excursion (goto-char (point-max)) (forward-line -1)
+                                             (buffer-substring (point) (line-end-position))))))))
                  (org-lsp-finish-notes))
                (prog1 (buffer-string)
                  (when (org-clocking-p) (org-clock-cancel))
                  (set-buffer-modified-p nil)
                  (kill-buffer)))
            (error (format "ERROR: %S" err)))))
-    (with-temp-file out (insert result))))
+    (with-temp-file out (insert result (if org-lsp-shown (concat "\0" org-lsp-shown) "")))))
 """
 
 # The clock options and their Emacs variables; the others go to
@@ -107,7 +133,14 @@ def reference(cases):
             )
             for case, target in outputs:
                 with open(target, encoding="utf-8") as handle:
-                    case["expected"] = handle.read()
+                    parts = handle.read().split("\0")
+                case["expected"] = parts[0]
+                if len(parts) == 3:
+                    case["display"] = [
+                        [int(line.split(" ", 1)[0]) - 1, line.split(" ", 1)[1]] for line in parts[1].splitlines()
+                    ]
+                    # Without the count `*Messages*` adds to a repeated one.
+                    case["message"] = re.sub(r" \[\d+ times\]$", "", parts[2])
     return cases
 
 

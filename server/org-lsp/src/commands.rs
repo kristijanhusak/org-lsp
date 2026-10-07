@@ -155,6 +155,7 @@ pub const CLOCK_IN: &str = "org.clock.in";
 pub const CLOCK_OUT: &str = "org.clock.out";
 pub const CLOCK_CANCEL: &str = "org.clock.cancel";
 pub const CLOCK_GOTO: &str = "org.clock.goto";
+pub const CLOCK_DISPLAY: &str = "org.clock.display";
 pub const TODO: &str = "org.todo";
 pub const SET_TAGS: &str = "org.tags.set";
 pub const SET_PROPERTY: &str = "org.property.set";
@@ -388,6 +389,13 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c C-x C-j")],
         vim: &[key(Global, "<Leader>oxj")],
         ..command(CLOCK_GOTO, "Go to the clocked entry")
+    },
+    // `org-clock-display`: the times show as inlay hints until the next
+    // change, or `C-c C-c`.
+    Command {
+        emacs: &[key(Org, "C-c C-x C-d")],
+        vim: &[key(Org, "<Leader>oxd")],
+        ..command(CLOCK_DISPLAY, "Show the time clocked under each headline")
     },
     // `org-todo`: the state picked by key when the keywords have keys,
     // and else the next one.
