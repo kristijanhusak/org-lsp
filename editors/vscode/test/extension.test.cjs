@@ -607,6 +607,36 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('makes a sparse tree: everything folded but the matches', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'sparse.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* A\nan apple\n* B\nnothing\n** C\nApple pie\n* D\nnone\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const showQuickPick = vscode.window.showQuickPick;
+    const showInputBox = vscode.window.showInputBox;
+    vscode.window.showQuickPick = async (items) => items.find((item) => item.key === 'r');
+    vscode.window.showInputBox = async () => 'apple';
+    try {
+      moveTo(0, 0);
+      await vscode.commands.executeCommand('org.sparse.tree');
+      await until('the matches highlighted', () => api.sparse(editor).length === 2);
+      assert.deepEqual(api.sparse(editor), ['apple', 'Apple']);
+      const visible = (line) => editor.visibleRanges.some((range) => range.start.line <= line && line <= range.end.line);
+      await until('the rest folded', () => visible(1) && visible(5) && !visible(7));
+      await editor.edit((builder) => builder.insert(new vscode.Position(0, 0), ''));
+      await editor.edit((builder) => builder.insert(new vscode.Position(7, 0), 'x'));
+      await until('the highlights gone with the change', () => api.sparse(editor).length === 0);
+    } finally {
+      vscode.window.showQuickPick = showQuickPick;
+      vscode.window.showInputBox = showInputBox;
+    }
+    await vscode.commands.executeCommand('editor.unfoldAll');
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('archives a subtree into the archive file, and asks about each done one', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'archive.org'));
     const archive = vscode.Uri.file(path.join(workspace, 'archive.org_archive'));

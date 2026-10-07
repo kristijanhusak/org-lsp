@@ -275,6 +275,11 @@
         "category": "Org"
       },
       {
+        "command": "org.sparse.tree",
+        "title": "Show a sparse tree",
+        "category": "Org"
+      },
+      {
         "command": "org.cut.subtree",
         "title": "Cut the subtree",
         "category": "Org"
@@ -2773,6 +2778,11 @@
       {
         "command": "org.sort",
         "key": "ctrl+c shift+6",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.sparse.tree",
+        "key": "ctrl+c /",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

@@ -333,6 +333,7 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           if (typeof copied === 'string') {
             await vscode.env.clipboard.writeText(copied);
           }
+          await showSparse(running, result);
           closeAsked(result);
           await saveAsked(result);
           sayAsked(result);
@@ -693,6 +694,55 @@ function highlightLines(editor: vscode.TextEditor): void {
   lineHighlightsShown.set(editor, shown);
 }
 
+// ----- sparse trees
+
+const sparseDecoration = vscode.window.createTextEditorDecorationType({
+  backgroundColor: new vscode.ThemeColor('editor.findMatchHighlightBackground'),
+});
+
+/** The matches of the sparse tree each document shows; for the tests. */
+const sparseShown = new Map<string, vscode.Range[]>();
+
+/**
+ * A sparse tree (`org-sparse-tree`) in the editor at hand: everything
+ * folded, then the regions around each of its lines unfolded, as
+ * `org-occur` shows its matches; the matches highlighted until the text
+ * changes.
+ */
+async function showSparse(running: LanguageClient, result: unknown): Promise<void> {
+  const sparse = (result as { sparse?: { lines?: number[]; highlights?: unknown[] } } | null)?.sparse;
+  const editor = vscode.window.activeTextEditor;
+  if (!sparse || !editor) {
+    return;
+  }
+  const ranges = (sparse.highlights ?? [])
+    .map((range) =>
+      running.protocol2CodeConverter.asRange(range as Parameters<typeof running.protocol2CodeConverter.asRange>[0]),
+    )
+    .filter((range): range is vscode.Range => range !== undefined);
+  editor.setDecorations(sparseDecoration, ranges);
+  sparseShown.set(editor.document.uri.toString(), ranges);
+  await vscode.commands.executeCommand('editor.foldAll');
+  const lines = sparse.lines ?? [];
+  if (lines.length > 0) {
+    await vscode.commands.executeCommand('editor.unfold', { levels: 100, direction: 'up', selectionLines: lines });
+  }
+}
+
+/** Org takes the highlighting away at the next change. */
+function clearSparse(event: vscode.TextDocumentChangeEvent): void {
+  const key = event.document.uri.toString();
+  if (event.contentChanges.length === 0 || !sparseShown.has(key)) {
+    return;
+  }
+  sparseShown.delete(key);
+  for (const editor of vscode.window.visibleTextEditors) {
+    if (editor.document.uri.toString() === key) {
+      editor.setDecorations(sparseDecoration, []);
+    }
+  }
+}
+
 // ----- visibility cycling
 
 /**
@@ -963,6 +1013,8 @@ export interface Api {
   virtualIndent(editor: vscode.TextEditor): number[][];
   /** The lines of `editor` highlighted from edge to edge: `[line, highlight]`. */
   lineHighlights(editor: vscode.TextEditor): [number, string][];
+  /** The text of the matches of the sparse tree `editor` shows. */
+  sparse(editor: vscode.TextEditor): string[];
   /** What `org-lsp.help` lists for `editor`: `[key, title]`. */
   help(editor: vscode.TextEditor): string[][];
 }
@@ -1002,6 +1054,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     hiddenStarDecoration,
     vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(indentVirtually)),
     ...Object.values(lineDecorations),
+    sparseDecoration,
+    vscode.workspace.onDidChangeTextDocument(clearSparse),
     vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(highlightLines)),
   );
   return {
@@ -1009,6 +1063,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     clock: clockText,
     virtualIndent: (editor) => virtualIndentShown.get(editor) ?? [],
     lineHighlights: (editor) => lineHighlightsShown.get(editor) ?? [],
+    sparse: (editor) => (sparseShown.get(editor.document.uri.toString()) ?? []).map((range) => editor.document.getText(range)),
     help: (editor) => helpItems(context.extension.packageJSON, editor).map((item) => [item.key, item.title]),
   };
 }

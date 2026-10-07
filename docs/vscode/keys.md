@@ -61,6 +61,7 @@ The other options are in [configuration.md](configuration.md).
 | `Alt+Up`¹ | `org.meta.up` | Move the subtree up |
 | `Alt+Down`¹ | `org.meta.down` | Move the subtree down |
 | `Ctrl+C Shift+6` | `org.sort` | Sort the entries |
+| `Ctrl+C /` | `org.sparse.tree` | Show a sparse tree |
 | `Ctrl+C Ctrl+X Ctrl+W` | `org.cut.subtree` | Cut the subtree |
 | `Ctrl+C Ctrl+X Alt+W` | `org.copy.subtree` | Copy the subtree |
 | `Ctrl+C Ctrl+X Ctrl+Y` | `org.paste.subtree` | Paste the subtree |
@@ -270,6 +271,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "K"], "commands": ["org.meta.up"] },
   { "before": ["<leader>", "o", "J"], "commands": ["org.meta.down"] },
   { "before": ["<leader>", "o", "^"], "commands": ["org.sort"] },
+  { "before": ["<leader>", "o", "/"], "commands": ["org.sparse.tree"] },
   { "before": ["<leader>", "o", "s", "d"], "commands": ["org.cut.subtree"] },
   { "before": ["<leader>", "o", "s", "y"], "commands": ["org.copy.subtree"] },
   { "before": ["<leader>", "o", "s", "p"], "commands": ["org.paste.subtree"] },
@@ -337,6 +339,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.meta.up` | Org: Move the subtree up |
 | `org.meta.down` | Org: Move the subtree down |
 | `org.sort` | Org: Sort the entries |
+| `org.sparse.tree` | Org: Show a sparse tree |
 | `org.cut.subtree` | Org: Cut the subtree |
 | `org.copy.subtree` | Org: Copy the subtree |
 | `org.paste.subtree` | Org: Paste the subtree |

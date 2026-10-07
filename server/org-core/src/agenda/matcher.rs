@@ -463,6 +463,16 @@ fn item_title(entry: &Entry) -> String {
 /// An Emacs regexp as a regex of this crate, matching without regard to
 /// case as the matcher does (`case-fold-search` is on).
 pub fn emacs_regex(pattern: &str) -> Option<Regex> {
+    RegexBuilder::new(&translate(pattern)).case_insensitive(true).build().ok()
+}
+
+/// [`emacs_regex`] for searching a whole buffer: `^` and `$` match at the
+/// start and end of every line, as in Emacs.
+pub fn emacs_buffer_regex(pattern: &str) -> Option<Regex> {
+    RegexBuilder::new(&translate(pattern)).case_insensitive(true).multi_line(true).build().ok()
+}
+
+fn translate(pattern: &str) -> String {
     let mut out = String::new();
     let mut chars = pattern.chars().peekable();
     while let Some(c) = chars.next() {
@@ -538,7 +548,7 @@ pub fn emacs_regex(pattern: &str) -> Option<Regex> {
             _ => out.push(c),
         }
     }
-    RegexBuilder::new(&out).case_insensitive(true).build().ok()
+    out
 }
 
 #[cfg(test)]

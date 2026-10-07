@@ -308,6 +308,13 @@
     }
   },
   {
+    "caption": "Org: Show a sparse tree",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.sparse.tree"
+    }
+  },
+  {
     "caption": "Org: Cut the subtree",
     "command": "org_lsp_run",
     "args": {

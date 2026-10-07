@@ -348,6 +348,10 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
   if type(get(result, 'copy', 0)) == v:t_string
     call setreg(get(a:opts, 'register', '"'), result.copy, 'l')
   endif
+  " A sparse tree: everything folded but the lines shown.
+  if type(get(result, 'sparse', 0)) == v:t_dict && bufnr() == a:bufnr
+    call s:show_sparse(a:bufnr, result.sparse)
+  endif
   " The agenda's file may have been written anew.
   call s:reload_agenda()
   if type(get(result, 'save', 0)) == v:t_list
@@ -363,6 +367,36 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
     " Asked from a callback, the prompt waits for the screen to settle.
     call timer_start(0, {-> s:ask(a:bufnr, a:name, a:context, a:opts, result.input)})
   endif
+endfunction
+
+" Show a sparse tree (`org-sparse-tree`) in the current window: all folds
+" closed, then those around each of `sparse.lines` opened, as `org-occur`
+" shows its matches; the matches highlighted (`OrgLspSparseMatch`) until
+" the text changes. The cursor stays.
+function! s:show_sparse(nr, sparse) abort
+  highlight default link OrgLspSparseMatch Search
+  if empty(prop_type_get('org_lsp_sparse'))
+    call prop_type_add('org_lsp_sparse', {'highlight': 'OrgLspSparseMatch', 'priority': 200, 'combine': 1})
+  endif
+  call prop_remove({'type': 'org_lsp_sparse', 'bufnr': a:nr, 'all': 1})
+  for range in get(a:sparse, 'highlights', [])
+    let start = s:byte(getline(range.start.line + 1), range.start.character)
+    let end = s:byte(getline(range.end.line + 1), range.end.character)
+    call prop_add(range.start.line + 1, start + 1,
+          \ {'end_lnum': range.end.line + 1, 'end_col': end + 1, 'type': 'org_lsp_sparse', 'bufnr': a:nr})
+  endfor
+  if &foldenable
+    let view = winsaveview()
+    normal! zM
+    for line in get(a:sparse, 'lines', [])
+      call cursor(line + 1, 1)
+      normal! zv
+    endfor
+    call winrestview(view)
+  endif
+  " Org takes the highlighting away at the next change.
+  execute 'autocmd TextChanged,TextChangedI <buffer=' . a:nr . '> ++once'
+        \ 'call prop_remove({"type": "org_lsp_sparse", "bufnr": ' . a:nr . ', "all": 1})'
 endfunction
 
 " Ask what the command asks for, and run it again with the answer.

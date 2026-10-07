@@ -652,6 +652,27 @@ pub fn run(connection: Connection) -> Result<()> {
     Ok(())
 }
 
+/// The values property `name` has in the property drawers of `text`.
+fn property_values(text: &str, name: &str) -> Vec<String> {
+    let mut values = Vec::new();
+    let mut in_drawer = false;
+    for line in text.lines() {
+        let line = line.trim();
+        if line.eq_ignore_ascii_case(":PROPERTIES:") {
+            in_drawer = true;
+        } else if line.eq_ignore_ascii_case(":END:") {
+            in_drawer = false;
+        } else if in_drawer {
+            if let Some((key, value)) = line.strip_prefix(':').and_then(|rest| rest.split_once(':')) {
+                if key.eq_ignore_ascii_case(name) && !value.trim().is_empty() {
+                    values.push(value.trim().to_string());
+                }
+            }
+        }
+    }
+    values
+}
+
 /// The names of the properties in the property drawers of `text`.
 fn property_names(text: &str) -> Vec<String> {
     let mut names = Vec::new();
@@ -2517,6 +2538,7 @@ impl Server {
                 self.structure(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::SORT => self.sort(&context.ok_or("This command needs the cursor position")?),
+            commands::SPARSE_TREE => self.sparse_tree(&context.ok_or("This command needs the cursor position")?),
             commands::CUT_SUBTREE | commands::COPY_SUBTREE | commands::PASTE_SUBTREE => {
                 self.subtree_clipboard(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
@@ -4195,6 +4217,166 @@ impl Server {
             _ => structure::move_subtree(&text, offset, count)?,
         };
         self.carried(context, outcome)
+    }
+
+    /// `org-sparse-tree` (`C-c /`): asks what to show, as a key, and then
+    /// what that needs (a regexp, keywords, a match, a property and its
+    /// value, dates); `answers` keeps the type and the answers so far, a
+    /// line each. The result has `sparse`: `{ "lines", "highlights" }`,
+    /// the lines to show with everything else folded, as `org-occur`
+    /// shows its matches, and the ranges of the matches to highlight
+    /// until the text changes.
+    fn sparse_tree(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::sparse;
+        let encoding = self.client.encoding;
+        let uri = context.text_document.uri.clone();
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let parse = document.parse.clone();
+        let keywords = parse.todo_keywords().clone();
+        let mut answers: Vec<String> = context
+            .answers
+            .as_deref()
+            .map(|answers| answers.split('\n').map(str::to_string).collect())
+            .unwrap_or_default();
+        let Some(input) = context.input.clone() else {
+            let choices = json!([
+                { "key": "r", "label": "regexp" },
+                { "key": "t", "label": "todo" },
+                { "key": "T", "label": "todo keyword" },
+                { "key": "m", "label": "match" },
+                { "key": "p", "label": "property" },
+                { "key": "d", "label": "deadlines" },
+                { "key": "b", "label": "before date" },
+                { "key": "a", "label": "after date" },
+                { "key": "D", "label": "dates range" },
+            ]);
+            return Ok(json!({ "input": { "kind": "key", "prompt": "Sparse tree", "value": "", "choices": choices } }));
+        };
+        answers.push(input);
+        let kind = answers[0].clone();
+        let args = &answers[1..];
+        let ask = |kind: &str, prompt: &str, choices: Option<Vec<String>>, answers: &[String]| {
+            let mut input =
+                json!({ "kind": kind, "prompt": prompt, "value": "", "context": { "answers": answers.join("\n") } });
+            if let Some(choices) = choices {
+                input["choices"] = choices.iter().map(|choice| json!({ "key": choice, "label": choice })).collect();
+            }
+            Ok(json!({ "input": input }))
+        };
+        let read_date = |answer: &str| -> std::result::Result<(DateTime, String), Refusal> {
+            let read = org_core::read_date::read_date(answer, None, self.date_time(), &self.read_date)?;
+            let shown = match read.time {
+                Some((hour, minute)) => format!("{} {hour:02}:{minute:02}", read.date),
+                None => read.date.to_string(),
+            };
+            let (hour, minute) = read.time.unwrap_or((0, 0));
+            Ok((DateTime::new(read.date, hour, minute), shown))
+        };
+        let (found, message) = match (kind.as_str(), args.len()) {
+            ("r" | "R" | "/", 0) => return ask("text", "Regexp", None, &answers),
+            ("r" | "R" | "/", _) => {
+                if args[0].is_empty() {
+                    return Err(Refusal::Failed("Regexp cannot be empty".to_string()));
+                }
+                let regex = org_core::agenda::matcher::emacs_buffer_regex(&args[0])
+                    .ok_or_else(|| Refusal::Failed(format!("Invalid regexp: {}", args[0])))?;
+                let found = sparse::occur(&text, &regex, |_| true);
+                let message = format!("{} match(es) for regexp {}", found.count, args[0]);
+                (found, Some(message))
+            }
+            ("t", _) => {
+                let found = sparse::todo_tree(&text, &keywords, None);
+                let message = format!("{} TODO entries found", found.count);
+                (found, Some(message))
+            }
+            ("T", 0) => {
+                let names: Vec<String> = keywords.names().map(str::to_string).collect();
+                return ask("text", &format!("Keyword (or KWD1|KWD2|...) [{}]", names.join(" ")), None, &answers);
+            }
+            ("T", _) => {
+                let wanted: Vec<String> = args[0].split('|').map(str::to_string).collect();
+                let found = sparse::todo_tree(&text, &keywords, Some(&wanted));
+                let message = format!("{} TODO entries found", found.count);
+                (found, Some(message))
+            }
+            ("m", 0) => return ask("text", "Match", None, &answers),
+            ("p" | "P", 0) => {
+                let mut names: Vec<String> = Vec::new();
+                for name in property_names(&text) {
+                    if !names.iter().any(|known| known.eq_ignore_ascii_case(&name)) {
+                        names.push(name);
+                    }
+                }
+                names.sort();
+                return ask("choice", "Property", Some(names), &answers);
+            }
+            ("p" | "P", 1) => {
+                let mut values: Vec<String> = property_values(&text, &args[0]);
+                values.sort();
+                values.dedup();
+                return ask("choice", "Value", Some(values), &answers);
+            }
+            ("m" | "p" | "P", _) => {
+                let matching = if kind == "m" {
+                    args[0].clone()
+                } else {
+                    // A value in braces is a regexp; anything else a string.
+                    let value = &args[1];
+                    let value = if value.starts_with('{') && value.ends_with('}') {
+                        value.clone()
+                    } else {
+                        format!("\"{value}\"")
+                    };
+                    format!("{}={value}", args[0].replace('-', "\\-"))
+                };
+                let outline = org_core::outline::Outline::new(&parse, &text, uri.as_str());
+                let now = self.now();
+                let clock = org_core::agenda::matcher::Clock { today: now.today, minute: now.minute };
+                (sparse::tags_match(&text, &outline, &org_core::agenda::Matcher::new(&matching), clock), None)
+            }
+            ("d", _) => {
+                let days = self.agenda.deadline_warning_days.abs();
+                let found = sparse::deadlines(&text, &keywords, self.now().today, days);
+                let message = format!("{} deadlines past-due or due within {days} days", found.count);
+                (found, Some(message))
+            }
+            ("b" | "a", 0) => return ask("date", "Date", None, &answers),
+            ("b", _) => {
+                let (date, shown) = read_date(&args[0])?;
+                let found = sparse::dates(&text, None, Some(date));
+                let message = format!("{} entries before {shown}", found.count);
+                (found, Some(message))
+            }
+            ("a", _) => {
+                let (date, shown) = read_date(&args[0])?;
+                let found = sparse::dates(&text, Some(date), None);
+                let message = format!("{} entries after {shown}", found.count);
+                (found, Some(message))
+            }
+            ("D", 0) => return ask("date", "Range starts", None, &answers),
+            ("D", 1) => return ask("date", "Range end", None, &answers),
+            ("D", _) => {
+                let (start, start_shown) = read_date(&args[0])?;
+                let (end, end_shown) = read_date(&args[1])?;
+                let found = sparse::dates(&text, Some(start), Some(end));
+                let message = format!("{} entries between {start_shown} and {end_shown}", found.count);
+                (found, Some(message))
+            }
+            (other, _) => return Err(Refusal::Failed(format!("No such sparse tree command \"{other}\""))),
+        };
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let index = &document.index;
+        let lines: Vec<u32> = found.lines.iter().map(|at| index.position(&text, *at, encoding).line).collect();
+        let highlights: Vec<Range> = found
+            .highlights
+            .iter()
+            .map(|(start, end)| {
+                Range::new(index.position(&text, *start, encoding), index.position(&text, *end, encoding))
+            })
+            .collect();
+        self.message = message;
+        Ok(json!({ "sparse": { "lines": lines, "highlights": highlights } }))
     }
 
     /// `org-sort` (`C-c ^`) on entries (`org-sort-entries`): asks for the

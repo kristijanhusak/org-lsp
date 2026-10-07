@@ -492,6 +492,9 @@ class OrgLspRunCommand(LspWindowCommand):
         # What was cut or copied goes to the clipboard.
         if isinstance(result.get('copy'), str):
             sublime.set_clipboard(result['copy'])
+        # A sparse tree: everything folded but the lines shown.
+        if isinstance(result.get('sparse'), dict):
+            show_sparse(session, view, result['sparse'])
         if isinstance(result.get('save'), list):
             save(result['save'])
         if isinstance(result.get('message'), str):
@@ -595,6 +598,32 @@ class OrgLspHelpCommand(sublime_plugin.WindowCommand):
 # The last cycle: (view id, change count, line, state); the step after
 # CHILDREN depends on the last command having been the same cycle.
 last_cycle = None
+
+
+SPARSE_KEY = 'org-lsp-sparse'
+
+
+def show_sparse(session, view, sparse) -> None:
+    """A sparse tree (`org-sparse-tree`): every fold closed but those with
+    one of `sparse['lines']` inside, as `org-occur` shows its matches; the
+    matches highlighted until the text changes."""
+    regions = [sublime.Region(position_to_offset(r['start'], view), position_to_offset(r['end'], view))
+               for r in sparse.get('highlights', [])]
+    if regions:
+        view.add_regions(SPARSE_KEY, regions, 'region.yellowish markup.highlight.sparse.org', '',
+                         sublime.DRAW_NO_OUTLINE)
+    else:
+        view.erase_regions(SPARSE_KEY)
+    lines = sparse.get('lines', [])
+
+    def fold(ranges) -> None:
+        view.unfold(sublime.Region(0, view.size()))
+        for r in ranges or []:
+            if r['endLine'] > r['startLine'] and not any(r['startLine'] < line <= r['endLine'] for line in lines):
+                view.fold(fold_region(view, r))
+    params = {'textDocument': text_document_identifier(view)}
+    session.send_request(Request('textDocument/foldingRange', params),
+                         lambda ranges: sublime.set_timeout(lambda: fold(ranges)))
 
 
 def fold_region(view, folding_range) -> sublime.Region:
@@ -750,6 +779,10 @@ class OrgLspListener(sublime_plugin.EventListener):
         if operator == sublime.OP_NOT_EQUAL:
             return value != operand
         return None
+
+    # Org takes the highlighting of a sparse tree away at the next change.
+    def on_modified(self, view) -> None:
+        view.erase_regions(SPARSE_KEY)
 
     def on_load(self, view) -> None:
         # The agenda is a file the server writes, to read, not to edit.

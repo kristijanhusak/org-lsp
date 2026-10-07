@@ -227,6 +227,11 @@ function M.run(name, opts)
       if type(result) == 'table' and type(result.copy) == 'string' then
         vim.fn.setreg(register, result.copy, 'l')
       end
+      -- A sparse tree: everything folded but the lines shown, and the
+      -- matches highlighted.
+      if type(result) == 'table' and type(result.sparse) == 'table' then
+        M.show_sparse(bufnr, result.sparse, client)
+      end
       -- The server names files to save; those with changes are written.
       if type(result) == 'table' and type(result.save) == 'table' then
         require('org-lsp.view').save(result.save)
@@ -280,6 +285,57 @@ function M.run(name, opts)
     end
     client:exec_cmd(command, { bufnr = bufnr }, handle)
   end)
+end
+
+local sparse_namespace = vim.api.nvim_create_namespace('org_lsp_sparse')
+
+--- Show a sparse tree (`org-sparse-tree`) in the windows of `bufnr`: all
+--- folds closed, then those around each of `sparse.lines` opened, as
+--- `org-occur` shows its matches with everything else hidden; the matches
+--- highlighted (`OrgLspSparseMatch`) until the text changes. The cursor
+--- stays.
+---@param bufnr integer
+---@param sparse { lines: integer[], highlights: table[] }
+---@param client vim.lsp.Client
+function M.show_sparse(bufnr, sparse, client)
+  vim.api.nvim_set_hl(0, 'OrgLspSparseMatch', { link = 'Search', default = true })
+  vim.api.nvim_buf_clear_namespace(bufnr, sparse_namespace, 0, -1)
+  local function column(position)
+    local text = vim.api.nvim_buf_get_lines(bufnr, position.line, position.line + 1, false)[1] or ''
+    return vim.str_byteindex(text, client.offset_encoding, position.character, false)
+  end
+  for _, range in ipairs(sparse.highlights or {}) do
+    pcall(vim.api.nvim_buf_set_extmark, bufnr, sparse_namespace, range.start.line, column(range.start), {
+      end_row = range['end'].line,
+      end_col = column(range['end']),
+      hl_group = 'OrgLspSparseMatch',
+    })
+  end
+  for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+    if vim.wo[win].foldenable then
+      vim.api.nvim_win_call(win, function()
+        local cursor = vim.api.nvim_win_get_cursor(0)
+        vim.cmd('normal! zM')
+        for _, line in ipairs(sparse.lines or {}) do
+          pcall(vim.api.nvim_win_set_cursor, 0, { line + 1, 0 })
+          vim.cmd('normal! zv')
+        end
+        vim.api.nvim_win_set_cursor(0, cursor)
+      end)
+    end
+  end
+  -- Org takes the highlighting away at the next change
+  -- (`org-remove-highlights-with-change`).
+  vim.api.nvim_buf_attach(bufnr, false, {
+    on_lines = function()
+      vim.schedule(function()
+        if vim.api.nvim_buf_is_valid(bufnr) then
+          vim.api.nvim_buf_clear_namespace(bufnr, sparse_namespace, 0, -1)
+        end
+      end)
+      return true
+    end,
+  })
 end
 
 --- The window that lists the choices of `read_key`, as Emacs lists them
