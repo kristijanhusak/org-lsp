@@ -1,0 +1,276 @@
+[
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+    "steps": [
+      [
+        "in",
+        "Task a"
+      ]
+    ],
+    "options": {
+      "org_todo_keywords": [
+        "TODO",
+        "NEXT",
+        "WAIT",
+        "|",
+        "DONE"
+      ]
+    },
+    "expected": "* TODO Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+    "steps": [
+      [
+        "in",
+        "Task a"
+      ],
+      [
+        "out"
+      ]
+    ],
+    "options": {
+      "org_todo_keywords": [
+        "TODO",
+        "NEXT",
+        "WAIT",
+        "|",
+        "DONE"
+      ]
+    },
+    "expected": "* TODO Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+    "steps": [
+      [
+        "in",
+        "Task a"
+      ]
+    ],
+    "options": {
+      "org_todo_keywords": [
+        "TODO",
+        "NEXT",
+        "WAIT",
+        "|",
+        "DONE"
+      ],
+      "org_clock_in_switch_to_state": "NEXT"
+    },
+    "expected": "* NEXT Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+    "steps": [
+      [
+        "in",
+        "Task b"
+      ]
+    ],
+    "options": {
+      "org_todo_keywords": [
+        "TODO",
+        "NEXT",
+        "WAIT",
+        "|",
+        "DONE"
+      ],
+      "org_clock_in_switch_to_state": "NEXT"
+    },
+    "expected": "* TODO Task a\n* NEXT Task b\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+    "steps": [
+      [
+        "in",
+        "Task d"
+      ]
+    ],
+    "options": {
+      "org_todo_keywords": [
+        "TODO",
+        "NEXT",
+        "WAIT",
+        "|",
+        "DONE"
+      ],
+      "org_clock_in_switch_to_state": "NEXT"
+    },
+    "expected": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* NEXT Task d\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* DONE Task e\n"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+    "steps": [
+      [
+        "in",
+        "Task a"
+      ],
+      [
+        "out"
+      ]
+    ],
+    "options": {
+      "org_todo_keywords": [
+        "TODO",
+        "NEXT",
+        "WAIT",
+        "|",
+        "DONE"
+      ],
+      "org_clock_out_switch_to_state": "WAIT"
+    },
+    "expected": "* WAIT Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+    "steps": [
+      [
+        "in",
+        "Task a"
+      ],
+      [
+        "in",
+        "Task c"
+      ]
+    ],
+    "options": {
+      "org_todo_keywords": [
+        "TODO",
+        "NEXT",
+        "WAIT",
+        "|",
+        "DONE"
+      ],
+      "org_clock_in_switch_to_state": "NEXT",
+      "org_clock_out_switch_to_state": "WAIT"
+    },
+    "expected": "* WAIT Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* NEXT Task b\n** NEXT Task c\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* Task d\n* DONE Task e\n"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+    "steps": [
+      [
+        "in",
+        "Task c"
+      ],
+      [
+        "in",
+        "Task a"
+      ],
+      [
+        "out"
+      ]
+    ],
+    "options": {
+      "org_todo_keywords": [
+        "TODO",
+        "NEXT",
+        "WAIT",
+        "|",
+        "DONE"
+      ],
+      "org_clock_out_switch_to_state": "DONE",
+      "org_log_done": "time"
+    },
+    "expected": "* DONE Task a\nCLOSED: [2026-05-18 Mon 10:30]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* NEXT Task b\n** DONE Task c\nCLOSED: [2026-05-18 Mon 10:30]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* Task d\n* DONE Task e\n"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+    "steps": [
+      [
+        "in",
+        "Task a"
+      ],
+      [
+        "cancel"
+      ]
+    ],
+    "options": {
+      "org_todo_keywords": [
+        "TODO",
+        "NEXT",
+        "WAIT",
+        "|",
+        "DONE"
+      ],
+      "org_clock_in_switch_to_state": "NEXT",
+      "org_clock_out_switch_to_state": "WAIT"
+    },
+    "expected": "* NEXT Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+    "steps": [
+      [
+        "in",
+        "Task e"
+      ]
+    ],
+    "options": {
+      "org_todo_keywords": [
+        "TODO",
+        "NEXT",
+        "WAIT",
+        "|",
+        "DONE"
+      ],
+      "org_clock_in_switch_to_state": "NEXT"
+    },
+    "expected": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* NEXT Task e\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+    "steps": [
+      [
+        "in",
+        "Task a"
+      ]
+    ],
+    "options": {
+      "org_todo_keywords": [
+        "TODO",
+        "NEXT",
+        "WAIT",
+        "|",
+        "DONE"
+      ],
+      "org_clock_in_switch_to_state": "NEXT",
+      "org_log_into_drawer": true
+    },
+    "expected": "* NEXT Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+    "steps": [
+      [
+        "in",
+        "Task a"
+      ]
+    ],
+    "options": {
+      "org_todo_keywords": [
+        "TODO",
+        "NEXT",
+        "WAIT",
+        "|",
+        "DONE"
+      ],
+      "org_clock_in_switch_to_state": "next"
+    },
+    "expected": "ERROR: (user-error \"State ‘next’ not valid in this file\")"
+  }
+]

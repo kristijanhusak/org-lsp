@@ -948,6 +948,65 @@ fn marks_entries_and_acts_on_them() {
     client.shutdown();
 }
 
+/// Clocking in and out, with the TODO states the clock switches to, as
+/// Emacs leaves the file: `tests/clock/cases.json`
+/// (`scripts/clock_reference.py`).
+#[test]
+fn clocking_matches_emacs() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/clock/cases.json");
+    let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    let mut failures = String::new();
+    for (index, case) in cases.iter().enumerate() {
+        let (today, now) = case["clock"].as_str().unwrap().split_once(' ').unwrap();
+        let mut options = case.get("options").cloned().unwrap_or_else(|| json!({}));
+        options["clock"] = json!({ "today": today, "now": now });
+        let mut client = Client::editor(options, None);
+        const URI: &str = "file:///org/clock.org";
+        let mut text = case["text"].as_str().unwrap().to_string();
+        client.open(URI, &text);
+        let mut result = Ok(());
+        for step in case["steps"].as_array().unwrap() {
+            let step: Vec<&str> = step.as_array().unwrap().iter().map(|part| part.as_str().unwrap()).collect();
+            let line = match step.get(1) {
+                Some(needle) => text.lines().position(|line| line.starts_with('*') && line.contains(needle)).unwrap(),
+                None => 0,
+            };
+            let command = format!("org.clock.{}", step[0]);
+            let context = json!({ "textDocument": { "uri": URI }, "position": { "line": line, "character": 0 } });
+            client.received.clear();
+            let answer =
+                client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+            client.settle();
+            if let Err(error) = answer {
+                result = Err(error);
+                break;
+            }
+            for request in std::mem::take(&mut client.received) {
+                if request.method == "workspace/applyEdit" {
+                    let (_, edits) = edits_of(&request);
+                    text = apply(&text, &edits);
+                    client.file_version += 1;
+                    client.notify(
+                        "textDocument/didChange",
+                        json!({ "textDocument": { "uri": URI, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+                    );
+                    client.settle();
+                }
+            }
+        }
+        let expected = case["expected"].as_str().unwrap();
+        let same = if expected.starts_with("ERROR") { result.is_err() } else { result.is_ok() && text == expected };
+        if !same {
+            failures.push_str(&format!(
+                "\ncase {index}: {:?} {result:?}\n--- emacs\n{expected}\n--- org-lsp\n{text}\n",
+                case["steps"]
+            ));
+        }
+        client.shutdown();
+    }
+    assert!(failures.is_empty(), "{failures}");
+}
+
 /// `org-agenda-custom-commands`: a group of commands under a prefix key,
 /// a block agenda whose agenda block moves on its own (`f`), and the
 /// built-in tags search (`m`).

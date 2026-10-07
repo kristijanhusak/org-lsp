@@ -488,6 +488,9 @@ struct Server {
     clock_settings: org_core::clock::Settings,
     /// `org-clock-out-when-done`
     clock_out_when_done: bool,
+    /// `org-clock-in-switch-to-state`, `org-clock-out-switch-to-state`
+    clock_in_switch: Option<String>,
+    clock_out_switch: Option<String>,
     /// The clock's status waits for the edit that writes its line.
     clock_pending: bool,
     /// Log mode (`l`) and the clock report (`R`) in the agenda.
@@ -667,6 +670,8 @@ pub fn run(connection: Connection) -> Result<()> {
         last_clocked: None,
         clock_settings: options.clock_settings(),
         clock_out_when_done: options.clock_out_when_done.unwrap_or(true),
+        clock_in_switch: options.clock_in_switch_to_state.clone(),
+        clock_out_switch: options.clock_out_switch_to_state.clone(),
         agenda_log: options.agenda.start_with_log_mode.unwrap_or(false),
         agenda_clockreport: options.agenda.start_with_clockreport_mode.unwrap_or(false),
         agenda_archives: options.agenda.archives_mode(),
@@ -6271,6 +6276,14 @@ impl Server {
         }
     }
 
+    /// `text` with the entry at `heading` put in `state`
+    /// (`org-clock-in-switch-to-state`, `org-clock-out-switch-to-state`).
+    fn switch_state(&self, text: &str, heading: usize, state: Option<&str>) -> std::result::Result<String, String> {
+        let Some(state) = state.filter(|state| !state.is_empty()) else { return Ok(text.to_string()) };
+        let parse = org_syntax::parse(text, &self.todo);
+        clock::switch_state(text, parse.todo_keywords(), heading, state, &self.edit_settings.todo, self.date_time())
+    }
+
     /// `org-clock-in`, `org-clock-out`, `org-clock-cancel` and
     /// `org-clock-goto`, in an Org file or on an agenda line.
     fn clock_command(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
@@ -6286,7 +6299,11 @@ impl Server {
                 };
                 let (new_text, message) = if id == commands::CLOCK_OUT {
                     let out = clock::clock_out(&text, line, self.date_time(), &self.clock_settings)?;
-                    (out.text, out.message)
+                    let switched = match Self::heading_above(&text, line) {
+                        Some(heading) => self.switch_state(&out.text, heading, self.clock_out_switch.as_deref())?,
+                        None => out.text,
+                    };
+                    (switched, out.message)
                 } else {
                     (clock::cancel(&text, line, &self.clock_settings)?, "Clock canceled".to_string())
                 };
@@ -6375,22 +6392,36 @@ impl Server {
                     return Ok(Value::Null);
                 }
                 let out = clock::clock_out(&text, line, now, &self.clock_settings)?;
+                let out_text = match Self::heading_above(&text, line) {
+                    Some(running_heading) => {
+                        self.switch_state(&out.text, running_heading, self.clock_out_switch.as_deref())?
+                    }
+                    None => out.text,
+                };
                 if running.uri == file && line < heading {
-                    heading = heading + out.text.len() - text.len();
+                    heading = heading + out_text.len() - text.len();
                 }
-                changes.push((running.uri.clone(), version, text, out.text));
+                changes.push((running.uri.clone(), version, text, out_text));
             }
         }
         let mut settings = self.clock_settings.clone();
         let (display, adapt) = (self.display, self.indent.adapt);
         let base = changes.iter().find(|(uri, ..)| *uri == file).map(|(_, _, _, new)| new.clone());
+        let switch = self.clock_in_switch.clone().filter(|state| !state.is_empty());
+        let (todo, now_time) = (self.edit_settings.todo.clone(), now);
         let found = self.with_source(&file, |text, _, parse, outline, version| {
             let base = base.clone().unwrap_or_else(|| text.to_string());
+            let base = match &switch {
+                Some(state) => clock::switch_state(&base, parse.todo_keywords(), heading, state, &todo, now_time)?,
+                None => base,
+            };
             settings.adapt = display.adapt(&base, adapt);
             let clocked = clock::clock_in(&base, parse.todo_keywords(), heading, &settings, now)?;
             let entry = &outline.entries[outline.entry_at(heading).ok_or("Before first headline")?];
             let repeat = entry.properties.iter().any(|(key, _)| key == "LAST_REPEAT");
-            Ok::<_, String>((text.to_string(), version, clocked.0, entry.head.clone(), repeat))
+            // The headline as the clock leaves it, its state switched.
+            let head = base[heading..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();
+            Ok::<_, String>((text.to_string(), version, clocked.0, head, repeat))
         });
         let (old, version, new_text, head, repeat) = found.ok_or("Cannot read the file of this entry")??;
         match changes.iter_mut().find(|(uri, ..)| *uri == file) {

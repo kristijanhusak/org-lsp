@@ -64,6 +64,12 @@ pub struct Options {
     /// `org-clock-out-when-done`: a done state stops the clock on the entry.
     #[serde(rename = "org_clock_out_when_done")]
     pub clock_out_when_done: Option<bool>,
+    /// `org-clock-in-switch-to-state`
+    #[serde(rename = "org_clock_in_switch_to_state")]
+    pub clock_in_switch_to_state: Option<String>,
+    /// `org-clock-out-switch-to-state`
+    #[serde(rename = "org_clock_out_switch_to_state")]
+    pub clock_out_switch_to_state: Option<String>,
     /// `org-complete-tags-always-offer-all-agenda-tags`: completing a tag
     /// also offers those of the agenda files.
     #[serde(rename = "org_complete_tags_always_offer_all_agenda_tags")]

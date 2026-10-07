@@ -311,6 +311,32 @@ pub struct ClockedOut {
     pub message: String,
 }
 
+/// `org-clock-in-switch-to-state` and `org-clock-out-switch-to-state`: the
+/// entry whose headline starts at `heading` put in `state`, unless its
+/// headline starts with it already. No note is asked for: a time is
+/// logged where one would be.
+pub fn switch_state(
+    text: &str,
+    keywords: &TodoKeywords,
+    heading: usize,
+    state: &str,
+    settings: &TodoSettings,
+    now: DateTime,
+) -> Result<String, String> {
+    let line = text[heading..].lines().next().unwrap_or("");
+    let after = line.trim_start_matches('*').trim_start_matches([' ', '\t']);
+    let has = after.len() >= state.len()
+        && after.is_char_boundary(state.len())
+        && after[..state.len()].eq_ignore_ascii_case(state)
+        && after[state.len()..].chars().next().is_none_or(|c| c == ' ' || c == '\t');
+    if has {
+        return Ok(text.to_string());
+    }
+    let target = crate::todo::Target::State(Some(state.to_string()));
+    crate::todo::change_state_noted(text, keywords, heading, &target, settings, now, crate::todo::NoteText::TimeOnly)
+        .map(|changed| changed.text)
+}
+
 /// `org-clock-out`: end the clock on the line starting at `line`.
 pub fn clock_out(text: &str, line: usize, now: DateTime, settings: &Settings) -> Result<ClockedOut, String> {
     let line_end = text[line..].find('\n').map_or(text.len(), |end| line + end);

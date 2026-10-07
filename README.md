@@ -301,6 +301,7 @@ scripts/update-calendar-fixtures.sh        # the calendar of the date prompt
 scripts/update-indent-fixtures.py          # org-indent-line and org-indent-region
 scripts/update-format-fixtures.py          # org-table-align and org-align-tags
 scripts/update-table-fixtures.py           # org-table.el's editing commands
+scripts/clock_reference.py                 # clocking in and out
 ```
 
 `scripts/fuzz-against-emacs.py`, `fuzz-agenda.py`, `fuzz-todo.py`,
