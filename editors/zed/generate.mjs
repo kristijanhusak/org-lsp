@@ -101,12 +101,16 @@ const rules = selectors.sort((a, b) => rank(a) - rank(b)).map((selector) => rule
 const text = JSON.stringify(rules, null, 2) + '\n';
 
 // The agenda's keys. An extension cannot bind keys, and a key of Zed's
-// cannot run a language server's command, but it can run a task, and the
-// extension's tasks (languages/org/tasks.json) are there in Org buffers.
-// With `commandActions` the server writes `org-lsp-command` next to the
-// agenda, which runs a command where the cursor is: a task per agenda
-// command calls it, and keymap.json, for the user's keymap, binds the
-// agenda's keys to the tasks.
+// cannot run a language server's command, but it can run a task. A task
+// of the extension (a language's) does not do: Zed looks for those only
+// in files of the project's folders, and the agenda is a file of the
+// server's own, elsewhere. So tasks.json is for the user's own tasks
+// (`zed: open tasks`), and keymap.json, for the user's keymap, binds the
+// agenda's keys to them. With `commandActions` the server writes
+// `~/.local/state/org-lsp/agenda-command`, which runs a command in the
+// agenda where the cursor is (the server follows it); each task calls it.
+// The command is one string, with no `args`: Zed quotes a command that has
+// arguments, and `$HOME` would then not be expanded.
 /** An Emacs key (`C-c C-s`, `S-<right>`, `J`) in Zed's notation. */
 function zedKey(emacs) {
   const names = { RET: 'enter', TAB: 'tab', SPC: 'space', DEL: 'backspace', ESC: 'escape' };
@@ -138,8 +142,7 @@ const agendaCommands = manifest.commands
   .filter((command) => command.keys.length > 0);
 const tasks = agendaCommands.map((command) => ({
   label: command.label,
-  command: '$ZED_DIRNAME/org-lsp-command',
-  args: [command.command, '$ZED_ROW', '$ZED_COLUMN'],
+  command: `$HOME/.local/state/org-lsp/agenda-command ${command.command}`,
   tags: ['org-agenda'],
   // Out of sight: a terminal shows only when the command fails.
   reveal: 'never',
@@ -164,7 +167,7 @@ for (const command of agendaCommands) {
 const keymap = [{ context: 'Editor && extension == org-agenda', bindings }];
 const files = {
   [join(here, 'languages', 'org', 'semantic_token_rules.json')]: text,
-  [join(here, 'languages', 'org', 'tasks.json')]: JSON.stringify(tasks, null, 2) + '\n',
+  [join(here, 'tasks.json')]: JSON.stringify(tasks, null, 2) + '\n',
   [join(here, 'keymap.json')]: JSON.stringify(keymap, null, 2) + '\n',
 };
 

@@ -97,6 +97,9 @@ pub struct Options {
     /// item), and the agenda's commands through the command port (see
     /// `port`): for a client that cannot run a command from a key (Zed).
     pub command_actions: Option<bool>,
+    /// Where the command port's script is written, instead of
+    /// `~/.local/state/org-lsp/agenda-command`.
+    pub command_script: Option<String>,
     /// The client shows `org-lsp/virtualIndent`, as one announcing
     /// `experimental.orgVirtualIndent` does.
     pub virtual_indent: Option<bool>,
@@ -750,7 +753,7 @@ fn strip_json_comments(text: &str) -> String {
 }
 
 /// `path` with a leading `~/` for the home directory.
-fn expand_home(path: &str, var: &dyn Fn(&str) -> Option<String>) -> PathBuf {
+pub fn expand_home(path: &str, var: &dyn Fn(&str) -> Option<String>) -> PathBuf {
     match (path.strip_prefix("~/"), var("HOME").or_else(|| var("USERPROFILE"))) {
         (Some(rest), Some(home)) => PathBuf::from(home).join(rest),
         _ => PathBuf::from(path),

@@ -2332,12 +2332,17 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     options["commandActions"] = json!(true);
     options["messagePrompts"] = json!(true);
     options["virtualDocuments"] = json!(false);
+    let state = std::env::temp_dir().join(format!("org-lsp-state-{}", std::process::id()));
+    let script_path = state.join("org-lsp").join("agenda-command");
+    options["commandScript"] = json!(script_path);
     let capabilities = json!({
         "workspace": { "workspaceEdit": { "documentChanges": true } },
         "window": { "showDocument": { "support": true } },
         "general": { "positionEncodings": ["utf-8"] }
     });
     let mut client = Client::start(capabilities, options, None);
+    // The server follows the cursor through document highlights.
+    assert_eq!(client.initialize["capabilities"]["documentHighlightProvider"], true);
     const WORK_URI: &str = "file:///org/work.org";
     let mut text = WORK.to_string();
     client.open(WORK_URI, &text);
@@ -2403,14 +2408,37 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     let agenda_text = std::fs::read_to_string(agenda.trim_start_matches("file://")).unwrap();
     client.open(&agenda, &agenda_text);
     // The agenda's file is read-only, where Zed runs no code action: its
-    // commands come through the command port, whose script is next to it.
+    // commands come through the command port, whose script is at a place
+    // the keys can name.
     let agenda_path = std::path::PathBuf::from(agenda.trim_start_matches("file://"));
     assert!(std::fs::metadata(&agenda_path).unwrap().permissions().readonly());
     assert!(kinds(&mut client, &agenda, 0, json!(["org"])).is_empty());
-    let script = std::fs::read_to_string(agenda_path.with_file_name(org_lsp::port::SCRIPT)).unwrap();
+    let script = std::fs::read_to_string(&script_path).unwrap();
     let words: Vec<&str> = script.lines().last().unwrap().split_whitespace().collect();
     let at = words.iter().position(|word| *word == "command").unwrap();
     let (address, token) = (words[at + 1].to_string(), words[at + 2].to_string());
+    // Without a row, a command acts where the cursor was last seen: here
+    // on the entry, which `org.agenda.goto` shows.
+    let row = agenda_text.lines().position(|line| line.contains("Write report")).unwrap();
+    let highlights = client
+        .request(
+            "textDocument/documentHighlight",
+            json!({ "textDocument": { "uri": agenda }, "position": { "line": row, "character": 3 } }),
+        )
+        .unwrap();
+    assert_eq!(highlights, Value::Null);
+    client.received.clear();
+    org_lsp::port::send(&[address.clone(), token.clone(), "org.agenda.goto".into()]).unwrap();
+    let mut shown = None;
+    for _ in 0..200 {
+        client.settle();
+        shown = client.received.iter().find(|request| request.method == "window/showDocument").cloned();
+        if shown.is_some() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    assert_eq!(shown.expect("the entry shown").params["uri"], WORK_URI);
     client.received.clear();
     org_lsp::port::send(&[address, token, "org.agenda.later".into(), "1".into(), "1".into()]).unwrap();
     // The port's command comes on a channel of its own: wait for it.
@@ -2452,6 +2480,9 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("moved");
     assert_eq!(shown.params["selection"]["start"], json!({ "line": 3, "character": 2 }));
     client.shutdown();
+    // The script goes with the server.
+    assert!(!script_path.exists());
+    std::fs::remove_dir_all(state).unwrap();
 }
 
 /// The shared configuration file's options apply, under the editor's, and

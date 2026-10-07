@@ -16,10 +16,10 @@ use lsp_types::request::{
 };
 use lsp_types::{
     CodeAction, CodeActionKind, CodeActionOptions, CodeActionOrCommand, CodeActionParams, CodeActionProviderCapability,
-    DocumentSymbolParams, DocumentSymbolResponse, ExecuteCommandOptions, ExecuteCommandParams, FoldingRangeParams,
-    FoldingRangeProviderCapability, GotoDefinitionParams, GotoDefinitionResponse, InitializeParams, InitializeResult,
-    Location, MessageType, OneOf, OptionalVersionedTextDocumentIdentifier, Position, Range, SemanticTokens,
-    SemanticTokensFullOptions, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams,
+    DocumentHighlight, DocumentSymbolParams, DocumentSymbolResponse, ExecuteCommandOptions, ExecuteCommandParams,
+    FoldingRangeParams, FoldingRangeProviderCapability, GotoDefinitionParams, GotoDefinitionResponse, InitializeParams,
+    InitializeResult, Location, MessageType, OneOf, OptionalVersionedTextDocumentIdentifier, Position, Range,
+    SemanticTokens, SemanticTokensFullOptions, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams,
     SemanticTokensServerCapabilities, ServerCapabilities, ServerInfo, ShowDocumentParams, ShowMessageParams,
     TextDocumentEdit, TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
     TextDocumentSyncSaveOptions, TextEdit, Uri, WorkspaceEdit,
@@ -79,6 +79,8 @@ struct Client {
     /// More commands as code actions, and the agenda's through the
     /// command port (`commandActions`).
     command_actions: bool,
+    /// Where the command port's script goes (`commandScript`).
+    command_script: Option<PathBuf>,
 }
 
 /// An outgoing request whose answer the server acts on.
@@ -351,7 +353,11 @@ struct Server {
     /// script once it is open: with `commandActions`, while the agenda is a
     /// file.
     port_sender: crossbeam_channel::Sender<port::Command>,
-    port: Option<PathBuf>,
+    port: Option<port::Port>,
+    /// Where the cursor was last seen in the agenda, for the port's
+    /// commands that do not say: from the requests the client makes as
+    /// the cursor moves, and from where the server put it.
+    agenda_cursor: Option<Position>,
     next_request: i32,
     pending: HashMap<RequestId, Pending>,
     /// What the command being run has to say, as Emacs says it in the echo
@@ -488,6 +494,11 @@ pub fn run(connection: Connection) -> Result<()> {
             .unwrap_or(false),
         message_prompts: options.message_prompts.unwrap_or(false),
         command_actions: options.command_actions.unwrap_or(false),
+        command_script: options
+            .command_script
+            .as_deref()
+            .map(|path| config::expand_home(path, &|name| std::env::var(name).ok()))
+            .or_else(port::script_path),
     };
     let client =
         Client { date_prompt: client.date_prompt && client.virtual_documents && client.show_document, ..client };
@@ -501,7 +512,7 @@ pub fn run(connection: Connection) -> Result<()> {
     };
 
     let result = InitializeResult {
-        capabilities: capabilities(client.encoding, !client.virtual_indent),
+        capabilities: capabilities(client.encoding, !client.virtual_indent, client.command_actions),
         server_info: Some(ServerInfo {
             name: "org-lsp".to_string(),
             version: Some(env!("CARGO_PKG_VERSION").to_string()),
@@ -517,6 +528,7 @@ pub fn run(connection: Connection) -> Result<()> {
         sender: connection.sender.clone(),
         port_sender,
         port: None,
+        agenda_cursor: None,
         next_request: 0,
         pending: HashMap::new(),
         message: None,
@@ -741,7 +753,10 @@ fn set_writable(file: &Path) -> std::io::Result<()> {
 
 /// What the server does. `inlay_hints`: show `org-indent-mode`'s prefixes
 /// as inlay hints, for a client that does not show them otherwise.
-fn capabilities(encoding: Encoding, inlay_hints: bool) -> ServerCapabilities {
+/// `cursor`: ask for document highlights, which a client asks for as the
+/// cursor moves, so that the server knows where it is in the agenda
+/// (`commandActions`).
+fn capabilities(encoding: Encoding, inlay_hints: bool, cursor: bool) -> ServerCapabilities {
     ServerCapabilities {
         position_encoding: Some(encoding.kind()),
         text_document_sync: Some(TextDocumentSyncCapability::Options(TextDocumentSyncOptions {
@@ -778,6 +793,7 @@ fn capabilities(encoding: Encoding, inlay_hints: bool) -> ServerCapabilities {
         document_range_formatting_provider: Some(OneOf::Left(true)),
         document_formatting_provider: Some(OneOf::Left(true)),
         inlay_hint_provider: inlay_hints.then_some(OneOf::Left(true)),
+        document_highlight_provider: cursor.then_some(OneOf::Left(true)),
         experimental: Some(json!({ "org": manifest::manifest() })),
         ..Default::default()
     }
@@ -1080,6 +1096,7 @@ impl Server {
             lsp_types::request::RangeFormatting => range_formatting,
             lsp_types::request::Formatting => formatting,
             lsp_types::request::InlayHintRequest => inlay_hints,
+            lsp_types::request::DocumentHighlightRequest => document_highlights,
         }
     }
 
@@ -1291,8 +1308,38 @@ impl Server {
             .collect()
     }
 
+    /// No highlights: the request says where the cursor is, which the
+    /// agenda's keys want.
+    fn document_highlights(&mut self, params: lsp_types::DocumentHighlightParams) -> Option<Vec<DocumentHighlight>> {
+        let position = params.text_document_position_params;
+        self.saw_cursor(&position.text_document.uri, position.position);
+        None
+    }
+
+    /// The cursor is at `position` of `uri`: if that is the agenda, its
+    /// commands from the port go there, and the port's script to this
+    /// server.
+    fn saw_cursor(&mut self, uri: &Uri, position: Position) {
+        if !self.is_view(uri) {
+            return;
+        }
+        self.agenda_cursor = Some(position);
+        self.claim_script();
+    }
+
+    /// Make the port's script send to this server.
+    fn claim_script(&mut self) {
+        let (Some(port), Some(path)) = (&self.port, &self.client.command_script) else { return };
+        if let Err(error) = port.claim(path) {
+            self.show_message(MessageType::ERROR, format!("Cannot write {}: {error}", path.display()));
+        }
+    }
+
     fn code_actions(&mut self, params: CodeActionParams) -> Option<Vec<CodeActionOrCommand>> {
         let uri = &params.text_document.uri;
+        if self.client.command_actions {
+            self.saw_cursor(uri, params.range.start);
+        }
         let only = params.context.only.as_deref();
         let context = json!({ "textDocument": { "uri": uri }, "position": params.range.start });
         let as_action = |id: &'static str| {
@@ -1933,7 +1980,7 @@ impl Server {
                 let directory = temp_dir().join(format!("org-lsp-{}", std::process::id()));
                 let file = directory.join(views::FILE_NAME);
                 if std::fs::create_dir_all(&directory).is_ok() {
-                    self.open_port(&directory);
+                    self.open_port();
                     if let Some(uri) = uri::from_path(&file) {
                         self.view = Some(OpenView { uri, file: Some(file), view, client: None, shown: None });
                     }
@@ -1942,26 +1989,31 @@ impl Server {
         }
     }
 
-    /// Open the command port next to the agenda's file, for a client that
-    /// cannot run a command from a key (`commandActions`).
-    fn open_port(&mut self, directory: &Path) {
+    /// Open the command port, for a client that cannot run a command
+    /// from a key (`commandActions`), and make its script this server's.
+    fn open_port(&mut self) {
         if !self.client.command_actions || self.port.is_some() {
             return;
         }
-        match port::open(directory, self.port_sender.clone()) {
-            Ok(script) => self.port = Some(script),
+        match port::open(self.port_sender.clone()) {
+            Ok(port) => {
+                self.port = Some(port);
+                self.claim_script();
+            }
             Err(error) => self.show_message(MessageType::ERROR, format!("Cannot open the command port: {error}")),
         }
     }
 
-    /// Run a command the port was sent, where it says in the agenda, as
+    /// Run a command the port was sent, where it says in the agenda or
+    /// else where the cursor was last seen there, as
     /// `workspace/executeCommand` runs it.
     fn run_from_port(&mut self, sent: port::Command) {
         let Some(uri) = self.view.as_ref().map(|open| open.uri.clone()) else { return };
-        let argument = json!({
-            "textDocument": { "uri": uri },
-            "position": { "line": sent.line, "character": sent.character },
-        });
+        let position = match sent.position {
+            Some((line, character)) => Position::new(line, character),
+            None => self.agenda_cursor.unwrap_or_default(),
+        };
+        let argument = json!({ "textDocument": { "uri": uri }, "position": position });
         let params = ExecuteCommandParams {
             command: sent.command.clone(),
             arguments: vec![argument.clone()],
@@ -1996,6 +2048,7 @@ impl Server {
     /// Ask the client to show the view with the cursor at `position`.
     fn show_view(&mut self, position: Position) {
         let Some(uri) = self.view.as_ref().map(|open| open.uri.clone()) else { return };
+        self.agenda_cursor = Some(position);
         let params = ShowDocumentParams {
             uri,
             external: None,
@@ -2081,8 +2134,8 @@ impl Server {
             // Windows does not remove a read-only file.
             let _ = set_writable(file);
             let _ = std::fs::remove_file(file);
-            if let Some(script) = &self.port {
-                let _ = std::fs::remove_file(script);
+            if let (Some(port), Some(path)) = (&self.port, &self.client.command_script) {
+                port.release(path);
             }
             if let Some(directory) = file.parent() {
                 let _ = std::fs::remove_dir(directory);

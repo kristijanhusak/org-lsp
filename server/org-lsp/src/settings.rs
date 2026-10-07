@@ -763,9 +763,21 @@ pub const SETTINGS: &[Setting] = &[
             "",
             "Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked \
              from a list, a new heading or item (M-RET and its neighbours), for a client that cannot run a \
-             command from a key. The agenda's commands go through a local port instead: next to the agenda's \
-             file the server writes `org-lsp-command`, which runs `org-lsp-command COMMAND ROW COLUMN` where \
-             the cursor is, for the editor's keys to call. The Zed extension sets it.",
+             command from a key. The agenda's commands go through a local port instead: the server writes a \
+             script (`commandScript`) that runs `SCRIPT COMMAND [ROW COLUMN]` in the agenda, where the cursor \
+             is when no row is given (the server follows the cursor through the document highlights the client \
+             asks for), for the editor's keys to call. The Zed extension sets it.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
+            "commandScript",
+            "string",
+            r#""~/.local/state/org-lsp/agenda-command""#,
+            "",
+            "Where the server writes the script of `commandActions`. Of several servers with an agenda, the one \
+             whose agenda the cursor was last in has it.",
         )
     },
 ];
@@ -922,6 +934,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("messagePrompts", BOOLEAN),
     ("virtualIndent", BOOLEAN),
     ("commandActions", BOOLEAN),
+    ("commandScript", STRING),
 ];
 
 const BOOLEAN: &str = r#"{ "type": "boolean" }"#;
