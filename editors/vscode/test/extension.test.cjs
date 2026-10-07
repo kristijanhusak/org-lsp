@@ -582,6 +582,31 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('sorts the children of an entry by the key picked', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'sorting.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* Parent\n** b\n** C\ntext\n** a\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    const showQuickPick = vscode.window.showQuickPick;
+    const asked = [];
+    vscode.window.showQuickPick = async (items, options) => {
+      asked.push(options.placeHolder);
+      return items.find((item) => item.key === 'A');
+    };
+    try {
+      moveTo(0, 3);
+      await vscode.commands.executeCommand('org.sort');
+      await until('the children sorted', () => editor.document.getText() === '* Parent\n** C\ntext\n** b\n** a\n');
+      assert.deepEqual(asked, ['Sort children']);
+      assert.equal(editor.selection.active.line, 0);
+    } finally {
+      vscode.window.showQuickPick = showQuickPick;
+    }
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('archives a subtree into the archive file, and asks about each done one', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'archive.org'));
     const archive = vscode.Uri.file(path.join(workspace, 'archive.org_archive'));

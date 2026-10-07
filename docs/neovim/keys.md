@@ -53,6 +53,7 @@ The other options are in [configuration.md](configuration.md).
 | `>s` | `org.shiftmeta.right` | Demote the subtree |
 | `<Leader>oK` | `org.meta.up` | Move the subtree up |
 | `<Leader>oJ` | `org.meta.down` | Move the subtree down |
+| `<Leader>o^` | `org.sort` | Sort the entries |
 | `<Leader>osd` | `org.cut.subtree` | Cut the subtree |
 | `<Leader>osy` | `org.copy.subtree` | Copy the subtree |
 | `<Leader>osp` | `org.paste.subtree` | Paste the subtree |

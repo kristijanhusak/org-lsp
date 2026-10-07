@@ -324,8 +324,9 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         if (clipboardCommands.includes(name) && params.arguments[0]) {
           params.arguments[0] = { ...(params.arguments[0] as object), clipboard: await vscode.env.clipboard.readText() };
         }
-        try {
-          let result = await running.sendRequest('workspace/executeCommand', params);
+        // What a result carries: an edit, text for the clipboard, documents
+        // to close or save, a message.
+        const handle = async (result: unknown): Promise<void> => {
           await applyCarried(running, result);
           // What was cut or copied goes to the clipboard.
           const copied = (result as { copy?: unknown } | null)?.copy;
@@ -335,6 +336,10 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           closeAsked(result);
           await saveAsked(result);
           sayAsked(result);
+        };
+        try {
+          let result = await running.sendRequest('workspace/executeCommand', params);
+          await handle(result);
           let context = (params.arguments[0] ?? {}) as Record<string, unknown>;
           // The command asks for something first: ask, and run it again
           // with the answer, until it asks for nothing more.
@@ -348,8 +353,7 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
             }
             context = { ...context, ...(input.context ?? {}), input: answer };
             result = await running.sendRequest('workspace/executeCommand', { command: name, arguments: [context] });
-            closeAsked(result);
-            sayAsked(result);
+            await handle(result);
           }
           return result;
         } catch (error) {

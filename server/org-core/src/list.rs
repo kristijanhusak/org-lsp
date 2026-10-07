@@ -244,6 +244,12 @@ fn search_forward(text: &str, from: usize, limit: usize, matches: impl Fn(&str) 
     None
 }
 
+/// `org-at-item-p`: whether the line at `at` starts a list item.
+pub fn at_item(text: &str, at: usize) -> bool {
+    let start = line_start(text, at.min(text.len()));
+    in_item(text, start) == Some(start)
+}
+
 // ----- org-in-item-p
 
 /// `org-in-item-p`: the start of the item the line at `at` is in.

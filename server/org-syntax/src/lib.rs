@@ -58,6 +58,17 @@ impl Parse {
     }
 }
 
+/// The objects of `text` as in a paragraph (emphasis, links, entities…),
+/// whatever the text would be at the start of a line: a `PARAGRAPH` node
+/// of object nodes and `TEXT` tokens.
+pub fn parse_objects(text: &str) -> SyntaxNode {
+    let mut builder = rowan::GreenNodeBuilder::new();
+    builder.start_node(SyntaxKind::PARAGRAPH.into());
+    objects::parse_objects(&mut builder, text, objects::Mode::STANDARD);
+    builder.finish_node();
+    SyntaxNode::new_root(builder.finish())
+}
+
 /// Parse `text`. `default_todo` applies unless the document declares its own
 /// keywords with `#+TODO:` lines.
 pub fn parse(text: &str, default_todo: &TodoKeywords) -> Parse {

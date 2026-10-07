@@ -67,10 +67,11 @@ others), as close to Emacs Org mode as it can get.
 As of #61 (2026-10-07). What is left, by milestone; each is a PR or a
 few, checked against Emacs where Org decides the outcome:
 
-- **Structure editing (6):** sorting (`org-sort`), sparse trees. Done:
-  promote, demote and move subtrees (`tests/structure`); cut, copy and
-  paste subtrees through the editor's register or clipboard
-  (`tests/subtree`).
+- **Structure editing (6):** sparse trees. Done: promote, demote and
+  move subtrees (`tests/structure`); cut, copy and paste subtrees
+  through the editor's register or clipboard (`tests/subtree`); sorting
+  entries (`tests/sort`). Sorting list items and table lines come with
+  the lists and the tables.
 - **Lists (8):** cycle bullets (`S-<left>`/`S-<right>` on an item),
   indent and outdent items, move items, renumber.
 - **Tags and properties (7):** set tags (`C-c C-q`, with fast tag
@@ -521,6 +522,7 @@ Emacs in `tests/tblfm/cases.json`.
   | M-RET, M-S-RET, C-RET, C-S-RET | `tests/meta-return/cases.json` | `scripts/update-meta-return-fixtures.py` | `scripts/fuzz-meta-return.py` |
   | Promote, demote, move subtrees (`M-<left>`, `M-S-<right>`, `M-<up>`, …) | `tests/structure/cases.json` | `scripts/update-structure-fixtures.py` | `scripts/fuzz-structure.py` |
   | Cut, copy, paste subtrees (`org-cut-subtree`, `org-copy-subtree`, `org-paste-subtree`, with the kill ring) | `tests/subtree/cases.json` | `scripts/update-subtree-fixtures.py` | `scripts/fuzz-subtree.py` |
+  | Sorting entries (`org-sort-entries`, every sorting type, in the C locale at a fixed time) | `tests/sort/cases.json` | `scripts/update-sort-fixtures.py` | `scripts/fuzz-sort.py` |
   | Archiving | `tests/archive/cases.json` | `scripts/update-archive-fixtures.py` | `scripts/fuzz-archive.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.

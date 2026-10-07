@@ -993,6 +993,56 @@ fn cuts_copies_and_pastes_subtrees() {
     client.shutdown();
 }
 
+/// `org-sort`: the sorting type asked for as a key, the property for `r`,
+/// and the children sorted, the cursor on their parent.
+#[test]
+fn sorts_entries() {
+    let mut client = Client::start(json!({}), Value::Null);
+    let text = "* P\n** b\n:PROPERTIES:\n:WHO: zed\n:END:\n** a\n** C\n:PROPERTIES:\n:WHO: amy\n:END:\n";
+    client.open(&uri(), text);
+    let run = |client: &mut Client, extra: Value| -> Result<Value, String> {
+        let mut context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 2 } });
+        for (key, value) in extra.as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.sort", "arguments": [context] }))
+            .response_result
+            .map_err(|error| error.message)
+    };
+    let asked = run(&mut client, json!({})).unwrap();
+    assert_eq!(asked["input"]["kind"], "key");
+    assert_eq!(asked["input"]["prompt"], "Sort children");
+    assert_eq!(asked["input"]["choices"][0], json!({ "key": "a", "label": "alpha" }));
+    let applied = |result: &Value| {
+        let edit: TextEdit = serde_json::from_value(result["edits"][0].clone()).unwrap();
+        let offset = |at: Position| {
+            text.split_inclusive('\n').take(at.line as usize).map(str::len).sum::<usize>() + at.character as usize
+        };
+        format!("{}{}{}", &text[..offset(edit.range.start)], edit.new_text, &text[offset(edit.range.end)..])
+    };
+    let sorted = run(&mut client, json!({ "input": "a" })).unwrap();
+    assert_eq!(
+        applied(&sorted),
+        "* P\n** a\n** b\n:PROPERTIES:\n:WHO: zed\n:END:\n** C\n:PROPERTIES:\n:WHO: amy\n:END:\n"
+    );
+    assert_eq!(sorted["cursor"], json!({ "line": 0, "character": 0 }));
+    assert_eq!(sorted["message"], "Sorting entries...done");
+    let property = run(&mut client, json!({ "input": "R" })).unwrap();
+    assert_eq!(property["input"]["kind"], "choice");
+    assert_eq!(property["input"]["choices"], json!([{ "key": "WHO", "label": "WHO" }]));
+    assert_eq!(property["input"]["context"], json!({ "answers": "R" }));
+    let by_who = run(&mut client, json!({ "input": "WHO", "answers": "R" })).unwrap();
+    assert_eq!(
+        applied(&by_who),
+        "* P\n** b\n:PROPERTIES:\n:WHO: zed\n:END:\n** C\n:PROPERTIES:\n:WHO: amy\n:END:\n** a\n"
+    );
+    client.open(&uri(), "* P\n");
+    assert_eq!(run(&mut client, json!({ "input": "a" })).unwrap_err(), "Nothing to sort");
+    client.shutdown();
+}
+
 /// Recalculating a table with formulas as a code action, in the table and
 /// on its `#+TBLFM:` line; none where nothing would change.
 #[test]

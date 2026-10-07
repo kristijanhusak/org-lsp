@@ -147,6 +147,7 @@ pub const SHIFT_META_LEFT: &str = "org.shiftmeta.left";
 pub const SHIFT_META_RIGHT: &str = "org.shiftmeta.right";
 pub const META_UP: &str = "org.meta.up";
 pub const META_DOWN: &str = "org.meta.down";
+pub const SORT: &str = "org.sort";
 pub const CUT_SUBTREE: &str = "org.cut.subtree";
 pub const COPY_SUBTREE: &str = "org.copy.subtree";
 pub const PASTE_SUBTREE: &str = "org.paste.subtree";
@@ -368,6 +369,12 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[native(Org, "M-<down>")],
         vim: &[key(Org, "<Leader>oJ")],
         ..edit(META_DOWN, "Move the subtree down")
+    },
+    Command {
+        emacs: &[key(Org, "C-c ^")],
+        vim: &[key(Org, "<Leader>o^")],
+        input: Some(Input { kind: "key", prompt: "Sort" }),
+        ..edit(SORT, "Sort the entries")
     },
     // The subtree to and from the clipboard: the result of cutting and
     // copying has the text to put there in `copy`.
