@@ -88,6 +88,11 @@ function M.virtual(params)
   if not vim.api.nvim_buf_is_loaded(bufnr) or vim.lsp.util.buf_versions[bufnr] ~= params.version then
     return
   end
+  -- An entry in a float (`K` in the agenda) is shown as it is: indented,
+  -- its lines would be wider than the float made for them.
+  if vim.b[bufnr].org_lsp_preview then
+    return
+  end
   vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
   for _, line in ipairs(params.lines) do
     local row, prefix, hidden = line[1], line[2], line[4]
