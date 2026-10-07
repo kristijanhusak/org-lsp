@@ -134,7 +134,7 @@ function! s:agenda() abort
   call win_gotoid(s:agenda_window())
   call s:until('its text', {-> getline(1) =~# '^Week-agenda'})
   call assert_true(search('Write report', 'n') > 0, 'an entry')
-  " `agenda.tagsColumn` `"auto"`: the tags end at the window's right edge,
+  " `org_agenda_tags_column` `"auto"`: the tags end at the window's right edge,
   " and follow it when it changes size.
   let agenda = win_getid()
   let Report = {-> getbufline(winbufnr(agenda), search('Write report', 'n'))[0]}

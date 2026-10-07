@@ -17,7 +17,7 @@ A Zed extension that runs Org through the org-lsp server.
      },
      "lsp": {
        "org-lsp": {
-         "initialization_options": { "agendaFiles": ["~/org"] }
+         "initialization_options": { "org_agenda_files": ["~/org"] }
        }
      }
    }
@@ -44,7 +44,7 @@ injections, with `combined` (with `full` there is no grammar to inject
 into). The grammar has no node for inline source blocks
 (`src_python{…}`), so their code is not colored.
 
-Files with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`)
+Files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`)
 show indented by level, without being changed, through inlay hints of
 blanks before their lines, when Zed shows inlay hints for Org:
 

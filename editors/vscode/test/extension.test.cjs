@@ -709,7 +709,7 @@ describe('The agenda', () => {
     const home = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspace, 'home.org')));
     await until('the entry to repeat', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-23 Sat +1w>');
     assert.equal(home.lineAt(0).text, '* TODO Water plants');
-    // `autoSave`: a change made from the agenda is saved.
+    // `auto_save`: a change made from the agenda is saved.
     const fs = require('node:fs');
     await until('the change to be saved', () => !home.isDirty && fs.readFileSync(home.uri.fsPath, 'utf8').includes('<2026-05-23 Sat +1w>'));
     // `s`, Org's `org-save-all-org-buffers`, saves what is left unsaved.

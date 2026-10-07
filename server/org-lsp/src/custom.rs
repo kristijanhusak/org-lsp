@@ -36,11 +36,11 @@ pub fn next_keys(commands: &[CustomCommandOption], prefix: &str) -> Vec<(String,
     out
 }
 
-/// The day `startDay` names, read as the date prompt reads it.
+/// The day `org_agenda_start_day` names, read as the date prompt reads it.
 fn start_day(text: &str, now: Now, settings: &ReadDateSettings) -> Result<Day, String> {
     let now = DateTime { day: now.today, minute: now.minute };
-    let read =
-        read_date::read_date(text, None, now, settings).map_err(|error| format!("startDay `{text}`: {error}"))?;
+    let read = read_date::read_date(text, None, now, settings)
+        .map_err(|error| format!("org_agenda_start_day `{text}`: {error}"))?;
     Ok(read.date.to_day())
 }
 
@@ -53,7 +53,7 @@ fn block_config(
 ) -> Result<(AgendaOptions, Config), String> {
     let mut value = serde_json::to_value(base).map_err(|error| error.to_string())?;
     if let Some(object) = value.as_object_mut() {
-        object.remove("customCommands");
+        object.remove("org_agenda_custom_commands");
     }
     for layer in layers.iter().flatten() {
         if !layer.is_object() {

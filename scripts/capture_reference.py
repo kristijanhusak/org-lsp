@@ -10,12 +10,12 @@ A case is a JSON object:
         "type": "entry",                      server's `captureTemplates` has
         "target": ["file+headline", "notes.org", "Tasks"],
         "template": "* TODO %?\\n%U",
-        "prepend": true, "emptyLines": 1, "emptyLinesBefore": 0,
-        "emptyLinesAfter": 0, "immediateFinish": false
+        "prepend": true, "empty_lines": 1, "empty_lines_before": 0,
+        "empty_lines_after": 0, "immediate_finish": false
       },
       "answers": ["fri"],                     what is typed at the prompts
       "typed": "Call Bob",                    what is typed in the capture
-      "options": {"adaptIndentation": true}   optional: server settings
+      "options": {"org_adapt_indentation": true}   optional: server settings
     }                                         buffer, where the cursor is
 
 `reference(cases)` adds `expected` to each case: `{"buffer": ...,
@@ -101,10 +101,10 @@ def template_form(template, paths):
     properties = []
     names = {
         "prepend": ":prepend",
-        "emptyLines": ":empty-lines",
-        "emptyLinesBefore": ":empty-lines-before",
-        "emptyLinesAfter": ":empty-lines-after",
-        "immediateFinish": ":immediate-finish",
+        "empty_lines": ":empty-lines",
+        "empty_lines_before": ":empty-lines-before",
+        "empty_lines_after": ":empty-lines-after",
+        "immediate_finish": ":immediate-finish",
     }
     for key, name in names.items():
         if key in template:
@@ -139,7 +139,7 @@ def reference(cases):
                 files = " ".join(lisp_string(paths[name]) for name in sorted(paths))
                 answers = " ".join(lisp_string(answer) for answer in case.get("answers", []))
                 source = lisp_string(paths[case["from"]]) if "from" in case else "nil"
-                adapt = case.get("options", {}).get("adaptIndentation", False)
+                adapt = case.get("options", {}).get("org_adapt_indentation", False)
                 adapt = "t" if adapt is True else "nil" if adapt is False else "'" + adapt
                 forms.append(
                     f"(let ((org-adapt-indentation {adapt}))"

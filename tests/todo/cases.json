@@ -90,7 +90,7 @@
   "text": "* TODO a¦ :tag:\n",
   "command": "next",
   "options": {
-   "tagsColumn": 40
+   "org_tags_column": 40
   },
   "expected": "* DONE a                                :tag:\n"
  },
@@ -99,7 +99,7 @@
   "text": "* TODO a¦ :tag:\n",
   "command": "next",
   "options": {
-   "tagsColumn": 0
+   "org_tags_column": 0
   },
   "expected": "* DONE a :tag:\n"
  },
@@ -108,7 +108,7 @@
   "text": "* TODO a :t1:t2:¦\n",
   "command": "next",
   "options": {
-   "logDone": "time"
+   "org_log_done": "time"
   },
   "expected": "* DONE a                                                              :t1:t2:\nCLOSED: [2026-05-18 Mon 10:30]\n"
  },
@@ -117,7 +117,7 @@
   "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun>\nbody\n",
   "command": "next",
   "options": {
-   "logDone": "time"
+   "org_log_done": "time"
   },
   "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30] SCHEDULED: <2026-05-10 Sun>\nbody\n"
  },
@@ -126,7 +126,7 @@
   "text": "* TODO a¦\n  DEADLINE: <2026-05-10 Sun>\n",
   "command": "next",
   "options": {
-   "logDone": "time"
+   "org_log_done": "time"
   },
   "expected": "* DONE a\n  CLOSED: [2026-05-18 Mon 10:30] DEADLINE: <2026-05-10 Sun>\n"
  },
@@ -135,7 +135,7 @@
   "text": "* DONE a¦\nCLOSED: [2026-05-10 Sun 10:00] SCHEDULED: <2026-05-10 Sun>\nbody\n",
   "command": "next",
   "options": {
-   "logDone": "time"
+   "org_log_done": "time"
   },
   "expected": "* a\nSCHEDULED: <2026-05-10 Sun>\nbody\n"
  },
@@ -144,7 +144,7 @@
   "text": "* DONE a¦\nCLOSED: [2026-05-10 Sun 10:00]\nbody\n",
   "command": "next",
   "options": {
-   "logDone": "time"
+   "org_log_done": "time"
   },
   "expected": "* a\nbody\n"
  },
@@ -153,7 +153,7 @@
   "text": "* DONE a¦\nSCHEDULED: <2026-05-10 Sun> CLOSED: [2026-05-10 Sun 10:00]\n",
   "command": "previous",
   "options": {
-   "logDone": "time"
+   "org_log_done": "time"
   },
   "expected": "* TODO a\nSCHEDULED: <2026-05-10 Sun>\n"
  },
@@ -168,7 +168,7 @@
   "text": "* TODO a¦",
   "command": "next",
   "options": {
-   "logDone": "time"
+   "org_log_done": "time"
   },
   "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]"
  },
@@ -177,7 +177,7 @@
   "text": "* TODO a¦\n",
   "command": "next",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30]"
  },
@@ -204,7 +204,7 @@
   "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n",
   "command": "next",
   "options": {
-   "logIntoDrawer": true
+   "org_log_into_drawer": true
   },
   "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n:END:\n"
  },
@@ -213,7 +213,7 @@
   "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n:LOGBOOK:\n- old\n:END:\n",
   "command": "next",
   "options": {
-   "logIntoDrawer": true
+   "org_log_into_drawer": true
   },
   "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n- old\n:END:\n"
  },
@@ -222,7 +222,7 @@
   "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n",
   "command": "next",
   "options": {
-   "logRepeat": false
+   "org_log_repeat": false
   },
   "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n"
  },
@@ -281,7 +281,7 @@
    "state": "DONE"
   },
   "options": {
-   "todoKeywords": [
+   "org_todo_keywords": [
     "TODO",
     "NEXT",
     "|",
@@ -305,7 +305,7 @@
    "state": "DONE"
   },
   "options": {
-   "todoRepeatToState": true
+   "org_todo_repeat_to_state": true
   },
   "expected": "#+TODO: TODO NEXT | DONE\n* NEXT a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"NEXT\"       [2026-05-18 Mon 10:30]"
  },
@@ -334,7 +334,7 @@
   "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>",
   "command": "next",
   "options": {
-   "logDone": "time"
+   "org_log_done": "time"
   },
   "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
  },
@@ -397,7 +397,7 @@
   "text": "#+TODO: TODO | DONE(d!)\n* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1w>\n",
   "command": "next",
   "options": {
-   "logDone": "time"
+   "org_log_done": "time"
   },
   "expected": "#+TODO: TODO | DONE(d!)\n* TODO a\nSCHEDULED: <2026-05-17 Sun +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]"
  },
@@ -1299,7 +1299,7 @@
   },
   "note": "Waiting for Bob",
   "options": {
-   "logIntoDrawer": "LOGBOOK"
+   "org_log_into_drawer": "LOGBOOK"
   },
   "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n:LOGBOOK:\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  Waiting for Bob\n:END:\n"
  },
@@ -1311,7 +1311,7 @@
   },
   "note": "line one\nline two",
   "options": {
-   "logIntoDrawer": "LOGBOOK"
+   "org_log_into_drawer": "LOGBOOK"
   },
   "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n:LOGBOOK:\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  line one\n  line two\n:END:\n"
  },
@@ -1323,7 +1323,7 @@
   },
   "note": "  \n# not a comment\nfoo  \n\n",
   "options": {
-   "logIntoDrawer": "LOGBOOK"
+   "org_log_into_drawer": "LOGBOOK"
   },
   "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n:LOGBOOK:\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  foo  \n\n:END:\n"
  },
@@ -1335,7 +1335,7 @@
   },
   "note": "",
   "options": {
-   "logIntoDrawer": "LOGBOOK"
+   "org_log_into_drawer": "LOGBOOK"
   },
   "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n:LOGBOOK:\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n:END:\n"
  },
@@ -1347,7 +1347,7 @@
   },
   "note": "\n\nafter blanks",
   "options": {
-   "logIntoDrawer": "LOGBOOK"
+   "org_log_into_drawer": "LOGBOOK"
   },
   "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n:LOGBOOK:\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  after blanks\n:END:\n"
  },
@@ -1359,7 +1359,7 @@
   },
   "note": "a\n\n  \nb",
   "options": {
-   "logIntoDrawer": "LOGBOOK"
+   "org_log_into_drawer": "LOGBOOK"
   },
   "expected": "#+TODO: TODO(t) NEXT WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* WAIT a\n:LOGBOOK:\n- State \"WAIT\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  a\n\n    \n  b\n:END:\n"
  },
@@ -1423,7 +1423,7 @@
   "command": "next",
   "note": "Waiting for Bob",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  Waiting for Bob"
  },
@@ -1433,7 +1433,7 @@
   "command": "next",
   "note": "line one\nline two",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  line one\n  line two"
  },
@@ -1443,7 +1443,7 @@
   "command": "next",
   "note": "  \n# not a comment\nfoo  \n\n",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  foo  \n"
  },
@@ -1453,7 +1453,7 @@
   "command": "next",
   "note": "",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30]"
  },
@@ -1463,7 +1463,7 @@
   "command": "next",
   "note": "\n\nafter blanks",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  after blanks"
  },
@@ -1473,7 +1473,7 @@
   "command": "next",
   "note": "a\n\n  \nb",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "* DONE a\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  a\n\n    \n  b"
  },
@@ -1483,7 +1483,7 @@
   "command": "next",
   "note": "Waiting for Bob",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
  },
@@ -1493,7 +1493,7 @@
   "command": "next",
   "note": "line one\nline two",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
  },
@@ -1503,7 +1503,7 @@
   "command": "next",
   "note": "  \n# not a comment\nfoo  \n\n",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
  },
@@ -1513,7 +1513,7 @@
   "command": "next",
   "note": "",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
  },
@@ -1523,7 +1523,7 @@
   "command": "next",
   "note": "\n\nafter blanks",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
  },
@@ -1533,7 +1533,7 @@
   "command": "next",
   "note": "a\n\n  \nb",
   "options": {
-   "logDone": "note"
+   "org_log_done": "note"
   },
   "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer  *temp*\")"
  },
@@ -1542,8 +1542,8 @@
   "text": "* [#B]  Call them\t:a:\nSCHEDULED: <2027-04-19 Mon 23:45>\n* a\n\n  - note\n#+begin¦_example\n<2027-04-15 Thu 8:00-9:00>\n#+end_example\n**  TODO with [[https://x.org][link]]   :a:\nSCHEDULED: <2027-04-24 Sat 9:30>\n:PROPERTIES:\n:STYLE: habit\n:COOKIE_DATA: checkbox\n:END:\n* DONE [#C]  日本 語\n  DEADLINE: <2027-04-20 Tue> CLOSED: [2027-04-15 Thu]\n  :PROPERTIES:\n  :END:\n\n  Text with <2027-04-15 Thu ++1w/2w> in it.\n",
   "command": "next",
   "options": {
-   "logDone": "note",
-   "adaptIndentation": true
+   "org_log_done": "note",
+   "org_adapt_indentation": true
   },
   "expected": "* [#B]  Call them\t:a:\nSCHEDULED: <2027-04-19 Mon 23:45>\n* TODO a\n\n  - note\n#+begin_example\n<2027-04-15 Thu 8:00-9:00>\n#+end_example\n**  TODO with [[https://x.org][link]]   :a:\nSCHEDULED: <2027-04-24 Sat 9:30>\n:PROPERTIES:\n:STYLE: habit\n:COOKIE_DATA: checkbox\n:END:\n* DONE [#C]  日本 語\n  DEADLINE: <2027-04-20 Tue> CLOSED: [2027-04-15 Thu]\n  :PROPERTIES:\n  :END:\n\n  Text with <2027-04-15 Thu ++1w/2w> in it.\n"
  },
@@ -1552,9 +1552,9 @@
   "text": "* DONE  a [/]\nCLOSED: [2027-04-03 Sat --1w] SCHEDULED: <2027-04-16 Thu 8:00-9:00 -1m>\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\n:END:\n**  TODO žć\n  DEADLINE: <2027-04-17 Sat 8:00-9:00 ++3h -2w>\n  Text with [2027-04-17 Sat] in it.\n  - note\n*** TODO [#C]  with [[https://x.org][link]]                              :x_y:@z:\nSCHEDULED: <2027-04-19 Mon 09:30 +3w --1w> CLOSED: [2027-04-18 Sun] DEADLINE: <2027-01-23 Sat>\n1. numbered\n**  with [[https://x.org][link]]\n:PROPERTIES:\n:COOKIE_DATA: checkbox\n:END:\nplain text\n** TODO [#C] with [[https://x.org][link]]¦\n  DEADLINE: <2026-07-27 Mon +1m -0d>\n",
   "command": "next",
   "options": {
-   "logDone": "time",
-   "logIntoDrawer": "NOTES",
-   "adaptIndentation": true
+   "org_log_done": "time",
+   "org_log_into_drawer": "NOTES",
+   "org_adapt_indentation": true
   },
   "expected": "* DONE  a [0/2]\nCLOSED: [2027-04-03 Sat --1w] SCHEDULED: <2027-04-16 Thu 8:00-9:00 -1m>\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\n:END:\n**  TODO žć\n  DEADLINE: <2027-04-17 Sat 8:00-9:00 ++3h -2w>\n  Text with [2027-04-17 Sat] in it.\n  - note\n*** TODO [#C]  with [[https://x.org][link]]                              :x_y:@z:\nSCHEDULED: <2027-04-19 Mon 09:30 +3w --1w> CLOSED: [2027-04-18 Sun] DEADLINE: <2027-01-23 Sat>\n1. numbered\n**  with [[https://x.org][link]]\n:PROPERTIES:\n:COOKIE_DATA: checkbox\n:END:\nplain text\n** TODO [#C] with [[https://x.org][link]]\n  DEADLINE: <2026-08-27 Thu +1m -0d>\n  :PROPERTIES:\n  :LAST_REPEAT: [2027-04-17 Sat 14:46]\n  :END:\n  :NOTES:\n  - State \"DONE\"       from \"TODO\"       [2027-04-17 Sat 14:46]\n  :END:\n"
  },
@@ -1565,9 +1565,9 @@
    "state": "DONE"
   },
   "options": {
-   "logRepeat": "note",
-   "todoRepeatToState": "DONE",
-   "adaptIndentation": true
+   "org_log_repeat": "note",
+   "org_todo_repeat_to_state": "DONE",
+   "org_adapt_indentation": true
   },
   "expected": "#+TODO: TODO | DONE(d@)\n*  [50%]\nDEADLINE: <2027-04-16 Fri 8:00-9:00 .+1d> SCHEDULED:  <2027-04-19 Mon> CLOSED: [2027-05-24 Mon]\nText with <2027-04-17 Sat> in it.\n- item <2027-03-18 Thu>\n*** TODO  žć :x_y:@z:\n    CLOSED: [2028-01-28 Fri] SCHEDULED: <2027-11-05 Fri>\n    :PROPERTIES:\n    :END:\n    Text with <2027-05-16 Sun> in it.\n\n#+begin_example\n<2027-04-18 Sun 10:00>\n#+end_example\n**** DONE  日本 語\t:x_y:@z:\n:PROPERTIES:\n:LAST_REPEAT: [2026-01-01 Thu 09:00]\n:END:\n*** DONE Call them                                                     :日本:\n  SCHEDULED: <2027-04-17 Sat 00:00 .+1d> DEADLINE: <2027-03-09 Tue -1m>\n  :PROPERTIES:\n  :LAST_REPEAT: [2026-01-01 Thu 09:00]\n  :END:\n  - State \"DONE\"       from \"DONE\"       [2027-04-17 Sat 14:46]\n  :LOGBOOK:\n  :END:\n****                              :日本:\n"
  },
@@ -1576,8 +1576,8 @@
   "text": "Text before the first headline.\n* DONE with [[https://x.org][link]] [%] :x_y:@z:\n  :PROPERTIES:\n  :END:\n  plain text\n  - item <2027-04-14 Wed 23:45>\n** TODO¦ [#A] x  y\n- note\n** TODO  日本 語                              :a:\n  CLOSED: [2027-04-16 Fri 09:30]\n  more\n*** TODO Call them   :a:\n",
   "command": "next",
   "options": {
-   "logDone": "note",
-   "adaptIndentation": "headline-data"
+   "org_log_done": "note",
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "Text before the first headline.\n* DONE with [[https://x.org][link]] [50%]                            :x_y:@z:\n  :PROPERTIES:\n  :END:\n  plain text\n  - item <2027-04-14 Wed 23:45>\n** DONE [#A] x  y\n   CLOSED: [2027-04-17 Sat 14:46]\n   - CLOSING NOTE [2027-04-17 Sat 14:46]\n- note\n** TODO  日本 語                              :a:\n  CLOSED: [2027-04-16 Fri 09:30]\n  more\n*** TODO Call them   :a:\n"
  },
@@ -1586,8 +1586,8 @@
   "text": "#+TODO: TODO(t) WAIT(w@/!) | DONE(d!) CANCELLED(c@)\nText before the first headline.\n*  CANCELLED žć [/] [%]\n  :LOGBOOK:\n  :END:\n  plain text\n** DONE with [[https://x.org][link]]\n  DEADLINE: <2027-05-26 Wed>\n  :PROPERTIES:\n  :COOKIE_DATA: todo\n  :ID: abc\n  :END:\n\n** review the report\n\n** [#C]  a   :x_y:@z:\n#+begin_example\n<2027-04-16 Fri>\n#+end_ex¦ample\nText with <2027-04-19 Mon> in it.\n#+begin_example\n<2027-04-17 Sat 00:00>\n#+end_example\n*** TODO [#A] a\nCLOSED:  [2028-02-15 Tue]\n:PROPERTIES:\n:STYLE: habit\n:LAST_REPEAT: [2026-01-01 Thu 09:00]\n:END:\n",
   "command": "next",
   "options": {
-   "logRepeat": false,
-   "adaptIndentation": true
+   "org_log_repeat": false,
+   "org_adapt_indentation": true
   },
   "expected": "#+TODO: TODO(t) WAIT(w@/!) | DONE(d!) CANCELLED(c@)\nText before the first headline.\n*  CANCELLED žć [1/2] [50%]\n  :LOGBOOK:\n  :END:\n  plain text\n** DONE with [[https://x.org][link]]\n  DEADLINE: <2027-05-26 Wed>\n  :PROPERTIES:\n  :COOKIE_DATA: todo\n  :ID: abc\n  :END:\n\n** review the report\n\n** TODO [#C]  a                                                      :x_y:@z:\n#+begin_example\n<2027-04-16 Fri>\n#+end_example\nText with <2027-04-19 Mon> in it.\n#+begin_example\n<2027-04-17 Sat 00:00>\n#+end_example\n*** TODO [#A] a\nCLOSED:  [2028-02-15 Tue]\n:PROPERTIES:\n:STYLE: habit\n:LAST_REPEAT: [2026-01-01 Thu 09:00]\n:END:\n"
  },
@@ -1596,8 +1596,8 @@
   "text": "* TODO\t:日本:\n  DEADLINE: <2027-09-29 Wed 10:00 +1d>\n  - not¦e\n* TODO\nDEADLINE: <2027-04-22 Thu +1y>\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n:END:\n- note\n",
   "command": "next",
   "options": {
-   "todoRepeatToState": true,
-   "adaptIndentation": true
+   "org_todo_repeat_to_state": true,
+   "org_adapt_indentation": true
   },
   "expected": "* TODO TODO                                                            :日本:\n  DEADLINE: <2027-09-29 Wed 10:00 +1d>\n  - note\n* TODO\nDEADLINE: <2027-04-22 Thu +1y>\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n:END:\n- note\n"
  },
@@ -1606,8 +1606,8 @@
   "text": "Text before the first headline.\n* DONE [#B] with [[https://x.org][link]] [1/3]\n  SCHEDULED: <2027-04-17 Sat .+2d/4d> CLOSED: [2027-05-17 Mon] DEADLINE: <2027-05-12 Sun 8:00-9:00 +1m>\n\n  1. numbered\n  Text with <2027-04-20 Tue 14:00-15:30> in it.\n** [#A]  a\t:x_y:@z:\nCLOSED: [2027-09-23 Thu 10:00] DEADLINE:¦ <2027-04-18 Sun>\n** DONE  Call them                              :日本:\n   SCHEDULED: <2027-04-15 Thu ++1w/2w> DEADLINE: <2027-04-19 Fri ++1w/2w>\n# <2027-03-23 Tue>\n",
   "command": "previous",
   "options": {
-   "logIntoDrawer": true,
-   "adaptIndentation": "headline-data"
+   "org_log_into_drawer": true,
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "Text before the first headline.\n* DONE [#B] with [[https://x.org][link]] [2/2]\n  SCHEDULED: <2027-04-17 Sat .+2d/4d> CLOSED: [2027-05-17 Mon] DEADLINE: <2027-05-12 Sun 8:00-9:00 +1m>\n\n  1. numbered\n  Text with <2027-04-20 Tue 14:00-15:30> in it.\n** DONE [#A]  a                                                      :x_y:@z:\nCLOSED: [2027-09-23 Thu 10:00] DEADLINE: <2027-04-18 Sun>\n** DONE  Call them                              :日本:\n   SCHEDULED: <2027-04-15 Thu ++1w/2w> DEADLINE: <2027-04-19 Fri ++1w/2w>\n# <2027-03-23 Tue>\n"
  },
@@ -1618,17 +1618,17 @@
    "state": "TODO"
   },
   "options": {
-   "todoKeywords": [
+   "org_todo_keywords": [
     "TODO",
     "NEXT(n!)",
     "|",
     "DONE",
     "GONE"
    ],
-   "logDone": "time",
-   "logRepeat": false,
-   "logIntoDrawer": "NOTES",
-   "adaptIndentation": true
+   "org_log_done": "time",
+   "org_log_repeat": false,
+   "org_log_into_drawer": "NOTES",
+   "org_adapt_indentation": true
   },
   "expected": "Text before the first headline.\n* TODO 日本 語\nDEADLINE: <2027-04-15 Tue 23:45 +1w>\n- item <2027-05-07 Fri>\n* 日本 語 :work:home:\n  SCHEDULED:  <2027-04-11 Sun 14:00-15:30> CLOSED: [2027-04-10 Sat --1w] DEADLINE: <2027-04-19 Mon 8:00-9:00 +1y>\n  Text with [2027-04-22 Sat 8:00-9:00 -0d] in it."
  },
@@ -1637,14 +1637,14 @@
   "text": "* NEXT [#B] a [/]   :a:\n  - item <2027-04-16 Fri +0d --2d>\n** NEXT  with [[https://x.org][link]]   :日本:\n  plain text\n***  TODO [#C] review the report\nmore\nmore\n** GONE [#C]                              :work:home:\n  CLOSED: [2027-04-01 Thu 09:30] SCHEDULED: <2027-04-26 Mon ++1y -1m>\n**  NEXT [#B] žć   :x_y:@z:\nSCHEDULED:¦  <2027-04-16 Tue>\n*** TODO žć\nDEADLINE: <2027-04-19 Mon .+1d> CLOSED:  [2027-04-21 Wed 9:30]\n:PROPERTIES:\n:LAST_REPEAT: [2026-01-01 Thu 09:00]\n:END:\n",
   "command": "next",
   "options": {
-   "todoKeywords": [
+   "org_todo_keywords": [
     "TODO",
     "NEXT(n!)",
     "|",
     "DONE",
     "GONE"
    ],
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "* NEXT [#B] a [2/3]                                                       :a:\n  - item <2027-04-16 Fri +0d --2d>\n** NEXT  with [[https://x.org][link]]   :日本:\n  plain text\n***  TODO [#C] review the report\nmore\nmore\n** GONE [#C]                              :work:home:\n  CLOSED: [2027-04-01 Thu 09:30] SCHEDULED: <2027-04-26 Mon ++1y -1m>\n** DONE [#B] žć                                                      :x_y:@z:\nSCHEDULED:  <2027-04-16 Tue>\n*** TODO žć\nDEADLINE: <2027-04-19 Mon .+1d> CLOSED:  [2027-04-21 Wed 9:30]\n:PROPERTIES:\n:LAST_REPEAT: [2026-01-01 Thu 09:00]\n:END:\n"
  },
@@ -1653,8 +1653,8 @@
   "text": "#+TODO: TODO(t!) NEXT(n) | DONE(d)\n* DONE [#C]                              :work:home:\n:LOGBOOK:\n:END:¦\n* [#A]\nSCHEDULED:  <2027-04-19 Tue 9:30 ++1w>\n:PROPERTIES:\n:REPEAT_TO_STATE: DONE\n:END:\n* TODO [#C] a                              :日本:\n  DEADLINE: <2027-04-16 Fri .+2h>\n  :PROPERTIES:\n  :REPEAT_TO_STATE: TODO\n  :END:\n# <2027-04-19 Mon>\n  - item <2027-04-20 Tue>\n",
   "command": "next",
   "options": {
-   "logDone": "note",
-   "adaptIndentation": true
+   "org_log_done": "note",
+   "org_adapt_indentation": true
   },
   "expected": "#+TODO: TODO(t!) NEXT(n) | DONE(d)\n* [#C]                                                            :work:home:\n:LOGBOOK:\n:END:\n* [#A]\nSCHEDULED:  <2027-04-19 Tue 9:30 ++1w>\n:PROPERTIES:\n:REPEAT_TO_STATE: DONE\n:END:\n* TODO [#C] a                              :日本:\n  DEADLINE: <2027-04-16 Fri .+2h>\n  :PROPERTIES:\n  :REPEAT_TO_STATE: TODO\n  :END:\n# <2027-04-19 Mon>\n  - item <2027-04-20 Tue>\n"
  },
@@ -1663,8 +1663,8 @@
   "text": "#+TODO: TODO NEXT | DONE\n* TODO review the report [0/0]\n  SCHEDULED:  <2027-05-02 Sun 00:00> CLOSED: [2027-04-18 Sun] DEADLINE: <2027-04-18 Sun +5h>\n  :LOGBOOK:\n  - State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\n  CLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n  :END:\n**  TODO žć :work:home:\nCLOSED: [2027-04-18 Sun 23:45]\n:PROPERTIES:\n:COOKIE_DATA: todo\n:END:\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\n:END:\n1. numbered\n** DONE\t:work:home:\nCLOSED:  [2027-09-17 Fri]\n** D¦ONE žć\n   CLOSED:  [2026-09-12 Tue]\n   - note\n***\t:a:\n** NEXT  Call them\t:work:home:\n:PROPERTIES:\n:END:\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n:END:\n\n- item <2027-05-07 Fri 14:00-15:30 +1d --1w>\n",
   "command": "previous",
   "options": {
-   "logDone": "time",
-   "adaptIndentation": true
+   "org_log_done": "time",
+   "org_adapt_indentation": true
   },
   "expected": "#+TODO: TODO NEXT | DONE\n* TODO review the report [1/4]\n  SCHEDULED:  <2027-05-02 Sun 00:00> CLOSED: [2027-04-18 Sun] DEADLINE: <2027-04-18 Sun +5h>\n  :LOGBOOK:\n  - State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\n  CLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n  :END:\n**  TODO žć :work:home:\nCLOSED: [2027-04-18 Sun 23:45]\n:PROPERTIES:\n:COOKIE_DATA: todo\n:END:\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\n:END:\n1. numbered\n** DONE\t:work:home:\nCLOSED:  [2027-09-17 Fri]\n** NEXT žć\n   - note\n***\t:a:\n** NEXT  Call them\t:work:home:\n:PROPERTIES:\n:END:\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n:END:\n\n- item <2027-05-07 Fri 14:00-15:30 +1d --1w>\n"
  },
@@ -1675,8 +1675,8 @@
    "state": "TODO"
   },
   "options": {
-   "logDone": "time",
-   "adaptIndentation": true
+   "org_log_done": "time",
+   "org_adapt_indentation": true
   },
   "expected": "Text before the first headline.\n* DONE Call them\n  CLOSED:  [2027-04-13 Sun 10:00]\n\n** TODO x  y :work:home:\n   CLOSED: [2027-04-18 Sun 10:00] SCHEDULED: <2027-03-14 Sun 9:30>\n* DONE x  y :日本:\n  - item <2027-04-16 Fri 23:45 ++1y>\n#+begin_example\n<2027-04-19 Mon .+2h>\n#+end_example\n* TODO with [[https://x.org][link]]\n\n* TODO [#A] review the report\n  DEADLINE:  <2027-05-14 Fri ++3h>\n  :LOGBOOK:\n  CLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n  :END:\n"
  },
@@ -1687,8 +1687,8 @@
    "state": "DONE"
   },
   "options": {
-   "logIntoDrawer": true,
-   "adaptIndentation": true
+   "org_log_into_drawer": true,
+   "org_adapt_indentation": true
   },
   "expected": "* [#A] review the report\n  CLOSED: [2027-04-23 Fri 14:00-15:30] DEADLINE: <2027-04-18 Sun 14:00-15:30 ++1d>\n  more\n** DONE x  y                                                         :x_y:@z:\n   SCHEDULED: <2027-04-15 Mon --1w> DEADLINE: <2027-04-20 Tue ++3h>\n# <2027-04-16 Fri +1w --1w>\n\n** DONE Call them\nCLOSED: [2028-03-20 Mon] SCHEDULED:  <2027-04-16 Fri 10:00> DEADLINE: <2027-04-16 Fri +1m>\nplain text\n\n1. numbered\n**  TODO with [[https://x.org][link]]\n   SCHEDULED: <2027-04-22 Thu -3d>\n   :PROPERTIES:\n   :COOKIE_DATA: todo recursive\n   :END:\n*** TODO  x  y\n:PROPERTIES:\n:COOKIE_DATA: todo recursive\n:ID: abc\n:END:\n1. numbered\n"
  },
@@ -1697,10 +1697,10 @@
   "text": "#+TODO: TODO NEXT | DONE\n* DONE 日本 語 [50%] :work:home:\nDEADLINE: <2027-04-08 Thu 00:00 ++1y -0d>\n- item <2027-04-11 Sun>\n***  NEXT a   :work:home:\nCLOSED: [2027-04-19 Mon 23:45] DEADLINE: <2027-04-17 Sat 14:00-15:30 -2w> SCHEDULED: <2027-04-19 Mon --2d>\n:PROPERTIES:\n:COOKIE_DATA: checkbox\n:LAST_REPEAT: [2026-01-01 Thu 09:00]\n:END:\n*** TODO with [[https://x.org][link]]\t:work:home:\nDEADLINE: <2028-04-03 Mo¦n>\n- item <2027-04-12 Mon 23:45>\n**** DONE  žć\t:x_y:@z:\n  plain text\n  Text with [2027-04-13 Tue 9:30] in it.\n*** DONE 日本 語\t:work:home:\n  DEADLINE:  <2027-04-19 Mon>\n  :PROPERTIES:\n  :COOKIE_DATA: todo\n  :END:\n  1. numbered\n****  TODO with [[https://x.org][link]]                              :x_y:@z:\nDEADLINE: <2027-04-15 Thu 09:30> SCHEDULED: <2027-04-18 Sun>\n#+begin_example\n<2027-03-28 Sun>\n#+end_example\n",
   "command": "next",
   "options": {
-   "logDone": "time",
-   "logIntoDrawer": "NOTES",
-   "todoRepeatToState": true,
-   "adaptIndentation": true
+   "org_log_done": "time",
+   "org_log_into_drawer": "NOTES",
+   "org_todo_repeat_to_state": true,
+   "org_adapt_indentation": true
   },
   "expected": "#+TODO: TODO NEXT | DONE\n* DONE 日本 語 [33%]                                              :work:home:\nDEADLINE: <2027-04-08 Thu 00:00 ++1y -0d>\n- item <2027-04-11 Sun>\n***  NEXT a   :work:home:\nCLOSED: [2027-04-19 Mon 23:45] DEADLINE: <2027-04-17 Sat 14:00-15:30 -2w> SCHEDULED: <2027-04-19 Mon --2d>\n:PROPERTIES:\n:COOKIE_DATA: checkbox\n:LAST_REPEAT: [2026-01-01 Thu 09:00]\n:END:\n*** NEXT with [[https://x.org][link]]                             :work:home:\nDEADLINE: <2028-04-03 Mon>\n- item <2027-04-12 Mon 23:45>\n**** DONE  žć\t:x_y:@z:\n  plain text\n  Text with [2027-04-13 Tue 9:30] in it.\n*** DONE 日本 語\t:work:home:\n  DEADLINE:  <2027-04-19 Mon>\n  :PROPERTIES:\n  :COOKIE_DATA: todo\n  :END:\n  1. numbered\n****  TODO with [[https://x.org][link]]                              :x_y:@z:\nDEADLINE: <2027-04-15 Thu 09:30> SCHEDULED: <2027-04-18 Sun>\n#+begin_example\n<2027-03-28 Sun>\n#+end_example\n"
  },
@@ -1711,7 +1711,7 @@
    "state": "DONE"
   },
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "#+TODO: TODO NEXT | DONE\nText before the first headline.\n*  DONE 日本 語 [3/4]                                                :x_y:@z:\n  1. numbered\n*** NEXT review the report   :work:home:\nSCHEDULED: <2027-04-13 Tue> CLOSED: [2027-04-15 Thu] DEADLINE: <2027-04-20 Tue>\n- note\n\n*** DONE  review the report\n*** DONE review the report\n    :LOGBOOK:\n    - State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\n    CLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n    :END:\n    Text with <2027-04-08 Thu 8:00-9:00> in it.\n*** DONE žć :a:\n#+begin_example\n<2027-04-17 Sat 23:45 +1w -1m>\n#+end_example\n# <2027-04-03 Sat +5h>\n1. numbered\n**** NEXT with [[https://x.org][link]] :x_y:@z:\nDEADLINE:  <2027-04-19 Mon> CLOSED:  [2027-03-26 Fri] SCHEDULED:  <2027-03-18 Thu 9:30 -3d>\n:PROPERTIES:\n:STYLE: habit\n:COOKIE_DATA: todo\n:END:\nmore\n"
  },
@@ -1720,8 +1720,8 @@
   "text": "#+TODO: TODO(t!) NEXT(n) | DONE(d)\n* TODO  x  y [1/3]\n  DEADLINE: <2026-10-30 Fri 10:00>\n  :LOGBOOK:\n  - State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\n  :END:\n**  TODO 日本 語 :a:\nSCHEDULED: <2027-05-09 Sun .+1m -2w>\nText with [2027-04-18 Sun ++2m] in it.\nText with <2027-04-14 Wed> in it.\n\n*** DONE [#B] žć\n    SCHEDULED: <2027-05-17 Mon ++1d> CLOSED: [2027-04-17 Sat 10:00]\n** NEXT žć                              :x_y:@z:\nCLOSED: [2027-04-17 Fri 09:30 -0d]\n\n***  日本 語   :work:home:\nCLOSED: [2027-03-27 Thu] DEADLINE:  <2027-04-19 Mon 10:00 +2m> SCHEDULED: <2027-04-18 Sun +0d>\n\n#+begin_example\n<2027-05-18 Tue .+1m>\n#+end_example\nText with <2027-11-15 Mon 00:00 +3w> in it.\n** TODO  日本 語\nCLOSED: [2027-11-08 Mon 8:00-9:00 --1w]\nText with <2027-04-17 Sat +1y --2d> in it.\n** NEXT  with [[https¦://x.org][link]]\n",
   "command": "next",
   "options": {
-   "logDone": "note",
-   "adaptIndentation": true
+   "org_log_done": "note",
+   "org_adapt_indentation": true
   },
   "expected": "#+TODO: TODO(t!) NEXT(n) | DONE(d)\n* TODO  x  y [1/4]\n  DEADLINE: <2026-10-30 Fri 10:00>\n  :LOGBOOK:\n  - State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\n  :END:\n**  TODO 日本 語 :a:\nSCHEDULED: <2027-05-09 Sun .+1m -2w>\nText with [2027-04-18 Sun ++2m] in it.\nText with <2027-04-14 Wed> in it.\n\n*** DONE [#B] žć\n    SCHEDULED: <2027-05-17 Mon ++1d> CLOSED: [2027-04-17 Sat 10:00]\n** NEXT žć                              :x_y:@z:\nCLOSED: [2027-04-17 Fri 09:30 -0d]\n\n***  日本 語   :work:home:\nCLOSED: [2027-03-27 Thu] DEADLINE:  <2027-04-19 Mon 10:00 +2m> SCHEDULED: <2027-04-18 Sun +0d>\n\n#+begin_example\n<2027-05-18 Tue .+1m>\n#+end_example\nText with <2027-11-15 Mon 00:00 +3w> in it.\n** TODO  日本 語\nCLOSED: [2027-11-08 Mon 8:00-9:00 --1w]\nText with <2027-04-17 Sat +1y --2d> in it.\n** DONE with [[https://x.org][link]]\n   CLOSED: [2027-04-17 Sat 14:46]\n   - CLOSING NOTE [2027-04-17 Sat 14:46]"
  },
@@ -1730,8 +1730,8 @@
   "text": "Text before the first headline.\n* Call them\n  CLOSED: [2027-04-19 Mon 09:30 -3d]\n  :PROPERTIES:\n  :COOKIE_DATA: checkbox\n  :LAST_REPEAT: [2026-01-01 Thu 09:00]\n  :END:\n  :LOGBOOK:\n  :END:\n  more\n  - item <2027-04-16 Fri 14:00-15:30>\n* TODO        ¦                      :work:home:\n  DEADLINE:  <2027-04-15 Thu ++1w/2w>\n* \n:PROPERTIES:\n:LAST_REPEAT: [2026-01-01 Thu 09:00]\n:END:\n",
   "command": "next",
   "options": {
-   "logRepeat": false,
-   "adaptIndentation": "headline-data"
+   "org_log_repeat": false,
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "Text before the first headline.\n* Call them\n  CLOSED: [2027-04-19 Mon 09:30 -3d]\n  :PROPERTIES:\n  :COOKIE_DATA: checkbox\n  :LAST_REPEAT: [2026-01-01 Thu 09:00]\n  :END:\n  :LOGBOOK:\n  :END:\n  more\n  - item <2027-04-16 Fri 14:00-15:30>\n* TODO                                                            :work:home:\n  DEADLINE:  <2027-04-22 Thu ++1w/2w>\n* \n:PROPERTIES:\n:LAST_REPEAT: [2026-01-01 Thu 09:00]\n:END:\n"
  },
@@ -1742,8 +1742,8 @@
    "state": "DONE"
   },
   "options": {
-   "logDone": "time",
-   "adaptIndentation": "headline-data"
+   "org_log_done": "time",
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "* DONE review the report\n* DONE 日本 語 :x_y:@z:\n  CLOSED:  [2027-04-25 Sun 00:00]\n  :LOGBOOK:\n  CLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n  :END:\n* DONE with [[https://x.org][link]]\n#+begin_example\n<2027-04-07 Wed 23:45>\n#+end_example\n"
  },
@@ -1754,8 +1754,8 @@
    "state": "DONE"
   },
   "options": {
-   "tagsColumn": 30,
-   "adaptIndentation": true
+   "org_tags_column": 30,
+   "org_adapt_indentation": true
   },
   "expected": "Text before the first headline.\n* DONE  日本 語 [75%]\n  SCHEDULED: <2027-09-02 Thu .+3d> CLOSED: [2028-03-09 Thu] DEADLINE: <2027-03-15 Mon ++1y>\n  :LOGBOOK:\n  - State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\n  :END:\n\n** TODO [#B] with [[https://x.org][link]]\nSCHEDULED:  <2027-04-16 Fri .+1d>\n1. numbered\n**  DONE  日本 語\n  :PROPERTIES:\n  :END:\n** DONE 日本 語                              :a:\nDEADLINE: <2027-04-15 Thu 14:00-15:30 +2m> CLOSED: [2027-04-16 Fri 10:00 --1w] SCHEDULED: <2027-04-16 Fri 00:00 ++1d>\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n:END:\n** DONE with [[https://x.org][link]]\nCLOSED:  [2027-05-13 Thu 10:00]\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-01-01 Thu 09:00]\n:END:\n"
  },
@@ -1766,10 +1766,10 @@
    "state": "DONE"
   },
   "options": {
-   "logDone": "note",
-   "logRepeat": "time",
-   "logIntoDrawer": "NOTES",
-   "adaptIndentation": "headline-data"
+   "org_log_done": "note",
+   "org_log_repeat": "time",
+   "org_log_into_drawer": "NOTES",
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "* [#B] with [[https://x.org][link]] [2/2]                              :日本:\nSCHEDULED:  <2027-04-17 Mon 14:00-15:30 ++3h>\n# <2027-03-12 Fri>\n- item <2027-04-18 Sun --2d>\nplain text\n** DONE [#B] Call them\nDEADLINE:  <2026-08-03 Mon 23:45 ++1w>\n:PROPERTIES:\n:COOKIE_DATA: checkbox\n:END:\n1. numbered\n** žć\n   DEADLINE:  <2027-04-15 Thu>\n   1. numbered\n** DONE [#B]  x  y\nCLOSED: [2027-04-17 Sat 14:46] SCHEDULED:  <2027-04-16 Fri 09:30> DEADLINE:  <2027-04-25 Sun -3d>\n:NOTES:\n- CLOSING NOTE [2027-04-17 Sat 14:46]\n:END:\n***  TODO x  y\n#+begin_example\n<2027-04-19 Tue>\n#+end_example"
  },
@@ -2296,7 +2296,7 @@
   "command": "note",
   "note": "Into the drawer",
   "options": {
-   "logIntoDrawer": true
+   "org_log_into_drawer": true
   },
   "expected": "* Write\n:LOGBOOK:\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  Into the drawer\n:END:\n"
  },
@@ -2306,7 +2306,7 @@
   "command": "note",
   "note": "Existing drawer",
   "options": {
-   "logIntoDrawer": true
+   "org_log_into_drawer": true
   },
   "expected": "* Write\nSCHEDULED: <2026-05-19 Tue>\n:LOGBOOK:\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  Existing drawer\n- State \"DONE\"       from \"TODO\"       [2026-05-17 Sun 09:00]\n:END:\n"
  },
@@ -2316,7 +2316,7 @@
   "command": "note",
   "note": "Named drawer",
   "options": {
-   "logIntoDrawer": "NOTES"
+   "org_log_into_drawer": "NOTES"
   },
   "expected": "* Write\n:NOTES:\n- Note taken on [2026-05-18 Mon 10:30] \\\\\n  Named drawer\n:END:\n"
  },
@@ -2340,7 +2340,7 @@
   "command": "note",
   "note": "Indented",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "* Write\n  - Note taken on [2026-05-18 Mon 10:30] \\\\\n    Indented"
  },
@@ -2350,8 +2350,8 @@
   "command": "note",
   "note": "Sub, indented",
   "options": {
-   "adaptIndentation": true,
-   "logIntoDrawer": true
+   "org_adapt_indentation": true,
+   "org_log_into_drawer": true
   },
   "expected": "* Write\n** Sub\n   :LOGBOOK:\n   - Note taken on [2026-05-18 Mon 10:30] \\\\\n     Sub, indented\n   :END:\n"
  }

@@ -32,7 +32,7 @@ const init = await connection.sendRequest('initialize', {
     workspace: { workspaceEdit: { documentChanges: true } },
     textDocument: { documentSymbol: { hierarchicalDocumentSymbolSupport: true } },
   },
-  initializationOptions: { todoKeywords: ['TODO', '|', 'DONE'] },
+  initializationOptions: { org_todo_keywords: ['TODO', '|', 'DONE'] },
 });
 assert.equal(init.capabilities.positionEncoding, 'utf-16');
 const legend = init.capabilities.semanticTokensProvider.legend;

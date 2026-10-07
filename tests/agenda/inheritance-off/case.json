@@ -51,7 +51,7 @@
     }
   ],
   "options": {
-    "useTagInheritance": false
+    "org_use_tag_inheritance": false
   },
   "emacs": "(setq org-use-tag-inheritance nil)"
 }

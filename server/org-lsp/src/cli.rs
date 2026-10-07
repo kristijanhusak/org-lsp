@@ -30,7 +30,7 @@ Options:
                        tags-todo (with --match), or custom (with --key)
   --match MATCH        for todo: keywords (NEXT|WAIT); for tags: a match
                        string (work-home, PRIORITY=\"A\", /NEXT)
-  --key KEYS           a command of the `customCommands` agenda option
+  --key KEYS           a command of the `org_agenda_custom_commands` agenda option
   --log                log mode: what was closed and clocked each day
   --clockreport        the clock report under the agenda
   --archives WHAT      trees: entries in archived trees too; files: those
@@ -39,7 +39,7 @@ Options:
   --start YYYY-MM-DD   a day the agenda should include (default: today)
   --today YYYY-MM-DD   pretend this is today
   --now HH:MM          pretend this is the current time
-  --options JSON       agenda settings, as in the server's `agenda` option";
+  --options JSON       agenda and inheritance options, named as the server's";
 
 pub fn parse_date(text: &str) -> Result<Day, String> {
     let parts: Vec<i64> = text.split('-').filter_map(|part| part.parse().ok()).collect();
@@ -236,9 +236,11 @@ mod tests {
     #[test]
     fn config_shows_the_file_and_the_options() {
         let no_env = |_: &str| None;
-        let out =
-            config(&["--options".to_string(), r#"{ "configFile": false, "logDone": "time" }"#.to_string()], &no_env);
-        assert_eq!(out.unwrap(), "Configuration file: none\nOptions:\n{\n  \"logDone\": \"time\"\n}\n");
+        let out = config(
+            &["--options".to_string(), r#"{ "config_file": false, "org_log_done": "time" }"#.to_string()],
+            &no_env,
+        );
+        assert_eq!(out.unwrap(), "Configuration file: none\nOptions:\n{\n  \"org_log_done\": \"time\"\n}\n");
         let home = |name: &str| (name == "XDG_CONFIG_HOME").then(|| "/nonexistent".to_string());
         let out = config(&[], &home).unwrap();
         let expected = std::path::Path::new("/nonexistent").join("org-lsp").join("config.toml");

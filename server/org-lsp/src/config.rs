@@ -1,6 +1,7 @@
 //! Settings a client passes as `initializationOptions`, and the command
-//! line passes as JSON. Names are Org's variable names in camel case
-//! without the `org-agenda-` prefix.
+//! line passes as JSON. Names are Org's variable names with `_` for `-`
+//! (`org_agenda_files`; `org-agenda-files` is read too); those of the
+//! server's own, without `org_`.
 
 use org_core::agenda::{Config as AgendaConfig, FutureRepeats, RemoveTags, Span, TagsColumn, TimeGrid};
 use org_core::archive::{ContextInfo, InheritedTags, MarkDone, Settings as ArchiveSettings};
@@ -15,70 +16,98 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
-#[serde(default, rename_all = "camelCase")]
+#[serde(default)]
 pub struct Options {
     /// The default TODO sequence, written like Org's `#+TODO:` line:
     /// `["TODO", "NEXT", "|", "DONE"]`. Documents can override it.
+    #[serde(rename = "org_todo_keywords")]
     pub todo_keywords: Option<Vec<String>>,
     /// Files, directories and glob patterns the agenda is built from.
+    #[serde(rename = "org_agenda_files")]
     pub agenda_files: Vec<String>,
+    #[serde(flatten)]
     pub agenda: AgendaOptions,
     /// `org-log-done`: `false`, `"time"` or `"note"`.
+    #[serde(rename = "org_log_done")]
     pub log_done: Option<LogOption>,
     /// `org-log-repeat`: `false`, `"time"` or `"note"`.
+    #[serde(rename = "org_log_repeat")]
     pub log_repeat: Option<LogOption>,
     /// `org-log-into-drawer`: `true` for `LOGBOOK`, or a drawer name.
+    #[serde(rename = "org_log_into_drawer")]
     pub log_into_drawer: Option<DrawerOption>,
     /// `org-tags-column`
+    #[serde(rename = "org_tags_column")]
     pub tags_column: Option<i64>,
     /// `org-use-tag-inheritance`: `true`, `false`, a list of tags or a
     /// regexp.
+    #[serde(rename = "org_use_tag_inheritance")]
     pub use_tag_inheritance: Option<InheritOption>,
     /// `org-tags-exclude-from-inheritance`
+    #[serde(rename = "org_tags_exclude_from_inheritance")]
     pub tags_exclude_from_inheritance: Option<Vec<String>>,
     /// `org-use-property-inheritance`: `true`, `false`, a list of
     /// properties or a regexp.
+    #[serde(rename = "org_use_property_inheritance")]
     pub use_property_inheritance: Option<InheritOption>,
-    /// `org-clock-into-drawer`: `true` for the drawer of `logIntoDrawer`
+    /// `org-clock-into-drawer`: `true` for the drawer of `org_log_into_drawer`
     /// (`LOGBOOK`), a drawer name, or `false` for none.
+    #[serde(rename = "org_clock_into_drawer")]
     pub clock_into_drawer: Option<DrawerOption>,
     /// `org-clock-out-remove-zero-time-clocks`
+    #[serde(rename = "org_clock_out_remove_zero_time_clocks")]
     pub clock_out_remove_zero_time_clocks: Option<bool>,
     /// `org-clock-out-when-done`: a done state stops the clock on the entry.
+    #[serde(rename = "org_clock_out_when_done")]
     pub clock_out_when_done: Option<bool>,
     /// `org-complete-tags-always-offer-all-agenda-tags`: completing a tag
     /// also offers those of the agenda files.
+    #[serde(rename = "org_complete_tags_always_offer_all_agenda_tags")]
     pub complete_tags_always_offer_all_agenda_tags: Option<bool>,
     /// `org-todo-repeat-to-state`: a keyword, or `true` for the state the
     /// entry had before it was marked done.
+    #[serde(rename = "org_todo_repeat_to_state")]
     pub todo_repeat_to_state: Option<RepeatToOption>,
     /// `org-priority-highest`: a letter, or a number from 0 to 64.
+    #[serde(rename = "org_priority_highest")]
     pub priority_highest: Option<PriorityOption>,
     /// `org-priority-lowest`
+    #[serde(rename = "org_priority_lowest")]
     pub priority_lowest: Option<PriorityOption>,
     /// `org-priority-default`
+    #[serde(rename = "org_priority_default")]
     pub priority_default: Option<PriorityOption>,
     /// `org-priority-start-cycle-with-default`
+    #[serde(rename = "org_priority_start_cycle_with_default")]
     pub priority_start_cycle_with_default: Option<bool>,
     /// The step in which the minutes of a timestamp change: the second
     /// number of `org-time-stamp-rounding-minutes`.
+    #[serde(rename = "org_time_stamp_rounding_minutes")]
     pub timestamp_rounding_minutes: Option<i64>,
     /// `org-adapt-indentation`: `true`, `false` or `"headline-data"`.
+    #[serde(rename = "org_adapt_indentation")]
     pub adapt_indentation: Option<serde_json::Value>,
     /// `org-src-preserve-indentation`
+    #[serde(rename = "org_src_preserve_indentation")]
     pub src_preserve_indentation: Option<bool>,
     /// `org-startup-indented`: show files with `org-indent-mode`.
+    #[serde(rename = "org_startup_indented")]
     pub startup_indented: Option<bool>,
     /// `org-hide-leading-stars`
+    #[serde(rename = "org_hide_leading_stars")]
     pub hide_leading_stars: Option<bool>,
     /// `org-edit-src-content-indentation`
+    #[serde(rename = "org_edit_src_content_indentation")]
     pub edit_src_content_indentation: Option<i64>,
     /// `org-cycle-separator-lines`: how many blank lines after a subtree
     /// keep one of them visible when it is folded.
+    #[serde(rename = "org_cycle_separator_lines")]
     pub cycle_separator_lines: Option<i64>,
     /// `org-read-date-prefer-future`: `true`, `false` or `"time"`.
+    #[serde(rename = "org_read_date_prefer_future")]
     pub read_date_prefer_future: Option<PreferFutureOption>,
     /// `org-read-date-force-compatible-dates`
+    #[serde(rename = "org_read_date_force_compatible_dates")]
     pub read_date_force_compatible_dates: Option<bool>,
     /// Whether the client fetches the agenda from the server as a virtual
     /// document. Clients that announce LSP 3.18's `textDocumentContent`
@@ -108,45 +137,60 @@ pub struct Options {
     pub line_highlights: Option<bool>,
     /// `org-refile-targets`: where entries can be refiled to. Without it,
     /// the top-level headlines of the entry's own file.
+    #[serde(rename = "org_refile_targets")]
     pub refile_targets: Option<Vec<RefileTargetOption>>,
     /// `org-refile-use-outline-path`: `false`, `true`, `"file"`,
     /// `"full-file-path"` or `"title"`.
+    #[serde(rename = "org_refile_use_outline_path")]
     pub refile_use_outline_path: Option<OutlinePathOption>,
     /// `org-reverse-note-order`: refiled entries go first, not last.
+    #[serde(rename = "org_reverse_note_order")]
     pub reverse_note_order: Option<bool>,
     /// `org-archive-location`: the file and the heading archived subtrees
     /// go to, `"%s_archive::"`.
+    #[serde(rename = "org_archive_location")]
     pub archive_location: Option<String>,
     /// `org-archive-reversed-order`
+    #[serde(rename = "org_archive_reversed_order")]
     pub archive_reversed_order: Option<bool>,
     /// `org-archive-mark-done`: `false`, `true` or a done keyword.
+    #[serde(rename = "org_archive_mark_done")]
     pub archive_mark_done: Option<serde_json::Value>,
     /// `org-archive-subtree-add-inherited-tags`: `false`, `true` or
     /// `"infile"`.
+    #[serde(rename = "org_archive_subtree_add_inherited_tags")]
     pub archive_subtree_add_inherited_tags: Option<serde_json::Value>,
     /// `org-archive-save-context-info`
+    #[serde(rename = "org_archive_save_context_info")]
     pub archive_save_context_info: Option<Vec<String>>,
     /// `org-archive-sibling-heading`
+    #[serde(rename = "org_archive_sibling_heading")]
     pub archive_sibling_heading: Option<String>,
     /// `org-archive-file-header-format`: a format with `%s` for the file,
     /// or `false` for none.
+    #[serde(rename = "org_archive_file_header_format")]
     pub archive_file_header_format: Option<serde_json::Value>,
     /// `org-archive-default-command`: `"subtree"`, `"sibling"` or `"tag"`.
+    #[serde(rename = "org_archive_default_command")]
     pub archive_default_command: Option<String>,
     /// `org-capture-templates`. Without it, Org's default: a TODO under
-    /// "Tasks" in `defaultNotesFile`.
+    /// "Tasks" in `org_default_notes_file`.
+    #[serde(rename = "org_capture_templates")]
     pub capture_templates: Option<Vec<CaptureTemplateOption>>,
     /// `org-directory`: where relative capture targets are. `~/org`.
     pub org_directory: Option<String>,
     /// `org-default-notes-file`: the target of a template whose file is
     /// empty. `~/.notes`.
+    #[serde(rename = "org_default_notes_file")]
     pub default_notes_file: Option<String>,
     /// A fixed date and time, for tests.
     pub clock: Option<ClockOption>,
     /// `org-link-descriptive`: links show their description; the rest is
     /// marked hidden.
+    #[serde(rename = "org_link_descriptive")]
     pub link_descriptive: Option<bool>,
     /// `org-hide-emphasis-markers`
+    #[serde(rename = "org_hide_emphasis_markers")]
     pub hide_emphasis_markers: Option<bool>,
     /// Save the files a command changes other than the one it was run in.
     pub auto_save: Option<bool>,
@@ -159,13 +203,14 @@ pub struct Options {
 
 /// An entry of `org-refile-targets`: the files, `"current"` (the entry's
 /// own, the default), `"agenda"`, a path or a list of paths, and one of
-/// `level`, `maxLevel`, `tag`, `todo`, `regexp` (the `regex` crate's
+/// `level`, `maxlevel`, `tag`, `todo`, `regexp` (the `regex` crate's
 /// syntax) or `all`.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
-#[serde(default, rename_all = "camelCase")]
+#[serde(default)]
 pub struct RefileTargetOption {
     pub files: Option<RefileFilesOption>,
     pub level: Option<usize>,
+    #[serde(rename = "maxlevel")]
     pub max_level: Option<usize>,
     pub tag: Option<String>,
     pub todo: Option<String>,
@@ -200,7 +245,7 @@ pub struct RefileTarget {
 /// An entry of `org-capture-templates`. One with only a key and a
 /// description groups the templates whose keys start with it.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
-#[serde(default, rename_all = "camelCase")]
+#[serde(default)]
 pub struct CaptureTemplateOption {
     pub key: String,
     pub description: String,
@@ -266,10 +311,13 @@ impl InheritOption {
 /// What entries inherit, from the options that say so; the command line
 /// reads these from its `--options` as well.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
-#[serde(default, rename_all = "camelCase")]
+#[serde(default)]
 pub struct InheritanceOptions {
+    #[serde(rename = "org_use_tag_inheritance")]
     pub use_tag_inheritance: Option<InheritOption>,
+    #[serde(rename = "org_tags_exclude_from_inheritance")]
     pub tags_exclude_from_inheritance: Option<Vec<String>>,
+    #[serde(rename = "org_use_property_inheritance")]
     pub use_property_inheritance: Option<InheritOption>,
 }
 
@@ -356,7 +404,7 @@ impl Options {
         (serde_json::from_value(value).unwrap_or_default(), dropped)
     }
 
-    /// The default TODO sequence: `todoKeywords`, or Org's `TODO | DONE`.
+    /// The default TODO sequence: `org_todo_keywords`, or Org's `TODO | DONE`.
     /// `org-use-tag-inheritance`, `org-tags-exclude-from-inheritance` and
     /// `org-use-property-inheritance`.
     pub fn inheritance(&self) -> Inheritance {
@@ -766,11 +814,11 @@ pub fn expand_home(path: &str, var: &dyn Fn(&str) -> Option<String>) -> PathBuf 
 /// The options: those of the shared configuration file, with the
 /// editor's (`initializationOptions`) on top. An object such as `agenda`
 /// is merged key by key; anything else the editor gives replaces the
-/// file's. The editor's `configFile` says which file to read: `false` for
+/// file's. The editor's `config_file` says which file to read: `false` for
 /// none, a path, or by default `default_config_file`.
 pub fn load(editor: Option<serde_json::Value>, var: &dyn Fn(&str) -> Option<String>) -> Loaded {
     let mut problems = Vec::new();
-    let mut editor = match editor {
+    let editor = match editor {
         Some(serde_json::Value::Object(fields)) => fields,
         // No options; Neovim sends an empty table as `[]`.
         None | Some(serde_json::Value::Null) => serde_json::Map::new(),
@@ -786,12 +834,17 @@ pub fn load(editor: Option<serde_json::Value>, var: &dyn Fn(&str) -> Option<Stri
         problems.extend(warning);
         (file, false)
     };
-    let (file, named) = match editor.remove("configFile") {
+    let mut renamed = Vec::new();
+    let mut editor = match current_names(serde_json::Value::Object(editor), &mut renamed) {
+        serde_json::Value::Object(fields) => fields,
+        _ => serde_json::Map::new(),
+    };
+    let (file, named) = match editor.remove("config_file") {
         Some(serde_json::Value::Bool(false)) => (None, false),
         Some(serde_json::Value::String(path)) if !path.is_empty() => (Some(expand_home(&path, var)), true),
         None | Some(serde_json::Value::Bool(true)) => usual(&mut problems),
         Some(_) => {
-            problems.push("the option `configFile` is malformed and is ignored".to_string());
+            problems.push("the option `config_file` is malformed and is ignored".to_string());
             usual(&mut problems)
         }
     };
@@ -801,7 +854,7 @@ pub fn load(editor: Option<serde_json::Value>, var: &dyn Fn(&str) -> Option<Stri
         match std::fs::read_to_string(path) {
             Ok(text) => match parse_config(path, &text) {
                 Ok(options) => {
-                    merged = options;
+                    merged = current_names(options, &mut renamed);
                     read = true;
                 }
                 Err(error) => problems.push(format!("{} {error}; it is ignored", path.display())),
@@ -811,9 +864,237 @@ pub fn load(editor: Option<serde_json::Value>, var: &dyn Fn(&str) -> Option<Stri
         }
     }
     merge(&mut merged, serde_json::Value::Object(editor));
+    if !renamed.is_empty() {
+        renamed.dedup();
+        problems.push(format!("options are named after Org's variables now: {}", renamed.join(", ")));
+    }
+    let unknown: Vec<String> = merged
+        .as_object()
+        .into_iter()
+        .flatten()
+        .map(|(key, _)| key)
+        .filter(|key| *key != "clock" && !crate::settings::SETTINGS.iter().any(|setting| setting.name == key.as_str()))
+        .map(|key| format!("`{key}`"))
+        .collect();
+    if !unknown.is_empty() {
+        problems.push(format!("unknown options, which are ignored: {}", unknown.join(", ")));
+    }
     let (options, dropped) = Options::read(merged.clone());
     problems.extend(dropped.into_iter().map(|name| format!("the option `{name}` is malformed and is ignored")));
     Loaded { options, file, read, merged, problems }
+}
+
+// ----- names of before
+
+/// The options' names before they were Org's: the old name and the new.
+const OLD_NAMES: &[(&str, &str)] = &[
+    ("configFile", "config_file"),
+    ("agendaFiles", "org_agenda_files"),
+    ("todoKeywords", "org_todo_keywords"),
+    ("logDone", "org_log_done"),
+    ("logRepeat", "org_log_repeat"),
+    ("logIntoDrawer", "org_log_into_drawer"),
+    ("tagsColumn", "org_tags_column"),
+    ("useTagInheritance", "org_use_tag_inheritance"),
+    ("tagsExcludeFromInheritance", "org_tags_exclude_from_inheritance"),
+    ("usePropertyInheritance", "org_use_property_inheritance"),
+    ("clockIntoDrawer", "org_clock_into_drawer"),
+    ("clockOutRemoveZeroTimeClocks", "org_clock_out_remove_zero_time_clocks"),
+    ("clockOutWhenDone", "org_clock_out_when_done"),
+    ("completeTagsAlwaysOfferAllAgendaTags", "org_complete_tags_always_offer_all_agenda_tags"),
+    ("todoRepeatToState", "org_todo_repeat_to_state"),
+    ("priorityHighest", "org_priority_highest"),
+    ("priorityLowest", "org_priority_lowest"),
+    ("priorityDefault", "org_priority_default"),
+    ("priorityStartCycleWithDefault", "org_priority_start_cycle_with_default"),
+    ("timestampRoundingMinutes", "org_time_stamp_rounding_minutes"),
+    ("readDatePreferFuture", "org_read_date_prefer_future"),
+    ("readDateForceCompatibleDates", "org_read_date_force_compatible_dates"),
+    ("refileTargets", "org_refile_targets"),
+    ("refileUseOutlinePath", "org_refile_use_outline_path"),
+    ("reverseNoteOrder", "org_reverse_note_order"),
+    ("archiveLocation", "org_archive_location"),
+    ("archiveReversedOrder", "org_archive_reversed_order"),
+    ("archiveMarkDone", "org_archive_mark_done"),
+    ("archiveSubtreeAddInheritedTags", "org_archive_subtree_add_inherited_tags"),
+    ("archiveSaveContextInfo", "org_archive_save_context_info"),
+    ("archiveSiblingHeading", "org_archive_sibling_heading"),
+    ("archiveFileHeaderFormat", "org_archive_file_header_format"),
+    ("archiveDefaultCommand", "org_archive_default_command"),
+    ("captureTemplates", "org_capture_templates"),
+    ("orgDirectory", "org_directory"),
+    ("defaultNotesFile", "org_default_notes_file"),
+    ("linkDescriptive", "org_link_descriptive"),
+    ("hideEmphasisMarkers", "org_hide_emphasis_markers"),
+    ("returnUsesMetaReturn", "return_uses_meta_return"),
+    ("autoSave", "auto_save"),
+    ("cycleSeparatorLines", "org_cycle_separator_lines"),
+    ("adaptIndentation", "org_adapt_indentation"),
+    ("startupIndented", "org_startup_indented"),
+    ("hideLeadingStars", "org_hide_leading_stars"),
+    ("srcPreserveIndentation", "org_src_preserve_indentation"),
+    ("editSrcContentIndentation", "org_edit_src_content_indentation"),
+    ("virtualDocuments", "virtual_documents"),
+    ("showDocument", "show_document"),
+    ("messagePrompts", "message_prompts"),
+    ("lineHighlights", "line_highlights"),
+    ("virtualIndent", "virtual_indent"),
+    ("commandActions", "command_actions"),
+    ("commandScript", "command_script"),
+];
+
+/// The options of `agenda` before they were Org's, by their old names.
+const OLD_AGENDA_NAMES: &[(&str, &str)] = &[
+    ("span", "org_agenda_span"),
+    ("startOnWeekday", "org_agenda_start_on_weekday"),
+    ("deadlineWarningDays", "org_deadline_warning_days"),
+    ("scheduledDelayDays", "org_scheduled_delay_days"),
+    ("scheduledPastDays", "org_scheduled_past_days"),
+    ("deadlinePastDays", "org_deadline_past_days"),
+    ("skipScheduledIfDone", "org_agenda_skip_scheduled_if_done"),
+    ("skipDeadlineIfDone", "org_agenda_skip_deadline_if_done"),
+    ("skipTimestampIfDone", "org_agenda_skip_timestamp_if_done"),
+    ("showFutureRepeats", "org_agenda_show_future_repeats"),
+    ("showAllDates", "org_agenda_show_all_dates"),
+    ("tagsColumn", "org_agenda_tags_column"),
+    ("useTimeGrid", "org_agenda_use_time_grid"),
+    ("showCurrentTimeInGrid", "org_agenda_show_current_time_in_grid"),
+    ("weekendDays", "org_agenda_weekend_days"),
+    ("startWithLogMode", "org_agenda_start_with_log_mode"),
+    ("startWithClockreportMode", "org_agenda_start_with_clockreport_mode"),
+    ("startWithArchivesMode", "org_agenda_start_with_archives_mode"),
+    ("logModeItems", "org_agenda_log_mode_items"),
+    ("blockSeparator", "org_agenda_block_separator"),
+    ("compactBlocks", "org_agenda_compact_blocks"),
+    ("hideEmptyBlocks", "agenda_hide_empty_blocks"),
+    ("prefixFormat", "org_agenda_prefix_format"),
+    ("todoKeywordFormat", "org_agenda_todo_keyword_format"),
+    ("scheduledLeaders", "org_agenda_scheduled_leaders"),
+    ("deadlineLeaders", "org_agenda_deadline_leaders"),
+    ("timerangeLeaders", "org_agenda_timerange_leaders"),
+    ("removeTags", "org_agenda_remove_tags"),
+    ("breadcrumbsSeparator", "org_agenda_breadcrumbs_separator"),
+    ("formatDate", "org_agenda_format_date"),
+    ("startDay", "org_agenda_start_day"),
+    ("customCommands", "org_agenda_custom_commands"),
+];
+
+/// The keys of an object as Org writes them, with `-` (`org-agenda-files`,
+/// `:empty-lines`), as the options name them, with `_`.
+fn underscored(value: &mut serde_json::Value) {
+    if let serde_json::Value::Object(fields) = value {
+        *fields = std::mem::take(fields).into_iter().map(|(key, value)| (key.replace('-', "_"), value)).collect();
+    }
+}
+
+/// The options in `value` under the names they have now: Org's spelling
+/// with `-` read as `_`, and the names options had before Org's, which
+/// are read and named in `renamed`.
+pub fn current_names(value: serde_json::Value, renamed: &mut Vec<String>) -> serde_json::Value {
+    let serde_json::Value::Object(fields) = value else { return value };
+    let mut out = serde_json::Map::new();
+    for (key, mut field) in fields {
+        let key = key.replace('-', "_");
+        if key == "agenda" && field.is_object() {
+            let serde_json::Value::Object(agenda) = field else { unreachable!() };
+            for (key, field) in agenda {
+                if let Some((name, field)) = old_agenda_option(&key, field) {
+                    renamed.push(format!("agenda.{key} → {name}"));
+                    out.insert(name, field);
+                }
+            }
+            continue;
+        }
+        let name = match OLD_NAMES.iter().find(|(old, _)| *old == key) {
+            Some((old, new)) => {
+                renamed.push(format!("{old} → {new}"));
+                new.to_string()
+            }
+            None => key,
+        };
+        match name.as_str() {
+            "org_capture_templates" | "org_refile_targets" => {
+                for item in field.as_array_mut().into_iter().flatten() {
+                    underscored(item);
+                    if let Some(fields) = item.as_object_mut() {
+                        for (old, new) in [
+                            ("emptyLines", "empty_lines"),
+                            ("emptyLinesBefore", "empty_lines_before"),
+                            ("emptyLinesAfter", "empty_lines_after"),
+                            ("immediateFinish", "immediate_finish"),
+                            ("maxLevel", "maxlevel"),
+                        ] {
+                            if let Some(value) = fields.remove(old) {
+                                renamed.push(format!("{old} → {new}"));
+                                fields.insert(new.to_string(), value);
+                            }
+                        }
+                    }
+                }
+            }
+            "org_agenda_custom_commands" => {
+                for command in field.as_array_mut().into_iter().flatten() {
+                    current_settings(command, renamed);
+                    for block in
+                        command.get_mut("blocks").and_then(|blocks| blocks.as_array_mut()).into_iter().flatten()
+                    {
+                        current_settings(block, renamed);
+                    }
+                }
+            }
+            _ => {}
+        }
+        out.insert(name, field);
+    }
+    serde_json::Value::Object(out)
+}
+
+/// The `settings` of a custom agenda command or block under the names
+/// they have now.
+fn current_settings(holder: &mut serde_json::Value, renamed: &mut Vec<String>) {
+    let Some(settings) = holder.get_mut("settings") else { return };
+    let serde_json::Value::Object(fields) = std::mem::take(settings) else { return };
+    let mut out = serde_json::Map::new();
+    for (key, field) in fields {
+        let key = key.replace('-', "_");
+        match old_agenda_option(&key, field.clone()) {
+            Some((name, field)) => {
+                renamed.push(format!("{key} → {name}"));
+                out.insert(name, field);
+            }
+            None => {
+                out.insert(key, field);
+            }
+        }
+    }
+    *settings = serde_json::Value::Object(out);
+}
+
+/// An option of `agenda` as it was named before, under its name now.
+/// `org_agenda_time_grid` was an object; `org_agenda_time_grid` is Org's list, and
+/// its `now` is `org_agenda_current_time_string`.
+fn old_agenda_option(key: &str, field: serde_json::Value) -> Option<(String, serde_json::Value)> {
+    if key == "timeGrid" {
+        let grid = TimeGrid::default();
+        let flag = |name: &str, default: bool| field.get(name).and_then(serde_json::Value::as_bool).unwrap_or(default);
+        let kinds: Vec<&str> = [
+            ("daily", flag("daily", grid.daily)),
+            ("weekly", flag("weekly", grid.weekly)),
+            ("today", flag("today", grid.today)),
+            ("require-timed", flag("requireTimed", grid.require_timed)),
+            ("remove-match", flag("removeMatch", grid.remove_match)),
+        ]
+        .into_iter()
+        .filter(|(_, on)| *on)
+        .map(|(kind, _)| kind)
+        .collect();
+        let times = field.get("times").cloned().unwrap_or_else(|| serde_json::json!(grid.times));
+        let trailer = field.get("trailer").cloned().unwrap_or_else(|| serde_json::json!(grid.trailer));
+        let line = field.get("line").cloned().unwrap_or_else(|| serde_json::json!(grid.line));
+        return Some(("org_agenda_time_grid".to_string(), serde_json::json!([kinds, times, trailer, line])));
+    }
+    let (_, new) = OLD_AGENDA_NAMES.iter().find(|(old, _)| *old == key)?;
+    Some((new.to_string(), field))
 }
 
 /// `over` on top of `base`: objects key by key, anything else replaced.
@@ -910,18 +1191,60 @@ pub enum FutureRepeatsOption {
     Name(String),
 }
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
-#[serde(default, rename_all = "camelCase")]
-pub struct TimeGridOptions {
-    pub daily: Option<bool>,
-    pub today: Option<bool>,
-    pub weekly: Option<bool>,
-    pub require_timed: Option<bool>,
-    pub remove_match: Option<bool>,
-    pub times: Option<Vec<i64>>,
-    pub trailer: Option<String>,
-    pub line: Option<String>,
-    pub now: Option<String>,
+/// `org-agenda-time-grid`, as Org writes it: the kinds of days that have
+/// the grid (`daily`, `weekly`, `today`, `require-timed`,
+/// `remove-match`), the times of its lines (`800` for 8:00), what follows
+/// a time without an end, and the text of a line:
+/// `[["daily", "today", "require-timed"], [800, 1000], "......", "----"]`.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(try_from = "Vec<serde_json::Value>", into = "Vec<serde_json::Value>")]
+pub struct TimeGridOption {
+    pub kinds: Vec<String>,
+    pub times: Vec<i64>,
+    pub trailer: String,
+    pub line: String,
+}
+
+impl TryFrom<Vec<serde_json::Value>> for TimeGridOption {
+    type Error = String;
+
+    fn try_from(items: Vec<serde_json::Value>) -> Result<Self, String> {
+        let grid = TimeGrid::default();
+        let strings = |value: &serde_json::Value| -> Option<Vec<String>> {
+            value.as_array()?.iter().map(|item| item.as_str().map(str::to_string)).collect()
+        };
+        let kinds = items.first().map(|value| strings(value).ok_or("the kinds of days are not a list of names"));
+        let times = items.get(1).map(|value| {
+            value
+                .as_array()
+                .and_then(|times| times.iter().map(serde_json::Value::as_i64).collect::<Option<Vec<_>>>())
+                .ok_or("the times are not a list of numbers")
+        });
+        let text = |index: usize, default: &str| -> Result<String, String> {
+            match items.get(index) {
+                None => Ok(default.to_string()),
+                Some(value) => value.as_str().map(str::to_string).ok_or_else(|| format!("item {index} is not a text")),
+            }
+        };
+        let default_kinds: Vec<String> = ["daily", "today", "require-timed"].map(String::from).to_vec();
+        Ok(TimeGridOption {
+            kinds: kinds.transpose()?.unwrap_or(default_kinds),
+            times: times.transpose()?.unwrap_or(grid.times),
+            trailer: text(2, &grid.trailer)?,
+            line: text(3, &grid.line)?,
+        })
+    }
+}
+
+impl From<TimeGridOption> for Vec<serde_json::Value> {
+    fn from(grid: TimeGridOption) -> Self {
+        vec![
+            serde_json::json!(grid.kinds),
+            serde_json::json!(grid.times),
+            serde_json::json!(grid.trailer),
+            serde_json::json!(grid.line),
+        ]
+    }
 }
 
 /// `org-agenda-prefix-format`, by kind of view.
@@ -935,61 +1258,97 @@ pub struct PrefixFormatOptions {
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
-#[serde(default, rename_all = "camelCase")]
+#[serde(default)]
 pub struct AgendaOptions {
+    #[serde(rename = "org_agenda_span")]
     pub span: Option<SpanOption>,
     /// 0 is Sunday; `false` starts week views on the current day.
+    #[serde(rename = "org_agenda_start_on_weekday")]
     pub start_on_weekday: Option<serde_json::Value>,
+    #[serde(rename = "org_deadline_warning_days")]
     pub deadline_warning_days: Option<i64>,
+    #[serde(rename = "org_scheduled_delay_days")]
     pub scheduled_delay_days: Option<i64>,
+    #[serde(rename = "org_scheduled_past_days")]
     pub scheduled_past_days: Option<i64>,
+    #[serde(rename = "org_deadline_past_days")]
     pub deadline_past_days: Option<i64>,
+    #[serde(rename = "org_agenda_skip_scheduled_if_done")]
     pub skip_scheduled_if_done: Option<bool>,
+    #[serde(rename = "org_agenda_skip_deadline_if_done")]
     pub skip_deadline_if_done: Option<bool>,
+    #[serde(rename = "org_agenda_skip_timestamp_if_done")]
     pub skip_timestamp_if_done: Option<bool>,
+    #[serde(rename = "org_agenda_show_future_repeats")]
     pub show_future_repeats: Option<FutureRepeatsOption>,
+    #[serde(rename = "org_agenda_show_all_dates")]
     pub show_all_dates: Option<bool>,
     /// `org-agenda-tags-column`: a column, or `"auto"`.
+    #[serde(rename = "org_agenda_tags_column")]
     pub tags_column: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_use_time_grid")]
     pub use_time_grid: Option<bool>,
-    pub time_grid: TimeGridOptions,
+    #[serde(rename = "org_agenda_time_grid")]
+    pub time_grid: Option<TimeGridOption>,
+    /// `org-agenda-current-time-string`
+    #[serde(rename = "org_agenda_current_time_string")]
+    pub current_time_string: Option<String>,
+    #[serde(rename = "org_agenda_show_current_time_in_grid")]
     pub show_current_time_in_grid: Option<bool>,
+    #[serde(rename = "org_agenda_weekend_days")]
     pub weekend_days: Option<Vec<usize>>,
     /// `org-agenda-start-with-log-mode`
+    #[serde(rename = "org_agenda_start_with_log_mode")]
     pub start_with_log_mode: Option<bool>,
     /// `org-agenda-start-with-clockreport-mode`
+    #[serde(rename = "org_agenda_start_with_clockreport_mode")]
     pub start_with_clockreport_mode: Option<bool>,
     /// `org-agenda-start-with-archives-mode`: `"trees"` or `"files"`.
+    #[serde(rename = "org_agenda_start_with_archives_mode")]
     pub start_with_archives_mode: Option<ArchivesOption>,
     /// `org-agenda-log-mode-items`: `closed`, `clock` and `state`.
+    #[serde(rename = "org_agenda_log_mode_items")]
     pub log_mode_items: Option<Vec<String>>,
     /// `org-agenda-start-day`: the day the agenda starts from, as the date
     /// prompt reads it (`-1d`, `2026-10-01`).
+    #[serde(rename = "org_agenda_start_day")]
     pub start_day: Option<String>,
     /// `org-agenda-block-separator`: a character to repeat, a text, or
     /// `false`.
+    #[serde(rename = "org_agenda_block_separator")]
     pub block_separator: Option<serde_json::Value>,
     /// `org-agenda-compact-blocks`
+    #[serde(rename = "org_agenda_compact_blocks")]
     pub compact_blocks: Option<bool>,
     /// Leave out the empty blocks of a block agenda.
+    #[serde(rename = "agenda_hide_empty_blocks")]
     pub hide_empty_blocks: Option<bool>,
     /// `org-agenda-custom-commands`
+    #[serde(rename = "org_agenda_custom_commands")]
     pub custom_commands: Option<Vec<CustomCommandOption>>,
     /// `org-agenda-prefix-format`
+    #[serde(rename = "org_agenda_prefix_format")]
     pub prefix_format: PrefixFormatOptions,
     /// `org-agenda-todo-keyword-format`
+    #[serde(rename = "org_agenda_todo_keyword_format")]
     pub todo_keyword_format: Option<String>,
     /// `org-agenda-scheduled-leaders`
+    #[serde(rename = "org_agenda_scheduled_leaders")]
     pub scheduled_leaders: Option<Vec<String>>,
     /// `org-agenda-deadline-leaders`
+    #[serde(rename = "org_agenda_deadline_leaders")]
     pub deadline_leaders: Option<Vec<String>>,
     /// `org-agenda-timerange-leaders`
+    #[serde(rename = "org_agenda_timerange_leaders")]
     pub timerange_leaders: Option<Vec<String>>,
     /// `org-agenda-remove-tags`: `true`, `false` or `"prefix"`.
+    #[serde(rename = "org_agenda_remove_tags")]
     pub remove_tags: Option<serde_json::Value>,
     /// `org-agenda-breadcrumbs-separator`
+    #[serde(rename = "org_agenda_breadcrumbs_separator")]
     pub breadcrumbs_separator: Option<String>,
     /// `org-agenda-format-date`, as a `format-time-string` format.
+    #[serde(rename = "org_agenda_format_date")]
     pub format_date: Option<String>,
 }
 
@@ -997,7 +1356,7 @@ pub struct AgendaOptions {
 /// a block agenda (`blocks`), or, with neither, a prefix key that groups
 /// the commands whose keys start with it.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
-#[serde(default, rename_all = "camelCase", deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct CustomCommandOption {
     pub key: String,
     pub description: String,
@@ -1009,7 +1368,7 @@ pub struct CustomCommandOption {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub header: Option<String>,
     /// Agenda options for this command, over `agenda`'s: `span`,
-    /// `startDay`, `deadlineWarningDays`…
+    /// `org_agenda_start_day`, `org_deadline_warning_days`…
     #[serde(skip_serializing_if = "Option::is_none")]
     pub settings: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1018,7 +1377,7 @@ pub struct CustomCommandOption {
 
 /// One block of a block agenda.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
-#[serde(default, rename_all = "camelCase", deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct CustomBlockOption {
     #[serde(rename = "type")]
     pub kind: String,
@@ -1040,7 +1399,7 @@ pub enum ArchivesMode {
     Files,
 }
 
-/// `agenda.startWithArchivesMode`: `"trees"`, `"files"` or `false`.
+/// `org_agenda_start_with_archives_mode`: `"trees"`, `"files"` or `false`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum ArchivesOption {
@@ -1129,16 +1488,21 @@ impl AgendaOptions {
         if let Some(days) = &self.weekend_days {
             config.weekend_days = days.iter().copied().filter(|day| *day < 7).collect();
         }
-        let grid = &self.time_grid;
-        let target: &mut TimeGrid = &mut config.time_grid;
-        macro_rules! set_grid {
-            ($($field:ident),*) => {$(
-                if let Some(value) = &grid.$field {
-                    target.$field = value.clone();
-                }
-            )*};
+        if let Some(grid) = &self.time_grid {
+            let has = |kind: &str| grid.kinds.iter().any(|item| item == kind);
+            let target: &mut TimeGrid = &mut config.time_grid;
+            target.daily = has("daily");
+            target.weekly = has("weekly");
+            target.today = has("today");
+            target.require_timed = has("require-timed");
+            target.remove_match = has("remove-match");
+            target.times = grid.times.clone();
+            target.trailer = grid.trailer.clone();
+            target.line = grid.line.clone();
         }
-        set_grid!(daily, today, weekly, require_timed, remove_match, times, trailer, line, now);
+        if let Some(now) = &self.current_time_string {
+            config.time_grid.now = now.clone();
+        }
         let formats = &self.prefix_format;
         let target = &mut config.prefix_format;
         macro_rules! set_format {
@@ -1190,16 +1554,14 @@ mod tests {
     #[test]
     fn reads_settings() {
         let options: Options = serde_json::from_value(serde_json::json!({
-            "agendaFiles": ["~/org"],
-            "agenda": {
-                "span": "day",
-                "startOnWeekday": 0,
-                "skipScheduledIfDone": true,
-                "showFutureRepeats": "next",
-                "tagsColumn": -100,
-                "timeGrid": { "times": [900, 1700], "weekly": true },
-                "unknown": 1
-            }
+            "org_agenda_files": ["~/org"],
+            "org_agenda_span": "day",
+            "org_agenda_start_on_weekday": 0,
+            "org_agenda_skip_scheduled_if_done": true,
+            "org_agenda_show_future_repeats": "next",
+            "org_agenda_tags_column": -100,
+            "org_agenda_time_grid": [["weekly", "today"], [900, 1700]],
+            "unknown": 1
         }))
         .unwrap();
         let config = options.agenda.to_config();
@@ -1210,14 +1572,50 @@ mod tests {
         assert_eq!(config.show_future_repeats, FutureRepeats::Next);
         assert_eq!(config.tags_column, TagsColumn::Column(-100));
         assert_eq!(config.time_grid.times, [900, 1700]);
-        assert!(config.time_grid.weekly && config.time_grid.today);
+        assert!(config.time_grid.weekly && config.time_grid.today && !config.time_grid.daily);
+        assert_eq!(config.time_grid.trailer, "......", "Org's, when the list ends early");
+    }
+
+    /// The names options had before they were Org's still work, and are
+    /// named; Org's own spelling, with `-`, works too.
+    #[test]
+    fn reads_old_names_and_orgs_spelling() {
+        let loaded = load(
+            Some(serde_json::json!({
+                "configFile": false,
+                "logDone": "time",
+                "org-log-repeat": "note",
+                "agenda": { "span": "day", "timeGrid": { "times": [900], "weekly": true } },
+                "captureTemplates": [{ "key": "t", "description": "Task", "immediateFinish": true }],
+                "org_agenda_custom_commands": [{ "key": "x", "description": "X", "type": "agenda", "settings": { "span": 3, "org-agenda-start-day": "-1d" } }],
+                "agendaFile": []
+            })),
+            &no_env,
+        );
+        let options = &loaded.options;
+        assert_eq!(options.todo_settings().log_done, Some(Logging::Time));
+        assert_eq!(options.todo_settings().log_repeat, Some(Logging::Note));
+        let config = options.agenda_config();
+        assert_eq!(config.span, Span::Day);
+        assert_eq!(config.time_grid.times, [900]);
+        assert!(config.time_grid.weekly && config.time_grid.daily && config.time_grid.require_timed);
+        assert_eq!(options.capture_templates()[0].immediate_finish, Some(true));
+        assert_eq!(
+            loaded.merged["org_agenda_custom_commands"][0]["settings"],
+            serde_json::json!({ "org_agenda_span": 3, "org_agenda_start_day": "-1d" })
+        );
+        assert_eq!(loaded.problems.len(), 2, "{:?}", loaded.problems);
+        assert!(loaded.problems[0].contains("logDone → org_log_done"), "{:?}", loaded.problems);
+        assert!(loaded.problems[0].contains("agenda.timeGrid → org_agenda_time_grid"), "{:?}", loaded.problems);
+        assert!(loaded.problems[0].contains("immediateFinish → immediate_finish"), "{:?}", loaded.problems);
+        assert_eq!(loaded.problems[1], "unknown options, which are ignored: `agendaFile`");
     }
 
     #[test]
     fn reads_priorities_and_rounding() {
         let options: Options = serde_json::from_value(serde_json::json!({
-            "priorityHighest": "A", "priorityLowest": "E", "priorityDefault": "C",
-            "priorityStartCycleWithDefault": false, "timestampRoundingMinutes": 15, "tagsColumn": -90
+            "org_priority_highest": "A", "org_priority_lowest": "E", "org_priority_default": "C",
+            "org_priority_start_cycle_with_default": false, "org_time_stamp_rounding_minutes": 15, "org_tags_column": -90
         }))
         .unwrap();
         let settings = options.edit_settings();
@@ -1227,7 +1625,7 @@ mod tests {
         assert_eq!(settings.todo.tags_column, -90);
         assert_eq!(options.agenda_config().priorities, settings.priorities);
         let numbers: Options = serde_json::from_value(
-            serde_json::json!({ "priorityHighest": 1, "priorityLowest": 9, "priorityDefault": 5 }),
+            serde_json::json!({ "org_priority_highest": 1, "org_priority_lowest": 9, "org_priority_default": 5 }),
         )
         .unwrap();
         assert_eq!(numbers.priorities(), Priorities { highest: 1, lowest: 9, default: 5 });
@@ -1238,16 +1636,18 @@ mod tests {
     #[test]
     fn a_malformed_option_leaves_the_others() {
         let (options, dropped) = Options::read(serde_json::json!({
-            "logDone": "time",
-            "agendaFiles": "~/org",
-            "agenda": { "span": "day", "deadlineWarningDays": "soon", "timeGrid": { "times": [900], "daily": 1 } },
+            "org_log_done": "time",
+            "org_agenda_files": "~/org",
+            "org_agenda_span": "day",
+            "org_deadline_warning_days": "soon",
+            "org_agenda_time_grid": [["daily"], ["900"]],
             "unknown": true
         }));
-        assert_eq!(dropped, ["agenda.deadlineWarningDays", "agenda.timeGrid.daily", "agendaFiles"]);
+        assert_eq!(dropped, ["org_agenda_files", "org_agenda_time_grid", "org_deadline_warning_days"]);
         assert_eq!(options.todo_settings().log_done, Some(Logging::Time));
         let config = options.agenda_config();
-        assert_eq!((config.span, config.deadline_warning_days, config.time_grid.times), (Span::Day, 14, vec![900]));
-        let (whole, none) = Options::read(serde_json::json!({ "logDone": "time" }));
+        assert_eq!((config.span, config.deadline_warning_days, config.time_grid.times.len()), (Span::Day, 14, 7));
+        let (whole, none) = Options::read(serde_json::json!({ "org_log_done": "time" }));
         assert!(none.is_empty() && whole.log_done.is_some());
         assert!(Options::read(serde_json::json!([1])).1 == [""]);
         // Neovim sends an empty table as `[]`.
@@ -1271,12 +1671,12 @@ mod tests {
     fn the_editors_options_go_on_top_of_the_files() {
         let file = temp_file(
             "merge",
-            "logDone = \"time\"\ntodoKeywords = [\"TODO\", \"NEXT\", \"|\", \"DONE\"]\n\n[agenda]\ndeadlineWarningDays = 3\nspan = \"week\"\n",
+            "org_log_done = \"time\"\norg-todo-keywords = [\"TODO\", \"NEXT\", \"|\", \"DONE\"]\norg_deadline_warning_days = 3\norg_agenda_span = \"week\"\n",
         );
         let editor = serde_json::json!({
-            "configFile": file.display().to_string(),
-            "logDone": "note",
-            "agenda": { "span": "day" }
+            "config_file": file.display().to_string(),
+            "org_log_done": "note",
+            "org_agenda_span": "day"
         });
         let loaded = load(Some(editor), &no_env);
         assert!(loaded.problems.is_empty(), "{:?}", loaded.problems);
@@ -1284,9 +1684,10 @@ mod tests {
         assert_eq!(
             loaded.merged,
             serde_json::json!({
-                "logDone": "note",
-                "todoKeywords": ["TODO", "NEXT", "|", "DONE"],
-                "agenda": { "deadlineWarningDays": 3, "span": "day" }
+                "org_log_done": "note",
+                "org_todo_keywords": ["TODO", "NEXT", "|", "DONE"],
+                "org_deadline_warning_days": 3,
+                "org_agenda_span": "day"
             })
         );
         let config = loaded.options.agenda_config();
@@ -1294,16 +1695,21 @@ mod tests {
         assert_eq!(loaded.options.todo_settings().log_done, Some(Logging::Note));
 
         // `false`: no file.
-        let alone = load(Some(serde_json::json!({ "configFile": false, "logDone": "time" })), &no_env);
-        assert_eq!((alone.file, alone.read, alone.merged), (None, false, serde_json::json!({ "logDone": "time" })));
+        let alone = load(Some(serde_json::json!({ "config_file": false, "org_log_done": "time" })), &no_env);
+        assert_eq!(
+            (alone.file, alone.read, alone.merged),
+            (None, false, serde_json::json!({ "org_log_done": "time" }))
+        );
         std::fs::remove_dir_all(file.parent().unwrap()).unwrap();
     }
 
     #[test]
     fn a_file_that_cannot_be_read_is_reported_and_left_out() {
-        let file = temp_file("broken", "logDone = \"time\"\nagenda = [\n");
-        let loaded =
-            load(Some(serde_json::json!({ "configFile": file.display().to_string(), "logRepeat": false })), &no_env);
+        let file = temp_file("broken", "org_log_done = \"time\"\nagenda = [\n");
+        let loaded = load(
+            Some(serde_json::json!({ "config_file": file.display().to_string(), "org_log_repeat": false })),
+            &no_env,
+        );
         assert!(!loaded.read);
         assert_eq!(loaded.problems.len(), 1);
         assert!(
@@ -1311,17 +1717,17 @@ mod tests {
             "{:?}",
             loaded.problems
         );
-        assert_eq!(loaded.merged, serde_json::json!({ "logRepeat": false }));
+        assert_eq!(loaded.merged, serde_json::json!({ "org_log_repeat": false }));
 
         // A malformed option in the file goes on its own.
-        std::fs::write(&file, "logDone = \"time\"\ntagsColumn = \"far\"\n").unwrap();
-        let loaded = load(Some(serde_json::json!({ "configFile": file.display().to_string() })), &no_env);
-        assert_eq!(loaded.problems, ["the option `tagsColumn` is malformed and is ignored"]);
+        std::fs::write(&file, "org_log_done = \"time\"\norg_tags_column = \"far\"\n").unwrap();
+        let loaded = load(Some(serde_json::json!({ "config_file": file.display().to_string() })), &no_env);
+        assert_eq!(loaded.problems, ["the option `org_tags_column` is malformed and is ignored"]);
         assert_eq!(loaded.options.todo_settings().log_done, Some(Logging::Time));
 
         // A file the editor names must be there; the usual one need not be.
         let missing = file.with_file_name("missing.toml");
-        let named = load(Some(serde_json::json!({ "configFile": missing.display().to_string() })), &no_env);
+        let named = load(Some(serde_json::json!({ "config_file": missing.display().to_string() })), &no_env);
         assert!(named.problems[0].starts_with("cannot read"), "{:?}", named.problems);
         let home = file.parent().unwrap().display().to_string();
         let usual = load(None, &|name| (name == "HOME").then(|| home.clone()));
@@ -1334,16 +1740,16 @@ mod tests {
     fn a_json_file_may_have_comments_and_trailing_commas() {
         let text = r#"{
   // Where the agenda is built from.
-  "agendaFiles": ["~/org", "https://x//y", "/* kept */",],
+  "org_agenda_files": ["~/org", "https://x//y", "/* kept */",],
   /* Org's own
      default. */
-  "agenda": { "span": "day", },
+  "org_agenda_prefix_format": { "agenda": "%c", },
 }
 "#;
         assert_eq!(
             parse_config(std::path::Path::new("config.json"), text),
             Ok(
-                serde_json::json!({ "agendaFiles": ["~/org", "https://x//y", "/* kept */"], "agenda": { "span": "day" } })
+                serde_json::json!({ "org_agenda_files": ["~/org", "https://x//y", "/* kept */"], "org_agenda_prefix_format": { "agenda": "%c" } })
             )
         );
         // Errors keep their lines.
@@ -1352,31 +1758,31 @@ mod tests {
         assert_eq!(parse_config(std::path::Path::new("c.JSON"), "[1]"), Err("is not a JSON object".to_string()));
         // Any other name is TOML.
         assert_eq!(
-            parse_config(std::path::Path::new("work.conf"), "logDone = \"time\""),
-            Ok(serde_json::json!({ "logDone": "time" }))
+            parse_config(std::path::Path::new("work.conf"), "org_log_done = \"time\""),
+            Ok(serde_json::json!({ "org_log_done": "time" }))
         );
     }
 
     #[test]
     fn config_toml_or_config_json() {
-        let toml = temp_file("formats", "logDone = \"time\"\n");
+        let toml = temp_file("formats", "org_log_done = \"time\"\n");
         let directory = toml.parent().unwrap().to_path_buf();
         let config = directory.join("org-lsp");
         std::fs::create_dir_all(&config).unwrap();
         let home = directory.display().to_string();
         let env = |name: &str| (name == "XDG_CONFIG_HOME").then(|| home.clone());
         // Only JSON: that one.
-        std::fs::write(config.join("config.json"), "{ \"logDone\": \"note\", }").unwrap();
+        std::fs::write(config.join("config.json"), "{ \"org_log_done\": \"note\", }").unwrap();
         assert_eq!(default_config_file(&env), (Some(config.join("config.json")), None));
         let loaded = load(None, &env);
-        assert_eq!((loaded.read, loaded.merged), (true, serde_json::json!({ "logDone": "note" })));
+        assert_eq!((loaded.read, loaded.merged), (true, serde_json::json!({ "org_log_done": "note" })));
         // Both: TOML, and a word about the other.
         std::fs::rename(&toml, config.join("config.toml")).unwrap();
         let (file, warning) = default_config_file(&env);
         assert_eq!(file, Some(config.join("config.toml")));
         assert!(warning.unwrap().contains("config.json is ignored"));
         let loaded = load(None, &env);
-        assert_eq!(loaded.merged, serde_json::json!({ "logDone": "time" }));
+        assert_eq!(loaded.merged, serde_json::json!({ "org_log_done": "time" }));
         assert_eq!(loaded.problems.len(), 1);
         std::fs::remove_dir_all(directory).unwrap();
     }
@@ -1404,7 +1810,8 @@ mod tests {
         assert_eq!(span(serde_json::json!("month")), Some(Span::Month));
         assert_eq!(span(serde_json::json!(0)), None);
         assert_eq!(span(serde_json::json!("soon")), None);
-        let off: AgendaOptions = serde_json::from_value(serde_json::json!({ "startOnWeekday": false })).unwrap();
+        let off: AgendaOptions =
+            serde_json::from_value(serde_json::json!({ "org_agenda_start_on_weekday": false })).unwrap();
         assert_eq!(off.to_config().start_on_weekday, None);
     }
 }

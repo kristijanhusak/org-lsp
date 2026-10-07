@@ -107,13 +107,13 @@ impl zed::Extension for OrgLsp {
             serde_json::Value::Object(options) => options,
             _ => serde_json::Map::new(),
         };
-        options.insert("virtualDocuments".to_string(), serde_json::Value::Bool(false));
+        options.insert("virtual_documents".to_string(), serde_json::Value::Bool(false));
         // Zed runs no command from a key and does nothing with a command's
         // result: the commands come as code actions, the agenda's through
         // the command port that the extension's tasks call, and what they
         // ask for is asked with buttons.
-        options.insert("commandActions".to_string(), serde_json::Value::Bool(true));
-        options.insert("messagePrompts".to_string(), serde_json::Value::Bool(true));
+        options.insert("command_actions".to_string(), serde_json::Value::Bool(true));
+        options.insert("message_prompts".to_string(), serde_json::Value::Bool(true));
         Ok(Some(serde_json::Value::Object(options)))
     }
 }

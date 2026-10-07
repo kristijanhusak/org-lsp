@@ -75,16 +75,16 @@ struct Client {
     virtual_indent: bool,
     /// Highlights lines of the agenda from edge to edge as the server
     /// says (`org-lsp/lineHighlights`): `experimental.orgLineHighlights`,
-    /// or the option `lineHighlights`.
+    /// or the option `line_highlights`.
     line_highlights: bool,
     /// The client rereads semantic tokens when asked.
     tokens_refresh: bool,
-    /// Ask with `window/showMessageRequest` (`messagePrompts`).
+    /// Ask with `window/showMessageRequest` (`message_prompts`).
     message_prompts: bool,
     /// More commands as code actions, and the agenda's through the
-    /// command port (`commandActions`).
+    /// command port (`command_actions`).
     command_actions: bool,
-    /// Where the command port's script goes (`commandScript`).
+    /// Where the command port's script goes (`command_script`).
     command_script: Option<PathBuf>,
 }
 
@@ -100,7 +100,7 @@ enum Pending {
     /// The cursor of the date prompt is being moved to the selected day.
     PromptCursor,
     /// A question of `command`, run with `argument`, asked with
-    /// `window/showMessageRequest` (`messagePrompts`); the answer runs it
+    /// `window/showMessageRequest` (`message_prompts`); the answer runs it
     /// again.
     Answer { command: String, argument: Value, input: Value },
 }
@@ -278,7 +278,7 @@ struct Noting {
 /// The notification that asks the editor to save files, `{ "uris": [...] }`.
 pub const SAVE: &str = "org-lsp/save";
 /// From the client: how many columns of text the window that shows the
-/// agenda has, `{ "width": N }`, for `agenda.tagsColumn` `"auto"`.
+/// agenda has, `{ "width": N }`, for `org_agenda_tags_column` `"auto"`.
 pub const AGENDA_WIDTH: &str = "org-lsp/agendaWidth";
 /// The entry of an agenda line with its highlighting, for a popup.
 pub const PREVIEW: &str = "org-lsp/preview";
@@ -298,7 +298,7 @@ fn capture_spec(template: &CaptureTemplateOption) -> std::result::Result<(captur
         Some("file+headline") => capture::Target::Headline(template.target.get(2).cloned().unwrap_or_default()),
         Some("file+olp") => capture::Target::Path(template.target.get(2..).unwrap_or_default().to_vec()),
         Some(other) => return Err(format!("Capture targets of type `{other}` are not supported yet").into()),
-        // No target: the end of `defaultNotesFile`, as `["file", ""]`.
+        // No target: the end of `org_default_notes_file`, as `["file", ""]`.
         None => capture::Target::File,
     };
     Ok((kind, target))
@@ -371,7 +371,7 @@ struct Server {
     client: Client,
     sender: crossbeam_channel::Sender<Message>,
     /// Where the command port (`port`) sends what it is sent, and its
-    /// script once it is open: with `commandActions`, while the agenda is a
+    /// script once it is open: with `command_actions`, while the agenda is a
     /// file.
     port_sender: crossbeam_channel::Sender<port::Command>,
     port: Option<port::Port>,
@@ -387,8 +387,8 @@ struct Server {
     /// The document the command being run was run in, whose edits are the
     /// user's to save.
     origin: Option<String>,
-    /// `autoSave`: save the files a command changes elsewhere.
-    /// `returnUsesMetaReturn`: RET on a list item makes the next item.
+    /// `auto_save`: save the files a command changes elsewhere.
+    /// `return_uses_meta_return`: RET on a list item makes the next item.
     return_uses_meta_return: bool,
     auto_save: bool,
     /// What the highlighting marks as hidden.
@@ -796,7 +796,7 @@ fn set_writable(file: &Path) -> std::io::Result<()> {
 /// as inlay hints, for a client that does not show them otherwise.
 /// `cursor`: ask for document highlights, which a client asks for as the
 /// cursor moves, so that the server knows where it is in the agenda
-/// (`commandActions`).
+/// (`command_actions`).
 fn capabilities(encoding: Encoding, inlay_hints: bool, cursor: bool) -> ServerCapabilities {
     ServerCapabilities {
         position_encoding: Some(encoding.kind()),
@@ -1007,7 +1007,7 @@ impl Server {
         self.send_raw_request(R::METHOD, serde_json::to_value(params).unwrap_or(Value::Null), pending);
     }
 
-    /// Ask the editor to apply `params`. With `autoSave`, the files it
+    /// Ask the editor to apply `params`. With `auto_save`, the files it
     /// changes other than the one the command was run in (an entry's file
     /// changed from the agenda, the target of a capture or a refile) are
     /// saved once the editor has applied the edit.
@@ -1158,7 +1158,7 @@ impl Server {
     }
 
     /// `org-lsp/agendaWidth`: the agenda's window is `width` columns wide;
-    /// tags aligned to its edge (`agenda.tagsColumn` `"auto"`) move.
+    /// tags aligned to its edge (`org_agenda_tags_column` `"auto"`) move.
     fn agenda_width(&mut self, params: &Value) {
         let width = params.get("width").and_then(Value::as_u64).filter(|width| *width > 0).map(|width| width as usize);
         if width.is_some() && width != self.agenda.window_width {
@@ -1438,7 +1438,7 @@ impl Server {
                 ..Default::default()
             })
         };
-        // With `commandActions`, what an editor runs from keys.
+        // With `command_actions`, what an editor runs from keys.
         let more = self.client.command_actions;
         if self.is_view(uri) && more {
             // The agenda's file is read-only, where Zed runs no code
@@ -2180,7 +2180,7 @@ impl Server {
     }
 
     /// Open the command port, for a client that cannot run a command
-    /// from a key (`commandActions`), and make its script this server's.
+    /// from a key (`command_actions`), and make its script this server's.
     fn open_port(&mut self) {
         if !self.client.command_actions || self.port.is_some() {
             return;
@@ -2388,7 +2388,7 @@ impl Server {
     }
 
     /// For a client that does nothing with a command's result
-    /// (`messagePrompts`): say its message with `window/showMessage`, and
+    /// (`message_prompts`): say its message with `window/showMessage`, and
     /// ask what it asks for with `window/showMessageRequest`, one button a
     /// choice.
     fn prompt_with_messages(&mut self, command: String, argument: Value, result: &Value) {
@@ -4075,7 +4075,7 @@ impl Server {
             org_core::newline::Settings { indent: self.indent_in(&text), tags_column: self.refile.2.tags_column };
         let document = self.document(uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
-        // `returnUsesMetaReturn`, and `org.return.item` always: on the first
+        // `return_uses_meta_return`, and `org.return.item` always: on the first
         // line of a list item, the next item, numbered as M-RET numbers it.
         if (items || self.return_uses_meta_return) && on_item_line(&document.parse.syntax(), &document.text, offset) {
             return self.meta_return(commands::META_RETURN, context);

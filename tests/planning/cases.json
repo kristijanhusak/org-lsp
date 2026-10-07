@@ -255,7 +255,7 @@
   "command": "deadline",
   "answer": "52 22. 7. 0050 mon",
   "options": {
-   "adaptIndentation": "headline-data"
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "Text before the first headline [2017-08-22 Lun  0:07-11:00 -0d>\n**  TODO\ta\n   DEADLINE: <1970-04-22 Wed>\nCLOCK: [2027-04-18Tue 12>-[2027-03-18 Fri -1m +]\nCLOCK: <2027-04-17  Wed 23:59 x y]---[2027-04-17 Monday 8:03  >  => 12:34\nCLOCK: [2027-04-14  Sun -10d +]¦\n*  DONE\n  SCHEDULED: [2027-03-08  Wed>\n  plain text\n  CLOCK: [2026-00-10 Lun --2d -]-[2024-07-04 Monday  10:58 +1m -1y foo]\n  CLOCK:   <2036-11-03Mon 23:45]-[2034-07-16  >\n*  日本 語\t:a:\nCLOCK: <2027-04-03Monday -1y +1x>\n",
   "prompt": ""
@@ -266,7 +266,7 @@
   "command": "timestamp-inactive",
   "answer": "w49",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "Text before the first headline <2017-06-06 Tue>\n*  [#A] žć                   [2027-12-06 Mon]¦           :x_y:@z:\n  SCHEDULED: [2023-11-04  23:45 -1y -> CLOSED: [2027-03-28 Tue 23:59 .+1d +>---[2027-04-26 sáb 10:58 +>\n  Text with <2027-03-24 Fri .+2D x y> <2027-04-19>\n  Text with [2024-07-16 9:30 +1W -2D> in it.",
   "prompt": ""
@@ -277,7 +277,7 @@
   "command": "schedule",
   "answer": "+w, 4 jan, 4h, sat",
   "options": {
-   "adaptIndentation": "headline-data"
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "#+TODO: A B C\nText before the first headline <2029-03-23 月>\n**[#AB]  a [2027-04-15 10:00-11:00 +1m +1x>\n* C with [[https://x.org][link]] <2027-03-18 Lun 0:07 .+2d/4d -2D> :a:\n  SCHEDULED: <2028-01-04 Tue 04:00>\n  CLOCK:[2027-04-16  sáb +1W -10d]--<2027-04-27Fri +1x¦>  => 12:34 rest\n** B [#]  x  y                              :日本:\nDEADLINE: <2027-04-21 x y>\n",
   "prompt": ""
@@ -288,7 +288,7 @@
   "command": "deadline",
   "answer": "x",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "Text before the first headline <2019-05-17 sáb +1y]\n*\treview the report\nSCHEDULED: [2027-04-11 Sun +1x>---<2026-11-17Monday +>\nclock:<2027-04-07 Sun +2w]--[2027-04-18 Monday]\nCLOCK:  [2027-04-24  Sun -1y  >-[2027-04-27 Thu 0:07 12]=>12:34\n*  TODO  review the report   :日本:\n  DEADLINE: <2027-04-17 Sat>\n¦plain text\n- item <2022-06-13 Mon --2d>\nclock:[2027-04-07 Mon 14:00-23:59 .+1d  >-<2027-04-17 Wed 23:45-29:00 12> =>  1:00\n",
   "prompt": ""
@@ -299,8 +299,8 @@
   "command": "schedule",
   "answer": "50-8-11",
   "options": {
-   "logDone": "time",
-   "adaptIndentation": "headline-data"
+   "org_log_done": "time",
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "Text before the first headline [2027-04-26 Sat  00:00-23:59>\n* DONE a                              :日本:\n  SCHEDULED: <2037-08-11 Tue>\nCLOCK:  [2027-04-27 Lun]---[2027-04-19 x y]\nText with <2027-¦10-27 sáb  14:00-09:45] in it.\n# <2027-09-22 Sun 09:30-11:00 foo>\n**[#]  日本 語\t:日本:\n  CLOSED:  [2026-07-12 Mon +1w/2w +> DEADLINE:  [2026-11-23Fri  10:00-29:00] SCHEDULED:  [2027-04-20x 8:03 +1m foo]\n  CLOCK: <2027-04-15 Fri 09:30 12>---<2027-04-18  Thu 23:45-9:30 .+1d>\n*  DONE [#a]\n  DEADLINE:  [2027-04-17  Thu 10:58 +1x> CLOSED: <2027-04-24 x 23:45-9:30 +1w/2w -3d]\n",
   "prompt": ""
@@ -311,7 +311,7 @@
   "command": "schedule",
   "answer": "mon, /",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "#+PRIORITIES: A B\n*  x  y :¦x_y:@z:\n  SCHEDULED: <2027-04-19 Mon> DEADLINE:  [2027-04-19 9:30-11:00] CLOSED:  [2027-04-23 Tue  23:59-23:59 +1d --1W foo>\n  Text with [2027-10-23 Fri 23:45-23:59 +1d --1W +1x]--<2027-03-17 Lun 09:30 12>\n  Text with [2026-01-00 Sat 0:07-9:30 +1W]\n  Text with [2026-10-13 Tue 09:30 x y]\n** [#B]   :x_y:@z:\nText with [2027-04-19 Lun 24:00 -10d +] <2027-04-13 Thu +2w 12>\nText with <2026-03-14 Sun --1W +1x> [2027-04-29 Sat 23:59 +1d x y>\n",
   "prompt": ""
@@ -322,7 +322,7 @@
   "command": "deadline",
   "answer": "7-11-23 SAT",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "** DONE [#D]\ta\n** DONE  [#D] x  y\t:x_y:@z:\n  DEADLINE: <2007-11-23 Fri> SCHEDULED: [2027-03-26Monday 00:00 +] DEADLINE: [2027-04-16 Sat +1x>\n  clock:[2025-02-29 Mon -1m>--[20¦27-04-19 Thu  8:03 +1w/2w>\n  CLOCK: [2032-07-29 Tue 10:00 -0d>---<2027-03-20 x> =>   1:00\n**  Call them <2026-01-00 14:00-00:10>   :work:home:\nText with <2027-04-24  Monday  10:00-23:59 -2D]\nText with <2027-04-24sáb +1m -> [2027-04-17 12]\nText with <2027-04-15 月 +5h> in it.\n",
   "prompt": ""
@@ -334,7 +334,7 @@
   "answer": "sun . now",
   "repeated": true,
   "options": {
-   "adaptIndentation": "headline-data"
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "Text before the first headline <2027-04-25 Sat 0:07-09:45 .+2D ->\n** DONE  with [[https://x.org][link]]\n   SCHEDULED: <2027-04-18 Sun>\nclock: <2027-04-17 月 23:59-9:30 +1d foo]--[2026-05-22  Fri 1¦0:00 +] => 12:34\nText with [2028-05-09 12] in it.\n",
   "prompt": ""
@@ -346,7 +346,7 @@
   "answer": "3:60am",
   "repeated": true,
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "#+PRIORITIES: 1 9 5\n** [#1]\twith [[https://x.org][link]] [#D]                              :x_y:@z:\n   DEADLINE: <2027-04-17 Sat>\n  CLOCK:<2027-04-09 Thu 0:07-00:10 .+1d foo>---[2027-04-13  Mon +1x] =>   1:00¦\n* :日本:\nSCHEDULED: <2027-03-28Thu>\nCLOCK: <2026-07-08 Lun 14:00 +1d x y>---[2027-05-20 +]  =>  1:00\nCLOCK:  [2027-04-23  月 10:00 foo]--<2027-06-14  Sat 00:00 +1y x y>\n",
   "prompt": ""
@@ -357,7 +357,7 @@
   "command": "timestamp",
   "answer": "now",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "Text before the first headline [2020-05-04 Lun  ]--<2025-10-30 月 --1W foo>\n* DONE\tx  y :a:<2027-04-17 Sat>¦\nCLOSED: [2026-04-03 ++1w -2D foo] DEADLINE: <2027-05-22Wed> SCHEDULED:  <2027-05-01Monday +2w --2d ->\nCLOCK: [2027-04-28 x .+2D>\n*  [#64] a [2027-04-19 Sun .+2d/4d>\n  CLOCK: [2027-04-15Wed -0d>--[2032-09-24 月 09:30-00:10 +1y -0d> =>  1:00\n**  TODO\tCall them                              :work:home:\n   DEADLINE:  [2027-04-07Sun +2w 12]\n   CLOCK:[2026-02-30 Wed ->--<2027-04-23 Thu 24:00 +1W -0d  >  => x\n   \n",
   "prompt": ""
@@ -368,7 +368,7 @@
   "command": "deadline",
   "answer": "25.4.1969  ",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "#+TODO: A B C\nText before the first headline [2027-03-23 +1W -2D +]\n*  C [#64] 日本 語\n** B [#]  review the report   :日本:\nDEADLINE: <1970-04-25 Sat -2w> CLOSED:  <2027-03-12 月 24:00-10:58 .+2D -0d> DEADLINE:  [2026-07-24 Sat -2w 12]\nText with [2027-03-24 Mon 10:00-00:10 -2D] in it.¦\n**  B review the report   :a:\n   SCHEDULED: <2027-04-12 -3d] CLOSED: <2027-04-17  Sun +1y  >--[2037-05-08 +1w/2w -1y] DEADLINE: <2026-01-00 Fri 24:00-00:10 .+2D -]\n   Text with <2026-01-15 Tue +1m x y>---<2027-04-15 Tue 9:30 x y> in it.\n",
   "prompt": ""
@@ -380,7 +380,7 @@
   "answer": " SAT  now",
   "repeated": true,
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "** DONE  [#D]  žć\nText with [2028-01-05 Tue 09:30-9:30] <2027-04-25 Mon 10:58 .+2d/4d x y]\n* [#D] Call them [#64]   :a:\n  DEADLINE:  [2027-02-13  Monday --1W x y] CLOSED: [2027-04-18 Sun  23:45 foo]\n  Text with [2027-12-26 Tue  23:45 +1m -3d x y]\n  Text with <2027-04-18 9:30-29:00] in it.<2027-04-24 Sat>¦\n",
   "prompt": ""
@@ -391,8 +391,8 @@
   "command": "timestamp",
   "answer": "-1w 4/3/1999",
   "options": {
-   "logDone": "note",
-   "adaptIndentation": true
+   "org_log_done": "note",
+   "org_adapt_indentation": true
   },
   "expected": "* TODO\tžć                              :日本:\nText with <2027-11-08月 -> in it.\n* TODO a <2027-04-17 Lun .+1d 12>\t:x_y:@z:\n  CLOSED: [2027-04-17Wed 00:00-29:00 12>\n  Text with <2026-12-16 x  +3d> in it.\n  Text with <2027-04-17 +12d -> [2027-04-04  Monday  +3d]\n  Text with [2027-04-13 x +1x>-[2027-03-22 Sat  ] <2027-04-18Mon]\n* [#A] a\n  Text with [2027-05-10  Thu 24:00-10:58 +2<2027-04-10 Sat>¦w --1W foo]\n  clock: <2027-03-18 00:00>\n",
   "prompt": ""
@@ -403,7 +403,7 @@
   "command": "timestamp-inactive",
   "answer": "+- 2026-8-1 10Pm frid",
   "options": {
-   "adaptIndentation": "headline-data"
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "#+TODO: A B C\n* B with [[https://x.org][link]] [#12]\t:work:home:\nText with <2100-01-01 Mon  00:00> in it.\nText with <2026-04-16 Fri 23:45 foo> <2027-05-08 月 14:00-29:00 +5h  ]\nText with [2026-12-26x 9:30-29:00 +1d> in it.\n* [2026-07-31 Fri 22:00]¦[#64] 日本 語   :a:\n** B  [#Z]  a\t:x_y:@z:\n   CLOSED: [2027-03-05 月 -0d foo] DEADLINE: <2027-04-17 Sun ->---[2024-02-29 +1m --2d -] SCHEDULED: [2027-04-19  x .+1d  ]---[2027-04-16x 9:30 +1W 12>\n   Text with [2027-06-18 Tue  8:03 +1x]\n",
   "prompt": ""
@@ -414,7 +414,7 @@
   "command": "schedule",
   "answer": "thu 9h30 18.0.7",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "Text before the first headline <2027-04-23 Sat -]\n*  [#5]   <2027-04-19 sáb 23:59 +1x]   :work:home:\n  SCHEDULED: <2027-04-22 Thu 09:30>\nCLOCK:  <2027-04-18Tue 8:03-10:58 +1d>---<2029-06-24  Monday  >  =>¦  1:00\n** TODO\tx  y\n| a | <2026-11-04  x 24:00-11:00  ] |\n| a | [2027-03-11 Lun -2w +> |\nText with <2027-11-06 x 14:00-11:00 -1m> [2027-04-28 Wed 00:00-9:30]\n",
   "prompt": ""
@@ -425,7 +425,7 @@
   "command": "schedule",
   "answer": "--1fri 8:45:27",
   "options": {
-   "adaptIndentation": "headline-data"
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "#+TODO: TODO(t) WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n*\treview the report\n# [2027-04-22 Mon 0:07 +1m -1y +>\n* with [[https://x.org][link]]   :work:home:\n  SCHEDULED: <2027-04-16 Fri 08:45>\n# [2027-04-24  Sun 2¦3:45-11:00 +]\n* WAIT[#a]  日本 語                              :日本:\nSCHEDULED: <2026-13-01Sat 8:03-11:00 .+1d>\n",
   "prompt": ""
@@ -436,7 +436,7 @@
   "command": "timestamp-inactive",
   "answer": "26 today",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "#+TODO: TODO NEXT | DONE\n**  TODO žć <2027-04-09 Thu 14:00 ->\n  DEADLINE: [2027-04-26 Mon +1m¦] CLOSED: <2027-04-21 12>\n# [2027-04-18 sáb 9:30]\n",
   "prompt": "23:59+-15:31"
@@ -448,7 +448,7 @@
   "answer": "+0fri mon",
   "repeated": true,
   "options": {
-   "adaptIndentation": "headline-data"
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "#+TODO: A B C\n* 日本 語 [#AB]\n  Text with <2027-04-18 x .+2D> <2027-04-07 Sun 12]\n*   :a:\n  DEADLINE: <2027-04-23 Fri>\nText with <2027-04-07 x  10:58-00:10 --1W +1x>--[2025-02-29 sáb 00:00-11:00] <2027-04-17 Wed  9:30 +2w +>\nText with [2027-0¦4-17  Sun x y]\nText with <2027-01-15 09:30 +>\n",
   "prompt": ""
@@ -459,7 +459,7 @@
   "command": "schedule",
   "answer": "1:60+1h60 jan 9 0",
   "options": {
-   "adaptIndentation": "headline-data"
+   "org_adapt_indentation": "headline-data"
   },
   "expected": "Text before the first headline <2027-04-19 sáb -2D foo>--[2027-04-18Wed +12d --2d  >\n*\ta [#64]\nSCHEDULED: <2027-04-10 月 .+2d/4d --2d]\nclock:[2027-03-10  Tue  10:00-23:59 foo]---<2027-05-08  Sun +2w> =>  12:34\n** TODO review the report\n   SCHEDULED: <2000-01-09 Sun>\n   CLOCK:  [2027-05-23¦  Wed  10:58  ]--[2027-10-02x -2D 12] => 12:34 rest\n",
   "prompt": ""
@@ -470,7 +470,7 @@
   "command": "deadline",
   "answer": "+thu",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": "#+TODO: A B C\nText before the first headline <2027-04-15 +12d>-[2027-04-07 Sat +1d]\n**  A [#5] x  y\nDEADLINE:  <2035-07-23 Mon 0:07 +>---<2018-11-03 sáb> SCHEDULED: [2027-04-15 sáb 00:00 -]--<2035-07-10 10:00 +1d foo>\n* C  [#]  with [[https://x.org][link]]¦ :a:\n  DEADLINE: <2027-04-22 Thu -1y> SCHEDULED: [2028-03-07 sáb 00:00 +1y  >\n  plain text\n** C[#D] x  y\n# <2027-04-17 Sun .+2d/4d -2w>\n",
   "prompt": "09:30"

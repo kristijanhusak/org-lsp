@@ -91,10 +91,10 @@ endfunction
 " server writes, whatever the client says.
 function! org_lsp#init_options() abort
   return extend(deepcopy(org_lsp#config().settings), {
-        \ 'showDocument': v:true,
-        \ 'virtualDocuments': v:false,
-        \ 'virtualIndent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
-        \ 'lineHighlights': v:true,
+        \ 'show_document': v:true,
+        \ 'virtual_documents': v:false,
+        \ 'virtual_indent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
+        \ 'line_highlights': v:true,
         \ })
 endfunction
 
@@ -766,7 +766,7 @@ function! s:resize_apart(mode, size) abort
 endfunction
 
 " Tell the server how many columns of text the window that shows the
-" agenda has, for `agenda.tagsColumn` `"auto"`: the tags then end at its
+" agenda has, for `org_agenda_tags_column` `"auto"`: the tags then end at its
 " right edge, and the server builds the agenda again when it changes.
 let s:told_width = 0
 function! org_lsp#tell_agenda_width() abort

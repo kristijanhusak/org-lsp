@@ -35,7 +35,7 @@ others), as close to Emacs Org mode as it can get.
 | 2a | Agenda in the server: dates, repeaters, warning periods, week/day/month views, TODO list, `org-todo` port with logging and repeaters | #1 |
 | 2b | Agenda in editors: server-owned document over `workspace/textDocumentContent`, manifest (commands, keys, highlight links) that drives the Neovim plugin and generates the VS Code `package.json`, in-editor tests for both | #2 |
 | 3 | Priorities and dates: `org-priority`, `org-timestamp-change`, the agenda's date shift, Org's shifted keys; counts; the agenda's cursor follows an entry | #3 |
-| — | Folding takes the blank lines after a subtree as Emacs does (`cycleSeparatorLines`) | #4 |
+| — | Folding takes the blank lines after a subtree as Emacs does (`org_cycle_separator_lines`) | #4 |
 | 4a–4c | The date prompt: `org-read-date`, schedule, deadline, timestamps that ask for a date, and Emacs's calendar with the prompt | #5 |
 | — | The calendar comes first; `i` asks for the answer; Neovim leaves insert mode there | #6 |
 | — | `org.agenda.save` (`org-save-all-org-buffers`, `s` and `C-x C-s` in the agenda) | #7 |
@@ -49,16 +49,17 @@ others), as close to Emacs Org mode as it can get.
 | 4e.3 | Capture (`org-capture`) | #15 |
 | — | Editor fixes, prebuilt binaries in CI, `scripts/install-vscode.sh`, tags from all agenda files | #16–#21 |
 | 5, 9, 11 | Custom agenda commands and block agendas, `m`/`M`, clocking, log mode, clock report, more completion | #22 |
-| 5, 13 | Block agenda cursor, separators, empty blocks; indentation (`org-indent-line`, `org-indent-region`, `adaptIndentation`) and virtual indentation (`org-indent-mode`) | #23 |
+| 5, 13 | Block agenda cursor, separators, empty blocks; indentation (`org-indent-line`, `org-indent-region`, `org_adapt_indentation`) and virtual indentation (`org-indent-mode`) | #23 |
 | 8 | Emphasis keeps its style across spaces; toggle checkboxes with their cookies | #24 |
 | 6, 13 | Range formatting aligns tables and tags; agenda blocks without the blank line; `r` reads changed files; help (`g?`); RET as `org-return`; archiving | #29 |
 | 6, 14 | `M-RET`, `M-S-RET`, `C-RET`, `C-S-RET`; the agenda's archives mode; archived subtrees stay closed; the agenda's keys the same in every editor; Sublime and Zed fixes | #30–#38 |
 | 11, 7 | Follow links (`org-open-at-point`), notes (`org-add-note`), source and export blocks in their language's colors, tag and property inheritance | #39, #42, #43 |
-| 6, 8 | RET falls back to other plugins' `<CR>`; numbered lists continue (`returnUsesMetaReturn`, `<S-CR>` as `org.return.item`); `<Leader><CR>` adds below | #44, #48, #55, #57 |
+| 6, 8 | RET falls back to other plugins' `<CR>`; numbered lists continue (`return_uses_meta_return`, `<S-CR>` as `org.return.item`); `<Leader><CR>` adds below | #44, #48, #55, #57 |
 | 13, 14 | Virtual indentation in Vim, Sublime Text, Zed and Helix; `win_split_size`; Sublime opens the agenda with no Org file open | #41, #46, #47, #56 |
 | Later, 12 | Tangling (`org-babel-tangle`); table formulas (`org-table-recalculate`, with the part of Calc they use) | #49, #50 |
-| 5 | Agenda formats (`org-agenda-prefix-format` and the options around it); TAB in another window; tags at the window's edge (`agenda.tagsColumn` `"auto"`); Zed runs the agenda's keys at once | #51, #52, #54 |
+| 5 | Agenda formats (`org-agenda-prefix-format` and the options around it); TAB in another window; tags at the window's edge (`org_agenda_tags_column` `"auto"`); Zed runs the agenda's keys at once | #51, #52, #54 |
 | 11, 5 | A hover over an agenda line shows its entry (`textDocument/hover`, `org-lsp/preview`); `K` shows it highlighted in Neovim and Vim | #59–#61 |
+| 6, 5, 14 | Structure editing: promote, demote and move subtrees; the clocked agenda line highlighted edge to edge and moving with the clock (`org-lsp/lineHighlights`), no flicker when the agenda refreshes; options named after Org's variables (`org_agenda_files`; old names read with a message) | #63, #64, #65 |
 | — | Fixes: repeating entries' message, the cursor after date changes, Neovim's flicker on server edits | #53, #55, #58 |
 
 ### Where to pick up
@@ -151,7 +152,7 @@ Done and checked:
 
 A folded subtree now takes the blank lines before the next headline
 along, keeping the last one visible when there are at least
-`org-cycle-separator-lines` of them (option `cycleSeparatorLines`), as
+`org-cycle-separator-lines` of them (option `org_cycle_separator_lines`), as
 `org-cycle-show-empty-lines` does. Blank lines at the end of the file
 stay visible. Compared with Emacs by `tests/folding/cases.json` and
 `scripts/fuzz-fold.py` (seeds 1 to 4, 1,900 documents, no difference).
@@ -279,8 +280,8 @@ show one. In four pull requests:
    (`org-copy-subtree`, `org-paste-subtree`: last child, or first with
    `org-reverse-note-order`; every headline promoted or demoted and its
    tags aligned; the deletion where Emacs's cursor marker ends up, which
-   can be the pasted copy). Options `refileTargets`,
-   `refileUseOutlinePath`, `reverseNoteOrder`. Input kind `choice` with
+   can be the pasted copy). Options `org_refile_targets`,
+   `org_refile_use_outline_path`, `org_reverse_note_order`. Input kind `choice` with
    `choices` (Neovim `vim.ui.select`, VS Code a list). Checked by
    `tests/refile/cases.json` (39 cases) and `scripts/fuzz-refile.py`
    (seeds 1 to 4, 1,500 random documents, no difference). Not yet:
@@ -299,8 +300,8 @@ show one. In four pull requests:
    directory of the server's own; it shows the region Emacs narrows to,
    and finishing puts it back (or places it again if the target changed
    meanwhile). `C-c C-c` / `<C-c>` finishes, `C-c C-k` / `<Leader>ok`
-   aborts, `C-c C-w` / `<Leader>or` refiles. Options `captureTemplates`,
-   `orgDirectory`, `defaultNotesFile`. Checked by
+   aborts, `C-c C-w` / `<Leader>or` refiles. Options `org_capture_templates`,
+   `org_directory`, `org_default_notes_file`. Checked by
    `tests/capture/cases.json` and `scripts/fuzz-capture.py` (seeds 1 to
    5, 1,900 cases, no difference). Not yet: `item`, `checkitem` and
    `table-line` templates; `id`, `file+regexp`, `file+olp+datetree`,
@@ -429,13 +430,13 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   (on-type formatting after a line break: `indentexpr` in Neovim, format
   on type in VS Code), `org-indent-region` on a range (range formatting:
   `=` in Neovim and Helix, Format Selection in VS Code), and
-  `adaptIndentation` (`org-adapt-indentation`, `t` or `headline-data`)
+  `org_adapt_indentation` (`org-adapt-indentation`, `t` or `headline-data`)
   for what commands write: planning lines, drawers, notes, `CLOCK:`
   lines, and the text of entries whose level changes on refile and
   capture (`org-fixup-indentation`). Checked against Emacs in
   `tests/indent` and in the TODO, planning, refile and capture cases.
-- Done: virtual indentation (`org-indent-mode`: `startupIndented`,
-  `#+STARTUP: indent`) and hidden leading stars (`hideLeadingStars`,
+- Done: virtual indentation (`org-indent-mode`: `org_startup_indented`,
+  `#+STARTUP: indent`) and hidden leading stars (`org_hide_leading_stars`,
   `#+STARTUP: hidestars`). The server sends each line's prefix
   (`org-lsp/virtualIndent`), checked against Emacs's `line-prefix` and
   `wrap-prefix` in `tests/indent`; Neovim shows them as inline virtual
@@ -473,7 +474,7 @@ Emacs in `tests/tblfm/cases.json`.
 2. **Licence.** The parser and the Org logic are ports of GPL code from
    Emacs Org mode. The repository has no licence file yet. To be set later.
 3. **Saving after edits from the agenda.** Decided: saved by default
-   (`autoSave`), unlike Emacs: the files a command changes other than the
+   (`auto_save`), unlike Emacs: the files a command changes other than the
    one it was run in (from the agenda, a capture or refile target) are
    saved once the editor has applied the change (the `org-lsp/save`
    notification). Off, they stay unsaved, as in Emacs, and

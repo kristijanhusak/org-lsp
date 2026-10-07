@@ -65,7 +65,7 @@ def case(rng):
     spec = {"type": kind, "target": target, "template": template}
     if rng.random() < 0.4:
         spec["prepend"] = True
-    for key in ["emptyLines", "emptyLinesBefore", "emptyLinesAfter"]:
+    for key in ["empty_lines", "empty_lines_before", "empty_lines_after"]:
         if rng.random() < 0.2:
             spec[key] = rng.randint(0, 2)
     out = {"clock": "2026-05-18 10:30", "files": {"notes.org": text}, "template": spec,
@@ -73,7 +73,7 @@ def case(rng):
     if "%^" in template:
         out["answers"] = [rng.choice(["Title", ""]), rng.choice(["fri", "+2d", "2026-06-01 10:00"])]
     if rng.random() < 0.35:
-        out["options"] = {"adaptIndentation": rng.choice([True, "headline-data", False])}
+        out["options"] = {"org_adapt_indentation": rng.choice([True, "headline-data", False])}
     return out
 
 

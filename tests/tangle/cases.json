@@ -87,7 +87,7 @@
    "f.org": "#+begin_src python -i :tangle yes\n  if True:\n      pass\n#+end_src\n#+begin_src python :tangle other.py\n  kept = 1\n#+end_src\n"
   },
   "settings": {
-   "srcPreserveIndentation": false
+   "org_src_preserve_indentation": false
   },
   "expected": {
    "files": {
@@ -104,7 +104,7 @@
    "g.org": "#+begin_src python :tangle yes\n    indented = 1\n#+end_src\n"
   },
   "settings": {
-   "srcPreserveIndentation": true
+   "org_src_preserve_indentation": true
   },
   "emacs": "(setq org-src-preserve-indentation t)",
   "expected": {

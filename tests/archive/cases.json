@@ -85,7 +85,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveReversedOrder": true
+   "org_archive_reversed_order": true
   },
   "expected": {
    "files": {
@@ -103,7 +103,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveReversedOrder": true
+   "org_archive_reversed_order": true
   },
   "expected": {
    "files": {
@@ -121,7 +121,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveFileHeaderFormat": false
+   "org_archive_file_header_format": false
   },
   "expected": {
    "files": {
@@ -139,7 +139,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveFileHeaderFormat": "Archive of %s\n"
+   "org_archive_file_header_format": "Archive of %s\n"
   },
   "expected": {
    "files": {
@@ -157,7 +157,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "%s_archive::* Archived Tasks"
+   "org_archive_location": "%s_archive::* Archived Tasks"
   },
   "expected": {
    "files": {
@@ -176,7 +176,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "%s_archive::* Archived Tasks"
+   "org_archive_location": "%s_archive::* Archived Tasks"
   },
   "expected": {
    "files": {
@@ -195,7 +195,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "%s_archive::* Archived Tasks"
+   "org_archive_location": "%s_archive::* Archived Tasks"
   },
   "expected": {
    "files": {
@@ -214,8 +214,8 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "%s_archive::* Archived Tasks",
-   "archiveReversedOrder": true
+   "org_archive_location": "%s_archive::* Archived Tasks",
+   "org_archive_reversed_order": true
   },
   "expected": {
    "files": {
@@ -234,7 +234,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "archive/%s::"
+   "org_archive_location": "archive/%s::"
   },
   "expected": {
    "files": {
@@ -253,7 +253,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "~/notes/all.org::* From %s"
+   "org_archive_location": "~/notes/all.org::* From %s"
   },
   "expected": {
    "files": {
@@ -271,7 +271,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "::* Archive"
+   "org_archive_location": "::* Archive"
   },
   "expected": {
    "files": {
@@ -288,7 +288,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "::* Archive"
+   "org_archive_location": "::* Archive"
   },
   "expected": {
    "files": {
@@ -305,7 +305,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "::* Archive"
+   "org_archive_location": "::* Archive"
   },
   "expected": {
    "files": {
@@ -322,7 +322,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "::"
+   "org_archive_location": "::"
   },
   "expected": {
    "files": {
@@ -339,7 +339,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "::** Archive"
+   "org_archive_location": "::** Archive"
   },
   "expected": {
    "files": {
@@ -356,7 +356,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "a.org::* Archive"
+   "org_archive_location": "a.org::* Archive"
   },
   "expected": {
    "files": {
@@ -373,8 +373,8 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "::* Archive",
-   "archiveSubtreeAddInheritedTags": false
+   "org_archive_location": "::* Archive",
+   "org_archive_subtree_add_inherited_tags": false
   },
   "expected": {
    "files": {
@@ -391,7 +391,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveSubtreeAddInheritedTags": true
+   "org_archive_subtree_add_inherited_tags": true
   },
   "expected": {
    "files": {
@@ -490,7 +490,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "%s_archive::datetree/"
+   "org_archive_location": "%s_archive::datetree/"
   },
   "expected": {
    "files": {
@@ -508,7 +508,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "%s_archive::datetree/"
+   "org_archive_location": "%s_archive::datetree/"
   },
   "expected": {
    "files": {
@@ -527,7 +527,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "%s_archive::datetree/"
+   "org_archive_location": "%s_archive::datetree/"
   },
   "expected": {
    "files": {
@@ -546,7 +546,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "%s_archive::datetree/"
+   "org_archive_location": "%s_archive::datetree/"
   },
   "expected": {
    "files": {
@@ -565,7 +565,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "%s_archive::datetree/* Done"
+   "org_archive_location": "%s_archive::datetree/* Done"
   },
   "expected": {
    "files": {
@@ -583,7 +583,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "%s_archive::datetree/* Done"
+   "org_archive_location": "%s_archive::datetree/* Done"
   },
   "expected": {
    "files": {
@@ -602,7 +602,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "%s_archive::datetree/"
+   "org_archive_location": "%s_archive::datetree/"
   },
   "expected": {
    "files": {
@@ -620,7 +620,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "::datetree/"
+   "org_archive_location": "::datetree/"
   },
   "expected": {
    "files": {
@@ -637,7 +637,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveMarkDone": true
+   "org_archive_mark_done": true
   },
   "expected": {
    "files": {
@@ -655,8 +655,8 @@
   },
   "command": "subtree",
   "options": {
-   "archiveMarkDone": true,
-   "todoKeywords": [
+   "org_archive_mark_done": true,
+   "org_todo_keywords": [
     "TODO",
     "|",
     "DONE",
@@ -679,8 +679,8 @@
   },
   "command": "subtree",
   "options": {
-   "archiveMarkDone": "CANCELLED",
-   "todoKeywords": [
+   "org_archive_mark_done": "CANCELLED",
+   "org_todo_keywords": [
     "TODO",
     "|",
     "DONE",
@@ -703,7 +703,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveMarkDone": true
+   "org_archive_mark_done": true
   },
   "expected": {
    "files": {
@@ -721,7 +721,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveMarkDone": true
+   "org_archive_mark_done": true
   },
   "expected": {
    "files": {
@@ -739,7 +739,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveSaveContextInfo": [
+   "org_archive_save_context_info": [
     "ltags",
     "priority",
     "olid",
@@ -762,7 +762,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveSaveContextInfo": []
+   "org_archive_save_context_info": []
   },
   "expected": {
    "files": {
@@ -780,7 +780,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveSaveContextInfo": [
+   "org_archive_save_context_info": [
     "olid",
     "olpath"
    ]
@@ -876,7 +876,7 @@
   },
   "command": "subtree",
   "options": {
-   "tagsColumn": 40
+   "org_tags_column": 40
   },
   "expected": {
    "files": {
@@ -894,7 +894,7 @@
   },
   "command": "subtree",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": {
    "files": {
@@ -912,8 +912,8 @@
   },
   "command": "subtree",
   "options": {
-   "adaptIndentation": true,
-   "archiveLocation": "::* Archive"
+   "org_adapt_indentation": true,
+   "org_archive_location": "::* Archive"
   },
   "expected": {
    "files": {
@@ -1027,7 +1027,7 @@
   },
   "command": "subtree",
   "options": {
-   "archiveLocation": "::* Archive"
+   "org_archive_location": "::* Archive"
   },
   "expected": {
    "files": {
@@ -1156,7 +1156,7 @@
   },
   "command": "sibling",
   "options": {
-   "archiveReversedOrder": true
+   "org_archive_reversed_order": true
   },
   "expected": {
    "files": {
@@ -1173,7 +1173,7 @@
   },
   "command": "sibling",
   "options": {
-   "archiveSiblingHeading": "Old stuff"
+   "org_archive_sibling_heading": "Old stuff"
   },
   "expected": {
    "files": {
@@ -1190,7 +1190,7 @@
   },
   "command": "sibling",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": {
    "files": {
@@ -1207,7 +1207,7 @@
   },
   "command": "sibling",
   "options": {
-   "tagsColumn": 30
+   "org_tags_column": 30
   },
   "expected": {
    "files": {
@@ -1287,7 +1287,7 @@
   },
   "command": "tag",
   "options": {
-   "tagsColumn": 20
+   "org_tags_column": 20
   },
   "expected": {
    "files": {
@@ -1407,7 +1407,7 @@
   },
   "command": "done",
   "options": {
-   "archiveLocation": "::* Archive"
+   "org_archive_location": "::* Archive"
   },
   "expected": {
    "files": {

@@ -408,7 +408,7 @@ M.handlers = {
   end,
 
   --- The server made changes to files the user is not editing (from the
-  --- agenda, a capture or a refile) and `autoSave` is on: write them.
+  --- agenda, a capture or a refile) and `auto_save` is on: write them.
   ['org-lsp/save'] = function(_, params)
     M.save(params and params.uris or {})
   end,
@@ -466,7 +466,7 @@ M.handlers = {
 local told_width
 
 --- Tell the server how many columns of text the window that shows the
---- agenda has, for `agenda.tagsColumn` `"auto"`: the tags then end at its
+--- agenda has, for `org_agenda_tags_column` `"auto"`: the tags then end at its
 --- right edge. When the window changes size, the server builds the agenda
 --- again.
 ---@param language string the agenda's filetype

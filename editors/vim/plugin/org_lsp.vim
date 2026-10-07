@@ -16,7 +16,7 @@ augroup org_lsp
   " The LSP client plugins load after this one: register the server once
   " they all have.
   autocmd VimEnter * ++once call s:start()
-  " How wide the agenda's window is, for its tags (`agenda.tagsColumn`
+  " How wide the agenda's window is, for its tags (`org_agenda_tags_column`
   " `"auto"`), once windows that open, close or change size are set.
   autocmd BufWinEnter,WinNew,WinClosed,WinResized,VimResized * call timer_start(0, {-> org_lsp#tell_agenda_width()})
 augroup END

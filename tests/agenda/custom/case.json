@@ -96,7 +96,7 @@
     }
   ],
   "options": {
-    "customCommands": [
+    "org_agenda_custom_commands": [
       {
         "key": "h",
         "description": "Home",
@@ -122,7 +122,7 @@
           {
             "type": "agenda",
             "settings": {
-              "span": "day"
+              "org_agenda_span": "day"
             }
           },
           {
@@ -142,8 +142,8 @@
         "type": "agenda",
         "header": "Three days",
         "settings": {
-          "span": 3,
-          "startDay": "-1d"
+          "org_agenda_span": 3,
+          "org_agenda_start_day": "-1d"
         }
       },
       {
@@ -164,8 +164,8 @@
         "key": "g",
         "description": "Settings for all",
         "settings": {
-          "span": "day",
-          "useTimeGrid": false
+          "org_agenda_span": "day",
+          "org_agenda_use_time_grid": false
         },
         "blocks": [
           {
@@ -191,7 +191,7 @@
           }
         ],
         "settings": {
-          "blockSeparator": "-- next --"
+          "org_agenda_block_separator": "-- next --"
         }
       },
       {
@@ -208,7 +208,7 @@
           }
         ],
         "settings": {
-          "blockSeparator": "-"
+          "org_agenda_block_separator": "-"
         }
       },
       {
@@ -225,7 +225,7 @@
           }
         ],
         "settings": {
-          "blockSeparator": false
+          "org_agenda_block_separator": false
         }
       },
       {
@@ -236,7 +236,7 @@
             "type": "agenda",
             "header": "Today",
             "settings": {
-              "span": "day"
+              "org_agenda_span": "day"
             }
           },
           {
@@ -246,7 +246,7 @@
           }
         ],
         "settings": {
-          "compactBlocks": true
+          "org_agenda_compact_blocks": true
         }
       },
       {
@@ -261,7 +261,7 @@
             "type": "todo",
             "match": "NEXT",
             "settings": {
-              "blockSeparator": "~"
+              "org_agenda_block_separator": "~"
             }
           },
           {

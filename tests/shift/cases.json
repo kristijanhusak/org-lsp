@@ -266,9 +266,9 @@
   "text": "* a¦\n",
   "command": "priority-up",
   "options": {
-   "priorityHighest": "A",
-   "priorityLowest": "E",
-   "priorityDefault": "C"
+   "org_priority_highest": "A",
+   "org_priority_lowest": "E",
+   "org_priority_default": "C"
   },
   "expected": "* [#C] a¦\n"
  },
@@ -277,9 +277,9 @@
   "text": "* [#E] a¦\n",
   "command": "priority-down",
   "options": {
-   "priorityHighest": "A",
-   "priorityLowest": "E",
-   "priorityDefault": "C"
+   "org_priority_highest": "A",
+   "org_priority_lowest": "E",
+   "org_priority_default": "C"
   },
   "expected": "* a¦\n"
  },
@@ -288,9 +288,9 @@
   "text": "* a¦\n",
   "command": "priority-up",
   "options": {
-   "priorityHighest": 1,
-   "priorityLowest": 20,
-   "priorityDefault": 10
+   "org_priority_highest": 1,
+   "org_priority_lowest": 20,
+   "org_priority_default": 10
   },
   "expected": "* [#10] a¦\n"
  },
@@ -299,9 +299,9 @@
   "text": "* [#10] a¦\n",
   "command": "priority-up",
   "options": {
-   "priorityHighest": 1,
-   "priorityLowest": 20,
-   "priorityDefault": 10
+   "org_priority_highest": 1,
+   "org_priority_lowest": 20,
+   "org_priority_default": 10
   },
   "expected": "* [#9] a¦\n"
  },
@@ -310,9 +310,9 @@
   "text": "* [#9] a¦\n",
   "command": "priority-down",
   "options": {
-   "priorityHighest": 1,
-   "priorityLowest": 20,
-   "priorityDefault": 10
+   "org_priority_highest": 1,
+   "org_priority_lowest": 20,
+   "org_priority_default": 10
   },
   "expected": "* [#10] a¦\n"
  },
@@ -321,7 +321,7 @@
   "text": "* a¦\n",
   "command": "priority-up",
   "options": {
-   "priorityStartCycleWithDefault": false
+   "org_priority_start_cycle_with_default": false
   },
   "expected": "* [#A] a¦\n"
  },
@@ -330,7 +330,7 @@
   "text": "* a¦\n",
   "command": "priority-down",
   "options": {
-   "priorityStartCycleWithDefault": false
+   "org_priority_start_cycle_with_default": false
   },
   "expected": "* [#C] a¦\n"
  },
@@ -339,8 +339,8 @@
   "text": "* a¦\n",
   "command": "priority-up",
   "options": {
-   "priorityDefault": "A",
-   "priorityStartCycleWithDefault": false
+   "org_priority_default": "A",
+   "org_priority_start_cycle_with_default": false
   },
   "expected": "ERROR: (error \"The default can not be set, see ‘org-priority-default’ why\")"
  },
@@ -349,7 +349,7 @@
   "text": "* a¦ :t:\n",
   "command": "priority-up",
   "options": {
-   "tagsColumn": -40
+   "org_tags_column": -40
   },
   "expected": "* [#B] a¦                             :t:\n"
  },
@@ -1740,7 +1740,7 @@
   "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
   "command": "timestamp-up",
   "options": {
-   "timestampRoundingMinutes": 0
+   "org_time_stamp_rounding_minutes": 0
   },
   "expected": "* a\n<2026-05-18 Mon 10:5¦9>\n"
  },
@@ -1749,7 +1749,7 @@
   "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
   "command": "timestamp-down",
   "options": {
-   "timestampRoundingMinutes": 0
+   "org_time_stamp_rounding_minutes": 0
   },
   "expected": "* a\n<2026-05-18 Mon 10:5¦7>\n"
  },
@@ -1758,7 +1758,7 @@
   "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
   "command": "timestamp-up",
   "options": {
-   "timestampRoundingMinutes": 1
+   "org_time_stamp_rounding_minutes": 1
   },
   "expected": "* a\n<2026-05-18 Mon 10:5¦9>\n"
  },
@@ -1767,7 +1767,7 @@
   "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
   "command": "timestamp-down",
   "options": {
-   "timestampRoundingMinutes": 1
+   "org_time_stamp_rounding_minutes": 1
   },
   "expected": "* a\n<2026-05-18 Mon 10:5¦7>\n"
  },
@@ -1776,7 +1776,7 @@
   "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
   "command": "timestamp-up",
   "options": {
-   "timestampRoundingMinutes": 10
+   "org_time_stamp_rounding_minutes": 10
   },
   "expected": "* a\n<2026-05-18 Mon 11:0¦0>\n"
  },
@@ -1785,7 +1785,7 @@
   "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
   "command": "timestamp-down",
   "options": {
-   "timestampRoundingMinutes": 10
+   "org_time_stamp_rounding_minutes": 10
   },
   "expected": "* a\n<2026-05-18 Mon 10:5¦0>\n"
  },
@@ -1794,7 +1794,7 @@
   "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
   "command": "timestamp-up",
   "options": {
-   "timestampRoundingMinutes": 15
+   "org_time_stamp_rounding_minutes": 15
   },
   "expected": "* a\n<2026-05-18 Mon 11:0¦0>\n"
  },
@@ -1803,7 +1803,7 @@
   "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
   "command": "timestamp-down",
   "options": {
-   "timestampRoundingMinutes": 15
+   "org_time_stamp_rounding_minutes": 15
   },
   "expected": "* a\n<2026-05-18 Mon 10:4¦5>\n"
  },
@@ -1812,7 +1812,7 @@
   "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
   "command": "timestamp-up",
   "options": {
-   "timestampRoundingMinutes": 7
+   "org_time_stamp_rounding_minutes": 7
   },
   "expected": "* a\n<2026-05-18 Mon 11:0¦3>\n"
  },
@@ -1821,7 +1821,7 @@
   "text": "* a\n<2026-05-18 Mon 10:5¦8>\n",
   "command": "timestamp-down",
   "options": {
-   "timestampRoundingMinutes": 7
+   "org_time_stamp_rounding_minutes": 7
   },
   "expected": "* a\n<2026-05-18 Mon 10:5¦6>\n"
  },
@@ -2101,7 +2101,7 @@
   "text": "* TODO a¦\n",
   "command": "shift-right",
   "options": {
-   "logDone": "time"
+   "org_log_done": "time"
   },
   "expected": "* DONE a¦\nCLOSED: [2026-05-18 Mon 10:30]\n"
  },

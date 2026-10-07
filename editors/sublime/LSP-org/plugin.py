@@ -168,16 +168,16 @@ class OrgLsp(AbstractPlugin):
             configuration.command[0] = found
         # This package shows the documents the server asks it to.
         options = configuration.init_options
-        options.set('showDocument', True)
+        options.set('show_document', True)
         # `org-indent-mode`'s prefixes, as phantoms (`org-lsp/virtualIndent`).
-        options.set('virtualIndent', True)
+        options.set('virtual_indent', True)
         # Lines of the agenda highlighted from edge to edge, as regions
         # (`org-lsp/lineHighlights`).
-        options.set('lineHighlights', True)
+        options.set('line_highlights', True)
         return None
 
     # The server changed files from elsewhere (the agenda, a capture, a
-    # refile), and `autoSave` is on: save them.
+    # refile), and `auto_save` is on: save them.
     def m_org_lsp_save(self, params) -> None:
         uris = (params or {}).get('uris', [])
         sublime.set_timeout(lambda: save(uris))
@@ -705,7 +705,7 @@ def agenda_view(window):
 
 def tell_agenda_width(window) -> None:
     """Tell the server how many characters wide the agenda is, for
-    `agenda.tagsColumn` `"auto"`: the tags then end at its right edge, and
+    `org_agenda_tags_column` `"auto"`: the tags then end at its right edge, and
     the server writes the agenda anew when the width changes."""
     plugin = OrgLsp.current
     session = plugin.weaksession() if plugin else None

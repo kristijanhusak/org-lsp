@@ -60,7 +60,7 @@
   },
   "answer": "Projects",
   "options": {
-   "reverseNoteOrder": true
+   "org_reverse_note_order": true
   },
   "expected": {
    "offered": [
@@ -79,9 +79,9 @@
   },
   "answer": "Alpha",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
-     "maxLevel": 2
+     "maxlevel": 2
     }
    ]
   },
@@ -106,9 +106,9 @@
   },
   "answer": "Beta",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
-     "maxLevel": 3
+     "maxlevel": 3
     }
    ]
   },
@@ -134,12 +134,12 @@
   },
   "answer": "Projects/Alpha/",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
-     "maxLevel": 3
+     "maxlevel": 3
     }
    ],
-   "refileUseOutlinePath": true
+   "org_refile_use_outline_path": true
   },
   "expected": {
    "offered": [
@@ -163,12 +163,12 @@
   },
   "answer": "a.org/Projects/",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
-     "maxLevel": 2
+     "maxlevel": 2
     }
    ],
-   "refileUseOutlinePath": "file"
+   "org_refile_use_outline_path": "file"
   },
   "expected": {
    "offered": [
@@ -192,12 +192,12 @@
   },
   "answer": "a.org/",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
-     "maxLevel": 2
+     "maxlevel": 2
     }
    ],
-   "refileUseOutlinePath": "file"
+   "org_refile_use_outline_path": "file"
   },
   "expected": {
    "offered": [
@@ -221,7 +221,7 @@
   },
   "answer": "Task",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "all": true
     }
@@ -249,9 +249,9 @@
   },
   "answer": "B",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
-     "maxLevel": 2
+     "maxlevel": 2
     }
    ]
   },
@@ -293,7 +293,7 @@
   },
   "answer": "a.org/",
   "options": {
-   "refileUseOutlinePath": "file"
+   "org_refile_use_outline_path": "file"
   },
   "expected": {
    "offered": [
@@ -359,7 +359,7 @@
   },
   "answer": "A",
   "options": {
-   "reverseNoteOrder": true
+   "org_reverse_note_order": true
   },
   "expected": {
    "offered": [
@@ -379,7 +379,7 @@
   },
   "answer": "Home (b.org)",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "files": "agenda",
      "level": 1
@@ -406,7 +406,7 @@
   },
   "answer": "Misc",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "files": "agenda",
      "level": 1
@@ -433,10 +433,10 @@
   },
   "answer": "Garden (b.org)",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "files": "agenda",
-     "maxLevel": 2
+     "maxlevel": 2
     }
    ]
   },
@@ -462,13 +462,13 @@
   },
   "answer": "b.org/Work/",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "files": "agenda",
-     "maxLevel": 2
+     "maxlevel": 2
     }
    ],
-   "refileUseOutlinePath": "file"
+   "org_refile_use_outline_path": "file"
   },
   "expected": {
    "offered": [
@@ -494,13 +494,13 @@
   },
   "answer": "b.org/",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "files": "agenda",
-     "maxLevel": 2
+     "maxlevel": 2
     }
    ],
-   "refileUseOutlinePath": "file"
+   "org_refile_use_outline_path": "file"
   },
   "expected": {
    "offered": [
@@ -526,13 +526,13 @@
   },
   "answer": "Bee/Home/",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "files": "agenda",
-     "maxLevel": 2
+     "maxlevel": 2
     }
    ],
-   "refileUseOutlinePath": "title"
+   "org_refile_use_outline_path": "title"
   },
   "expected": {
    "offered": [
@@ -558,13 +558,13 @@
   },
   "answer": "Home/Garden/ (b.org)",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "files": "agenda",
-     "maxLevel": 2
+     "maxlevel": 2
     }
    ],
-   "refileUseOutlinePath": true
+   "org_refile_use_outline_path": true
   },
   "expected": {
    "offered": [
@@ -588,7 +588,7 @@
   },
   "answer": "Work (b.org)",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "files": [
       "b.org"
@@ -619,7 +619,7 @@
   },
   "answer": "Sub",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "tag": "proj"
     }
@@ -641,7 +641,7 @@
   },
   "answer": "Do it",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "todo": "TODO"
     }
@@ -662,7 +662,7 @@
   },
   "answer": "Site [1/2]",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "level": 1
     }
@@ -685,7 +685,7 @@
   },
   "answer": "file:x.org",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "level": 1
     }
@@ -708,12 +708,12 @@
   },
   "answer": "[[https://x.org][Site]]/",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "level": 1
     }
    ],
-   "refileUseOutlinePath": true
+   "org_refile_use_outline_path": true
   },
   "expected": "ERROR: (user-error \"Invalid target location\")"
  },
@@ -723,12 +723,12 @@
   },
   "answer": "Site/",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "level": 1
     }
    ],
-   "refileUseOutlinePath": true
+   "org_refile_use_outline_path": true
   },
   "expected": {
    "offered": [
@@ -747,12 +747,12 @@
   },
   "answer": "Hidden/",
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "level": 1
     }
    ],
-   "refileUseOutlinePath": true
+   "org_refile_use_outline_path": true
   },
   "expected": {
    "offered": [
@@ -771,7 +771,7 @@
   },
   "answer": "A",
   "options": {
-   "tagsColumn": -40
+   "org_tags_column": -40
   },
   "expected": {
    "offered": [
@@ -795,7 +795,7 @@
   },
   "answer": "Doc/",
   "options": {
-   "refileUseOutlinePath": "title"
+   "org_refile_use_outline_path": "title"
   },
   "expected": {
    "offered": [
@@ -812,7 +812,7 @@
   },
   "answer": "Misc/",
   "options": {
-   "refileUseOutlinePath": true
+   "org_refile_use_outline_path": true
   },
   "expected": {
    "offered": [
@@ -829,7 +829,7 @@
   },
   "answer": "C",
   "options": {
-   "reverseNoteOrder": true
+   "org_reverse_note_order": true
   },
   "expected": {
    "offered": [
@@ -849,10 +849,10 @@
   },
   "answerIndex": 1,
   "options": {
-   "refileUseOutlinePath": "title",
-   "reverseNoteOrder": true,
-   "tagsColumn": 20,
-   "adaptIndentation": true
+   "org_refile_use_outline_path": "title",
+   "org_reverse_note_order": true,
+   "org_tags_column": 20,
+   "org_adapt_indentation": true
   },
   "expected": {
    "offered": [
@@ -870,13 +870,13 @@
   },
   "answerIndex": 5,
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
-     "maxLevel": 3
+     "maxlevel": 3
     }
    ],
-   "tagsColumn": -40,
-   "adaptIndentation": true
+   "org_tags_column": -40,
+   "org_adapt_indentation": true
   },
   "expected": {
    "offered": [
@@ -895,14 +895,14 @@
   },
   "answerIndex": 6,
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
-     "maxLevel": 3,
+     "maxlevel": 3,
      "files": "agenda"
     }
    ],
-   "refileUseOutlinePath": "title",
-   "adaptIndentation": true
+   "org_refile_use_outline_path": "title",
+   "org_adapt_indentation": true
   },
   "expected": {
    "offered": [
@@ -933,13 +933,13 @@
   },
   "answerIndex": 9,
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "all": true
     }
    ],
-   "tagsColumn": 20,
-   "adaptIndentation": true
+   "org_tags_column": 20,
+   "org_adapt_indentation": true
   },
   "expected": {
    "offered": [
@@ -962,13 +962,13 @@
   },
   "answerIndex": 7,
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "todo": "TODO"
     }
    ],
-   "refileUseOutlinePath": "file",
-   "adaptIndentation": true
+   "org_refile_use_outline_path": "file",
+   "org_adapt_indentation": true
   },
   "expected": {
    "offered": [
@@ -987,13 +987,13 @@
   },
   "answerIndex": 3,
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "tag": "proj"
     }
    ],
-   "refileUseOutlinePath": true,
-   "adaptIndentation": "headline-data"
+   "org_refile_use_outline_path": true,
+   "org_adapt_indentation": "headline-data"
   },
   "expected": {
    "offered": [
@@ -1011,14 +1011,14 @@
   },
   "answerIndex": 3,
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
-     "maxLevel": 3
+     "maxlevel": 3
     }
    ],
-   "refileUseOutlinePath": "file",
-   "reverseNoteOrder": true,
-   "adaptIndentation": "headline-data"
+   "org_refile_use_outline_path": "file",
+   "org_reverse_note_order": true,
+   "org_adapt_indentation": "headline-data"
   },
   "expected": {
    "offered": [
@@ -1042,13 +1042,13 @@
   },
   "answerIndex": 10,
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
-     "maxLevel": 2
+     "maxlevel": 2
     }
    ],
-   "refileUseOutlinePath": "file",
-   "adaptIndentation": true
+   "org_refile_use_outline_path": "file",
+   "org_adapt_indentation": true
   },
   "expected": {
    "offered": [
@@ -1066,14 +1066,14 @@
   },
   "answerIndex": 3,
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
-     "maxLevel": 3
+     "maxlevel": 3
     }
    ],
-   "refileUseOutlinePath": true,
-   "reverseNoteOrder": true,
-   "adaptIndentation": true
+   "org_refile_use_outline_path": true,
+   "org_reverse_note_order": true,
+   "org_adapt_indentation": true
   },
   "expected": {
    "offered": [
@@ -1094,13 +1094,13 @@
   },
   "answerIndex": 9,
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "tag": "proj"
     }
    ],
-   "reverseNoteOrder": true,
-   "adaptIndentation": true
+   "org_reverse_note_order": true,
+   "org_adapt_indentation": true
   },
   "expected": {
    "offered": [
@@ -1118,14 +1118,14 @@
   },
   "answerIndex": 6,
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "level": 1,
      "files": "agenda"
     }
    ],
-   "reverseNoteOrder": true,
-   "adaptIndentation": true
+   "org_reverse_note_order": true,
+   "org_adapt_indentation": true
   },
   "expected": {
    "offered": [
@@ -1149,16 +1149,16 @@
   },
   "answerIndex": 2,
   "options": {
-   "refileTargets": [
+   "org_refile_targets": [
     {
      "all": true,
      "files": "agenda"
     }
    ],
-   "refileUseOutlinePath": true,
-   "reverseNoteOrder": true,
-   "tagsColumn": -40,
-   "adaptIndentation": true
+   "org_refile_use_outline_path": true,
+   "org_reverse_note_order": true,
+   "org_tags_column": -40,
+   "org_adapt_indentation": true
   },
   "expected": {
    "offered": [

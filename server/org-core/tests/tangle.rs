@@ -22,8 +22,9 @@ fn tangles_as_emacs_does() {
         let mut names: Vec<&String> = files.keys().filter(|name| name.ends_with(".org")).collect();
         names.sort();
         let text = files[names[0].as_str()].as_str().unwrap();
-        let settings =
-            Settings { preserve_indentation: case["settings"]["srcPreserveIndentation"].as_bool().unwrap_or(false) };
+        let settings = Settings {
+            preserve_indentation: case["settings"]["org_src_preserve_indentation"].as_bool().unwrap_or(false),
+        };
         let parse = org_syntax::parse(text, &TodoKeywords::default());
         let actual = match tangle::tangle(text, &parse, &directory.join(names[0]), &settings) {
             Ok(outcome) => {

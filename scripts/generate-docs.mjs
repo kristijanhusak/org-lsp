@@ -173,7 +173,7 @@ function vscodeKeys() {
 
 /**
  * The options as a tree, in the table's order: `{ name, setting?, children? }`.
- * The options only an editor gives (`configFile`) are left out for the
+ * The options only an editor gives (`config_file`) are left out for the
  * shared configuration file.
  */
 function optionTree({ editor = true } = {}) {

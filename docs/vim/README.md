@@ -34,7 +34,7 @@ Set `g:org_lsp` before the plugin loads. Every key may be left out.
 
 ```vim
 let g:org_lsp = {
-      \ 'settings': {'agendaFiles': ['~/org'], 'todoKeywords': ['TODO', 'NEXT', '|', 'DONE']},
+      \ 'settings': {'org_agenda_files': ['~/org'], 'org_todo_keywords': ['TODO', 'NEXT', '|', 'DONE']},
       \ 'mappings': {'org': {'org.todo.next': '<Leader>t'}},
       \ }
 ```
@@ -47,7 +47,7 @@ let g:org_lsp = {
 | `folding` | `1` | Fold with the server's folding ranges, and cycle with `<Tab>` / `<S-Tab>`. |
 | `startup_folded` | `'showeverything'` | `'overview'` opens files folded. |
 | `highlight` | `1` | Highlight with the server's tokens. |
-| `virtual_indent` | `1` | Show files with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`) indented by level without changing them, and their hidden leading stars in the color of the background, as Org's `org-hide` face does. Text properties of their own text: Vim 9.0.0067 or later. |
+| `virtual_indent` | `1` | Show files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`) indented by level without changing them, and their hidden leading stars in the color of the background, as Org's `org-hide` face does. Text properties of their own text: Vim 9.0.0067 or later. |
 | `src_highlight` | `1` | Highlight the code of source and export blocks (`#+begin_src python`, `#+begin_export html`) and of inline source blocks (`src_python{…}`, to the first `}`) with the syntax file of its language, as Emacs's `org-src-fontify-natively` does. |
 | `win_split_mode` | `'split'` | How the agenda and capture buffers open: `'split'`, `'vsplit'`, `'current'`, or an Ex command that opens a window (`'botright split'`, `'tabnew'`). |
 | `win_split_size` | `0` | How big the window `win_split_mode` opens is: lines for a split, columns for a vertical one (`vsplit`, `vnew`, `vertical`), or below 1 that part of the editor. `0` leaves it as the command makes it. |

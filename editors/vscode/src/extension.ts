@@ -400,7 +400,7 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
   try {
     await client.start();
     // Files the server changed from elsewhere (the agenda, a capture, a
-    // refile), to save now that the change is made: `autoSave`.
+    // refile), to save now that the change is made: `auto_save`.
     client.onNotification('org-lsp/save', (params: { uris?: string[] }) => saveAsked({ save: params.uris ?? [] }));
     // The clock that runs, for the status bar.
     client.onNotification('org-lsp/clock', (params: ClockReport | null) => showClock(params));
@@ -479,7 +479,7 @@ function showClock(report: ClockReport | null): void {
 
 /**
  * The text the server marks `hidden` in its tokens (link brackets and
- * targets, emphasis markers with `hideEmphasisMarkers`) is hidden, as Org
+ * targets, emphasis markers with `org_hide_emphasis_markers`) is hidden, as Org
  * hides it. VS Code cannot conceal text; a decoration whose CSS takes the
  * text out of the line is the usual way. On a line with a cursor or a
  * selection it shows, so that it can be edited.
@@ -573,7 +573,7 @@ function watchConcealing(context: vscode.ExtensionContext): void {
 // ----- virtual indentation
 
 /**
- * `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`): the server
+ * `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`): the server
  * says how far each line shows indented, `[line, prefix, wrap, hidden
  * stars]`, for a version of the document. The prefix is a decoration
  * before the line; VS Code has no way to indent the lines a long line

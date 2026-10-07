@@ -9,7 +9,7 @@ A case is a JSON object:
       "count": 3,                      optional: the prefix argument
       "repeated": true,                optional: the same key was pressed before
       "answer": "b",                   for `priority`: what is typed at its prompt
-      "options": {"priorityLowest": "E"}   optional: server settings
+      "options": {"org_priority_lowest": "E"}   optional: server settings
     }
 
 `reference(cases)` adds `expected` to each case: the document after the
@@ -86,15 +86,15 @@ def bindings(options):
     }
     rest = {}
     for key, value in (options or {}).items():
-        if key == "priorityHighest":
+        if key == "org_priority_highest":
             out["org-priority-highest"] = priority_value(value)
-        elif key == "priorityLowest":
+        elif key == "org_priority_lowest":
             out["org-priority-lowest"] = priority_value(value)
-        elif key == "priorityDefault":
+        elif key == "org_priority_default":
             out["org-priority-default"] = priority_value(value)
-        elif key == "priorityStartCycleWithDefault":
+        elif key == "org_priority_start_cycle_with_default":
             out["org-priority-start-cycle-with-default"] = lisp_value(value)
-        elif key == "timestampRoundingMinutes":
+        elif key == "org_time_stamp_rounding_minutes":
             out["org-time-stamp-rounding-minutes"] = f"'(0 {value})"
         else:
             rest[key] = value

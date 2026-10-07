@@ -51,12 +51,12 @@
     }
   ],
   "options": {
-    "useTagInheritance": "^[a-o]",
-    "tagsExcludeFromInheritance": [
+    "org_use_tag_inheritance": "^[a-o]",
+    "org_tags_exclude_from_inheritance": [
       "crypt",
       "home"
     ],
-    "usePropertyInheritance": "^\\(?:color\\|team\\)$"
+    "org_use_property_inheritance": "^\\(?:color\\|team\\)$"
   },
   "emacs": "(setq org-use-tag-inheritance \"^[a-o]\" org-tags-exclude-from-inheritance '(\"crypt\" \"home\") org-use-property-inheritance \"^\\\\(?:color\\\\|team\\\\)$\")"
 }

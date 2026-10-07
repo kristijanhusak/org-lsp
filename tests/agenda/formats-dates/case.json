@@ -11,9 +11,9 @@
     }
   ],
   "options": {
-    "formatDate": "%a %Y-%m-%d (%B %e, %A, day %j, week %V)",
-    "removeTags": true,
-    "prefixFormat": {
+    "org_agenda_format_date": "%a %Y-%m-%d (%B %e, %A, day %j, week %V)",
+    "org_agenda_remove_tags": true,
+    "org_agenda_prefix_format": {
       "agenda": "%8c %t %s",
       "todo": "%-20.10c %%"
     }

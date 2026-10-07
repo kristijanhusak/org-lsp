@@ -45,7 +45,7 @@ impl Client {
         // machine has.
         let mut options = if options.is_null() { json!({}) } else { options };
         if let Some(fields) = options.as_object_mut() {
-            fields.entry("configFile").or_insert(json!(false));
+            fields.entry("config_file").or_insert(json!(false));
         }
         let (server_side, client_side) = Connection::memory();
         let server = std::thread::spawn(move || org_lsp::run(server_side).expect("server runs"));
@@ -359,7 +359,7 @@ fn versioned_edits_when_supported() {
 
 #[test]
 fn todo_keywords_from_initialization_options() {
-    let options = json!({ "todoKeywords": ["TODO", "WAIT", "|", "DONE", "KILL"] });
+    let options = json!({ "org_todo_keywords": ["TODO", "WAIT", "|", "DONE", "KILL"] });
     let mut client = Client::start(json!({}), options);
     client.open(&uri(), "* TODO a\n* WAIT b\n");
     let next = client.code_actions(&uri(), Position::new(0, 0), "org.todo.next");
@@ -369,7 +369,7 @@ fn todo_keywords_from_initialization_options() {
     client.shutdown();
 
     // Options the server does not understand are ignored.
-    let mut client = Client::start(json!({}), json!({ "todoKeywords": 5, "unknown": true }));
+    let mut client = Client::start(json!({}), json!({ "org_todo_keywords": 5, "unknown": true }));
     client.open(&uri(), "* a\n");
     let next = client.code_actions(&uri(), Position::new(0, 0), "org.todo.next");
     assert_eq!(edits(&next[0])[0].new_text, "TODO ");
@@ -512,7 +512,7 @@ fn binary_prints_its_version_and_rejects_unknown_arguments() {
 /// `org-indent-region` on a range, under `adaptIndentation`.
 #[test]
 fn formats_tables_and_tags() {
-    let mut client = Client::start(json!({}), json!({ "tagsColumn": -20 }));
+    let mut client = Client::start(json!({}), json!({ "org_tags_column": -20 }));
     let capabilities = serde_json::to_value(&client.initialize.capabilities).unwrap();
     assert_eq!(capabilities["documentFormattingProvider"], true);
     client.open(&uri(), "* Ünï :t:\n|a|bb|\n|-\n|ccc|12|\nText\n");
@@ -534,7 +534,7 @@ fn formats_tables_and_tags() {
 
 #[test]
 fn indents_new_lines_and_ranges() {
-    let mut client = Client::start(json!({}), json!({ "adaptIndentation": true }));
+    let mut client = Client::start(json!({}), json!({ "org_adapt_indentation": true }));
     let capabilities = serde_json::to_value(&client.initialize.capabilities).unwrap();
     assert_eq!(capabilities["documentOnTypeFormattingProvider"]["firstTriggerCharacter"], "\n");
     assert_eq!(capabilities["documentRangeFormattingProvider"], true);
@@ -610,7 +610,7 @@ fn indents_new_lines_and_ranges() {
 #[test]
 fn sends_virtual_indentation() {
     let capabilities = json!({ "experimental": { "orgVirtualIndent": true } });
-    let mut client = Client::start(capabilities, json!({ "adaptIndentation": true }));
+    let mut client = Client::start(capabilities, json!({ "org_adapt_indentation": true }));
     client.open(&uri(), "#+STARTUP: indent\n* A\ntext\n** B\n- item\n");
     let sent = client.notification("org-lsp/virtualIndent");
     assert_eq!(sent["uri"], uri().as_str());
@@ -665,7 +665,7 @@ fn virtual_indentation_as_inlay_hints() {
     client.shutdown();
     for (capabilities, options) in [
         (json!({ "experimental": { "orgVirtualIndent": true } }), Value::Null),
-        (json!({}), json!({ "virtualIndent": true })),
+        (json!({}), json!({ "virtual_indent": true })),
     ] {
         let client = Client::start(capabilities, options);
         assert!(client.initialize.capabilities.inlay_hint_provider.is_none());
@@ -704,7 +704,7 @@ fn returns_as_org_does() {
 /// lists too; elsewhere in the item RET stays Org's.
 #[test]
 fn return_uses_meta_return_on_items() {
-    let mut client = Client::start(json!({}), json!({ "returnUsesMetaReturn": true }));
+    let mut client = Client::start(json!({}), json!({ "return_uses_meta_return": true }));
     let text = "* A\n1. one\n   1. a\n   2. b\n      more\n2. two\n";
     client.open(&uri(), text);
     let mut run = |line: u32, character: u32| -> String {

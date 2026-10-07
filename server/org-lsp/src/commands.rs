@@ -312,7 +312,7 @@ pub const COMMANDS: &[Command] = &[
         vim: &[insert_native(Org, "<CR>")],
         ..edit(RETURN, "New line, as Org's RET makes it")
     },
-    // RET as `returnUsesMetaReturn` makes it, on a key of its own: on the
+    // RET as `return_uses_meta_return` makes it, on a key of its own: on the
     // line of a list item's bullet, the next item, numbered as M-RET
     // numbers it; elsewhere Org's RET.
     Command { vim: &[insert_native(Org, "<S-CR>")], ..edit(RETURN_ITEM, "New line; on a list item, the next item") },
