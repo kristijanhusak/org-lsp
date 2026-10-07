@@ -47,7 +47,7 @@ function cursor(running: LanguageClient): unknown[] {
  * at the cursor, so that the key keeps its own meaning there.
  */
 interface KeyArgs {
-  fallback: (string | { command: string; args?: unknown })[];
+  fallback: (string | { command: string; args?: unknown; platform?: string })[];
 }
 
 function keyArgs(args: unknown[]): KeyArgs | undefined {
@@ -58,7 +58,12 @@ function keyArgs(args: unknown[]): KeyArgs | undefined {
 /** Run the first of `commands` that VS Code has. */
 async function fallBack(commands: KeyArgs['fallback']): Promise<void> {
   for (const entry of commands) {
-    const { command, args } = typeof entry === 'string' ? { command: entry, args: undefined } : entry;
+    const { command, args, platform } =
+      typeof entry === 'string' ? { command: entry, args: undefined, platform: undefined } : entry;
+    // One for another platform (a key that means something else there).
+    if (platform && platform !== process.platform) {
+      continue;
+    }
     try {
       await vscode.commands.executeCommand(command, ...(args === undefined ? [] : [args]));
       return;

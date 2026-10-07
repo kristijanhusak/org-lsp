@@ -54,6 +54,12 @@ The other options are in [configuration.md](configuration.md).
 | `Alt+Shift+Enter` | `org.insert.todo.heading` | New TODO heading, or item with a checkbox |
 | `Ctrl+Enter` | `org.insert.heading.after` | New heading after the subtree |
 | `Ctrl+Shift+Enter` | `org.insert.todo.heading.after` | New TODO heading after the subtree |
+| `Alt+Left`¹ | `org.meta.left` | Promote the heading |
+| `Alt+Right`¹ | `org.meta.right` | Demote the heading; indent the drawer or block |
+| `Alt+Shift+Left`¹ | `org.shiftmeta.left` | Promote the subtree |
+| `Alt+Shift+Right`¹ | `org.shiftmeta.right` | Demote the subtree |
+| `Alt+Up`¹ | `org.meta.up` | Move the subtree up |
+| `Alt+Down`¹ | `org.meta.down` | Move the subtree down |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `Ctrl+C Ctrl+Z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+V t`, `Ctrl+C Ctrl+V Ctrl+T` | `org.babel.tangle` | Tangle the file's code blocks |
@@ -257,6 +263,8 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "i", "T"], "commands": ["org.insert.todo.heading"] },
   { "before": ["<leader>", "o", "i", "h"], "commands": ["org.insert.heading.after"] },
   { "before": ["<leader>", "o", "i", "t"], "commands": ["org.insert.todo.heading.after"] },
+  { "before": ["<leader>", "o", "K"], "commands": ["org.meta.up"] },
+  { "before": ["<leader>", "o", "J"], "commands": ["org.meta.down"] },
   { "before": ["<leader>", "o", "r"], "commands": ["org.refile"] },
   { "before": ["<leader>", "o", "n", "a"], "commands": ["org.add.note"] },
   { "before": ["<leader>", "o", "b", "t"], "commands": ["org.babel.tangle"] },
@@ -314,6 +322,12 @@ every file; outside Org files the commands say they do not apply):
 | `org.insert.todo.heading` | Org: New TODO heading, or item with a checkbox |
 | `org.insert.heading.after` | Org: New heading after the subtree |
 | `org.insert.todo.heading.after` | Org: New TODO heading after the subtree |
+| `org.meta.left` | Org: Promote the heading |
+| `org.meta.right` | Org: Demote the heading; indent the drawer or block |
+| `org.shiftmeta.left` | Org: Promote the subtree |
+| `org.shiftmeta.right` | Org: Demote the subtree |
+| `org.meta.up` | Org: Move the subtree up |
+| `org.meta.down` | Org: Move the subtree down |
 | `org.refile` | Org: Refile the entry |
 | `org.add.note` | Org: Add a note to the entry |
 | `org.babel.tangle` | Org: Tangle the file's code blocks |

@@ -113,6 +113,14 @@ const fallbacks = {
   'ctrl+a': ['extension.vim_ctrl+a', 'editor.action.selectAll'],
   'ctrl+x': ['extension.vim_ctrl+x', 'editor.action.clipboardCutAction'],
   tab: ['tab'],
+  // Org's structure keys: on macOS a word, elsewhere VS Code's navigation
+  // and selection.
+  'alt+left': [{ command: 'cursorWordLeft', platform: 'darwin' }, 'workbench.action.navigateBack'],
+  'alt+right': [{ command: 'cursorWordRight', platform: 'darwin' }, 'workbench.action.navigateForward'],
+  'alt+up': ['editor.action.moveLinesUpAction'],
+  'alt+down': ['editor.action.moveLinesDownAction'],
+  'alt+shift+left': [{ command: 'cursorWordLeftSelect', platform: 'darwin' }, 'editor.action.smartSelect.shrink'],
+  'alt+shift+right': [{ command: 'cursorWordRightSelect', platform: 'darwin' }, 'editor.action.smartSelect.expand'],
   // VS Code's own Enter, with its indentation.
   enter: [{ command: 'type', args: { text: '\n' } }],
   'shift+enter': [{ command: 'type', args: { text: '\n' } }],
@@ -178,7 +186,9 @@ const keybindings = [...manifest.commands, ...ownCommands]
     }
     const vsKey = key(emacs);
     const inText = binding.in === 'org' || binding.in === 'capture' || binding.in === 'global';
-    if (binding.preset === 'vim' && inText && binding.mode !== 'insert' && !/[+]/.test(vsKey.split(' ')[0]) && vsKey.split(' ')[0].length === 1) {
+    // A typed character, shifted or not (`c` of `cit`, `<` of `<<`).
+    const typed = /^(shift\+)?.$/.test(vsKey.split(' ')[0]);
+    if (binding.preset === 'vim' && inText && binding.mode !== 'insert' && typed) {
       return [];
     }
     const conditions = [];

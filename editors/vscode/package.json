@@ -240,6 +240,36 @@
         "category": "Org"
       },
       {
+        "command": "org.meta.left",
+        "title": "Promote the heading",
+        "category": "Org"
+      },
+      {
+        "command": "org.meta.right",
+        "title": "Demote the heading; indent the drawer or block",
+        "category": "Org"
+      },
+      {
+        "command": "org.shiftmeta.left",
+        "title": "Promote the subtree",
+        "category": "Org"
+      },
+      {
+        "command": "org.shiftmeta.right",
+        "title": "Demote the subtree",
+        "category": "Org"
+      },
+      {
+        "command": "org.meta.up",
+        "title": "Move the subtree up",
+        "category": "Org"
+      },
+      {
+        "command": "org.meta.down",
+        "title": "Move the subtree down",
+        "category": "Org"
+      },
+      {
         "command": "org.refile",
         "title": "Refile the entry",
         "category": "Org"
@@ -2642,6 +2672,82 @@
         "command": "org.insert.todo.heading.after",
         "key": "ctrl+shift+enter",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.meta.left",
+        "key": "alt+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            {
+              "command": "cursorWordLeft",
+              "platform": "darwin"
+            },
+            "workbench.action.navigateBack"
+          ]
+        }
+      },
+      {
+        "command": "org.meta.right",
+        "key": "alt+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            {
+              "command": "cursorWordRight",
+              "platform": "darwin"
+            },
+            "workbench.action.navigateForward"
+          ]
+        }
+      },
+      {
+        "command": "org.shiftmeta.left",
+        "key": "alt+shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            {
+              "command": "cursorWordLeftSelect",
+              "platform": "darwin"
+            },
+            "editor.action.smartSelect.shrink"
+          ]
+        }
+      },
+      {
+        "command": "org.shiftmeta.right",
+        "key": "alt+shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            {
+              "command": "cursorWordRightSelect",
+              "platform": "darwin"
+            },
+            "editor.action.smartSelect.expand"
+          ]
+        }
+      },
+      {
+        "command": "org.meta.up",
+        "key": "alt+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "editor.action.moveLinesUpAction"
+          ]
+        }
+      },
+      {
+        "command": "org.meta.down",
+        "key": "alt+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "editor.action.moveLinesDownAction"
+          ]
+        }
       },
       {
         "command": "org.refile",

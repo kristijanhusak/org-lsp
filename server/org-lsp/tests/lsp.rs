@@ -884,6 +884,61 @@ fn inserts_below_the_line() {
     client.shutdown();
 }
 
+/// Org's meta keys on a headline: promote and demote it or its subtree,
+/// move the subtree; the result carries the edit and the cursor. Off a
+/// headline they do not apply, and a drawer is indented by `M-<right>`.
+/// The same are code actions on a headline, where they change something.
+#[test]
+fn edits_the_structure() {
+    let mut client = Client::start(json!({}), Value::Null);
+    let text = "* A\n** B :tag:\ntext\n*** C\n** D\n";
+    client.open(&uri(), text);
+    let mut run = |command: &str, line: u32, character: u32| -> Result<(String, Value), Value> {
+        let context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+            .map_err(|error| error.data.unwrap_or(Value::Null))?;
+        let edit: TextEdit = serde_json::from_value(result["edits"][0].clone()).unwrap();
+        // The text is ASCII: a character is a byte.
+        let offset = |at: Position| {
+            text.split_inclusive('\n').take(at.line as usize).map(str::len).sum::<usize>() + at.character as usize
+        };
+        let (start, end) = (offset(edit.range.start), offset(edit.range.end));
+        Ok((format!("{}{}{}", &text[..start], edit.new_text, &text[end..]), result["cursor"].clone()))
+    };
+    let tags = |stars: usize| format!("{}{}:tag:", "*".repeat(stars), " ".repeat(77 - 5 - stars));
+    assert_eq!(run("org.meta.left", 1, 0).unwrap().0, format!("* A\n{} B{}\ntext\n*** C\n** D\n", "*", &tags(1)[3..]));
+    assert_eq!(
+        run("org.shiftmeta.right", 1, 0).unwrap().0,
+        format!("* A\n*** B{}\ntext\n**** C\n** D\n", &tags(3)[5..])
+    );
+    let (moved, cursor) = run("org.meta.down", 1, 2).unwrap();
+    assert_eq!(moved, "* A\n** D\n** B :tag:\ntext\n*** C\n");
+    assert_eq!(cursor, json!({ "line": 2, "character": 2 }));
+    assert_eq!(run("org.meta.up", 1, 0).unwrap_err(), Value::Null, "no sibling above: an error");
+    assert_eq!(run("org.meta.left", 2, 0).unwrap_err(), json!({ "notApplicable": true }), "in text");
+    client.open(&uri(), "* A\n:LOGBOOK:\n- x\n:END:\n");
+    let indented = client
+        .raw_request(
+            "workspace/executeCommand",
+            json!({ "command": "org.meta.right", "arguments": [{ "textDocument": { "uri": uri().as_str() }, "position": { "line": 1, "character": 0 } }] }),
+        )
+        .response_result
+        .unwrap();
+    assert_eq!(indented["message"], "Drawer at point indented");
+    client.open(&uri(), text);
+    let kinds: Vec<String> = client
+        .code_actions(&uri(), Position::new(4, 0), "org")
+        .iter()
+        .filter_map(|action| action.kind.as_ref().map(|kind| kind.as_str().to_string()))
+        .filter(|kind| kind.starts_with("org.meta.") || kind.starts_with("org.shiftmeta."))
+        .collect();
+    assert_eq!(kinds, ["org.meta.left", "org.meta.right", "org.shiftmeta.left", "org.shiftmeta.right", "org.meta.up"]);
+    client.shutdown();
+}
+
 /// Recalculating a table with formulas as a code action, in the table and
 /// on its `#+TBLFM:` line; none where nothing would change.
 #[test]
