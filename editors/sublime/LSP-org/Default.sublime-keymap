@@ -1101,6 +1101,167 @@
   {
     "keys": [
       "ctrl+c",
+      "ctrl+v",
+      "e"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.execute"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+v",
+      "ctrl+e"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.execute"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+v",
+      "b"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.execute.buffer"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+v",
+      "ctrl+b"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.execute.buffer"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+v",
+      "s"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.execute.subtree"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+v",
+      "ctrl+s"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.execute.subtree"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+v",
+      "k"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.remove_result"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
       "ctrl+e"
     ],
     "command": "org_lsp_run",

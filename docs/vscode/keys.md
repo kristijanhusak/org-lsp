@@ -82,6 +82,10 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `Ctrl+C Ctrl+Z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+V t`, `Ctrl+C Ctrl+V Ctrl+T` | `org.babel.tangle` | Tangle the file's code blocks |
+| `Ctrl+C Ctrl+V e`, `Ctrl+C Ctrl+V Ctrl+E` | `org.babel.execute` | Evaluate the code block or call at the cursor through Emacs |
+| `Ctrl+C Ctrl+V b`, `Ctrl+C Ctrl+V Ctrl+B` | `org.babel.execute.buffer` | Evaluate the file's code blocks through Emacs |
+| `Ctrl+C Ctrl+V s`, `Ctrl+C Ctrl+V Ctrl+S` | `org.babel.execute.subtree` | Evaluate the subtree's code blocks through Emacs |
+| `Ctrl+C Ctrl+V k` | `org.babel.remove_result` | Remove the results of the code block at the cursor |
 | `Ctrl+C Ctrl+E` | `org.export.dispatch` | Export the file through Emacs |
 | `Ctrl+C Shift+8` | `org.table.recalculate.line` | Recalculate the table's current line |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
@@ -364,6 +368,10 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "r"], "commands": ["org.refile"] },
   { "before": ["<leader>", "o", "n", "a"], "commands": ["org.add.note"] },
   { "before": ["<leader>", "o", "b", "t"], "commands": ["org.babel.tangle"] },
+  { "before": ["<leader>", "o", "b", "e"], "commands": ["org.babel.execute"] },
+  { "before": ["<leader>", "o", "b", "b"], "commands": ["org.babel.execute.buffer"] },
+  { "before": ["<leader>", "o", "b", "s"], "commands": ["org.babel.execute.subtree"] },
+  { "before": ["<leader>", "o", "b", "k"], "commands": ["org.babel.remove_result"] },
   { "before": ["<leader>", "o", "e"], "commands": ["org.export.dispatch"] },
   { "before": ["<leader>", "o", "*"], "commands": ["org.table.recalculate"] },
   { "before": ["<leader>", "o", "o"], "commands": ["org.open"] },
@@ -479,6 +487,10 @@ every file; outside Org files the commands say they do not apply):
 | `org.refile` | Org: Refile the entry |
 | `org.add.note` | Org: Add a note to the entry |
 | `org.babel.tangle` | Org: Tangle the file's code blocks |
+| `org.babel.execute` | Org: Evaluate the code block or call at the cursor through Emacs |
+| `org.babel.execute.buffer` | Org: Evaluate the file's code blocks through Emacs |
+| `org.babel.execute.subtree` | Org: Evaluate the subtree's code blocks through Emacs |
+| `org.babel.remove_result` | Org: Remove the results of the code block at the cursor |
 | `org.export.dispatch` | Org: Export the file through Emacs |
 | `org.table.recalculate` | Org: Recalculate the table |
 | `org.table.recalculate.line` | Org: Recalculate the table's current line |

@@ -50,6 +50,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Agenda lines formatted as Org formats them, to your taste: `org_agenda_prefix_format` (`org-agenda-prefix-format`, with the category, time, leader, effort, level, last tag and breadcrumbs), the leaders of scheduled entries, deadlines and ranges, `todoKeywordFormat`, `removeTags`, `formatDate`; in custom commands and their blocks too | yes | yes | yes | yes | yes | no³ |
 | Tangling, as `org-babel-tangle` does it: `:tangle`, header arguments from properties and `#+HEADER:`, Noweb references, comments, `:shebang`, `:tangle-mode`, `:mkdirp` | `<Leader>obt` | `Ctrl+C Ctrl+V t`, `Ctrl+.` in a block | `<Leader>obt` | `Ctrl+C Ctrl+V t` | code actions in a block | `Space a` in a block |
 | Export and publishing, by Emacs itself (`org-export-dispatch`): Org's menu with the backends your Emacs has (HTML, LaTeX and PDF, plain text, ODT, iCalendar, Markdown and others once loaded), body only, the subtree at the cursor, publishing projects; the file or buffer it makes is shown. Needs Emacs (`emacs`, `emacs_config_file`, `emacs_config`) | `<Leader>oe` | `Ctrl+C Ctrl+E` | `<Leader>oe` | `Ctrl+C Ctrl+E` | no | no |
+| Evaluating code blocks, by Emacs itself (Babel): `C-c C-c` on a block, a `#+CALL:` line or inline code, the file's or the subtree's blocks, removing results; Emacs asks before it evaluates, in the editor. Needs Emacs, with the languages loaded in `emacs_config` (`org-babel-do-load-languages`) | `<C-Space>`, `<Leader>obe`, `<Leader>obb`, `<Leader>obs`, `<Leader>obk` | `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+V e`/`b`/`s`/`k` | `<C-Space>`, `<Leader>obe`, `<Leader>obb`, `<Leader>obs`, `<Leader>obk` | `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+V e`/`b`/`s`/`k` | code actions in a block | `Space a` in a block |
 | Table editing, as `org-table.el` does it: `TAB`/`S-TAB` from field to field (a row made past the last), moving, inserting and deleting columns and rows, rules, blanking a field, sorting the rows; the `#+TBLFM:` line follows the columns and rows | `<Tab>`/`<S-Tab>` on a table line, `<<`/`>>`, `<s`/`>s`, `<Leader>oK`/`<Leader>oJ`, `<Leader>oTd`, `<Leader>oTO`/`<Leader>oTo`, `<Leader>o-`, `<Leader>o<CR>`, `<Leader>o<Space>`, `<Leader>o^` | `Tab`/`Shift+Tab`, `Alt+arrows`, `Alt+Shift+arrows`, `Ctrl+C -`, `Ctrl+C Enter`, `Ctrl+C ^` | `<Tab>`/`<S-Tab>` on a table line, `<<`/`>>`, `<s`/`>s`, `<Leader>oK`/`<Leader>oJ`, `<Leader>oTd`, `<Leader>oTO`/`<Leader>oTo`, `<Leader>o-`, `<Leader>o<CR>`, `<Leader>o<Space>`, `<Leader>o^` | `Tab`/`Shift+Tab`, `Alt+arrows`, `Alt+Shift+arrows`, `Ctrl+C -`, `Ctrl+C Enter`, `Ctrl+C ^` | code actions in a table | `Space a` in a table |
 | Table formulas, as `org-table-recalculate` applies the `#+TBLFM:` line: column, field and range formulas, references by row, column, hline and name, parameters and constants, Calc's arithmetic, vectors, dates and durations, and its modes and formats (`;%.2f`, `;N`, `;T`); iterating until the table is stable | `<Leader>o*`; `<C-Space>` on a `#+TBLFM:` line | `Ctrl+C *` (the cursor's line), `Ctrl+C Ctrl+C` on a `#+TBLFM:` line, `Ctrl+.` in a table | `<Leader>o*`; `<C-Space>` on a `#+TBLFM:` line | `Ctrl+C *`, `Ctrl+C Ctrl+C` on a `#+TBLFM:` line | code actions in a table | `Space a` in a table |
 | Refile, as `org-refile` does it, between files too | `<Leader>or` | command | `<Leader>or` | `Ctrl+C Ctrl+W` | code actions | no⁴ |
@@ -261,8 +262,10 @@ emacs_config = '''
 '''
 ```
 
-A question Emacs asks while exporting (whether to evaluate a code block)
-is asked in the editor.
+Code blocks are evaluated the same way (`C-c C-c` on a block, `C-c C-v
+b` for the file's), with the languages you load there:
+`(org-babel-do-load-languages 'org-babel-load-languages '((emacs-lisp . t)
+(python . t)))`. Emacs asks before it evaluates, in the editor.
 
 ### Other editors
 

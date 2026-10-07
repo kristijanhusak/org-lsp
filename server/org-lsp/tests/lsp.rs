@@ -1534,3 +1534,85 @@ fn percent_decode(text: &str) -> String {
     }
     String::from_utf8(out).unwrap()
 }
+
+#[test]
+fn evaluates_code_through_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("evaluates_code_through_emacs: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-babel-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("code.org");
+    let text = "* Code\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n\nInline src_emacs-lisp{(* 6 7)} here.\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    client.open(&uri, text);
+    let run = |client: &mut Client, command: &str, line: u32, character: u32| {
+        let argument =
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": line, "character": character } });
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }))
+            .response_result
+            .expect("a result")
+    };
+    // Waits for the edit Emacs's text makes, answering yes to its question.
+    let edited = |client: &Client| -> Vec<TextEdit> {
+        loop {
+            let Message::Request(request) = next_from_server(
+                client,
+                |message| matches!(message, Message::Request(request) if request.method == "window/showMessageRequest" || request.method == "workspace/applyEdit"),
+            ) else {
+                unreachable!()
+            };
+            if request.method == "window/showMessageRequest" {
+                assert!(request.params["message"].as_str().unwrap().contains("Evaluate this emacs-lisp code block"));
+                client
+                    .connection
+                    .sender
+                    .send(Message::Response(Response::new_ok(request.id, json!({ "title": "Yes" }))))
+                    .unwrap();
+                continue;
+            }
+            client
+                .connection
+                .sender
+                .send(Message::Response(Response::new_ok(request.id, json!({ "applied": true }))))
+                .unwrap();
+            let changes = &request.params["edit"]["changes"][uri.as_str()];
+            return serde_json::from_value(changes.clone()).unwrap();
+        }
+    };
+    // C-c C-c in the block: the results under it.
+    assert_eq!(run(&mut client, "org.checkbox.toggle", 2, 0), Value::Null);
+    let edits = edited(&client);
+    assert_eq!(edits.len(), 1, "{edits:?}");
+    assert_eq!(edits[0].new_text, "#+RESULTS:\n: 3\n\n");
+    let with_results = "* Code\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n\n#+RESULTS:\n: 3\n\nInline src_emacs-lisp{(* 6 7)} here.\n";
+    client.notify::<DidChangeTextDocument>(DidChangeTextDocumentParams {
+        text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri.clone(), version: 2 },
+        content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+            range: None,
+            range_length: None,
+            text: with_results.to_string(),
+        }],
+    });
+    // C-c C-c on inline code: its result after it.
+    run(&mut client, "org.checkbox.toggle", 8, 12);
+    let edits = edited(&client);
+    assert_eq!(edits[0].new_text, "{{{results(=42=)}}} ", "{edits:?}");
+    // C-c C-v k: the block's results go.
+    run(&mut client, "org.babel.remove_result", 2, 0);
+    let edits = edited(&client);
+    assert_eq!(edits.len(), 1, "{edits:?}");
+    assert_eq!(edits[0].new_text, "");
+    assert_eq!(edits[0].range, Range::new(Position::new(5, 0), Position::new(8, 0)));
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
