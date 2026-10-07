@@ -100,6 +100,12 @@ pub struct Options {
     /// `org-link-keep-stored-after-insertion`
     #[serde(rename = "org_link_keep_stored_after_insertion")]
     pub link_keep_stored_after_insertion: Option<bool>,
+    /// Whether Org's linter (`org-lint`) checks the documents.
+    #[serde(rename = "org_lint")]
+    pub lint: Option<bool>,
+    /// The `org-lint` checkers left out, by name.
+    #[serde(rename = "org_lint_ignore")]
+    pub lint_ignore: Option<Vec<String>>,
     /// `org-clock-in-switch-to-state`
     #[serde(rename = "org_clock_in_switch_to_state")]
     pub clock_in_switch_to_state: Option<String>,

@@ -231,6 +231,20 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     setting(
+        "org_lint",
+        "boolean",
+        "true",
+        "org-lint",
+        "Org's linter checks the documents and reports what it finds as diagnostics: misplaced headings and planning lines, links to nowhere, duplicate names, footnotes without definitions… A checker Org trusts little reports information, the others warnings.",
+    ),
+    setting(
+        "org_lint_ignore",
+        "string[]",
+        "[]",
+        "org-lint",
+        "The `org-lint` checkers to leave out, by name, as a diagnostic's code shows it (`\"misplaced-heading\"`).",
+    ),
+    setting(
         "org_id_link_to_org_use_id",
         "boolean, string",
         "false",
@@ -1073,6 +1087,8 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "enum": [true, false, "create-if-interactive", "create-if-interactive-and-no-custom-id", "use-existing"] }"#,
     ),
     ("org_link_context_for_files", BOOLEAN),
+    ("org_lint", BOOLEAN),
+    ("org_lint_ignore", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_id_link_use_context", BOOLEAN),
     ("org_id_link_consider_parent_id", BOOLEAN),
     ("org_link_file_path_type", r#"{ "enum": ["adaptive", "absolute", "noabbrev", "relative"] }"#),

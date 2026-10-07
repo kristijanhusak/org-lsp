@@ -1202,6 +1202,56 @@ fn toggles_checkboxes() {
     client.shutdown();
 }
 
+/// `org-lint` reports as diagnostics: warnings, information for checkers
+/// of low trust, the checker as the code; `org_lint_ignore` leaves
+/// checkers out, `org_lint` false all of them.
+#[test]
+fn lints_documents() {
+    let text = "* H\n[[*Missing]]\n#+CATEGORY: a\n#+CATEGORY: b\n#+begin_src\n#+end_src\n";
+    let diagnostics = |options: Value| {
+        let client = Client::start(json!({}), options);
+        client.open(&uri(), text);
+        let published = client.notification("textDocument/publishDiagnostics");
+        client.shutdown();
+        published["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|diagnostic| {
+                (
+                    diagnostic["range"]["start"]["line"].as_u64().unwrap(),
+                    diagnostic["severity"].as_u64().unwrap(),
+                    diagnostic["code"].as_str().unwrap().to_string(),
+                    diagnostic["message"].as_str().unwrap().to_string(),
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    let found = diagnostics(json!({}));
+    assert_eq!(
+        found,
+        vec![
+            (1, 2, "invalid-fuzzy-link".to_string(), "Unknown fuzzy location \"Missing\"".to_string()),
+            (
+                3,
+                2,
+                "deprecated-category-setup".to_string(),
+                "Spurious CATEGORY keyword.  Set :CATEGORY: property instead".to_string()
+            ),
+            (4, 2, "missing-language-in-src-block".to_string(), "Missing language in source block".to_string()),
+        ]
+    );
+    let found = diagnostics(json!({ "org_lint_ignore": ["invalid-fuzzy-link", "deprecated-category-setup"] }));
+    assert_eq!(found.iter().map(|found| found.2.as_str()).collect::<Vec<_>>(), ["missing-language-in-src-block"]);
+    let mut client = Client::start(json!({}), json!({ "org_lint": false }));
+    client.open(&uri(), text);
+    // Nothing: the next message is the answer to a request.
+    let symbols =
+        client.raw_request("textDocument/documentSymbol", json!({ "textDocument": { "uri": uri().as_str() } }));
+    assert!(symbols.response_result.is_ok());
+    client.shutdown();
+}
+
 /// Citations (`oc-basic`): the bibliography of `#+BIBLIOGRAPHY:`, an
 /// unknown key marked with the keys close to it and one to put instead,
 /// a key's entry over it, where following it goes, and keys completed
@@ -1223,7 +1273,15 @@ fn citations_follow_the_bibliography() {
     client.open(&uri, text);
     // The unknown key, with the one close to it.
     let published = client.notification("textDocument/publishDiagnostics");
-    let diagnostics = published["diagnostics"].as_array().unwrap().clone();
+    // The citation's, not the linter's (`org-lint` misses a
+    // `#+PRINT_BIBLIOGRAPHY:`).
+    let diagnostics: Vec<Value> = published["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|diagnostic| diagnostic["source"] == "org-lsp")
+        .cloned()
+        .collect();
     assert_eq!(diagnostics.len(), 1, "{published}");
     assert_eq!(diagnostics[0]["message"], "Unknown citation key: @doe202 (suggestions: doe2020)");
     assert_eq!(diagnostics[0]["range"]["start"], json!({ "line": 2, "character": 27 }));
