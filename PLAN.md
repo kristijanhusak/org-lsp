@@ -88,8 +88,8 @@ few, checked against Emacs where Org decides the outcome:
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
   moving rows and columns, `C-c -` for a rule.
 - **Agenda (5):** done.
-- **Capture (10):** item and checkitem templates, date trees, `%^g`
-  tags, `%a` from the agenda.
+- **Capture (10):** `%^g` tags and the other escapes that ask, `%a` from
+  the agenda, `:clock-in` and its relatives.
 - **Links and navigation (11):** store and insert links (`C-c l`,
   `C-c C-l`), `documentLink`, backlinks as references, workspace
   symbols, renaming tags and headings, hover in Org files.
@@ -307,9 +307,13 @@ show one. In four pull requests:
    aborts, `C-c C-w` / `<Leader>or` refiles. Options `org_capture_templates`,
    `org_directory`, `org_default_notes_file`. Checked by
    `tests/capture/cases.json` and `scripts/fuzz-capture.py` (seeds 1 to
-   5, 1,900 cases, no difference). Not yet: `item`, `checkitem` and
-   `table-line` templates; `id`, `file+regexp`, `file+olp+datetree`,
-   `function` and `clock` targets; `%^g`, `%^G`, `%^p`, `%^C`, `%^L`;
+   5, 1,900 cases, no difference). Since then: `item`, `checkitem` and
+   `table-line` templates (`org-capture-place-item`,
+   `org-capture-place-table-line`, `:table-line-pos`), the `file+regexp`,
+   `file+olp+datetree` (`:tree-type`, `:time-prompt`, the `DATE_TREE`
+   property), `clock` and `id` targets, and the statistics cookies and
+   table alignment of `org-capture-finalize`, checked against Emacs in the
+   same file (213 cases). Not yet: `function` targets; `%^g`, `%^G`, `%^p`, `%^C`, `%^L`;
    `%(…)` and `%[file]`; `%c`, `%x`, `%k`, `%K` and `%:keyword` are
    empty; templates' contexts; `:jump-to-captured`, `:clock-in` and the
    like. Differences: the target is not saved (as for every edit here;

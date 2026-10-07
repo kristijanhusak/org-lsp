@@ -445,11 +445,14 @@ pub const SETTINGS: &[Setting] = &[
         "object[]",
         r#"[{ "key": "t", "description": "Task", "target": ["file+headline", "", "Tasks"], "template": "* TODO %?\n  %u\n  %a" }]"#,
         "org-capture-templates",
-        "Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, or `plain`), \
-         a `target` and a `template` (text, or a list of lines), and may have `prepend`, `empty_lines`, \
-         `empty_lines_before`, `empty_lines_after` and `immediate_finish`. The target is a list: `file` and a \
-         path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline \
-         path. An empty path is `org_default_notes_file`, and without a target the entry goes at the end of \
+        "Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, `plain`, \
+         `item`, `checkitem` or `table-line`), a `target` and a `template` (text, or a list of lines), and may \
+         have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after`, `immediate_finish`, \
+         `tree_type`, `time_prompt` and `table_line_pos`. The target is a list: `file` and a path; \
+         `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; \
+         `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and the headlines of an \
+         outline path, maybe none, for a date tree under them; `id` and an ID; or `clock`, the entry clocked \
+         now. An empty path is `org_default_notes_file`, and without a target the entry goes at the end of \
          `org_default_notes_file`. A template with only a key and a description groups the templates whose keys \
          start with its key.",
     ),
@@ -1061,15 +1064,18 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.CaptureTemplate", "required": ["key", "description"], "additionalProperties": false, "properties": {
             "key": { "type": "string", "description": "The keys that pick the template" },
             "description": { "type": "string", "description": "What the menu shows" },
-            "type": { "enum": ["entry", "plain"], "description": "An Org entry (the default), or plain text" },
+            "type": { "enum": ["entry", "plain", "item", "checkitem", "table-line"], "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line" },
             "target": { "type": "array", "items": { "type": "string" },
-                "description": "`file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path" },
+                "description": "`file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and maybe an outline path; `id` and an ID; or `clock`" },
             "template": { "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "The template, or its lines" },
             "prepend": { "type": "boolean", "description": "First under the target, not last" },
             "empty_lines": { "type": "integer", "minimum": 0, "description": "Blank lines before and after" },
             "empty_lines_before": { "type": "integer", "minimum": 0, "description": "Blank lines before" },
             "empty_lines_after": { "type": "integer", "minimum": 0, "description": "Blank lines after" },
-            "immediate_finish": { "type": "boolean", "description": "Capture without a capture buffer" }
+            "immediate_finish": { "type": "boolean", "description": "Capture without a capture buffer" },
+            "tree_type": { "anyOf": [{ "enum": ["day", "week", "month"] }, { "type": "array", "items": { "enum": ["year", "quarter", "month", "week", "day"] } }], "description": "The levels of a date tree" },
+            "time_prompt": { "type": "boolean", "description": "Ask for the date of the date tree entry" },
+            "table_line_pos": { "type": "string", "description": "Where a table line goes: `II-1` is above the second rule" }
         } } }"#,
     ),
     ("org_directory", STRING),

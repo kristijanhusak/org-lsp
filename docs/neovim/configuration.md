@@ -454,15 +454,19 @@ require('org-lsp').setup({
     org_archive_default_command = 'subtree',
 
     -- Capture templates. Each has a `key`, a `description`, a `type`
-    -- (`entry`, the default, or `plain`), a `target` and a `template` (text,
-    -- or a list of lines), and may have `prepend`, `empty_lines`,
-    -- `empty_lines_before`, `empty_lines_after` and `immediate_finish`. The
-    -- target is a list: `file` and a path; `file+headline`, a path and a
-    -- headline; or `file+olp`, a path and the headlines of an outline path.
-    -- An empty path is `org_default_notes_file`, and without a target the
-    -- entry goes at the end of `org_default_notes_file`. A template with only
-    -- a key and a description groups the templates whose keys start with its
-    -- key. (org-capture-templates)
+    -- (`entry`, the default, `plain`, `item`, `checkitem` or `table-line`), a
+    -- `target` and a `template` (text, or a list of lines), and may have
+    -- `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after`,
+    -- `immediate_finish`, `tree_type`, `time_prompt` and `table_line_pos`.
+    -- The target is a list: `file` and a path; `file+headline`, a path and a
+    -- headline; `file+olp`, a path and the headlines of an outline path;
+    -- `file+regexp`, a path and a regular expression; `file+olp+datetree`, a
+    -- path and the headlines of an outline path, maybe none, for a date tree
+    -- under them; `id` and an ID; or `clock`, the entry clocked now. An empty
+    -- path is `org_default_notes_file`, and without a target the entry goes
+    -- at the end of `org_default_notes_file`. A template with only a key and
+    -- a description groups the templates whose keys start with its key.
+    -- (org-capture-templates)
     org_capture_templates = { { key = 't', description = 'Task', target = { 'file+headline', '', 'Tasks' }, template = '* TODO %?\n  %u\n  %a' } },
 
     -- Where the relative paths of capture targets are. (org-directory)

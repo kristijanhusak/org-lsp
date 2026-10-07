@@ -304,7 +304,8 @@ pub struct RefileTarget {
 pub struct CaptureTemplateOption {
     pub key: String,
     pub description: String,
-    /// `"entry"` (the default) or `"plain"`.
+    /// `"entry"` (the default), `"plain"`, `"item"`, `"checkitem"` or
+    /// `"table-line"`.
     #[serde(rename = "type")]
     pub kind: Option<String>,
     /// `["file", path]`, `["file+headline", path, headline]` or
@@ -318,6 +319,30 @@ pub struct CaptureTemplateOption {
     pub empty_lines_after: Option<usize>,
     /// `:immediate-finish`: no capture buffer.
     pub immediate_finish: Option<bool>,
+    /// `:tree-type` of a `file+olp+datetree` target: `"day"`, `"week"`,
+    /// `"month"`, or the levels (`["year", "quarter", "month"]`).
+    pub tree_type: Option<TreeTypeOption>,
+    /// `:time-prompt`: ask for the date of the tree entry, which then
+    /// stands for the time of the capture.
+    pub time_prompt: Option<bool>,
+    /// `:table-line-pos`: where a table line goes, `"II-1"`.
+    pub table_line_pos: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum TreeTypeOption {
+    Name(String),
+    Levels(Vec<String>),
+}
+
+impl TreeTypeOption {
+    pub fn names(&self) -> Vec<String> {
+        match self {
+            TreeTypeOption::Name(name) => vec![name.clone()],
+            TreeTypeOption::Levels(levels) => levels.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -325,6 +350,14 @@ pub struct CaptureTemplateOption {
 pub enum TemplateText {
     Text(String),
     Lines(Vec<String>),
+}
+
+impl CaptureTemplateOption {
+    /// A key and a description only: the templates whose keys start with
+    /// its key.
+    pub fn is_group(&self) -> bool {
+        self.template.is_none() && self.target.is_empty() && self.kind.is_none()
+    }
 }
 
 impl TemplateText {
@@ -1148,6 +1181,9 @@ pub fn current_names(value: serde_json::Value, renamed: &mut Vec<String>) -> ser
                             ("emptyLinesBefore", "empty_lines_before"),
                             ("emptyLinesAfter", "empty_lines_after"),
                             ("immediateFinish", "immediate_finish"),
+                            ("treeType", "tree_type"),
+                            ("timePrompt", "time_prompt"),
+                            ("tableLinePos", "table_line_pos"),
                             ("maxLevel", "maxlevel"),
                         ] {
                             if let Some(value) = fields.remove(old) {
