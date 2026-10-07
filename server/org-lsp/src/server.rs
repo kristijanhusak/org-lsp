@@ -30,6 +30,7 @@ use org_core::capture;
 use org_core::clock;
 use org_core::date::{Date, DateTime, Day};
 use org_core::edit::{self, Call, Command as EditCommand, Settings as EditSettings};
+use org_core::link;
 use org_core::open::{self, Open};
 use org_core::outline::Outline;
 use org_core::planning::{self, Command as PlanningCommand, Prompt};
@@ -577,6 +578,11 @@ struct Server {
     /// file and title; at most `org-clock-history-length`.
     clock_history: Vec<(Uri, String)>,
     clock_history_length: usize,
+    /// `org-stored-links`: the links `org.link.store` keeps for
+    /// `org.link.insert`, the last first.
+    stored_links: org_core::link::Stored,
+    /// The options of the link commands.
+    link_settings: org_core::link::Settings,
     /// `org-clock-default-task`, marked by clocking in with `C-u C-u`.
     clock_default_task: Option<(Uri, String)>,
     /// `org-clock-interrupted-task`: the entry whose clock the last
@@ -790,6 +796,8 @@ pub fn run(connection: Connection) -> Result<()> {
         last_clocked: None,
         clock_history: Vec::new(),
         clock_history_length: options.clock_history_length.unwrap_or(5).max(1),
+        stored_links: Vec::new(),
+        link_settings: options.link_settings(),
         clock_default_task: None,
         clock_interrupted: None,
         clock_out_time: None,
@@ -3087,6 +3095,11 @@ impl Server {
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
             commands::OPEN => self.open_at_point(&context.ok_or("This command needs the cursor position")?),
+            commands::LINK_STORE => self.link_store(&context.ok_or("This command needs the cursor position")?),
+            commands::LINK_INSERT | commands::LINK_INSERT_LAST | commands::LINK_INSERT_ALL => {
+                self.link_insert(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
+            commands::ID_GET_CREATE => self.id_get_create(&context.ok_or("This command needs the cursor position")?),
             commands::CITE_INSERT | commands::CITE_INSERT_PREFIX => self.cite_insert(
                 params.command == commands::CITE_INSERT_PREFIX,
                 &context.ok_or("This command needs the cursor position")?,
@@ -4909,21 +4922,146 @@ impl Server {
     /// A link to the place `position` of `uri` (`org-store-link`): to its
     /// headline when it has one.
     fn link_to(&mut self, uri: &Uri, position: Position) -> String {
-        let Some(path) = uri::to_path(uri) else { return String::new() };
-        let home = std::env::var_os("HOME").map(PathBuf::from);
-        let shown = match home.as_ref().and_then(|home| path.strip_prefix(home).ok()) {
-            Some(rest) => format!("~/{}", rest.display()),
-            None => path.display().to_string(),
-        };
         let encoding = self.client.encoding;
-        let heading = self.with_source(uri, |text, index, parse, _, _| {
+        let Some((path, home)) = Self::link_file(uri) else { return String::new() };
+        let (settings, edit_settings, category) =
+            (self.link_settings.clone(), self.edit_settings.clone(), uri::file_stem(uri));
+        let made = self.with_source(uri, |text, index, parse, _, version| {
             let offset = index.offset(text, position, encoding);
-            refile::heading_text(text, offset, parse.todo_keywords())
+            let property_context = edit::property_context(parse, &edit_settings, &category);
+            let file = link::File { path: &path, home: home.as_deref() };
+            link::store(text, offset, &file, &settings, false, false, &property_context, &mut link::new_uuid)
+                .map(|made| (made, text.to_string(), version))
         });
-        match heading.filter(|heading| !heading.is_empty()) {
-            Some(heading) => format!("[[file:{shown}::*{heading}][{heading}]]"),
-            None => format!("[[file:{shown}]]"),
+        let Some(Ok((made, text, version))) = made else { return String::new() };
+        // An ID made for the link (`org_id_link_to_org_use_id` true).
+        if let Some((edited, _)) = &made.edited {
+            self.send_texts(vec![(uri.clone(), version, text, edited.clone())]);
         }
+        link::annotation(&made)
+    }
+
+    /// The path of the file a link command runs in, and the home
+    /// directory, which `~` stands for in links.
+    fn link_file(uri: &Uri) -> Option<(String, Option<String>)> {
+        let path = uri::to_path(uri)?.display().to_string();
+        Some((path, std::env::var("HOME").ok().filter(|home| !home.is_empty())))
+    }
+
+    /// `org-store-link` (`C-c l`): a link to the place at the cursor, or
+    /// to the entry of an agenda line, first in the stored links. With
+    /// `C-u` `org_link_context_for_files` is turned around.
+    fn link_store(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let (uri, offset) = self.command_place(context)?;
+        let (path, home) = Self::link_file(&uri).ok_or("This file has no name")?;
+        let negate = context.count == Some(4);
+        let (settings, edit_settings, category) =
+            (self.link_settings.clone(), self.edit_settings.clone(), uri::file_stem(&uri));
+        let (made, text, version) = self
+            .with_source(&uri, |text, _, parse, _, version| {
+                let property_context = edit::property_context(parse, &edit_settings, &category);
+                let file = link::File { path: &path, home: home.as_deref() };
+                link::store(text, offset, &file, &settings, true, negate, &property_context, &mut link::new_uuid)
+                    .map(|made| (made, text.to_string(), version))
+            })
+            .ok_or("Cannot read the file")?
+            .map_err(Refusal::Failed)?;
+        if let Some((edited, _)) = &made.edited {
+            self.send_texts(vec![(uri.clone(), version, text, edited.clone())]);
+        }
+        let message = link::remember(&mut self.stored_links, &made);
+        self.show_message(MessageType::INFO, message);
+        Ok(Value::Null)
+    }
+
+    /// `org-insert-link` (`C-c C-l`), `org-insert-last-stored-link` (`C-c
+    /// M-l`) and `org-insert-all-links` (`C-c C-M-l`). The questions of
+    /// `org-insert-link` come back with `step` "link", the answers so far
+    /// in `answers`.
+    fn link_insert(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = context.text_document.uri.clone();
+        if self.is_view(&uri) {
+            return Err(Refusal::NotHere("This command works in Org files".to_string()));
+        }
+        let encoding = self.client.encoding;
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let (text, version) = (document.text.clone(), document.version);
+        let offset = document.index.offset(&text, context.position, encoding);
+        let (path, home) = Self::link_file(&uri).ok_or("This file has no name")?;
+        let file = link::File { path: &path, home: home.as_deref() };
+        let inserted = if id == commands::LINK_INSERT {
+            let prefix = match context.count {
+                Some(4) => 1,
+                Some(16) => 2,
+                Some(64) => 3,
+                _ => 0,
+            };
+            let mut answers: Vec<String> =
+                context.answers.as_deref().and_then(|answers| serde_json::from_str(answers).ok()).unwrap_or_default();
+            if context.step.as_deref() == Some("link") {
+                match &context.input {
+                    Some(input) => answers.push(input.clone()),
+                    None => return Ok(Value::Null),
+                }
+            }
+            let step = link::insert(&text, offset, &file, &self.stored_links, prefix, &answers, &self.link_settings)
+                .map_err(Refusal::Failed)?;
+            match step {
+                link::Step::Ask(question) => {
+                    return Ok(json!({ "input": {
+                        "kind": "text",
+                        "prompt": question.prompt,
+                        "value": question.initial,
+                        "completions": question.completions,
+                        "context": { "step": "link", "answers": serde_json::to_string(&answers).unwrap_or_default() },
+                    } }));
+                }
+                link::Step::Done(inserted) => inserted,
+            }
+        } else {
+            let (count, keep, pre) = if id == commands::LINK_INSERT_LAST {
+                (Some(context.count.unwrap_or(1).max(1) as usize), false, "")
+            } else {
+                (None, context.count == Some(4), "- ")
+            };
+            let inserted =
+                link::insert_all(&text, offset, &file, &self.stored_links, count, keep, pre, "\n", &self.link_settings)
+                    .map_err(Refusal::Failed)?;
+            match inserted {
+                Some(inserted) => inserted,
+                None => {
+                    self.show_message(MessageType::INFO, "No link to insert");
+                    return Ok(Value::Null);
+                }
+            }
+        };
+        self.stored_links = inserted.stored;
+        let edits = self.text_edits(&text, &inserted.text);
+        let edit = self.workspace_edit(&uri, Some(version), edits);
+        let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+        let position = LineIndex::new(&inserted.text).position(&inserted.text, inserted.cursor, encoding);
+        self.apply_edit(params, Pending::EditAndMove { uri, position });
+        Ok(Value::Null)
+    }
+
+    /// `org-id-get-create`: the entry at the cursor gets an ID unless it
+    /// has one.
+    fn id_get_create(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let (uri, offset) = self.command_place(context)?;
+        let (edit_settings, category) = (self.edit_settings.clone(), uri::file_stem(&uri));
+        let (made, text, version) = self
+            .with_source(&uri, |text, _, parse, _, version| {
+                let property_context = edit::property_context(parse, &edit_settings, &category);
+                link::id_get_create(text, offset, &property_context, &mut link::new_uuid)
+                    .map(|made| (made, text.to_string(), version))
+            })
+            .ok_or("Cannot read the file")?
+            .map_err(Refusal::Failed)?;
+        let (edited, id) = made;
+        if let Some((edited, _)) = edited {
+            self.send_texts(vec![(uri, version, text, edited)]);
+        }
+        Ok(json!(id))
     }
 
     /// The text a command came with, when it runs in the capture buffer.

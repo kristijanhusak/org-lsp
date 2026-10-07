@@ -693,6 +693,41 @@
     }
   },
   {
+    "caption": "Org: Store a link to the place at the cursor",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.link.store"
+    }
+  },
+  {
+    "caption": "Org: Insert a link, or edit the one at the cursor",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.link.insert"
+    }
+  },
+  {
+    "caption": "Org: Insert the last stored link",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.link.insert.last"
+    }
+  },
+  {
+    "caption": "Org: Insert all stored links",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.link.insert.all"
+    }
+  },
+  {
+    "caption": "Org: Create an ID for the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.id.create"
+    }
+  },
+  {
     "caption": "Org: Archive the subtree",
     "command": "org_lsp_run",
     "args": {

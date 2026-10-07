@@ -505,7 +505,15 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   `id:` links across files; notes (`org-add-note`); completion of
   properties, link targets, block names and `#+` keywords, and tags from
   the agenda files; hover over agenda lines.
-- `documentLink`, store and insert links, backlinks as references.
+- Done: storing and inserting links (`org-store-link` `C-c l`, also on
+  agenda lines; `org-insert-link` `C-c C-l` with its prefixes, editing
+  the link at the cursor; `org-insert-last-stored-link`,
+  `org-insert-all-links`; `org-id-get-create`), with
+  `org_id_link_to_org_use_id` and its relatives; capture's `%a` is the
+  same link. Not yet: a region as the search; `id:` and `help:` typed
+  alone complete nothing; link abbreviations are no prefixes to
+  complete.
+- `documentLink`, backlinks as references.
 - Completion: TODO keywords and tags in headlines are done (server
   only); still to do: properties, link targets, block names, `#+`
   keywords, and tags from the agenda files as well as the file. Hover. Workspace symbols. Rename of tags and headings.
@@ -632,6 +640,7 @@ Emacs in `tests/tblfm/cases.json`.
   | List items: the meta and shifted keys, `C-c C-c` and `C-c ^` on an item | `tests/lists/cases.json` | `scripts/update-lists-fixtures.py` | `scripts/fuzz-lists.py` |
   | Setting tags (`org-set-tags-command`: fast tag selection by key, the completion prompt's answer) | `tests/tags/cases.json` | `scripts/update-tags-fixtures.py` | `scripts/fuzz-tags.py` |
   | Archiving | `tests/archive/cases.json` | `scripts/update-archive-fixtures.py` | `scripts/fuzz-archive.py` |
+  | Storing and inserting links (`org-store-link`, `org-insert-link` and its relatives, `org-id-get-create`) | `tests/link/cases.json` | `scripts/link_reference.py` | `scripts/fuzz-link.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.
 - VS Code: in `editors/vscode`, `npm run generate -- --check`, `npm run

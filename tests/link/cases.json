@@ -1,0 +1,2791 @@
+[
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nbody¦\\n\"},\"stored\":[[\"file:~/org/main.org::*Head\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Head][Head]]\"]}"
+  },
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nbody¦\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head¦\\n\"},\"stored\":[[\"file:~/org/main.org::*Head\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Head][Head]]\"]}"
+  },
+  {
+    "text": "* Head¦\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head¦\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "¦* Head\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"¦* Head\\n\"},\"stored\":[[\"file:~/org/main.org::*Head\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "¦* Head\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"¦* Head\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Head][Head]]\"]}"
+  },
+  {
+    "text": "¦* Head\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"¦* Head\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* TODO [#A] Head [1/2]  :tag:¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* TODO [#A] Head [1/2]  :tag:¦\\n\"},\"stored\":[[\"file:~/org/main.org::*Head\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* TODO [#A] Head [1/2]  :tag:¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* TODO [#A] Head [1/2]  :tag:¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Head][Head]]\"]}"
+  },
+  {
+    "text": "* TODO [#A] Head [1/2]  :tag:¦\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* TODO [#A] Head [1/2]  :tag:¦\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* COMMENT  Many   spaces  here\n¦text\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* COMMENT  Many   spaces  here\\n¦text\\n\"},\"stored\":[[\"file:~/org/main.org::*Many spaces here\",\"Many spaces here\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* COMMENT  Many   spaces  here\n¦text\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* COMMENT  Many   spaces  here\\n¦text\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Many spaces here][Many spaces here]]\"]}"
+  },
+  {
+    "text": "* COMMENT  Many   spaces  here\n¦text\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* COMMENT  Many   spaces  here\\n¦text\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* See [[https://orgmode.org][Org]] now\n¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* See [[https://orgmode.org][Org]] now\\n¦\\n\"},\"stored\":[[\"file:~/org/main.org::*See [[https://orgmode.org][Org]] now\",\"See Org now\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* See [[https://orgmode.org][Org]] now\n¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* See [[https://orgmode.org][Org]] now\\n¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*See \\\\[\\\\[https://orgmode.org\\\\]\\\\[Org\\\\]\\\\] now][See Org now]]\"]}"
+  },
+  {
+    "text": "* See [[https://orgmode.org][Org]] now\n¦\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* See [[https://orgmode.org][Org]] now\\n¦\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Ünïcode headline ¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Ünïcode headline ¦\\n\"},\"stored\":[[\"file:~/org/main.org::*Ünïcode headline\",\"Ünïcode headline\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Ünïcode headline ¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Ünïcode headline ¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Ünïcode headline][Ünïcode headline]]\"]}"
+  },
+  {
+    "text": "* Ünïcode headline ¦\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Ünïcode headline ¦\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* TODO\n¦x\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* TODO\\n¦x\\n\"},\"stored\":[[\"file:~/org/main.org::*\",\"\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* TODO\n¦x\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* TODO\\n¦x\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*]]\"]}"
+  },
+  {
+    "text": "* TODO\n¦x\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* TODO\\n¦x\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* a\n** b\n*** c¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* a\\n** b\\n*** c¦\\n\"},\"stored\":[[\"file:~/org/main.org::*c\",\"c\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* a\n** b\n*** c¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* a\\n** b\\n*** c¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*c][c]]\"]}"
+  },
+  {
+    "text": "* a\n** b\n*** c¦\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* a\\n** b\\n*** c¦\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: my-id\n:END:\n¦text\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: my-id\\n:END:\\n¦text\\n\"},\"stored\":[[\"file:~/org/main.org::#my-id\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: my-id\n:END:\n¦text\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: my-id\\n:END:\\n¦text\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::#my-id][Head]]\"]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: my-id\n:END:\n¦text\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: my-id\\n:END:\\n¦text\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nSCHEDULED: <2026-01-01 Thu>\n¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nSCHEDULED: <2026-01-01 Thu>\\n¦\\n\"},\"stored\":[[\"file:~/org/main.org::*Head\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nSCHEDULED: <2026-01-01 Thu>\n¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nSCHEDULED: <2026-01-01 Thu>\\n¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Head][Head]]\"]}"
+  },
+  {
+    "text": "* Head\nSCHEDULED: <2026-01-01 Thu>\n¦\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nSCHEDULED: <2026-01-01 Thu>\\n¦\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* [50%] cookie first\n¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* [50%] cookie first\\n¦\\n\"},\"stored\":[[\"file:~/org/main.org::*cookie first\",\"cookie first\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* [50%] cookie first\n¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* [50%] cookie first\\n¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*cookie first][cookie first]]\"]}"
+  },
+  {
+    "text": "* [50%] cookie first\n¦\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* [50%] cookie first\\n¦\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* (Parens)\n¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* (Parens)\\n¦\\n\"},\"stored\":[[\"file:~/org/main.org::*(Parens)\",\"(Parens)\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* (Parens)\n¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* (Parens)\\n¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*(Parens)][(Parens)]]\"]}"
+  },
+  {
+    "text": "* (Parens)\n¦\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* (Parens)\\n¦\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n- item one¦\n- item two\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n- item one¦\\n- item two\\n\"},\"stored\":[[\"file:~/org/main.org::*Head\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n- item one¦\n- item two\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n- item one¦\\n- item two\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Head][Head]]\"]}"
+  },
+  {
+    "text": "* Head\n- item one¦\n- item two\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n- item one¦\\n- item two\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "Some text¦ here\n* H\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"Some text¦ here\\n* H\\n\"},\"stored\":[[\"file:~/org/main.org::Some text here\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "Some text¦ here\n* H\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"Some text¦ here\\n* H\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::Some text here]]\"]}"
+  },
+  {
+    "text": "(Paren text)¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"(Paren text)¦\\n\"},\"stored\":[[\"file:~/org/main.org::Paren text\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "(Paren text)¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"(Paren text)¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::Paren text]]\"]}"
+  },
+  {
+    "text": "#+TITLE: Doc¦\n* H\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"#+TITLE: Doc¦\\n* H\\n\"},\"stored\":[[\"file:~/org/main.org::+TITLE: Doc\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "#+TITLE: Doc¦\n* H\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"#+TITLE: Doc¦\\n* H\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::+TITLE: Doc]]\"]}"
+  },
+  {
+    "text": "¦\n* H\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"¦\\n* H\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "¦\n* H\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"¦\\n* H\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org]]\"]}"
+  },
+  {
+    "text": "  ** stars [1/3] text¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"  ** stars [1/3] text¦\\n\"},\"stored\":[[\"file:~/org/main.org::stars text\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "  ** stars [1/3] text¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"  ** stars [1/3] text¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::stars text]]\"]}"
+  },
+  {
+    "text": "text\n\n¦\n* H\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text\\n\\n¦\\n* H\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "text\n\n¦\n* H\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text\\n\\n¦\\n* H\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org]]\"]}"
+  },
+  {
+    "text": "# comment line¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"# comment line¦\\n\"},\"stored\":[[\"file:~/org/main.org::comment line\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "# comment line¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"# comment line¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::comment line]]\"]}"
+  },
+  {
+    "text": "* H\n#+NAME: tbl\n| a¦ | b |\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+NAME: tbl\\n| a¦ | b |\\n\"},\"stored\":[[\"file:~/org/main.org::*H\",\"H\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\n#+NAME: tbl\n| a¦ | b |\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+NAME: tbl\\n| a¦ | b |\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*H][H]]\"]}"
+  },
+  {
+    "text": "* H\n#+NAME: tbl\n¦| a | b |\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+NAME: tbl\\n¦| a | b |\\n\"},\"stored\":[[\"file:~/org/main.org::tbl\",\"tbl\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\n#+NAME: tbl\n¦| a | b |\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+NAME: tbl\\n¦| a | b |\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::tbl][tbl]]\"]}"
+  },
+  {
+    "text": "* H\n#+name: code\n#+begin_src sh\necho¦\n#+end_src\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+name: code\\n#+begin_src sh\\necho¦\\n#+end_src\\n\"},\"stored\":[[\"file:~/org/main.org::code\",\"code\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\n#+name: code\n#+begin_src sh\necho¦\n#+end_src\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+name: code\\n#+begin_src sh\\necho¦\\n#+end_src\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::code][code]]\"]}"
+  },
+  {
+    "text": "* H\n#+NAME: para\nA para¦graph.\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+NAME: para\\nA para¦graph.\\n\"},\"stored\":[[\"file:~/org/main.org::para\",\"para\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\n#+NAME: para\nA para¦graph.\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+NAME: para\\nA para¦graph.\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::para][para]]\"]}"
+  },
+  {
+    "text": "#+NAME: top\nText¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"#+NAME: top\\nText¦\\n\"},\"stored\":[[\"file:~/org/main.org::top\",\"top\"]],\"returned\":[]}"
+  },
+  {
+    "text": "#+NAME: top\nText¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"#+NAME: top\\nText¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::top][top]]\"]}"
+  },
+  {
+    "text": "* H\n#+NAME: lst\n- a¦\n- b\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+NAME: lst\\n- a¦\\n- b\\n\"},\"stored\":[[\"file:~/org/main.org::*H\",\"H\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\n#+NAME: lst\n- a¦\n- b\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+NAME: lst\\n- a¦\\n- b\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*H][H]]\"]}"
+  },
+  {
+    "text": "* H\n¦#+NAME: blk\n#+begin_example\nx\n#+end_example\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n¦#+NAME: blk\\n#+begin_example\\nx\\n#+end_example\\n\"},\"stored\":[[\"file:~/org/main.org::blk\",\"blk\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\n¦#+NAME: blk\n#+begin_example\nx\n#+end_example\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n¦#+NAME: blk\\n#+begin_example\\nx\\n#+end_example\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::blk][blk]]\"]}"
+  },
+  {
+    "text": "* H\nsee <<tgt>>¦ here\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\nsee <<tgt>>¦ here\\n\"},\"stored\":[[\"file:~/org/main.org::tgt\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\nsee <<tgt>>¦ here\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\nsee <<tgt>>¦ here\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::tgt]]\"]}"
+  },
+  {
+    "text": "* H\nsee <<t¦gt>> here\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\nsee <<t¦gt>> here\\n\"},\"stored\":[[\"file:~/org/main.org::tgt\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\nsee <<t¦gt>> here\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\nsee <<t¦gt>> here\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::tgt]]\"]}"
+  },
+  {
+    "text": "* H\n<<tgt>>¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n<<tgt>>¦\\n\"},\"stored\":[[\"file:~/org/main.org::tgt\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\n<<tgt>>¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n<<tgt>>¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::tgt]]\"]}"
+  },
+  {
+    "text": "<<first>>¦ x\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"<<first>>¦ x\\n\"},\"stored\":[[\"file:~/org/main.org::<<first>> x\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "<<first>>¦ x\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"<<first>>¦ x\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::<<first>> x]]\"]}"
+  },
+  {
+    "text": "* H\nsee <<tgt>>\n¦next\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\nsee <<tgt>>\\n¦next\\n\"},\"stored\":[[\"file:~/org/main.org::tgt\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\nsee <<tgt>>\n¦next\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\nsee <<tgt>>\\n¦next\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::tgt]]\"]}"
+  },
+  {
+    "text": "* H\nsee <<<radio>>>¦ x\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\nsee <<<radio>>>¦ x\\n\"},\"stored\":[[\"file:~/org/main.org::*H\",\"H\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\nsee <<<radio>>>¦ x\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\nsee <<<radio>>>¦ x\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*H][H]]\"]}"
+  },
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\nbody¦\\n\"},\"stored\":[[\"id:id-1\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[id:id-1][Head]]\"]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:ID: abc\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID: abc\\n:END:\\nbody¦\\n\"},\"stored\":[[\"id:abc\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:ID: abc\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID: abc\\n:END:\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[id:abc][Head]]\"]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: cid\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: cid\\n:ID:       id-1\\n:END:\\nbody¦\\n\"},\"stored\":[[\"file:~/org/main.org::#cid\",\"Head\"],[\"id:id-1\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: cid\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: cid\\n:ID:       id-1\\n:END:\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[id:id-1][Head]]\"]}"
+  },
+  {
+    "text": "* P\n:PROPERTIES:\n:ID: parent\n:END:\n** Child¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* P\\n:PROPERTIES:\\n:ID: parent\\n:END:\\n** Child¦\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n\"},\"stored\":[[\"id:id-1\",\"Child\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* P\n:PROPERTIES:\n:ID: parent\n:END:\n** Child¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* P\\n:PROPERTIES:\\n:ID: parent\\n:END:\\n** Child¦\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n\"},\"stored\":[],\"returned\":[\"[[id:id-1][Child]]\"]}"
+  },
+  {
+    "text": "* H [1/2] [[x][y]]¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H [1/2] [[x][y]]¦\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n\"},\"stored\":[[\"id:id-1\",\"H [1/2] y\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H [1/2] [[x][y]]¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H [1/2] [[x][y]]¦\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n\"},\"stored\":[],\"returned\":[\"[[id:id-1][H [1/2] y]]\"]}"
+  },
+  {
+    "text": "#+TITLE: The title\ntext¦\n* H\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\":PROPERTIES:\\n:ID:       id-1\\n:END:\\n#+TITLE: The title\\ntext¦\\n* H\\n\"},\"stored\":[[\"id:id-1::text\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "#+TITLE: The title\ntext¦\n* H\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\":PROPERTIES:\\n:ID:       id-1\\n:END:\\n#+TITLE: The title\\ntext¦\\n* H\\n\"},\"stored\":[],\"returned\":[\"[[id:id-1::text]]\"]}"
+  },
+  {
+    "text": "top¦\n* H\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\":PROPERTIES:\\n:ID:       id-1\\n:END:\\ntop¦\\n* H\\n\"},\"stored\":[[\"id:id-1\",\"main.org\"]],\"returned\":[]}"
+  },
+  {
+    "text": "top¦\n* H\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\":PROPERTIES:\\n:ID:       id-1\\n:END:\\ntop¦\\n* H\\n\"},\"stored\":[],\"returned\":[\"[[id:id-1][main.org]]\"]}"
+  },
+  {
+    "text": "* H\n#+NAME: n\n| a¦ |\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n#+NAME: n\\n| a¦ |\\n\"},\"stored\":[[\"id:id-1\",\"H\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\n#+NAME: n\n| a¦ |\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n#+NAME: n\\n| a¦ |\\n\"},\"stored\":[],\"returned\":[\"[[id:id-1][H]]\"]}"
+  },
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\nbody¦\\n\"},\"stored\":[[\"id:id-1\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Head][Head]]\"]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:ID: abc\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID: abc\\n:END:\\nbody¦\\n\"},\"stored\":[[\"id:abc\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:ID: abc\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID: abc\\n:END:\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[id:abc][Head]]\"]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: cid\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: cid\\n:ID:       id-1\\n:END:\\nbody¦\\n\"},\"stored\":[[\"file:~/org/main.org::#cid\",\"Head\"],[\"id:id-1\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: cid\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: cid\\n:END:\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::#cid][Head]]\"]}"
+  },
+  {
+    "text": "* P\n:PROPERTIES:\n:ID: parent\n:END:\n** Child¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* P\\n:PROPERTIES:\\n:ID: parent\\n:END:\\n** Child¦\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n\"},\"stored\":[[\"id:id-1\",\"Child\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* P\n:PROPERTIES:\n:ID: parent\n:END:\n** Child¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* P\\n:PROPERTIES:\\n:ID: parent\\n:END:\\n** Child¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Child][Child]]\"]}"
+  },
+  {
+    "text": "* H [1/2] [[x][y]]¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H [1/2] [[x][y]]¦\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n\"},\"stored\":[[\"id:id-1\",\"H [1/2] y\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H [1/2] [[x][y]]¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H [1/2] [[x][y]]¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*H \\\\[\\\\[x\\\\]\\\\[y\\\\]\\\\]][H y]]\"]}"
+  },
+  {
+    "text": "#+TITLE: The title\ntext¦\n* H\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\":PROPERTIES:\\n:ID:       id-1\\n:END:\\n#+TITLE: The title\\ntext¦\\n* H\\n\"},\"stored\":[[\"id:id-1::text\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "#+TITLE: The title\ntext¦\n* H\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"#+TITLE: The title\\ntext¦\\n* H\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::text]]\"]}"
+  },
+  {
+    "text": "top¦\n* H\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\":PROPERTIES:\\n:ID:       id-1\\n:END:\\ntop¦\\n* H\\n\"},\"stored\":[[\"id:id-1\",\"main.org\"]],\"returned\":[]}"
+  },
+  {
+    "text": "top¦\n* H\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"top¦\\n* H\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::top]]\"]}"
+  },
+  {
+    "text": "* H\n#+NAME: n\n| a¦ |\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n#+NAME: n\\n| a¦ |\\n\"},\"stored\":[[\"id:id-1\",\"H\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\n#+NAME: n\n| a¦ |\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+NAME: n\\n| a¦ |\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*H][H]]\"]}"
+  },
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\nbody¦\\n\"},\"stored\":[[\"id:id-1\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Head][Head]]\"]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:ID: abc\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID: abc\\n:END:\\nbody¦\\n\"},\"stored\":[[\"id:abc\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:ID: abc\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID: abc\\n:END:\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[id:abc][Head]]\"]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: cid\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: cid\\n:END:\\nbody¦\\n\"},\"stored\":[[\"file:~/org/main.org::#cid\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: cid\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: cid\\n:END:\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::#cid][Head]]\"]}"
+  },
+  {
+    "text": "* P\n:PROPERTIES:\n:ID: parent\n:END:\n** Child¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* P\\n:PROPERTIES:\\n:ID: parent\\n:END:\\n** Child¦\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n\"},\"stored\":[[\"id:id-1\",\"Child\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* P\n:PROPERTIES:\n:ID: parent\n:END:\n** Child¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* P\\n:PROPERTIES:\\n:ID: parent\\n:END:\\n** Child¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Child][Child]]\"]}"
+  },
+  {
+    "text": "* H [1/2] [[x][y]]¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H [1/2] [[x][y]]¦\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n\"},\"stored\":[[\"id:id-1\",\"H [1/2] y\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H [1/2] [[x][y]]¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H [1/2] [[x][y]]¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*H \\\\[\\\\[x\\\\]\\\\[y\\\\]\\\\]][H y]]\"]}"
+  },
+  {
+    "text": "#+TITLE: The title\ntext¦\n* H\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\":PROPERTIES:\\n:ID:       id-1\\n:END:\\n#+TITLE: The title\\ntext¦\\n* H\\n\"},\"stored\":[[\"id:id-1::text\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "#+TITLE: The title\ntext¦\n* H\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"#+TITLE: The title\\ntext¦\\n* H\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::text]]\"]}"
+  },
+  {
+    "text": "top¦\n* H\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\":PROPERTIES:\\n:ID:       id-1\\n:END:\\ntop¦\\n* H\\n\"},\"stored\":[[\"id:id-1\",\"main.org\"]],\"returned\":[]}"
+  },
+  {
+    "text": "top¦\n* H\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"top¦\\n* H\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::top]]\"]}"
+  },
+  {
+    "text": "* H\n#+NAME: n\n| a¦ |\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n#+NAME: n\\n| a¦ |\\n\"},\"stored\":[[\"id:id-1\",\"H\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\n#+NAME: n\n| a¦ |\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive-and-no-custom-id"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+NAME: n\\n| a¦ |\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*H][H]]\"]}"
+  },
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nbody¦\\n\"},\"stored\":[[\"file:~/org/main.org::*Head\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Head][Head]]\"]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:ID: abc\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID: abc\\n:END:\\nbody¦\\n\"},\"stored\":[[\"id:abc\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:ID: abc\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID: abc\\n:END:\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[id:abc][Head]]\"]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: cid\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: cid\\n:END:\\nbody¦\\n\"},\"stored\":[[\"file:~/org/main.org::#cid\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: cid\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: cid\\n:END:\\nbody¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::#cid][Head]]\"]}"
+  },
+  {
+    "text": "* P\n:PROPERTIES:\n:ID: parent\n:END:\n** Child¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* P\\n:PROPERTIES:\\n:ID: parent\\n:END:\\n** Child¦\\n\"},\"stored\":[[\"file:~/org/main.org::*Child\",\"Child\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* P\n:PROPERTIES:\n:ID: parent\n:END:\n** Child¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* P\\n:PROPERTIES:\\n:ID: parent\\n:END:\\n** Child¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*Child][Child]]\"]}"
+  },
+  {
+    "text": "* H [1/2] [[x][y]]¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H [1/2] [[x][y]]¦\\n\"},\"stored\":[[\"file:~/org/main.org::*H [[x][y]]\",\"H y\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H [1/2] [[x][y]]¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H [1/2] [[x][y]]¦\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*H \\\\[\\\\[x\\\\]\\\\[y\\\\]\\\\]][H y]]\"]}"
+  },
+  {
+    "text": "#+TITLE: The title\ntext¦\n* H\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"#+TITLE: The title\\ntext¦\\n* H\\n\"},\"stored\":[[\"file:~/org/main.org::text\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "#+TITLE: The title\ntext¦\n* H\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"#+TITLE: The title\\ntext¦\\n* H\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::text]]\"]}"
+  },
+  {
+    "text": "top¦\n* H\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"top¦\\n* H\\n\"},\"stored\":[[\"file:~/org/main.org::top\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "top¦\n* H\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"top¦\\n* H\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::top]]\"]}"
+  },
+  {
+    "text": "* H\n#+NAME: n\n| a¦ |\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+NAME: n\\n| a¦ |\\n\"},\"stored\":[[\"file:~/org/main.org::*H\",\"H\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H\n#+NAME: n\n| a¦ |\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* H\\n#+NAME: n\\n| a¦ |\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::*H][H]]\"]}"
+  },
+  {
+    "text": "* P\n:PROPERTIES:\n:ID: parent\n:END:\n** Child¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing",
+      "org_id_link_consider_parent_id": true
+    },
+    "expected": "{\"files\":{\"main.org\":\"* P\\n:PROPERTIES:\\n:ID: parent\\n:END:\\n** Child¦\\n\"},\"stored\":[[\"id:parent::*Child\",\"Child\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* P\n:PROPERTIES:\n:ID: parent\n:END:\n** Child\ntext¦\n",
+    "steps": [
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "use-existing",
+      "org_id_link_consider_parent_id": true
+    },
+    "expected": "{\"files\":{\"main.org\":\"* P\\n:PROPERTIES:\\n:ID: parent\\n:END:\\n** Child\\ntext¦\\n\"},\"stored\":[],\"returned\":[\"[[id:parent::*Child][Child]]\"]}"
+  },
+  {
+    "text": "* P\n:PROPERTIES:\n:ID: parent\n:END:\n** Child\ntext¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t",
+      "org_id_link_use_context": false
+    },
+    "expected": "{\"files\":{\"main.org\":\"* P\\n:PROPERTIES:\\n:ID: parent\\n:END:\\n** Child\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\ntext¦\\n\"},\"stored\":[[\"id:id-1\",\"Child\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* P\n:PROPERTIES:\n:ID: parent\n:END:\n#+NAME: x\n| a¦ |\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "expected": "{\"files\":{\"main.org\":\"* P\\n:PROPERTIES:\\n:ID: parent\\n:END:\\n#+NAME: x\\n| a¦ |\\n\"},\"stored\":[[\"id:parent\",\"P\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "store"
+      ]
+    ],
+    "options": {
+      "org_link_context_for_files": false
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nbody¦\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nbody¦\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "options": {
+      "org_link_context_for_files": false
+    },
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nbody¦\\n\"},\"stored\":[[\"file:~/org/main.org::*Head\",\"Head\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: cid\n:END:\nbody¦\n",
+    "steps": [
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: cid\\n:END:\\nbody¦\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n* B\n",
+    "steps": [
+      [
+        "goto",
+        "A"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "B"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "A"
+      ],
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* ¦A\\n* B\\n\"},\"stored\":[[\"file:~/org/main.org::*A\",\"A\"],[\"file:~/org/main.org::*B\",\"B\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n* B\n",
+    "steps": [
+      [
+        "goto",
+        "A"
+      ],
+      [
+        "store"
+      ],
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* ¦A\\n* B\\n\"},\"stored\":[[\"file:~/org/main.org::*A\",\"A\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n* B\n",
+    "steps": [
+      [
+        "goto",
+        "A"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "B"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "B"
+      ],
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* A\\n* ¦B\\n\"},\"stored\":[[\"file:~/org/main.org::*B\",\"B\"],[\"file:~/org/main.org::*A\",\"A\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* H¦\n",
+    "steps": [
+      [
+        "id"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H¦\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* H\n:PROPERTIES:\n:ID: x1\n:END:\n¦\n",
+    "steps": [
+      [
+        "id"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\n:PROPERTIES:\\n:ID: x1\\n:END:\\n¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "top¦\n* H\n",
+    "steps": [
+      [
+        "id"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\":PROPERTIES:\\n:ID:       id-1\\n:END:\\ntop¦\\n* H\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* H\nSCHEDULED: <2026-01-01 Thu>\nbody¦ text\n",
+    "steps": [
+      [
+        "id"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* H\\nSCHEDULED: <2026-01-01 Thu>\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\nbody¦ text\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head¦\n\n",
+    "steps": [
+      [
+        "store"
+      ],
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head[[*Head][Head]]¦\\n\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head¦\n\n",
+    "steps": [
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "\n\n"
+      ],
+      [
+        "insert",
+        "",
+        null,
+        "Mine"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head[[*Head][Mine]]¦\\n\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head¦\n\n",
+    "steps": [
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "\n\n"
+      ],
+      [
+        "insert",
+        "",
+        null,
+        ""
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head[[*Head]]¦\\n\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head¦\n\n",
+    "steps": [
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "\n\n"
+      ],
+      [
+        "insert",
+        "",
+        "",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head[[*Head][Head]]¦\\n\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head¦\n\n",
+    "steps": [
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "\n\n"
+      ],
+      [
+        "insert",
+        "",
+        "Head",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head[[*Head][Head]]¦\\n\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head¦\n",
+    "steps": [
+      [
+        "store"
+      ],
+      [
+        "visit",
+        "sub/other.org"
+      ],
+      [
+        "goto",
+        "line"
+      ],
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "files": [
+      [
+        "sub/other.org",
+        "* Other\nline\n"
+      ],
+      [
+        "x.org",
+        "* X\n"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n\",\"sub/other.org\":\"* Other\\n[[file:~/org/main.org::*Head][Head]]¦line\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head¦\n",
+    "steps": [
+      [
+        "visit",
+        "sub/other.org"
+      ],
+      [
+        "goto",
+        "Other"
+      ],
+      [
+        "store"
+      ],
+      [
+        "visit",
+        "main.org"
+      ],
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "files": [
+      [
+        "sub/other.org",
+        "* Other\nline\n"
+      ],
+      [
+        "x.org",
+        "* X\n"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"[[file:sub/other.org::*Other][Other]]¦* Head\\n\",\"sub/other.org\":\"* Other\\nline\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head¦\n",
+    "steps": [
+      [
+        "visit",
+        "x.org"
+      ],
+      [
+        "store"
+      ],
+      [
+        "visit",
+        "main.org"
+      ],
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "files": [
+      [
+        "sub/other.org",
+        "* Other\nline\n"
+      ],
+      [
+        "x.org",
+        "* X\n"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"[[file:x.org::*X][X]]¦* Head\\n\",\"x.org\":\"* X\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        null
+      ]
+    ],
+    "expected": "ERROR: No link selected"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https://orgmode.org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[https://orgmode.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https://orgmode.org",
+        "Org"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[https://orgmode.org][Org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "<https://orgmode.org/a>",
+        "x"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[https://orgmode.org/a][x]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:sub/x.org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[file:sub/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:../x.org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[file:~/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:~/org/sub/x.org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[file:sub/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:/tmp/x.org",
+        "/tmp/x.org"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[file:/tmp/x.org][/tmp/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:sub/x.org::*Head",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[file:sub/x.org::*Head]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:main.org::*Head",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[*Head]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:~/org/main.org::#cid",
+        "d"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[#cid][d]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:main.org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[file:main.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "*Head",
+        "Desc]"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[*Head][Desc]​]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "a[b]c",
+        "d"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[a\\\\[b\\\\]c][d]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:abc",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[id:abc]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file",
+        "~/org/sub/x.org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[file:sub/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:",
+        "/elsewhere/x.org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[file:/elsewhere/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[https:]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https:",
+        "https://a.b",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[https://a.b]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:sub/x.org",
+        null
+      ]
+    ],
+    "options": {
+      "org_link_file_path_type": "absolute"
+    },
+    "expected": "{\"files\":{\"main.org\":\"text[[file:~/org/sub/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:~/x.org",
+        null
+      ]
+    ],
+    "options": {
+      "org_link_file_path_type": "absolute"
+    },
+    "expected": "{\"files\":{\"main.org\":\"text[[file:~/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:/tmp/y.org",
+        null
+      ]
+    ],
+    "options": {
+      "org_link_file_path_type": "absolute"
+    },
+    "expected": "{\"files\":{\"main.org\":\"text[[file:/tmp/y.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:sub/x.org",
+        null
+      ]
+    ],
+    "options": {
+      "org_link_file_path_type": "noabbrev"
+    },
+    "expected": "{\"files\":{\"main.org\":\"text[[file:/home/u/org/sub/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:~/x.org",
+        null
+      ]
+    ],
+    "options": {
+      "org_link_file_path_type": "noabbrev"
+    },
+    "expected": "{\"files\":{\"main.org\":\"text[[file:/home/u/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:/tmp/y.org",
+        null
+      ]
+    ],
+    "options": {
+      "org_link_file_path_type": "noabbrev"
+    },
+    "expected": "{\"files\":{\"main.org\":\"text[[file:/tmp/y.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:sub/x.org",
+        null
+      ]
+    ],
+    "options": {
+      "org_link_file_path_type": "relative"
+    },
+    "expected": "{\"files\":{\"main.org\":\"text[[file:sub/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "file:~/x.org",
+        null
+      ]
+    ],
+    "options": {
+      "org_link_file_path_type": "relative"
+    },
+    "expected": "{\"files\":{\"main.org\":\"text[[file:../x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "C-u",
+        "~/org/sub/x.org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[file:sub/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "C-u",
+        "/tmp/x.org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[file:/tmp/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "C-u",
+        "sub/x.org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[file:sub/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "C-u C-u",
+        "~/org/sub/x.org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"text[[file:~/org/sub/x.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n¦\n",
+    "steps": [
+      [
+        "goto",
+        "A"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "\n\n"
+      ],
+      [
+        "insert",
+        "C-u C-u C-u",
+        "",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* A[[*A][A]]¦\\n\\n\"},\"stored\":[[\"file:~/org/main.org::*A\",\"A\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n¦\n",
+    "steps": [
+      [
+        "goto",
+        "A"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "\n\n"
+      ],
+      [
+        "insert",
+        "",
+        "",
+        null
+      ]
+    ],
+    "options": {
+      "org_link_keep_stored_after_insertion": true
+    },
+    "expected": "{\"files\":{\"main.org\":\"* A[[*A][A]]¦\\n\\n\"},\"stored\":[[\"file:~/org/main.org::*A\",\"A\"]],\"returned\":[]}"
+  },
+  {
+    "text": "see [[https://a.b][desc]]¦ x\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://a.b][desc]]¦ x\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see [[https://a.b][desc]]¦ x\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https://new.org",
+        "New"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://new.org][New]]¦ x\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see [[https://a¦.b][desc]] x\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://a.b][desc]]¦ x\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see [[https://a¦.b][desc]] x\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https://new.org",
+        "New"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://new.org][New]]¦ x\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see ¦[[https://a.b]] x\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://a.b]]¦ x\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see ¦[[https://a.b]] x\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https://new.org",
+        "New"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://new.org][New]]¦ x\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see [[file:a\\[1\\].org][d]]¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[file:a\\\\[1\\\\].org][d]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see [[file:a\\[1\\].org][d]]¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https://new.org",
+        "New"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://new.org][New]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see https://a.b/c¦ x\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://a.b/c]]¦ x\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see https://a.b/c¦ x\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https://new.org",
+        "New"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://new.org][New]]¦ x\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see <https://a.b/c>¦ x\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://a.b/c]]¦ x\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see <https://a.b/c>¦ x\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https://new.org",
+        "New"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://new.org][New]]¦ x\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see https://a.b/c¦.\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://a.b/c]]¦.\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "see https://a.b/c¦.\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https://new.org",
+        "New"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"see [[https://new.org][New]]¦.\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "[[x]]\n¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "expected": "ERROR: No link selected"
+  },
+  {
+    "text": "[[x]]\n¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https://new.org",
+        "New"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"[[x]]\\n[[https://new.org][New]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "[[a][b\nc]]¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"[[a][b\\nc]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "[[a][b\nc]]¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "https://new.org",
+        "New"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"[[https://new.org][New]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n* B\nend\n",
+    "steps": [
+      [
+        "goto",
+        "A"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "B"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "end"
+      ],
+      [
+        "insert-last"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* A\\n* B\\n[[*B][B]]\\n¦end\\n\"},\"stored\":[[\"file:~/org/main.org::*A\",\"A\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n* B\nend\n",
+    "steps": [
+      [
+        "goto",
+        "A"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "B"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "end"
+      ],
+      [
+        "insert-last"
+      ],
+      [
+        "insert-last"
+      ],
+      [
+        "insert-last"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* A\\n* B\\n[[*B][B]]\\n[[*A][A]]\\n¦end\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n* B\nend\n",
+    "steps": [
+      [
+        "goto",
+        "A"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "B"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "end"
+      ],
+      [
+        "insert-all"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* A\\n* B\\n- [[*B][B]]\\n- [[*A][A]]\\n¦end\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n* B\nend\n",
+    "steps": [
+      [
+        "goto",
+        "A"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "B"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "end"
+      ],
+      [
+        "insert-all",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* A\\n* B\\n- [[*B][B]]\\n- [[*A][A]]\\n¦end\\n\"},\"stored\":[[\"file:~/org/main.org::*B\",\"B\"],[\"file:~/org/main.org::*A\",\"A\"]],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n* B\nend\n",
+    "steps": [
+      [
+        "insert-all"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"¦* A\\n* B\\nend\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "x¦\n",
+    "steps": [
+      [
+        "store"
+      ],
+      [
+        "insert-last"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"x[[x][<no description>]]\\n¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n* B\nend\n",
+    "steps": [
+      [
+        "goto",
+        "A"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "B"
+      ],
+      [
+        "store"
+      ],
+      [
+        "goto",
+        "end"
+      ],
+      [
+        "visit",
+        "sub/other.org"
+      ],
+      [
+        "insert-all"
+      ]
+    ],
+    "files": [
+      [
+        "sub/other.org",
+        "* Other\nline\n"
+      ],
+      [
+        "x.org",
+        "* X\n"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* A\\n* B\\nend\\n\",\"sub/other.org\":\"- [[file:~/org/main.org::*B][B]]\\n- [[file:~/org/main.org::*A][A]]\\n¦* Other\\nline\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "text¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "",
+        null
+      ]
+    ],
+    "expected": "ERROR: No link selected"
+  },
+  {
+    "text": "* Head¦\n",
+    "steps": [
+      [
+        "store"
+      ],
+      [
+        "insert",
+        "",
+        "   ",
+        null
+      ]
+    ],
+    "expected": "ERROR: No link selected"
+  },
+  {
+    "text": "** Child entry\n¦",
+    "steps": [
+      [
+        "store"
+      ],
+      [
+        "annotation"
+      ]
+    ],
+    "options": {
+      "org_id_link_to_org_use_id": "create-if-interactive"
+    },
+    "expected": "{\"files\":{\"main.org\":\"** Child entry\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n¦\"},\"stored\":[[\"id:id-1\",\"Child entry\"]],\"returned\":[\"[[id:id-1][Child entry]]\"]}"
+  }
+]

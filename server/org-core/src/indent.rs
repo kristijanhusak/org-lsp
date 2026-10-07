@@ -139,6 +139,8 @@ struct Element {
     level: usize,
     /// The name of a drawer.
     name: String,
+    /// The element's `#+NAME:` (or a synonym), the last one.
+    label: Option<String>,
     /// A source or example block whose code keeps its indentation (`-i`).
     preserve: bool,
 }
@@ -199,6 +201,36 @@ fn offset(node: &SyntaxNode) -> (usize, usize) {
     (usize::from(range.start()), usize::from(range.end()))
 }
 
+/// The `#+NAME:` of an element (`org-element`'s `:name`): the last of its
+/// affiliated `NAME` keywords or their synonyms.
+fn affiliated_name(node: &SyntaxNode) -> Option<String> {
+    let mut name = None;
+    for keyword in node.children().take_while(ast::is_affiliated_keyword) {
+        let token = |kind| {
+            keyword
+                .children_with_tokens()
+                .filter_map(|child| child.into_token())
+                .find(|token| token.kind() == kind)
+                .map(|token| token.text().to_string())
+        };
+        let key = token(KEYWORD_KEY).unwrap_or_default().to_ascii_uppercase();
+        let key = key.trim_start_matches("#+").trim_end_matches(':');
+        if matches!(key, "NAME" | "DATA" | "LABEL" | "RESNAME" | "SOURCE" | "SRCNAME" | "TBLNAME") {
+            name = Some(token(KEYWORD_VALUE).unwrap_or_default().trim().to_string());
+        }
+    }
+    name
+}
+
+/// `org-element-at-point` for links: where the element at `at` begins,
+/// its affiliated keywords included, and its `#+NAME:`.
+pub fn element_at(text: &str, at: usize) -> Option<(usize, Option<String>)> {
+    let snapshot = Snapshot::new(text, &Settings::default());
+    let index = snapshot.element_at(at)?;
+    let element = &snapshot.elements[index];
+    Some((element.begin, element.label.clone()))
+}
+
 /// Whether `text` has the `-i` switch of a block that keeps its
 /// indentation.
 fn has_preserve_switch(node: &SyntaxNode) -> bool {
@@ -256,6 +288,7 @@ impl Snapshot {
                 String::new()
             };
             let preserve = matches!(kind, Kind::SrcBlock | Kind::ExampleBlock) && has_preserve_switch(&child);
+            let label = affiliated_name(&child);
             let index = self.elements.len();
             match parent {
                 Some(parent) => self.children[parent].push(index),
@@ -271,6 +304,7 @@ impl Snapshot {
                 parent,
                 level,
                 name,
+                label,
                 preserve,
             });
             let contents = self.contents(&child, kind, post_affiliated, offset(&child).1);
@@ -293,6 +327,7 @@ impl Snapshot {
                         parent: Some(index),
                         level: 0,
                         name: String::new(),
+                        label: None,
                         preserve: false,
                     });
                 }

@@ -84,6 +84,10 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+V t`, `Ctrl+C Ctrl+V Ctrl+T` | `org.babel.tangle` | Tangle the file's code blocks |
 | `Ctrl+C Shift+8` | `org.table.recalculate.line` | Recalculate the table's current line |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
+| `Ctrl+C l` | `org.link.store` | Store a link to the place at the cursor |
+| `Ctrl+C Ctrl+L` | `org.link.insert` | Insert a link, or edit the one at the cursor |
+| `Ctrl+C Alt+L` | `org.link.insert.last` | Insert the last stored link |
+| `Ctrl+C Ctrl+Alt+L` | `org.link.insert.all` | Insert all stored links |
 | `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Shift+4` | `org.archive.subtree` | Archive the subtree |
 | `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
 | `Ctrl+C Ctrl+X a` | `org.archive.tag` | Toggle the ARCHIVE tag |
@@ -165,6 +169,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
+| `Ctrl+C l` | `org.link.store` | Store a link to the place at the cursor |
 | `Shift+4`, `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Shift+4` | `org.archive.subtree` | Archive the subtree |
 | `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
 | `Ctrl+C Ctrl+X a` | `org.archive.tag` | Toggle the ARCHIVE tag |
@@ -275,6 +280,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
+| `Ctrl+C l` | `org.link.store` | Store a link to the place at the cursor |
 | `Shift+4`, `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Shift+4` | `org.archive.subtree` | Archive the subtree |
 | `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
 | `Ctrl+C Ctrl+X a` | `org.archive.tag` | Toggle the ARCHIVE tag |
@@ -359,6 +365,8 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "b", "t"], "commands": ["org.babel.tangle"] },
   { "before": ["<leader>", "o", "*"], "commands": ["org.table.recalculate"] },
   { "before": ["<leader>", "o", "o"], "commands": ["org.open"] },
+  { "before": ["<leader>", "o", "l", "s"], "commands": ["org.link.store"] },
+  { "before": ["<leader>", "o", "l", "i"], "commands": ["org.link.insert"] },
   { "before": ["<leader>", "o", "$"], "commands": ["org.archive.subtree"] },
   { "before": ["<leader>", "o", "x", "A"], "commands": ["org.archive.sibling"] },
   { "before": ["<leader>", "o", "A"], "commands": ["org.archive.tag"] },
@@ -473,6 +481,11 @@ every file; outside Org files the commands say they do not apply):
 | `org.table.recalculate.line` | Org: Recalculate the table's current line |
 | `org.table.iterate` | Org: Recalculate the table until it does not change |
 | `org.open` | Org: Open the link or thing at the cursor |
+| `org.link.store` | Org: Store a link to the place at the cursor |
+| `org.link.insert` | Org: Insert a link, or edit the one at the cursor |
+| `org.link.insert.last` | Org: Insert the last stored link |
+| `org.link.insert.all` | Org: Insert all stored links |
+| `org.id.create` | Org: Create an ID for the entry |
 | `org.archive.subtree` | Org: Archive the subtree |
 | `org.archive.sibling` | Org: Archive the subtree under its Archive sibling |
 | `org.archive.tag` | Org: Toggle the ARCHIVE tag |

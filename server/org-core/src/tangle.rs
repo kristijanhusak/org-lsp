@@ -1115,11 +1115,11 @@ fn link_comments(
         (Some(name), _) => name.clone(),
         (None, Some(entry)) => match entry.properties.iter().find(|(key, _)| key == "CUSTOM_ID") {
             Some((_, id)) => format!("#{id}"),
-            None => format!("*{}", normalize_string(&clean_heading(entry, outline), false)),
+            None => format!("*{}", crate::link::normalize_string(&clean_heading(entry, outline), false)),
         },
         (None, None) => {
             let line_end = text[block.begin..].find('\n').map_or(text.len(), |at| block.begin + at);
-            normalize_string(&text[block.begin..line_end], true)
+            crate::link::normalize_string(&text[block.begin..line_end], true)
         }
     };
     let relative = relative_path(path, file.parent().unwrap_or(Path::new("")));
@@ -1161,55 +1161,6 @@ fn clean_heading(entry: &crate::outline::Entry, outline: &Outline) -> String {
         Some(rest) if rest.is_empty() || rest.starts_with(' ') => rest.trim_start().to_string(),
         _ => title,
     }
-}
-
-/// `org-link--normalize-string`: statistics cookies and runs of blanks
-/// gone; with `context`, leading `#` and `*` too.
-fn normalize_string(text: &str, context: bool) -> String {
-    let mut out = String::new();
-    let chars: Vec<char> = text.chars().collect();
-    let mut at = 0;
-    while at < chars.len() {
-        if chars[at] == '[' {
-            // `[1/2]`, `[50%]`, `[/]`, `[%]`
-            let mut end = at + 1;
-            while end < chars.len() && chars[end].is_ascii_digit() {
-                end += 1;
-            }
-            let cookie = if end < chars.len() && chars[end] == '%' {
-                Some(end)
-            } else if end < chars.len() && chars[end] == '/' {
-                end += 1;
-                while end < chars.len() && chars[end].is_ascii_digit() {
-                    end += 1;
-                }
-                Some(end - 1)
-            } else {
-                None
-            };
-            if let Some(last) = cookie.filter(|last| chars.get(last + 1) == Some(&']')) {
-                out.push(' ');
-                at = last + 2;
-                continue;
-            }
-        }
-        out.push(chars[at]);
-        at += 1;
-    }
-    let mut string = out.split([' ', '\t']).filter(|word| !word.is_empty()).collect::<Vec<_>>().join(" ");
-    string = trim(&string, false);
-    if context {
-        loop {
-            if string.starts_with('(') && string.ends_with(')') && string.len() > 1 {
-                string = trim(&string[1..string.len() - 1], false);
-            } else if string.starts_with(['#', '*']) {
-                string = string.trim_start_matches(['#', '*']).trim_start_matches([' ', '\t']).to_string();
-            } else {
-                break;
-            }
-        }
-    }
-    string
 }
 
 /// The Org text before a block (`:comments org`, `both`): from its

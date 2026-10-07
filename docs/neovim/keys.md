@@ -80,6 +80,8 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>obt` | `org.babel.tangle` | Tangle the file's code blocks |
 | `<Leader>o*` | `org.table.recalculate` | Recalculate the table |
 | `<Leader>oo` | `org.open` | Open the link or thing at the cursor |
+| `<Leader>ols` | `org.link.store` | Store a link to the place at the cursor |
+| `<Leader>oli` | `org.link.insert` | Insert a link, or edit the one at the cursor |
 | `<Leader>o$` | `org.archive.subtree` | Archive the subtree |
 | `<Leader>oxA` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
 | `<Leader>oA` | `org.archive.tag` | Toggle the ARCHIVE tag |
@@ -158,6 +160,7 @@ The other options are in [configuration.md](configuration.md).
 | `<C-c><C-w>`, `<Leader>or` | `org.refile` | Refile the entry |
 | `z`, `<Leader>ona` | `org.add.note` | Add a note to the entry |
 | `<C-c><C-o>`, `<Leader>oo` | `org.open` | Open the link or thing at the cursor |
+| `<C-c>l`, `<Leader>ols` | `org.link.store` | Store a link to the place at the cursor |
 | `$`, `<C-c><C-x><C-s>`, `<C-c>$`, `<Leader>o$` | `org.archive.subtree` | Archive the subtree |
 | `<C-c><C-x>A`, `<Leader>oxA` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
 | `<C-c><C-x>a`, `<Leader>oA` | `org.archive.tag` | Toggle the ARCHIVE tag |
@@ -203,6 +206,9 @@ The other options are in [configuration.md](configuration.md).
 | `org.table.hline.above` | Insert a rule above the table row |
 | `org.table.recalculate.line` | Recalculate the table's current line |
 | `org.table.iterate` | Recalculate the table until it does not change |
+| `org.link.insert.last` | Insert the last stored link |
+| `org.link.insert.all` | Insert all stored links |
+| `org.id.create` | Create an ID for the entry |
 | `org.archive.done` | Archive the subtrees without open TODO items |
 | `org.archive.tag.done` | Tag the subtrees without open TODO items as archived |
 | `org.date.later.hours` | Agenda: move the time one hour later |
