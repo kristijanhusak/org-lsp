@@ -542,7 +542,6 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   `<c>` `<l>` cookies, links counted by what they show) and every
   headline's tags in their column (`(org-align-tags t)`). Indentation
   stays with range formatting, as Emacs keeps it apart.
-- Next: diagnostics.
 - Done: indentation as Org does it. `org-indent-line` on new lines
   (on-type formatting after a line break: `indentexpr` in Neovim, format
   on type in VS Code), `org-indent-region` on a range (range formatting:
@@ -559,7 +558,32 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   `wrap-prefix` in `tests/indent`; Neovim shows them as inline virtual
   text, VS Code as decorations. Neither can indent the lines a long line
   wraps into (`wrap-prefix`); Helix cannot show them at all.
-- `org-lint` checks as diagnostics.
+- Done, in part: `org-lint` as diagnostics (`org_lint`, `org_lint_ignore`),
+  on every change, a warning or, for checkers of low trust, information,
+  the checker's name as the code. 47 checkers, in Org's order:
+  misplaced headings, duplicates (custom IDs, names, targets, footnote
+  definitions), affiliated keywords (orphaned, obsolete, before an
+  independent keyword), deprecated syntax (export blocks, header
+  properties, `CATEGORY`, `QUOTE`, `file+`, percent escapes, include
+  markup), blocks without a language or backend, Babel calls and header
+  arguments (unknown ones and values, empty ones, for every language's
+  own, from `scripts/update-lint-tables.py`), links (fuzzy, custom ID,
+  coderef, local files, brackets around them), properties (special,
+  effort, `ID`, the drawer misplaced), footnotes, keywords without a
+  colon, blocks and drawers left open, planning (misplaced, inactive,
+  repeaters), indented diary sexps, spurious colons in tags, setup files
+  and bibliographies that do not exist, `#+PRINT_BIBLIOGRAPHY:`, export
+  options (`#+OPTIONS:` items, misspelled properties), beamer frames.
+  Not yet: `wrong-include-link-parameter`,
+  `invalid-macro-argument-and-template`, `named-result`,
+  `extraneous-element-in-footnote-section`, `invalid-image-alignment`,
+  `invalid-cite-export-declaration`, `incomplete-citation`, `item-number`,
+  `priority`, `LaTeX-$`, `timestamp-syntax`, `clock-syntax`.
+  Left out: `suspicious-language-in-src-block` (it asks Emacs which major
+  modes it has), `invalid-id-link` (Org never reports it in a file: an ID
+  it does not know falls back on the current file). Differences:
+  `misplaced-heading` reports where the heading starts; Org reports the
+  match data `org-element-at-point` leaves, wherever that is.
 
 ### 14. Editors and distribution
 
@@ -641,6 +665,7 @@ Emacs in `tests/tblfm/cases.json`.
   | List items: the meta and shifted keys, `C-c C-c` and `C-c ^` on an item | `tests/lists/cases.json` | `scripts/update-lists-fixtures.py` | `scripts/fuzz-lists.py` |
   | Setting tags (`org-set-tags-command`: fast tag selection by key, the completion prompt's answer) | `tests/tags/cases.json` | `scripts/update-tags-fixtures.py` | `scripts/fuzz-tags.py` |
   | Archiving | `tests/archive/cases.json` | `scripts/update-archive-fixtures.py` | `scripts/fuzz-archive.py` |
+  | `org-lint` | `tests/lint/cases.json` | `scripts/lint_reference.py` (and `scripts/update-lint-tables.py` for Org's tables) | `scripts/fuzz-lint.py` |
   | Storing and inserting links (`org-store-link`, `org-insert-link` and its relatives, `org-id-get-create`) | `tests/link/cases.json` | `scripts/link_reference.py` | `scripts/fuzz-link.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.

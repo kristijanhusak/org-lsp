@@ -81,7 +81,7 @@ struct Block {
 type Params = HashMap<String, Value>;
 
 #[derive(Debug, Clone, PartialEq)]
-enum Value {
+pub(crate) enum Value {
     Text(String),
     Number(i64),
     /// No value at all (`:mkdirp` alone).
@@ -577,6 +577,16 @@ fn merged_params(
 /// `org-babel-parse-header-arguments`: `:key value` pairs, split where a
 /// colon follows a blank outside brackets and quotes.
 fn parse_header_arguments(text: &str) -> Result<Vec<(String, Value)>, String> {
+    parse_header_arguments_with(text, false)
+}
+
+/// `org-babel-parse-header-arguments` with NO-EVAL: Lisp is left as it
+/// is written.
+pub(crate) fn parse_header_arguments_no_eval(text: &str) -> Vec<(String, Value)> {
+    parse_header_arguments_with(text, true).unwrap_or_default()
+}
+
+fn parse_header_arguments_with(text: &str, no_eval: bool) -> Result<Vec<(String, Value)>, String> {
     if text.trim().is_empty() {
         return Ok(Vec::new());
     }
@@ -646,7 +656,8 @@ fn parse_header_arguments(text: &str) -> Result<Vec<(String, Value)>, String> {
             Some(space) if !part[space..].trim_start_matches(blank).is_empty() => {
                 let key = part[..space].to_string();
                 let value = part[space..].trim_start_matches(blank).trim_end_matches(blank);
-                out.push((key.clone(), read(&key, value)?));
+                let value = if no_eval { read_no_eval(value) } else { read(&key, value)? };
+                out.push((key.clone(), value));
             }
             _ => {
                 let key = part.trim_end_matches(blank);
@@ -657,6 +668,21 @@ fn parse_header_arguments(text: &str) -> Result<Vec<(String, Value)>, String> {
         }
     }
     Ok(out)
+}
+
+/// `org-babel-read` with NO-EVAL: a number, a string in quotes, or the
+/// text as it is.
+fn read_no_eval(cell: &str) -> Value {
+    if let Ok(number) = cell.parse::<i64>() {
+        return Value::Number(number);
+    }
+    if cell.starts_with('(') || cell.starts_with('\'') || cell.starts_with('`') {
+        return Value::Text(cell.to_string());
+    }
+    match read(":", cell) {
+        Ok(value) => value,
+        Err(_) => Value::Text(cell.to_string()),
+    }
 }
 
 /// `org-babel-read`: a number, a string in quotes, or the text. Lisp is

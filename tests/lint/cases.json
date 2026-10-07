@@ -1,0 +1,7798 @@
+[
+  {
+    "text": "* Heading\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "** Sub heading [1/2] :tag:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "* TODO [#A] Task :a::b:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ]
+    ]
+  },
+  {
+    "text": "* COMMENT QUOTE old\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ]
+    ]
+  },
+  {
+    "text": "* QUOTE section\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ]
+    ]
+  },
+  {
+    "text": "* Footnotes\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "Paragraph** Oops heading\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        25,
+        "low",
+        "Possibly misplaced heading line",
+        "misplaced-heading"
+      ]
+    ]
+  },
+  {
+    "text": "text ** not a heading\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": ":PROPERTIES:\n:CUSTOM_ID: one\n:EFFORT: 1:00\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": ":PROPERTIES:\n:CUSTOM_ID: one\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": ":PROPERTIES:\n:EFFORT: soon\n:ID: a::b\n:TODO: x\n:cache: yes\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        13,
+        "nil",
+        "Invalid effort duration format: \"soon\"",
+        "invalid-effort-property"
+      ],
+      [
+        27,
+        "nil",
+        "IDs should not include \"::\": \"a::b\"",
+        "invalid-id-property"
+      ],
+      [
+        37,
+        "nil",
+        "Special property \"TODO\" found in a properties drawer",
+        "special-property-in-properties-drawer"
+      ],
+      [
+        46,
+        "low",
+        "Deprecated syntax for \"cache\".  Use :header-args: instead",
+        "deprecated-header-syntax"
+      ]
+    ]
+  },
+  {
+    "text": ":PROPERTIES:\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "SCHEDULED: <2024-01-01 Mon +1w> DEADLINE: <2024-01-02 Tue +2d>\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ]
+    ]
+  },
+  {
+    "text": "SCHEDULED: [2024-01-01 Mon]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ]
+    ]
+  },
+  {
+    "text": "DEADLINE: [2024-01-01 Mon]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ]
+    ]
+  },
+  {
+    "text": "  SCHEDULED: <2024-01-01 Mon>\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ]
+    ]
+  },
+  {
+    "text": "#+NAME: tbl\n| a | b |\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+TBLNAME: other\n| x |\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Obsolete affiliated keyword: \"TBLNAME\".  Use \"NAME\" instead",
+        "obsolete-affiliated-keywords"
+      ]
+    ]
+  },
+  {
+    "text": "#+NAME: alone\n\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Orphaned affiliated keyword: \"NAME\"",
+        "orphaned-affiliated-keywords"
+      ]
+    ]
+  },
+  {
+    "text": "#+CAPTION: alone\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Orphaned affiliated keyword: \"CAPTION\"",
+        "orphaned-affiliated-keywords"
+      ]
+    ]
+  },
+  {
+    "text": "#+ATTR_HTML: :width 10\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Orphaned affiliated keyword: \"ATTR_HTML\"",
+        "orphaned-affiliated-keywords"
+      ]
+    ]
+  },
+  {
+    "text": "#+RESULTS:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+TITLE: Doc\n#+NAME: n\nPara.\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Independent keyword TITLE may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ]
+    ]
+  },
+  {
+    "text": "#+BEGIN_SRC\nx\n#+END_SRC\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_export\nx\n#+end_export\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+BEGIN_HTML\n<b>\n#+END_HTML\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated syntax for export block.  Use \"BEGIN_EXPORT HTML\" instead",
+        "deprecated-export-blocks"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_example\n#+notakeyword here\n:DRAWER:\n#+end_example\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        16,
+        "low",
+        "Possible missing colon in keyword \"notakeyword\"",
+        "invalid-keyword-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "#+BEGIN_QUOTE\nunfinished\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible incomplete block \"#+BEGIN_QUOTE\"",
+        "invalid-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+END_SRC trailing\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Invalid block closing line \"#+END_SRC trailing\"",
+        "invalid-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_center\nok\n#+end_center\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+BEGIN: clocktable\n#+END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+TITLE without colon\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible missing colon in keyword \"TITLE\"",
+        "invalid-keyword-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "#+ \n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible missing colon in keyword \"\"",
+        "invalid-keyword-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "#+CATEGORY: one\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+CATEGORY: two\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+PROPERTY: cache yes\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated syntax for \"cache\".  Use header-args instead",
+        "deprecated-header-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "#+SETUPFILE: missing.org\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Non-existent setup file \"missing.org\"",
+        "non-existent-setupfile-parameter"
+      ]
+    ]
+  },
+  {
+    "text": "#+SETUPFILE: \"other.org\"\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+BIBLIOGRAPHY: refs.bib\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+INCLUDE: \"other.org\" HTML\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Obsolete markup \"HTML\" in INCLUDE keyword.  Use \"export HTML\" instead",
+        "obsolete-include-markup"
+      ]
+    ]
+  },
+  {
+    "text": "#+INCLUDE: x.org src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Non-existent file argument in INCLUDE keyword",
+        "wrong-include-link-parameter"
+      ]
+    ]
+  },
+  {
+    "text": "[cite:@key] in text\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        20,
+        "nil",
+        "Possibly missing \"PRINT_BIBLIOGRAPHY\" keyword",
+        "missing-print-bibliography"
+      ]
+    ]
+  },
+  {
+    "text": "#+PRINT_BIBLIOGRAPHY:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": ":LOGBOOK:\n- note\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": ":NOTES:\n:INNER:\nx\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        8,
+        "low",
+        "Possible misleading drawer entry \":INNER:\"",
+        "incomplete-drawer"
+      ]
+    ]
+  },
+  {
+    "text": ":DANGLING:\nno end\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible incomplete drawer \":DANGLING:\"",
+        "incomplete-drawer"
+      ]
+    ]
+  },
+  {
+    "text": ":END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible incomplete drawer \":END:\"",
+        "incomplete-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "  %%(diary-anniversary 1 1 2000)\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible indented diary-sexp",
+        "indented-diary-sexp"
+      ]
+    ]
+  },
+  {
+    "text": "%%(diary-float t 1 1)\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "[[*Heading]] and [[*Missing]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown fuzzy location \"Heading\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        17,
+        "nil",
+        "Unknown fuzzy location \"Missing\"",
+        "invalid-fuzzy-link"
+      ]
+    ]
+  },
+  {
+    "text": "[[#one]] [[#two]] [[target]] <<target>> <<target>>\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown custom ID \"one\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        9,
+        "nil",
+        "Unknown custom ID \"two\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        29,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        40,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ]
+    ]
+  },
+  {
+    "text": "[[(ref)]] [[(missing)]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown coderef \"ref\"",
+        "invalid-coderef-link"
+      ],
+      [
+        10,
+        "nil",
+        "Unknown coderef \"missing\"",
+        "invalid-coderef-link"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src sh -r\necho hi (ref:ref)\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "[[file:other.org]] [[file:nope.txt]] [[./missing/x.png]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        19,
+        "low",
+        "Link to non-existent local file \"nope.txt\"",
+        "link-to-local-file"
+      ],
+      [
+        37,
+        "low",
+        "Link to non-existent local file \"./missing/x.png\"",
+        "link-to-local-file"
+      ]
+    ]
+  },
+  {
+    "text": "[[file+sys:a.pdf]] [[file+emacs:b.org]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Deprecated \"file+sys\" link type",
+        "file-application"
+      ],
+      [
+        0,
+        "low",
+        "Link to non-existent local file \"a.pdf\"",
+        "link-to-local-file"
+      ],
+      [
+        19,
+        "nil",
+        "Deprecated \"file+emacs\" link type",
+        "file-application"
+      ],
+      [
+        19,
+        "low",
+        "Link to non-existent local file \"b.org\"",
+        "link-to-local-file"
+      ]
+    ]
+  },
+  {
+    "text": "[[https://a.b][desc [with] bracket]] ]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Trailing ']' after link end",
+        "trailing-bracket-after-link"
+      ]
+    ]
+  },
+  {
+    "text": "[[https://a.b][open [ bracket]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "No closing ']' matches '[' in link description: open [ bracket",
+        "unclosed-brackets-in-link-description"
+      ]
+    ]
+  },
+  {
+    "text": "[[a%20b]] [[a%2Fb]] [[100%]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Link escaped with obsolete percent-encoding syntax",
+        "percent-encoding-link-escape"
+      ],
+      [
+        0,
+        "nil",
+        "Unknown fuzzy location \"a%20b\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        10,
+        "nil",
+        "Unknown fuzzy location \"a%2Fb\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        20,
+        "nil",
+        "Unknown fuzzy location \"100%\"",
+        "invalid-fuzzy-link"
+      ]
+    ]
+  },
+  {
+    "text": "[[tbl]] [[TBL]] [[other]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown fuzzy location \"tbl\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        8,
+        "nil",
+        "Unknown fuzzy location \"TBL\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        16,
+        "nil",
+        "Unknown fuzzy location \"other\"",
+        "invalid-fuzzy-link"
+      ]
+    ]
+  },
+  {
+    "text": "[fn:1] and [fn:2] and [fn:inline:def]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        11,
+        "nil",
+        "Missing definition for footnote [2]",
+        "undefined-footnote-reference"
+      ]
+    ]
+  },
+  {
+    "text": "[fn:1] defined\n[fn:3] lonely\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        15,
+        "nil",
+        "No reference for footnote definition [3]",
+        "unreferenced-footnote-definition"
+      ]
+    ]
+  },
+  {
+    "text": "[fn:3] again\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "No reference for footnote definition [3]",
+        "unreferenced-footnote-definition"
+      ]
+    ]
+  },
+  {
+    "text": "\\begin{orgframe} \\end{orgframe}\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        17,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ]
+    ]
+  },
+  {
+    "text": "- item\n- item\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "1. one\n3. three\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        7,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ]
+    ]
+  },
+  {
+    "text": "#+MACRO: m $1\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "Plain line with ** stars inside.\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+begin_src python :results output :foo 1\nprint(1)\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown header argument \":foo\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src sh -r :results silent append\nx\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Forbidden combination in header \":results\": silent, append",
+        "wrong-header-value"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src emacs-lisp :results table list :exports bogus :tangle out.el\n()\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Unknown value \"bogus\" for header \":exports\"",
+        "wrong-header-value"
+      ],
+      [
+        0,
+        "low",
+        "Forbidden combination in header \":results\": table, list",
+        "wrong-header-value"
+      ]
+    ]
+  },
+  {
+    "text": "#+HEADER: :var x=1\n#+HEADER: :bad\n#+begin_src R :session\n1\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        34,
+        "low",
+        "Empty value in header argument \":bad\"",
+        "empty-header-argument"
+      ],
+      [
+        34,
+        "low",
+        "Empty value in header argument \":session\"",
+        "empty-header-argument"
+      ],
+      [
+        34,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src unknownlang :file-mode 755\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Unknown source block language: 'unknownlang'",
+        "suspicious-language-in-src-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+CALL: f() :results raw\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+CALL: f[:x 1](a=1) [:results raw]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Missing colon in header argument \"[:results\"",
+        "wrong-header-argument"
+      ],
+      [
+        0,
+        "nil",
+        "Unknown header argument \":x\"",
+        "wrong-header-argument"
+      ],
+      [
+        0,
+        "nil",
+        "Babel call's end header must not be wrapped within brackets",
+        "invalid-babel-call-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+CALL: (x)\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Invalid syntax in babel call block",
+        "invalid-babel-call-block"
+      ]
+    ]
+  },
+  {
+    "text": "Inline call_g[:bad 1](2)[:results raw] and src_python[:results value :nope]{1+1} here.\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        7,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        43,
+        "low",
+        "Empty value in header argument \":nope\"",
+        "empty-header-argument"
+      ],
+      [
+        43,
+        "nil",
+        "Unknown header argument \":nope\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+PROPERTY: header-args :results silent :zz 1\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+PROPERTY: header-args:python+ :session x :pp 2\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown header argument \":pp\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": ":PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        13,
+        "nil",
+        "Unknown header argument \":qq\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+OPTIONS: toc:nil num:t bogus:1 H:2 lonely:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Missing value for option item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        0,
+        "low",
+        "Unknown OPTIONS item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        0,
+        "low",
+        "Unknown OPTIONS item \"bogus\"",
+        "unknown-options-item"
+      ]
+    ]
+  },
+  {
+    "text": "#+OPTIONS: \\n:t ^:{} tex:verbatim author\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": ":PROPERTIES:\n:TITLE: x\n:HTML_HEAD: y\n:DESCRIPTION: d\n:EXPORT_TITLE: z\n:CATEGORY: c\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        13,
+        "low",
+        "Potentially misspelled global export option \"TITLE\".  Consider \"EXPORT_TITLE\".",
+        "misspelled-export-option"
+      ],
+      [
+        23,
+        "low",
+        "Potentially misspelled nilexport option \"HTML_HEAD\" in html export backend.  Consider \"EXPORT_HTML_HEAD\".",
+        "misspelled-export-option"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src emacs-lisp :results table list :exports bogus :tangle out.el\n()\n#+end_src\n[[tbl]] [[TBL]] [[other]]\n[[https://a.b][open [ bracket]]\n1. one\n3. three\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Unknown value \"bogus\" for header \":exports\"",
+        "wrong-header-value"
+      ],
+      [
+        0,
+        "low",
+        "Forbidden combination in header \":results\": table, list",
+        "wrong-header-value"
+      ],
+      [
+        86,
+        "nil",
+        "Unknown fuzzy location \"tbl\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        94,
+        "nil",
+        "Unknown fuzzy location \"TBL\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        102,
+        "nil",
+        "Unknown fuzzy location \"other\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        112,
+        "low",
+        "No closing ']' matches '[' in link description: open [ bracket",
+        "unclosed-brackets-in-link-description"
+      ],
+      [
+        151,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ]
+    ]
+  },
+  {
+    "text": "#+CALL: f[:x 1](a=1) [:results raw]\n#+BEGIN_SRC\nx\n#+END_SRC\n#+TITLE: Doc\n#+NAME: n\nPara.\n1. one\n3. three\n[fn:1] and [fn:2] and [fn:inline:def]\n:PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n#+PROPERTY: header-args :results silent :zz 1\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Missing colon in header argument \"[:results\"",
+        "wrong-header-argument"
+      ],
+      [
+        0,
+        "nil",
+        "Unknown header argument \":x\"",
+        "wrong-header-argument"
+      ],
+      [
+        0,
+        "nil",
+        "Babel call's end header must not be wrapped within brackets",
+        "invalid-babel-call-block"
+      ],
+      [
+        36,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ],
+      [
+        60,
+        "low",
+        "Independent keyword TITLE may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ],
+      [
+        96,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ],
+      [
+        105,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        116,
+        "nil",
+        "Missing definition for footnote [2]",
+        "undefined-footnote-reference"
+      ],
+      [
+        143,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        224,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+TITLE: Doc\n#+NAME: n\nPara.\nSCHEDULED: <2024-01-01 Mon +1w> DEADLINE: <2024-01-02 Tue +2d>\n[[https://a.b][open [ bracket]]\n#+SETUPFILE: \"other.org\"\n#+TBLNAME: other\n| x |\n:PROPERTIES:\n:END:\n\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Independent keyword TITLE may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ],
+      [
+        29,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        92,
+        "low",
+        "No closing ']' matches '[' in link description: open [ bracket",
+        "unclosed-brackets-in-link-description"
+      ],
+      [
+        124,
+        "low",
+        "Independent keyword SETUPFILE may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ],
+      [
+        149,
+        "nil",
+        "Obsolete affiliated keyword: \"TBLNAME\".  Use \"NAME\" instead",
+        "obsolete-affiliated-keywords"
+      ],
+      [
+        172,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+OPTIONS: toc:nil num:t bogus:1 H:2 lonely:\n* Footnotes\n#+CALL: (x)\n[[*Heading]] and [[*Missing]]\n[[https://a.b][open [ bracket]]\n:PROPERTIES:\n:TITLE: x\n:HTML_HEAD: y\n:DESCRIPTION: d\n:EXPORT_TITLE: z\n:CATEGORY: c\n:END:\n#+PROPERTY: header-args :results silent :zz 1\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Missing value for option item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        0,
+        "low",
+        "Unknown OPTIONS item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        0,
+        "low",
+        "Unknown OPTIONS item \"bogus\"",
+        "unknown-options-item"
+      ],
+      [
+        45,
+        "nil",
+        "Extraneous elements in footnote section are not exported",
+        "extraneous-element-in-footnote-section"
+      ],
+      [
+        57,
+        "nil",
+        "Invalid syntax in babel call block",
+        "invalid-babel-call-block"
+      ],
+      [
+        69,
+        "nil",
+        "Unknown fuzzy location \"Heading\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        86,
+        "nil",
+        "Unknown fuzzy location \"Missing\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        99,
+        "low",
+        "No closing ']' matches '[' in link description: open [ bracket",
+        "unclosed-brackets-in-link-description"
+      ],
+      [
+        131,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        220,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+CAPTION: alone\n#+PROPERTY: header-args:python+ :session x :pp 2\n** Sub heading [1/2] :tag:\nPlain line with ** stars inside.\n:PROPERTIES:\n:CUSTOM_ID: one\n:EFFORT: 1:00\n:END:\ntext ** not a heading\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        17,
+        "nil",
+        "Unknown header argument \":pp\"",
+        "wrong-header-argument"
+      ],
+      [
+        126,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+BEGIN_SRC\nx\n#+END_SRC\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+CALL: (x)\n* COMMENT QUOTE old\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Invalid syntax in babel call block",
+        "invalid-babel-call-block"
+      ],
+      [
+        12,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ]
+    ]
+  },
+  {
+    "text": "[[tbl]] [[TBL]] [[other]]\n#+INCLUDE: x.org src\n[[https://a.b][desc [with] bracket]] ]\n#+CALL: f[:x 1](a=1) [:results raw]\n#+begin_export\nx\n#+end_export\n#+MACRO: m $1\n#+END_SRC trailing\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown fuzzy location \"tbl\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        8,
+        "nil",
+        "Unknown fuzzy location \"TBL\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        16,
+        "nil",
+        "Unknown fuzzy location \"other\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        26,
+        "low",
+        "Non-existent file argument in INCLUDE keyword",
+        "wrong-include-link-parameter"
+      ],
+      [
+        47,
+        "low",
+        "Trailing ']' after link end",
+        "trailing-bracket-after-link"
+      ],
+      [
+        86,
+        "nil",
+        "Missing colon in header argument \"[:results\"",
+        "wrong-header-argument"
+      ],
+      [
+        86,
+        "nil",
+        "Unknown header argument \":x\"",
+        "wrong-header-argument"
+      ],
+      [
+        86,
+        "nil",
+        "Babel call's end header must not be wrapped within brackets",
+        "invalid-babel-call-block"
+      ],
+      [
+        122,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ],
+      [
+        166,
+        "low",
+        "Invalid block closing line \"#+END_SRC trailing\"",
+        "invalid-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+SETUPFILE: missing.org\n\\begin{orgframe} \\end{orgframe}\n* Heading\n:PROPERTIES:\n:EFFORT: soon\n:ID: a::b\n:TODO: x\n:cache: yes\n:END:\n[[a%20b]] [[a%2Fb]] [[100%]]\n:PROPERTIES:\n:TITLE: x\n:HTML_HEAD: y\n:DESCRIPTION: d\n:EXPORT_TITLE: z\n:CATEGORY: c\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Non-existent setup file \"missing.org\"",
+        "non-existent-setupfile-parameter"
+      ],
+      [
+        25,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        42,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        80,
+        "nil",
+        "Invalid effort duration format: \"soon\"",
+        "invalid-effort-property"
+      ],
+      [
+        94,
+        "nil",
+        "IDs should not include \"::\": \"a::b\"",
+        "invalid-id-property"
+      ],
+      [
+        104,
+        "nil",
+        "Special property \"TODO\" found in a properties drawer",
+        "special-property-in-properties-drawer"
+      ],
+      [
+        113,
+        "low",
+        "Deprecated syntax for \"cache\".  Use :header-args: instead",
+        "deprecated-header-syntax"
+      ],
+      [
+        131,
+        "low",
+        "Link escaped with obsolete percent-encoding syntax",
+        "percent-encoding-link-escape"
+      ],
+      [
+        131,
+        "nil",
+        "Unknown fuzzy location \"a%20b\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        141,
+        "nil",
+        "Unknown fuzzy location \"a%2Fb\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        151,
+        "nil",
+        "Unknown fuzzy location \"100%\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        160,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "[[(ref)]] [[(missing)]]\n#+begin_src sh -r :results silent append\nx\n#+end_src\n:PROPERTIES:\n:EFFORT: soon\n:ID: a::b\n:TODO: x\n:cache: yes\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown coderef \"ref\"",
+        "invalid-coderef-link"
+      ],
+      [
+        10,
+        "nil",
+        "Unknown coderef \"missing\"",
+        "invalid-coderef-link"
+      ],
+      [
+        24,
+        "low",
+        "Forbidden combination in header \":results\": silent, append",
+        "wrong-header-value"
+      ],
+      [
+        77,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+TITLE without colon\n#+INCLUDE: \"other.org\" HTML\n#+END_SRC trailing\n1. one\n3. three\n#+PROPERTY: cache yes\n* COMMENT QUOTE old\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible missing colon in keyword \"TITLE\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        22,
+        "low",
+        "Obsolete markup \"HTML\" in INCLUDE keyword.  Use \"export HTML\" instead",
+        "obsolete-include-markup"
+      ],
+      [
+        50,
+        "low",
+        "Invalid block closing line \"#+END_SRC trailing\"",
+        "invalid-block"
+      ],
+      [
+        76,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ],
+      [
+        85,
+        "low",
+        "Deprecated syntax for \"cache\".  Use header-args instead",
+        "deprecated-header-syntax"
+      ],
+      [
+        107,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ]
+    ]
+  },
+  {
+    "text": "#+HEADER: :var x=1\n#+HEADER: :bad\n#+begin_src R :session\n1\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        34,
+        "low",
+        "Empty value in header argument \":bad\"",
+        "empty-header-argument"
+      ],
+      [
+        34,
+        "low",
+        "Empty value in header argument \":session\"",
+        "empty-header-argument"
+      ],
+      [
+        34,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "SCHEDULED: [2024-01-01 Mon]\n[[#one]] [[#two]] [[target]] <<target>> <<target>>\nSCHEDULED: [2024-01-01 Mon]\n#+SETUPFILE: missing.org\n%%(diary-float t 1 1)\n:PROPERTIES:\n:CUSTOM_ID: one\n:EFFORT: 1:00\n:END:\n* TODO [#A] Task :a::b:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        28,
+        "nil",
+        "Unknown custom ID \"one\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        37,
+        "nil",
+        "Unknown custom ID \"two\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        57,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        68,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        79,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        107,
+        "low",
+        "Non-existent setup file \"missing.org\"",
+        "non-existent-setupfile-parameter"
+      ],
+      [
+        154,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        203,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ]
+    ]
+  },
+  {
+    "text": "* Heading\n#+begin_example\n#+notakeyword here\n:DRAWER:\n#+end_example\n#+BEGIN_HTML\n<b>\n#+END_HTML\nParagraph** Oops heading\n[fn:1] and [fn:2] and [fn:inline:def]\n  %%(diary-anniversary 1 1 2000)\n[[*Heading]] and [[*Missing]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        26,
+        "low",
+        "Possible missing colon in keyword \"notakeyword\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        68,
+        "low",
+        "Deprecated syntax for export block.  Use \"BEGIN_EXPORT HTML\" instead",
+        "deprecated-export-blocks"
+      ],
+      [
+        104,
+        "low",
+        "Possibly misplaced heading line",
+        "misplaced-heading"
+      ],
+      [
+        121,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        132,
+        "nil",
+        "Missing definition for footnote [2]",
+        "undefined-footnote-reference"
+      ],
+      [
+        159,
+        "low",
+        "Possible indented diary-sexp",
+        "indented-diary-sexp"
+      ],
+      [
+        209,
+        "nil",
+        "Unknown fuzzy location \"Missing\"",
+        "invalid-fuzzy-link"
+      ]
+    ]
+  },
+  {
+    "text": ":PROPERTIES:\n:CUSTOM_ID: one\n:END:\n#+HEADER: :var x=1\n#+HEADER: :bad\n#+begin_src R :session\n1\n#+end_src\n:PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n#+begin_export\nx\n#+end_export\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        69,
+        "low",
+        "Empty value in header argument \":bad\"",
+        "empty-header-argument"
+      ],
+      [
+        69,
+        "low",
+        "Empty value in header argument \":session\"",
+        "empty-header-argument"
+      ],
+      [
+        69,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        104,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        185,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+CATEGORY: one\n#+PRINT_BIBLIOGRAPHY:\n:PROPERTIES:\n:END:\n#+BIBLIOGRAPHY: refs.bib\n[cite:@key] in text\n** Sub heading [1/2] :tag:\n[[(ref)]] [[(missing)]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        38,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        129,
+        "nil",
+        "Unknown coderef \"ref\"",
+        "invalid-coderef-link"
+      ],
+      [
+        139,
+        "nil",
+        "Unknown coderef \"missing\"",
+        "invalid-coderef-link"
+      ]
+    ]
+  },
+  {
+    "text": "  SCHEDULED: <2024-01-01 Mon>\n#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n#+BEGIN: clocktable\n#+END:\nSCHEDULED: <2024-01-01 Mon +1w> DEADLINE: <2024-01-02 Tue +2d>\n** Sub heading [1/2] :tag:\ntext ** not a heading\n[[tbl]] [[TBL]] [[other]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        110,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        230,
+        "nil",
+        "Unknown fuzzy location \"TBL\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        238,
+        "nil",
+        "Unknown fuzzy location \"other\"",
+        "invalid-fuzzy-link"
+      ]
+    ]
+  },
+  {
+    "text": "[fn:3] again\n#+RESULTS:\n#+begin_src emacs-lisp :results table list :exports bogus :tangle out.el\n()\n#+end_src\n#+BEGIN_SRC\nx\n#+END_SRC\n[[https://a.b][open [ bracket]]\n1. one\n3. three\n#+BEGIN_SRC\nx\n#+END_SRC\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "No reference for footnote definition [3]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        24,
+        "low",
+        "Unknown value \"bogus\" for header \":exports\"",
+        "wrong-header-value"
+      ],
+      [
+        24,
+        "low",
+        "Forbidden combination in header \":results\": table, list",
+        "wrong-header-value"
+      ],
+      [
+        110,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ],
+      [
+        134,
+        "low",
+        "No closing ']' matches '[' in link description: open [ bracket",
+        "unclosed-brackets-in-link-description"
+      ],
+      [
+        173,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ],
+      [
+        182,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+NAME: tbl\n| a | b |\n#+begin_src sh -r\necho hi (ref:ref)\n#+end_src\n#+OPTIONS: \\n:t ^:{} tex:verbatim author\n%%(diary-float t 1 1)\nDEADLINE: [2024-01-01 Mon]\n[[*Heading]] and [[*Missing]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        131,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        158,
+        "nil",
+        "Unknown fuzzy location \"Heading\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        175,
+        "nil",
+        "Unknown fuzzy location \"Missing\"",
+        "invalid-fuzzy-link"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_example\n#+notakeyword here\n:DRAWER:\n#+end_example\n* Heading\n#+CATEGORY: one\n#+CALL: f[:x 1](a=1) [:results raw]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        16,
+        "low",
+        "Possible missing colon in keyword \"notakeyword\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        84,
+        "nil",
+        "Missing colon in header argument \"[:results\"",
+        "wrong-header-argument"
+      ],
+      [
+        84,
+        "nil",
+        "Unknown header argument \":x\"",
+        "wrong-header-argument"
+      ],
+      [
+        84,
+        "nil",
+        "Babel call's end header must not be wrapped within brackets",
+        "invalid-babel-call-block"
+      ]
+    ]
+  },
+  {
+    "text": "* TODO [#A] Task :a::b:\n#+BEGIN_HTML\n<b>\n#+END_HTML\n#+TITLE: Doc\n#+NAME: n\nPara.\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ],
+      [
+        24,
+        "low",
+        "Deprecated syntax for export block.  Use \"BEGIN_EXPORT HTML\" instead",
+        "deprecated-export-blocks"
+      ],
+      [
+        52,
+        "low",
+        "Independent keyword TITLE may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ]
+    ]
+  },
+  {
+    "text": "Inline call_g[:bad 1](2)[:results raw] and src_python[:results value :nope]{1+1} here.\n#+OPTIONS: \\n:t ^:{} tex:verbatim author\n#+begin_src unknownlang :file-mode 755\n#+end_src\nSCHEDULED: <2024-01-01 Mon +1w> DEADLINE: <2024-01-02 Tue +2d>\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        7,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        43,
+        "low",
+        "Empty value in header argument \":nope\"",
+        "empty-header-argument"
+      ],
+      [
+        43,
+        "nil",
+        "Unknown header argument \":nope\"",
+        "wrong-header-argument"
+      ],
+      [
+        128,
+        "low",
+        "Unknown source block language: 'unknownlang'",
+        "suspicious-language-in-src-block"
+      ],
+      [
+        177,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ]
+    ]
+  },
+  {
+    "text": "#+TBLNAME: other\n| x |\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Obsolete affiliated keyword: \"TBLNAME\".  Use \"NAME\" instead",
+        "obsolete-affiliated-keywords"
+      ]
+    ]
+  },
+  {
+    "text": "[[https://a.b][desc [with] bracket]] ]\n#+ \n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Trailing ']' after link end",
+        "trailing-bracket-after-link"
+      ],
+      [
+        39,
+        "low",
+        "Possible missing colon in keyword \"\"",
+        "invalid-keyword-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "#+PROPERTY: header-args :results silent :zz 1\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+SETUPFILE: missing.org\n%%(diary-float t 1 1)\n:PROPERTIES:\n:CUSTOM_ID: one\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Non-existent setup file \"missing.org\"",
+        "non-existent-setupfile-parameter"
+      ],
+      [
+        47,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": ":PROPERTIES:\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+CALL: f() :results raw\n#+OPTIONS: toc:nil num:t bogus:1 H:2 lonely:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        25,
+        "low",
+        "Missing value for option item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        25,
+        "low",
+        "Unknown OPTIONS item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        25,
+        "low",
+        "Unknown OPTIONS item \"bogus\"",
+        "unknown-options-item"
+      ]
+    ]
+  },
+  {
+    "text": "** Sub heading [1/2] :tag:\n#+CALL: (x)\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        27,
+        "nil",
+        "Invalid syntax in babel call block",
+        "invalid-babel-call-block"
+      ]
+    ]
+  },
+  {
+    "text": ":END:\n#+PROPERTY: header-args:python+ :session x :pp 2\n[[a%20b]] [[a%2Fb]] [[100%]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible incomplete drawer \":END:\"",
+        "incomplete-drawer"
+      ],
+      [
+        6,
+        "nil",
+        "Unknown header argument \":pp\"",
+        "wrong-header-argument"
+      ],
+      [
+        55,
+        "low",
+        "Link escaped with obsolete percent-encoding syntax",
+        "percent-encoding-link-escape"
+      ],
+      [
+        55,
+        "nil",
+        "Unknown fuzzy location \"a%20b\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        65,
+        "nil",
+        "Unknown fuzzy location \"a%2Fb\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        75,
+        "nil",
+        "Unknown fuzzy location \"100%\"",
+        "invalid-fuzzy-link"
+      ]
+    ]
+  },
+  {
+    "text": "#+CALL: f[:x 1](a=1) [:results raw]\n[fn:1] defined\n[fn:3] lonely\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Missing colon in header argument \"[:results\"",
+        "wrong-header-argument"
+      ],
+      [
+        0,
+        "nil",
+        "Unknown header argument \":x\"",
+        "wrong-header-argument"
+      ],
+      [
+        0,
+        "nil",
+        "Babel call's end header must not be wrapped within brackets",
+        "invalid-babel-call-block"
+      ],
+      [
+        36,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        51,
+        "nil",
+        "No reference for footnote definition [3]",
+        "unreferenced-footnote-definition"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src unknownlang :file-mode 755\n#+end_src\n#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n%%(diary-float t 1 1)\n#+TITLE: Doc\n#+NAME: n\nPara.\n:PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n#+NAME: alone\n\n#+BIBLIOGRAPHY: refs.bib\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Unknown source block language: 'unknownlang'",
+        "suspicious-language-in-src-block"
+      ],
+      [
+        124,
+        "low",
+        "Independent keyword TITLE may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ],
+      [
+        153,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        234,
+        "low",
+        "Orphaned affiliated keyword: \"NAME\"",
+        "orphaned-affiliated-keywords"
+      ]
+    ]
+  },
+  {
+    "text": "#+PROPERTY: header-args :results silent :zz 1\n#+BEGIN: clocktable\n#+END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+BEGIN_SRC\nx\n#+END_SRC\n#+CAPTION: alone\n:PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n#+begin_src sh -r :results silent append\nx\n#+end_src\n#+begin_export\nx\n#+end_export\n%%(diary-float t 1 1)\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ],
+      [
+        41,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        122,
+        "low",
+        "Forbidden combination in header \":results\": silent, append",
+        "wrong-header-value"
+      ],
+      [
+        175,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ]
+    ]
+  },
+  {
+    "text": "Inline call_g[:bad 1](2)[:results raw] and src_python[:results value :nope]{1+1} here.\n:PROPERTIES:\n:EFFORT: soon\n:ID: a::b\n:TODO: x\n:cache: yes\n:END:\n#+begin_src sh -r\necho hi (ref:ref)\n#+end_src\nParagraph** Oops heading\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        7,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        43,
+        "low",
+        "Empty value in header argument \":nope\"",
+        "empty-header-argument"
+      ],
+      [
+        43,
+        "nil",
+        "Unknown header argument \":nope\"",
+        "wrong-header-argument"
+      ],
+      [
+        87,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        222,
+        "low",
+        "Possibly misplaced heading line",
+        "misplaced-heading"
+      ]
+    ]
+  },
+  {
+    "text": "SCHEDULED: [2024-01-01 Mon]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ]
+    ]
+  },
+  {
+    "text": "1. one\n3. three\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        7,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_center\nok\n#+end_center\n[[*Heading]] and [[*Missing]]\n#+TITLE without colon\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        31,
+        "nil",
+        "Unknown fuzzy location \"Heading\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        48,
+        "nil",
+        "Unknown fuzzy location \"Missing\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        61,
+        "low",
+        "Possible missing colon in keyword \"TITLE\"",
+        "invalid-keyword-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "#+CALL: (x)\n[fn:3] again\n#+SETUPFILE: missing.org\n#+MACRO: m $1\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Invalid syntax in babel call block",
+        "invalid-babel-call-block"
+      ],
+      [
+        12,
+        "nil",
+        "No reference for footnote definition [3]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        25,
+        "low",
+        "Non-existent setup file \"missing.org\"",
+        "non-existent-setupfile-parameter"
+      ]
+    ]
+  },
+  {
+    "text": ":PROPERTIES:\n:CUSTOM_ID: one\n:EFFORT: 1:00\n:END:\n#+NAME: tbl\n| a | b |\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "[fn:1] defined\n[fn:3] lonely\n#+begin_src emacs-lisp :results table list :exports bogus :tangle out.el\n()\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        15,
+        "nil",
+        "No reference for footnote definition [3]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        29,
+        "low",
+        "Unknown value \"bogus\" for header \":exports\"",
+        "wrong-header-value"
+      ],
+      [
+        29,
+        "low",
+        "Forbidden combination in header \":results\": table, list",
+        "wrong-header-value"
+      ]
+    ]
+  },
+  {
+    "text": "#+PROPERTY: header-args :results silent :zz 1\n#+PROPERTY: header-args :results silent :zz 1\n:PROPERTIES:\n:CUSTOM_ID: one\n:END:\n#+CATEGORY: two\n#+begin_example\n#+notakeyword here\n:DRAWER:\n#+end_example\n#+BEGIN_HTML\n<b>\n#+END_HTML\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ],
+      [
+        46,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ],
+      [
+        92,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        159,
+        "low",
+        "Possible missing colon in keyword \"notakeyword\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        201,
+        "low",
+        "Deprecated syntax for export block.  Use \"BEGIN_EXPORT HTML\" instead",
+        "deprecated-export-blocks"
+      ]
+    ]
+  },
+  {
+    "text": "* TODO [#A] Task :a::b:\n:PROPERTIES:\n:CUSTOM_ID: one\n:EFFORT: 1:00\n:END:\n#+CATEGORY: one\n[[(ref)]] [[(missing)]]\n[[https://a.b][open [ bracket]]\n#+BEGIN: clocktable\n#+END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ],
+      [
+        89,
+        "nil",
+        "Unknown coderef \"ref\"",
+        "invalid-coderef-link"
+      ],
+      [
+        99,
+        "nil",
+        "Unknown coderef \"missing\"",
+        "invalid-coderef-link"
+      ],
+      [
+        113,
+        "low",
+        "No closing ']' matches '[' in link description: open [ bracket",
+        "unclosed-brackets-in-link-description"
+      ]
+    ]
+  },
+  {
+    "text": "* Footnotes\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+PROPERTY: cache yes\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated syntax for \"cache\".  Use header-args instead",
+        "deprecated-header-syntax"
+      ],
+      [
+        22,
+        "low",
+        "Possible incomplete drawer \":END:\"",
+        "incomplete-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src unknownlang :file-mode 755\n#+end_src\n#+NAME: tbl\n| a | b |\n:PROPERTIES:\n:END:\n:DANGLING:\nno end\n#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Unknown source block language: 'unknownlang'",
+        "suspicious-language-in-src-block"
+      ],
+      [
+        49,
+        "nil",
+        "Duplicate NAME \"tbl\"",
+        "duplicate-name"
+      ],
+      [
+        71,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        90,
+        "low",
+        "Possible incomplete drawer \":DANGLING:\"",
+        "incomplete-drawer"
+      ],
+      [
+        108,
+        "nil",
+        "Duplicate NAME \"tbl\"",
+        "duplicate-name"
+      ]
+    ]
+  },
+  {
+    "text": "[cite:@key] in text\n#+MACRO: m $1\n#+CALL: f() :results raw\n#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        112,
+        "nil",
+        "Possibly missing \"PRINT_BIBLIOGRAPHY\" keyword",
+        "missing-print-bibliography"
+      ]
+    ]
+  },
+  {
+    "text": "* QUOTE section\n* TODO [#A] Task :a::b:\n[fn:1] and [fn:2] and [fn:inline:def]\n:NOTES:\n:INNER:\nx\n:END:\n#+BIBLIOGRAPHY: refs.bib\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ],
+      [
+        16,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ],
+      [
+        40,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        51,
+        "nil",
+        "Missing definition for footnote [2]",
+        "undefined-footnote-reference"
+      ],
+      [
+        86,
+        "low",
+        "Possible misleading drawer entry \":INNER:\"",
+        "incomplete-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "* TODO [#A] Task :a::b:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ]
+    ]
+  },
+  {
+    "text": "#+OPTIONS: toc:nil num:t bogus:1 H:2 lonely:\n:PROPERTIES:\n:CUSTOM_ID: one\n:END:\n[fn:1] defined\n[fn:3] lonely\n:PROPERTIES:\n:CUSTOM_ID: one\n:EFFORT: 1:00\n:END:\n#+BIBLIOGRAPHY: refs.bib\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Missing value for option item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        0,
+        "low",
+        "Unknown OPTIONS item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        0,
+        "low",
+        "Unknown OPTIONS item \"bogus\"",
+        "unknown-options-item"
+      ],
+      [
+        45,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        80,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        95,
+        "nil",
+        "No reference for footnote definition [3]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        109,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n:PROPERTIES:\n:CUSTOM_ID: one\n:END:\n:PROPERTIES:\n:CUSTOM_ID: one\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        53,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        88,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src python :results output :foo 1\nprint(1)\n#+end_src\n:END:\n* Footnotes\n#+NAME: tbl\n| a | b |\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown header argument \":foo\"",
+        "wrong-header-argument"
+      ],
+      [
+        61,
+        "low",
+        "Possible incomplete drawer \":END:\"",
+        "incomplete-drawer"
+      ],
+      [
+        67,
+        "nil",
+        "Extraneous elements in footnote section are not exported",
+        "extraneous-element-in-footnote-section"
+      ]
+    ]
+  },
+  {
+    "text": "#+PRINT_BIBLIOGRAPHY:\n:NOTES:\n:INNER:\nx\n:END:\n:PROPERTIES:\n:EFFORT: soon\n:ID: a::b\n:TODO: x\n:cache: yes\n:END:\n[fn:1] and [fn:2] and [fn:inline:def]\n:PROPERTIES:\n:CUSTOM_ID: one\n:END:\n#+begin_src sh -r\necho hi (ref:ref)\n#+end_src\n* COMMENT QUOTE old\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        30,
+        "low",
+        "Possible misleading drawer entry \":INNER:\"",
+        "incomplete-drawer"
+      ],
+      [
+        46,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        110,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        121,
+        "nil",
+        "Missing definition for footnote [2]",
+        "undefined-footnote-reference"
+      ],
+      [
+        148,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        229,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ]
+    ]
+  },
+  {
+    "text": "\\begin{orgframe} \\end{orgframe}\n#+begin_src unknownlang :file-mode 755\n#+end_src\n** Sub heading [1/2] :tag:\n#+PROPERTY: header-args:python+ :session x :pp 2\n  %%(diary-anniversary 1 1 2000)\n  %%(diary-anniversary 1 1 2000)\n#+CALL: f() :results raw\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        17,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        32,
+        "low",
+        "Unknown source block language: 'unknownlang'",
+        "suspicious-language-in-src-block"
+      ],
+      [
+        108,
+        "nil",
+        "Unknown header argument \":pp\"",
+        "wrong-header-argument"
+      ],
+      [
+        157,
+        "low",
+        "Possible indented diary-sexp",
+        "indented-diary-sexp"
+      ],
+      [
+        190,
+        "low",
+        "Possible indented diary-sexp",
+        "indented-diary-sexp"
+      ]
+    ]
+  },
+  {
+    "text": "Inline call_g[:bad 1](2)[:results raw] and src_python[:results value :nope]{1+1} here.\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        7,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        43,
+        "low",
+        "Empty value in header argument \":nope\"",
+        "empty-header-argument"
+      ],
+      [
+        43,
+        "nil",
+        "Unknown header argument \":nope\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": ":PROPERTIES:\n:EFFORT: soon\n:ID: a::b\n:TODO: x\n:cache: yes\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        13,
+        "nil",
+        "Invalid effort duration format: \"soon\"",
+        "invalid-effort-property"
+      ],
+      [
+        27,
+        "nil",
+        "IDs should not include \"::\": \"a::b\"",
+        "invalid-id-property"
+      ],
+      [
+        37,
+        "nil",
+        "Special property \"TODO\" found in a properties drawer",
+        "special-property-in-properties-drawer"
+      ],
+      [
+        46,
+        "low",
+        "Deprecated syntax for \"cache\".  Use :header-args: instead",
+        "deprecated-header-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "#+OPTIONS: toc:nil num:t bogus:1 H:2 lonely:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Missing value for option item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        0,
+        "low",
+        "Unknown OPTIONS item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        0,
+        "low",
+        "Unknown OPTIONS item \"bogus\"",
+        "unknown-options-item"
+      ]
+    ]
+  },
+  {
+    "text": "#+TITLE without colon\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible missing colon in keyword \"TITLE\"",
+        "invalid-keyword-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "[cite:@key] in text\n%%(diary-float t 1 1)\n#+CALL: f() :results raw\n[[a%20b]] [[a%2Fb]] [[100%]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        67,
+        "low",
+        "Link escaped with obsolete percent-encoding syntax",
+        "percent-encoding-link-escape"
+      ],
+      [
+        67,
+        "nil",
+        "Unknown fuzzy location \"a%20b\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        77,
+        "nil",
+        "Unknown fuzzy location \"a%2Fb\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        87,
+        "nil",
+        "Unknown fuzzy location \"100%\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        96,
+        "nil",
+        "Possibly missing \"PRINT_BIBLIOGRAPHY\" keyword",
+        "missing-print-bibliography"
+      ]
+    ]
+  },
+  {
+    "text": "[[tbl]] [[TBL]] [[other]]\n#+begin_src python :results output :foo 1\nprint(1)\n#+end_src\n:PROPERTIES:\n:EFFORT: soon\n:ID: a::b\n:TODO: x\n:cache: yes\n:END:\n#+MACRO: m $1\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown fuzzy location \"tbl\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        8,
+        "nil",
+        "Unknown fuzzy location \"TBL\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        16,
+        "nil",
+        "Unknown fuzzy location \"other\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        26,
+        "nil",
+        "Unknown header argument \":foo\"",
+        "wrong-header-argument"
+      ],
+      [
+        87,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "1. one\n3. three\n* COMMENT QUOTE old\n#+BIBLIOGRAPHY: refs.bib\n#+CALL: (x)\n:PROPERTIES:\n:END:\n[fn:1] defined\n[fn:3] lonely\n* TODO [#A] Task :a::b:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        7,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ],
+      [
+        16,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ],
+      [
+        61,
+        "nil",
+        "Invalid syntax in babel call block",
+        "invalid-babel-call-block"
+      ],
+      [
+        73,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        92,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        107,
+        "nil",
+        "No reference for footnote definition [3]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        121,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ]
+    ]
+  },
+  {
+    "text": "DEADLINE: [2024-01-01 Mon]\n\\begin{orgframe} \\end{orgframe}\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        27,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        44,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ]
+    ]
+  },
+  {
+    "text": "#+PROPERTY: header-args :results silent :zz 1\n[fn:3] again\n#+TITLE without colon\n** Sub heading [1/2] :tag:\n:END:\n#+SETUPFILE: \"other.org\"\n#+TBLNAME: other\n| x |\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ],
+      [
+        46,
+        "nil",
+        "No reference for footnote definition [3]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        59,
+        "low",
+        "Possible missing colon in keyword \"TITLE\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        108,
+        "low",
+        "Possible incomplete drawer \":END:\"",
+        "incomplete-drawer"
+      ],
+      [
+        114,
+        "low",
+        "Independent keyword SETUPFILE may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ],
+      [
+        139,
+        "nil",
+        "Obsolete affiliated keyword: \"TBLNAME\".  Use \"NAME\" instead",
+        "obsolete-affiliated-keywords"
+      ]
+    ]
+  },
+  {
+    "text": "#+PROPERTY: header-args :results silent :zz 1\n#+begin_export\nx\n#+end_export\n#+MACRO: m $1\n#+ATTR_HTML: :width 10\n#+PRINT_BIBLIOGRAPHY:\n[[https://a.b][desc [with] bracket]] ]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ],
+      [
+        46,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ],
+      [
+        76,
+        "low",
+        "Independent keyword MACRO may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ],
+      [
+        135,
+        "low",
+        "Trailing ']' after link end",
+        "trailing-bracket-after-link"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_center\nok\n#+end_center\n#+INCLUDE: x.org src\n[[#one]] [[#two]] [[target]] <<target>> <<target>>\n#+TITLE without colon\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        31,
+        "low",
+        "Non-existent file argument in INCLUDE keyword",
+        "wrong-include-link-parameter"
+      ],
+      [
+        52,
+        "nil",
+        "Unknown custom ID \"one\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        61,
+        "nil",
+        "Unknown custom ID \"two\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        81,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        92,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        103,
+        "low",
+        "Possible missing colon in keyword \"TITLE\"",
+        "invalid-keyword-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "#+OPTIONS: toc:nil num:t bogus:1 H:2 lonely:\n[[file+sys:a.pdf]] [[file+emacs:b.org]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Missing value for option item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        0,
+        "low",
+        "Unknown OPTIONS item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        0,
+        "low",
+        "Unknown OPTIONS item \"bogus\"",
+        "unknown-options-item"
+      ],
+      [
+        45,
+        "nil",
+        "Deprecated \"file+sys\" link type",
+        "file-application"
+      ],
+      [
+        45,
+        "low",
+        "Link to non-existent local file \"a.pdf\"",
+        "link-to-local-file"
+      ],
+      [
+        64,
+        "nil",
+        "Deprecated \"file+emacs\" link type",
+        "file-application"
+      ],
+      [
+        64,
+        "low",
+        "Link to non-existent local file \"b.org\"",
+        "link-to-local-file"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_export\nx\n#+end_export\n#+begin_example\n#+notakeyword here\n:DRAWER:\n#+end_example\n%%(diary-float t 1 1)\n#+BEGIN_QUOTE\nunfinished\n#+CALL: f() :results raw\n#+INCLUDE: \"other.org\" HTML\n#+BEGIN_HTML\n<b>\n#+END_HTML\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ],
+      [
+        46,
+        "low",
+        "Possible missing colon in keyword \"notakeyword\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        110,
+        "low",
+        "Possible incomplete block \"#+BEGIN_QUOTE\"",
+        "invalid-block"
+      ],
+      [
+        160,
+        "low",
+        "Obsolete markup \"HTML\" in INCLUDE keyword.  Use \"export HTML\" instead",
+        "obsolete-include-markup"
+      ],
+      [
+        188,
+        "low",
+        "Deprecated syntax for export block.  Use \"BEGIN_EXPORT HTML\" instead",
+        "deprecated-export-blocks"
+      ]
+    ]
+  },
+  {
+    "text": "#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n\\begin{orgframe} \\end{orgframe}\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        53,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        70,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ]
+    ]
+  },
+  {
+    "text": "* Footnotes\n:PROPERTIES:\n:CUSTOM_ID: one\n:EFFORT: 1:00\n:END:\n#+CATEGORY: two\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Extraneous elements in footnote section are not exported",
+        "extraneous-element-in-footnote-section"
+      ]
+    ]
+  },
+  {
+    "text": "#+ATTR_HTML: :width 10\nDEADLINE: [2024-01-01 Mon]\n[[https://a.b][open [ bracket]]\n[fn:1] and [fn:2] and [fn:inline:def]\n#+CATEGORY: two\n#+begin_example\n#+notakeyword here\n:DRAWER:\n#+end_example\n[[(ref)]] [[(missing)]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        23,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        50,
+        "low",
+        "No closing ']' matches '[' in link description: open [ bracket",
+        "unclosed-brackets-in-link-description"
+      ],
+      [
+        82,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        93,
+        "nil",
+        "Missing definition for footnote [2]",
+        "undefined-footnote-reference"
+      ],
+      [
+        152,
+        "low",
+        "Possible missing colon in keyword \"notakeyword\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        194,
+        "nil",
+        "Unknown coderef \"ref\"",
+        "invalid-coderef-link"
+      ],
+      [
+        204,
+        "nil",
+        "Unknown coderef \"missing\"",
+        "invalid-coderef-link"
+      ]
+    ]
+  },
+  {
+    "text": ":PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n#+MACRO: m $1\n\\begin{orgframe} \\end{orgframe}\n#+INCLUDE: \"other.org\" HTML\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        13,
+        "nil",
+        "Unknown header argument \":qq\"",
+        "wrong-header-argument"
+      ],
+      [
+        95,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        112,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        127,
+        "low",
+        "Obsolete markup \"HTML\" in INCLUDE keyword.  Use \"export HTML\" instead",
+        "obsolete-include-markup"
+      ]
+    ]
+  },
+  {
+    "text": "#+PROPERTY: header-args:python+ :session x :pp 2\n[[https://a.b][open [ bracket]]\n#+INCLUDE: x.org src\n:PROPERTIES:\n:CUSTOM_ID: one\n:END:\n* QUOTE section\n#+CATEGORY: two\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown header argument \":pp\"",
+        "wrong-header-argument"
+      ],
+      [
+        49,
+        "low",
+        "No closing ']' matches '[' in link description: open [ bracket",
+        "unclosed-brackets-in-link-description"
+      ],
+      [
+        81,
+        "low",
+        "Non-existent file argument in INCLUDE keyword",
+        "wrong-include-link-parameter"
+      ],
+      [
+        102,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        137,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ]
+    ]
+  },
+  {
+    "text": "Inline call_g[:bad 1](2)[:results raw] and src_python[:results value :nope]{1+1} here.\n* Footnotes\n#+CATEGORY: two\n#+begin_src unknownlang :file-mode 755\n#+end_src\n:NOTES:\n:INNER:\nx\n:END:\n#+BIBLIOGRAPHY: refs.bib\n:PROPERTIES:\n:TITLE: x\n:HTML_HEAD: y\n:DESCRIPTION: d\n:EXPORT_TITLE: z\n:CATEGORY: c\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        7,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        43,
+        "low",
+        "Empty value in header argument \":nope\"",
+        "empty-header-argument"
+      ],
+      [
+        43,
+        "nil",
+        "Unknown header argument \":nope\"",
+        "wrong-header-argument"
+      ],
+      [
+        87,
+        "nil",
+        "Extraneous elements in footnote section are not exported",
+        "extraneous-element-in-footnote-section"
+      ],
+      [
+        115,
+        "low",
+        "Unknown source block language: 'unknownlang'",
+        "suspicious-language-in-src-block"
+      ],
+      [
+        172,
+        "low",
+        "Possible misleading drawer entry \":INNER:\"",
+        "incomplete-drawer"
+      ],
+      [
+        213,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+HEADER: :var x=1\n#+HEADER: :bad\n#+begin_src R :session\n1\n#+end_src\n* TODO [#A] Task :a::b:\n#+OPTIONS: \\n:t ^:{} tex:verbatim author\n#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n[[#one]] [[#two]] [[target]] <<target>> <<target>>\n[[a%20b]] [[a%2Fb]] [[100%]]\n#+BEGIN_SRC\nx\n#+END_SRC\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        34,
+        "low",
+        "Empty value in header argument \":bad\"",
+        "empty-header-argument"
+      ],
+      [
+        34,
+        "low",
+        "Empty value in header argument \":session\"",
+        "empty-header-argument"
+      ],
+      [
+        34,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        69,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ],
+      [
+        93,
+        "low",
+        "Independent keyword OPTIONS may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ],
+      [
+        187,
+        "nil",
+        "Unknown custom ID \"one\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        196,
+        "nil",
+        "Unknown custom ID \"two\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        216,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        227,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        238,
+        "low",
+        "Link escaped with obsolete percent-encoding syntax",
+        "percent-encoding-link-escape"
+      ],
+      [
+        238,
+        "nil",
+        "Unknown fuzzy location \"a%20b\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        248,
+        "nil",
+        "Unknown fuzzy location \"a%2Fb\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        258,
+        "nil",
+        "Unknown fuzzy location \"100%\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        267,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+CATEGORY: one\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+TBLNAME: other\n| x |\nParagraph** Oops heading\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Obsolete affiliated keyword: \"TBLNAME\".  Use \"NAME\" instead",
+        "obsolete-affiliated-keywords"
+      ],
+      [
+        48,
+        "low",
+        "Possibly misplaced heading line",
+        "misplaced-heading"
+      ]
+    ]
+  },
+  {
+    "text": "DEADLINE: [2024-01-01 Mon]\n[[https://a.b][open [ bracket]]\nSCHEDULED: [2024-01-01 Mon]\n:PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n\n:PROPERTIES:\n:TITLE: x\n:HTML_HEAD: y\n:DESCRIPTION: d\n:EXPORT_TITLE: z\n:CATEGORY: c\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        27,
+        "low",
+        "No closing ']' matches '[' in link description: open [ bracket",
+        "unclosed-brackets-in-link-description"
+      ],
+      [
+        59,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        87,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        169,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": ":END:\n:PROPERTIES:\n:CUSTOM_ID: one\n:END:\n#+begin_export\nx\n#+end_export\n#+begin_export\nx\n#+end_export\n[fn:1] and [fn:2] and [fn:inline:def]\n#+TITLE without colon\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        6,
+        "low",
+        "Possible misleading drawer entry \":PROPERTIES:\"",
+        "incomplete-drawer"
+      ],
+      [
+        41,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ],
+      [
+        71,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ],
+      [
+        101,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        112,
+        "nil",
+        "Missing definition for footnote [2]",
+        "undefined-footnote-reference"
+      ],
+      [
+        139,
+        "low",
+        "Possible missing colon in keyword \"TITLE\"",
+        "invalid-keyword-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "** Sub heading [1/2] :tag:\n[fn:1] and [fn:2] and [fn:inline:def]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        27,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        38,
+        "nil",
+        "Missing definition for footnote [2]",
+        "undefined-footnote-reference"
+      ]
+    ]
+  },
+  {
+    "text": "* QUOTE section\n#+RESULTS:\n#+BEGIN_QUOTE\nunfinished\n#+CATEGORY: one\n:LOGBOOK:\n- note\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ],
+      [
+        27,
+        "low",
+        "Possible incomplete block \"#+BEGIN_QUOTE\"",
+        "invalid-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+MACRO: m $1\n- item\n- item\n#+PROPERTY: header-args :results silent :zz 1\n#+CAPTION: alone\n[[*Heading]] and [[*Missing]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        28,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ],
+      [
+        28,
+        "low",
+        "Independent keyword PROPERTY may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ],
+      [
+        91,
+        "nil",
+        "Unknown fuzzy location \"Heading\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        108,
+        "nil",
+        "Unknown fuzzy location \"Missing\"",
+        "invalid-fuzzy-link"
+      ]
+    ]
+  },
+  {
+    "text": "#+BEGIN_QUOTE\nunfinished\n:PROPERTIES:\n:END:\n[[(ref)]] [[(missing)]]\n%%(diary-float t 1 1)\n#+NAME: tbl\n| a | b |\n[[https://a.b][open [ bracket]]\n[[a%20b]] [[a%2Fb]] [[100%]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible incomplete block \"#+BEGIN_QUOTE\"",
+        "invalid-block"
+      ],
+      [
+        25,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        44,
+        "nil",
+        "Unknown coderef \"ref\"",
+        "invalid-coderef-link"
+      ],
+      [
+        54,
+        "nil",
+        "Unknown coderef \"missing\"",
+        "invalid-coderef-link"
+      ],
+      [
+        112,
+        "low",
+        "No closing ']' matches '[' in link description: open [ bracket",
+        "unclosed-brackets-in-link-description"
+      ],
+      [
+        144,
+        "low",
+        "Link escaped with obsolete percent-encoding syntax",
+        "percent-encoding-link-escape"
+      ],
+      [
+        144,
+        "nil",
+        "Unknown fuzzy location \"a%20b\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        154,
+        "nil",
+        "Unknown fuzzy location \"a%2Fb\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        164,
+        "nil",
+        "Unknown fuzzy location \"100%\"",
+        "invalid-fuzzy-link"
+      ]
+    ]
+  },
+  {
+    "text": ":PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n* Heading\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        13,
+        "nil",
+        "Unknown header argument \":qq\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src sh -r :results silent append\nx\n#+end_src\n#+HEADER: :var x=1\n#+HEADER: :bad\n#+begin_src R :session\n1\n#+end_src\n:PROPERTIES:\n:TITLE: x\n:HTML_HEAD: y\n:DESCRIPTION: d\n:EXPORT_TITLE: z\n:CATEGORY: c\n:END:\n- item\n- item\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Forbidden combination in header \":results\": silent, append",
+        "wrong-header-value"
+      ],
+      [
+        87,
+        "low",
+        "Empty value in header argument \":bad\"",
+        "empty-header-argument"
+      ],
+      [
+        87,
+        "low",
+        "Empty value in header argument \":session\"",
+        "empty-header-argument"
+      ],
+      [
+        87,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        122,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+PRINT_BIBLIOGRAPHY:\n[[tbl]] [[TBL]] [[other]]\n#+INCLUDE: x.org src\n:PROPERTIES:\n:TITLE: x\n:HTML_HEAD: y\n:DESCRIPTION: d\n:EXPORT_TITLE: z\n:CATEGORY: c\n:END:\n#+BEGIN_HTML\n<b>\n#+END_HTML\nSCHEDULED: <2024-01-01 Mon +1w> DEADLINE: <2024-01-02 Tue +2d>\n#+OPTIONS: \\n:t ^:{} tex:verbatim author\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        22,
+        "nil",
+        "Unknown fuzzy location \"tbl\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        30,
+        "nil",
+        "Unknown fuzzy location \"TBL\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        38,
+        "nil",
+        "Unknown fuzzy location \"other\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        48,
+        "low",
+        "Non-existent file argument in INCLUDE keyword",
+        "wrong-include-link-parameter"
+      ],
+      [
+        69,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        158,
+        "low",
+        "Deprecated syntax for export block.  Use \"BEGIN_EXPORT HTML\" instead",
+        "deprecated-export-blocks"
+      ],
+      [
+        186,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ]
+    ]
+  },
+  {
+    "text": "  SCHEDULED: <2024-01-01 Mon>\n#+begin_example\n#+notakeyword here\n:DRAWER:\n#+end_example\n#+BEGIN: clocktable\n#+END:\n%%(diary-float t 1 1)\n:PROPERTIES:\n:END:\n#+BIBLIOGRAPHY: refs.bib\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        46,
+        "low",
+        "Possible missing colon in keyword \"notakeyword\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        137,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+INCLUDE: x.org src\n#+ \n* TODO [#A] Task :a::b:\n:LOGBOOK:\n- note\n:END:\n- item\n- item\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Non-existent file argument in INCLUDE keyword",
+        "wrong-include-link-parameter"
+      ],
+      [
+        21,
+        "low",
+        "Possible missing colon in keyword \"\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        25,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ]
+    ]
+  },
+  {
+    "text": "* QUOTE section\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ]
+    ]
+  },
+  {
+    "text": "#+PRINT_BIBLIOGRAPHY:\n#+begin_src sh -r :results silent append\nx\n#+end_src\n#+begin_src sh -r\necho hi (ref:ref)\n#+end_src\n#+CATEGORY: two\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        22,
+        "low",
+        "Forbidden combination in header \":results\": silent, append",
+        "wrong-header-value"
+      ]
+    ]
+  },
+  {
+    "text": "* COMMENT QUOTE old\n#+begin_example\n#+notakeyword here\n:DRAWER:\n#+end_example\n:PROPERTIES:\n:CUSTOM_ID: one\n:EFFORT: 1:00\n:END:\n[[file:other.org]] [[file:nope.txt]] [[./missing/x.png]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ],
+      [
+        36,
+        "low",
+        "Possible missing colon in keyword \"notakeyword\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        78,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        146,
+        "low",
+        "Link to non-existent local file \"nope.txt\"",
+        "link-to-local-file"
+      ],
+      [
+        164,
+        "low",
+        "Link to non-existent local file \"./missing/x.png\"",
+        "link-to-local-file"
+      ]
+    ]
+  },
+  {
+    "text": "* QUOTE section\n#+RESULTS:\n\n[cite:@key] in text\n#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n[fn:1] and [fn:2] and [fn:inline:def]\n#+NAME: alone\n\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ],
+      [
+        101,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        112,
+        "nil",
+        "Missing definition for footnote [2]",
+        "undefined-footnote-reference"
+      ],
+      [
+        139,
+        "low",
+        "Orphaned affiliated keyword: \"NAME\"",
+        "orphaned-affiliated-keywords"
+      ],
+      [
+        154,
+        "nil",
+        "Possibly missing \"PRINT_BIBLIOGRAPHY\" keyword",
+        "missing-print-bibliography"
+      ]
+    ]
+  },
+  {
+    "text": "#+MACRO: m $1\n[[https://a.b][desc [with] bracket]] ]\n\\begin{orgframe} \\end{orgframe}\n#+CALL: f() :results raw\n:PROPERTIES:\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        14,
+        "low",
+        "Trailing ']' after link end",
+        "trailing-bracket-after-link"
+      ],
+      [
+        53,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        70,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        110,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+BEGIN_QUOTE\nunfinished\n[[https://a.b][desc [with] bracket]] ]\nPlain line with ** stars inside.\n#+begin_src emacs-lisp :results table list :exports bogus :tangle out.el\n()\n#+end_src\n#+SETUPFILE: missing.org\n#+begin_src emacs-lisp :results table list :exports bogus :tangle out.el\n()\n#+end_src\n#+OPTIONS: toc:nil num:t bogus:1 H:2 lonely:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible incomplete block \"#+BEGIN_QUOTE\"",
+        "invalid-block"
+      ],
+      [
+        25,
+        "low",
+        "Trailing ']' after link end",
+        "trailing-bracket-after-link"
+      ],
+      [
+        97,
+        "low",
+        "Unknown value \"bogus\" for header \":exports\"",
+        "wrong-header-value"
+      ],
+      [
+        97,
+        "low",
+        "Forbidden combination in header \":results\": table, list",
+        "wrong-header-value"
+      ],
+      [
+        183,
+        "low",
+        "Non-existent setup file \"missing.org\"",
+        "non-existent-setupfile-parameter"
+      ],
+      [
+        208,
+        "low",
+        "Unknown value \"bogus\" for header \":exports\"",
+        "wrong-header-value"
+      ],
+      [
+        208,
+        "low",
+        "Forbidden combination in header \":results\": table, list",
+        "wrong-header-value"
+      ],
+      [
+        294,
+        "low",
+        "Missing value for option item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        294,
+        "low",
+        "Unknown OPTIONS item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        294,
+        "low",
+        "Unknown OPTIONS item \"bogus\"",
+        "unknown-options-item"
+      ]
+    ]
+  },
+  {
+    "text": "#+MACRO: m $1\n1. one\n3. three\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        21,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src emacs-lisp :results table list :exports bogus :tangle out.el\n()\n#+end_src\n#+TITLE without colon\n#+BIBLIOGRAPHY: refs.bib\n  %%(diary-anniversary 1 1 2000)\n#+PROPERTY: header-args :results silent :zz 1\n#+BEGIN_HTML\n<b>\n#+END_HTML\n#+SETUPFILE: \"other.org\"\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Unknown value \"bogus\" for header \":exports\"",
+        "wrong-header-value"
+      ],
+      [
+        0,
+        "low",
+        "Forbidden combination in header \":results\": table, list",
+        "wrong-header-value"
+      ],
+      [
+        86,
+        "low",
+        "Possible missing colon in keyword \"TITLE\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        133,
+        "low",
+        "Possible indented diary-sexp",
+        "indented-diary-sexp"
+      ],
+      [
+        166,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ],
+      [
+        212,
+        "low",
+        "Deprecated syntax for export block.  Use \"BEGIN_EXPORT HTML\" instead",
+        "deprecated-export-blocks"
+      ]
+    ]
+  },
+  {
+    "text": "#+TBLNAME: other\n| x |\n#+begin_src python :results output :foo 1\nprint(1)\n#+end_src\nPlain line with ** stars inside.\n#+CATEGORY: one\n#+begin_src unknownlang :file-mode 755\n#+end_src\n\\begin{orgframe} \\end{orgframe}\n#+begin_export\nx\n#+end_export\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Obsolete affiliated keyword: \"TBLNAME\".  Use \"NAME\" instead",
+        "obsolete-affiliated-keywords"
+      ],
+      [
+        23,
+        "nil",
+        "Unknown header argument \":foo\"",
+        "wrong-header-argument"
+      ],
+      [
+        133,
+        "low",
+        "Unknown source block language: 'unknownlang'",
+        "suspicious-language-in-src-block"
+      ],
+      [
+        182,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        199,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        214,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ]
+    ]
+  },
+  {
+    "text": "\nDEADLINE: [2024-01-01 Mon]\n- item\n- item\n* Heading\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        1,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ]
+    ]
+  },
+  {
+    "text": "  %%(diary-anniversary 1 1 2000)\n* COMMENT QUOTE old\n\n* Footnotes\n#+MACRO: m $1\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible indented diary-sexp",
+        "indented-diary-sexp"
+      ],
+      [
+        33,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ],
+      [
+        54,
+        "nil",
+        "Extraneous elements in footnote section are not exported",
+        "extraneous-element-in-footnote-section"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src python :results output :foo 1\nprint(1)\n#+end_src\n#+HEADER: :var x=1\n#+HEADER: :bad\n#+begin_src R :session\n1\n#+end_src\n  SCHEDULED: <2024-01-01 Mon>\n[fn:3] again\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown header argument \":foo\"",
+        "wrong-header-argument"
+      ],
+      [
+        95,
+        "low",
+        "Empty value in header argument \":bad\"",
+        "empty-header-argument"
+      ],
+      [
+        95,
+        "low",
+        "Empty value in header argument \":session\"",
+        "empty-header-argument"
+      ],
+      [
+        95,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        130,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        160,
+        "nil",
+        "No reference for footnote definition [3]",
+        "unreferenced-footnote-definition"
+      ]
+    ]
+  },
+  {
+    "text": "#+ATTR_HTML: :width 10\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Orphaned affiliated keyword: \"ATTR_HTML\"",
+        "orphaned-affiliated-keywords"
+      ]
+    ]
+  },
+  {
+    "text": "\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "[[(ref)]] [[(missing)]]\n[[#one]] [[#two]] [[target]] <<target>> <<target>>\n#+CATEGORY: one\n#+BEGIN: clocktable\n#+END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown coderef \"ref\"",
+        "invalid-coderef-link"
+      ],
+      [
+        10,
+        "nil",
+        "Unknown coderef \"missing\"",
+        "invalid-coderef-link"
+      ],
+      [
+        24,
+        "nil",
+        "Unknown custom ID \"one\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        33,
+        "nil",
+        "Unknown custom ID \"two\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        53,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        64,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ]
+    ]
+  },
+  {
+    "text": "\\begin{orgframe} \\end{orgframe}\n#+NAME: tbl\n| a | b |\n#+PRINT_BIBLIOGRAPHY:\n[[file+sys:a.pdf]] [[file+emacs:b.org]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        17,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        76,
+        "nil",
+        "Deprecated \"file+sys\" link type",
+        "file-application"
+      ],
+      [
+        76,
+        "low",
+        "Link to non-existent local file \"a.pdf\"",
+        "link-to-local-file"
+      ],
+      [
+        95,
+        "nil",
+        "Deprecated \"file+emacs\" link type",
+        "file-application"
+      ],
+      [
+        95,
+        "low",
+        "Link to non-existent local file \"b.org\"",
+        "link-to-local-file"
+      ]
+    ]
+  },
+  {
+    "text": "[fn:1] and [fn:2] and [fn:inline:def]\nPlain line with ** stars inside.\n#+INCLUDE: \"other.org\" HTML\nSCHEDULED: [2024-01-01 Mon]\n#+BEGIN_SRC\nx\n#+END_SRC\n#+begin_src sh -r\necho hi (ref:ref)\n#+end_src\n#+PROPERTY: header-args:python+ :session x :pp 2\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        11,
+        "nil",
+        "Missing definition for footnote [2]",
+        "undefined-footnote-reference"
+      ],
+      [
+        71,
+        "low",
+        "Obsolete markup \"HTML\" in INCLUDE keyword.  Use \"export HTML\" instead",
+        "obsolete-include-markup"
+      ],
+      [
+        99,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        127,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ],
+      [
+        197,
+        "nil",
+        "Unknown header argument \":pp\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+ \n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible missing colon in keyword \"\"",
+        "invalid-keyword-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "* TODO [#A] Task :a::b:\n* QUOTE section\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ],
+      [
+        24,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ]
+    ]
+  },
+  {
+    "text": "#+NAME: alone\n\n#+END_SRC trailing\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Orphaned affiliated keyword: \"NAME\"",
+        "orphaned-affiliated-keywords"
+      ],
+      [
+        15,
+        "low",
+        "Invalid block closing line \"#+END_SRC trailing\"",
+        "invalid-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+PROPERTY: cache yes\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated syntax for \"cache\".  Use header-args instead",
+        "deprecated-header-syntax"
+      ]
+    ]
+  },
+  {
+    "text": ":NOTES:\n:INNER:\nx\n:END:\n#+BEGIN: clocktable\n#+END:\n#+PROPERTY: header-args:python+ :session x :pp 2\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        8,
+        "low",
+        "Possible misleading drawer entry \":INNER:\"",
+        "incomplete-drawer"
+      ],
+      [
+        51,
+        "nil",
+        "Unknown header argument \":pp\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "SCHEDULED: [2024-01-01 Mon]\n\\begin{orgframe} \\end{orgframe}\n#+CALL: f() :results raw\n  SCHEDULED: <2024-01-01 Mon>\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        28,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        45,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        85,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ]
+    ]
+  },
+  {
+    "text": "1. one\n3. three\n#+PROPERTY: header-args:python+ :session x :pp 2\n#+TITLE without colon\n#+begin_export\nx\n#+end_export\nPlain line with ** stars inside.\n[[file+sys:a.pdf]] [[file+emacs:b.org]]\n* TODO [#A] Task :a::b:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        7,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ],
+      [
+        16,
+        "nil",
+        "Unknown header argument \":pp\"",
+        "wrong-header-argument"
+      ],
+      [
+        65,
+        "low",
+        "Possible missing colon in keyword \"TITLE\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        87,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ],
+      [
+        150,
+        "nil",
+        "Deprecated \"file+sys\" link type",
+        "file-application"
+      ],
+      [
+        150,
+        "low",
+        "Link to non-existent local file \"a.pdf\"",
+        "link-to-local-file"
+      ],
+      [
+        169,
+        "nil",
+        "Deprecated \"file+emacs\" link type",
+        "file-application"
+      ],
+      [
+        169,
+        "low",
+        "Link to non-existent local file \"b.org\"",
+        "link-to-local-file"
+      ],
+      [
+        190,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ]
+    ]
+  },
+  {
+    "text": "#+OPTIONS: toc:nil num:t bogus:1 H:2 lonely:\n[[(ref)]] [[(missing)]]\nPlain line with ** stars inside.\n#+PROPERTY: header-args :results silent :zz 1\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Missing value for option item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        0,
+        "low",
+        "Unknown OPTIONS item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        0,
+        "low",
+        "Unknown OPTIONS item \"bogus\"",
+        "unknown-options-item"
+      ],
+      [
+        45,
+        "nil",
+        "Unknown coderef \"ref\"",
+        "invalid-coderef-link"
+      ],
+      [
+        55,
+        "nil",
+        "Unknown coderef \"missing\"",
+        "invalid-coderef-link"
+      ],
+      [
+        102,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "\n#+BEGIN_HTML\n<b>\n#+END_HTML\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        1,
+        "low",
+        "Deprecated syntax for export block.  Use \"BEGIN_EXPORT HTML\" instead",
+        "deprecated-export-blocks"
+      ]
+    ]
+  },
+  {
+    "text": ":PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n\n#+OPTIONS: toc:nil num:t bogus:1 H:2 lonely:\n#+begin_example\n#+notakeyword here\n:DRAWER:\n#+end_example\nPlain line with ** stars inside.\n#+begin_example\n#+notakeyword here\n:DRAWER:\n#+end_example\n#+begin_src python :results output :foo 1\nprint(1)\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        13,
+        "nil",
+        "Unknown header argument \":qq\"",
+        "wrong-header-argument"
+      ],
+      [
+        82,
+        "low",
+        "Missing value for option item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        82,
+        "low",
+        "Unknown OPTIONS item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        82,
+        "low",
+        "Unknown OPTIONS item \"bogus\"",
+        "unknown-options-item"
+      ],
+      [
+        143,
+        "low",
+        "Possible missing colon in keyword \"notakeyword\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        234,
+        "low",
+        "Possible missing colon in keyword \"notakeyword\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        276,
+        "nil",
+        "Unknown header argument \":foo\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+CALL: f[:x 1](a=1) [:results raw]\n#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n#+END_SRC trailing\n:PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n:LOGBOOK:\n- note\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Missing colon in header argument \"[:results\"",
+        "wrong-header-argument"
+      ],
+      [
+        0,
+        "nil",
+        "Unknown header argument \":x\"",
+        "wrong-header-argument"
+      ],
+      [
+        0,
+        "nil",
+        "Babel call's end header must not be wrapped within brackets",
+        "invalid-babel-call-block"
+      ],
+      [
+        89,
+        "low",
+        "Invalid block closing line \"#+END_SRC trailing\"",
+        "invalid-block"
+      ],
+      [
+        108,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+INCLUDE: \"other.org\" HTML\nInline call_g[:bad 1](2)[:results raw] and src_python[:results value :nope]{1+1} here.\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Obsolete markup \"HTML\" in INCLUDE keyword.  Use \"export HTML\" instead",
+        "obsolete-include-markup"
+      ],
+      [
+        35,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        71,
+        "low",
+        "Empty value in header argument \":nope\"",
+        "empty-header-argument"
+      ],
+      [
+        71,
+        "nil",
+        "Unknown header argument \":nope\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+BEGIN_SRC\nx\n#+END_SRC\n#+begin_example\n#+notakeyword here\n:DRAWER:\n#+end_example\n#+BEGIN_SRC\nx\n#+END_SRC\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ],
+      [
+        40,
+        "low",
+        "Possible missing colon in keyword \"notakeyword\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        82,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "#+NAME: tbl\n| a | b |\n:PROPERTIES:\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        22,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "%%(diary-float t 1 1)\nSCHEDULED: <2024-01-01 Mon +1w> DEADLINE: <2024-01-02 Tue +2d>\n[[file+sys:a.pdf]] [[file+emacs:b.org]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        22,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        85,
+        "nil",
+        "Deprecated \"file+sys\" link type",
+        "file-application"
+      ],
+      [
+        85,
+        "low",
+        "Link to non-existent local file \"a.pdf\"",
+        "link-to-local-file"
+      ],
+      [
+        104,
+        "nil",
+        "Deprecated \"file+emacs\" link type",
+        "file-application"
+      ],
+      [
+        104,
+        "low",
+        "Link to non-existent local file \"b.org\"",
+        "link-to-local-file"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src sh -r\necho hi (ref:ref)\n#+end_src\n#+begin_src python :results output :foo 1\nprint(1)\n#+end_src\n#+NAME: tbl\n| a | b |\n#+begin_export\nx\n#+end_export\n[[#one]] [[#two]] [[target]] <<target>> <<target>>\n:PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n* TODO [#A] Task :a::b:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        46,
+        "nil",
+        "Unknown header argument \":foo\"",
+        "wrong-header-argument"
+      ],
+      [
+        129,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ],
+      [
+        159,
+        "nil",
+        "Unknown custom ID \"one\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        168,
+        "nil",
+        "Unknown custom ID \"two\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        188,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        199,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        210,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        291,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_export\nx\n#+end_export\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ]
+    ]
+  },
+  {
+    "text": ":NOTES:\n:INNER:\nx\n:END:\n:DANGLING:\nno end\nDEADLINE: [2024-01-01 Mon]\n- item\n- item\n#+OPTIONS: toc:nil num:t bogus:1 H:2 lonely:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        8,
+        "low",
+        "Possible misleading drawer entry \":INNER:\"",
+        "incomplete-drawer"
+      ],
+      [
+        24,
+        "low",
+        "Possible incomplete drawer \":DANGLING:\"",
+        "incomplete-drawer"
+      ],
+      [
+        42,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        83,
+        "low",
+        "Missing value for option item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        83,
+        "low",
+        "Unknown OPTIONS item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        83,
+        "low",
+        "Unknown OPTIONS item \"bogus\"",
+        "unknown-options-item"
+      ]
+    ]
+  },
+  {
+    "text": "#+PRINT_BIBLIOGRAPHY:\n- item\n- item\n#+BEGIN_SRC\nx\n#+END_SRC\n:PROPERTIES:\n:CUSTOM_ID: one\n:END:\n[fn:1] defined\n[fn:3] lonely\nSCHEDULED: [2024-01-01 Mon]\n* COMMENT QUOTE old\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        36,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ],
+      [
+        60,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        95,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        110,
+        "nil",
+        "No reference for footnote definition [3]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        124,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        152,
+        "low",
+        "Deprecated QUOTE section",
+        "quote-section"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src sh -r :results silent append\nx\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Forbidden combination in header \":results\": silent, append",
+        "wrong-header-value"
+      ]
+    ]
+  },
+  {
+    "text": "1. one\n3. three\n#+HEADER: :var x=1\n#+HEADER: :bad\n#+begin_src R :session\n1\n#+end_src\n[fn:1] defined\n[fn:3] lonely\n#+TBLNAME: other\n| x |\n#+BEGIN_SRC\nx\n#+END_SRC\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        7,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ],
+      [
+        50,
+        "low",
+        "Empty value in header argument \":bad\"",
+        "empty-header-argument"
+      ],
+      [
+        50,
+        "low",
+        "Empty value in header argument \":session\"",
+        "empty-header-argument"
+      ],
+      [
+        50,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        85,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        100,
+        "nil",
+        "No reference for footnote definition [3]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        114,
+        "nil",
+        "Obsolete affiliated keyword: \"TBLNAME\".  Use \"NAME\" instead",
+        "obsolete-affiliated-keywords"
+      ],
+      [
+        137,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ]
+    ]
+  },
+  {
+    "text": "DEADLINE: [2024-01-01 Mon]\n#+BEGIN_HTML\n<b>\n#+END_HTML\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        27,
+        "low",
+        "Deprecated syntax for export block.  Use \"BEGIN_EXPORT HTML\" instead",
+        "deprecated-export-blocks"
+      ]
+    ]
+  },
+  {
+    "text": "#+CAPTION: alone\n#+PROPERTY: cache yes\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated syntax for \"cache\".  Use header-args instead",
+        "deprecated-header-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "SCHEDULED: <2024-01-01 Mon +1w> DEADLINE: <2024-01-02 Tue +2d>\n#+CALL: f() :results raw\ntext ** not a heading\n#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n[[tbl]] [[TBL]] [[other]]\n:PROPERTIES:\n:CUSTOM_ID: one\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        171,
+        "nil",
+        "Unknown fuzzy location \"TBL\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        179,
+        "nil",
+        "Unknown fuzzy location \"other\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        189,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "SCHEDULED: <2024-01-01 Mon +1w> DEADLINE: <2024-01-02 Tue +2d>\n#+INCLUDE: x.org src\n[[*Heading]] and [[*Missing]]\n[[tbl]] [[TBL]] [[other]]\n[[file:other.org]] [[file:nope.txt]] [[./missing/x.png]]\n1. one\n3. three\n:NOTES:\n:INNER:\nx\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        63,
+        "low",
+        "Non-existent file argument in INCLUDE keyword",
+        "wrong-include-link-parameter"
+      ],
+      [
+        84,
+        "nil",
+        "Unknown fuzzy location \"Heading\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        101,
+        "nil",
+        "Unknown fuzzy location \"Missing\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        114,
+        "nil",
+        "Unknown fuzzy location \"tbl\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        122,
+        "nil",
+        "Unknown fuzzy location \"TBL\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        130,
+        "nil",
+        "Unknown fuzzy location \"other\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        159,
+        "low",
+        "Link to non-existent local file \"nope.txt\"",
+        "link-to-local-file"
+      ],
+      [
+        177,
+        "low",
+        "Link to non-existent local file \"./missing/x.png\"",
+        "link-to-local-file"
+      ],
+      [
+        204,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ],
+      [
+        221,
+        "low",
+        "Possible misleading drawer entry \":INNER:\"",
+        "incomplete-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+BEGIN_HTML\n<b>\n#+END_HTML\n#+CALL: (x)\n:END:\n** Sub heading [1/2] :tag:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Deprecated syntax for export block.  Use \"BEGIN_EXPORT HTML\" instead",
+        "deprecated-export-blocks"
+      ],
+      [
+        28,
+        "nil",
+        "Invalid syntax in babel call block",
+        "invalid-babel-call-block"
+      ],
+      [
+        40,
+        "low",
+        "Possible incomplete drawer \":END:\"",
+        "incomplete-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "* Footnotes\n#+begin_export\nx\n#+end_export\n#+TITLE: Doc\n#+NAME: n\nPara.\n[[(ref)]] [[(missing)]]\n[[a%20b]] [[a%2Fb]] [[100%]]\n:DANGLING:\nno end\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Extraneous elements in footnote section are not exported",
+        "extraneous-element-in-footnote-section"
+      ],
+      [
+        12,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ],
+      [
+        42,
+        "low",
+        "Independent keyword TITLE may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ],
+      [
+        71,
+        "nil",
+        "Unknown coderef \"ref\"",
+        "invalid-coderef-link"
+      ],
+      [
+        81,
+        "nil",
+        "Unknown coderef \"missing\"",
+        "invalid-coderef-link"
+      ],
+      [
+        95,
+        "low",
+        "Link escaped with obsolete percent-encoding syntax",
+        "percent-encoding-link-escape"
+      ],
+      [
+        95,
+        "nil",
+        "Unknown fuzzy location \"a%20b\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        105,
+        "nil",
+        "Unknown fuzzy location \"a%2Fb\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        115,
+        "nil",
+        "Unknown fuzzy location \"100%\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        124,
+        "low",
+        "Possible incomplete drawer \":DANGLING:\"",
+        "incomplete-drawer"
+      ]
+    ]
+  },
+  {
+    "text": ":END:\n[[#one]] [[#two]] [[target]] <<target>> <<target>>\n#+BEGIN_SRC\nx\n#+END_SRC\nInline call_g[:bad 1](2)[:results raw] and src_python[:results value :nope]{1+1} here.\n#+ATTR_HTML: :width 10\nSCHEDULED: <2024-01-01 Mon +1w> DEADLINE: <2024-01-02 Tue +2d>\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible incomplete drawer \":END:\"",
+        "incomplete-drawer"
+      ],
+      [
+        6,
+        "nil",
+        "Unknown custom ID \"one\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        15,
+        "nil",
+        "Unknown custom ID \"two\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        35,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        46,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        57,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ],
+      [
+        88,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        124,
+        "low",
+        "Empty value in header argument \":nope\"",
+        "empty-header-argument"
+      ],
+      [
+        124,
+        "nil",
+        "Unknown header argument \":nope\"",
+        "wrong-header-argument"
+      ],
+      [
+        191,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ]
+    ]
+  },
+  {
+    "text": "** Sub heading [1/2] :tag:\n#+INCLUDE: x.org src\n:PROPERTIES:\n:EFFORT: soon\n:ID: a::b\n:TODO: x\n:cache: yes\n:END:\n:PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n[[#one]] [[#two]] [[target]] <<target>> <<target>>\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        27,
+        "low",
+        "Non-existent file argument in INCLUDE keyword",
+        "wrong-include-link-parameter"
+      ],
+      [
+        48,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        112,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        193,
+        "nil",
+        "Unknown custom ID \"one\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        202,
+        "nil",
+        "Unknown custom ID \"two\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        222,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        233,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ]
+    ]
+  },
+  {
+    "text": "#+CALL: (x)\n#+BEGIN_SRC\nx\n#+END_SRC\n- item\n- item\n#+CALL: f() :results raw\n#+PRINT_BIBLIOGRAPHY:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Invalid syntax in babel call block",
+        "invalid-babel-call-block"
+      ],
+      [
+        12,
+        "nil",
+        "Missing language in source block",
+        "missing-language-in-src-block"
+      ]
+    ]
+  },
+  {
+    "text": "#+ \n#+CATEGORY: two\nDEADLINE: [2024-01-01 Mon]\n#+CAPTION: alone\n[[#one]] [[#two]] [[target]] <<target>> <<target>>\n#+name: tbl\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n[cite:@key] in text\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible missing colon in keyword \"\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        20,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        64,
+        "nil",
+        "Unknown custom ID \"one\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        73,
+        "nil",
+        "Unknown custom ID \"two\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        93,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        104,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        188,
+        "nil",
+        "Possibly missing \"PRINT_BIBLIOGRAPHY\" keyword",
+        "missing-print-bibliography"
+      ]
+    ]
+  },
+  {
+    "text": ":END:\n[[file+sys:a.pdf]] [[file+emacs:b.org]]\n#+TITLE: Doc\n#+NAME: n\nPara.\n[[#one]] [[#two]] [[target]] <<target>> <<target>>\n#+BEGIN_HTML\n<b>\n#+END_HTML\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible incomplete drawer \":END:\"",
+        "incomplete-drawer"
+      ],
+      [
+        6,
+        "nil",
+        "Deprecated \"file+sys\" link type",
+        "file-application"
+      ],
+      [
+        6,
+        "low",
+        "Link to non-existent local file \"a.pdf\"",
+        "link-to-local-file"
+      ],
+      [
+        25,
+        "nil",
+        "Deprecated \"file+emacs\" link type",
+        "file-application"
+      ],
+      [
+        25,
+        "low",
+        "Link to non-existent local file \"b.org\"",
+        "link-to-local-file"
+      ],
+      [
+        46,
+        "low",
+        "Independent keyword TITLE may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ],
+      [
+        75,
+        "nil",
+        "Unknown custom ID \"one\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        84,
+        "nil",
+        "Unknown custom ID \"two\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        104,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        115,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        126,
+        "low",
+        "Deprecated syntax for export block.  Use \"BEGIN_EXPORT HTML\" instead",
+        "deprecated-export-blocks"
+      ]
+    ]
+  },
+  {
+    "text": "#+TITLE: Doc\n#+NAME: n\nPara.\n:PROPERTIES:\n:CUSTOM_ID: one\n:END:\n#+PRINT_BIBLIOGRAPHY:\n#+SETUPFILE: \"other.org\"\n[fn:1] and [fn:2] and [fn:inline:def]\nSCHEDULED: <2024-01-01 Mon +1w> DEADLINE: <2024-01-02 Tue +2d>\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Independent keyword TITLE may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ],
+      [
+        29,
+        "nil",
+        "Incorrect contents for PROPERTIES drawer",
+        "obsolete-properties-drawer"
+      ],
+      [
+        111,
+        "nil",
+        "No reference for footnote definition [1]",
+        "unreferenced-footnote-definition"
+      ],
+      [
+        122,
+        "nil",
+        "Missing definition for footnote [2]",
+        "undefined-footnote-reference"
+      ],
+      [
+        149,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ]
+    ]
+  },
+  {
+    "text": ":NOTES:\n:INNER:\nx\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        8,
+        "low",
+        "Possible misleading drawer entry \":INNER:\"",
+        "incomplete-drawer"
+      ]
+    ]
+  },
+  {
+    "text": "#+PROPERTY: header-args:python+ :session x :pp 2\nParagraph** Oops heading\n#+END_SRC trailing\n#+CATEGORY: one\n#+SETUPFILE: \"other.org\"\n#+PRINT_BIBLIOGRAPHY:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown header argument \":pp\"",
+        "wrong-header-argument"
+      ],
+      [
+        57,
+        "low",
+        "Possibly misplaced heading line",
+        "misplaced-heading"
+      ],
+      [
+        74,
+        "low",
+        "Invalid block closing line \"#+END_SRC trailing\"",
+        "invalid-block"
+      ]
+    ]
+  },
+  {
+    "text": "[[#one]] [[#two]] [[target]] <<target>> <<target>>\n#+HEADER: :var x=1\n#+HEADER: :bad\n#+begin_src R :session\n1\n#+end_src\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Unknown custom ID \"one\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        9,
+        "nil",
+        "Unknown custom ID \"two\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        29,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        40,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        85,
+        "low",
+        "Empty value in header argument \":bad\"",
+        "empty-header-argument"
+      ],
+      [
+        85,
+        "low",
+        "Empty value in header argument \":session\"",
+        "empty-header-argument"
+      ],
+      [
+        85,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "\n:PROPERTIES:\n:CUSTOM_ID: one\n:END:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "1. one\n3. three\n\\begin{orgframe} \\end{orgframe}\n#+OPTIONS: \\n:t ^:{} tex:verbatim author\n#+begin_example\n#+notakeyword here\n:DRAWER:\n#+end_example\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        7,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ],
+      [
+        16,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        33,
+        "low",
+        "Beamer frame name may cause error when exporting.  Consider customizing `org-beamer-frame-environment'.",
+        "beamer-frame"
+      ],
+      [
+        105,
+        "low",
+        "Possible missing colon in keyword \"notakeyword\"",
+        "invalid-keyword-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "  SCHEDULED: <2024-01-01 Mon>\n[[*Heading]] and [[*Missing]]\n#+begin_src unknownlang :file-mode 755\n#+end_src\n* TODO [#A] Task :a::b:\nDEADLINE: [2024-01-01 Mon]\n#+PROPERTY: header-args :results silent :zz 1\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        30,
+        "nil",
+        "Unknown fuzzy location \"Heading\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        47,
+        "nil",
+        "Unknown fuzzy location \"Missing\"",
+        "invalid-fuzzy-link"
+      ],
+      [
+        60,
+        "low",
+        "Unknown source block language: 'unknownlang'",
+        "suspicious-language-in-src-block"
+      ],
+      [
+        109,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ],
+      [
+        133,
+        "high",
+        "Inactive timestamp in DEADLINE will not appear in agenda.",
+        "planning-inactive"
+      ],
+      [
+        160,
+        "nil",
+        "Unknown header argument \":zz\"",
+        "wrong-header-argument"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_center\nok\n#+end_center\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": []
+  },
+  {
+    "text": "[[https://a.b][desc [with] bracket]] ]\n[[#one]] [[#two]] [[target]] <<target>> <<target>>\n- item\n- item\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Trailing ']' after link end",
+        "trailing-bracket-after-link"
+      ],
+      [
+        39,
+        "nil",
+        "Unknown custom ID \"one\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        48,
+        "nil",
+        "Unknown custom ID \"two\"",
+        "invalid-custom-id-link"
+      ],
+      [
+        68,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ],
+      [
+        79,
+        "nil",
+        "Duplicate target <<target>>",
+        "duplicate-target"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_export\nx\n#+end_export\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "nil",
+        "Missing backend in export block",
+        "missing-backend-in-export-block"
+      ]
+    ]
+  },
+  {
+    "text": "  %%(diary-anniversary 1 1 2000)\n** Sub heading [1/2] :tag:\nSCHEDULED: <2024-01-01 Mon +1w> DEADLINE: <2024-01-02 Tue +2d>\n#+ \n#+TITLE without colon\n#+CATEGORY: two\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Possible indented diary-sexp",
+        "indented-diary-sexp"
+      ],
+      [
+        60,
+        "low",
+        "Different repeaters in SCHEDULED and DEADLINE timestamps.",
+        "mismatched-planning-repeaters"
+      ],
+      [
+        123,
+        "low",
+        "Possible missing colon in keyword \"\"",
+        "invalid-keyword-syntax"
+      ],
+      [
+        127,
+        "low",
+        "Possible missing colon in keyword \"TITLE\"",
+        "invalid-keyword-syntax"
+      ]
+    ]
+  },
+  {
+    "text": "#+begin_src sh -r :results silent append\nx\n#+end_src\n#+begin_src python :results output :foo 1\nprint(1)\n#+end_src\n1. one\n3. three\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Forbidden combination in header \":results\": silent, append",
+        "wrong-header-value"
+      ],
+      [
+        53,
+        "nil",
+        "Unknown header argument \":foo\"",
+        "wrong-header-argument"
+      ],
+      [
+        121,
+        "nil",
+        "Bullet counter \"3. \" is not the same with item position 2.  Consider adding manual [@3] counter.",
+        "item-number"
+      ]
+    ]
+  },
+  {
+    "text": "#+MACRO: m $1\n#+HEADER: :var x=1\n#+HEADER: :bad\n#+begin_src R :session\n1\n#+end_src\nSCHEDULED: <2024-01-01 Mon +1w> DEADLINE: <2024-01-02 Tue +2d>\n#+OPTIONS: toc:nil num:t bogus:1 H:2 lonely:\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        0,
+        "low",
+        "Independent keyword MACRO may be confused with affiliated keywords below",
+        "combining-keywords-with-affiliated"
+      ],
+      [
+        48,
+        "low",
+        "Empty value in header argument \":bad\"",
+        "empty-header-argument"
+      ],
+      [
+        48,
+        "low",
+        "Empty value in header argument \":session\"",
+        "empty-header-argument"
+      ],
+      [
+        48,
+        "nil",
+        "Unknown header argument \":bad\"",
+        "wrong-header-argument"
+      ],
+      [
+        83,
+        "low",
+        "Misplaced planning info line",
+        "misplaced-planning-info"
+      ],
+      [
+        146,
+        "low",
+        "Missing value for option item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        146,
+        "low",
+        "Unknown OPTIONS item \"lonely\"",
+        "unknown-options-item"
+      ],
+      [
+        146,
+        "low",
+        "Unknown OPTIONS item \"bogus\"",
+        "unknown-options-item"
+      ]
+    ]
+  }
+]

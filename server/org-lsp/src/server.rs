@@ -569,7 +569,13 @@ struct Server {
     /// to read one again when it changes.
     bibliographies: HashMap<PathBuf, (Option<std::time::SystemTime>, u64, Rc<BibFile>)>,
     /// The documents the server published citation diagnostics for.
-    cite_diagnosed: HashSet<String>,
+    /// The documents with diagnostics published, which a change without
+    /// any clears.
+    diagnosed: HashSet<String>,
+    /// `org_lint`: Org's linter checks the documents.
+    lint: bool,
+    /// `org_lint_ignore`: the checkers it leaves out.
+    lint_ignore: Vec<String>,
     /// A fixed clock, for tests.
     clock: Option<Now>,
     /// The clock that runs, as the files say.
@@ -792,7 +798,9 @@ pub fn run(connection: Connection) -> Result<()> {
         virtually_indented: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
         bibliographies: HashMap::new(),
-        cite_diagnosed: HashSet::new(),
+        diagnosed: HashSet::new(),
+        lint: options.lint.unwrap_or(true),
+        lint_ignore: options.lint_ignore.clone().unwrap_or_default(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
         running: None,
         clock_pending: false,
@@ -1570,7 +1578,7 @@ impl Server {
                 self.documents.insert(key.clone(), Document::new(document.text, document.version, &self.todo));
                 self.sync_clock(&key);
                 self.publish_virtual_indent(&key);
-                self.publish_citation_diagnostics(&key);
+                self.publish_diagnostics(&key);
             }
             DidChangeTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidChangeTextDocumentParams>(notification) else { return };
@@ -1606,7 +1614,7 @@ impl Server {
                 }
                 self.sync_clock(key);
                 self.publish_virtual_indent(key);
-                self.publish_citation_diagnostics(key);
+                self.publish_diagnostics(key);
                 // The clock's times go with the next change, as Emacs's
                 // overlays do (`org-remove-highlights-with-change`).
                 if self.clock_display.remove(key).is_some() {
@@ -7097,10 +7105,11 @@ impl Server {
         })
     }
 
-    /// The citation keys of the document `key` that its bibliography does
-    /// not have, as diagnostics (the `error` face of `oc-basic`), with the
-    /// keys close to each (`org-cite-basic--close-keys`) to substitute.
-    fn publish_citation_diagnostics(&mut self, key: &str) {
+    /// The diagnostics of the document `key`: what Org's linter finds
+    /// (`org-lint`), and the citation keys its bibliography does not have
+    /// (the `error` face of `oc-basic`), with the keys close to each
+    /// (`org-cite-basic--close-keys`) to substitute.
+    fn publish_diagnostics(&mut self, key: &str) {
         let Some(document) = self.documents.get(key) else { return };
         let Ok(uri) = key.parse::<Uri>() else { return };
         let (text, parse, version) = (document.text.clone(), document.parse.clone(), document.version);
@@ -7138,11 +7147,13 @@ impl Server {
                 }
             }
         }
-        if diagnostics.is_empty() && !self.cite_diagnosed.remove(key) {
+        diagnostics.extend(self.lint_diagnostics(&uri, &text, &parse));
+        diagnostics.sort_by_key(|diagnostic| (diagnostic.range.start.line, diagnostic.range.start.character));
+        if diagnostics.is_empty() && !self.diagnosed.remove(key) {
             return;
         }
         if !diagnostics.is_empty() {
-            self.cite_diagnosed.insert(key.to_string());
+            self.diagnosed.insert(key.to_string());
         }
         let params = lsp_types::PublishDiagnosticsParams { uri, diagnostics, version: Some(version) };
         let notification = lsp_server::Notification::new(
@@ -7150,6 +7161,57 @@ impl Server {
             params,
         );
         let _ = self.sender.send(Message::Notification(notification));
+    }
+
+    /// What `org-lint` reports in a document, as diagnostics from the
+    /// report's place to the end of its line: a warning, or information
+    /// for a checker of low trust. The checker's name is the code.
+    fn lint_diagnostics(&self, uri: &Uri, text: &str, parse: &org_syntax::Parse) -> Vec<lsp_types::Diagnostic> {
+        if !self.lint || uri::file_name(uri).starts_with(CAPTURE_PREFIX) {
+            return Vec::new();
+        }
+        let Some(document) = self.documents.get(uri.as_str()) else { return Vec::new() };
+        let directory = uri::to_path(uri).and_then(|path| path.parent().map(Path::to_path_buf));
+        let exists = |name: &str| {
+            let path = match name.strip_prefix('~') {
+                Some(rest) => match std::env::var_os("HOME") {
+                    Some(home) => PathBuf::from(home).join(rest.trim_start_matches('/')),
+                    None => return false,
+                },
+                None => PathBuf::from(name),
+            };
+            let path = match (&directory, path.is_absolute()) {
+                (Some(directory), false) => directory.join(path),
+                _ => path,
+            };
+            path.exists()
+        };
+        let context = org_core::lint::Context { file_exists: &exists };
+        let encoding = self.client.encoding;
+        org_core::lint::lint(text, parse, &context)
+            .into_iter()
+            .filter(|report| !self.lint_ignore.iter().any(|ignored| ignored == report.checker))
+            .map(|report| {
+                let start = report.offset.min(text.len());
+                let end = text[start..].find('\n').map_or(text.len(), |found| start + found);
+                let range = Range::new(
+                    document.index.position(text, start, encoding),
+                    document.index.position(text, end, encoding),
+                );
+                lsp_types::Diagnostic {
+                    range,
+                    severity: Some(if report.trust == "low" {
+                        lsp_types::DiagnosticSeverity::INFORMATION
+                    } else {
+                        lsp_types::DiagnosticSeverity::WARNING
+                    }),
+                    code: Some(lsp_types::NumberOrString::String(report.checker.to_string())),
+                    source: Some("org-lint".to_string()),
+                    message: report.message,
+                    ..Default::default()
+                }
+            })
+            .collect()
     }
 
     /// `org-indent-mode` for the client: how far each line of the document

@@ -19,6 +19,8 @@ pub mod edit;
 pub mod format;
 pub mod indent;
 pub mod link;
+pub mod lint;
+mod lint_tables;
 pub mod list;
 pub mod meta_return;
 pub mod newline;

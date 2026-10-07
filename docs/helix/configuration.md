@@ -158,6 +158,16 @@ org_clock_file_time_cell_format = "*%s*"
 # (org-clock-out-switch-to-state)
 # org_clock_out_switch_to_state = …  (unset: none)
 
+# Org's linter checks the documents and reports what it finds as diagnostics:
+# misplaced headings and planning lines, links to nowhere, duplicate names,
+# footnotes without definitions… A checker Org trusts little reports
+# information, the others warnings. (org-lint)
+org_lint = true
+
+# The `org-lint` checkers to leave out, by name, as a diagnostic's code shows
+# it (`"misplaced-heading"`). (org-lint)
+org_lint_ignore = []
+
 # Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true` makes
 # one when the entry has none, `"create-if-interactive"` only from the command
 # (not for capture's `%a`), `"create-if-interactive-and-no-custom-id"`

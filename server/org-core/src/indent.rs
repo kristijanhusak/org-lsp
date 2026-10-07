@@ -222,6 +222,77 @@ fn affiliated_name(node: &SyntaxNode) -> Option<String> {
     name
 }
 
+/// The elements of a text, to ask what is at a place, as
+/// `org-element-at-point` answers.
+pub struct Elements(Snapshot);
+
+/// An element as `org-element-at-point` returns it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ElementAt {
+    /// Its type, as `org-element-type` names it (`paragraph`,
+    /// `src-block`…).
+    pub kind: &'static str,
+    /// Its first line, affiliated keywords included.
+    pub begin: usize,
+    /// The line after its affiliated keywords.
+    pub post_affiliated: usize,
+    /// Where the next element starts.
+    pub end: usize,
+    /// Its contents, for a greater element.
+    pub contents: Option<(usize, usize)>,
+}
+
+impl Elements {
+    pub fn new(text: &str) -> Elements {
+        Elements(Snapshot::new(text, &Settings::default()))
+    }
+
+    /// `org-element-at-point` at `at`.
+    pub fn at(&self, at: usize) -> Option<ElementAt> {
+        let index = self.0.element_at(at)?;
+        let element = &self.0.elements[index];
+        let kind = match element.kind {
+            Kind::Headline => "headline",
+            Kind::Section => "section",
+            Kind::Planning => "planning",
+            Kind::PropertyDrawer => "property-drawer",
+            Kind::NodeProperty => "node-property",
+            Kind::Drawer => "drawer",
+            Kind::Clock => "clock",
+            Kind::Paragraph => "paragraph",
+            Kind::PlainList => "plain-list",
+            Kind::Item => "item",
+            Kind::Table => "table",
+            Kind::TableRow => "table-row",
+            Kind::SrcBlock => "src-block",
+            Kind::ExampleBlock => "example-block",
+            Kind::ExportBlock => "export-block",
+            Kind::CommentBlock => "comment-block",
+            Kind::VerseBlock => "verse-block",
+            Kind::GreaterBlock => match element.name.as_str() {
+                "CENTER" => "center-block",
+                "QUOTE" => "quote-block",
+                _ => "special-block",
+            },
+            Kind::DynamicBlock => "dynamic-block",
+            Kind::Keyword => "keyword",
+            Kind::Comment => "comment",
+            Kind::FixedWidth => "fixed-width",
+            Kind::HorizontalRule => "horizontal-rule",
+            Kind::FootnoteDefinition => "footnote-definition",
+            Kind::LatexEnvironment => "latex-environment",
+            Kind::DiarySexp => "diary-sexp",
+        };
+        Some(ElementAt {
+            kind,
+            begin: element.begin,
+            post_affiliated: element.post_affiliated,
+            end: element.end,
+            contents: element.contents,
+        })
+    }
+}
+
 /// `org-element-at-point` for links: where the element at `at` begins,
 /// its affiliated keywords included, and its `#+NAME:`.
 pub fn element_at(text: &str, at: usize) -> Option<(usize, Option<String>)> {
@@ -283,6 +354,15 @@ impl Snapshot {
                     .filter_map(|grandchild| grandchild.into_token())
                     .find(|token| token.kind() == DRAWER_BEGIN)
                     .map(|token| token.text().trim_matches(':').to_string())
+                    .unwrap_or_default()
+            } else if kind == Kind::GreaterBlock {
+                // The type of a greater block: `CENTER`, `QUOTE`, or a
+                // special block's.
+                child
+                    .children_with_tokens()
+                    .filter_map(|grandchild| grandchild.into_token())
+                    .find(|token| token.kind() == BLOCK_BEGIN)
+                    .map(|token| token.text().get(8..).unwrap_or("").to_ascii_uppercase())
                     .unwrap_or_default()
             } else {
                 String::new()

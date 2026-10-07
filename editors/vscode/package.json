@@ -1049,6 +1049,19 @@
               "type": "string",
               "markdownDescription": "The TODO state an entry is put in when the clock stops on it. (`org-clock-out-switch-to-state`)"
             },
+            "org_lint": {
+              "type": "boolean",
+              "markdownDescription": "Org's linter checks the documents and reports what it finds as diagnostics: misplaced headings and planning lines, links to nowhere, duplicate names, footnotes without definitions… A checker Org trusts little reports information, the others warnings. (`org-lint`)",
+              "default": true
+            },
+            "org_lint_ignore": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "markdownDescription": "The `org-lint` checkers to leave out, by name, as a diagnostic's code shows it (`\"misplaced-heading\"`). (`org-lint`)",
+              "default": []
+            },
             "org_id_link_to_org_use_id": {
               "enum": [
                 true,
