@@ -100,7 +100,8 @@ The other options are in [configuration.md](configuration.md).
 | `v m` | `org.agenda.month` | Agenda: month view |
 | `v y` | `org.agenda.year` | Agenda: year view |
 | `r` | `org.agenda.redo` | Agenda: rebuild |
-| `Enter`, `Tab` | `org.agenda.goto` | Agenda: go to the entry |
+| `Enter` | `org.agenda.goto` | Agenda: go to the entry |
+| `Tab` | `org.agenda.goto.other` | Agenda: go to the entry in another window |
 | `s`, `Ctrl+X Ctrl+S` | `org.agenda.save` | Save all Org files |
 | `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
@@ -183,7 +184,8 @@ The other options are in [configuration.md](configuration.md).
 | `v m` | `org.agenda.month` | Agenda: month view |
 | `v y` | `org.agenda.year` | Agenda: year view |
 | `r` | `org.agenda.redo` | Agenda: rebuild |
-| `Enter`, `Tab` | `org.agenda.goto` | Agenda: go to the entry |
+| `Enter` | `org.agenda.goto` | Agenda: go to the entry |
+| `Tab` | `org.agenda.goto.other` | Agenda: go to the entry in another window |
 | `s`, `Ctrl+X Ctrl+S` | `org.agenda.save` | Save all Org files |
 | `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
@@ -288,6 +290,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.agenda.year` | Org: Agenda: year view |
 | `org.agenda.redo` | Org: Agenda: rebuild |
 | `org.agenda.goto` | Org: Agenda: go to the entry |
+| `org.agenda.goto.other` | Org: Agenda: go to the entry in another window |
 | `org.agenda.save` | Org: Save all Org files |
 | `org.agenda.log` | Org: Agenda: log mode, what was closed and clocked |
 | `org.agenda.clockreport` | Org: Agenda: the clock report |

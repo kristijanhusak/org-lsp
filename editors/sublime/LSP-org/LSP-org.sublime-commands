@@ -98,6 +98,13 @@
     }
   },
   {
+    "caption": "Org: Agenda: go to the entry in another window",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.goto.other"
+    }
+  },
+  {
     "caption": "Org: Save all Org files",
     "command": "org_lsp_run",
     "args": {

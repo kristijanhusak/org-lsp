@@ -776,6 +776,27 @@ describe('The agenda', () => {
     });
   });
 
+  it('goes to the entry in another group with TAB', async () => {
+    await vscode.commands.executeCommand('org.agenda.list');
+    await agenda('Week-agenda (W21):');
+    const agendaGroup = vscode.window.tabGroups.activeTabGroup;
+    const lines = activeText().split('\n');
+    moveTo(lines.findIndex((line) => line.includes('Write report')));
+    await vscode.commands.executeCommand('org.agenda.goto.other');
+    await until('the cursor on the entry in another group', () => {
+      const active = vscode.window.activeTextEditor;
+      return (
+        active?.document.uri.toString() === workUri.toString() &&
+        active.selection.active.line === 1 &&
+        vscode.window.tabGroups.activeTabGroup !== agendaGroup
+      );
+    });
+    assert.ok(
+      agendaGroup.tabs.some((tab) => tab.input instanceof vscode.TabInputText && tab.input.uri.scheme === 'org-agenda'),
+      'the agenda keeps its group',
+    );
+  });
+
   it('lists TODO entries and refuses what makes no sense there', async () => {
     await vscode.commands.executeCommand('org.agenda.todos');
     await agenda('Global list of TODO items of type: ALL');

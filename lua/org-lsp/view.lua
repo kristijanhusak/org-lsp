@@ -25,6 +25,51 @@ local function is_float(win)
   return vim.api.nvim_win_get_config(win).relative ~= ''
 end
 
+--- Whether `win` shows nothing: a buffer without a name, unchanged and
+--- empty.
+---@param win integer
+---@return boolean
+local function is_empty(win)
+  local buf = vim.api.nvim_win_get_buf(win)
+  return vim.api.nvim_buf_get_name(buf) == ''
+    and vim.bo[buf].buftype == ''
+    and not vim.bo[buf].modified
+    and vim.api.nvim_buf_line_count(buf) == 1
+    and vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] == ''
+end
+
+--- The window an entry's file opens in from the agenda's window `from`
+--- with TAB (`org-agenda-goto`): one that shows the file, else an empty
+--- one, else a new one beside the window the agenda was opened from.
+---@param from integer
+---@param bufnr integer
+---@return integer
+local function other_window(from, bufnr)
+  local wins = vim.tbl_filter(function(win)
+    return win ~= from and not is_float(win)
+  end, vim.api.nvim_tabpage_list_wins(0))
+  for _, win in ipairs(wins) do
+    if vim.api.nvim_win_get_buf(win) == bufnr then
+      return win
+    end
+  end
+  for _, win in ipairs(wins) do
+    if is_empty(win) then
+      return win
+    end
+  end
+  -- Split the previous window, or the agenda's when it is the only one:
+  -- side by side when it is wide, as Emacs's `split-window-sensibly`.
+  local previous = vim.fn.win_getid(vim.fn.winnr('#'))
+  local base = vim.tbl_contains(wins, previous) and previous or wins[1] or from
+  local new
+  vim.api.nvim_win_call(base, function()
+    vim.cmd(vim.api.nvim_win_get_width(base) >= 160 and 'belowright vsplit' or 'belowright split')
+    new = vim.api.nvim_get_current_win()
+  end)
+  return new
+end
+
 --- Open a window for `bufnr` as `mode` says, make it the current one and
 --- return it. `mode` is `'float'`, `'current'` (the current window), an Ex
 --- command that opens a window (`'split'`, `'vsplit'`, `'botright split'`,
@@ -282,6 +327,12 @@ M.handlers = {
         vim.bo[bufnr].buflisted = true
         win = open_window(bufnr, require('org-lsp').config.win_split_mode or 'split')
       end
+    elseif params.orgOtherWindow and not is_float(vim.api.nvim_get_current_win()) then
+      -- An entry's file in another window (TAB in the agenda).
+      vim.cmd("normal! m'")
+      win = other_window(vim.api.nvim_get_current_win(), bufnr)
+      vim.bo[bufnr].buflisted = true
+      vim.api.nvim_win_set_buf(win, bufnr)
     else
       -- A file, such as an entry's from the agenda. From a floating
       -- window, it opens in the window under it.
@@ -347,6 +398,32 @@ M.handlers = {
   end,
 }
 
+--- The width last told to the server.
+local told_width
+
+--- Tell the server how many columns of text the window that shows the
+--- agenda has, for `agenda.tagsColumn` `"auto"`: the tags then end at its
+--- right edge. When the window changes size, the server builds the agenda
+--- again.
+---@param language string the agenda's filetype
+local function tell_width(language)
+  local client = vim.lsp.get_clients({ name = 'org_lsp' })[1]
+  if not client then
+    return
+  end
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == language then
+      local info = vim.fn.getwininfo(win)[1]
+      local width = info.width - info.textoff
+      if width ~= told_width then
+        told_width = width
+        client:notify('org-lsp/agendaWidth', { width = width })
+      end
+      return
+    end
+  end
+end
+
 --- Fetch buffers of the agenda's scheme from the server: the agenda, and
 --- the date prompt.
 ---@param manifest table the server's manifest
@@ -365,6 +442,15 @@ function M.setup(manifest)
       else
         load(args.buf, manifest.agenda.languageId)
       end
+    end,
+  })
+  -- Windows that open, close or change size, once their sizes are set.
+  vim.api.nvim_create_autocmd({ 'BufWinEnter', 'WinNew', 'WinClosed', 'WinResized', 'VimResized' }, {
+    group = 'org_lsp_view',
+    callback = function()
+      vim.schedule(function()
+        tell_width(manifest.agenda.languageId)
+      end)
     end,
   })
 end

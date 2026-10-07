@@ -157,6 +157,34 @@ async function showApart(params: { uri: string; takeFocus?: boolean; selection?:
   }
 }
 
+/**
+ * Show an entry's file from the agenda with TAB (`org-agenda-goto`): in a
+ * group that has it, else in an empty group, else in a new group beside
+ * the agenda. The agenda keeps its group.
+ */
+async function showInOtherGroup(params: { uri: string; takeFocus?: boolean; selection?: { start: { line: number; character: number } } }): Promise<void> {
+  const uri = vscode.Uri.parse(params.uri);
+  const document = await vscode.workspace.openTextDocument(uri);
+  const start = params.selection?.start;
+  const position = start ? new vscode.Position(start.line, start.character) : undefined;
+  const active = vscode.window.tabGroups.activeTabGroup;
+  const others = vscode.window.tabGroups.all.filter((group) => group !== active);
+  const group =
+    others.find((candidate) =>
+      candidate.tabs.some((tab) => tab.input instanceof vscode.TabInputText && sameUri(tab.input.uri.toString(), params.uri)),
+    ) ?? others.find((candidate) => candidate.tabs.length === 0);
+  if (!group) {
+    // A new, empty group to the right, which the file then fills.
+    await vscode.commands.executeCommand('workbench.action.newGroupRight');
+  }
+  await vscode.window.showTextDocument(document, {
+    viewColumn: group?.viewColumn ?? vscode.ViewColumn.Active,
+    preserveFocus: params.takeFocus === false,
+    preview: false,
+    selection: position ? new vscode.Range(position, position) : undefined,
+  });
+}
+
 /** Save the files the server names that have changes. */
 async function saveAsked(result: unknown): Promise<void> {
   const save = (result as { save?: unknown } | null)?.save;
@@ -330,6 +358,10 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           }
           if (apart(params.uri)) {
             await showApart(params);
+            return { success: true };
+          }
+          if ((params as { orgOtherWindow?: boolean }).orgOtherWindow) {
+            await showInOtherGroup(params);
             return { success: true };
           }
           if (!sameUri(params.uri, datePromptUri)) {

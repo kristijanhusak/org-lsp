@@ -2,7 +2,7 @@
 //! line passes as JSON. Names are Org's variable names in camel case
 //! without the `org-agenda-` prefix.
 
-use org_core::agenda::{Config as AgendaConfig, FutureRepeats, RemoveTags, Span, TimeGrid};
+use org_core::agenda::{Config as AgendaConfig, FutureRepeats, RemoveTags, Span, TagsColumn, TimeGrid};
 use org_core::archive::{ContextInfo, InheritedTags, MarkDone, Settings as ArchiveSettings};
 use org_core::edit::Settings as EditSettings;
 use org_core::outline::{Inherit, Inheritance};
@@ -946,7 +946,8 @@ pub struct AgendaOptions {
     pub skip_timestamp_if_done: Option<bool>,
     pub show_future_repeats: Option<FutureRepeatsOption>,
     pub show_all_dates: Option<bool>,
-    pub tags_column: Option<i64>,
+    /// `org-agenda-tags-column`: a column, or `"auto"`.
+    pub tags_column: Option<serde_json::Value>,
     pub use_time_grid: Option<bool>,
     pub time_grid: TimeGridOptions,
     pub show_current_time_in_grid: Option<bool>,
@@ -1074,7 +1075,6 @@ impl AgendaOptions {
             skip_deadline_if_done,
             skip_timestamp_if_done,
             show_all_dates,
-            tags_column,
             use_time_grid,
             show_current_time_in_grid,
             compact_blocks,
@@ -1086,6 +1086,15 @@ impl AgendaOptions {
                 config.block_separator = Some(text.repeat(79));
             }
             Some(serde_json::Value::String(text)) => config.block_separator = Some(text.clone()),
+            _ => {}
+        }
+        match &self.tags_column {
+            Some(serde_json::Value::Number(column)) => {
+                if let Some(column) = column.as_i64() {
+                    config.tags_column = TagsColumn::Column(column);
+                }
+            }
+            Some(serde_json::Value::String(name)) if name == "auto" => config.tags_column = TagsColumn::Auto,
             _ => {}
         }
         if let Some(span) = self.span.as_ref().and_then(SpanOption::to_span) {
@@ -1196,7 +1205,7 @@ mod tests {
         assert_eq!(config.start_on_weekday, Some(0));
         assert!(config.skip_scheduled_if_done);
         assert_eq!(config.show_future_repeats, FutureRepeats::Next);
-        assert_eq!(config.tags_column, -100);
+        assert_eq!(config.tags_column, TagsColumn::Column(-100));
         assert_eq!(config.time_grid.times, [900, 1700]);
         assert!(config.time_grid.weekly && config.time_grid.today);
     }

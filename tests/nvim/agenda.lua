@@ -131,6 +131,20 @@ eq(lines(), {
 }, 'the week agenda')
 eq(cursor_line(), 'Monday     18 May 2026 W21', 'the cursor is on today')
 eq({ vim.bo.modifiable, vim.bo.buftype, vim.bo.modified }, { false, 'nofile', false }, 'the agenda cannot be edited')
+-- `agenda.tagsColumn` `"auto"`: the tags end at the right edge of the
+-- window, and follow it when it changes size.
+local agenda_window = vim.api.nvim_get_current_win()
+vim.cmd('leftabove 10vnew')
+local narrow = vim.api.nvim_get_current_win()
+vim.api.nvim_set_current_win(agenda_window)
+wait('the tags at the narrower edge', function()
+  local width = vim.api.nvim_win_get_width(agenda_window)
+  return #line(4) == width and vim.endswith(line(4), ':office:')
+end)
+vim.api.nvim_win_close(narrow, true)
+wait('the tags at column 80 again', function()
+  return line(4) == '  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:'
+end)
 
 -- 2. The server announced the keys the plugin sets before the server runs.
 local org_lsp = require('org-lsp')
@@ -413,6 +427,33 @@ wait('the cursor to stay on the entry on Saturday', function()
 end)
 vim.api.nvim_win_set_cursor(0, { find('  home:       Sched. 2x:  TODO Water plants'), 14 })
 vim.ui.input = input
+
+-- 6c. TAB shows the entry in another window: a new one when the agenda
+-- is alone, then the one that shows the file, or an empty one.
+local agenda_win = vim.api.nvim_get_current_win()
+vim.cmd('only')
+local function tab_to_entry(message)
+  vim.api.nvim_set_current_win(agenda_win)
+  vim.api.nvim_win_set_cursor(agenda_win, { 16, 0 })
+  press('<Tab>')
+  wait(message, function()
+    return vim.api.nvim_get_current_buf() == work_buf and vim.api.nvim_get_current_win() ~= agenda_win
+  end)
+  eq(vim.api.nvim_win_get_buf(agenda_win), agenda_buf, 'the agenda stays in its window')
+  eq(vim.api.nvim_win_get_cursor(0), { 3, 0 }, 'the cursor is on the headline')
+  return vim.api.nvim_get_current_win()
+end
+local entry_win = tab_to_entry('the file in a new window')
+eq(#vim.api.nvim_tabpage_list_wins(0), 2, 'one window more')
+eq(tab_to_entry('the file in the window that shows it'), entry_win, 'that window again')
+vim.cmd('enew')
+eq(tab_to_entry('the file in the empty window'), entry_win, 'the empty window')
+eq(#vim.api.nvim_tabpage_list_wins(0), 2, 'no window more')
+vim.cmd('edit ' .. vim.fn.fnameescape(vim.fn.tempname() .. '.txt'))
+check(tab_to_entry('the file in a new window beside another file') ~= entry_win, 'a new window')
+eq(#vim.api.nvim_tabpage_list_wins(0), 3, 'the other file keeps its window')
+vim.api.nvim_win_close(entry_win, true)
+vim.api.nvim_set_current_win(agenda_win)
 
 -- 7. Enter goes to the entry.
 vim.api.nvim_win_set_cursor(0, { 16, 0 })

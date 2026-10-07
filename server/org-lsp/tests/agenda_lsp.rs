@@ -309,8 +309,13 @@ fn announces_the_agenda() {
         find("org.agenda.goto")["keys"],
         json!([
             { "key": "RET", "in": "agenda", "preset": "emacs" },
+            { "key": "<CR>", "in": "agenda", "preset": "vim" }
+        ])
+    );
+    assert_eq!(
+        find("org.agenda.goto.other")["keys"],
+        json!([
             { "key": "TAB", "in": "agenda", "preset": "emacs" },
-            { "key": "<CR>", "in": "agenda", "preset": "vim" },
             { "key": "<Tab>", "in": "agenda", "preset": "vim" }
         ])
     );
@@ -453,7 +458,8 @@ fn opens_the_agenda_from_open_documents() {
             "org.date.earlier",
             "org.clock.in",
             "org.archive.subtree",
-            "org.agenda.goto"
+            "org.agenda.goto",
+            "org.agenda.goto.other"
         ]
     );
     assert_eq!(actions[0]["command"]["arguments"][0]["position"]["line"], 12);
@@ -595,6 +601,11 @@ fn changes_an_entry_from_the_agenda() {
     assert_eq!(methods(&requests), ["window/showDocument"]);
     assert_eq!(requests[0].params["uri"], "file:///org/work.org");
     assert_eq!(requests[0].params["selection"]["start"], json!({ "line": 1, "character": 0 }));
+    assert!(requests[0].params.get("orgOtherWindow").is_none());
+    // TAB: in another window, which the editors of this project read.
+    let requests = client.command("org.agenda.goto.other", VIEW, 1);
+    assert_eq!(requests[0].params["uri"], "file:///org/work.org");
+    assert_eq!(requests[0].params["orgOtherWindow"], true);
 
     let error = client
         .request(
@@ -1464,7 +1475,8 @@ fn changes_dates_from_the_agenda() {
             "org.priority.down",
             "org.clock.in",
             "org.archive.subtree",
-            "org.agenda.goto"
+            "org.agenda.goto",
+            "org.agenda.goto.other"
         ]
     );
     client.shutdown();
@@ -3071,5 +3083,40 @@ fn recalculates_tables() {
         .request_raw("workspace/executeCommand", json!({ "command": "org.table.recalculate", "arguments": [{ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 1 } }] }))
         .unwrap_err();
     assert_eq!(refused.message, "Not at a table");
+    client.shutdown();
+}
+
+/// `agenda.tagsColumn` `"auto"` (the default): tags end at the right edge
+/// of the window the editor says the agenda has (`org-lsp/agendaWidth`),
+/// at column 80 until it says; a column of the user's stays.
+#[test]
+fn aligns_tags_to_the_window() {
+    let tags_end = |text: &str| {
+        let line = text.lines().find(|line| line.contains("Write report")).unwrap().to_string();
+        assert!(line.ends_with(":office:"), "{line}");
+        line.chars().count()
+    };
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/work.org", WORK);
+    client.command("org.agenda.list", VIEW, 0);
+    let text = client.show_view();
+    assert_eq!(tags_end(&text), 80);
+    client.notify("org-lsp/agendaWidth", json!({ "width": 100 }));
+    client.settle();
+    assert_eq!(tags_end(&client.refetch_view()), 100);
+    client.notify("org-lsp/agendaWidth", json!({ "width": 90 }));
+    client.settle();
+    assert_eq!(tags_end(&client.refetch_view()), 90);
+    client.shutdown();
+
+    let mut options = clock();
+    options["agenda"] = json!({ "tagsColumn": -70 });
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    client.command("org.agenda.list", VIEW, 0);
+    client.show_view();
+    client.notify("org-lsp/agendaWidth", json!({ "width": 100 }));
+    client.settle();
+    assert_eq!(tags_end(&client.refetch_view()), 70);
     client.shutdown();
 }

@@ -134,6 +134,18 @@ function! s:agenda() abort
   call win_gotoid(s:agenda_window())
   call s:until('its text', {-> getline(1) =~# '^Week-agenda'})
   call assert_true(search('Write report', 'n') > 0, 'an entry')
+  " `agenda.tagsColumn` `"auto"`: the tags end at the window's right edge,
+  " and follow it when it changes size.
+  let agenda = win_getid()
+  let Report = {-> getbufline(winbufnr(agenda), search('Write report', 'n'))[0]}
+  let Width = {-> getwininfo(agenda)[0].width - getwininfo(agenda)[0].textoff}
+  call s:until('the tags at the edge', {-> Report() =~# ':office:$' && strchars(Report()) == Width()})
+  leftabove 20vnew
+  let narrow = win_getid()
+  call win_gotoid(agenda)
+  call s:until('the tags at the narrower edge', {-> Width() < &columns && strchars(Report()) == Width()})
+  call win_execute(narrow, 'close')
+  call s:until('the tags at the edge again', {-> Width() == &columns && strchars(Report()) == Width()})
   let first = getline(1)
   call feedkeys('f', 'x')
   call s:until('the next week', {-> getline(1) !=# first && getline(1) =~# '^Week-agenda'})
@@ -154,6 +166,36 @@ function! s:agenda() abort
   call remove(g:org_lsp, 'win_split_size')
 endfunction
 call s:test('shows the agenda, moves through it, and closes it', function('s:agenda'))
+
+function! s:agenda_tab() abort
+  " coc.nvim opens documents where it opens them.
+  if $ORG_LSP_TEST_CLIENT ==# 'coc'
+    return
+  endif
+  call org_lsp#run('org.agenda.list')
+  call s:until('the agenda', {-> s:agenda_window() != 0})
+  let agenda = s:agenda_window()
+  call win_gotoid(agenda)
+  call s:until('its text', {-> search('Write report', 'n') > 0})
+  " TAB: the entry in the window that shows its file.
+  let shown = win_findbuf(s:work_buf)[0]
+  call cursor(search('Write report', 'n'), 1)
+  call feedkeys("\<Tab>", 'x')
+  call s:until('the file in its window', {-> win_getid() == shown})
+  call assert_true(getline('.') =~# 'Write report', 'on the headline')
+  call assert_equal(agenda, s:agenda_window(), 'the agenda stays')
+  " Alone, the agenda makes a window for it.
+  call win_gotoid(agenda)
+  only
+  call cursor(search('Write report', 'n'), 1)
+  call feedkeys("\<Tab>", 'x')
+  call s:until('the file in a new window', {-> bufnr() == s:work_buf && win_getid() != agenda})
+  call assert_equal(2, winnr('$'), 'two windows')
+  call win_gotoid(agenda)
+  call feedkeys('q', 'x')
+  call s:until('the agenda closed', {-> s:agenda_window() == 0})
+endfunction
+call s:test('TAB shows the entry in another window', function('s:agenda_tab'))
 
 function! s:capture() abort
   let g:answers = ['t']

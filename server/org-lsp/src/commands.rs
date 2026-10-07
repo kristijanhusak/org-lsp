@@ -117,6 +117,7 @@ pub const AGENDA_MONTH: &str = "org.agenda.month";
 pub const AGENDA_YEAR: &str = "org.agenda.year";
 pub const AGENDA_REDO: &str = "org.agenda.redo";
 pub const AGENDA_GOTO: &str = "org.agenda.goto";
+pub const AGENDA_GOTO_OTHER: &str = "org.agenda.goto.other";
 pub const AGENDA_SAVE: &str = "org.agenda.save";
 pub const AGENDA_GOTO_DATE: &str = "org.agenda.goto.date";
 pub const AGENDA_LOG: &str = "org.agenda.log";
@@ -225,7 +226,11 @@ pub const COMMANDS: &[Command] = &[
     Command { emacs: &[key(Agenda, "v m")], ..command(AGENDA_MONTH, "Agenda: month view") },
     Command { emacs: &[key(Agenda, "v y")], ..command(AGENDA_YEAR, "Agenda: year view") },
     Command { emacs: &[key(Agenda, "r")], ..command(AGENDA_REDO, "Agenda: rebuild") },
-    Command { emacs: &[key(Agenda, "RET"), key(Agenda, "TAB")], ..command(AGENDA_GOTO, "Agenda: go to the entry") },
+    // `org-agenda-switch-to` (RET) shows the entry in the agenda's window
+    // or one that shows its file; `org-agenda-goto` (TAB) in another
+    // window, made when there is none.
+    Command { emacs: &[key(Agenda, "RET")], ..command(AGENDA_GOTO, "Agenda: go to the entry") },
+    Command { emacs: &[key(Agenda, "TAB")], ..command(AGENDA_GOTO_OTHER, "Agenda: go to the entry in another window") },
     Command { emacs: &[key(Agenda, "s"), key(Agenda, "C-x C-s")], ..command(AGENDA_SAVE, "Save all Org files") },
     Command { emacs: &[key(Agenda, "v l")], ..command(AGENDA_LOG, "Agenda: log mode, what was closed and clocked") },
     Command {

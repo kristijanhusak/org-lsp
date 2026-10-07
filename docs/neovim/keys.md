@@ -86,7 +86,8 @@ The other options are in [configuration.md](configuration.md).
 | `vm` | `org.agenda.month` | Agenda: month view |
 | `vy` | `org.agenda.year` | Agenda: year view |
 | `r` | `org.agenda.redo` | Agenda: rebuild |
-| `<CR>`, `<Tab>` | `org.agenda.goto` | Agenda: go to the entry |
+| `<CR>` | `org.agenda.goto` | Agenda: go to the entry |
+| `<Tab>` | `org.agenda.goto.other` | Agenda: go to the entry in another window |
 | `s`, `<C-x><C-s>` | `org.agenda.save` | Save all Org files |
 | `vl` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `R`, `vR` | `org.agenda.clockreport` | Agenda: the clock report |

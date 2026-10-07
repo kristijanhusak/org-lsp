@@ -22,7 +22,9 @@ from LSP.plugin import apply_text_edits
 from LSP.plugin import position_to_offset
 from LSP.plugin import LspTextCommand
 from LSP.plugin import LspWindowCommand
+from LSP.plugin import Notification
 from LSP.plugin import Request
+from LSP.plugin import Response
 from LSP.plugin import parse_uri
 from LSP.plugin import register_plugin
 from LSP.plugin import text_document_identifier
@@ -127,6 +129,13 @@ def download(storage: str) -> str:
 
 
 class OrgLsp(AbstractPlugin):
+    # The plugin of the running session, for the listeners.
+    current = None
+
+    def __init__(self, weaksession) -> None:
+        super().__init__(weaksession)
+        OrgLsp.current = self
+
     @classmethod
     def name(cls) -> str:
         return SESSION
@@ -177,6 +186,22 @@ class OrgLsp(AbstractPlugin):
     # How the lines of a file with `org-indent-mode` show.
     def m_org_lsp_virtualIndent(self, params) -> None:
         sublime.set_timeout(lambda: show_virtual_indent(params))
+
+    # TAB in the agenda (`org-agenda-goto`): the entry's file in another
+    # group (`orgOtherWindow`). LSP shows any other document as it does.
+    def m_window_showDocument(self, params, request_id):
+        session = self.weaksession()
+        if not session:
+            return None
+        if not (params or {}).get('orgOtherWindow'):
+            default = getattr(session, 'on_window_show_document', None)
+            if default:
+                return default(params)
+            return session.m_window_showDocument(params, request_id)
+        window = session.window
+        sublime.set_timeout(lambda: show_in_other_group(window, params))
+        session.send_response(Response(request_id, {'success': True}))
+        return None
 
 
 class OrgLspUpdateServerCommand(sublime_plugin.WindowCommand):
@@ -237,6 +262,36 @@ def close(uri: str) -> None:
         view.run_command('save')
     view.set_scratch(True)
     view.close()
+
+
+def other_group(window, path: str) -> int:
+    """The group an entry's file opens in from the agenda's (the active
+    one) with TAB: one that has the file, else an empty one, else a new one
+    to the right of the others."""
+    agenda = window.active_group()
+    others = [group for group in range(window.num_groups()) if group != agenda]
+    for group in others:
+        if any(view.file_name() == path for view in window.views_in_group(group)):
+            return group
+    for group in others:
+        if not window.views_in_group(group):
+            return group
+    # A new column on the right, the others squeezed into the left half.
+    layout = window.layout()
+    cols = [col / 2 for col in layout['cols']] + [1.0]
+    cells = layout['cells'] + [[len(cols) - 2, 0, len(cols) - 1, len(layout['rows']) - 1]]
+    window.set_layout({'cols': cols, 'rows': layout['rows'], 'cells': cells})
+    return len(cells) - 1
+
+
+def show_in_other_group(window, params) -> None:
+    _, path = parse_uri(params['uri'])
+    group = other_group(window, path)
+    start = (params.get('selection') or {}).get('start') or {'line': 0, 'character': 0}
+    window.focus_group(group)
+    tell_agenda_width(window)
+    window.open_file('{}:{}:{}'.format(path, start['line'] + 1, start['character'] + 1),
+                     sublime.ENCODED_POSITION, group=group)
 
 
 # The phantoms of `org-indent-mode` by view; a set of phantoms shows only
@@ -596,6 +651,36 @@ class OrgLspCycleGlobalCommand(LspTextCommand):
             remember(view, -1, 'overview')
 
 
+# The width last told to the server.
+told_width = [0]
+
+
+def agenda_view(window):
+    """The agenda, where it is in front in its group."""
+    for group in range(window.num_groups()):
+        view = window.active_view_in_group(group)
+        if view and (view.file_name() or '').endswith('.org-agenda'):
+            return view
+    return None
+
+
+def tell_agenda_width(window) -> None:
+    """Tell the server how many characters wide the agenda is, for
+    `agenda.tagsColumn` `"auto"`: the tags then end at its right edge, and
+    the server writes the agenda anew when the width changes."""
+    plugin = OrgLsp.current
+    session = plugin.weaksession() if plugin else None
+    if not session or not window:
+        return
+    view = agenda_view(window)
+    if not view or view.em_width() <= 0:
+        return
+    width = int(view.viewport_extent()[0] // view.em_width())
+    if width > 0 and width != told_width[0]:
+        told_width[0] = width
+        session.send_notification(Notification('org-lsp/agendaWidth', {'width': width}))
+
+
 class OrgLspListener(sublime_plugin.EventListener):
     def on_query_context(self, view, key, operator, operand, match_all):
         """`org_lsp.keys`: the preset of keys the settings pick (emacs, vim
@@ -618,3 +703,14 @@ class OrgLspListener(sublime_plugin.EventListener):
         if (view.file_name() or '').endswith('.org-agenda'):
             view.set_read_only(True)
             view.set_scratch(True)
+            tell_agenda_width(view.window())
+
+    # The agenda's width: when it comes to the front, and when the layout
+    # or the side bar changes.
+    def on_activated_async(self, view) -> None:
+        if (view.file_name() or '').endswith('.org-agenda'):
+            tell_agenda_width(view.window())
+
+    def on_post_window_command(self, window, command, args) -> None:
+        if command in ('set_layout', 'toggle_side_bar', 'toggle_minimap', 'new_pane', 'close_pane'):
+            tell_agenda_width(window)

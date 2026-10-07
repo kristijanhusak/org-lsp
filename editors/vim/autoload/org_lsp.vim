@@ -754,6 +754,28 @@ function! s:resize_apart(mode, size) abort
   execute (vertical ? 'vertical ' : '') . 'resize ' . size
 endfunction
 
+" Tell the server how many columns of text the window that shows the
+" agenda has, for `agenda.tagsColumn` `"auto"`: the tags then end at its
+" right edge, and the server builds the agenda again when it changes.
+let s:told_width = 0
+function! org_lsp#tell_agenda_width() abort
+  for win in range(1, winnr('$'))
+    let nr = winbufnr(win)
+    if getbufvar(nr, '&filetype') ==# 'org-agenda'
+      let info = getwininfo(win_getid(win))[0]
+      let width = info.width - info.textoff
+      if width != s:told_width
+        let s:told_width = width
+        " The server has written the agenda anew by the time it answers;
+        " it is read again outside the client's callback.
+        call org_lsp#request(nr, 'org-lsp/agendaWidth', {'width': width},
+              \ {_error, _result -> timer_start(0, {-> s:reload_agenda()})})
+      endif
+      return
+    endif
+  endfor
+endfunction
+
 function! s:is_agenda(path) abort
   return fnamemodify(a:path, ':t') ==# get(get(org_lsp#manifest(), 'agenda', {}), 'fileName', "\n")
 endfunction
@@ -788,6 +810,13 @@ function! org_lsp#show_document(params) abort
     else
       call s:open_apart(path)
     endif
+  elseif get(a:params, 'orgOtherWindow', v:false)
+    " An entry's file in another window (TAB in the agenda).
+    normal! m'
+    call win_gotoid(s:other_window(win_getid(), path))
+    if bufnr() != bufnr(path)
+      execute 'edit' fnameescape(path)
+    endif
   else
     normal! m'
     if win != -1
@@ -806,6 +835,33 @@ function! org_lsp#show_document(params) abort
     endif
   endif
   return {'success': v:true}
+endfunction
+
+" The window a file opens in from the agenda's window `from` with TAB
+" (`org-agenda-goto`): one that shows it, else an empty one, else a new
+" one beside the window the agenda was opened from.
+function! s:other_window(from, path) abort
+  let wins = filter(map(range(1, winnr('$')), 'win_getid(v:val)'),
+        \ {_, win -> win != a:from && win_gettype(win) !=# 'popup'})
+  for win in wins
+    if winbufnr(win) == bufnr(a:path) && bufnr(a:path) != -1
+      return win
+    endif
+  endfor
+  for win in wins
+    let buf = winbufnr(win)
+    if bufname(buf) ==# '' && getbufvar(buf, '&buftype') ==# '' && !getbufvar(buf, '&modified')
+          \ && getbufline(buf, 1, '$') == ['']
+      return win
+    endif
+  endfor
+  " Split the previous window, or the agenda's when it is the only one:
+  " side by side when it is wide, as Emacs's `split-window-sensibly`.
+  let previous = win_getid(winnr('#'))
+  let base = index(wins, previous) >= 0 ? previous : empty(wins) ? a:from : wins[0]
+  call win_gotoid(base)
+  execute winwidth(base) >= 160 ? 'belowright vsplit' : 'belowright split'
+  return win_getid()
 endfunction
 
 " A URL or a file for the system to open (a link of `org-open-at-point`):
