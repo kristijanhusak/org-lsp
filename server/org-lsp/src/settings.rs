@@ -77,21 +77,27 @@ pub const SETTINGS: &[Setting] = &[
         r#"false, "time", "note""#,
         "false",
         "org-log-done",
-        "Write `CLOSED:` with the time when an entry is done, and with `note` ask for a note too.",
+        "Write `CLOSED:` with the time when an entry is done, and with `note` ask for a note too. A file's \
+         `#+STARTUP:` words `logdone`, `lognotedone` and `nologdone` change it there; an entry's `LOGGING` \
+         property (inherited) says what its state changes log instead: those words, `logrepeat` and its \
+         relatives, and keywords with what they log (`WAIT(@/!)`), or `nil` for nothing.",
     ),
     setting(
         "org_log_repeat",
         r#"false, "time", "note""#,
         r#""time""#,
         "org-log-repeat",
-        "Record when a repeating entry is done and moves to its next date.",
+        "Record when a repeating entry is done and moves to its next date. `#+STARTUP:` `logrepeat`, \
+         `lognoterepeat` and `nologrepeat` change it in a file, and the `LOGGING` property in an entry.",
     ),
     setting(
         "org_log_into_drawer",
         "boolean, string",
         "false",
         "org-log-into-drawer",
-        "Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer.",
+        "Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer. \
+         `#+STARTUP:` `logdrawer` and `nologdrawer` change it in a file; an entry's `LOG_INTO_DRAWER` \
+         property (inherited) says which drawer for it (`t` for `LOGBOOK`, `nil` for none).",
     ),
     setting(
         "org_tags_column",

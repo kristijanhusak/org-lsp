@@ -2354,5 +2354,90 @@
    "org_log_into_drawer": true
   },
   "expected": "* Write\n** Sub\n   :LOGBOOK:\n   - Note taken on [2026-05-18 Mon 10:30] \\\\\n     Sub, indented\n   :END:\n"
+ },
+ {
+  "text": "* TODO Task¦\n  :PROPERTIES:\n  :LOGGING: logdone\n  :END:\n",
+  "command": "next",
+  "clock": "2026-05-18 10:30",
+  "expected": "* DONE Task\nCLOSED: [2026-05-18 Mon 10:30]\n  :PROPERTIES:\n  :LOGGING: logdone\n  :END:\n"
+ },
+ {
+  "text": "* TODO Task¦\n:PROPERTIES:\n:LOGGING: DONE(@)\n:END:\n",
+  "command": "next",
+  "note": "Finished it",
+  "clock": "2026-05-18 10:30",
+  "expected": "* DONE Task\n:PROPERTIES:\n:LOGGING: DONE(@)\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  Finished it"
+ },
+ {
+  "text": "#+TODO: TODO(t!) | DONE(d!)\n* TODO Task¦\n:PROPERTIES:\n:LOGGING: nil\n:END:\n",
+  "command": "next",
+  "clock": "2026-05-18 10:30",
+  "expected": "#+TODO: TODO(t!) | DONE(d!)\n* DONE Task\n:PROPERTIES:\n:LOGGING: nil\n:END:\n"
+ },
+ {
+  "text": "* Parent\n:PROPERTIES:\n:LOGGING: lognotedone\n:END:\n** TODO Child¦\n",
+  "command": "next",
+  "note": "Done",
+  "clock": "2026-05-18 10:30",
+  "expected": "* Parent\n:PROPERTIES:\n:LOGGING: lognotedone\n:END:\n** DONE Child\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  Done"
+ },
+ {
+  "text": "#+PROPERTY: LOGGING TODO(!) logdone\n* DONE Task¦\n",
+  "command": "next",
+  "clock": "2026-05-18 10:30",
+  "expected": "#+PROPERTY: LOGGING TODO(!) logdone\n* Task\n"
+ },
+ {
+  "text": "* TODO Water¦\nSCHEDULED: <2026-05-18 Mon +1w>\n:PROPERTIES:\n:LOGGING: nologrepeat\n:END:\n",
+  "command": "next",
+  "clock": "2026-05-18 10:30",
+  "expected": "* TODO Water\nSCHEDULED: <2026-05-25 Mon +1w>\n:PROPERTIES:\n:LOGGING: nologrepeat\n:END:\n"
+ },
+ {
+  "text": "* TODO Water¦\nSCHEDULED: <2026-05-18 Mon +1w>\n:PROPERTIES:\n:LOGGING: lognoterepeat\n:END:\n",
+  "command": "next",
+  "note": "Watered",
+  "clock": "2026-05-18 10:30",
+  "expected": "* TODO Water\nSCHEDULED: <2026-05-25 Mon +1w>\n:PROPERTIES:\n:LOGGING: lognoterepeat\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30] \\\\\n  Watered"
+ },
+ {
+  "text": "#+STARTUP: logdone\n* TODO Task¦\n",
+  "command": "next",
+  "clock": "2026-05-18 10:30",
+  "expected": "#+STARTUP: logdone\n* DONE Task\nCLOSED: [2026-05-18 Mon 10:30]\n"
+ },
+ {
+  "text": "#+STARTUP: lognotedone logdrawer\n* TODO Task¦\n",
+  "command": "next",
+  "note": "All done",
+  "clock": "2026-05-18 10:30",
+  "expected": "#+STARTUP: lognotedone logdrawer\n* DONE Task\nCLOSED: [2026-05-18 Mon 10:30]\n:LOGBOOK:\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  All done\n:END:\n"
+ },
+ {
+  "text": "#+STARTUP: nologrepeat\n* TODO Water¦\nSCHEDULED: <2026-05-18 Mon +1w>\n",
+  "command": "next",
+  "clock": "2026-05-18 10:30",
+  "expected": "#+STARTUP: nologrepeat\n* TODO Water\nSCHEDULED: <2026-05-25 Mon +1w>\n"
+ },
+ {
+  "text": "* TODO Task¦\n:PROPERTIES:\n:LOG_INTO_DRAWER: NOTES\n:END:\n",
+  "command": "next",
+  "note": "Here",
+  "options": {
+   "org_log_done": "note"
+  },
+  "clock": "2026-05-18 10:30",
+  "expected": "* DONE Task\nCLOSED: [2026-05-18 Mon 10:30]\n:PROPERTIES:\n:LOG_INTO_DRAWER: NOTES\n:END:\n:NOTES:\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  Here\n:END:\n"
+ },
+ {
+  "text": "* Parent\n:PROPERTIES:\n:LOG_INTO_DRAWER: nil\n:END:\n** TODO Child¦\n",
+  "command": "next",
+  "note": "Body",
+  "options": {
+   "org_log_done": "note",
+   "org_log_into_drawer": true
+  },
+  "clock": "2026-05-18 10:30",
+  "expected": "* Parent\n:PROPERTIES:\n:LOG_INTO_DRAWER: nil\n:END:\n** DONE Child\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  Body"
  }
 ]

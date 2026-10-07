@@ -83,8 +83,8 @@ few, checked against Emacs where Org decides the outcome:
 - **Tags and properties (7):** done: set tags (`C-c C-q`, with fast tag
   selection and alignment, exclusive groups), set and delete properties
   (`C-c C-x p`, `C-c C-c` in a drawer), allowed values on the shifted
-  keys, effort, `ORDERED`. Left: `LOGGING` and `#+STARTUP:` logging
-  words, which change what commands do.
+  keys, effort, `ORDERED`, the `LOGGING` and `LOG_INTO_DRAWER`
+  properties and the `#+STARTUP:` logging words.
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
   moving rows and columns, `C-c -` for a rule.
 - **Agenda (5):** filters (`/`, `<`, `=`, `_`, `|`), stuck
@@ -385,9 +385,13 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   `org-use-fast-tag-selection`, `org-fast-tag-selection-single-key`,
   `org-tags-sort-function`, `org-auto-align-tags`, checked against Emacs
   in `tests/tags`.
+- Done: the `LOGGING` property (`org-local-logging`, inherited),
+  `LOG_INTO_DRAWER`, and the `#+STARTUP:` words `logdone`, `lognotedone`,
+  `nologdone`, `logrepeat`, `lognoterepeat`, `nologrepeat`, `logdrawer`,
+  `nologdrawer`, checked against Emacs (`tests/todo`,
+  `scripts/fuzz-todo.py`).
 - Left: setting `#+FILETAGS:` (Emacs refuses too), group tags in match
-  strings (with the agenda), `LOGGING` and other properties that change
-  what commands do, read with inheritance.
+  strings (with the agenda).
 - Done: properties (`org-set-property`, `org-delete-property`,
   `org-delete-property-globally`, `org-property-action`, the shifted keys
   on a property line through `NAME_ALL`, `org-set-effort`,
