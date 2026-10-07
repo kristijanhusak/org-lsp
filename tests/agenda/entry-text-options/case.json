@@ -1,0 +1,12 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {"view": "todo", "entry_text": 5}
+  ],
+  "options": {
+    "org_agenda_entry_text_leaders": "  ",
+    "org_agenda_entry_text_exclude_regexps": ["SECRET ", "^DROP.*\n"]
+  },
+  "emacs": "(setq org-agenda-entry-text-leaders \"  \" org-agenda-entry-text-exclude-regexps '(\"SECRET \" \"^DROP.*\\n\"))"
+}

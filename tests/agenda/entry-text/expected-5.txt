@@ -1,0 +1,6 @@
+Headlines with TAGS match: work|LEVEL=2
+  work:       TODO Plain text under it                                    :work:
+    > Some text right under the planning line.
+    >   An indented line.
+  work:       NEXT A child with text
+    > Child text.

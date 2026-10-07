@@ -9,6 +9,7 @@
 //! behind each line.
 
 mod display;
+pub mod entry_text;
 pub mod filter;
 mod item;
 pub mod matcher;
@@ -264,6 +265,10 @@ pub struct Config {
     pub tag_persistent_alist: Vec<crate::tags::TagEntry>,
     /// `org-group-tags`: a group tag in a match string stands for its tags.
     pub group_tags: bool,
+    /// `org-agenda-entry-text-mode` (`E`): the most lines of entry text
+    /// under each entry's line, when on.
+    pub entry_text: Option<usize>,
+    pub entry_text_settings: entry_text::Settings,
 }
 
 /// `org-tag-groups-alist-for-agenda`: the group tags of the files, those
@@ -386,6 +391,8 @@ impl Default for Config {
             tag_alist: Vec::new(),
             tag_persistent_alist: Vec::new(),
             group_tags: true,
+            entry_text: None,
+            entry_text_settings: entry_text::Settings::default(),
             format_date: None,
         }
     }
@@ -618,7 +625,11 @@ impl Builder<'_> {
             else {
                 continue;
             };
-            if current < first || current > last || (entry.done && self.config.skip_timestamp_if_done) {
+            if current < first
+                || current > last
+                || (entry.done && self.config.skip_timestamp_if_done)
+                || entry.skipped(self.config.archives)
+            {
                 continue;
             }
             let leader = &self.config.timerange_leaders[usize::from(first != last)];
@@ -659,6 +670,10 @@ impl Builder<'_> {
                 continue;
             };
             let Some(shown) = shown else { continue };
+            // In an archived tree (`org-agenda-skip`).
+            if outline.entries[shown.entry].skipped(self.config.archives) {
+                continue;
+            }
             if outline.entries[shown.entry].done && self.config.skip_timestamp_if_done {
                 continue;
             }
@@ -910,6 +925,8 @@ pub enum LineKind {
     Separator,
     /// A line of the clock report.
     Table,
+    /// Text of the entry of the item line above it (`E`).
+    EntryText,
 }
 
 /// One line of a rendered view.

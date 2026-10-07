@@ -777,6 +777,30 @@
         "clock"
       ]
     },
+    "org_agenda_start_with_entry_text_mode": {
+      "type": "boolean",
+      "description": "Start the agenda with some text of each entry under its line (`E` toggles it). (`org-agenda-start-with-entry-text-mode`)",
+      "default": false
+    },
+    "org_agenda_entry_text_maxlines": {
+      "minimum": 1,
+      "type": "integer",
+      "description": "The most lines of an entry's text `E` shows. (`org-agenda-entry-text-maxlines`)",
+      "default": 5
+    },
+    "org_agenda_entry_text_leaders": {
+      "type": "string",
+      "description": "What each line of an entry's text starts with in the agenda. (`org-agenda-entry-text-leaders`)",
+      "default": "    > "
+    },
+    "org_agenda_entry_text_exclude_regexps": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array",
+      "description": "Emacs regexps whose matches are left out of the entry text `E` shows. (`org-agenda-entry-text-exclude-regexps`)",
+      "default": []
+    },
     "org_agenda_block_separator": {
       "anyOf": [
         {

@@ -485,6 +485,8 @@ struct Server {
     /// Log mode (`l`) and the clock report (`R`) in the agenda.
     agenda_log: bool,
     agenda_clockreport: bool,
+    /// Entry text mode (`E`): the most lines of each entry's text, when on.
+    agenda_entry_text: Option<usize>,
     /// What the agenda shows of archives (`v a`, `v A`).
     agenda_archives: ArchivesMode,
     /// The filters of the agenda (`/`, `\\`, `<`, `=`, `_`, `^`), which
@@ -640,6 +642,7 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_log: options.agenda.start_with_log_mode.unwrap_or(false),
         agenda_clockreport: options.agenda.start_with_clockreport_mode.unwrap_or(false),
         agenda_archives: options.agenda.archives_mode(),
+        agenda_entry_text: options.agenda_config().entry_text,
         agenda_filters: Default::default(),
         documents: HashMap::new(),
         workspace: {
@@ -2471,6 +2474,7 @@ impl Server {
         for block in &mut blocks {
             block.config.show_log = self.agenda_log;
             block.config.clockreport = self.agenda_clockreport;
+            block.config.entry_text = self.agenda_entry_text;
             block.config.archives = self.agenda_archives != ArchivesMode::Off;
         }
         Ok(blocks)
@@ -3329,6 +3333,28 @@ impl Server {
                 self.refresh_view();
                 Ok(())
             }
+            commands::AGENDA_ENTRY_TEXT => {
+                self.view.as_ref().ok_or("No agenda is open")?;
+                // `org-agenda-entry-text-mode`: a count turns it on with
+                // that many lines.
+                let filters = &self.agenda_filters;
+                if !filters.tag.is_empty()
+                    || !filters.category.is_empty()
+                    || !filters.regexp.is_empty()
+                    || filters.top_headline.is_some()
+                {
+                    return Err("Can't show entry text in filtered views".into());
+                }
+                let count = context.as_ref().and_then(|context| context.count).filter(|count| *count > 0);
+                let lines = count.map_or(self.agenda.entry_text_settings.max_lines, |count| count as usize);
+                self.agenda_entry_text = (count.is_some() || self.agenda_entry_text.is_none()).then_some(lines);
+                self.message = Some(match self.agenda_entry_text {
+                    Some(lines) => format!("Entry text mode is on (maximum number of lines is {lines})"),
+                    None => "Entry text mode is off".to_string(),
+                });
+                self.refresh_view();
+                Ok(())
+            }
             commands::AGENDA_ARCHIVES | commands::AGENDA_ARCHIVES_FILES => {
                 self.view.as_ref().ok_or("No agenda is open")?;
                 // `org-agenda-archives-mode`, with or without the files.
@@ -3676,6 +3702,16 @@ impl Server {
                 filters = Default::default();
                 message = Some("All agenda filters removed".to_string());
             }
+        }
+        // Setting a filter turns entry text mode off
+        // (`org-agenda-filter-apply`).
+        let lists = |filters: &filter::Filters| {
+            [filters.tag.clone(), filters.category.clone(), filters.regexp.clone(), filters.effort.clone()]
+        };
+        let (before, after) = (lists(&self.agenda_filters), lists(&filters));
+        if before != after && after.iter().any(|list| !list.is_empty()) && self.agenda_entry_text.is_some() {
+            self.agenda_entry_text = None;
+            message.get_or_insert_with(|| "Entry text mode is off".to_string());
         }
         self.agenda_filters = filters;
         self.refresh_view();

@@ -1,0 +1,14 @@
+Search words: text
+  work:       TODO Plain text under it                                    :work:
+    > Some text right under the planning line.
+    >   An indented line.
+  work:       NEXT Leading blank lines
+    > 
+    >    
+    > 
+  work:       TODO Unclosed drawer
+    > Text before the drawer.
+  work:       NEXT A child with text
+    > Child text.
+  work:       Grandchild without keyword
+    > Grandchild text.

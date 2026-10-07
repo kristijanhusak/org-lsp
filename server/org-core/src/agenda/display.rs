@@ -78,7 +78,9 @@ pub fn display(line: &Line) -> Displayed {
             return whole(raw, Style::Date { today: *today, weekend: *weekend })
         }
         (LineKind::Item, Some(item)) => item,
-        (LineKind::Item, None) => return Displayed { text: raw.to_string(), ..Displayed::default() },
+        (LineKind::Item, None) | (LineKind::EntryText, _) => {
+            return Displayed { text: raw.to_string(), ..Displayed::default() }
+        }
     };
 
     // Styled parts in raw offsets: keyword, priority, links, tags.

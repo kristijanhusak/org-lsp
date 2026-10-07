@@ -216,7 +216,7 @@ pub fn render(
         .collect();
     let (rendered, starts) = block_lines(blocks, &named, search, now, false, filters);
     let mut text = String::new();
-    let mut lines = Vec::with_capacity(rendered.len());
+    let mut lines: Vec<ViewLine> = Vec::with_capacity(rendered.len());
     let mut tokens = Vec::new();
     let mut today_line = None;
     let mut clocking_lines = Vec::new();
@@ -230,7 +230,7 @@ pub fn render(
                 }
             }
             LineKind::Header | LineKind::Separator | LineKind::Table => day = None,
-            LineKind::Item => {}
+            LineKind::Item | LineKind::EntryText => {}
         }
         let shown = agenda::display(line);
         let base = text.len();
@@ -281,6 +281,12 @@ pub fn render(
             }
         });
         let kind = line.item.as_ref().map(|item| item.kind);
+        // Entry text belongs to the line of its entry, as Emacs shows it
+        // after that line's end.
+        let (entry, kind) = match (line.kind, lines.last()) {
+            (LineKind::EntryText, Some(above)) => (above.entry.clone(), above.kind),
+            _ => (entry, kind),
+        };
         lines.push(ViewLine { entry, kind, day, block: *block });
     }
     let start = starts.iter().flatten().next().map_or(0, |(start, _)| *start);
@@ -428,6 +434,22 @@ fn block_lines(
         if let Some(filters) = filters.filter(|filters| !filters.is_empty()) {
             let groups = if config.group_tags { agenda::tag_groups(outlines, config) } else { Vec::new() };
             agenda::filter::apply(&mut view, &all, filters, &groups);
+        }
+        // `org-agenda-entry-text-mode`: the text of each entry under its
+        // line.
+        if let Some(count) = config.entry_text {
+            let mut with_text = Vec::with_capacity(view.lines.len());
+            for line in view.lines.drain(..) {
+                let source = line.item.as_ref().and_then(|item| item.source);
+                with_text.push(line);
+                let Some(source) = source else { continue };
+                for text in
+                    agenda::entry_text::entry_text(all[source.file], source.entry, count, &config.entry_text_settings)
+                {
+                    with_text.push(agenda::Line { text, kind: LineKind::EntryText, item: None });
+                }
+            }
+            view.lines = with_text;
         }
         let agenda = matches!(block.kind, BlockKind::Agenda { .. });
         // A compact agenda block has no header, not even its own.

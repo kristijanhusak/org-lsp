@@ -81,6 +81,10 @@
 ---@field org_agenda_start_with_clockreport_mode? boolean Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)
 ---@field org_agenda_start_with_archives_mode? 'trees'|'files'|false Start the agenda with entries in archived trees (`trees`; `v a` toggles it), or those and the files the agenda files archive to (`files`; `v A`). (`org-agenda-start-with-archives-mode`)
 ---@field org_agenda_log_mode_items? ('closed'|'clock'|'state')[] What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`)
+---@field org_agenda_start_with_entry_text_mode? boolean Start the agenda with some text of each entry under its line (`E` toggles it). (`org-agenda-start-with-entry-text-mode`)
+---@field org_agenda_entry_text_maxlines? integer The most lines of an entry's text `E` shows. (`org-agenda-entry-text-maxlines`)
+---@field org_agenda_entry_text_leaders? string What each line of an entry's text starts with in the agenda. (`org-agenda-entry-text-leaders`)
+---@field org_agenda_entry_text_exclude_regexps? string[] Emacs regexps whose matches are left out of the entry text `E` shows. (`org-agenda-entry-text-exclude-regexps`)
 ---@field org_agenda_block_separator? string|false What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block. (`org-agenda-block-separator`)
 ---@field org_agenda_compact_blocks? boolean Leave out the separators between blocks and the header over agenda blocks. (`org-agenda-compact-blocks`)
 ---@field agenda_hide_empty_blocks? boolean Leave out the blocks of a block agenda that show no entries. Not in Org.

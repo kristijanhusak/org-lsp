@@ -1,0 +1,11 @@
+* TODO First
+  Line with a SECRET word.
+
+  Second paragraph.
+* TODO Second
+DROP this line entirely
+Keep this one.
+* TODO Third
+
+
+  Blank lines first.

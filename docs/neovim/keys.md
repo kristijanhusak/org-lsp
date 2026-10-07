@@ -121,6 +121,7 @@ The other options are in [configuration.md](configuration.md).
 | `s`, `<C-x><C-s>` | `org.agenda.save` | Save all Org files |
 | `vl` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `R`, `vR` | `org.agenda.clockreport` | Agenda: the clock report |
+| `E`, `vE` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
 | `/` | `org.agenda.filter` | Agenda: filter by tags, categories, effort and regexps |
 | `\` | `org.agenda.filter.tag` | Agenda: filter by tag |
 | `<` | `org.agenda.filter.category` | Agenda: filter by the line's category |

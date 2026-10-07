@@ -1387,6 +1387,18 @@ pub struct AgendaOptions {
     /// `org-agenda-start-with-archives-mode`: `"trees"` or `"files"`.
     #[serde(rename = "org_agenda_start_with_archives_mode")]
     pub start_with_archives_mode: Option<ArchivesOption>,
+    /// `org-agenda-start-with-entry-text-mode`
+    #[serde(rename = "org_agenda_start_with_entry_text_mode")]
+    pub start_with_entry_text_mode: Option<bool>,
+    /// `org-agenda-entry-text-maxlines`
+    #[serde(rename = "org_agenda_entry_text_maxlines")]
+    pub entry_text_maxlines: Option<usize>,
+    /// `org-agenda-entry-text-leaders`
+    #[serde(rename = "org_agenda_entry_text_leaders")]
+    pub entry_text_leaders: Option<String>,
+    /// `org-agenda-entry-text-exclude-regexps`
+    #[serde(rename = "org_agenda_entry_text_exclude_regexps")]
+    pub entry_text_exclude_regexps: Option<Vec<String>>,
     /// `org-agenda-log-mode-items`: `closed`, `clock` and `state`.
     #[serde(rename = "org_agenda_log_mode_items")]
     pub log_mode_items: Option<Vec<String>>,
@@ -1588,6 +1600,17 @@ impl AgendaOptions {
         config.show_log = self.start_with_log_mode.unwrap_or(false);
         config.clockreport = self.start_with_clockreport_mode.unwrap_or(false);
         config.archives = self.archives_mode() != ArchivesMode::Off;
+        let entry_text = &mut config.entry_text_settings;
+        if let Some(lines) = self.entry_text_maxlines.filter(|lines| *lines > 0) {
+            entry_text.max_lines = lines;
+        }
+        if let Some(leaders) = &self.entry_text_leaders {
+            entry_text.leaders = leaders.clone();
+        }
+        if let Some(exclude) = &self.entry_text_exclude_regexps {
+            entry_text.exclude = exclude.clone();
+        }
+        config.entry_text = self.start_with_entry_text_mode.unwrap_or(false).then_some(entry_text.max_lines);
         if let Some(items) = &self.log_mode_items {
             let has = |name: &str| items.iter().any(|item| item == name);
             config.log_items =

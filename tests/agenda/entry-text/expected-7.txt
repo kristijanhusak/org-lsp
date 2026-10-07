@@ -1,0 +1,6 @@
+Global list of TODO items of type: ALL
+  props:      TODO With a property drawer
+    > First line, indented by two.
+    >   Deeper by four.
+    > 
+    > After a blank line.
