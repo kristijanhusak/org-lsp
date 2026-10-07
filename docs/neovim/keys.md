@@ -40,6 +40,7 @@ The other options are in [configuration.md](configuration.md).
 | `ciR` | `org.priority.up` | Raise the priority |
 | `cir` | `org.priority.down` | Lower the priority |
 | `<Leader>o,` | `org.priority` | Set the priority |
+| `<Leader>ot` | `org.tags.set` | Set the tags of the headline |
 | `<C-Space>` | `org.checkbox.toggle` | Toggle the checkbox |
 | `<CR>`¹ (insert mode) | `org.return` | New line, as Org's RET makes it |
 | `<S-CR>`¹ (insert mode) | `org.return.item` | New line; on a list item, the next item |
@@ -114,6 +115,7 @@ The other options are in [configuration.md](configuration.md).
 | `+`, `<S-Up>` | `org.priority.up` | Raise the priority |
 | `-`, `<S-Down>` | `org.priority.down` | Lower the priority |
 | `,`, `<Leader>o,` | `org.priority` | Set the priority |
+| `:`, `<Leader>ot` | `org.tags.set` | Set the tags of the headline |
 | `<C-c><C-w>`, `<Leader>or` | `org.refile` | Refile the entry |
 | `z`, `<Leader>ona` | `org.add.note` | Add a note to the entry |
 | `<C-c><C-o>`, `<Leader>oo` | `org.open` | Open the link or thing at the cursor |

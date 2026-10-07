@@ -706,6 +706,8 @@ fn prompt_label(choice: &Value) -> String {
     let label = choice.get("label").and_then(Value::as_str).unwrap_or("");
     match choice.get("key").and_then(Value::as_str) {
         Some(" ") => format!("{label} [SPC]"),
+        Some("\r") => format!("{label} [RET]"),
+        Some("\t") => format!("{label} [TAB]"),
         Some(key) if key != label && key.chars().count() == 1 => format!("{label} [{key}]"),
         _ => label.to_string(),
     }
@@ -2613,7 +2615,9 @@ impl Server {
                 self.refile_capture(context.and_then(|context| context.input).as_deref(), text)
             }
             id if id.starts_with("org.clock.") => self.clock_command(id, context.as_ref()),
-            id if id == commands::TODO || actions::command(id).is_some() => self.run_edit(id, context),
+            id if id == commands::TODO || id == commands::SET_TAGS || actions::command(id).is_some() => {
+                self.run_edit(id, context)
+            }
             id if commands::input(id).is_some() => {
                 self.ask_date(id, &context.ok_or("This command needs the cursor position")?)
             }
@@ -4123,6 +4127,116 @@ impl Server {
         Ok(Value::Null)
     }
 
+    /// `org-set-tags-command` (`C-c C-q`; `:` in the agenda, for the line's
+    /// entry). With fast tag selection it asks for one key at a time
+    /// (input kind `key`), each turning a tag on or off, until RET; the
+    /// tags so far travel in the input's `context` (`answers`: the mode,
+    /// whether exclusive groups apply and whether the next change ends
+    /// it, then the tags). TAB asks for a tag by name. Without fast
+    /// selection the tags are typed (input kind `text`).
+    fn set_tags(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::tags::{self, Selection, State, Step};
+        let uri = &context.text_document.uri;
+        let (file, offset) = if self.is_view(uri) {
+            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let offset = self
+                .with_source(&reference.uri, |_, _, _, outline, _| {
+                    views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
+                })
+                .flatten()
+                .ok_or("The entry is gone; rebuild the agenda")?;
+            (reference.uri, offset)
+        } else {
+            let document = self.document(uri).ok_or("This file is not open")?;
+            (uri.clone(), document.index.offset(&document.text, context.position, self.client.encoding))
+        };
+        let others = if self.all_agenda_tags { self.agenda_tags() } else { Vec::new() };
+        let settings = self.edit_settings.tags.clone();
+        let found = self.with_source(&file, |text, _, _, outline, _| {
+            let heading = tags::heading_at(text, offset)?;
+            let line = text[heading..].lines().next().unwrap_or("");
+            let inherited: Vec<String> = outline
+                .entry_at(heading)
+                .map(|entry| outline.entries[entry].tags.iter().filter(|tag| tag.inherited).map(|tag| tag.name.clone()))
+                .into_iter()
+                .flatten()
+                .collect();
+            Ok::<_, Refusal>((tags::table(text, &settings, &others), tags::local_tags(line), inherited))
+        });
+        let (table, own, inherited) = found.ok_or("Cannot read the file of this entry")??;
+        let set = |server: &mut Self, chosen: Vec<String>| {
+            server.edit_with(context, commands::SET_TAGS, Some(EditCommand::Tags(chosen)), &Extra::default())
+        };
+        if !tags::uses_fast_selection(&table, &settings) {
+            return match context.input.as_deref() {
+                Some(answer) => set(self, tags::parse_tags(answer)),
+                None => Ok(json!({ "input": { "kind": "text", "prompt": "Tags", "value": tags::tag_string(&own) } })),
+            };
+        }
+        let selection = Selection::new(&table);
+        // Where the selection stands: `k` or `t` (a tag being typed), the
+        // groups and the single-key flags, then the tags.
+        let (mode, mut state) = match context.answers.as_deref().and_then(|answers| answers.split_once('\n')) {
+            Some((flags, current)) => {
+                let flag = |index: usize| flags.as_bytes().get(index) == Some(&b'1');
+                let current = current.split(':').filter(|tag| !tag.is_empty()).map(str::to_string).collect();
+                (flags.as_bytes().first().copied(), State { current, groups: flag(1), exit_after_next: flag(2) })
+            }
+            None => (None, State { current: own, groups: true, exit_after_next: settings.single_key }),
+        };
+        let step = match (mode, context.input.as_deref()) {
+            (_, None) => Step::Again,
+            (Some(b't'), Some(typed)) => tags::type_tag(&mut state, typed, &selection),
+            (_, Some(key)) => match key.chars().next() {
+                Some(key) => tags::press(&mut state, key, &selection),
+                None => Step::Quit,
+            },
+        };
+        let answers = |mode: char, state: &State| {
+            let flag = |on: bool| if on { '1' } else { '0' };
+            format!("{mode}{}{}\n{}", flag(state.groups), flag(state.exit_after_next), state.current.join(":"))
+        };
+        match step {
+            Step::Accept => set(self, tags::parse_tags(&state.current.join(":"))),
+            Step::Quit => Ok(Value::Null),
+            Step::Type => Ok(json!({ "input": {
+                "kind": "text", "prompt": "Tag", "value": "",
+                "context": { "answers": answers('t', &state) },
+            } })),
+            Step::Again => {
+                let mark = |tag: &str| {
+                    if state.current.iter().any(|current| current == tag) {
+                        format!("{tag} (on)")
+                    } else if inherited.iter().any(|inherited| inherited == tag) {
+                        format!("{tag} (inherited)")
+                    } else {
+                        tag.to_string()
+                    }
+                };
+                let mut choices: Vec<Value> = selection
+                    .keys
+                    .iter()
+                    .map(|(tag, key)| json!({ "key": key.to_string(), "label": mark(tag) }))
+                    .collect();
+                choices.push(json!({ "key": "\r", "label": "accept" }));
+                choices.push(json!({ "key": " ", "label": "clear" }));
+                choices.push(json!({ "key": "\t", "label": "type a tag" }));
+                if !selection.groups.is_empty() {
+                    let label = if state.groups { "exclusive groups off" } else { "exclusive groups on" };
+                    choices.push(json!({ "key": "!", "label": label }));
+                }
+                let mut prompt = format!("Tags {}", tags::tag_string(&state.current));
+                if !inherited.is_empty() {
+                    prompt.push_str(&format!(" (inherited {})", tags::tag_string(&inherited)));
+                }
+                Ok(json!({ "input": {
+                    "kind": "key", "prompt": prompt.trim_end(), "value": "", "choices": choices,
+                    "context": { "answers": answers('k', &state) },
+                } }))
+            }
+        }
+    }
+
     /// An editing command, which may ask for something first. The answer
     /// to the note a TODO state change asked for comes with the state
     /// (`state` in the context); `org.todo` asks for the key of the new
@@ -4144,6 +4258,9 @@ impl Server {
             if let Some(result) = self.shift_item(id, &context) {
                 return result;
             }
+        }
+        if id == commands::SET_TAGS {
+            return self.set_tags(&context);
         }
         if id != commands::TODO {
             return self.edit_with(&context, id, None, &Extra::default());

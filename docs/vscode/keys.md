@@ -48,6 +48,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X Ctrl+J` | `org.clock.goto` | Go to the clocked entry |
 | `Ctrl+C Ctrl+T` | `org.todo` | Change the TODO state |
 | `Ctrl+C ,` | `org.priority` | Set the priority |
+| `Ctrl+C Ctrl+Q` | `org.tags.set` | Set the tags of the headline |
 | `Ctrl+C Ctrl+C` | `org.checkbox.toggle` | Toggle the checkbox |
 | `Enter`¹ | `org.return` | New line, as Org's RET makes it |
 | `Alt+Enter` | `org.meta.return` | New heading, item or table row |
@@ -125,6 +126,7 @@ The other options are in [configuration.md](configuration.md).
 | `+`, `Shift+Up` | `org.priority.up` | Raise the priority |
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
+| `:` | `org.tags.set` | Set the tags of the headline |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
@@ -212,6 +214,7 @@ The other options are in [configuration.md](configuration.md).
 | `+`, `Shift+Up` | `org.priority.up` | Raise the priority |
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
+| `:` | `org.tags.set` | Set the tags of the headline |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
@@ -266,6 +269,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "x", "q"], "commands": ["org.clock.cancel"] },
   { "before": ["<leader>", "o", "x", "j"], "commands": ["org.clock.goto"] },
   { "before": ["<leader>", "o", ","], "commands": ["org.priority"] },
+  { "before": ["<leader>", "o", "t"], "commands": ["org.tags.set"] },
   { "before": ["<leader>", "<CR>"], "commands": ["org.meta.return"] },
   { "before": ["<leader>", "o", "i", "T"], "commands": ["org.insert.todo.heading"] },
   { "before": ["<leader>", "o", "i", "h"], "commands": ["org.insert.heading.after"] },
@@ -327,6 +331,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.priority.up` | Org: Raise the priority |
 | `org.priority.down` | Org: Lower the priority |
 | `org.priority` | Org: Set the priority |
+| `org.tags.set` | Org: Set the tags of the headline |
 | `org.checkbox.toggle` | Org: Toggle the checkbox |
 | `org.return` | Org: New line, as Org's RET makes it |
 | `org.return.item` | Org: New line; on a list item, the next item |

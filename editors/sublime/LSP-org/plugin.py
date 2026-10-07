@@ -529,7 +529,8 @@ def ask(window, request, then, cancelled=None) -> None:
     choices = request.get('choices')
     if choices:
         if request.get('kind') == 'key':
-            items = ['[{}] {}'.format('SPC' if c['key'] == ' ' else c['key'], c['label']) for c in choices]
+            names = {' ': 'SPC', '\r': 'RET', '\t': 'TAB'}
+            items = ['[{}] {}'.format(names.get(c['key'], c['key']), c['label']) for c in choices]
         else:
             items = [c['label'] for c in choices]
 

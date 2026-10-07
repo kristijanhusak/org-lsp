@@ -132,6 +132,7 @@ pub const CLOCK_OUT: &str = "org.clock.out";
 pub const CLOCK_CANCEL: &str = "org.clock.cancel";
 pub const CLOCK_GOTO: &str = "org.clock.goto";
 pub const TODO: &str = "org.todo";
+pub const SET_TAGS: &str = "org.tags.set";
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
 pub const PRIORITY_UP: &str = "org.priority.up";
@@ -309,7 +310,16 @@ pub const COMMANDS: &[Command] = &[
     // the list repaired (indentation, bullets, numbers, checkboxes); at
     // the start of a list only its first item's box is toggled, and on a
     // statistics cookie the cookies are counted. On a headline,
-    // `org-toggle-checkbox` for the items below it. The cookies that count
+    // `org-set-tags-command`: the tags picked by key from the tag table
+    // (fast tag selection, each key turning its tag on or off until RET),
+    // or typed; in the agenda for the line's entry.
+    Command {
+        emacs: &[key(Org, "C-c C-q"), key(Agenda, ":")],
+        vim: &[key(Org, "<Leader>ot")],
+        input: Some(Input { kind: "key", prompt: "Tags" }),
+        ..edit(SET_TAGS, "Set the tags of the headline")
+    },
+    // `C-c C-c` on an item (`org-ctrl-c-ctrl-c`) for the items below it. The cookies that count
     // checkboxes follow.
     Command {
         emacs: &[key(Org, "C-c C-c")],

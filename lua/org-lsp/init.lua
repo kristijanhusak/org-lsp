@@ -346,7 +346,8 @@ end
 local function show_choices(prompt, choices)
   local lines, width = {}, vim.fn.strdisplaywidth(prompt) + 2
   for _, choice in ipairs(choices) do
-    local line = ('[%s] %s'):format(choice.key == ' ' and 'SPC' or choice.key, choice.label)
+    local names = { [' '] = 'SPC', ['\r'] = 'RET', ['\t'] = 'TAB' }
+    local line = ('[%s] %s'):format(names[choice.key] or choice.key, choice.label)
     table.insert(lines, line)
     width = math.max(width, vim.fn.strdisplaywidth(line))
   end

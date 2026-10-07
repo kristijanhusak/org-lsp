@@ -454,6 +454,28 @@ vim.wait(200)
 eq(line(2), '* WAIT Call them', 'an unknown key quits')
 plugin.read_key = read_key
 
+-- 14b. `<Leader>ot` sets tags a key at a time, each turning its tag on or
+-- off, until RET; the tags go to their column.
+local tagged_file = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '#+TAGS: work(w) home(h)', '* Task' }, tagged_file)
+vim.cmd.edit(tagged_file)
+wait('the server for tags', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+local keys, prompts = { 'w', 'h', '\r' }, {}
+plugin.read_key = function(prompt)
+  table.insert(prompts, prompt)
+  return table.remove(keys, 1)
+end
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press('<Leader>ot')
+wait('the tags set', function()
+  return line(2) == tagged('* Task', ':work:home:')
+end)
+eq(prompts, { 'Tags', 'Tags :work:', 'Tags :work:home:' }, 'the tags so far in each prompt')
+plugin.read_key = read_key
+vim.cmd('silent! write')
+
 -- 15. `<Leader>or` refiles the subtree under a target picked from a list.
 local refiled = vim.fn.tempname() .. '.org'
 vim.fn.writefile({ '* Inbox', '** Call Bob', 'Notes.', '* Projects', '** Alpha' }, refiled)

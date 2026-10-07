@@ -153,7 +153,57 @@ pub const SETTINGS: &[Setting] = &[
         "false",
         "org-complete-tags-always-offer-all-agenda-tags",
         "Completing a tag offers the tags of every agenda file, after those of the file. Off, only the \
-         file's own.",
+         file's own. Setting tags offers them too.",
+    ),
+    setting(
+        "org_tag_alist",
+        "string, string[]",
+        r#""""#,
+        "org-tag-alist",
+        "The tags offered when setting tags in a file without a `#+TAGS:` line, written like one: \
+         `\"work(w) home(h) { @office(o) @home(m) } [ GTD : Control Persp ]\"` gives `work` the key `w`, \
+         makes `@office` and `@home` exclusive, and groups `Control` and `Persp` under `GTD`; `\\n` starts \
+         a new line. A list of these words does as well. Unset, the tags used in the file are offered.",
+    ),
+    setting(
+        "org_tag_persistent_alist",
+        "string, string[]",
+        r#""""#,
+        "org-tag-persistent-alist",
+        "Tags offered in every file, before those of `#+TAGS:` or `org_tag_alist`, written the same way.",
+    ),
+    setting(
+        "org_use_fast_tag_selection",
+        r#"true, false, "auto""#,
+        r#""auto""#,
+        "org-use-fast-tag-selection",
+        "Pick tags by key, each key turning its tag on or off until RET: `auto` when some tag has a key, \
+         `true` always (keys are given to the tags without one), `false` never: the tags are typed instead.",
+    ),
+    setting(
+        "org_fast_tag_selection_single_key",
+        "boolean",
+        "false",
+        "org-fast-tag-selection-single-key",
+        "In fast tag selection, the first key that changes the tags also ends it.",
+    ),
+    Setting {
+        default: None,
+        unset: "the order they were picked in",
+        ..setting(
+            "org_tags_sort_function",
+            r#""string<", "string>""#,
+            "",
+            "org-tags-sort-function",
+            "Sort the tags of a headline when they are set: alphabetically, or the other way.",
+        )
+    },
+    setting(
+        "org_auto_align_tags",
+        "boolean",
+        "true",
+        "org-auto-align-tags",
+        "Align the tags of a headline to `org_tags_column` when they are set.",
     ),
     Setting {
         default: None,
@@ -765,6 +815,12 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_tags_exclude_from_inheritance", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_use_property_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
     ("org_complete_tags_always_offer_all_agenda_tags", BOOLEAN),
+    ("org_tag_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
+    ("org_tag_persistent_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
+    ("org_use_fast_tag_selection", r#"{ "enum": [true, false, "auto"] }"#),
+    ("org_fast_tag_selection_single_key", BOOLEAN),
+    ("org_tags_sort_function", r#"{ "enum": ["string<", "string>"] }"#),
+    ("org_auto_align_tags", BOOLEAN),
     ("org_clock_into_drawer", r#"{ "type": ["boolean", "string"] }"#),
     ("org_clock_out_remove_zero_time_clocks", BOOLEAN),
     ("org_clock_out_when_done", BOOLEAN),

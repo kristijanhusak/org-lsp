@@ -3233,3 +3233,62 @@ Draft the summary.
     assert!(!text.contains("Shown in a popup"), "{text}");
     client.shutdown();
 }
+
+/// `org.tags.set` (`C-c C-q`): with keys in `#+TAGS:`, a key at a time,
+/// each turning its tag on or off, exclusive groups kept, until RET; in
+/// the agenda for the line's entry, typed when no tag has a key.
+#[test]
+fn sets_tags_by_key_and_from_the_agenda() {
+    let mut client = Client::editor(clock(), None);
+    let uri = "file:///org/tags.org";
+    let mut text = "#+TAGS: work(w) { @office(o) @home(h) }\n* TODO Task :old:\n".to_string();
+    client.open(uri, &text);
+    let ask = |client: &mut Client, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 1, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.tags.set", "arguments": [context] }))
+            .unwrap()
+    };
+    let asked = ask(&mut client, json!({}));
+    assert_eq!(asked["input"]["kind"], "key");
+    assert_eq!(asked["input"]["prompt"], "Tags :old:");
+    assert_eq!(asked["input"]["choices"][0], json!({ "key": "w", "label": "work" }));
+    let answers = asked["input"]["context"]["answers"].clone();
+    let asked = ask(&mut client, json!({ "input": "w", "answers": answers }));
+    assert_eq!(asked["input"]["prompt"], "Tags :work:old:");
+    assert_eq!(asked["input"]["choices"][0]["label"], "work (on)");
+    let asked = ask(&mut client, json!({ "input": "o", "answers": asked["input"]["context"]["answers"] }));
+    // `@home` takes the place of `@office` in their group.
+    let asked = ask(&mut client, json!({ "input": "h", "answers": asked["input"]["context"]["answers"] }));
+    assert_eq!(asked["input"]["prompt"], "Tags :work:@home:old:");
+    let answers = asked["input"]["context"]["answers"].clone();
+    client.edit("org.tags.set", uri, (1, 0), json!({ "input": "\r", "answers": answers }), &mut text);
+    assert_eq!(
+        text,
+        format!("#+TAGS: work(w) {{ @office(o) @home(h) }}\n* TODO Task{}:work:@home:old:\n", " ".repeat(50))
+    );
+
+    // In the agenda: no tag has a key, so they are typed.
+    client.open("file:///org/work.org", WORK);
+    client.command("org.agenda.todos", VIEW, 0);
+    let line = client.view_text(VIEW).lines().position(|line| line.contains("Call the client")).unwrap();
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    let asked = client
+        .request("workspace/executeCommand", json!({ "command": "org.tags.set", "arguments": [context] }))
+        .unwrap();
+    assert_eq!(asked["input"], json!({ "kind": "text", "prompt": "Tags", "value": "" }));
+    let mut context = context;
+    context["input"] = json!("call:phone");
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.tags.set", "arguments": [context] })).unwrap();
+    client.settle();
+    let requests = std::mem::take(&mut client.received);
+    let request = requests.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (file, edits) = edits_of(request);
+    assert_eq!(file, "file:///org/work.org");
+    assert!(apply(WORK, &edits).contains(":call:phone:\nDEADLINE"), "{}", apply(WORK, &edits));
+    client.shutdown();
+}

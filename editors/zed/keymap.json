@@ -161,6 +161,12 @@
           "task_name": "Org agenda: Set the priority"
         }
       ],
+      ":": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: Set the tags of the headline"
+        }
+      ],
       "ctrl-c ctrl-w": [
         "task::Spawn",
         {

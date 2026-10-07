@@ -29,6 +29,7 @@ pub mod sort;
 pub mod sparse;
 pub mod stamp;
 pub mod structure;
+pub mod tags;
 pub mod tangle;
 pub mod tblfm;
 pub mod text;

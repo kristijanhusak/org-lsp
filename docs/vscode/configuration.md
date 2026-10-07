@@ -134,9 +134,39 @@ them out:
     "org_clock_out_when_done": true,
 
     // Completing a tag offers the tags of every agenda file, after those of
-    // the file. Off, only the file's own.
+    // the file. Off, only the file's own. Setting tags offers them too.
     // (org-complete-tags-always-offer-all-agenda-tags)
     "org_complete_tags_always_offer_all_agenda_tags": false,
+
+    // The tags offered when setting tags in a file without a `#+TAGS:` line,
+    // written like one: `"work(w) home(h) { @office(o) @home(m) } [ GTD :
+    // Control Persp ]"` gives `work` the key `w`, makes `@office` and `@home`
+    // exclusive, and groups `Control` and `Persp` under `GTD`; `\n` starts a
+    // new line. A list of these words does as well. Unset, the tags used in
+    // the file are offered. (org-tag-alist)
+    "org_tag_alist": "",
+
+    // Tags offered in every file, before those of `#+TAGS:` or
+    // `org_tag_alist`, written the same way. (org-tag-persistent-alist)
+    "org_tag_persistent_alist": "",
+
+    // Pick tags by key, each key turning its tag on or off until RET: `auto`
+    // when some tag has a key, `true` always (keys are given to the tags
+    // without one), `false` never: the tags are typed instead.
+    // (org-use-fast-tag-selection)
+    "org_use_fast_tag_selection": "auto",
+
+    // In fast tag selection, the first key that changes the tags also ends
+    // it. (org-fast-tag-selection-single-key)
+    "org_fast_tag_selection_single_key": false,
+
+    // Sort the tags of a headline when they are set: alphabetically, or the
+    // other way. (org-tags-sort-function)
+    // "org_tags_sort_function": unset: the order they were picked in
+
+    // Align the tags of a headline to `org_tags_column` when they are set.
+    // (org-auto-align-tags)
+    "org_auto_align_tags": true,
 
     // The state a repeating entry returns to when it is done: a keyword, or
     // `true` for the state it had. (org-todo-repeat-to-state)

@@ -79,8 +79,8 @@ few, checked against Emacs where Org decides the outcome:
   sorting items (`tests/lists`). Left: `C-c -` turning lines into items
   and back (`org-toggle-item`), `C-c *` (`org-toggle-heading`), radio
   lists.
-- **Tags and properties (7):** set tags (`C-c C-q`, with fast tag
-  selection and alignment), tag groups; set and delete properties
+- **Tags and properties (7):** done: set tags (`C-c C-q`, with fast tag
+  selection and alignment, exclusive groups). Left: set and delete properties
   (`C-c C-x p`), allowed values on the shifted keys; `LOGGING` and other
   properties that change what commands do.
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
@@ -375,8 +375,15 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - Done: tag and property inheritance (`org-use-tag-inheritance`,
   `org-tags-exclude-from-inheritance`, `org-use-property-inheritance`,
   `#+PROPERTY:`, the file's property drawer, `NAME+` values).
-- Set tags with alignment, tag groups. `LOGGING` and other properties
-  that change what commands do, read with inheritance.
+- Done: setting tags (`org-set-tags-command`, `org-agenda-set-tags`):
+  fast tag selection by key with exclusive groups, the completion prompt
+  otherwise, `org-tag-alist`, `org-tag-persistent-alist`,
+  `org-use-fast-tag-selection`, `org-fast-tag-selection-single-key`,
+  `org-tags-sort-function`, `org-auto-align-tags`, checked against Emacs
+  in `tests/tags`.
+- Left: setting `#+FILETAGS:` (Emacs refuses too), group tags in match
+  strings (with the agenda), `LOGGING` and other properties that change
+  what commands do, read with inheritance.
 - Properties: set, delete, allowed values (the shifted keys on a property
   line), column view if it can be shown at all.
 

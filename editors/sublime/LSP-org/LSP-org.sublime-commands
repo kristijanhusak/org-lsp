@@ -210,6 +210,13 @@
     }
   },
   {
+    "caption": "Org: Set the tags of the headline",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.tags.set"
+    }
+  },
+  {
     "caption": "Org: Toggle the checkbox",
     "command": "org_lsp_run",
     "args": {
