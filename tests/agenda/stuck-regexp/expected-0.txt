@@ -1,0 +1,10 @@
+List of stuck projects: 
+  a:          Kitchen
+  a:          Garage
+  a:          TODO Taxes
+  a:          NEXT Website
+  a:          Lone
+  a:          Spaced
+  a:          Health                                                     :area::
+  a:          Finance                                                    :area::
+  b:          Report

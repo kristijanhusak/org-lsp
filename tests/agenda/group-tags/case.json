@@ -1,0 +1,56 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "tags",
+      "match": "Work"
+    },
+    {
+      "view": "tags",
+      "match": "+Work-Conf"
+    },
+    {
+      "view": "tags",
+      "match": "-Work"
+    },
+    {
+      "view": "tags",
+      "match": "Context"
+    },
+    {
+      "view": "tags",
+      "match": "Work|Home"
+    },
+    {
+      "view": "tags",
+      "match": "{Lab}"
+    },
+    {
+      "view": "tags",
+      "match": "work"
+    },
+    {
+      "view": "tags",
+      "match": "Lab"
+    },
+    {
+      "view": "tags",
+      "match": "Work+Home"
+    },
+    {
+      "view": "tags",
+      "match": "Trip"
+    }
+  ],
+  "options": {
+    "org_tag_alist": [
+      "[",
+      "Travel",
+      ":",
+      "Trip",
+      "]"
+    ]
+  },
+  "emacs": "(setq org-tag-alist '((:startgrouptag) (\"Travel\") (:grouptags) (\"Trip\") (:endgrouptag)))"
+}

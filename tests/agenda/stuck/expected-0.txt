@@ -1,0 +1,8 @@
+List of stuck projects: 
+  a:          Garage
+  a:          Garden                                                   :outdoor:
+  a:          Novel
+  a:          Lone
+  a:          Spaced
+  a:          Finance                                                    :area::
+  b:          Report

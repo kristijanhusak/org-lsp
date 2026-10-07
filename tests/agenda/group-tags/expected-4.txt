@@ -1,0 +1,9 @@
+Headlines with TAGS match: Work|Home
+  a:          Paper                                                        :Lab:
+  a:          Talk                                                        :Conf:
+  a:          Desk                                                        :Work:
+  a:          Bench work                                                 :Bench:
+  a:          Project                                                    :P@one:
+  a:          Chores                                                      :Home:
+  a:          Meeting                                             :@office:Conf:
+  b:          Other lab                                                    :Lab:

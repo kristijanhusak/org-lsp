@@ -197,6 +197,14 @@ pub const SETTINGS: &[Setting] = &[
         "Tags offered in every file, before those of `#+TAGS:` or `org_tag_alist`, written the same way.",
     ),
     setting(
+        "org_group_tags",
+        "boolean",
+        "true",
+        "org-group-tags",
+        "A group tag (`[ GTD : Control Persp ]`, `{ Context : @home @office }` in `#+TAGS:` or `org_tag_alist`) \
+         in the match string of a tags view stands for itself and the tags of its group.",
+    ),
+    setting(
         "org_use_fast_tag_selection",
         r#"true, false, "auto""#,
         r#""auto""#,
@@ -724,6 +732,14 @@ pub const SETTINGS: &[Setting] = &[
         "Leave the tags out of the agenda's lines; `prefix` only when the prefix shows a tag (`%T`).",
     ),
     setting(
+        "org_stuck_projects",
+        "[string, string[], string[], string]",
+        r#"["+LEVEL=2/-DONE", ["TODO", "NEXT", "NEXTACTION"], [], ""]"#,
+        "org-stuck-projects",
+        "What the stuck projects view (`#`) lists: the projects the match string finds whose subtree has no entry \
+         with one of the TODO keywords (`*` for any not done) or tags (`*` for any), and no match of the regexp.",
+    ),
+    setting(
         "org_agenda_breadcrumbs_separator",
         "string",
         r#""->""#,
@@ -876,6 +892,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_cite_global_bibliography", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_tag_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_tag_persistent_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
+    ("org_group_tags", BOOLEAN),
     ("org_use_fast_tag_selection", r#"{ "enum": [true, false, "auto"] }"#),
     ("org_fast_tag_selection_single_key", BOOLEAN),
     ("org_tags_sort_function", r#"{ "enum": ["string<", "string>"] }"#),
@@ -1009,6 +1026,10 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_agenda_remove_tags", r#"{ "enum": [true, false, "prefix"] }"#),
     ("org_agenda_breadcrumbs_separator", STRING),
+    (
+        "org_stuck_projects",
+        r#"{ "type": "array", "prefixItems": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }, { "type": "array", "items": { "type": "string" } }, { "type": "string" }], "minItems": 4, "maxItems": 4 }"#,
+    ),
     ("org_agenda_format_date", STRING),
     (
         "org_agenda_custom_commands",

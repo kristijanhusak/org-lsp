@@ -80,6 +80,9 @@ pub struct Options {
     /// `org-tag-persistent-alist`: tags offered in every file.
     #[serde(rename = "org_tag_persistent_alist")]
     pub tag_persistent_alist: Option<TagsOption>,
+    /// `org-group-tags`
+    #[serde(rename = "org_group_tags")]
+    pub group_tags: Option<bool>,
     /// `org-use-fast-tag-selection`: `true`, `false` or `"auto"`.
     #[serde(rename = "org_use_fast_tag_selection")]
     pub use_fast_tag_selection: Option<serde_json::Value>,
@@ -612,7 +615,14 @@ impl Options {
 
     /// The agenda settings, with the priorities the agenda sorts by.
     pub fn agenda_config(&self) -> AgendaConfig {
-        AgendaConfig { priorities: self.priorities(), ..self.agenda.to_config() }
+        let tags = self.tag_settings();
+        AgendaConfig {
+            priorities: self.priorities(),
+            tag_alist: tags.alist,
+            tag_persistent_alist: tags.persistent,
+            group_tags: self.group_tags.unwrap_or(true),
+            ..self.agenda.to_config()
+        }
     }
 
     /// How answers to the date prompt are read.
@@ -1435,6 +1445,10 @@ pub struct AgendaOptions {
     /// `org-agenda-format-date`, as a `format-time-string` format.
     #[serde(rename = "org_agenda_format_date")]
     pub format_date: Option<String>,
+    /// `org-stuck-projects`: the match string of projects, the TODO
+    /// keywords and the tags of next actions, and a regexp.
+    #[serde(rename = "org_stuck_projects")]
+    pub stuck_projects: Option<(String, Vec<String>, Vec<String>, String)>,
 }
 
 /// A command of `org-agenda-custom-commands`: one view (`type`, `match`),
@@ -1630,6 +1644,14 @@ impl AgendaOptions {
         }
         if let Some(format) = &self.format_date {
             config.format_date = Some(format.clone());
+        }
+        if let Some((matcher, todo, tags, regexp)) = &self.stuck_projects {
+            config.stuck_projects = org_core::agenda::StuckProjects {
+                matcher: matcher.clone(),
+                todo: todo.clone(),
+                tags: tags.clone(),
+                regexp: regexp.clone(),
+            };
         }
         config
     }

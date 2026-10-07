@@ -174,6 +174,39 @@ pub fn add_to_alist(first: &[TagEntry], second: &[TagEntry]) -> Vec<TagEntry> {
     out
 }
 
+/// `org-tag-alist-to-groups`: the group tags of a table (`[ GTD :
+/// Control Persp ]`, `{ Context : @home @work }`), each with the tags it
+/// stands for.
+pub fn alist_to_groups(alist: &[TagEntry]) -> Vec<(String, Vec<String>)> {
+    let mut groups = Vec::new();
+    // In a group; past its `:` with `append`.
+    let (mut in_group, mut append) = (false, false);
+    let mut current: Vec<String> = Vec::new();
+    for entry in alist {
+        match entry {
+            TagEntry::StartGroup | TagEntry::StartGroupTag => in_group = true,
+            TagEntry::EndGroup | TagEntry::EndGroupTag => {
+                if append && !current.is_empty() {
+                    let tag = current.remove(0);
+                    groups.push((tag, std::mem::take(&mut current)));
+                }
+                (in_group, append) = (false, false);
+                current.clear();
+            }
+            TagEntry::GroupTags => append = true,
+            TagEntry::Tag(tag, _) if in_group => {
+                if append {
+                    current.push(tag.clone());
+                } else {
+                    current = vec![tag.clone()];
+                }
+            }
+            _ => {}
+        }
+    }
+    groups
+}
+
 /// `org-current-tag-alist`: the file's `#+TAGS:` lines, or else
 /// `org-tag-alist`, with `org-tag-persistent-alist` before them.
 pub fn current_alist(text: &str, settings: &Settings) -> Vec<TagEntry> {

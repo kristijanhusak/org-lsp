@@ -1,0 +1,29 @@
+#+TODO: TODO NEXT WAIT | DONE CANCELLED
+* Projects
+** Kitchen
+*** TODO Buy paint
+** Garage
+*** Sort tools
+*** DONE Sweep
+** TODO Taxes
+*** Collect receipts
+** NEXT Website
+** DONE Old project
+*** TODO Leftover
+** Garden :outdoor:
+*** WAIT Seeds :@shop:
+*** Prune
+** Novel
+Notes mention IGNORE here.
+*** Chapter one
+* Single
+** Lone
+
+** Spaced
+*** Item
+
+
+* Areas :area:
+** Health
+*** NEXT Run
+** Finance

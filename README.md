@@ -42,7 +42,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Completion: TODO keywords and tags in headlines, `#+` keywords and `#+STARTUP:` values, drawers and property names, entities, and in links file names, headlines and custom IDs | with an LSP completion plugin | yes | through the client | yes | yes | yes |
 | Agenda: tags at the right edge of the window, following it as it is resized (`org_agenda_tags_column` `"auto"`, as Org's default); TAB shows an entry in another window (an empty one, or a new one), RET where the agenda is | yes | tags at column 80; TAB in another group | yes | yes | tags at column 80; TAB in a split | no³ |
 | Agenda: day, week, fortnight, month and year views, going to a date | yes | yes | yes, as a file | yes, as a file | code actions, as a file; no going to a date | no³ |
-| Agenda: list of all TODO entries, tags and property searches (`m`, `M`), searches for words, phrases and regexps (`s`, `S`, as `org-search-view`; `[`, `]`, `{`, `}` to search again with another word or regexp), custom commands and block agendas (`org-agenda-custom-commands`) | yes | yes | yes | yes | code actions; no searches | no³ |
+| Agenda: list of all TODO entries, tags and property searches (`m`, `M`, group tags standing for their groups), stuck projects (`#`), searches for words, phrases and regexps (`s`, `S`, as `org-search-view`; `[`, `]`, `{`, `}` to search again with another word or regexp), custom commands and block agendas (`org-agenda-custom-commands`) | yes | yes | yes | yes | code actions; no searches | no³ |
 | Agenda: a hover over a line shows its entry, the headline and its text up to the next heading, each drawer folded to its first line (`:PROPERTIES:...`) | `K`, highlighted | the mouse, or `Ctrl+K Ctrl+I` | `K`, highlighted; the client's hover (`:LspHover`, coc.nvim's `doHover`, `:ALEHover`) | the mouse, or a key bound to LSP's `lsp_hover` | the mouse, or `Ctrl+K Ctrl+I` (`K` and `g h` with vim mode) | no³ |
 | Tag and property inheritance (`org_use_tag_inheritance`, `org_tags_exclude_from_inheritance`, `org_use_property_inheritance`): file tags, parents' tags and properties in the agenda's tags and property searches, inherited tags shown in the agenda | yes | yes | yes | yes | yes | no³ |
 | Agenda lines formatted as Org formats them, to your taste: `org_agenda_prefix_format` (`org-agenda-prefix-format`, with the category, time, leader, effort, level, last tag and breadcrumbs), the leaders of scheduled entries, deadlines and ranges, `todoKeywordFormat`, `removeTags`, `formatDate`; in custom commands and their blocks too | yes | yes | yes | yes | yes | no³ |
@@ -310,7 +310,7 @@ both programs on them. See
 
 ## Not done yet
 
-- Agenda: stuck projects, filters, habits, diary entries and bulk actions;
+- Agenda: filters, habits, diary entries and bulk actions;
   custom commands of those types.
 - Table formulas in Emacs Lisp, remote references, units and Calc's
   fractions and symbolic mode; export;

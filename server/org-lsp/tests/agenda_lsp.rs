@@ -641,9 +641,14 @@ fn the_dispatcher_asks_which_view() {
             { "key": "m", "label": "Match a TAGS/PROP/TODO query" },
             { "key": "M", "label": "Like m, but only TODO entries" },
             { "key": "s", "label": "Search for keywords" },
-            { "key": "S", "label": "Like s, but only TODO entries" }
+            { "key": "S", "label": "Like s, but only TODO entries" },
+            { "key": "#", "label": "List stuck projects" }
         ])
     );
+    client.received.clear();
+    assert_eq!(run(&mut client, json!({ "input": "#" })), Ok(Value::Null));
+    client.settle();
+    assert!(client.view_text(VIEW).starts_with("List of stuck projects: "));
     client.received.clear();
     assert_eq!(run(&mut client, json!({ "input": "t" })), Ok(Value::Null));
     client.settle();
@@ -724,8 +729,8 @@ fn runs_custom_agenda_commands() {
     let asked = run(&mut client, "org.agenda.dispatch", json!({})).unwrap();
     let keys: Vec<&str> =
         asked["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
-    assert_eq!(keys, ["a", "t", "m", "M", "s", "S", "x"]);
-    assert_eq!(asked["input"]["choices"][6]["label"], "+Mine");
+    assert_eq!(keys, ["a", "t", "m", "M", "s", "S", "#", "x"]);
+    assert_eq!(asked["input"]["choices"][7]["label"], "+Mine");
     let asked = run(&mut client, "org.agenda.dispatch", json!({ "input": "x" })).unwrap();
     assert_eq!(asked["input"]["choices"], json!([{ "key": "b", "label": "Day and office" }]));
     assert_eq!(asked["input"]["context"], json!({ "keys": "x" }));

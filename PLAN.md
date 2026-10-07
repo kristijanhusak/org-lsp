@@ -359,8 +359,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - Done: the search view (`s`, `S`, `org-search-view`, with
   `[`, `]`, `{`, `}`, `org-agenda-text-search-extra-files` with
   `agenda-archives`), checked against Emacs.
-- Filters (`/`, `<`, `=`, `_`, `|`), stuck projects, group tags in match
-  strings, entry text, follow mode.
+- Done: stuck projects (`#`, `org-stuck-projects`, custom commands of
+  type `stuck`) and group tags in match strings (`org-tags-expand`,
+  `org-group-tags`), checked against Emacs in `tests/agenda/stuck*` and
+  `tests/agenda/group-tags`.
+- Filters (`/`, `<`, `=`, `_`, `|`), entry text, follow mode.
 - Bulk marks and actions; hours and minutes on `S-<left>`/`S-<right>`.
 
 ### 6. Structure editing

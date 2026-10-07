@@ -1,0 +1,41 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "stuck"
+    },
+    {
+      "view": "custom",
+      "key": "x"
+    },
+    {
+      "view": "custom",
+      "key": "y"
+    }
+  ],
+  "options": {
+    "org_agenda_custom_commands": [
+      {
+        "key": "x",
+        "description": "Stuck",
+        "type": "stuck"
+      },
+      {
+        "key": "y",
+        "description": "Stuck and todo",
+        "blocks": [
+          {
+            "type": "stuck",
+            "header": "Stuck ones"
+          },
+          {
+            "type": "todo",
+            "match": "NEXT"
+          }
+        ]
+      }
+    ]
+  },
+  "emacs": "(setq org-agenda-custom-commands '((\"x\" \"Stuck\" stuck \"\") (\"y\" \"Stuck and todo\" ((stuck \"\" ((org-agenda-overriding-header \"Stuck ones\"))) (todo \"NEXT\")))))"
+}

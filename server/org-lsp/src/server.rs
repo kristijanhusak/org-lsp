@@ -2483,6 +2483,7 @@ impl Server {
             Query::Search { string, todo_only } => {
                 one(views::BlockKind::Search { string: string.clone(), todo_only: *todo_only })
             }
+            Query::Stuck => one(views::BlockKind::Stuck),
             Query::Custom { keys, moved } => {
                 let commands = self.agenda_options.custom_commands.as_deref().unwrap_or_default();
                 let command = custom::find(commands, keys).ok_or_else(|| format!("No agenda command `{keys}`"))?;
@@ -3438,6 +3439,7 @@ impl Server {
             ("M", "Like m, but only TODO entries"),
             ("s", "Search for keywords"),
             ("S", "Like s, but only TODO entries"),
+            ("#", "List stuck projects"),
         ];
         let next = custom::next_keys(&commands, &keys);
         if input.is_none() || !next.is_empty() {
@@ -3470,6 +3472,7 @@ impl Server {
                 } }))
             }
             "s" | "S" => return Ok(self.search_input(&keys, "")),
+            "#" => self.open_view(Query::Stuck)?,
             _ => return Err("No agenda command for this key".into()),
         }
         Ok(Value::Null)
@@ -3549,6 +3552,7 @@ impl Server {
                 Query::Todo => "The TODO list has no dates to move through",
                 Query::Tags { .. } => "A tags view has no dates to move through",
                 Query::Search { .. } => "A search view has no dates to move through",
+                Query::Stuck => "The stuck projects have no dates to move through",
                 _ => "This block has no dates to move through",
             }
             .into()),

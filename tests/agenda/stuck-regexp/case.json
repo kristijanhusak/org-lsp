@@ -1,0 +1,20 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "stuck"
+    }
+  ],
+  "options": {
+    "org_stuck_projects": [
+      "+LEVEL=2/-DONE|+project",
+      [],
+      [
+        "*"
+      ],
+      "\\<IGNORE\\>"
+    ]
+  },
+  "emacs": "(setq org-stuck-projects '(\"+LEVEL=2/-DONE|+project\" nil (\"*\") \"\\\\<IGNORE\\\\>\"))"
+}

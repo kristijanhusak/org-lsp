@@ -1,0 +1,6 @@
+List of stuck projects: 
+  a:          Garage
+  a:          Novel
+  a:          Lone
+  a:          Spaced
+  b:          Report
