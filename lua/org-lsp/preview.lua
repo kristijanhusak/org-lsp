@@ -2,6 +2,7 @@
 --- the line, in an Org buffer the server highlights as it highlights any
 --- Org file.
 local M = {}
+local notify = require('org-lsp.notify')
 
 --- The previews opened so far: each buffer gets a name of its own, which
 --- is the URI the server knows its text by.
@@ -97,7 +98,7 @@ function M.show()
   client:request('textDocument/hover', params, function(err, result)
     local contents = type(result) == 'table' and result.contents or nil
     if err or type(contents) ~= 'table' or type(contents.value) ~= 'string' then
-      return vim.notify('org-lsp: No entry on this line', vim.log.levels.INFO)
+      return notify('org-lsp: No entry on this line', vim.log.levels.INFO)
     end
     -- The cursor moved on while the server answered.
     if vim.api.nvim_get_current_win() ~= from or not vim.deep_equal(vim.api.nvim_win_get_cursor(from), cursor) then

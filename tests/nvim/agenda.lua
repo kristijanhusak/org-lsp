@@ -499,15 +499,24 @@ wait_for_view('Global list of TODO items of type: ALL')
 eq(vim.fn.getcompletion('Org agenda.l', 'cmdline'), { 'agenda.list', 'agenda.later', 'agenda.log' }, 'commands complete')
 
 -- 9. A command that cannot work says why.
-local messages = {}
-vim.notify = function(message)
+local messages, titles = {}, {}
+vim.notify = function(message, _, opts)
   table.insert(messages, message)
+  table.insert(titles, opts and opts.title)
 end
 press('f')
 wait('the message of a failed command', function()
   return #messages > 0
 end)
 eq(messages, { 'org-lsp: The TODO list has no dates to move through' }, 'the server explains')
+eq(titles, { 'Org' }, 'in a notification titled Org')
+-- So are the messages the server sends of its own (`window/showMessage`).
+local levels = {}
+vim.notify = function(message, level, opts)
+  table.insert(levels, { message, level, opts and opts.title })
+end
+require('org-lsp.view').handlers['window/showMessage'](nil, { type = 2, message = 'Careful' }, {})
+eq(levels, { { 'Careful', vim.log.levels.WARN, 'Org' } }, 'a warning of the server, titled Org')
 
 -- 10. `<Leader>oc` captures: a template by its key, then a buffer of its
 -- own; `<C-c>` there puts the entry into its file. This one does not exist

@@ -14,6 +14,7 @@
 ---       mappings = { org = { ['org.todo.next'] = '<Leader>t' } },
 ---     })
 local M = {}
+local notify = require('org-lsp.notify')
 
 local SERVER = 'org_lsp'
 
@@ -120,7 +121,7 @@ function M.server_command()
 end
 
 local function warn_missing_server()
-  vim.notify(
+  notify(
     'org-lsp: the server binary was not found. Run :OrgLspBuild (needs cargo), '
       .. 'put `org-lsp` on your PATH, or set `cmd` in the configuration.',
     vim.log.levels.WARN
@@ -209,7 +210,7 @@ function M.run(name, opts)
           -- Not an Org matter here: the key does what it does elsewhere.
           vim.api.nvim_feedkeys((count or '') .. vim.keycode(opts.key), 'n', false)
         else
-          vim.notify('org-lsp: ' .. tostring(err.message), vim.log.levels.WARN)
+          notify('org-lsp: ' .. tostring(err.message), vim.log.levels.WARN)
         end
         return
       end
@@ -238,7 +239,7 @@ function M.run(name, opts)
       end
       -- What the command has to say, as Emacs says it in the echo area.
       if type(result) == 'table' and type(result.message) == 'string' then
-        vim.notify(result.message, vim.log.levels.INFO)
+        notify(result.message, vim.log.levels.INFO)
       end
       -- The command is done with a document the server showed for it.
       if type(result) == 'table' and result.close then
@@ -782,7 +783,7 @@ end
 local function on_init(client)
   M.manifest = (client.server_capabilities.experimental or {}).org
   if not M.manifest then
-    return vim.notify('org-lsp: the server is older than this plugin; run :OrgLspBuild', vim.log.levels.WARN)
+    return notify('org-lsp: the server is older than this plugin; run :OrgLspBuild', vim.log.levels.WARN)
   end
   require('org-lsp.highlights').define(M.manifest)
   require('org-lsp.view').setup(M.manifest)
@@ -868,16 +869,16 @@ end
 --- Build the server with cargo inside the plugin directory, then start it.
 local function build()
   if vim.fn.executable('cargo') == 0 then
-    vim.notify('org-lsp: cargo is not installed; see https://rustup.rs', vim.log.levels.ERROR)
+    notify('org-lsp: cargo is not installed; see https://rustup.rs', vim.log.levels.ERROR)
     return
   end
-  vim.notify('org-lsp: building the server…')
+  notify('org-lsp: building the server…')
   vim.system({ 'cargo', 'build', '--release', '-p', 'org-lsp' }, { cwd = plugin_root(), text = true }, function(result)
     vim.schedule(function()
       if result.code ~= 0 then
-        vim.notify('org-lsp: build failed\n' .. (result.stderr or ''), vim.log.levels.ERROR)
+        notify('org-lsp: build failed\n' .. (result.stderr or ''), vim.log.levels.ERROR)
       elseif enable() then
-        vim.notify('org-lsp: built; restart Neovim to use the new server')
+        notify('org-lsp: built; restart Neovim to use the new server')
       end
     end)
   end)

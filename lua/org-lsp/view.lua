@@ -7,6 +7,7 @@
 --- buffer named with the server's scheme is filled with the text the server
 --- returns, and filled again when the server says that the text has changed.
 local M = {}
+local notify = require('org-lsp.notify')
 
 --- Tells the server that this client fetches such documents, and shows
 --- its date prompt.
@@ -335,6 +336,15 @@ end
 local line_highlights = vim.api.nvim_create_namespace('org_lsp_line_highlights')
 
 M.handlers = {
+  --- A message of the server, titled `Org`. Neovim's own handler sends it
+  --- without a title, as `LSP[org-lsp] …`.
+  ['window/showMessage'] = function(_, params)
+    local levels = vim.log.levels
+    local level = ({ levels.ERROR, levels.WARN, levels.INFO, levels.DEBUG, levels.DEBUG })[params.type]
+    notify(params.message, level or levels.INFO)
+    return vim.NIL
+  end,
+
   --- The server edits a file for a command. Neovim reports changes to a
   --- buffer after a delay; the server should hear of this one at once,
   --- because the next press of the same key builds on it.
