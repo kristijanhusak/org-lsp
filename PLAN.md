@@ -87,7 +87,7 @@ few, checked against Emacs where Org decides the outcome:
   properties and the `#+STARTUP:` logging words.
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
   moving rows and columns, `C-c -` for a rule.
-- **Agenda (5):** follow mode, bulk
+- **Agenda (5):** bulk
   marks and actions, hours and minutes on `S-<left>`/`S-<right>`.
 - **Clocking (9):** clock tables in files (`#+BEGIN: clocktable`,
   `C-c C-x C-r`), effort estimates (`C-c C-x e`), `org-clock-display`,
@@ -369,7 +369,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   Emacs's display, the text of an entry an effort filter hides is not
   shown (Emacs shows it under the visible line above when the line after
   the hidden one is visible).
-- Follow mode.
+- Done: follow mode (`F`, `org-agenda-follow-mode`,
+  `org_agenda_start_with_follow_mode`): editors report the cursor's line
+  (`org-lsp/agendaCursor`) and show the entry without the focus. Turning
+  it off leaves the windows as they are (Emacs restores the window
+  configuration from before); Zed has no way to report the cursor.
 - Bulk marks and actions; hours and minutes on `S-<left>`/`S-<right>`.
 
 ### 6. Structure editing

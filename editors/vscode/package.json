@@ -171,6 +171,11 @@
         "category": "Org"
       },
       {
+        "command": "org.agenda.follow",
+        "title": "Agenda: follow mode, the cursor's entry in another window",
+        "category": "Org"
+      },
+      {
         "command": "org.agenda.filter",
         "title": "Agenda: filter by tags, categories, effort and regexps",
         "category": "Org"
@@ -1544,6 +1549,11 @@
                 "closed",
                 "clock"
               ]
+            },
+            "org_agenda_start_with_follow_mode": {
+              "type": "boolean",
+              "markdownDescription": "Start the agenda in follow mode, which shows the entry of the cursor's line in another window as the cursor moves (`F` toggles it). (`org-agenda-start-with-follow-mode`)",
+              "default": false
             },
             "org_agenda_start_with_entry_text_mode": {
               "type": "boolean",
@@ -3649,6 +3659,16 @@
       {
         "command": "org.agenda.entry.text",
         "key": "v shift+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.follow",
+        "key": "shift+f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.follow",
+        "key": "shift+f",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {

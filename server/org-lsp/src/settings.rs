@@ -627,6 +627,14 @@ pub const SETTINGS: &[Setting] = &[
         "What log mode shows: `closed` entries, `clock` lines and `state` changes.",
     ),
     setting(
+        "org_agenda_start_with_follow_mode",
+        "boolean",
+        "false",
+        "org-agenda-start-with-follow-mode",
+        "Start the agenda in follow mode, which shows the entry of the cursor's line in another window as the \
+         cursor moves (`F` toggles it).",
+    ),
+    setting(
         "org_agenda_start_with_entry_text_mode",
         "boolean",
         "false",
@@ -1032,6 +1040,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_start_with_clockreport_mode", BOOLEAN),
     ("org_agenda_start_with_archives_mode", r#"{ "enum": ["trees", "files", false] }"#),
     ("org_agenda_log_mode_items", r#"{ "type": "array", "items": { "enum": ["closed", "clock", "state"] } }"#),
+    ("org_agenda_start_with_follow_mode", BOOLEAN),
     ("org_agenda_start_with_entry_text_mode", BOOLEAN),
     ("org_agenda_entry_text_maxlines", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_agenda_entry_text_leaders", STRING),

@@ -1387,6 +1387,9 @@ pub struct AgendaOptions {
     /// `org-agenda-start-with-archives-mode`: `"trees"` or `"files"`.
     #[serde(rename = "org_agenda_start_with_archives_mode")]
     pub start_with_archives_mode: Option<ArchivesOption>,
+    /// `org-agenda-start-with-follow-mode`
+    #[serde(rename = "org_agenda_start_with_follow_mode")]
+    pub start_with_follow_mode: Option<bool>,
     /// `org-agenda-start-with-entry-text-mode`
     #[serde(rename = "org_agenda_start_with_entry_text_mode")]
     pub start_with_entry_text_mode: Option<bool>,

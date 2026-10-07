@@ -161,6 +161,13 @@
     }
   },
   {
+    "caption": "Org: Agenda: follow mode, the cursor's entry in another window",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.follow"
+    }
+  },
+  {
     "caption": "Org: Agenda: filter by tags, categories, effort and regexps",
     "command": "org_lsp_run",
     "args": {

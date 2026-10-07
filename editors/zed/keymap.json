@@ -131,6 +131,12 @@
           "task_name": "Org agenda: entry text mode, some text of each entry under its line"
         }
       ],
+      "shift-f": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: follow mode, the cursor's entry in another window"
+        }
+      ],
       "/": [
         "task::Spawn",
         {

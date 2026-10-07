@@ -297,6 +297,10 @@ pub const SAVE: &str = "org-lsp/save";
 pub const AGENDA_WIDTH: &str = "org-lsp/agendaWidth";
 /// The entry of an agenda line with its highlighting, for a popup.
 pub const PREVIEW: &str = "org-lsp/preview";
+/// From the client: the cursor moved to another line of the agenda, `{
+/// "textDocument", "position" }`. In follow mode (`F`) the entry there
+/// shows in another window.
+pub const AGENDA_CURSOR: &str = "org-lsp/agendaCursor";
 
 /// The name of a capture buffer starts with this, as Emacs names it.
 pub const CAPTURE_PREFIX: &str = "CAPTURE-";
@@ -487,6 +491,9 @@ struct Server {
     agenda_clockreport: bool,
     /// Entry text mode (`E`): the most lines of each entry's text, when on.
     agenda_entry_text: Option<usize>,
+    /// Follow mode (`F`): the entry of the cursor's line shows in another
+    /// window as the cursor moves.
+    agenda_follow: bool,
     /// What the agenda shows of archives (`v a`, `v A`).
     agenda_archives: ArchivesMode,
     /// The filters of the agenda (`/`, `\\`, `<`, `=`, `_`, `^`), which
@@ -643,6 +650,7 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_clockreport: options.agenda.start_with_clockreport_mode.unwrap_or(false),
         agenda_archives: options.agenda.archives_mode(),
         agenda_entry_text: options.agenda_config().entry_text,
+        agenda_follow: options.agenda.start_with_follow_mode.unwrap_or(false),
         agenda_filters: Default::default(),
         documents: HashMap::new(),
         workspace: {
@@ -1258,6 +1266,13 @@ impl Server {
                         }
                         Err(response) => response,
                     },
+                    AGENDA_CURSOR => match parameters::<Value>(request) {
+                        Ok((id, params)) => {
+                            self.agenda_cursor(params);
+                            Response::new_ok(id, Value::Null)
+                        }
+                        Err(response) => response,
+                    },
                     PREVIEW => match parameters::<Value>(request) {
                         Ok((id, params)) => respond(id, self.preview(&params)),
                         Err(response) => response,
@@ -1300,6 +1315,15 @@ impl Server {
         }
     }
 
+    /// The cursor is on another line of the agenda: in follow mode, its
+    /// entry shows in another window.
+    fn agenda_cursor(&mut self, params: Value) {
+        if self.agenda_follow {
+            let context = serde_json::from_value::<Context>(params).ok();
+            self.show_entry(context.as_ref());
+        }
+    }
+
     fn notification(&mut self, notification: Notification) {
         // A notification the server cannot read is dropped: there is no way
         // to answer one, and the next full sync repairs any lost change.
@@ -1319,6 +1343,7 @@ impl Server {
         }
         match notification.method.as_str() {
             AGENDA_WIDTH => self.agenda_width(&notification.params),
+            AGENDA_CURSOR => self.agenda_cursor(notification.params),
             DidOpenTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidOpenTextDocumentParams>(notification) else { return };
                 let document = params.text_document;
@@ -3419,6 +3444,16 @@ impl Server {
                 self.message = Some(format!("Switched to {} view", span_name(span)));
                 Ok(())
             }
+            commands::AGENDA_FOLLOW => {
+                self.view.as_ref().ok_or("No agenda is open")?;
+                // `org-agenda-follow-mode`, which shows the entry at once.
+                self.agenda_follow = !self.agenda_follow;
+                if self.agenda_follow {
+                    self.show_entry(context.as_ref());
+                }
+                self.message = Some(format!("Follow mode is {}", if self.agenda_follow { "on" } else { "off" }));
+                Ok(())
+            }
             commands::AGENDA_GOTO | commands::AGENDA_GOTO_OTHER => {
                 let reference = self.entry_at(context.as_ref()).ok_or("No entry on this line")?;
                 let location = self.locate(&reference).ok_or("The entry is gone; rebuild the agenda")?;
@@ -3440,6 +3475,22 @@ impl Server {
 
             other => Err(format!("org-lsp has no command `{other}`").into()),
         }
+    }
+
+    /// `org-agenda-show`: the entry of the agenda line `context` names in
+    /// another window, the agenda keeping the focus. Nothing for a line
+    /// without an entry.
+    fn show_entry(&mut self, context: Option<&Context>) {
+        let Some(location) = self.entry_at(context).and_then(|reference| self.locate(&reference)) else { return };
+        let params = ShowDocumentParams {
+            uri: location.uri,
+            external: None,
+            take_focus: Some(false),
+            selection: Some(location.range),
+        };
+        let mut params = serde_json::to_value(params).unwrap_or_default();
+        params["orgOtherWindow"] = json!(true);
+        self.send_raw_request(ShowDocument::METHOD, params, None);
     }
 
     /// `org-agenda` (`C-c a`): the views by their keys, as Emacs's menu

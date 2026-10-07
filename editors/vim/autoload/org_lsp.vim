@@ -319,7 +319,8 @@ endfunction
 
 " Vim's notation of a key (`<C-a>`) as the key itself.
 function! s:keycode(key) abort
-  return eval('"' . escape(substitute(a:key, '<', '\\<', 'g'), '"') . '"')
+  " Backslashes and quotes as themselves, `<...>` as the key it names.
+  return eval('"' . substitute(escape(a:key, '"\'), '<', '\\<', 'g') . '"')
 endfunction
 
 function! s:executed(bufnr, name, context, opts, error, result) abort
@@ -689,6 +690,27 @@ function! s:keys_in(scope) abort
   return [keys, native]
 endfunction
 
+" A key as the left-hand side of a mapping: the keys named in `<...>` as
+" they are, and the characters a mapping command reads otherwise (`<`,
+" `|`, `\\`, a space) by their names.
+function! s:map_lhs(key) abort
+  let names = {'<': '<lt>', '|': '<Bar>', '\': '<Bslash>', ' ': '<Space>'}
+  let out = ''
+  let rest = a:key
+  while !empty(rest)
+    let named = matchstr(rest, '^<[^<> ]\+>')
+    if empty(named)
+      let first = strcharpart(rest, 0, 1)
+      let named = get(names, first, first)
+      let rest = rest[len(first):]
+    else
+      let rest = rest[len(named):]
+    endif
+    let out .= named
+  endwhile
+  return out
+endfunction
+
 function! org_lsp#set_keys(scope) abort
   let [keys, native] = s:keys_in(a:scope)
   let buffer = a:scope ==# 'global' ? '' : '<buffer>'
@@ -698,25 +720,26 @@ function! org_lsp#set_keys(scope) abort
   for [name, list] in items(keys)
     let command = s:command(name)
     for lhs in list
+      let mapped = s:map_lhs(lhs)
       call add(s:mapped, {'name': name, 'native': get(native, lhs, 0) ? lhs : '', 'lhs': lhs, 'buffer': empty(buffer) ? 0 : bufnr()})
       let index = len(s:mapped) - 1
       if has_key(s:insert_commands, name)
         " A mapping of the buffer's that this one takes the place of is
         " what the key does where the command does not apply.
-        let before = maparg(lhs, 'i', 0, 1)
+        let before = maparg(mapped, 'i', 0, 1)
         if !empty(buffer) && get(before, 'buffer', 0) && get(before, 'rhs', '') !~# 'org_lsp#insert_key'
           let b:org_lsp_replaced = extend(get(b:, 'org_lsp_replaced', {}), {lhs: before})
         endif
-        execute printf('inoremap %s <silent> %s <Cmd>call org_lsp#insert_key(%d)<CR>', buffer, lhs, index)
+        execute printf('inoremap %s <silent> %s <Cmd>call org_lsp#insert_key(%d)<CR>', buffer, mapped, index)
         continue
       endif
       let nowait = a:scope ==# 'agenda' && !s:starts_longer(lhs, all) ? '<nowait>' : ''
       if has_key(s:append_commands, name)
-        execute printf('nnoremap %s <silent> %s :<C-u>call org_lsp#run(%s, {''append'': 1})<CR>', buffer, lhs, string(name))
+        execute printf('nnoremap %s <silent> %s :<C-u>call org_lsp#run(%s, {''append'': 1})<CR>', buffer, mapped, string(name))
       elseif get(command, 'edits', v:false) && a:scope ==# 'org'
-        execute printf('nnoremap %s <silent> <expr> %s org_lsp#repeatable(%d)', buffer, lhs, index)
+        execute printf('nnoremap %s <silent> <expr> %s org_lsp#repeatable(%d)', buffer, mapped, index)
       else
-        execute printf('nnoremap %s %s <silent> %s :<C-u>call org_lsp#key(%d, v:count)<CR>', buffer, nowait, lhs, index)
+        execute printf('nnoremap %s %s <silent> %s :<C-u>call org_lsp#key(%d, v:count)<CR>', buffer, nowait, mapped, index)
       endif
     endfor
   endfor
@@ -847,6 +870,18 @@ function! org_lsp#tell_agenda_width() abort
   endfor
 endfunction
 
+" The line of the agenda the cursor is on, each time it changes, for
+" follow mode (`F`), which the server keeps.
+function! org_lsp#tell_agenda_cursor() abort
+  if &filetype !=# 'org-agenda' || get(b:, 'org_lsp_cursor_line', 0) == line('.')
+    return
+  endif
+  let b:org_lsp_cursor_line = line('.')
+  let params = {'textDocument': {'uri': org_lsp#uri(bufnr())},
+        \ 'position': {'line': line('.') - 1, 'character': 0}}
+  call org_lsp#request(bufnr(), 'org-lsp/agendaCursor', params, {_error, _result -> 0})
+endfunction
+
 function! s:is_agenda(path) abort
   return fnamemodify(a:path, ':t') ==# get(get(org_lsp#manifest(), 'agenda', {}), 'fileName', "\n")
 endfunction
@@ -905,6 +940,9 @@ function! org_lsp#show_document(params) abort
   endif
   let path = org_lsp#uri_to_path(a:params.uri)
   let win = bufwinid(path)
+  let from = win_getid()
+  " Follow mode shows an entry and leaves the cursor in the agenda.
+  let keep_focus = get(a:params, 'takeFocus', v:true) is v:false && get(a:params, 'orgOtherWindow', v:false)
   if s:is_agenda(path) || s:is_capture(path)
     if win != -1
       call win_gotoid(win)
@@ -914,7 +952,9 @@ function! org_lsp#show_document(params) abort
     endif
   elseif get(a:params, 'orgOtherWindow', v:false)
     " An entry's file in another window (TAB in the agenda).
-    normal! m'
+    if !keep_focus
+      normal! m'
+    endif
     call win_gotoid(s:other_window(win_getid(), path))
     if bufnr() != bufnr(path)
       execute 'edit' fnameescape(path)
@@ -935,6 +975,13 @@ function! org_lsp#show_document(params) abort
     if s:is_capture(path)
       call feedkeys(col('.') >= len(text) ? 'A' : 'i', 'n')
     endif
+    if get(a:params, 'orgOtherWindow', v:false)
+      " The entry unfolded, as `org-agenda-show` shows its context.
+      silent! normal! zv
+    endif
+  endif
+  if keep_focus
+    call win_gotoid(from)
   endif
   return {'success': v:true}
 endfunction

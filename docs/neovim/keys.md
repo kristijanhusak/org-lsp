@@ -122,6 +122,7 @@ The other options are in [configuration.md](configuration.md).
 | `vl` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `R`, `vR` | `org.agenda.clockreport` | Agenda: the clock report |
 | `E`, `vE` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
+| `F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |
 | `/` | `org.agenda.filter` | Agenda: filter by tags, categories, effort and regexps |
 | `\` | `org.agenda.filter.tag` | Agenda: filter by tag |
 | `<` | `org.agenda.filter.category` | Agenda: filter by the line's category |

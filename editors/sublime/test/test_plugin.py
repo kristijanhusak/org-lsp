@@ -505,6 +505,16 @@ class Tests(unittest.TestCase):
         self.plugin.show_in_other_group(window, {'uri': 'file:///a.org', 'selection': selection})
         self.assertEqual(window.opened, ('/a.org:3:1', self.sublime.ENCODED_POSITION, 1))
         self.assertEqual(window.active, 1)
+        # Follow mode (`takeFocus: false`): the agenda keeps the focus.
+        window = Groups([['agenda'], ['/a.org']])
+        agenda = types.SimpleNamespace(name='agenda')
+        window.active_view = lambda: agenda
+        focused = []
+        window.focus_view = focused.append
+        params = {'uri': 'file:///a.org', 'selection': selection, 'takeFocus': False}
+        self.plugin.show_in_other_group(window, params)
+        self.assertEqual(window.opened, ('/a.org:3:1', self.sublime.ENCODED_POSITION, 1))
+        self.assertEqual(focused, [agenda])
 
     def test_other_documents_are_shown_as_lsp_shows_them(self):
         """The agenda itself, and any document but an entry's from TAB, go

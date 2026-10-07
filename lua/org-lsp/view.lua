@@ -384,8 +384,11 @@ M.handlers = {
         win = open_window(bufnr, require('org-lsp').config.win_split_mode or 'split')
       end
     elseif params.orgOtherWindow and not is_float(vim.api.nvim_get_current_win()) then
-      -- An entry's file in another window (TAB in the agenda).
-      vim.cmd("normal! m'")
+      -- An entry's file in another window (TAB in the agenda, and follow
+      -- mode, which keeps the cursor in the agenda).
+      if params.takeFocus ~= false then
+        vim.cmd("normal! m'")
+      end
       win = other_window(vim.api.nvim_get_current_win(), bufnr)
       vim.bo[bufnr].buflisted = true
       vim.api.nvim_win_set_buf(win, bufnr)
@@ -409,6 +412,12 @@ M.handlers = {
       local text = vim.api.nvim_buf_get_lines(bufnr, start.line, start.line + 1, false)[1] or ''
       local column = vim.str_byteindex(text, client.offset_encoding, start.character, false)
       pcall(vim.api.nvim_win_set_cursor, win, { start.line + 1, column })
+      if params.orgOtherWindow then
+        -- The entry unfolded, as `org-agenda-show` shows its context.
+        vim.api.nvim_win_call(win, function()
+          vim.cmd('normal! zv')
+        end)
+      end
       -- A capture buffer is for typing in, from where `%?` was.
       if is_capture(params.uri) and vim.api.nvim_get_current_win() == win then
         vim.cmd(column >= #text and 'startinsert!' or 'startinsert')
@@ -515,6 +524,26 @@ function M.setup(manifest)
         load(args.buf, prompt.languageId)
       else
         load(args.buf, manifest.agenda.languageId)
+      end
+    end,
+  })
+  -- The line of the agenda the cursor is on, each time it changes, for
+  -- follow mode (`F`), which the server keeps.
+  vim.api.nvim_create_autocmd('CursorMoved', {
+    group = 'org_lsp_view',
+    pattern = manifest.agenda.scheme .. ':/*',
+    callback = function(args)
+      if vim.bo[args.buf].filetype ~= manifest.agenda.languageId then
+        return
+      end
+      local line = vim.api.nvim_win_get_cursor(0)[1]
+      if vim.b[args.buf].org_lsp_cursor_line == line then
+        return
+      end
+      vim.b[args.buf].org_lsp_cursor_line = line
+      local client = vim.lsp.get_clients({ name = 'org_lsp' })[1]
+      if client then
+        client:notify('org-lsp/agendaCursor', vim.lsp.util.make_position_params(0, client.offset_encoding))
       end
     end,
   })

@@ -260,6 +260,19 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org agenda: follow mode, the cursor's entry in another window",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.follow",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: filter by tags, categories, effort and regexps",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.filter",
     "tags": [

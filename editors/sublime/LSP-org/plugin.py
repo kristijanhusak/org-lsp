@@ -330,10 +330,14 @@ def show_in_other_group(window, params) -> None:
     _, path = parse_uri(params['uri'])
     group = other_group(window, path)
     start = (params.get('selection') or {}).get('start') or {'line': 0, 'character': 0}
+    # Follow mode shows the entry and leaves the cursor in the agenda.
+    previous = window.active_view() if params.get('takeFocus') is False else None
     window.focus_group(group)
     tell_agenda_width(window)
     window.open_file('{}:{}:{}'.format(path, start['line'] + 1, start['character'] + 1),
                      sublime.ENCODED_POSITION, group=group)
+    if previous:
+        window.focus_view(previous)
 
 
 # The phantoms of `org-indent-mode` by view; a set of phantoms shows only
@@ -810,6 +814,24 @@ def tell_agenda_width(window) -> None:
         session.send_notification(Notification('org-lsp/agendaWidth', {'width': width}))
 
 
+agenda_lines = {}
+
+
+def tell_agenda_cursor(view) -> None:
+    """Tell the server the line of the agenda the cursor is on, each time it
+    changes, for follow mode (`F`), which the server keeps."""
+    plugin = OrgLsp.current
+    session = plugin.weaksession() if plugin else None
+    if not session or len(view.sel()) == 0:
+        return
+    line = view.rowcol(view.sel()[0].b)[0]
+    if agenda_lines.get(view.id()) == line:
+        return
+    agenda_lines[view.id()] = line
+    params = text_document_position_params(view, view.text_point(line, 0))
+    session.send_notification(Notification('org-lsp/agendaCursor', params))
+
+
 class OrgLspListener(sublime_plugin.EventListener):
     def on_query_context(self, view, key, operator, operand, match_all):
         """`org_lsp.keys`: the preset of keys the settings pick (emacs, vim
@@ -837,6 +859,10 @@ class OrgLspListener(sublime_plugin.EventListener):
             view.set_read_only(True)
             view.set_scratch(True)
             tell_agenda_width(view.window())
+
+    def on_selection_modified_async(self, view) -> None:
+        if (view.file_name() or '').endswith('.org-agenda'):
+            tell_agenda_cursor(view)
 
     # The agenda's width: when it comes to the front, and when the layout
     # or the side bar changes.
