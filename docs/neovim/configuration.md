@@ -582,6 +582,11 @@ require('org-lsp').setup({
     -- changes. (org-agenda-log-mode-items)
     org_agenda_log_mode_items = { 'closed', 'clock' },
 
+    -- Start the agenda in follow mode, which shows the entry of the cursor's
+    -- line in another window as the cursor moves (`F` toggles it).
+    -- (org-agenda-start-with-follow-mode)
+    org_agenda_start_with_follow_mode = false,
+
     -- Start the agenda with some text of each entry under its line (`E`
     -- toggles it). (org-agenda-start-with-entry-text-mode)
     org_agenda_start_with_entry_text_mode = false,

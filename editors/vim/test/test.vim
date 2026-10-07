@@ -233,6 +233,41 @@ function! s:agenda_tab() abort
 endfunction
 call s:test('TAB shows the entry in another window', function('s:agenda_tab'))
 
+" F (follow mode): the entry of the cursor's line in another window as the
+" cursor moves, the cursor staying in the agenda.
+function! s:agenda_follow() abort
+  if $ORG_LSP_TEST_CLIENT ==# 'coc'
+    return
+  endif
+  call org_lsp#run('org.agenda.list')
+  call s:until('the agenda', {-> s:agenda_window() != 0})
+  let agenda = s:agenda_window()
+  call win_gotoid(agenda)
+  call s:until('its text', {-> search('Write report', 'n') > 0})
+  call cursor(search('Write report', 'n'), 1)
+  call feedkeys('F', 'x')
+  let Shown = {-> filter(win_findbuf(s:work_buf), {_, win -> win != agenda})}
+  call s:until('the entry in another window', {-> !empty(Shown())
+        \ && getbufline(s:work_buf, line('.', Shown()[0]))[0] =~# 'Write report'})
+  call assert_equal(agenda, win_getid(), 'the cursor stays in the agenda')
+  " `CursorMoved` comes from the main loop, which a test does not run.
+  call cursor(search('Call', 'n'), 1)
+  call org_lsp#tell_agenda_cursor()
+  call s:until('the next entry', {-> getbufline(s:work_buf, line('.', Shown()[0]))[0] =~# 'Call'})
+  call assert_equal(agenda, win_getid(), 'still in the agenda')
+  " Off: the other window stays where it was.
+  call feedkeys('F', 'x')
+  sleep 300m
+  call cursor(search('Write report', 'n'), 1)
+  call org_lsp#tell_agenda_cursor()
+  sleep 300m
+  call assert_match('Call', getbufline(s:work_buf, line('.', Shown()[0]))[0])
+  call win_gotoid(agenda)
+  call feedkeys('q', 'x')
+  call s:until('the agenda closed', {-> s:agenda_window() == 0})
+endfunction
+call s:test('F shows the entry of the line in another window', function('s:agenda_follow'))
+
 " `\ot` sets tags a key at a time, until RET.
 function! s:set_tags() abort
   let file = s:work . '/notes/tags.org'

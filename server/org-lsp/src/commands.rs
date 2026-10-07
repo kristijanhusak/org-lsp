@@ -133,6 +133,7 @@ pub const AGENDA_QUERY_SUBTRACT_REGEXP: &str = "org.agenda.query.subtract.regexp
 pub const AGENDA_LOG: &str = "org.agenda.log";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
 pub const AGENDA_ENTRY_TEXT: &str = "org.agenda.entry.text";
+pub const AGENDA_FOLLOW: &str = "org.agenda.follow";
 pub const AGENDA_FILTER: &str = "org.agenda.filter";
 pub const AGENDA_FILTER_TAG: &str = "org.agenda.filter.tag";
 pub const AGENDA_FILTER_CATEGORY: &str = "org.agenda.filter.category";
@@ -294,6 +295,10 @@ pub const COMMANDS: &[Command] = &[
     Command {
         emacs: &[key(Agenda, "E"), key(Agenda, "v E")],
         ..command(AGENDA_ENTRY_TEXT, "Agenda: entry text mode, some text of each entry under its line")
+    },
+    Command {
+        emacs: &[key(Agenda, "F")],
+        ..command(AGENDA_FOLLOW, "Agenda: follow mode, the cursor's entry in another window")
     },
     // The agenda's filters: lines of entries hidden by tags, category,
     // regexp, effort or top headline, until a new agenda command; with a

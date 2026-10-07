@@ -814,6 +814,58 @@ fn shows_entry_text() {
     client.shutdown();
 }
 
+/// `F` (`org-agenda-follow-mode`): the entry of the cursor's line shows in
+/// another window, the agenda keeping the focus, at once and then each
+/// time the client says the cursor moved to another line.
+#[test]
+fn follows_the_cursor() {
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/work.org", WORK);
+    let at = |line: u32| json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    client.request("workspace/executeCommand", json!({ "command": "org.agenda.todos", "arguments": [at(0)] })).unwrap();
+    client.settle();
+    let text = client.view_text(VIEW);
+    let line = text.lines().position(|line| line.contains("Write report")).unwrap() as u32;
+    let shown = |client: &mut Client| -> Vec<Value> {
+        let shown = client
+            .received
+            .iter()
+            .filter(|request| request.method == "window/showDocument")
+            .map(|request| request.params.clone())
+            .collect();
+        client.received.clear();
+        shown
+    };
+    client.received.clear();
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.agenda.follow", "arguments": [at(line)] }))
+        .unwrap();
+    client.settle();
+    let first = shown(&mut client);
+    assert_eq!(first.len(), 1, "{first:?}");
+    assert_eq!(first[0]["uri"], "file:///org/work.org");
+    assert_eq!(first[0]["takeFocus"], false);
+    assert_eq!(first[0]["orgOtherWindow"], true);
+    assert_eq!(first[0]["selection"]["start"]["line"], 1);
+    client.notify("org-lsp/agendaCursor", at(line + 1));
+    client.settle();
+    let next = shown(&mut client);
+    assert_eq!(next.len(), 1, "{next:?}");
+    assert_eq!(next[0]["selection"]["start"]["line"], 3);
+    // Not for the header, and not once it is off.
+    client.notify("org-lsp/agendaCursor", at(0));
+    client.settle();
+    assert!(shown(&mut client).is_empty());
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.agenda.follow", "arguments": [at(line)] }))
+        .unwrap();
+    client.settle();
+    client.notify("org-lsp/agendaCursor", at(line + 1));
+    client.settle();
+    assert!(shown(&mut client).is_empty());
+    client.shutdown();
+}
+
 /// `org-agenda-custom-commands`: a group of commands under a prefix key,
 /// a block agenda whose agenda block moves on its own (`f`), and the
 /// built-in tags search (`m`).

@@ -81,6 +81,7 @@
 ---@field org_agenda_start_with_clockreport_mode? boolean Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)
 ---@field org_agenda_start_with_archives_mode? 'trees'|'files'|false Start the agenda with entries in archived trees (`trees`; `v a` toggles it), or those and the files the agenda files archive to (`files`; `v A`). (`org-agenda-start-with-archives-mode`)
 ---@field org_agenda_log_mode_items? ('closed'|'clock'|'state')[] What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`)
+---@field org_agenda_start_with_follow_mode? boolean Start the agenda in follow mode, which shows the entry of the cursor's line in another window as the cursor moves (`F` toggles it). (`org-agenda-start-with-follow-mode`)
 ---@field org_agenda_start_with_entry_text_mode? boolean Start the agenda with some text of each entry under its line (`E` toggles it). (`org-agenda-start-with-entry-text-mode`)
 ---@field org_agenda_entry_text_maxlines? integer The most lines of an entry's text `E` shows. (`org-agenda-entry-text-maxlines`)
 ---@field org_agenda_entry_text_leaders? string What each line of an entry's text starts with in the agenda. (`org-agenda-entry-text-leaders`)

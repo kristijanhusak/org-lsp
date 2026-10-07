@@ -2941,6 +2941,48 @@
   },
   {
     "keys": [
+      "shift+f"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.follow"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "shift+f"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.follow"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
       "/"
     ],
     "command": "org_lsp_run",

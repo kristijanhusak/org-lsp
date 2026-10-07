@@ -178,6 +178,7 @@ async function showInOtherGroup(params: { uri: string; takeFocus?: boolean; sele
   const start = params.selection?.start;
   const position = start ? new vscode.Position(start.line, start.character) : undefined;
   const active = vscode.window.tabGroups.activeTabGroup;
+  const from = vscode.window.activeTextEditor;
   const others = vscode.window.tabGroups.all.filter((group) => group !== active);
   const group =
     others.find((candidate) =>
@@ -193,6 +194,11 @@ async function showInOtherGroup(params: { uri: string; takeFocus?: boolean; sele
     preview: false,
     selection: position ? new vscode.Range(position, position) : undefined,
   });
+  // Follow mode shows the entry and leaves the cursor in the agenda, which
+  // a new group took it from.
+  if (params.takeFocus === false && from && vscode.window.activeTextEditor !== from) {
+    await vscode.window.showTextDocument(from.document, { viewColumn: from.viewColumn, preserveFocus: false });
+  }
 }
 
 /** Save the files the server names that have changes. */
@@ -466,6 +472,26 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     },
     clear() {},
   });
+  // The line of the agenda the cursor is on, each time it changes, for
+  // follow mode (`F`), which the server keeps.
+  const agendaLines = new Map<string, number>();
+  context.subscriptions.push(
+    vscode.window.onDidChangeTextEditorSelection((event) => {
+      const uri = event.textEditor.document.uri;
+      if (uri.scheme !== agendaScheme || sameUri(uri.toString(), datePromptUri) || !client) {
+        return;
+      }
+      const line = event.selections[0]?.active.line ?? 0;
+      if (agendaLines.get(uri.toString()) === line) {
+        return;
+      }
+      agendaLines.set(uri.toString(), line);
+      void client.sendNotification('org-lsp/agendaCursor', {
+        textDocument: { uri: uri.toString() },
+        position: { line, character: 0 },
+      });
+    }),
+  );
   try {
     await client.start();
     // Files the server changed from elsewhere (the agenda, a capture, a

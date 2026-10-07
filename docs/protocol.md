@@ -41,11 +41,12 @@ And this notification:
 | `org-lsp/lineHighlights` | For a client that announces `experimental.orgLineHighlights: true` (or sets the option `line_highlights`): the lines of the agenda to highlight from edge to edge, as Emacs's overlays cover them, past the end of their text. `{ "uri", "lines" }`, each line `{ "line", "highlight" }`; `highlight` names the token type whose look it takes (`agendaClocking`: the entry the clock runs on, `org-agenda-clocking`). Sent once the client shows the agenda's current text, after each new text it shows, and when the lines change (clocking in or out), with no lines when none is highlighted. The text of those lines also has the token type, for clients that show only tokens. |
 | `org-lsp/clock` | The clock that runs, for a status line: `null` when none does, or `{ "heading", "minutes", "effort", "text", "uri", "line" }`, the entry's headline, the minutes clocked on it so far (since `LAST_REPEAT` if it has one), its effort in minutes or `null`, the text of Emacs's mode line (`[0:25/1:00] (Write the report)`), and where the entry is. Sent when the clock starts or stops, and when the server starts with a clock running in the files. The editor counts the minutes on from there. |
 
-And from the client, this notification (also taken as a request, for
+And from the client, these notifications (also taken as requests, for
 clients that send none of their own):
 
 | Notification | When |
 | --- | --- |
+| `org-lsp/agendaCursor` | `{ "textDocument", "position" }`: the line of the agenda the cursor is on, each time it changes. In follow mode (`org.agenda.follow`) the server answers with `window/showDocument` for the entry of that line, `takeFocus: false` and `orgOtherWindow: true`: the client shows it in another window and keeps the cursor in the agenda. |
 | `org-lsp/agendaWidth` | `{ "width": N }`: how many columns of text the window that shows the agenda has, when it opens and whenever its size changes. With `org_agenda_tags_column` `"auto"` the tags end at that column, and the server builds the agenda again when it changes; without it they end at column 80. |
 
 **Position encoding.** The server picks UTF-8 if the client offers it, then
@@ -149,6 +150,7 @@ the editor's own syntax.
 | `org_agenda_start_with_clockreport_mode` | boolean | `false` | Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`) |
 | `org_agenda_start_with_archives_mode` | "trees" \| "files" \| false | `false` | Start the agenda with entries in archived trees (`trees`; `v a` toggles it), or those and the files the agenda files archive to (`files`; `v A`). (`org-agenda-start-with-archives-mode`) |
 | `org_agenda_log_mode_items` | string[] | `["closed", "clock"]` | What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`) |
+| `org_agenda_start_with_follow_mode` | boolean | `false` | Start the agenda in follow mode, which shows the entry of the cursor's line in another window as the cursor moves (`F` toggles it). (`org-agenda-start-with-follow-mode`) |
 | `org_agenda_start_with_entry_text_mode` | boolean | `false` | Start the agenda with some text of each entry under its line (`E` toggles it). (`org-agenda-start-with-entry-text-mode`) |
 | `org_agenda_entry_text_maxlines` | integer | `5` | The most lines of an entry's text `E` shows. (`org-agenda-entry-text-maxlines`) |
 | `org_agenda_entry_text_leaders` | string | `"    > "` | What each line of an entry's text starts with in the agenda. (`org-agenda-entry-text-leaders`) |
@@ -268,6 +270,7 @@ number.
 | `org.agenda.goto.other` | The same in another window (`org-agenda-goto`, TAB): see `window/showDocument` above. |
 | `org.agenda.save` | `org-save-all-org-buffers`: returns `{ "save": [uri…] }`, the Org files the editor has open; the editor saves those with changes. |
 | `org.agenda.log`, `org.agenda.clockreport` | Turn log mode (`org-agenda-log-mode`: what was closed and clocked each day) or the clock report under the agenda (`org-agenda-clockreport-mode`) on or off. |
+| `org.agenda.follow` | `org-agenda-follow-mode` (`F`): toggles follow mode, in which the entry of the cursor's line shows in another window (as `org-agenda-show` shows it, the agenda keeping the focus) at once and as the client reports the cursor on other lines (`org-lsp/agendaCursor`). `org_agenda_start_with_follow_mode` starts with it on. |
 | `org.agenda.entry.text` | `org-agenda-entry-text-mode` (`E`, `v E`): shows some text of each entry under its line, as `org-agenda-get-some-entry-text` takes it (up to the next headline, without drawers, planning and clock lines, and what `org_agenda_entry_text_exclude_regexps` matches; the common indentation removed; each line after `org_agenda_entry_text_leaders`), at most `org_agenda_entry_text_maxlines` lines, or as many as a count says (which turns it on). Again turns it off. The lines belong to the entry above them, as commands and hovers there see it. Refused while tags, categories, a regexp or a top headline filter the view; setting a filter turns it off. |
 | `org.agenda.filter` | `org-agenda-filter` (`/`): asks for a filter string (input kind `text`, completed from the tags and categories of the view) such as `+work-home<1:00/report/`: `+` or `-` and a category or tag, `<`, `>` or `=` and an effort, a regexp between slashes. A count negates it; starting with `+` keeps the filters there are. The lines that do not pass are hidden until the filters change or another view opens. The result's `message` says what filters there are, as Emacs's mode line does. |
 | `org.agenda.filter.tag` | `org-agenda-filter-by-tag` (`\`): asks for a tag by its key in the agenda files' tag tables (input kind `key`, `step` in the context), `TAB` for one typed, `SPC` for any tag, `.` for the line's tags, `\` for none, and `-` / `+` to exclude or keep. A count excludes. Group tags stand for their groups. |

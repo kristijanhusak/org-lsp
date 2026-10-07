@@ -461,6 +461,39 @@ eq(#vim.api.nvim_tabpage_list_wins(0), 3, 'the other file keeps its window')
 vim.api.nvim_win_close(entry_win, true)
 vim.api.nvim_set_current_win(agenda_win)
 
+-- 6d. F (follow mode): the entry of the cursor's line shows in another
+-- window as the cursor moves, and the cursor stays in the agenda.
+vim.cmd('only')
+vim.api.nvim_win_set_cursor(agenda_win, { 14, 0 })
+press('F')
+local function shown_line()
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    if win ~= agenda_win and vim.api.nvim_win_get_buf(win) == work_buf then
+      return vim.api.nvim_win_get_cursor(win)[1]
+    end
+  end
+end
+local meeting = vim.fn.match(vim.api.nvim_buf_get_lines(work_buf, 0, -1, false), 'Meeting') + 1
+wait('the entry of the line in another window', function()
+  return shown_line() == meeting
+end)
+eq(vim.api.nvim_get_current_win(), agenda_win, 'the cursor stays in the agenda')
+-- `CursorMoved` comes from the main loop, which a script does not run.
+local function moved(keys)
+  press(keys)
+  vim.api.nvim_exec_autocmds('CursorMoved', { buffer = agenda_buf })
+end
+moved('jj')
+wait('the entry of the next line with one', function()
+  return shown_line() == 3
+end)
+eq(vim.api.nvim_get_current_win(), agenda_win, 'still in the agenda')
+press('F')
+moved('kk')
+vim.wait(200)
+eq(shown_line(), 3, 'off: the other window stays')
+vim.cmd('only')
+
 -- 7. Enter goes to the entry.
 vim.api.nvim_win_set_cursor(0, { 16, 0 })
 press('<CR>')

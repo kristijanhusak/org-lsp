@@ -977,6 +977,26 @@ describe('The agenda', () => {
     );
   });
 
+  it('shows the entry of the cursor\'s line in another group in follow mode', async () => {
+    await vscode.commands.executeCommand('org.agenda.list');
+    await agenda('Week-agenda (W21):');
+    const agendaEditor = vscode.window.activeTextEditor;
+    const lines = activeText().split('\n');
+    const shownLine = () =>
+      vscode.window.visibleTextEditors.find((editor) => editor.document.uri.toString() === workUri.toString())
+        ?.selection.active.line;
+    moveTo(lines.findIndex((line) => line.includes('Write report')));
+    await vscode.commands.executeCommand('org.agenda.follow');
+    await until('the entry in another group', () => shownLine() === 1);
+    assert.equal(vscode.window.activeTextEditor, agendaEditor, 'the cursor stays in the agenda');
+    const work = vscode.workspace.textDocuments.find((document) => document.uri.toString() === workUri.toString());
+    const call = work.getText().split('\n').findIndex((line) => line.includes('Call the client'));
+    moveTo(lines.findIndex((line) => line.includes('Call the client')));
+    await until('the entry of the new line', () => shownLine() === call);
+    assert.equal(vscode.window.activeTextEditor, agendaEditor, 'still in the agenda');
+    await vscode.commands.executeCommand('org.agenda.follow');
+  });
+
   it('lists TODO entries and refuses what makes no sense there', async () => {
     await vscode.commands.executeCommand('org.agenda.todos');
     await agenda('Global list of TODO items of type: ALL');

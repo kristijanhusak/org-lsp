@@ -131,6 +131,7 @@ The other options are in [configuration.md](configuration.md).
 | `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
 | `Shift+E`, `v Shift+E` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
+| `Shift+F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |
 | `/` | `org.agenda.filter` | Agenda: filter by tags, categories, effort and regexps |
 | `\` | `org.agenda.filter.tag` | Agenda: filter by tag |
 | `<` | `org.agenda.filter.category` | Agenda: filter by the line's category |
@@ -232,6 +233,7 @@ The other options are in [configuration.md](configuration.md).
 | `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
 | `Shift+E`, `v Shift+E` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
+| `Shift+F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |
 | `/` | `org.agenda.filter` | Agenda: filter by tags, categories, effort and regexps |
 | `\` | `org.agenda.filter.tag` | Agenda: filter by tag |
 | `<` | `org.agenda.filter.category` | Agenda: filter by the line's category |
@@ -370,6 +372,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.agenda.log` | Org: Agenda: log mode, what was closed and clocked |
 | `org.agenda.clockreport` | Org: Agenda: the clock report |
 | `org.agenda.entry.text` | Org: Agenda: entry text mode, some text of each entry under its line |
+| `org.agenda.follow` | Org: Agenda: follow mode, the cursor's entry in another window |
 | `org.agenda.filter` | Org: Agenda: filter by tags, categories, effort and regexps |
 | `org.agenda.filter.tag` | Org: Agenda: filter by tag |
 | `org.agenda.filter.category` | Org: Agenda: filter by the line's category |
