@@ -1651,6 +1651,41 @@ fn changes_priority_from_the_agenda_and_the_cursor_follows() {
     client.shutdown();
 }
 
+/// Hours and minutes (`org-agenda-date-later-hours`, `-minutes`): a plain
+/// `S-<right>` right after one of them goes on by the same unit, as
+/// Emacs's `last-command` has it; after anything else, by days.
+#[test]
+fn moves_times_by_hours_and_minutes() {
+    const DAY: &str = "* TODO Write\nSCHEDULED: <2026-05-18 Mon 09:00>\n";
+    let mut client = Client::editor(clock(), None);
+    let mut file = DAY.to_string();
+    client.open("file:///org/day.org", DAY);
+    client.command("org.agenda.list", VIEW, 0);
+    client.show_view();
+    // The entry's line moves as its time does, past the current time.
+    let run = |client: &mut Client, command: &str, file: &mut String| {
+        let text = client.refetch_view();
+        let line = text.lines().position(|line| line.contains("TODO Write")).unwrap() as u32;
+        client.edit(command, VIEW, (line, 0), json!({}), file);
+        file.lines().nth(1).unwrap().to_string()
+    };
+    assert_eq!(run(&mut client, "org.date.later.hours", &mut file), "SCHEDULED: <2026-05-18 Mon 10:00>");
+    assert_eq!(run(&mut client, "org.date.later", &mut file), "SCHEDULED: <2026-05-18 Mon 11:00>");
+    assert_eq!(run(&mut client, "org.date.earlier.minutes", &mut file), "SCHEDULED: <2026-05-18 Mon 10:55>");
+    assert_eq!(run(&mut client, "org.date.earlier", &mut file), "SCHEDULED: <2026-05-18 Mon 10:50>");
+    client.command("org.agenda.redo", VIEW, 0);
+    assert_eq!(run(&mut client, "org.date.later", &mut file), "SCHEDULED: <2026-05-19 Tue 10:50>");
+    // In a file there is no such command.
+    let error = client
+        .request(
+            "workspace/executeCommand",
+            json!({ "command": "org.date.later.hours", "arguments": [{ "textDocument": { "uri": "file:///org/day.org" }, "position": { "line": 1, "character": 0 } }] }),
+        )
+        .unwrap_err();
+    assert!(error.contains("agenda"), "{error}");
+    client.shutdown();
+}
+
 #[test]
 fn changes_dates_from_the_agenda() {
     const TRIP: &str =

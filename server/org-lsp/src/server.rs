@@ -494,6 +494,12 @@ struct Server {
     /// Follow mode (`F`): the entry of the cursor's line shows in another
     /// window as the cursor moves.
     agenda_follow: bool,
+    /// The unit the last command moved an agenda timestamp by, when it was
+    /// hours or minutes: the next `S-<right>` goes on by it (Emacs's
+    /// `last-command`). `date_unit_before` is the one of the command
+    /// before the current one.
+    date_unit: Option<org_core::stamp::Unit>,
+    date_unit_before: Option<org_core::stamp::Unit>,
     /// What the agenda shows of archives (`v a`, `v A`).
     agenda_archives: ArchivesMode,
     /// The filters of the agenda (`/`, `\\`, `<`, `=`, `_`, `^`), which
@@ -651,6 +657,8 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_archives: options.agenda.archives_mode(),
         agenda_entry_text: options.agenda_config().entry_text,
         agenda_follow: options.agenda.start_with_follow_mode.unwrap_or(false),
+        date_unit: None,
+        date_unit_before: None,
         agenda_filters: Default::default(),
         documents: HashMap::new(),
         workspace: {
@@ -2764,6 +2772,7 @@ impl Server {
     /// what it has to say.
     fn run_command(&mut self, params: ExecuteCommandParams) -> std::result::Result<Value, Refusal> {
         self.message = None;
+        self.date_unit_before = self.date_unit.take();
         self.origin = params
             .arguments
             .first()
@@ -2927,6 +2936,7 @@ impl Server {
             }
             id if id.starts_with("org.clock.") => self.clock_command(id, context.as_ref()),
             id if id == commands::TODO
+                || commands::AGENDA_DATE_COMMANDS.contains(&id)
                 || id == commands::SET_TAGS
                 || PROPERTY_COMMANDS.contains(&id)
                 || actions::command(id).is_some() =>
@@ -4703,11 +4713,22 @@ impl Server {
         let (file, reference, command) = if on_view {
             let reference = line.as_ref().and_then(|(_, line)| line.entry.clone()).ok_or("No entry on this line")?;
             let command = match id {
-                commands::DATE_LATER | commands::DATE_EARLIER if !dated_view => {
+                id if commands::AGENDA_DATE_COMMANDS.contains(&id) && !dated_view => {
                     return Err("The TODO list shows no dates to change".into());
                 }
-                commands::DATE_LATER | commands::DATE_EARLIER => {
-                    EditCommand::AgendaDate { forward: id == commands::DATE_LATER }
+                id if commands::AGENDA_DATE_COMMANDS.contains(&id) => {
+                    use org_core::stamp::Unit;
+                    let unit = match id {
+                        commands::DATE_LATER_HOURS | commands::DATE_EARLIER_HOURS => Unit::Hour,
+                        commands::DATE_LATER_MINUTES | commands::DATE_EARLIER_MINUTES => Unit::Minute,
+                        _ => self.date_unit_before.unwrap_or(Unit::Day),
+                    };
+                    if unit != Unit::Day {
+                        self.date_unit = Some(unit);
+                    }
+                    let forward =
+                        matches!(id, commands::DATE_LATER | commands::DATE_LATER_HOURS | commands::DATE_LATER_MINUTES);
+                    EditCommand::AgendaDate { forward, unit }
                 }
                 _ if given.is_some() => given.clone().expect("given"),
                 commands::TODO_NEXT | commands::TODO_PREVIOUS | commands::PRIORITY_UP | commands::PRIORITY_DOWN => {
@@ -4716,6 +4737,8 @@ impl Server {
                 _ => return Err(Refusal::NotHere("This command works in Org files".to_string())),
             };
             (reference.uri.clone(), Some(reference), command)
+        } else if given.is_none() && commands::AGENDA_DATE_COMMANDS[2..].contains(&id) {
+            return Err(Refusal::NotHere("This command works in the agenda".to_string()));
         } else {
             (uri, None, given.map_or_else(|| actions::command(id).ok_or("Unknown command"), Ok)?)
         };

@@ -41,9 +41,11 @@ pub enum Command {
     /// key depends on where the cursor is.
     Shift(Direction),
     /// `org-agenda-date-later` and `org-agenda-date-earlier`: move the
-    /// timestamp an agenda line stands for by days. The position is where
-    /// the agenda marks that timestamp, not a cursor.
-    AgendaDate { forward: bool },
+    /// timestamp an agenda line stands for by days, or by hours or minutes
+    /// (`org-agenda-date-later-hours`, `-minutes`; a minute step is
+    /// `org-time-stamp-rounding-minutes`). The position is where the
+    /// agenda marks that timestamp, not a cursor.
+    AgendaDate { forward: bool, unit: Unit },
     /// `org-toggle-checkbox`, and the cookies that count checkboxes.
     Checkbox,
     /// `org-add-note`: the note of the call. Without one, the outcome
@@ -320,13 +322,16 @@ pub fn run(
                 Shift { n: steps(*forward), what: Some(Unit::Day), updown: true, counted: call.count.is_some() };
             stamp::change(text, offset, &shift, settings.timestamp_rounding_minutes).map(placed)
         }
-        Command::AgendaDate { forward } => {
+        Command::AgendaDate { forward, unit } => {
             let rounding = settings.timestamp_rounding_minutes;
             let stamp =
                 Stamp::around(text, offset).ok_or_else(|| Refusal::Failed("Cannot find time stamp".to_string()))?;
             let range = stamp::date_range_at(text, offset);
             let mut days = steps(*forward);
-            if days == 1 && range.is_none() {
+            if *unit == Unit::Minute {
+                days *= rounding.max(1);
+            }
+            if days == 1 && range.is_none() && *unit == Unit::Day {
                 // `org-agenda-move-date-from-past-immediately-to-today`: one
                 // step forward takes a date that has passed to today.
                 let date = parse_time_string(&text[stamp.start..stamp.end]).map(|parsed| parsed.date.to_day());
@@ -334,7 +339,7 @@ pub fn run(
                     days = behind;
                 }
             }
-            let shift = Shift { n: days, what: Some(Unit::Day), updown: false, counted: false };
+            let shift = Shift { n: days, what: Some(*unit), updown: false, counted: false };
             match range {
                 None => stamp::change(text, offset, &shift, rounding).map(|changed| unplaced(changed.text)),
                 // A date range moves as a whole. The later half goes first,

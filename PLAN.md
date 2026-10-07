@@ -88,7 +88,7 @@ few, checked against Emacs where Org decides the outcome:
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
   moving rows and columns, `C-c -` for a rule.
 - **Agenda (5):** bulk
-  marks and actions, hours and minutes on `S-<left>`/`S-<right>`.
+  marks and actions.
 - **Clocking (9):** clock tables in files (`#+BEGIN: clocktable`,
   `C-c C-x C-r`), effort estimates (`C-c C-x e`), `org-clock-display`,
   the clock history, idle time and dangling clocks,
@@ -374,7 +374,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   (`org-lsp/agendaCursor`) and show the entry without the focus. Turning
   it off leaves the windows as they are (Emacs restores the window
   configuration from before); Zed has no way to report the cursor.
-- Bulk marks and actions; hours and minutes on `S-<left>`/`S-<right>`.
+- Done: hours and minutes (`org-agenda-date-later-hours`, `-minutes`, and
+  `S-<right>` going on by them), checked against Emacs in
+  `tests/agenda-actions`. They have no keys of their own (Emacs reaches
+  them with `C-u`).
+- Bulk marks and actions.
 
 ### 6. Structure editing
 

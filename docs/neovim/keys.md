@@ -192,6 +192,10 @@ The other options are in [configuration.md](configuration.md).
 | `org.table.iterate` | Recalculate the table until it does not change |
 | `org.archive.done` | Archive the subtrees without open TODO items |
 | `org.archive.tag.done` | Tag the subtrees without open TODO items as archived |
+| `org.date.later.hours` | Agenda: move the time one hour later |
+| `org.date.earlier.hours` | Agenda: move the time one hour earlier |
+| `org.date.later.minutes` | Agenda: move the time later by the rounding minutes |
+| `org.date.earlier.minutes` | Agenda: move the time earlier by the rounding minutes |
 | `org.shift.up` | Increase the timestamp part, raise the priority, or go to the previous item |
 | `org.shift.down` | Decrease the timestamp part, lower the priority, or go to the next item |
 
