@@ -272,6 +272,8 @@ pub const SAVE: &str = "org-lsp/save";
 /// From the client: how many columns of text the window that shows the
 /// agenda has, `{ "width": N }`, for `agenda.tagsColumn` `"auto"`.
 pub const AGENDA_WIDTH: &str = "org-lsp/agendaWidth";
+/// The entry of an agenda line with its highlighting, for a popup.
+pub const PREVIEW: &str = "org-lsp/preview";
 
 /// The name of a capture buffer starts with this, as Emacs names it.
 pub const CAPTURE_PREFIX: &str = "CAPTURE-";
@@ -1112,6 +1114,10 @@ impl Server {
                         }
                         Err(response) => response,
                     },
+                    PREVIEW => match parameters::<Value>(request) {
+                        Ok((id, params)) => respond(id, self.preview(&params)),
+                        Err(response) => response,
+                    },
                     TEXT_DOCUMENT_CONTENT => match parameters::<Value>(request) {
                         Ok((id, params)) => respond(id, self.text_document_content(&params)),
                         Err(response) => response,
@@ -1684,17 +1690,7 @@ impl Server {
     /// each drawer folded, as Org in a fenced block of Markdown.
     fn hover(&mut self, params: lsp_types::HoverParams) -> Option<lsp_types::Hover> {
         let position = params.text_document_position_params;
-        let uri = &position.text_document.uri;
-        if !self.is_view(uri) {
-            return None;
-        }
-        let reference = self.view_line(uri, position.position.line)?.1.entry.clone()?;
-        let text = self
-            .with_source(&reference.uri, |text, _, _, outline, _| {
-                views::resolve(&reference, outline)
-                    .map(|entry| org_core::preview::entry(text, outline.entries[entry].offset))
-            })
-            .flatten()?;
+        let text = self.entry_preview(&position.text_document.uri, position.position.line)?;
         Some(lsp_types::Hover {
             contents: lsp_types::HoverContents::Markup(lsp_types::MarkupContent {
                 kind: lsp_types::MarkupKind::Markdown,
@@ -1702,6 +1698,38 @@ impl Server {
             }),
             range: None,
         })
+    }
+
+    /// The entry of agenda line `line`, as a popup shows it: its headline
+    /// and its text, each drawer folded.
+    fn entry_preview(&mut self, uri: &Uri, line: u32) -> Option<String> {
+        if !self.is_view(uri) {
+            return None;
+        }
+        let reference = self.view_line(uri, line)?.1.entry.clone()?;
+        self.with_source(&reference.uri, |text, _, _, outline, _| {
+            views::resolve(&reference, outline)
+                .map(|entry| org_core::preview::entry(text, outline.entries[entry].offset))
+        })
+        .flatten()
+    }
+
+    /// `org-lsp/preview`: the entry of an agenda line, as the hover shows
+    /// it, with its semantic tokens, for an editor that shows it itself in
+    /// a popup of its own (Vim): `{ "text", "data" }`, or null.
+    fn preview(&mut self, params: &Value) -> Value {
+        let Ok(position) = serde_json::from_value::<lsp_types::TextDocumentPositionParams>(params.clone()) else {
+            return Value::Null;
+        };
+        let Some(text) = self.entry_preview(&position.text_document.uri, position.position.line) else {
+            return Value::Null;
+        };
+        let parse = org_syntax::parse(&text, &self.todo);
+        let tokens = highlight::tokens(&parse.syntax(), parse.todo_keywords(), self.conceal);
+        let index = LineIndex::new(&text);
+        let data = highlight::encode(&tokens, &text, &index, self.client.encoding, None);
+        let tokens = serde_json::to_value(SemanticTokens { result_id: None, data }).unwrap_or_default();
+        json!({ "text": text, "data": tokens["data"] })
     }
 
     /// `org-open-at-point` (`C-c C-o`) in an Org file, and
@@ -1900,13 +1928,15 @@ impl Server {
             )))
         };
         if !self.workspace.is_configured() {
-            // Nothing says where the agenda files are: use what is open.
+            // Nothing says where the agenda files are: use the files that
+            // are open (not an entry shown in a popup, `org-preview:`).
             let mut keys: Vec<&String> = self.documents.keys().collect();
             keys.sort();
             return keys
                 .into_iter()
                 .filter_map(|key| {
                     let uri: Uri = key.parse().ok()?;
+                    uri::to_path(&uri)?;
                     Some((uri.clone(), open(&self.documents[key], &uri)))
                 })
                 .collect();

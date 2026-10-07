@@ -30,7 +30,7 @@ let s:defaults = {
       \     'org.clock.goto': '<Leader>oxj',
       \   },
       \   'org': {'cycle': '<Tab>', 'global_cycle': '<S-Tab>', 'help': 'g?'},
-      \   'agenda': {'quit': 'q', 'help': 'g?'},
+      \   'agenda': {'quit': 'q', 'hover': 'K', 'help': 'g?'},
       \ },
       \ }
 
@@ -253,6 +253,7 @@ let s:own = {
       \ 'cycle': {'title': 'Org: cycle visibility of the subtree', 'run': function('org_lsp#cycle')},
       \ 'global_cycle': {'title': 'Org: cycle visibility of the whole file', 'run': function('org_lsp#global_cycle')},
       \ 'quit': {'title': 'Agenda: close', 'run': {-> org_lsp#close_buffer(bufnr())}},
+      \ 'hover': {'title': 'Agenda: show the entry of the line', 'run': function('org_lsp#preview')},
       \ 'help': {'title': 'Show the keys', 'run': function('org_lsp#help')},
       \ }
 
@@ -669,7 +670,7 @@ let s:scope_titles = {'org': 'Org file', 'capture': 'Capture buffer', 'agenda': 
 function! org_lsp#keys(scope) abort
   let bound = s:keys_in(a:scope)[0]
   let out = []
-  let names = map(copy(get(org_lsp#manifest(), 'commands', [])), 'v:val.command') + ['cycle', 'global_cycle', 'quit', 'help']
+  let names = map(copy(get(org_lsp#manifest(), 'commands', [])), 'v:val.command') + ['cycle', 'global_cycle', 'quit', 'hover', 'help']
   for name in names + sort(keys(bound))
     if !empty(get(bound, name, []))
       let command = s:command(name)
@@ -1304,6 +1305,36 @@ function! org_lsp#define_highlights() abort
   endfor
 endfunction
 
+" `K` in the agenda: the entry of the line in a popup at the cursor, its
+" headline and its text with each drawer folded, highlighted as the server
+" highlights Org files. It goes when the cursor moves.
+function! org_lsp#preview() abort
+  let [nr, context] = s:cursor_context()
+  let params = {'textDocument': context.textDocument, 'position': context.position}
+  call org_lsp#request(nr, 'org-lsp/preview', params, function('s:show_preview', [win_getid(), getcurpos()]))
+endfunction
+
+function! s:show_preview(win, position, error, result) abort
+  if !empty(a:error)
+    return s:warn(get(a:error, 'message', 'no entry to show'))
+  endif
+  if type(a:result) != v:t_dict
+    echomsg 'org-lsp: No entry on this line'
+    return
+  endif
+  " The cursor moved on while the server answered.
+  if win_getid() != a:win || getcurpos() != a:position
+    return
+  endif
+  let lines = split(a:result.text, "\n", 1)
+  let id = popup_atcursor(lines, {
+        \ 'border': [], 'padding': [0, 1, 0, 1], 'wrap': 1, 'maxwidth': max([1, &columns - 6]),
+        \ 'moved': 'any', 'close': 'click',
+        \ })
+  call s:paint(winbufnr(id), lines, get(a:result, 'data', []))
+  return id
+endfunction
+
 function! s:update_tokens(nr) abort
   let params = {'textDocument': {'uri': org_lsp#uri(a:nr)}}
   call org_lsp#request(a:nr, 'textDocument/semanticTokens/full', params, function('s:got_tokens', [a:nr, getbufvar(a:nr, 'changedtick')]))
@@ -1313,6 +1344,11 @@ function! s:got_tokens(nr, tick, error, result) abort
   if !empty(a:error) || type(a:result) != v:t_dict || !bufloaded(a:nr) || getbufvar(a:nr, 'changedtick') != a:tick
     return
   endif
+  call s:paint(a:nr, getbufline(a:nr, 1, '$'), get(a:result, 'data', []))
+endfunction
+
+" Highlight the `lines` of buffer `nr` with the semantic tokens `data`.
+function! s:paint(nr, lines, data) abort
   if empty(s:selectors)
     call org_lsp#define_highlights()
   endif
@@ -1320,10 +1356,10 @@ function! s:got_tokens(nr, tick, error, result) abort
   let types = map(copy(manifest.tokenTypes), 'v:val.id')
   let modifiers = map(copy(manifest.tokenModifiers), 'v:val.id')
   let props = {}
-  let data = get(a:result, 'data', [])
+  let data = a:data
   let line = 0
   let character = 0
-  let lines = getbufline(a:nr, 1, '$')
+  let lines = a:lines
   for i in range(0, len(data) - 1, 5)
     let line += data[i]
     let character = data[i] == 0 ? character + data[i + 1] : data[i + 1]

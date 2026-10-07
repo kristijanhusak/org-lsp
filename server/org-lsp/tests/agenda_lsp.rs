@@ -3157,5 +3157,34 @@ Draft the summary.
     );
     assert_eq!(hover(&mut client, VIEW, 1), Value::Null);
     assert_eq!(hover(&mut client, "file:///org/work.org", 1), Value::Null);
+    // `org-lsp/preview`: the same text with its semantic tokens, for an
+    // editor that shows it in a popup of its own. The first token is the
+    // headline's stars.
+    let preview = client
+        .request(
+            "org-lsp/preview",
+            json!({ "textDocument": { "uri": VIEW }, "position": { "line": 3, "character": 2 } }),
+        )
+        .unwrap();
+    assert_eq!(
+        preview["text"],
+        "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n:PROPERTIES:...\nDraft the summary."
+    );
+    let data = preview["data"].as_array().unwrap();
+    let legend = &client.initialize["capabilities"]["semanticTokensProvider"]["legend"];
+    assert_eq!((data[0].as_u64(), data[1].as_u64(), data[2].as_u64()), (Some(0), Some(0), Some(1)));
+    assert_eq!(legend["tokenTypes"][data[3].as_u64().unwrap() as usize], "stars");
+    let none = client
+        .request(
+            "org-lsp/preview",
+            json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 } }),
+        )
+        .unwrap();
+    assert_eq!(none, Value::Null);
+    // An entry shown in a popup of the editor's own (`org-preview:`) is no
+    // file of an agenda built from the open files.
+    client.open_as("org-preview:/1", "org", "* TODO Shown in a popup\nSCHEDULED: <2026-05-18 Mon>\n");
+    let (_, text) = client.view_command("org.agenda.redo", 0);
+    assert!(!text.contains("Shown in a popup"), "{text}");
     client.shutdown();
 }

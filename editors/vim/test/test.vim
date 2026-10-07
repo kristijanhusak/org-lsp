@@ -190,6 +190,14 @@ function! s:agenda_hover() abort
   call assert_match('SCHEDULED: <2026-05-\d\d', Shown())
   call popup_clear(1)
   pclose
+  " `K`: the plugin's own popup, highlighted by the server's tokens.
+  call feedkeys('K', 'x')
+  call s:until('the entry in the popup of K', {-> !empty(popup_list())
+        \ && getbufline(winbufnr(popup_list()[0]), 1)[0] =~# '^\* TODO \[#A\] Write report :office:$'})
+  let popup = winbufnr(popup_list()[0])
+  call assert_match('^SCHEDULED: <2026-05-', getbufline(popup, 2)[0])
+  call assert_notequal([], prop_list(1, {'bufnr': popup}), 'highlighted')
+  call popup_clear(1)
   call feedkeys('q', 'x')
   call s:until('the agenda closed', {-> s:agenda_window() == 0})
 endfunction
