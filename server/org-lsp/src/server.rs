@@ -529,6 +529,8 @@ struct Server {
     /// `auto_save`: save the files a command changes elsewhere.
     /// `return_uses_meta_return`: RET on a list item makes the next item.
     return_uses_meta_return: bool,
+    /// How many months the date prompt's calendar shows (`calendar_months`).
+    calendar_months: usize,
     auto_save: bool,
     /// What the highlighting marks as hidden.
     conceal: highlight::Conceal,
@@ -792,6 +794,7 @@ pub fn run(connection: Connection) -> Result<()> {
         origin: None,
         auto_save: options.auto_save.unwrap_or(true),
         return_uses_meta_return: options.return_uses_meta_return.unwrap_or(false),
+        calendar_months: options.calendar_months.unwrap_or(3),
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         conceal: highlight::Conceal {
             links: options.link_descriptive.unwrap_or(true),
@@ -3781,8 +3784,8 @@ impl Server {
             // answer is typed there once asked for (`org.calendar.type`).
             if self.client.date_prompt {
                 let now = self.date_time();
-                let open =
-                    DatePrompt::new(id, command, target, prompt.default, prompt.value.clone(), now, &self.read_date);
+                let (value, months) = (prompt.value.clone(), self.calendar_months);
+                let open = DatePrompt::new(id, command, target, prompt.default, value, now, &self.read_date, months);
                 self.open_date_prompt(open);
                 return Ok(Value::Null);
             }
@@ -4044,6 +4047,11 @@ impl Server {
     fn finish_date_prompt(&mut self, answer: &str) -> std::result::Result<Value, Refusal> {
         let open = self.date_prompt.as_ref().ok_or("No date prompt is open")?;
         let (id, target) = (open.id.clone(), open.target.clone());
+        // The command was run in the file, not in the calendar: the file
+        // stays unsaved, as Emacs leaves it (`auto_save` is for the others).
+        if let Target::Place { uri, .. } = &target {
+            self.origin = Some(uri.as_str().to_string());
+        }
         self.apply_date(&id, &target, answer)?;
         self.date_prompt = None;
         Ok(json!({ "close": prompt::URI }))

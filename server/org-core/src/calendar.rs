@@ -1,6 +1,7 @@
 //! The calendar Org's date prompt shows, drawn as Emacs's
 //! `calendar-generate` draws it: three months side by side, the one with
-//! the selected day in the middle, weeks starting on Sunday.
+//! the selected day in the middle, weeks starting on Sunday. It can show
+//! that month alone too, drawn the same way.
 //!
 //! The layout follows Emacs's defaults: a left margin of five columns,
 //! three columns for each day, four between months
@@ -28,12 +29,14 @@ pub struct Cell {
     pub column: usize,
 }
 
-/// Three months of the calendar.
+/// Three months of the calendar, or one.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Calendar {
     /// The year and month in the middle (`displayed-month`).
     pub year: i64,
     pub month: i64,
+    /// How many months it shows: 3, or 1 for the middle one alone.
+    pub months: usize,
     pub lines: Vec<String>,
     pub cells: Vec<Cell>,
 }
@@ -47,7 +50,14 @@ fn add_months(year: i64, month: i64, by: i64) -> (i64, i64) {
 impl Calendar {
     /// The calendar around `month` of `year` (`calendar-generate`).
     pub fn new(year: i64, month: i64) -> Calendar {
-        let width = LEFT_MARGIN + 3 * MONTH_WIDTH;
+        Calendar::with_months(year, month, 3)
+    }
+
+    /// The calendar of `months` months around `month` of `year`: 3, or 1
+    /// for that month alone.
+    pub fn with_months(year: i64, month: i64, months: usize) -> Calendar {
+        let months = if months == 1 { 1 } else { 3 };
+        let width = LEFT_MARGIN + months * MONTH_WIDTH;
         let mut grid: Vec<Vec<char>> = Vec::new();
         let mut cells = Vec::new();
         let put = |grid: &mut Vec<Vec<char>>, line: usize, column: usize, text: &str| {
@@ -58,8 +68,8 @@ impl Calendar {
                 grid[line][column + offset] = c;
             }
         };
-        for index in 0..3 {
-            let (year, month) = add_months(year, month, index as i64 - 1);
+        for index in 0..months {
+            let (year, month) = add_months(year, month, index as i64 - (months as i64 - 1) / 2);
             let indent = LEFT_MARGIN + index * MONTH_WIDTH;
             let header = format!("{} {year}", MONTH_NAMES[month as usize - 1]);
             let spare = MONTH_DIGIT_WIDTH.saturating_sub(header.chars().count());
@@ -77,13 +87,14 @@ impl Calendar {
             }
         }
         let lines = grid.into_iter().map(|line| line.into_iter().collect::<String>().trim_end().to_string()).collect();
-        Calendar { year, month, lines, cells }
+        Calendar { year, month, months, lines, cells }
     }
 
-    /// The calendar that shows `day`, centred on its month.
-    pub fn around(day: Day) -> Calendar {
+    /// The calendar of `months` months that shows `day`, centred on its
+    /// month.
+    pub fn around(day: Day, months: usize) -> Calendar {
         let date = Date::from_day(day);
-        Calendar::new(date.year, date.month)
+        Calendar::with_months(date.year, date.month, months)
     }
 
     /// Whether `day` is one of the days shown.
@@ -107,7 +118,7 @@ impl Calendar {
     /// The same calendar `by` months later (`calendar-scroll-left`).
     pub fn scrolled(&self, by: i64) -> Calendar {
         let (year, month) = add_months(self.year, self.month, by);
-        Calendar::new(year, month)
+        Calendar::with_months(year, month, self.months)
     }
 }
 
@@ -143,5 +154,26 @@ mod tests {
         assert!(calendar.shows(Date::new(2026, 9, 1).to_day()));
         assert!(!calendar.shows(Date::new(2026, 12, 1).to_day()));
         assert_eq!((calendar.scrolled(3).year, calendar.scrolled(3).month), (2027, 1));
+    }
+
+    #[test]
+    fn draws_one_month_alone() {
+        let three = Calendar::new(2026, 10);
+        let one = Calendar::with_months(2026, 10, 1);
+        // The middle month of the three, moved to the left margin.
+        let middle: Vec<String> = three
+            .lines
+            .iter()
+            .map(|line| format!("{:5}{}", "", line.get(5 + MONTH_WIDTH..).unwrap_or("")).trim_end().to_string())
+            .map(|line| line.chars().take(5 + MONTH_WIDTH).collect::<String>().trim_end().to_string())
+            .collect();
+        assert_eq!(one.lines, middle);
+        assert_eq!(one.lines[0], "         October 2026");
+        let day = Date::new(2026, 10, 5).to_day();
+        assert_eq!(one.cell(day).map(|cell| (cell.line, cell.column)), Some((3, 8)));
+        assert!(!one.shows(Date::new(2026, 9, 30).to_day()));
+        let next = one.scrolled(1);
+        assert_eq!((next.year, next.month, next.months), (2026, 11, 1));
+        assert_eq!(Calendar::around(day, 1).months, 1);
     }
 }

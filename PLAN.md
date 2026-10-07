@@ -66,38 +66,31 @@ others), as close to Emacs Org mode as it can get.
 
 ### Where to pick up
 
-As of #61 (2026-10-07). What is left, by milestone; each is a PR or a
-few, checked against Emacs where Org decides the outcome:
+As of #103 (2026-10-07). Every milestone is done; what is left is
+smaller, each a PR or a few, checked against Emacs where Org decides the
+outcome (the sections below say more):
 
-- **Structure editing (6):** done: promote, demote and move subtrees
-  (`tests/structure`); cut, copy and paste subtrees through the editor's
-  register or clipboard (`tests/subtree`); sorting entries
-  (`tests/sort`); sparse trees (`tests/sparse`), folded by the editor
-  (Neovim, Vim, VS Code, Sublime Text). Sorting table lines comes with
-  the tables.
-- **Lists (8):** done: indent, outdent and move items, cycle bullets,
-  the next and previous item, `C-c C-c` repairing and renumbering, and
-  sorting items (`tests/lists`). Left: `C-c -` turning lines into items
-  and back (`org-toggle-item`), `C-c *` (`org-toggle-heading`), radio
-  lists.
-- **Tags and properties (7):** done: set tags (`C-c C-q`, with fast tag
-  selection and alignment, exclusive groups), set and delete properties
-  (`C-c C-x p`, `C-c C-c` in a drawer), allowed values on the shifted
-  keys, effort, `ORDERED`, the `LOGGING` and `LOG_INTO_DRAWER`
-  properties and the `#+STARTUP:` logging words.
-- **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
-  moving rows and columns, `C-c -` for a rule.
-- **Agenda (5):** done.
-- **Links and navigation (11):** store and insert links (`C-c l`,
-  `C-c C-l`), `documentLink`, backlinks as references, workspace
-  symbols, renaming tags and headings, hover in Org files.
-- **Diagnostics (13):** done.
+- **Lists (8):** `C-c -` turning lines into items and back
+  (`org-toggle-item`), `C-c *` (`org-toggle-heading`), radio lists,
+  `org-list-use-circular-motion`.
+- **Tables (12):** rectangles, `S-RET` (`org-table-copy-down`), editing
+  a field in a buffer of its own, formulas run on `TAB`, shrunk columns,
+  `C-c |` from a region.
+- **Dates (4):** logging rescheduled dates and deadlines, the prefix
+  arguments (remove a date, a delay).
+- **Refile and capture (2, 3):** `org-log-refile`, new parent nodes, a
+  region, the prefix arguments; capture's `function` targets, `%(…)`,
+  `%[file]`, `%c`, `%x`, `%:keyword`, contexts (the Elisp ones through
+  Emacs).
+- **Links (11):** a region as the search; completing `id:`, `help:` and
+  link abbreviations.
+- **Tags (7):** group tags in match strings; column view.
 - **Editors and distribution (14):** publishing the VS Code extension
-  (Marketplace, Open VSX: the `publisher` is a placeholder). The agenda's hover is plain in VS Code, which has no
-  grammar for Org's code blocks.
-- **Export and Babel (15):** done, through Emacs.
-- **Later:** capture's `%(…)` and `function` targets and LaTeX previews
-  through Emacs; column view, inline images.
+  (Marketplace, Open VSX: the `publisher` is a placeholder). The agenda's
+  hover is plain in VS Code, which has no grammar for Org's code blocks.
+- **Through Emacs (15):** LaTeX previews; the export's async and
+  visible-only options, the export stack, templates.
+- **Later:** inline images.
 
 ### Milestone 3, merged: priorities and dates
 
