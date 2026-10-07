@@ -170,6 +170,13 @@ pub const SETTINGS: &[Setting] = &[
         "The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up.",
     ),
     setting(
+        "org_clock_history_length",
+        "integer",
+        "5",
+        "org-clock-history-length",
+        "How many entries clocked into the clock history keeps, for `org.clock.in` with a count and `org.clock.in.last`.",
+    ),
+    setting(
         "org_clock_clocktable_default_properties",
         "string",
         "\":maxlevel 2\"",
@@ -997,6 +1004,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         "org_clock_display_default_range",
         r#"{ "enum": ["today", "yesterday", "thisweek", "lastweek", "thismonth", "lastmonth", "thisyear", "lastyear", "untilnow"] }"#,
     ),
+    ("org_clock_history_length", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_clock_clocktable_default_properties", STRING),
     ("org_clock_total_time_cell_format", STRING),
     ("org_clock_file_time_cell_format", STRING),

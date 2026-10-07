@@ -294,6 +294,13 @@
     }
   },
   {
+    "caption": "Org: Clock in the last clocked task",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.in.last"
+    }
+  },
+  {
     "caption": "Org: Clock out",
     "command": "org_lsp_run",
     "args": {

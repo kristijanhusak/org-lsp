@@ -88,7 +88,7 @@ few, checked against Emacs where Org decides the outcome:
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
   moving rows and columns, `C-c -` for a rule.
 - **Agenda (5):** done.
-- **Clocking (9):** the clock history, idle time and dangling clocks.
+- **Clocking (9):** idle time and dangling clocks.
 - **Capture (10):** item and checkitem templates, date trees, `%^g`
   tags, `%a` from the agenda.
 - **Links and navigation (11):** store and insert links (`C-c l`,
@@ -475,8 +475,14 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   function as `:scope`, `org-clock-report-include-clocking-task`, other
   dynamic blocks (`columnview`). In the batch Emacs of the reference a
   zero width space takes a column in table alignment; so it does here.
+- Done: the clock history: `org-clock-in` with `C-u` (pick from the
+  default task, the interrupted one, the clocked one and the history),
+  `C-u C-u` (default task), `C-u C-u C-u` (from the last clock-out),
+  `org-clock-in-last` (`C-c C-x C-x`). The history is kept by file and
+  title, for as long as the server runs (`org-clock-persist` is not
+  ported).
 - Left: idle time and resolving dangling clocks
-  with a question, the clock history (`C-u C-c C-x C-i`). (Effort
+  with a question. (Effort
   estimates, `C-c C-x e`, came with the properties.)
 
 ### 10. Capture

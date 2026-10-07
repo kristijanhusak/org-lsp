@@ -152,6 +152,7 @@ pub const AGENDA_FILTER_REMOVE: &str = "org.agenda.filter.remove";
 pub const AGENDA_ARCHIVES: &str = "org.agenda.archives";
 pub const AGENDA_ARCHIVES_FILES: &str = "org.agenda.archives.files";
 pub const CLOCK_IN: &str = "org.clock.in";
+pub const CLOCK_IN_LAST: &str = "org.clock.in.last";
 pub const CLOCK_OUT: &str = "org.clock.out";
 pub const CLOCK_CANCEL: &str = "org.clock.cancel";
 pub const CLOCK_GOTO: &str = "org.clock.goto";
@@ -376,6 +377,13 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c C-x C-i"), key(Agenda, "I")],
         vim: &[key(Org, "<Leader>oxi")],
         ..edit(CLOCK_IN, "Clock in")
+    },
+    // `org-clock-in-last`: the entry clocked last, or with a count one of
+    // the history (`org-clock-in` with a count asks the same).
+    Command {
+        emacs: &[key(Org, "C-c C-x C-x")],
+        vim: &[key(Org, "<Leader>oxx")],
+        ..edit(CLOCK_IN_LAST, "Clock in the last clocked task")
     },
     Command {
         emacs: &[key(Org, "C-c C-x C-o"), key(Agenda, "O")],
