@@ -1462,6 +1462,14 @@
               "markdownDescription": "The search view shows headlines down to this level, a match below one counting for the headline above: 0 for every level. (`org-agenda-search-view-max-outline-level`)",
               "default": 0
             },
+            "org_agenda_text_search_extra_files": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "markdownDescription": "Files the search view (`s`) searches besides the agenda files, after them, as `org_agenda_files` names them. `agenda-archives` first adds the files the agenda files archive to. A file listed twice is searched at its last place. (`org-agenda-text-search-extra-files`)",
+              "default": []
+            },
             "org_agenda_prefix_format": {
               "additionalProperties": false,
               "properties": {

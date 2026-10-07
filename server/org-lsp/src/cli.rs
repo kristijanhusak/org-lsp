@@ -135,20 +135,8 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             config.archives = true;
             let mut all: Vec<String> = Vec::new();
             for file in &files {
-                let text = std::fs::read_to_string(file).map_err(|error| format!("{file}: {error}"))?;
-                let path = std::path::absolute(file).map_err(|error| format!("{file}: {error}"))?;
-                let home = std::env::var_os("HOME").map(std::path::PathBuf::from);
-                let context = org_core::archive::Context {
-                    path: &path,
-                    home: home.as_deref(),
-                    now: org_core::date::DateTime::new(Date::new(1970, 1, 1), 0, 0),
-                };
-                let found = org_core::archive::archive_files(&text, &TodoKeywords::default(), &context, "%s_archive::");
-                for name in std::iter::once(file.clone())
-                    .chain(found.into_iter().filter(|path| path.exists()).map(|path| path.display().to_string()))
-                {
-                    let same = |other: &String| std::path::absolute(other).ok() == std::path::absolute(&name).ok();
-                    if !all.iter().any(same) {
+                for name in std::iter::once(file.clone()).chain(archive_files_of(file)?) {
+                    if !all.iter().any(|other| same_file(other, &name)) {
                         all.push(name);
                     }
                 }
@@ -156,6 +144,39 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             files = all;
         }
         Some(other) => return Err(format!("`{other}` is not an archives mode; expected trees or files")),
+    }
+
+    // `org-agenda-text-search-extra-files`, for a search: more files
+    // after the agenda's, and the order the search goes through them.
+    let agenda_count = files.len();
+    let mut search = None;
+    let extra = options.text_search_extra_files.clone().unwrap_or_default();
+    if blocks_search(&view, &key, &options) && !extra.is_empty() {
+        let with_archives = extra.first().is_some_and(|first| first == "agenda-archives");
+        let index_of =
+            |files: &mut Vec<String>, name: String| match files.iter().position(|other| same_file(other, &name)) {
+                Some(index) => index,
+                None => {
+                    files.push(name);
+                    files.len() - 1
+                }
+            };
+        let mut archives: Vec<Vec<usize>> = vec![Vec::new(); agenda_count];
+        if with_archives {
+            for (index, found) in archives.iter_mut().enumerate() {
+                let file = files[index].clone();
+                for name in archive_files_of(&file)? {
+                    found.push(index_of(&mut files, name));
+                }
+            }
+        }
+        let extra: Vec<usize> =
+            extra.iter().skip(usize::from(with_archives)).map(|name| index_of(&mut files, name.clone())).collect();
+        let paths: Vec<Option<std::path::PathBuf>> = files.iter().map(|file| std::path::absolute(file).ok()).collect();
+        let archives_of = |index: usize| archives[index].clone();
+        let archives_of: Option<&dyn Fn(usize) -> Vec<usize>> = with_archives.then_some(&archives_of as _);
+        let order = views::search_order(&paths, agenda_count, archives_of, &extra);
+        search = Some(views::SearchFiles { agenda: agenda_count, search: order });
     }
 
     let default_todo = TodoKeywords::default();
@@ -200,7 +221,38 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             (outline, file.clone(), name)
         })
         .collect();
-    Ok(views::org_text(&blocks, &named, now))
+    Ok(views::org_text(&blocks, &named, search.as_ref(), now))
+}
+
+/// Whether the view asked for has a search block.
+fn blocks_search(view: &str, key: &Option<String>, options: &AgendaOptions) -> bool {
+    match view {
+        "search" | "search-todo" => true,
+        "custom" => key.as_ref().is_some_and(|key| {
+            let commands = options.custom_commands.as_deref().unwrap_or_default();
+            crate::custom::find(commands, key).is_some_and(crate::custom::has_search)
+        }),
+        _ => false,
+    }
+}
+
+/// Whether two names are of the same file.
+fn same_file(one: &str, other: &str) -> bool {
+    std::path::absolute(one).ok() == std::path::absolute(other).ok()
+}
+
+/// `org-all-archive-files`: the files `file` archives to that exist.
+fn archive_files_of(file: &str) -> Result<Vec<String>, String> {
+    let text = std::fs::read_to_string(file).map_err(|error| format!("{file}: {error}"))?;
+    let path = std::path::absolute(file).map_err(|error| format!("{file}: {error}"))?;
+    let home = std::env::var_os("HOME").map(std::path::PathBuf::from);
+    let context = org_core::archive::Context {
+        path: &path,
+        home: home.as_deref(),
+        now: org_core::date::DateTime::new(Date::new(1970, 1, 1), 0, 0),
+    };
+    let found = org_core::archive::archive_files(&text, &TodoKeywords::default(), &context, "%s_archive::");
+    Ok(found.into_iter().filter(|path| path.exists()).map(|path| path.display().to_string()).collect())
 }
 
 pub const CONFIG_USAGE: &str = "\

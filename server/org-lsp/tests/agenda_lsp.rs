@@ -3435,3 +3435,33 @@ fn sets_and_deletes_properties() {
     );
     client.shutdown();
 }
+
+/// `org_agenda_text_search_extra_files`: the search view goes through
+/// these files too, after the agenda files; the other views do not.
+#[test]
+fn searches_extra_files() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-extra-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let notes = directory.join("notes.org");
+    std::fs::write(&notes, "* Note about the report\n* TODO Not a report task\n").unwrap();
+    let mut options = clock();
+    options["org_agenda_text_search_extra_files"] = json!([notes.display().to_string()]);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    let context = json!({ "textDocument": { "uri": "file:///org/work.org" }, "position": { "line": 0, "character": 0 },
+        "keys": "s", "ask": "search", "input": "report" });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.agenda.dispatch", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let text = client.view_text(VIEW);
+    let lines: Vec<&str> = text.lines().collect();
+    assert_eq!(lines[0], "Search words: report", "{text}");
+    assert!(lines[1].contains("Write report"), "{text}");
+    assert!(lines[2].contains("notes:") && lines[2].contains("Note about the report"), "{text}");
+    assert!(lines[3].contains("TODO Not a report task"), "{text}");
+    client.command("org.agenda.todos", VIEW, 0);
+    assert!(!client.view_text(VIEW).contains("Not a report task"));
+    client.shutdown();
+    std::fs::remove_dir_all(&directory).unwrap();
+}

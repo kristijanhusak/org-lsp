@@ -1,0 +1,53 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "options": {
+    "org_agenda_text_search_extra_files": [
+      "agenda-archives",
+      "{dir}/extra/notes.org",
+      "{dir}/a.org"
+    ],
+    "org_agenda_custom_commands": [
+      {
+        "key": "x",
+        "description": "Search and todos",
+        "blocks": [
+          {
+            "type": "search",
+            "match": "alpha"
+          },
+          {
+            "type": "alltodo"
+          }
+        ]
+      }
+    ]
+  },
+  "emacs": "(setq org-agenda-text-search-extra-files '(agenda-archives \"{dir}/extra/notes.org\" \"{dir}/a.org\"))\n(setq org-agenda-custom-commands '((\"x\" \"Search and todos\" ((search \"alpha\") (alltodo \"\")))))",
+  "runs": [
+    {
+      "view": "search",
+      "match": "alpha"
+    },
+    {
+      "view": "search",
+      "match": "+alpha -note"
+    },
+    {
+      "view": "search-todo",
+      "match": "alpha"
+    },
+    {
+      "view": "search",
+      "match": "alpha",
+      "archives": "trees"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "custom",
+      "key": "x"
+    }
+  ]
+}

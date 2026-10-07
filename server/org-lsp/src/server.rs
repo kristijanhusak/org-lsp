@@ -2133,22 +2133,12 @@ impl Server {
     /// `org-add-archive-files`: each agenda file followed by the files it
     /// archives to that exist, each file once.
     fn with_archive_files(&mut self, files: Vec<(Uri, Held)>, open: &HashMap<PathBuf, String>) -> Vec<(Uri, Held)> {
-        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
-        let location = self.archive.0.location.clone();
         let mut paths: Vec<PathBuf> = files.iter().filter_map(|(uri, _)| uri::to_path(uri)).collect();
         let mut more: Vec<(usize, PathBuf)> = Vec::new();
         for (index, (uri, _)) in files.iter().enumerate() {
             let Some(path) = uri::to_path(uri) else { continue };
-            let text = match open.get(&path) {
-                Some(key) => self.documents[key].text.clone(),
-                None => match self.workspace.read(&path, &self.todo) {
-                    Some(source) => source.text.clone(),
-                    None => continue,
-                },
-            };
-            let context = archive::Context { path: &path, home: home.as_deref(), now: self.date_time() };
-            for file in archive::archive_files(&text, &self.todo, &context, &location) {
-                if file.exists() && !paths.contains(&file) {
+            for file in self.archives_of(&path, open) {
+                if !paths.contains(&file) {
                     paths.push(file.clone());
                     more.push((index, file));
                 }
@@ -2159,28 +2149,95 @@ impl Server {
         for (index, file) in files.into_iter().enumerate() {
             out.push(file);
             while let Some((_, path)) = more.next_if(|(after, _)| *after == index) {
-                let held = match open.get(&path) {
-                    Some(key) => key.parse::<Uri>().ok().map(|uri| {
-                        let document = &self.documents[key];
-                        (
-                            uri.clone(),
-                            Held::Open(Box::new(Outline::with_inheritance(
-                                &document.parse,
-                                &document.text,
-                                &uri::file_stem(&uri),
-                                &self.workspace.inheritance,
-                            ))),
-                        )
-                    }),
-                    None => match (uri::from_path(&path), self.workspace.read(&path, &self.todo)) {
-                        (Some(uri), Some(source)) => Some((uri, Held::Disk(source))),
-                        _ => None,
-                    },
-                };
-                out.extend(held);
+                out.extend(self.held(&path, open));
             }
         }
         out
+    }
+
+    /// `org-all-archive-files`: the files the file at `path` archives to
+    /// that exist.
+    fn archives_of(&mut self, path: &Path, open: &HashMap<PathBuf, String>) -> Vec<PathBuf> {
+        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+        let location = self.archive.0.location.clone();
+        let text = match open.get(path) {
+            Some(key) => self.documents[key].text.clone(),
+            None => match self.workspace.read(path, &self.todo) {
+                Some(source) => source.text.clone(),
+                None => return Vec::new(),
+            },
+        };
+        let context = archive::Context { path, home: home.as_deref(), now: self.date_time() };
+        archive::archive_files(&text, &self.todo, &context, &location)
+            .into_iter()
+            .filter(|file| file.exists())
+            .collect()
+    }
+
+    /// The file at `path` for a view: as the editor has it when open.
+    fn held(&mut self, path: &Path, open: &HashMap<PathBuf, String>) -> Option<(Uri, Held)> {
+        match open.get(path) {
+            Some(key) => key.parse::<Uri>().ok().map(|uri| {
+                let document = &self.documents[key];
+                let outline = Outline::with_inheritance(
+                    &document.parse,
+                    &document.text,
+                    &uri::file_stem(&uri),
+                    &self.workspace.inheritance,
+                );
+                (uri, Held::Open(Box::new(outline)))
+            }),
+            None => match (uri::from_path(path), self.workspace.read(path, &self.todo)) {
+                (Some(uri), Some(source)) => Some((uri, Held::Disk(source))),
+                _ => None,
+            },
+        }
+    }
+
+    /// `org-agenda-text-search-extra-files`: the files a search view goes
+    /// through besides the agenda files, added after `files`, and the
+    /// order of the search; nothing when there are none.
+    fn search_files(&mut self, files: &mut Vec<(Uri, Held)>) -> Option<views::SearchFiles> {
+        let extra = self.agenda_options.text_search_extra_files.clone().unwrap_or_default();
+        if extra.is_empty() {
+            return None;
+        }
+        let open: HashMap<PathBuf, String> = self
+            .documents
+            .keys()
+            .filter_map(|key| Some((uri::to_path(&key.parse::<Uri>().ok()?)?, key.clone())))
+            .collect();
+        let agenda = files.len();
+        let mut paths: Vec<Option<PathBuf>> = files.iter().map(|(uri, _)| uri::to_path(uri)).collect();
+        let mut index_of = |server: &mut Self, files: &mut Vec<(Uri, Held)>, path: PathBuf| -> Option<usize> {
+            if let Some(index) = paths.iter().position(|known| known.as_ref() == Some(&path)) {
+                return Some(index);
+            }
+            let held = server.held(&path, &open)?;
+            files.push(held);
+            paths.push(Some(path));
+            Some(paths.len() - 1)
+        };
+        let with_archives = extra.first().is_some_and(|first| first == "agenda-archives");
+        let mut archives: Vec<Vec<usize>> = vec![Vec::new(); agenda];
+        if with_archives {
+            for (index, found) in archives.iter_mut().enumerate() {
+                let Some(path) = uri::to_path(&files[index].0) else { continue };
+                for archive in self.archives_of(&path, &open) {
+                    found.extend(index_of(self, files, archive));
+                }
+            }
+        }
+        let mut more = Vec::new();
+        for pattern in extra.iter().skip(usize::from(with_archives)) {
+            for path in self.workspace.org_files(pattern) {
+                more.extend(index_of(self, files, path));
+            }
+        }
+        let all: Vec<Option<PathBuf>> = files.iter().map(|(uri, _)| uri::to_path(uri)).collect();
+        let archives_of = |index: usize| archives[index].clone();
+        let archives_of: Option<&dyn Fn(usize) -> Vec<usize>> = with_archives.then_some(&archives_of as _);
+        Some(views::SearchFiles { agenda, search: views::search_order(&all, agenda, archives_of, &more) })
     }
 
     /// Where the entry of an agenda line is now.
@@ -2203,14 +2260,19 @@ impl Server {
     /// agenda will show once that file has changed.
     fn render_with(&mut self, query: Query, replaced: Option<(&Uri, Outline)>) -> View {
         let mut files = self.agenda_files();
+        // A command that no longer reads shows nothing; opening it said why.
+        let blocks = self.blocks(&query).unwrap_or_default();
+        let search = if blocks.iter().any(|block| matches!(block.kind, views::BlockKind::Search { .. })) {
+            self.search_files(&mut files)
+        } else {
+            None
+        };
         if let Some((uri, outline)) = replaced {
             if let Some(file) = files.iter_mut().find(|(file, _)| file == uri) {
                 file.1 = Held::Open(Box::new(outline));
             }
         }
         let outlines: Vec<(Uri, &Outline)> = files.iter().map(|(uri, held)| (uri.clone(), held.outline())).collect();
-        // A command that no longer reads shows nothing; opening it said why.
-        let blocks = self.blocks(&query).unwrap_or_default();
         // The entry the clock runs on, highlighted.
         let clocked = self.running.as_ref().and_then(|running| {
             let (uri, outline) = outlines.iter().find(|(uri, _)| *uri == running.uri)?;
@@ -2221,7 +2283,7 @@ impl Server {
             })?;
             Some((uri, outline.entries[line.entry?].offset))
         });
-        views::render(query, &blocks, &outlines, self.now(), clocked)
+        views::render(query, &blocks, &outlines, search.as_ref(), self.now(), clocked)
     }
 
     /// The blocks `query` shows, in log mode and with the clock report as

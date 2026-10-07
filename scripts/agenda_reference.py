@@ -20,6 +20,8 @@ A case is a directory with Org files and a `case.json`:
       ],
       "options": {...},               optional: settings for org-lsp
       "emacs": "(setq ...)"           optional: the same settings for Emacs
+                                      (in both, `{dir}` is the case's
+                                      directory)
     }
 
 `reference(cases)` writes `expected-N.txt` next to each `case.json`, one
@@ -169,7 +171,8 @@ def reference(directories):
             forms.append(DEFAULTS)
             forms.append("(org-lsp-reset)")
             forms.append(f"(setq org-agenda-files (list {files}))")
-            forms.append(case.get("emacs", ""))
+            # `{dir}` in the settings is the case's directory.
+            forms.append(case.get("emacs", "").replace("{dir}", directory))
             for index, run in enumerate(case["runs"]):
                 out = os.path.join(directory, f"expected-{index}.txt")
                 outputs.append((out, run))
@@ -213,5 +216,5 @@ def run_arguments(directory, case, run):
     if "archives" in run:
         arguments += ["--archives", run["archives"]]
     if "options" in case:
-        arguments += ["--options", json.dumps(case["options"])]
+        arguments += ["--options", json.dumps(case["options"]).replace("{dir}", directory)]
     return arguments + [os.path.join(directory, name) for name in org_files(directory)]

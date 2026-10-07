@@ -307,8 +307,7 @@ both programs on them. See
 ## Not done yet
 
 - Agenda: stuck projects, filters, habits, diary entries and bulk actions;
-  custom commands of those types; files the search view searches besides
-  the agenda files (`org-agenda-text-search-extra-files`).
+  custom commands of those types.
 - Table formulas in Emacs Lisp, remote references, units and Calc's
   fractions and symbolic mode; setting tags with a command, export;
   tangling's Emacs Lisp

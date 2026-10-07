@@ -649,6 +649,15 @@ pub const SETTINGS: &[Setting] = &[
          above: 0 for every level.",
     ),
     setting(
+        "org_agenda_text_search_extra_files",
+        "string[]",
+        "[]",
+        "org-agenda-text-search-extra-files",
+        "Files the search view (`s`) searches besides the agenda files, after them, as `org_agenda_files` \
+         names them. `agenda-archives` first adds the files the agenda files archive to. A file listed twice \
+         is searched at its last place.",
+    ),
+    setting(
         "org_agenda_prefix_format",
         "{ agenda?, todo?, tags?, search? }",
         r#"{ "agenda": " %i %-12:c%?-12t% s", "todo": " %i %-12:c", "tags": " %i %-12:c", "search": " %i %-12:c" }"#,
@@ -968,6 +977,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_search_view_always_boolean", BOOLEAN),
     ("org_agenda_search_view_force_full_words", BOOLEAN),
     ("org_agenda_search_view_max_outline_level", r#"{ "type": "integer", "minimum": 0 }"#),
+    ("org_agenda_text_search_extra_files", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_agenda_todo_keyword_format", STRING),
     (
         "org_agenda_scheduled_leaders",

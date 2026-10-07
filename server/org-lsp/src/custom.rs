@@ -14,6 +14,12 @@ pub fn is_view(command: &CustomCommandOption) -> bool {
     command.kind.is_some() || command.blocks.is_some()
 }
 
+/// Whether `command` shows a search view, alone or as a block.
+pub fn has_search(command: &CustomCommandOption) -> bool {
+    command.kind.as_deref() == Some("search")
+        || command.blocks.iter().flatten().any(|block| block.kind.as_str() == "search")
+}
+
 /// The command with exactly these keys.
 pub fn find<'a>(commands: &'a [CustomCommandOption], keys: &str) -> Option<&'a CustomCommandOption> {
     commands.iter().find(|command| command.key == keys && is_view(command))
@@ -89,7 +95,7 @@ fn block_kind(
         "search" => BlockKind::Search { string: matching.to_string(), todo_only: false },
         other => {
             return Err(format!(
-            "Custom agenda commands of type `{other}` are not supported; use agenda, alltodo, todo, tags or tags-todo"
+            "Custom agenda commands of type `{other}` are not supported; use agenda, alltodo, todo, tags, tags-todo or search"
         ))
         }
     })
