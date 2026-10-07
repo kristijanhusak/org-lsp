@@ -628,14 +628,13 @@ org_agenda_search_view_force_full_words = false
 org_agenda_search_view_max_outline_level = 0
 
 # What comes before the headline on a line of the agenda (`agenda`), the TODO
-# list (`todo`), tags searches (`tags`) and text searches (`search`, which the
-# agenda does not have yet): `%c` the category, `%t` the time, `%s` the leader
-# (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag,
-# `%b` the headlines above (breadcrumbs), `%i` the icon (none). A width pads
-# (`%-12c` on the right, `%12c` on the left), `.N` cuts, `%?` leaves out an
-# empty field, and a character before the letter follows a value that is not
-# empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty.
-# (org-agenda-prefix-format)
+# list (`todo`), tags searches (`tags`) and text searches (`search`): `%c` the
+# category, `%t` the time, `%s` the leader (`Scheduled: `), `%e` the effort,
+# `%l` a blank per level, `%T` the last tag, `%b` the headlines above
+# (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right,
+# `%12c` on the left), `.N` cuts, `%?` leaves out an empty field, and a
+# character before the letter follows a value that is not empty (`%-12:c`).
+# `%(…)` (Emacs Lisp) is left empty. (org-agenda-prefix-format)
 org_agenda_prefix_format = { agenda = " %i %-12:c%?-12t% s", search = " %i %-12:c", tags = " %i %-12:c", todo = " %i %-12:c" }
 
 # How a TODO keyword is written in the agenda: `%-4s` pads it to four columns,
@@ -1065,14 +1064,13 @@ org_agenda_custom_commands = []
   "org_agenda_search_view_max_outline_level": 0,
 
   // What comes before the headline on a line of the agenda (`agenda`), the
-  // TODO list (`todo`), tags searches (`tags`) and text searches (`search`,
-  // which the agenda does not have yet): `%c` the category, `%t` the time,
-  // `%s` the leader (`Scheduled: `), `%e` the effort, `%l` a blank per level,
-  // `%T` the last tag, `%b` the headlines above (breadcrumbs), `%i` the icon
-  // (none). A width pads (`%-12c` on the right, `%12c` on the left), `.N`
-  // cuts, `%?` leaves out an empty field, and a character before the letter
-  // follows a value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is left
-  // empty. (org-agenda-prefix-format)
+  // TODO list (`todo`), tags searches (`tags`) and text searches (`search`):
+  // `%c` the category, `%t` the time, `%s` the leader (`Scheduled: `), `%e`
+  // the effort, `%l` a blank per level, `%T` the last tag, `%b` the headlines
+  // above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the
+  // right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty field,
+  // and a character before the letter follows a value that is not empty
+  // (`%-12:c`). `%(…)` (Emacs Lisp) is left empty. (org-agenda-prefix-format)
   "org_agenda_prefix_format": { "agenda": " %i %-12:c%?-12t% s", "search": " %i %-12:c", "tags": " %i %-12:c", "todo": " %i %-12:c" },
 
   // How a TODO keyword is written in the agenda: `%-4s` pads it to four
