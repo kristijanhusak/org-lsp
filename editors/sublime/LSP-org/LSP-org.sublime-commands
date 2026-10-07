@@ -322,6 +322,20 @@
     }
   },
   {
+    "caption": "Org: Insert or update a clock table",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.report"
+    }
+  },
+  {
+    "caption": "Org: Update the dynamic block",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.dblock.update"
+    }
+  },
+  {
     "caption": "Org: Change the TODO state",
     "command": "org_lsp_run",
     "args": {

@@ -61,6 +61,7 @@ still missing; see [Not done yet](#not-done-yet).
 | Capture, as `org-capture` does it: templates, prompts, a capture buffer | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | commands; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | `Ctrl+C c`; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | code actions, templates without text prompts | no⁴ |
 | Agenda: change an entry's state, priority or date, schedule it or set its deadline, go to its entry | yes | yes | yes | yes | code actions, without dates asked for | no³ |
 | The time clocked under each headline (`org-clock-display`), as inlay hints until the next change | `<Leader>oxd` | `Ctrl+C Ctrl+X Ctrl+D` | `<Leader>oxd`, with the client's inlay hints on | with `show_inlay_hints` on | with inlay hints on | with `display-inlay-hints` on |
+| Clock tables (`#+BEGIN: clocktable`), as `org-clock-report` and `org-dblock-update` write them, with every parameter (`:scope`, `:block`, `:step`, `:maxlevel`, `:link`, `:formula`…); the shifted cursor keys on the `#+BEGIN:` line move the block | `<Leader>oxr`, `<Leader>oxu` | `Ctrl+C Ctrl+X Ctrl+R`, `Ctrl+C Ctrl+X Ctrl+U` | `<Leader>oxr`, `<Leader>oxu` | `Ctrl+C Ctrl+X Ctrl+R`, `Ctrl+C Ctrl+X Ctrl+U` | code actions | `Space a` |
 | Clocking, as `org-clock-in` and `org-clock-out` do it, with the clock in the status line | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`; `clock_status()` | commands; the status bar | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`; `org_lsp#clock_status()` | `Ctrl+C Ctrl+X Ctrl+I`, `Ctrl+C Ctrl+X Ctrl+O`; the status bar | code actions | `Space a`⁵ |
 | Agenda: the clocked entry highlighted, log mode (what was closed and clocked each day), the clock report | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | code actions | no³ |
 
@@ -303,6 +304,7 @@ scripts/update-indent-fixtures.py          # org-indent-line and org-indent-regi
 scripts/update-format-fixtures.py          # org-table-align and org-align-tags
 scripts/update-table-fixtures.py           # org-table.el's editing commands
 scripts/clock_reference.py                 # clocking in and out
+scripts/clocktable_reference.py            # clock tables
 ```
 
 `scripts/fuzz-against-emacs.py`, `fuzz-agenda.py`, `fuzz-todo.py`,

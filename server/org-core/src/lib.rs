@@ -13,6 +13,7 @@ pub mod checkbox;
 pub mod cite;
 pub mod clock;
 pub mod clock_range;
+pub mod clocktable;
 pub mod date;
 pub mod edit;
 pub mod format;

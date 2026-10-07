@@ -286,6 +286,16 @@
         "category": "Org"
       },
       {
+        "command": "org.clock.report",
+        "title": "Insert or update a clock table",
+        "category": "Org"
+      },
+      {
+        "command": "org.dblock.update",
+        "title": "Update the dynamic block",
+        "category": "Org"
+      },
+      {
         "command": "org.todo",
         "title": "Change the TODO state",
         "category": "Org"
@@ -969,6 +979,21 @@
               ],
               "markdownDescription": "The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up. (`org-clock-display-default-range`)",
               "default": "thisyear"
+            },
+            "org_clock_clocktable_default_properties": {
+              "type": "string",
+              "markdownDescription": "The parameters a new clock table gets on its `#+BEGIN:` line from `org.clock.report` (`C-c C-x C-r`), after `:scope`, as Emacs Lisp reads them (`:maxlevel 3 :link t`). (`org-clock-clocktable-default-properties`)",
+              "default": ":maxlevel 2"
+            },
+            "org_clock_total_time_cell_format": {
+              "type": "string",
+              "markdownDescription": "How a clock table writes its total time and the words before it; `%s` is the text. (`org-clock-total-time-cell-format`)",
+              "default": "*%s*"
+            },
+            "org_clock_file_time_cell_format": {
+              "type": "string",
+              "markdownDescription": "How a clock table over several files writes the words before a file's time; `%s` is the text. (`org-clock-file-time-cell-format`)",
+              "default": "*%s*"
             },
             "org_clock_in_switch_to_state": {
               "type": "string",
@@ -3039,6 +3064,16 @@
       {
         "command": "org.clock.display",
         "key": "ctrl+c ctrl+x ctrl+d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.report",
+        "key": "ctrl+c ctrl+x ctrl+r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.dblock.update",
+        "key": "ctrl+c ctrl+x ctrl+u",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

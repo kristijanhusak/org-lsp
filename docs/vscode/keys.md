@@ -47,6 +47,8 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X Ctrl+Q` | `org.clock.cancel` | Cancel the clock |
 | `Ctrl+C Ctrl+X Ctrl+J` | `org.clock.goto` | Go to the clocked entry |
 | `Ctrl+C Ctrl+X Ctrl+D` | `org.clock.display` | Show the time clocked under each headline |
+| `Ctrl+C Ctrl+X Ctrl+R` | `org.clock.report` | Insert or update a clock table |
+| `Ctrl+C Ctrl+X Ctrl+U` | `org.dblock.update` | Update the dynamic block |
 | `Ctrl+C Ctrl+T` | `org.todo` | Change the TODO state |
 | `Ctrl+C ,` | `org.priority` | Set the priority |
 | `Ctrl+C Ctrl+X p` | `org.property.set` | Set a property of the entry |
@@ -323,6 +325,8 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "x", "q"], "commands": ["org.clock.cancel"] },
   { "before": ["<leader>", "o", "x", "j"], "commands": ["org.clock.goto"] },
   { "before": ["<leader>", "o", "x", "d"], "commands": ["org.clock.display"] },
+  { "before": ["<leader>", "o", "x", "r"], "commands": ["org.clock.report"] },
+  { "before": ["<leader>", "o", "x", "u"], "commands": ["org.dblock.update"] },
   { "before": ["<leader>", "o", ","], "commands": ["org.priority"] },
   { "before": ["<leader>", "o", "x", "p"], "commands": ["org.property.set"] },
   { "before": ["<leader>", "o", "x", "e"], "commands": ["org.effort.set"] },
@@ -413,6 +417,8 @@ every file; outside Org files the commands say they do not apply):
 | `org.clock.cancel` | Org: Cancel the clock |
 | `org.clock.goto` | Org: Go to the clocked entry |
 | `org.clock.display` | Org: Show the time clocked under each headline |
+| `org.clock.report` | Org: Insert or update a clock table |
+| `org.dblock.update` | Org: Update the dynamic block |
 | `org.todo` | Org: Change the TODO state |
 | `org.todo.next` | Org: Cycle TODO state forward |
 | `org.todo.previous` | Org: Cycle TODO state backward |

@@ -289,6 +289,19 @@ require('org-lsp').setup({
     -- (org-clock-display-default-range)
     org_clock_display_default_range = 'thisyear',
 
+    -- The parameters a new clock table gets on its `#+BEGIN:` line from
+    -- `org.clock.report` (`C-c C-x C-r`), after `:scope`, as Emacs Lisp reads
+    -- them (`:maxlevel 3 :link t`). (org-clock-clocktable-default-properties)
+    org_clock_clocktable_default_properties = ':maxlevel 2',
+
+    -- How a clock table writes its total time and the words before it; `%s`
+    -- is the text. (org-clock-total-time-cell-format)
+    org_clock_total_time_cell_format = '*%s*',
+
+    -- How a clock table over several files writes the words before a file's
+    -- time; `%s` is the text. (org-clock-file-time-cell-format)
+    org_clock_file_time_cell_format = '*%s*',
+
     -- The TODO state an entry is put in when the clock starts on it (`NEXT`),
     -- unless it has it already. (org-clock-in-switch-to-state)
     -- org_clock_in_switch_to_state = nil, -- unset: none

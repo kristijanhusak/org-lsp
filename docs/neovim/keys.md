@@ -36,6 +36,8 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oxo` | `org.clock.out` | Clock out |
 | `<Leader>oxq` | `org.clock.cancel` | Cancel the clock |
 | `<Leader>oxd` | `org.clock.display` | Show the time clocked under each headline |
+| `<Leader>oxr` | `org.clock.report` | Insert or update a clock table |
+| `<Leader>oxu` | `org.dblock.update` | Update the dynamic block |
 | `cit` | `org.todo` | Change the TODO state |
 | `ciT` | `org.todo.previous` | Cycle TODO state backward |
 | `ciR` | `org.priority.up` | Raise the priority |
