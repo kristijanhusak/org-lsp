@@ -213,6 +213,7 @@ pub const REFILE: &str = "org.refile";
 pub const OPEN: &str = "org.open";
 pub const ADD_NOTE: &str = "org.add.note";
 pub const TANGLE: &str = "org.babel.tangle";
+pub const EXPORT: &str = "org.export.dispatch";
 pub const TABLE_RECALCULATE: &str = "org.table.recalculate";
 pub const TABLE_RECALCULATE_LINE: &str = "org.table.recalculate.line";
 pub const TABLE_ITERATE: &str = "org.table.iterate";
@@ -678,6 +679,15 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c C-v t"), key(Org, "C-c C-v C-t")],
         vim: &[key(Org, "<Leader>obt")],
         ..command(TANGLE, "Tangle the file's code blocks")
+    },
+    // `org-export-dispatch`: Org's export menu, from the backends Emacs
+    // has, run by Emacs itself (`emacs`); the file or buffer it makes is
+    // shown.
+    Command {
+        emacs: &[key(Org, "C-c C-e")],
+        vim: &[key(Org, "<Leader>oe")],
+        input: Some(Input { kind: "key", prompt: "Export command" }),
+        ..command(EXPORT, "Export the file through Emacs")
     },
     // `org-table-recalculate`: the formulas of the `#+TBLFM:` line under
     // the table. Emacs's `C-c *` recalculates the cursor's line (and the

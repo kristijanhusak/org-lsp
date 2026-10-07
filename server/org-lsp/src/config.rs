@@ -275,6 +275,12 @@ pub struct Options {
     pub auto_save: Option<bool>,
     /// RET on the first line of a list item makes the next item, as M-RET.
     pub return_uses_meta_return: Option<bool>,
+    /// The Emacs program for what only Org itself does (export).
+    pub emacs: Option<String>,
+    /// A file of Emacs Lisp that Emacs loads before Org.
+    pub emacs_config_file: Option<String>,
+    /// Emacs Lisp that Emacs evaluates before loading Org.
+    pub emacs_config: Option<String>,
     /// The shared configuration file: `false` for none, or a path instead
     /// of the usual one. Read by `load`, before the options are.
     pub config_file: Option<serde_json::Value>,

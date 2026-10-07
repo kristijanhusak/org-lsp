@@ -369,6 +369,19 @@ function M.show_sparse(bufnr, sparse, client)
   })
 end
 
+--- How a key of a key input shows: Emacs's names for the blank ones, and
+--- `C-b` for a control character.
+---@param key string
+---@return string
+function M.key_name(key)
+  local names = { [' '] = 'SPC', ['\r'] = 'RET', ['\t'] = 'TAB' }
+  if names[key] then
+    return names[key]
+  end
+  local code = #key == 1 and key:byte() or -1
+  return (code > 0 and code < 32) and ('C-' .. string.char(code + 96)) or key
+end
+
 --- The window that lists the choices of `read_key`, as Emacs lists them
 --- in a window of its own at the bottom of the frame.
 ---@param prompt string
@@ -377,8 +390,7 @@ end
 local function show_choices(prompt, choices)
   local lines, width = {}, vim.fn.strdisplaywidth(prompt) + 2
   for _, choice in ipairs(choices) do
-    local names = { [' '] = 'SPC', ['\r'] = 'RET', ['\t'] = 'TAB' }
-    local line = ('[%s] %s'):format(names[choice.key] or choice.key, choice.label)
+    local line = ('[%s] %s'):format(M.key_name(choice.key), choice.label)
     table.insert(lines, line)
     width = math.max(width, vim.fn.strdisplaywidth(line))
   end

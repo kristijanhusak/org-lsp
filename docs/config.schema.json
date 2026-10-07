@@ -683,6 +683,19 @@
       "description": "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
       "default": false
     },
+    "emacs": {
+      "type": "string",
+      "description": "The Emacs program, for what only Org itself does: export (`org.export.dispatch`). The server starts it (`emacs --batch -Q`) when that is first asked for and keeps it running, so that Org loads once. Without Emacs, everything else works as before.",
+      "default": "emacs"
+    },
+    "emacs_config_file": {
+      "type": "string",
+      "description": "A file of Emacs Lisp that Emacs loads before Org, for the variables export reads (`org-export-backends`, `org-html-…`, `org-latex-…`, `org-publish-project-alist`): a file of its own, or your init file. `~/` is the home directory."
+    },
+    "emacs_config": {
+      "type": "string",
+      "description": "Emacs Lisp that Emacs evaluates after `emacs_config_file` and before loading Org, for a few settings without a file: `(setq org-export-with-toc nil)`, or `(add-to-list 'load-path \"~/src/org-mode/lisp\")` for another Org. A yes-or-no question Emacs asks while it works (`org-confirm-babel-evaluate`) is asked in the editor."
+    },
     "auto_save": {
       "type": "boolean",
       "description": "Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them.",

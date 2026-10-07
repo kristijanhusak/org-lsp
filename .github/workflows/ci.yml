@@ -41,7 +41,12 @@ jobs:
         run: |
           grep -E '^[^ ]+:[0-9]+:[0-9]+: (error|warning)' clippy.log | sort -u | head -40 |
             sed -E 's/^([^:]+):([0-9]+):([0-9]+): (error|warning)[^:]*: (.*)$/::error file=\1,line=\2,col=\3::\5/'
+      # Export runs in Emacs: the test of it needs one (Org 9.6 or newer).
+      - name: Install Emacs
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends emacs-nox
       - run: cargo test --workspace
+        env:
+          ORG_LSP_REQUIRE_EMACS: '1'
 
   neovim:
     runs-on: ubuntu-latest

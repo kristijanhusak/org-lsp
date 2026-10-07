@@ -555,6 +555,42 @@ pub const SETTINGS: &[Setting] = &[
          `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
     ),
     setting(
+        "emacs",
+        "string",
+        r#""emacs""#,
+        "",
+        "The Emacs program, for what only Org itself does: export (`org.export.dispatch`). The server starts \
+         it (`emacs --batch -Q`) when that is first asked for and keeps it running, so that Org loads once. \
+         Without Emacs, everything else works as before.",
+    ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "emacs_config_file",
+            "string",
+            "",
+            "",
+            "A file of Emacs Lisp that Emacs loads before Org, for the variables export reads \
+             (`org-export-backends`, `org-html-…`, `org-latex-…`, `org-publish-project-alist`): a file of its \
+             own, or your init file. `~/` is the home directory.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "emacs_config",
+            "string",
+            "",
+            "",
+            "Emacs Lisp that Emacs evaluates after `emacs_config_file` and before loading Org, for a few \
+             settings without a file: `(setq org-export-with-toc nil)`, or `(add-to-list 'load-path \
+             \"~/src/org-mode/lisp\")` for another Org. A yes-or-no question Emacs asks while it works \
+             (`org-confirm-babel-evaluate`) is asked in the editor.",
+        )
+    },
+    setting(
         "auto_save",
         "boolean",
         "true",
@@ -1155,6 +1191,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_link_descriptive", BOOLEAN),
     ("org_hide_emphasis_markers", BOOLEAN),
     ("return_uses_meta_return", BOOLEAN),
+    ("emacs", STRING),
+    ("emacs_config_file", STRING),
+    ("emacs_config", STRING),
     ("auto_save", BOOLEAN),
     ("org_cycle_separator_lines", r#"{ "type": "integer" }"#),
     ("org_adapt_indentation", r#"{ "enum": [true, false, "headline-data"] }"#),
