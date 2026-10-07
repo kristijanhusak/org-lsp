@@ -503,8 +503,9 @@ org_archive_default_command = "subtree"
 # default, `plain`, `item`, `checkitem` or `table-line`), a `target` and a
 # `template` (text, or a list of lines), and may have `prepend`,
 # `empty_lines`, `empty_lines_before`, `empty_lines_after`,
-# `immediate_finish`, `tree_type`, `time_prompt` and `table_line_pos`. The
-# target is a list: `file` and a path; `file+headline`, a path and a headline;
+# `immediate_finish`, `tree_type`, `time_prompt`, `table_line_pos`,
+# `clock_in`, `clock_keep`, `clock_resume` and `jump_to_captured`. The target
+# is a list: `file` and a path; `file+headline`, a path and a headline;
 # `file+olp`, a path and the headlines of an outline path; `file+regexp`, a
 # path and a regular expression; `file+olp+datetree`, a path and the headlines
 # of an outline path, maybe none, for a date tree under them; `id` and an ID;
@@ -1035,7 +1036,8 @@ org_agenda_custom_commands = []
   // the default, `plain`, `item`, `checkitem` or `table-line`), a `target`
   // and a `template` (text, or a list of lines), and may have `prepend`,
   // `empty_lines`, `empty_lines_before`, `empty_lines_after`,
-  // `immediate_finish`, `tree_type`, `time_prompt` and `table_line_pos`. The
+  // `immediate_finish`, `tree_type`, `time_prompt`, `table_line_pos`,
+  // `clock_in`, `clock_keep`, `clock_resume` and `jump_to_captured`. The
   // target is a list: `file` and a path; `file+headline`, a path and a
   // headline; `file+olp`, a path and the headlines of an outline path;
   // `file+regexp`, a path and a regular expression; `file+olp+datetree`, a

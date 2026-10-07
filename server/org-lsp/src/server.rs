@@ -257,6 +257,22 @@ struct Capturing {
     placed: capture::Placed,
     /// To place the text again when the target has changed meanwhile.
     spec: (capture::Target, capture::Kind, capture::Properties),
+    /// `:clock-in` and its relatives.
+    clock: Option<CaptureClock>,
+    /// `:jump-to-captured`: the target shows the entry when it is filed.
+    jump: bool,
+}
+
+/// `:clock-in`: the captured entry is clocked from the start of the
+/// capture; `:clock-keep` leaves the clock running when it is filed, and
+/// `:clock-resume` starts the clock it stopped again.
+#[derive(Debug, Clone)]
+struct CaptureClock {
+    start: DateTime,
+    keep: bool,
+    resume: bool,
+    /// The entry whose clock the capture stopped.
+    interrupted: Option<(Uri, String)>,
 }
 
 /// A clock that runs: the file of its `CLOCK:` line, and when it started.
@@ -4591,6 +4607,28 @@ impl Server {
         });
         let annotation = match (from, context.position) {
             (Some(uri), Some(position)) => self.link_to(uri, position),
+            // From an agenda line: a link to its entry.
+            (None, Some(position)) => {
+                let entry = context
+                    .text_document
+                    .as_ref()
+                    .and_then(|document| self.view_line(&document.uri, position.line))
+                    .and_then(|(_, line)| line.entry.clone());
+                let encoding = self.client.encoding;
+                let found = entry.and_then(|reference| {
+                    let at = self
+                        .with_source(&reference.uri, |text, index, _, outline, _| {
+                            views::resolve(&reference, outline)
+                                .map(|entry| index.position(text, outline.entries[entry].offset, encoding))
+                        })
+                        .flatten()?;
+                    Some((reference.uri, at))
+                });
+                match found {
+                    Some((uri, at)) => self.link_to(&uri, at),
+                    None => String::new(),
+                }
+            }
             _ => String::new(),
         };
         // `:time-prompt`: the date of the tree entry is asked first, and
@@ -4619,8 +4657,31 @@ impl Server {
             default_time = DateTime::new(read.date, hour, minute);
             asked = rest;
         }
-        let fill_context =
-            capture::Context { now: default_time, file, initial: String::new(), annotation, user_name: String::new() };
+        // `%k` and `%K`: the entry clocked now.
+        let (mut clock_heading, mut clock_link) = (String::new(), String::new());
+        if let Some(running) = self.running.clone() {
+            if let Some(heading) =
+                self.clock_line(&running).and_then(|(text, _, line)| Self::heading_above(&text, line))
+            {
+                clock_heading = self.entry_title(&running.uri, heading).unwrap_or_default();
+                let encoding = self.client.encoding;
+                let position =
+                    self.with_source(&running.uri, |text, index, _, _, _| index.position(text, heading, encoding));
+                if let Some(position) = position {
+                    clock_link = self.link_to(&running.uri, position);
+                }
+            }
+        }
+        let fill_context = capture::Context {
+            now: default_time,
+            file,
+            initial: String::new(),
+            annotation,
+            user_name: String::new(),
+            clock_heading,
+            clock_link,
+            tags_column: self.edit_settings.todo.tags_column,
+        };
         let text = template_text(&template);
         let filled = match capture::fill(&text, &fill_context, asked, &self.read_date)? {
             capture::Filled::Text(filled) => filled,
@@ -4634,6 +4695,41 @@ impl Server {
                     capture::Question::Date { prompt, .. } => {
                         let prompt = prompt.unwrap_or_else(|| "Date".to_string());
                         json!({ "input": { "kind": "date", "prompt": prompt, "value": "", "context": context } })
+                    }
+                    // The tags of the target file, or of the agenda files.
+                    capture::Question::Tags { prompt, all_files } => {
+                        let tags = if all_files {
+                            self.agenda_tags()
+                        } else {
+                            let path = self.capture_file(template.target.get(1).map(String::as_str).unwrap_or(""));
+                            let mut tags: Vec<String> = uri::from_path(&path)
+                                .and_then(|uri| {
+                                    self.with_source(&uri, |_, _, _, outline, _| {
+                                        outline
+                                            .entries
+                                            .iter()
+                                            .flat_map(|entry| entry.tags.iter().map(|tag| tag.name.clone()))
+                                            .chain(outline.file_tags.iter().cloned())
+                                            .collect::<Vec<String>>()
+                                    })
+                                })
+                                .unwrap_or_default();
+                            tags.sort();
+                            tags.dedup();
+                            tags
+                        };
+                        let prompt = prompt.unwrap_or_else(|| "Tags".to_string());
+                        json!({ "input": {
+                            "kind": "text", "prompt": prompt, "value": "", "completions": tags, "context": context,
+                        } })
+                    }
+                    capture::Question::Property { name, default } => {
+                        let prompt = if default.is_empty() {
+                            format!("{name} value")
+                        } else {
+                            format!("{name} value (default {default})")
+                        };
+                        json!({ "input": { "kind": "text", "prompt": prompt, "value": "", "context": context } })
                     }
                 });
             }
@@ -4663,11 +4759,37 @@ impl Server {
                 (uri, capture::Target::Heading(heading))
             }
         };
-        let (snapshot, version, keywords) = self
+        let (mut snapshot, version, keywords) = self
             .with_source(&target_uri, |text, _, parse, _, version| {
                 (text.to_string(), version, parse.todo_keywords().clone())
             })
             .unwrap_or_else(|| (String::new(), None, self.todo.clone()));
+        // `:clock-in`: the clock that runs stops now; in the target file,
+        // the capture goes in after that.
+        let mut before = snapshot.clone();
+        let clock = if template.clock_in == Some(true) && kind == capture::Kind::Entry {
+            let mut interrupted = None;
+            if let Some((change, entry)) = self.stop_clock_for_capture() {
+                interrupted = Some(entry);
+                if change.0 == target_uri {
+                    snapshot = change.3.clone();
+                    if template.immediate_finish != Some(true) {
+                        self.send_texts(vec![change]);
+                        before = snapshot.clone();
+                    }
+                } else {
+                    self.send_texts(vec![change]);
+                }
+            }
+            Some(CaptureClock {
+                start: self.date_time(),
+                keep: template.clock_keep == Some(true),
+                resume: template.clock_resume == Some(true),
+                interrupted,
+            })
+        } else {
+            None
+        };
         let properties = capture::Properties {
             prepend: template.prepend.unwrap_or(false),
             empty_lines: template.empty_lines,
@@ -4677,10 +4799,11 @@ impl Server {
         };
         let levels = refile::Settings { adapt: self.adapt_in(&snapshot), ..self.refile.2 };
         let placed = capture::place(&snapshot, &keywords, &target, kind, &filled, &properties, &levels)?;
+        let jump = template.jump_to_captured == Some(true);
         if template.immediate_finish == Some(true) {
             let done = placed.finalize(placed.shown(), &keywords, &self.edit_settings.todo, self.date_time());
-            self.apply_capture(&target_uri, version, &snapshot, &done);
-            return Ok(Value::Null);
+            let start = placed.start;
+            return self.file_capture(&target_uri, version, &before, done, start, &keywords, clock.as_ref(), jump);
         }
         // The capture buffer: a file named after the target, in a
         // directory of the server's own, one for each capture, so that an
@@ -4705,6 +4828,8 @@ impl Server {
             snapshot,
             placed,
             spec: (target, kind, properties),
+            clock,
+            jump,
         });
         let params = ShowDocumentParams {
             uri: buffer_uri,
@@ -4876,8 +5001,123 @@ impl Server {
     fn finish_capture(&mut self, text: Option<String>) -> std::result::Result<Value, Refusal> {
         let capture = self.capture.take().ok_or("No capture is going on")?;
         let (now, version, done) = self.captured(&capture, text)?;
-        self.apply_capture(&capture.target, version, &now, &done);
+        let keywords = org_syntax::parse(&done, &self.todo).todo_keywords().clone();
+        let start = capture.placed.start;
+        self.file_capture(
+            &capture.target,
+            version,
+            &now,
+            done,
+            start,
+            &keywords,
+            capture.clock.as_ref(),
+            capture.jump,
+        )?;
         Ok(json!({ "close": capture.uri }))
+    }
+
+    /// The clock that runs stopped now, for a capture with `:clock-in`:
+    /// the change to its file, for the caller to send, and its entry, to
+    /// start it again with `:clock-resume`.
+    #[allow(clippy::type_complexity)]
+    fn stop_clock_for_capture(&mut self) -> Option<((Uri, Option<i32>, String, String), (Uri, String))> {
+        let running = self.running.clone()?;
+        let (text, version, line) = self.clock_line(&running)?;
+        let heading = Self::heading_above(&text, line)?;
+        let title = self.entry_title(&running.uri, heading)?;
+        let now = self.date_time();
+        let out = clock::clock_out(&text, line, now, &self.clock_settings).ok()?;
+        self.clock_out_time = Some(now);
+        self.running = None;
+        self.publish_clock();
+        Some(((running.uri.clone(), version, text, out.text), (running.uri, title)))
+    }
+
+    /// The captured text goes to its target (`org-capture-finalize`): with
+    /// `:clock-in`, the entry that starts after `start` gets the clock of
+    /// the capture, stopped now unless `:clock-keep`, and with
+    /// `:clock-resume` the clock the capture stopped starts again; with
+    /// `:jump-to-captured`, the target shows the entry.
+    #[allow(clippy::too_many_arguments)]
+    fn file_capture(
+        &mut self,
+        target: &Uri,
+        version: Option<i32>,
+        now: &str,
+        done: String,
+        start: usize,
+        keywords: &TodoKeywords,
+        clock: Option<&CaptureClock>,
+        jump: bool,
+    ) -> std::result::Result<Value, Refusal> {
+        let start = start.min(done.len());
+        let heading = start + done[start..].len() - done[start..].trim_start_matches(['\n', ' ', '\t']).len();
+        let mut done = done;
+        let mut resume = None;
+        if let Some(clock) = clock {
+            let time = self.date_time();
+            let (clocked, _) = clock::clock_in(&done, keywords, heading, &self.clock_settings, clock.start)?;
+            done = clocked;
+            if clock.keep {
+                let head = done[heading..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();
+                self.running = Some(RunningClock { uri: target.clone(), start: clock.start, head: head.clone() });
+                self.last_clocked = Some((target.clone(), head));
+                self.clock_pending = true;
+            } else {
+                let line = running_lines(&done)
+                    .into_iter()
+                    .find(|(line, start, _)| {
+                        *start == clock.start && Self::heading_above(&done, *line) == Some(heading)
+                    })
+                    .map(|(line, ..)| line);
+                if let Some(line) = line {
+                    done = clock::clock_out(&done, line, time, &self.clock_settings)?.text;
+                }
+                if clock.resume {
+                    resume = clock.interrupted.clone();
+                }
+            }
+        }
+        let position = LineIndex::new(&done).position(&done, heading, self.client.encoding);
+        match resume {
+            Some((uri, title)) => {
+                // The clock the capture stopped starts again, in the same
+                // edit as the capture when it is in the same file.
+                let found = if uri == *target {
+                    org_core::outline::Outline::new(&org_syntax::parse(&done, &self.todo), &done, "")
+                        .entries
+                        .iter()
+                        .find(|entry| {
+                            org_core::agenda::report::plain_heading(&entry.head, entry.todo.as_deref()) == title
+                        })
+                        .map(|entry| entry.offset)
+                } else {
+                    self.find_title(&uri, &title)
+                };
+                let change = (target.clone(), version, now.to_string(), done.clone());
+                match found {
+                    Some(at) => {
+                        let time = self.date_time();
+                        self.clock_in_after(uri, at, time, vec![change])?;
+                    }
+                    None => self.send_texts(vec![change]),
+                }
+            }
+            None => self.apply_capture(target, version, now, &done),
+        }
+        if clock.is_some_and(|clock| clock.keep) {
+            self.publish_clock();
+        }
+        if jump {
+            let params = ShowDocumentParams {
+                uri: target.clone(),
+                external: None,
+                take_focus: Some(true),
+                selection: Some(Range::new(position, position)),
+            };
+            self.send_request::<ShowDocument>(params, None);
+        }
+        Ok(Value::Null)
     }
 
     /// `org-capture-refile` (`C-c C-w`): the entry goes to its target, and

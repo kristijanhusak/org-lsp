@@ -43,12 +43,18 @@ fn run(case: &Value) -> Result<(String, String, String), String> {
         };
         default_time = DateTime::new(read.date, hour, minute);
     }
+    // `%k`: the headline clocked into first.
+    let clock_heading =
+        case["clock_in"].as_array().map_or(String::new(), |clock| clock[1].as_str().unwrap().to_string());
     let context = Context {
         now: default_time,
         file,
         initial: String::new(),
         annotation: String::new(),
         user_name: String::new(),
+        clock_heading,
+        clock_link: String::new(),
+        tags_column: -77,
     };
     let given = answers.len();
     let text = loop {

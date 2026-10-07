@@ -31,6 +31,12 @@ pub struct Context {
     pub annotation: String,
     /// `%n`: `user-full-name`.
     pub user_name: String,
+    /// `%k`: the headline of the entry clocked now, if any.
+    pub clock_heading: String,
+    /// `%K`: a link to the entry clocked now, if any.
+    pub clock_link: String,
+    /// `org-tags-column`, for the tags `%^g` puts on a headline.
+    pub tags_column: i64,
 }
 
 /// A question a template asks (`%^{…}`, `%^t`…).
@@ -41,6 +47,11 @@ pub enum Question {
     /// `%^t`, `%^T`, `%^u`, `%^U`: a date, with a time for `T` and `U`,
     /// inactive for `u` and `U`.
     Date { prompt: Option<String>, with_time: bool, inactive: bool },
+    /// `%^g`, `%^G`: tags, separated by colons, from the target file's
+    /// tags or (`all_files`) the agenda files'.
+    Tags { prompt: Option<String>, all_files: bool },
+    /// `%^{NAME}p`: the value of a property, set in the template's entry.
+    Property { name: String, default: String },
 }
 
 /// A template expanded as far as the answers given allow.
@@ -189,7 +200,9 @@ pub fn fill(
             b'A' => link("[[\\1][%^{Link description}]]"),
             b'l' => link("[[\\1]]"),
             b'L' => link("\\1"),
-            b'c' | b'x' | b'k' | b'K' => String::new(),
+            b'c' | b'x' => String::new(),
+            b'k' => context.clock_heading.clone(),
+            b'K' => context.clock_link.clone(),
             b'f' => file.clone(),
             b'F' => full.clone(),
             b'n' => context.user_name.clone(),
@@ -205,6 +218,10 @@ pub fn fill(
     let mut strings: Vec<String> = Vec::new();
     let mut strings_all: Vec<String> = Vec::new();
     let mut question = None;
+    // The lines that got tags, and the properties to set, by line.
+    let mut tagged_lines: Vec<usize> = Vec::new();
+    let mut properties: Vec<(usize, String, String)> = Vec::new();
+    let source = text.clone();
     let text = replace_unescaped(&text, &INTERACTIVE, |captures| {
         if question.is_some() {
             return Ok(None);
@@ -226,9 +243,19 @@ pub fn fill(
                 with_time: key == "T" || key == "U",
                 inactive: key == "u" || key == "U",
             },
-            Some(other) => {
-                return Err(Refusal::Failed(format!("Capture templates with `%^{other}` are not supported yet")));
+            Some(key @ ("g" | "G")) => Question::Tags { prompt: prompt.clone(), all_files: key == "G" },
+            Some("p") => Question::Property { name: prompt.clone().unwrap_or_default(), default: default.clone() },
+            // The clipboard and the kill ring are the initial content here.
+            Some("C") => {
+                strings_all.push(context.initial.clone());
+                return Ok(Some(context.initial.clone()));
             }
+            Some("L") => {
+                strings_all.push(context.initial.clone());
+                let link = if context.initial.is_empty() { String::new() } else { format!("[[{}]]", context.initial) };
+                return Ok(Some(link));
+            }
+            Some(other) => return Err(Refusal::Failed(format!("Unknown template placeholder: \"%^{other}\""))),
         };
         let Some(answer) = answers.get(asked) else {
             question = Some(wanted);
@@ -242,6 +269,25 @@ pub fn fill(
                 strings.push(value.clone());
                 strings_all.push(value.clone());
                 Ok(Some(value))
+            }
+            Question::Tags { .. } => {
+                let tags: Vec<&str> = answer.split(':').map(str::trim).filter(|tag| !tag.is_empty()).collect();
+                if tags.is_empty() {
+                    return Ok(Some(String::new()));
+                }
+                let found = captures.get(0).expect("whole match");
+                let joined = tags.join(":");
+                strings_all.push(format!(":{joined}:"));
+                tagged_lines.push(source[..found.start()].matches('\n').count());
+                let before = if source[..found.start()].ends_with(':') { "" } else { ":" };
+                let after = if source[found.end()..].starts_with(':') { "" } else { ":" };
+                Ok(Some(format!("{before}{joined}{after}")))
+            }
+            Question::Property { name, .. } => {
+                let found = captures.get(0).expect("whole match");
+                properties.push((source[..found.start()].matches('\n').count(), name, answer.clone()));
+                strings_all.push(answer.clone());
+                Ok(Some(String::new()))
             }
             Question::Date { with_time, inactive, .. } => {
                 let mut read = read_date(answer, None, time, settings)?;
@@ -259,6 +305,34 @@ pub fn fill(
     if let Some(question) = question {
         return Ok(Filled::Ask(question));
     }
+    // Tags put on a headline are aligned (`org-align-tags`).
+    let mut text = text;
+    for line in tagged_lines {
+        let Some(start) = nth_line_start(&text, line) else { continue };
+        let end = text[start..].find('\n').map_or(text.len(), |at| start + at);
+        if headline_level(&text[start..end]).is_none() {
+            continue;
+        }
+        if let Some((blanks, tags, padding)) = crate::todo::tags_padding(&text[start..end], context.tags_column) {
+            text.replace_range(start + blanks..start + tags, &padding);
+        }
+    }
+    // Properties go into the drawer of the entry they are in
+    // (`org-set-property`).
+    let property_context = crate::properties::Context::default();
+    let mut shifts: Vec<(usize, isize)> = Vec::new();
+    for (line, name, value) in properties {
+        let Some(mut at) = nth_line_start(&text, line) else { continue };
+        for (from, delta) in &shifts {
+            if at > *from {
+                at = (at as isize + delta) as usize;
+            }
+        }
+        let new = crate::properties::put(&text, at, &name, &value, &property_context)?;
+        let prefix = text.bytes().zip(new.bytes()).take_while(|(a, b)| a == b).count();
+        shifts.push((prefix, new.len() as isize - text.len() as isize));
+        text = new;
+    }
     // `%\N` and `%\*N`: the answers again.
     let text = replace_unescaped(&text, &BACK_REFERENCE, |captures| {
         let index: usize = captures[2].parse().unwrap_or(0);
@@ -268,6 +342,14 @@ pub fn fill(
     Ok(Filled::Text(tidy(&text)))
 }
 
+/// Where line `n` (from 0) of `text` starts.
+fn nth_line_start(text: &str, n: usize) -> Option<usize> {
+    if n == 0 {
+        return Some(0);
+    }
+    text.match_indices('\n').nth(n - 1).map(|(at, _)| at + 1)
+}
+
 /// No blank lines before the text, and nothing blank after it but one
 /// newline, unless it is empty; tabs as spaces.
 fn tidy(text: &str) -> String {
@@ -275,6 +357,8 @@ fn tidy(text: &str) -> String {
     let line_start = text[..start].rfind('\n').map_or(0, |at| at + 1);
     let text = &text[line_start..];
     let end = text.trim_end_matches([' ', '\t', '\n']).len();
+    // To the end of that line: blanks at its end stay.
+    let end = text[end..].find('\n').map_or(text.len(), |at| end + at);
     let mut out = if text[..end].trim_start_matches([' ', '\t', '\n']).is_empty() {
         String::new()
     } else {
@@ -1349,6 +1433,9 @@ mod tests {
             initial: String::new(),
             annotation: String::new(),
             user_name: String::new(),
+            clock_heading: String::new(),
+            clock_link: String::new(),
+            tags_column: -77,
         };
         let settings = ReadDateSettings::default();
         let filled = fill("* TODO %?\n  %U %t %f %<%Y-%m-%d %A> \\%t", &context, &[], &settings).unwrap();

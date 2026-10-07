@@ -327,6 +327,14 @@ pub struct CaptureTemplateOption {
     pub time_prompt: Option<bool>,
     /// `:table-line-pos`: where a table line goes, `"II-1"`.
     pub table_line_pos: Option<String>,
+    /// `:clock-in`: the captured entry is clocked while the capture goes on.
+    pub clock_in: Option<bool>,
+    /// `:clock-keep`: the clock keeps running when the capture is filed.
+    pub clock_keep: Option<bool>,
+    /// `:clock-resume`: the clock the capture stopped starts again.
+    pub clock_resume: Option<bool>,
+    /// `:jump-to-captured`: the target shows the entry when it is filed.
+    pub jump_to_captured: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -1184,6 +1192,10 @@ pub fn current_names(value: serde_json::Value, renamed: &mut Vec<String>) -> ser
                             ("treeType", "tree_type"),
                             ("timePrompt", "time_prompt"),
                             ("tableLinePos", "table_line_pos"),
+                            ("clockIn", "clock_in"),
+                            ("clockKeep", "clock_keep"),
+                            ("clockResume", "clock_resume"),
+                            ("jumpToCaptured", "jump_to_captured"),
                             ("maxLevel", "maxlevel"),
                         ] {
                             if let Some(value) = fields.remove(old) {

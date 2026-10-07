@@ -4412,3 +4412,57 @@ fn captures_items_tables_date_trees_and_the_clock() {
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }
+
+/// `:clock-in` with `:clock-resume`: the capture stops the clock, clocks
+/// the captured entry, and starts the clock it stopped again;
+/// `:clock-keep` leaves the captured entry clocked.
+#[test]
+fn captures_with_the_clock() {
+    let uri = "file:///org/notes.org";
+    let template = |keep: bool| {
+        json!([{ "key": "m", "description": "Meeting", "target": ["file+headline", "/org/notes.org", "Inbox"],
+                 "template": "* Meeting", "clock_in": true, "clock_resume": true, "clock_keep": keep,
+                 "immediate_finish": true }])
+    };
+    for keep in [false, true] {
+        let mut options = clock();
+        options["org_capture_templates"] = template(keep);
+        let mut client = Client::editor(options, None);
+        let mut text = "* Work\n* Inbox\n".to_string();
+        client.open(uri, &text);
+        run_applying(&mut client, uri, &mut text, "org.clock.in", 0, json!({}));
+        client.notify("org-lsp/setClock", json!({ "today": "2026-05-18", "now": "10:40" }));
+        run_applying(&mut client, uri, &mut text, "org.capture", 0, json!({ "input": "m" }));
+        let expected = if keep {
+            "* Work\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:40] =>  0:10\n:END:\n\
+             * Inbox\n** Meeting\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:40]\n:END:\n"
+        } else {
+            "* Work\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:40]\n\
+             CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:40] =>  0:10\n:END:\n\
+             * Inbox\n** Meeting\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:40]--[2026-05-18 Mon 10:40] =>  0:00\n:END:\n"
+        };
+        assert_eq!(text, expected, "keep {keep}");
+        client.shutdown();
+    }
+}
+
+/// `%a` from an agenda line: a link to the line's entry.
+#[test]
+fn captures_a_link_to_the_agenda_entry() {
+    let mut options = clock();
+    options["org_capture_templates"] = json!([{ "key": "l", "description": "Link",
+        "target": ["file+headline", "/org/home.org", "Inbox"], "template": "* About %a", "immediate_finish": true }]);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    let mut home = format!("{HOME}* Inbox\n");
+    client.open("file:///org/home.org", &home);
+    client.command("org.agenda.list", "file:///org/work.org", 0);
+    client.view_text(VIEW);
+    // From the line of `Write report`.
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 3, "character": 0 }, "input": "l" });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [context] })).unwrap();
+    client.settle();
+    apply_received(&mut client, "file:///org/home.org", &mut home);
+    assert!(home.ends_with("* Inbox\n** About [[file:/org/work.org::*Write report][Write report]]\n"), "{home}");
+}
