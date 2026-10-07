@@ -1,0 +1,5 @@
+Search words: the report
+  work:       TODO Write the report                                     :office:
+  work:       DONE Collect receipts                                    :office::
+  meetings:   Meeting notes
+  b:          TODO Home chores                                            :home:

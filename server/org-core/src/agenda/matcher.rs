@@ -472,7 +472,7 @@ pub fn emacs_buffer_regex(pattern: &str) -> Option<Regex> {
     RegexBuilder::new(&translate(pattern)).case_insensitive(true).multi_line(true).build().ok()
 }
 
-fn translate(pattern: &str) -> String {
+pub(crate) fn translate(pattern: &str) -> String {
     let mut out = String::new();
     let mut chars = pattern.chars().peekable();
     while let Some(c) = chars.next() {

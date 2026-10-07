@@ -1,0 +1,12 @@
+Search words: *
+  work:       TODO Write the report                                     :office:
+  work:       NEXT Ask Alice about the budget                          :office::
+  work:       DONE Collect receipts                                    :office::
+  meetings:   Meeting notes
+  meetings:   Weekly sync                                                 :sync:
+  meetings:   Deep detail                                                :sync::
+  work:       Words with punctuation
+  b:          TODO Home chores                                            :home:
+  b:          Plain heading with report in the title
+  b:          Report in capitals
+  b:          reporting is a longer word

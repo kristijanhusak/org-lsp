@@ -1,0 +1,2 @@
+Search words: +[brackets]
+  work:       Words with punctuation

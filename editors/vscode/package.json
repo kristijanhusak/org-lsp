@@ -86,6 +86,26 @@
         "category": "Org"
       },
       {
+        "command": "org.agenda.query.add",
+        "title": "Agenda: search for another word",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.query.subtract",
+        "title": "Agenda: search without a word",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.query.add.regexp",
+        "title": "Agenda: search for another regexp",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.query.subtract.regexp",
+        "title": "Agenda: search without a regexp",
+        "category": "Org"
+      },
+      {
         "command": "org.agenda.goto.date",
         "title": "Agenda: go to a date",
         "category": "Org"
@@ -1388,6 +1408,22 @@
               "markdownDescription": "Leave out the blocks of a block agenda that show no entries. Not in Org.",
               "default": false
             },
+            "org_agenda_search_view_always_boolean": {
+              "type": "boolean",
+              "markdownDescription": "Read every search string of the search view (`s`) as words that must (`+word`, `word`) or must not (`-word`) occur, `{regexp}`s and `\"quoted phrases\"`. Off, it is a phrase whose spaces match any whitespace, unless its first word starts with `+`, `-` or `{`. (`org-agenda-search-view-always-boolean`)",
+              "default": false
+            },
+            "org_agenda_search_view_force_full_words": {
+              "type": "boolean",
+              "markdownDescription": "The words of a Boolean search match whole words only, as a search string starting with `:` asks. (`org-agenda-search-view-force-full-words`)",
+              "default": false
+            },
+            "org_agenda_search_view_max_outline_level": {
+              "minimum": 0,
+              "type": "integer",
+              "markdownDescription": "The search view shows headlines down to this level, a match below one counting for the headline above: 0 for every level. (`org-agenda-search-view-max-outline-level`)",
+              "default": 0
+            },
             "org_agenda_prefix_format": {
               "additionalProperties": false,
               "properties": {
@@ -1508,7 +1544,8 @@
                             "alltodo",
                             "todo",
                             "tags",
-                            "tags-todo"
+                            "tags-todo",
+                            "search"
                           ]
                         }
                       },
@@ -1546,7 +1583,8 @@
                       "alltodo",
                       "todo",
                       "tags",
-                      "tags-todo"
+                      "tags-todo",
+                      "search"
                     ]
                   }
                 },
@@ -3129,6 +3167,46 @@
       {
         "command": "org.agenda.today",
         "key": ".",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.query.add",
+        "key": "[",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.query.add",
+        "key": "[",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.query.subtract",
+        "key": "]",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.query.subtract",
+        "key": "]",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.query.add.regexp",
+        "key": "shift+[",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.query.add.regexp",
+        "key": "shift+[",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.query.subtract.regexp",
+        "key": "shift+]",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.query.subtract.regexp",
+        "key": "shift+]",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {

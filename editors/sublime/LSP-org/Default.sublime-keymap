@@ -1838,6 +1838,174 @@
   },
   {
     "keys": [
+      "["
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.query.add"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "["
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.query.add"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "]"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.query.subtract"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "]"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.query.subtract"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "{"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.query.add.regexp"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "{"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.query.add.regexp"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "}"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.query.subtract.regexp"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "}"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.query.subtract.regexp"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
       "shift+j"
     ],
     "command": "org_lsp_run",

@@ -173,6 +173,11 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             matcher: agenda::Matcher::new(matching.as_deref().unwrap_or("")),
             todo_only: view == "tags-todo",
         }),
+        "search" | "search-todo" => {
+            let string = matching.unwrap_or_default();
+            agenda::search::parse(&string, view == "search-todo", &config.search)?;
+            block(BlockKind::Search { string, todo_only: view == "search-todo" })
+        }
         "custom" => {
             let key = key.ok_or("--view custom needs --key")?;
             let commands = options.custom_commands.as_deref().unwrap_or_default();
@@ -180,7 +185,11 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             let read = crate::config::Options::default().read_date_settings();
             crate::custom::blocks(command, &options, &config, now, &read, None)?
         }
-        other => return Err(format!("unknown view `{other}`; expected agenda, todo, tags, tags-todo or custom")),
+        other => {
+            return Err(format!(
+                "unknown view `{other}`; expected agenda, todo, tags, tags-todo, search, search-todo or custom"
+            ))
+        }
     };
     let named: Vec<(&Outline, String, String)> = outlines
         .iter()

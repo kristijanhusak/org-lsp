@@ -1,0 +1,6 @@
+* TODO Home chores :home:
+Buy milk; fix the report printer.
+* Plain heading with report in the title
+* Report in capitals
+REPORT shouted.
+* reporting is a longer word

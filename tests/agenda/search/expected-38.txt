@@ -1,0 +1,3 @@
+Search words: report
+  work:       TODO Write the report                                     :office:
+  b:          TODO Home chores                                            :home:

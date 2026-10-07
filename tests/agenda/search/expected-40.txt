@@ -1,0 +1,3 @@
+Search words: budget
+  work:       TODO Write the report                                     :office:
+  work:       NEXT Ask Alice about the budget                          :office::

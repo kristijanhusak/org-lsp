@@ -1,0 +1,5 @@
+Search words: *report
+  work:       TODO Write the report                                     :office:
+  b:          Plain heading with report in the title
+  b:          Report in capitals
+  b:          reporting is a longer word

@@ -778,6 +778,22 @@
       "description": "Leave out the blocks of a block agenda that show no entries. Not in Org.",
       "default": false
     },
+    "org_agenda_search_view_always_boolean": {
+      "type": "boolean",
+      "description": "Read every search string of the search view (`s`) as words that must (`+word`, `word`) or must not (`-word`) occur, `{regexp}`s and `\"quoted phrases\"`. Off, it is a phrase whose spaces match any whitespace, unless its first word starts with `+`, `-` or `{`. (`org-agenda-search-view-always-boolean`)",
+      "default": false
+    },
+    "org_agenda_search_view_force_full_words": {
+      "type": "boolean",
+      "description": "The words of a Boolean search match whole words only, as a search string starting with `:` asks. (`org-agenda-search-view-force-full-words`)",
+      "default": false
+    },
+    "org_agenda_search_view_max_outline_level": {
+      "minimum": 0,
+      "type": "integer",
+      "description": "The search view shows headlines down to this level, a match below one counting for the headline above: 0 for every level. (`org-agenda-search-view-max-outline-level`)",
+      "default": 0
+    },
     "org_agenda_prefix_format": {
       "additionalProperties": false,
       "properties": {
@@ -898,7 +914,8 @@
                     "alltodo",
                     "todo",
                     "tags",
-                    "tags-todo"
+                    "tags-todo",
+                    "search"
                   ]
                 }
               },
@@ -936,7 +953,8 @@
               "alltodo",
               "todo",
               "tags",
-              "tags-todo"
+              "tags-todo",
+              "search"
             ]
           }
         },

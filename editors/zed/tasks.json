@@ -39,6 +39,58 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org agenda: search for another word",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.query.add",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: search without a word",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.query.subtract",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: search for another regexp",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.query.add.regexp",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: search without a regexp",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.query.subtract.regexp",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: go to a date",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.goto.date",
     "tags": [

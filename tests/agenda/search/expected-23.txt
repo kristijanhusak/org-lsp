@@ -1,0 +1,8 @@
+Search words: +{rep.rt}
+  work:       TODO Write the report                                     :office:
+  work:       DONE Collect receipts                                    :office::
+  meetings:   Meeting notes
+  b:          TODO Home chores                                            :home:
+  b:          Plain heading with report in the title
+  b:          Report in capitals
+  b:          reporting is a longer word

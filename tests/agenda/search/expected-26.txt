@@ -1,0 +1,3 @@
+Search words: -{Alice} +budget
+  work:       TODO Write the report                                     :office:
+  meetings:   Deep detail                                                :sync::

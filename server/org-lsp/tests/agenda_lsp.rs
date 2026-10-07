@@ -639,7 +639,9 @@ fn the_dispatcher_asks_which_view() {
             { "key": "a", "label": "Agenda for the current week or day" },
             { "key": "t", "label": "List of all TODO entries" },
             { "key": "m", "label": "Match a TAGS/PROP/TODO query" },
-            { "key": "M", "label": "Like m, but only TODO entries" }
+            { "key": "M", "label": "Like m, but only TODO entries" },
+            { "key": "s", "label": "Search for keywords" },
+            { "key": "S", "label": "Like s, but only TODO entries" }
         ])
     );
     client.received.clear();
@@ -653,6 +655,45 @@ fn the_dispatcher_asks_which_view() {
         json!({ "command": "org.agenda.dispatch", "arguments": [{ "input": "a" }] }),
     );
     assert_eq!(answer, Ok(Value::Null));
+    client.shutdown();
+}
+
+/// `org-search-view` (`s`): the entries with the words asked for, and
+/// `[` to ask again for one more.
+#[test]
+fn searches_the_files() {
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/work.org", WORK);
+    let run = |client: &mut Client, command: &str, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let asked = run(&mut client, "org.agenda.dispatch", json!({ "input": "s" })).unwrap();
+    assert_eq!(asked["input"]["kind"], "text");
+    assert_eq!(asked["input"]["prompt"], "Phrase or [+-]Word/{Regexp} ...");
+    assert_eq!(asked["input"]["context"], json!({ "keys": "s", "ask": "search" }));
+    let answer = json!({ "keys": "s", "ask": "search", "input": "+todo -{rep.rt}" });
+    assert_eq!(run(&mut client, "org.agenda.dispatch", answer), Ok(Value::Null));
+    let text = client.view_text(VIEW);
+    let lines: Vec<&str> = text.lines().collect();
+    assert_eq!(lines[0], "Search words: +todo -{rep.rt}", "{text}");
+    assert_eq!(lines.len(), 2, "{text}");
+    assert!(lines[1].contains("TODO Call"), "{text}");
+    let asked = run(&mut client, "org.agenda.query.subtract", json!({})).unwrap();
+    assert_eq!(asked["input"]["value"], "+todo -{rep.rt} -");
+    assert_eq!(
+        run(&mut client, "org.agenda.query.subtract", json!({ "input": "+todo -{rep.rt} -call" })),
+        Ok(Value::Null)
+    );
+    assert_eq!(client.view_text(VIEW), "Search words: +todo -{rep.rt} -call\n");
+    let error =
+        run(&mut client, "org.agenda.dispatch", json!({ "keys": "s", "ask": "search", "input": "{[}" })).unwrap_err();
+    assert!(error.starts_with("Invalid regexp"), "{error}");
     client.shutdown();
 }
 
@@ -683,8 +724,8 @@ fn runs_custom_agenda_commands() {
     let asked = run(&mut client, "org.agenda.dispatch", json!({})).unwrap();
     let keys: Vec<&str> =
         asked["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
-    assert_eq!(keys, ["a", "t", "m", "M", "x"]);
-    assert_eq!(asked["input"]["choices"][4]["label"], "+Mine");
+    assert_eq!(keys, ["a", "t", "m", "M", "s", "S", "x"]);
+    assert_eq!(asked["input"]["choices"][6]["label"], "+Mine");
     let asked = run(&mut client, "org.agenda.dispatch", json!({ "input": "x" })).unwrap();
     assert_eq!(asked["input"]["choices"], json!([{ "key": "b", "label": "Day and office" }]));
     assert_eq!(asked["input"]["context"], json!({ "keys": "x" }));

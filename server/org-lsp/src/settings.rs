@@ -616,12 +616,36 @@ pub const SETTINGS: &[Setting] = &[
         "Leave out the blocks of a block agenda that show no entries. Not in Org.",
     ),
     setting(
+        "org_agenda_search_view_always_boolean",
+        "boolean",
+        "false",
+        "org-agenda-search-view-always-boolean",
+        "Read every search string of the search view (`s`) as words that must (`+word`, `word`) or must not \
+         (`-word`) occur, `{regexp}`s and `\"quoted phrases\"`. Off, it is a phrase whose spaces match any \
+         whitespace, unless its first word starts with `+`, `-` or `{`.",
+    ),
+    setting(
+        "org_agenda_search_view_force_full_words",
+        "boolean",
+        "false",
+        "org-agenda-search-view-force-full-words",
+        "The words of a Boolean search match whole words only, as a search string starting with `:` asks.",
+    ),
+    setting(
+        "org_agenda_search_view_max_outline_level",
+        "number",
+        "0",
+        "org-agenda-search-view-max-outline-level",
+        "The search view shows headlines down to this level, a match below one counting for the headline \
+         above: 0 for every level.",
+    ),
+    setting(
         "org_agenda_prefix_format",
         "{ agenda?, todo?, tags?, search? }",
         r#"{ "agenda": " %i %-12:c%?-12t% s", "todo": " %i %-12:c", "tags": " %i %-12:c", "search": " %i %-12:c" }"#,
         "org-agenda-prefix-format",
         "What comes before the headline on a line of the agenda (`agenda`), the TODO list (`todo`), tags \
-         searches (`tags`) and text searches (`search`, which the agenda does not have yet): `%c` the category, `%t` the time, `%s` the \
+         searches (`tags`) and text searches (`search`): `%c` the category, `%t` the time, `%s` the \
          leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the \
          headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on \
          the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a \
@@ -931,6 +955,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_block_separator", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
     ("org_agenda_compact_blocks", BOOLEAN),
     ("agenda_hide_empty_blocks", BOOLEAN),
+    ("org_agenda_search_view_always_boolean", BOOLEAN),
+    ("org_agenda_search_view_force_full_words", BOOLEAN),
+    ("org_agenda_search_view_max_outline_level", r#"{ "type": "integer", "minimum": 0 }"#),
     ("org_agenda_todo_keyword_format", STRING),
     (
         "org_agenda_scheduled_leaders",
@@ -952,12 +979,12 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaCommand", "required": ["key", "description"], "additionalProperties": false, "properties": {
             "key": { "type": "string", "description": "The keys that pick the command in the agenda menu" },
             "description": { "type": "string", "description": "What the menu shows" },
-            "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo"], "description": "The view" },
+            "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo", "search"], "description": "The view" },
             "match": { "type": "string", "description": "For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY=\"A\")" },
             "header": { "type": "string", "description": "Replaces the view's header; empty for none" },
             "settings": { "type": "object", "description": "Agenda options for this command: org_agenda_span, org_agenda_start_day…" },
             "blocks": { "type": "array", "description": "Views shown one after the other", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaBlock", "required": ["type"], "additionalProperties": false, "properties": {
-                "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo"], "description": "The view" },
+                "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo", "search"], "description": "The view" },
                 "match": { "type": "string", "description": "For todo, keywords; for tags, a match string" },
                 "header": { "type": "string", "description": "Replaces the view's header; empty for none" },
                 "settings": { "type": "object", "description": "Agenda options for this block: org_agenda_span, org_agenda_start_day…" }

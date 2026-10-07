@@ -1,0 +1,5 @@
+Search words: -report
+  work:       NEXT Ask Alice about the budget                          :office::
+  meetings:   Weekly sync                                                 :sync:
+  meetings:   Deep detail                                                :sync::
+  work:       Words with punctuation

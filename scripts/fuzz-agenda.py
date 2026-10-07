@@ -30,6 +30,29 @@ WARNINGS = ["-3d", "-0d", "-2w", "--2d", "-1m", "-10d", "--1w"]
 DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 
+def search_string(rng):
+    """A search string for `org-search-view`: a phrase, or Boolean words,
+    regexps and quoted phrases, with the `*`, `!` and `:` prefixes."""
+    words = [rng.choice(WORDS) for _ in range(rng.randint(1, 3))]
+    if rng.random() < 0.5:
+        parts = []
+        for word in words:
+            sign = rng.choice(["", "+", "+", "-"])
+            kind = rng.random()
+            if kind < 0.2:
+                word = "{" + rng.choice(["^\\*+ TODO", "al.ha", "[0-9]+", "re[a-z]*", "^call"]) + "}"
+            elif kind < 0.3:
+                word = '"' + word + " " + rng.choice(WORDS) + '"'
+            parts.append(sign + word)
+        string = " ".join(parts)
+        if not string.startswith(("+", "-", "{")):
+            string = "+" + string
+    else:
+        string = " ".join(words)
+    prefix = rng.choice(["", "", "", "*", "!", ":", "*!", "*:"])
+    return prefix + string
+
+
 class Generator:
     def __init__(self, rng, today):
         self.rng = rng
@@ -207,6 +230,7 @@ def main():
                 {"view": "agenda", "span": "day"},
                 {"view": "agenda", "span": rng.choice(["day", "week", 3, "fortnight"]), "start": other},
                 {"view": "todo"},
+                {"view": rng.choice(["search", "search-todo"]), "match": search_string(rng)},
             ],
         }
         with open(os.path.join(directory, "case.json"), "w", encoding="utf-8") as handle:

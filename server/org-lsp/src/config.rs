@@ -1385,6 +1385,15 @@ pub struct AgendaOptions {
     /// Leave out the empty blocks of a block agenda.
     #[serde(rename = "agenda_hide_empty_blocks")]
     pub hide_empty_blocks: Option<bool>,
+    /// `org-agenda-search-view-always-boolean`
+    #[serde(rename = "org_agenda_search_view_always_boolean")]
+    pub search_view_always_boolean: Option<bool>,
+    /// `org-agenda-search-view-force-full-words`
+    #[serde(rename = "org_agenda_search_view_force_full_words")]
+    pub search_view_force_full_words: Option<bool>,
+    /// `org-agenda-search-view-max-outline-level`
+    #[serde(rename = "org_agenda_search_view_max_outline_level")]
+    pub search_view_max_outline_level: Option<usize>,
     /// `org-agenda-custom-commands`
     #[serde(rename = "org_agenda_custom_commands")]
     pub custom_commands: Option<Vec<CustomCommandOption>>,
@@ -1504,6 +1513,15 @@ impl AgendaOptions {
             compact_blocks,
             hide_empty_blocks
         );
+        if let Some(on) = self.search_view_always_boolean {
+            config.search.always_boolean = on;
+        }
+        if let Some(on) = self.search_view_force_full_words {
+            config.search.full_words = on;
+        }
+        if let Some(level) = self.search_view_max_outline_level {
+            config.search.max_level = level;
+        }
         match &self.block_separator {
             Some(serde_json::Value::Bool(false)) => config.block_separator = None,
             Some(serde_json::Value::String(text)) if text.chars().count() == 1 => {

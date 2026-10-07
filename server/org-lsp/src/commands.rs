@@ -126,6 +126,10 @@ pub const AGENDA_GOTO: &str = "org.agenda.goto";
 pub const AGENDA_GOTO_OTHER: &str = "org.agenda.goto.other";
 pub const AGENDA_SAVE: &str = "org.agenda.save";
 pub const AGENDA_GOTO_DATE: &str = "org.agenda.goto.date";
+pub const AGENDA_QUERY_ADD: &str = "org.agenda.query.add";
+pub const AGENDA_QUERY_SUBTRACT: &str = "org.agenda.query.subtract";
+pub const AGENDA_QUERY_ADD_REGEXP: &str = "org.agenda.query.add.regexp";
+pub const AGENDA_QUERY_SUBTRACT_REGEXP: &str = "org.agenda.query.subtract.regexp";
 pub const AGENDA_LOG: &str = "org.agenda.log";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
 pub const AGENDA_ARCHIVES: &str = "org.agenda.archives";
@@ -234,6 +238,12 @@ pub const COMMANDS: &[Command] = &[
     Command { emacs: &[key(Agenda, "f")], ..command(AGENDA_LATER, "Agenda: go forward in time") },
     Command { emacs: &[key(Agenda, "b")], ..command(AGENDA_EARLIER, "Agenda: go backward in time") },
     Command { emacs: &[key(Agenda, ".")], ..command(AGENDA_TODAY, "Agenda: go to today") },
+    // `org-agenda-manipulate-query`: in a search view, the search string
+    // asked for again with a word or regexp to add or subtract started.
+    Command { emacs: &[key(Agenda, "[")], ..command(AGENDA_QUERY_ADD, "Agenda: search for another word") },
+    Command { emacs: &[key(Agenda, "]")], ..command(AGENDA_QUERY_SUBTRACT, "Agenda: search without a word") },
+    Command { emacs: &[key(Agenda, "{")], ..command(AGENDA_QUERY_ADD_REGEXP, "Agenda: search for another regexp") },
+    Command { emacs: &[key(Agenda, "}")], ..command(AGENDA_QUERY_SUBTRACT_REGEXP, "Agenda: search without a regexp") },
     Command {
         emacs: &[key(Agenda, "J")],
         input: Some(Input { kind: "date", prompt: "Date" }),

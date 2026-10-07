@@ -12,6 +12,8 @@ A case is a directory with Org files and a `case.json`:
         {"view": "todo", "match": "NEXT|WAIT"},
         {"view": "tags", "match": "work-home"},
         {"view": "tags-todo", "match": "PRIORITY=\"A\""},
+        {"view": "search", "match": "+work -home"},   `org-search-view`
+        {"view": "search-todo", "match": "report"},     with only TODO entries
         {"view": "custom", "key": "c"},
         {"view": "todo", "archives": "trees"}   with archived trees
                                                 (`files`: archive files too)
@@ -63,6 +65,9 @@ DEFAULTS = r"""
       org-scheduled-past-days 10000
       org-deadline-past-days 10000
       org-agenda-tags-column -80
+      org-agenda-search-view-always-boolean nil
+      org-agenda-search-view-force-full-words nil
+      org-agenda-search-view-max-outline-level 0
       org-agenda-custom-commands nil
       org-agenda-prefix-format '((agenda . " %i %-12:c%?-12t% s") (todo . " %i %-12:c")
                                  (tags . " %i %-12:c") (search . " %i %-12:c"))
@@ -109,6 +114,10 @@ def view_form(run):
         return shown(f"(org-tags-view nil {match})")
     if run["view"] == "tags-todo":
         return shown(f"(org-tags-view t {match})")
+    if run["view"] == "search":
+        return shown(f"(org-search-view nil {match})")
+    if run["view"] == "search-todo":
+        return shown(f"(org-search-view t {match})")
     if run["view"] == "custom":
         return f"(org-batch-agenda {lisp_string(run['key'])})"
     parameters = []
@@ -130,7 +139,7 @@ def clean(text, run):
     kept = []
     skipping = False
     for line in lines:
-        if line.startswith("Press ") and "to search again" in line:
+        if line.startswith("Press ") and ("to search again" in line or "to add/sub word" in line):
             skipping = True
             continue
         if skipping and line.startswith("                     "):

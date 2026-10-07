@@ -1,0 +1,2 @@
+Search words: +deeply
+  meetings:   Meeting notes

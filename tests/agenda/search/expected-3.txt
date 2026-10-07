@@ -1,0 +1,4 @@
+Search words: the\ budget
+  work:       TODO Write the report                                     :office:
+  work:       NEXT Ask Alice about the budget                          :office::
+  meetings:   Deep detail                                                :sync::

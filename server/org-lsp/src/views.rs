@@ -33,6 +33,9 @@ pub enum Query {
     /// `org-tags-view` from the agenda menu (`m`, `M`): the entries a
     /// match string matches, only open TODO entries with `todo_only`.
     Tags { matching: String, todo_only: bool },
+    /// `org-search-view` from the agenda menu (`s`, `S`): the entries with
+    /// the words of `string`, only open TODO entries with `todo_only`.
+    Search { string: String, todo_only: bool },
     /// A command of `org_agenda_custom_commands`, by its keys. One of its
     /// agenda blocks may have been moved to other days (`f`, `b`, `d`
     /// there), as Emacs's `org-agenda-overriding-cmd` moves one block.
@@ -65,6 +68,8 @@ pub enum BlockKind {
     Todo { keywords: Option<String> },
     /// `org-tags-view`; `tags-todo` with `todo_only`.
     Tags { matcher: Matcher, todo_only: bool },
+    /// `org-search-view`
+    Search { string: String, todo_only: bool },
 }
 
 /// The entry behind a line, in a form that survives edits to its file.
@@ -265,6 +270,18 @@ fn block_lines(blocks: &[Block], files: &[(&Outline, String, String)], now: Now,
             BlockKind::Agenda { start, span } => agenda::view(outlines, now, *start, *span, config),
             BlockKind::Todo { keywords } => agenda::todo_view(outlines, keywords.as_deref(), config),
             BlockKind::Tags { matcher, todo_only } => agenda::tags_view(outlines, matcher, *todo_only, now, config),
+            // A search string Org cannot read leaves the view empty; the
+            // command that asked for it says why.
+            BlockKind::Search { string, todo_only } => agenda::search_view(outlines, string, *todo_only, now, config)
+                .unwrap_or_else(|_| agenda::View {
+                    lines: vec![agenda::Line {
+                        text: format!("Search words: {string}"),
+                        kind: agenda::LineKind::Header,
+                        item: None,
+                    }],
+                    start: 0,
+                    end: 0,
+                }),
         };
         let agenda = matches!(block.kind, BlockKind::Agenda { .. });
         // A compact agenda block has no header, not even its own.

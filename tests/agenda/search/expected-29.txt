@@ -1,0 +1,1 @@
+ERROR: (user-error "Before first headline at position 43 in buffer a.org")
