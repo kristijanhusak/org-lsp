@@ -226,6 +226,36 @@
         "category": "Org"
       },
       {
+        "command": "org.property.set",
+        "title": "Set a property of the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.property.delete",
+        "title": "Delete a property of the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.property.delete.globally",
+        "title": "Delete a property from every entry of the file",
+        "category": "Org"
+      },
+      {
+        "command": "org.effort.set",
+        "title": "Set the effort of the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.effort.increase",
+        "title": "Set the effort to the next allowed value",
+        "category": "Org"
+      },
+      {
+        "command": "org.ordered.toggle",
+        "title": "Toggle whether subtasks must be done in order (ORDERED)",
+        "category": "Org"
+      },
+      {
         "command": "org.tags.set",
         "title": "Set the tags of the headline",
         "category": "Org"
@@ -720,6 +750,14 @@
               ],
               "markdownDescription": "Which properties an entry without them takes from its parents, the file's property drawer and `#+PROPERTY:` lines, in property searches (`OWNER=\"alice\"`): `true` for all, `false` for none, a list of names, or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited. (`org-use-property-inheritance`)",
               "default": false
+            },
+            "org_global_properties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object",
+              "markdownDescription": "Properties every entry inherits, after those of `#+PROPERTY:` lines: chiefly the allowed values of a property, which setting it offers and `S-<right>` and `S-<left>` go through on its line (`{ \"Effort_ALL\": \"0:10 0:30 1:00 2:00\" }`; `:ETC` allows others too). (`org-global-properties`)",
+              "default": {}
             },
             "org_clock_into_drawer": {
               "type": [
@@ -2717,6 +2755,26 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
+        "command": "org.property.set",
+        "key": "ctrl+c ctrl+x p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.effort.set",
+        "key": "ctrl+c ctrl+x e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.effort.increase",
+        "key": "ctrl+c ctrl+x shift+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.ordered.toggle",
+        "key": "ctrl+c ctrl+x o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
         "command": "org.tags.set",
         "key": "ctrl+c ctrl+q",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
@@ -3457,6 +3515,26 @@
       {
         "command": "org.priority",
         "key": ",",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.property.set",
+        "key": "ctrl+c ctrl+x p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.property.set",
+        "key": "ctrl+c ctrl+x p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.effort.set",
+        "key": "e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.effort.set",
+        "key": "e",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {

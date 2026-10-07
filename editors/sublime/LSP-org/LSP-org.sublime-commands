@@ -238,6 +238,48 @@
     }
   },
   {
+    "caption": "Org: Set a property of the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.property.set"
+    }
+  },
+  {
+    "caption": "Org: Delete a property of the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.property.delete"
+    }
+  },
+  {
+    "caption": "Org: Delete a property from every entry of the file",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.property.delete.globally"
+    }
+  },
+  {
+    "caption": "Org: Set the effort of the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.effort.set"
+    }
+  },
+  {
+    "caption": "Org: Set the effort to the next allowed value",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.effort.increase"
+    }
+  },
+  {
+    "caption": "Org: Toggle whether subtasks must be done in order (ORDERED)",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.ordered.toggle"
+    }
+  },
+  {
     "caption": "Org: Set the tags of the headline",
     "command": "org_lsp_run",
     "args": {

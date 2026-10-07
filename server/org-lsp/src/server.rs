@@ -58,6 +58,16 @@ const TEXT_DOCUMENT_CONTENT: &str = "workspace/textDocumentContent";
 const TEXT_DOCUMENT_CONTENT_REFRESH: &str = "workspace/textDocumentContent/refresh";
 const LINE_HIGHLIGHTS: &str = "org-lsp/lineHighlights";
 
+/// The commands that set or delete properties.
+const PROPERTY_COMMANDS: [&str; 6] = [
+    commands::SET_PROPERTY,
+    commands::DELETE_PROPERTY,
+    commands::DELETE_PROPERTY_GLOBALLY,
+    commands::SET_EFFORT,
+    commands::INCREASE_EFFORT,
+    commands::TOGGLE_ORDERED,
+];
+
 /// What the server remembers about the client.
 struct Client {
     encoding: Encoding,
@@ -175,6 +185,8 @@ struct Context {
     /// The answers to the questions of `org.archive.done` so far, `y` or
     /// `n` each; `input` is then the next one.
     answers: Option<String>,
+    /// For the property commands: the question `input` answers.
+    step: Option<String>,
     /// The text of the buffer the command runs in, as the editor has it:
     /// a capture or note buffer whose last changes the server may not have
     /// heard of yet.
@@ -473,6 +485,9 @@ struct Server {
     /// answered yet. A command from the old line is meant for the new one.
     moving: Option<(u32, u32)>,
     last: Option<Last>,
+    /// `org-last-set-property`: the name `org-set-property` offers by
+    /// default.
+    last_property: Option<String>,
 }
 
 /// Run the server until the client asks it to exit.
@@ -617,6 +632,7 @@ pub fn run(connection: Connection) -> Result<()> {
         follow: None,
         moving: None,
         last: None,
+        last_property: None,
     };
     // A problem with the options is worth a message where the user looks.
     if !loaded.problems.is_empty() {
@@ -2622,7 +2638,11 @@ impl Server {
                 self.refile_capture(context.and_then(|context| context.input).as_deref(), text)
             }
             id if id.starts_with("org.clock.") => self.clock_command(id, context.as_ref()),
-            id if id == commands::TODO || id == commands::SET_TAGS || actions::command(id).is_some() => {
+            id if id == commands::TODO
+                || id == commands::SET_TAGS
+                || PROPERTY_COMMANDS.contains(&id)
+                || actions::command(id).is_some() =>
+            {
                 self.run_edit(id, context)
             }
             id if commands::input(id).is_some() => {
@@ -4203,6 +4223,210 @@ impl Server {
     /// whether exclusive groups apply and whether the next change ends
     /// it, then the tags). TAB asks for a tag by name. Without fast
     /// selection the tags are typed (input kind `text`).
+    /// Whether `C-c C-c` at `context` is `org-property-action`: in the
+    /// property drawer of an entry of an Org file, or answering its
+    /// questions.
+    fn at_property_drawer(&self, context: &Context) -> bool {
+        if context.step.is_some() {
+            return true;
+        }
+        let uri = &context.text_document.uri;
+        let Some(document) = self.document(uri).filter(|_| !self.is_view(uri)) else { return false };
+        let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+        org_core::properties::in_drawer(&document.text, offset)
+    }
+
+    /// The file and the byte offset a command at `context` acts on: the
+    /// cursor's, or on an agenda line its entry's headline.
+    fn command_place(&mut self, context: &Context) -> std::result::Result<(Uri, usize), Refusal> {
+        let uri = &context.text_document.uri;
+        if self.is_view(uri) {
+            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let offset = self
+                .with_source(&reference.uri, |_, _, _, outline, _| {
+                    views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
+                })
+                .flatten()
+                .ok_or("The entry is gone; rebuild the agenda")?;
+            return Ok((reference.uri, offset));
+        }
+        let document = self.document(uri).ok_or("This file is not open")?;
+        Ok((uri.clone(), document.index.offset(&document.text, context.position, self.client.encoding)))
+    }
+
+    /// The property commands: `org-set-property` (`C-c C-x p`),
+    /// `org-delete-property`, `org-delete-property-globally`,
+    /// `org-set-effort` (`C-c C-x e`), `org-inc-effort`,
+    /// `org-toggle-ordered-property`, and `org-property-action` (`C-c C-c`
+    /// in a property drawer), which asks which of them first. Each
+    /// question comes back with `step` saying what `input` answers.
+    fn property_command(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::properties::{self, Question};
+        let (file, offset) = self.command_place(context)?;
+        let settings = self.edit_settings.clone();
+        let category = uri::file_stem(&file);
+        let last = self.last_property.clone();
+        // The questions are those of the file as it is now.
+        let read = |server: &mut Self,
+                    ask: &dyn Fn(
+            &str,
+            &org_syntax::Parse,
+            &properties::Context,
+        ) -> std::result::Result<Question, String>| {
+            server
+                .with_source(&file, |text, _, parse, _, _| {
+                    let property_context = org_core::edit::property_context(parse, &settings, &category);
+                    ask(text, parse, &property_context)
+                })
+                .ok_or_else(|| Refusal::Failed("Cannot read the file of this entry".to_string()))?
+                .map_err(Refusal::Failed)
+        };
+        // A question, as an input: one of a list when only those will do,
+        // or else text with the list to complete from.
+        let input = |question: &Question, step: &str, answers: Option<&str>| {
+            let prompt = question.prompt.trim_end_matches([':', ' ']);
+            let mut context = json!({ "step": step });
+            if let Some(answers) = answers {
+                context["answers"] = json!(answers);
+            }
+            if question.require_match {
+                let choices: Vec<Value> = question
+                    .collection
+                    .iter()
+                    .map(|value| json!({ "key": value, "label": if value.is_empty() { "(none)" } else { value } }))
+                    .collect();
+                json!({ "input": { "kind": "choice", "prompt": prompt, "value": "", "choices": choices, "context": context } })
+            } else {
+                json!({ "input": {
+                    "kind": "text", "prompt": prompt, "value": "",
+                    "completions": question.collection, "context": context,
+                } })
+            }
+        };
+        let edit =
+            |server: &mut Self, command: EditCommand| server.edit_with(context, id, Some(command), &Extra::default());
+        let answer = context.input.clone();
+        let name_question = |server: &mut Self| {
+            read(server, &|text, _, property_context| {
+                Ok(properties::name_question(text, offset, last.as_deref(), property_context))
+            })
+        };
+        // What the step answers, or the command's first question.
+        let step = match (context.step.as_deref(), &answer) {
+            (Some(step), Some(_)) => step.to_string(),
+            (Some(_), None) => return Ok(Value::Null),
+            (None, _) => match id {
+                commands::SET_PROPERTY => "set".to_string(),
+                commands::DELETE_PROPERTY => "delete".to_string(),
+                commands::DELETE_PROPERTY_GLOBALLY => "delete-globally".to_string(),
+                commands::SET_EFFORT => "effort".to_string(),
+                commands::INCREASE_EFFORT => return edit(self, EditCommand::Effort(None)),
+                commands::TOGGLE_ORDERED => return edit(self, EditCommand::Ordered),
+                _ => {
+                    let choices = json!([
+                        { "key": "s", "label": "set" },
+                        { "key": "d", "label": "delete" },
+                        { "key": "D", "label": "delete globally" },
+                        { "key": "c", "label": "compute" },
+                    ]);
+                    return Ok(json!({ "input": {
+                        "kind": "key", "prompt": "Property Action", "value": "", "choices": choices,
+                        "context": { "step": "action" },
+                    } }));
+                }
+            },
+        };
+        let answer = answer.unwrap_or_default();
+        match step.as_str() {
+            // `org-property-action`: the key picked.
+            "action" => match answer.as_str() {
+                "s" => Ok(input(&name_question(self)?, "name", None)),
+                "d" => self.property_step_delete(context, &file, offset, &settings, &category),
+                "D" => {
+                    let question = read(self, &|text, _, property_context| {
+                        Ok(properties::delete_globally_question(text, property_context))
+                    })?;
+                    Ok(input(&question, "delete-globally-name", None))
+                }
+                "c" => {
+                    Err(Refusal::Failed("Computing a property needs column view, which org-lsp has not".to_string()))
+                }
+                key => Err(Refusal::Failed(format!("No such property action {key}"))),
+            },
+            "set" => Ok(input(&name_question(self)?, "name", None)),
+            "name" => {
+                let question = name_question(self)?;
+                let name = question.answer(&answer);
+                if !properties::valid_name(&name) {
+                    return Err(Refusal::Failed(format!("Invalid property name: \"{name}\"")));
+                }
+                let asked = name.clone();
+                let question = read(self, &|text, _, property_context| {
+                    properties::value_question(text, offset, &asked, property_context)
+                })?;
+                Ok(input(&question, "value", Some(&name)))
+            }
+            "value" => {
+                let name = context.answers.clone().unwrap_or_default();
+                let asked = name.clone();
+                let question = read(self, &|text, _, property_context| {
+                    properties::value_question(text, offset, &asked, property_context)
+                })?;
+                let value = question.answer(&answer);
+                self.last_property = Some(name.clone());
+                edit(self, EditCommand::Property { name, value })
+            }
+            "delete" => self.property_step_delete(context, &file, offset, &settings, &category),
+            "delete-name" => edit(self, EditCommand::DeleteProperty(answer)),
+            "delete-globally" => {
+                let question = read(self, &|text, _, property_context| {
+                    Ok(properties::delete_globally_question(text, property_context))
+                })?;
+                Ok(input(&question, "delete-globally-name", None))
+            }
+            "delete-globally-name" => edit(self, EditCommand::DeletePropertyGlobally(answer)),
+            "effort" => {
+                let question = read(self, &|text, _, property_context| {
+                    properties::effort_question(text, offset, property_context)
+                })?;
+                Ok(input(&question, "effort-value", None))
+            }
+            "effort-value" => edit(self, EditCommand::Effort(Some(answer))),
+            other => Err(Refusal::Failed(format!("Unknown step {other}"))),
+        }
+    }
+
+    /// `org-delete-property`: which property, unless the entry offers
+    /// only one.
+    fn property_step_delete(
+        &mut self,
+        context: &Context,
+        file: &Uri,
+        offset: usize,
+        _settings: &EditSettings,
+        _category: &str,
+    ) -> std::result::Result<Value, Refusal> {
+        let question = self
+            .with_source(file, |text, _, _, _, _| org_core::properties::delete_question(text, offset))
+            .ok_or("Cannot read the file of this entry")?;
+        match question {
+            Ok(question) => {
+                let choices: Vec<Value> =
+                    question.collection.iter().map(|name| json!({ "key": name, "label": name })).collect();
+                Ok(json!({ "input": {
+                    "kind": "choice", "prompt": "Property", "value": "", "choices": choices,
+                    "context": { "step": "delete-name" },
+                } }))
+            }
+            Err(name) => self.edit_with(
+                context,
+                commands::DELETE_PROPERTY,
+                Some(EditCommand::DeleteProperty(name)),
+                &Extra::default(),
+            ),
+        }
+    }
+
     fn set_tags(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
         use org_core::tags::{self, Selection, State, Step};
         let uri = &context.text_document.uri;
@@ -4330,6 +4554,9 @@ impl Server {
         }
         if id == commands::SET_TAGS {
             return self.set_tags(&context);
+        }
+        if PROPERTY_COMMANDS.contains(&id) || (id == commands::CHECKBOX_TOGGLE && self.at_property_drawer(&context)) {
+            return self.property_command(id, &context);
         }
         if id != commands::TODO {
             return self.edit_with(&context, id, None, &Extra::default());

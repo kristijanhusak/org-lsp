@@ -48,6 +48,10 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X Ctrl+J` | `org.clock.goto` | Go to the clocked entry |
 | `Ctrl+C Ctrl+T` | `org.todo` | Change the TODO state |
 | `Ctrl+C ,` | `org.priority` | Set the priority |
+| `Ctrl+C Ctrl+X p` | `org.property.set` | Set a property of the entry |
+| `Ctrl+C Ctrl+X e` | `org.effort.set` | Set the effort of the entry |
+| `Ctrl+C Ctrl+X Shift+E` | `org.effort.increase` | Set the effort to the next allowed value |
+| `Ctrl+C Ctrl+X o` | `org.ordered.toggle` | Toggle whether subtasks must be done in order (ORDERED) |
 | `Ctrl+C Ctrl+Q` | `org.tags.set` | Set the tags of the headline |
 | `Ctrl+C Ctrl+C` | `org.checkbox.toggle` | Toggle the checkbox |
 | `Enter`¹ | `org.return` | New line, as Org's RET makes it |
@@ -130,6 +134,8 @@ The other options are in [configuration.md](configuration.md).
 | `+`, `Shift+Up` | `org.priority.up` | Raise the priority |
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
+| `Ctrl+C Ctrl+X p` | `org.property.set` | Set a property of the entry |
+| `e` | `org.effort.set` | Set the effort of the entry |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
@@ -221,6 +227,8 @@ The other options are in [configuration.md](configuration.md).
 | `+`, `Shift+Up` | `org.priority.up` | Raise the priority |
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
+| `Ctrl+C Ctrl+X p` | `org.property.set` | Set a property of the entry |
+| `e` | `org.effort.set` | Set the effort of the entry |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
 | `z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
@@ -275,6 +283,9 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "x", "q"], "commands": ["org.clock.cancel"] },
   { "before": ["<leader>", "o", "x", "j"], "commands": ["org.clock.goto"] },
   { "before": ["<leader>", "o", ","], "commands": ["org.priority"] },
+  { "before": ["<leader>", "o", "x", "p"], "commands": ["org.property.set"] },
+  { "before": ["<leader>", "o", "x", "e"], "commands": ["org.effort.set"] },
+  { "before": ["<leader>", "o", "x", "E"], "commands": ["org.effort.increase"] },
   { "before": ["<leader>", "o", "t"], "commands": ["org.tags.set"] },
   { "before": ["<leader>", "<CR>"], "commands": ["org.meta.return"] },
   { "before": ["<leader>", "o", "i", "T"], "commands": ["org.insert.todo.heading"] },
@@ -341,6 +352,12 @@ every file; outside Org files the commands say they do not apply):
 | `org.priority.up` | Org: Raise the priority |
 | `org.priority.down` | Org: Lower the priority |
 | `org.priority` | Org: Set the priority |
+| `org.property.set` | Org: Set a property of the entry |
+| `org.property.delete` | Org: Delete a property of the entry |
+| `org.property.delete.globally` | Org: Delete a property from every entry of the file |
+| `org.effort.set` | Org: Set the effort of the entry |
+| `org.effort.increase` | Org: Set the effort to the next allowed value |
+| `org.ordered.toggle` | Org: Toggle whether subtasks must be done in order (ORDERED) |
 | `org.tags.set` | Org: Set the tags of the headline |
 | `org.checkbox.toggle` | Org: Toggle the checkbox |
 | `org.return` | Org: New line, as Org's RET makes it |

@@ -81,9 +81,10 @@ few, checked against Emacs where Org decides the outcome:
   and back (`org-toggle-item`), `C-c *` (`org-toggle-heading`), radio
   lists.
 - **Tags and properties (7):** done: set tags (`C-c C-q`, with fast tag
-  selection and alignment, exclusive groups). Left: set and delete properties
-  (`C-c C-x p`), allowed values on the shifted keys; `LOGGING` and other
-  properties that change what commands do.
+  selection and alignment, exclusive groups), set and delete properties
+  (`C-c C-x p`, `C-c C-c` in a drawer), allowed values on the shifted
+  keys, effort, `ORDERED`. Left: `LOGGING` and `#+STARTUP:` logging
+  words, which change what commands do.
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
   moving rows and columns, `C-c -` for a rule.
 - **Agenda (5):** filters (`/`, `<`, `=`, `_`, `|`), stuck
@@ -387,8 +388,15 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - Left: setting `#+FILETAGS:` (Emacs refuses too), group tags in match
   strings (with the agenda), `LOGGING` and other properties that change
   what commands do, read with inheritance.
-- Properties: set, delete, allowed values (the shifted keys on a property
-  line), column view if it can be shown at all.
+- Done: properties (`org-set-property`, `org-delete-property`,
+  `org-delete-property-globally`, `org-property-action`, the shifted keys
+  on a property line through `NAME_ALL`, `org-set-effort`,
+  `org-inc-effort`, `org-toggle-ordered-property`,
+  `org-global-properties`), checked against Emacs in `tests/properties`
+  (`scripts/fuzz-properties.py`). `SCHEDULED` and `DEADLINE` are refused
+  there: their own commands set them.
+- Left: column view, if it can be shown at all (and with it computing a
+  property, `c` at `org-property-action`).
 
 ### 8. Lists and checkboxes
 

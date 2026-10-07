@@ -3333,3 +3333,105 @@ fn sets_tags_by_key_and_from_the_agenda() {
     assert!(apply(WORK, &edits).contains(":call:phone:\nDEADLINE"), "{}", apply(WORK, &edits));
     client.shutdown();
 }
+
+/// `org-set-property` asks for a name, then a value: one of the allowed
+/// ones when `NAME_ALL` says which; `S-<right>` goes to the next of them,
+/// `C-c C-c` in the drawer asks what to do, and the effort is set from
+/// the agenda.
+#[test]
+fn sets_and_deletes_properties() {
+    let mut client = Client::editor(clock(), None);
+    let uri = "file:///org/props.org";
+    let mut text = "#+PROPERTY: Color_ALL red green\n* TODO Task\n".to_string();
+    client.open(uri, &text);
+    let ask = |client: &mut Client, command: &str, line: u32, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap()
+    };
+    let asked = ask(&mut client, "org.property.set", 1, json!({}));
+    assert_eq!(asked["input"]["kind"], "text");
+    assert_eq!(asked["input"]["prompt"], "Property");
+    assert_eq!(asked["input"]["context"], json!({ "step": "name" }));
+    assert!(asked["input"]["completions"].as_array().unwrap().contains(&json!("Color")));
+    let asked = ask(&mut client, "org.property.set", 1, json!({ "step": "name", "input": "Color" }));
+    assert_eq!(asked["input"]["kind"], "choice");
+    assert_eq!(asked["input"]["prompt"], "Color value");
+    assert_eq!(
+        asked["input"]["choices"],
+        json!([{ "key": "red", "label": "red" }, { "key": "green", "label": "green" }])
+    );
+    assert_eq!(asked["input"]["context"], json!({ "step": "value", "answers": "Color" }));
+    client.edit(
+        "org.property.set",
+        uri,
+        (1, 0),
+        json!({ "step": "value", "answers": "Color", "input": "red" }),
+        &mut text,
+    );
+    assert_eq!(text, "#+PROPERTY: Color_ALL red green\n* TODO Task\n:PROPERTIES:\n:Color:    red\n:END:\n");
+    // The name set last is the default next time.
+    let asked = ask(&mut client, "org.property.set", 1, json!({}));
+    assert_eq!(asked["input"]["prompt"], "Property [Color]");
+    // `S-<right>` on the property's line.
+    client.edit("org.shift.right", uri, (3, 2), json!({}), &mut text);
+    assert!(text.contains(":Color:    green\n"), "{text}");
+    // `C-c C-c` in the drawer: `d` deletes, and the drawer goes too.
+    let asked = ask(&mut client, "org.checkbox.toggle", 3, json!({}));
+    assert_eq!(asked["input"]["kind"], "key");
+    assert_eq!(asked["input"]["prompt"], "Property Action");
+    let asked = ask(&mut client, "org.checkbox.toggle", 3, json!({ "step": "action", "input": "d" }));
+    assert_eq!(
+        asked["input"]["choices"],
+        json!([{ "key": "CATEGORY", "label": "CATEGORY" }, { "key": "COLOR", "label": "COLOR" }])
+    );
+    client.edit("org.checkbox.toggle", uri, (3, 0), json!({ "step": "delete-name", "input": "COLOR" }), &mut text);
+    assert_eq!(text, "#+PROPERTY: Color_ALL red green\n* TODO Task\n");
+    // TODO through a property changes the keyword.
+    client.edit(
+        "org.property.set",
+        uri,
+        (1, 0),
+        json!({ "step": "value", "answers": "TODO", "input": "DONE" }),
+        &mut text,
+    );
+    assert!(text.starts_with("#+PROPERTY: Color_ALL red green\n* DONE Task"), "{text}");
+    let error = client
+        .request(
+            "workspace/executeCommand",
+            json!({ "command": "org.property.set", "arguments": [{
+            "textDocument": { "uri": uri }, "position": { "line": 1, "character": 0 },
+            "step": "name", "input": "two words",
+        }] }),
+        )
+        .unwrap_err();
+    assert_eq!(error, "Invalid property name: \"two words\"");
+
+    // The effort of an agenda line's entry, typed.
+    client.open("file:///org/work.org", WORK);
+    client.command("org.agenda.todos", VIEW, 0);
+    let line = client.view_text(VIEW).lines().position(|line| line.contains("Call the client")).unwrap();
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    let asked = client
+        .request("workspace/executeCommand", json!({ "command": "org.effort.set", "arguments": [context] }))
+        .unwrap();
+    assert_eq!(asked["input"]["kind"], "text");
+    assert_eq!(asked["input"]["prompt"], "Effort");
+    let mut context = context;
+    context["step"] = json!("effort-value");
+    context["input"] = json!("1:30");
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.effort.set", "arguments": [context] })).unwrap();
+    client.settle();
+    let requests = std::mem::take(&mut client.received);
+    let request = requests.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(request);
+    assert!(
+        apply(WORK, &edits).contains("DEADLINE: <2026-05-20 Wed>\n:PROPERTIES:\n:Effort:   1:30\n:END:\n"),
+        "{}",
+        apply(WORK, &edits)
+    );
+    client.shutdown();
+}

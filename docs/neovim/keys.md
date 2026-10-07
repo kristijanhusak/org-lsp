@@ -40,6 +40,9 @@ The other options are in [configuration.md](configuration.md).
 | `ciR` | `org.priority.up` | Raise the priority |
 | `cir` | `org.priority.down` | Lower the priority |
 | `<Leader>o,` | `org.priority` | Set the priority |
+| `<Leader>oxp` | `org.property.set` | Set a property of the entry |
+| `<Leader>oxe` | `org.effort.set` | Set the effort of the entry |
+| `<Leader>oxE` | `org.effort.increase` | Set the effort to the next allowed value |
 | `<Leader>ot` | `org.tags.set` | Set the tags of the headline |
 | `<C-Space>` | `org.checkbox.toggle` | Toggle the checkbox |
 | `<CR>`¹ (insert mode) | `org.return` | New line, as Org's RET makes it |
@@ -119,6 +122,8 @@ The other options are in [configuration.md](configuration.md).
 | `+`, `<S-Up>` | `org.priority.up` | Raise the priority |
 | `-`, `<S-Down>` | `org.priority.down` | Lower the priority |
 | `,`, `<Leader>o,` | `org.priority` | Set the priority |
+| `<C-c><C-x>p`, `<Leader>oxp` | `org.property.set` | Set a property of the entry |
+| `e`, `<Leader>oxe` | `org.effort.set` | Set the effort of the entry |
 | `<Leader>ot` | `org.tags.set` | Set the tags of the headline |
 | `<C-c><C-w>`, `<Leader>or` | `org.refile` | Refile the entry |
 | `z`, `<Leader>ona` | `org.add.note` | Add a note to the entry |
@@ -160,6 +165,9 @@ The other options are in [configuration.md](configuration.md).
 | `org.agenda.list` | Agenda for the current week or day |
 | `org.agenda.todos` | List of all TODO entries |
 | `org.todo.next` | Cycle TODO state forward |
+| `org.property.delete` | Delete a property of the entry |
+| `org.property.delete.globally` | Delete a property from every entry of the file |
+| `org.ordered.toggle` | Toggle whether subtasks must be done in order (ORDERED) |
 | `org.table.recalculate.line` | Recalculate the table's current line |
 | `org.table.iterate` | Recalculate the table until it does not change |
 | `org.archive.done` | Archive the subtrees without open TODO items |

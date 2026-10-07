@@ -364,6 +364,32 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org agenda: Set a property of the entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.property.set",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: Set the effort of the entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.effort.set",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: Refile the entry",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.refile",
     "tags": [
