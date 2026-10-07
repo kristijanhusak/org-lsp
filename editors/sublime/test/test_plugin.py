@@ -162,6 +162,7 @@ def load_plugin():
     sublime.OP_EQUAL, sublime.OP_NOT_EQUAL = 0, 1
     sublime.set_timeout = lambda f, delay=0: f()
     sublime.LAYOUT_INLINE = 0
+    sublime.ENCODED_POSITION = 1
     sublime.Phantom = lambda region, html, layout: types.SimpleNamespace(region=region, html=html, layout=layout)
 
     class PhantomSet:
@@ -208,6 +209,9 @@ def load_plugin():
     storage = tempfile.mkdtemp()
 
     class AbstractPlugin:
+        def __init__(self, weaksession):
+            self.weaksession = weaksession
+
         @classmethod
         def storage_path(cls):
             return storage
@@ -222,6 +226,8 @@ def load_plugin():
     api.LspTextCommand = Command
     api.LspWindowCommand = Command
     api.Request = lambda method, params: types.SimpleNamespace(method=method, params=params)
+    api.Notification = lambda method, params: types.SimpleNamespace(method=method, params=params)
+    api.Response = lambda request_id, result: types.SimpleNamespace(request_id=request_id, result=result)
     api.parse_uri = lambda uri: ('file', uri[len('file://'):])
     api.register_plugin = api.unregister_plugin = lambda plugin: None
     api.text_document_identifier = lambda view: {'uri': 'file://' + view.name}
@@ -377,6 +383,67 @@ class Tests(unittest.TestCase):
         self.assertTrue(listener.on_query_context(capture, 'org_lsp.capture', 0, True, True))
         self.assertIsNone(listener.on_query_context(self.view, 'other', 0, True, True))
 
+
+    def test_tab_opens_the_entry_in_another_group(self):
+        class Groups:
+            """A window of groups, each a list of file names."""
+
+            def __init__(self, groups, active=0):
+                self.groups = groups
+                self.active = active
+                self.layout_set = None
+                self.opened = None
+
+            def active_group(self):
+                return self.active
+
+            def num_groups(self):
+                return len(self.groups)
+
+            def views_in_group(self, group):
+                return [types.SimpleNamespace(file_name=lambda name=name: name) for name in self.groups[group]]
+
+            def layout(self):
+                return {'cols': [0.0, 1.0], 'rows': [0.0, 1.0], 'cells': [[0, 0, 1, 1]]}
+
+            def set_layout(self, layout):
+                self.layout_set = layout
+                self.groups.append([])
+
+            def focus_group(self, group):
+                self.active = group
+
+            def open_file(self, name, flags=0, group=-1):
+                self.opened = (name, flags, group)
+
+        other_group = self.plugin.other_group
+        # The group that has the file, then an empty one.
+        self.assertEqual(other_group(Groups([['agenda'], ['/a.org'], []]), '/a.org'), 1)
+        self.assertEqual(other_group(Groups([['agenda'], ['/b.org'], []]), '/a.org'), 2)
+        # Else a new column to the right.
+        alone = Groups([['agenda']])
+        self.assertEqual(other_group(alone, '/a.org'), 1)
+        self.assertEqual(alone.layout_set, {
+            'cols': [0.0, 0.5, 1.0], 'rows': [0.0, 1.0], 'cells': [[0, 0, 1, 1], [1, 0, 2, 1]]})
+        window = Groups([['agenda']])
+        selection = {'start': {'line': 2, 'character': 0}}
+        self.plugin.show_in_other_group(window, {'uri': 'file:///a.org', 'selection': selection})
+        self.assertEqual(window.opened, ('/a.org:3:1', self.sublime.ENCODED_POSITION, 1))
+        self.assertEqual(window.active, 1)
+
+    def test_tells_the_server_how_wide_the_agenda_is(self):
+        sent = []
+        session = types.SimpleNamespace(send_notification=sent.append)
+        self.plugin.OrgLsp(lambda: session)
+        agenda = types.SimpleNamespace(
+            file_name=lambda: '/tmp/org-lsp-1/Agenda.org-agenda',
+            em_width=lambda: 8.0,
+            viewport_extent=lambda: (803.0, 400.0),
+        )
+        window = types.SimpleNamespace(num_groups=lambda: 2, active_view_in_group=lambda group: [None, agenda][group])
+        self.plugin.tell_agenda_width(window)
+        self.plugin.tell_agenda_width(window)
+        self.assertEqual([(note.method, note.params) for note in sent], [('org-lsp/agendaWidth', {'width': 100})])
 
 def archive(binary=b'#!/bin/sh\n'):
     """The release's archive for Linux: `org-lsp` in a tar.gz."""

@@ -63,7 +63,8 @@ fn block_config(
     }
     let options: AgendaOptions =
         serde_json::from_value(value).map_err(|error| format!("agenda settings of a custom command: {error}"))?;
-    let config = Config { priorities: priorities.priorities, ..options.to_config() };
+    let config =
+        Config { priorities: priorities.priorities, window_width: priorities.window_width, ..options.to_config() };
     Ok((options, config))
 }
 

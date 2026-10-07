@@ -25,7 +25,7 @@ The server sends these requests to the client:
 | Request | When |
 | --- | --- |
 | `workspace/applyEdit` | A command changes an Org file. |
-| `window/showDocument` | To show the agenda, a capture buffer, or the file of an agenda entry. The editors open the agenda and capture buffers in a window of their own (a split by default), and an entry's file where the agenda was. |
+| `window/showDocument` | To show the agenda, a capture buffer, or the file of an agenda entry. The editors open the agenda and capture buffers in a window of their own (a split by default), and an entry's file where the agenda was. With `"orgOtherWindow": true` (not LSP's; `org.agenda.goto.other`, TAB in the agenda) the editors of this project show the file in another window: one that shows it, else an empty one, else a new one. |
 | `workspace/textDocumentContent/refresh` | The agenda has new text. |
 
 And this notification:
@@ -35,6 +35,13 @@ And this notification:
 | `org-lsp/save` | `{ "uris": [uri…] }`: with `autoSave`, the files a command changed other than the one it was run in (an entry's file changed from the agenda, the target of a capture or a refile), once the editor has applied the change. The editor saves those with changes. |
 | `org-lsp/virtualIndent` | For a client that announces `experimental.orgVirtualIndent: true`: how the lines of a file with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`) or hidden leading stars (`hideLeadingStars`, `#+STARTUP: hidestars`) show. `{ "uri", "version", "lines" }`, each line `[line, prefix, wrap, hiddenStars]`: the columns shown before the line (`line-prefix`), before the lines it wraps into (`wrap-prefix`), and how many of a headline's leading stars show as blanks. Lines with nothing to show are left out. Sent after the file opens and after every change while it shows so, and once with no lines when it stops. Only for the version given. |
 | `org-lsp/clock` | The clock that runs, for a status line: `null` when none does, or `{ "heading", "minutes", "effort", "text", "uri", "line" }`, the entry's headline, the minutes clocked on it so far (since `LAST_REPEAT` if it has one), its effort in minutes or `null`, the text of Emacs's mode line (`[0:25/1:00] (Write the report)`), and where the entry is. Sent when the clock starts or stops, and when the server starts with a clock running in the files. The editor counts the minutes on from there. |
+
+And from the client, this notification (also taken as a request, for
+clients that send none of their own):
+
+| Notification | When |
+| --- | --- |
+| `org-lsp/agendaWidth` | `{ "width": N }`: how many columns of text the window that shows the agenda has, when it opens and whenever its size changes. With `agenda.tagsColumn` `"auto"` the tags end at that column, and the server builds the agenda again when it changes; without it they end at column 80. |
 
 **Position encoding.** The server picks UTF-8 if the client offers it, then
 UTF-32, and falls back to UTF-16.
@@ -116,7 +123,7 @@ the editor's own syntax.
 | `agenda.skipTimestampIfDone` | boolean | `false` | Leave out timestamps of entries that are done. (`org-agenda-skip-timestamp-if-done`) |
 | `agenda.showFutureRepeats` | boolean, "next" | `true` | Show the future dates of repeating entries: all of them, none, or only the next. (`org-agenda-show-future-repeats`) |
 | `agenda.showAllDates` | boolean | `true` | Show days without entries. (`org-agenda-show-all-dates`) |
-| `agenda.tagsColumn` | number | `-80` | Where tags are aligned in the agenda. Org's own default follows the window width, which a server does not know. (`org-agenda-tags-column`) |
+| `agenda.tagsColumn` | number, "auto" | `"auto"` | Where tags are aligned in the agenda: a column (negative: where they end), or `auto` for the right edge of the window. With `auto`, the editors that tell the server how wide the agenda's window is (Neovim, Vim, Sublime Text) have the tags there, and the agenda follows the window as it is resized; the others (VS Code, Zed) have them end at column 80. (`org-agenda-tags-column`) |
 | `agenda.useTimeGrid` | boolean | `true` | Draw the time grid. (`org-agenda-use-time-grid`) |
 | `agenda.timeGrid.daily` | boolean | `true` | Draw the grid in a one-day agenda. (`org-agenda-time-grid`) |
 | `agenda.timeGrid.today` | boolean | `true` | Draw the grid for today. (`org-agenda-time-grid`) |
@@ -230,7 +237,8 @@ number.
 | `org.agenda.goto.date` | Asks for a date and shows the agenda from that day, over as many days as its span (`org-agenda-goto-date`); a week or a fortnight still starts on the first day of the week. |
 | `org.agenda.day`, `.week`, `.fortnight`, `.month`, `.year` | Changes the span, keeping the day under the cursor in view. |
 | `org.agenda.redo` | Rebuilds the agenda. |
-| `org.agenda.goto` | Shows the entry of the agenda line under the cursor. |
+| `org.agenda.goto` | Shows the entry of the agenda line under the cursor (`org-agenda-switch-to`, RET). |
+| `org.agenda.goto.other` | The same in another window (`org-agenda-goto`, TAB): see `window/showDocument` above. |
 | `org.agenda.save` | `org-save-all-org-buffers`: returns `{ "save": [uri…] }`, the Org files the editor has open; the editor saves those with changes. |
 | `org.agenda.log`, `org.agenda.clockreport` | Turn log mode (`org-agenda-log-mode`: what was closed and clocked each day) or the clock report under the agenda (`org-agenda-clockreport-mode`) on or off. |
 | `org.agenda.archives`, `org.agenda.archives.files` | `org-agenda-archives-mode` (`v a`, `v A`): show the entries of archived trees too, which the agenda leaves out otherwise; with `.files`, also the files the agenda files archive to (their `#+ARCHIVE:` or `archiveLocation`, and their `ARCHIVE` properties) that exist. Each turns its mode off when it is on. |

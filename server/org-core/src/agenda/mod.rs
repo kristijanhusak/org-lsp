@@ -161,6 +161,15 @@ impl Default for PrefixFormats {
     }
 }
 
+/// `org-agenda-tags-column`: where tags end (negative) or start.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TagsColumn {
+    Column(i64),
+    /// At the right edge of the window, as Emacs's `auto`; at column 80
+    /// when the width is not known.
+    Auto,
+}
+
 /// Agenda settings. The names and defaults are Org's.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Config {
@@ -187,9 +196,11 @@ pub struct Config {
     pub show_future_repeats: FutureRepeats,
     /// `org-agenda-show-all-dates`
     pub show_all_dates: bool,
-    /// `org-agenda-tags-column`. Org's default follows the window width;
-    /// a server does not know it, so the default is -80.
-    pub tags_column: i64,
+    /// `org-agenda-tags-column`
+    pub tags_column: TagsColumn,
+    /// The width of the window the agenda is shown in, in columns, when
+    /// the editor says: where `TagsColumn::Auto` aligns tags.
+    pub window_width: Option<usize>,
     /// `org-agenda-use-time-grid`
     pub use_time_grid: bool,
     /// `org-agenda-time-grid` and `org-agenda-current-time-string`
@@ -269,7 +280,8 @@ impl Default for Config {
             skip_timestamp_if_done: false,
             show_future_repeats: FutureRepeats::All,
             show_all_dates: true,
-            tags_column: -80,
+            tags_column: TagsColumn::Auto,
+            window_width: None,
             use_time_grid: true,
             time_grid: TimeGrid::default(),
             show_current_time_in_grid: true,
@@ -844,7 +856,11 @@ impl View {
 }
 
 fn item_line(item: Item, config: &Config) -> Line {
-    Line { text: align_tags(&item.text, config.tags_column), kind: LineKind::Item, item: Some(item) }
+    let column = match config.tags_column {
+        TagsColumn::Column(column) => column,
+        TagsColumn::Auto => -(config.window_width.unwrap_or(80) as i64),
+    };
+    Line { text: align_tags(&item.text, column), kind: LineKind::Item, item: Some(item) }
 }
 
 /// The first day of an agenda that should include `day`: week views go

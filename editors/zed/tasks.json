@@ -143,6 +143,19 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org agenda: go to the entry in another window",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.goto.other",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: Save all Org files",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.save",
     "tags": [

@@ -340,9 +340,13 @@ them out:
       // Show days without entries. (org-agenda-show-all-dates)
       "showAllDates": true,
 
-      // Where tags are aligned in the agenda. Org's own default follows the
-      // window width, which a server does not know. (org-agenda-tags-column)
-      "tagsColumn": -80,
+      // Where tags are aligned in the agenda: a column (negative: where they
+      // end), or `auto` for the right edge of the window. With `auto`, the
+      // editors that tell the server how wide the agenda's window is (Neovim,
+      // Vim, Sublime Text) have the tags there, and the agenda follows the
+      // window as it is resized; the others (VS Code, Zed) have them end at
+      // column 80. (org-agenda-tags-column)
+      "tagsColumn": "auto",
 
       // Draw the time grid. (org-agenda-use-time-grid)
       "useTimeGrid": true,

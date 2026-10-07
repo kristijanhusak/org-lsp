@@ -474,11 +474,13 @@ pub const SETTINGS: &[Setting] = &[
     setting("agenda.showAllDates", "boolean", "true", "org-agenda-show-all-dates", "Show days without entries."),
     setting(
         "agenda.tagsColumn",
-        "number",
-        "-80",
+        r#"number, "auto""#,
+        r#""auto""#,
         "org-agenda-tags-column",
-        "Where tags are aligned in the agenda. Org's own default follows the window width, which a server \
-         does not know.",
+        "Where tags are aligned in the agenda: a column (negative: where they end), or `auto` for the right \
+         edge of the window. With `auto`, the editors that tell the server how wide the agenda's window is \
+         (Neovim, Vim, Sublime Text) have the tags there, and the agenda follows the window as it is \
+         resized; the others (VS Code, Zed) have them end at column 80.",
     ),
     setting("agenda.useTimeGrid", "boolean", "true", "org-agenda-use-time-grid", "Draw the time grid."),
     setting("agenda.timeGrid.daily", "boolean", "true", "org-agenda-time-grid", "Draw the grid in a one-day agenda."),
@@ -880,7 +882,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("agenda.skipTimestampIfDone", BOOLEAN),
     ("agenda.showFutureRepeats", r#"{ "enum": [true, false, "next"] }"#),
     ("agenda.showAllDates", BOOLEAN),
-    ("agenda.tagsColumn", INTEGER),
+    ("agenda.tagsColumn", r#"{ "anyOf": [{ "type": "integer" }, { "const": "auto" }] }"#),
     ("agenda.useTimeGrid", BOOLEAN),
     ("agenda.timeGrid.daily", BOOLEAN),
     ("agenda.timeGrid.today", BOOLEAN),

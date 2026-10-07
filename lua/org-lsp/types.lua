@@ -66,7 +66,7 @@
 ---@field skipTimestampIfDone? boolean Leave out timestamps of entries that are done. (`org-agenda-skip-timestamp-if-done`)
 ---@field showFutureRepeats? true|false|'next' Show the future dates of repeating entries: all of them, none, or only the next. (`org-agenda-show-future-repeats`)
 ---@field showAllDates? boolean Show days without entries. (`org-agenda-show-all-dates`)
----@field tagsColumn? integer Where tags are aligned in the agenda. Org's own default follows the window width, which a server does not know. (`org-agenda-tags-column`)
+---@field tagsColumn? integer|'auto' Where tags are aligned in the agenda: a column (negative: where they end), or `auto` for the right edge of the window. With `auto`, the editors that tell the server how wide the agenda's window is (Neovim, Vim, Sublime Text) have the tags there, and the agenda follows the window as it is resized; the others (VS Code, Zed) have them end at column 80. (`org-agenda-tags-column`)
 ---@field useTimeGrid? boolean Draw the time grid. (`org-agenda-use-time-grid`)
 ---@field timeGrid? org_lsp.Settings.Agenda.TimeGrid
 ---@field showCurrentTimeInGrid? boolean Show the current time in the grid. (`org-agenda-show-current-time-in-grid`)

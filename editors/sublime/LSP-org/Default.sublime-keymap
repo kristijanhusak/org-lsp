@@ -1798,11 +1798,32 @@
   },
   {
     "keys": [
-      "tab"
+      "enter"
     ],
     "command": "org_lsp_run",
     "args": {
       "command": "org.agenda.goto"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "tab"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.goto.other"
     },
     "context": [
       {
@@ -1835,32 +1856,11 @@
   },
   {
     "keys": [
-      "enter"
-    ],
-    "command": "org_lsp_run",
-    "args": {
-      "command": "org.agenda.goto"
-    },
-    "context": [
-      {
-        "key": "org_lsp.keys",
-        "operator": "equal",
-        "operand": "vim"
-      },
-      {
-        "key": "selector",
-        "operator": "equal",
-        "operand": "text.org-agenda"
-      }
-    ]
-  },
-  {
-    "keys": [
       "tab"
     ],
     "command": "org_lsp_run",
     "args": {
-      "command": "org.agenda.goto"
+      "command": "org.agenda.goto.other"
     },
     "context": [
       {

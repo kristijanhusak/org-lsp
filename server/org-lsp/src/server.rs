@@ -113,6 +113,9 @@ struct OpenView {
     /// The view the client still shows, while that is an older one. The
     /// lines its requests name are lines of this view.
     shown: Option<View>,
+    /// The client closed its file. It goes unless the next message opens
+    /// it again, as coc.nvim does when it reads the file anew.
+    closing: bool,
 }
 
 impl OpenView {
@@ -261,6 +264,9 @@ struct Noting {
 
 /// The notification that asks the editor to save files, `{ "uris": [...] }`.
 pub const SAVE: &str = "org-lsp/save";
+/// From the client: how many columns of text the window that shows the
+/// agenda has, `{ "width": N }`, for `agenda.tagsColumn` `"auto"`.
+pub const AGENDA_WIDTH: &str = "org-lsp/agendaWidth";
 
 /// The name of a capture buffer starts with this, as Emacs names it.
 pub const CAPTURE_PREFIX: &str = "CAPTURE-";
@@ -723,14 +729,30 @@ fn temp_dir() -> PathBuf {
 /// and editors that go by a file's permissions (Zed, Vim) then do not let
 /// it be edited.
 fn write_read_only(file: &Path, text: &str) -> std::io::Result<()> {
-    set_writable_if_present(file)?;
-    std::fs::write(file, text)?;
-    let mut permissions = std::fs::metadata(file)?.permissions();
-    permissions.set_readonly(true);
-    std::fs::set_permissions(file, permissions)
+    // Whole, in one step: an editor that reads the file as it changes
+    // never finds it half written, or missing.
+    #[cfg(unix)]
+    {
+        let temporary = file.with_extension(format!("{}.new", std::process::id()));
+        std::fs::write(&temporary, text)?;
+        let mut permissions = std::fs::metadata(&temporary)?.permissions();
+        permissions.set_readonly(true);
+        std::fs::set_permissions(&temporary, permissions)?;
+        std::fs::rename(&temporary, file)
+    }
+    // Windows does not replace a read-only file.
+    #[cfg(not(unix))]
+    {
+        set_writable_if_present(file)?;
+        std::fs::write(file, text)?;
+        let mut permissions = std::fs::metadata(file)?.permissions();
+        permissions.set_readonly(true);
+        std::fs::set_permissions(file, permissions)
+    }
 }
 
 /// Let the owner of `file` write it again, if there is one.
+#[cfg(not(unix))]
 fn set_writable_if_present(file: &Path) -> std::io::Result<()> {
     if std::fs::metadata(file).is_ok_and(|metadata| metadata.permissions().readonly()) {
         set_writable(file)?;
@@ -1052,6 +1074,7 @@ impl Server {
     // ----- requests
 
     fn request(&mut self, request: Request) -> Response {
+        self.drop_closed_view();
         macro_rules! dispatch {
             ($($request:ty => $handler:ident,)*) => {
                 match request.method.as_str() {
@@ -1071,6 +1094,15 @@ impl Server {
                                 }
                                 Err(refusal) => refused(id, refusal),
                             }
+                        }
+                        Err(response) => response,
+                    },
+                    // A request too, for clients that send no notifications
+                    // of their own (Vim's).
+                    AGENDA_WIDTH => match parameters::<Value>(request) {
+                        Ok((id, params)) => {
+                            self.agenda_width(&params);
+                            Response::new_ok(id, Value::Null)
                         }
                         Err(response) => response,
                     },
@@ -1101,13 +1133,35 @@ impl Server {
         }
     }
 
+    /// `org-lsp/agendaWidth`: the agenda's window is `width` columns wide;
+    /// tags aligned to its edge (`agenda.tagsColumn` `"auto"`) move.
+    fn agenda_width(&mut self, params: &Value) {
+        let width = params.get("width").and_then(Value::as_u64).filter(|width| *width > 0).map(|width| width as usize);
+        if width.is_some() && width != self.agenda.window_width {
+            self.agenda.window_width = width;
+            self.refresh_view();
+        }
+    }
+
     fn notification(&mut self, notification: Notification) {
         // A notification the server cannot read is dropped: there is no way
         // to answer one, and the next full sync repairs any lost change.
         fn parse<P: DeserializeOwned>(notification: Notification) -> Option<P> {
             serde_json::from_value(notification.params).ok()
         }
+        let reopened = notification.method == DidOpenTextDocument::METHOD
+            && self.view.as_ref().is_some_and(|open| {
+                notification.params.pointer("/textDocument/uri").and_then(Value::as_str) == Some(open.uri.as_str())
+            });
+        if reopened {
+            if let Some(open) = &mut self.view {
+                open.closing = false;
+            }
+        } else {
+            self.drop_closed_view();
+        }
         match notification.method.as_str() {
+            AGENDA_WIDTH => self.agenda_width(&notification.params),
             DidOpenTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidOpenTextDocumentParams>(notification) else { return };
                 let document = params.text_document;
@@ -1187,13 +1241,14 @@ impl Server {
                 }
                 self.documents.remove(params.text_document.uri.as_str());
                 self.virtually_indented.remove(params.text_document.uri.as_str());
-                // The agenda was closed: stop rebuilding it.
-                if self.view.as_ref().is_some_and(|open| open.uri == params.text_document.uri) {
-                    self.remove_view_file();
-                    self.view = None;
-                    self.reveal = None;
-                    self.follow = None;
-                    self.moving = None;
+                // The agenda was closed: stop rebuilding it, once it is clear
+                // that the client does not open its file again at once.
+                if let Some(open) = self.view.as_mut().filter(|open| open.uri == params.text_document.uri) {
+                    open.client = None;
+                    open.closing = true;
+                    if open.file.is_none() {
+                        self.drop_closed_view();
+                    }
                 }
             }
             _ => {}
@@ -1381,6 +1436,7 @@ impl Server {
                 commands::CLOCK_OUT,
                 commands::ARCHIVE_SUBTREE,
                 commands::AGENDA_GOTO,
+                commands::AGENDA_GOTO_OTHER,
             ];
             let actions = ids
                 .into_iter()
@@ -1973,7 +2029,7 @@ impl Server {
             Some(open) => open.replace(view),
             None if self.client.virtual_documents => {
                 if let Ok(uri) = views::VIRTUAL_URI.parse() {
-                    self.view = Some(OpenView { uri, file: None, view, client: None, shown: None });
+                    self.view = Some(OpenView { uri, file: None, view, client: None, shown: None, closing: false });
                 }
             }
             None => {
@@ -1983,7 +2039,8 @@ impl Server {
                 if std::fs::create_dir_all(&directory).is_ok() {
                     self.open_port();
                     if let Some(uri) = uri::from_path(&file) {
-                        self.view = Some(OpenView { uri, file: Some(file), view, client: None, shown: None });
+                        self.view =
+                            Some(OpenView { uri, file: Some(file), view, client: None, shown: None, closing: false });
                     }
                 }
             }
@@ -2008,7 +2065,19 @@ impl Server {
     /// Run a command the port was sent, where it says in the agenda or
     /// else where the cursor was last seen there, as
     /// `workspace/executeCommand` runs it.
+    /// Stop rebuilding the agenda the client closed, and remove its file.
+    fn drop_closed_view(&mut self) {
+        if self.view.as_ref().is_some_and(|open| open.closing) {
+            self.remove_view_file();
+            self.view = None;
+            self.reveal = None;
+            self.follow = None;
+            self.moving = None;
+        }
+    }
+
     fn run_from_port(&mut self, sent: port::Command) {
+        self.drop_closed_view();
         let Some(uri) = self.view.as_ref().map(|open| open.uri.clone()) else { return };
         let position = match sent.position {
             Some((line, character)) => Position::new(line, character),
@@ -2747,7 +2816,7 @@ impl Server {
                 self.message = Some(format!("Switched to {} view", span_name(span)));
                 Ok(())
             }
-            commands::AGENDA_GOTO => {
+            commands::AGENDA_GOTO | commands::AGENDA_GOTO_OTHER => {
                 let reference = self.entry_at(context.as_ref()).ok_or("No entry on this line")?;
                 let location = self.locate(&reference).ok_or("The entry is gone; rebuild the agenda")?;
                 let params = ShowDocumentParams {
@@ -2756,7 +2825,13 @@ impl Server {
                     take_focus: Some(true),
                     selection: Some(location.range),
                 };
-                self.send_request::<ShowDocument>(params, None);
+                let mut params = serde_json::to_value(params).unwrap_or_default();
+                // Not LSP's: the editors of this project show the file in a
+                // window other than the agenda's.
+                if command == commands::AGENDA_GOTO_OTHER {
+                    params["orgOtherWindow"] = json!(true);
+                }
+                self.send_raw_request(ShowDocument::METHOD, params, None);
                 Ok(())
             }
 
