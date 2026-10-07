@@ -7,6 +7,7 @@ with the cursor position, asks what they ask for, and cycles folds.
 """
 from __future__ import annotations
 
+import html
 import io
 import os
 import shutil
@@ -52,6 +53,37 @@ PLATFORMS = {
 
 def settings() -> sublime.Settings:
     return sublime.load_settings(SETTINGS)
+
+
+# The popup of the message shown last, so that hiding it later hides that
+# one only.
+_shown = {'count': 0}
+
+
+def say(message, view=None, error=False) -> None:
+    """Tell the user `message`: in the status bar, and with `org_messages`
+    set to "popup" (the default) in a popup at the cursor of `view` (or the
+    active view) that goes after a few seconds."""
+    sublime.status_message(message)
+    if settings().get('org_messages', 'popup') != 'popup':
+        return
+    view = view or sublime.active_window().active_view()
+    if view is None or not view.sel():
+        return
+    color = 'color(var(--redish))' if error else 'color(var(--foreground))'
+    content = (
+        '<body id="org-lsp-message" style="margin: 0.3rem 0.6rem">'
+        '<div style="color: var(--bluish); font-size: 0.8rem; font-weight: bold">Org</div>'
+        '<div style="color: {}">{}</div></body>'
+    ).format(color, html.escape(message).replace('\n', '<br>'))
+    _shown['count'] += 1
+    shown = _shown['count']
+    view.show_popup(content, sublime.HIDE_ON_MOUSE_MOVE_AWAY, view.sel()[0].b, 600)
+
+    def hide() -> None:
+        if _shown['count'] == shown and view.is_popup_visible():
+            view.hide_popup()
+    sublime.set_timeout(hide, 4000)
 
 
 # ----- the server binary
@@ -475,7 +507,7 @@ class OrgLspRunCommand(LspWindowCommand):
         if fallback:
             view.run_command(fallback['command'], fallback.get('args'))
         if not (isinstance(data, dict) and data.get('notApplicable')):
-            sublime.status_message('org-lsp: {}'.format(error.get('message', error) if isinstance(error, dict) else error))
+            say('org-lsp: {}'.format(error.get('message', error) if isinstance(error, dict) else error), view, error=True)
 
     def done(self, session, view, command, context, fallback, result) -> None:
         result = result if isinstance(result, dict) else {}
@@ -498,7 +530,7 @@ class OrgLspRunCommand(LspWindowCommand):
         if isinstance(result.get('save'), list):
             save(result['save'])
         if isinstance(result.get('message'), str):
-            sublime.status_message(result['message'])
+            say(result['message'], view)
         if isinstance(result.get('close'), str):
             close(result['close'])
         request = result.get('input')
@@ -583,7 +615,7 @@ class OrgLspHelpCommand(sublime_plugin.WindowCommand):
         view = self.window.active_view()
         items = help_items(view) if view else []
         if not items:
-            sublime.status_message('org-lsp: no keys are bound here')
+            say('org-lsp: no keys are bound here')
             return
 
         def picked(index: int) -> None:

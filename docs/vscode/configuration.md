@@ -21,6 +21,7 @@ defaults.
 | `org-lsp.server.path` | `""` | The server binary. Empty: the one bundled with the extension, or else `org-lsp` from `PATH`. |
 | `org-lsp.conceal` | `true` | Hide what Org hides: link brackets and targets (`org_link_descriptive`), emphasis markers (`org_hide_emphasis_markers`). The line with the cursor shows everything. |
 | `org-lsp.winSplitMode` | `"split"` | Where the agenda and capture buffers open: `"split"` in an editor group below the current one, `"vsplit"` beside it, `"float"` in a window of its own, `"current"` in the current group. A group that already has it is used again. |
+| `org-lsp.messages` | `"notification"` | How Org's messages show (`Priority of current item set to A`): `"notification"` in the corner of the window, `"statusBar"` in the status bar for a few seconds. Errors always show as notifications. |
 
 While a clock runs, the status bar shows it as Emacs's mode line does,
 such as `[0:25/1:00] (Write the report)`: the time clocked on the entry,

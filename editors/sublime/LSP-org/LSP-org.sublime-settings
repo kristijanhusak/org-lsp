@@ -12,6 +12,7 @@
   ],
   "initializationOptions": {},
   "org_keys": "emacs",
+  "org_messages": "popup",
   "semantic_tokens": {
     "headline": "entity.name.section markup.heading markup.heading.org",
     "headline.level1": "entity.name.function markup.heading.1.org",

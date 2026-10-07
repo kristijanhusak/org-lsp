@@ -212,7 +212,19 @@ async function saveAsked(result: unknown): Promise<void> {
 function sayAsked(result: unknown): void {
   const message = (result as { message?: unknown } | null)?.message;
   if (typeof message === 'string') {
+    say(message);
+  }
+}
+
+/**
+ * Tell the user `message`: as a notification, or in the status bar
+ * (`org-lsp.messages`).
+ */
+function say(message: string): void {
+  if (vscode.workspace.getConfiguration('org-lsp').get<string>('messages') === 'statusBar') {
     vscode.window.setStatusBarMessage(message, 5000);
+  } else {
+    void vscode.window.showInformationMessage(message);
   }
 }
 
@@ -893,7 +905,7 @@ function archivedStarts(editor: vscode.TextEditor, open: vscode.FoldingRange[]):
   return [...new Set(outermost.map((range) => range.start))];
 }
 
-const staysClosed = () => vscode.window.setStatusBarMessage('Subtree is archived and stays closed', 4000);
+const staysClosed = () => say('Subtree is archived and stays closed');
 
 /**
  * `org-cycle` on the fold that starts at the cursor's line: FOLDED, then

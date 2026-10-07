@@ -848,19 +848,35 @@ describe('The agenda', () => {
     const home = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspace, 'home.org')));
     const lines = activeText().split('\n');
     moveTo(lines.findIndex((line) => line.endsWith('Scheduled:  TODO Water plants')), 14);
-    // What Emacs says goes to the status bar.
+    // What Emacs says comes as a notification, or with
+    // `org-lsp.messages` set to `statusBar` in the status bar.
     const said = [];
+    const shown = [];
+    const showInformationMessage = vscode.window.showInformationMessage;
     const setStatusBarMessage = vscode.window.setStatusBarMessage;
-    vscode.window.setStatusBarMessage = (text, ...rest) => {
+    vscode.window.showInformationMessage = (text) => {
       said.push(text);
+      return Promise.resolve(undefined);
+    };
+    vscode.window.setStatusBarMessage = (text, ...rest) => {
+      shown.push(text);
       return setStatusBarMessage(text, ...rest);
     };
+    const settings = vscode.workspace.getConfiguration('org-lsp');
     try {
       await vscode.commands.executeCommand('org.priority.up');
+      await until('the priority in the agenda', () => activeLine()?.endsWith('Scheduled:  TODO [#B] Water plants'));
+      await settings.update('messages', 'statusBar', vscode.ConfigurationTarget.Global);
+      await vscode.commands.executeCommand('org.priority.up');
+      await until('the higher priority in the agenda', () => activeLine()?.endsWith('Scheduled:  TODO [#A] Water plants'));
+      await vscode.commands.executeCommand('org.priority.down');
     } finally {
+      vscode.window.showInformationMessage = showInformationMessage;
       vscode.window.setStatusBarMessage = setStatusBarMessage;
+      await settings.update('messages', undefined, vscode.ConfigurationTarget.Global);
     }
     assert.deepEqual(said, ['Priority of current item set to B']);
+    assert.deepEqual(shown, ['Priority of current item set to A', 'Priority of current item set to B']);
     await until('the priority in the file', () => home.lineAt(0).text === '* TODO [#B] Water plants');
     await until('the priority in the agenda', () => activeLine()?.endsWith('Scheduled:  TODO [#B] Water plants'));
     // The entry moves to the next day, and the cursor with it.

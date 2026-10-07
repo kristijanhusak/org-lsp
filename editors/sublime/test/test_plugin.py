@@ -47,6 +47,19 @@ class View:
         self.cursor = 0
         self.commands = []
         self.changes = 0
+        # Every popup shown, and whether one shows now.
+        self.popups = []
+        self.popup_visible = False
+
+    def show_popup(self, content, flags, location, max_width):
+        self.popups.append((content, location))
+        self.popup_visible = True
+
+    def is_popup_visible(self):
+        return self.popup_visible
+
+    def hide_popup(self):
+        self.popup_visible = False
 
     def lines(self):
         return self.text.split('\n')
@@ -173,6 +186,7 @@ def load_plugin():
     sublime.OP_EQUAL, sublime.OP_NOT_EQUAL = 0, 1
     sublime.set_timeout = lambda f, delay=0: f()
     sublime.LAYOUT_INLINE = 0
+    sublime.HIDE_ON_MOUSE_MOVE_AWAY = 2
     sublime.DRAW_NO_OUTLINE = 256
     sublime.clipboard = ''
     sublime.get_clipboard = lambda: sublime.clipboard
@@ -294,6 +308,18 @@ class Tests(unittest.TestCase):
         self.assertEqual(session.sent[1][1]['arguments'][0]['step'], 2)
         self.assertEqual(self.window.panels[0], ('quick', ['A', 'D'], 'Refile to'))
         self.assertIn('Refiled to D', self.sublime.messages)
+        # And in a popup at the cursor, titled Org, which goes again.
+        content, location = self.view.popups[-1]
+        self.assertIn('Refiled to D', content)
+        self.assertIn('>Org<', content)
+        self.assertEqual(location, self.view.cursor)
+        self.assertFalse(self.view.popup_visible)
+
+    def test_messages_go_to_the_status_bar_only_when_asked(self):
+        self.sublime.settings['org_messages'] = 'status'
+        self.run_command([('result', {'message': 'Effort is now 1:00'})], command='org.effort.increase')
+        self.assertIn('Effort is now 1:00', self.sublime.messages)
+        self.assertEqual(self.view.popups, [])
 
     def test_applies_the_edit_a_result_carries(self):
         edits = [{'range': {'start': {'line': 0, 'character': 3}, 'end': {'line': 0, 'character': 3}}, 'newText': '\n'}]
@@ -387,6 +413,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(self.view.commands, [('move', fallback['args'])])
         self.run_command([('error', {'code': -32803, 'message': 'No clock'})], command='org.clock.out')
         self.assertIn('org-lsp: No clock', self.sublime.messages)
+        self.assertIn('org-lsp: No clock', self.view.popups[-1][0])
 
     def cycle(self, line, **args):
         self.view.cursor = self.view.text_point(line, 0)
