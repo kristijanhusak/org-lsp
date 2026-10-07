@@ -650,6 +650,19 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org agenda: Store a link to the place at the cursor",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.link.store",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: Archive the subtree",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.archive.subtree",
     "tags": [

@@ -369,6 +369,35 @@ org_clock_file_time_cell_format = "*%s*"
 # (org-clock-out-switch-to-state)
 # org_clock_out_switch_to_state = …  (unset: none)
 
+# Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true` makes
+# one when the entry has none, `"create-if-interactive"` only from the command
+# (not for capture's `%a`), `"create-if-interactive-and-no-custom-id"`
+# likewise unless the entry has a `CUSTOM_ID`, `"use-existing"` only when it
+# has one already. Off, the link searches for the headline.
+# (org-id-link-to-org-use-id)
+org_id_link_to_org_use_id = false
+
+# Links to a place in a file search for it (`file:notes.org::*Heading`); `C-u`
+# turns it around for one link. (org-link-context-for-files)
+org_link_context_for_files = true
+
+# ID links to a place below the entry's headline search for it as well
+# (`id:…::name`). (org-id-link-use-context)
+org_id_link_use_context = true
+
+# An ID link may use the ID of a parent entry, with a search for the place.
+# (org-id-link-consider-parent-id)
+org_id_link_consider_parent_id = false
+
+# How links to files write the path: `"adaptive"` relative below the file's
+# directory and absolute elsewhere, `"absolute"` (with `~`), `"noabbrev"`
+# (without), `"relative"`. (org-link-file-path-type)
+org_link_file_path_type = "adaptive"
+
+# Stored links stay stored once inserted.
+# (org-link-keep-stored-after-insertion)
+org_link_keep_stored_after_insertion = false
+
 # Completing a tag offers the tags of every agenda file, after those of the
 # file. Off, only the file's own. Setting tags offers them too.
 # (org-complete-tags-always-offer-all-agenda-tags)
@@ -899,6 +928,35 @@ org_agenda_custom_commands = []
   // The TODO state an entry is put in when the clock stops on it.
   // (org-clock-out-switch-to-state)
   // "org_clock_out_switch_to_state": unset: none
+
+  // Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true`
+  // makes one when the entry has none, `"create-if-interactive"` only from
+  // the command (not for capture's `%a`),
+  // `"create-if-interactive-and-no-custom-id"` likewise unless the entry has
+  // a `CUSTOM_ID`, `"use-existing"` only when it has one already. Off, the
+  // link searches for the headline. (org-id-link-to-org-use-id)
+  "org_id_link_to_org_use_id": false,
+
+  // Links to a place in a file search for it (`file:notes.org::*Heading`);
+  // `C-u` turns it around for one link. (org-link-context-for-files)
+  "org_link_context_for_files": true,
+
+  // ID links to a place below the entry's headline search for it as well
+  // (`id:…::name`). (org-id-link-use-context)
+  "org_id_link_use_context": true,
+
+  // An ID link may use the ID of a parent entry, with a search for the place.
+  // (org-id-link-consider-parent-id)
+  "org_id_link_consider_parent_id": false,
+
+  // How links to files write the path: `"adaptive"` relative below the file's
+  // directory and absolute elsewhere, `"absolute"` (with `~`), `"noabbrev"`
+  // (without), `"relative"`. (org-link-file-path-type)
+  "org_link_file_path_type": "adaptive",
+
+  // Stored links stay stored once inserted.
+  // (org-link-keep-stored-after-insertion)
+  "org_link_keep_stored_after_insertion": false,
 
   // Completing a tag offers the tags of every agenda file, after those of the
   // file. Off, only the file's own. Setting tags offers them too.

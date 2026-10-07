@@ -323,6 +323,12 @@
           "task_name": "Org agenda: Open the link or thing at the cursor"
         }
       ],
+      "ctrl-c l": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: Store a link to the place at the cursor"
+        }
+      ],
       "$": [
         "task::Spawn",
         {

@@ -82,6 +82,24 @@ pub struct Options {
     /// `org-clock-file-time-cell-format`
     #[serde(rename = "org_clock_file_time_cell_format")]
     pub clock_file_time_cell_format: Option<String>,
+    /// `org-id-link-to-org-use-id`: a boolean or the name of a choice.
+    #[serde(rename = "org_id_link_to_org_use_id")]
+    pub id_link_to_org_use_id: Option<serde_json::Value>,
+    /// `org-link-context-for-files`
+    #[serde(rename = "org_link_context_for_files")]
+    pub link_context_for_files: Option<bool>,
+    /// `org-id-link-use-context`
+    #[serde(rename = "org_id_link_use_context")]
+    pub id_link_use_context: Option<bool>,
+    /// `org-id-link-consider-parent-id`
+    #[serde(rename = "org_id_link_consider_parent_id")]
+    pub id_link_consider_parent_id: Option<bool>,
+    /// `org-link-file-path-type`
+    #[serde(rename = "org_link_file_path_type")]
+    pub link_file_path_type: Option<String>,
+    /// `org-link-keep-stored-after-insertion`
+    #[serde(rename = "org_link_keep_stored_after_insertion")]
+    pub link_keep_stored_after_insertion: Option<bool>,
     /// `org-clock-in-switch-to-state`
     #[serde(rename = "org_clock_in_switch_to_state")]
     pub clock_in_switch_to_state: Option<String>,
@@ -705,6 +723,35 @@ impl Options {
     }
 
     /// How clocking writes (`org-clock-into-drawer` and its relatives).
+    /// The options of the link commands.
+    pub fn link_settings(&self) -> org_core::link::Settings {
+        use org_core::link::{PathType, UseId};
+        let defaults = org_core::link::Settings::default();
+        org_core::link::Settings {
+            use_id: match &self.id_link_to_org_use_id {
+                Some(serde_json::Value::Bool(true)) => UseId::Always,
+                Some(serde_json::Value::String(choice)) => match choice.as_str() {
+                    "t" => UseId::Always,
+                    "create-if-interactive" => UseId::CreateIfInteractive,
+                    "create-if-interactive-and-no-custom-id" => UseId::CreateIfInteractiveAndNoCustomId,
+                    "use-existing" => UseId::UseExisting,
+                    _ => UseId::Never,
+                },
+                _ => UseId::Never,
+            },
+            context_for_files: self.link_context_for_files.unwrap_or(defaults.context_for_files),
+            id_use_context: self.id_link_use_context.unwrap_or(defaults.id_use_context),
+            consider_parent_id: self.id_link_consider_parent_id.unwrap_or(defaults.consider_parent_id),
+            path_type: match self.link_file_path_type.as_deref() {
+                Some("absolute") => PathType::Absolute,
+                Some("noabbrev") => PathType::NoAbbrev,
+                Some("relative") => PathType::Relative,
+                _ => PathType::Adaptive,
+            },
+            keep_stored: self.link_keep_stored_after_insertion.unwrap_or(defaults.keep_stored),
+        }
+    }
+
     pub fn clock_settings(&self) -> org_core::clock::Settings {
         let log_drawer = match &self.log_into_drawer {
             Some(DrawerOption::Name(name)) if !name.is_empty() => name.clone(),

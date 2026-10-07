@@ -32,6 +32,12 @@ pub fn link_types() -> &'static [&'static str] {
     objects::LINK_TYPES
 }
 
+/// Where a plain link (`https://example.com`) starting at byte `at` of
+/// `text` ends, as `org-link-plain-re` matches it there.
+pub fn plain_link_end(text: &str, at: usize) -> Option<usize> {
+    objects::match_plain_link(text, at)
+}
+
 pub fn entity_names() -> &'static [&'static str] {
     entities::ENTITIES
 }

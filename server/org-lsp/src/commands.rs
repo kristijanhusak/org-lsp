@@ -170,6 +170,11 @@ pub const DELETE_PROPERTY_GLOBALLY: &str = "org.property.delete.globally";
 pub const SET_EFFORT: &str = "org.effort.set";
 pub const INCREASE_EFFORT: &str = "org.effort.increase";
 pub const TOGGLE_ORDERED: &str = "org.ordered.toggle";
+pub const LINK_STORE: &str = "org.link.store";
+pub const LINK_INSERT: &str = "org.link.insert";
+pub const LINK_INSERT_LAST: &str = "org.link.insert.last";
+pub const LINK_INSERT_ALL: &str = "org.link.insert.all";
+pub const ID_GET_CREATE: &str = "org.id.create";
 pub const CITE_INSERT: &str = "org.cite.insert";
 pub const CITE_INSERT_PREFIX: &str = "org.cite.insert.prefix";
 pub const TODO_NEXT: &str = "org.todo.next";
@@ -691,6 +696,28 @@ pub const COMMANDS: &[Command] = &[
         input: Some(Input { kind: "key", prompt: "Select link to open" }),
         ..command(OPEN, "Open the link or thing at the cursor")
     },
+    // `org-store-link`: a link to the place at the cursor, or to the
+    // entry of an agenda line, kept for `org.link.insert`. With `C-u` (a
+    // count of 4) `org_link_context_for_files` is turned around.
+    Command {
+        emacs: &[key(Org, "C-c l"), key(Agenda, "C-c l")],
+        vim: &[key(Org, "<Leader>ols")],
+        ..command(LINK_STORE, "Store a link to the place at the cursor")
+    },
+    // `org-insert-link`: a stored link or one typed, or the link at the
+    // cursor edited; with `C-u` a link to a file, with `C-u C-u` by its
+    // absolute name, with `C-u C-u C-u` the link stays stored.
+    Command {
+        emacs: &[key(Org, "C-c C-l")],
+        vim: &[key(Org, "<Leader>oli")],
+        input: Some(Input { kind: "text", prompt: "Insert link" }),
+        ..edit(LINK_INSERT, "Insert a link, or edit the one at the cursor")
+    },
+    // `org-insert-last-stored-link` and `org-insert-all-links`.
+    Command { emacs: &[key(Org, "C-c M-l")], ..edit(LINK_INSERT_LAST, "Insert the last stored link") },
+    Command { emacs: &[key(Org, "C-c C-M-l")], ..edit(LINK_INSERT_ALL, "Insert all stored links") },
+    // `org-id-get-create`: the entry gets an ID property unless it has one.
+    edit(ID_GET_CREATE, "Create an ID for the entry"),
     // `org-archive-subtree` and its relatives, in Org files and on agenda
     // lines (`org-agenda-archive`). The subtree goes to the archive
     // location; another file is written when no editor has it open.

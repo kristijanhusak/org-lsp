@@ -4466,3 +4466,52 @@ fn captures_a_link_to_the_agenda_entry() {
     apply_received(&mut client, "file:///org/home.org", &mut home);
     assert!(home.ends_with("* Inbox\n** About [[file:/org/work.org::*Write report][Write report]]\n"), "{home}");
 }
+
+/// `org-store-link` and `org-insert-link`: a link to a headline, stored,
+/// then inserted with the description changed; with
+/// `org_id_link_to_org_use_id` the entry gets an ID and the link uses it.
+#[test]
+fn stores_and_inserts_links() {
+    let mut client = Client::editor(clock(), None);
+    let uri = "file:///org/notes.org";
+    let mut text = "* Tasks\n** Write report [1/2]\nbody\n* Links\n\n".to_string();
+    client.open(uri, &text);
+    run_applying(&mut client, uri, &mut text, "org.link.store", 2, json!({}));
+    let asked = run_applying(&mut client, uri, &mut text, "org.link.insert", 4, json!({}));
+    assert_eq!(asked["input"]["prompt"], "Insert link (default file:/org/notes.org::*Write report)", "{asked}");
+    let context = asked["input"]["context"].clone();
+    let asked = run_applying(
+        &mut client,
+        uri,
+        &mut text,
+        "org.link.insert",
+        4,
+        json!({ "input": "", "step": context["step"], "answers": context["answers"] }),
+    );
+    assert_eq!(asked["input"]["prompt"], "Description", "{asked}");
+    assert_eq!(asked["input"]["value"], "Write report", "{asked}");
+    let context = asked["input"]["context"].clone();
+    run_applying(
+        &mut client,
+        uri,
+        &mut text,
+        "org.link.insert",
+        4,
+        json!({ "input": "The report", "step": context["step"], "answers": context["answers"] }),
+    );
+    assert_eq!(text, "* Tasks\n** Write report [1/2]\nbody\n* Links\n[[*Write report][The report]]\n");
+    // Nothing is stored any more.
+    run_applying(&mut client, uri, &mut text, "org.link.insert.last", 4, json!({}));
+    assert!(text.ends_with("[[*Write report][The report]]\n"), "{text}");
+
+    let mut options = clock();
+    options["org_id_link_to_org_use_id"] = json!(true);
+    let mut client = Client::editor(options, None);
+    let mut text = "* Tasks\n".to_string();
+    client.open(uri, &text);
+    run_applying(&mut client, uri, &mut text, "org.link.store", 0, json!({}));
+    let id = text.lines().find_map(|line| line.strip_prefix(":ID:")).map(str::trim).unwrap_or_default().to_string();
+    assert_eq!(id.len(), 36, "{text}");
+    run_applying(&mut client, uri, &mut text, "org.link.insert.last", 4, json!({}));
+    assert!(text.ends_with(&format!(":END:\n[[id:{id}][Tasks]]\n")), "{text}");
+}

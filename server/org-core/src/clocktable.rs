@@ -12,7 +12,7 @@ use org_syntax::TodoKeywords;
 use regex::{Regex, RegexBuilder};
 
 use crate::agenda::matcher::{Clock as MatcherClock, Matcher};
-use crate::agenda::report::{display_format, escape, heading_title, normalize, shorten, without_cookies};
+use crate::agenda::report::{display_format, heading_title, normalize, shorten, without_cookies};
 use crate::clock::{clock_minutes, duration, minutes_of, parse_line};
 use crate::clock_range::special_range;
 use crate::date::{Date, DateTime, Day};
@@ -1022,20 +1022,6 @@ fn entry_value(
     }
 }
 
-/// `org-link-make-string`
-fn make_link(link: &str, description: &str) -> String {
-    let description = description.trim();
-    if description.is_empty() {
-        return format!("[[{}]]", escape(link));
-    }
-    let mut description = description.to_string();
-    if description.ends_with(']') {
-        description.push('\u{200B}');
-    }
-    let description = description.replace("]]", "]\u{200B}]");
-    format!("[[{}][{description}]]", escape(link))
-}
-
 /// The `#+TITLE:` of a file.
 fn title(text: &str) -> Option<String> {
     static TITLE: LazyLock<Regex> = LazyLock::new(|| {
@@ -1106,7 +1092,8 @@ fn table_data(
                 Some(path) => format!("file:{path}::{search}"),
                 None => search,
             };
-            make_link(&target, display_format(&without_cookies(&headline)).trim())
+            crate::link::make_string(&target, Some(display_format(&without_cookies(&headline)).trim()))
+                .unwrap_or_default()
         } else {
             headline
         };

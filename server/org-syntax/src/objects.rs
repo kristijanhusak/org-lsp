@@ -839,7 +839,7 @@ fn link_group_end(text: &str, start: usize) -> Option<usize> {
 /// The path is a run of link characters and bracketed groups. It ends in a
 /// group, a slash, a dash or a character that is not punctuation, and holds
 /// at least one unit before that.
-fn match_plain_link(text: &str, i: usize) -> Option<usize> {
+pub(crate) fn match_plain_link(text: &str, i: usize) -> Option<usize> {
     if !at_word_start(text, i) {
         return None;
     }
