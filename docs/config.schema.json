@@ -152,6 +152,11 @@
       "description": "Tags offered in every file, before those of `#+TAGS:` or `org_tag_alist`, written the same way. (`org-tag-persistent-alist`)",
       "default": ""
     },
+    "org_group_tags": {
+      "type": "boolean",
+      "description": "A group tag (`[ GTD : Control Persp ]`, `{ Context : @home @office }` in `#+TAGS:` or `org_tag_alist`) in the match string of a tags view stands for itself and the tags of its group. (`org-group-tags`)",
+      "default": true
+    },
     "org_use_fast_tag_selection": {
       "enum": [
         true,
@@ -896,6 +901,42 @@
       ],
       "description": "Leave the tags out of the agenda's lines; `prefix` only when the prefix shows a tag (`%T`). (`org-agenda-remove-tags`)",
       "default": false
+    },
+    "org_stuck_projects": {
+      "maxItems": 4,
+      "minItems": 4,
+      "prefixItems": [
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "type": "array",
+      "description": "What the stuck projects view (`#`) lists: the projects the match string finds whose subtree has no entry with one of the TODO keywords (`*` for any not done) or tags (`*` for any), and no match of the regexp. (`org-stuck-projects`)",
+      "default": [
+        "+LEVEL=2/-DONE",
+        [
+          "TODO",
+          "NEXT",
+          "NEXTACTION"
+        ],
+        [],
+        ""
+      ]
     },
     "org_agenda_breadcrumbs_separator": {
       "type": "string",

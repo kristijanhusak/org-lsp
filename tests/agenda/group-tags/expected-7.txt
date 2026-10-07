@@ -1,0 +1,5 @@
+Headlines with TAGS match: Lab
+  a:          Paper                                                        :Lab:
+  a:          Bench work                                                 :Bench:
+  a:          Project                                                    :P@one:
+  b:          Other lab                                                    :Lab:

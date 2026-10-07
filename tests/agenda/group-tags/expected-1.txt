@@ -1,0 +1,6 @@
+Headlines with TAGS match: +Work-Conf
+  a:          Paper                                                        :Lab:
+  a:          Desk                                                        :Work:
+  a:          Bench work                                                 :Bench:
+  a:          Project                                                    :P@one:
+  b:          Other lab                                                    :Lab:

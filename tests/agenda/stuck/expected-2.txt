@@ -1,0 +1,13 @@
+Stuck ones
+  a:          Garage
+  a:          Garden                                                   :outdoor:
+  a:          Novel
+  a:          Lone
+  a:          Spaced
+  a:          Finance                                                    :area::
+  b:          Report
+
+===============================================================================
+Global list of TODO items of type: NEXT
+  a:          NEXT Website
+  a:          NEXT Run                                                   :area::

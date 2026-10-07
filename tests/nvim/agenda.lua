@@ -103,6 +103,7 @@ eq(menu, {
     'M Like m, but only TODO entries',
     's Search for keywords',
     'S Like s, but only TODO entries',
+    '# List stuck projects',
   },
 }, 'the menu of views')
 eq(vim.api.nvim_buf_get_name(0), 'org-agenda:/Org%20Agenda', 'the agenda is a document of the server')

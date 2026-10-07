@@ -15,6 +15,7 @@ A case is a directory with Org files and a `case.json`:
         {"view": "search", "match": "+work -home"},   `org-search-view`
         {"view": "search-todo", "match": "report"},     with only TODO entries
         {"view": "custom", "key": "c"},
+        {"view": "stuck"},                       `org-agenda-list-stuck-projects`
         {"view": "todo", "archives": "trees"}   with archived trees
                                                 (`files`: archive files too)
       ],
@@ -71,6 +72,10 @@ DEFAULTS = r"""
       org-agenda-search-view-force-full-words nil
       org-agenda-search-view-max-outline-level 0
       org-agenda-custom-commands nil
+      org-tag-alist nil
+      org-group-tags t
+      org-agenda-text-search-extra-files nil
+      org-stuck-projects '("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil "")
       org-agenda-prefix-format '((agenda . " %i %-12:c%?-12t% s") (todo . " %i %-12:c")
                                  (tags . " %i %-12:c") (search . " %i %-12:c"))
       org-agenda-todo-keyword-format "%-1s"
@@ -120,6 +125,8 @@ def view_form(run):
         return shown(f"(org-search-view nil {match})")
     if run["view"] == "search-todo":
         return shown(f"(org-search-view t {match})")
+    if run["view"] == "stuck":
+        return shown("(org-agenda-list-stuck-projects)")
     if run["view"] == "custom":
         return f"(org-batch-agenda {lisp_string(run['key'])})"
     parameters = []
@@ -173,6 +180,9 @@ def reference(directories):
             forms.append(f"(setq org-agenda-files (list {files}))")
             # `{dir}` in the settings is the case's directory.
             forms.append(case.get("emacs", "").replace("{dir}", directory))
+            # The group tags of the files, which Emacs reads when it builds
+            # an agenda and a match string uses from the one built before.
+            forms.append("(org-agenda-prepare-buffers (org-agenda-files nil 'ifmode))")
             for index, run in enumerate(case["runs"]):
                 out = os.path.join(directory, f"expected-{index}.txt")
                 outputs.append((out, run))

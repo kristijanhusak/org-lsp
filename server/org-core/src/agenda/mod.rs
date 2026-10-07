@@ -255,6 +255,80 @@ pub struct Config {
     /// `org-agenda-format-date` as a `format-time-string` format; `None`
     /// for `org-agenda-format-date-aligned`.
     pub format_date: Option<String>,
+    /// `org-stuck-projects`
+    pub stuck_projects: StuckProjects,
+    /// `org-tag-alist` and `org-tag-persistent-alist`: the group tags of
+    /// files without `#+TAGS:` lines, and of every file.
+    pub tag_alist: Vec<crate::tags::TagEntry>,
+    pub tag_persistent_alist: Vec<crate::tags::TagEntry>,
+    /// `org-group-tags`: a group tag in a match string stands for its tags.
+    pub group_tags: bool,
+}
+
+/// `org-tag-groups-alist-for-agenda`: the group tags of the files, those
+/// of the same name merged.
+pub fn tag_groups(files: &[&Outline], config: &Config) -> Vec<(String, Vec<String>)> {
+    let settings = crate::tags::Settings {
+        alist: config.tag_alist.clone(),
+        persistent: config.tag_persistent_alist.clone(),
+        ..crate::tags::Settings::default()
+    };
+    let mut groups: Vec<(String, Vec<String>)> = Vec::new();
+    for outline in files {
+        let alist = crate::tags::current_alist(&outline.text, &settings);
+        for (key, members) in crate::tags::alist_to_groups(&alist) {
+            match groups.iter_mut().find(|(known, _)| *known == key) {
+                Some((_, old)) => {
+                    for member in members {
+                        if !old.contains(&member) {
+                            old.push(member);
+                        }
+                    }
+                }
+                None => groups.insert(0, (key, members)),
+            }
+        }
+    }
+    groups
+}
+
+/// The matcher with the group tags of the files expanded.
+fn expanded(matcher: &Matcher, files: &[&Outline], config: &Config) -> Matcher {
+    if !config.group_tags {
+        return matcher.clone();
+    }
+    let groups = tag_groups(files, config);
+    if groups.is_empty() {
+        return matcher.clone();
+    }
+    let mut expanded = Matcher::new(&matcher::expand_groups(&matcher.text, &groups));
+    expanded.text = matcher.text.clone();
+    expanded
+}
+
+/// `org-stuck-projects`: what a project is, and what makes it not stuck.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StuckProjects {
+    /// The match string that finds projects.
+    pub matcher: String,
+    /// The TODO keywords of entries that are next actions (`*` for any
+    /// not done).
+    pub todo: Vec<String>,
+    /// The tags of entries that are next actions (`*` for any).
+    pub tags: Vec<String>,
+    /// An Emacs regexp whose match in a project makes it not stuck.
+    pub regexp: String,
+}
+
+impl Default for StuckProjects {
+    fn default() -> Self {
+        StuckProjects {
+            matcher: "+LEVEL=2/-DONE".to_string(),
+            todo: ["TODO", "NEXT", "NEXTACTION"].iter().map(|word| word.to_string()).collect(),
+            tags: Vec::new(),
+            regexp: String::new(),
+        }
+    }
 }
 
 /// What log mode shows (`org-agenda-log-mode-items`).
@@ -307,6 +381,10 @@ impl Default for Config {
             timerange_leaders: [String::new(), "(%d/%d): ".to_string()],
             remove_tags: RemoveTags::No,
             breadcrumbs_separator: "->".to_string(),
+            stuck_projects: StuckProjects::default(),
+            tag_alist: Vec::new(),
+            tag_persistent_alist: Vec::new(),
+            group_tags: true,
             format_date: None,
         }
     }
@@ -973,6 +1051,7 @@ pub fn todo_view(files: &[&Outline], keywords: Option<&str>, config: &Config) ->
 /// `org-tags-view`: the entries `matcher` matches, only open TODO
 /// entries with `todo_only` (`tags-todo`).
 pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: Now, config: &Config) -> View {
+    let matcher = &expanded(matcher, files, config);
     let builder = Builder::new(files, config, now.today, ViewKind::Tags);
     let clock = matcher::Clock { today: now.today, minute: now.minute };
     let mut items = Vec::new();
@@ -989,6 +1068,84 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
     let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
     lines.extend(items.into_iter().map(|item| item_line(item, config)));
     View { lines, start: 0, end: 0 }
+}
+
+/// `org-agenda-list-stuck-projects` (`#`): the projects (the entries the
+/// match string of `org-stuck-projects` finds) with no next action in
+/// their subtree: no entry there with one of its TODO keywords or tags,
+/// and no match of its regexp; the subtree of a project that is not stuck
+/// is still searched for projects.
+pub fn stuck_view(files: &[&Outline], now: Now, config: &Config) -> Result<View, String> {
+    let stuck = &config.stuck_projects;
+    let matcher = expanded(&Matcher::new(&stuck.matcher), files, config);
+    let todo_words: Vec<String> = if stuck.todo.iter().any(|word| word == "*") {
+        let mut words: Vec<String> = Vec::new();
+        for outline in files {
+            for word in outline.todo.names() {
+                if !outline.todo.is_done(word) && !words.iter().any(|known| known == word) {
+                    words.push(word.to_string());
+                }
+            }
+        }
+        words
+    } else {
+        stuck.todo.clone()
+    };
+    let mut patterns: Vec<String> = Vec::new();
+    if !stuck.todo.is_empty() {
+        let words: Vec<String> = todo_words.iter().map(|word| regex::escape(word)).collect();
+        patterns.push(format!(r"^\*+[ \t]+({})(?:[ \t]|$)", words.join("|")));
+    }
+    if stuck.tags.iter().any(|tag| tag == "*") {
+        patterns.push(r"^\*+ (?:.*[ \t])?(:([\w@#%:]+):)[ \t]*$".to_string());
+    } else if !stuck.tags.is_empty() {
+        let other = r"(?:[\w@#%]+:)*";
+        let tags: Vec<String> = stuck.tags.iter().map(|tag| regex::escape(tag)).collect();
+        patterns.push(format!(r"^\*+ .*?[ \t]:{other}({}):{other}[ \t]*$", tags.join("|")));
+    }
+    if !stuck.regexp.trim().is_empty() {
+        patterns.push(matcher::translate(&stuck.regexp));
+    }
+    if patterns.is_empty() {
+        return Err("Missing information to identify unstuck projects".to_string());
+    }
+    let skip: Vec<regex::Regex> = patterns
+        .iter()
+        .map(|pattern| regex::RegexBuilder::new(pattern).multi_line(true).build())
+        .collect::<Result<_, _>>()
+        .map_err(|error| format!("Invalid regexp in org-stuck-projects: {error}"))?;
+    let builder = Builder::new(files, config, now.today, ViewKind::Tags);
+    let clock = matcher::Clock { today: now.today, minute: now.minute };
+    let mut items = Vec::new();
+    for (file, outline) in files.iter().enumerate() {
+        for index in 0..outline.entries.len() {
+            let entry = &outline.entries[index];
+            if entry.skipped(config.archives) || !matcher.matches(outline, index, false, clock) {
+                continue;
+            }
+            // `org-end-of-subtree`: before the next headline as high, and
+            // before a blank line there.
+            let next = outline.entries[index + 1..]
+                .iter()
+                .find(|other| other.level <= entry.level)
+                .map_or(outline.text.len(), |other| other.offset);
+            let mut end = next;
+            for _ in 0..2 {
+                if outline.text[..end].ends_with('\n') && end > entry.offset {
+                    end -= 1;
+                }
+            }
+            let subtree = &outline.text[entry.offset..end];
+            if skip.iter().any(|pattern| pattern.is_match(subtree)) {
+                continue;
+            }
+            items.push(builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::Headline));
+        }
+    }
+    sort(&mut items, false);
+    let mut lines = vec![Line { text: "List of stuck projects: ".to_string(), kind: LineKind::Header, item: None }];
+    lines.extend(items.into_iter().map(|item| item_line(item, config)));
+    Ok(View { lines, start: 0, end: 0 })
 }
 
 /// `org-search-view`: the entries with the words, phrases and regexps of

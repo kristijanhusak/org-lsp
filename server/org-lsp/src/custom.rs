@@ -69,8 +69,14 @@ fn block_config(
     }
     let options: AgendaOptions =
         serde_json::from_value(value).map_err(|error| format!("agenda settings of a custom command: {error}"))?;
-    let config =
-        Config { priorities: priorities.priorities, window_width: priorities.window_width, ..options.to_config() };
+    let config = Config {
+        priorities: priorities.priorities,
+        window_width: priorities.window_width,
+        tag_alist: priorities.tag_alist,
+        tag_persistent_alist: priorities.tag_persistent_alist,
+        group_tags: priorities.group_tags,
+        ..options.to_config()
+    };
     Ok((options, config))
 }
 
@@ -93,9 +99,10 @@ fn block_kind(
         "tags" => BlockKind::Tags { matcher: Matcher::new(matching), todo_only: false },
         "tags-todo" => BlockKind::Tags { matcher: Matcher::new(matching), todo_only: true },
         "search" => BlockKind::Search { string: matching.to_string(), todo_only: false },
+        "stuck" => BlockKind::Stuck,
         other => {
             return Err(format!(
-            "Custom agenda commands of type `{other}` are not supported; use agenda, alltodo, todo, tags, tags-todo or search"
+            "Custom agenda commands of type `{other}` are not supported; use agenda, alltodo, todo, tags, tags-todo, search or stuck"
         ))
         }
     })

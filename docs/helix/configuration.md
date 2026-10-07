@@ -148,6 +148,11 @@ org_tag_alist = ""
 # written the same way. (org-tag-persistent-alist)
 org_tag_persistent_alist = ""
 
+# A group tag (`[ GTD : Control Persp ]`, `{ Context : @home @office }` in
+# `#+TAGS:` or `org_tag_alist`) in the match string of a tags view stands for
+# itself and the tags of its group. (org-group-tags)
+org_group_tags = true
+
 # Pick tags by key, each key turning its tag on or off until RET: `auto` when
 # some tag has a key, `true` always (keys are given to the tags without one),
 # `false` never: the tags are typed instead. (org-use-fast-tag-selection)
@@ -473,6 +478,12 @@ org_agenda_timerange_leaders = ["", "(%d/%d): "]
 # Leave the tags out of the agenda's lines; `prefix` only when the prefix
 # shows a tag (`%T`). (org-agenda-remove-tags)
 org_agenda_remove_tags = false
+
+# What the stuck projects view (`#`) lists: the projects the match string
+# finds whose subtree has no entry with one of the TODO keywords (`*` for any
+# not done) or tags (`*` for any), and no match of the regexp.
+# (org-stuck-projects)
+org_stuck_projects = ["+LEVEL=2/-DONE", ["TODO", "NEXT", "NEXTACTION"], [], ""]
 
 # What goes between the headlines of `%b`. (org-agenda-breadcrumbs-separator)
 org_agenda_breadcrumbs_separator = "->"

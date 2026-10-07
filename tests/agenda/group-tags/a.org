@@ -1,0 +1,11 @@
+#+TAGS: [ Work : Lab Conf ] { Context : @home @office } Home
+#+TAGS: [ Lab : Bench {P@.+} ]
+* Paper :Lab:
+* Talk :Conf:
+* Desk :Work:
+* Bench work :Bench:
+* Project :P@one:
+* Chores :Home:
+* Call :@home:
+* Meeting :@office:Conf:
+* Nothing

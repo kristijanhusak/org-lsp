@@ -1,0 +1,8 @@
+#+TODO: TODO NEXT | DONE
+* Work
+** Report
+*** Draft
+** Launch :project:
+*** TODO Plan
+** COMMENT Hidden
+*** Thing

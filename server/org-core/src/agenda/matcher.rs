@@ -177,8 +177,11 @@ fn terms(mut text: &str, todo: bool) -> Vec<Term> {
 fn term(text: &str, todo: bool) -> Option<(Test, &str)> {
     if let Some(inner) = text.strip_prefix('{') {
         let end = inner.find('}').filter(|end| *end > 0)?;
-        let regex = emacs_regex(&inner[..end])?;
-        let test = if todo { Test::KeywordRegex(regex) } else { Test::TagRegex(regex) };
+        let test = if todo {
+            Test::KeywordRegex(emacs_regex(&inner[..end])?)
+        } else {
+            Test::TagRegex(tag_regex(&inner[..end])?)
+        };
         return Some((test, &inner[end + 1..]));
     }
     if !todo {
@@ -460,6 +463,101 @@ fn item_title(entry: &Entry) -> String {
     }
 }
 
+/// `org-tags-expand`: each group tag of `text` (`Work`, `+Work`, `-Work`)
+/// in place of a regexp of the tags it stands for, its own tags too
+/// (`{\<\(?:Work\|Lab\)\>}`); regexps (`{...}`) are left alone, and
+/// the names compare without regard to case.
+pub fn expand_groups(text: &str, groups: &[(String, Vec<String>)]) -> String {
+    if groups.is_empty() || text.trim().is_empty() {
+        return text.to_string();
+    }
+    let is_word = |c: char| c.is_alphanumeric() || c == '_' || c == '@';
+    // The regexps of the match, left as they are.
+    let mut regexps: Vec<(usize, usize)> = Vec::new();
+    let mut from = 0;
+    while let Some(open) = text[from..].find('{').map(|index| from + index) {
+        let Some(close) =
+            text[open + 1..].char_indices().skip(1).find(|(_, c)| *c == '}').map(|(index, _)| open + 1 + index)
+        else {
+            break;
+        };
+        regexps.push((open, close + 1));
+        from = close + 1;
+    }
+    let mut out = String::new();
+    let mut at = 0;
+    'scan: while at < text.len() {
+        let before = text[..at].chars().next_back();
+        if before.is_none_or(|c| !is_word(c)) {
+            for (key, _) in groups {
+                let end = at + key.len();
+                let candidate = text.get(at..end);
+                if !candidate.is_some_and(|candidate| {
+                    candidate.eq_ignore_ascii_case(key) || candidate.to_lowercase() == key.to_lowercase()
+                }) {
+                    continue;
+                }
+                if text[end..].chars().next().is_some_and(is_word) {
+                    continue;
+                }
+                if regexps.iter().any(|(start, stop)| *start <= at && at < *stop) {
+                    continue;
+                }
+                let token = &text[at..end];
+                let mut expanded: Vec<String> = Vec::new();
+                expand_group(&[token.to_string()], groups, &mut expanded);
+                let (regexp_tags, regular): (Vec<String>, Vec<String>) =
+                    expanded.into_iter().partition(|tag| tag.starts_with('{') && tag.ends_with('}') && tag.len() > 2);
+                let regexp_tags: Vec<String> =
+                    regexp_tags.iter().map(|tag| tag[1..tag.len() - 1].to_string()).collect();
+                let regular_re =
+                    format!("\\(?:{}\\)", regular.iter().map(|tag| regex_quote(tag)).collect::<Vec<_>>().join("\\|"));
+                let regexp = regexp_tags.join("\\|");
+                let replacement = if regular.is_empty() {
+                    format!("{{{regexp}}}")
+                } else if regexp_tags.is_empty() {
+                    format!("{{\\<{regular_re}\\>}}")
+                } else {
+                    format!("{{\\<{regular_re}\\>\\|{regexp}}}")
+                };
+                out.push_str(&replacement);
+                at = end;
+                continue 'scan;
+            }
+        }
+        let c = text[at..].chars().next().expect("a character");
+        out.push(c);
+        at += c.len_utf8();
+    }
+    out
+}
+
+/// `org--tags-expand-group`: the tags of `group` and, for each that is a
+/// group tag itself, its tags, each once.
+fn expand_group(group: &[String], groups: &[(String, Vec<String>)], expanded: &mut Vec<String>) {
+    for tag in group {
+        if expanded.contains(tag) {
+            continue;
+        }
+        expanded.push(tag.clone());
+        if let Some((_, members)) = groups.iter().find(|(key, _)| key == tag) {
+            expand_group(members, groups, expanded);
+        }
+    }
+}
+
+/// `regexp-quote`
+fn regex_quote(text: &str) -> String {
+    let mut out = String::new();
+    for c in text.chars() {
+        if matches!(c, '[' | '*' | '.' | '\\' | '?' | '+' | '^' | '$') {
+            out.push('\\');
+        }
+        out.push(c);
+    }
+    out
+}
+
 /// An Emacs regexp as a regex of this crate, matching without regard to
 /// case as the matcher does (`case-fold-search` is on).
 pub fn emacs_regex(pattern: &str) -> Option<Regex> {
@@ -472,7 +570,19 @@ pub fn emacs_buffer_regex(pattern: &str) -> Option<Regex> {
     RegexBuilder::new(&translate(pattern)).case_insensitive(true).multi_line(true).build().ok()
 }
 
+/// [`emacs_regex`] for matching tags, where `@` and `_` are parts of
+/// words, as in Org's tags syntax table: `\<@home\>` matches `@home`.
+fn tag_regex(pattern: &str) -> Option<Regex> {
+    let translated = translate_words(pattern, r"(?:^|[^\w@])", r"(?:$|[^\w@])");
+    RegexBuilder::new(&translated).case_insensitive(true).build().ok()
+}
+
 pub(crate) fn translate(pattern: &str) -> String {
+    translate_words(pattern, r"\b", r"\b")
+}
+
+/// [`translate`] with `\<` and `\>` as `start` and `end`.
+fn translate_words(pattern: &str, start: &str, end: &str) -> String {
     let mut out = String::new();
     let mut chars = pattern.chars().peekable();
     while let Some(c) = chars.next() {
@@ -496,7 +606,9 @@ pub(crate) fn translate(pattern: &str) -> String {
                 Some('}') => out.push('}'),
                 Some('`') => out.push_str(r"\A"),
                 Some('\'') => out.push_str(r"\z"),
-                Some('<') | Some('>') | Some('b') => out.push_str(r"\b"),
+                Some('<') => out.push_str(start),
+                Some('>') => out.push_str(end),
+                Some('b') => out.push_str(r"\b"),
                 Some('w') => out.push_str(r"\w"),
                 Some('W') => out.push_str(r"\W"),
                 Some('s') => {

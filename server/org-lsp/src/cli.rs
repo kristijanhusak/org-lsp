@@ -87,6 +87,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     let mut now = now();
     let mut options = AgendaOptions::default();
     let mut inheritance = org_core::outline::Inheritance::default();
+    let mut tag_options: Option<crate::config::Options> = None;
     let mut files = Vec::new();
 
     let mut arguments = arguments.iter();
@@ -109,6 +110,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
                 inheritance = serde_json::from_str::<crate::config::InheritanceOptions>(json)
                     .map_err(|error| format!("--options: {error}"))?
                     .inheritance();
+                tag_options = serde_json::from_str::<crate::config::Options>(json).ok();
             }
             "--help" | "-h" => return Ok(format!("{USAGE}\n")),
             flag if flag.starts_with("--") => return Err(format!("unknown option `{flag}`")),
@@ -120,6 +122,12 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     }
 
     let mut config = options.to_config();
+    if let Some(tag_options) = &tag_options {
+        let tags = tag_options.tag_settings();
+        config.tag_alist = tags.alist;
+        config.tag_persistent_alist = tags.persistent;
+        config.group_tags = tag_options.group_tags.unwrap_or(true);
+    }
     config.show_log |= log;
     config.clockreport |= clockreport;
     if let Some(span) = span {
@@ -199,6 +207,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             agenda::search::parse(&string, view == "search-todo", &config.search)?;
             block(BlockKind::Search { string, todo_only: view == "search-todo" })
         }
+        "stuck" => block(BlockKind::Stuck),
         "custom" => {
             let key = key.ok_or("--view custom needs --key")?;
             let commands = options.custom_commands.as_deref().unwrap_or_default();
@@ -208,7 +217,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
         }
         other => {
             return Err(format!(
-                "unknown view `{other}`; expected agenda, todo, tags, tags-todo, search, search-todo or custom"
+                "unknown view `{other}`; expected agenda, todo, tags, tags-todo, search, search-todo, stuck or custom"
             ))
         }
     };

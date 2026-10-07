@@ -1,0 +1,5 @@
+Headlines with TAGS match: -Work
+  a:          Chores                                                      :Home:
+  a:          Call                                                       :@home:
+  a:          Nothing
+  b:          Travel                                                      :Trip:
