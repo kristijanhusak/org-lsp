@@ -120,6 +120,9 @@ enum Pending {
     Answer { command: String, argument: Value, input: Value },
 }
 
+/// Text that goes in place of `start..end`.
+type Replacement = (usize, usize, String);
+
 /// The agenda the client is showing.
 struct OpenView {
     uri: Uri,
@@ -1091,6 +1094,16 @@ fn capabilities(encoding: Encoding, inlay_hints: bool, cursor: bool) -> ServerCa
         )),
         folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
         document_symbol_provider: Some(OneOf::Left(true)),
+        references_provider: Some(OneOf::Left(true)),
+        rename_provider: Some(OneOf::Right(lsp_types::RenameOptions {
+            prepare_provider: Some(true),
+            work_done_progress_options: Default::default(),
+        })),
+        workspace_symbol_provider: Some(OneOf::Left(true)),
+        document_link_provider: Some(lsp_types::DocumentLinkOptions {
+            resolve_provider: Some(true),
+            work_done_progress_options: Default::default(),
+        }),
         definition_provider: Some(OneOf::Left(true)),
         hover_provider: Some(lsp_types::HoverProviderCapability::Simple(true)),
         completion_provider: Some(lsp_types::CompletionOptions {
@@ -1478,6 +1491,12 @@ impl Server {
             lsp_types::request::Formatting => formatting,
             lsp_types::request::InlayHintRequest => inlay_hints,
             lsp_types::request::DocumentHighlightRequest => document_highlights,
+            lsp_types::request::DocumentLinkRequest => document_links,
+            lsp_types::request::DocumentLinkResolve => document_link_resolve,
+            lsp_types::request::References => references,
+            lsp_types::request::PrepareRenameRequest => prepare_rename,
+            lsp_types::request::Rename => rename,
+            lsp_types::request::WorkspaceSymbolRequest => workspace_symbols,
         }
     }
 
@@ -2245,7 +2264,9 @@ impl Server {
     fn hover(&mut self, params: lsp_types::HoverParams) -> Option<lsp_types::Hover> {
         let position = params.text_document_position_params;
         if !self.is_view(&position.text_document.uri) {
-            return self.citation_hover(&position.text_document.uri, position.position);
+            return self
+                .link_hover(&position.text_document.uri, position.position)
+                .or_else(|| self.citation_hover(&position.text_document.uri, position.position));
         }
         let text = self.entry_preview(&position.text_document.uri, position.position.line)?;
         Some(lsp_types::Hover {
@@ -2255,6 +2276,350 @@ impl Server {
             }),
             range: None,
         })
+    }
+
+    /// The links of an Org file (`textDocument/documentLink`): a URL or a
+    /// file at once; a place in a file (`*Heading`, `id:`, `file:…::search`)
+    /// once the editor asks for it (`documentLink/resolve`), as the file
+    /// with `#L` and the line. The tooltip is what Emacs shows over a link.
+    fn document_links(&mut self, params: lsp_types::DocumentLinkParams) -> Option<Vec<lsp_types::DocumentLink>> {
+        let uri = params.text_document.uri;
+        if self.is_view(&uri) {
+            return None;
+        }
+        let encoding = self.client.encoding;
+        let document = self.document(&uri)?;
+        let (text, parse, index) = (document.text.clone(), document.parse.clone(), document.index.clone());
+        let mut out = Vec::new();
+        for link in open::links(&text, &parse) {
+            let (target, data) = match &link.open {
+                Ok(Open::External(url)) => (url.parse::<Uri>().ok(), None),
+                Ok(Open::File { path, search: None, .. }) => {
+                    (self.link_path(&uri, path).and_then(|path| uri::from_path(&path)), None)
+                }
+                Ok(Open::File { .. } | Open::Here(_) | Open::Id(_)) => {
+                    (None, Some(json!({ "uri": uri.as_str(), "offset": link.start })))
+                }
+                _ => continue,
+            };
+            if target.is_none() && data.is_none() {
+                continue;
+            }
+            let range =
+                Range::new(index.position(&text, link.start, encoding), index.position(&text, link.end, encoding));
+            out.push(lsp_types::DocumentLink { range, target, tooltip: Some(format!("LINK: {}", link.raw)), data });
+        }
+        Some(out)
+    }
+
+    /// Where a link `document_links` left for later leads.
+    fn document_link_resolve(&mut self, mut link: lsp_types::DocumentLink) -> lsp_types::DocumentLink {
+        let Some(data) = link.data.take() else { return link };
+        let uri = data.get("uri").and_then(Value::as_str).and_then(|uri| uri.parse::<Uri>().ok());
+        let offset = data.get("offset").and_then(Value::as_u64).map(|offset| offset as usize);
+        let (Some(uri), Some(offset)) = (uri, offset) else { return link };
+        let Some(document) = self.document(&uri) else { return link };
+        let (text, parse) = (document.text.clone(), document.parse.clone());
+        let Some(Ok(opened)) = open::link_at(&text, &parse, offset).map(|found| found.open) else { return link };
+        if let Ok(Some(location)) = self.open_location(&uri, &text, &opened) {
+            let start = location.range.start;
+            link.target = format!("{}#L{},{}", location.uri.as_str(), start.line + 1, start.character + 1).parse().ok();
+        }
+        link
+    }
+
+    /// Over a link in an Org file, the link as Emacs shows it (`LINK:
+    /// …`), and the entry it leads to, as the agenda's hover shows one.
+    fn link_hover(&mut self, uri: &Uri, position: Position) -> Option<lsp_types::Hover> {
+        let encoding = self.client.encoding;
+        let document = self.document(uri)?;
+        let (text, parse, index) = (document.text.clone(), document.parse.clone(), document.index.clone());
+        let offset = index.offset(&text, position, encoding);
+        let link = open::link_at(&text, &parse, offset)?;
+        let entry = link.open.as_ref().ok().and_then(|opened| self.link_entry(uri, &text, opened));
+        let line = format!("LINK: {}", link.raw);
+        let value = match entry {
+            Some(entry) => format!("`{}`\n\n{}", line.replace('`', "'"), org_core::preview::markdown(&entry)),
+            None => format!("`{}`", line.replace('`', "'")),
+        };
+        let range = Range::new(index.position(&text, link.start, encoding), index.position(&text, link.end, encoding));
+        Some(lsp_types::Hover {
+            contents: lsp_types::HoverContents::Markup(lsp_types::MarkupContent {
+                kind: lsp_types::MarkupKind::Markdown,
+                value,
+            }),
+            range: Some(range),
+        })
+    }
+
+    /// The Org files the server knows: the agenda files and the files open
+    /// in the editor, each with its text.
+    fn known_files(&mut self) -> Vec<(Uri, String)> {
+        let mut files: Vec<(Uri, String)> = self
+            .agenda_files()
+            .into_iter()
+            .map(|(uri, held)| {
+                let text = match &held {
+                    Held::Open(outline) => outline.text.clone(),
+                    Held::Disk(source) => source.text.clone(),
+                };
+                (uri, text)
+            })
+            .collect();
+        let mut paths: Vec<PathBuf> = files.iter().filter_map(|(uri, _)| uri::to_path(uri)).collect();
+        let mut keys: Vec<&String> = self.documents.keys().collect();
+        keys.sort();
+        for key in keys {
+            let Ok(uri) = key.parse::<Uri>() else { continue };
+            let Some(path) = uri::to_path(&uri) else { continue };
+            if !paths.contains(&path) && !self.is_view(&uri) {
+                paths.push(path);
+                files.push((uri, self.documents[key].text.clone()));
+            }
+        }
+        files
+    }
+
+    /// Backlinks (`textDocument/references`): the links in the Org files
+    /// the server knows that lead to the entry at the cursor, or to the
+    /// entry the link at the cursor leads to: by its ID, a search for its
+    /// headline or its `CUSTOM_ID`, from another file or the same one.
+    fn references(&mut self, params: lsp_types::ReferenceParams) -> Option<Vec<Location>> {
+        let encoding = self.client.encoding;
+        let place = params.text_document_position;
+        let uri = place.text_document.uri;
+        if self.is_view(&uri) {
+            return None;
+        }
+        let document = self.document(&uri)?;
+        let (text, parse) = (document.text.clone(), document.parse.clone());
+        let offset = document.index.offset(&text, place.position, encoding);
+        let (target, target_text, heading) = match open::link_at(&text, &parse, offset) {
+            Some(link) => {
+                let opened = link.open.ok()?;
+                let location = self.open_location(&uri, &text, &opened).ok()??;
+                let (_, target_text) = self.file_text(&uri::to_path(&location.uri)?)?;
+                let at = LineIndex::new(&target_text).offset(&target_text, location.range.start, encoding);
+                let heading = org_core::properties::heading_at(&target_text, at)?;
+                (location.uri, target_text, heading)
+            }
+            None => {
+                let heading = org_core::properties::heading_at(&text, offset)?;
+                (uri.clone(), text.clone(), heading)
+            }
+        };
+        let mut out = Vec::new();
+        if params.context.include_declaration {
+            let position = LineIndex::new(&target_text).position(&target_text, heading, encoding);
+            out.push(Location { uri: target.clone(), range: Range::new(position, position) });
+        }
+        for (file, file_text, link) in self.backlinks(&target, &target_text, heading) {
+            let index = LineIndex::new(&file_text);
+            let range = Range::new(
+                index.position(&file_text, link.start, encoding),
+                index.position(&file_text, link.end, encoding),
+            );
+            out.push(Location { uri: file, range });
+        }
+        Some(out)
+    }
+
+    /// The links in the Org files the server knows that lead to the entry
+    /// at `heading` of `target` (whose text is `target_text`): by its ID,
+    /// or a search for its headline or its `CUSTOM_ID`, from another file
+    /// or the same one. Each with the text of its file.
+    fn backlinks(&mut self, target: &Uri, target_text: &str, heading: usize) -> Vec<(Uri, String, open::Link)> {
+        let Some(target_path) = uri::to_path(target) else { return Vec::new() };
+        let canonical = std::fs::canonicalize(&target_path).ok();
+        let same =
+            |path: &Path| path == target_path || (canonical.is_some() && std::fs::canonicalize(path).ok() == canonical);
+        let target_parse = org_syntax::parse(target_text, &self.todo);
+        let id = {
+            let outline = Outline::new(&target_parse, target_text, &uri::file_stem(target));
+            outline.entry_at(heading).and_then(|entry| outline.entry_property(Some(entry), "ID", false))
+        };
+        let mut out = Vec::new();
+        for (file, file_text) in self.known_files() {
+            let Some(file_path) = uri::to_path(&file) else { continue };
+            let file_parse = org_syntax::parse(&file_text, &self.todo);
+            for link in open::links(&file_text, &file_parse) {
+                let leads = match &link.open {
+                    Ok(Open::Here(at)) => same(&file_path) && *at == heading,
+                    Ok(Open::Id(found)) => id.as_deref() == Some(found.as_str()),
+                    Ok(Open::File { path, search: Some(search), system: false }) => {
+                        self.link_path(&file, path).is_some_and(|path| same(&path))
+                            && open::search_in_file(target_text, Some(&target_parse), search).ok() == Some(heading)
+                    }
+                    _ => false,
+                };
+                if leads {
+                    out.push((file.clone(), file_text.clone(), link));
+                }
+            }
+        }
+        out
+    }
+
+    /// `textDocument/prepareRename`: a tag, or a headline's title.
+    fn prepare_rename(
+        &mut self,
+        params: lsp_types::TextDocumentPositionParams,
+    ) -> Option<lsp_types::PrepareRenameResponse> {
+        let encoding = self.client.encoding;
+        let document = self.document(&params.text_document.uri)?;
+        let offset = document.index.offset(&document.text, params.position, encoding);
+        let (start, end, name) = match org_core::rename::target(&document.text, offset, document.parse.todo_keywords())?
+        {
+            org_core::rename::Target::Tag { start, end, name } => (start, end, name),
+            org_core::rename::Target::Heading { start, end, title, .. } => (start, end, title),
+        };
+        let range = Range::new(
+            document.index.position(&document.text, start, encoding),
+            document.index.position(&document.text, end, encoding),
+        );
+        Some(lsp_types::PrepareRenameResponse::RangeWithPlaceholder { range, placeholder: name })
+    }
+
+    /// `textDocument/rename`: a tag in every Org file the server knows, in
+    /// its headlines (aligned again) and `#+FILETAGS:` and `#+TAGS:` lines;
+    /// or a headline's title, and the links that search for it.
+    fn rename(&mut self, params: lsp_types::RenameParams) -> Option<WorkspaceEdit> {
+        use org_core::rename::{self, Target};
+        let encoding = self.client.encoding;
+        let place = params.text_document_position;
+        let uri = place.text_document.uri;
+        let new = params.new_name.trim().to_string();
+        let document = self.document(&uri)?;
+        let (text, offset) = (document.text.clone(), document.index.offset(&document.text, place.position, encoding));
+        let target = rename::target(&text, offset, document.parse.todo_keywords())?;
+        let mut changed: Vec<(Uri, String, String)> = Vec::new();
+        match target {
+            Target::Tag { name, .. } => {
+                if !rename::valid_tag(&new) {
+                    self.show_message(MessageType::ERROR, format!("Invalid tag: \"{new}\""));
+                    return None;
+                }
+                let settings = self.edit_settings.tags.clone();
+                for (file, old) in self.known_files() {
+                    let renamed = rename::rename_tag(&old, &name, &new, &settings);
+                    if renamed != old {
+                        changed.push((file, old, renamed));
+                    }
+                }
+            }
+            Target::Heading { heading, start, end, .. } => {
+                if new.is_empty() || new.contains('\n') {
+                    return None;
+                }
+                // The links' paths, by file, last first.
+                let mut by_file: Vec<(Uri, String, Vec<Replacement>)> = Vec::new();
+                for (file, file_text, link) in self.backlinks(&uri, &text, heading) {
+                    if !matches!(link.open, Ok(Open::Here(_) | Open::File { .. })) {
+                        continue;
+                    }
+                    let Some(raw) = rename::retarget(&link.raw, &new) else { continue };
+                    let written = if link.bracket {
+                        org_core::link::escape(&raw)
+                    } else if raw.contains(char::is_whitespace) {
+                        continue;
+                    } else {
+                        raw
+                    };
+                    match by_file.iter_mut().find(|(other, _, _)| *other == file) {
+                        Some((_, _, edits)) => edits.push((link.path.0, link.path.1, written)),
+                        None => by_file.push((file, file_text, vec![(link.path.0, link.path.1, written)])),
+                    }
+                }
+                if !by_file.iter().any(|(file, _, _)| *file == uri) {
+                    by_file.push((uri.clone(), text.clone(), Vec::new()));
+                }
+                for (file, old, mut edits) in by_file {
+                    if file == uri {
+                        edits.push((start, end, new.clone()));
+                    }
+                    edits.sort_by_key(|edit| std::cmp::Reverse(edit.0));
+                    let mut renamed = old.clone();
+                    for (from, to, written) in edits {
+                        renamed.replace_range(from..to, &written);
+                    }
+                    changed.push((file, old, renamed));
+                }
+            }
+        }
+        let documents: Vec<(Uri, Option<i32>, Vec<TextEdit>)> = changed
+            .into_iter()
+            .map(|(file, old, new)| {
+                let version = self.document(&file).map(|document| document.version);
+                let edits = self.text_edits(&old, &new);
+                (file, version, edits)
+            })
+            .collect();
+        Some(self.workspace_edits(documents))
+    }
+
+    /// `workspace/symbol`: the headlines of the Org files the server knows
+    /// whose title has the letters of the query in order, without regard
+    /// to case, each with its file and its parent.
+    fn workspace_symbols(
+        &mut self,
+        params: lsp_types::WorkspaceSymbolParams,
+    ) -> Option<lsp_types::WorkspaceSymbolResponse> {
+        let encoding = self.client.encoding;
+        let query: Vec<char> = params.query.to_lowercase().chars().filter(|c| !c.is_whitespace()).collect();
+        let matches = |name: &str| {
+            let mut wanted = query.iter().peekable();
+            for c in name.to_lowercase().chars() {
+                if wanted.peek() == Some(&&c) {
+                    wanted.next();
+                }
+            }
+            wanted.peek().is_none()
+        };
+        let mut out = Vec::new();
+        for (file, text) in self.known_files() {
+            let parse = org_syntax::parse(&text, &self.todo);
+            let index = LineIndex::new(&text);
+            let name = uri::file_name(&file);
+            for mut symbol in symbols::symbol_information(&parse.syntax(), &text, &index, encoding, &file) {
+                if !matches(&symbol.name) {
+                    continue;
+                }
+                symbol.container_name = Some(match symbol.container_name.take() {
+                    Some(parent) => format!("{name} › {parent}"),
+                    None => name.clone(),
+                });
+                out.push(symbol);
+                if out.len() >= 1000 {
+                    return Some(lsp_types::WorkspaceSymbolResponse::Flat(out));
+                }
+            }
+        }
+        Some(lsp_types::WorkspaceSymbolResponse::Flat(out))
+    }
+
+    /// The entry a link leads to, when it leads to an entry's headline in
+    /// an Org file: its headline and text, each drawer folded.
+    fn link_entry(&mut self, uri: &Uri, text: &str, opened: &Open) -> Option<String> {
+        let (target, offset) = match opened {
+            Open::Here(offset) => (text.to_string(), *offset),
+            Open::Id(id) => {
+                let (file, offset) = self.find_id(id)?;
+                (self.file_text(&uri::to_path(&file)?)?.1, offset)
+            }
+            Open::File { path, search: Some(search), system: false } => {
+                let path = self.link_path(uri, path)?;
+                if !path.extension().is_some_and(|extension| extension == "org" || extension == "org_archive") {
+                    return None;
+                }
+                let (_, target) = self.file_text(&path)?;
+                let parse = org_syntax::parse(&target, &self.todo);
+                let offset = open::search_in_file(&target, Some(&parse), search).ok()?;
+                (target, offset)
+            }
+            _ => return None,
+        };
+        let heading = org_core::properties::heading_at(&target, offset)?;
+        (heading == offset).then(|| org_core::preview::entry(&target, heading))
     }
 
     /// The entry of agenda line `line`, as a popup shows it: its headline

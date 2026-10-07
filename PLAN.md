@@ -513,10 +513,11 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   same link. Not yet: a region as the search; `id:` and `help:` typed
   alone complete nothing; link abbreviations are no prefixes to
   complete.
-- `documentLink`, backlinks as references.
-- Completion: TODO keywords and tags in headlines are done (server
-  only); still to do: properties, link targets, block names, `#+`
-  keywords, and tags from the agenda files as well as the file. Hover. Workspace symbols. Rename of tags and headings.
+- Done: `documentLink` (resolved lazily for places in files, as the
+  file with `#L` and the line), hover over a link (`LINK: …` and the
+  entry it leads to), backlinks as references, workspace symbols, rename
+  of headlines (their searching links follow) and tags (headlines,
+  `#+FILETAGS:`, `#+TAGS:`, aligned again).
 
 ### 12. Tables
 

@@ -94,6 +94,56 @@ pub fn at_point(text: &str, parse: &Parse, offset: usize, answer: Option<char>) 
 
 const NO_LINK: &str = "No link found";
 
+/// A link of a text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Link {
+    /// Where it is.
+    pub start: usize,
+    pub end: usize,
+    /// The link as Org reads it (`org-element-link-parser`'s raw link).
+    pub raw: String,
+    /// Where its path is written, and whether it is a bracket link, whose
+    /// path is escaped.
+    pub path: (usize, usize),
+    pub bracket: bool,
+    /// What opening it does.
+    pub open: Result<Open, String>,
+}
+
+fn link_of(node: &SyntaxNode, text: &str, parse: &Parse) -> Link {
+    let range = node.text_range();
+    let path = node
+        .children_with_tokens()
+        .filter_map(|child| child.into_token())
+        .find(|token| token.kind() == SyntaxKind::LINK_PATH)
+        .map_or(range, |token| token.text_range());
+    let (raw, bracket) = raw_link(node);
+    Link {
+        start: usize::from(range.start()),
+        end: usize::from(range.end()),
+        raw,
+        path: (usize::from(path.start()), usize::from(path.end())),
+        bracket,
+        open: open_link(node, text, parse),
+    }
+}
+
+fn is_link(node: &SyntaxNode) -> bool {
+    matches!(node.kind(), SyntaxKind::LINK | SyntaxKind::PLAIN_LINK | SyntaxKind::ANGLE_LINK)
+}
+
+/// The links of a text: bracket, angle and plain links, in order.
+pub fn links(text: &str, parse: &Parse) -> Vec<Link> {
+    parse.syntax().descendants().filter(is_link).map(|node| link_of(&node, text, parse)).collect()
+}
+
+/// The link the character at `offset` is in.
+pub fn link_at(text: &str, parse: &Parse, offset: usize) -> Option<Link> {
+    let token = token_at(&parse.syntax(), offset)?;
+    let node = token.parent_ancestors().find(is_link)?;
+    Some(link_of(&node, text, parse))
+}
+
 /// The token the character at `offset` is in.
 fn token_at(root: &SyntaxNode, offset: usize) -> Option<org_syntax::SyntaxToken> {
     let end = usize::from(root.text_range().end());

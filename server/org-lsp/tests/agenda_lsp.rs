@@ -4515,3 +4515,150 @@ fn stores_and_inserts_links() {
     run_applying(&mut client, uri, &mut text, "org.link.insert.last", 4, json!({}));
     assert!(text.ends_with(&format!(":END:\n[[id:{id}][Tasks]]\n")), "{text}");
 }
+
+/// `textDocument/documentLink`: URLs and files at once, places in files
+/// once resolved, as the file and the line; hover over a link shows it as
+/// Emacs does, and the entry it leads to.
+#[test]
+fn links_are_document_links_with_hover() {
+    let mut client = Client::editor(clock(), None);
+    let uri = "file:///org/a.org";
+    let text = "* Target\n:PROPERTIES:\n:ID: abc\n:END:\nBody\n* Links\n[[*Target][go]] https://orgmode.org [[id:abc]] [[file:b.org]] [[file:b.org::*B head]]\n";
+    client.open(uri, text);
+    client.open("file:///org/b.org", "* B head\nIn b.\n");
+    let links = client.request("textDocument/documentLink", json!({ "textDocument": { "uri": uri } })).unwrap();
+    let links = links.as_array().unwrap();
+    let targets: Vec<Value> = links.iter().map(|link| link["target"].clone()).collect();
+    assert_eq!(
+        targets,
+        vec![Value::Null, json!("https://orgmode.org"), Value::Null, json!("file:///org/b.org"), Value::Null],
+        "{links:?}"
+    );
+    assert_eq!(links[0]["tooltip"], "LINK: *Target");
+    assert_eq!(
+        links[0]["range"],
+        json!({ "start": { "line": 6, "character": 0 }, "end": { "line": 6, "character": 15 } })
+    );
+    let resolved = |client: &mut Client, link: &Value| client.request("documentLink/resolve", link.clone()).unwrap();
+    assert_eq!(resolved(&mut client, &links[0])["target"], "file:///org/a.org#L1,1");
+    assert_eq!(resolved(&mut client, &links[2])["target"], "file:///org/a.org#L1,1");
+    assert_eq!(resolved(&mut client, &links[4])["target"], "file:///org/b.org#L1,1");
+    let hover = client
+        .request(
+            "textDocument/hover",
+            json!({ "textDocument": { "uri": uri }, "position": { "line": 6, "character": 38 } }),
+        )
+        .unwrap();
+    let value = hover["contents"]["value"].as_str().unwrap();
+    assert!(value.starts_with("`LINK: id:abc`"), "{value}");
+    assert!(value.contains("* Target") && value.contains("Body"), "{value}");
+    let hover = client
+        .request(
+            "textDocument/hover",
+            json!({ "textDocument": { "uri": uri }, "position": { "line": 6, "character": 20 } }),
+        )
+        .unwrap();
+    assert_eq!(hover["contents"]["value"], "`LINK: https://orgmode.org`");
+}
+
+/// Backlinks (`textDocument/references`) of an entry: links by its ID,
+/// its headline or its `CUSTOM_ID`, in the same file and others, also
+/// from a link to it; and `workspace/symbol` over the headlines.
+#[test]
+fn finds_backlinks_and_workspace_symbols() {
+    let mut client = Client::editor(clock(), None);
+    let a = "file:///org/a.org";
+    client.open(a, "* Target\n:PROPERTIES:\n:ID: abc\n:CUSTOM_ID: tgt\n:END:\n* Other\n[[*Target]] and [[#tgt][t]]\n");
+    client.open("file:///org/b.org", "* B\n[[id:abc][x]] [[file:a.org::*Target]] [[file:a.org::*Other]]\n");
+    let references = |client: &mut Client, uri: &str, line: u32, character: u32, declaration: bool| {
+        let found = client
+            .request(
+                "textDocument/references",
+                json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": character },
+                    "context": { "includeDeclaration": declaration } }),
+            )
+            .unwrap();
+        found
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|location| {
+                format!(
+                    "{}:{}:{}",
+                    location["uri"].as_str().unwrap().trim_start_matches("file:///org/"),
+                    location["range"]["start"]["line"],
+                    location["range"]["start"]["character"]
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(references(&mut client, a, 0, 3, false), ["a.org:6:0", "a.org:6:16", "b.org:1:0", "b.org:1:14"]);
+    assert_eq!(
+        references(&mut client, a, 3, 0, true),
+        ["a.org:0:0", "a.org:6:0", "a.org:6:16", "b.org:1:0", "b.org:1:14"]
+    );
+    // From a link: the backlinks of the entry it leads to.
+    assert_eq!(references(&mut client, "file:///org/b.org", 1, 45, false), ["b.org:1:38"]);
+    let symbols = client.request("workspace/symbol", json!({ "query": "tg" })).unwrap();
+    let names: Vec<(Value, Value)> = symbols
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|symbol| (symbol["name"].clone(), symbol["containerName"].clone()))
+        .collect();
+    assert_eq!(names, vec![(json!("Target"), json!("a.org"))]);
+}
+
+/// `textDocument/rename` of a headline: its title and the links that
+/// search for it, in every file (not those by ID); of a tag: in every
+/// headline, aligned again, and in `#+FILETAGS:`.
+#[test]
+fn renames_headlines_and_tags() {
+    let mut options = clock();
+    options["org_tags_column"] = json!(0);
+    let mut client = Client::editor(options, None);
+    let a = "file:///org/a.org";
+    let b = "file:///org/b.org";
+    let a_text = "* TODO Old title :work:\n:PROPERTIES:\n:ID: abc\n:END:\n* Other\n[[*Old title][see]] [[id:abc]]\n";
+    let b_text = "#+FILETAGS: :work:\n* B :work:x:\n[[file:a.org::*Old title]]\n";
+    client.open(a, a_text);
+    client.open(b, b_text);
+    let prepared = client
+        .request(
+            "textDocument/prepareRename",
+            json!({ "textDocument": { "uri": a }, "position": { "line": 0, "character": 3 } }),
+        )
+        .unwrap();
+    assert_eq!(prepared["placeholder"], "Old title");
+    assert_eq!(
+        prepared["range"],
+        json!({ "start": { "line": 0, "character": 7 }, "end": { "line": 0, "character": 16 } })
+    );
+    let renamed = |client: &mut Client, line: u32, character: u32, name: &str| {
+        let edit = client
+            .request(
+                "textDocument/rename",
+                json!({ "textDocument": { "uri": a }, "position": { "line": line, "character": character }, "newName": name }),
+            )
+            .unwrap();
+        let mut texts = std::collections::BTreeMap::new();
+        for change in edit["documentChanges"].as_array().unwrap() {
+            let uri = change["textDocument"]["uri"].as_str().unwrap().to_string();
+            let old = if uri == a { a_text } else { b_text };
+            texts.insert(uri, apply(old, change["edits"].as_array().unwrap()));
+        }
+        texts
+    };
+    let texts = renamed(&mut client, 0, 3, "New title");
+    assert_eq!(
+        texts[a],
+        "* TODO New title :work:\n:PROPERTIES:\n:ID: abc\n:END:\n* Other\n[[*New title][see]] [[id:abc]]\n"
+    );
+    assert_eq!(texts[b], "#+FILETAGS: :work:\n* B :work:x:\n[[file:a.org::*New title]]\n");
+    let texts = renamed(&mut client, 0, 19, "job");
+    assert_eq!(
+        texts[a],
+        "* TODO Old title :job:\n:PROPERTIES:\n:ID: abc\n:END:\n* Other\n[[*Old title][see]] [[id:abc]]\n"
+    );
+    assert_eq!(texts[b], "#+FILETAGS: :job:\n* B :job:x:\n[[file:a.org::*Old title]]\n");
+}
