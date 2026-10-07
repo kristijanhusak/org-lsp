@@ -10,7 +10,7 @@
 --- before the plugin loads or call `setup()`:
 ---
 ---     require('org-lsp').setup({
----       settings = { agendaFiles = { '~/org' } },
+---       settings = { org_agenda_files = { '~/org' } },
 ---       mappings = { org = { ['org.todo.next'] = '<Leader>t' } },
 ---     })
 local M = {}
@@ -22,14 +22,14 @@ local SERVER = 'org_lsp'
 --- to have them completed and checked.
 ---@class org_lsp.Config
 ---@field cmd? string[] Server command. Found automatically when unset.
----@field settings? org_lsp.Settings The server's options, such as `agendaFiles` and `todoKeywords`; see docs/neovim/configuration.md.
+---@field settings? org_lsp.Settings The server's options, such as `org_agenda_files` and `org_todo_keywords`; see docs/neovim/configuration.md.
 ---@field startup_folded? 'showeverything'|'overview' Fold state of a newly opened file.
 ---@field folding? boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
 ---@field src_highlight? boolean Whether the code of source and export blocks and of inline source blocks (`#+begin_src python`, `src_python{…}`) is highlighted by the tree-sitter parser of its language, or its Vim syntax file when there is no parser, as Emacs's `org-src-fontify-natively` shows it.
----@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `hideEmphasisMarkers`), with 'conceallevel' 2 in Org windows.
----@field indent? boolean Whether the server indents as Org does: new lines through 'indentexpr' (`org-indent-line`), and `=` (`org-indent-region`), following `adaptIndentation`.
----@field virtual_indent? boolean Whether files with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`) show indented by level, without being changed, and with hidden leading stars (`hideLeadingStars`, `#+STARTUP: hidestars`).
+---@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `org_hide_emphasis_markers`), with 'conceallevel' 2 in Org windows.
+---@field indent? boolean Whether the server indents as Org does: new lines through 'indentexpr' (`org-indent-line`), and `=` (`org-indent-region`), following `org_adapt_indentation`.
+---@field virtual_indent? boolean Whether files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`) show indented by level, without being changed, and with hidden leading stars (`org_hide_leading_stars`, `#+STARTUP: hidestars`).
 ---@field win_split_mode? 'split'|'vsplit'|'float'|'current'|string|fun(bufnr: integer): integer? How the agenda and capture buffers open: 'split', 'vsplit', 'float', 'current', another Ex command that opens a window ('botright split', 'tabnew'), or a function that opens a window for the buffer and returns it.
 ---@field win_split_size? number The size of the window `win_split_mode` opens: lines for a split, columns for a vertical one, or with a number below 1 that part of the editor ('float' takes the part for both sides, 0.8 when unset). Unset, a split takes half of the window it splits.
 ---@field mappings? org_lsp.Mappings|false Keys by scope; `false` sets no keys at all. See docs/neovim/keys.md.

@@ -53,20 +53,20 @@ def case(rng):
     at = min(at, len(text))
     files["a.org"] = text[:at] + "¦" + text[at:]
     options = {}
-    select = rng.choice([{"level": 1}, {"level": 2}, {"maxLevel": 2}, {"maxLevel": 3}, {"all": True}, {"tag": "proj"}, {"todo": "TODO"}])
+    select = rng.choice([{"level": 1}, {"level": 2}, {"maxlevel": 2}, {"maxlevel": 3}, {"all": True}, {"tag": "proj"}, {"todo": "TODO"}])
     target = dict(select)
     if len(names) > 1 and rng.random() < 0.7:
         target["files"] = "agenda"
     if rng.random() < 0.8:
-        options["refileTargets"] = [target]
+        options["org_refile_targets"] = [target]
     if rng.random() < 0.4:
-        options["refileUseOutlinePath"] = rng.choice([True, "file", "title"])
+        options["org_refile_use_outline_path"] = rng.choice([True, "file", "title"])
     if rng.random() < 0.3:
-        options["reverseNoteOrder"] = True
+        options["org_reverse_note_order"] = True
     if rng.random() < 0.2:
-        options["tagsColumn"] = rng.choice([-40, 20, 0])
+        options["org_tags_column"] = rng.choice([-40, 20, 0])
     if rng.random() < 0.35:
-        options["adaptIndentation"] = rng.choice([True, "headline-data", False])
+        options["org_adapt_indentation"] = rng.choice([True, "headline-data", False])
     out = {"files": files, "answerIndex": rng.randint(0, 12)}
     if options:
         out["options"] = options

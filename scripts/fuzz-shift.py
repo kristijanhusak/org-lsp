@@ -168,21 +168,21 @@ class Generator:
 
         if self.chance(0.15):
             options.update(self.pick([
-                {"priorityHighest": "A", "priorityLowest": "E", "priorityDefault": "C"},
-                {"priorityHighest": 1, "priorityLowest": 9, "priorityDefault": 5},
-                {"priorityHighest": 1, "priorityLowest": 64, "priorityDefault": 12},
-                {"priorityHighest": "A", "priorityLowest": "C", "priorityDefault": "A"},
-                {"priorityHighest": "A", "priorityLowest": "C", "priorityDefault": "D"},
-                {"priorityHighest": "B", "priorityLowest": "B", "priorityDefault": "B"},
+                {"org_priority_highest": "A", "org_priority_lowest": "E", "org_priority_default": "C"},
+                {"org_priority_highest": 1, "org_priority_lowest": 9, "org_priority_default": 5},
+                {"org_priority_highest": 1, "org_priority_lowest": 64, "org_priority_default": 12},
+                {"org_priority_highest": "A", "org_priority_lowest": "C", "org_priority_default": "A"},
+                {"org_priority_highest": "A", "org_priority_lowest": "C", "org_priority_default": "D"},
+                {"org_priority_highest": "B", "org_priority_lowest": "B", "org_priority_default": "B"},
             ]))
         if self.chance(0.15):
-            options["priorityStartCycleWithDefault"] = False
+            options["org_priority_start_cycle_with_default"] = False
         if self.chance(0.2):
-            options["timestampRoundingMinutes"] = self.pick([0, 1, 5, 10, 15, 30, 7])
+            options["org_time_stamp_rounding_minutes"] = self.pick([0, 1, 5, 10, 15, 30, 7])
         if self.chance(0.1):
-            options["tagsColumn"] = self.pick([-80, -40, 0, 30, 77])
+            options["org_tags_column"] = self.pick([-80, -40, 0, 30, 77])
         if self.chance(0.1):
-            options["logDone"] = self.pick(["time", "note"])
+            options["org_log_done"] = self.pick(["time", "note"])
         command = self.pick(list(COMMANDS))
         line = next(line for line in text.split("\n") if CURSOR in line).replace(CURSOR, "")
         on_headline = line.startswith("*")

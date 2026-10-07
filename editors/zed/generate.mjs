@@ -106,7 +106,7 @@ const text = JSON.stringify(rules, null, 2) + '\n';
 // in files of the project's folders, and the agenda is a file of the
 // server's own, elsewhere. So tasks.json is for the user's own tasks
 // (`zed: open tasks`), and keymap.json, for the user's keymap, binds the
-// agenda's keys to them. With `commandActions` the server writes
+// agenda's keys to them. With `command_actions` the server writes
 // `~/.local/state/org-lsp/agenda-command`, which runs a command in the
 // agenda where the cursor is (the server follows it); each task calls it.
 // The command is one string, with no `args`: Zed quotes a command that has

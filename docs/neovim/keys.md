@@ -192,7 +192,7 @@ subtree at the cursor.
 - **`<S-CR>`** is RET that continues lists: on the line of a list item's
   bullet it makes the next item, numbered and with a checkbox as M-RET
   makes it, and elsewhere it is Org's RET. `<CR>` does that too with
-  `returnUsesMetaReturn`.
+  `return_uses_meta_return`.
 - **`<Leader><CR>`** and its neighbours put the new heading, item or table
   row below the cursor's line, wherever on it the cursor is: never above
   it, and nothing is split. Typing goes on in insert mode.
@@ -211,7 +211,7 @@ subtree at the cursor.
     for the date as text with `vim.ui.input`, read as Org reads it
     (`fri 10:00`, `+2d`, `2/15`); `t` there picks a time: a `Time:` line
     shows it, `h` and `l` choose the hour or the minutes, `k` and `j` move
-    it up or down (the minutes by `timestampRoundingMinutes`), and `t`
+    it up or down (the minutes by `org_time_stamp_rounding_minutes`), and `t`
     again goes back to the days, keeping the time;
   - one key (a TODO keyword with a key, as `TODO(t)`, a capture template,
     or a view in the agenda menu) is read as soon as it is typed, with the

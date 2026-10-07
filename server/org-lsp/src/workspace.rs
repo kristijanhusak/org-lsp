@@ -1,6 +1,6 @@
 //! The files the agenda is built from.
 //!
-//! `agendaFiles` lists files, directories and glob patterns, like Org's
+//! `org_agenda_files` lists files, directories and glob patterns, like Org's
 //! `org-agenda-files`. Without it, the Org files under the workspace
 //! folders are used. Files are read from disk and read again when their
 //! modification time changes; a document that is open in the editor is
@@ -46,7 +46,7 @@ struct Cached {
 
 #[derive(Default)]
 pub struct Workspace {
-    /// `agendaFiles`, as configured.
+    /// `org_agenda_files`, as configured.
     patterns: Vec<String>,
     folders: Vec<PathBuf>,
     cache: HashMap<PathBuf, Cached>,

@@ -391,7 +391,7 @@ asked in VS Code's own way:
   answer makes shown as you type. `t` picks a time: a `Time:` line shows
   it, `Shift+Left` and `Shift+Right` choose the hour or the minutes,
   `Shift+Up` and `Shift+Down` move it up or down (the minutes by
-  `timestampRoundingMinutes` in `org-lsp.settings`), and `t` again goes
+  `org_time_stamp_rounding_minutes` in `org-lsp.settings`), and `t` again goes
   back to the days, keeping the time.
 - **One key**, such as a TODO keyword with a key or a capture template, is
   picked from a list that shows each choice's key (`[t] TODO`). Type to

@@ -56,13 +56,13 @@ fn run(case: &Value) -> Result<(String, String, String), String> {
     let number = |key: &str| template[key].as_u64().map(|n| n as usize);
     let properties = Properties {
         prepend: template["prepend"].as_bool().unwrap_or(false),
-        empty_lines: number("emptyLines"),
-        empty_lines_before: number("emptyLinesBefore"),
-        empty_lines_after: number("emptyLinesAfter"),
+        empty_lines: number("empty_lines"),
+        empty_lines_before: number("empty_lines_before"),
+        empty_lines_after: number("empty_lines_after"),
     };
     let original = case["files"][&name].as_str().unwrap();
     let keywords = TodoKeywords::from_document(original).unwrap_or_default();
-    let adapt = match case.pointer("/options/adaptIndentation") {
+    let adapt = match case.pointer("/options/org_adapt_indentation") {
         Some(Value::Bool(true)) => Adapt::All,
         Some(Value::String(name)) if name == "headline-data" => Adapt::HeadlineData,
         _ => Adapt::Off,

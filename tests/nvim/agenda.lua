@@ -66,9 +66,9 @@ vim.fn.writefile({ '* TODO Water plants', 'SCHEDULED: <2026-05-16 Sat +1w>', '* 
 vim.g.org_lsp = {
   cmd = { server },
   settings = {
-    agendaFiles = { directory },
+    org_agenda_files = { directory },
     clock = { today = '2026-05-18', now = '10:30' },
-    captureTemplates = {
+    org_capture_templates = {
       { key = 't', description = 'Task', target = { 'file', vim.fs.joinpath(directory, 'inbox.org') }, template = '* TODO %?\n%U' },
     },
   },
@@ -131,7 +131,7 @@ eq(lines(), {
 }, 'the week agenda')
 eq(cursor_line(), 'Monday     18 May 2026 W21', 'the cursor is on today')
 eq({ vim.bo.modifiable, vim.bo.buftype, vim.bo.modified }, { false, 'nofile', false }, 'the agenda cannot be edited')
--- `agenda.tagsColumn` `"auto"`: the tags end at the right edge of the
+-- `org_agenda_tags_column` `"auto"`: the tags end at the right edge of the
 -- window, and follow it when it changes size.
 local agenda_window = vim.api.nvim_get_current_win()
 vim.cmd('leftabove 10vnew')
@@ -178,15 +178,18 @@ local function token_at(row, col)
   end
   return tokens and tokens[1]
 end
-wait('semantic tokens in the agenda', function()
-  return token_at(0, 0) ~= nil
-end)
-eq(token_at(0, 0).type, 'agendaStructure', 'the title line')
-eq({ token_at(1, 0).type, token_at(1, 0).modifiers.today }, { 'agendaDate', true }, 'today\'s date')
 --- The token at the start of `text` in line `row`.
 local function token_of(row, text)
   return token_at(row, assert(line(row + 1):find(text, 1, true)) - 1)
 end
+-- The tokens of the text as it is now: those of the narrower window stay
+-- until the new ones come, as the agenda is not cleared in between.
+wait('semantic tokens in the agenda', function()
+  local tag = token_of(3, ':office:')
+  return token_at(0, 0) ~= nil and tag ~= nil and tag.type == 'tag'
+end)
+eq(token_at(0, 0).type, 'agendaStructure', 'the title line')
+eq({ token_at(1, 0).type, token_at(1, 0).modifiers.today }, { 'agendaDate', true }, 'today\'s date')
 eq(token_of(3, '[#A]').type, 'priority', 'a priority cookie inside an entry')
 eq(token_of(3, 'TODO').type, 'todoKeyword', 'a keyword inside an entry')
 eq(token_of(3, ':office:').type, 'tag', 'tags of an entry')
@@ -280,7 +283,7 @@ eq(vim.api.nvim_win_get_cursor(0)[1], 13, 'the cursor stays where it was')
 local work_buf = vim.fn.bufnr(work)
 check(work_buf > 0 and vim.api.nvim_buf_is_loaded(work_buf), 'the file of the entry is loaded')
 eq(vim.api.nvim_buf_get_lines(work_buf, 2, 3, false), { '* DONE Call the client' }, 'the entry changed in its file')
--- `autoSave`: a change made from the agenda is saved.
+-- `auto_save`: a change made from the agenda is saved.
 wait('the file of the entry to be saved', function()
   return not vim.bo[work_buf].modified and vim.fn.readfile(work)[3] == '* DONE Call the client'
 end)

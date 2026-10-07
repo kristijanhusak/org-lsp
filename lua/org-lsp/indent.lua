@@ -1,9 +1,9 @@
 --- Indentation as Org does it, computed by the server: new lines get the
 --- column `org-indent-line` gives them ('indentexpr', from the server's
 --- on-type formatting), and `=` re-indents lines as `org-indent-region`
---- does (range formatting). `adaptIndentation` decides how far text goes.
+--- does (range formatting). `org_adapt_indentation` decides how far text goes.
 ---
---- Files with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`)
+--- Files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`)
 --- are shown indented without being changed: the server says how far each
 --- line goes (`org-lsp/virtualIndent`), and the prefixes are inline virtual
 --- text. Neovim cannot repeat it on the lines a long line wraps into;

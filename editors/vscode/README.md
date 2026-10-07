@@ -27,7 +27,7 @@ All commands are in the Command Palette under **Org**.
 | `Org: Cycle TODO state forward` / `backward` | Changes the entry under the cursor, in an Org file or on an agenda line |
 | `Org: Raise the priority` / `Lower the priority` | The same, for the priority |
 | `Org: Capture` | Org's `org-capture`: pick a template, answer its prompts, and edit the entry in a capture buffer; `Ctrl+C Ctrl+C` there files it, `Ctrl+C Ctrl+K` gives up, `Ctrl+C Ctrl+W` refiles it. Templates are `org-lsp.settings.captureTemplates` |
-| `Org: Refile the entry` | Org's `C-c C-w` (also in the agenda): pick a target from a list; see `refileTargets` |
+| `Org: Refile the entry` | Org's `C-c C-w` (also in the agenda): pick a target from a list; see `org_refile_targets` |
 | `Org: Set the priority` | Asks for it, as Org's `C-c ,` does (`,` in the agenda); a space removes it |
 | `Org: Increase` / `Decrease the part of the timestamp at the cursor` | The year, month, day, hour or minute under the cursor, as Org's `S-<up>` / `S-<down>` |
 | `Org: Move the date one day later` / `earlier` | The timestamp under the cursor, or the date of an agenda line |
@@ -82,17 +82,17 @@ command, and how to add, change and remove keys.
 
 | Setting | Meaning |
 | --- | --- |
-| `org-lsp.settings` | The server's options, for example `{ "agendaFiles": ["~/org"], "logDone": "time" }`. [docs/vscode/configuration.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/vscode/configuration.md) lists them with their defaults. |
+| `org-lsp.settings` | The server's options, for example `{ "org_agenda_files": ["~/org"], "org_log_done": "time" }`. [docs/vscode/configuration.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/vscode/configuration.md) lists them with their defaults. |
 | `org-lsp.server.path` | Path to the server binary; see below. |
-| `org-lsp.conceal` | Hide link brackets and targets, and emphasis markers with `hideEmphasisMarkers`, except on the line with the cursor (default on). |
+| `org-lsp.conceal` | Hide link brackets and targets, and emphasis markers with `org_hide_emphasis_markers`, except on the line with the cursor (default on). |
 | `org-lsp.keys` | Which keys are bound: `emacs` (the default), `vim` (for VSCodeVim) or `custom` (none). |
 | `org-lsp.winSplitMode` | Where the agenda and capture buffers open: `split` (below, the default), `vsplit` (beside), `float` (a window of its own) or `current`. |
 
-Without `agendaFiles`, the agenda is built from the Org files in the
+Without `org_agenda_files`, the agenda is built from the Org files in the
 workspace folders.
 
 A change made from the agenda edits the entry's file and saves it
-(`autoSave` in `org-lsp.settings`; off, it is left unsaved, as in Emacs);
+(`auto_save` in `org-lsp.settings`; off, it is left unsaved, as in Emacs);
 the agenda follows at once.
 
 ## The server binary

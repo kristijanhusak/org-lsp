@@ -4,7 +4,7 @@
 [language-server.org-lsp]
 command = "org-lsp"
 # Optional: the default TODO sequence.
-# config = { todoKeywords = ["TODO", "NEXT", "|", "DONE"] }
+# config = { org_todo_keywords = ["TODO", "NEXT", "|", "DONE"] }
 
 [[language]]
 name = "org"

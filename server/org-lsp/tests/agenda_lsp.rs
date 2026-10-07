@@ -53,7 +53,7 @@ impl Client {
         // machine has.
         let mut options = if options.is_null() { json!({}) } else { options };
         if let Some(fields) = options.as_object_mut() {
-            fields.entry("configFile").or_insert(json!(false));
+            fields.entry("config_file").or_insert(json!(false));
         }
         let (server_side, client_side) = Connection::memory();
         let server = std::thread::spawn(move || org_lsp::run(server_side).expect("server runs"));
@@ -662,13 +662,13 @@ fn the_dispatcher_asks_which_view() {
 #[test]
 fn runs_custom_agenda_commands() {
     let mut options = clock();
-    options["agenda"] = json!({ "customCommands": [
+    options["org_agenda_custom_commands"] = json!([
         { "key": "x", "description": "Mine" },
         { "key": "xb", "description": "Day and office", "blocks": [
-            { "type": "agenda", "settings": { "span": "day" } },
+            { "type": "agenda", "settings": { "org_agenda_span": "day" } },
             { "type": "tags", "match": "office", "header": "At the office" }
         ] }
-    ] });
+    ]);
     let mut client = Client::editor(options, None);
     client.open("file:///org/work.org", WORK);
     let run = |client: &mut Client, command: &str, extra: Value| {
@@ -724,17 +724,18 @@ fn runs_custom_agenda_commands() {
 }
 
 /// Moving an agenda block below others keeps the cursor in that block,
-/// and `hideEmptyBlocks` leaves out the blocks with nothing to show.
+/// and `agenda_hide_empty_blocks` leaves out the blocks with nothing to show.
 #[test]
 fn moves_a_lower_block_and_hides_empty_ones() {
     let mut options = clock();
-    options["agenda"] = json!({ "hideEmptyBlocks": true, "customCommands": [
+    options["agenda_hide_empty_blocks"] = json!(true);
+    options["org_agenda_custom_commands"] = json!([
         { "key": "o", "description": "Office, then the day", "blocks": [
             { "type": "tags", "match": "nowhere", "header": "Nothing here" },
             { "type": "tags", "match": "office", "header": "At the office" },
-            { "type": "agenda", "settings": { "span": "day" } }
+            { "type": "agenda", "settings": { "org_agenda_span": "day" } }
         ] }
-    ] });
+    ]);
     let mut client = Client::editor(options, None);
     client.open("file:///org/work.org", WORK);
     let result = client.request(
@@ -935,7 +936,7 @@ fn moves_the_clock_highlight_in_the_agenda() {
 #[test]
 fn highlights_the_agenda_file() {
     let mut options = clock();
-    options["virtualDocuments"] = json!(false);
+    options["virtual_documents"] = json!(false);
     let capabilities = json!({ "window": { "showDocument": { "support": true } } });
     let mut client = Client::start(capabilities, options, None);
     const WORK_URI: &str = "file:///org/work.org";
@@ -1040,7 +1041,7 @@ fn run_saving(client: &mut Client, command: &str, uri: &str, at: (u32, u32), ext
 #[test]
 fn says_what_it_did_and_saves_what_it_changed_elsewhere() {
     let mut options = clock();
-    options["todoKeywords"] = json!(["TODO(t)", "|", "DONE(d)"]);
+    options["org_todo_keywords"] = json!(["TODO(t)", "|", "DONE(d)"]);
     let mut client = Client::editor(options, None);
     client.open("file:///org/work.org", WORK);
     client.command("org.agenda.list", VIEW, 0);
@@ -1084,7 +1085,7 @@ fn says_what_it_did_and_saves_what_it_changed_elsewhere() {
 
     // `autoSave` off: nothing is saved.
     let mut options = clock();
-    options["autoSave"] = json!(false);
+    options["auto_save"] = json!(false);
     let mut client = Client::editor(options, None);
     client.open("file:///org/work.org", WORK);
     client.command("org.agenda.list", VIEW, 0);
@@ -1186,7 +1187,7 @@ fn calendar_keys_go_on_from_the_selected_day_until_the_cursor_follows() {
 #[test]
 fn writes_a_state_note_in_a_buffer_of_its_own() {
     let mut options = clock();
-    options["todoKeywords"] = json!(["TODO(t)", "WAIT(w@)", "|", "DONE(d)"]);
+    options["org_todo_keywords"] = json!(["TODO(t)", "WAIT(w@)", "|", "DONE(d)"]);
     let mut client = Client::with_date_prompt(options);
     let note_for = |client: &mut Client, file: &str| {
         client.open(file, "* TODO Call\n");
@@ -1300,7 +1301,7 @@ fn reads_agenda_files_from_the_workspace() {
 #[test]
 fn agenda_files_option_selects_files() {
     let root = workspace("option");
-    let options = json!({ "clock": { "today": "2026-05-18" }, "agendaFiles": [format!("{}/sub", root.display())], "agenda": { "span": "day" } });
+    let options = json!({ "clock": { "today": "2026-05-18" }, "org_agenda_files": [format!("{}/sub", root.display())], "org_agenda_span": "day" });
     let mut client = Client::editor(options, None);
     client.command("org.agenda.list", VIEW, 0);
     assert_eq!(
@@ -1624,7 +1625,7 @@ fn agenda_actions_match_emacs() {
         let (today, now) = case["clock"].as_str().unwrap().split_once(' ').unwrap();
         let mut options = case.get("options").cloned().unwrap_or_else(|| json!({}));
         options["clock"] = json!({ "today": today, "now": now });
-        options["agenda"] = json!({ "span": case.get("span").cloned().unwrap_or_else(|| json!("week")) });
+        options["org_agenda_span"] = case.get("span").cloned().unwrap_or_else(|| json!("week"));
         let mut client = Client::editor(options, None);
         let files = case["files"].as_object().unwrap();
         for (name, text) in files {
@@ -2020,7 +2021,7 @@ fn completes_tags_of_the_agenda_files() {
     let root = workspace("tags");
     std::fs::write(root.join("sub/tagged.org"), "#+FILETAGS: :project:\n* a :errand:work:\n").unwrap();
     let mut options = clock();
-    options["agendaFiles"] = json!([root.join("sub").display().to_string()]);
+    options["org_agenda_files"] = json!([root.join("sub").display().to_string()]);
     let file = format!("file://{}/c.org", root.display());
     let complete = |client: &mut Client| {
         client.open(&file, "* a :zoo:\n* b :\n");
@@ -2033,7 +2034,7 @@ fn completes_tags_of_the_agenda_files() {
     let mut client = Client::editor(options.clone(), None);
     assert_eq!(complete(&mut client), ["zoo"], "the file's own, as Org does by default");
     client.shutdown();
-    options["completeTagsAlwaysOfferAllAgendaTags"] = json!(true);
+    options["org_complete_tags_always_offer_all_agenda_tags"] = json!(true);
     let mut client = Client::editor(options, None);
     assert_eq!(complete(&mut client), ["zoo", "errand", "project", "work"]);
     client.shutdown();
@@ -2049,7 +2050,7 @@ fn schedules_from_the_agenda() {
     const PROMPT: &str = "org-agenda:/Org%20Date";
     let root = workspace("schedule");
     let mut options = clock();
-    options["agendaFiles"] = json!([format!("{}/sub", root.display())]);
+    options["org_agenda_files"] = json!([format!("{}/sub", root.display())]);
     let mut client = Client::with_date_prompt(options);
     client.command("org.agenda.list", VIEW, 0);
     let view = client.show_view();
@@ -2223,8 +2224,8 @@ fn selects_todo_states_by_key_and_asks_for_notes() {
 fn refiles_entries_between_files() {
     let root = workspace("refile");
     let mut options = clock();
-    options["agendaFiles"] = json!([root.display().to_string(), root.join("sub").display().to_string()]);
-    options["refileTargets"] = json!([{ "files": "agenda", "level": 1 }]);
+    options["org_agenda_files"] = json!([root.display().to_string(), root.join("sub").display().to_string()]);
+    options["org_refile_targets"] = json!([{ "files": "agenda", "level": 1 }]);
     let mut client = Client::editor(options, None);
     let work = format!("file://{}/work.org", root.display());
     client.open(&work, WORK);
@@ -2321,7 +2322,7 @@ fn run_edit(client: &mut Client, command: &str, uri: &str, at: (u32, u32), extra
 fn archives_subtrees() {
     let root = workspace("archive");
     let mut options = clock();
-    options["agendaFiles"] = json!([root.display().to_string()]);
+    options["org_agenda_files"] = json!([root.display().to_string()]);
     let mut client = Client::editor(options, None);
     let work = format!("file://{}/work.org", root.display());
     let mut text = WORK.to_string();
@@ -2388,13 +2389,13 @@ fn archives_subtrees() {
 #[test]
 fn offers_commands_as_actions_and_asks_with_buttons() {
     let mut options = clock();
-    options["todoKeywords"] = json!(["TODO(t)", "WAIT(w)", "|", "DONE(d)"]);
-    options["commandActions"] = json!(true);
-    options["messagePrompts"] = json!(true);
-    options["virtualDocuments"] = json!(false);
+    options["org_todo_keywords"] = json!(["TODO(t)", "WAIT(w)", "|", "DONE(d)"]);
+    options["command_actions"] = json!(true);
+    options["message_prompts"] = json!(true);
+    options["virtual_documents"] = json!(false);
     let state = std::env::temp_dir().join(format!("org-lsp-state-{}", std::process::id()));
     let script_path = state.join("org-lsp").join("agenda-command");
-    options["commandScript"] = json!(script_path);
+    options["command_script"] = json!(script_path);
     let capabilities = json!({
         "workspace": { "workspaceEdit": { "documentChanges": true } },
         "window": { "showDocument": { "support": true } },
@@ -2551,8 +2552,9 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
 fn reads_the_shared_configuration_file() {
     let root = workspace("config-file");
     let config = root.join("config.toml");
-    std::fs::write(&config, "todoKeywords = [\"TODO\", \"WAIT\", \"|\", \"DONE\"]\ntagsColumn = \"far\"\n").unwrap();
-    let mut client = Client::editor(json!({ "configFile": config.display().to_string() }), None);
+    std::fs::write(&config, "org_todo_keywords = [\"TODO\", \"WAIT\", \"|\", \"DONE\"]\norg_tags_column = \"far\"\n")
+        .unwrap();
+    let mut client = Client::editor(json!({ "config_file": config.display().to_string() }), None);
     client.settle();
     let shown: Vec<&str> = client
         .notifications
@@ -2560,7 +2562,7 @@ fn reads_the_shared_configuration_file() {
         .filter(|notification| notification.method == "window/showMessage")
         .filter_map(|notification| notification.params["message"].as_str())
         .collect();
-    assert_eq!(shown, ["org-lsp: the option `tagsColumn` is malformed and is ignored"]);
+    assert_eq!(shown, ["org-lsp: the option `org_tags_column` is malformed and is ignored"]);
     // The file's keywords are the ones in use.
     let uri = format!("file://{}", root.join("a.org").display());
     client.open(&uri, "* TODO Call\n");
@@ -2581,7 +2583,7 @@ fn the_capture_buffer_of_a_target_without_org_in_its_name_is_an_org_file() {
     let root = workspace("capture-notes");
     let notes = root.join(".notes");
     let mut options = clock();
-    options["defaultNotesFile"] = json!(notes.display().to_string());
+    options["org_default_notes_file"] = json!(notes.display().to_string());
     let mut client = Client::editor(options, None);
     let at = json!({ "textDocument": { "uri": format!("file://{}", root.join("a.org").display()) }, "position": { "line": 0, "character": 0 } });
     let mut context = at.clone();
@@ -2612,9 +2614,9 @@ fn a_template_without_a_target_captures_into_the_default_notes_file() {
     let notes = root.join("notes.org");
     std::fs::write(&notes, "* Old\n").unwrap();
     let mut options = clock();
-    options["defaultNotesFile"] = json!(notes.display().to_string());
-    options["captureTemplates"] =
-        json!([{ "key": "n", "description": "Note", "template": "* Quick note", "immediateFinish": true }]);
+    options["org_default_notes_file"] = json!(notes.display().to_string());
+    options["org_capture_templates"] =
+        json!([{ "key": "n", "description": "Note", "template": "* Quick note", "immediate_finish": true }]);
     let mut client = Client::editor(options, None);
     let at = json!({ "textDocument": { "uri": format!("file://{}", notes.display()) }, "position": { "line": 0, "character": 0 }, "input": "n" });
     let done = client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [at] }));
@@ -2636,8 +2638,8 @@ fn captures_from_no_document() {
     let notes = root.join("notes.org");
     std::fs::write(&notes, "* Old\n").unwrap();
     let mut options = clock();
-    options["defaultNotesFile"] = json!(notes.display().to_string());
-    options["captureTemplates"] = json!([{ "key": "n", "description": "Note", "template": "* %^{Title} %?" }]);
+    options["org_default_notes_file"] = json!(notes.display().to_string());
+    options["org_capture_templates"] = json!([{ "key": "n", "description": "Note", "template": "* %^{Title} %?" }]);
     let mut client = Client::editor(options, None);
     let run = |client: &mut Client, arguments: Value| {
         client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": arguments }))
@@ -2668,8 +2670,8 @@ fn files_the_capture_buffer_text_the_command_comes_with() {
     let notes = root.join("notes.org");
     std::fs::write(&notes, "* Old\n").unwrap();
     let mut options = clock();
-    options["defaultNotesFile"] = json!(notes.display().to_string());
-    options["captureTemplates"] = json!([{ "key": "n", "description": "Note", "template": "* %?" }]);
+    options["org_default_notes_file"] = json!(notes.display().to_string());
+    options["org_capture_templates"] = json!([{ "key": "n", "description": "Note", "template": "* %?" }]);
     let mut client = Client::editor(options, None);
     let notes_uri = format!("file://{}", notes.display());
     client.open(&notes_uri, "* Old\n");
@@ -2717,12 +2719,12 @@ fn captures_into_a_file() {
     let notes = root.join("notes.org");
     std::fs::write(&notes, "* Tasks\n** TODO Old\n\n* Ideas\n").unwrap();
     let mut options = clock();
-    options["captureTemplates"] = json!([
+    options["org_capture_templates"] = json!([
         { "key": "t", "description": "Task", "target": ["file+headline", notes.display().to_string(), "Tasks"], "template": "* TODO %?\n%U" },
         { "key": "m", "description": "Meetings" },
         { "key": "mx", "description": "Meeting", "target": ["file", "notes.org"], "template": ["* With %^{Who} %?"] }
     ]);
-    options["orgDirectory"] = json!(root.display().to_string());
+    options["org_directory"] = json!(root.display().to_string());
     let mut client = Client::editor(options, None);
     let run = |client: &mut Client, command: &str, context: Value| {
         client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
@@ -3032,9 +3034,9 @@ fn inheritance_options_apply_to_open_and_read_files() {
     let text = "* Projects :work:\n:PROPERTIES:\n:OWNER: alice\n:END:\n** TODO Child\n";
     std::fs::write(root.join("disk.org"), text).unwrap();
     let mut options = clock();
-    options["agendaFiles"] = json!([root.display().to_string()]);
-    options["useTagInheritance"] = json!(false);
-    options["usePropertyInheritance"] = json!(["OWNER"]);
+    options["org_agenda_files"] = json!([root.display().to_string()]);
+    options["org_use_tag_inheritance"] = json!(false);
+    options["org_use_property_inheritance"] = json!(["OWNER"]);
     let mut client = Client::editor(options, None);
     let open = format!("file://{}/open.org", root.display());
     std::fs::write(root.join("open.org"), "").unwrap();
@@ -3129,7 +3131,7 @@ fn recalculates_tables() {
     client.shutdown();
 }
 
-/// `agenda.tagsColumn` `"auto"` (the default): tags end at the right edge
+/// `org_agenda_tags_column` `"auto"` (the default): tags end at the right edge
 /// of the window the editor says the agenda has (`org-lsp/agendaWidth`),
 /// at column 80 until it says; a column of the user's stays.
 #[test]
@@ -3153,7 +3155,7 @@ fn aligns_tags_to_the_window() {
     client.shutdown();
 
     let mut options = clock();
-    options["agenda"] = json!({ "tagsColumn": -70 });
+    options["org_agenda_tags_column"] = json!(-70);
     let mut client = Client::editor(options, None);
     client.open("file:///org/work.org", WORK);
     client.command("org.agenda.list", VIEW, 0);

@@ -110,25 +110,25 @@ def bindings(options):
         "org-log-done": "nil",
     }
     for key, value in (options or {}).items():
-        if key == "tagsColumn":
+        if key == "org_tags_column":
             out["org-tags-column"] = str(value)
-        elif key == "adaptIndentation":
+        elif key == "org_adapt_indentation":
             out["org-adapt-indentation"] = "'headline-data" if value == "headline-data" else lisp_value(value)
-        elif key == "todoKeywords":
+        elif key == "org_todo_keywords":
             out["org-todo-keywords"] = "'((sequence " + " ".join(lisp_string(word) for word in value) + "))"
-        elif key == "archiveLocation":
+        elif key == "org_archive_location":
             out["org-archive-location"] = lisp_string(value)
-        elif key == "archiveReversedOrder":
+        elif key == "org_archive_reversed_order":
             out["org-archive-reversed-order"] = lisp_value(value)
-        elif key == "archiveMarkDone":
+        elif key == "org_archive_mark_done":
             out["org-archive-mark-done"] = lisp_value(value)
-        elif key == "archiveSubtreeAddInheritedTags":
+        elif key == "org_archive_subtree_add_inherited_tags":
             out["org-archive-subtree-add-inherited-tags"] = "'infile" if value == "infile" else lisp_value(value)
-        elif key == "archiveSaveContextInfo":
+        elif key == "org_archive_save_context_info":
             out["org-archive-save-context-info"] = "'(" + " ".join(value) + ")"
-        elif key == "archiveSiblingHeading":
+        elif key == "org_archive_sibling_heading":
             out["org-archive-sibling-heading"] = lisp_string(value)
-        elif key == "archiveFileHeaderFormat":
+        elif key == "org_archive_file_header_format":
             out["org-archive-file-header-format"] = lisp_value(value)
         elif key == "hierarchicalTodoStatistics":
             out["org-hierarchical-todo-statistics"] = lisp_value(value)

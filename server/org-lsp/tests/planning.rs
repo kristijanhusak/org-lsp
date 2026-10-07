@@ -53,7 +53,7 @@ fn date_commands_match_emacs() {
         let now = clock(case["clock"].as_str().unwrap());
         let repeated = case.get("repeated").and_then(Value::as_bool).unwrap_or(false);
         let keeps_cursor = matches!(command, Command::Schedule | Command::Deadline);
-        let adapt = match case.pointer("/options/adaptIndentation") {
+        let adapt = match case.pointer("/options/org_adapt_indentation") {
             Some(Value::Bool(true)) => Adapt::All,
             Some(Value::String(name)) if name == "headline-data" => Adapt::HeadlineData,
             _ => Adapt::Off,

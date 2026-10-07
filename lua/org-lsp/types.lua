@@ -5,124 +5,102 @@
 
 --- The server's options, as `settings` passes them; see docs/configuration.md.
 ---@class org_lsp.Settings
----@field configFile? false|string The shared configuration file, whose options this editor's go on top of: `false` for none, or the path of another file (JSON if it ends in `.json`, else TOML). Unset, it is `$ORG_LSP_CONFIG`, else `config.toml` or `config.json` in `$XDG_CONFIG_HOME/org-lsp` (`~/.config/org-lsp`; `%APPDATA%\org-lsp` on Windows).
----@field agendaFiles? string[] Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home directory, and a directory stands for the Org files directly in it. When empty, the agenda is built from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left out), or else from the Org files that are open. (`org-agenda-files`)
----@field todoKeywords? string[] The TODO sequence, written like Org's `#+TODO:` line. `|` separates the states that count as done; without it the last keyword is the only done state. `TODO(t)` gives a keyword a key for fast selection, and `WAIT(w@/!)` makes it log a note (`@`) or the time (`!`) on entering and leaving it. A file's own `#+TODO:` lines take precedence. (`org-todo-keywords`)
----@field logDone? false|'time'|'note' Write `CLOSED:` with the time when an entry is done, and with `note` ask for a note too. (`org-log-done`)
----@field logRepeat? false|'time'|'note' Record when a repeating entry is done and moves to its next date. (`org-log-repeat`)
----@field logIntoDrawer? boolean|string Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer. (`org-log-into-drawer`)
----@field tagsColumn? integer Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`)
----@field useTagInheritance? boolean|string[]|string Which tags entries inherit from their parents and from `#+FILETAGS:`: `true` for all, `false` for none, a list of tags, or a regexp (Emacs syntax) tags must match. Inherited tags count in tag searches and show in the agenda. (`org-use-tag-inheritance`)
----@field tagsExcludeFromInheritance? string[] Tags never inherited, when `useTagInheritance` is `true` or a regexp. (`org-tags-exclude-from-inheritance`)
----@field usePropertyInheritance? boolean|string[]|string Which properties an entry without them takes from its parents, the file's property drawer and `#+PROPERTY:` lines, in property searches (`OWNER="alice"`): `true` for all, `false` for none, a list of names, or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited. (`org-use-property-inheritance`)
----@field clockIntoDrawer? boolean|string Where `CLOCK:` lines go: `true` for the drawer of `logIntoDrawer` (`LOGBOOK` when that is not a name), the name of a drawer, or `false` for the entry itself. (`org-clock-into-drawer`)
----@field clockOutRemoveZeroTimeClocks? boolean Clocking out after less than a minute removes the `CLOCK:` line. (`org-clock-out-remove-zero-time-clocks`)
----@field clockOutWhenDone? boolean Marking the clocked entry done stops the clock. (`org-clock-out-when-done`)
----@field completeTagsAlwaysOfferAllAgendaTags? boolean Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. (`org-complete-tags-always-offer-all-agenda-tags`)
----@field todoRepeatToState? string|true The state a repeating entry returns to when it is done: a keyword, or `true` for the state it had. (`org-todo-repeat-to-state`)
----@field priorityHighest? string|integer The highest priority. (`org-priority-highest`)
----@field priorityLowest? string|integer The lowest priority. (`org-priority-lowest`)
----@field priorityDefault? string|integer The priority of an entry without a cookie. A file's `#+PRIORITIES:` line takes precedence over the three priority options. (`org-priority-default`)
----@field priorityStartCycleWithDefault? boolean Raising or lowering the priority of an entry that has none starts at the default. (`org-priority-start-cycle-with-default`)
----@field timestampRoundingMinutes? integer The step in which the minutes of a timestamp change (the second number of Org's option). (`org-time-stamp-rounding-minutes`)
----@field readDatePreferFuture? true|false|'time' A date typed without a year or month is the next one to come. With `time`, a time that has passed today is tomorrow's. (`org-read-date-prefer-future`)
----@field readDateForceCompatibleDates? boolean A typed year is kept within 1970 to 2037. (`org-read-date-force-compatible-dates`)
----@field refileTargets? org_lsp.RefileTarget[] Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, a path or a list of paths; and one of `level`, `maxLevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says which headlines there are targets. (`org-refile-targets`)
----@field refileUseOutlinePath? true|false|'file'|'full-file-path'|'title' Name targets by their outline path (`Projects/Alpha/`). The three names start the path with the file, and offer the file itself, for its top level. (`org-refile-use-outline-path`)
----@field reverseNoteOrder? boolean A refiled entry goes first under its target, not last. (`org-reverse-note-order`)
----@field archiveLocation? string Where archived subtrees go: a file, `::`, and a headline under which they go (they go to the end of the file without one). `%s` is the name of the file the subtree is in; an empty file part is that file. `datetree/` as the headline files them under year, month and day, by when they were closed. An `ARCHIVE` property of the entry or a parent, or a `#+ARCHIVE:` line, says otherwise. (`org-archive-location`)
----@field archiveReversedOrder? boolean An archived subtree goes first under its archive headline, not last. (`org-archive-reversed-order`)
----@field archiveMarkDone? boolean|string Mark archived entries done: `true` for the first done keyword, or the keyword to use. (`org-archive-mark-done`)
----@field archiveSubtreeAddInheritedTags? true|false|'infile' Give an archived subtree the tags it inherited: always, never, or when it stays in its file. (`org-archive-subtree-add-inherited-tags`)
----@field archiveSaveContextInfo? ('time'|'file'|'olpath'|'category'|'todo'|'itags'|'ltags'|'olid')[] What an archived entry keeps as `ARCHIVE_…` properties: `time`, `file`, `olpath` (its outline path), `category`, `todo`, `itags` (inherited tags), `ltags` (its own tags) and `olid` (its parent's ID). (`org-archive-save-context-info`)
----@field archiveSiblingHeading? string The headline of the sibling `org.archive.sibling` archives under. (`org-archive-sibling-heading`)
----@field archiveFileHeaderFormat? string|false What a new archive file starts with; `%s` is the path of the file the subtree came from. (`org-archive-file-header-format`)
----@field archiveDefaultCommand? 'subtree'|'sibling'|'tag' What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it. (`org-archive-default-command`)
----@field captureTemplates? org_lsp.CaptureTemplate[] Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, or `plain`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `emptyLines`, `emptyLinesBefore`, `emptyLinesAfter` and `immediateFinish`. The target is a list: `file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path. An empty path is `defaultNotesFile`, and without a target the entry goes at the end of `defaultNotesFile`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)
----@field orgDirectory? string Where the relative paths of capture targets are. (`org-directory`)
----@field defaultNotesFile? string The target of a capture template whose file is empty. (`org-default-notes-file`)
----@field linkDescriptive? boolean Show a link as its description (or its target, when it has none) and hide the rest: the brackets, and the target of a link with a description. The text is marked `hidden` in the highlighting, and editors that can conceal text conceal it. (`org-link-descriptive`)
----@field hideEmphasisMarkers? boolean Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~`, as for links. (`org-hide-emphasis-markers`)
----@field returnUsesMetaReturn? boolean RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.
----@field autoSave? boolean Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them.
----@field cycleSeparatorLines? integer With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`)
----@field adaptIndentation? true|false|'headline-data' Indent the lines of an entry past its headline's stars: `true` for all of them, `"headline-data"` for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (`org-adapt-indentation`)
----@field startupIndented? boolean Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It turns `adaptIndentation` off in such files, unless that is `"headline-data"`. Editors that can show it: Neovim, and VS Code (not on wrapped lines). (`org-startup-indented`)
----@field hideLeadingStars? boolean Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and `showstars` decide for a file. (`org-hide-leading-stars`)
----@field srcPreserveIndentation? boolean Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)
----@field editSrcContentIndentation? integer How far code is indented past its source block when re-indenting. (`org-edit-src-content-indentation`)
----@field agenda? org_lsp.Settings.Agenda
-
---- The options under `agenda`.
----@class org_lsp.Settings.Agenda
----@field span? 'day'|'week'|'fortnight'|'month'|'year'|integer How much time the agenda shows. (`org-agenda-span`)
----@field startOnWeekday? integer|false The day a week or fortnight starts on; `false` starts it today. (`org-agenda-start-on-weekday`)
----@field deadlineWarningDays? integer How many days before a deadline it shows up. (`org-deadline-warning-days`)
----@field scheduledDelayDays? integer How many days after its date a scheduled entry shows up. (`org-scheduled-delay-days`)
----@field scheduledPastDays? integer How many days a scheduled entry that is not done keeps showing up. (`org-scheduled-past-days`)
----@field deadlinePastDays? integer How many days a missed deadline keeps showing up. (`org-deadline-past-days`)
----@field skipScheduledIfDone? boolean Leave out scheduled entries that are done. (`org-agenda-skip-scheduled-if-done`)
----@field skipDeadlineIfDone? boolean Leave out deadlines of entries that are done. (`org-agenda-skip-deadline-if-done`)
----@field skipTimestampIfDone? boolean Leave out timestamps of entries that are done. (`org-agenda-skip-timestamp-if-done`)
----@field showFutureRepeats? true|false|'next' Show the future dates of repeating entries: all of them, none, or only the next. (`org-agenda-show-future-repeats`)
----@field showAllDates? boolean Show days without entries. (`org-agenda-show-all-dates`)
----@field tagsColumn? integer|'auto' Where tags are aligned in the agenda: a column (negative: where they end), or `auto` for the right edge of the window. With `auto`, the editors that tell the server how wide the agenda's window is (Neovim, Vim, Sublime Text) have the tags there, and the agenda follows the window as it is resized; the others (VS Code, Zed) have them end at column 80. (`org-agenda-tags-column`)
----@field useTimeGrid? boolean Draw the time grid. (`org-agenda-use-time-grid`)
----@field timeGrid? org_lsp.Settings.Agenda.TimeGrid
----@field showCurrentTimeInGrid? boolean Show the current time in the grid. (`org-agenda-show-current-time-in-grid`)
----@field weekendDays? integer[] The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`)
----@field startWithLogMode? boolean Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it). (`org-agenda-start-with-log-mode`)
----@field startWithClockreportMode? boolean Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)
----@field startWithArchivesMode? 'trees'|'files'|false Start the agenda with entries in archived trees (`trees`; `v a` toggles it), or those and the files the agenda files archive to (`files`; `v A`). (`org-agenda-start-with-archives-mode`)
----@field logModeItems? ('closed'|'clock'|'state')[] What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`)
----@field blockSeparator? string|false What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block. (`org-agenda-block-separator`)
----@field compactBlocks? boolean Leave out the separators between blocks and the header over agenda blocks. (`org-agenda-compact-blocks`)
----@field hideEmptyBlocks? boolean Leave out the blocks of a block agenda that show no entries. Not in Org.
----@field prefixFormat? org_lsp.Settings.Agenda.PrefixFormat
----@field todoKeywordFormat? string How a TODO keyword is written in the agenda: `%-4s` pads it to four columns, so that the titles line up; an empty format leaves keywords out. (`org-agenda-todo-keyword-format`)
----@field scheduledLeaders? string[] The leader of a scheduled entry on its day, and on today when its day has passed (`%d`: the days since). (`org-agenda-scheduled-leaders`)
----@field deadlineLeaders? string[] The leader of a deadline on its day, on today before it (`%d`: the days left), and on today after it (`%d`: the days since). (`org-agenda-deadline-leaders`)
----@field timerangeLeaders? string[] The leader of a time range within a day, and of a range over days (`%d`: which day of it, `%d`: how many days). (`org-agenda-timerange-leaders`)
----@field removeTags? true|false|'prefix' Leave the tags out of the agenda's lines; `prefix` only when the prefix shows a tag (`%T`). (`org-agenda-remove-tags`)
----@field breadcrumbsSeparator? string What goes between the headlines of `%b`. (`org-agenda-breadcrumbs-separator`)
----@field formatDate? string How the agenda writes a day, as `format-time-string` does: `%A %d %B %Y`, `%a %Y-%m-%d`. (`org-agenda-format-date`)
----@field startDay? string The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)
----@field customCommands? org_lsp.AgendaCommand[] Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`span`, `startDay`…). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)
-
---- The options under `timeGrid`.
----@class org_lsp.Settings.Agenda.TimeGrid
----@field daily? boolean Draw the grid in a one-day agenda. (`org-agenda-time-grid`)
----@field today? boolean Draw the grid for today. (`org-agenda-time-grid`)
----@field weekly? boolean Draw the grid for every day. (`org-agenda-time-grid`)
----@field requireTimed? boolean Draw the grid only on days with an entry that has a time. (`org-agenda-time-grid`)
----@field removeMatch? boolean Leave out grid lines at a time an entry already has. (`org-agenda-time-grid`)
----@field times? integer[] The times of the grid lines, as `800` for 8:00. (`org-agenda-time-grid`)
----@field trailer? string What follows a time that has no end time. (`org-agenda-time-grid`)
----@field line? string The text of a grid line. (`org-agenda-time-grid`)
----@field now? string The text of the line for the current time. (`org-agenda-current-time-string`)
-
---- The options under `prefixFormat`.
----@class org_lsp.Settings.Agenda.PrefixFormat
----@field agenda? string What comes before the headline on a line of the agenda: `%c` the category, `%t` the time, `%s` the leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty. (`org-agenda-prefix-format`)
----@field todo? string The same, for the TODO list. (`org-agenda-prefix-format`)
----@field tags? string The same, for tags searches. (`org-agenda-prefix-format`)
----@field search? string The same, for text searches, which the agenda does not have yet. (`org-agenda-prefix-format`)
+---@field config_file? false|string The shared configuration file, whose options this editor's go on top of: `false` for none, or the path of another file (JSON if it ends in `.json`, else TOML). Unset, it is `$ORG_LSP_CONFIG`, else `config.toml` or `config.json` in `$XDG_CONFIG_HOME/org-lsp` (`~/.config/org-lsp`; `%APPDATA%\org-lsp` on Windows).
+---@field org_agenda_files? string[] Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home directory, and a directory stands for the Org files directly in it. When empty, the agenda is built from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left out), or else from the Org files that are open. (`org-agenda-files`)
+---@field org_todo_keywords? string[] The TODO sequence, written like Org's `#+TODO:` line. `|` separates the states that count as done; without it the last keyword is the only done state. `TODO(t)` gives a keyword a key for fast selection, and `WAIT(w@/!)` makes it log a note (`@`) or the time (`!`) on entering and leaving it. A file's own `#+TODO:` lines take precedence. (`org-todo-keywords`)
+---@field org_log_done? false|'time'|'note' Write `CLOSED:` with the time when an entry is done, and with `note` ask for a note too. (`org-log-done`)
+---@field org_log_repeat? false|'time'|'note' Record when a repeating entry is done and moves to its next date. (`org-log-repeat`)
+---@field org_log_into_drawer? boolean|string Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer. (`org-log-into-drawer`)
+---@field org_tags_column? integer Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`)
+---@field org_use_tag_inheritance? boolean|string[]|string Which tags entries inherit from their parents and from `#+FILETAGS:`: `true` for all, `false` for none, a list of tags, or a regexp (Emacs syntax) tags must match. Inherited tags count in tag searches and show in the agenda. (`org-use-tag-inheritance`)
+---@field org_tags_exclude_from_inheritance? string[] Tags never inherited, when `org_use_tag_inheritance` is `true` or a regexp. (`org-tags-exclude-from-inheritance`)
+---@field org_use_property_inheritance? boolean|string[]|string Which properties an entry without them takes from its parents, the file's property drawer and `#+PROPERTY:` lines, in property searches (`OWNER="alice"`): `true` for all, `false` for none, a list of names, or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited. (`org-use-property-inheritance`)
+---@field org_clock_into_drawer? boolean|string Where `CLOCK:` lines go: `true` for the drawer of `org_log_into_drawer` (`LOGBOOK` when that is not a name), the name of a drawer, or `false` for the entry itself. (`org-clock-into-drawer`)
+---@field org_clock_out_remove_zero_time_clocks? boolean Clocking out after less than a minute removes the `CLOCK:` line. (`org-clock-out-remove-zero-time-clocks`)
+---@field org_clock_out_when_done? boolean Marking the clocked entry done stops the clock. (`org-clock-out-when-done`)
+---@field org_complete_tags_always_offer_all_agenda_tags? boolean Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. (`org-complete-tags-always-offer-all-agenda-tags`)
+---@field org_todo_repeat_to_state? string|true The state a repeating entry returns to when it is done: a keyword, or `true` for the state it had. (`org-todo-repeat-to-state`)
+---@field org_priority_highest? string|integer The highest priority. (`org-priority-highest`)
+---@field org_priority_lowest? string|integer The lowest priority. (`org-priority-lowest`)
+---@field org_priority_default? string|integer The priority of an entry without a cookie. A file's `#+PRIORITIES:` line takes precedence over the three priority options. (`org-priority-default`)
+---@field org_priority_start_cycle_with_default? boolean Raising or lowering the priority of an entry that has none starts at the default. (`org-priority-start-cycle-with-default`)
+---@field org_time_stamp_rounding_minutes? integer The step in which the minutes of a timestamp change (the second number of Org's option). (`org-time-stamp-rounding-minutes`)
+---@field org_read_date_prefer_future? true|false|'time' A date typed without a year or month is the next one to come. With `time`, a time that has passed today is tomorrow's. (`org-read-date-prefer-future`)
+---@field org_read_date_force_compatible_dates? boolean A typed year is kept within 1970 to 2037. (`org-read-date-force-compatible-dates`)
+---@field org_refile_targets? org_lsp.RefileTarget[] Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says which headlines there are targets. (`org-refile-targets`)
+---@field org_refile_use_outline_path? true|false|'file'|'full-file-path'|'title' Name targets by their outline path (`Projects/Alpha/`). The three names start the path with the file, and offer the file itself, for its top level. (`org-refile-use-outline-path`)
+---@field org_reverse_note_order? boolean A refiled entry goes first under its target, not last. (`org-reverse-note-order`)
+---@field org_archive_location? string Where archived subtrees go: a file, `::`, and a headline under which they go (they go to the end of the file without one). `%s` is the name of the file the subtree is in; an empty file part is that file. `datetree/` as the headline files them under year, month and day, by when they were closed. An `ARCHIVE` property of the entry or a parent, or a `#+ARCHIVE:` line, says otherwise. (`org-archive-location`)
+---@field org_archive_reversed_order? boolean An archived subtree goes first under its archive headline, not last. (`org-archive-reversed-order`)
+---@field org_archive_mark_done? boolean|string Mark archived entries done: `true` for the first done keyword, or the keyword to use. (`org-archive-mark-done`)
+---@field org_archive_subtree_add_inherited_tags? true|false|'infile' Give an archived subtree the tags it inherited: always, never, or when it stays in its file. (`org-archive-subtree-add-inherited-tags`)
+---@field org_archive_save_context_info? ('time'|'file'|'olpath'|'category'|'todo'|'itags'|'ltags'|'olid')[] What an archived entry keeps as `ARCHIVE_…` properties: `time`, `file`, `olpath` (its outline path), `category`, `todo`, `itags` (inherited tags), `ltags` (its own tags) and `olid` (its parent's ID). (`org-archive-save-context-info`)
+---@field org_archive_sibling_heading? string The headline of the sibling `org.archive.sibling` archives under. (`org-archive-sibling-heading`)
+---@field org_archive_file_header_format? string|false What a new archive file starts with; `%s` is the path of the file the subtree came from. (`org-archive-file-header-format`)
+---@field org_archive_default_command? 'subtree'|'sibling'|'tag' What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it. (`org-archive-default-command`)
+---@field org_capture_templates? org_lsp.CaptureTemplate[] Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, or `plain`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after` and `immediate_finish`. The target is a list: `file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path. An empty path is `org_default_notes_file`, and without a target the entry goes at the end of `org_default_notes_file`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)
+---@field org_directory? string Where the relative paths of capture targets are. (`org-directory`)
+---@field org_default_notes_file? string The target of a capture template whose file is empty. (`org-default-notes-file`)
+---@field org_link_descriptive? boolean Show a link as its description (or its target, when it has none) and hide the rest: the brackets, and the target of a link with a description. The text is marked `hidden` in the highlighting, and editors that can conceal text conceal it. (`org-link-descriptive`)
+---@field org_hide_emphasis_markers? boolean Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~`, as for links. (`org-hide-emphasis-markers`)
+---@field return_uses_meta_return? boolean RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.
+---@field auto_save? boolean Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them.
+---@field org_cycle_separator_lines? integer With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`)
+---@field org_adapt_indentation? true|false|'headline-data' Indent the lines of an entry past its headline's stars: `true` for all of them, `"headline-data"` for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (`org-adapt-indentation`)
+---@field org_startup_indented? boolean Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It turns `org_adapt_indentation` off in such files, unless that is `"headline-data"`. Editors that can show it: Neovim, and VS Code (not on wrapped lines). (`org-startup-indented`)
+---@field org_hide_leading_stars? boolean Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and `showstars` decide for a file. (`org-hide-leading-stars`)
+---@field org_src_preserve_indentation? boolean Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)
+---@field org_edit_src_content_indentation? integer How far code is indented past its source block when re-indenting. (`org-edit-src-content-indentation`)
+---@field org_agenda_span? 'day'|'week'|'fortnight'|'month'|'year'|integer How much time the agenda shows. (`org-agenda-span`)
+---@field org_agenda_start_on_weekday? integer|false The day a week or fortnight starts on; `false` starts it today. (`org-agenda-start-on-weekday`)
+---@field org_deadline_warning_days? integer How many days before a deadline it shows up. (`org-deadline-warning-days`)
+---@field org_scheduled_delay_days? integer How many days after its date a scheduled entry shows up. (`org-scheduled-delay-days`)
+---@field org_scheduled_past_days? integer How many days a scheduled entry that is not done keeps showing up. (`org-scheduled-past-days`)
+---@field org_deadline_past_days? integer How many days a missed deadline keeps showing up. (`org-deadline-past-days`)
+---@field org_agenda_skip_scheduled_if_done? boolean Leave out scheduled entries that are done. (`org-agenda-skip-scheduled-if-done`)
+---@field org_agenda_skip_deadline_if_done? boolean Leave out deadlines of entries that are done. (`org-agenda-skip-deadline-if-done`)
+---@field org_agenda_skip_timestamp_if_done? boolean Leave out timestamps of entries that are done. (`org-agenda-skip-timestamp-if-done`)
+---@field org_agenda_show_future_repeats? true|false|'next' Show the future dates of repeating entries: all of them, none, or only the next. (`org-agenda-show-future-repeats`)
+---@field org_agenda_show_all_dates? boolean Show days without entries. (`org-agenda-show-all-dates`)
+---@field org_agenda_tags_column? integer|'auto' Where tags are aligned in the agenda: a column (negative: where they end), or `auto` for the right edge of the window. With `auto`, the editors that tell the server how wide the agenda's window is (Neovim, Vim, Sublime Text) have the tags there, and the agenda follows the window as it is resized; the others (VS Code, Zed) have them end at column 80. (`org-agenda-tags-column`)
+---@field org_agenda_use_time_grid? boolean Draw the time grid. (`org-agenda-use-time-grid`)
+---@field org_agenda_time_grid? any[] The time grid, as Org writes it: the days that have it (`daily`: a one-day agenda; `weekly`: every day of a longer one; `today`: today; `require-timed`: only days with an entry that has a time; `remove-match`: no grid line at a time an entry already has), the times of its lines (`800` for 8:00), what follows a time that has no end time, and the text of a grid line. (`org-agenda-time-grid`)
+---@field org_agenda_current_time_string? string The text of the line for the current time. (`org-agenda-current-time-string`)
+---@field org_agenda_show_current_time_in_grid? boolean Show the current time in the grid. (`org-agenda-show-current-time-in-grid`)
+---@field org_agenda_weekend_days? integer[] The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`)
+---@field org_agenda_start_with_log_mode? boolean Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it). (`org-agenda-start-with-log-mode`)
+---@field org_agenda_start_with_clockreport_mode? boolean Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)
+---@field org_agenda_start_with_archives_mode? 'trees'|'files'|false Start the agenda with entries in archived trees (`trees`; `v a` toggles it), or those and the files the agenda files archive to (`files`; `v A`). (`org-agenda-start-with-archives-mode`)
+---@field org_agenda_log_mode_items? ('closed'|'clock'|'state')[] What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`)
+---@field org_agenda_block_separator? string|false What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block. (`org-agenda-block-separator`)
+---@field org_agenda_compact_blocks? boolean Leave out the separators between blocks and the header over agenda blocks. (`org-agenda-compact-blocks`)
+---@field agenda_hide_empty_blocks? boolean Leave out the blocks of a block agenda that show no entries. Not in Org.
+---@field org_agenda_prefix_format? table What comes before the headline on a line of the agenda (`agenda`), the TODO list (`todo`), tags searches (`tags`) and text searches (`search`, which the agenda does not have yet): `%c` the category, `%t` the time, `%s` the leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty. (`org-agenda-prefix-format`)
+---@field org_agenda_todo_keyword_format? string How a TODO keyword is written in the agenda: `%-4s` pads it to four columns, so that the titles line up; an empty format leaves keywords out. (`org-agenda-todo-keyword-format`)
+---@field org_agenda_scheduled_leaders? string[] The leader of a scheduled entry on its day, and on today when its day has passed (`%d`: the days since). (`org-agenda-scheduled-leaders`)
+---@field org_agenda_deadline_leaders? string[] The leader of a deadline on its day, on today before it (`%d`: the days left), and on today after it (`%d`: the days since). (`org-agenda-deadline-leaders`)
+---@field org_agenda_timerange_leaders? string[] The leader of a time range within a day, and of a range over days (`%d`: which day of it, `%d`: how many days). (`org-agenda-timerange-leaders`)
+---@field org_agenda_remove_tags? true|false|'prefix' Leave the tags out of the agenda's lines; `prefix` only when the prefix shows a tag (`%T`). (`org-agenda-remove-tags`)
+---@field org_agenda_breadcrumbs_separator? string What goes between the headlines of `%b`. (`org-agenda-breadcrumbs-separator`)
+---@field org_agenda_format_date? string How the agenda writes a day, as `format-time-string` does: `%A %d %B %Y`, `%a %Y-%m-%d`. (`org-agenda-format-date`)
+---@field org_agenda_start_day? string The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)
+---@field org_agenda_custom_commands? org_lsp.AgendaCommand[] Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`org_agenda_span`, `org_agenda_start_day`…). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)
 
 ---@class org_lsp.RefileTarget
 ---@field all? boolean Every headline
 ---@field files? 'current'|'agenda'|string|string[] `current` (the entry's own file), `agenda`, a path or a list of paths
 ---@field level? integer The headlines of this level
----@field maxLevel? integer The headlines up to this level
+---@field maxlevel? integer The headlines up to this level
 ---@field regexp? string The headlines that match this regular expression
 ---@field tag? string The headlines with this tag
 ---@field todo? string The headlines with this TODO keyword
 
 ---@class org_lsp.CaptureTemplate
 ---@field description string What the menu shows
----@field emptyLines? integer Blank lines before and after
----@field emptyLinesAfter? integer Blank lines after
----@field emptyLinesBefore? integer Blank lines before
----@field immediateFinish? boolean Capture without a capture buffer
+---@field empty_lines? integer Blank lines before and after
+---@field empty_lines_after? integer Blank lines after
+---@field empty_lines_before? integer Blank lines before
+---@field immediate_finish? boolean Capture without a capture buffer
 ---@field key string The keys that pick the template
 ---@field prepend? boolean First under the target, not last
 ---@field target? string[] `file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path
@@ -135,11 +113,11 @@
 ---@field header? string Replaces the view's header; empty for none
 ---@field key string The keys that pick the command in the agenda menu
 ---@field match? string For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY="A")
----@field settings? table Agenda options for this command: span, startDay…
+---@field settings? table Agenda options for this command: org_agenda_span, org_agenda_start_day…
 ---@field type? 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo' The view
 
 ---@class org_lsp.AgendaBlock
 ---@field header? string Replaces the view's header; empty for none
 ---@field match? string For todo, keywords; for tags, a match string
----@field settings? table Agenda options for this block: span, startDay…
+---@field settings? table Agenda options for this block: org_agenda_span, org_agenda_start_day…
 ---@field type 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo' The view

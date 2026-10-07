@@ -121,7 +121,7 @@
     "Old one"
    ],
    "template": "* %?",
-   "emptyLines": 1
+   "empty_lines": 1
   },
   "typed": "Sub",
   "expected": {
@@ -335,7 +335,7 @@
   },
   "typed": "",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": {
    "buffer": "** TODO ¦                                                              :tag:\n   <2026-05-18 Mon>\n",
@@ -365,7 +365,7 @@
    "fri"
   ],
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": {
    "buffer": "**  ¦\n <2026-05-22 Fri>\n",
@@ -387,11 +387,11 @@
    ],
    "template": "* TODO %? :tag:\n  %t",
    "prepend": true,
-   "emptyLinesAfter": 0
+   "empty_lines_after": 0
   },
   "typed": "Call Bob",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": {
    "buffer": "* TODO ¦ :tag:\n  <2026-05-18 Mon>",
@@ -414,11 +414,11 @@
    ],
    "template": "* TODO %? :tag:\n  %t",
    "prepend": true,
-   "emptyLinesBefore": 1
+   "empty_lines_before": 1
   },
   "typed": "Call Bob",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": {
    "buffer": "** TODO ¦                                                              :tag:\n   <2026-05-18 Mon>\n",
@@ -444,7 +444,7 @@
   },
   "typed": "line\nmore",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": {
    "buffer": "** TODO ¦                                                              :tag:\n   <2026-05-18 Mon>\n",
@@ -469,7 +469,7 @@
   },
   "typed": "x",
   "options": {
-   "adaptIndentation": "headline-data"
+   "org_adapt_indentation": "headline-data"
   },
   "expected": {
    "buffer": "* TODO ¦ :tag:\n  <2026-05-18 Mon>",
@@ -493,7 +493,7 @@
   },
   "typed": "",
   "options": {
-   "adaptIndentation": "headline-data"
+   "org_adapt_indentation": "headline-data"
   },
   "expected": {
    "buffer": "* TODO ¦ :tag:\n  <2026-05-18 Mon>\n",
@@ -517,7 +517,7 @@
   },
   "typed": "Call Bob",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": {
    "buffer": "* TODO ¦ :tag:\n  <2026-05-18 Mon>",
@@ -541,7 +541,7 @@
   },
   "typed": "x",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": {
    "buffer": "* TODO ¦ :tag:\n  <2026-05-18 Mon>",
@@ -563,12 +563,12 @@
     "Ideas"
    ],
    "template": "* %?\n%U",
-   "emptyLines": 1,
-   "emptyLinesBefore": 2
+   "empty_lines": 1,
+   "empty_lines_before": 2
   },
   "typed": "line\nmore",
   "options": {
-   "adaptIndentation": true
+   "org_adapt_indentation": true
   },
   "expected": {
    "buffer": "** ¦\n [2026-05-18 Mon 10:30]\n\n",

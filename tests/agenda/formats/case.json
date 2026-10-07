@@ -27,38 +27,38 @@
     }
   ],
   "options": {
-    "prefixFormat": {
+    "org_agenda_prefix_format": {
       "agenda": " %-10.8:c%l%?-12t%-12s",
       "todo": " %-6e %T: %b",
       "tags": "%c/%l"
     },
-    "todoKeywordFormat": "%-4s",
-    "scheduledLeaders": [
+    "org_agenda_todo_keyword_format": "%-4s",
+    "org_agenda_scheduled_leaders": [
       "Sched: ",
       "S.%2d: "
     ],
-    "deadlineLeaders": [
+    "org_agenda_deadline_leaders": [
       "Due: ",
       "In %d: ",
       "Late %d: "
     ],
-    "timerangeLeaders": [
+    "org_agenda_timerange_leaders": [
       "",
       "Day %d of %d: "
     ],
-    "breadcrumbsSeparator": " / ",
-    "removeTags": "prefix",
-    "customCommands": [
+    "org_agenda_breadcrumbs_separator": " / ",
+    "org_agenda_remove_tags": "prefix",
+    "org_agenda_custom_commands": [
       {
         "key": "b",
         "description": "Breadcrumbs",
         "type": "agenda",
         "settings": {
-          "span": "day",
-          "prefixFormat": {
+          "org_agenda_span": "day",
+          "org_agenda_prefix_format": {
             "agenda": "  %?-6e%b"
           },
-          "removeTags": true
+          "org_agenda_remove_tags": true
         }
       },
       {
@@ -68,8 +68,8 @@
           {
             "type": "todo",
             "settings": {
-              "todoKeywordFormat": "",
-              "prefixFormat": {
+              "org_agenda_todo_keyword_format": "",
+              "org_agenda_prefix_format": {
                 "todo": "%?-5e|"
               }
             }
@@ -78,7 +78,7 @@
             "type": "tags-todo",
             "match": "home",
             "settings": {
-              "prefixFormat": {
+              "org_agenda_prefix_format": {
                 "tags": "[%T] "
               }
             }

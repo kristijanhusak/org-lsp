@@ -8,7 +8,7 @@ A case is a JSON object:
       "command": "schedule",           see COMMANDS below
       "answer": "fri 10:00",           what the user types at the date prompt
       "repeated": true,                optional: the same command ran just before
-      "options": {"logDone": "time"}   optional: server settings
+      "options": {"org_log_done": "time"}   optional: server settings
     }
 
 `reference(cases)` adds two fields to each case. `expected` is the

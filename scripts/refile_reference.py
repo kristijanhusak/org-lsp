@@ -9,10 +9,10 @@ A case is a JSON object:
       "answerIndex": 2,                     the one at this place among those
                                             offered (each name counted once)
       "options": {                          optional: server settings
-        "refileTargets": [{"files": "agenda", "maxLevel": 2}],
-        "refileUseOutlinePath": "file",
-        "reverseNoteOrder": true,
-        "tagsColumn": -40
+        "org_refile_targets": [{"files": "agenda", "maxlevel": 2}],
+        "org_refile_use_outline_path": "file",
+        "org_reverse_note_order": true,
+        "org_tags_column": -40
       }
     }
 
@@ -82,8 +82,8 @@ def targets_value(targets, paths):
             spec = "t"
         elif "level" in target:
             spec = f"'(:level . {target['level']})"
-        elif "maxLevel" in target:
-            spec = f"'(:maxlevel . {target['maxLevel']})"
+        elif "maxlevel" in target:
+            spec = f"'(:maxlevel . {target['maxlevel']})"
         elif "tag" in target:
             spec = f"(cons :tag {lisp_string(target['tag'])})"
         elif "todo" in target:
@@ -104,17 +104,17 @@ def bindings(options, paths):
         "org-log-refile": "nil",
     }
     for key, value in (options or {}).items():
-        if key == "refileTargets":
+        if key == "org_refile_targets":
             out["org-refile-targets"] = targets_value(value, paths)
-        elif key == "refileUseOutlinePath":
+        elif key == "org_refile_use_outline_path":
             out["org-refile-use-outline-path"] = (
                 "t" if value is True else "nil" if value is False else "'" + value
             )
-        elif key == "reverseNoteOrder":
+        elif key == "org_reverse_note_order":
             out["org-reverse-note-order"] = "t" if value else "nil"
-        elif key == "tagsColumn":
+        elif key == "org_tags_column":
             out["org-tags-column"] = str(value)
-        elif key == "adaptIndentation":
+        elif key == "org_adapt_indentation":
             out["org-adapt-indentation"] = (
                 "t" if value is True else "nil" if value is False else "'" + value
             )

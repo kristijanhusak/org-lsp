@@ -66,7 +66,7 @@ say:
 | Setting | Meaning |
 | --- | --- |
 | `command` | The server command; by default the package finds or downloads it (see above). |
-| `initializationOptions` | The server's options, such as `{"agendaFiles": ["~/org"]}`; see [docs/configuration.md](../../docs/configuration.md). The shared `~/.config/org-lsp/config.toml` is read too. |
+| `initializationOptions` | The server's options, such as `{"org_agenda_files": ["~/org"]}`; see [docs/configuration.md](../../docs/configuration.md). The shared `~/.config/org-lsp/config.toml` is read too. |
 | `org_keys` | The keys: `emacs` (the default), `vim` (for Vintage and NeoVintageous, in command mode) or `custom` (none). |
 | `semantic_tokens` | The scopes of the server's tokens; generated. |
 
@@ -80,7 +80,7 @@ or the TODO state, `Ctrl+C Ctrl+S` schedules, `Ctrl+C Ctrl+W` refiles,
 `Ctrl+C Ctrl+C` files the entry. Where a command does not apply,
 `Shift+arrows` select and `Tab` indents as usual.
 
-Files with `org-indent-mode` (`startupIndented`, `#+STARTUP: indent`)
+Files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`)
 show indented by level, without being changed: blanks before the lines,
 as phantoms. The leading stars still show, and the lines a long line
 wraps into are not indented.

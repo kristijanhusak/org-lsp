@@ -33,7 +33,7 @@ pub enum Query {
     /// `org-tags-view` from the agenda menu (`m`, `M`): the entries a
     /// match string matches, only open TODO entries with `todo_only`.
     Tags { matching: String, todo_only: bool },
-    /// A command of `agenda.customCommands`, by its keys. One of its
+    /// A command of `org_agenda_custom_commands`, by its keys. One of its
     /// agenda blocks may have been moved to other days (`f`, `b`, `d`
     /// there), as Emacs's `org-agenda-overriding-cmd` moves one block.
     Custom { keys: String, moved: Option<Moved> },

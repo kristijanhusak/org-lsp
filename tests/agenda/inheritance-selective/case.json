@@ -51,12 +51,12 @@
     }
   ],
   "options": {
-    "useTagInheritance": [
+    "org_use_tag_inheritance": [
       "proj",
       "home",
       "office"
     ],
-    "usePropertyInheritance": [
+    "org_use_property_inheritance": [
       "OWNER",
       "stage"
     ]

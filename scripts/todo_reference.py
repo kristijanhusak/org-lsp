@@ -12,7 +12,7 @@ A case is a JSON object:
                                        "note": `org-add-note`
       "note": "Waiting",               optional: the text of the note, if the
                                        change asks for one
-      "options": {"logDone": "time"}   optional: server settings
+      "options": {"org_log_done": "time"}   optional: server settings
     }
 
 `reference(cases)` adds `expected`, the document after the command, to each
@@ -94,19 +94,19 @@ def bindings(options):
         "org-todo-keywords": "'((sequence \"TODO\" \"DONE\"))",
     }
     for key, value in (options or {}).items():
-        if key == "logDone":
+        if key == "org_log_done":
             out["org-log-done"] = symbol(value)
-        elif key == "logRepeat":
+        elif key == "org_log_repeat":
             out["org-log-repeat"] = symbol(value)
-        elif key == "logIntoDrawer":
+        elif key == "org_log_into_drawer":
             out["org-log-into-drawer"] = lisp_value(value)
-        elif key == "tagsColumn":
+        elif key == "org_tags_column":
             out["org-tags-column"] = str(value)
-        elif key == "todoRepeatToState":
+        elif key == "org_todo_repeat_to_state":
             out["org-todo-repeat-to-state"] = lisp_value(value)
-        elif key == "adaptIndentation":
+        elif key == "org_adapt_indentation":
             out["org-adapt-indentation"] = "'headline-data" if value == "headline-data" else lisp_value(value)
-        elif key == "todoKeywords":
+        elif key == "org_todo_keywords":
             out["org-todo-keywords"] = "'((sequence " + " ".join(lisp_string(word) for word in value) + "))"
         else:
             raise ValueError(f"no Emacs setting for option {key}")

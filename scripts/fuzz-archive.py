@@ -78,21 +78,21 @@ def case(rng):
     starts = [0] + [i + 1 for i, c in enumerate(text) if c == "\n" and i + 1 < len(text)]
     at = min(rng.choice(starts) + rng.randint(0, 3), len(text))
     files["a.org"] = text[:at] + "¦" + text[at:]
-    options = {"todoKeywords": ["TODO", "NEXT", "|", "DONE"]}
+    options = {"org_todo_keywords": ["TODO", "NEXT", "|", "DONE"]}
     if rng.random() < 0.6:
-        options["archiveLocation"] = rng.choice(LOCATIONS)
+        options["org_archive_location"] = rng.choice(LOCATIONS)
     if rng.random() < 0.25:
-        options["archiveReversedOrder"] = True
+        options["org_archive_reversed_order"] = True
     if rng.random() < 0.2:
-        options["archiveMarkDone"] = rng.choice([True, "DONE"])
+        options["org_archive_mark_done"] = rng.choice([True, "DONE"])
     if rng.random() < 0.2:
-        options["archiveSubtreeAddInheritedTags"] = rng.choice([True, False])
+        options["org_archive_subtree_add_inherited_tags"] = rng.choice([True, False])
     if rng.random() < 0.15:
-        options["archiveSaveContextInfo"] = rng.sample(["time", "file", "olpath", "category", "todo", "itags", "ltags", "olid"], 3)
+        options["org_archive_save_context_info"] = rng.sample(["time", "file", "olpath", "category", "todo", "itags", "ltags", "olid"], 3)
     if rng.random() < 0.2:
-        options["tagsColumn"] = rng.choice([-40, 20, 0])
+        options["org_tags_column"] = rng.choice([-40, 20, 0])
     if rng.random() < 0.25:
-        options["adaptIndentation"] = rng.choice([True, "headline-data"])
+        options["org_adapt_indentation"] = rng.choice([True, "headline-data"])
     out = {"files": files, "command": command, "options": options}
     if command in ("done", "tagDone"):
         out["answers"] = [rng.random() < 0.7 for _ in range(4)]

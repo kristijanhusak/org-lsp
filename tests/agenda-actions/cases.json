@@ -903,7 +903,7 @@
   "line": "Deadline:   TODO Pay rent",
   "command": "todo-next",
   "options": {
-   "logDone": "time"
+   "org_log_done": "time"
   },
   "expected": {
    "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* DONE Pay rent                                                       :money:\nCLOSED: [2026-05-18 Mon 10:30] DEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",

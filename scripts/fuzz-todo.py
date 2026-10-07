@@ -138,7 +138,7 @@ class Generator:
             lines.append("#+TODO: " + definition)
             keywords = [word.split("(")[0] for word in definition.split() if word != "|"]
         elif self.chance(0.2):
-            options["todoKeywords"] = ["TODO", "NEXT(n!)", "|", "DONE", "GONE"]
+            options["org_todo_keywords"] = ["TODO", "NEXT(n!)", "|", "DONE", "GONE"]
             keywords = ["TODO", "NEXT", "DONE", "GONE"]
         if self.chance(0.3):
             lines.append("Text before the first headline.")
@@ -163,17 +163,17 @@ class Generator:
             text = text.replace("\n", CURSOR + "\n", 1) if "\n" in text else text + CURSOR
 
         if self.chance(0.4):
-            options["logDone"] = self.pick(["time", "time", "note"])
+            options["org_log_done"] = self.pick(["time", "time", "note"])
         if self.chance(0.25):
-            options["logRepeat"] = self.pick([False, "note", "time"])
+            options["org_log_repeat"] = self.pick([False, "note", "time"])
         if self.chance(0.25):
-            options["logIntoDrawer"] = self.pick([True, True, "NOTES"])
+            options["org_log_into_drawer"] = self.pick([True, True, "NOTES"])
         if self.chance(0.15):
-            options["tagsColumn"] = self.pick([-80, -40, 0, 30, 77])
+            options["org_tags_column"] = self.pick([-80, -40, 0, 30, 77])
         if self.chance(0.15):
-            options["todoRepeatToState"] = self.pick([True, keywords[0], keywords[-1]])
+            options["org_todo_repeat_to_state"] = self.pick([True, keywords[0], keywords[-1]])
         if self.chance(0.35):
-            options["adaptIndentation"] = self.pick([True, "headline-data", False])
+            options["org_adapt_indentation"] = self.pick([True, "headline-data", False])
         roll = self.rng.random()
         command = "next" if roll < 0.5 else "previous" if roll < 0.65 else {"state": self.pick(keywords)}
         case = {"clock": self.now.strftime("%Y-%m-%d %H:%M"), "text": text, "command": command}

@@ -8,7 +8,7 @@
 use serde_json::{json, Value};
 
 pub struct Setting {
-    /// The option's name; `agenda.span` is `span` inside `agenda`.
+    /// The option's name; `org_agenda_span` is `span` inside `agenda`.
     pub name: &'static str,
     /// The values it takes, in JSON's terms.
     pub kind: &'static str,
@@ -42,7 +42,7 @@ pub const SETTINGS: &[Setting] = &[
         unset: "the shared file, `~/.config/org-lsp/config.toml` or `config.json`",
         editor_only: true,
         ..setting(
-            "configFile",
+            "config_file",
             "false, or a path",
             "",
             "",
@@ -53,7 +53,7 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     setting(
-        "agendaFiles",
+        "org_agenda_files",
         "string[]",
         "[]",
         "org-agenda-files",
@@ -63,7 +63,7 @@ pub const SETTINGS: &[Setting] = &[
          out), or else from the Org files that are open.",
     ),
     setting(
-        "todoKeywords",
+        "org_todo_keywords",
         "string[]",
         r#"["TODO", "|", "DONE"]"#,
         "org-todo-keywords",
@@ -73,35 +73,35 @@ pub const SETTINGS: &[Setting] = &[
          A file's own `#+TODO:` lines take precedence.",
     ),
     setting(
-        "logDone",
+        "org_log_done",
         r#"false, "time", "note""#,
         "false",
         "org-log-done",
         "Write `CLOSED:` with the time when an entry is done, and with `note` ask for a note too.",
     ),
     setting(
-        "logRepeat",
+        "org_log_repeat",
         r#"false, "time", "note""#,
         r#""time""#,
         "org-log-repeat",
         "Record when a repeating entry is done and moves to its next date.",
     ),
     setting(
-        "logIntoDrawer",
+        "org_log_into_drawer",
         "boolean, string",
         "false",
         "org-log-into-drawer",
         "Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer.",
     ),
     setting(
-        "tagsColumn",
+        "org_tags_column",
         "number",
         "-77",
         "org-tags-column",
         "Where tags are aligned after a change to a headline. Negative: they end at that column.",
     ),
     setting(
-        "useTagInheritance",
+        "org_use_tag_inheritance",
         "boolean, string[], string",
         "true",
         "org-use-tag-inheritance",
@@ -110,14 +110,14 @@ pub const SETTINGS: &[Setting] = &[
          show in the agenda.",
     ),
     setting(
-        "tagsExcludeFromInheritance",
+        "org_tags_exclude_from_inheritance",
         "string[]",
         "[]",
         "org-tags-exclude-from-inheritance",
-        "Tags never inherited, when `useTagInheritance` is `true` or a regexp.",
+        "Tags never inherited, when `org_use_tag_inheritance` is `true` or a regexp.",
     ),
     setting(
-        "usePropertyInheritance",
+        "org_use_property_inheritance",
         "boolean, string[], string",
         "false",
         "org-use-property-inheritance",
@@ -126,29 +126,29 @@ pub const SETTINGS: &[Setting] = &[
          of names, or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited.",
     ),
     setting(
-        "clockIntoDrawer",
+        "org_clock_into_drawer",
         "boolean, string",
         "true",
         "org-clock-into-drawer",
-        "Where `CLOCK:` lines go: `true` for the drawer of `logIntoDrawer` (`LOGBOOK` when that is not a name), \
+        "Where `CLOCK:` lines go: `true` for the drawer of `org_log_into_drawer` (`LOGBOOK` when that is not a name), \
          the name of a drawer, or `false` for the entry itself.",
     ),
     setting(
-        "clockOutRemoveZeroTimeClocks",
+        "org_clock_out_remove_zero_time_clocks",
         "boolean",
         "false",
         "org-clock-out-remove-zero-time-clocks",
         "Clocking out after less than a minute removes the `CLOCK:` line.",
     ),
     setting(
-        "clockOutWhenDone",
+        "org_clock_out_when_done",
         "boolean",
         "true",
         "org-clock-out-when-done",
         "Marking the clocked entry done stops the clock.",
     ),
     setting(
-        "completeTagsAlwaysOfferAllAgendaTags",
+        "org_complete_tags_always_offer_all_agenda_tags",
         "boolean",
         "false",
         "org-complete-tags-always-offer-all-agenda-tags",
@@ -159,7 +159,7 @@ pub const SETTINGS: &[Setting] = &[
         default: None,
         unset: "the first keyword of the sequence",
         ..setting(
-            "todoRepeatToState",
+            "org_todo_repeat_to_state",
             "string, true",
             "",
             "org-todo-repeat-to-state",
@@ -167,10 +167,10 @@ pub const SETTINGS: &[Setting] = &[
              had.",
         )
     },
-    setting("priorityHighest", "letter, or 0 to 64", r#""A""#, "org-priority-highest", "The highest priority."),
-    setting("priorityLowest", "letter, or 0 to 64", r#""C""#, "org-priority-lowest", "The lowest priority."),
+    setting("org_priority_highest", "letter, or 0 to 64", r#""A""#, "org-priority-highest", "The highest priority."),
+    setting("org_priority_lowest", "letter, or 0 to 64", r#""C""#, "org-priority-lowest", "The lowest priority."),
     setting(
-        "priorityDefault",
+        "org_priority_default",
         "letter, or 0 to 64",
         r#""B""#,
         "org-priority-default",
@@ -178,21 +178,21 @@ pub const SETTINGS: &[Setting] = &[
          three priority options.",
     ),
     setting(
-        "priorityStartCycleWithDefault",
+        "org_priority_start_cycle_with_default",
         "boolean",
         "true",
         "org-priority-start-cycle-with-default",
         "Raising or lowering the priority of an entry that has none starts at the default.",
     ),
     setting(
-        "timestampRoundingMinutes",
+        "org_time_stamp_rounding_minutes",
         "number",
         "5",
         "org-time-stamp-rounding-minutes",
         "The step in which the minutes of a timestamp change (the second number of Org's option).",
     ),
     setting(
-        "readDatePreferFuture",
+        "org_read_date_prefer_future",
         r#"boolean, "time""#,
         "true",
         "org-read-date-prefer-future",
@@ -200,23 +200,23 @@ pub const SETTINGS: &[Setting] = &[
          today is tomorrow's.",
     ),
     setting(
-        "readDateForceCompatibleDates",
+        "org_read_date_force_compatible_dates",
         "boolean",
         "true",
         "org-read-date-force-compatible-dates",
         "A typed year is kept within 1970 to 2037.",
     ),
     setting(
-        "refileTargets",
+        "org_refile_targets",
         "object[]",
         r#"[{ "files": "current", "level": 1 }]"#,
         "org-refile-targets",
         "Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, \
-         a path or a list of paths; and one of `level`, `maxLevel`, `tag`, `todo`, `regexp` (the Rust `regex` \
+         a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` \
          crate's syntax) or `all` (true), which says which headlines there are targets.",
     ),
     setting(
-        "refileUseOutlinePath",
+        "org_refile_use_outline_path",
         r#"boolean, "file", "full-file-path", "title""#,
         "false",
         "org-refile-use-outline-path",
@@ -224,14 +224,14 @@ pub const SETTINGS: &[Setting] = &[
          file, and offer the file itself, for its top level.",
     ),
     setting(
-        "reverseNoteOrder",
+        "org_reverse_note_order",
         "boolean",
         "false",
         "org-reverse-note-order",
         "A refiled entry goes first under its target, not last.",
     ),
     setting(
-        "archiveLocation",
+        "org_archive_location",
         "string",
         r#""%s_archive::""#,
         "org-archive-location",
@@ -241,28 +241,28 @@ pub const SETTINGS: &[Setting] = &[
          `ARCHIVE` property of the entry or a parent, or a `#+ARCHIVE:` line, says otherwise.",
     ),
     setting(
-        "archiveReversedOrder",
+        "org_archive_reversed_order",
         "boolean",
         "false",
         "org-archive-reversed-order",
         "An archived subtree goes first under its archive headline, not last.",
     ),
     setting(
-        "archiveMarkDone",
+        "org_archive_mark_done",
         "boolean, string",
         "false",
         "org-archive-mark-done",
         "Mark archived entries done: `true` for the first done keyword, or the keyword to use.",
     ),
     setting(
-        "archiveSubtreeAddInheritedTags",
+        "org_archive_subtree_add_inherited_tags",
         r#"boolean, "infile""#,
         r#""infile""#,
         "org-archive-subtree-add-inherited-tags",
         "Give an archived subtree the tags it inherited: always, never, or when it stays in its file.",
     ),
     setting(
-        "archiveSaveContextInfo",
+        "org_archive_save_context_info",
         "string[]",
         r#"["time", "file", "olpath", "category", "todo", "itags"]"#,
         "org-archive-save-context-info",
@@ -270,55 +270,55 @@ pub const SETTINGS: &[Setting] = &[
          `category`, `todo`, `itags` (inherited tags), `ltags` (its own tags) and `olid` (its parent's ID).",
     ),
     setting(
-        "archiveSiblingHeading",
+        "org_archive_sibling_heading",
         "string",
         r#""Archive""#,
         "org-archive-sibling-heading",
         "The headline of the sibling `org.archive.sibling` archives under.",
     ),
     setting(
-        "archiveFileHeaderFormat",
+        "org_archive_file_header_format",
         "string, false",
         r#""\nArchived entries from file %s\n\n""#,
         "org-archive-file-header-format",
         "What a new archive file starts with; `%s` is the path of the file the subtree came from.",
     ),
     setting(
-        "archiveDefaultCommand",
+        "org_archive_default_command",
         r#""subtree", "sibling", "tag""#,
         r#""subtree""#,
         "org-archive-default-command",
         "What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it.",
     ),
     setting(
-        "captureTemplates",
+        "org_capture_templates",
         "object[]",
         r#"[{ "key": "t", "description": "Task", "target": ["file+headline", "", "Tasks"], "template": "* TODO %?\n  %u\n  %a" }]"#,
         "org-capture-templates",
         "Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, or `plain`), \
-         a `target` and a `template` (text, or a list of lines), and may have `prepend`, `emptyLines`, \
-         `emptyLinesBefore`, `emptyLinesAfter` and `immediateFinish`. The target is a list: `file` and a \
+         a `target` and a `template` (text, or a list of lines), and may have `prepend`, `empty_lines`, \
+         `empty_lines_before`, `empty_lines_after` and `immediate_finish`. The target is a list: `file` and a \
          path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline \
-         path. An empty path is `defaultNotesFile`, and without a target the entry goes at the end of \
-         `defaultNotesFile`. A template with only a key and a description groups the templates whose keys \
+         path. An empty path is `org_default_notes_file`, and without a target the entry goes at the end of \
+         `org_default_notes_file`. A template with only a key and a description groups the templates whose keys \
          start with its key.",
     ),
     setting(
-        "orgDirectory",
+        "org_directory",
         "string",
         r#""~/org""#,
         "org-directory",
         "Where the relative paths of capture targets are.",
     ),
     setting(
-        "defaultNotesFile",
+        "org_default_notes_file",
         "string",
         r#""~/.notes""#,
         "org-default-notes-file",
         "The target of a capture template whose file is empty.",
     ),
     setting(
-        "linkDescriptive",
+        "org_link_descriptive",
         "boolean",
         "true",
         "org-link-descriptive",
@@ -327,7 +327,7 @@ pub const SETTINGS: &[Setting] = &[
          and editors that can conceal text conceal it.",
     ),
     setting(
-        "hideEmphasisMarkers",
+        "org_hide_emphasis_markers",
         "boolean",
         "false",
         "org-hide-emphasis-markers",
@@ -335,7 +335,7 @@ pub const SETTINGS: &[Setting] = &[
          and `~code~`, as for links.",
     ),
     setting(
-        "returnUsesMetaReturn",
+        "return_uses_meta_return",
         "boolean",
         "false",
         "",
@@ -345,7 +345,7 @@ pub const SETTINGS: &[Setting] = &[
          `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
     ),
     setting(
-        "autoSave",
+        "auto_save",
         "boolean",
         "true",
         "",
@@ -354,7 +354,7 @@ pub const SETTINGS: &[Setting] = &[
          change. Off, they are left with unsaved changes, as Emacs leaves them.",
     ),
     setting(
-        "cycleSeparatorLines",
+        "org_cycle_separator_lines",
         "number",
         "2",
         "org-cycle-separator-lines",
@@ -362,7 +362,7 @@ pub const SETTINGS: &[Setting] = &[
          all of them stay outside. `0`: none does.",
     ),
     setting(
-        "adaptIndentation",
+        "org_adapt_indentation",
         "boolean | \"headline-data\"",
         "false",
         "org-adapt-indentation",
@@ -371,17 +371,17 @@ pub const SETTINGS: &[Setting] = &[
          re-indenting (range formatting) and to what commands write.",
     ),
     setting(
-        "startupIndented",
+        "org_startup_indented",
         "boolean",
         "false",
         "org-startup-indented",
         "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up \
          with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It \
-         turns `adaptIndentation` off in such files, unless that is `\"headline-data\"`. Editors that can show it: \
+         turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. Editors that can show it: \
          Neovim, and VS Code (not on wrapped lines).",
     ),
     setting(
-        "hideLeadingStars",
+        "org_hide_leading_stars",
         "boolean",
         "false",
         "org-hide-leading-stars",
@@ -389,92 +389,92 @@ pub const SETTINGS: &[Setting] = &[
          `showstars` decide for a file.",
     ),
     setting(
-        "srcPreserveIndentation",
+        "org_src_preserve_indentation",
         "boolean",
         "false",
         "org-src-preserve-indentation",
         "Leave the code of source blocks as it is indented when re-indenting.",
     ),
     setting(
-        "editSrcContentIndentation",
+        "org_edit_src_content_indentation",
         "number",
         "2",
         "org-edit-src-content-indentation",
         "How far code is indented past its source block when re-indenting.",
     ),
     setting(
-        "agenda.span",
+        "org_agenda_span",
         r#""day", "week", "fortnight", "month", "year", or a number of days"#,
         r#""week""#,
         "org-agenda-span",
         "How much time the agenda shows.",
     ),
     setting(
-        "agenda.startOnWeekday",
+        "org_agenda_start_on_weekday",
         "0 to 6 (0 is Sunday), or false",
         "1",
         "org-agenda-start-on-weekday",
         "The day a week or fortnight starts on; `false` starts it today.",
     ),
     setting(
-        "agenda.deadlineWarningDays",
+        "org_deadline_warning_days",
         "number",
         "14",
         "org-deadline-warning-days",
         "How many days before a deadline it shows up.",
     ),
     setting(
-        "agenda.scheduledDelayDays",
+        "org_scheduled_delay_days",
         "number",
         "0",
         "org-scheduled-delay-days",
         "How many days after its date a scheduled entry shows up.",
     ),
     setting(
-        "agenda.scheduledPastDays",
+        "org_scheduled_past_days",
         "number",
         "10000",
         "org-scheduled-past-days",
         "How many days a scheduled entry that is not done keeps showing up.",
     ),
     setting(
-        "agenda.deadlinePastDays",
+        "org_deadline_past_days",
         "number",
         "10000",
         "org-deadline-past-days",
         "How many days a missed deadline keeps showing up.",
     ),
     setting(
-        "agenda.skipScheduledIfDone",
+        "org_agenda_skip_scheduled_if_done",
         "boolean",
         "false",
         "org-agenda-skip-scheduled-if-done",
         "Leave out scheduled entries that are done.",
     ),
     setting(
-        "agenda.skipDeadlineIfDone",
+        "org_agenda_skip_deadline_if_done",
         "boolean",
         "false",
         "org-agenda-skip-deadline-if-done",
         "Leave out deadlines of entries that are done.",
     ),
     setting(
-        "agenda.skipTimestampIfDone",
+        "org_agenda_skip_timestamp_if_done",
         "boolean",
         "false",
         "org-agenda-skip-timestamp-if-done",
         "Leave out timestamps of entries that are done.",
     ),
     setting(
-        "agenda.showFutureRepeats",
+        "org_agenda_show_future_repeats",
         r#"boolean, "next""#,
         "true",
         "org-agenda-show-future-repeats",
         "Show the future dates of repeating entries: all of them, none, or only the next.",
     ),
-    setting("agenda.showAllDates", "boolean", "true", "org-agenda-show-all-dates", "Show days without entries."),
+    setting("org_agenda_show_all_dates", "boolean", "true", "org-agenda-show-all-dates", "Show days without entries."),
     setting(
-        "agenda.tagsColumn",
+        "org_agenda_tags_column",
         r#"number, "auto""#,
         r#""auto""#,
         "org-agenda-tags-column",
@@ -483,82 +483,54 @@ pub const SETTINGS: &[Setting] = &[
          (Neovim, Vim, Sublime Text) have the tags there, and the agenda follows the window as it is \
          resized; the others (VS Code, Zed) have them end at column 80.",
     ),
-    setting("agenda.useTimeGrid", "boolean", "true", "org-agenda-use-time-grid", "Draw the time grid."),
-    setting("agenda.timeGrid.daily", "boolean", "true", "org-agenda-time-grid", "Draw the grid in a one-day agenda."),
-    setting("agenda.timeGrid.today", "boolean", "true", "org-agenda-time-grid", "Draw the grid for today."),
-    setting("agenda.timeGrid.weekly", "boolean", "false", "org-agenda-time-grid", "Draw the grid for every day."),
+    setting("org_agenda_use_time_grid", "boolean", "true", "org-agenda-use-time-grid", "Draw the time grid."),
     setting(
-        "agenda.timeGrid.requireTimed",
-        "boolean",
-        "true",
+        "org_agenda_time_grid",
+        "[string[], number[], string, string]",
+        r#"[["daily", "today", "require-timed"], [800, 1000, 1200, 1400, 1600, 1800, 2000], "......", "----------------"]"#,
         "org-agenda-time-grid",
-        "Draw the grid only on days with an entry that has a time.",
+        "The time grid, as Org writes it: the days that have it (`daily`: a one-day agenda; `weekly`: every \
+         day of a longer one; `today`: today; `require-timed`: only days with an entry that has a time; \
+         `remove-match`: no grid line at a time an entry already has), the times of its lines (`800` for \
+         8:00), what follows a time that has no end time, and the text of a grid line.",
     ),
     setting(
-        "agenda.timeGrid.removeMatch",
-        "boolean",
-        "false",
-        "org-agenda-time-grid",
-        "Leave out grid lines at a time an entry already has.",
-    ),
-    setting(
-        "agenda.timeGrid.times",
-        "number[]",
-        "[800, 1000, 1200, 1400, 1600, 1800, 2000]",
-        "org-agenda-time-grid",
-        "The times of the grid lines, as `800` for 8:00.",
-    ),
-    setting(
-        "agenda.timeGrid.trailer",
-        "string",
-        r#""......""#,
-        "org-agenda-time-grid",
-        "What follows a time that has no end time.",
-    ),
-    setting(
-        "agenda.timeGrid.line",
-        "string",
-        r#""----------------""#,
-        "org-agenda-time-grid",
-        "The text of a grid line.",
-    ),
-    setting(
-        "agenda.timeGrid.now",
+        "org_agenda_current_time_string",
         "string",
         r#""now - - - - - - - - - - - - - - - - - - - - - - - - -""#,
         "org-agenda-current-time-string",
         "The text of the line for the current time.",
     ),
     setting(
-        "agenda.showCurrentTimeInGrid",
+        "org_agenda_show_current_time_in_grid",
         "boolean",
         "true",
         "org-agenda-show-current-time-in-grid",
         "Show the current time in the grid.",
     ),
     setting(
-        "agenda.weekendDays",
+        "org_agenda_weekend_days",
         "number[]",
         "[6, 0]",
         "org-agenda-weekend-days",
         "The days drawn as the weekend (0 is Sunday).",
     ),
     setting(
-        "agenda.startWithLogMode",
+        "org_agenda_start_with_log_mode",
         "boolean",
         "false",
         "org-agenda-start-with-log-mode",
         "Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it).",
     ),
     setting(
-        "agenda.startWithClockreportMode",
+        "org_agenda_start_with_clockreport_mode",
         "boolean",
         "false",
         "org-agenda-start-with-clockreport-mode",
         "Start the agenda with the clock report under it (`R` toggles it).",
     ),
     setting(
-        "agenda.startWithArchivesMode",
+        "org_agenda_start_with_archives_mode",
         "\"trees\" | \"files\" | false",
         "false",
         "org-agenda-start-with-archives-mode",
@@ -566,67 +538,47 @@ pub const SETTINGS: &[Setting] = &[
          agenda files archive to (`files`; `v A`).",
     ),
     setting(
-        "agenda.logModeItems",
+        "org_agenda_log_mode_items",
         "string[]",
         r#"["closed", "clock"]"#,
         "org-agenda-log-mode-items",
         "What log mode shows: `closed` entries, `clock` lines and `state` changes.",
     ),
     setting(
-        "agenda.blockSeparator",
+        "org_agenda_block_separator",
         "string | false",
         r#""=""#,
         "org-agenda-block-separator",
         "What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block.",
     ),
     setting(
-        "agenda.compactBlocks",
+        "org_agenda_compact_blocks",
         "boolean",
         "false",
         "org-agenda-compact-blocks",
         "Leave out the separators between blocks and the header over agenda blocks.",
     ),
     setting(
-        "agenda.hideEmptyBlocks",
+        "agenda_hide_empty_blocks",
         "boolean",
         "false",
         "",
         "Leave out the blocks of a block agenda that show no entries. Not in Org.",
     ),
     setting(
-        "agenda.prefixFormat.agenda",
-        "string",
-        r#"" %i %-12:c%?-12t% s""#,
+        "org_agenda_prefix_format",
+        "{ agenda?, todo?, tags?, search? }",
+        r#"{ "agenda": " %i %-12:c%?-12t% s", "todo": " %i %-12:c", "tags": " %i %-12:c", "search": " %i %-12:c" }"#,
         "org-agenda-prefix-format",
-        "What comes before the headline on a line of the agenda: `%c` the category, `%t` the time, `%s` the \
+        "What comes before the headline on a line of the agenda (`agenda`), the TODO list (`todo`), tags \
+         searches (`tags`) and text searches (`search`, which the agenda does not have yet): `%c` the category, `%t` the time, `%s` the \
          leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the \
          headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on \
          the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a \
          value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty.",
     ),
     setting(
-        "agenda.prefixFormat.todo",
-        "string",
-        r#"" %i %-12:c""#,
-        "org-agenda-prefix-format",
-        "The same, for the TODO list.",
-    ),
-    setting(
-        "agenda.prefixFormat.tags",
-        "string",
-        r#"" %i %-12:c""#,
-        "org-agenda-prefix-format",
-        "The same, for tags searches.",
-    ),
-    setting(
-        "agenda.prefixFormat.search",
-        "string",
-        r#"" %i %-12:c""#,
-        "org-agenda-prefix-format",
-        "The same, for text searches, which the agenda does not have yet.",
-    ),
-    setting(
-        "agenda.todoKeywordFormat",
+        "org_agenda_todo_keyword_format",
         "string",
         r#""%-1s""#,
         "org-agenda-todo-keyword-format",
@@ -634,7 +586,7 @@ pub const SETTINGS: &[Setting] = &[
          up; an empty format leaves keywords out.",
     ),
     setting(
-        "agenda.scheduledLeaders",
+        "org_agenda_scheduled_leaders",
         "string[]",
         r#"["Scheduled: ", "Sched.%2dx: "]"#,
         "org-agenda-scheduled-leaders",
@@ -642,7 +594,7 @@ pub const SETTINGS: &[Setting] = &[
          since).",
     ),
     setting(
-        "agenda.deadlineLeaders",
+        "org_agenda_deadline_leaders",
         "string[]",
         r#"["Deadline:  ", "In %3d d.: ", "%2d d. ago: "]"#,
         "org-agenda-deadline-leaders",
@@ -650,7 +602,7 @@ pub const SETTINGS: &[Setting] = &[
          (`%d`: the days since).",
     ),
     setting(
-        "agenda.timerangeLeaders",
+        "org_agenda_timerange_leaders",
         "string[]",
         r#"["", "(%d/%d): "]"#,
         "org-agenda-timerange-leaders",
@@ -658,14 +610,14 @@ pub const SETTINGS: &[Setting] = &[
          many days).",
     ),
     setting(
-        "agenda.removeTags",
+        "org_agenda_remove_tags",
         r#"boolean, "prefix""#,
         "false",
         "org-agenda-remove-tags",
         "Leave the tags out of the agenda's lines; `prefix` only when the prefix shows a tag (`%T`).",
     ),
     setting(
-        "agenda.breadcrumbsSeparator",
+        "org_agenda_breadcrumbs_separator",
         "string",
         r#""->""#,
         "org-agenda-breadcrumbs-separator",
@@ -675,7 +627,7 @@ pub const SETTINGS: &[Setting] = &[
         default: None,
         unset: "as `Wednesday   7 October 2026`, the week's number added on Mondays",
         ..setting(
-            "agenda.formatDate",
+            "org_agenda_format_date",
             "string",
             "",
             "org-agenda-format-date",
@@ -686,7 +638,7 @@ pub const SETTINGS: &[Setting] = &[
         default: None,
         unset: "today",
         ..setting(
-            "agenda.startDay",
+            "org_agenda_start_day",
             "string",
             "",
             "org-agenda-start-day",
@@ -694,7 +646,7 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     setting(
-        "agenda.customCommands",
+        "org_agenda_custom_commands",
         "object[]",
         "[]",
         "org-agenda-custom-commands",
@@ -702,7 +654,7 @@ pub const SETTINGS: &[Setting] = &[
          `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, \
          a match string such as `work-home` or `PRIORITY=\"A\"` for `tags`), or `blocks`, a list of such \
          views shown one after the other. `header` replaces a view's header (empty: none), and `settings` \
-         holds agenda options for the command or a block (`span`, `startDay`…). A command with only a key \
+         holds agenda options for the command or a block (`org_agenda_span`, `org_agenda_start_day`…). A command with only a key \
          and a description groups the commands whose keys start with its key.",
     ),
     Setting {
@@ -710,7 +662,7 @@ pub const SETTINGS: &[Setting] = &[
         unset: "from the client's capabilities",
         integration: true,
         ..setting(
-            "virtualDocuments",
+            "virtual_documents",
             "boolean",
             "",
             "",
@@ -723,7 +675,7 @@ pub const SETTINGS: &[Setting] = &[
         unset: "from the client's capabilities",
         integration: true,
         ..setting(
-            "showDocument",
+            "show_document",
             "boolean",
             "",
             "",
@@ -735,7 +687,7 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
-            "messagePrompts",
+            "message_prompts",
             "boolean",
             "false",
             "",
@@ -747,7 +699,7 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
-            "lineHighlights",
+            "line_highlights",
             "boolean",
             "false",
             "",
@@ -759,7 +711,7 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
-            "virtualIndent",
+            "virtual_indent",
             "boolean",
             "false",
             "",
@@ -772,14 +724,14 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
-            "commandActions",
+            "command_actions",
             "boolean",
             "false",
             "",
             "Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked \
              from a list, a new heading or item (M-RET and its neighbours), for a client that cannot run a \
              command from a key. The agenda's commands go through a local port instead: the server writes a \
-             script (`commandScript`) that runs `SCRIPT COMMAND [ROW COLUMN]` in the agenda, where the cursor \
+             script (`command_script`) that runs `SCRIPT COMMAND [ROW COLUMN]` in the agenda, where the cursor \
              is when no row is given (the server follows the cursor through the document highlights the client \
              asks for), for the editor's keys to call. The Zed extension sets it.",
         )
@@ -787,11 +739,11 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
-            "commandScript",
+            "command_script",
             "string",
             r#""~/.local/state/org-lsp/agenda-command""#,
             "",
-            "Where the server writes the script of `commandActions`. Of several servers with an agenda, the one \
+            "Where the server writes the script of `command_actions`. Of several servers with an agenda, the one \
              whose agenda the cursor was last in has it.",
         )
     },
@@ -802,56 +754,56 @@ pub const SETTINGS: &[Setting] = &[
 /// file, Neovim's type annotations). An object that is a type of its own
 /// names it in `x-lua-class`.
 const SCHEMAS: &[(&str, &str)] = &[
-    ("configFile", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
-    ("agendaFiles", r#"{ "type": "array", "items": { "type": "string" } }"#),
-    ("todoKeywords", r#"{ "type": "array", "items": { "type": "string" } }"#),
-    ("logDone", r#"{ "enum": [false, "time", "note"] }"#),
-    ("logRepeat", r#"{ "enum": [false, "time", "note"] }"#),
-    ("logIntoDrawer", r#"{ "type": ["boolean", "string"] }"#),
-    ("tagsColumn", r#"{ "type": "integer" }"#),
-    ("useTagInheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
-    ("tagsExcludeFromInheritance", r#"{ "type": "array", "items": { "type": "string" } }"#),
-    ("usePropertyInheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
-    ("completeTagsAlwaysOfferAllAgendaTags", BOOLEAN),
-    ("clockIntoDrawer", r#"{ "type": ["boolean", "string"] }"#),
-    ("clockOutRemoveZeroTimeClocks", BOOLEAN),
-    ("clockOutWhenDone", BOOLEAN),
-    ("todoRepeatToState", r#"{ "anyOf": [{ "type": "string" }, { "const": true }] }"#),
-    ("priorityHighest", PRIORITY),
-    ("priorityLowest", PRIORITY),
-    ("priorityDefault", PRIORITY),
-    ("priorityStartCycleWithDefault", BOOLEAN),
-    ("timestampRoundingMinutes", r#"{ "type": "integer", "minimum": 0 }"#),
-    ("readDatePreferFuture", r#"{ "enum": [true, false, "time"] }"#),
-    ("readDateForceCompatibleDates", BOOLEAN),
+    ("config_file", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
+    ("org_agenda_files", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_todo_keywords", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_log_done", r#"{ "enum": [false, "time", "note"] }"#),
+    ("org_log_repeat", r#"{ "enum": [false, "time", "note"] }"#),
+    ("org_log_into_drawer", r#"{ "type": ["boolean", "string"] }"#),
+    ("org_tags_column", r#"{ "type": "integer" }"#),
+    ("org_use_tag_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
+    ("org_tags_exclude_from_inheritance", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_use_property_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
+    ("org_complete_tags_always_offer_all_agenda_tags", BOOLEAN),
+    ("org_clock_into_drawer", r#"{ "type": ["boolean", "string"] }"#),
+    ("org_clock_out_remove_zero_time_clocks", BOOLEAN),
+    ("org_clock_out_when_done", BOOLEAN),
+    ("org_todo_repeat_to_state", r#"{ "anyOf": [{ "type": "string" }, { "const": true }] }"#),
+    ("org_priority_highest", PRIORITY),
+    ("org_priority_lowest", PRIORITY),
+    ("org_priority_default", PRIORITY),
+    ("org_priority_start_cycle_with_default", BOOLEAN),
+    ("org_time_stamp_rounding_minutes", r#"{ "type": "integer", "minimum": 0 }"#),
+    ("org_read_date_prefer_future", r#"{ "enum": [true, false, "time"] }"#),
+    ("org_read_date_force_compatible_dates", BOOLEAN),
     (
-        "refileTargets",
+        "org_refile_targets",
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RefileTarget", "additionalProperties": false, "properties": {
             "files": { "anyOf": [{ "enum": ["current", "agenda"] }, { "type": "string" }, { "type": "array", "items": { "type": "string" } }],
                 "description": "`current` (the entry's own file), `agenda`, a path or a list of paths" },
             "level": { "type": "integer", "minimum": 1, "description": "The headlines of this level" },
-            "maxLevel": { "type": "integer", "minimum": 1, "description": "The headlines up to this level" },
+            "maxlevel": { "type": "integer", "minimum": 1, "description": "The headlines up to this level" },
             "tag": { "type": "string", "description": "The headlines with this tag" },
             "todo": { "type": "string", "description": "The headlines with this TODO keyword" },
             "regexp": { "type": "string", "description": "The headlines that match this regular expression" },
             "all": { "type": "boolean", "description": "Every headline" }
         } } }"#,
     ),
-    ("refileUseOutlinePath", r#"{ "enum": [true, false, "file", "full-file-path", "title"] }"#),
-    ("reverseNoteOrder", BOOLEAN),
-    ("archiveLocation", STRING),
-    ("archiveReversedOrder", BOOLEAN),
-    ("archiveMarkDone", r#"{ "type": ["boolean", "string"] }"#),
-    ("archiveSubtreeAddInheritedTags", r#"{ "enum": [true, false, "infile"] }"#),
+    ("org_refile_use_outline_path", r#"{ "enum": [true, false, "file", "full-file-path", "title"] }"#),
+    ("org_reverse_note_order", BOOLEAN),
+    ("org_archive_location", STRING),
+    ("org_archive_reversed_order", BOOLEAN),
+    ("org_archive_mark_done", r#"{ "type": ["boolean", "string"] }"#),
+    ("org_archive_subtree_add_inherited_tags", r#"{ "enum": [true, false, "infile"] }"#),
     (
-        "archiveSaveContextInfo",
+        "org_archive_save_context_info",
         r#"{ "type": "array", "items": { "enum": ["time", "file", "olpath", "category", "todo", "itags", "ltags", "olid"] } }"#,
     ),
-    ("archiveSiblingHeading", STRING),
-    ("archiveFileHeaderFormat", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
-    ("archiveDefaultCommand", r#"{ "enum": ["subtree", "sibling", "tag"] }"#),
+    ("org_archive_sibling_heading", STRING),
+    ("org_archive_file_header_format", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
+    ("org_archive_default_command", r#"{ "enum": ["subtree", "sibling", "tag"] }"#),
     (
-        "captureTemplates",
+        "org_capture_templates",
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.CaptureTemplate", "required": ["key", "description"], "additionalProperties": false, "properties": {
             "key": { "type": "string", "description": "The keys that pick the template" },
             "description": { "type": "string", "description": "What the menu shows" },
@@ -860,97 +812,109 @@ const SCHEMAS: &[(&str, &str)] = &[
                 "description": "`file` and a path; `file+headline`, a path and a headline; or `file+olp`, a path and the headlines of an outline path" },
             "template": { "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "The template, or its lines" },
             "prepend": { "type": "boolean", "description": "First under the target, not last" },
-            "emptyLines": { "type": "integer", "minimum": 0, "description": "Blank lines before and after" },
-            "emptyLinesBefore": { "type": "integer", "minimum": 0, "description": "Blank lines before" },
-            "emptyLinesAfter": { "type": "integer", "minimum": 0, "description": "Blank lines after" },
-            "immediateFinish": { "type": "boolean", "description": "Capture without a capture buffer" }
+            "empty_lines": { "type": "integer", "minimum": 0, "description": "Blank lines before and after" },
+            "empty_lines_before": { "type": "integer", "minimum": 0, "description": "Blank lines before" },
+            "empty_lines_after": { "type": "integer", "minimum": 0, "description": "Blank lines after" },
+            "immediate_finish": { "type": "boolean", "description": "Capture without a capture buffer" }
         } } }"#,
     ),
-    ("orgDirectory", STRING),
-    ("defaultNotesFile", STRING),
-    ("linkDescriptive", BOOLEAN),
-    ("hideEmphasisMarkers", BOOLEAN),
-    ("returnUsesMetaReturn", BOOLEAN),
-    ("autoSave", BOOLEAN),
-    ("cycleSeparatorLines", r#"{ "type": "integer" }"#),
-    ("adaptIndentation", r#"{ "enum": [true, false, "headline-data"] }"#),
-    ("startupIndented", BOOLEAN),
-    ("hideLeadingStars", BOOLEAN),
-    ("srcPreserveIndentation", BOOLEAN),
-    ("editSrcContentIndentation", r#"{ "type": "integer", "minimum": 0 }"#),
+    ("org_directory", STRING),
+    ("org_default_notes_file", STRING),
+    ("org_link_descriptive", BOOLEAN),
+    ("org_hide_emphasis_markers", BOOLEAN),
+    ("return_uses_meta_return", BOOLEAN),
+    ("auto_save", BOOLEAN),
+    ("org_cycle_separator_lines", r#"{ "type": "integer" }"#),
+    ("org_adapt_indentation", r#"{ "enum": [true, false, "headline-data"] }"#),
+    ("org_startup_indented", BOOLEAN),
+    ("org_hide_leading_stars", BOOLEAN),
+    ("org_src_preserve_indentation", BOOLEAN),
+    ("org_edit_src_content_indentation", r#"{ "type": "integer", "minimum": 0 }"#),
     (
-        "agenda.span",
+        "org_agenda_span",
         r#"{ "anyOf": [{ "enum": ["day", "week", "fortnight", "month", "year"] }, { "type": "integer", "minimum": 1 }] }"#,
     ),
     (
-        "agenda.startOnWeekday",
+        "org_agenda_start_on_weekday",
         r#"{ "anyOf": [{ "type": "integer", "minimum": 0, "maximum": 6 }, { "const": false }] }"#,
     ),
-    ("agenda.deadlineWarningDays", INTEGER),
-    ("agenda.scheduledDelayDays", INTEGER),
-    ("agenda.scheduledPastDays", INTEGER),
-    ("agenda.deadlinePastDays", INTEGER),
-    ("agenda.skipScheduledIfDone", BOOLEAN),
-    ("agenda.skipDeadlineIfDone", BOOLEAN),
-    ("agenda.skipTimestampIfDone", BOOLEAN),
-    ("agenda.showFutureRepeats", r#"{ "enum": [true, false, "next"] }"#),
-    ("agenda.showAllDates", BOOLEAN),
-    ("agenda.tagsColumn", r#"{ "anyOf": [{ "type": "integer" }, { "const": "auto" }] }"#),
-    ("agenda.useTimeGrid", BOOLEAN),
-    ("agenda.timeGrid.daily", BOOLEAN),
-    ("agenda.timeGrid.today", BOOLEAN),
-    ("agenda.timeGrid.weekly", BOOLEAN),
-    ("agenda.timeGrid.requireTimed", BOOLEAN),
-    ("agenda.timeGrid.removeMatch", BOOLEAN),
-    ("agenda.timeGrid.times", r#"{ "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 2400 } }"#),
-    ("agenda.timeGrid.trailer", STRING),
-    ("agenda.timeGrid.line", STRING),
-    ("agenda.timeGrid.now", STRING),
-    ("agenda.showCurrentTimeInGrid", BOOLEAN),
-    ("agenda.weekendDays", r#"{ "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 6 } }"#),
-    ("agenda.startDay", STRING),
-    ("agenda.startWithLogMode", BOOLEAN),
-    ("agenda.startWithClockreportMode", BOOLEAN),
-    ("agenda.startWithArchivesMode", r#"{ "enum": ["trees", "files", false] }"#),
-    ("agenda.logModeItems", r#"{ "type": "array", "items": { "enum": ["closed", "clock", "state"] } }"#),
-    ("agenda.blockSeparator", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
-    ("agenda.compactBlocks", BOOLEAN),
-    ("agenda.hideEmptyBlocks", BOOLEAN),
-    ("agenda.prefixFormat.agenda", STRING),
-    ("agenda.prefixFormat.todo", STRING),
-    ("agenda.prefixFormat.tags", STRING),
-    ("agenda.prefixFormat.search", STRING),
-    ("agenda.todoKeywordFormat", STRING),
-    ("agenda.scheduledLeaders", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }"#),
-    ("agenda.deadlineLeaders", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 3, "maxItems": 3 }"#),
-    ("agenda.timerangeLeaders", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }"#),
-    ("agenda.removeTags", r#"{ "enum": [true, false, "prefix"] }"#),
-    ("agenda.breadcrumbsSeparator", STRING),
-    ("agenda.formatDate", STRING),
+    ("org_deadline_warning_days", INTEGER),
+    ("org_scheduled_delay_days", INTEGER),
+    ("org_scheduled_past_days", INTEGER),
+    ("org_deadline_past_days", INTEGER),
+    ("org_agenda_skip_scheduled_if_done", BOOLEAN),
+    ("org_agenda_skip_deadline_if_done", BOOLEAN),
+    ("org_agenda_skip_timestamp_if_done", BOOLEAN),
+    ("org_agenda_show_future_repeats", r#"{ "enum": [true, false, "next"] }"#),
+    ("org_agenda_show_all_dates", BOOLEAN),
+    ("org_agenda_tags_column", r#"{ "anyOf": [{ "type": "integer" }, { "const": "auto" }] }"#),
+    ("org_agenda_use_time_grid", BOOLEAN),
+    ("org_agenda_current_time_string", STRING),
     (
-        "agenda.customCommands",
+        "org_agenda_time_grid",
+        r#"{ "type": "array", "minItems": 2, "maxItems": 4, "items": [
+            { "type": "array", "items": { "enum": ["daily", "weekly", "today", "require-timed", "remove-match"] } },
+            { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 2400 } },
+            { "type": "string" },
+            { "type": "string" }
+        ] }"#,
+    ),
+    (
+        "org_agenda_prefix_format",
+        r#"{ "type": "object", "additionalProperties": false, "properties": {
+            "agenda": { "type": "string" }, "todo": { "type": "string" }, "tags": { "type": "string" }, "search": { "type": "string" }
+        } }"#,
+    ),
+    ("org_agenda_show_current_time_in_grid", BOOLEAN),
+    ("org_agenda_weekend_days", r#"{ "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 6 } }"#),
+    ("org_agenda_start_day", STRING),
+    ("org_agenda_start_with_log_mode", BOOLEAN),
+    ("org_agenda_start_with_clockreport_mode", BOOLEAN),
+    ("org_agenda_start_with_archives_mode", r#"{ "enum": ["trees", "files", false] }"#),
+    ("org_agenda_log_mode_items", r#"{ "type": "array", "items": { "enum": ["closed", "clock", "state"] } }"#),
+    ("org_agenda_block_separator", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
+    ("org_agenda_compact_blocks", BOOLEAN),
+    ("agenda_hide_empty_blocks", BOOLEAN),
+    ("org_agenda_todo_keyword_format", STRING),
+    (
+        "org_agenda_scheduled_leaders",
+        r#"{ "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }"#,
+    ),
+    (
+        "org_agenda_deadline_leaders",
+        r#"{ "type": "array", "items": { "type": "string" }, "minItems": 3, "maxItems": 3 }"#,
+    ),
+    (
+        "org_agenda_timerange_leaders",
+        r#"{ "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }"#,
+    ),
+    ("org_agenda_remove_tags", r#"{ "enum": [true, false, "prefix"] }"#),
+    ("org_agenda_breadcrumbs_separator", STRING),
+    ("org_agenda_format_date", STRING),
+    (
+        "org_agenda_custom_commands",
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaCommand", "required": ["key", "description"], "additionalProperties": false, "properties": {
             "key": { "type": "string", "description": "The keys that pick the command in the agenda menu" },
             "description": { "type": "string", "description": "What the menu shows" },
             "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo"], "description": "The view" },
             "match": { "type": "string", "description": "For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY=\"A\")" },
             "header": { "type": "string", "description": "Replaces the view's header; empty for none" },
-            "settings": { "type": "object", "description": "Agenda options for this command: span, startDay…" },
+            "settings": { "type": "object", "description": "Agenda options for this command: org_agenda_span, org_agenda_start_day…" },
             "blocks": { "type": "array", "description": "Views shown one after the other", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaBlock", "required": ["type"], "additionalProperties": false, "properties": {
                 "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo"], "description": "The view" },
                 "match": { "type": "string", "description": "For todo, keywords; for tags, a match string" },
                 "header": { "type": "string", "description": "Replaces the view's header; empty for none" },
-                "settings": { "type": "object", "description": "Agenda options for this block: span, startDay…" }
+                "settings": { "type": "object", "description": "Agenda options for this block: org_agenda_span, org_agenda_start_day…" }
             } } }
         } } }"#,
     ),
-    ("virtualDocuments", BOOLEAN),
-    ("showDocument", BOOLEAN),
-    ("messagePrompts", BOOLEAN),
-    ("lineHighlights", BOOLEAN),
-    ("virtualIndent", BOOLEAN),
-    ("commandActions", BOOLEAN),
-    ("commandScript", STRING),
+    ("virtual_documents", BOOLEAN),
+    ("show_document", BOOLEAN),
+    ("message_prompts", BOOLEAN),
+    ("line_highlights", BOOLEAN),
+    ("virtual_indent", BOOLEAN),
+    ("command_actions", BOOLEAN),
+    ("command_script", STRING),
 ];
 
 const BOOLEAN: &str = r#"{ "type": "boolean" }"#;
@@ -1048,21 +1012,15 @@ mod tests {
         assert_eq!(resolved(&written), resolved(&none));
     }
 
-    /// The dotted names of every option `Options` reads.
-    fn names(value: &Value, prefix: &str, out: &mut Vec<String>) {
-        for (key, value) in value.as_object().unwrap() {
-            let name = format!("{prefix}{key}");
-            match value {
-                Value::Object(_) => names(value, &format!("{name}."), out),
-                _ => out.push(name),
-            }
-        }
+    /// The names of every option `Options` reads.
+    fn names(value: &Value, out: &mut Vec<String>) {
+        out.extend(value.as_object().unwrap().keys().cloned());
     }
 
     #[test]
     fn every_option_is_listed_and_every_listed_one_exists() {
         let mut read = Vec::new();
-        names(&serde_json::to_value(Options::default()).unwrap(), "", &mut read);
+        names(&serde_json::to_value(Options::default()).unwrap(), &mut read);
         // A fixed clock, for tests only.
         read.retain(|name| name != "clock");
         read.sort();
@@ -1087,8 +1045,13 @@ mod tests {
             "boolean" => value.is_boolean(),
             "string" => value.is_string(),
             "integer" => value.is_i64() || value.is_u64(),
-            "array" => value.as_array().is_some_and(|items| {
-                items.iter().all(|item| schema.get("items").is_none_or(|items| allows(items, item)))
+            "array" => value.as_array().is_some_and(|items| match schema.get("items") {
+                // A list of schemas: one for each item in turn.
+                Some(Value::Array(schemas)) => {
+                    items.len() <= schemas.len() && items.iter().zip(schemas).all(|(item, schema)| allows(schema, item))
+                }
+                Some(each) => items.iter().all(|item| allows(each, item)),
+                None => true,
             }),
             "object" => value.as_object().is_some_and(|fields| {
                 fields.iter().all(|(key, field)| {
@@ -1115,9 +1078,9 @@ mod tests {
         }
         assert_eq!(SCHEMAS.len(), SETTINGS.len(), "a schema for an option that is not there");
         // And an example of each kind of value the schemas catch.
-        assert!(!allows(&schema("logDone").unwrap(), &json!("yes")));
-        assert!(!allows(&schema("captureTemplates").unwrap(), &json!([{ "key": "t", "taget": [] }])));
-        assert!(allows(&schema("agenda.span").unwrap(), &json!(3)));
+        assert!(!allows(&schema("org_log_done").unwrap(), &json!("yes")));
+        assert!(!allows(&schema("org_capture_templates").unwrap(), &json!([{ "key": "t", "taget": [] }])));
+        assert!(allows(&schema("org_agenda_span").unwrap(), &json!(3)));
     }
 
     #[test]

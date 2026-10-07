@@ -41,7 +41,7 @@ writeFileSync(
     'org-lsp.server.path': server,
     'org-lsp.settings': {
       clock: { today: '2026-05-18', now: '10:30' },
-      captureTemplates: [{ key: 't', description: 'Task', target: ['file', captured], template: '* TODO %?' }],
+      org_capture_templates: [{ key: 't', description: 'Task', target: ['file', captured], template: '* TODO %?' }],
     },
   }),
 );
