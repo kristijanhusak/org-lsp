@@ -168,6 +168,62 @@
     }
   },
   {
+    "caption": "Org: Agenda: mark the entry for a bulk action",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.bulk.mark"
+    }
+  },
+  {
+    "caption": "Org: Agenda: unmark the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.bulk.unmark"
+    }
+  },
+  {
+    "caption": "Org: Agenda: unmark all entries",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.bulk.unmark.all"
+    }
+  },
+  {
+    "caption": "Org: Agenda: toggle the mark of the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.bulk.toggle"
+    }
+  },
+  {
+    "caption": "Org: Agenda: mark all entries",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.bulk.mark.all"
+    }
+  },
+  {
+    "caption": "Org: Agenda: toggle the marks of all entries",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.bulk.toggle.all"
+    }
+  },
+  {
+    "caption": "Org: Agenda: mark the entries matching a regexp",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.bulk.mark.regexp"
+    }
+  },
+  {
+    "caption": "Org: Agenda: an action on the marked entries",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.bulk.action"
+    }
+  },
+  {
     "caption": "Org: Agenda: filter by tags, categories, effort and regexps",
     "command": "org_lsp_run",
     "args": {

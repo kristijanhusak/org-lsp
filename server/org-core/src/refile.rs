@@ -118,6 +118,9 @@ pub fn file_title(parse: &org_syntax::Parse) -> Option<String> {
 pub struct Target {
     /// The name `org-refile-get-location` offers it under.
     pub name: String,
+    /// Its name in `org-refile-target-table`: without the file's name a
+    /// target from another file gets in the offer.
+    pub raw: String,
     /// The byte offset of its headline, or none for the file itself, where
     /// entries go at the top level.
     pub offset: Option<usize>,
@@ -135,8 +138,8 @@ pub fn targets(file: &File, select: &Select, outline_path: OutlinePath, current:
     };
     // `org-refile-get-location`: a `/` after a path, and the file's name
     // after a target from another file, unless the path starts with it.
-    let name = |path: String| {
-        let extra = if outline_path == OutlinePath::No { "" } else { "/" };
+    let extra = if outline_path == OutlinePath::No { "" } else { "/" };
+    let name = |path: &str| {
         if base.is_none() && !current {
             format!("{path}{extra} ({})", file.name)
         } else {
@@ -145,7 +148,7 @@ pub fn targets(file: &File, select: &Select, outline_path: OutlinePath, current:
     };
     let mut out = Vec::new();
     if let Some(base) = base {
-        out.push(Target { name: name(base.to_string()), offset: None });
+        out.push(Target { name: name(base), raw: base.to_string(), offset: None });
     }
     let text = file.text;
     let mut offset = 0;
@@ -167,7 +170,7 @@ pub fn targets(file: &File, select: &Select, outline_path: OutlinePath, current:
             let parts = parts.iter().map(|part| part.replace('/', "\\/"));
             base.map(str::to_string).into_iter().chain(parts).collect::<Vec<_>>().join("/")
         };
-        out.push(Target { name: name(path), offset: Some(start) });
+        out.push(Target { name: name(&path), raw: path, offset: Some(start) });
     }
     out
 }
@@ -211,7 +214,14 @@ pub fn names(targets: &[(usize, Target)]) -> Vec<String> {
 pub fn find<'a>(targets: &'a [(usize, Target)], answer: &str) -> Option<&'a (usize, Target)> {
     let without = answer.strip_suffix('/').unwrap_or(answer).to_string();
     let with = if answer.ends_with('/') { answer.to_string() } else { format!("{answer}/") };
-    [without, with].into_iter().find_map(|name| targets.iter().find(|(_, target)| target.name == name))
+    // Each spelling is looked up among the names offered, then among the
+    // targets as `org-refile-target-table` has them.
+    [without, with].into_iter().find_map(|name| {
+        targets
+            .iter()
+            .find(|(_, target)| target.name == name)
+            .or_else(|| targets.iter().find(|(_, target)| target.raw == name))
+    })
 }
 
 /// `org-get-outline-path`: the titles of the headlines above the one at

@@ -273,6 +273,110 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org agenda: mark the entry for a bulk action",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.bulk.mark",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: unmark the entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.bulk.unmark",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: unmark all entries",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.bulk.unmark.all",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: toggle the mark of the entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.bulk.toggle",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: mark all entries",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.bulk.mark.all",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: toggle the marks of all entries",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.bulk.toggle.all",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: mark the entries matching a regexp",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.bulk.mark.regexp",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: an action on the marked entries",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.bulk.action",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: filter by tags, categories, effort and regexps",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.filter",
     "tags": [

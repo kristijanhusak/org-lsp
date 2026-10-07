@@ -446,6 +446,10 @@ them out:
     // changes. (org-agenda-log-mode-items)
     "org_agenda_log_mode_items": ["closed", "clock"],
 
+    // Keep the marks of a bulk action (`B`) after it (`p` in its menu toggles
+    // this for one action). (org-agenda-persistent-marks)
+    "org_agenda_persistent_marks": false,
+
     // Start the agenda in follow mode, which shows the entry of the cursor's
     // line in another window as the cursor moves (`F` toggles it).
     // (org-agenda-start-with-follow-mode)

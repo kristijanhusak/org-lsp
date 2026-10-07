@@ -132,6 +132,14 @@ The other options are in [configuration.md](configuration.md).
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
 | `Shift+E`, `v Shift+E` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
 | `Shift+F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |
+| `m` | `org.agenda.bulk.mark` | Agenda: mark the entry for a bulk action |
+| `u` | `org.agenda.bulk.unmark` | Agenda: unmark the entry |
+| `Shift+U` | `org.agenda.bulk.unmark.all` | Agenda: unmark all entries |
+| `Alt+M` | `org.agenda.bulk.toggle` | Agenda: toggle the mark of the entry |
+| `Shift+8` | `org.agenda.bulk.mark.all` | Agenda: mark all entries |
+| `Alt+Shift+8` | `org.agenda.bulk.toggle.all` | Agenda: toggle the marks of all entries |
+| `Shift+5` | `org.agenda.bulk.mark.regexp` | Agenda: mark the entries matching a regexp |
+| `Shift+B` | `org.agenda.bulk.action` | Agenda: an action on the marked entries |
 | `/` | `org.agenda.filter` | Agenda: filter by tags, categories, effort and regexps |
 | `\` | `org.agenda.filter.tag` | Agenda: filter by tag |
 | `<` | `org.agenda.filter.category` | Agenda: filter by the line's category |
@@ -234,6 +242,14 @@ The other options are in [configuration.md](configuration.md).
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
 | `Shift+E`, `v Shift+E` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
 | `Shift+F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |
+| `m` | `org.agenda.bulk.mark` | Agenda: mark the entry for a bulk action |
+| `u` | `org.agenda.bulk.unmark` | Agenda: unmark the entry |
+| `Shift+U` | `org.agenda.bulk.unmark.all` | Agenda: unmark all entries |
+| `Alt+M` | `org.agenda.bulk.toggle` | Agenda: toggle the mark of the entry |
+| `Shift+8` | `org.agenda.bulk.mark.all` | Agenda: mark all entries |
+| `Alt+Shift+8` | `org.agenda.bulk.toggle.all` | Agenda: toggle the marks of all entries |
+| `Shift+5` | `org.agenda.bulk.mark.regexp` | Agenda: mark the entries matching a regexp |
+| `Shift+B` | `org.agenda.bulk.action` | Agenda: an action on the marked entries |
 | `/` | `org.agenda.filter` | Agenda: filter by tags, categories, effort and regexps |
 | `\` | `org.agenda.filter.tag` | Agenda: filter by tag |
 | `<` | `org.agenda.filter.category` | Agenda: filter by the line's category |
@@ -373,6 +389,14 @@ every file; outside Org files the commands say they do not apply):
 | `org.agenda.clockreport` | Org: Agenda: the clock report |
 | `org.agenda.entry.text` | Org: Agenda: entry text mode, some text of each entry under its line |
 | `org.agenda.follow` | Org: Agenda: follow mode, the cursor's entry in another window |
+| `org.agenda.bulk.mark` | Org: Agenda: mark the entry for a bulk action |
+| `org.agenda.bulk.unmark` | Org: Agenda: unmark the entry |
+| `org.agenda.bulk.unmark.all` | Org: Agenda: unmark all entries |
+| `org.agenda.bulk.toggle` | Org: Agenda: toggle the mark of the entry |
+| `org.agenda.bulk.mark.all` | Org: Agenda: mark all entries |
+| `org.agenda.bulk.toggle.all` | Org: Agenda: toggle the marks of all entries |
+| `org.agenda.bulk.mark.regexp` | Org: Agenda: mark the entries matching a regexp |
+| `org.agenda.bulk.action` | Org: Agenda: an action on the marked entries |
 | `org.agenda.filter` | Org: Agenda: filter by tags, categories, effort and regexps |
 | `org.agenda.filter.tag` | Org: Agenda: filter by tag |
 | `org.agenda.filter.category` | Org: Agenda: filter by the line's category |

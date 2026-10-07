@@ -197,6 +197,7 @@ pub fn search_order<P: PartialEq + Clone>(
     kept
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn render(
     query: Query,
     blocks: &[Block],
@@ -205,6 +206,7 @@ pub fn render(
     now: Now,
     clocked: Option<(&Uri, usize)>,
     filters: Option<&agenda::filter::Filters>,
+    marks: &[EntryRef],
 ) -> View {
     let outlines: Vec<&Outline> = files.iter().map(|(_, outline)| *outline).collect();
     let named: Vec<(&Outline, String, String)> = files
@@ -232,7 +234,20 @@ pub fn render(
             LineKind::Header | LineKind::Separator | LineKind::Table => day = None,
             LineKind::Item | LineKind::EntryText => {}
         }
-        let shown = agenda::display(line);
+        let entry = line.item.as_ref().and_then(|item| Some((item, item.source?))).map(|(item, source)| {
+            let entry = agenda::entry(&outlines, source);
+            EntryRef {
+                uri: files[source.file].0.clone(),
+                offset: entry.offset,
+                head: entry.head.clone(),
+                marker: item.marker,
+            }
+        });
+        let mut shown = agenda::display(line);
+        // Marked for a bulk action (`org-agenda-bulk-mark-char`).
+        if entry.as_ref().is_some_and(|entry| marks.contains(entry)) {
+            agenda::mark(&mut shown, ">");
+        }
         let base = text.len();
         // The entry the clock runs on shows with `org-agenda-clocking`:
         // every part of its line, the gaps included.
@@ -271,15 +286,6 @@ pub fn render(
         }
         text.push_str(&shown.text);
         text.push('\n');
-        let entry = line.item.as_ref().and_then(|item| Some((item, item.source?))).map(|(item, source)| {
-            let entry = agenda::entry(&outlines, source);
-            EntryRef {
-                uri: files[source.file].0.clone(),
-                offset: entry.offset,
-                head: entry.head.clone(),
-                marker: item.marker,
-            }
-        });
         let kind = line.item.as_ref().map(|item| item.kind);
         // Entry text belongs to the line of its entry, as Emacs shows it
         // after that line's end.
@@ -593,6 +599,7 @@ mod tests {
             now,
             None,
             None,
+            &[],
         );
         let lines: Vec<&str> = view.text.lines().collect();
         assert_eq!(lines[0], "Week-agenda (W21):");

@@ -137,6 +137,54 @@
           "task_name": "Org agenda: follow mode, the cursor's entry in another window"
         }
       ],
+      "m": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: mark the entry for a bulk action"
+        }
+      ],
+      "u": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: unmark the entry"
+        }
+      ],
+      "shift-u": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: unmark all entries"
+        }
+      ],
+      "alt-m": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: toggle the mark of the entry"
+        }
+      ],
+      "*": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: mark all entries"
+        }
+      ],
+      "alt-*": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: toggle the marks of all entries"
+        }
+      ],
+      "%": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: mark the entries matching a regexp"
+        }
+      ],
+      "shift-b": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: an action on the marked entries"
+        }
+      ],
       "/": [
         "task::Spawn",
         {

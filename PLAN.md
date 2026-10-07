@@ -87,8 +87,7 @@ few, checked against Emacs where Org decides the outcome:
   properties and the `#+STARTUP:` logging words.
 - **Tables (12):** navigation (`TAB`, `S-TAB`), inserting, deleting and
   moving rows and columns, `C-c -` for a rule.
-- **Agenda (5):** bulk
-  marks and actions.
+- **Agenda (5):** done.
 - **Clocking (9):** clock tables in files (`#+BEGIN: clocktable`,
   `C-c C-x C-r`), effort estimates (`C-c C-x e`), `org-clock-display`,
   the clock history, idle time and dangling clocks,
@@ -378,7 +377,14 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   `S-<right>` going on by them), checked against Emacs in
   `tests/agenda-actions`. They have no keys of their own (Emacs reaches
   them with `C-u`).
-- Bulk marks and actions.
+- Done: bulk marks and actions (`m`, `u`, `U`, `M-m`, `*`, `M-*`, `%`,
+  `B` with `$`, `A`, `t`, `+`, `-`, `s`, `d`, `r`, `S`, `p`), checked
+  against Emacs in `tests/agenda-actions`. The commands an action runs
+  edit staged copies of their files, and the editor gets one edit a
+  file. Not here: `[f]unction` and `org-agenda-bulk-custom-functions`
+  (Emacs Lisp). Where Emacs, logging notes for a state change, rebuilds
+  the agenda lines of later marked entries and then skips them, org-lsp
+  acts on them.
 
 ### 6. Structure editing
 
