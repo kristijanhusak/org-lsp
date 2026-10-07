@@ -1,0 +1,25 @@
+#+TAGS: [ Office : desk meeting ] home
+#+TODO: TODO NEXT | DONE
+* Projects
+** TODO Write report :desk:
+:PROPERTIES:
+:Effort:   0:30
+:END:
+SCHEDULED: <2026-10-05 Mon 09:00>
+** NEXT Call the client :meeting:phone:
+:PROPERTIES:
+:Effort:   1:00
+:END:
+** TODO Plan the offsite :meeting:
+SCHEDULED: <2026-10-06 Tue>
+* [2/3] Errands
+** TODO Buy milk :home:
+:PROPERTIES:
+:Effort:   0:10
+:END:
+DEADLINE: <2026-10-07 Wed>
+** TODO Fix the bike :home:tools:
+** TODO Without tags
+:PROPERTIES:
+:Effort:   2:00
+:END:

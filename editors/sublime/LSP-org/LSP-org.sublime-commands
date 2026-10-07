@@ -154,6 +154,55 @@
     }
   },
   {
+    "caption": "Org: Agenda: filter by tags, categories, effort and regexps",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.filter"
+    }
+  },
+  {
+    "caption": "Org: Agenda: filter by tag",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.filter.tag"
+    }
+  },
+  {
+    "caption": "Org: Agenda: filter by the line's category",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.filter.category"
+    }
+  },
+  {
+    "caption": "Org: Agenda: filter by a regexp",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.filter.regexp"
+    }
+  },
+  {
+    "caption": "Org: Agenda: filter by effort",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.filter.effort"
+    }
+  },
+  {
+    "caption": "Org: Agenda: filter by the line's top headline",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.filter.top.headline"
+    }
+  },
+  {
+    "caption": "Org: Agenda: remove all filters",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.filter.remove"
+    }
+  },
+  {
     "caption": "Org: Agenda: include archived trees",
     "command": "org_lsp_run",
     "args": {

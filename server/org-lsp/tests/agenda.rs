@@ -57,6 +57,9 @@ fn arguments(directory: &Path, case: &Value, run: &Value) -> Vec<String> {
             arguments.push(format!("--{flag}"));
         }
     }
+    if let Some(filters) = run.get("filters") {
+        arguments.extend(["--filters".to_string(), filters.to_string()]);
+    }
     if let Some(archives) = run.get("archives") {
         arguments.extend(["--archives".to_string(), text(archives)]);
     }

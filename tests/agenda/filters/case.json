@@ -1,0 +1,346 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "tag",
+          "filter": [
+            "+home"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "tag",
+          "filter": [
+            "-home"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "tag",
+          "filter": [
+            "+home",
+            "+meeting"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "tag",
+          "filter": [
+            "+Office"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "tag",
+          "filter": [
+            "+Office"
+          ],
+          "expand": false
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "tag",
+          "filter": [
+            "+"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "tag",
+          "filter": [
+            "-"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "tag",
+          "filter": [
+            "+{^me}"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "category",
+          "filter": [
+            "+work"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "category",
+          "filter": [
+            "-work"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "category",
+          "filter": [
+            "+work",
+            "+side-project"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "regexp",
+          "filter": [
+            "+the"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "regexp",
+          "filter": [
+            "-the",
+            "+o"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "regexp",
+          "filter": [
+            "+:home:"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "effort",
+          "filter": [
+            "+<0:30"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "effort",
+          "filter": [
+            "+>1:00"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "effort",
+          "filter": [
+            "-=0:10"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "top": "Projects"
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "top": "Errands",
+          "negative": true
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "string": "+home"
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "string": "-home<1:00"
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "string": "work-/milk/"
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "string": "\"side-project\""
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "string": "Office"
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "string": "+home",
+          "negate": true
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "string": "unknown"
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "tag",
+          "filter": [
+            "+home"
+          ]
+        },
+        {
+          "string": "++<1:00"
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "tag",
+          "filter": [
+            "+home"
+          ]
+        },
+        {
+          "remove": true
+        }
+      ]
+    },
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "top": "Projects"
+        },
+        {
+          "string": "+meeting"
+        }
+      ]
+    },
+    {
+      "view": "agenda",
+      "span": "week",
+      "filters": [
+        {
+          "type": "tag",
+          "filter": [
+            "+desk"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "agenda",
+      "span": "day",
+      "filters": [
+        {
+          "type": "category",
+          "filter": [
+            "+side-project"
+          ]
+        }
+      ]
+    },
+    {
+      "view": "tags",
+      "match": "meeting|home",
+      "filters": [
+        {
+          "type": "effort",
+          "filter": [
+            "+<1:00"
+          ]
+        }
+      ]
+    }
+  ]
+}

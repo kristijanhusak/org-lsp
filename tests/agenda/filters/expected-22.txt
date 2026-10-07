@@ -1,0 +1,3 @@
+Global list of TODO items of type: ALL
+  side-project:TODO Draft the blog post                                :writing:
+  side-project:TODO Record the video

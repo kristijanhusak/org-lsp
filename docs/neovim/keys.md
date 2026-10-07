@@ -121,6 +121,13 @@ The other options are in [configuration.md](configuration.md).
 | `s`, `<C-x><C-s>` | `org.agenda.save` | Save all Org files |
 | `vl` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `R`, `vR` | `org.agenda.clockreport` | Agenda: the clock report |
+| `/` | `org.agenda.filter` | Agenda: filter by tags, categories, effort and regexps |
+| `\` | `org.agenda.filter.tag` | Agenda: filter by tag |
+| `<` | `org.agenda.filter.category` | Agenda: filter by the line's category |
+| `=` | `org.agenda.filter.regexp` | Agenda: filter by a regexp |
+| `_` | `org.agenda.filter.effort` | Agenda: filter by effort |
+| `^` | `org.agenda.filter.top.headline` | Agenda: filter by the line's top headline |
+| `\|` | `org.agenda.filter.remove` | Agenda: remove all filters |
 | `va` | `org.agenda.archives` | Agenda: include archived trees |
 | `vA` | `org.agenda.archives.files` | Agenda: include archived trees and archive files |
 | `I`, `<Leader>oxi` | `org.clock.in` | Clock in |

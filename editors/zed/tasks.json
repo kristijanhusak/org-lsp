@@ -247,6 +247,97 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org agenda: filter by tags, categories, effort and regexps",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.filter",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: filter by tag",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.filter.tag",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: filter by the line's category",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.filter.category",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: filter by a regexp",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.filter.regexp",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: filter by effort",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.filter.effort",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: filter by the line's top headline",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.filter.top.headline",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: remove all filters",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.filter.remove",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: include archived trees",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.archives",
     "tags": [

@@ -9,6 +9,7 @@
 //! behind each line.
 
 mod display;
+pub mod filter;
 mod item;
 pub mod matcher;
 pub mod report;

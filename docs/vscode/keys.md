@@ -130,6 +130,13 @@ The other options are in [configuration.md](configuration.md).
 | `s`, `Ctrl+X Ctrl+S` | `org.agenda.save` | Save all Org files |
 | `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
+| `/` | `org.agenda.filter` | Agenda: filter by tags, categories, effort and regexps |
+| `\` | `org.agenda.filter.tag` | Agenda: filter by tag |
+| `<` | `org.agenda.filter.category` | Agenda: filter by the line's category |
+| `=` | `org.agenda.filter.regexp` | Agenda: filter by a regexp |
+| `_` | `org.agenda.filter.effort` | Agenda: filter by effort |
+| `Shift+6` | `org.agenda.filter.top.headline` | Agenda: filter by the line's top headline |
+| `Shift+\` | `org.agenda.filter.remove` | Agenda: remove all filters |
 | `v a` | `org.agenda.archives` | Agenda: include archived trees |
 | `v Shift+A` | `org.agenda.archives.files` | Agenda: include archived trees and archive files |
 | `Shift+I` | `org.clock.in` | Clock in |
@@ -223,6 +230,13 @@ The other options are in [configuration.md](configuration.md).
 | `s`, `Ctrl+X Ctrl+S` | `org.agenda.save` | Save all Org files |
 | `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
+| `/` | `org.agenda.filter` | Agenda: filter by tags, categories, effort and regexps |
+| `\` | `org.agenda.filter.tag` | Agenda: filter by tag |
+| `<` | `org.agenda.filter.category` | Agenda: filter by the line's category |
+| `=` | `org.agenda.filter.regexp` | Agenda: filter by a regexp |
+| `_` | `org.agenda.filter.effort` | Agenda: filter by effort |
+| `Shift+6` | `org.agenda.filter.top.headline` | Agenda: filter by the line's top headline |
+| `Shift+\` | `org.agenda.filter.remove` | Agenda: remove all filters |
 | `v a` | `org.agenda.archives` | Agenda: include archived trees |
 | `v Shift+A` | `org.agenda.archives.files` | Agenda: include archived trees and archive files |
 | `Shift+I` | `org.clock.in` | Clock in |
@@ -353,6 +367,13 @@ every file; outside Org files the commands say they do not apply):
 | `org.agenda.save` | Org: Save all Org files |
 | `org.agenda.log` | Org: Agenda: log mode, what was closed and clocked |
 | `org.agenda.clockreport` | Org: Agenda: the clock report |
+| `org.agenda.filter` | Org: Agenda: filter by tags, categories, effort and regexps |
+| `org.agenda.filter.tag` | Org: Agenda: filter by tag |
+| `org.agenda.filter.category` | Org: Agenda: filter by the line's category |
+| `org.agenda.filter.regexp` | Org: Agenda: filter by a regexp |
+| `org.agenda.filter.effort` | Org: Agenda: filter by effort |
+| `org.agenda.filter.top.headline` | Org: Agenda: filter by the line's top headline |
+| `org.agenda.filter.remove` | Org: Agenda: remove all filters |
 | `org.agenda.archives` | Org: Agenda: include archived trees |
 | `org.agenda.archives.files` | Org: Agenda: include archived trees and archive files |
 | `org.clock.in` | Org: Clock in |

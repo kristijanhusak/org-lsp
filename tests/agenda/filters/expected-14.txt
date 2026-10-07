@@ -1,0 +1,3 @@
+Global list of TODO items of type: ALL
+  work:       TODO Write report                                           :desk:
+  work:       TODO Buy milk                                               :home:

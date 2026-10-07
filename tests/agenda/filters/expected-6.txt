@@ -1,0 +1,3 @@
+Global list of TODO items of type: ALL
+  side-project:TODO Record the video
+  work:       TODO Without tags

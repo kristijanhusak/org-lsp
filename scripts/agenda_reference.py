@@ -16,6 +16,8 @@ A case is a directory with Org files and a `case.json`:
         {"view": "search-todo", "match": "report"},     with only TODO entries
         {"view": "custom", "key": "c"},
         {"view": "stuck"},                       `org-agenda-list-stuck-projects`
+        {"view": "todo", "filters": [...]}       with the agenda's filters (see
+                                                `filter_form`)
         {"view": "todo", "archives": "trees"}   with archived trees
                                                 (`files`: archive files too)
       ],
@@ -48,6 +50,15 @@ PRELUDE = r"""
                   (with-output-to-string (funcall fn))
                 (error (format "ERROR: %S\n" err)))))
     (with-temp-file out (insert text))))
+(defun org-lsp-visible-string ()
+  "The agenda buffer without the lines its filters hide."
+  (let ((pos (point-min)) (out ""))
+    (while (< pos (point-max))
+      (let ((next (next-single-property-change pos 'invisible nil (point-max))))
+        (unless (eq (get-text-property pos 'invisible) 'org-filtered)
+          (setq out (concat out (buffer-substring-no-properties pos next))))
+        (setq pos next)))
+    out))
 (defun org-lsp-reset ()
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer) (kill-buffer buffer))))
@@ -107,8 +118,31 @@ def shown(form):
     return f"(progn {form} (set-buffer org-agenda-buffer-name) (princ (buffer-string)))"
 
 
+def filter_form(step):
+    """One step of the agenda's filters, as its commands take it."""
+    if step.get("remove"):
+        return "(org-agenda-filter-remove-all)"
+    if "string" in step:
+        negate = "'(4)" if step.get("negate") else "nil"
+        return (f"(cl-letf (((symbol-function 'completing-read) (lambda (&rest _) {lisp_string(step['string'])})))"
+                f" (org-agenda-filter {negate}))")
+    if "top" in step:
+        negative = "t" if step.get("negative") else "nil"
+        return (f"(progn (org-agenda-filter-show-all-top-filter)"
+                f" (org-agenda-filter-top-headline-apply {lisp_string(step['top'])} {negative}))")
+    kind = step["type"]
+    values = " ".join(lisp_string(value) for value in step["filter"])
+    expand = "nil" if step.get("expand") is False else "t"
+    return (f"(progn (org-agenda-remove-filter '{kind})"
+            f" (org-agenda-filter-apply (setq org-agenda-{kind}-filter (list {values})) '{kind} {expand}))")
+
+
 def run_form(run):
     form = view_form(run)
+    if "filters" in run:
+        steps = " ".join(filter_form(step) for step in run["filters"])
+        form = (f"(progn (let ((standard-output #'ignore)) {form}) (set-buffer org-agenda-buffer-name)"
+                f" {steps} (princ (org-lsp-visible-string)))")
     archives = {"trees": "'trees", "files": "t"}.get(run.get("archives"))
     return f"(let ((org-agenda-start-with-archives-mode {archives})) {form})" if archives else form
 

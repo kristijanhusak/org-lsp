@@ -132,6 +132,13 @@ pub const AGENDA_QUERY_ADD_REGEXP: &str = "org.agenda.query.add.regexp";
 pub const AGENDA_QUERY_SUBTRACT_REGEXP: &str = "org.agenda.query.subtract.regexp";
 pub const AGENDA_LOG: &str = "org.agenda.log";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
+pub const AGENDA_FILTER: &str = "org.agenda.filter";
+pub const AGENDA_FILTER_TAG: &str = "org.agenda.filter.tag";
+pub const AGENDA_FILTER_CATEGORY: &str = "org.agenda.filter.category";
+pub const AGENDA_FILTER_REGEXP: &str = "org.agenda.filter.regexp";
+pub const AGENDA_FILTER_EFFORT: &str = "org.agenda.filter.effort";
+pub const AGENDA_FILTER_TOP_HEADLINE: &str = "org.agenda.filter.top.headline";
+pub const AGENDA_FILTER_REMOVE: &str = "org.agenda.filter.remove";
 pub const AGENDA_ARCHIVES: &str = "org.agenda.archives";
 pub const AGENDA_ARCHIVES_FILES: &str = "org.agenda.archives.files";
 pub const CLOCK_IN: &str = "org.clock.in";
@@ -283,6 +290,35 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Agenda, "R"), key(Agenda, "v R")],
         ..command(AGENDA_CLOCKREPORT, "Agenda: the clock report")
     },
+    // The agenda's filters: lines of entries hidden by tags, category,
+    // regexp, effort or top headline, until a new agenda command; with a
+    // count, `<` and `=` hide what matches (Emacs's `C-u`).
+    Command {
+        emacs: &[key(Agenda, "/")],
+        input: Some(Input { kind: "text", prompt: "Filter [+cat-tag<0:10-/regexp/]" }),
+        ..command(AGENDA_FILTER, "Agenda: filter by tags, categories, effort and regexps")
+    },
+    Command {
+        emacs: &[key(Agenda, "\\")],
+        input: Some(Input { kind: "key", prompt: "Filter by tag" }),
+        ..command(AGENDA_FILTER_TAG, "Agenda: filter by tag")
+    },
+    Command { emacs: &[key(Agenda, "<")], ..command(AGENDA_FILTER_CATEGORY, "Agenda: filter by the line's category") },
+    Command {
+        emacs: &[key(Agenda, "=")],
+        input: Some(Input { kind: "text", prompt: "Narrow to entries matching regexp" }),
+        ..command(AGENDA_FILTER_REGEXP, "Agenda: filter by a regexp")
+    },
+    Command {
+        emacs: &[key(Agenda, "_")],
+        input: Some(Input { kind: "key", prompt: "Effort operator?" }),
+        ..command(AGENDA_FILTER_EFFORT, "Agenda: filter by effort")
+    },
+    Command {
+        emacs: &[key(Agenda, "^")],
+        ..command(AGENDA_FILTER_TOP_HEADLINE, "Agenda: filter by the line's top headline")
+    },
+    Command { emacs: &[key(Agenda, "|")], ..command(AGENDA_FILTER_REMOVE, "Agenda: remove all filters") },
     // `org-agenda-archives-mode`: archived trees (`v a`), and the archive
     // files too (`v A`).
     Command { emacs: &[key(Agenda, "v a")], ..command(AGENDA_ARCHIVES, "Agenda: include archived trees") },
