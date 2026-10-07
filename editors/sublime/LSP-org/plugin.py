@@ -171,6 +171,9 @@ class OrgLsp(AbstractPlugin):
         options.set('showDocument', True)
         # `org-indent-mode`'s prefixes, as phantoms (`org-lsp/virtualIndent`).
         options.set('virtualIndent', True)
+        # Lines of the agenda highlighted from edge to edge, as regions
+        # (`org-lsp/lineHighlights`).
+        options.set('lineHighlights', True)
         return None
 
     # The server changed files from elsewhere (the agenda, a capture, a
@@ -186,6 +189,10 @@ class OrgLsp(AbstractPlugin):
     # How the lines of a file with `org-indent-mode` show.
     def m_org_lsp_virtualIndent(self, params) -> None:
         sublime.set_timeout(lambda: show_virtual_indent(params))
+
+    # The lines of the agenda highlighted from edge to edge: the clocked entry.
+    def m_org_lsp_lineHighlights(self, params) -> None:
+        sublime.set_timeout(lambda: show_line_highlights(params))
 
     # TAB in the agenda (`org-agenda-goto`): the entry's file in another
     # group (`orgOtherWindow`). LSP shows any other document as it does.
@@ -322,6 +329,35 @@ def show_virtual_indent(params) -> None:
     if phantom_set is None:
         phantom_set = indent_phantoms[view.id()] = sublime.PhantomSet(view, 'org-lsp-indent')
     phantom_set.update(phantoms)
+
+
+# The scope of each kind of line highlight: a region colour the colour
+# scheme has, and the scope of the server's token of the same name.
+LINE_HIGHLIGHT_SCOPES = {
+    'agendaClocking': 'region.bluish markup.highlight.clocking.agenda.org',
+}
+
+
+def show_line_highlights(params) -> None:
+    """Highlight the lines the server names from edge to edge
+    (`org-lsp/lineHighlights`), as Emacs's overlays cover them: regions
+    that take in the line's newline, which colour the line to the edge."""
+    view = view_for((params or {}).get('uri', ''))
+    if not view:
+        return
+    rows = view.rowcol(view.size())[0] + 1
+    regions = {name: [] for name in LINE_HIGHLIGHT_SCOPES}
+    for line in (params or {}).get('lines', []):
+        if line.get('highlight') in regions and line.get('line', rows) < rows:
+            start = view.text_point(line['line'], 0)
+            end = min(view.line(start).end() + 1, view.size())
+            regions[line['highlight']].append(sublime.Region(start, end))
+    for name, scope in LINE_HIGHLIGHT_SCOPES.items():
+        key = 'org-lsp-line-' + name
+        if regions[name]:
+            view.add_regions(key, regions[name], scope, '', sublime.DRAW_NO_OUTLINE)
+        else:
+            view.erase_regions(key)
 
 
 def show_clock(params) -> None:

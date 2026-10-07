@@ -765,5 +765,30 @@ wait('the float to close', function()
 end)
 only_window()
 
+-- 17. `I` clocks in on the entry of the line, which is highlighted from
+-- edge to edge (`org-agenda-clocking`); `O` clocks out and the highlight
+-- goes.
+choice = 'a'
+press('\\oa')
+wait_for_view('Week-agenda (W21):')
+local agenda_buf = vim.api.nvim_get_current_buf()
+local clocking_ns = vim.api.nvim_create_namespace('org_lsp_line_highlights')
+local function highlighted()
+  return vim.tbl_map(function(mark)
+    return { mark[2], mark[4].line_hl_group }
+  end, vim.api.nvim_buf_get_extmarks(agenda_buf, clocking_ns, 0, -1, { details = true }))
+end
+vim.api.nvim_win_set_cursor(0, { 4, 30 })
+press('I')
+wait('the clocked line highlighted', function()
+  return #highlighted() > 0
+end)
+eq(highlighted(), { { 3, '@lsp.type.agendaClocking.org-agenda' } }, 'the line of the clocked entry')
+press('O')
+wait('the highlight to go', function()
+  return #highlighted() == 0
+end)
+only_window()
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

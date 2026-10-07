@@ -103,6 +103,9 @@ pub struct View {
     pub index: LineIndex,
     pub lines: Vec<ViewLine>,
     pub tokens: Vec<Token>,
+    /// The lines of the entry the clock runs on (`org-agenda-clocking`),
+    /// highlighted from edge to edge where the client can.
+    pub clocking: Vec<u32>,
     /// The line of today's date, if it is shown.
     pub today_line: Option<u32>,
     pub today: Day,
@@ -160,6 +163,7 @@ pub fn render(
     let mut lines = Vec::with_capacity(rendered.len());
     let mut tokens = Vec::new();
     let mut today_line = None;
+    let mut clocking_lines = Vec::new();
     let mut day = None;
     for (number, (block, line)) in rendered.iter().enumerate() {
         match line.kind {
@@ -181,6 +185,9 @@ pub fn render(
                 files[source.file].0 == *uri && agenda::entry(&outlines, source).offset == offset
             })
         });
+        if clocking {
+            clocking_lines.push(number as u32);
+        }
         let mut at = 0;
         for segment in &shown.segments {
             let range = |start: usize, end: usize| {
@@ -229,6 +236,7 @@ pub fn render(
         text,
         lines,
         tokens,
+        clocking: clocking_lines,
         today_line,
         today: now.today,
     }

@@ -11,7 +11,7 @@ function! org_lsp#adapter#coc#register(cmd, options, filetypes) abort
         \ 'filetypes': a:filetypes,
         \ 'initializationOptions': a:options,
         \ })
-  for method in ['org-lsp/save', 'org-lsp/clock', 'org-lsp/virtualIndent']
+  for method in ['org-lsp/save', 'org-lsp/clock', 'org-lsp/virtualIndent', 'org-lsp/lineHighlights']
     call CocRegisterNotification(s:name, method, function('org_lsp#handle_notification', [method]))
   endfor
 endfunction

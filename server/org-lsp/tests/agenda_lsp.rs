@@ -887,6 +887,49 @@ fn shows_the_clock_in_the_agenda() {
     client.shutdown();
 }
 
+/// Clocking in and out from the agenda moves its highlight there: the
+/// client is asked for the tokens again, and told the lines to highlight
+/// from edge to edge (`org-lsp/lineHighlights`) once it shows the text.
+#[test]
+fn moves_the_clock_highlight_in_the_agenda() {
+    const URI: &str = "file:///org/work.org";
+    let mut text = "* TODO Write\nSCHEDULED: <2026-05-18 Mon>\n* TODO Read\nSCHEDULED: <2026-05-18 Mon>\n".to_string();
+    let capabilities = json!({
+        "workspace": {
+            "textDocumentContent": { "dynamicRegistration": true },
+            "workspaceEdit": { "documentChanges": true },
+            "semanticTokens": { "refreshSupport": true }
+        },
+        "window": { "showDocument": { "support": true } },
+        "general": { "positionEncodings": ["utf-8"] },
+        "experimental": { "orgLineHighlights": true }
+    });
+    let mut client = Client::start(capabilities, clock(), None);
+    client.open(URI, &text);
+    client.command("org.agenda.list", URI, 0);
+    let view = client.show_view();
+    client.settle();
+    let highlights = |client: &mut Client| -> Vec<Value> {
+        std::mem::take(&mut client.notifications)
+            .into_iter()
+            .filter(|notification| notification.method == "org-lsp/lineHighlights")
+            .map(|notification| notification.params)
+            .collect()
+    };
+    assert_eq!(highlights(&mut client), [json!({ "uri": VIEW, "lines": [] })]);
+    let line = view.lines().position(|line| line.contains("TODO Read")).unwrap() as u32;
+    let requests = client.edit("org.clock.in", VIEW, (line, 0), json!({}), &mut text);
+    assert!(text.contains("CLOCK: [2026-05-18 Mon 10:30]"), "{text}");
+    assert!(methods(&requests).contains(&"workspace/semanticTokens/refresh"), "{:?}", methods(&requests));
+    assert_eq!(
+        highlights(&mut client),
+        [json!({ "uri": VIEW, "lines": [{ "line": line, "highlight": "agendaClocking" }] })]
+    );
+    client.edit("org.clock.out", VIEW, (line, 0), json!({}), &mut text);
+    assert_eq!(highlights(&mut client), [json!({ "uri": VIEW, "lines": [] })]);
+    client.shutdown();
+}
+
 /// An agenda written to a file, for clients without virtual documents, is
 /// highlighted with the agenda's tokens once the client opens it.
 #[test]

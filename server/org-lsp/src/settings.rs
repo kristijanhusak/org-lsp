@@ -747,6 +747,18 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "lineHighlights",
+            "boolean",
+            "false",
+            "",
+            "Whether the client highlights lines of the agenda from edge to edge as the server sends them \
+             (`org-lsp/lineHighlights`): the entry the clock runs on. As a client announcing \
+             `experimental.orgLineHighlights` does: for the Vim plugin and the Sublime Text package.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "virtualIndent",
             "boolean",
             "false",
@@ -935,6 +947,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("virtualDocuments", BOOLEAN),
     ("showDocument", BOOLEAN),
     ("messagePrompts", BOOLEAN),
+    ("lineHighlights", BOOLEAN),
     ("virtualIndent", BOOLEAN),
     ("commandActions", BOOLEAN),
     ("commandScript", STRING),

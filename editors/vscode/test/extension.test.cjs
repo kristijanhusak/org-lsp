@@ -648,6 +648,19 @@ describe('The agenda', () => {
     assert.ok(text.includes('SCHEDULED: <2026-05-18 Mon 09:00>'), text);
   });
 
+  it('highlights the line of the clocked entry from edge to edge', async () => {
+    const editor = vscode.window.activeTextEditor;
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    moveTo(3);
+    await vscode.commands.executeCommand('org.clock.in');
+    await until('the clocked line highlighted', () => api.lineHighlights(editor).length > 0);
+    assert.deepEqual(api.lineHighlights(editor), [[3, 'agendaClocking']]);
+    // Canceled, the clock leaves nothing behind in the file.
+    await vscode.commands.executeCommand('org.clock.cancel');
+    await until('the highlight to go', () => api.lineHighlights(editor).length === 0);
+    await agenda('Week-agenda (W21):');
+  });
+
   it('moves through time, with the cursor following the new text', async () => {
     await vscode.commands.executeCommand('org.agenda.later');
     await agenda('Week-agenda (W22):');
