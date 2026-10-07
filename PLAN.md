@@ -95,9 +95,9 @@ few, checked against Emacs where Org decides the outcome:
 - **Editors and distribution (14):** publishing the VS Code extension
   (Marketplace, Open VSX: the `publisher` is a placeholder). The agenda's hover is plain in VS Code, which has no
   grammar for Org's code blocks.
-- **Export (15):** done, through Emacs.
-- **Later:** Babel's evaluation (through Emacs too), column view, inline
-  images, LaTeX previews.
+- **Export and Babel (15):** done, through Emacs.
+- **Later:** capture's `%(…)` and `function` targets and LaTeX previews
+  through Emacs; column view, inline images.
 
 ### Milestone 3, merged: priorities and dates
 
@@ -602,7 +602,7 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - An options schema in the manifest, so editors can offer settings:
   done (`settings` in the manifest, `docs/config.schema.json`).
 
-### 15. Export, through Emacs
+### 15. Export and Babel, through Emacs
 
 What only Org itself can do, Emacs does (see "Emacs" in
 `docs/protocol.md`): one `emacs --batch` the server starts when first
@@ -621,9 +621,13 @@ thread of its own; the user's configuration from `emacs_config_file` and
 - Left: the async (`C-a`) and visible-only (`C-v`) options (folds are the
   editor's), the export stack (`&`), inserting a template (`#`); questions
   that want typed text (they fail the command).
-- Next through Emacs: Babel's evaluation (`C-c C-c` on a block,
-  `#+CALL:`, sessions), then capture's `%(…)` and `function` targets, and
-  LaTeX previews.
+- Done: Babel's evaluation (`org.babel.execute` and its relatives, `C-c
+  C-c` on a block, a call or inline code): Emacs runs the command on the
+  document, and the difference comes back as an edit, dropped when the
+  document changed meanwhile; sessions live with the server's Emacs.
+  Checked by `evaluates_code_through_emacs` in `tests/lsp.rs`.
+- Next through Emacs: capture's `%(…)` and `function` targets, LaTeX
+  previews.
 
 ### Later or out of scope for now
 

@@ -214,6 +214,10 @@ pub const OPEN: &str = "org.open";
 pub const ADD_NOTE: &str = "org.add.note";
 pub const TANGLE: &str = "org.babel.tangle";
 pub const EXPORT: &str = "org.export.dispatch";
+pub const BABEL_EXECUTE: &str = "org.babel.execute";
+pub const BABEL_EXECUTE_BUFFER: &str = "org.babel.execute.buffer";
+pub const BABEL_EXECUTE_SUBTREE: &str = "org.babel.execute.subtree";
+pub const BABEL_REMOVE_RESULT: &str = "org.babel.remove_result";
 pub const TABLE_RECALCULATE: &str = "org.table.recalculate";
 pub const TABLE_RECALCULATE_LINE: &str = "org.table.recalculate.line";
 pub const TABLE_ITERATE: &str = "org.table.iterate";
@@ -679,6 +683,31 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c C-v t"), key(Org, "C-c C-v C-t")],
         vim: &[key(Org, "<Leader>obt")],
         ..command(TANGLE, "Tangle the file's code blocks")
+    },
+    // Babel's evaluation, by Emacs itself (`emacs`): the block or call at
+    // the cursor (`org-babel-execute-maybe`; `C-c C-c` there too), the
+    // file's (`org-babel-execute-buffer`), the subtree's
+    // (`org-babel-execute-subtree`), and taking out the block's results
+    // (`org-babel-remove-result-one-or-many`).
+    Command {
+        emacs: &[key(Org, "C-c C-v e"), key(Org, "C-c C-v C-e")],
+        vim: &[key(Org, "<Leader>obe")],
+        ..command(BABEL_EXECUTE, "Evaluate the code block or call at the cursor through Emacs")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-v b"), key(Org, "C-c C-v C-b")],
+        vim: &[key(Org, "<Leader>obb")],
+        ..command(BABEL_EXECUTE_BUFFER, "Evaluate the file's code blocks through Emacs")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-v s"), key(Org, "C-c C-v C-s")],
+        vim: &[key(Org, "<Leader>obs")],
+        ..command(BABEL_EXECUTE_SUBTREE, "Evaluate the subtree's code blocks through Emacs")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-v k")],
+        vim: &[key(Org, "<Leader>obk")],
+        ..command(BABEL_REMOVE_RESULT, "Remove the results of the code block at the cursor")
     },
     // `org-export-dispatch`: Org's export menu, from the backends Emacs
     // has, run by Emacs itself (`emacs`); the file or buffer it makes is

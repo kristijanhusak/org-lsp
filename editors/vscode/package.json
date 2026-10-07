@@ -531,6 +531,26 @@
         "category": "Org"
       },
       {
+        "command": "org.babel.execute",
+        "title": "Evaluate the code block or call at the cursor through Emacs",
+        "category": "Org"
+      },
+      {
+        "command": "org.babel.execute.buffer",
+        "title": "Evaluate the file's code blocks through Emacs",
+        "category": "Org"
+      },
+      {
+        "command": "org.babel.execute.subtree",
+        "title": "Evaluate the subtree's code blocks through Emacs",
+        "category": "Org"
+      },
+      {
+        "command": "org.babel.remove_result",
+        "title": "Remove the results of the code block at the cursor",
+        "category": "Org"
+      },
+      {
         "command": "org.export.dispatch",
         "title": "Export the file through Emacs",
         "category": "Org"
@@ -3514,6 +3534,41 @@
       {
         "command": "org.babel.tangle",
         "key": "ctrl+c ctrl+v ctrl+t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.execute",
+        "key": "ctrl+c ctrl+v e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.execute",
+        "key": "ctrl+c ctrl+v ctrl+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.execute.buffer",
+        "key": "ctrl+c ctrl+v b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.execute.buffer",
+        "key": "ctrl+c ctrl+v ctrl+b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.execute.subtree",
+        "key": "ctrl+c ctrl+v s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.execute.subtree",
+        "key": "ctrl+c ctrl+v ctrl+s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.remove_result",
+        "key": "ctrl+c ctrl+v k",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

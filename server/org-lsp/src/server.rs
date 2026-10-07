@@ -122,6 +122,16 @@ enum Pending {
     Answer { command: String, argument: Value, input: Value },
 }
 
+/// What a request to Emacs was for.
+enum EmacsJob {
+    /// An export, by what the menu calls it.
+    Export(String),
+    /// A command that changes the document `uri`, run on `text`, its
+    /// `version`: the text Emacs leaves becomes an edit, unless the
+    /// document changed meanwhile.
+    Edit { uri: Uri, version: i32, text: String },
+}
+
 /// Text that goes in place of `start..end`.
 type Replacement = (usize, usize, String);
 
@@ -556,8 +566,8 @@ struct Server {
     /// its configuration does not change while it runs.
     export_menu: Option<Value>,
     publish_projects: Option<Value>,
-    /// The exports Emacs is making, by tag: what each is.
-    exports: HashMap<u64, String>,
+    /// What Emacs is doing, by tag.
+    emacs_jobs: HashMap<u64, EmacsJob>,
     /// Where exports to a buffer are written to be shown.
     export_directory: PathBuf,
     next_export: u64,
@@ -809,7 +819,7 @@ pub fn run(connection: Connection) -> Result<()> {
         }),
         export_menu: None,
         publish_projects: None,
-        exports: HashMap::new(),
+        emacs_jobs: HashMap::new(),
         export_directory: server_directory("export"),
         next_export: 0,
         view_directory: server_directory("view"),
@@ -2119,6 +2129,7 @@ impl Server {
         let in_code = in_src_block(&document.parse.syntax(), offset);
         for (id, offered) in [
             (commands::TANGLE, in_code),
+            (commands::BABEL_EXECUTE, in_code),
             (commands::CLOCK_IN, in_entry),
             (commands::CLOCK_OUT, running),
             (commands::CLOCK_CANCEL, running),
@@ -3567,6 +3578,19 @@ impl Server {
             ),
             commands::TANGLE => self.tangle(&context.ok_or("This command needs the cursor position")?),
             commands::EXPORT => self.export(&context.ok_or("This command needs the cursor position")?),
+            commands::BABEL_EXECUTE => {
+                self.emacs_run("org-babel-execute-maybe", &context.ok_or("This command needs the cursor position")?)
+            }
+            commands::BABEL_EXECUTE_BUFFER => {
+                self.emacs_run("org-babel-execute-buffer", &context.ok_or("This command needs the cursor position")?)
+            }
+            commands::BABEL_EXECUTE_SUBTREE => {
+                self.emacs_run("org-babel-execute-subtree", &context.ok_or("This command needs the cursor position")?)
+            }
+            commands::BABEL_REMOVE_RESULT => self.emacs_run(
+                "org-babel-remove-result-one-or-many",
+                &context.ok_or("This command needs the cursor position")?,
+            ),
             id if id.starts_with("org.archive.") => {
                 self.archive(id, &context.ok_or("This command needs the cursor position")?)
             }
@@ -5988,6 +6012,30 @@ impl Server {
         at_org_table(&document.text, &document.parse.syntax(), offset)
     }
 
+    /// Whether `C-c C-c` at `context` is Babel's: on a source block or a
+    /// `#+CALL:` line (`org-element-at-point`), or an inline source block
+    /// or call (`org-element-context`).
+    fn at_babel(&self, context: &Context) -> bool {
+        let uri = &context.text_document.uri;
+        let Some(document) = self.document(uri).filter(|_| !self.is_view(uri)) else { return false };
+        let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+        let element = org_core::indent::Elements::new(&document.text).at(offset);
+        if element.is_some_and(|element| matches!(element.kind, "src-block" | "babel-call")) {
+            return true;
+        }
+        let root = document.parse.syntax();
+        let at = org_syntax::TextSize::from(offset as u32);
+        let inline = |token: Option<org_syntax::SyntaxToken>| {
+            token.is_some_and(|token| {
+                std::iter::once(token.kind()).chain(token.parent_ancestors().map(|node| node.kind())).any(|kind| {
+                    matches!(kind, org_syntax::SyntaxKind::INLINE_SRC_BLOCK | org_syntax::SyntaxKind::INLINE_BABEL_CALL)
+                })
+            })
+        };
+        let tokens = root.token_at_offset(at);
+        inline(tokens.clone().right_biased()) || inline(tokens.left_biased())
+    }
+
     fn at_property_drawer(&self, context: &Context) -> bool {
         if context.step.is_some() {
             return true;
@@ -6326,6 +6374,10 @@ impl Server {
         if id == commands::SET_TAGS {
             return self.set_tags(&context);
         }
+        // `C-c C-c` on a source block or a call evaluates it, in Emacs.
+        if id == commands::CHECKBOX_TOGGLE && self.at_babel(&context) {
+            return self.emacs_run("org-ctrl-c-ctrl-c", &context);
+        }
         // `C-c C-c` in a table aligns it (`org-table-align`).
         if id == commands::CHECKBOX_TOGGLE && self.at_table(&context) {
             return self.table(org_core::table::Command::Align, &context);
@@ -6551,7 +6603,7 @@ impl Server {
         });
         self.next_export += 1;
         let tag = self.next_export;
-        self.exports.insert(tag, label.clone());
+        self.emacs_jobs.insert(tag, EmacsJob::Export(label.clone()));
         self.emacs.start(tag, "export", params);
         self.message = Some(format!("{label}…"));
         Ok(Value::Null)
@@ -6576,14 +6628,69 @@ impl Server {
                     Some(Pending::EmacsQuestion(answer)),
                 );
             }
-            crate::emacs::Event::Done { tag, result } => {
-                let label = self.exports.remove(&tag).unwrap_or_default();
-                match result {
-                    Err(error) => self.show_message(MessageType::ERROR, format!("{label}: {error}")),
-                    Ok(result) => self.exported(&result),
+            crate::emacs::Event::Done { tag, result } => match (self.emacs_jobs.remove(&tag), result) {
+                (Some(EmacsJob::Export(label)), Err(error)) => {
+                    self.show_message(MessageType::ERROR, format!("{label}: {error}"));
                 }
-            }
+                (Some(EmacsJob::Export(_)), Ok(result)) => self.exported(&result),
+                (Some(EmacsJob::Edit { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
+                (Some(EmacsJob::Edit { uri, version, text }), Ok(result)) => {
+                    self.emacs_edited(&uri, version, &text, &result);
+                }
+                (None, _) => {}
+            },
         }
+    }
+
+    /// Run the Emacs command `command` (Babel's) on the document of
+    /// `context`, at its cursor; the text it leaves comes back as an edit
+    /// (see [`Server::emacs_edited`]).
+    fn emacs_run(&mut self, command: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = context.text_document.uri.clone();
+        let path = uri::to_path(&uri).ok_or("Only a file on disk can run code through Emacs")?;
+        let encoding = self.client.encoding;
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, encoding);
+        let point = document.text[..offset].chars().count() + 1;
+        let params = json!({
+            "file": path.to_string_lossy(),
+            "text": document.text,
+            "point": point,
+            "command": command,
+        });
+        let job = EmacsJob::Edit { uri: uri.clone(), version: document.version, text: document.text.clone() };
+        self.next_export += 1;
+        let tag = self.next_export;
+        self.emacs_jobs.insert(tag, job);
+        self.emacs.start(tag, "run", params);
+        Ok(Value::Null)
+    }
+
+    /// What an Emacs command left of the document `uri`: the difference as
+    /// an edit, unless the document changed since it was sent; else what
+    /// Emacs said.
+    fn emacs_edited(&mut self, uri: &Uri, version: i32, old: &str, result: &Value) {
+        let new = result.get("text").and_then(Value::as_str).unwrap_or(old);
+        let said = result.get("message").and_then(Value::as_str).filter(|message| !message.is_empty());
+        if new == old {
+            if let Some(message) = said {
+                self.show_message(MessageType::INFO, message);
+            }
+            return;
+        }
+        if self.document(uri).map(|document| document.version) != Some(version) {
+            self.show_message(
+                MessageType::WARNING,
+                "The file changed while Emacs ran the code; nothing was changed. Run it again.",
+            );
+            return;
+        }
+        let edits = self.text_edits(old, new);
+        let edit = self.workspace_edit(uri, Some(version), edits);
+        // The file stays unsaved, as Emacs leaves it.
+        self.origin = Some(uri.as_str().to_string());
+        let params = lsp_types::ApplyWorkspaceEditParams { label: Some("Babel".to_string()), edit };
+        self.apply_edit(params, Pending::Edit);
     }
 
     /// Show what an export made: the text of an export to a buffer as a

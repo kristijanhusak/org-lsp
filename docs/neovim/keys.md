@@ -78,6 +78,10 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>or` | `org.refile` | Refile the entry |
 | `<Leader>ona` | `org.add.note` | Add a note to the entry |
 | `<Leader>obt` | `org.babel.tangle` | Tangle the file's code blocks |
+| `<Leader>obe` | `org.babel.execute` | Evaluate the code block or call at the cursor through Emacs |
+| `<Leader>obb` | `org.babel.execute.buffer` | Evaluate the file's code blocks through Emacs |
+| `<Leader>obs` | `org.babel.execute.subtree` | Evaluate the subtree's code blocks through Emacs |
+| `<Leader>obk` | `org.babel.remove_result` | Remove the results of the code block at the cursor |
 | `<Leader>oe` | `org.export.dispatch` | Export the file through Emacs |
 | `<Leader>o*` | `org.table.recalculate` | Recalculate the table |
 | `<Leader>oo` | `org.open` | Open the link or thing at the cursor |

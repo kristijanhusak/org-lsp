@@ -665,6 +665,34 @@
     }
   },
   {
+    "caption": "Org: Evaluate the code block or call at the cursor through Emacs",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.execute"
+    }
+  },
+  {
+    "caption": "Org: Evaluate the file's code blocks through Emacs",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.execute.buffer"
+    }
+  },
+  {
+    "caption": "Org: Evaluate the subtree's code blocks through Emacs",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.execute.subtree"
+    }
+  },
+  {
+    "caption": "Org: Remove the results of the code block at the cursor",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.remove_result"
+    }
+  },
+  {
     "caption": "Org: Export the file through Emacs",
     "command": "org_lsp_run",
     "args": {

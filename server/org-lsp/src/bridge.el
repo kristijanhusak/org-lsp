@@ -216,6 +216,39 @@ was to be opened, or the text of an export to a buffer."
   "The names of the projects `org-publish' knows."
   (vconcat (mapcar #'car org-publish-project-alist)))
 
+;;; Commands that change the document (Babel)
+
+(defconst org-lsp-bridge--commands
+  '(org-ctrl-c-ctrl-c org-babel-execute-maybe org-babel-execute-buffer
+    org-babel-execute-subtree org-babel-remove-result-one-or-many)
+  "The commands the server may run on a document.")
+
+(defvar org-lsp-bridge--message nil
+  "What Emacs said last while a command ran.")
+
+(defun org-lsp-bridge--record-message (old format &rest args)
+  (let ((said (apply old format args)))
+    (when (and format said (not (string-empty-p said)))
+      (setq org-lsp-bridge--message said))
+    said))
+
+(defun org-lsp-bridge-run (params)
+  "Run the command PARAMS names in its document, at its point: the text it
+leaves, where the point is then, and what Emacs said last."
+  (let ((command (intern (alist-get 'command params))))
+    (unless (memq command org-lsp-bridge--commands)
+      (error "org-lsp does not run %s" command))
+    (setq org-lsp-bridge--message nil)
+    (org-lsp-bridge--in-document params
+      (advice-add 'message :around #'org-lsp-bridge--record-message)
+      (unwind-protect
+          (let ((current-prefix-arg nil))
+            (call-interactively command))
+        (advice-remove 'message #'org-lsp-bridge--record-message))
+      `((text . ,(buffer-substring-no-properties (point-min) (point-max)))
+        (point . ,(point))
+        (message . ,org-lsp-bridge--message)))))
+
 ;;; The loop
 
 (defun org-lsp-bridge-main ()
