@@ -1,0 +1,5 @@
+Search words: +alpha -note
+  a:          DONE Archived alpha task
+  bee:        TODO Beta task with alpha in it
+  notes:      TODO Alpha follow-up                                        :work:
+  a:          TODO Write the alpha report

@@ -1,0 +1,4 @@
+Search words: alpha
+  bee:        TODO Beta task with alpha in it
+  notes:      TODO Alpha follow-up                                        :work:
+  a:          TODO Write the alpha report

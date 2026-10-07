@@ -593,6 +593,12 @@ require('org-lsp').setup({
     -- (org-agenda-search-view-max-outline-level)
     org_agenda_search_view_max_outline_level = 0,
 
+    -- Files the search view (`s`) searches besides the agenda files, after
+    -- them, as `org_agenda_files` names them. `agenda-archives` first adds
+    -- the files the agenda files archive to. A file listed twice is searched
+    -- at its last place. (org-agenda-text-search-extra-files)
+    org_agenda_text_search_extra_files = {},
+
     -- What comes before the headline on a line of the agenda (`agenda`), the
     -- TODO list (`todo`), tags searches (`tags`) and text searches
     -- (`search`): `%c` the category, `%t` the time, `%s` the leader

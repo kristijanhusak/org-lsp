@@ -357,8 +357,8 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   (`org-agenda-prefix-format`), TAB in another window, tags at the
   window's edge, the entry of a line on hover.
 - Done: the search view (`s`, `S`, `org-search-view`, with
-  `[`, `]`, `{`, `}`), checked against Emacs; not yet
-  `org-agenda-text-search-extra-files`.
+  `[`, `]`, `{`, `}`, `org-agenda-text-search-extra-files` with
+  `agenda-archives`), checked against Emacs.
 - Filters (`/`, `<`, `=`, `_`, `|`), stuck projects, group tags in match
   strings, entry text, follow mode.
 - Bulk marks and actions; hours and minutes on `S-<left>`/`S-<right>`.

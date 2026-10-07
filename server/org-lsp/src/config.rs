@@ -1399,6 +1399,11 @@ pub struct AgendaOptions {
     /// `org-agenda-search-view-max-outline-level`
     #[serde(rename = "org_agenda_search_view_max_outline_level")]
     pub search_view_max_outline_level: Option<usize>,
+    /// `org-agenda-text-search-extra-files`: files the search view
+    /// searches besides the agenda files; `agenda-archives` first adds
+    /// the files those archive to.
+    #[serde(rename = "org_agenda_text_search_extra_files")]
+    pub text_search_extra_files: Option<Vec<String>>,
     /// `org-agenda-custom-commands`
     #[serde(rename = "org_agenda_custom_commands")]
     pub custom_commands: Option<Vec<CustomCommandOption>>,

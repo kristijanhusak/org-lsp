@@ -61,7 +61,9 @@ fn arguments(directory: &Path, case: &Value, run: &Value) -> Vec<String> {
         arguments.extend(["--archives".to_string(), text(archives)]);
     }
     if let Some(options) = case.get("options") {
-        arguments.extend(["--options".to_string(), options.to_string()]);
+        // `{dir}` is the case's directory.
+        let options = options.to_string().replace("{dir}", &directory.display().to_string());
+        arguments.extend(["--options".to_string(), options]);
     }
     arguments.extend(org_files(directory));
     arguments

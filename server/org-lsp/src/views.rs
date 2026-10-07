@@ -148,10 +148,56 @@ fn token_style(style: Style) -> Option<(TokenType, u32)> {
 /// Build the view for `query` from the agenda files, given as their URIs
 /// and outlines in agenda order, as `blocks` say: one for a plain agenda
 /// or TODO list, more for a block agenda, with a separator between them.
+/// The files a view is made of, when a search view searches more than
+/// the agenda files: the agenda files come first in the list, and the
+/// search goes through `search`, indices into it, in its own order.
+#[derive(Debug, Clone, Default)]
+pub struct SearchFiles {
+    /// How many of the files are the agenda's.
+    pub agenda: usize,
+    pub search: Vec<usize>,
+}
+
+/// The files `org-search-view` searches, as indices into `paths` (whose
+/// first `agenda` are the agenda files): with `agenda-archives` each
+/// agenda file followed by the files it archives to (`org-add-archive-files`,
+/// each once), then `extra`; a file that comes twice counts at its last
+/// place (`cl-remove-duplicates`). `archives_of` gives the files a file
+/// archives to, which `paths` must hold.
+pub fn search_order<P: PartialEq + Clone>(
+    paths: &[P],
+    agenda: usize,
+    archives_of: Option<&dyn Fn(usize) -> Vec<usize>>,
+    extra: &[usize],
+) -> Vec<usize> {
+    let mut order: Vec<usize> = Vec::new();
+    for index in 0..agenda {
+        let mut here = vec![index];
+        if let Some(archives_of) = archives_of {
+            here.extend(archives_of(index));
+        }
+        for found in here {
+            if !order.iter().any(|known| paths[*known] == paths[found]) {
+                order.push(found);
+            }
+        }
+    }
+    order.extend(extra.iter().copied());
+    // `cl-remove-duplicates` keeps the last of equal files.
+    let mut kept: Vec<usize> = Vec::new();
+    for (at, index) in order.iter().enumerate() {
+        if !order[at + 1..].iter().any(|later| paths[*later] == paths[*index]) {
+            kept.push(*index);
+        }
+    }
+    kept
+}
+
 pub fn render(
     query: Query,
     blocks: &[Block],
     files: &[(Uri, &Outline)],
+    search: Option<&SearchFiles>,
     now: Now,
     clocked: Option<(&Uri, usize)>,
 ) -> View {
@@ -163,7 +209,7 @@ pub fn render(
             (*outline, path, crate::uri::file_name(uri))
         })
         .collect();
-    let (rendered, starts) = block_lines(blocks, &named, now, false);
+    let (rendered, starts) = block_lines(blocks, &named, search, now, false);
     let mut text = String::new();
     let mut lines = Vec::with_capacity(rendered.len());
     let mut tokens = Vec::new();
@@ -249,8 +295,13 @@ pub fn render(
 
 /// The text of the view `blocks` make, as Org prints it (`org-batch-agenda`):
 /// links as written.
-pub fn org_text(blocks: &[Block], files: &[(&Outline, String, String)], now: Now) -> String {
-    block_lines(blocks, files, now, true).0.into_iter().map(|(_, line)| line.text + "\n").collect()
+pub fn org_text(
+    blocks: &[Block],
+    files: &[(&Outline, String, String)],
+    search: Option<&SearchFiles>,
+    now: Now,
+) -> String {
+    block_lines(blocks, files, search, now, true).0.into_iter().map(|(_, line)| line.text + "\n").collect()
 }
 
 type BlockLines = (Vec<(usize, agenda::Line)>, Vec<Option<(Day, Span)>>);
@@ -259,9 +310,18 @@ type BlockLines = (Vec<(usize, agenda::Line)>, Vec<Option<(Day, Span)>>);
 /// days and span of the blocks that are agendas. Emacs leaves a blank line
 /// above the separator between blocks; `blank` keeps it, as the agenda
 /// printed in a terminal does. The editor's agenda goes without.
-fn block_lines(blocks: &[Block], files: &[(&Outline, String, String)], now: Now, blank: bool) -> BlockLines {
-    let outlines: Vec<&Outline> = files.iter().map(|(outline, _, _)| *outline).collect();
-    let outlines = outlines.as_slice();
+fn block_lines(
+    blocks: &[Block],
+    files: &[(&Outline, String, String)],
+    search: Option<&SearchFiles>,
+    now: Now,
+    blank: bool,
+) -> BlockLines {
+    let all: Vec<&Outline> = files.iter().map(|(outline, _, _)| *outline).collect();
+    let agenda_count = search.map_or(all.len(), |search| search.agenda);
+    let outlines = &all[..agenda_count];
+    let order: Vec<usize> = search.map_or_else(|| (0..all.len()).collect(), |search| search.search.clone());
+    let searched: Vec<&Outline> = order.iter().map(|index| all[*index]).collect();
     let mut rendered: Vec<(usize, agenda::Line)> = Vec::new();
     let mut starts = Vec::new();
     for (number, block) in blocks.iter().enumerate() {
@@ -272,7 +332,16 @@ fn block_lines(blocks: &[Block], files: &[(&Outline, String, String)], now: Now,
             BlockKind::Tags { matcher, todo_only } => agenda::tags_view(outlines, matcher, *todo_only, now, config),
             // A search string Org cannot read leaves the view empty; the
             // command that asked for it says why.
-            BlockKind::Search { string, todo_only } => agenda::search_view(outlines, string, *todo_only, now, config)
+            BlockKind::Search { string, todo_only } => agenda::search_view(&searched, string, *todo_only, now, config)
+                .map(|mut view| {
+                    // Back to the files of the whole view.
+                    for line in &mut view.lines {
+                        if let Some(source) = line.item.as_mut().and_then(|item| item.source.as_mut()) {
+                            source.file = order[source.file];
+                        }
+                    }
+                    view
+                })
                 .unwrap_or_else(|_| agenda::View {
                     lines: vec![agenda::Line {
                         text: format!("Search words: {string}"),
@@ -306,8 +375,10 @@ fn block_lines(blocks: &[Block], files: &[(&Outline, String, String)], now: Now,
         rendered.extend(view.lines.into_iter().map(|line| (number, line)));
         // `org-agenda-clockreport-mode`: the clock table for the days shown.
         if config.clockreport && agenda {
-            let named: Vec<(&Outline, &str, &str)> =
-                files.iter().map(|(outline, path, name)| (*outline, path.as_str(), name.as_str())).collect();
+            let named: Vec<(&Outline, &str, &str)> = files[..agenda_count]
+                .iter()
+                .map(|(outline, path, name)| (*outline, path.as_str(), name.as_str()))
+                .collect();
             for text in agenda::report::clock_table(&named, start, end) {
                 rendered.push((number, agenda::Line { text, kind: LineKind::Table, item: None }));
             }
@@ -415,8 +486,14 @@ mod tests {
             header: None,
             config: Config::default(),
         };
-        let view =
-            render(Query::Agenda { start: None, span: Span::Week }, &[block], &[(uri.clone(), &outline)], now, None);
+        let view = render(
+            Query::Agenda { start: None, span: Span::Week },
+            &[block],
+            &[(uri.clone(), &outline)],
+            None,
+            now,
+            None,
+        );
         let lines: Vec<&str> = view.text.lines().collect();
         assert_eq!(lines[0], "Week-agenda (W21):");
         assert_eq!(lines[1], "Monday     18 May 2026 W21");
