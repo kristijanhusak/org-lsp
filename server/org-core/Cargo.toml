@@ -3,6 +3,8 @@ name = "org-core"
 description = "Org mode logic on top of the parser: dates, the outline model, the agenda"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
 publish.workspace = true
 
 [dependencies]

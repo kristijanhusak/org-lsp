@@ -5,6 +5,8 @@ members = ["server/org-syntax", "server/org-core", "server/org-lsp"]
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/kristijanhusak/org-lsp"
 publish = false
 
 [profile.release]
