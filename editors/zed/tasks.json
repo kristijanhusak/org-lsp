@@ -1,12 +1,7 @@
 [
   {
     "label": "Org agenda: go forward in time",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.later",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.later",
     "tags": [
       "org-agenda"
     ],
@@ -19,12 +14,7 @@
   },
   {
     "label": "Org agenda: go backward in time",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.earlier",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.earlier",
     "tags": [
       "org-agenda"
     ],
@@ -37,12 +27,7 @@
   },
   {
     "label": "Org agenda: go to today",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.today",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.today",
     "tags": [
       "org-agenda"
     ],
@@ -55,12 +40,7 @@
   },
   {
     "label": "Org agenda: go to a date",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.goto.date",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.goto.date",
     "tags": [
       "org-agenda"
     ],
@@ -73,12 +53,7 @@
   },
   {
     "label": "Org agenda: day view",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.day",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.day",
     "tags": [
       "org-agenda"
     ],
@@ -91,12 +66,7 @@
   },
   {
     "label": "Org agenda: week view",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.week",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.week",
     "tags": [
       "org-agenda"
     ],
@@ -109,12 +79,7 @@
   },
   {
     "label": "Org agenda: fortnight view",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.fortnight",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.fortnight",
     "tags": [
       "org-agenda"
     ],
@@ -127,12 +92,7 @@
   },
   {
     "label": "Org agenda: month view",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.month",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.month",
     "tags": [
       "org-agenda"
     ],
@@ -145,12 +105,7 @@
   },
   {
     "label": "Org agenda: year view",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.year",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.year",
     "tags": [
       "org-agenda"
     ],
@@ -163,12 +118,7 @@
   },
   {
     "label": "Org agenda: rebuild",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.redo",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.redo",
     "tags": [
       "org-agenda"
     ],
@@ -181,12 +131,7 @@
   },
   {
     "label": "Org agenda: go to the entry",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.goto",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.goto",
     "tags": [
       "org-agenda"
     ],
@@ -199,12 +144,7 @@
   },
   {
     "label": "Org agenda: Save all Org files",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.save",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.save",
     "tags": [
       "org-agenda"
     ],
@@ -217,12 +157,7 @@
   },
   {
     "label": "Org agenda: log mode, what was closed and clocked",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.log",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.log",
     "tags": [
       "org-agenda"
     ],
@@ -235,12 +170,7 @@
   },
   {
     "label": "Org agenda: the clock report",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.clockreport",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.clockreport",
     "tags": [
       "org-agenda"
     ],
@@ -253,12 +183,7 @@
   },
   {
     "label": "Org agenda: include archived trees",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.archives",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.archives",
     "tags": [
       "org-agenda"
     ],
@@ -271,12 +196,7 @@
   },
   {
     "label": "Org agenda: include archived trees and archive files",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.agenda.archives.files",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.archives.files",
     "tags": [
       "org-agenda"
     ],
@@ -289,12 +209,7 @@
   },
   {
     "label": "Org agenda: Clock in",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.clock.in",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.clock.in",
     "tags": [
       "org-agenda"
     ],
@@ -307,12 +222,7 @@
   },
   {
     "label": "Org agenda: Clock out",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.clock.out",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.clock.out",
     "tags": [
       "org-agenda"
     ],
@@ -325,12 +235,7 @@
   },
   {
     "label": "Org agenda: Cancel the clock",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.clock.cancel",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.clock.cancel",
     "tags": [
       "org-agenda"
     ],
@@ -343,12 +248,7 @@
   },
   {
     "label": "Org agenda: Change the TODO state",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.todo",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.todo",
     "tags": [
       "org-agenda"
     ],
@@ -361,12 +261,7 @@
   },
   {
     "label": "Org agenda: Raise the priority",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.priority.up",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.priority.up",
     "tags": [
       "org-agenda"
     ],
@@ -379,12 +274,7 @@
   },
   {
     "label": "Org agenda: Lower the priority",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.priority.down",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.priority.down",
     "tags": [
       "org-agenda"
     ],
@@ -397,12 +287,7 @@
   },
   {
     "label": "Org agenda: Set the priority",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.priority",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.priority",
     "tags": [
       "org-agenda"
     ],
@@ -415,12 +300,7 @@
   },
   {
     "label": "Org agenda: Refile the entry",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.refile",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.refile",
     "tags": [
       "org-agenda"
     ],
@@ -433,12 +313,7 @@
   },
   {
     "label": "Org agenda: Add a note to the entry",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.add.note",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.add.note",
     "tags": [
       "org-agenda"
     ],
@@ -451,12 +326,7 @@
   },
   {
     "label": "Org agenda: Open the link or thing at the cursor",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.open",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.open",
     "tags": [
       "org-agenda"
     ],
@@ -469,12 +339,7 @@
   },
   {
     "label": "Org agenda: Archive the subtree",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.archive.subtree",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.archive.subtree",
     "tags": [
       "org-agenda"
     ],
@@ -487,12 +352,7 @@
   },
   {
     "label": "Org agenda: Archive the subtree under its Archive sibling",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.archive.sibling",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.archive.sibling",
     "tags": [
       "org-agenda"
     ],
@@ -505,12 +365,7 @@
   },
   {
     "label": "Org agenda: Toggle the ARCHIVE tag",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.archive.tag",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.archive.tag",
     "tags": [
       "org-agenda"
     ],
@@ -523,12 +378,7 @@
   },
   {
     "label": "Org agenda: Archive with the default command",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.archive.default",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.archive.default",
     "tags": [
       "org-agenda"
     ],
@@ -541,12 +391,7 @@
   },
   {
     "label": "Org agenda: Archive with the default command, once confirmed",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.archive.confirm",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.archive.confirm",
     "tags": [
       "org-agenda"
     ],
@@ -559,12 +404,7 @@
   },
   {
     "label": "Org agenda: Move the date one day later",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.date.later",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.date.later",
     "tags": [
       "org-agenda"
     ],
@@ -577,12 +417,7 @@
   },
   {
     "label": "Org agenda: Move the date one day earlier",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.date.earlier",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.date.earlier",
     "tags": [
       "org-agenda"
     ],
@@ -595,12 +430,7 @@
   },
   {
     "label": "Org agenda: Schedule the entry",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.schedule",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.schedule",
     "tags": [
       "org-agenda"
     ],
@@ -613,12 +443,7 @@
   },
   {
     "label": "Org agenda: Set the deadline of the entry",
-    "command": "$ZED_DIRNAME/org-lsp-command",
-    "args": [
-      "org.deadline",
-      "$ZED_ROW",
-      "$ZED_COLUMN"
-    ],
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.deadline",
     "tags": [
       "org-agenda"
     ],

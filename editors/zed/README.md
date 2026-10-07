@@ -82,16 +82,34 @@ instead.
 The agenda has the same keys in every editor: Emacs's agenda keys, with
 `J` for a date and the views under `v` (`v d`, `v w`), so that Vim mode
 keeps its motions. An extension cannot bind keys, and a key of Zed's
-cannot run a language server's command, but it can run a task. The
-extension has a task for each agenda command (**task: spawn** lists them
-as *Org agenda: …*), which runs it where the cursor is, through a script
-the server writes next to the agenda. [keymap.json](keymap.json) binds
-the keys to them: paste its block into your keymap (**zed: open
-keymap**). Then in the agenda `f` / `b` move it through time, `.` goes
-to today, `v d` / `v w` change the view, `t` changes the TODO state,
-`ctrl-c ctrl-s` schedules, and so on; `enter` goes to the entry of the
+cannot run a language server's command, but it can run a task. Two files
+set that up, once:
+
+1. [tasks.json](tasks.json): a task for each agenda command (*Org agenda:
+   …*). Paste its entries into your tasks (**zed: open tasks**,
+   `~/.config/zed/tasks.json`).
+2. [keymap.json](keymap.json): binds the agenda's keys to those tasks.
+   Paste its block into your keymap (**zed: open keymap**).
+
+Then in the agenda `f` / `b` move it through time, `.` goes to today,
+`v d` / `v w` change the view, `t` changes the TODO state, `ctrl-c
+ctrl-s` schedules, and so on, at once; `enter` goes to the entry of the
 line (`tab` in a split), and `q` closes the agenda. A task's terminal
 stays out of sight unless the command fails.
+
+The tasks are yours rather than the extension's because Zed offers an
+extension's tasks only in files of the project's folders, and the agenda
+is a file of the server's own, elsewhere: a key bound to one would open
+the task picker instead. Each task runs
+`~/.local/state/org-lsp/agenda-command`, a script the server writes,
+which runs the command in the agenda where the cursor is: the server
+follows the cursor through the document highlights Zed asks for when it
+moves (after `lsp_highlight_debounce`, 75 milliseconds). With agendas
+open in several windows, the keys act on the one the cursor was last in.
+On Windows, where the script is `agenda-command.cmd` under your user
+folder and the shell is PowerShell, make each task's command
+`& "$HOME/.local/state/org-lsp/agenda-command.cmd" org.agenda.later`
+(with its own command at the end).
 
 What a command asks for is asked with buttons: a TODO state, a priority,
 a refile target, a capture template, yes or no. Zed has no way to ask for
@@ -113,7 +131,6 @@ keys of their own for the commands in Org files (bind
 ## Development
 
 `node editors/zed/generate.mjs` writes the semantic token rules
-(`languages/org/semantic_token_rules.json`), the agenda's tasks
-(`languages/org/tasks.json`) and `keymap.json` from the server's
-manifest; `--check` fails if they are out of date. `cargo build --target
+(`languages/org/semantic_token_rules.json`), `tasks.json` and
+`keymap.json` from the server's manifest; `--check` fails if they are out of date. `cargo build --target
 wasm32-wasip2` in this folder builds the extension.
