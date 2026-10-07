@@ -90,13 +90,20 @@ class Generator:
             lines.append(indent + " ".join(parts))
         if self.chance(0.3):
             lines.append(indent + ":PROPERTIES:")
-            for key in self.rng.sample(["ID", "LAST_REPEAT", "REPEAT_TO_STATE", "STYLE", "COOKIE_DATA"], self.pick([0, 1, 1, 2])):
+            names = ["ID", "LAST_REPEAT", "REPEAT_TO_STATE", "STYLE", "COOKIE_DATA", "LOGGING", "LOGGING", "LOG_INTO_DRAWER"]
+            for key in self.rng.sample(names, self.pick([0, 1, 1, 2])):
                 value = {
                     "ID": "abc",
                     "LAST_REPEAT": "[2026-01-01 Thu 09:00]",
                     "REPEAT_TO_STATE": self.pick(keywords + ["NOPE"]),
                     "STYLE": "habit",
                     "COOKIE_DATA": self.pick(["todo", "checkbox", "todo recursive"]),
+                    "LOGGING": self.pick([
+                        "nil", "logdone", "lognotedone", "logrepeat", "lognoterepeat nologdone",
+                        f"{keywords[0]}(!)", f"{keywords[-1]}(@)", f"{keywords[0]}(t@/!) logdone",
+                        "logdrawer", "NOPE(!)", f"{keywords[-1]}(x)",
+                    ]),
+                    "LOG_INTO_DRAWER": self.pick(["t", "nil", "NOTES"]),
                 }[key]
                 lines.append(indent + f":{key}: {value}")
             lines.append(indent + ":END:")
@@ -140,6 +147,10 @@ class Generator:
         elif self.chance(0.2):
             options["org_todo_keywords"] = ["TODO", "NEXT(n!)", "|", "DONE", "GONE"]
             keywords = ["TODO", "NEXT", "DONE", "GONE"]
+        if self.chance(0.2):
+            lines.append("#+STARTUP: " + " ".join(self.rng.sample(
+                ["logdone", "lognotedone", "nologdone", "logrepeat", "lognoterepeat", "nologrepeat",
+                 "logdrawer", "nologdrawer", "overview"], self.pick([1, 1, 2]))))
         if self.chance(0.3):
             lines.append("Text before the first headline.")
 

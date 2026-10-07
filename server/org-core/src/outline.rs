@@ -323,6 +323,17 @@ impl Outline {
         inherit: bool,
         globals: &[(String, String)],
     ) -> Option<String> {
+        self.property_lookup(entry, name, inherit, globals, false)
+    }
+
+    fn property_lookup(
+        &self,
+        entry: Option<usize>,
+        name: &str,
+        inherit: bool,
+        globals: &[(String, String)],
+        literal_nil: bool,
+    ) -> Option<String> {
         let local = |properties: &[(String, String)]| {
             let base = properties.iter().rev().find(|(key, _)| key.eq_ignore_ascii_case(name)).map(|(_, v)| v.clone());
             let extra: Vec<String> = properties
@@ -373,7 +384,18 @@ impl Outline {
                 values.insert(0, global.clone());
             }
         }
-        (!values.is_empty()).then(|| values.join(" ")).and_then(not_nil)
+        let joined = (!values.is_empty()).then(|| values.join(" "));
+        if literal_nil {
+            joined
+        } else {
+            joined.and_then(not_nil)
+        }
+    }
+
+    /// `org-entry-get` with inheritance and `literal-nil`: a value of
+    /// `nil` is the string `nil`, which stops the search up the lineage.
+    pub fn inherited_literal(&self, entry: Option<usize>, name: &str) -> Option<String> {
+        self.property_lookup(entry, name, true, &[], true)
     }
 
     /// The entry whose section contains byte `offset`.

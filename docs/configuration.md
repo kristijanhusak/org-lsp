@@ -278,15 +278,22 @@ org_agenda_files = []
 org_todo_keywords = ["TODO", "|", "DONE"]
 
 # Write `CLOSED:` with the time when an entry is done, and with `note` ask for
-# a note too. (org-log-done)
+# a note too. A file's `#+STARTUP:` words `logdone`, `lognotedone` and
+# `nologdone` change it there; an entry's `LOGGING` property (inherited) says
+# what its state changes log instead: those words, `logrepeat` and its
+# relatives, and keywords with what they log (`WAIT(@/!)`), or `nil` for
+# nothing. (org-log-done)
 org_log_done = false
 
 # Record when a repeating entry is done and moves to its next date.
-# (org-log-repeat)
+# `#+STARTUP:` `logrepeat`, `lognoterepeat` and `nologrepeat` change it in a
+# file, and the `LOGGING` property in an entry. (org-log-repeat)
 org_log_repeat = "time"
 
 # Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name
-# of a drawer. (org-log-into-drawer)
+# of a drawer. `#+STARTUP:` `logdrawer` and `nologdrawer` change it in a file;
+# an entry's `LOG_INTO_DRAWER` property (inherited) says which drawer for it
+# (`t` for `LOGBOOK`, `nil` for none). (org-log-into-drawer)
 org_log_into_drawer = false
 
 # Where tags are aligned after a change to a headline. Negative: they end at
@@ -720,15 +727,22 @@ org_agenda_custom_commands = []
   "org_todo_keywords": ["TODO", "|", "DONE"],
 
   // Write `CLOSED:` with the time when an entry is done, and with `note` ask
-  // for a note too. (org-log-done)
+  // for a note too. A file's `#+STARTUP:` words `logdone`, `lognotedone` and
+  // `nologdone` change it there; an entry's `LOGGING` property (inherited)
+  // says what its state changes log instead: those words, `logrepeat` and its
+  // relatives, and keywords with what they log (`WAIT(@/!)`), or `nil` for
+  // nothing. (org-log-done)
   "org_log_done": false,
 
   // Record when a repeating entry is done and moves to its next date.
-  // (org-log-repeat)
+  // `#+STARTUP:` `logrepeat`, `lognoterepeat` and `nologrepeat` change it in
+  // a file, and the `LOGGING` property in an entry. (org-log-repeat)
   "org_log_repeat": "time",
 
   // Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the
-  // name of a drawer. (org-log-into-drawer)
+  // name of a drawer. `#+STARTUP:` `logdrawer` and `nologdrawer` change it in
+  // a file; an entry's `LOG_INTO_DRAWER` property (inherited) says which
+  // drawer for it (`t` for `LOGBOOK`, `nil` for none). (org-log-into-drawer)
   "org_log_into_drawer": false,
 
   // Where tags are aligned after a change to a headline. Negative: they end

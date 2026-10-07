@@ -142,6 +142,109 @@ pub(crate) struct Editor<'a> {
     /// What `org-auto-repeat-maybe` says when it moved the timestamps:
     /// `Entry repeats: SCHEDULED: <…> `.
     repeated: Option<String>,
+    /// The logging in force for this command.
+    log: Log,
+}
+
+/// What is logged: `org-log-done`, `org-log-repeat`, `org-log-into-drawer`
+/// as the settings and the file's `#+STARTUP:` words have them, and the
+/// states that log (`org-todo-log-states`), the keywords' own unless the
+/// entry's `LOGGING` property says otherwise.
+#[derive(Debug, Clone)]
+struct Log {
+    done: Option<Logging>,
+    repeat: Option<Logging>,
+    into_drawer: Option<String>,
+    /// The states that log when entered and when left; `None` for those
+    /// the keywords say (`WAIT(w@/!)`).
+    states: Option<Vec<LogState>>,
+}
+
+/// A state, what entering it logs and what leaving it logs.
+type LogState = (String, Option<Logging>, Option<Logging>);
+
+impl Log {
+    /// The settings, with the `#+STARTUP:` words of `text` after them.
+    fn new(settings: &Settings, text: &str) -> Log {
+        let mut log = Log {
+            done: settings.log_done,
+            repeat: settings.log_repeat,
+            into_drawer: settings.log_into_drawer.clone(),
+            states: None,
+        };
+        for line in text.lines() {
+            let line = line.trim_start_matches([' ', '\t']);
+            let Some(words) = line.get(..10).filter(|key| key.eq_ignore_ascii_case("#+startup:")).map(|_| &line[10..])
+            else {
+                continue;
+            };
+            for word in words.split_whitespace() {
+                match word {
+                    "logdrawer" => log.into_drawer = Some("LOGBOOK".to_string()),
+                    "nologdrawer" => log.into_drawer = None,
+                    word => {
+                        log.set(word);
+                    }
+                }
+            }
+        }
+        log
+    }
+
+    /// The `org-startup-options` word `word` for `org-log-done` or
+    /// `org-log-repeat`, if it is one.
+    fn set(&mut self, word: &str) -> bool {
+        match word {
+            "logdone" => self.done = Some(Logging::Time),
+            "lognotedone" => self.done = Some(Logging::Note),
+            "nologdone" => self.done = None,
+            // `state`, which logs as a time does.
+            "logrepeat" => self.repeat = Some(Logging::Time),
+            "lognoterepeat" => self.repeat = Some(Logging::Note),
+            "nologrepeat" => self.repeat = None,
+            _ => return false,
+        }
+        true
+    }
+
+    /// `org-local-logging`: the words of a `LOGGING` property, which start
+    /// from no logging at all.
+    fn local(&mut self, value: &str, keywords: &TodoKeywords) {
+        self.done = None;
+        self.repeat = None;
+        let mut states = Vec::new();
+        for word in value.split_whitespace() {
+            // A word of `org-startup-options` is never a state's.
+            if !self.set(word) {
+                if let Some(state) = log_state_settings(word).filter(|(name, ..)| keywords.contains(name)) {
+                    states.insert(0, state);
+                }
+            }
+        }
+        self.states = Some(states);
+    }
+}
+
+/// `org-extract-log-state-settings`: `WAIT(w@/!)` is `WAIT`, a note when
+/// entered and the time when left; a word that logs nothing is none.
+fn log_state_settings(word: &str) -> Option<LogState> {
+    let kind = |c: char| if c == '!' { Logging::Time } else { Logging::Note };
+    let (name, spec) = match word.strip_suffix(')').and_then(|rest| rest.rsplit_once('(')) {
+        Some((name, spec)) => (name, spec),
+        None => (word, ""),
+    };
+    let mut chars = spec.chars().peekable();
+    // A key, then `!` or `@`, then `/` and `!` or `@`.
+    if chars.peek().is_some_and(|c| !"!@/".contains(*c)) {
+        chars.next();
+    }
+    let enter = chars.next_if(|c| "!@".contains(*c)).map(kind);
+    let leave = if chars.next_if_eq(&'/').is_some() { chars.next_if(|c| "!@".contains(*c)).map(kind) } else { None };
+    if chars.next().is_some() {
+        // Not the form Org reads: the whole word is the keyword.
+        return None;
+    }
+    (enter.is_some() || leave.is_some()).then(|| (name.to_string(), enter, leave))
 }
 
 const TAB_WIDTH: usize = 8;
@@ -260,7 +363,8 @@ fn repeater_parts(stamp: &str) -> Option<(Option<char>, i64, char)> {
 
 impl<'a> Editor<'a> {
     pub(crate) fn new(text: &str, keywords: &'a TodoKeywords, settings: &'a Settings, now: DateTime) -> Editor<'a> {
-        Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None, repeated: None }
+        let log = Log::new(settings, text);
+        Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None, repeated: None, log }
     }
 
     pub(crate) fn replace(&mut self, start: usize, end: usize, new: &str) {
@@ -726,7 +830,7 @@ impl<'a> Editor<'a> {
             Purpose::Note => format!("Note taken on {time}"),
         };
 
-        let mut at = match self.settings.log_into_drawer.clone() {
+        let mut at = match self.log_into_drawer() {
             Some(drawer) => self.log_drawer(&drawer),
             None => {
                 let meta = self.end_of_meta_data();
@@ -843,6 +947,49 @@ impl<'a> Editor<'a> {
         })
     }
 
+    /// `org-entry-get` with inheritance and `literal-nil` at the entry.
+    fn inherited(&self, name: &str) -> Option<String> {
+        let parse = org_syntax::parse(&self.text, self.keywords);
+        let outline = Outline::new(&parse, &self.text, "");
+        outline.inherited_literal(outline.entry_at(self.heading), name)
+    }
+
+    /// `org-log-into-drawer`: the drawer notes go into, as the entry's
+    /// `LOG_INTO_DRAWER` says (inherited; `nil` for none, `t` for
+    /// `LOGBOOK`), or else the settings.
+    fn log_into_drawer(&self) -> Option<String> {
+        match self.inherited("LOG_INTO_DRAWER").as_deref() {
+            Some("nil") => None,
+            Some("t") => Some("LOGBOOK".to_string()),
+            Some(name) => Some(name.to_string()),
+            None => self.log.into_drawer.clone(),
+        }
+    }
+
+    /// What entering `state` logs (`org-todo-log-states`).
+    fn logs_entering(&self, state: &str) -> Option<Logging> {
+        match &self.log.states {
+            Some(states) => states.iter().find(|(name, ..)| name == state).and_then(|(_, enter, _)| *enter),
+            None => self.keywords.logs_entering(state),
+        }
+    }
+
+    /// What leaving `state` logs.
+    fn logs_leaving(&self, state: &str) -> Option<Logging> {
+        match &self.log.states {
+            Some(states) => states.iter().find(|(name, ..)| name == state).and_then(|(_, _, leave)| *leave),
+            None => self.keywords.logs_leaving(state),
+        }
+    }
+
+    /// Whether any state logs.
+    fn logs_any(&self) -> bool {
+        match &self.log.states {
+            Some(states) => !states.is_empty(),
+            None => self.keywords.logs_any(),
+        }
+    }
+
     /// The first repeater of the entry, as `org-get-repeat` finds it.
     fn first_repeater(&self) -> Option<String> {
         let (parse, _, end) = self.entry_outline();
@@ -916,10 +1063,10 @@ impl<'a> Editor<'a> {
         self.set_state(&Target::State(state), false)?;
 
         self.planning_closed(false);
-        if self.settings.log_repeat.is_some() || self.has_clock() {
+        if self.log.repeat.is_some() || self.has_clock() {
             self.put_last_repeat();
         }
-        if self.settings.log_repeat.is_some() && self.note.is_none() {
+        if self.log.repeat.is_some() && self.note.is_none() {
             self.note = Some(Note {
                 purpose: Purpose::State,
                 state: done_word
@@ -927,7 +1074,7 @@ impl<'a> Editor<'a> {
                     .or_else(|| self.keywords.names().find(|name| self.keywords.is_done(name)).map(str::to_string)),
                 // Org writes `""` here for an entry that had no keyword.
                 previous: Some(previous.clone().unwrap_or_default()),
-                text: self.settings.log_repeat == Some(Logging::Note),
+                text: self.log.repeat == Some(Logging::Note),
             });
         }
 
@@ -1026,6 +1173,12 @@ impl<'a> Editor<'a> {
 
     /// `org-todo` on the entry at `self.heading`.
     fn set_state(&mut self, target: &Target, top: bool) -> Result<(), String> {
+        // `org-local-logging` for the entry's `LOGGING`, inherited.
+        if top {
+            if let Some(logging) = self.inherited("LOGGING") {
+                self.log.local(&logging, self.keywords);
+            }
+        }
         let (this, start, end) = self.keyword_match();
         let names: Vec<&str> = self.keywords.names().collect();
         let position = this.as_deref().and_then(|this| names.iter().position(|name| *name == this));
@@ -1059,18 +1212,18 @@ impl<'a> Editor<'a> {
             state.as_deref().is_some_and(|state| self.keywords.contains(state) && !self.keywords.is_done(state))
         };
         let now_done = is_done(&state) && !is_done(&this);
-        if top && (self.keywords.logs_any() || self.settings.log_done.is_some()) {
+        if top && (self.logs_any() || self.log.done.is_some()) {
             let record = state
                 .as_deref()
-                .and_then(|state| self.keywords.logs_entering(state))
-                .or_else(|| this.as_deref().and_then(|this| self.keywords.logs_leaving(this)));
+                .and_then(|state| self.logs_entering(state))
+                .or_else(|| this.as_deref().and_then(|this| self.logs_leaving(this)));
             if state.is_none() || (is_open(&state) && !is_open(&this)) {
                 // No longer done: a `CLOSED:` timestamp is out of date.
                 self.planning_closed(false);
             }
-            if now_done && self.settings.log_done.is_some() {
+            if now_done && self.log.done.is_some() {
                 self.planning_closed(true);
-                if record.is_none() && self.settings.log_done == Some(Logging::Note) {
+                if record.is_none() && self.log.done == Some(Logging::Note) {
                     let (state, previous) = (state.clone(), this.clone());
                     self.note = Some(Note { purpose: Purpose::Done, state, previous, text: true });
                 }
@@ -1187,15 +1340,7 @@ pub fn fast_selection(
         return Ok(Some(Target::Next));
     }
     let settings = Settings::default();
-    let mut editor = Editor {
-        text: text.to_string(),
-        keywords,
-        settings: &settings,
-        now: DateTime::new(crate::date::Date::new(1970, 1, 1), 0, 0),
-        heading: 0,
-        note: None,
-        repeated: None,
-    };
+    let mut editor = Editor::new(text, keywords, &settings, DateTime::new(crate::date::Date::new(1970, 1, 1), 0, 0));
     editor.go_to_heading(offset)?;
     let (current, ..) = editor.keyword_match();
     Ok(match answer.chars().next() {
@@ -1216,7 +1361,7 @@ pub fn add_note(
     now: DateTime,
     note: &str,
 ) -> Result<String, String> {
-    let mut editor = Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None, repeated: None };
+    let mut editor = Editor::new(text, keywords, settings, now);
     editor.go_to_heading(offset)?;
     editor.store_note(&Note { purpose: Purpose::Note, state: None, previous: None, text: true }, note);
     Ok(editor.text)
@@ -1281,7 +1426,7 @@ pub fn change_state_noted(
     now: DateTime,
     note: NoteText,
 ) -> Result<Changed, String> {
-    let mut editor = Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None, repeated: None };
+    let mut editor = Editor::new(text, keywords, settings, now);
     editor.go_to_heading(offset)?;
     editor.set_state(target, true)?;
     let wants_note = match (editor.note.take(), note) {
