@@ -139,6 +139,9 @@ pub(crate) struct Editor<'a> {
     /// changes.
     pub(crate) heading: usize,
     note: Option<Note>,
+    /// What `org-auto-repeat-maybe` says when it moved the timestamps:
+    /// `Entry repeats: SCHEDULED: <…> `.
+    repeated: Option<String>,
 }
 
 const TAB_WIDTH: usize = 8;
@@ -257,7 +260,7 @@ fn repeater_parts(stamp: &str) -> Option<(Option<char>, i64, char)> {
 
 impl<'a> Editor<'a> {
     pub(crate) fn new(text: &str, keywords: &'a TodoKeywords, settings: &'a Settings, now: DateTime) -> Editor<'a> {
-        Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None }
+        Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None, repeated: None }
     }
 
     pub(crate) fn replace(&mut self, start: usize, end: usize, new: &str) {
@@ -940,6 +943,7 @@ impl<'a> Editor<'a> {
         // Move every timestamp with a repeater. Like Org, this follows
         // the cursor: it starts behind the repeater, and every change is
         // made to the timestamp the cursor is then in.
+        let mut message = "Entry repeats: ".to_string();
         let mut at = self.heading;
         loop {
             let (parse, _, end) = self.entry_outline();
@@ -987,9 +991,35 @@ impl<'a> Editor<'a> {
                 }
                 _ => {}
             }
-            at = self.shift_timestamp(point, count, unit, true)?.stamp.1;
+            let kind = self.repeat_kind(repeater_end);
+            let moved = self.shift_timestamp(point, count, unit, true)?.stamp;
+            message.push_str(&format!("{kind} {} ", &self.text[moved.0..moved.1]));
+            at = moved.1;
         }
+        self.repeated = Some(message.trim_end().to_string());
         Ok(())
+    }
+
+    /// What `org-auto-repeat-maybe` calls the timestamp at `at`: the
+    /// planning keyword before it on the planning line, else `Plain:`.
+    fn repeat_kind(&self, at: usize) -> String {
+        let line_start = self.text[..at].rfind('\n').map_or(0, |index| index + 1);
+        let heading_end = self.text[self.heading..].find('\n').map_or(self.text.len(), |index| self.heading + index);
+        let line = &self.text[line_start..at];
+        let planning = line_start == heading_end + 1
+            && ["SCHEDULED:", "DEADLINE:", "CLOSED:"].iter().any(|keyword| line.trim_start().starts_with(keyword));
+        if !planning {
+            return "Plain:".to_string();
+        }
+        let scheduled = line.rfind("SCHEDULED:");
+        let deadline = line.rfind("DEADLINE:");
+        match (scheduled, deadline) {
+            (Some(s), Some(d)) if d > s => "DEADLINE:",
+            (Some(_), _) => "SCHEDULED:",
+            (None, Some(_)) => "DEADLINE:",
+            (None, None) => "Plain:",
+        }
+        .to_string()
     }
 
     // ----- the command
@@ -1164,6 +1194,7 @@ pub fn fast_selection(
         now: DateTime::new(crate::date::Date::new(1970, 1, 1), 0, 0),
         heading: 0,
         note: None,
+        repeated: None,
     };
     editor.go_to_heading(offset)?;
     let (current, ..) = editor.keyword_match();
@@ -1185,7 +1216,7 @@ pub fn add_note(
     now: DateTime,
     note: &str,
 ) -> Result<String, String> {
-    let mut editor = Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None };
+    let mut editor = Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None, repeated: None };
     editor.go_to_heading(offset)?;
     editor.store_note(&Note { purpose: Purpose::Note, state: None, previous: None, text: true }, note);
     Ok(editor.text)
@@ -1195,6 +1226,8 @@ pub fn add_note(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Changed {
     pub text: String,
+    /// What Org says: that the entry repeats, and where to.
+    pub message: Option<String>,
     /// The note the change wants, when no text was given for it. The text
     /// is then without the note.
     pub wants_note: Option<WantedNote>,
@@ -1248,7 +1281,7 @@ pub fn change_state_noted(
     now: DateTime,
     note: NoteText,
 ) -> Result<Changed, String> {
-    let mut editor = Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None };
+    let mut editor = Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None, repeated: None };
     editor.go_to_heading(offset)?;
     editor.set_state(target, true)?;
     let wants_note = match (editor.note.take(), note) {
@@ -1276,7 +1309,7 @@ pub fn change_state_noted(
         }
         (None, _) => None,
     };
-    Ok(Changed { text: editor.text, wants_note })
+    Ok(Changed { text: editor.text, wants_note, message: editor.repeated })
 }
 
 /// The line edits that turn `old` into `new`.
@@ -1386,5 +1419,28 @@ mod tests {
         assert_eq!(repeater_parts("<2026-05-11 Mon 10:00 .+2d/3d"), Some((Some('.'), 2, 'd')));
         assert_eq!(repeater_parts("<2026-05-11 Mon ++1w"), Some((Some('+'), 1, 'w')));
         assert_eq!(repeater_parts("<2026-05-11 Mon +3m"), Some((None, 3, 'm')));
+    }
+
+    #[test]
+    fn says_where_a_repeating_entry_goes() {
+        let keywords = TodoKeywords::default();
+        let settings = Settings { log_done: None, log_repeat: None, ..Settings::default() };
+        let now = DateTime::new(crate::date::Date::new(2026, 10, 7), 10, 0);
+        let done = Target::State(Some("DONE".to_string()));
+        let message =
+            |text: &str| change_state_noted(text, &keywords, 0, &done, &settings, now, NoteText::Skip).unwrap().message;
+        assert_eq!(
+            message("* TODO Water\nSCHEDULED: <2026-10-05 Mon +1w>\n").as_deref(),
+            Some("Entry repeats: SCHEDULED: <2026-10-12 Mon +1w>")
+        );
+        assert_eq!(
+            message("* TODO Both\nDEADLINE: <2026-10-09 Fri +1m> SCHEDULED: <2026-10-05 Mon .+2d>\n").as_deref(),
+            Some("Entry repeats: DEADLINE: <2026-11-09 Mon +1m> SCHEDULED: <2026-10-09 Fri .+2d>")
+        );
+        assert_eq!(
+            message("* TODO Plain\n<2026-10-05 Mon 10:00 ++1w>\nmore <2026-10-06 Tue +1d>\n").as_deref(),
+            Some("Entry repeats: Plain: <2026-10-12 Mon 10:00 ++1w> Plain: <2026-10-07 Wed +1d>")
+        );
+        assert_eq!(message("* TODO Once\nSCHEDULED: <2026-10-05 Mon>\n"), None);
     }
 }
