@@ -1,7 +1,8 @@
 //! `org-sort-entries` (`C-c ^` on a headline): the children of the entry
 //! at the cursor, or the top-level entries before the first headline,
-//! sorted as `sort-subr` sorts them. Checked against Emacs in
-//! `tests/sort`. Text compares by character code, as
+//! sorted as `sort-subr` sorts them; `org-sort-list` (`C-c ^` on a list
+//! item): the items of its list. Checked against Emacs in `tests/sort`
+//! and `tests/lists`. Text compares by character code, as
 //! `string-collate-lessp` does in the C locale.
 
 use std::cmp::Ordering;
@@ -184,6 +185,111 @@ pub fn sort_entries(
     }
     out.push_str(&text[records.last().map_or(end, |record| record.2)..]);
     Ok(Outcome { text: out, cursor: start })
+}
+
+/// The sorting types `org-sort-list` reads; a capital reverses the order.
+pub const LIST_TYPES: &[(char, &str)] = &[('a', "alpha"), ('n', "numeric"), ('t', "time"), ('x', "checked")];
+
+/// `org-sort-list` with the sorting type `kind`, the cursor at `at` on an
+/// item: the items of its list sorted by their first line (sub-lists go
+/// with their items and are not sorted), then the list put right
+/// (`org-list-repair`). The cursor goes to the start of the list.
+pub fn sort_list(text: &str, at: usize, kind: char, now: DateTime) -> Result<Outcome, Refusal> {
+    let lower = kind.to_ascii_lowercase();
+    if lower == 'f' {
+        return Err(Refusal::Failed("Sorting by a function of your own is not supported".to_string()));
+    }
+    if !LIST_TYPES.iter().any(|(known, _)| *known == lower) {
+        return Err(Refusal::Failed(format!("Invalid sorting type ‘{kind}’")));
+    }
+    let (start, end, ends) = crate::list::sort_bounds(text, at)?;
+    // Sorted within the list alone, as Org narrows to it.
+    let region = &text[start..end];
+    let mut records: Vec<(Option<Key>, usize, usize)> = Vec::new();
+    let mut point = 0;
+    while point < region.len() {
+        let item_end =
+            ends.iter().find(|(pos, _)| *pos == start + point).map(|(_, item_end)| (*item_end).min(end) - start);
+        let Some(record_end) = item_end else {
+            return Err(Refusal::Failed("Wrong type argument: integer-or-marker-p, nil".to_string()));
+        };
+        records.push((list_key(region, point, lower, now), point, record_end));
+        // The next record: past the blanks, at the start of its line.
+        let rest = &region[record_end..];
+        let skipped = record_end + (rest.len() - rest.trim_start_matches([' ', '\r', '\t', '\n']).len());
+        point = if skipped >= region.len() { region.len() } else { line_start(region, skipped) };
+    }
+    // A record without a key is compared as text, which a number or a
+    // string cannot be compared with.
+    if records.len() > 1 && records.iter().any(|(key, _, _)| key.is_none()) {
+        return Err(Refusal::Failed("Wrong type argument: number-or-marker-p".to_string()));
+    }
+    let reverse = lower != kind;
+    let mut sorted = records.clone();
+    if reverse {
+        sorted.reverse();
+    }
+    sorted.sort_by(|a, b| match (&a.0, &b.0) {
+        (Some(a), Some(b)) => compare(a, b),
+        _ => Ordering::Equal,
+    });
+    if reverse {
+        sorted.reverse();
+    }
+    // `sort-reorder-buffer`: what lies between records stays in place.
+    let mut out = String::with_capacity(region.len());
+    let mut last = 0;
+    for (old, new) in records.iter().zip(&sorted) {
+        out.push_str(&region[last..old.1]);
+        out.push_str(&region[new.1..new.2]);
+        last = old.2;
+    }
+    out.push_str(&region[last..]);
+    let repaired = crate::list::repair(&out, 0)?;
+    let mut text_out = String::with_capacity(text.len());
+    text_out.push_str(&text[..start]);
+    text_out.push_str(&repaired.text);
+    text_out.push_str(&text[end..]);
+    Ok(Outcome { text: text_out, cursor: start + repaired.cursor })
+}
+
+/// The key `org-sort-list` sorts the item at `at` by, from its first
+/// line; none when no text follows the bullet there.
+fn list_key(region: &str, at: usize, kind: char, now: DateTime) -> Option<Key> {
+    static ITEM: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"\A[ \t]*[-+*0-9.)]+([ \t]+\[[- X]\])?[ \t]+").unwrap());
+    let line = line(region, at);
+    let found = ITEM.captures(line)?;
+    let rest = &line[found.get(0).expect("a match").end()..];
+    Some(match kind {
+        'n' => Key::Number(string_to_number(&visible(rest))),
+        'a' => Key::Text(visible(rest).to_lowercase()),
+        'x' => Key::Text(found.get(1).map_or(String::new(), |checkbox| checkbox.as_str().to_string())),
+        _ => {
+            // A timer list sorts by its timers.
+            static BULLET: LazyLock<Regex> = LazyLock::new(|| {
+                Regex::new(r"\A[ \t]*(?:[-+]|[0-9]+[.)]|[ \t]+\*)(?:[ \t]+|$)(?:\[@(?:start:)?[0-9]+\][ \t]*)?")
+                    .unwrap()
+            });
+            static TIMER: LazyLock<Regex> =
+                LazyLock::new(|| Regex::new(r"\A([0-9]+:[0-9]+:[0-9]+)[ \t]+::[ \t]+").unwrap());
+            static HMS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"([-+]?[0-9]+):([0-9]{2}):([0-9]{2})").unwrap());
+            static ACTIVE: LazyLock<Regex> =
+                LazyLock::new(|| Regex::new(r"<(\d{4}-\d{2}-\d{2}(?: [^\n]*?)?)>").unwrap());
+            static BOTH: LazyLock<Regex> =
+                LazyLock::new(|| Regex::new(r"[\[<](\d{4}-\d{2}-\d{2}(?: [^\n]*?)?)[\]>]").unwrap());
+            let after_bullet = BULLET.find(line).map(|bullet| &line[bullet.end()..]);
+            if let Some(timer) = after_bullet.and_then(|after| TIMER.captures(after)) {
+                let hms = HMS.captures(&timer[1]).expect("a timer");
+                let number = |index: usize| hms[index].parse::<i64>().unwrap_or(0);
+                let seconds = number(3) + 60 * (number(2) + 60 * number(1).abs());
+                return Some(Key::Number(if hms[1].starts_with('-') { -seconds } else { seconds } as f64));
+            }
+            let found = ACTIVE.find(line).or_else(|| BOTH.find(line));
+            let time = found.and_then(|found| parse_time(found.as_str())).unwrap_or(now);
+            Key::Number(seconds(time))
+        }
+    })
 }
 
 /// `org-complex-heading-regexp` with the keywords of the file.

@@ -20,12 +20,17 @@ struct Item {
     parent: Option<usize>,
     /// The outermost list it belongs to (`org-list-struct`).
     list: usize,
+    /// Whether it is the first item of its list, where the list starts.
+    first: bool,
 }
 
 struct Lists {
     items: Vec<Item>,
     /// The range of each outermost list.
     ranges: Vec<(usize, usize)>,
+    /// Where org-element stops reading each outermost list: the end of
+    /// what holds it.
+    limits: Vec<usize>,
 }
 
 fn span(node: &SyntaxNode) -> (usize, usize) {
@@ -47,7 +52,7 @@ fn next_line(text: &str, at: usize) -> usize {
 
 impl Lists {
     fn new(text: &str, root: &SyntaxNode) -> Lists {
-        let mut lists = Lists { items: Vec::new(), ranges: Vec::new() };
+        let mut lists = Lists { items: Vec::new(), ranges: Vec::new(), limits: Vec::new() };
         lists.collect(text, root, None, None);
         lists
     }
@@ -58,9 +63,10 @@ impl Lists {
                 LIST => {
                     let list = list.unwrap_or_else(|| {
                         self.ranges.push(span(&child));
+                        self.limits.push(contents_end(text, node));
                         self.ranges.len() - 1
                     });
-                    for item in child.children().filter(|item| item.kind() == LIST_ITEM) {
+                    for (number, item) in child.children().filter(|item| item.kind() == LIST_ITEM).enumerate() {
                         let begin = line_start(text, span(&item).0);
                         let indent = text[begin..].bytes().take_while(|b| matches!(b, b' ' | b'\t')).count();
                         let checkbox = item
@@ -71,7 +77,7 @@ impl Lists {
                                 let at = usize::from(token.text_range().start());
                                 (at, token.text().as_bytes()[1])
                             });
-                        self.items.push(Item { begin, indent, checkbox, parent, list });
+                        self.items.push(Item { begin, indent, checkbox, parent, list, first: number == 0 });
                         let index = self.items.len() - 1;
                         self.collect(text, &item, Some(index), Some(list));
                     }
@@ -84,14 +90,17 @@ impl Lists {
     fn children(&self, item: usize) -> impl Iterator<Item = usize> + '_ {
         (0..self.items.len()).filter(move |index| self.items[*index].parent == Some(item))
     }
+}
 
-    fn descendants(&self, item: usize) -> Vec<usize> {
-        let mut out = Vec::new();
-        for child in self.children(item) {
-            out.push(child);
-            out.extend(self.descendants(child));
-        }
-        out
+/// The end of the contents of `node`: before the line closing a drawer
+/// or a block, the end of a section.
+fn contents_end(text: &str, node: &SyntaxNode) -> usize {
+    let (_, end) = span(node);
+    if matches!(node.kind(), DRAWER | DYNAMIC_BLOCK | BLOCK) {
+        let trimmed = text[..end].trim_end_matches([' ', '\r', '\t', '\n']).len();
+        line_start(text, trimmed)
+    } else {
+        end
     }
 }
 
@@ -233,6 +242,49 @@ fn has_word(text: &str, word: &str) -> bool {
     text.split(|c: char| !c.is_alphanumeric()).any(|part| part == word)
 }
 
+/// `C-c C-c` on the line of an item (`org-ctrl-c-ctrl-c`): its checkbox
+/// toggled if it has one, the list's indentation, bullets, numbers and
+/// checkboxes put right, and the cookies counted again. `ordered` is the
+/// entry's `ORDERED` property. The text, the cursor after it, and what to
+/// tell the user.
+pub fn ctrl_c_ctrl_c(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    tags_column: i64,
+    ordered: bool,
+) -> Result<(String, usize, Option<String>), Refusal> {
+    let root = parse(text, keywords);
+    // On a statistics cookie, the cookies are counted again
+    // (`org-update-statistics-cookies`), and that is all. Right after one
+    // is on it too, as `org-element-context` has it.
+    let on_cookie = root.descendants().filter(|node| node.kind() == STATISTICS_COOKIE).any(|node| {
+        let (start, end) = span(&node);
+        (start..=end).contains(&offset)
+    });
+    let lists = Lists::new(text, &root);
+    let line = line_start(text, offset);
+    if on_cookie && lists.items.iter().any(|item| item.begin == line) {
+        let (edited, cursor) = update_counts_keeping(text, keywords, offset, tags_column, offset);
+        return Ok((edited, cursor, None));
+    }
+    let item = lists
+        .items
+        .iter()
+        .find(|item| item.begin == line)
+        .ok_or_else(|| Refusal::NotHere("Not at an item".to_string()))?;
+    let (begin, _) = lists.ranges[item.list];
+    let limit = lists.limits[item.list];
+    // At the start of a list, Org is on the list rather than its first item.
+    let (edited, cursor, message) = if item.first && offset == line {
+        crate::list::ctrl_c_ctrl_c_list(text, offset, begin, limit)?
+    } else {
+        crate::list::ctrl_c_ctrl_c(text, offset, begin, limit, ordered)?
+    };
+    let (edited, cursor) = update_counts_keeping(&edited, keywords, cursor, tags_column, cursor);
+    Ok((edited, cursor, message))
+}
+
 /// `org-update-checkbox-count` for the section around byte `offset`: each
 /// statistics cookie there counts the checkboxes of what it is in (an
 /// item's children, or the lists of a drawer, a block or the section).
@@ -240,6 +292,19 @@ fn has_word(text: &str, word: &str) -> bool {
 /// A cookie on a headline with tags realigns them to `tags_column`, as
 /// `org-fix-tags-on-the-fly` does.
 pub fn update_counts(text: &str, keywords: &TodoKeywords, offset: usize, tags_column: i64) -> String {
+    update_counts_keeping(text, keywords, offset, tags_column, offset).0
+}
+
+/// [`update_counts`], with where `cursor` goes: a cookie is replaced by
+/// inserting the new one before it and deleting the old, so a cursor in
+/// the old cookie ends up after the new one.
+pub fn update_counts_keeping(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    tags_column: i64,
+    mut cursor: usize,
+) -> (String, usize) {
     let root = parse(text, keywords);
     let lists = Lists::new(text, &root);
     let line = line_start(text, offset);
@@ -285,6 +350,8 @@ pub fn update_counts(text: &str, keywords: &TodoKeywords, offset: usize, tags_co
             .as_ref()
             .filter(|node| node.kind() == LIST_ITEM)
             .and_then(|node| lists.items.iter().position(|item| item.begin == line_start(text, span(node).0)));
+        // Each outermost list with a checkbox in the area, counted with
+        // the structure org-element gives it.
         let mut structs: Vec<usize> = Vec::new();
         for (index, candidate) in lists.items.iter().enumerate() {
             let inside = candidate.begin >= from && candidate.begin < to && Some(index) != item;
@@ -292,24 +359,18 @@ pub fn update_counts(text: &str, keywords: &TodoKeywords, offset: usize, tags_co
                 structs.push(candidate.list);
             }
         }
-        let counted: Vec<usize> = match item {
-            Some(item) if structs.contains(&lists.items[item].list) => {
-                if recursive {
-                    lists.descendants(item)
-                } else {
-                    lists.children(item).collect()
-                }
-            }
-            Some(_) => Vec::new(),
-            None => (0..lists.items.len())
-                .filter(|index| structs.contains(&lists.items[*index].list))
-                .filter(|index| recursive || lists.items[*index].parent.is_none())
-                .collect(),
-        };
-        let boxes: Vec<u8> =
-            counted.iter().filter_map(|index| lists.items[*index].checkbox.map(|(_, state)| state)).collect();
-        let checked = boxes.iter().filter(|state| **state == b'X').count();
-        let total = boxes.len();
+        let (mut checked, mut total) = (0, 0);
+        for list in structs {
+            let (on, all) = crate::list::count_boxes(
+                text,
+                lists.ranges[list].0,
+                lists.limits[list],
+                item.map(|item| lists.items[item].begin),
+                recursive,
+            );
+            checked += on;
+            total += all;
+        }
         let new = if text[begin..finish].contains('%') {
             format!("[{}%]", 100 * checked / total.max(1))
         } else {
@@ -320,15 +381,26 @@ pub fn update_counts(text: &str, keywords: &TodoKeywords, offset: usize, tags_co
     let mut out = text.to_string();
     for (begin, finish, new) in edits.into_iter().rev() {
         out.replace_range(begin..finish, &new);
+        if cursor > finish {
+            cursor = cursor + new.len() - (finish - begin);
+        } else if cursor > begin {
+            cursor = begin + new.len();
+        }
         let start = line_start(&out, begin);
         let end = line_end(&out, begin);
         let line = &out[start..end];
         let before_tags = tag_group(line).is_some_and(|(_, tags)| start + tags > begin + new.len());
         if headline_level(line).is_some() && before_tags {
             if let Some((blanks, tags, padding)) = tags_padding(line, tags_column) {
-                out.replace_range(start + blanks..start + tags, &padding);
+                let (from, to) = (start + blanks, start + tags);
+                out.replace_range(from..to, &padding);
+                if cursor >= to {
+                    cursor = cursor + padding.len() - (to - from);
+                } else if cursor > from {
+                    cursor = from + (cursor - from).min(padding.len());
+                }
             }
         }
     }
-    out
+    (out, cursor)
 }

@@ -939,6 +939,81 @@ fn edits_the_structure() {
     client.shutdown();
 }
 
+/// Org's meta and shifted keys on a list item: indent, outdent and move
+/// it, cycle the bullets, go to the next item; the result carries the
+/// edit and the cursor. The meta keys are code actions there too, and
+/// `C-c C-c` repairs the list.
+#[test]
+fn edits_list_items() {
+    let mut client = Client::start(json!({}), Value::Null);
+    let mut run = |text: &str, command: &str, line: u32, character: u32| -> Result<(String, Value), Value> {
+        client.open(&uri(), text);
+        let context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+            .map_err(|error| error.data.unwrap_or(Value::Null))?;
+        let edit: TextEdit = serde_json::from_value(result["edits"][0].clone()).unwrap();
+        // The text is ASCII: a character is a byte.
+        let offset = |at: Position| {
+            text.split_inclusive('\n').take(at.line as usize).map(str::len).sum::<usize>() + at.character as usize
+        };
+        let (start, end) = (offset(edit.range.start), offset(edit.range.end));
+        Ok((format!("{}{}{}", &text[..start], edit.new_text, &text[end..]), result["cursor"].clone()))
+    };
+    let text = "- a\n- b\n  - c\n- d\n";
+    assert_eq!(run(text, "org.meta.right", 1, 2).unwrap().0, "- a\n  - b\n  - c\n- d\n");
+    assert_eq!(run(text, "org.shiftmeta.right", 1, 2).unwrap().0, "- a\n  - b\n    - c\n- d\n");
+    assert_eq!(run(text, "org.meta.left", 2, 4).unwrap().0, "- a\n- b\n- c\n- d\n");
+    let (moved, cursor) = run(text, "org.meta.down", 1, 3).unwrap();
+    assert_eq!(moved, "- a\n- d\n- b\n  - c\n");
+    assert_eq!(cursor, json!({ "line": 2, "character": 3 }));
+    assert_eq!(run(text, "org.shift.right", 0, 0).unwrap().0, "+ a\n+ b\n  - c\n+ d\n");
+    assert_eq!(run(text, "org.shift.left", 0, 0).unwrap().0, "1) a\n2) b\n   - c\n3) d\n");
+    let (same, cursor) = run(text, "org.shift.down", 1, 2).unwrap();
+    assert_eq!((same.as_str(), cursor), (text, json!({ "line": 3, "character": 0 })));
+    assert_eq!(run(text, "org.meta.up", 0, 0).unwrap_err(), Value::Null, "no item above: an error");
+    // On a timestamp in an item the date moves, applied by the server.
+    client.open(&uri(), "- <2026-05-18 Mon>\n");
+    let context = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 4 } });
+    let result = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.shift.right", "arguments": [context] }))
+        .response_result
+        .unwrap();
+    assert_eq!(result, Value::Null);
+    client.open(&uri(), text);
+    let kinds: Vec<String> = client
+        .code_actions(&uri(), Position::new(1, 0), "org")
+        .iter()
+        .filter_map(|action| action.kind.as_ref().map(|kind| kind.as_str().to_string()))
+        .filter(|kind| kind.starts_with("org.meta.") || kind.starts_with("org.shiftmeta."))
+        .collect();
+    assert_eq!(kinds, ["org.meta.right", "org.shiftmeta.right", "org.meta.up", "org.meta.down"]);
+    // `C-c ^` sorts the list, with its own sorting types.
+    client.open(&uri(), "- b\n- c\n- a\n");
+    let mut context = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 1, "character": 0 } });
+    let asked = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.sort", "arguments": [context.clone()] }))
+        .response_result
+        .unwrap();
+    assert_eq!(asked["input"]["prompt"], "Sort plain list");
+    assert_eq!(asked["input"]["choices"][3]["label"], "checked");
+    context["input"] = json!("a");
+    let sorted = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.sort", "arguments": [context] }))
+        .response_result
+        .unwrap();
+    assert_eq!(sorted["edits"][0]["newText"], "a\n- b\n- c");
+    assert_eq!(sorted["cursor"], json!({ "line": 0, "character": 0 }));
+    // `C-c C-c` on an item without a checkbox renumbers the list.
+    client.open(&uri(), "1. a\n3. b\n7. c\n");
+    let repair = client.code_actions(&uri(), Position::new(1, 1), "org.checkbox.toggle");
+    let changed: Vec<String> = edits(&repair[0]).into_iter().map(|edit| edit.new_text).collect();
+    assert_eq!(changed, ["2. b\n3"]);
+    client.shutdown();
+}
+
 /// Cutting, copying and pasting subtrees: what is cut or copied comes
 /// back in `copy`, and pasting takes `clipboard`, or else the server's
 /// last cut or copy.

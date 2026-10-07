@@ -259,42 +259,42 @@
     }
   },
   {
-    "caption": "Org: Promote the heading",
+    "caption": "Org: Promote the heading; outdent the item",
     "command": "org_lsp_run",
     "args": {
       "command": "org.meta.left"
     }
   },
   {
-    "caption": "Org: Demote the heading; indent the drawer or block",
+    "caption": "Org: Demote the heading; indent the item, the drawer or the block",
     "command": "org_lsp_run",
     "args": {
       "command": "org.meta.right"
     }
   },
   {
-    "caption": "Org: Promote the subtree",
+    "caption": "Org: Promote the subtree; outdent the item with its children",
     "command": "org_lsp_run",
     "args": {
       "command": "org.shiftmeta.left"
     }
   },
   {
-    "caption": "Org: Demote the subtree",
+    "caption": "Org: Demote the subtree; indent the item with its children",
     "command": "org_lsp_run",
     "args": {
       "command": "org.shiftmeta.right"
     }
   },
   {
-    "caption": "Org: Move the subtree up",
+    "caption": "Org: Move the subtree or the item up",
     "command": "org_lsp_run",
     "args": {
       "command": "org.meta.up"
     }
   },
   {
-    "caption": "Org: Move the subtree down",
+    "caption": "Org: Move the subtree or the item down",
     "command": "org_lsp_run",
     "args": {
       "command": "org.meta.down"
@@ -490,28 +490,28 @@
     }
   },
   {
-    "caption": "Org: Increase the timestamp part or raise the priority",
+    "caption": "Org: Increase the timestamp part, raise the priority, or go to the previous item",
     "command": "org_lsp_run",
     "args": {
       "command": "org.shift.up"
     }
   },
   {
-    "caption": "Org: Decrease the timestamp part or lower the priority",
+    "caption": "Org: Decrease the timestamp part, lower the priority, or go to the next item",
     "command": "org_lsp_run",
     "args": {
       "command": "org.shift.down"
     }
   },
   {
-    "caption": "Org: Move the date a day earlier or cycle the TODO state backward",
+    "caption": "Org: Move the date a day earlier, or cycle the TODO state or the list's bullets backward",
     "command": "org_lsp_run",
     "args": {
       "command": "org.shift.left"
     }
   },
   {
-    "caption": "Org: Move the date a day later or cycle the TODO state forward",
+    "caption": "Org: Move the date a day later, or cycle the TODO state or the list's bullets forward",
     "command": "org_lsp_run",
     "args": {
       "command": "org.shift.right"

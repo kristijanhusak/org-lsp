@@ -54,12 +54,12 @@ The other options are in [configuration.md](configuration.md).
 | `Alt+Shift+Enter` | `org.insert.todo.heading` | New TODO heading, or item with a checkbox |
 | `Ctrl+Enter` | `org.insert.heading.after` | New heading after the subtree |
 | `Ctrl+Shift+Enter` | `org.insert.todo.heading.after` | New TODO heading after the subtree |
-| `Alt+Left`¹ | `org.meta.left` | Promote the heading |
-| `Alt+Right`¹ | `org.meta.right` | Demote the heading; indent the drawer or block |
-| `Alt+Shift+Left`¹ | `org.shiftmeta.left` | Promote the subtree |
-| `Alt+Shift+Right`¹ | `org.shiftmeta.right` | Demote the subtree |
-| `Alt+Up`¹ | `org.meta.up` | Move the subtree up |
-| `Alt+Down`¹ | `org.meta.down` | Move the subtree down |
+| `Alt+Left`¹ | `org.meta.left` | Promote the heading; outdent the item |
+| `Alt+Right`¹ | `org.meta.right` | Demote the heading; indent the item, the drawer or the block |
+| `Alt+Shift+Left`¹ | `org.shiftmeta.left` | Promote the subtree; outdent the item with its children |
+| `Alt+Shift+Right`¹ | `org.shiftmeta.right` | Demote the subtree; indent the item with its children |
+| `Alt+Up`¹ | `org.meta.up` | Move the subtree or the item up |
+| `Alt+Down`¹ | `org.meta.down` | Move the subtree or the item down |
 | `Ctrl+C Shift+6` | `org.sort` | Sort the entries |
 | `Ctrl+C /` | `org.sparse.tree` | Show a sparse tree |
 | `Ctrl+C Ctrl+X Ctrl+W` | `org.cut.subtree` | Cut the subtree |
@@ -74,10 +74,10 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X Shift+A` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
 | `Ctrl+C Ctrl+X a` | `org.archive.tag` | Toggle the ARCHIVE tag |
 | `Ctrl+C Ctrl+X Ctrl+A` | `org.archive.default` | Archive with the default command |
-| `Shift+Up`¹ | `org.shift.up` | Increase the timestamp part or raise the priority |
-| `Shift+Down`¹ | `org.shift.down` | Decrease the timestamp part or lower the priority |
-| `Shift+Left`¹ | `org.shift.left` | Move the date a day earlier or cycle the TODO state backward |
-| `Shift+Right`¹ | `org.shift.right` | Move the date a day later or cycle the TODO state forward |
+| `Shift+Up`¹ | `org.shift.up` | Increase the timestamp part, raise the priority, or go to the previous item |
+| `Shift+Down`¹ | `org.shift.down` | Decrease the timestamp part, lower the priority, or go to the next item |
+| `Shift+Left`¹ | `org.shift.left` | Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
+| `Shift+Right`¹ | `org.shift.right` | Move the date a day later, or cycle the TODO state or the list's bullets forward |
 | `Ctrl+C Ctrl+S` | `org.schedule` | Schedule the entry |
 | `Ctrl+C Ctrl+D` | `org.deadline` | Set the deadline of the entry |
 | `Ctrl+C .` | `org.timestamp.insert` | Insert or change a timestamp |
@@ -173,6 +173,8 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+X`¹ | `org.timestamp.down` | Decrease the part of the timestamp at the cursor |
 | `Shift+Up`¹ | `org.date.later` | Move the date one day later |
 | `Shift+Down`¹ | `org.date.earlier` | Move the date one day earlier |
+| `Shift+Left`¹ | `org.shift.left` | Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
+| `Shift+Right`¹ | `org.shift.right` | Move the date a day later, or cycle the TODO state or the list's bullets forward |
 | `Tab` | `org-lsp.cycle` | Cycle the visibility of the subtree, block or drawer at the cursor |
 | `Shift+Tab` | `org-lsp.cycleGlobal` | Cycle the visibility of the whole file |
 
@@ -332,12 +334,12 @@ every file; outside Org files the commands say they do not apply):
 | `org.insert.todo.heading` | Org: New TODO heading, or item with a checkbox |
 | `org.insert.heading.after` | Org: New heading after the subtree |
 | `org.insert.todo.heading.after` | Org: New TODO heading after the subtree |
-| `org.meta.left` | Org: Promote the heading |
-| `org.meta.right` | Org: Demote the heading; indent the drawer or block |
-| `org.shiftmeta.left` | Org: Promote the subtree |
-| `org.shiftmeta.right` | Org: Demote the subtree |
-| `org.meta.up` | Org: Move the subtree up |
-| `org.meta.down` | Org: Move the subtree down |
+| `org.meta.left` | Org: Promote the heading; outdent the item |
+| `org.meta.right` | Org: Demote the heading; indent the item, the drawer or the block |
+| `org.shiftmeta.left` | Org: Promote the subtree; outdent the item with its children |
+| `org.shiftmeta.right` | Org: Demote the subtree; indent the item with its children |
+| `org.meta.up` | Org: Move the subtree or the item up |
+| `org.meta.down` | Org: Move the subtree or the item down |
 | `org.sort` | Org: Sort the entries |
 | `org.sparse.tree` | Org: Show a sparse tree |
 | `org.cut.subtree` | Org: Cut the subtree |
@@ -365,10 +367,10 @@ every file; outside Org files the commands say they do not apply):
 | `org.timestamp.down` | Org: Decrease the part of the timestamp at the cursor |
 | `org.date.later` | Org: Move the date one day later |
 | `org.date.earlier` | Org: Move the date one day earlier |
-| `org.shift.up` | Org: Increase the timestamp part or raise the priority |
-| `org.shift.down` | Org: Decrease the timestamp part or lower the priority |
-| `org.shift.left` | Org: Move the date a day earlier or cycle the TODO state backward |
-| `org.shift.right` | Org: Move the date a day later or cycle the TODO state forward |
+| `org.shift.up` | Org: Increase the timestamp part, raise the priority, or go to the previous item |
+| `org.shift.down` | Org: Decrease the timestamp part, lower the priority, or go to the next item |
+| `org.shift.left` | Org: Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
+| `org.shift.right` | Org: Move the date a day later, or cycle the TODO state or the list's bullets forward |
 | `org.schedule` | Org: Schedule the entry |
 | `org.deadline` | Org: Set the deadline of the entry |
 | `org.timestamp.insert` | Org: Insert or change a timestamp |

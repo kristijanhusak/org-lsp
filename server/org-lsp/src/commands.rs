@@ -305,8 +305,12 @@ pub const COMMANDS: &[Command] = &[
         input: Some(Input { kind: "priority", prompt: "Priority" }),
         ..edit(PRIORITY, "Set the priority")
     },
-    // `org-toggle-checkbox`: on an item, or on a headline for the items
-    // below it; the cookies that count checkboxes follow.
+    // `C-c C-c` on an item (`org-ctrl-c-ctrl-c`): its checkbox toggled and
+    // the list repaired (indentation, bullets, numbers, checkboxes); at
+    // the start of a list only its first item's box is toggled, and on a
+    // statistics cookie the cookies are counted. On a headline,
+    // `org-toggle-checkbox` for the items below it. The cookies that count
+    // checkboxes follow.
     Command {
         emacs: &[key(Org, "C-c C-c")],
         vim: &[key(Org, "<C-Space>")],
@@ -348,28 +352,37 @@ pub const COMMANDS: &[Command] = &[
         ..edit(INSERT_TODO_HEADING_AFTER, "New TODO heading after the subtree")
     },
     // Structure editing on Org's meta keys: what they do depends on where
-    // the cursor is (a headline here; elsewhere the key's own meaning).
-    Command { emacs: &[native(Org, "M-<left>")], vim: &[native(Org, "<<")], ..edit(META_LEFT, "Promote the heading") },
+    // the cursor is (a headline or a list item here; elsewhere the key's
+    // own meaning).
+    Command {
+        emacs: &[native(Org, "M-<left>")],
+        vim: &[native(Org, "<<")],
+        ..edit(META_LEFT, "Promote the heading; outdent the item")
+    },
     Command {
         emacs: &[native(Org, "M-<right>")],
         vim: &[native(Org, ">>")],
-        ..edit(META_RIGHT, "Demote the heading; indent the drawer or block")
+        ..edit(META_RIGHT, "Demote the heading; indent the item, the drawer or the block")
     },
     Command {
         emacs: &[native(Org, "M-S-<left>")],
         vim: &[key(Org, "<s")],
-        ..edit(SHIFT_META_LEFT, "Promote the subtree")
+        ..edit(SHIFT_META_LEFT, "Promote the subtree; outdent the item with its children")
     },
     Command {
         emacs: &[native(Org, "M-S-<right>")],
         vim: &[key(Org, ">s")],
-        ..edit(SHIFT_META_RIGHT, "Demote the subtree")
+        ..edit(SHIFT_META_RIGHT, "Demote the subtree; indent the item with its children")
     },
-    Command { emacs: &[native(Org, "M-<up>")], vim: &[key(Org, "<Leader>oK")], ..edit(META_UP, "Move the subtree up") },
+    Command {
+        emacs: &[native(Org, "M-<up>")],
+        vim: &[key(Org, "<Leader>oK")],
+        ..edit(META_UP, "Move the subtree or the item up")
+    },
     Command {
         emacs: &[native(Org, "M-<down>")],
         vim: &[key(Org, "<Leader>oJ")],
-        ..edit(META_DOWN, "Move the subtree down")
+        ..edit(META_DOWN, "Move the subtree or the item down")
     },
     Command {
         emacs: &[key(Org, "C-c ^")],
@@ -521,19 +534,26 @@ pub const COMMANDS: &[Command] = &[
         ..edit(DATE_EARLIER, "Move the date one day earlier")
     },
     // Org's shifted cursor keys, which act on what the cursor is on: a
-    // timestamp, or else the headline.
-    Command { emacs: &[native(Org, "S-<up>")], ..edit(SHIFT_UP, "Increase the timestamp part or raise the priority") },
+    // timestamp, the headline, or a list item (its list's bullets cycled,
+    // or the cursor to the item before or after, carried in the result as
+    // `org.return` is).
+    Command {
+        emacs: &[native(Org, "S-<up>")],
+        ..edit(SHIFT_UP, "Increase the timestamp part, raise the priority, or go to the previous item")
+    },
     Command {
         emacs: &[native(Org, "S-<down>")],
-        ..edit(SHIFT_DOWN, "Decrease the timestamp part or lower the priority")
+        ..edit(SHIFT_DOWN, "Decrease the timestamp part, lower the priority, or go to the next item")
     },
     Command {
         emacs: &[native(Org, "S-<left>")],
-        ..edit(SHIFT_LEFT, "Move the date a day earlier or cycle the TODO state backward")
+        vim: &[native(Org, "<S-Left>")],
+        ..edit(SHIFT_LEFT, "Move the date a day earlier, or cycle the TODO state or the list's bullets backward")
     },
     Command {
         emacs: &[native(Org, "S-<right>")],
-        ..edit(SHIFT_RIGHT, "Move the date a day later or cycle the TODO state forward")
+        vim: &[native(Org, "<S-Right>")],
+        ..edit(SHIFT_RIGHT, "Move the date a day later, or cycle the TODO state or the list's bullets forward")
     },
     Command {
         emacs: &[key(Org, "C-c C-s"), key(Agenda, "C-c C-s")],

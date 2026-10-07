@@ -563,6 +563,28 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('indents, moves and cycles list items with the meta and shifted keys', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'items.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('- a\n- b\n  - c\n- d\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    moveTo(1, 2);
+    await vscode.commands.executeCommand('org.shiftmeta.right');
+    await until('the item indented with its child', () => editor.document.getText() === '- a\n  - b\n    - c\n- d\n');
+    await vscode.commands.executeCommand('org.shiftmeta.left');
+    await until('and outdented back', () => editor.document.getText() === '- a\n- b\n  - c\n- d\n');
+    await vscode.commands.executeCommand('org.meta.down');
+    await until('the item moved down', () => editor.document.getText() === '- a\n- d\n- b\n  - c\n');
+    assert.equal(editor.selection.active.line, 2, 'the cursor goes with it');
+    await vscode.commands.executeCommand('org.shift.right');
+    await until('the bullets cycled', () => editor.document.getText() === '+ a\n+ d\n+ b\n  - c\n');
+    await vscode.commands.executeCommand('org.shift.up');
+    await until('the cursor on the item above', () => editor.selection.active.line === 1);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('cuts, copies and pastes subtrees through the clipboard', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'clipboard.org'));
     await vscode.workspace.fs.writeFile(file, Buffer.from('* A\n** B\ntext\n** C\n'));

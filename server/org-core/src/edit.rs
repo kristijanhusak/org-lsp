@@ -100,6 +100,12 @@ pub fn document_priorities(parse: &Parse) -> Option<Priorities> {
 }
 
 /// Whether `offset` is on a headline (`org-at-heading-p`).
+/// Whether Org's shifted cursor keys act on a list item at `offset`: on
+/// the line of one, with no timestamp or headline before it.
+pub fn shifts_item(text: &str, offset: usize) -> bool {
+    Stamp::around(text, offset).is_none() && !on_headline(text, offset) && crate::list::at_item(text, offset)
+}
+
 fn on_headline(text: &str, offset: usize) -> bool {
     let start = text[..offset].rfind('\n').map_or(0, |index| index + 1);
     headline_level(text[start..].split('\n').next().unwrap_or("")).is_some()
@@ -195,6 +201,21 @@ pub fn run(
         Command::Checkbox if tblfm::on_formula_line(text, offset) => {
             run(&Command::Table(tblfm::Mode::All), text, parse, offset, call, settings)
         }
+        // `C-c C-c` on a timestamp rewrites it (`org-timestamp-change` by
+        // nothing), its weekday put right.
+        Command::Checkbox if Stamp::around(text, offset).is_some() => {
+            let shift = Shift { n: 0, what: Some(Unit::Day), updown: false, counted: false };
+            stamp::change(text, offset, &shift, settings.timestamp_rounding_minutes).map(placed)
+        }
+        // `C-c C-c` on the line of an item, as `org-ctrl-c-ctrl-c` there:
+        // the box toggled and the list repaired.
+        Command::Checkbox if crate::list::at_item(text, offset) && !on_headline(text, offset) => {
+            let outline = crate::outline::Outline::new(parse, text, "");
+            let ordered = outline.entry_property(outline.entry_at(offset), "ORDERED", false);
+            let ordered = ordered.is_some_and(|value| value != "nil");
+            crate::checkbox::ctrl_c_ctrl_c(text, parse.todo_keywords(), offset, settings.todo.tags_column, ordered)
+                .map(|(text, cursor, message)| Outcome { text, cursor: Some(cursor), note: None, message })
+        }
         Command::Checkbox => {
             crate::checkbox::toggle(text, parse.todo_keywords(), offset, settings.todo.tags_column).map(unplaced)
         }
@@ -258,7 +279,18 @@ pub fn run(
                 }
                 Direction::Right if on_headline => Command::Todo(Target::Next),
                 Direction::Left if on_headline => Command::Todo(Target::Previous),
-                _ => return Err(Refusal::NotHere("No timestamp or headline here".to_string())),
+                // On a list item: its list's bullets cycled
+                // (`org-cycle-list-bullet`), or the cursor to the item
+                // before or after (`org-previous-item`, `org-next-item`).
+                Direction::Left | Direction::Right if crate::list::at_item(text, offset) => {
+                    let edited = crate::list::cycle_bullet(text, offset, *direction == Direction::Left)?;
+                    return Ok(Outcome { text: edited.text, cursor: Some(edited.cursor), note: None, message: None });
+                }
+                Direction::Up | Direction::Down if crate::list::at_item(text, offset) => {
+                    let cursor = crate::list::next_item(text, offset, *direction == Direction::Up)?;
+                    return Ok(Outcome { text: text.to_string(), cursor: Some(cursor), note: None, message: None });
+                }
+                _ => return Err(Refusal::NotHere("No timestamp, headline or item here".to_string())),
             };
             run(&next, text, parse, offset, call, settings)
         }
