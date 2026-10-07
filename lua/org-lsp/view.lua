@@ -302,6 +302,21 @@ local function load(bufnr, language)
   vim.lsp.buf_attach_client(bufnr, client.id)
 end
 
+--- Tell the server of the changes to `bufnr` now, not after Neovim's
+--- usual delay. Neovim's change tracking does that without touching the
+--- highlighting; asking for new highlighting does it too, but drops the
+--- old highlighting until the new arrives, which flickers.
+---@param client vim.lsp.Client?
+---@param bufnr integer
+local function send_changes(client, bufnr)
+  local ok, changetracking = pcall(require, 'vim.lsp._changetracking')
+  if client and ok and type(changetracking) == 'table' and type(changetracking.flush) == 'function' then
+    changetracking.flush(client, bufnr)
+  else
+    vim.lsp.semantic_tokens.force_refresh(bufnr)
+  end
+end
+
 M.handlers = {
   --- The server edits a file for a command. Neovim reports changes to a
   --- buffer after a delay; the server should hear of this one at once,
@@ -313,9 +328,9 @@ M.handlers = {
     for _, change in ipairs(edit.documentChanges or {}) do
       table.insert(uris, change.textDocument and change.textDocument.uri)
     end
+    local client = vim.lsp.get_client_by_id(ctx.client_id)
     for _, uri in ipairs(uris) do
-      -- Asking for the new highlighting sends the change first.
-      vim.lsp.semantic_tokens.force_refresh(vim.uri_to_bufnr(uri))
+      send_changes(client, vim.uri_to_bufnr(uri))
     end
     return result
   end,

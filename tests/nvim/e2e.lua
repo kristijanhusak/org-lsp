@@ -894,5 +894,36 @@ end)
 eq({ vim.fn.maparg('gt', 'n'), vim.fn.maparg('cir', 'n'), vim.fn.maparg('<Tab>', 'n') }, { '', '', '' }, 'no keys in Org files')
 eq(vim.fn.maparg('<Leader>oa', 'n', false, true).buffer, 0, 'global keys stay')
 
+-- 30. An edit of the server's (a checkbox toggled) goes to the server at
+-- once, and the highlighting stays until the new arrives: dropping it
+-- first makes a long list flicker.
+local boxes = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* Tasks [0/2]', '- [ ] one', '- [ ] two' }, boxes)
+vim.cmd.edit(boxes)
+local boxes_buf = vim.api.nvim_get_current_buf()
+wait('tokens of the list', function()
+  local tokens = vim.lsp.semantic_tokens.get_at_pos(boxes_buf, 0, 0)
+  return tokens ~= nil and #tokens > 0
+end)
+local force_refresh = vim.lsp.semantic_tokens.force_refresh
+local dropped = 0
+vim.lsp.semantic_tokens.force_refresh = function(...)
+  dropped = dropped + 1
+  return force_refresh(...)
+end
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+vim.cmd('Org checkbox toggle')
+wait('the box checked', function()
+  return line(2) == '- [X] one'
+end)
+vim.lsp.semantic_tokens.force_refresh = force_refresh
+eq(dropped, 0, 'the highlighting is kept while the new is on its way')
+-- The server has the change before the next key: the cookie counts the box.
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+vim.cmd('Org checkbox toggle')
+wait('both boxes counted', function()
+  return line(1) == '* Tasks [2/2]'
+end)
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')
