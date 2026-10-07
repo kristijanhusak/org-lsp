@@ -259,6 +259,48 @@
     }
   },
   {
+    "caption": "Org: Promote the heading",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.meta.left"
+    }
+  },
+  {
+    "caption": "Org: Demote the heading; indent the drawer or block",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.meta.right"
+    }
+  },
+  {
+    "caption": "Org: Promote the subtree",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shiftmeta.left"
+    }
+  },
+  {
+    "caption": "Org: Demote the subtree",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shiftmeta.right"
+    }
+  },
+  {
+    "caption": "Org: Move the subtree up",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.meta.up"
+    }
+  },
+  {
+    "caption": "Org: Move the subtree down",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.meta.down"
+    }
+  },
+  {
     "caption": "Org: Refile the entry",
     "command": "org_lsp_run",
     "args": {

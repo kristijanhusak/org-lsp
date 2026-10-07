@@ -66,9 +66,9 @@ others), as close to Emacs Org mode as it can get.
 As of #61 (2026-10-07). What is left, by milestone; each is a PR or a
 few, checked against Emacs where Org decides the outcome:
 
-- **Structure editing (6):** promote and demote (`M-<left>`/`M-<right>`,
-  `M-S-<left>`/`M-S-<right>`), move subtrees (`M-<up>`/`M-<down>`), cut,
-  copy and paste subtrees, sorting (`org-sort`), sparse trees.
+- **Structure editing (6):** cut, copy and paste subtrees, sorting
+  (`org-sort`), sparse trees. Done: promote, demote and move subtrees
+  (`tests/structure`, `scripts/fuzz-structure.py`).
 - **Lists (8):** cycle bullets (`S-<left>`/`S-<right>` on an item),
   indent and outdent items, move items, renumber.
 - **Tags and properties (7):** set tags (`C-c C-q`, with fast tag
@@ -353,7 +353,10 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 
 - Done: RET (`org-return`), new headings, items and rows (`M-RET`,
   `M-S-RET`, `C-RET`, `C-S-RET`), refile, archive.
-- Promote and demote, move subtrees, cut/copy/paste subtree, sort.
+- Done: promote and demote (`org-do-promote`, `org-promote-subtree`, …),
+  move subtrees (`org-move-subtree-up`, `-down`), `M-<right>` on drawers
+  and blocks; checked against Emacs in `tests/structure`.
+- Cut/copy/paste subtree, sort.
 - Fold cycling in the server (Neovim does it in Lua today,
   `lua/org-lsp/folds.lua`), sparse trees.
 
@@ -514,6 +517,7 @@ Emacs in `tests/tblfm/cases.json`.
   | Formatting (tables, tags) | `tests/format/cases.json` | `scripts/update-format-fixtures.py` | `scripts/fuzz-format.py` |
   | RET (`org-return`) | `tests/return/cases.json` | `scripts/update-return-fixtures.py` | `scripts/fuzz-return.py` |
   | M-RET, M-S-RET, C-RET, C-S-RET | `tests/meta-return/cases.json` | `scripts/update-meta-return-fixtures.py` | `scripts/fuzz-meta-return.py` |
+  | Promote, demote, move subtrees (`M-<left>`, `M-S-<right>`, `M-<up>`, …) | `tests/structure/cases.json` | `scripts/update-structure-fixtures.py` | `scripts/fuzz-structure.py` |
   | Archiving | `tests/archive/cases.json` | `scripts/update-archive-fixtures.py` | `scripts/fuzz-archive.py` |
 - Neovim: `scripts/test-nvim.sh` (set `NVIM` to the binary), on 0.11.0 and
   stable. Tests run headless against the real server.

@@ -138,6 +138,12 @@ pub const CHECKBOX_TOGGLE: &str = "org.checkbox.toggle";
 pub const RETURN: &str = "org.return";
 pub const RETURN_ITEM: &str = "org.return.item";
 pub const META_RETURN: &str = "org.meta.return";
+pub const META_LEFT: &str = "org.meta.left";
+pub const META_RIGHT: &str = "org.meta.right";
+pub const SHIFT_META_LEFT: &str = "org.shiftmeta.left";
+pub const SHIFT_META_RIGHT: &str = "org.shiftmeta.right";
+pub const META_UP: &str = "org.meta.up";
+pub const META_DOWN: &str = "org.meta.down";
 pub const INSERT_TODO_HEADING: &str = "org.insert.todo.heading";
 pub const INSERT_HEADING_AFTER: &str = "org.insert.heading.after";
 pub const INSERT_TODO_HEADING_AFTER: &str = "org.insert.todo.heading.after";
@@ -332,6 +338,30 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-S-RET")],
         vim: &[append(Org, "<Leader>oit")],
         ..edit(INSERT_TODO_HEADING_AFTER, "New TODO heading after the subtree")
+    },
+    // Structure editing on Org's meta keys: what they do depends on where
+    // the cursor is (a headline here; elsewhere the key's own meaning).
+    Command { emacs: &[native(Org, "M-<left>")], vim: &[native(Org, "<<")], ..edit(META_LEFT, "Promote the heading") },
+    Command {
+        emacs: &[native(Org, "M-<right>")],
+        vim: &[native(Org, ">>")],
+        ..edit(META_RIGHT, "Demote the heading; indent the drawer or block")
+    },
+    Command {
+        emacs: &[native(Org, "M-S-<left>")],
+        vim: &[key(Org, "<s")],
+        ..edit(SHIFT_META_LEFT, "Promote the subtree")
+    },
+    Command {
+        emacs: &[native(Org, "M-S-<right>")],
+        vim: &[key(Org, ">s")],
+        ..edit(SHIFT_META_RIGHT, "Demote the subtree")
+    },
+    Command { emacs: &[native(Org, "M-<up>")], vim: &[key(Org, "<Leader>oK")], ..edit(META_UP, "Move the subtree up") },
+    Command {
+        emacs: &[native(Org, "M-<down>")],
+        vim: &[key(Org, "<Leader>oJ")],
+        ..edit(META_DOWN, "Move the subtree down")
     },
     Command {
         emacs: &[key(Org, "C-c C-w"), key(Agenda, "C-c C-w")],

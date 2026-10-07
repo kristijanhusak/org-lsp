@@ -47,6 +47,12 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oiT` | `org.insert.todo.heading` | New TODO heading, or item with a checkbox |
 | `<Leader>oih` | `org.insert.heading.after` | New heading after the subtree |
 | `<Leader>oit` | `org.insert.todo.heading.after` | New TODO heading after the subtree |
+| `<<`¹ | `org.meta.left` | Promote the heading |
+| `>>`¹ | `org.meta.right` | Demote the heading; indent the drawer or block |
+| `<s` | `org.shiftmeta.left` | Promote the subtree |
+| `>s` | `org.shiftmeta.right` | Demote the subtree |
+| `<Leader>oK` | `org.meta.up` | Move the subtree up |
+| `<Leader>oJ` | `org.meta.down` | Move the subtree down |
 | `<Leader>or` | `org.refile` | Refile the entry |
 | `<Leader>ona` | `org.add.note` | Add a note to the entry |
 | `<Leader>obt` | `org.babel.tangle` | Tangle the file's code blocks |

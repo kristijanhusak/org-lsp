@@ -739,6 +739,50 @@ eq(vim.api.nvim_win_get_cursor(0), { 7, 2 }, 'in its first field')
 vim.cmd = command
 vim.cmd('silent! write')
 
+-- 23d. Structure editing: `>>` and `<<` demote and promote a headline,
+-- `>s` and `<s` its subtree, `<Leader>oJ` and `<Leader>oK` move it; off a
+-- headline `>>` shifts the line as Vim does.
+local structure = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A', '** B', 'text', '*** C', '** D' }, structure)
+vim.cmd.edit(structure)
+wait('the server for structure editing', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press('>>')
+wait('the headline demoted', function()
+  return line(2) == '*** B'
+end)
+press('<<')
+wait('and promoted back', function()
+  return line(2) == '** B'
+end)
+press('>s')
+wait('the subtree demoted', function()
+  return line(2) == '*** B' and line(4) == '**** C'
+end)
+press('<s')
+wait('and promoted back', function()
+  return line(2) == '** B' and line(4) == '*** C'
+end)
+press('<Leader>oJ')
+wait('the subtree moved down', function()
+  return vim.deep_equal(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* A', '** D', '** B', 'text', '*** C' })
+end)
+eq(vim.api.nvim_win_get_cursor(0)[1], 3, 'the cursor goes with it')
+press('<Leader>oK')
+wait('and up again', function()
+  return vim.deep_equal(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* A', '** B', 'text', '*** C', '** D' })
+end)
+vim.bo.shiftwidth = 2
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+press('>>')
+wait('the text line shifted as Vim shifts it', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return line(3) == '  text'
+end)
+vim.cmd('silent! write')
+
 -- 23c. Archived subtrees stay closed when TAB and S-TAB open what is
 -- around them (`org-cycle-hide-archived-subtrees`).
 local with_archived = vim.fn.tempname() .. '.org'

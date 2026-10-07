@@ -545,6 +545,24 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('promotes, demotes and moves subtrees with the meta keys', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'structure.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* A\n** B\ntext\n*** C\n** D\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    moveTo(1, 0);
+    await vscode.commands.executeCommand('org.shiftmeta.right');
+    await until('the subtree demoted', () => editor.document.lineAt(1).text === '*** B' && editor.document.lineAt(3).text === '**** C');
+    await vscode.commands.executeCommand('org.meta.left');
+    await until('the headline promoted', () => editor.document.lineAt(1).text === '** B');
+    await vscode.commands.executeCommand('org.meta.down');
+    await until('the subtree moved down', () => editor.document.getText() === '* A\n** D\n** B\ntext\n**** C\n');
+    assert.equal(editor.selection.active.line, 2, 'the cursor goes with it');
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('archives a subtree into the archive file, and asks about each done one', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'archive.org'));
     const archive = vscode.Uri.file(path.join(workspace, 'archive.org_archive'));

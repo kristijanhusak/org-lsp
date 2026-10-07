@@ -408,6 +408,168 @@
   },
   {
     "keys": [
+      "alt+left"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.meta.left",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "subwords",
+          "forward": false
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "alt+right"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.meta.right",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "subword_ends",
+          "forward": true
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "alt+shift+left"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shiftmeta.left",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "subwords",
+          "forward": false,
+          "extend": true
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "alt+shift+right"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.shiftmeta.right",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "subword_ends",
+          "forward": true,
+          "extend": true
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "alt+up"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.meta.up",
+      "fallback": {
+        "command": "swap_line_up"
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "alt+down"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.meta.down",
+      "fallback": {
+        "command": "swap_line_down"
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
       "ctrl+c",
       "ctrl+w"
     ],

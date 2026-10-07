@@ -359,6 +359,34 @@ function! s:meta_return() abort
 endfunction
 call s:test('M-RET and its neighbours insert headings and items', function('s:meta_return'))
 
+function! s:structure() abort
+  let file = s:work . '/notes/structure.org'
+  call writefile(['* A', '** B', 'text', '*** C', '** D'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  " `>>` and `<<` demote and promote the headline, `>s` its subtree,
+  " `\oJ` moves the subtree down.
+  call cursor(2, 1)
+  call feedkeys('>>', 'xt')
+  call s:until('the headline demoted', {-> getline(2) ==# '*** B'})
+  call feedkeys('<<', 'xt')
+  call s:until('and promoted back', {-> getline(2) ==# '** B'})
+  call feedkeys('>s', 'xt')
+  call s:until('the subtree demoted', {-> getline(2) ==# '*** B' && getline(4) ==# '**** C'})
+  call feedkeys('<s', 'xt')
+  call s:until('and promoted back', {-> getline(2) ==# '** B' && getline(4) ==# '*** C'})
+  call feedkeys("\\oJ", 'xt')
+  call s:until('the subtree moved down', {-> getline(1, '$') == ['* A', '** D', '** B', 'text', '*** C']})
+  call assert_equal(3, line('.'))
+  " Off a headline `>>` shifts the line as Vim does.
+  setlocal shiftwidth=2
+  call cursor(4, 1)
+  call feedkeys('>>', 'xt')
+  call s:until('the text shifted', {-> getline(4) ==# '  text'})
+  silent write
+endfunction
+call s:test('<< and >> promote and demote headlines, and move subtrees', function('s:structure'))
+
 function! s:help() abort
   execute 'buffer' s:work_buf
   let popup = org_lsp#help()

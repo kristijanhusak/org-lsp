@@ -1484,6 +1484,48 @@ impl Server {
             CodeActionOrCommand::CodeAction(action.to_lsp(edit))
         };
         let mut result: Vec<CodeActionOrCommand> = found.iter().map(to_lsp).collect();
+        // On a headline: promoting, demoting and moving it, as edits, where
+        // they would do something.
+        if org_core::structure::at_heading(&document.text, offset) {
+            use org_core::structure;
+            let text = &document.text;
+            let keywords = document.parse.todo_keywords();
+            let structure_settings =
+                structure::Settings { tags_column: self.refile.2.tags_column, indent: self.indent_in(text) };
+            let tried = [
+                (commands::META_LEFT, structure::change_levels(text, offset, -1, false, keywords, &structure_settings)),
+                (commands::META_RIGHT, structure::change_levels(text, offset, 1, false, keywords, &structure_settings)),
+                (
+                    commands::SHIFT_META_LEFT,
+                    structure::change_levels(text, offset, -1, true, keywords, &structure_settings),
+                ),
+                (
+                    commands::SHIFT_META_RIGHT,
+                    structure::change_levels(text, offset, 1, true, keywords, &structure_settings),
+                ),
+                (commands::META_UP, structure::move_subtree(text, offset, -1)),
+                (commands::META_DOWN, structure::move_subtree(text, offset, 1)),
+            ];
+            for (id, outcome) in tried {
+                let Ok(outcome) = outcome else { continue };
+                if !actions::requested(id, only) || outcome.text == *text {
+                    continue;
+                }
+                let edits = actions::edits_between(text, &outcome.text)
+                    .into_iter()
+                    .map(|edit| TextEdit {
+                        range: document.index.range(text, edit.range, encoding),
+                        new_text: edit.new_text,
+                    })
+                    .collect();
+                result.push(CodeActionOrCommand::CodeAction(CodeAction {
+                    title: commands::title(id).to_string(),
+                    kind: Some(CodeActionKind::new(id)),
+                    edit: Some(self.workspace_edit(uri, Some(document.version), edits)),
+                    ..Default::default()
+                }));
+            }
+        }
         // Clocking and archiving, as commands: they may change another file
         // too.
         let in_entry = Self::heading_above(&document.text, offset).is_some();
@@ -2376,6 +2418,14 @@ impl Server {
                 &context.ok_or("This command needs the cursor position")?,
                 params.command == commands::RETURN_ITEM,
             ),
+            commands::META_LEFT
+            | commands::META_RIGHT
+            | commands::SHIFT_META_LEFT
+            | commands::SHIFT_META_RIGHT
+            | commands::META_UP
+            | commands::META_DOWN => {
+                self.structure(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
             commands::META_RETURN
             | commands::INSERT_TODO_HEADING
             | commands::INSERT_HEADING_AFTER
@@ -4012,6 +4062,43 @@ impl Server {
             }
             commands::INSERT_HEADING_AFTER => meta_return::insert_heading_after(text, offset, keywords, &settings),
             _ => meta_return::insert_todo_heading(text, offset, keywords, &settings, true)?,
+        };
+        self.carried(context, outcome)
+    }
+
+    /// Org's meta keys for structure editing (`org-metaleft`,
+    /// `org-metaright`, `org-shiftmetaleft`, `org-shiftmetaright`,
+    /// `org-metaup`, `org-metadown`): on a headline, promoting, demoting
+    /// and moving subtrees; `M-<right>` on a drawer or block indents it.
+    /// Carried in the result as `org.return` is.
+    fn structure(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::structure;
+        let encoding = self.client.encoding;
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        let keywords = document.parse.todo_keywords().clone();
+        if id == commands::META_RIGHT {
+            let settings = self.indent_in(&text);
+            if let Some((outcome, message)) =
+                structure::indent_element(&text, offset, &document.parse.syntax(), &settings)?
+            {
+                self.message = Some(message.to_string());
+                return self.carried(context, outcome);
+            }
+        }
+        if !structure::at_heading(&text, offset) {
+            return Err(Refusal::NotHere("Not at a headline".to_string()));
+        }
+        let settings = structure::Settings { tags_column: self.refile.2.tags_column, indent: self.indent_in(&text) };
+        let count = context.count.filter(|count| *count > 0).unwrap_or(1) as isize;
+        let outcome = match id {
+            commands::META_LEFT => structure::change_levels(&text, offset, -1, false, &keywords, &settings)?,
+            commands::META_RIGHT => structure::change_levels(&text, offset, 1, false, &keywords, &settings)?,
+            commands::SHIFT_META_LEFT => structure::change_levels(&text, offset, -1, true, &keywords, &settings)?,
+            commands::SHIFT_META_RIGHT => structure::change_levels(&text, offset, 1, true, &keywords, &settings)?,
+            commands::META_UP => structure::move_subtree(&text, offset, -count)?,
+            _ => structure::move_subtree(&text, offset, count)?,
         };
         self.carried(context, outcome)
     }

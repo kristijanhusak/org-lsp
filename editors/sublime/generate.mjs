@@ -81,6 +81,14 @@ const fallbacks = {
   tab: { command: 'insert_best_completion', args: { default: '\t', exact: false } },
   enter: { command: 'insert', args: { characters: '\n' } },
   'shift+enter': { command: 'insert', args: { characters: '\n' } },
+  // Org's structure keys: Sublime Text's moves by part of a word, and
+  // its lines up and down.
+  'alt+left': { command: 'move', args: { by: 'subwords', forward: false } },
+  'alt+right': { command: 'move', args: { by: 'subword_ends', forward: true } },
+  'alt+shift+left': { command: 'move', args: { by: 'subwords', forward: false, extend: true } },
+  'alt+shift+right': { command: 'move', args: { by: 'subword_ends', forward: true, extend: true } },
+  'alt+up': { command: 'swap_line_up' },
+  'alt+down': { command: 'swap_line_down' },
 };
 
 /** The package's own commands, with their keys. */
