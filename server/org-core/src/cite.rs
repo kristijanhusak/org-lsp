@@ -158,6 +158,9 @@ pub struct Reference {
     pub start: usize,
     pub end: usize,
     pub key: String,
+    /// The part of the citation the reference is, between semicolons
+    /// (its prefix and suffix with it).
+    pub part: (usize, usize),
 }
 
 /// Whether `c` may be in a key (`org-element-citation-key-re`).
@@ -183,11 +186,40 @@ pub fn references(text: &str, offset: usize) -> Vec<Reference> {
                 start: offset + part_start + at,
                 end: offset + part_start + at + 1 + key_len,
                 key: part[at + 1..at + 1 + key_len].to_string(),
+                part: (offset + part_start, offset + part_start + part.len()),
             });
         }
         part_start += part.len() + 1;
     }
     out
+}
+
+/// The citation around byte `offset` of a document: where it starts and
+/// its text.
+pub fn citation_at(parse: &org_syntax::Parse, offset: usize) -> Option<(usize, String)> {
+    let root = parse.syntax();
+    let offset = org_syntax::TextSize::try_from(offset).ok()?;
+    let token = match root.token_at_offset(offset) {
+        org_syntax::TokenAtOffset::None => return None,
+        org_syntax::TokenAtOffset::Single(token) => token,
+        // Between two tokens, the one on the left when it is the end of a
+        // citation, so that the end of a key counts.
+        org_syntax::TokenAtOffset::Between(left, right) => {
+            if left.parent_ancestors().any(|node| node.kind() == org_syntax::SyntaxKind::CITATION) {
+                left
+            } else {
+                right
+            }
+        }
+    };
+    let citation = token.parent_ancestors().find(|node| node.kind() == org_syntax::SyntaxKind::CITATION)?;
+    Some((usize::from(citation.text_range().start()), citation.text().to_string()))
+}
+
+/// The reference of a citation at byte `offset`: the one whose key the
+/// offset is on or at the end of.
+pub fn key_at(references: &[Reference], offset: usize) -> Option<&Reference> {
+    references.iter().find(|reference| reference.start <= offset && offset <= reference.end)
 }
 
 /// The bibliography files `org-cite-list-bibliography-files` lists for a

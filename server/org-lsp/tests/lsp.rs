@@ -1190,3 +1190,105 @@ fn toggles_checkboxes() {
     assert!(client.code_actions(&uri(), Position::new(1, 0), "org.checkbox.toggle").is_empty());
     client.shutdown();
 }
+
+/// Citations (`oc-basic`): the bibliography of `#+BIBLIOGRAPHY:`, an
+/// unknown key marked with the keys close to it and one to put instead,
+/// a key's entry over it, where following it goes, and keys completed
+/// after `@`.
+#[test]
+fn citations_follow_the_bibliography() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-cite-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    std::fs::write(
+        directory.join("refs.bib"),
+        "@Book{knuth1984,\n  author = {Knuth, Donald E.},\n  title = {The {\\TeX}book},\n  publisher = {Addison-Wesley},\n  year = 1984\n}\n\n@article{doe2020,\n  author = {John Doe and Jane Roe},\n  title = {A Study},\n  journal = {Things},\n  date = {2020-05-01}\n}\n",
+    )
+    .unwrap();
+    let file = directory.join("notes.org");
+    let text = "#+bibliography: refs.bib\n\nAs [cite/t:see @knuth1984; @doe202 p. 3] says.\n";
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri, text);
+    // The unknown key, with the one close to it.
+    let published = client.notification("textDocument/publishDiagnostics");
+    let diagnostics = published["diagnostics"].as_array().unwrap().clone();
+    assert_eq!(diagnostics.len(), 1, "{published}");
+    assert_eq!(diagnostics[0]["message"], "Unknown citation key: @doe202 (suggestions: doe2020)");
+    assert_eq!(diagnostics[0]["range"]["start"], json!({ "line": 2, "character": 27 }));
+    assert_eq!(diagnostics[0]["range"]["end"], json!({ "line": 2, "character": 34 }));
+    let actions = client
+        .raw_request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": uri.as_str() },
+                "range": diagnostics[0]["range"],
+                "context": { "diagnostics": diagnostics },
+            }),
+        )
+        .response_result
+        .unwrap();
+    let fix =
+        actions.as_array().unwrap().iter().find(|action| action["title"] == "Replace with @doe2020").expect("a fix");
+    assert_eq!(fix["kind"], "quickfix");
+    // The entry over its key.
+    let hover = |client: &mut Client, character: u32| {
+        client
+            .raw_request(
+                "textDocument/hover",
+                json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": character } }),
+            )
+            .response_result
+            .unwrap()
+    };
+    assert_eq!(hover(&mut client, 18)["contents"]["value"], "Knuth. The {\\TeX}book, Addison-Wesley, 1984.");
+    assert_eq!(hover(&mut client, 30)["contents"]["value"], "Suggestions: doe2020");
+    assert_eq!(hover(&mut client, 2), Value::Null);
+    // Following the key: its entry.
+    let definition = client
+        .raw_request(
+            "textDocument/definition",
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 20 } }),
+        )
+        .response_result
+        .unwrap();
+    assert!(definition["uri"].as_str().unwrap().ends_with("refs.bib"), "{definition}");
+    assert_eq!(definition["range"]["start"], json!({ "line": 0, "character": 0 }));
+    // `C-c C-o` on the style asks which of the keys.
+    let asked = client
+        .raw_request(
+            "workspace/executeCommand",
+            json!({ "command": "org.open", "arguments": [{
+                "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 7 },
+            }] }),
+        )
+        .response_result
+        .unwrap();
+    assert_eq!(asked["input"]["prompt"], "Select citation key");
+    assert_eq!(
+        asked["input"]["choices"],
+        json!([{ "key": "knuth1984", "label": "knuth1984" }, { "key": "doe202", "label": "doe202" }])
+    );
+    // Keys after `@`, with their authors, year and title.
+    client.notify::<lsp_types::notification::DidChangeTextDocument>(lsp_types::DidChangeTextDocumentParams {
+        text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri.clone(), version: 2 },
+        content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+            range: None,
+            range_length: None,
+            text: "#+bibliography: refs.bib\n\nSee [cite:@do".to_string(),
+        }],
+    });
+    let completion = client
+        .raw_request(
+            "textDocument/completion",
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 15 } }),
+        )
+        .response_result
+        .unwrap();
+    let items = completion.as_array().unwrap();
+    let doe = items.iter().find(|item| item["label"] == "doe2020").expect("doe2020 offered");
+    assert_eq!(doe["detail"], "John Doe; Jane Roe         2020  A Study");
+    assert_eq!(doe["textEdit"]["range"]["start"], json!({ "line": 2, "character": 11 }));
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}

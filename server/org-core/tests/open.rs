@@ -94,6 +94,7 @@ fn opening_matches_emacs() {
             Ok(Open::Tags(tag)) => json!({ "tags": tag }),
             Ok(Open::Nothing(_)) => goto(name, &text, offset),
             Ok(Open::Choose(_)) => json!({ "error": "asked twice" }),
+            Ok(Open::Citation(keys)) => json!({ "citation": keys }),
             Err(error) => json!({ "error": error }),
         };
         if let Some(offered) = offered {

@@ -33,6 +33,8 @@ pub enum Kind {
     Folder,
     Heading,
     Entity,
+    /// A citation key, from the bibliography.
+    Citation,
 }
 
 /// One candidate: what the menu shows, and what it inserts.
@@ -41,16 +43,18 @@ pub struct Candidate {
     pub label: String,
     pub kind: Kind,
     pub insert: String,
+    /// More about it, next to the label.
+    pub detail: Option<String>,
 }
 
 impl Candidate {
     fn new(label: impl Into<String>, kind: Kind) -> Candidate {
         let label = label.into();
-        Candidate { insert: label.clone(), label, kind }
+        Candidate { insert: label.clone(), label, kind, detail: None }
     }
 
     fn inserting(label: impl Into<String>, kind: Kind, insert: impl Into<String>) -> Candidate {
-        Candidate { label: label.into(), kind, insert: insert.into() }
+        Candidate { label: label.into(), kind, insert: insert.into(), detail: None }
     }
 }
 
@@ -65,6 +69,35 @@ pub struct Context<'a> {
     pub list_directory: &'a dyn Fn(&Path) -> Vec<(String, bool)>,
     /// The text of another file, for its headlines.
     pub read_file: &'a dyn Fn(&Path) -> Option<String>,
+    /// The keys of the bibliography, each with its line of the completion
+    /// table (authors, year, title).
+    pub citation_keys: &'a [(String, String)],
+}
+
+/// Whether the text before the cursor on its line (`before`) ends with
+/// an `@` and the start of a key in a citation not closed yet: where the
+/// key starts.
+pub fn citation_key_start(before: &str) -> Option<usize> {
+    let open = before.rfind("[cite")?;
+    let inside = &before[open..];
+    if inside.contains(']') || !inside.contains(':') {
+        return None;
+    }
+    let is_key_char = |c: char| c.is_alphanumeric() || "-.:?!`'/*@+|(){}<>&_^$#%~".contains(c);
+    let at = before.rfind('@')?;
+    (at > open && before[at + 1..].chars().all(is_key_char)).then_some(at + 1)
+}
+
+/// Citation keys after `@` in a citation (`org-cite-insert`'s table): the
+/// key, with its authors, year and title beside it.
+fn citation(before: &str, context: &Context) -> Option<(usize, Vec<Candidate>)> {
+    let start = citation_key_start(before)?;
+    let candidates = context
+        .citation_keys
+        .iter()
+        .map(|(key, line)| Candidate { detail: Some(line.clone()), ..Candidate::new(key.clone(), Kind::Citation) })
+        .collect();
+    Some((start, candidates))
 }
 
 /// The candidates at byte `offset` of `text`, and where the word they
@@ -75,7 +108,8 @@ pub fn complete(text: &str, offset: usize, context: &Context) -> Option<(usize, 
     let end = text[offset..].find('\n').map_or(text.len(), |index| offset + index);
     let before = &text[start..offset];
     let after_blank = text[offset..end].trim().is_empty();
-    let found = keyword_line(before, after_blank)
+    let found = citation(before, context)
+        .or_else(|| keyword_line(before, after_blank))
         .or_else(|| link(text, before, context))
         .or_else(|| entity(before))
         .or_else(|| headline(text, before, context))
@@ -665,6 +699,7 @@ mod tests {
             read_file: &|path: &Path| {
                 (path == Path::new("/notes/a.org")).then(|| "* TODO First [1/2] :x:\n** Second\n".to_string())
             },
+            citation_keys: &[],
         }
     }
 
