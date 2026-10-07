@@ -281,6 +281,11 @@
         "category": "Org"
       },
       {
+        "command": "org.clock.display",
+        "title": "Show the time clocked under each headline",
+        "category": "Org"
+      },
+      {
         "command": "org.todo",
         "title": "Change the TODO state",
         "category": "Org"
@@ -949,6 +954,21 @@
               "type": "boolean",
               "markdownDescription": "Marking the clocked entry done stops the clock. (`org-clock-out-when-done`)",
               "default": true
+            },
+            "org_clock_display_default_range": {
+              "enum": [
+                "today",
+                "yesterday",
+                "thisweek",
+                "lastweek",
+                "thismonth",
+                "lastmonth",
+                "thisyear",
+                "lastyear",
+                "untilnow"
+              ],
+              "markdownDescription": "The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up. (`org-clock-display-default-range`)",
+              "default": "thisyear"
             },
             "org_clock_in_switch_to_state": {
               "type": "string",
@@ -3014,6 +3034,11 @@
       {
         "command": "org.clock.goto",
         "key": "ctrl+c ctrl+x ctrl+j",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.display",
+        "key": "ctrl+c ctrl+x ctrl+d",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

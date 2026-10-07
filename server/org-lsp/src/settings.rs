@@ -162,6 +162,13 @@ pub const SETTINGS: &[Setting] = &[
         "org-clock-out-when-done",
         "Marking the clocked entry done stops the clock.",
     ),
+    setting(
+        "org_clock_display_default_range",
+        "\"today\" | \"yesterday\" | \"thisweek\" | \"lastweek\" | \"thismonth\" | \"lastmonth\" | \"thisyear\" | \"lastyear\" | \"untilnow\"",
+        "\"thisyear\"",
+        "org-clock-display-default-range",
+        "The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up.",
+    ),
     Setting {
         default: None,
         unset: "none",
@@ -965,6 +972,10 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_clock_into_drawer", r#"{ "type": ["boolean", "string"] }"#),
     ("org_clock_out_remove_zero_time_clocks", BOOLEAN),
     ("org_clock_out_when_done", BOOLEAN),
+    (
+        "org_clock_display_default_range",
+        r#"{ "enum": ["today", "yesterday", "thisweek", "lastweek", "thismonth", "lastmonth", "thisyear", "lastyear", "untilnow"] }"#,
+    ),
     ("org_clock_in_switch_to_state", STRING),
     ("org_clock_out_switch_to_state", STRING),
     ("org_todo_repeat_to_state", r#"{ "anyOf": [{ "type": "string" }, { "const": true }] }"#),

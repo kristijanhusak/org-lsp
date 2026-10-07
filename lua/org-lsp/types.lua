@@ -19,6 +19,7 @@
 ---@field org_clock_into_drawer? boolean|string Where `CLOCK:` lines go: `true` for the drawer of `org_log_into_drawer` (`LOGBOOK` when that is not a name), the name of a drawer, or `false` for the entry itself. (`org-clock-into-drawer`)
 ---@field org_clock_out_remove_zero_time_clocks? boolean Clocking out after less than a minute removes the `CLOCK:` line. (`org-clock-out-remove-zero-time-clocks`)
 ---@field org_clock_out_when_done? boolean Marking the clocked entry done stops the clock. (`org-clock-out-when-done`)
+---@field org_clock_display_default_range? 'today'|'yesterday'|'thisweek'|'lastweek'|'thismonth'|'lastmonth'|'thisyear'|'lastyear'|'untilnow' The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up. (`org-clock-display-default-range`)
 ---@field org_clock_in_switch_to_state? string The TODO state an entry is put in when the clock starts on it (`NEXT`), unless it has it already. (`org-clock-in-switch-to-state`)
 ---@field org_clock_out_switch_to_state? string The TODO state an entry is put in when the clock stops on it. (`org-clock-out-switch-to-state`)
 ---@field org_complete_tags_always_offer_all_agenda_tags? boolean Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. Setting tags offers them too. (`org-complete-tags-always-offer-all-agenda-tags`)

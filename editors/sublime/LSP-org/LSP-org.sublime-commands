@@ -315,6 +315,13 @@
     }
   },
   {
+    "caption": "Org: Show the time clocked under each headline",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.clock.display"
+    }
+  },
+  {
     "caption": "Org: Change the TODO state",
     "command": "org_lsp_run",
     "args": {

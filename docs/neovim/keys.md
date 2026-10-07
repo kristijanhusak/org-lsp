@@ -35,6 +35,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oxi` | `org.clock.in` | Clock in |
 | `<Leader>oxo` | `org.clock.out` | Clock out |
 | `<Leader>oxq` | `org.clock.cancel` | Cancel the clock |
+| `<Leader>oxd` | `org.clock.display` | Show the time clocked under each headline |
 | `cit` | `org.todo` | Change the TODO state |
 | `ciT` | `org.todo.previous` | Cycle TODO state backward |
 | `ciR` | `org.priority.up` | Raise the priority |

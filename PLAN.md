@@ -89,7 +89,7 @@ few, checked against Emacs where Org decides the outcome:
   moving rows and columns, `C-c -` for a rule.
 - **Agenda (5):** done.
 - **Clocking (9):** clock tables in files (`#+BEGIN: clocktable`,
-  `C-c C-x C-r`), `org-clock-display`, the clock history, idle time and
+  `C-c C-x C-r`), the clock history, idle time and
   dangling clocks.
 - **Capture (10):** item and checkitem templates, date trees, `%^g`
   tags, `%a` from the agenda.
@@ -465,10 +465,13 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
 - Done: `org-clock-in-switch-to-state` and
   `org-clock-out-switch-to-state` (a state, not a function), checked
   against Emacs in `tests/clock` (`scripts/clock_reference.py`).
+- Done: `org-clock-display` (`C-c C-x C-d`), the times as inlay hints,
+  with `org-clock-special-range` for its ranges, checked against Emacs
+  in `tests/clock`.
 - Left: clock tables in files (`#+BEGIN: clocktable`, `C-c C-x C-r`),
   idle time and resolving dangling clocks
-  with a question, the clock history (`C-u C-c C-x C-i`), effort
-  estimates (`C-c C-x e`), `org-clock-display` (`C-c C-x C-d`).
+  with a question, the clock history (`C-u C-c C-x C-i`). (Effort
+  estimates, `C-c C-x e`, came with the properties.)
 
 ### 10. Capture
 

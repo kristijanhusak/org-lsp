@@ -91,6 +91,8 @@ struct Client {
     line_highlights: bool,
     /// The client rereads semantic tokens when asked.
     tokens_refresh: bool,
+    /// The client asks for inlay hints again when told to.
+    inlay_refresh: bool,
     /// Ask with `window/showMessageRequest` (`message_prompts`).
     message_prompts: bool,
     /// More commands as code actions, and the agenda's through the
@@ -514,6 +516,12 @@ struct Server {
     agenda_persistent_marks: bool,
     /// While a bulk action runs: the files as its commands left them.
     staging: Option<bulk::Staging>,
+    /// `org-clock-display`: by document, the lines of headlines and the
+    /// minutes clocked under them, shown as inlay hints until the
+    /// document changes.
+    clock_display: HashMap<String, Vec<(u32, i64)>>,
+    /// `org-clock-display-default-range`
+    clock_display_range: String,
     /// The file whose headlines are the refile targets of the current
     /// file (`org-refile-targets` `nil`), when it is not the entry's: a
     /// bulk refile reads them from its first entry's file.
@@ -590,6 +598,10 @@ pub fn run(connection: Connection) -> Result<()> {
             .pointer("/capabilities/workspace/semanticTokens/refreshSupport")
             .and_then(Value::as_bool)
             .unwrap_or(false),
+        inlay_refresh: raw_params
+            .pointer("/capabilities/workspace/inlayHint/refreshSupport")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
         message_prompts: options.message_prompts.unwrap_or(false),
         command_actions: options.command_actions.unwrap_or(false),
         command_script: options
@@ -610,7 +622,7 @@ pub fn run(connection: Connection) -> Result<()> {
     };
 
     let result = InitializeResult {
-        capabilities: capabilities(client.encoding, !client.virtual_indent, client.command_actions),
+        capabilities: capabilities(client.encoding, true, client.command_actions),
         server_info: Some(ServerInfo {
             name: "org-lsp".to_string(),
             version: Some(env!("CARGO_PKG_VERSION").to_string()),
@@ -682,6 +694,8 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_marks: Vec::new(),
         agenda_persistent_marks: options.agenda.persistent_marks.unwrap_or(false),
         staging: None,
+        clock_display: HashMap::new(),
+        clock_display_range: options.clock_display_default_range.clone().unwrap_or_else(|| "thisyear".to_string()),
         refile_current: None,
         agenda_filters: Default::default(),
         documents: HashMap::new(),
@@ -1439,6 +1453,11 @@ impl Server {
                 self.sync_clock(key);
                 self.publish_virtual_indent(key);
                 self.publish_citation_diagnostics(key);
+                // The clock's times go with the next change, as Emacs's
+                // overlays do (`org-remove-highlights-with-change`).
+                if self.clock_display.remove(key).is_some() {
+                    self.refresh_inlay_hints();
+                }
                 // An edit the server asked for has arrived: show its effect.
                 // Any other change means the user did something in between.
                 if self.edited.remove(key) {
@@ -1518,27 +1537,43 @@ impl Server {
     fn inlay_hints(&mut self, params: lsp_types::InlayHintParams) -> Option<Vec<lsp_types::InlayHint>> {
         let document = self.document(&params.text_document.uri)?;
         let text = &document.text;
-        if !self.display.indented(text) {
-            return Some(Vec::new());
-        }
-        let adapt = self.display.adapt(text, self.indent.adapt);
         let (first, last) = (params.range.start.line as usize, params.range.end.line as usize);
-        Some(
-            org_core::indent::virtual_indentation(text, true, false, adapt)
-                .into_iter()
-                .filter(|line| line.prefix > 0 && (first..=last).contains(&line.line))
-                .map(|line| lsp_types::InlayHint {
-                    position: Position::new(line.line as u32, 0),
-                    label: lsp_types::InlayHintLabel::String(" ".repeat(line.prefix)),
-                    kind: None,
-                    text_edits: None,
-                    tooltip: None,
-                    padding_left: None,
-                    padding_right: None,
-                    data: None,
-                })
-                .collect(),
-        )
+        let hint = |line: u32, character: u32, label: String| lsp_types::InlayHint {
+            position: Position::new(line, character),
+            label: lsp_types::InlayHintLabel::String(label),
+            kind: None,
+            text_edits: None,
+            tooltip: None,
+            padding_left: None,
+            padding_right: None,
+            data: None,
+        };
+        let mut hints = Vec::new();
+        // `org-indent-mode`'s prefixes, for a client that does not show
+        // them otherwise.
+        if !self.client.virtual_indent && self.display.indented(text) {
+            let adapt = self.display.adapt(text, self.indent.adapt);
+            hints.extend(
+                org_core::indent::virtual_indentation(text, true, false, adapt)
+                    .into_iter()
+                    .filter(|line| line.prefix > 0 && (first..=last).contains(&line.line))
+                    .map(|line| hint(line.line as u32, 0, " ".repeat(line.prefix))),
+            );
+        }
+        // `org-clock-display`: the time after each headline, its line
+        // filled with dots up to column 60, as Emacs's overlay shows it.
+        for (line, minutes) in self.clock_display.get(params.text_document.uri.as_str()).into_iter().flatten() {
+            if !(first..=last).contains(&(*line as usize)) {
+                continue;
+            }
+            let shown = text.lines().nth(*line as usize).unwrap_or("");
+            let width: usize = shown.chars().map(org_core::text::char_width).sum();
+            let start: usize = text.split_inclusive('\n').take(*line as usize).map(str::len).sum();
+            let end = document.index.position(text, start + shown.len(), self.client.encoding);
+            let label = format!("{}{:>10} ", "·".repeat(60usize.saturating_sub(width)), clock::duration(*minutes));
+            hints.push(hint(*line, end.character, label));
+        }
+        Some(hints)
     }
 
     fn document_symbols(&mut self, params: DocumentSymbolParams) -> Option<DocumentSymbolResponse> {
@@ -2981,6 +3016,19 @@ impl Server {
             commands::CAPTURE_REFILE => {
                 let text = self.capture_buffer_text(context.as_ref());
                 self.refile_capture(context.and_then(|context| context.input).as_deref(), text)
+            }
+            commands::CLOCK_DISPLAY => self.clock_display(&context.ok_or("This command needs the cursor position")?),
+            // `C-c C-c` takes the clock's times away first.
+            commands::CHECKBOX_TOGGLE
+                if context
+                    .as_ref()
+                    .is_some_and(|context| self.clock_display.contains_key(context.text_document.uri.as_str())) =>
+            {
+                let uri =
+                    context.as_ref().map(|context| context.text_document.uri.as_str().to_string()).unwrap_or_default();
+                self.clock_display.remove(&uri);
+                self.refresh_inlay_hints();
+                Ok(json!({ "message": "Temporary highlights/overlays removed from current buffer" }))
             }
             id if id.starts_with("org.clock.") => self.clock_command(id, context.as_ref()),
             id if id == commands::TODO
@@ -6274,6 +6322,55 @@ impl Server {
             }
             line = text[..line - 1].rfind('\n').map_or(0, |index| index + 1);
         }
+    }
+
+    /// Ask the client for inlay hints again, if it can be asked.
+    fn refresh_inlay_hints(&mut self) {
+        if self.client.inlay_refresh {
+            self.send_raw_request("workspace/inlayHint/refresh", Value::Null, None);
+        }
+    }
+
+    /// `org-clock-display` (`C-c C-x C-d`): the time clocked under each
+    /// headline of the file, its subtree included, within
+    /// `org_clock_display_default_range`, or with a count a range picked
+    /// from a list; shown after the headlines until the file changes.
+    fn clock_display(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        const RANGES: [&str; 8] =
+            ["today", "yesterday", "thisweek", "lastweek", "thismonth", "lastmonth", "thisyear", "lastyear"];
+        let uri = context.text_document.uri.clone();
+        if self.is_view(&uri) {
+            return Err(Refusal::NotHere("This command works in Org files".to_string()));
+        }
+        let custom = context.count.is_some_and(|count| count > 0);
+        let range = if custom {
+            let Some(answer) = context.input.clone() else {
+                let choices: Vec<Value> = RANGES.iter().map(|range| json!({ "key": range, "label": range })).collect();
+                return Ok(
+                    json!({ "input": { "kind": "choice", "prompt": "Range", "value": "", "choices": choices } }),
+                );
+            };
+            answer
+        } else {
+            self.clock_display_range.clone()
+        };
+        let now = self.date_time();
+        let span = org_core::clock_range::special_range(&range, now, None, None, 0).map_err(Refusal::Failed)?;
+        let document = self.document(&uri).ok_or("The document is not open")?;
+        let (sums, total) =
+            clock::sums(&document.text, span.start.map(clock::minutes_of), Some(clock::minutes_of(span.end)));
+        let lines: Vec<(u32, i64)> = sums
+            .into_iter()
+            .map(|(offset, minutes)| {
+                (document.index.position(&document.text, offset, self.client.encoding).line, minutes)
+            })
+            .collect();
+        self.clock_display.insert(uri.as_str().to_string(), lines);
+        self.refresh_inlay_hints();
+        let label = if custom { "Total file time (custom)" } else { "Total file time" };
+        Ok(
+            json!({ "message": format!("{label}: {} ({} hours and {} minutes)", clock::duration(total), total / 60, total % 60) }),
+        )
     }
 
     /// `text` with the entry at `heading` put in `state`

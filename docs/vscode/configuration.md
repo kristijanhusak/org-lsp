@@ -149,6 +149,10 @@ them out:
     // (org-clock-out-when-done)
     "org_clock_out_when_done": true,
 
+    // The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up.
+    // (org-clock-display-default-range)
+    "org_clock_display_default_range": "thisyear",
+
     // The TODO state an entry is put in when the clock starts on it (`NEXT`),
     // unless it has it already. (org-clock-in-switch-to-state)
     // "org_clock_in_switch_to_state": unset: none
