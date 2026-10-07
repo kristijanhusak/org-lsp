@@ -1,0 +1,6 @@
+Global list of TODO items of type: ALL
+  side-project:TODO Draft the blog post                                :writing:
+  side-project:TODO Record the video
+  work:       NEXT Call the client                               :meeting:phone:
+  work:       TODO Plan the offsite                                    :meeting:
+  work:       TODO Fix the bike                                     :home:tools:

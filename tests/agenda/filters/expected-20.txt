@@ -1,0 +1,4 @@
+Global list of TODO items of type: ALL
+  side-project:TODO Draft the blog post                                :writing:
+  work:       TODO Write report                                           :desk:
+  work:       NEXT Call the client                               :meeting:phone:

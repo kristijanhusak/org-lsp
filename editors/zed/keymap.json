@@ -119,6 +119,48 @@
           "task_name": "Org agenda: the clock report"
         }
       ],
+      "/": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: filter by tags, categories, effort and regexps"
+        }
+      ],
+      "\\": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: filter by tag"
+        }
+      ],
+      "<": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: filter by the line's category"
+        }
+      ],
+      "=": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: filter by a regexp"
+        }
+      ],
+      "_": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: filter by effort"
+        }
+      ],
+      "^": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: filter by the line's top headline"
+        }
+      ],
+      "|": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: remove all filters"
+        }
+      ],
       "v a": [
         "task::Spawn",
         {

@@ -1,0 +1,3 @@
+Global list of TODO items of type: ALL
+  work:       NEXT Call the client                               :meeting:phone:
+  work:       TODO Plan the offsite                                    :meeting:

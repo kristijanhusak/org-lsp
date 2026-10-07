@@ -204,6 +204,7 @@ pub fn render(
     search: Option<&SearchFiles>,
     now: Now,
     clocked: Option<(&Uri, usize)>,
+    filters: Option<&agenda::filter::Filters>,
 ) -> View {
     let outlines: Vec<&Outline> = files.iter().map(|(_, outline)| *outline).collect();
     let named: Vec<(&Outline, String, String)> = files
@@ -213,7 +214,7 @@ pub fn render(
             (*outline, path, crate::uri::file_name(uri))
         })
         .collect();
-    let (rendered, starts) = block_lines(blocks, &named, search, now, false);
+    let (rendered, starts) = block_lines(blocks, &named, search, now, false, filters);
     let mut text = String::new();
     let mut lines = Vec::with_capacity(rendered.len());
     let mut tokens = Vec::new();
@@ -304,11 +305,71 @@ pub fn org_text(
     files: &[(&Outline, String, String)],
     search: Option<&SearchFiles>,
     now: Now,
+    filters: Option<&agenda::filter::Filters>,
 ) -> String {
-    block_lines(blocks, files, search, now, true).0.into_iter().map(|(_, line)| line.text + "\n").collect()
+    block_lines(blocks, files, search, now, true, filters).0.into_iter().map(|(_, line)| line.text + "\n").collect()
 }
 
 type BlockLines = (Vec<(usize, agenda::Line)>, Vec<Option<(Day, Span)>>);
+
+/// The tags and the categories of the lines of the view `blocks` make,
+/// without its filters, for `/` to tell them apart
+/// (`org-agenda-get-represented-tags`, `-categories`).
+pub fn represented(
+    blocks: &[Block],
+    files: &[(&Outline, String, String)],
+    search: Option<&SearchFiles>,
+    now: Now,
+) -> (Vec<String>, Vec<String>) {
+    let all: Vec<&Outline> = files.iter().map(|(outline, _, _)| *outline).collect();
+    let lines: Vec<agenda::Line> =
+        block_lines(blocks, files, search, now, false, None).0.into_iter().map(|(_, line)| line).collect();
+    let view = agenda::View { lines, start: 0, end: 0 };
+    let config = blocks.first().map(|block| block.config.clone()).unwrap_or_default();
+    let agenda_count = search.map_or(all.len(), |search| search.agenda);
+    let groups = if config.group_tags { agenda::tag_groups(&all[..agenda_count], &config) } else { Vec::new() };
+    (agenda::filter::represented_tags(&view, &all, &groups), agenda::filter::represented_categories(&view, &all))
+}
+
+/// The filters `steps` set, one after the other, as the agenda's filter
+/// commands set them: `{"type": "tag", "filter": ["+work"]}` (also
+/// `category`, `regexp`, `effort`; `"expand": false` for tags not
+/// expanded), `{"string": "+work<0:10", "negate": false}` (`/`),
+/// `{"top": "Projects", "negative": false}` (`^`), `{"remove": true}`
+/// (`|`).
+pub fn filter_steps(
+    steps: &serde_json::Value,
+    represented: &(Vec<String>, Vec<String>),
+) -> Result<agenda::filter::Filters, String> {
+    let mut filters = agenda::filter::Filters::default();
+    let strings = |value: &serde_json::Value| -> Vec<String> {
+        value.as_array().into_iter().flatten().filter_map(|item| item.as_str().map(str::to_string)).collect()
+    };
+    for step in steps.as_array().ok_or("--filters must be a list")? {
+        if step.get("remove").and_then(serde_json::Value::as_bool) == Some(true) {
+            filters = agenda::filter::Filters::default();
+        } else if let Some(string) = step.get("string").and_then(serde_json::Value::as_str) {
+            let negate = step.get("negate").and_then(serde_json::Value::as_bool).unwrap_or(false);
+            filters = agenda::filter::parse(string, negate, &filters, &represented.0, &represented.1).0;
+        } else if let Some(top) = step.get("top").and_then(serde_json::Value::as_str) {
+            let negative = step.get("negative").and_then(serde_json::Value::as_bool).unwrap_or(false);
+            filters.top_headline = Some((top.to_string(), negative));
+        } else {
+            let list = strings(&step["filter"]);
+            match step.get("type").and_then(serde_json::Value::as_str) {
+                Some("tag") => {
+                    filters.tag = list;
+                    filters.expand_tags = step.get("expand").and_then(serde_json::Value::as_bool).unwrap_or(true);
+                }
+                Some("category") => filters.category = list,
+                Some("regexp") => filters.regexp = list,
+                Some("effort") => filters.effort = list,
+                other => return Err(format!("unknown filter step {other:?}")),
+            }
+        }
+    }
+    Ok(filters)
+}
 
 /// The lines of every block, with the block each belongs to, and the
 /// days and span of the blocks that are agendas. Emacs leaves a blank line
@@ -320,6 +381,7 @@ fn block_lines(
     search: Option<&SearchFiles>,
     now: Now,
     blank: bool,
+    filters: Option<&agenda::filter::Filters>,
 ) -> BlockLines {
     let all: Vec<&Outline> = files.iter().map(|(outline, _, _)| *outline).collect();
     let agenda_count = search.map_or(all.len(), |search| search.agenda);
@@ -362,6 +424,11 @@ fn block_lines(
                     end: 0,
                 }),
         };
+        // The lines the filters keep out (`org-agenda-filter-apply`).
+        if let Some(filters) = filters.filter(|filters| !filters.is_empty()) {
+            let groups = if config.group_tags { agenda::tag_groups(outlines, config) } else { Vec::new() };
+            agenda::filter::apply(&mut view, &all, filters, &groups);
+        }
         let agenda = matches!(block.kind, BlockKind::Agenda { .. });
         // A compact agenda block has no header, not even its own.
         if let Some(header) = block.header.as_ref().filter(|_| !(agenda && config.compact_blocks)) {
@@ -502,6 +569,7 @@ mod tests {
             &[(uri.clone(), &outline)],
             None,
             now,
+            None,
             None,
         );
         let lines: Vec<&str> = view.text.lines().collect();

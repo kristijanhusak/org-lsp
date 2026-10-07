@@ -702,6 +702,70 @@ fn searches_the_files() {
     client.shutdown();
 }
 
+/// The agenda's filters: `/` asks for a filter string, `\` for a tag by
+/// key, `=` for a regexp, `<` keeps the line's category, and `|` removes
+/// them all. Each says what filters there are.
+#[test]
+fn filters_the_agenda() {
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/work.org", WORK);
+    client.open("file:///org/home.org", HOME);
+    let run = |client: &mut Client, command: &str, line: u32, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    run(&mut client, "org.agenda.dispatch", 0, json!({ "input": "t" })).unwrap();
+    let all = client.view_text(VIEW);
+    assert!(all.contains("Water plants") && all.contains("Write report"), "{all}");
+    let asked = run(&mut client, "org.agenda.filter", 0, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Filter [+cat-tag<0:10-/regexp/]");
+    let completions = asked["input"]["completions"].as_array().unwrap();
+    assert!(completions.contains(&json!("office")) && completions.contains(&json!("work")), "{completions:?}");
+    let done = run(&mut client, "org.agenda.filter", 0, json!({ "input": "+office" })).unwrap();
+    assert_eq!(done["message"], "Agenda filters: +office");
+    let text = client.view_text(VIEW);
+    assert!(text.contains("Write report") && !text.contains("Water plants"), "{text}");
+    // `|` shows every line again.
+    let done = run(&mut client, "org.agenda.filter.remove", 0, json!({})).unwrap();
+    assert_eq!(done["message"], "All agenda filters removed");
+    assert_eq!(client.view_text(VIEW), all);
+    // `\` with `-` excludes, then `TAB` asks for the tag by name.
+    let asked = run(&mut client, "org.agenda.filter.tag", 0, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Filter[-] by tag");
+    let asked = run(&mut client, "org.agenda.filter.tag", 0, json!({ "input": "-", "step": "filter" })).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Exclude[+] by tag");
+    let asked = run(&mut client, "org.agenda.filter.tag", 0, json!({ "input": "\t", "step": "exclude" })).unwrap();
+    assert_eq!(asked["input"]["context"], json!({ "step": "tag", "answers": "-" }));
+    run(&mut client, "org.agenda.filter.tag", 0, json!({ "input": "office", "step": "tag", "answers": "-" })).unwrap();
+    let text = client.view_text(VIEW);
+    assert!(!text.contains("Write report") && text.contains("Water plants"), "{text}");
+    run(&mut client, "org.agenda.filter.tag", 0, json!({ "input": "\\", "step": "filter" })).unwrap();
+    assert_eq!(client.view_text(VIEW), all);
+    // `=` narrows to a regexp; again removes it.
+    let asked = run(&mut client, "org.agenda.filter.regexp", 0, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Narrow to entries matching regexp");
+    run(&mut client, "org.agenda.filter.regexp", 0, json!({ "input": "plant" })).unwrap();
+    let text = client.view_text(VIEW);
+    assert!(text.contains("Water plants") && !text.contains("Write report") && !text.contains("Call"), "{text}");
+    let done = run(&mut client, "org.agenda.filter.regexp", 0, json!({})).unwrap();
+    assert_eq!(done["message"], "Regexp filter removed");
+    // `<` keeps the category of the cursor's line.
+    let line = all.lines().position(|line| line.contains("Write report")).unwrap() as u32;
+    let done = run(&mut client, "org.agenda.filter.category", line, json!({})).unwrap();
+    assert_eq!(done["message"], "Agenda filters: [+work]");
+    let text = client.view_text(VIEW);
+    assert!(text.contains("Write report") && !text.contains("Water plants"), "{text}");
+    // A new view starts without filters.
+    run(&mut client, "org.agenda.dispatch", 0, json!({ "input": "t" })).unwrap();
+    assert_eq!(client.view_text(VIEW), all);
+    client.shutdown();
+}
+
 /// `org-agenda-custom-commands`: a group of commands under a prefix key,
 /// a block agenda whose agenda block moves on its own (`f`), and the
 /// built-in tags search (`m`).

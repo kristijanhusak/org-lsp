@@ -487,6 +487,9 @@ struct Server {
     agenda_clockreport: bool,
     /// What the agenda shows of archives (`v a`, `v A`).
     agenda_archives: ArchivesMode,
+    /// The filters of the agenda (`/`, `\\`, `<`, `=`, `_`, `^`), which
+    /// a new agenda command clears and rebuilding keeps.
+    agenda_filters: org_core::agenda::filter::Filters,
     documents: HashMap<String, Document>,
     workspace: Workspace,
     view: Option<OpenView>,
@@ -637,6 +640,7 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_log: options.agenda.start_with_log_mode.unwrap_or(false),
         agenda_clockreport: options.agenda.start_with_clockreport_mode.unwrap_or(false),
         agenda_archives: options.agenda.archives_mode(),
+        agenda_filters: Default::default(),
         documents: HashMap::new(),
         workspace: {
             let inheritance = options.inheritance();
@@ -2457,7 +2461,7 @@ impl Server {
             })?;
             Some((uri, outline.entries[line.entry?].offset))
         });
-        views::render(query, &blocks, &outlines, search.as_ref(), self.now(), clocked)
+        views::render(query, &blocks, &outlines, search.as_ref(), self.now(), clocked, Some(&self.agenda_filters))
     }
 
     /// The blocks `query` shows, in log mode and with the clock report as
@@ -2820,6 +2824,7 @@ impl Server {
                 Ok(json!({ "save": files }))
             }
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
+            id if id.starts_with("org.agenda.filter") => self.agenda_filter(id, context.as_ref()),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
             commands::OPEN => self.open_at_point(&context.ok_or("This command needs the cursor position")?),
@@ -3300,9 +3305,13 @@ impl Server {
         }
         match command {
             commands::AGENDA_LIST => {
+                self.agenda_filters = Default::default();
                 Ok(self.open_view(Query::Agenda { start: self.start_day(), span: self.agenda.span })?)
             }
-            commands::AGENDA_TODOS => Ok(self.open_view(Query::Todo)?),
+            commands::AGENDA_TODOS => {
+                self.agenda_filters = Default::default();
+                Ok(self.open_view(Query::Todo)?)
+            }
             commands::AGENDA_REDO => {
                 self.view.as_ref().ok_or("No agenda is open")?;
                 self.refresh_view();
@@ -3417,6 +3426,7 @@ impl Server {
         let input = get("input");
         if get("ask").as_deref() == Some("match") {
             let matching = input.unwrap_or_default();
+            self.agenda_filters = Default::default();
             self.open_view(Query::Tags { matching, todo_only: prefix == "M" })?;
             return Ok(Value::Null);
         }
@@ -3429,6 +3439,7 @@ impl Server {
         if custom::find(&commands, &keys).is_some() {
             let query = Query::Custom { keys, moved: None };
             self.blocks(&query)?;
+            self.agenda_filters = Default::default();
             self.open_view(query)?;
             return Ok(Value::Null);
         }
@@ -3472,7 +3483,10 @@ impl Server {
                 } }))
             }
             "s" | "S" => return Ok(self.search_input(&keys, "")),
-            "#" => self.open_view(Query::Stuck)?,
+            "#" => {
+                self.agenda_filters = Default::default();
+                self.open_view(Query::Stuck)?
+            }
             _ => return Err("No agenda command for this key".into()),
         }
         Ok(Value::Null)
@@ -3489,6 +3503,268 @@ impl Server {
             "value": value,
             "context": { "keys": keys, "ask": "search" },
         } })
+    }
+
+    /// The agenda's filters (`org-agenda-filter` and its relatives): what
+    /// each asks, then the filters set and the view shown again with the
+    /// lines they keep. The result's `message` says what filters there
+    /// are, as Emacs's mode line does.
+    fn agenda_filter(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
+        use org_core::agenda::filter;
+        self.view.as_ref().ok_or("No agenda is open")?;
+        let answer = context.and_then(|context| context.input.clone());
+        let step = context.and_then(|context| context.step.clone());
+        let strip = context.and_then(|context| context.count).is_some_and(|count| count > 0);
+        let mut filters = self.agenda_filters.clone();
+        // What the cursor's line shows: its tags, category and top headline.
+        let line = self.entry_at(context).and_then(|reference| {
+            self.with_source(&reference.uri, |_, _, _, outline, _| {
+                let index = views::resolve(&reference, outline)?;
+                let entry = &outline.entries[index];
+                let tags: Vec<String> = entry.tags.iter().map(|tag| tag.name.clone()).collect();
+                Some((tags, entry.category.clone(), filter::top_headline(outline, index)))
+            })
+            .flatten()
+        });
+        let mut message: Option<String> = None;
+        match id {
+            commands::AGENDA_FILTER => {
+                let represented = self.represented();
+                let Some(answer) = answer else {
+                    let mut completions: Vec<String> = represented.0.clone();
+                    completions.extend(represented.1.iter().cloned());
+                    let prompt = if strip { "Negative filter" } else { "Filter" };
+                    return Ok(json!({ "input": {
+                        "kind": "text",
+                        "prompt": format!("{prompt} [+cat-tag<0:10-/regexp/]"),
+                        "value": filter::current_string(&filters),
+                        "completions": completions,
+                    } }));
+                };
+                let (parsed, ignored) = filter::parse(&answer, strip, &filters, &represented.0, &represented.1);
+                filters = parsed;
+                message = ignored.last().cloned();
+            }
+            commands::AGENDA_FILTER_TAG => {
+                let exclude = step.as_deref() == Some("exclude") || (strip && step.is_none());
+                match (step.as_deref(), answer.as_deref()) {
+                    (Some("tag"), Some(tag)) => {
+                        filters.tag = vec![format!(
+                            "{}{tag}",
+                            if context.and_then(|context| context.answers.as_deref()) == Some("-") { "-" } else { "+" }
+                        )];
+                        filters.expand_tags = true;
+                    }
+                    (Some("tag"), None) | (_, Some("q")) => return Ok(Value::Null),
+                    (_, None) | (_, Some("-")) | (_, Some("+")) => {
+                        let exclude = match answer.as_deref() {
+                            Some("-") => true,
+                            Some("+") => false,
+                            _ => exclude,
+                        };
+                        return Ok(self.tag_filter_input(exclude));
+                    }
+                    (_, Some("\t")) => {
+                        let tags = self.agenda_tags();
+                        return Ok(json!({ "input": {
+                            "kind": "text", "prompt": "Tag", "value": "", "completions": tags,
+                            "context": { "step": "tag", "answers": if exclude { "-" } else { "+" } },
+                        } }));
+                    }
+                    (_, Some("\\")) | (_, Some("\r")) => filters.tag.clear(),
+                    (_, Some(".")) => {
+                        filters.tag = line
+                            .as_ref()
+                            .map(|(tags, _, _)| tags.iter().map(|tag| format!("+{tag}")).collect())
+                            .unwrap_or_default();
+                        filters.expand_tags = true;
+                    }
+                    (_, Some(" ")) => {
+                        filters.tag = vec![if exclude { "-" } else { "+" }.to_string()];
+                        filters.expand_tags = true;
+                    }
+                    (_, Some(key)) => {
+                        let tag = self
+                            .agenda_tag_keys()
+                            .into_iter()
+                            .find(|(_, own)| own.to_string() == key)
+                            .map(|(tag, _)| tag);
+                        let Some(tag) = tag else {
+                            return Err(Refusal::Failed(format!("Invalid tag selection character {key}")));
+                        };
+                        filters.tag = vec![format!("{}{tag}", if exclude { "-" } else { "+" })];
+                        filters.expand_tags = true;
+                    }
+                }
+            }
+            commands::AGENDA_FILTER_CATEGORY => {
+                let positive = filters.category.first().is_some_and(|first| first.starts_with('+'));
+                if !filters.category.is_empty() && positive {
+                    filters.category.clear();
+                } else {
+                    let category =
+                        line.as_ref().map(|(_, category, _)| category.clone()).ok_or("No category at point")?;
+                    if strip {
+                        filters.category.insert(0, format!("-{category}"));
+                    } else {
+                        filters.category = vec![format!("+{category}")];
+                    }
+                }
+            }
+            commands::AGENDA_FILTER_REGEXP => {
+                if !filters.regexp.is_empty() {
+                    filters.regexp.clear();
+                    message = Some("Regexp filter removed".to_string());
+                } else {
+                    let Some(answer) = answer else {
+                        let prompt =
+                            if strip { "Hide entries matching regexp" } else { "Narrow to entries matching regexp" };
+                        return Ok(json!({ "input": { "kind": "text", "prompt": prompt, "value": "" } }));
+                    };
+                    filters.regexp.insert(0, format!("{}{answer}", if strip { "-" } else { "+" }));
+                }
+            }
+            commands::AGENDA_FILTER_EFFORT => {
+                let efforts = self.effort_values();
+                match (step.as_deref(), answer.as_deref()) {
+                    (None, None) => {
+                        let choices: Vec<Value> = ["<", ">", "=", "_"]
+                            .iter()
+                            .map(|op| json!({ "key": op, "label": if *op == "_" { "remove the filter".to_string() } else { format!("effort {op}") } }))
+                            .collect();
+                        return Ok(json!({ "input": {
+                            "kind": "key",
+                            "prompt": "Effort operator? (> = or <)     or press `_' again to remove filter",
+                            "value": "", "choices": choices, "context": { "step": "operator" },
+                        } }));
+                    }
+                    (Some("operator"), Some("_")) => {
+                        filters.effort.clear();
+                        message = Some("Effort filter removed".to_string());
+                    }
+                    (Some("operator"), Some(op)) => {
+                        let choices: Vec<Value> = efforts
+                            .iter()
+                            .take(10)
+                            .enumerate()
+                            .map(|(index, value)| json!({ "key": ((index + 1) % 10).to_string(), "label": value }))
+                            .collect();
+                        return Ok(json!({ "input": {
+                            "kind": "key", "prompt": format!("Effort {op}"), "value": "", "choices": choices,
+                            "context": { "step": "value", "answers": op },
+                        } }));
+                    }
+                    (Some("value"), Some(key)) => {
+                        let op = context.and_then(|context| context.answers.clone()).unwrap_or_else(|| "<".to_string());
+                        let number: usize = key.parse().map_err(|_| Refusal::Failed(format!("No effort for {key}")))?;
+                        let index = (number + 9) % 10;
+                        let value = efforts.get(index).ok_or("No effort for this key")?;
+                        filters.effort = vec![format!("{}{op}{value}", if strip { "-" } else { "+" })];
+                    }
+                    _ => return Ok(Value::Null),
+                }
+            }
+            commands::AGENDA_FILTER_TOP_HEADLINE => {
+                if filters.top_headline.is_some() {
+                    filters.top_headline = None;
+                } else {
+                    let top = line.and_then(|(_, _, top)| top).ok_or("No top-level headline at point")?;
+                    filters.top_headline = Some((top, strip));
+                }
+            }
+            _ => {
+                filters = Default::default();
+                message = Some("All agenda filters removed".to_string());
+            }
+        }
+        self.agenda_filters = filters;
+        self.refresh_view();
+        let message = message.or_else(|| {
+            Some(if self.agenda_filters.is_empty() {
+                "No agenda filters".to_string()
+            } else {
+                format!("Agenda filters: {}", self.agenda_filters.describe())
+            })
+        });
+        Ok(json!({ "message": message }))
+    }
+
+    /// The question of `org-agenda-filter-by-tag` (`\\`): a tag by its key,
+    /// or what the other keys do.
+    fn tag_filter_input(&mut self, exclude: bool) -> Value {
+        let mut choices: Vec<Value> = Vec::new();
+        for (tag, key) in self.agenda_tag_keys() {
+            choices.push(json!({ "key": key.to_string(), "label": tag }));
+        }
+        for (key, label) in [
+            ("\t", "a tag, typed"),
+            (" ", "any tag"),
+            (".", "the tags of this line"),
+            ("\\", "no tag filter"),
+            (
+                if exclude { "+" } else { "-" },
+                if exclude { "filter rather than exclude" } else { "exclude rather than filter" },
+            ),
+            ("q", "quit"),
+        ] {
+            choices.push(json!({ "key": key, "label": label }));
+        }
+        let prompt = if exclude { "Exclude[+] by tag" } else { "Filter[-] by tag" };
+        json!({ "input": {
+            "kind": "key", "prompt": prompt, "value": "", "choices": choices,
+            "context": { "step": if exclude { "exclude" } else { "filter" } },
+        } })
+    }
+
+    /// The tags with a key in the agenda files' tables
+    /// (`org-tag-alist-for-agenda`), each key once.
+    fn agenda_tag_keys(&mut self) -> Vec<(String, char)> {
+        let settings = self.edit_settings.tags.clone();
+        let mut keys: Vec<(String, char)> = Vec::new();
+        for (_, held) in self.agenda_files() {
+            for entry in org_core::tags::current_alist(&held.outline().text, &settings) {
+                if let org_core::tags::TagEntry::Tag(tag, Some(key)) = entry {
+                    if !keys.iter().any(|(known, own)| *known == tag || *own == key) {
+                        keys.push((tag, key));
+                    }
+                }
+            }
+        }
+        keys
+    }
+
+    /// The efforts `_` offers: `Effort_ALL` of `org_global_properties`, or
+    /// Org's list.
+    fn effort_values(&self) -> Vec<String> {
+        self.edit_settings
+            .global_properties
+            .iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case("Effort_ALL"))
+            .map(|(_, value)| value.clone())
+            .unwrap_or_else(|| "0 0:10 0:30 1:00 2:00 3:00 4:00 5:00 6:00 7:00".to_string())
+            .split_whitespace()
+            .map(str::to_string)
+            .collect()
+    }
+
+    /// The tags and the categories of the open view's lines, for `/`.
+    fn represented(&mut self) -> (Vec<String>, Vec<String>) {
+        let Some(query) = self.view.as_ref().map(|open| open.view.query.clone()) else { return Default::default() };
+        let mut files = self.agenda_files();
+        let blocks = self.blocks(&query).unwrap_or_default();
+        let search = if blocks.iter().any(|block| matches!(block.kind, views::BlockKind::Search { .. })) {
+            self.search_files(&mut files)
+        } else {
+            None
+        };
+        let named: Vec<(&Outline, String, String)> = files
+            .iter()
+            .map(|(uri, held)| {
+                let path = uri::to_path(uri).map(|path| path.display().to_string()).unwrap_or_default();
+                (held.outline(), path, uri::file_name(uri))
+            })
+            .collect();
+        views::represented(&blocks, &named, search.as_ref(), self.now())
     }
 
     /// `org-agenda-manipulate-query` (`[`, `]`, `{`, `}`): in a search
@@ -3529,6 +3805,7 @@ impl Server {
             return Ok(Value::Null);
         }
         org_core::agenda::search::parse(&string, todo_only, &self.agenda.search).map_err(Refusal::Failed)?;
+        self.agenda_filters = Default::default();
         self.open_view(Query::Search { string, todo_only })?;
         Ok(Value::Null)
     }

@@ -1,0 +1,7 @@
+#+CATEGORY: side-project
+* TODO Draft the blog post :writing:
+:PROPERTIES:
+:Effort:   0:45
+:END:
+SCHEDULED: <2026-10-05 Mon 14:00>
+* TODO Record the video

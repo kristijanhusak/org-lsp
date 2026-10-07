@@ -39,7 +39,11 @@ Options:
   --start YYYY-MM-DD   a day the agenda should include (default: today)
   --today YYYY-MM-DD   pretend this is today
   --now HH:MM          pretend this is the current time
-  --options JSON       agenda and inheritance options, named as the server's";
+  --options JSON       agenda and inheritance options, named as the server's
+  --filters JSON       the agenda's filters, as a list of steps:
+                       {\"type\": \"tag\", \"filter\": [\"+work\"]} (category,
+                       regexp, effort too), {\"string\": \"+work<0:10\"} (`/`),
+                       {\"top\": \"Projects\"} (`^`), {\"remove\": true}";
 
 pub fn parse_date(text: &str) -> Result<Day, String> {
     let parts: Vec<i64> = text.split('-').filter_map(|part| part.parse().ok()).collect();
@@ -82,6 +86,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     let mut log = false;
     let mut clockreport = false;
     let mut archives = None;
+    let mut filters: Option<serde_json::Value> = None;
     let mut span = None;
     let mut start = None;
     let mut now = now();
@@ -100,6 +105,10 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             "--log" => log = true,
             "--clockreport" => clockreport = true,
             "--archives" => archives = Some(value("--archives")?.clone()),
+            "--filters" => {
+                let json = value("--filters")?;
+                filters = Some(serde_json::from_str(json).map_err(|error| format!("--filters: {error}"))?);
+            }
             "--span" => span = Some(value("--span")?.clone()),
             "--start" => start = Some(parse_date(value("--start")?)?),
             "--today" => now.today = parse_date(value("--today")?)?,
@@ -230,7 +239,14 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             (outline, file.clone(), name)
         })
         .collect();
-    Ok(views::org_text(&blocks, &named, search.as_ref(), now))
+    let filters = match &filters {
+        Some(steps) => {
+            let represented = views::represented(&blocks, &named, search.as_ref(), now);
+            Some(views::filter_steps(steps, &represented)?)
+        }
+        None => None,
+    };
+    Ok(views::org_text(&blocks, &named, search.as_ref(), now, filters.as_ref()))
 }
 
 /// Whether the view asked for has a search block.
