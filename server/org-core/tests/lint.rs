@@ -19,7 +19,30 @@ fn run(case: &Value) -> Vec<Value> {
         let path = path.replace("/./", "/");
         path == "/org/main.org" || path == "/org" || path == "/org/" || files.contains(&path)
     };
-    let context = Context { file_exists: &exists };
+    let file_texts: Vec<(String, String)> = case
+        .get("files")
+        .and_then(Value::as_array)
+        .map(|files| {
+            files
+                .iter()
+                .map(|pair| (format!("/org/{}", pair[0].as_str().unwrap()), pair[1].as_str().unwrap().to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+    let read = |name: &str| {
+        let path = if name.starts_with('/') { name.to_string() } else { format!("/org/{name}") };
+        if path == "/org/main.org" {
+            return Some(text.to_string());
+        }
+        file_texts.iter().find(|(file, _)| *file == path).map(|(_, text)| text.clone())
+    };
+    let name = || Some("main.org".to_string());
+    let context = Context {
+        file_exists: &exists,
+        priorities: org_core::priority::Priorities::default(),
+        read_file: &read,
+        file_name: &name,
+    };
     let parse = org_syntax::parse(text, &Default::default());
     lint::lint(text, &parse, &context)
         .into_iter()
@@ -51,6 +74,11 @@ fn lint_matches_emacs() {
     let mut failures = String::new();
     let mut failed = 0;
     for (index, case) in cases.iter().enumerate() {
+        // Where Emacs's linter fails (a report with no place), nothing to
+        // compare.
+        if case["expected"].as_str().is_some_and(|expected| expected.starts_with("ERROR:")) {
+            continue;
+        }
         let expected: Vec<Value> = case["expected"]
             .as_array()
             .expect("run scripts/lint_reference.py first")

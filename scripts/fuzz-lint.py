@@ -47,6 +47,23 @@ PIECES = [
     ":PROPERTIES:\n:header-args: :exports both :qq 1\n:HEADER-ARGS:sh+: :dir /tmp\n:END:\n",
     "#+OPTIONS: toc:nil num:t bogus:1 H:2 lonely:\n", "#+OPTIONS: \\n:t ^:{} tex:verbatim author\n",
     ":PROPERTIES:\n:TITLE: x\n:HTML_HEAD: y\n:DESCRIPTION: d\n:EXPORT_TITLE: z\n:CATEGORY: c\n:END:\n",
+    "* TODO [#D] out\n", "* [#5] num\n", "* Title [#B] cookie later\n", "* [#AA] invalid\n", "* [#A malformed\n", "#+PRIORITIES: 1 10 5\n",
+    "1. a\n3. b\n", "2. a\n3. b\n", "1. a\n2. [@5] b\n7. c\n", "- x\n  1. a\n  3. b\n", "1) a\n   - n\n2) b\n",
+    "** COMMENT Sub\n", "#+ATTR_ORG: :align middle :center x\nPara\n", "#+ATTR_ORG: :align left\n#+ATTR_ORG: :center nil\nP\n",
+    "#+CITE_EXPORT: basic\n", "#+CITE_EXPORT: foo\n", "#+CITE_EXPORT:\n", "#+CITE_EXPORT: \"x\"\n", "#+CITE_EXPORT: csl \"a b\" c d\n",
+    "Text [cite:@key missing close\n", "*bold [cite:x* end\n", "| a [cite: | b |\n", "* Head [cite:\nbody\n",
+    "Price $.5 and $.9\n", "=code $.5=\n", "#+TITLE: x $.5\n",
+    "<2024-01-01 Tue> <2024-01-01 Mon 9:00> <2024-01-01>\n", "<2024-01-01 Mon -2d +1w> <2024-01-01 Mon  10:00> <2024-01-01 Monday>\n",
+    "<2024-01-01 Mon 09:00-10:00> <2024-01-01 Mon>--<2024-01-02 Tue> [2024-01-01 Mon 10:00]--[2024-01-01 Mon 11:00]\n",
+    "<2024-01-01 Mon .+1d/2d> <%%(diary-float t 1 1)> <2024-01-01 Mon 9:5> <2024-01-01 Mon 25:00> <2024-02-30 Fri>\n",
+    "CLOCK: [2024-01-01 Mon 10:00]--[2024-01-01 Mon 11:00] =>  1:00\n", "CLOCK: [2024-01-01 Mon 10:00]--[2024-01-01 Mon 11:00] => 1:00\n",
+    "CLOCK: [2024-01-01 Mon 10:00]\n", "CLOCK: [2024-01-01 Tue 10:00]--[2024-01-01 Mon 12:30] =>  2:30\n",
+    "#+MACRO: m $1 $3\n", "#+MACRO: e\n", "#+MACRO: n (eval (+ 1 2))\n",
+    "{{{m(a,b,c)}}} {{{undefined}}} {{{title}}} {{{n(1,2,3)}}} {{{input-file}}} {{{m(a\\,b)}}}\n",
+    "#+INCLUDE: \"other.org::*Other\"\n", "#+INCLUDE: \"other.org::*Nope\"\n", "#+INCLUDE: missing.org\n",
+    "#+INCLUDE:\n", "#+INCLUDE: \"other.org::#cid\" :lines \"1-2\"\n",
+    "#+name: blk\n#+begin_src emacs-lisp\n1\n#+end_src\n\n#+RESULTS:\n#+NAME: res\n: 1\n",
+    "#+RESULTS: blk\n#+NAME: other\n: 2\n",
 ]
 
 

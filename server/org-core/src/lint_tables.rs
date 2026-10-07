@@ -366,6 +366,21 @@ pub const BACKEND_OPTIONS: &[(&str, &[&str])] = &[
     ("CREATOR", &["html"]),
 ];
 
+/// `:exports` of `org-babel-default-header-args`.
+pub const EXPORTS_DEFAULT: &str = "code";
+
+/// `:exports` of `org-babel-default-header-args:LANG`, where a
+/// language has its own.
+pub const LANGUAGE_EXPORTS: &[(&str, &str)] = &[
+    ("ditaa", "results"),
+    ("dot", "results"),
+    ("gnuplot", "results"),
+    ("latex", "results"),
+    ("org", "code"),
+    ("plantuml", "results"),
+    ("processing", "results"),
+];
+
 /// `org-default-properties`
 pub const DEFAULT_PROPERTIES: &[&str] = &[
     "ARCHIVE",

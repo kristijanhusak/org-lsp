@@ -42,7 +42,6 @@ def main():
             env=dict(os.environ, HOME=home),
         ).stdout
     tables = json.loads(out)
-    common = dict((name.lstrip(":"), value) for name, value in [])
     lines = [
         "//! Tables `org-lint` reads that Org keeps in Lisp: Babel's header",
         "//! arguments and each language's own, the export options of the",
@@ -90,6 +89,13 @@ def main():
         lines.append(f"    ({rust_string(keyword)}, &[" + ", ".join(rust_string(b) for b in backends) + "]),")
     lines += [
         "];",
+        "",
+        "/// `:exports` of `org-babel-default-header-args`.",
+        f"pub const EXPORTS_DEFAULT: &str = {rust_string(tables['exports_default'])};",
+        "",
+        "/// `:exports` of `org-babel-default-header-args:LANG`, where a",
+        "/// language has its own.",
+        "pub const LANGUAGE_EXPORTS: &[(&str, &str)] = &[" + ", ".join(f"({rust_string(l)}, {rust_string(e)})" for l, e in tables["default_exports"]) + "];",
         "",
         "/// `org-default-properties`",
         "pub const DEFAULT_PROPERTIES: &[&str] = &[" + ", ".join(rust_string(p) for p in tables["default_properties"]) + "];",
