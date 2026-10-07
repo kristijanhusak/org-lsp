@@ -811,6 +811,30 @@ wait('the register pasted as a subtree', function()
 end)
 vim.cmd('silent! write')
 
+-- 23f. `<Leader>o^` sorts the children of the entry by the key typed,
+-- and the cursor goes to the parent.
+local sorting = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* Parent', '** b', '** C', 'text', '** a' }, sorting)
+vim.cmd.edit(sorting)
+wait('the server for sorting', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+local sort_prompt
+local before_sort = plugin.read_key
+plugin.read_key = function(prompt)
+  sort_prompt = prompt
+  return 'a'
+end
+vim.api.nvim_win_set_cursor(0, { 1, 3 })
+press('<Leader>o^')
+wait('the children sorted', function()
+  return vim.deep_equal(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* Parent', '** a', '** b', '** C', 'text' })
+end)
+eq(sort_prompt, 'Sort children', 'the children of the entry the cursor is in')
+eq(vim.api.nvim_win_get_cursor(0), { 1, 0 }, 'the cursor on the parent')
+plugin.read_key = before_sort
+vim.cmd('silent! write')
+
 -- 23c. Archived subtrees stay closed when TAB and S-TAB open what is
 -- around them (`org-cycle-hide-archived-subtrees`).
 local with_archived = vim.fn.tempname() .. '.org'

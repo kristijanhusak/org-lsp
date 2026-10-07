@@ -430,6 +430,21 @@ function! s:subtree_clipboard() abort
 endfunction
 call s:test('cuts, copies and pastes subtrees through registers', function('s:subtree_clipboard'))
 
+" `\o^` sorts the children of the entry by the key typed.
+function! s:sort() abort
+  let file = s:work . '/notes/sorting.org'
+  call writefile(['* Parent', '** b', '** C', 'text', '** a'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(1, 3)
+  let g:answers = ['a']
+  call feedkeys("\\o^", 'xt')
+  call s:until('the children sorted', {-> getline(1, '$') == ['* Parent', '** a', '** b', '** C', 'text']})
+  call assert_equal(1, line('.'))
+  silent write
+endfunction
+call s:test('sorts the children of an entry', function('s:sort'))
+
 function! s:help() abort
   execute 'buffer' s:work_buf
   let popup = org_lsp#help()

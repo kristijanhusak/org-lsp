@@ -270,6 +270,11 @@
         "category": "Org"
       },
       {
+        "command": "org.sort",
+        "title": "Sort the entries",
+        "category": "Org"
+      },
+      {
         "command": "org.cut.subtree",
         "title": "Cut the subtree",
         "category": "Org"
@@ -2764,6 +2769,11 @@
             "editor.action.moveLinesDownAction"
           ]
         }
+      },
+      {
+        "command": "org.sort",
+        "key": "ctrl+c shift+6",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
         "command": "org.cut.subtree",

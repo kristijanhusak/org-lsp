@@ -63,31 +63,31 @@ impl Buffer {
     }
 }
 
-fn line_start(text: &str, at: usize) -> usize {
+pub(crate) fn line_start(text: &str, at: usize) -> usize {
     text[..at].rfind('\n').map_or(0, |newline| newline + 1)
 }
 
-fn line_end(text: &str, at: usize) -> usize {
+pub(crate) fn line_end(text: &str, at: usize) -> usize {
     text[at..].find('\n').map_or(text.len(), |newline| at + newline)
 }
 
-fn line(text: &str, start: usize) -> &str {
+pub(crate) fn line(text: &str, start: usize) -> &str {
     &text[start..line_end(text, start)]
 }
 
 /// The start of the line after the one at `at`, or the end of the text.
-fn next_line(text: &str, at: usize) -> usize {
+pub(crate) fn next_line(text: &str, at: usize) -> usize {
     text[at..].find('\n').map_or(text.len(), |newline| at + newline + 1)
 }
 
 /// The level of the headline that starts at `at`, if one does.
-fn level_at(text: &str, at: usize) -> Option<usize> {
+pub(crate) fn level_at(text: &str, at: usize) -> Option<usize> {
     headline_level(line(text, at))
 }
 
 /// `outline-next-heading`: the start of the next headline after the line
 /// at `at`, or the end of the text.
-fn next_heading(text: &str, at: usize) -> usize {
+pub(crate) fn next_heading(text: &str, at: usize) -> usize {
     let mut at = next_line(text, at);
     while at < text.len() && level_at(text, at).is_none() {
         at = next_line(text, at);
@@ -115,7 +115,7 @@ pub fn at_heading(text: &str, at: usize) -> bool {
 
 /// Where the subtree of the headline at `heading` ends: at the next
 /// headline of its level or above, or at the end of the text.
-fn subtree_end(text: &str, heading: usize) -> usize {
+pub(crate) fn subtree_end(text: &str, heading: usize) -> usize {
     let level = level_at(text, heading).unwrap_or(1);
     let mut at = next_heading(text, heading);
     while at < text.len() && level_at(text, at).is_some_and(|found| found > level) {

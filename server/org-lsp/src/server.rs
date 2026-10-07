@@ -652,6 +652,28 @@ pub fn run(connection: Connection) -> Result<()> {
     Ok(())
 }
 
+/// The names of the properties in the property drawers of `text`.
+fn property_names(text: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut in_drawer = false;
+    for line in text.lines() {
+        let line = line.trim();
+        if line.eq_ignore_ascii_case(":PROPERTIES:") {
+            in_drawer = true;
+        } else if line.eq_ignore_ascii_case(":END:") {
+            in_drawer = false;
+        } else if in_drawer {
+            if let Some((name, _)) = line.strip_prefix(':').and_then(|rest| rest.split_once(':')) {
+                let name = name.trim_end_matches('+');
+                if !name.is_empty() {
+                    names.push(name.to_string());
+                }
+            }
+        }
+    }
+    names
+}
+
 /// A command's result with what it has to say: `{ "message": … }` on top
 /// of whatever else the result holds.
 /// A choice of a question as a button: its label, and its key when it is
@@ -1563,6 +1585,7 @@ impl Server {
             (commands::TODO, more && in_entry),
             (commands::PRIORITY, more && in_entry),
             (commands::REFILE, more && in_entry),
+            (commands::SORT, more),
             (commands::CLOCK_GOTO, more && running),
             (commands::AGENDA_LIST, more),
             (commands::AGENDA_TODOS, more),
@@ -2493,6 +2516,7 @@ impl Server {
             | commands::META_DOWN => {
                 self.structure(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
+            commands::SORT => self.sort(&context.ok_or("This command needs the cursor position")?),
             commands::CUT_SUBTREE | commands::COPY_SUBTREE | commands::PASTE_SUBTREE => {
                 self.subtree_clipboard(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
@@ -4170,6 +4194,63 @@ impl Server {
             commands::META_UP => structure::move_subtree(&text, offset, -count)?,
             _ => structure::move_subtree(&text, offset, count)?,
         };
+        self.carried(context, outcome)
+    }
+
+    /// `org-sort` (`C-c ^`) on entries (`org-sort-entries`): asks for the
+    /// sorting type, as a key, and for `r` and `R` the property, among
+    /// those of the file; the cursor goes to the start of what was sorted.
+    fn sort(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::sort;
+        let encoding = self.client.encoding;
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        let keywords = document.parse.todo_keywords().clone();
+        let priorities = edit::document_priorities(&document.parse).unwrap_or(self.edit_settings.priorities);
+        // Org sorts the lines of a table and the items of a list there.
+        let line = text[..offset].rfind('\n').map_or(0, |at| at + 1);
+        let current = text[line..].lines().next().unwrap_or("");
+        if current.trim_start().starts_with('|') {
+            return Err(Refusal::Failed("Sorting the lines of a table is not supported yet".to_string()));
+        }
+        if org_core::list::at_item(&text, offset) {
+            return Err(Refusal::Failed("Sorting the items of a list is not supported yet".to_string()));
+        }
+        let Some(answer) = context.input.as_deref() else {
+            let mut choices: Vec<Value> =
+                sort::TYPES.iter().map(|(key, label)| json!({ "key": key.to_string(), "label": label })).collect();
+            choices.extend(sort::TYPES.iter().map(|(key, label)| {
+                json!({ "key": key.to_ascii_uppercase().to_string(), "label": format!("{label}, reversed") })
+            }));
+            let prompt = format!("Sort {}", sort::what(&text, offset));
+            return Ok(json!({ "input": { "kind": "key", "prompt": prompt, "value": "", "choices": choices } }));
+        };
+        let (kind, property) = match context.answers.as_deref() {
+            Some(kind) => (kind.chars().next().unwrap_or('a'), Some(answer)),
+            None => (answer.chars().next().ok_or("Abort")?, None),
+        };
+        if kind.eq_ignore_ascii_case(&'r') && property.is_none() {
+            let mut names: Vec<String> = Vec::new();
+            for found in property_names(&text) {
+                if !names.iter().any(|name| name.eq_ignore_ascii_case(&found)) {
+                    names.push(found);
+                }
+            }
+            names.sort();
+            if names.is_empty() {
+                return Err(Refusal::Failed("No properties to sort by".to_string()));
+            }
+            let choices: Vec<Value> = names.iter().map(|name| json!({ "key": name, "label": name })).collect();
+            let input = json!({
+                "kind": "choice", "prompt": "Property", "value": "", "choices": choices,
+                "context": { "answers": kind.to_string() },
+            });
+            return Ok(json!({ "input": input }));
+        }
+        let settings = sort::Settings { keywords: &keywords, priorities, now: self.date_time() };
+        let outcome = sort::sort_entries(&text, offset, kind, property, &settings)?;
+        self.message = Some("Sorting entries...done".to_string());
         self.carried(context, outcome)
     }
 

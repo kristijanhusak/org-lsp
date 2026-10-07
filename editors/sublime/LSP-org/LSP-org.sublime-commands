@@ -301,6 +301,13 @@
     }
   },
   {
+    "caption": "Org: Sort the entries",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.sort"
+    }
+  },
+  {
     "caption": "Org: Cut the subtree",
     "command": "org_lsp_run",
     "args": {
