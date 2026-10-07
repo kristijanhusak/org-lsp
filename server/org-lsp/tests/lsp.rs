@@ -1043,6 +1043,44 @@ fn sorts_entries() {
     client.shutdown();
 }
 
+/// `org-sparse-tree`: what to show asked for as a key, then what it
+/// needs; the lines to show and the matches to highlight come back.
+#[test]
+fn makes_sparse_trees() {
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri(), "* TODO a\nan apple\n* b :work:\n** c\nApple pie\n");
+    let run = |client: &mut Client, extra: Value| -> Value {
+        let mut context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.sparse.tree", "arguments": [context] }))
+            .response_result
+            .unwrap()
+    };
+    assert_eq!(run(&mut client, json!({}))["input"]["kind"], "key");
+    let asked = run(&mut client, json!({ "input": "r" }));
+    assert_eq!(asked["input"]["kind"], "text");
+    assert_eq!(asked["input"]["context"], json!({ "answers": "r" }));
+    let shown = run(&mut client, json!({ "input": "apple", "answers": "r" }));
+    assert_eq!(shown["sparse"]["lines"], json!([1, 4]));
+    assert_eq!(
+        shown["sparse"]["highlights"],
+        json!([
+            { "start": { "line": 1, "character": 3 }, "end": { "line": 1, "character": 8 } },
+            { "start": { "line": 4, "character": 0 }, "end": { "line": 4, "character": 5 } }
+        ])
+    );
+    assert_eq!(shown["message"], "2 match(es) for regexp apple");
+    let todo = run(&mut client, json!({ "input": "t" }));
+    assert_eq!((todo["sparse"]["lines"].clone(), todo["message"].clone()), (json!([0]), json!("1 TODO entries found")));
+    let tagged = run(&mut client, json!({ "input": "work", "answers": "m" }));
+    assert_eq!(tagged["sparse"]["lines"], json!([2, 3]), "c inherits the tag");
+    client.shutdown();
+}
+
 /// Recalculating a table with formulas as a code action, in the table and
 /// on its `#+TBLFM:` line; none where nothing would change.
 #[test]

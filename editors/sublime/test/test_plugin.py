@@ -309,6 +309,19 @@ class Tests(unittest.TestCase):
         session = self.run_command([('result', None)], command='org.paste.subtree')
         self.assertEqual(session.sent[-1][1]['arguments'][0]['clipboard'], '** B\n')
 
+    def test_shows_a_sparse_tree(self):
+        self.view.text = '* A\nan apple\n* B\nnothing\n'
+        sparse = {'lines': [1], 'highlights': [{'start': {'line': 1, 'character': 3}, 'end': {'line': 1, 'character': 8}}]}
+        session = self.run_command(
+            [('result', {'sparse': sparse}), ('result', [{'startLine': 0, 'endLine': 1}, {'startLine': 2, 'endLine': 3}])],
+            command='org.sparse.tree')
+        self.assertEqual(session.sent[-1][0], 'textDocument/foldingRange')
+        regions, scope, _ = self.view.regions['org-lsp-sparse']
+        self.assertEqual([self.view.substr(region) for region in regions], ['apple'])
+        self.assertEqual(self.view.folds, {self.plugin.fold_region(self.view, {'startLine': 2, 'endLine': 3})})
+        self.plugin.OrgLspListener().on_modified(self.view)
+        self.assertNotIn('org-lsp-sparse', self.view.regions)
+
     def test_asks_for_text_and_keys(self):
         self.window.typed = '+1d'
         session = self.run_command(

@@ -835,6 +835,35 @@ eq(vim.api.nvim_win_get_cursor(0), { 1, 0 }, 'the cursor on the parent')
 plugin.read_key = before_sort
 vim.cmd('silent! write')
 
+-- 23g. `<Leader>o/` makes a sparse tree: everything folded but the
+-- matches, which are highlighted until the text changes.
+local sparse_file = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A', 'an apple', '* B', 'nothing', '** C', 'Apple pie', '* D', 'none' }, sparse_file)
+vim.cmd.edit(sparse_file)
+wait('the server and folds for the sparse tree', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1 and vim.fn.foldlevel(2) > 0
+end)
+local before_sparse, typed = plugin.read_key, vim.ui.input
+plugin.read_key = function()
+  return 'r'
+end
+vim.ui.input = function(_, on_answer)
+  on_answer('apple')
+end
+press('<Leader>o/')
+local sparse_ns = vim.api.nvim_get_namespaces()['org_lsp_sparse']
+wait('the matches highlighted', function()
+  return sparse_ns and #vim.api.nvim_buf_get_extmarks(0, sparse_ns, 0, -1, {}) == 2
+end)
+eq({ vim.fn.foldclosed(2), vim.fn.foldclosed(6), vim.fn.foldclosed(4), vim.fn.foldclosed(8) }, { -1, -1, -1, 7 },
+  'the matches and the headlines above them shown, the rest folded')
+plugin.read_key, vim.ui.input = before_sparse, typed
+vim.api.nvim_buf_set_lines(0, 7, 8, false, { 'changed' })
+wait('the highlights gone with the change', function()
+  return #vim.api.nvim_buf_get_extmarks(0, sparse_ns, 0, -1, {}) == 0
+end)
+vim.cmd('silent! write')
+
 -- 23c. Archived subtrees stay closed when TAB and S-TAB open what is
 -- around them (`org-cycle-hide-archived-subtrees`).
 local with_archived = vim.fn.tempname() .. '.org'

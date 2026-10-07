@@ -54,6 +54,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oK` | `org.meta.up` | Move the subtree up |
 | `<Leader>oJ` | `org.meta.down` | Move the subtree down |
 | `<Leader>o^` | `org.sort` | Sort the entries |
+| `<Leader>o/` | `org.sparse.tree` | Show a sparse tree |
 | `<Leader>osd` | `org.cut.subtree` | Cut the subtree |
 | `<Leader>osy` | `org.copy.subtree` | Copy the subtree |
 | `<Leader>osp` | `org.paste.subtree` | Paste the subtree |

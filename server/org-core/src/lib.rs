@@ -26,6 +26,7 @@ pub mod priority;
 pub mod read_date;
 pub mod refile;
 pub mod sort;
+pub mod sparse;
 pub mod stamp;
 pub mod structure;
 pub mod tangle;

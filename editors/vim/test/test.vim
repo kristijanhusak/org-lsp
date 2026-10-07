@@ -445,6 +445,22 @@ function! s:sort() abort
 endfunction
 call s:test('sorts the children of an entry', function('s:sort'))
 
+" `\o/` makes a sparse tree: everything folded but the matches, which are
+" highlighted.
+function! s:sparse() abort
+  let file = s:work . '/notes/sparse.org'
+  call writefile(['* A', 'an apple', '* B', 'nothing', '** C', 'Apple pie', '* D', 'none'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server and the folds', {-> org_lsp#ready(bufnr()) && foldlevel(2) > 0})
+  let g:answers = ['r', 'apple']
+  call feedkeys("\\o/", 'xt')
+  let Marked = {line -> empty(prop_type_get('org_lsp_sparse')) ? 0 : len(prop_list(line, {'types': ['org_lsp_sparse']}))}
+  call s:until('the matches highlighted', {-> Marked(2) == 1 && Marked(6) == 1})
+  call assert_equal([-1, -1, 7], [foldclosed(2), foldclosed(6), foldclosed(8)])
+  normal! zR
+endfunction
+call s:test('makes a sparse tree', function('s:sparse'))
+
 function! s:help() abort
   execute 'buffer' s:work_buf
   let popup = org_lsp#help()
