@@ -866,6 +866,88 @@ fn follows_the_cursor() {
     client.shutdown();
 }
 
+/// Bulk marks (`m`, `u`, `U`, `*`, `%`) show as `>` at the start of their
+/// lines; `B` asks for an action and runs it on every marked entry, in one
+/// edit a file.
+#[test]
+fn marks_entries_and_acts_on_them() {
+    let mut client = Client::editor(clock(), None);
+    let mut work = WORK.to_string();
+    client.open("file:///org/work.org", WORK);
+    let run = |client: &mut Client, command: &str, line: usize, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    run(&mut client, "org.agenda.todos", 0, json!({})).unwrap();
+    let text = client.show_view();
+    let line_of = |text: &str, needle: &str| text.lines().position(|line| line.contains(needle)).unwrap();
+    let write = line_of(&text, "Write report");
+    let call = line_of(&text, "TODO Call");
+    // `m` marks the line, and the cursor goes to the next entry.
+    let done = run(&mut client, "org.agenda.bulk.mark", write, json!({})).unwrap();
+    assert_eq!(done["message"], "1 entries marked for bulk action");
+    let marked = client.refetch_view();
+    client.settle();
+    assert!(marked.lines().nth(write).unwrap().starts_with("> "), "{marked}");
+    assert_eq!(marked.lines().nth(write).unwrap().len(), text.lines().nth(write).unwrap().len());
+    let shown = client.received.iter().rev().find(|request| request.method == "window/showDocument");
+    assert_eq!(shown.map(|request| request.params["selection"]["start"]["line"].clone()), Some(json!(call)));
+    // `u` takes it away, `U` all of them.
+    let done = run(&mut client, "org.agenda.bulk.unmark", write, json!({})).unwrap();
+    assert_eq!(done["message"], "0 entries left marked for bulk action");
+    assert_eq!(client.view_text(VIEW), text);
+    run(&mut client, "org.agenda.bulk.mark.all", 0, json!({})).unwrap();
+    assert_eq!(client.view_text(VIEW).lines().filter(|line| line.starts_with("> ")).count(), 2);
+    run(&mut client, "org.agenda.bulk.unmark.all", 0, json!({})).unwrap();
+    assert_eq!(client.view_text(VIEW), text);
+    // `%`: those whose text matches.
+    let asked = run(&mut client, "org.agenda.bulk.mark.regexp", 0, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Mark entries matching regexp");
+    run(&mut client, "org.agenda.bulk.mark.regexp", 0, json!({ "input": "Call" })).unwrap();
+    let marked = client.view_text(VIEW);
+    assert!(
+        marked.lines().nth(call).unwrap().starts_with("> ") && !marked.lines().nth(write).unwrap().starts_with("> ")
+    );
+    run(&mut client, "org.agenda.bulk.mark", write, json!({})).unwrap();
+    // `B`: the menu, then the state, then one edit for the file.
+    let asked = run(&mut client, "org.agenda.bulk.action", write, json!({})).unwrap();
+    assert_eq!(asked["input"]["kind"], "key");
+    assert_eq!(asked["input"]["prompt"], "Bulk (don't [p]ersist marks)");
+    let asked = run(&mut client, "org.agenda.bulk.action", write, json!({ "step": "action", "input": "p" })).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Bulk ([p]ersist marks)");
+    let context = asked["input"]["context"].clone();
+    let asked = run(
+        &mut client,
+        "org.agenda.bulk.action",
+        write,
+        json!({ "step": "action", "input": "t", "answers": context["answers"] }),
+    )
+    .unwrap();
+    assert_eq!(asked["input"]["prompt"], "Todo state");
+    assert_eq!(asked["input"]["completions"], json!(["TODO", "DONE"]));
+    let done = run(
+        &mut client,
+        "org.agenda.bulk.action",
+        write,
+        json!({ "step": "t", "input": "DONE", "answers": asked["input"]["context"]["answers"] }),
+    )
+    .unwrap();
+    assert_eq!(done["message"], "Acted on 2 entries (kept marked)");
+    let edits: Vec<&Request> =
+        client.received.iter().filter(|request| request.method == "workspace/applyEdit").collect();
+    assert_eq!(edits.len(), 1);
+    let (_, changes) = edits_of(edits[0]);
+    work = apply(&work, &changes);
+    assert!(work.contains("* DONE [#A] Write report") && work.contains("* DONE Call"), "{work}");
+    client.shutdown();
+}
+
 /// `org-agenda-custom-commands`: a group of commands under a prefix key,
 /// a block agenda whose agenda block moves on its own (`f`), and the
 /// built-in tags search (`m`).
@@ -1886,9 +1968,30 @@ fn agenda_actions_match_emacs() {
             context["count"] = count.clone();
         }
         let command = format!("org.{}", case["command"].as_str().unwrap().replace('-', "."));
+        // A bulk action: `m` on the lines of its marks, then `B` with the
+        // action's key and the answer to what it asks.
+        let bulk = case["command"] == "bulk";
+        if bulk {
+            for mark in case["marks"].as_array().unwrap() {
+                let text = client.view_text(VIEW);
+                let at = text.lines().position(|line| line.contains(mark.as_str().unwrap())).unwrap();
+                let at = json!({ "textDocument": { "uri": VIEW }, "position": { "line": at, "character": 0 } });
+                client
+                    .request(
+                        "workspace/executeCommand",
+                        json!({ "command": "org.agenda.bulk.mark", "arguments": [at] }),
+                    )
+                    .unwrap();
+                client.settle();
+            }
+            let text = client.view_text(VIEW);
+            let line = text.lines().position(|line| line.contains(needle)).unwrap();
+            context["position"]["line"] = json!(line);
+        }
         // A command that asks for a date first says what the prompt
         // starts with, and then runs with the answer.
-        if let Some(answer) = case.get("answer") {
+        if bulk {
+        } else if let Some(answer) = case.get("answer") {
             let asked =
                 client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
             if let (Ok(asked), Value::Object(_)) = (&asked, &case["expected"]) {
@@ -1902,8 +2005,35 @@ fn agenda_actions_match_emacs() {
             context["input"] = answer.clone();
         }
         client.received.clear();
-        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
-        client.settle();
+        let result = if bulk {
+            let action = "org.agenda.bulk.action";
+            let run = |client: &mut Client, context: &Value| {
+                let result =
+                    client.request("workspace/executeCommand", json!({ "command": action, "arguments": [context] }));
+                client.settle();
+                result
+            };
+            let mut result = run(&mut client, &context);
+            for (step, input) in
+                [(json!("action"), case["action"].clone()), (case["action"].clone(), case["answer"].clone())]
+            {
+                match &result {
+                    Ok(value) if value.get("input").is_some() => {
+                        context["step"] = step;
+                        context["input"] = input;
+                        context["answers"] = json!("");
+                        result = run(&mut client, &context);
+                    }
+                    _ => break,
+                }
+            }
+            result
+        } else {
+            let result =
+                client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+            client.settle();
+            result
+        };
         // The files as they read once the editor has applied the edit.
         let mut after: serde_json::Map<String, Value> = files.clone();
         for request in client.received.iter().filter(|request| request.method == "workspace/applyEdit") {

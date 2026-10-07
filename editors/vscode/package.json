@@ -176,6 +176,46 @@
         "category": "Org"
       },
       {
+        "command": "org.agenda.bulk.mark",
+        "title": "Agenda: mark the entry for a bulk action",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.bulk.unmark",
+        "title": "Agenda: unmark the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.bulk.unmark.all",
+        "title": "Agenda: unmark all entries",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.bulk.toggle",
+        "title": "Agenda: toggle the mark of the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.bulk.mark.all",
+        "title": "Agenda: mark all entries",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.bulk.toggle.all",
+        "title": "Agenda: toggle the marks of all entries",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.bulk.mark.regexp",
+        "title": "Agenda: mark the entries matching a regexp",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.bulk.action",
+        "title": "Agenda: an action on the marked entries",
+        "category": "Org"
+      },
+      {
         "command": "org.agenda.filter",
         "title": "Agenda: filter by tags, categories, effort and regexps",
         "category": "Org"
@@ -1569,6 +1609,11 @@
                 "closed",
                 "clock"
               ]
+            },
+            "org_agenda_persistent_marks": {
+              "type": "boolean",
+              "markdownDescription": "Keep the marks of a bulk action (`B`) after it (`p` in its menu toggles this for one action). (`org-agenda-persistent-marks`)",
+              "default": false
             },
             "org_agenda_start_with_follow_mode": {
               "type": "boolean",
@@ -3689,6 +3734,86 @@
       {
         "command": "org.agenda.follow",
         "key": "shift+f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.mark",
+        "key": "m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.mark",
+        "key": "m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.unmark",
+        "key": "u",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.unmark",
+        "key": "u",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.unmark.all",
+        "key": "shift+u",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.unmark.all",
+        "key": "shift+u",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.toggle",
+        "key": "alt+m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.toggle",
+        "key": "alt+m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.mark.all",
+        "key": "shift+8",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.mark.all",
+        "key": "shift+8",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.toggle.all",
+        "key": "alt+shift+8",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.toggle.all",
+        "key": "alt+shift+8",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.mark.regexp",
+        "key": "shift+5",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.mark.regexp",
+        "key": "shift+5",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.action",
+        "key": "shift+b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.action",
+        "key": "shift+b",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {

@@ -47,6 +47,8 @@ use crate::config::{self, ArchivesMode, CaptureTemplateOption, RefileFiles, Refi
 use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target, TimeField};
+
+mod bulk;
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
 use crate::{actions, cli, commands, completion, custom, folding, highlight, manifest, port, symbols, uri};
@@ -332,6 +334,8 @@ struct Extra {
     skip_note: bool,
     /// The key that selects the new TODO state.
     key: Option<String>,
+    /// No note is asked for: a time is logged in its place.
+    time_only: bool,
 }
 
 /// The file a command that asks for a date changes.
@@ -500,6 +504,17 @@ struct Server {
     /// before the current one.
     date_unit: Option<org_core::stamp::Unit>,
     date_unit_before: Option<org_core::stamp::Unit>,
+    /// The lines marked for a bulk action (`org-agenda-bulk-marked-entries`),
+    /// in the order they were marked.
+    agenda_marks: Vec<views::EntryRef>,
+    /// `org-agenda-persistent-marks`
+    agenda_persistent_marks: bool,
+    /// While a bulk action runs: the files as its commands left them.
+    staging: Option<bulk::Staging>,
+    /// The file whose headlines are the refile targets of the current
+    /// file (`org-refile-targets` `nil`), when it is not the entry's: a
+    /// bulk refile reads them from its first entry's file.
+    refile_current: Option<Uri>,
     /// What the agenda shows of archives (`v a`, `v A`).
     agenda_archives: ArchivesMode,
     /// The filters of the agenda (`/`, `\\`, `<`, `=`, `_`, `^`), which
@@ -659,6 +674,10 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_follow: options.agenda.start_with_follow_mode.unwrap_or(false),
         date_unit: None,
         date_unit_before: None,
+        agenda_marks: Vec::new(),
+        agenda_persistent_marks: options.agenda.persistent_marks.unwrap_or(false),
+        staging: None,
+        refile_current: None,
         agenda_filters: Default::default(),
         documents: HashMap::new(),
         workspace: {
@@ -1161,6 +1180,10 @@ impl Server {
     /// changed from the agenda, the target of a capture or a refile) are
     /// saved once the editor has applied the edit.
     fn apply_edit(&mut self, params: lsp_types::ApplyWorkspaceEditParams, pending: Pending) {
+        if self.staging.is_some() {
+            self.stage(&params.edit);
+            return;
+        }
         let mut files: Vec<Uri> = match (&params.edit.document_changes, &params.edit.changes) {
             (Some(lsp_types::DocumentChanges::Edits(edits)), _) => {
                 edits.iter().map(|edit| edit.text_document.uri.clone()).collect()
@@ -2286,6 +2309,15 @@ impl Server {
         uri: &Uri,
         action: impl FnOnce(&str, &LineIndex, &Parse, &Outline, Option<i32>) -> T,
     ) -> Option<T> {
+        if let Some((document, version)) = self.staged_document(uri) {
+            let outline = Outline::with_inheritance(
+                &document.parse,
+                &document.text,
+                &uri::file_stem(uri),
+                &self.workspace.inheritance,
+            );
+            return Some(action(&document.text, &document.index, &document.parse, &outline, version));
+        }
         if let Some(document) = self.documents.get(uri.as_str()) {
             let outline = Outline::with_inheritance(
                 &document.parse,
@@ -2497,7 +2529,16 @@ impl Server {
             })?;
             Some((uri, outline.entries[line.entry?].offset))
         });
-        views::render(query, &blocks, &outlines, search.as_ref(), self.now(), clocked, Some(&self.agenda_filters))
+        views::render(
+            query,
+            &blocks,
+            &outlines,
+            search.as_ref(),
+            self.now(),
+            clocked,
+            Some(&self.agenda_filters),
+            &self.agenda_marks,
+        )
     }
 
     /// The blocks `query` shows, in log mode and with the clock report as
@@ -2863,6 +2904,8 @@ impl Server {
             }
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             id if id.starts_with("org.agenda.filter") => self.agenda_filter(id, context.as_ref()),
+            commands::AGENDA_BULK_ACTION => self.agenda_bulk_action(context.as_ref()),
+            id if id.starts_with("org.agenda.bulk.") => self.agenda_bulk_mark(id, context.as_ref()),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
             commands::OPEN => self.open_at_point(&context.ok_or("This command needs the cursor position")?),
@@ -3345,10 +3388,12 @@ impl Server {
         match command {
             commands::AGENDA_LIST => {
                 self.agenda_filters = Default::default();
+                self.agenda_marks.clear();
                 Ok(self.open_view(Query::Agenda { start: self.start_day(), span: self.agenda.span })?)
             }
             commands::AGENDA_TODOS => {
                 self.agenda_filters = Default::default();
+                self.agenda_marks.clear();
                 Ok(self.open_view(Query::Todo)?)
             }
             commands::AGENDA_REDO => {
@@ -3514,6 +3559,7 @@ impl Server {
         if get("ask").as_deref() == Some("match") {
             let matching = input.unwrap_or_default();
             self.agenda_filters = Default::default();
+            self.agenda_marks.clear();
             self.open_view(Query::Tags { matching, todo_only: prefix == "M" })?;
             return Ok(Value::Null);
         }
@@ -3527,6 +3573,7 @@ impl Server {
             let query = Query::Custom { keys, moved: None };
             self.blocks(&query)?;
             self.agenda_filters = Default::default();
+            self.agenda_marks.clear();
             self.open_view(query)?;
             return Ok(Value::Null);
         }
@@ -3572,6 +3619,7 @@ impl Server {
             "s" | "S" => return Ok(self.search_input(&keys, "")),
             "#" => {
                 self.agenda_filters = Default::default();
+                self.agenda_marks.clear();
                 self.open_view(Query::Stuck)?
             }
             _ => return Err("No agenda command for this key".into()),
@@ -3903,6 +3951,7 @@ impl Server {
         }
         org_core::agenda::search::parse(&string, todo_only, &self.agenda.search).map_err(Refusal::Failed)?;
         self.agenda_filters = Default::default();
+        self.agenda_marks.clear();
         self.open_view(Query::Search { string, todo_only })?;
         Ok(Value::Null)
     }
@@ -4056,10 +4105,8 @@ impl Server {
                 // Another file as an editor has it, or as it is on disk.
                 let open: Vec<(PathBuf, String)> = self
                     .documents
-                    .iter()
-                    .filter_map(|(key, document)| {
-                        Some((uri::to_path(&key.parse::<Uri>().ok()?)?, document.text.clone()))
-                    })
+                    .keys()
+                    .filter_map(|key| Some((uri::to_path(&key.parse::<Uri>().ok()?)?, self.open_text(key)?)))
                     .collect();
                 let mut read = |wanted: &Path| match open.iter().find(|(path, _)| path == wanted) {
                     Some((_, text)) => Some(text.clone()),
@@ -4098,7 +4145,7 @@ impl Server {
                 Some((
                     key.parse::<Uri>().unwrap_or(found),
                     self.documents[&key].version,
-                    self.documents[&key].text.clone(),
+                    self.open_text(&key).unwrap_or_default(),
                 ))
             });
             match open {
@@ -4159,7 +4206,7 @@ impl Server {
         let mut selections = Vec::new();
         for target in &targets {
             let found: Vec<Uri> = match &target.files {
-                RefileFiles::Current => vec![uris[0].clone()],
+                RefileFiles::Current => vec![self.refile_current.clone().unwrap_or_else(|| uris[0].clone())],
                 RefileFiles::Agenda => self.agenda_files().into_iter().map(|(uri, _)| uri).collect(),
                 RefileFiles::Paths(patterns) => patterns
                     .iter()
@@ -4784,6 +4831,7 @@ impl Server {
                 now,
                 note: extra.note.clone(),
                 skip_note: extra.skip_note,
+                time_only: extra.time_only,
             };
             // A state asked for by name: Emacs says so when the entry has it.
             let requested = match &command {

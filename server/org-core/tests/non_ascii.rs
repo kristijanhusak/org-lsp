@@ -61,7 +61,7 @@ fn commands_finish_on_text_of_several_bytes() {
     let context = archive::Context { path, home: None, now };
     let archive_settings = archive::Settings::default();
     let edit_settings = edit::Settings::default();
-    let call = edit::Call { count: None, repeated: false, now, note: None, skip_note: true };
+    let call = edit::Call { count: None, repeated: false, now, note: None, skip_note: true, time_only: false };
     let commands = [
         edit::Command::Todo(todo::Target::Next),
         edit::Command::Priority(org_core::priority::Action::Up),

@@ -627,6 +627,13 @@ pub const SETTINGS: &[Setting] = &[
         "What log mode shows: `closed` entries, `clock` lines and `state` changes.",
     ),
     setting(
+        "org_agenda_persistent_marks",
+        "boolean",
+        "false",
+        "org-agenda-persistent-marks",
+        "Keep the marks of a bulk action (`B`) after it (`p` in its menu toggles this for one action).",
+    ),
+    setting(
         "org_agenda_start_with_follow_mode",
         "boolean",
         "false",
@@ -1040,6 +1047,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_start_with_clockreport_mode", BOOLEAN),
     ("org_agenda_start_with_archives_mode", r#"{ "enum": ["trees", "files", false] }"#),
     ("org_agenda_log_mode_items", r#"{ "type": "array", "items": { "enum": ["closed", "clock", "state"] } }"#),
+    ("org_agenda_persistent_marks", BOOLEAN),
     ("org_agenda_start_with_follow_mode", BOOLEAN),
     ("org_agenda_start_with_entry_text_mode", BOOLEAN),
     ("org_agenda_entry_text_maxlines", r#"{ "type": "integer", "minimum": 1 }"#),

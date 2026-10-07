@@ -134,6 +134,14 @@ pub const AGENDA_LOG: &str = "org.agenda.log";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
 pub const AGENDA_ENTRY_TEXT: &str = "org.agenda.entry.text";
 pub const AGENDA_FOLLOW: &str = "org.agenda.follow";
+pub const AGENDA_BULK_MARK: &str = "org.agenda.bulk.mark";
+pub const AGENDA_BULK_UNMARK: &str = "org.agenda.bulk.unmark";
+pub const AGENDA_BULK_UNMARK_ALL: &str = "org.agenda.bulk.unmark.all";
+pub const AGENDA_BULK_TOGGLE: &str = "org.agenda.bulk.toggle";
+pub const AGENDA_BULK_MARK_ALL: &str = "org.agenda.bulk.mark.all";
+pub const AGENDA_BULK_TOGGLE_ALL: &str = "org.agenda.bulk.toggle.all";
+pub const AGENDA_BULK_MARK_REGEXP: &str = "org.agenda.bulk.mark.regexp";
+pub const AGENDA_BULK_ACTION: &str = "org.agenda.bulk.action";
 pub const AGENDA_FILTER: &str = "org.agenda.filter";
 pub const AGENDA_FILTER_TAG: &str = "org.agenda.filter.tag";
 pub const AGENDA_FILTER_CATEGORY: &str = "org.agenda.filter.category";
@@ -307,6 +315,23 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Agenda, "F")],
         ..command(AGENDA_FOLLOW, "Agenda: follow mode, the cursor's entry in another window")
     },
+    // Bulk actions: lines marked (shown with `>`), then one action for
+    // the entries of all of them.
+    Command { emacs: &[key(Agenda, "m")], ..command(AGENDA_BULK_MARK, "Agenda: mark the entry for a bulk action") },
+    Command { emacs: &[key(Agenda, "u")], ..command(AGENDA_BULK_UNMARK, "Agenda: unmark the entry") },
+    Command { emacs: &[key(Agenda, "U")], ..command(AGENDA_BULK_UNMARK_ALL, "Agenda: unmark all entries") },
+    Command { emacs: &[key(Agenda, "M-m")], ..command(AGENDA_BULK_TOGGLE, "Agenda: toggle the mark of the entry") },
+    Command { emacs: &[key(Agenda, "*")], ..command(AGENDA_BULK_MARK_ALL, "Agenda: mark all entries") },
+    Command {
+        emacs: &[key(Agenda, "M-*")],
+        ..command(AGENDA_BULK_TOGGLE_ALL, "Agenda: toggle the marks of all entries")
+    },
+    Command {
+        emacs: &[key(Agenda, "%")],
+        input: Some(Input { kind: "text", prompt: "Mark entries matching regexp" }),
+        ..command(AGENDA_BULK_MARK_REGEXP, "Agenda: mark the entries matching a regexp")
+    },
+    Command { emacs: &[key(Agenda, "B")], ..command(AGENDA_BULK_ACTION, "Agenda: an action on the marked entries") },
     // The agenda's filters: lines of entries hidden by tags, category,
     // regexp, effort or top headline, until a new agenda command; with a
     // count, `<` and `=` hide what matches (Emacs's `C-u`).

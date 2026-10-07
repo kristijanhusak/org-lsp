@@ -19,7 +19,7 @@ pub mod search;
 pub use search::SearchSettings;
 
 pub use crate::text::tag_group;
-pub use display::{display, Displayed, Link, Segment, Style};
+pub use display::{display, mark, Displayed, Link, Segment, Style};
 pub use item::{align_tags, display_column, hidden_ranges, Face, Item, ItemKind, Source};
 pub use matcher::Matcher;
 

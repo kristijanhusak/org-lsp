@@ -123,6 +123,14 @@ The other options are in [configuration.md](configuration.md).
 | `R`, `vR` | `org.agenda.clockreport` | Agenda: the clock report |
 | `E`, `vE` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
 | `F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |
+| `m` | `org.agenda.bulk.mark` | Agenda: mark the entry for a bulk action |
+| `u` | `org.agenda.bulk.unmark` | Agenda: unmark the entry |
+| `U` | `org.agenda.bulk.unmark.all` | Agenda: unmark all entries |
+| `<M-m>` | `org.agenda.bulk.toggle` | Agenda: toggle the mark of the entry |
+| `*` | `org.agenda.bulk.mark.all` | Agenda: mark all entries |
+| `<M-*>` | `org.agenda.bulk.toggle.all` | Agenda: toggle the marks of all entries |
+| `%` | `org.agenda.bulk.mark.regexp` | Agenda: mark the entries matching a regexp |
+| `B` | `org.agenda.bulk.action` | Agenda: an action on the marked entries |
 | `/` | `org.agenda.filter` | Agenda: filter by tags, categories, effort and regexps |
 | `\` | `org.agenda.filter.tag` | Agenda: filter by tag |
 | `<` | `org.agenda.filter.category` | Agenda: filter by the line's category |

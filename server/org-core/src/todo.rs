@@ -1398,6 +1398,10 @@ pub enum NoteText<'a> {
     /// The note was cancelled (`C-c C-k` in Emacs's note buffer): the
     /// state changes, and nothing is logged.
     Skip,
+    /// No note is asked for, a time is logged instead (`org-inhibit-logging`
+    /// `note`, as the agenda's bulk action has it): the line of a state
+    /// change without text; for a closed item, its `CLOSED` stamp alone.
+    TimeOnly,
 }
 
 /// [`change_state`], with the text of the note the change records, as
@@ -1432,6 +1436,12 @@ pub fn change_state_noted(
     let wants_note = match (editor.note.take(), note) {
         // `org-store-log-note` with `org-note-abort`: nothing is stored.
         (Some(wanted), NoteText::Skip) if wanted.text => None,
+        (Some(wanted), NoteText::TimeOnly) => {
+            if wanted.purpose != Purpose::Done {
+                editor.store_note(&wanted, "");
+            }
+            None
+        }
         // A time only (`!`): no text is asked for.
         (Some(wanted), _) if !wanted.text => {
             editor.store_note(&wanted, "");

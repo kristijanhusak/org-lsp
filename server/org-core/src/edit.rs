@@ -113,6 +113,8 @@ pub struct Call {
     pub note: Option<String>,
     /// The note was cancelled: the change is made, and no note is logged.
     pub skip_note: bool,
+    /// No note is asked for: a time is logged in its place.
+    pub time_only: bool,
 }
 
 /// The priorities a document declares with `#+PRIORITIES:`. Only the
@@ -184,6 +186,7 @@ pub fn run(
         Command::Todo(target) => {
             let keywords = parse.todo_keywords();
             let note = match (&call.note, call.skip_note) {
+                _ if call.time_only => todo::NoteText::TimeOnly,
                 (_, true) => todo::NoteText::Skip,
                 (Some(note), false) => todo::NoteText::Write(note),
                 (None, false) => todo::NoteText::Ask,

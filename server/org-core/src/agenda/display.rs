@@ -191,6 +191,26 @@ fn whole(text: &str, style: Style) -> Displayed {
     Displayed { text: text.to_string(), segments, links: Vec::new() }
 }
 
+/// A line marked for a bulk action (`org-agenda-bulk-mark`): its first two
+/// characters shown as `mark` and a blank, `mark` in the face of a TODO
+/// keyword, as Emacs's overlay shows them.
+pub fn mark(displayed: &mut Displayed, mark: &str) {
+    let cut = displayed.text.char_indices().nth(2).map_or(displayed.text.len(), |(at, _)| at);
+    let prefix = format!("{mark} ");
+    let moved = |at: usize| if at >= cut { at - cut + prefix.len() } else { prefix.len().min(at) };
+    displayed.text = format!("{prefix}{}", &displayed.text[cut..]);
+    for segment in &mut displayed.segments {
+        segment.start = moved(segment.start).max(prefix.len());
+        segment.end = moved(segment.end).max(prefix.len());
+    }
+    displayed.segments.retain(|segment| segment.start < segment.end);
+    for link in &mut displayed.links {
+        link.start = moved(link.start).max(prefix.len());
+        link.end = moved(link.end).max(prefix.len());
+    }
+    displayed.segments.insert(0, Segment { start: 0, end: mark.len(), style: Style::Keyword { done: false } });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

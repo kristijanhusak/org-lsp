@@ -13,6 +13,11 @@ A case is a JSON object:
       "answer": "fri"                     for commands that ask for a date
     }
 
+A bulk action (`"command": "bulk"`) marks the lines of `"marks"` (texts, as
+`line`) with `m`, then runs `B` on `line` with the key `"action"`, and
+`"answer"` for what that asks (a state, tag, date, refile target or
+number of days).
+
 `reference(cases)` adds `expected`: the files after the command, or
 `ERROR: …` when Emacs refuses. A case with an answer also gets `prompt`,
 the text the date prompt offered before the answer replaced it. A command
@@ -106,18 +111,39 @@ DRIVER = r"""
 """
 
 
+def bulk_form(case):
+    """`m` on each line of the case's marks, then `B` and its answers on
+    the case's line."""
+    marks = " ".join(lisp_string(mark) for mark in case["marks"])
+    answer = lisp_string(case.get("answer", ""))
+    return (
+        f"(let ((here (point)))"
+        f" (set-window-buffer (selected-window) (current-buffer))"
+        f" (dolist (needle (list {marks}))"
+        f"   (goto-char (point-min)) (search-forward needle) (beginning-of-line) (org-agenda-bulk-mark))"
+        f" (goto-char here)"
+        f" (cl-letf (((symbol-function 'read-char-exclusive) (lambda (&rest _) ?{case['action']}))"
+        f"           ((symbol-function 'completing-read) (lambda (&rest _) {answer}))"
+        f"           ((symbol-function 'read-number) (lambda (&rest _) (string-to-number {answer}))))"
+        f"   (org-agenda-bulk-action)))"
+    )
+
+
 def reference(cases):
     """Fill in `expected` for every case."""
     by_clock = {}
-    for case in cases:
-        by_clock.setdefault(case["clock"], []).append(case)
+    for index, case in enumerate(cases):
+        # A bulk action leaves windows that the next case's commands trip
+        # over: each runs in an Emacs of its own.
+        key = (case["clock"], index if case["command"] == "bulk" else None)
+        by_clock.setdefault(key, []).append(case)
     org_path = ["-L", os.environ["ORG_LISP_DIR"]] if os.environ.get("ORG_LISP_DIR") else []
     with tempfile.TemporaryDirectory() as directory:
-        for clock, group in by_clock.items():
+        for number, ((clock, _), group) in enumerate(by_clock.items()):
             forms = [todo_reference.DRIVER, DRIVER]
             outputs = []
             for index, case in enumerate(group):
-                folder = os.path.join(directory, f"case-{index}")
+                folder = os.path.join(directory, f"group-{number}", f"case-{index}")
                 os.makedirs(folder)
                 paths = []
                 for name, text in sorted(case["files"].items()):
@@ -128,14 +154,15 @@ def reference(cases):
                 outputs.append((case, target))
                 span = case.get("span", "week")
                 count = case.get("count")
+                form = COMMANDS.get(case["command"]) or bulk_form(case)
                 forms.append(
                     f"(let ({todo_reference.bindings(case.get('options'))})\n"
                     f"  (org-lsp-agenda-case (list {' '.join(lisp_string(path) for path in paths)}) {lisp_string(target)}"
                     f" {lisp_string(case.get('view', 'agenda'))} {span if isinstance(span, int) else chr(39) + span}"
                     f" {lisp_string(case['line'])} {'nil' if count is None else count}"
-                    f" '{COMMANDS[case['command']]} {lisp_string(case.get('answer', ''))}))"
+                    f" '{form} {lisp_string(case.get('answer', ''))}))"
                 )
-            driver = os.path.join(directory, "driver.el")
+            driver = os.path.join(directory, f"driver-{number}.el")
             with open(driver, "w", encoding="utf-8") as handle:
                 handle.write("\n".join(forms))
             subprocess.run(
