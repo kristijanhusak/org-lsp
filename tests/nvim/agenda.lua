@@ -741,7 +741,7 @@ local longest = 0
 for _, text in ipairs(vim.api.nvim_buf_get_lines(float_buf, 0, -1, false)) do
   longest = math.max(longest, vim.fn.strdisplaywidth(text))
 end
-eq(vim.api.nvim_win_get_width(float), longest + 2, 'as wide as its longest line, with a blank on each side')
+eq(vim.api.nvim_win_get_width(float), math.max(longest + 4, 50), 'as wide as its longest line with two blanks on each side, 50 at least')
 -- Not indented as `org-indent-mode` indents: wider than the float.
 require('org-lsp.indent').virtual({
   uri = vim.uri_from_bufnr(float_buf),

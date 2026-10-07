@@ -192,7 +192,8 @@ subtree at the cursor.
   it, and nothing is split. Typing goes on in insert mode.
 - **`K`** in the agenda shows the line's entry in a float at the cursor:
   its headline and its text, each drawer folded to its first line
-  (`:PROPERTIES:...`), highlighted as Org files are. A second `K` goes
+  (`:PROPERTIES:...`), highlighted as Org files are, with room around
+  it (50 columns at least). A second `K` goes
   into the float, `q` there closes it, and moving the cursor closes it
   too.
 - **`cid`** leaves the cursor where it was in the timestamp it changes,
