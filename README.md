@@ -111,20 +111,26 @@ own. Each route below can also build it with [cargo](https://rustup.rs).
 
 ### Neovim (0.11 or newer)
 
-Install the repository as a plugin and build the server. With lazy.nvim:
+Install the repository as a plugin. Opening an Org file the first time
+downloads the server for your platform from the nightly release (needs
+`curl` and `tar`); `:OrgLspDownload` updates it, and the plugin manager
+can run it on each update. With lazy.nvim:
 
 ```lua
 {
   'kristijanhusak/org-lsp',
-  build = 'cargo build --release -p org-lsp',
+  build = ':OrgLspDownload',
   init = function()
     vim.g.org_lsp = { settings = { org_agenda_files = { '~/org' } } }
   end,
 }
 ```
 
-With any other plugin manager, install the repository and run `:OrgLspBuild`
-once. Opening an `.org` file starts the server; `<Leader>oa` opens the
+To build the server instead (needs [cargo](https://rustup.rs)), set
+`build = 'cargo build --release -p org-lsp'`, or run `:OrgLspBuild`; a
+build in the plugin's directory and `org-lsp` on PATH come before the
+download (`download = false` turns it off, `release = 'v0.2.0'` picks a
+release). Opening an `.org` file starts the server; `<Leader>oa` opens the
 agenda from anywhere. `:checkhealth org-lsp` reports what the plugin found.
 
 The plugin sets buffer-local keys in Org files, so it is meant to be used
