@@ -137,7 +137,7 @@ fn siblings(text: &str, heading: usize) -> Vec<usize> {
     let level = level_at(text, heading).unwrap_or(1);
     let (start, end) = match parent(text, heading) {
         Some(parent) => (next_heading(text, parent), subtree_end(text, parent)),
-        None => (heading_at_or_above(text, 0).map_or_else(|| next_heading(text, 0), |first| first), text.len()),
+        None => (heading_at_or_above(text, 0).unwrap_or_else(|| next_heading(text, 0)), text.len()),
     };
     let mut out = Vec::new();
     let mut at = start;
