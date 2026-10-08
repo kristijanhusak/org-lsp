@@ -175,6 +175,28 @@ function! s:agenda() abort
 endfunction
 call s:test('shows the agenda, moves through it, and closes it', function('s:agenda'))
 
+" A change made from the agenda shows in the agenda once the server has
+" written it anew, whichever client: the server says so
+" (`org-lsp/viewChanged`).
+function! s:agenda_refresh() abort
+  call org_lsp#run('org.agenda.list')
+  call s:until('the agenda', {-> s:agenda_window() != 0})
+  call win_gotoid(s:agenda_window())
+  call s:until('its text', {-> search('TODO \[#A\] Write report', 'n') > 0})
+  for state in ['DONE', '', 'TODO']
+    call cursor(search('Write report', 'n'), 1)
+    call feedkeys('t', 'x')
+    let Shown = {-> getline(search('Write report', 'n'))}
+    call s:until('the agenda showing ' . (empty(state) ? 'no state' : state),
+          \ {-> state ==# '' ? Shown() !~# '\(TODO\|DONE\) \[#A\]' : Shown() =~# state . ' \[#A\] Write report'})
+  endfor
+  call feedkeys('q', 'x')
+  call s:until('the agenda closed', {-> s:agenda_window() == 0})
+  " The file as it was.
+  call s:until('the file as it was', {-> getbufline(s:work_buf, 2)[0] =~# '^\* TODO \[#A\] Write report'})
+endfunction
+call s:test('a change from the agenda shows in it', function('s:agenda_refresh'))
+
 " Put the cursor on the line with `text`, and whether it is still there a
 " moment later.
 function! s:stays_on(text) abort

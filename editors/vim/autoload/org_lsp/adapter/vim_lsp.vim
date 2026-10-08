@@ -66,3 +66,12 @@ function! org_lsp#adapter#vim_lsp#request(bufnr, method, params, Callback) abort
         \ 'on_notification': {data -> a:Callback(get(data.response, 'error', {}), get(data.response, 'result', v:null))},
         \ })
 endfunction
+
+" Tell the server of the changes to buffer `bufnr` not sent yet: vim-lsp
+" sends them for the current buffer, and for another only with a request
+" about it.
+function! org_lsp#adapter#vim_lsp#flush(bufnr) abort
+  if lsp#get_server_status(s:name) ==# 'running'
+    call lsp#ensure_flush_all(a:bufnr, [s:name])
+  endif
+endfunction

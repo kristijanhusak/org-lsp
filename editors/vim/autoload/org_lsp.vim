@@ -92,6 +92,7 @@ endfunction
 function! org_lsp#init_options() abort
   return extend(deepcopy(org_lsp#config().settings), {
         \ 'show_document': v:true,
+        \ 'view_changed': v:true,
         \ 'virtual_documents': v:false,
         \ 'virtual_indent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
         \ 'line_highlights': v:true,
@@ -179,10 +180,28 @@ endfunction
 " answer, `error` being {} when there is none. Changes not yet sent go
 " first.
 function! org_lsp#request(bufnr, method, params, Callback) abort
-  if exists('*listener_flush')
-    call listener_flush(a:bufnr)
-  endif
+  call s:flush_changes(a:bufnr)
   call s:call('request', a:bufnr, a:method, a:params, a:Callback)
+endfunction
+
+" The changes of the Org buffers the server has not heard of yet, sent
+" first: an edit the server asked for, made in a buffer other than the
+" current one (from the agenda), is sent by some clients only when that
+" buffer is the current one again, and the next command would act on the
+" text before it.
+let s:flushed = {}
+function! s:flush_changes(bufnr) abort
+  if getbufvar(a:bufnr, '&filetype') ==# get(get(org_lsp#manifest(), 'agenda', {}), 'languageId', 'org-agenda')
+    call s:give_agenda(a:bufnr)
+  endif
+  for info in getbufinfo({'bufloaded': 1})
+    let nr = info.bufnr
+    if nr != a:bufnr && (getbufvar(nr, '&filetype') !=# 'org' || get(s:flushed, nr, -1) == info.changedtick)
+      continue
+    endif
+    let s:flushed[nr] = info.changedtick
+    call s:call('flush', nr)
+  endfor
 endfunction
 
 " A request answered before this returns, or {'error': …} after `timeout`
@@ -999,9 +1018,43 @@ function! s:reload_agenda() abort
     if s:is_agenda(info.name)
       let old = getbufline(info.bufnr, 1, '$')
       execute 'checktime' info.bufnr
+      call s:give_agenda(info.bufnr)
       call s:repaint_kept(info.bufnr, old)
     endif
   endfor
+endfunction
+
+" Have the client send the whole agenda again when Vim read it anew. A
+" buffer read again is not a change Vim tells listeners of, and the clients
+" that learn of changes from them (vim-lsp, coc.nvim) keep the old text,
+" while the server maps the agenda's lines by the text the client sent.
+" Vim reads the file again on its own too, at times without autocommands,
+" so the lines last given are kept (`b:org_lsp_given`), and given again
+" when the buffer has others: put back as two changes, which such a client
+" sends as the whole text.
+function! s:give_agenda(nr) abort
+  let lines = getbufline(a:nr, 1, '$')
+  if lines ==# getbufvar(a:nr, 'org_lsp_given', lines)
+    return
+  endif
+  call setbufvar(a:nr, 'org_lsp_given', lines)
+  let saved = {}
+  for name in ['readonly', 'modifiable', 'undolevels']
+    let saved[name] = getbufvar(a:nr, '&' . name)
+  endfor
+  call setbufvar(a:nr, '&readonly', 0)
+  call setbufvar(a:nr, '&modifiable', 1)
+  call setbufvar(a:nr, '&undolevels', -1)
+  try
+    silent call deletebufline(a:nr, 1, '$')
+    call setbufline(a:nr, 1, lines)
+  finally
+    call setbufvar(a:nr, '&modified', 0)
+    for [name, value] in items(saved)
+      call setbufvar(a:nr, '&' . name, value)
+    endfor
+  endtry
+  call s:call('flush', a:nr)
 endfunction
 
 " Paint buffer `nr` with the tokens it had when it had the lines `old`:
@@ -1254,6 +1307,10 @@ function! org_lsp#handle_notification(method, params) abort
     call s:virtual_indent(a:params)
   elseif a:method ==# 'org-lsp/lineHighlights'
     call s:line_highlights(a:params)
+  elseif a:method ==# 'org-lsp/viewChanged'
+    " The agenda's file is new: read it again, outside the client's
+    " callback.
+    call timer_start(0, {-> s:reload_agenda()})
   endif
 endfunction
 
@@ -1848,6 +1905,10 @@ function! org_lsp#attach() abort
     execute 'autocmd! * <buffer=' . nr . '>'
     execute 'autocmd TextChanged,InsertLeave,BufReadPost <buffer=' . nr . '> call s:changed(' . nr . ')'
     execute 'autocmd BufWinEnter <buffer=' . nr . '> call s:changed(' . nr . ')'
+    if &filetype ==# get(org_lsp#manifest().agenda, 'languageId', 'org-agenda')
+      let b:org_lsp_given = getline(1, '$')
+      execute 'autocmd FileChangedShellPost,BufReadPost <buffer=' . nr . '> call s:give_agenda(' . nr . ')'
+    endif
   augroup END
   " The client may still be starting the server: ask again until it
   " answers.

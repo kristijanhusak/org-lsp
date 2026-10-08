@@ -95,6 +95,9 @@ struct Client {
     /// says (`org-lsp/lineHighlights`): `experimental.orgLineHighlights`,
     /// or the option `line_highlights`.
     line_highlights: bool,
+    /// Reads the agenda's file again when told (`org-lsp/viewChanged`):
+    /// the option `view_changed`.
+    view_changed: bool,
     /// Shows images in place of text (`org.link.preview`,
     /// `org.latex.preview`): `experimental.orgImages`.
     images: bool,
@@ -499,6 +502,9 @@ pub const SAVE: &str = "org-lsp/save";
 pub const AGENDA_WIDTH: &str = "org-lsp/agendaWidth";
 /// The entry of an agenda line with its highlighting, for a popup.
 pub const PREVIEW: &str = "org-lsp/preview";
+/// The agenda's file has been written anew, `{ "uri" }`: for a client
+/// with the option `view_changed`, which reads it again.
+pub const VIEW_CHANGED: &str = "org-lsp/viewChanged";
 /// The faces of particular TODO keywords and priorities
 /// (`org_todo_keyword_faces`, `org_priority_faces`), for the editor to
 /// apply over the highlighting: `{ "todo": { KEYWORD: face }, "priority":
@@ -1026,6 +1032,7 @@ pub fn run(connection: Connection) -> Result<()> {
             || options.virtual_indent == Some(true),
         display: raw_params.pointer("/capabilities/experimental/orgDisplay").and_then(Value::as_bool) == Some(true),
         images: raw_params.pointer("/capabilities/experimental/orgImages").and_then(Value::as_bool) == Some(true),
+        view_changed: options.view_changed == Some(true),
         line_highlights: raw_params.pointer("/capabilities/experimental/orgLineHighlights").and_then(Value::as_bool)
             == Some(true)
             || options.line_highlights == Some(true),
@@ -4245,8 +4252,16 @@ impl Server {
         let Some(open) = &self.view else { return };
         match &open.file {
             Some(file) => {
-                if let Err(error) = write_read_only(file, &open.view.text) {
-                    self.show_message(MessageType::ERROR, format!("Cannot write the agenda: {error}"));
+                let uri = open.uri.clone();
+                match write_read_only(file, &open.view.text) {
+                    Err(error) => self.show_message(MessageType::ERROR, format!("Cannot write the agenda: {error}")),
+                    // The client reads it again.
+                    Ok(()) if self.client.view_changed => {
+                        let params = json!({ "uri": uri });
+                        let notification = lsp_server::Notification::new(VIEW_CHANGED.to_string(), params);
+                        let _ = self.sender.send(Message::Notification(notification));
+                    }
+                    Ok(()) => {}
                 }
             }
             None => {
