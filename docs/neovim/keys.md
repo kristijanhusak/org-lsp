@@ -162,6 +162,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Tab>` | `org.agenda.goto.other` | Agenda: go to the entry in another window |
 | `s`, `<C-x><C-s>` | `org.agenda.save` | Save all Org files |
 | `vl` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
+| `K` | `org.agenda.habits` | Agenda: show or hide habits |
 | `R`, `vR` | `org.agenda.clockreport` | Agenda: the clock report |
 | `E`, `vE` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
 | `F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |

@@ -233,6 +233,33 @@
     ]
   },
   {
+    "token_type": "agendaHabit",
+    "token_modifiers": [
+      "ready"
+    ],
+    "style": [
+      "string"
+    ]
+  },
+  {
+    "token_type": "agendaHabit",
+    "token_modifiers": [
+      "alert"
+    ],
+    "style": [
+      "warning"
+    ]
+  },
+  {
+    "token_type": "agendaHabit",
+    "token_modifiers": [
+      "overdue"
+    ],
+    "style": [
+      "error"
+    ]
+  },
+  {
     "token_type": "agendaTimeGrid",
     "token_modifiers": [
       "current"
@@ -407,6 +434,12 @@
     "token_type": "agendaDone",
     "style": [
       "comment"
+    ]
+  },
+  {
+    "token_type": "agendaHabit",
+    "style": [
+      "hint"
     ]
   },
   {

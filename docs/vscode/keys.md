@@ -173,6 +173,7 @@ The other options are in [configuration.md](configuration.md).
 | `Tab` | `org.agenda.goto.other` | Agenda: go to the entry in another window |
 | `s`, `Ctrl+X Ctrl+S` | `org.agenda.save` | Save all Org files |
 | `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
+| `Shift+K` | `org.agenda.habits` | Agenda: show or hide habits |
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
 | `Shift+E`, `v Shift+E` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
 | `Shift+F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |
@@ -284,6 +285,7 @@ The other options are in [configuration.md](configuration.md).
 | `Tab` | `org.agenda.goto.other` | Agenda: go to the entry in another window |
 | `s`, `Ctrl+X Ctrl+S` | `org.agenda.save` | Save all Org files |
 | `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
+| `Shift+K` | `org.agenda.habits` | Agenda: show or hide habits |
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
 | `Shift+E`, `v Shift+E` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
 | `Shift+F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |
@@ -467,6 +469,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.agenda.goto.other` | Org: Agenda: go to the entry in another window |
 | `org.agenda.save` | Org: Save all Org files |
 | `org.agenda.log` | Org: Agenda: log mode, what was closed and clocked |
+| `org.agenda.habits` | Org: Agenda: show or hide habits |
 | `org.agenda.clockreport` | Org: Agenda: the clock report |
 | `org.agenda.entry.text` | Org: Agenda: entry text mode, some text of each entry under its line |
 | `org.agenda.follow` | Org: Agenda: follow mode, the cursor's entry in another window |

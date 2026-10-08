@@ -62,6 +62,7 @@ token_types! {
     AgendaTimeGrid => "agendaTimeGrid",
     AgendaClocking => "agendaClocking",
     AgendaDimmed => "agendaDimmed",
+    AgendaHabit => "agendaHabit",
     CalendarHeader => "calendarHeader",
     CalendarWeekday => "calendarWeekday",
     CalendarSelected => "calendarSelected",
@@ -97,6 +98,10 @@ pub mod modifier {
         "hidden",
         "clocking",
         "archived",
+        "ready",
+        "alert",
+        "overdue",
+        "future",
     ];
 
     pub const DONE: u32 = 1 << 8;
@@ -121,6 +126,16 @@ pub mod modifier {
     pub const CLOCKING: u32 = 1 << 24;
     /// A headline with `:ARCHIVE:` in it (`org-archived`).
     pub const ARCHIVED: u32 = 1 << 25;
+    /// Agenda: a day of a habit's graph that is in its time to be done
+    /// (`org-habit-ready-face`); without this or the next two, before it
+    /// (`org-habit-clear-face`).
+    pub const READY: u32 = 1 << 26;
+    /// The day it is due by (`org-habit-alert-face`).
+    pub const ALERT: u32 = 1 << 27;
+    /// Past it (`org-habit-overdue-face`).
+    pub const OVERDUE: u32 = 1 << 28;
+    /// A day of the graph to come (the `-future` faces).
+    pub const FUTURE: u32 = 1 << 29;
 
     /// Headline levels repeat after eight, like Org's level faces.
     pub fn level(level: usize) -> u32 {

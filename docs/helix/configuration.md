@@ -512,6 +512,47 @@ org_scheduled_delay_days = 0
 # (org-scheduled-past-days)
 org_scheduled_past_days = 10000
 
+# Org modules to load. `org-habit` turns habits on: entries with the `STYLE`
+# property `habit` and a scheduled date with a repeater (`.+2d`, `.+2d/4d` for
+# a deadline too) show in the agenda with a graph of the days they were done.
+# Others are ignored. (org-modules)
+org_modules = []
+
+# The column the consistency graph of a habit starts at in the agenda.
+# (org-habit-graph-column)
+org_habit_graph_column = 40
+
+# How many days before today a habit's graph shows. (org-habit-preceding-days)
+org_habit_preceding_days = 21
+
+# How many days after today a habit's graph shows. (org-habit-following-days)
+org_habit_following_days = 7
+
+# Show habits in the agenda. (org-habit-show-habits)
+org_habit_show_habits = true
+
+# Show habits only on today's date, not on future days of the agenda.
+# (org-habit-show-habits-only-for-today)
+org_habit_show_habits_only_for_today = true
+
+# Show every habit today, even those not scheduled for today.
+# (org-habit-show-all-today)
+org_habit_show_all_today = false
+
+# The mark of today in a habit's graph. (org-habit-today-glyph)
+org_habit_today_glyph = "!"
+
+# The mark of a day a habit was done in its graph. (org-habit-completed-glyph)
+org_habit_completed_glyph = "*"
+
+# A day a habit was done is green in its graph even when it was done late.
+# (org-habit-show-done-always-green)
+org_habit_show_done_always_green = false
+
+# How many days a habit that is not done keeps showing up.
+# (org-habit-scheduled-past-days)
+# org_habit_scheduled_past_days = …  (unset: `org_scheduled_past_days`)
+
 # How many days a missed deadline keeps showing up. (org-deadline-past-days)
 org_deadline_past_days = 10000
 

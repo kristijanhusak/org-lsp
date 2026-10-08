@@ -1,0 +1,20 @@
+{
+  "today": "2026-05-18",
+  "now": "08:20",
+  "runs": [
+    { "view": "agenda", "span": "week" },
+    { "view": "agenda", "span": "day", "start": "2026-05-20" }
+  ],
+  "options": {
+    "org_modules": ["org-habit"],
+    "org_habit_show_habits_only_for_today": false,
+    "org_habit_show_all_today": true,
+    "org_habit_graph_column": 30,
+    "org_habit_preceding_days": 10,
+    "org_habit_following_days": 3,
+    "org_habit_today_glyph": "@",
+    "org_habit_completed_glyph": "x",
+    "org_habit_scheduled_past_days": 3
+  },
+  "emacs": "(require 'org-habit) (setq org-habit-show-habits-only-for-today nil org-habit-show-all-today t org-habit-graph-column 30 org-habit-preceding-days 10 org-habit-following-days 3 org-habit-today-glyph ?@ org-habit-completed-glyph ?x org-habit-scheduled-past-days 3)"
+}

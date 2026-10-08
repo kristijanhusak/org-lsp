@@ -1,0 +1,11 @@
+{
+  "today": "2026-05-18",
+  "now": "08:20",
+  "runs": [
+    { "view": "agenda", "span": "day" },
+    { "view": "agenda", "span": "week" },
+    { "view": "todo" }
+  ],
+  "options": { "org_modules": ["org-habit"] },
+  "emacs": "(require 'org-habit)"
+}

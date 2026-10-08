@@ -115,6 +115,16 @@ DEFAULTS = r"""
       org-use-tag-inheritance t
       org-tags-exclude-from-inheritance nil
       org-use-property-inheritance nil
+      org-habit-show-habits t
+      org-habit-show-habits-only-for-today t
+      org-habit-show-all-today nil
+      org-habit-graph-column 40
+      org-habit-preceding-days 21
+      org-habit-following-days 7
+      org-habit-today-glyph ?!
+      org-habit-completed-glyph ?*
+      org-habit-show-done-always-green nil
+      org-habit-scheduled-past-days nil
       org-agenda-time-grid '((daily today require-timed)
                              (800 1000 1200 1400 1600 1800 2000)
                              "......" "----------------"))

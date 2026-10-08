@@ -107,6 +107,12 @@
           "task_name": "Org agenda: log mode, what was closed and clocked"
         }
       ],
+      "shift-k": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: show or hide habits"
+        }
+      ],
       "shift-r": [
         "task::Spawn",
         {

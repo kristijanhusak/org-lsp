@@ -364,7 +364,7 @@ export const AREAS = [
       ['Changing an entry from the agenda: state, priority, tags, dates, notes, refile, archive, clock', true],
       ['Lines formatted as Org formats them (`org-agenda-prefix-format` and the rest)', true],
       ['The time grid', true],
-      ['Habits (`org-habit`)', false],
+      ['Habits (`org-habit`): the consistency graph, `K`', true],
       ['Diary entries and sexps (`%%(diary-…)`)', false],
       ['Column view in the agenda', false],
       ['Writing the agenda to a file (`C-x C-w`)', false],

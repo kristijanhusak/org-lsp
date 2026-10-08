@@ -1837,6 +1837,59 @@ fn dims_blocked_tasks_in_the_agenda() {
     client.shutdown();
 }
 
+/// `org-habit`: a habit's line carries its consistency graph, each day a
+/// token of its face; `K` hides habits and shows them again.
+#[test]
+fn shows_habits_with_their_graph() {
+    let mut options = clock();
+    options["org_modules"] = json!(["org-habit"]);
+    let mut client = Client::editor(options, None);
+    client.open(
+        "file:///org/habits.org",
+        "* TODO Shave\nSCHEDULED: <2026-05-17 Sun .+2d/4d>\n:PROPERTIES:\n:STYLE: habit\n:END:\n\
+         - State \"DONE\"       from \"TODO\"       [2026-05-15 Fri 08:00]\n",
+    );
+    client.command("org.agenda.list", "file:///org/habits.org", 0);
+    let text = client.view_text(VIEW);
+    let row = text.lines().position(|line| line.contains("Shave")).expect("the habit") as u64;
+    let line = text.lines().nth(row as usize).unwrap();
+    assert_eq!(&line[40..69], "                  *  !       ", "{text}");
+    let tokens =
+        client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": VIEW } })).unwrap();
+    let data: Vec<u64> = tokens["data"].as_array().unwrap().iter().map(|n| n.as_u64().unwrap()).collect();
+    let legend = &client.initialize["capabilities"]["semanticTokensProvider"]["legend"];
+    let modifiers: Vec<&str> =
+        legend["tokenModifiers"].as_array().unwrap().iter().map(|name| name.as_str().unwrap()).collect();
+    let (mut line, mut start) = (0, 0);
+    let mut days = Vec::new();
+    for token in data.chunks(5) {
+        if token[0] > 0 {
+            start = 0;
+        }
+        line += token[0];
+        start += token[1];
+        if line == row && legend["tokenTypes"][token[3] as usize] == "agendaHabit" {
+            let named: Vec<&str> =
+                (0..modifiers.len()).filter(|bit| token[4] & (1 << bit) != 0).map(|bit| modifiers[bit]).collect();
+            days.push((start, named.join(".")));
+        }
+    }
+    assert_eq!(days.len(), 28, "{days:?}");
+    assert_eq!(days[0], (40, "future".to_string()));
+    // Done on the 15th, before it was scheduled; due by the 19th: ready
+    // today.
+    assert_eq!(days[18], (58, String::new()));
+    assert_eq!(days[21], (61, "ready".to_string()));
+    assert_eq!(days[27], (67, "overdue.future".to_string()));
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+    let done = client
+        .request("workspace/executeCommand", json!({ "command": "org.agenda.habits", "arguments": [context] }))
+        .unwrap();
+    assert_eq!(done["message"], "Habits turned off", "{done}");
+    assert!(!client.view_text(VIEW).contains("Shave"));
+    client.shutdown();
+}
+
 /// `org-refile-copy` keeps the entry; `org-refile` with `C-u` goes to the
 /// target, and with `C-u C-u` to where the last refile put its entry.
 #[test]

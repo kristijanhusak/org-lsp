@@ -1594,6 +1594,29 @@ pub struct AgendaOptions {
     pub scheduled_delay_days: Option<i64>,
     #[serde(rename = "org_scheduled_past_days")]
     pub scheduled_past_days: Option<i64>,
+    /// `org-modules`: `org-habit` turns habits on.
+    #[serde(rename = "org_modules")]
+    pub modules: Option<Vec<String>>,
+    #[serde(rename = "org_habit_graph_column")]
+    pub habit_graph_column: Option<usize>,
+    #[serde(rename = "org_habit_preceding_days")]
+    pub habit_preceding_days: Option<i64>,
+    #[serde(rename = "org_habit_following_days")]
+    pub habit_following_days: Option<i64>,
+    #[serde(rename = "org_habit_show_habits")]
+    pub habit_show_habits: Option<bool>,
+    #[serde(rename = "org_habit_show_habits_only_for_today")]
+    pub habit_show_habits_only_for_today: Option<bool>,
+    #[serde(rename = "org_habit_show_all_today")]
+    pub habit_show_all_today: Option<bool>,
+    #[serde(rename = "org_habit_today_glyph")]
+    pub habit_today_glyph: Option<String>,
+    #[serde(rename = "org_habit_completed_glyph")]
+    pub habit_completed_glyph: Option<String>,
+    #[serde(rename = "org_habit_show_done_always_green")]
+    pub habit_show_done_always_green: Option<bool>,
+    #[serde(rename = "org_habit_scheduled_past_days")]
+    pub habit_scheduled_past_days: Option<i64>,
     #[serde(rename = "org_deadline_past_days")]
     pub deadline_past_days: Option<i64>,
     #[serde(rename = "org_agenda_skip_scheduled_if_done")]
@@ -1806,6 +1829,39 @@ impl AgendaOptions {
         );
         if let Some(on) = self.search_view_always_boolean {
             config.search.always_boolean = on;
+        }
+        // `org-habit`, when it is one of `org-modules`.
+        if self.modules.iter().flatten().any(|module| module == "org-habit") {
+            let mut habits = org_core::agenda::habit::Settings::default();
+            if let Some(column) = self.habit_graph_column {
+                habits.graph_column = column;
+            }
+            if let Some(days) = self.habit_preceding_days {
+                habits.preceding_days = days.max(0);
+            }
+            if let Some(days) = self.habit_following_days {
+                habits.following_days = days.max(0);
+            }
+            if let Some(on) = self.habit_show_habits {
+                habits.show_habits = on;
+            }
+            if let Some(on) = self.habit_show_habits_only_for_today {
+                habits.show_habits_only_for_today = on;
+            }
+            if let Some(on) = self.habit_show_all_today {
+                habits.show_all_today = on;
+            }
+            if let Some(glyph) = self.habit_today_glyph.as_deref().and_then(|glyph| glyph.chars().next()) {
+                habits.today_glyph = glyph;
+            }
+            if let Some(glyph) = self.habit_completed_glyph.as_deref().and_then(|glyph| glyph.chars().next()) {
+                habits.completed_glyph = glyph;
+            }
+            if let Some(on) = self.habit_show_done_always_green {
+                habits.show_done_always_green = on;
+            }
+            habits.scheduled_past_days = self.habit_scheduled_past_days;
+            config.habits = Some(habits);
         }
         if let Some(on) = self.search_view_force_full_words {
             config.search.full_words = on;

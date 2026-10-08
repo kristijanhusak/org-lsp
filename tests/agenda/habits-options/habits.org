@@ -1,0 +1,58 @@
+#+TODO: TODO | DONE CANCELED
+* TODO Shave
+  SCHEDULED: <2026-05-17 Sun .+2d/4d>
+  :PROPERTIES:
+  :STYLE:    habit
+  :LAST_REPEAT: [2026-05-15 Fri 08:00]
+  :END:
+  :LOGBOOK:
+  - State "DONE"       from "TODO"       [2026-05-15 Fri 08:00]
+  - State "DONE"       from "TODO"       [2026-05-12 Tue 08:00]
+  - State "DONE"       from "TODO"       [2026-05-08 Fri 09:00]
+  - State "CANCELED"   from "TODO"       [2026-05-05 Tue 09:00]
+  - State "DONE"       from "TODO"       [2026-05-01 Fri 09:00]
+  :END:
+* TODO Exercise                                                      :health:
+  SCHEDULED: <2026-05-18 Mon 07:00 ++1d>
+  :PROPERTIES:
+  :STYLE:    habit
+  :END:
+  - State "DONE"       from "TODO"       [2026-05-17 Sun 07:10]
+  - State "DONE"       from "TODO"       [2026-05-16 Sat 07:05]
+  - State "DONE"       from "TODO"       [2026-05-14 Thu 07:30]
+  - State "DONE"       from "TODO"       [2026-05-13 Wed 07:00]
+  - CLOSING NOTE [2026-05-11 Mon 07:00] \\
+    Long run
+* TODO Read
+  SCHEDULED: <2026-05-20 Wed +1w>
+  :PROPERTIES:
+  :STYLE:    habit
+  :END:
+  - State "DONE"       from "TODO"       [2026-05-13 Wed 21:00]
+  - State "DONE"       from "TODO"       [2026-05-06 Wed 21:00]
+* TODO Water plants                                                    :home:
+  SCHEDULED: <2026-05-10 Sun .+3d>
+  :PROPERTIES:
+  :STYLE:    habit
+  :END:
+  - State "DONE"       from "TODO"       [2026-05-07 Thu 18:00]
+  - State "DONE"       from "TODO"       [2026-05-03 Sun 18:00]
+* TODO Not a habit
+  SCHEDULED: <2026-05-18 Mon>
+* TODO A weekly review with a very long headline that goes well past the graph
+  SCHEDULED: <2026-05-16 Sat .+1w>
+  :PROPERTIES:
+  :STYLE:    habit
+  :END:
+* DONE Done habit
+  SCHEDULED: <2026-05-18 Mon .+1d>
+  :PROPERTIES:
+  :STYLE:    habit
+  :END:
+* TODO New habit, never done
+  SCHEDULED: <2026-05-19 Tue .+1d>
+  :PROPERTIES:
+  :STYLE:    habit
+  :END:
+* TODO Meeting
+  <2026-05-18 Mon 09:00>
