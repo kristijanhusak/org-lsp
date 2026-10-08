@@ -240,6 +240,12 @@ pub const BABEL_PREVIOUS: &str = "org.babel.previous";
 pub const BABEL_GOTO: &str = "org.babel.goto";
 pub const BLOCK_NEXT: &str = "org.block.next";
 pub const BLOCK_PREVIOUS: &str = "org.block.previous";
+pub const TIMER_START: &str = "org.timer.start";
+pub const TIMER_INSERT: &str = "org.timer.insert";
+pub const TIMER_ITEM: &str = "org.timer.item";
+pub const TIMER_PAUSE: &str = "org.timer.pause";
+pub const TIMER_STOP: &str = "org.timer.stop";
+pub const TIMER_SET: &str = "org.timer.set";
 pub const BABEL_EXECUTE: &str = "org.babel.execute";
 pub const BABEL_EXECUTE_BUFFER: &str = "org.babel.execute.buffer";
 pub const BABEL_EXECUTE_SUBTREE: &str = "org.babel.execute.subtree";
@@ -877,6 +883,41 @@ pub const COMMANDS: &[Command] = &[
     },
     Command { emacs: &[key(Org, "C-c M-f")], ..command(BLOCK_NEXT, "Move to the next block") },
     Command { emacs: &[key(Org, "C-c M-b")], ..command(BLOCK_PREVIOUS, "Move to the previous block") },
+    // Timers, kept by Org in Emacs (`org-timer.el`): the relative timer
+    // (`org-timer-start`, `org-timer`, `org-timer-item`), pausing and
+    // stopping it, and the countdown (`org-timer-set-timer`), whose end the
+    // server says.
+    Command {
+        emacs: &[key(Org, "C-c C-x 0")],
+        vim: &[key(Org, "<Leader>ox0")],
+        ..command(TIMER_START, "Start the relative timer")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x .")],
+        vim: &[key(Org, "<Leader>ox.")],
+        ..command(TIMER_INSERT, "Insert the timer's value")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x -")],
+        vim: &[key(Org, "<Leader>ox-")],
+        ..command(TIMER_ITEM, "Insert a list item with the timer's value")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x ,")],
+        vim: &[key(Org, "<Leader>ox,")],
+        ..command(TIMER_PAUSE, "Pause or continue the timer")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x _")],
+        vim: &[key(Org, "<Leader>ox_")],
+        ..command(TIMER_STOP, "Stop the timer")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x ;")],
+        vim: &[key(Org, "<Leader>ox;")],
+        input: Some(Input { kind: "text", prompt: "How much time left? (minutes or h:mm:ss)" }),
+        ..command(TIMER_SET, "Set a countdown timer")
+    },
     // `org-export-dispatch`: Org's export menu, from the backends Emacs
     // has, run by Emacs itself (`emacs`); the file or buffer it makes is
     // shown.

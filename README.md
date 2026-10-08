@@ -50,11 +50,11 @@ hand: [Neovim](editors/neovim/README.md), [Vim](editors/vim/README.md),
 | [Indentation and formatting](docs/parity.md#indentation-and-formatting) | 83% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
 | [Notes and logging](docs/parity.md#notes-and-logging) | 75% | ✅ / ✅ / ✅ / ✅ / ❌ / ❌ |
 | [Completion and editing helpers](docs/parity.md#completion-and-editing-helpers) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
-| [Timers](docs/parity.md#timers) | 0% | — / — / — / — / — / — |
+| [Timers](docs/parity.md#timers) | 60% | ✅ / ✅ / ✅ / ✅ / ❌ / ❌ |
 | [Attachments](docs/parity.md#attachments) | 0% | — / — / — / — / — / — |
 | [Encryption](docs/parity.md#encryption) | 0% | — / — / — / — / — / — |
 | [Inline images and LaTeX previews](docs/parity.md#inline-images-and-latex-previews) | 0% | — / — / — / — / — / — |
-| **All of Org** | **69%** |  |
+| **All of Org** | **71%** |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the editor's
 README says what and why), ❌ none does, — nothing to support yet.

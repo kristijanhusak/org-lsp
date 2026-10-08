@@ -230,7 +230,9 @@ was to be opened, or the text of an export to a buffer."
     org-babel-tangle org-table-copy-down org-lsp-bridge-table-sum org-table-field-info
     org-lsp-bridge-table-create org-babel-next-src-block
     org-babel-previous-src-block org-babel-goto-named-src-block
-    org-next-block org-previous-block)
+    org-next-block org-previous-block org-timer-start org-timer org-timer-item
+    org-timer-pause-or-continue org-timer-stop org-timer-set-timer
+    org-lsp-bridge-timer-set)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--message nil
@@ -262,7 +264,8 @@ wants one), else interactively."
         (advice-remove 'message #'org-lsp-bridge--record-message))
       `((text . ,(buffer-substring-no-properties (point-min) (point-max)))
         (point . ,(point))
-        (message . ,org-lsp-bridge--message)))))
+        (message . ,org-lsp-bridge--message)
+        (countdown . ,(org-lsp-bridge--countdown))))))
 
 (defun org-lsp-bridge-footnote-renumber-and-sort ()
   "`S' in `org-footnote-action''s menu."
@@ -277,6 +280,42 @@ wants one), else interactively."
 (defun org-lsp-bridge-table-create (size)
   "`org-table-create' of SIZE, `org-table-default-size' when it is empty."
   (org-table-create (if (string-empty-p size) org-table-default-size size)))
+
+;;; Timers
+
+(defun org-lsp-bridge-timer-set (minutes)
+  "`org-timer-set-timer' for MINUTES (`10', `1:30:00'), the effort aside."
+  (cl-letf (((symbol-function 'read-from-minibuffer) (lambda (&rest _) minutes)))
+    (org-timer-set-timer '(64))))
+
+(defun org-lsp-bridge--countdown ()
+  "The seconds before the countdown ends, or nil when none runs."
+  (and (boundp 'org-timer-countdown-timer)
+       (timerp org-timer-countdown-timer)
+       (max 0 (float-time (time-subtract (timer--time org-timer-countdown-timer) nil)))))
+
+(defun org-lsp-bridge-timer-fire (_params)
+  "End the countdown, as its timer would: what Org says then."
+  (require 'org-timer)
+  (let ((timer org-timer-countdown-timer)
+        (org-show-notification-handler (lambda (text) (message "%s" text))))
+    (setq org-lsp-bridge--message nil)
+    (when (timerp timer)
+      (cancel-timer timer)
+      (advice-add 'message :around #'org-lsp-bridge--record-message)
+      (unwind-protect (apply (timer--function timer) (timer--args timer))
+        (advice-remove 'message #'org-lsp-bridge--record-message)))
+    `((message . ,org-lsp-bridge--message))))
+
+(defun org-lsp-bridge-timer-default (params)
+  "Whether `org-timer-set-timer' at the point of PARAMS takes the effort,
+and the duration it would offer."
+  (require 'org-timer)
+  (org-lsp-bridge--in-document params
+    (let ((effort (org-entry-get nil org-effort-property)))
+      `((effort . ,(if (org-string-nw-p effort) t :json-false))
+        (default . ,(let ((default (format "%s" org-timer-default-timer)))
+                      (if (string-equal default "0") "" default)))))))
 
 ;;; What the server asks about
 

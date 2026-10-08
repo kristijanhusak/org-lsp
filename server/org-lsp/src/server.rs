@@ -569,6 +569,9 @@ struct Server {
     /// while it runs.
     export_menu: Option<Value>,
     structure_templates: Option<Value>,
+    /// When the countdown Org runs in Emacs (`org-timer-set-timer`) ends:
+    /// Emacs in batch runs no timers, so the server says it.
+    countdown: Option<std::time::Instant>,
     publish_projects: Option<Value>,
     /// What Emacs is doing, by tag.
     emacs_jobs: HashMap<u64, EmacsJob>,
@@ -828,6 +831,7 @@ pub fn run(connection: Connection) -> Result<()> {
         }),
         export_menu: None,
         structure_templates: None,
+        countdown: None,
         publish_projects: None,
         emacs_jobs: HashMap::new(),
         export_directory: server_directory("export"),
@@ -905,6 +909,7 @@ pub fn run(connection: Connection) -> Result<()> {
     }
     let emacs_events = server.emacs.events().clone();
     loop {
+        let alarm = server.countdown.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
         crossbeam_channel::select! {
             recv(connection.receiver) -> message => match message {
                 Ok(Message::Request(request)) => {
@@ -928,6 +933,7 @@ pub fn run(connection: Connection) -> Result<()> {
                     server.emacs_event(event);
                 }
             }
+            recv(alarm) -> _ => server.countdown_done(),
         }
     }
     server.remove_view_file();
@@ -3630,7 +3636,13 @@ impl Server {
             | commands::BABEL_PREVIOUS
             | commands::BABEL_GOTO
             | commands::BLOCK_NEXT
-            | commands::BLOCK_PREVIOUS => {
+            | commands::BLOCK_PREVIOUS
+            | commands::TIMER_START
+            | commands::TIMER_INSERT
+            | commands::TIMER_ITEM
+            | commands::TIMER_PAUSE
+            | commands::TIMER_STOP
+            | commands::TIMER_SET => {
                 self.emacs_command(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::BABEL_EXECUTE => {
@@ -6702,10 +6714,29 @@ impl Server {
                 (Some(EmacsJob::Export(_)), Ok(result)) => self.exported(&result),
                 (Some(EmacsJob::Edit { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
                 (Some(EmacsJob::Edit { uri, version, text, point }), Ok(result)) => {
+                    // Every command says how long the countdown has left.
+                    self.countdown = result
+                        .get("countdown")
+                        .and_then(Value::as_f64)
+                        .map(|left| std::time::Instant::now() + std::time::Duration::from_secs_f64(left));
                     self.emacs_edited(&uri, version, &text, point, &result);
                 }
                 (None, _) => {}
             },
+        }
+    }
+
+    /// The countdown is over: Emacs ends it as its timer would, and what
+    /// Org says then (`Write the report: time out`) is shown.
+    fn countdown_done(&mut self) {
+        self.countdown = None;
+        match self.emacs.call("timer-fire", json!({}), std::time::Duration::from_secs(10)) {
+            Ok(result) => {
+                if let Some(message) = result.get("message").and_then(Value::as_str) {
+                    self.show_message(MessageType::INFO, message);
+                }
+            }
+            Err(error) => self.show_message(MessageType::ERROR, error),
         }
     }
 
@@ -6788,6 +6819,36 @@ impl Server {
             }
             commands::TABLE_COPY_DOWN => {
                 self.emacs_run_with("org-table-copy-down", vec![json!(context.count.unwrap_or(1))], context)
+            }
+            commands::TIMER_START => self.emacs_run("org-timer-start", context),
+            commands::TIMER_INSERT => self.emacs_run("org-timer", context),
+            commands::TIMER_ITEM => self.emacs_run("org-timer-item", context),
+            commands::TIMER_PAUSE => self.emacs_run("org-timer-pause-or-continue", context),
+            commands::TIMER_STOP => self.emacs_run("org-timer-stop", context),
+            commands::TIMER_SET => {
+                // With an effort, Org takes its minutes and asks nothing.
+                let Some(answer) = answer else {
+                    let uri = &context.text_document.uri;
+                    let path = uri::to_path(uri).ok_or("Only a file on disk can run code through Emacs")?;
+                    let document = self.document(uri).ok_or("This file is not open")?;
+                    let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+                    let point = document.text[..offset].chars().count() + 1;
+                    let params = json!({ "file": path.to_string_lossy(), "text": document.text, "point": point });
+                    let default = self
+                        .emacs
+                        .call("timer-default", params, std::time::Duration::from_secs(60))
+                        .map_err(Refusal::Failed)?;
+                    if default.get("effort").and_then(Value::as_bool) == Some(true) {
+                        return self.emacs_run("org-timer-set-timer", context);
+                    }
+                    let value = default.get("default").and_then(Value::as_str).unwrap_or_default();
+                    return Ok(json!({ "input": {
+                        "kind": "text",
+                        "prompt": "How much time left? (minutes or h:mm:ss)",
+                        "value": value,
+                    } }));
+                };
+                self.emacs_run_with("org-lsp-bridge-timer-set", vec![json!(answer.trim())], context)
             }
             commands::TABLE_SUM => self.emacs_run("org-lsp-bridge-table-sum", context),
             commands::TABLE_FIELD_INFO => self.emacs_run("org-table-field-info", context),

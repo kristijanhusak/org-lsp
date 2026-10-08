@@ -274,3 +274,11 @@ here and why.
 - [ ] A block from the structure templates (`s` for a source block) (needs Emacs): `<Leader>oib`
 - [ ] Emphasis markers around the cursor, `*` for bold (needs Emacs): `<Leader>oie`
 - [ ] A drawer, its name completed from the file's (needs Emacs): `<Leader>oiD`
+
+## Timers
+
+- [ ] Starting the timer says when it started (needs Emacs): `<Leader>ox0`
+- [ ] Inserting the timer's value (`0:00:12 `) and a timer item (`- 0:00:15 :: `): `<Leader>ox.`, `<Leader>ox-`
+- [ ] Pausing and continuing; stopping: `<Leader>ox,`, `<Leader>ox_`
+- [ ] A countdown asks for its length (`1` for a minute); when it ends, `Heading: time out` is shown: `<Leader>ox;`
+- [ ] On an entry with an effort the countdown takes it, without asking: `<Leader>ox;`

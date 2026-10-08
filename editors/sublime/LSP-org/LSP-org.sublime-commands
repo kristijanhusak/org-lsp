@@ -875,6 +875,48 @@
     }
   },
   {
+    "caption": "Org: Start the relative timer",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timer.start"
+    }
+  },
+  {
+    "caption": "Org: Insert the timer's value",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timer.insert"
+    }
+  },
+  {
+    "caption": "Org: Insert a list item with the timer's value",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timer.item"
+    }
+  },
+  {
+    "caption": "Org: Pause or continue the timer",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timer.pause"
+    }
+  },
+  {
+    "caption": "Org: Stop the timer",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timer.stop"
+    }
+  },
+  {
+    "caption": "Org: Set a countdown timer",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timer.set"
+    }
+  },
+  {
     "caption": "Org: Export the file through Emacs",
     "command": "org_lsp_run",
     "args": {
