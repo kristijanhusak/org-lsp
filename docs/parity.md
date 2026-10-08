@@ -23,7 +23,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Agenda](#agenda) | 74% | 14 of 19 |
 | [Clocking](#clocking) | 100% | 8 of 8 |
 | [Capture](#capture) | 73% | 8 of 11 |
-| [Refile and archive](#refile-and-archive) | 73% | 8 of 11 |
+| [Refile and archive](#refile-and-archive) | 82% | 9 of 11 |
 | [Links](#links) | 91% | 10 of 11 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
 | [Tables](#tables) | 65% | 11 of 17 |
@@ -274,7 +274,7 @@ Where editors fall short:
 
 ## Refile and archive
 
-73% (8 of 11)
+82% (9 of 11)
 
 - ✅ Refiling to a heading, between files too (`org-refile-targets`)
 - ✅ Archiving a subtree to its archive file
@@ -283,7 +283,7 @@ Where editors fall short:
 - ✅ Archive locations, `ARCHIVE` properties, date trees, `ARCHIVE_…` context
 - ✅ Archiving all done subtrees
 - ✅ Logging refiles (`org-log-refile`)
-- ❌ Creating parent nodes as the target
+- ✅ Creating parent nodes as the target (`org-refile-allow-creating-parent-nodes`)
 - ❌ Refiling a region
 - ✅ Copying (`C-c M-w`), going to a target (`C-u C-c C-w`) and to the last refiled entry (`C-u C-u C-c C-w`)
 - ❌ `org-refile-target-verify-function`

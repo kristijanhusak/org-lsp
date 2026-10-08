@@ -1886,6 +1886,41 @@ fn copies_to_and_goes_to_refile_targets() {
     client.shutdown();
 }
 
+/// `org-refile-allow-creating-parent-nodes` `confirm`: `P/New` makes `New`
+/// under `P` once the user says yes, and the entry goes under it; a no
+/// refiles nothing.
+#[test]
+fn creates_parent_nodes_to_refile_to() {
+    let mut options = clock();
+    options["org_refile_targets"] = json!([{ "files": "current", "maxlevel": 2 }]);
+    options["org_refile_allow_creating_parent_nodes"] = json!("confirm");
+    let mut client = Client::editor(options, None);
+    let file = "file:///org/a.org";
+    let text = "* Task\n* P\nbody\n";
+    client.open(file, text);
+    let refile = |client: &mut Client, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": file }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.refile", "arguments": [context] }));
+        client.settle();
+        result.unwrap()
+    };
+    let asked = refile(&mut client, json!({ "input": "P/New" }));
+    assert_eq!(asked["input"]["prompt"], "Create new node \"New\"? ", "{asked}");
+    let context = asked["input"]["context"].clone();
+    assert_eq!(refile(&mut client, json!({ "input": "n", "answers": context["answers"] })), Value::Null);
+    assert!(client.received.iter().all(|request| request.method != "workspace/applyEdit"));
+    let done = refile(&mut client, json!({ "input": "y", "answers": context["answers"] }));
+    assert_eq!(done["message"], "Refile to \"P/New\" in file /org/a.org: done", "{done}");
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the refile");
+    assert_eq!(apply(text, &edits_of(edit).1), "* P\nbody\n\n** New\n*** Task\n");
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

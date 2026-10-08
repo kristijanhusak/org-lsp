@@ -547,6 +547,12 @@ require('org-lsp').setup({
     -- level. (org-refile-use-outline-path)
     org_refile_use_outline_path = false,
 
+    -- A target that is not there yet can be named after an existing one,
+    -- `Projects/New`: it is made, as the last child of `Projects`, and the
+    -- entry goes under it. `confirm` asks first.
+    -- (org-refile-allow-creating-parent-nodes)
+    org_refile_allow_creating_parent_nodes = false,
+
     -- A refiled entry goes first under its target, not last.
     -- (org-reverse-note-order)
     org_reverse_note_order = false,

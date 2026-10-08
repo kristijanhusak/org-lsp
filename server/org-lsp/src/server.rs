@@ -236,6 +236,16 @@ struct Context {
     clipboard: Option<String>,
 }
 
+/// The target a refile command was given: `input`, or after "Create new
+/// node …?" the target it asked about (in `answers`), a NUL and the
+/// answer.
+fn refile_answer(context: &Context) -> Option<String> {
+    match (&context.answers, &context.input) {
+        (Some(target), Some(yes)) => Some(format!("{target}\0{yes}")),
+        _ => context.input.clone(),
+    }
+}
+
 /// What `org.capture` is run with. Capturing needs no document: from
 /// where there is none (no file open), the answers come alone.
 #[derive(Debug, Default, Deserialize)]
@@ -727,6 +737,8 @@ struct Server {
     /// file (`org-refile-targets` `nil`), when it is not the entry's: a
     /// bulk refile reads them from its first entry's file.
     refile_current: Option<Uri>,
+    /// `org-refile-allow-creating-parent-nodes`
+    refile_new_nodes: refile::NewNodes,
     /// What the agenda shows of archives (`v a`, `v A`).
     agenda_archives: ArchivesMode,
     /// The filters of the agenda (`/`, `\\`, `<`, `=`, `_`, `^`), which
@@ -938,6 +950,7 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_display: HashMap::new(),
         clock_display_range: options.clock_display_default_range.clone().unwrap_or_else(|| "thisyear".to_string()),
         refile_current: None,
+        refile_new_nodes: options.refile_new_nodes(),
         agenda_filters: Default::default(),
         documents: HashMap::new(),
         workspace: {
@@ -3911,7 +3924,7 @@ impl Server {
             }
             commands::CAPTURE_REFILE => {
                 let text = self.capture_buffer_text(context.as_ref());
-                self.refile_capture(context.and_then(|context| context.input).as_deref(), text)
+                self.refile_capture(context.as_ref().and_then(refile_answer).as_deref(), text)
             }
             commands::CLOCK_DISPLAY => self.clock_display(&context.ok_or("This command needs the cursor position")?),
             // `C-c C-c` takes the clock's times away first.
@@ -5073,7 +5086,7 @@ impl Server {
             let document = self.document(uri).ok_or("The document is not open")?;
             (uri.clone(), document.index.offset(&document.text, context.position, self.client.encoding))
         };
-        self.refile_from(file, offset, None, from_agenda, context.input.as_deref(), mode)
+        self.refile_from(file, offset, None, from_agenda, refile_answer(context).as_deref(), mode)
     }
 
     /// `org-refile-goto-last-stored` (`C-u C-u C-c C-w`): where the last
@@ -5382,16 +5395,68 @@ impl Server {
                 refile::names(&all).into_iter().map(|name| json!({ "key": name, "label": name })).collect();
             return Ok(json!({ "input": { "kind": "choice", "prompt": prompt, "value": "", "choices": choices } }));
         };
-        let (target_file, target) = refile::find(&all, answer).ok_or("Invalid target location")?;
+        // After a NUL, the answer to "Create new node …?".
+        let (answer, confirmed) = match answer.split_once('\0') {
+            Some((answer, yes)) => (answer, Some(matches!(yes, "y" | "Y" | " "))),
+            None => (answer, None),
+        };
+        // `org-refile-allow-creating-parent-nodes`: a target named after an
+        // existing one is made, in the text it goes in. One named so that
+        // is not made refiles nothing, as in Org.
+        let mut made: Option<(usize, String)> = None;
+        let (target_file, target_name, target_offset) = match refile::find(&all, answer) {
+            Some((file, target)) => (*file, target.name.clone(), target.offset),
+            None => {
+                let new_nodes = if mode == RefileMode::Goto { refile::NewNodes::No } else { self.refile_new_nodes };
+                match refile::new_node(&all, answer).filter(|_| new_nodes != refile::NewNodes::No) {
+                    Some(((file, parent), child)) => {
+                        if new_nodes == refile::NewNodes::Confirm && confirmed.is_none() {
+                            return Ok(json!({ "input": {
+                                "kind": "key",
+                                "prompt": format!("Create new node \"{child}\"? "),
+                                "value": "",
+                                "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+                                "context": { "answers": answer },
+                            } }));
+                        }
+                        if confirmed == Some(false) {
+                            return Ok(Value::Null);
+                        }
+                        let (text, heading) = refile::new_child(readable[*file].text, parent.offset, &child);
+                        made = Some((*file, text));
+                        (*file, format!("{}/{child}", parent.name), Some(heading))
+                    }
+                    None if answer.rsplit_once('/').is_some_and(|(_, child)| !child.is_empty()) => {
+                        return Ok(Value::Null);
+                    }
+                    None => return Err("Invalid target location".into()),
+                }
+            }
+        };
+        let made_in = made.as_ref().map(|(file, _)| *file);
+        // The entry, after a new target made above it in its own file.
+        let offset = match (&made, target_offset) {
+            (Some((0, text)), Some(heading)) if heading - 1 <= offset => offset + text.len() - readable[0].text.len(),
+            _ => offset,
+        };
         // Back from readable files to all of them.
-        let target_file = position.iter().position(|at| *at == Some(*target_file)).expect("a readable file");
-        let source = &readable[0].text;
-        let other = (target_file != 0).then(|| loaded[target_file].as_ref().expect("read").text.as_str());
+        let target_file = position.iter().position(|at| *at == Some(target_file)).expect("a readable file");
+        let made_text = made.map(|(_, text)| text);
+        let source = if made_in == Some(0) { made_text.as_deref().expect("made") } else { readable[0].text };
+        // The target file as the editor has it, and as the entry goes in.
+        let other_now = (target_file != 0).then(|| loaded[target_file].as_ref().expect("read").text.as_str());
+        let other = other_now.map(|now| {
+            if made_in.is_some_and(|file| file != 0) {
+                made_text.as_deref().expect("made")
+            } else {
+                now
+            }
+        });
         // `C-u`: to the target, nothing moved; the top of a file is its
         // start or end, as notes go there.
         if mode == RefileMode::Goto {
             let text = other.unwrap_or(source);
-            let at = target.offset.unwrap_or(if settings.reverse_note_order { 0 } else { text.len() });
+            let at = target_offset.unwrap_or(if settings.reverse_note_order { 0 } else { text.len() });
             let position = LineIndex::new(text).position(text, at, self.client.encoding);
             let selection = Some(Range::new(position, position));
             let uri = uris[target_file].clone();
@@ -5403,7 +5468,7 @@ impl Server {
         }
         // The target file's `org-adapt-indentation`, as Emacs pastes there.
         let settings = refile::Settings { adapt: self.adapt_in(other.unwrap_or(source)), ..settings };
-        let mut refiled = refile::refile(source, offset, other, target.offset, &settings, mode == RefileMode::Copy)?;
+        let mut refiled = refile::refile(source, offset, other, target_offset, &settings, mode == RefileMode::Copy)?;
         // `org-log-refile`: the time logged in the refiled entry at once, or
         // a note asked for once it is there.
         let into = if refiled.target.is_some() { target_file } else { 0 };
@@ -5430,7 +5495,7 @@ impl Server {
         }
         let target_path = uri::to_path(&uris[target_file])
             .map_or_else(|| uris[target_file].as_str().to_string(), |path| path.display().to_string());
-        let message = format!("{action} to \"{}\" in file {}: done", target.name, target_path);
+        let message = format!("{action} to \"{}\" in file {}: done", target_name, target_path);
         // For `org-refile-goto-last-stored`: the entry, by its headline.
         if let Some(at) = refiled.pasted {
             let text = refiled.target.as_ref().unwrap_or(&refiled.source);
@@ -5443,9 +5508,9 @@ impl Server {
             loaded[0].as_ref().expect("read").version,
             self.text_edits(&as_now, &refiled.source),
         )];
-        if let (Some(changed), Some(other)) = (&refiled.target, other) {
+        if let (Some(changed), Some(now)) = (&refiled.target, other_now) {
             let version = loaded[target_file].as_ref().expect("read").version;
-            documents.push((uris[target_file].clone(), version, self.text_edits(other, changed)));
+            documents.push((uris[target_file].clone(), version, self.text_edits(now, changed)));
         }
         documents.retain(|(_, _, edits)| !edits.is_empty());
         if documents.is_empty() {

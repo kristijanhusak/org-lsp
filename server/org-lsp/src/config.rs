@@ -247,6 +247,10 @@ pub struct Options {
     /// `"full-file-path"` or `"title"`.
     #[serde(rename = "org_refile_use_outline_path")]
     pub refile_use_outline_path: Option<OutlinePathOption>,
+    /// `org-refile-allow-creating-parent-nodes`: `false`, `true` or
+    /// `"confirm"`.
+    #[serde(rename = "org_refile_allow_creating_parent_nodes")]
+    pub refile_allow_creating_parent_nodes: Option<LogOption>,
     /// `org-reverse-note-order`: refiled entries go first, not last.
     #[serde(rename = "org_reverse_note_order")]
     pub reverse_note_order: Option<bool>,
@@ -648,6 +652,15 @@ impl Options {
     }
 
     /// `org-refile-use-outline-path`
+    pub fn refile_new_nodes(&self) -> org_core::refile::NewNodes {
+        use org_core::refile::NewNodes;
+        match &self.refile_allow_creating_parent_nodes {
+            None | Some(LogOption::Flag(false)) => NewNodes::No,
+            Some(LogOption::Name(name)) if name == "confirm" => NewNodes::Confirm,
+            Some(_) => NewNodes::Yes,
+        }
+    }
+
     pub fn refile_outline_path(&self) -> OutlinePath {
         match &self.refile_use_outline_path {
             None | Some(OutlinePathOption::Flag(false)) => OutlinePath::No,

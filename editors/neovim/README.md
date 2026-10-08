@@ -28,7 +28,7 @@ The Neovim plugin is the repository itself (`lua/`, `plugin/`): install
 | [Agenda](../../docs/parity.md#agenda) | 74% | ✅ |  |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 73% | ✅ |  |
-| [Refile and archive](../../docs/parity.md#refile-and-archive) | 73% | ✅ |  |
+| [Refile and archive](../../docs/parity.md#refile-and-archive) | 82% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 91% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
 | [Tables](../../docs/parity.md#tables) | 65% | ✅ |  |

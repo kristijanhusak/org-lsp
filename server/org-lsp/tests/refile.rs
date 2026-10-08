@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use org_core::refile::{all_targets, file_title, find, names, refile, File};
+use org_core::refile::{all_targets, file_title, find, names, new_child, new_node, refile, File, NewNodes};
 use org_lsp::config::{Options, RefileFiles};
 use org_syntax::TodoKeywords;
 use serde_json::Value;
@@ -75,14 +75,39 @@ fn refiling_matches_emacs() {
             None => case["answer"].as_str().unwrap().to_string(),
         };
         let answer = answer.as_str();
-        let result = find(&targets, answer).ok_or("Invalid target location".into()).and_then(|(file, target)| {
-            let other = (*file != current).then(|| texts[*file].as_str());
+        // `org-refile-allow-creating-parent-nodes`: the files once a new
+        // target is made, and where the entry then is. An answer that
+        // names a parent and a child refiles nothing when no child is made.
+        let mut work = texts.clone();
+        let mut offset = offset;
+        let new_nodes = options.refile_new_nodes();
+        let confirmed = case["confirm"].as_bool() != Some(false);
+        let picked: Result<Option<(usize, Option<usize>)>, org_core::Refusal> = match find(&targets, answer) {
+            Some((file, target)) => Ok(Some((*file, target.offset))),
+            None => match new_node(&targets, answer) {
+                Some(((file, parent), child))
+                    if new_nodes == NewNodes::Yes || (new_nodes == NewNodes::Confirm && confirmed) =>
+                {
+                    let (made, heading) = new_child(&work[*file], parent.offset, &child);
+                    if *file == current && heading - 1 <= offset {
+                        offset += made.len() - work[*file].len();
+                    }
+                    work[*file] = made;
+                    Ok(Some((*file, Some(heading))))
+                }
+                _ if answer.rsplit_once('/').is_some_and(|(_, child)| !child.is_empty()) => Ok(None),
+                _ => Err("Invalid target location".into()),
+            },
+        };
+        let result = picked.and_then(|picked| {
+            let Some((file, at)) = picked else { return Ok(None) };
+            let other = (file != current).then(|| work[file].as_str());
             let keep = case["copy"].as_bool() == Some(true);
-            refile(&texts[current], offset, other, target.offset, &options.refile_settings(), keep)
-                .map(|done| (*file, done))
+            refile(&work[current], offset, other, at, &options.refile_settings(), keep).map(|done| Some((file, done)))
         });
         // `org-log-refile`, at the time Emacs ran at.
-        let result = result.map(|(file, mut done)| {
+        let result = result.map(|refiled| {
+            let (file, mut done) = refiled?;
             let todo = options.todo_settings();
             if let Some(at) = done.pasted {
                 let text = done.target.as_mut().unwrap_or(&mut done.source);
@@ -94,17 +119,19 @@ fn refiling_matches_emacs() {
                     *text = org_core::todo::log_refile(text, &keywords, at, &todo, now, note).unwrap();
                 }
             }
-            (file, done)
+            Some((file, done))
         });
         let expected = &case["expected"];
         let same = match (expected, &result) {
             (Value::String(_), Err(_)) => true,
-            (Value::Object(expected), Ok((file, done))) => {
+            (Value::Object(expected), Ok(refiled)) => {
                 let mut after: Vec<(String, String)> =
-                    named.iter().map(|(name, _)| name.to_string()).zip(texts.iter().cloned()).collect();
-                after[current].1 = done.source.clone();
-                if let Some(target) = &done.target {
-                    after[*file].1 = target.clone();
+                    named.iter().map(|(name, _)| name.to_string()).zip(work.iter().cloned()).collect();
+                if let Some((file, done)) = refiled {
+                    after[current].1 = done.source.clone();
+                    if let Some(target) = &done.target {
+                        after[*file].1 = target.clone();
+                    }
                 }
                 let mut offered: Vec<String> = Vec::new();
                 for name in expected["offered"].as_array().unwrap() {
