@@ -30,7 +30,7 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
 | [Tables](../../docs/parity.md#tables) | 94% | ❓ | A shrunk column shows its whole text and `…`: Vim cannot hide text that has text properties. |
 | [Table formulas](../../docs/parity.md#table-formulas) | 92% | ✅ |  |
-| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 91% | ✅ |  |
+| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 100% | ✅ |  |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 89% | ✅ |  |
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
@@ -41,7 +41,7 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Attachments](../../docs/parity.md#attachments) | 100% | ✅ |  |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **94%** |  |  |
+| **All of Org** | **95%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

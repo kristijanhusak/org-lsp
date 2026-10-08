@@ -586,6 +586,11 @@
         "category": "Org"
       },
       {
+        "command": "org.babel.detangle",
+        "title": "Put the code of a tangled file back into its blocks",
+        "category": "Org"
+      },
+      {
         "command": "org.babel.execute",
         "title": "Evaluate the code block or call at the cursor through Emacs",
         "category": "Org"

@@ -453,6 +453,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "y"], "commands": ["org.refile.copy"] },
   { "before": ["<leader>", "o", "n", "a"], "commands": ["org.add.note"] },
   { "before": ["<leader>", "o", "b", "t"], "commands": ["org.babel.tangle"] },
+  { "before": ["<leader>", "o", "b", "d"], "commands": ["org.babel.detangle"] },
   { "before": ["<leader>", "o", "b", "e"], "commands": ["org.babel.execute"] },
   { "before": ["<leader>", "o", "b", "b"], "commands": ["org.babel.execute.buffer"] },
   { "before": ["<leader>", "o", "b", "s"], "commands": ["org.babel.execute.subtree"] },
@@ -612,6 +613,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.refile.goto.last` | Org: Go to where the last refile put its entry |
 | `org.add.note` | Org: Add a note to the entry |
 | `org.babel.tangle` | Org: Tangle the file's code blocks |
+| `org.babel.detangle` | Org: Put the code of a tangled file back into its blocks |
 | `org.babel.execute` | Org: Evaluate the code block or call at the cursor through Emacs |
 | `org.babel.execute.buffer` | Org: Evaluate the file's code blocks through Emacs |
 | `org.babel.execute.subtree` | Org: Evaluate the subtree's code blocks through Emacs |

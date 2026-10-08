@@ -2141,6 +2141,51 @@ fn reports_and_moves_through_emacs() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// `org-babel-detangle` through Emacs: the code of the one file the
+/// blocks tangle to put back into the block its link comments lead to.
+#[test]
+fn detangles_through_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("detangles_through_emacs: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-detangle-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    let text = "* Code\n#+begin_src python :tangle out.py :comments link\nprint(\"one\")\n#+end_src\n";
+    std::fs::write(&file, text).unwrap();
+    std::fs::write(
+        directory.join("out.py"),
+        "# [[file:notes.org::*Code][Code:1]]\nprint(\"two\")\n# Code:1 ends here\n",
+    )
+    .unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    client.open(&uri, text);
+    let argument = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 0 } });
+    let result = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.babel.detangle", "arguments": [argument] }))
+        .response_result
+        .expect("a result");
+    assert_eq!(result, Value::Null);
+    let message = next_from_server(&client, |message| {
+        matches!(message, Message::Request(request) if request.method == "workspace/applyEdit")
+            || matches!(message, Message::Notification(note) if note.method == "window/showMessage")
+    });
+    let Message::Request(edit) = message else { panic!("Emacs said {message:?}") };
+    let edits: Vec<TextEdit> = serde_json::from_value(edit.params["edit"]["changes"][uri.as_str()].clone()).unwrap();
+    let detangled = apply_text_edits(text, &edits);
+    assert!(detangled.contains("print(\"two\")") && !detangled.contains("one"), "{detangled}");
+    client.connection.sender.send(Message::Response(Response::new_ok(edit.id, json!({ "applied": true })))).unwrap();
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&directory);
+}
+
 #[test]
 fn edits_through_emacs() {
     let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());

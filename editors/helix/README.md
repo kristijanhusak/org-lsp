@@ -39,7 +39,7 @@ its behalf.
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ❓ | Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works. |
 | [Tables](../../docs/parity.md#tables) | 94% | ❓ | Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and `…`: Helix lets no server hide text. |
 | [Table formulas](../../docs/parity.md#table-formulas) | 92% | ✅ |  |
-| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 91% | ❓ | Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Helix cannot give a server. |
+| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 100% | ❓ | Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Helix cannot give a server. |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 89% | ❌ | Not offered as a code action yet. |
 | [Citations](../../docs/parity.md#citations) | 100% | ❓ | Inserting citations is not offered as a code action yet. Completion, hover and following work. |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
@@ -50,7 +50,7 @@ its behalf.
 | [Attachments](../../docs/parity.md#attachments) | 100% | ❓ | `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and it is not among them. |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **94%** |  |  |
+| **All of Org** | **95%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

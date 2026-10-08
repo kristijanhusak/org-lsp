@@ -742,6 +742,13 @@
     }
   },
   {
+    "caption": "Org: Put the code of a tangled file back into its blocks",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.detangle"
+    }
+  },
+  {
     "caption": "Org: Evaluate the code block or call at the cursor through Emacs",
     "command": "org_lsp_run",
     "args": {
