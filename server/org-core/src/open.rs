@@ -79,6 +79,15 @@ pub fn at_point_calling(
     call: Option<CallAbbreviation>,
 ) -> Result<Open, String> {
     let abbreviations = Abbreviations { list: abbreviations(text, global), call };
+    // A word a radio target makes a link: to the target, when it is there
+    // as written.
+    // The link takes the blanks after it in.
+    let blanks = |end: usize| end + text[end..].len() - text[end..].trim_start_matches([' ', '\t']).len();
+    let radio =
+        crate::radio::links(text, parse).into_iter().find(|link| link.start <= offset && offset < blanks(link.end));
+    if let Some(radio) = radio {
+        return radio.target.map(Open::Here).ok_or_else(|| NO_LINK.to_string());
+    }
     let root = parse.syntax();
     let Some(token) = token_at(&root, offset) else { return Err(NO_LINK.to_string()) };
     // The nearest of the things Org opens, as `org-element-lineage` finds
@@ -172,7 +181,19 @@ fn is_link(node: &SyntaxNode) -> bool {
 /// `global` is `org-link-abbrev-alist`.
 pub fn links(text: &str, parse: &Parse, global: &[(String, String)]) -> Vec<Link> {
     let abbreviations = Abbreviations { list: abbreviations(text, global), call: None };
-    parse.syntax().descendants().filter(is_link).map(|node| link_of(&node, text, parse, &abbreviations)).collect()
+    let mut links: Vec<Link> =
+        parse.syntax().descendants().filter(is_link).map(|node| link_of(&node, text, parse, &abbreviations)).collect();
+    // And the words radio targets make links.
+    links.extend(crate::radio::links(text, parse).into_iter().map(|radio| Link {
+        start: radio.start,
+        end: radio.end,
+        raw: text[radio.start..radio.end].to_string(),
+        path: (radio.start, radio.end),
+        bracket: false,
+        open: radio.target.map(Open::Here).ok_or_else(|| NO_LINK.to_string()),
+    }));
+    links.sort_by_key(|link| link.start);
+    links
 }
 
 /// The link the character at `offset` is in.

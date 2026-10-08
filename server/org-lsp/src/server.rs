@@ -1890,6 +1890,9 @@ impl Server {
         }
         let document = self.document(uri)?;
         let tokens = highlight::tokens(&document.syntax(), document.parse.todo_keywords(), self.conceal);
+        let radio: Vec<(usize, usize)> =
+            org_core::radio::links(&document.text, &document.parse).iter().map(|link| (link.start, link.end)).collect();
+        let tokens = highlight::with_radio_links(tokens, &radio);
         let only = range.map(|range| document.index.text_range(&document.text, range, encoding));
         let data = highlight::encode(&tokens, &document.text, &document.index, encoding, only);
         Some(SemanticTokens { result_id: None, data })
@@ -2884,6 +2887,9 @@ impl Server {
         };
         let parse = org_syntax::parse(&text, &self.todo);
         let tokens = highlight::tokens(&parse.syntax(), parse.todo_keywords(), self.conceal);
+        let radio: Vec<(usize, usize)> =
+            org_core::radio::links(&text, &parse).iter().map(|link| (link.start, link.end)).collect();
+        let tokens = highlight::with_radio_links(tokens, &radio);
         let index = LineIndex::new(&text);
         let data = highlight::encode(&tokens, &text, &index, self.client.encoding, None);
         let tokens = serde_json::to_value(SemanticTokens { result_id: None, data }).unwrap_or_default();

@@ -189,6 +189,41 @@ pub fn tokens(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal) -> Vec<T
     walker.out
 }
 
+/// `tokens` with the words radio targets make links (`ranges`, byte
+/// offsets) as links, over what was there; emphasis stays.
+pub fn with_radio_links(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<Token> {
+    if ranges.is_empty() {
+        return tokens;
+    }
+    let mut out: Vec<Token> = Vec::with_capacity(tokens.len() + ranges.len());
+    let emphasis = modifier::BOLD | modifier::ITALIC | modifier::UNDERLINE | modifier::STRIKETHROUGH;
+    let mut links: Vec<Token> = ranges
+        .iter()
+        .map(|(start, end)| Token {
+            range: TextRange::new((*start as u32).into(), (*end as u32).into()),
+            ty: TokenType::Link,
+            modifiers: 0,
+        })
+        .collect();
+    for token in tokens {
+        let (start, end) = (token.range.start(), token.range.end());
+        let mut at = start;
+        for link in links.iter_mut().filter(|link| link.range.start() < end && link.range.end() > start) {
+            link.modifiers |= token.modifiers & emphasis;
+            if link.range.start() > at {
+                out.push(Token { range: TextRange::new(at, link.range.start()), ..token });
+            }
+            at = at.max(link.range.end());
+        }
+        if at < end {
+            out.push(Token { range: TextRange::new(at, end), ..token });
+        }
+    }
+    out.extend(links);
+    out.sort_by_key(|token| token.range.start());
+    out
+}
+
 struct Walker<'a> {
     todo: &'a TodoKeywords,
     conceal: Conceal,
@@ -870,5 +905,23 @@ mod tests {
             let encoded = encode(&tokens, &text, &LineIndex::new(&text), Encoding::Utf16, None);
             assert!(encoded.iter().all(|token| token.length > 0));
         }
+    }
+    #[test]
+    fn radio_links_go_over_what_is_there() {
+        let token = |start: u32, end: u32, ty: TokenType, modifiers: u32| Token {
+            range: TextRange::new(start.into(), end.into()),
+            ty,
+            modifiers,
+        };
+        let tokens = vec![token(0, 10, TokenType::Text, modifier::BOLD), token(12, 14, TokenType::Tag, 0)];
+        assert_eq!(
+            with_radio_links(tokens, &[(3, 6)]),
+            [
+                token(0, 3, TokenType::Text, modifier::BOLD),
+                token(3, 6, TokenType::Link, modifier::BOLD),
+                token(6, 10, TokenType::Text, modifier::BOLD),
+                token(12, 14, TokenType::Tag, 0),
+            ]
+        );
     }
 }

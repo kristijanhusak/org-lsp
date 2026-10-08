@@ -11,7 +11,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 
 | Feature | Parity | Done |
 | --- | --- | --- |
-| [Highlighting](#highlighting) | 83% | 10 of 12 |
+| [Highlighting](#highlighting) | 92% | 11 of 12 |
 | [Folding and visibility](#folding-and-visibility) | 67% | 6 of 9 |
 | [Headings and structure](#headings-and-structure) | 100% | 11 of 11 |
 | [Lists and checkboxes](#lists-and-checkboxes) | 91% | 10 of 11 |
@@ -42,7 +42,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 
 ## Highlighting
 
-83% (10 of 12)
+92% (11 of 12)
 
 - ✅ Headlines by level, TODO keywords, priorities and tags
 - ✅ Emphasis, verbatim and code
@@ -54,7 +54,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 - ✅ Tables
 - ✅ Footnotes, targets, macros, entities and LaTeX fragments
 - ✅ Archived subtrees shaded (`org-archived`)
-- ❌ Radio targets turning their words into links
+- ✅ Radio targets turning their words into links: highlighted, followed, document links
 - ❌ Entities and sub- and superscripts shown as characters (`org-pretty-entities`)
 
 Where editors fall short:

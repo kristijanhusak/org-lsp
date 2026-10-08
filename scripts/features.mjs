@@ -102,7 +102,7 @@ export const AREAS = [
       ['Tables', true],
       ['Footnotes, targets, macros, entities and LaTeX fragments', true],
       ['Archived subtrees shaded (`org-archived`)', true],
-      ['Radio targets turning their words into links', false],
+      ['Radio targets turning their words into links: highlighted, followed, document links', true],
       ['Entities and sub- and superscripts shown as characters (`org-pretty-entities`)', false],
     ],
     editors: {
