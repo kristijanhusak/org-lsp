@@ -412,6 +412,35 @@
         {
           "task_name": "Org agenda: Set the deadline of the entry"
         }
+      ],
+      "ctrl-c a": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Agenda commands"
+        }
+      ],
+      "ctrl-c c": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Capture"
+        }
+      ]
+    }
+  },
+  {
+    "context": "Editor && extension == org",
+    "bindings": {
+      "ctrl-c a": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Agenda commands"
+        }
+      ],
+      "ctrl-c c": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Capture"
+        }
       ]
     }
   }

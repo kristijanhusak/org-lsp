@@ -162,6 +162,11 @@ impl Workspace {
         Workspace { patterns, folders, cache: HashMap::new(), inheritance: Inheritance::default() }
     }
 
+    /// The workspace folders.
+    pub fn folders(&self) -> &[PathBuf] {
+        &self.folders
+    }
+
     /// Whether the agenda has a place to look for files.
     pub fn is_configured(&self) -> bool {
         !self.patterns.is_empty() || !self.folders.is_empty()

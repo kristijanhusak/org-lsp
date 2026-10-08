@@ -114,6 +114,10 @@ const text = JSON.stringify(rules, null, 2) + '\n';
 // agenda's keys to them. With `command_actions` the server writes
 // `~/.local/state/org-lsp/agenda-command`, which runs a command in the
 // agenda where the cursor is (the server follows it); each task calls it.
+// The commands that need no agenda (the agenda itself, the TODO list, the
+// agenda menu, capture) have tasks too, which the task picker offers
+// anywhere and Org's keys (`C-c a`, `C-c c`) run in Org files; with no
+// server running, the script starts one.
 // The command is one string, with no `args`: Zed quotes a command that has
 // arguments, and `$HOME` would then not be expanded.
 /** An Emacs key (`C-c C-s`, `S-<right>`, `J`) in Zed's notation. */
@@ -145,10 +149,24 @@ const agendaCommands = manifest.commands
     keys: command.keys.filter((key) => key.in === 'agenda' && key.preset === 'emacs').map((key) => zedKey(key.key)),
   }))
   .filter((command) => command.keys.length > 0);
-const tasks = agendaCommands.map((command) => ({
+// What opens the agenda and capture, from anywhere: the global commands,
+// and the two views the agenda menu has first.
+const opening = manifest.commands
+  .filter(
+    (command) =>
+      ['org.agenda.list', 'org.agenda.todos'].includes(command.command) ||
+      command.keys.some((key) => key.in === 'global' && key.preset === 'emacs'),
+  )
+  .map((command) => ({
+    command: command.command,
+    label: `Org: ${command.title}`,
+    keys: command.keys.filter((key) => key.in === 'global' && key.preset === 'emacs').map((key) => zedKey(key.key)),
+    tag: 'org',
+  }));
+const tasks = [...opening, ...agendaCommands].map((command) => ({
   label: command.label,
   command: `$HOME/.local/state/org-lsp/agenda-command ${command.command}`,
-  tags: ['org-agenda'],
+  tags: [command.tag ?? 'org-agenda'],
   // Out of sight: a terminal shows only when the command fails.
   reveal: 'never',
   hide: 'on_success',
@@ -164,12 +182,18 @@ const bindings = {
   enter: 'editor::GoToDefinition',
   tab: 'editor::GoToDefinitionSplit',
 };
-for (const command of agendaCommands) {
+const spawn = (command) => ['task::Spawn', { task_name: command.label }];
+for (const command of [...agendaCommands, ...opening]) {
   for (const key of command.keys) {
-    if (!(key in bindings)) bindings[key] = ['task::Spawn', { task_name: command.label }];
+    if (!(key in bindings)) bindings[key] = spawn(command);
   }
 }
-const keymap = [{ context: 'Editor && extension == org-agenda', bindings }];
+// In Org files, Org's keys for the agenda menu and capture.
+const orgBindings = Object.fromEntries(opening.flatMap((command) => command.keys.map((key) => [key, spawn(command)])));
+const keymap = [
+  { context: 'Editor && extension == org-agenda', bindings },
+  { context: 'Editor && extension == org', bindings: orgBindings },
+];
 const files = {
   [join(here, 'languages', 'org', 'semantic_token_rules.json')]: text,
   [join(here, 'tasks.json')]: JSON.stringify(tasks, null, 2) + '\n',
@@ -188,4 +212,4 @@ for (const [path, text] of Object.entries(files)) {
   }
 }
 if (stale) process.exit(1);
-console.log(check ? 'the Zed extension matches the server' : `generated ${rules.length} semantic token rules, ${tasks.length} agenda tasks`);
+console.log(check ? 'the Zed extension matches the server' : `generated ${rules.length} semantic token rules, ${tasks.length} tasks`);

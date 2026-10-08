@@ -3887,7 +3887,7 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
         "window": { "showDocument": { "support": true } },
         "general": { "positionEncodings": ["utf-8"] }
     });
-    let mut client = Client::start(capabilities, options, None);
+    let mut client = Client::start(capabilities.clone(), options.clone(), None);
     // The server follows the cursor through document highlights.
     assert_eq!(client.initialize["capabilities"]["documentHighlightProvider"], true);
     const WORK_URI: &str = "file:///org/work.org";
@@ -3959,11 +3959,22 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     // the keys can name.
     let agenda_path = std::path::PathBuf::from(agenda.trim_start_matches("file://"));
     assert!(std::fs::metadata(&agenda_path).unwrap().permissions().readonly());
+    // Rewritten in place: Zed follows a file outside the project by the
+    // file itself, and loses one that another is renamed over.
+    #[cfg(unix)]
+    let inode = std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&agenda_path).unwrap());
     assert!(kinds(&mut client, &agenda, 0, json!(["org"])).is_empty());
-    let script = std::fs::read_to_string(&script_path).unwrap();
-    let words: Vec<&str> = script.lines().last().unwrap().split_whitespace().collect();
-    let at = words.iter().position(|word| *word == "command").unwrap();
-    let (address, token) = (words[at + 1].to_string(), words[at + 2].to_string());
+    // The script ends with the port's address and token, then the
+    // command's own arguments.
+    let sent_to = |script: &std::path::Path| {
+        let text = std::fs::read_to_string(script).unwrap();
+        let words: Vec<String> = text.lines().last().unwrap().split_whitespace().map(str::to_string).collect();
+        (words[words.len() - 3].clone(), words[words.len() - 2].clone())
+    };
+    let (address, token) = sent_to(&script_path);
+    // The agenda's file is in a place of its own beside the script, the
+    // same one each time, for Zed to open again when it starts.
+    assert!(agenda_path.starts_with(script_path.parent().unwrap().join("agenda")), "{}", agenda_path.display());
     // Without a row, a command acts where the cursor was last seen: here
     // on the entry, which `org.agenda.goto` shows.
     let row = agenda_text.lines().position(|line| line.contains("Write report")).unwrap();
@@ -3987,7 +3998,7 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     }
     assert_eq!(shown.expect("the entry shown").params["uri"], WORK_URI);
     client.received.clear();
-    org_lsp::port::send(&[address, token, "org.agenda.later".into(), "1".into(), "1".into()]).unwrap();
+    org_lsp::port::send(&[address.clone(), token, "org.agenda.later".into(), "1".into(), "1".into()]).unwrap();
     // The port's command comes on a channel of its own: wait for it.
     let mut later = agenda_text.clone();
     for _ in 0..200 {
@@ -4000,6 +4011,9 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     }
     assert_ne!(later, agenda_text);
     assert!(later.starts_with("Week-agenda (W22):"), "{later}");
+    #[cfg(unix)]
+    assert_eq!(std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&agenda_path).unwrap()), inode);
+    assert!(std::fs::metadata(&agenda_path).unwrap().permissions().readonly());
 
     // A question that wants typed text cannot be asked: the editor is told.
     client.notifications.clear();
@@ -4027,8 +4041,65 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("moved");
     assert_eq!(shown.params["selection"]["start"], json!({ "line": 3, "character": 2 }));
     client.shutdown();
-    // The script goes with the server.
-    assert!(!script_path.exists());
+    // The script stays, to start a server when none runs, and so does the
+    // agenda's file, which Zed opens again as it starts.
+    assert!(script_path.exists() && agenda_path.exists());
+    let stale = std::fs::read_to_string(&agenda_path).unwrap();
+
+    // The next server takes the script over, nothing answering there, and
+    // the agenda's file opened again is its agenda: rebuilt, and moved by
+    // the port's commands.
+    let mut client = Client::start(capabilities, options, None);
+    // It opens its port once it has answered `initialize`.
+    let mut taken = sent_to(&script_path);
+    for _ in 0..200 {
+        if taken.0 != address {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        taken = sent_to(&script_path);
+    }
+    let (new_address, token) = taken;
+    assert_ne!(new_address, address);
+    client.open(&agenda, &stale);
+    client.settle();
+    let rebuilt = std::fs::read_to_string(&agenda_path).unwrap();
+    assert!(rebuilt.starts_with("Week-agenda (W21):"), "{rebuilt}");
+    // Zed reads the file again.
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": agenda, "version": 2 }, "contentChanges": [{ "text": rebuilt }] }),
+    );
+    let port_wait = |client: &mut Client, before: &str| {
+        for _ in 0..200 {
+            client.settle();
+            let now = std::fs::read_to_string(&agenda_path).unwrap_or_default();
+            if now != before {
+                return now;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        before.to_string()
+    };
+    org_lsp::port::send(&[new_address.clone(), token.clone(), "org.agenda.later".into()]).unwrap();
+    assert!(port_wait(&mut client, &rebuilt).starts_with("Week-agenda (W22):"));
+    // Closed, the agenda is opened again by the port, which needs none
+    // open for that.
+    client.notify("textDocument/didClose", json!({ "textDocument": { "uri": agenda } }));
+    client.received.clear();
+    org_lsp::port::send(&[new_address, token, "org.agenda.todos".into()]).unwrap();
+    let mut shown = None;
+    for _ in 0..200 {
+        client.settle();
+        shown = client.received.iter().find(|request| request.method == "window/showDocument").cloned();
+        if shown.is_some() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    assert_eq!(shown.expect("the TODO list shown").params["uri"], agenda);
+    assert!(std::fs::read_to_string(&agenda_path).unwrap().starts_with("Global list of TODO items"));
+    client.shutdown();
     std::fs::remove_dir_all(state).unwrap();
 }
 

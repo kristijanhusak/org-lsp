@@ -1,5 +1,57 @@
 [
   {
+    "label": "Org: Agenda commands",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.dispatch",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Agenda for the current week or day",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.list",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: List of all TODO entries",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.todos",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Capture",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.capture",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: go forward in time",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.later",
     "tags": [

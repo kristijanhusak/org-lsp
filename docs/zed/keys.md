@@ -23,27 +23,41 @@ those dates in the file itself, where completion helps.
 
 The settings are in [configuration.md](configuration.md).
 
-## The agenda's keys
-
-The agenda is a read-only file the server writes (`Agenda.org-agenda`, in
-a directory of its own under the system's temporary one), opened as Org;
-the server writes it again when it changes. Its commands have keys
-instead of code actions: the same keys as in every editor, Emacs's agenda
-keys, with `J` for a date and the views under `v` (`v d`, `v w`), so that
-Vim mode keeps its motions.
+## Keys through tasks
 
 An extension cannot bind keys, and a key of Zed's cannot run a language
 server's command, but it can run a task. Two files of the extension set
-that up, once:
+that up, once (and again when they change, after an update):
 
-1. [tasks.json](../../editors/zed/tasks.json): a task for each agenda
-   command (*Org agenda: …*). Paste its entries into your tasks (**zed:
-   open tasks**, `~/.config/zed/tasks.json`).
-2. [keymap.json](../../editors/zed/keymap.json): binds the agenda's keys
-   to those tasks. Paste its block into your keymap (**zed: open
-   keymap**).
+1. [tasks.json](../../editors/zed/tasks.json): a task for each command
+   (*Org: …* and *Org agenda: …*). Paste its entries into your tasks
+   (**zed: open tasks**, `~/.config/zed/tasks.json`).
+2. [keymap.json](../../editors/zed/keymap.json): binds the agenda's keys,
+   and Org's `ctrl-c a` and `ctrl-c c` in Org files, to those tasks.
+   Paste its blocks into your keymap (**zed: open keymap**).
 
-Then in the agenda:
+### Opening the agenda
+
+The agenda, the TODO list, the agenda menu and capture need no Org file
+open: run them from the task picker (**task: spawn**, `alt-shift-t` on Linux; type
+`Org:`) anywhere, or with `ctrl-c a` and `ctrl-c c` in an Org file. When
+no server runs yet, the task opens the Org file you last opened, in its
+folder, with Zed's command line (found beside Zed, or `zed` or `zeditor`
+on `PATH`; on macOS run **cli: install** once), which starts one, and
+then runs the command there.
+
+The agenda is a read-only file the server writes,
+`~/.local/state/org-lsp/agenda/…/Agenda.org-agenda` (the same one for the
+same project folders), opened as Org; the server writes it again when it
+changes. When Zed starts again with the agenda's tab open, the new server
+takes the tab over: it shows the agenda of the current week, and its keys
+work.
+
+### The keys
+
+The agenda has the same keys as in every editor, Emacs's agenda keys, with
+`J` for a date and the views under `v` (`v d`, `v w`), so that Vim mode
+keeps its motions.
 
 <!-- The table below is written by scripts/generate-docs.mjs from
      editors/zed/keymap.json and tasks.json, which editors/zed/generate.mjs
@@ -51,6 +65,8 @@ Then in the agenda:
      server/org-lsp/src/commands.rs, not the table. -->
 
 <!-- BEGIN generated: keys -->
+
+### In the agenda
 
 | Keys | Command or Zed action | What it does |
 | --- | --- | --- |
@@ -118,6 +134,15 @@ Then in the agenda:
 | `shift-left` | `org.date.earlier` | Move the date one day earlier |
 | `ctrl-c ctrl-s` | `org.schedule` | Schedule the entry |
 | `ctrl-c ctrl-d` | `org.deadline` | Set the deadline of the entry |
+| `ctrl-c a` | `org.agenda.dispatch` | Agenda commands |
+| `ctrl-c c` | `org.capture` | Capture |
+
+### In Org files
+
+| Keys | Command or Zed action | What it does |
+| --- | --- | --- |
+| `ctrl-c a` | `org.agenda.dispatch` | Agenda commands |
+| `ctrl-c c` | `org.capture` | Capture |
 
 <!-- END generated -->
 
@@ -132,6 +157,7 @@ which runs the command in the agenda where the cursor is: the server
 follows the cursor through the document highlights Zed asks for when it
 moves (after `lsp_highlight_debounce`, 75 milliseconds). With agendas
 open in several windows, the keys act on the one the cursor was last in.
+The script stays when Zed quits, so that the tasks can start a server.
 On Windows, where the script is `agenda-command.cmd` under your user
 folder and the shell is PowerShell, make each task's command
 `& "$HOME/.local/state/org-lsp/agenda-command.cmd" org.agenda.later`
