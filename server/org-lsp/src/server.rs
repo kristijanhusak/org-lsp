@@ -2624,8 +2624,10 @@ impl Server {
         let in_entry = Self::heading_above(&document.text, offset).is_some();
         let running = self.running.is_some();
         let in_code = in_src_block(&document.parse.syntax(), offset);
+        let in_table = at_org_table(&document.text, &document.parse.syntax(), offset);
         for (id, offered) in [
             (commands::TANGLE, in_code),
+            (commands::TABLE_TOGGLE_COLUMN_WIDTH, in_table),
             (commands::BABEL_EXECUTE, in_code),
             (commands::EDIT_SPECIAL, in_code),
             (commands::CLOCK_IN, in_entry),
