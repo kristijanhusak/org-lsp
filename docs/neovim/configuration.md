@@ -650,6 +650,11 @@ require('org-lsp').setup({
     -- (org-hide-emphasis-markers)
     org_hide_emphasis_markers = false,
 
+    -- Show entities (`\alpha`, `\to`) as their character (`α`, `→`): the
+    -- entity is hidden as link brackets are, and its character is an inlay
+    -- hint in its place. (org-pretty-entities)
+    org_pretty_entities = false,
+
     -- RET on the first line of a list item makes the next item, numbered and
     -- with a checkbox as M-RET (`org-meta-return`) makes it, the items after
     -- it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does.

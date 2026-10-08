@@ -9,11 +9,14 @@ emacs --batch -Q ${ORG_LISP_DIR:+-L "$ORG_LISP_DIR"} --eval '
 (progn
   (require (quote org))
   (require (quote org-entities))
+  (require (quote json))
   (dolist (entity (append org-entities-user org-entities))
-    (when (consp entity) (princ (format "%S\n" (car entity))))))' 2>/dev/null |
+    (when (consp entity) (princ (concat (json-encode (list (car entity) (nth 6 entity))) "\n")))))' 2>/dev/null |
   python3 -c '
 import json, sys
-names = [json.loads(line) for line in sys.stdin if line.strip()]
+pairs = [json.loads(line) for line in sys.stdin if line.strip()]
+names = [name for name, _ in pairs]
+utf8_of = dict(pairs)
 plain = sorted({name for name in names if not name.startswith("_")})
 spaces = max(len(name) - 1 for name in names if name.startswith("_"))
 out = [
@@ -27,6 +30,14 @@ out = [
 line = "   "
 for name in plain:
     piece = " \"%s\"," % name
+    if len(line) + len(piece) > 100:
+        out.append(line)
+        line = "   "
+    line += piece
+out += [line, "];", "", "/// What each of [`ENTITIES`] is in UTF-8, in the same order.", "pub(crate) const UTF8: &[&str] = &["]
+line = "   "
+for name in plain:
+    piece = " %s," % json.dumps(utf8_of[name], ensure_ascii=False)
     if len(line) + len(piece) > 100:
         out.append(line)
         line = "   "

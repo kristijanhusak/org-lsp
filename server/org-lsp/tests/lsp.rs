@@ -684,6 +684,52 @@ fn virtual_indentation_as_inlay_hints() {
     }
 }
 
+/// `org_pretty_entities`: an entity is hidden, and its character is an
+/// inlay hint in its place; on a comment line it stays.
+#[test]
+fn shows_entities_as_their_characters() {
+    let mut client = Client::start(json!({}), json!({ "org_pretty_entities": true }));
+    client.open(&uri(), "An \\alpha{} and \\to.\n# \\beta\n");
+    let hints = client
+        .request::<lsp_types::request::InlayHintRequest>(lsp_types::InlayHintParams {
+            text_document: identifier(),
+            range: Range::new(Position::new(0, 0), Position::new(2, 0)),
+            work_done_progress_params: Default::default(),
+        })
+        .unwrap();
+    let shown: Vec<(u32, u32, String)> = hints
+        .iter()
+        .map(|hint| match &hint.label {
+            lsp_types::InlayHintLabel::String(label) => (hint.position.line, hint.position.character, label.clone()),
+            _ => panic!("a plain label"),
+        })
+        .collect();
+    assert_eq!(shown, [(0, 3, "α".to_string()), (0, 16, "→".to_string())]);
+    let tokens = client
+        .request::<lsp_types::request::SemanticTokensFullRequest>(lsp_types::SemanticTokensParams {
+            text_document: identifier(),
+            work_done_progress_params: Default::default(),
+            partial_result_params: Default::default(),
+        })
+        .unwrap();
+    let lsp_types::SemanticTokensResult::Tokens(tokens) = tokens else { panic!("tokens") };
+    let hidden = 1 << 23;
+    let mut at = (0, 0);
+    let mut hid = Vec::new();
+    for token in &tokens.data {
+        at = if token.delta_line == 0 {
+            (at.0, at.1 + token.delta_start)
+        } else {
+            (at.0 + token.delta_line, token.delta_start)
+        };
+        if token.token_modifiers_bitset & hidden != 0 {
+            hid.push((at.0, at.1, token.length));
+        }
+    }
+    assert_eq!(hid, [(0, 3, 8), (0, 16, 3)]);
+    client.shutdown();
+}
+
 /// RET (`org-return`): the result carries the edit and where the cursor
 /// goes, for the editor to apply as the key is typed; in a source block's
 /// code the command does not apply, and the editor's own RET does.

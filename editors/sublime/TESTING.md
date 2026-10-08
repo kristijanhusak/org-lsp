@@ -16,7 +16,7 @@ here and why.
 
 ## Highlighting
 
-**Partly:** Links and emphasis markers are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's `semantic_highlighting` on.
+**Partly:** Links, emphasis markers and pretty entities are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's `semantic_highlighting` on.
 
 - [ ] Headlines are colored by level; TODO and DONE keywords, priorities (`[#A]`) and tags have colors of their own
 - [ ] `*bold*`, `/italic/`, `_underline_`, `+strike+`, `=verbatim=` and `~code~` are colored

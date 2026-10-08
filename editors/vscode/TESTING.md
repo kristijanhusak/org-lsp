@@ -21,6 +21,7 @@ here and why.
 - [ ] `*bold*`, `/italic/`, `_underline_`, `+strike+`, `=verbatim=` and `~code~` are colored
 - [ ] A link shows its description alone; its brackets and target show when the cursor is on its line
 - [ ] With `org_hide_emphasis_markers = true`, the markers of `*bold*` are hidden
+- [ ] With `org_pretty_entities = true`, `\alpha` shows as `α`
 - [ ] Timestamps, `SCHEDULED:`/`DEADLINE:`, `CLOCK:` lines, drawers, `#+` keywords and `#` comments are colored
 - [ ] A `#+begin_src python` block shows its code in Python's colors
 - [ ] Inline code (`src_python{x = 1}`) is in Python's colors

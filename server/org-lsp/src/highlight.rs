@@ -224,6 +224,65 @@ pub fn with_radio_links(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<To
     out
 }
 
+/// `tokens` with the text of `ranges` hidden (`org-pretty-entities`: an
+/// entity shown as its character, by an inlay hint): the parts of tokens
+/// there, and an entity token for what no token covers.
+pub fn with_hidden(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<Token> {
+    if ranges.is_empty() {
+        return tokens;
+    }
+    let ranges: Vec<TextRange> =
+        ranges.iter().map(|(start, end)| TextRange::new((*start as u32).into(), (*end as u32).into())).collect();
+    let mut out: Vec<Token> = Vec::with_capacity(tokens.len() + ranges.len());
+    for token in &tokens {
+        let (start, end) = (token.range.start(), token.range.end());
+        let mut at = start;
+        for range in ranges.iter().filter(|range| range.start() < end && range.end() > start) {
+            let (from, to) = (range.start().max(start), range.end().min(end));
+            if from > at {
+                out.push(Token { range: TextRange::new(at, from), ..*token });
+            }
+            out.push(Token {
+                range: TextRange::new(from, to),
+                modifiers: token.modifiers | modifier::HIDDEN,
+                ..*token
+            });
+            at = to;
+        }
+        if at < end {
+            out.push(Token { range: TextRange::new(at, end), ..*token });
+        }
+    }
+    // What no token covers.
+    for range in &ranges {
+        let mut at = range.start();
+        let mut covering: Vec<&Token> = tokens
+            .iter()
+            .filter(|token| token.range.start() < range.end() && token.range.end() > range.start())
+            .collect();
+        covering.sort_by_key(|token| token.range.start());
+        for token in covering {
+            if token.range.start() > at {
+                out.push(Token {
+                    range: TextRange::new(at, token.range.start()),
+                    ty: TokenType::Entity,
+                    modifiers: modifier::HIDDEN,
+                });
+            }
+            at = at.max(token.range.end());
+        }
+        if at < range.end() {
+            out.push(Token {
+                range: TextRange::new(at, range.end()),
+                ty: TokenType::Entity,
+                modifiers: modifier::HIDDEN,
+            });
+        }
+    }
+    out.sort_by_key(|token| token.range.start());
+    out
+}
+
 struct Walker<'a> {
     todo: &'a TodoKeywords,
     conceal: Conceal,

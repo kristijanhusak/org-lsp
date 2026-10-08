@@ -1941,6 +1941,11 @@
               "markdownDescription": "Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~`, as for links. (`org-hide-emphasis-markers`)",
               "default": false
             },
+            "org_pretty_entities": {
+              "type": "boolean",
+              "markdownDescription": "Show entities (`\\alpha`, `\\to`) as their character (`α`, `→`): the entity is hidden as link brackets are, and its character is an inlay hint in its place. (`org-pretty-entities`)",
+              "default": false
+            },
             "return_uses_meta_return": {
               "type": "boolean",
               "markdownDescription": "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",

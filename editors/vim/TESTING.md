@@ -16,7 +16,7 @@ here and why.
 
 ## Highlighting
 
-**Partly:** Links and emphasis markers are not concealed: Vim cannot hide text that has text properties.
+**Partly:** Links, emphasis markers and pretty entities are not concealed: Vim cannot hide text that has text properties.
 
 - [ ] Headlines are colored by level; TODO and DONE keywords, priorities (`[#A]`) and tags have colors of their own
 - [ ] `*bold*`, `/italic/`, `_underline_`, `+strike+`, `=verbatim=` and `~code~` are colored

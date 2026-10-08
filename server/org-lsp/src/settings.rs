@@ -645,6 +645,14 @@ pub const SETTINGS: &[Setting] = &[
          and `~code~`, as for links.",
     ),
     setting(
+        "org_pretty_entities",
+        "boolean",
+        "false",
+        "org-pretty-entities",
+        "Show entities (`\\alpha`, `\\to`) as their character (`α`, `→`): the entity is hidden as link \
+         brackets are, and its character is an inlay hint in its place.",
+    ),
+    setting(
         "return_uses_meta_return",
         "boolean",
         "false",
@@ -1408,6 +1416,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_default_notes_file", STRING),
     ("org_link_descriptive", BOOLEAN),
     ("org_hide_emphasis_markers", BOOLEAN),
+    ("org_pretty_entities", BOOLEAN),
     ("return_uses_meta_return", BOOLEAN),
     ("org_goto_max_level", INTEGER),
     ("calendar_months", r#"{ "enum": [1, 3] }"#),
