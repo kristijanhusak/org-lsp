@@ -5136,7 +5136,8 @@
       "org-date"
     ],
     "clipboardCommands": [
-      "org.paste.subtree"
+      "org.paste.subtree",
+      "org.capture"
     ]
   }
 }

@@ -158,6 +158,9 @@ here and why.
 - [ ] Refiling from the capture buffer: `<Leader>or`
 - [ ] A date tree target files under year, month and day: `<Leader>oc`
 - [ ] `%a` links back to where the capture started: `<Leader>oc`
+- [ ] `%c` puts in what was copied last (in Neovim and Vim, the register the key was typed with): `<Leader>oc`
+- [ ] `%[snippet.txt]` puts in the file's text, relative to the file captured from: `<Leader>oc`
+- [ ] `%(upcase "abc")` puts in `ABC`, what Emacs makes of it (needs Emacs): `<Leader>oc`
 
 ## Refile and archive
 

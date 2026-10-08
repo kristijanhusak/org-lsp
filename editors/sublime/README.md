@@ -128,7 +128,7 @@ the view at hand. To bind one yourself:
 | [Dates and times](../../docs/parity.md#dates-and-times) | 86% | ❓ | Dates are typed, without the calendar: the package asks with an input panel. |
 | [Agenda](../../docs/parity.md#agenda) | 74% | ✅ |  |
 | [Clocking](../../docs/parity.md#clocking) | 88% | ✅ |  |
-| [Capture](../../docs/parity.md#capture) | 50% | ✅ |  |
+| [Capture](../../docs/parity.md#capture) | 73% | ✅ |  |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 55% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 67% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
@@ -145,7 +145,7 @@ the view at hand. To bind one yourself:
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **71%** |  |  |
+| **All of Org** | **72%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

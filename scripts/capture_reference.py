@@ -18,6 +18,7 @@ A case is a JSON object:
                                               that headline first
       "typed": "Call Bob",                    what is typed in the capture
       "options": {"org_adapt_indentation": true}   optional: server settings
+      "clipboard": "copied"                   optional: Emacs's latest kill
     }                                         buffer, where the cursor is
 
 `reference(cases)` adds `expected` to each case: `{"buffer": ...,
@@ -48,7 +49,9 @@ DRIVER = r"""
   (if (and (or (null answer) (equal answer "")) default)
       (if (consp default) (car default) default)
     (or answer "")))
-(defun org-lsp-capture-case (files from template answers typed out &optional clock)
+(defun org-lsp-capture-case (files from template answers typed out &optional clock clipboard)
+  (setq kill-ring nil kill-ring-yank-pointer nil)
+  (when clipboard (kill-new clipboard))
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer)
       (with-current-buffer buffer (set-buffer-modified-p nil))
@@ -170,7 +173,8 @@ def reference(cases):
                     f"(let ((org-adapt-indentation {adapt}))"
                     f" (org-lsp-capture-case (list {files}) {source} {template_form(case['template'], paths)}"
                     f" (list {answers}) {lisp_string(case.get('typed', ''))} {lisp_string(target)}"
-                    f" {clock_form(case.get('clock_in'), paths)}))"
+                    f" {clock_form(case.get('clock_in'), paths)}"
+                    f" {lisp_string(case['clipboard']) if 'clipboard' in case else 'nil'}))"
                 )
             driver = os.path.join(directory, f"driver-{clock[:10]}.el")
             with open(driver, "w", encoding="utf-8") as handle:
