@@ -37,6 +37,7 @@ here and why.
 - [ ] A file with `#+STARTUP: overview` opens folded; with `content` its headlines show, those without children folded, and its drawers folded
 - [ ] A subtree with `:VISIBILITY: children` opens with its children folded, one with `all` open
 - [ ] Two blank lines after a subtree stay visible below it when it is folded
+- [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: `<Leader>ons`
 - [ ] Opening the parent of an `:ARCHIVE:` subtree leaves that subtree folded
 - [ ] A sparse tree of the TODO entries folds everything else and highlights them: `<Leader>o/`
 

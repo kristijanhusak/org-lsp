@@ -741,6 +741,21 @@
         "category": "Org"
       },
       {
+        "command": "org.narrow.subtree",
+        "title": "Narrow to the subtree: it in a file of its own",
+        "category": "Org"
+      },
+      {
+        "command": "org.narrow.block",
+        "title": "Narrow to the block: it in a file of its own",
+        "category": "Org"
+      },
+      {
+        "command": "org.tree.indirect",
+        "title": "Show the subtree in a file of its own",
+        "category": "Org"
+      },
+      {
         "command": "org.table.edit.field",
         "title": "Edit the table field in a file of its own",
         "category": "Org"
@@ -4463,6 +4478,21 @@
       {
         "command": "org.edit.special",
         "key": "ctrl+c '",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.narrow.subtree",
+        "key": "ctrl+x n s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.narrow.block",
+        "key": "ctrl+x n b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.tree.indirect",
+        "key": "ctrl+c ctrl+x b",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

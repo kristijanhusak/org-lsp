@@ -155,6 +155,9 @@ pub const COLUMNS_WIDEN: &str = "org.columns.widen";
 pub const COLUMNS_ROW_UP: &str = "org.columns.row.up";
 pub const COLUMNS_ROW_DOWN: &str = "org.columns.row.down";
 pub const EDIT_SPECIAL: &str = "org.edit.special";
+pub const NARROW_SUBTREE: &str = "org.narrow.subtree";
+pub const NARROW_BLOCK: &str = "org.narrow.block";
+pub const TREE_INDIRECT: &str = "org.tree.indirect";
 pub const TABLE_EDIT_FIELD: &str = "org.table.edit.field";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
 pub const AGENDA_ENTRY_TEXT: &str = "org.agenda.entry.text";
@@ -988,6 +991,25 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c '")],
         vim: &[key(Org, "<Leader>o'")],
         ..command(EDIT_SPECIAL, "Edit the block in a file of its own")
+    },
+    // Narrowing (`org-narrow-to-subtree`, `org-narrow-to-block`) and
+    // `org-tree-to-indirect-buffer`: the subtree or block at the cursor in
+    // a file of its own, all there is to see while it is edited, written
+    // back each time it is saved.
+    Command {
+        emacs: &[key(Org, "C-x n s")],
+        vim: &[key(Org, "<Leader>ons")],
+        ..command(NARROW_SUBTREE, "Narrow to the subtree: it in a file of its own")
+    },
+    Command {
+        emacs: &[key(Org, "C-x n b")],
+        vim: &[key(Org, "<Leader>onb")],
+        ..command(NARROW_BLOCK, "Narrow to the block: it in a file of its own")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x b")],
+        vim: &[key(Org, "<Leader>oxb")],
+        ..command(TREE_INDIRECT, "Show the subtree in a file of its own")
     },
     // `org-table-edit-field`: the field at the cursor in a file of its own,
     // put back in the table, realigned, each time it is saved.

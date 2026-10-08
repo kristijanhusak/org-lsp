@@ -114,6 +114,9 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Alt+F` | `org.block.next` | Move to the next block |
 | `Ctrl+C Alt+B` | `org.block.previous` | Move to the previous block |
 | `Ctrl+C '` | `org.edit.special` | Edit the block in a file of its own |
+| `Ctrl+X n s` | `org.narrow.subtree` | Narrow to the subtree: it in a file of its own |
+| `Ctrl+X n b` | `org.narrow.block` | Narrow to the block: it in a file of its own |
+| `Ctrl+C Ctrl+X b` | `org.tree.indirect` | Show the subtree in a file of its own |
 | `Ctrl+C `` | `org.table.edit.field` | Edit the table field in a file of its own |
 | `Ctrl+C Ctrl+X Ctrl+C` | `org.columns` | Column view |
 | `Ctrl+C Ctrl+X 0` | `org.timer.start` | Start the relative timer |
@@ -468,6 +471,9 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "b", "g"], "commands": ["org.babel.goto"] },
   { "before": ["<leader>", "o", "b", "i"], "commands": ["org.babel.lob.ingest"] },
   { "before": ["<leader>", "o", "'"], "commands": ["org.edit.special"] },
+  { "before": ["<leader>", "o", "n", "s"], "commands": ["org.narrow.subtree"] },
+  { "before": ["<leader>", "o", "n", "b"], "commands": ["org.narrow.block"] },
+  { "before": ["<leader>", "o", "x", "b"], "commands": ["org.tree.indirect"] },
   { "before": ["<leader>", "o", "`"], "commands": ["org.table.edit.field"] },
   { "before": ["<leader>", "o", "x", "c"], "commands": ["org.columns"] },
   { "before": ["<leader>", "o", "x", "0"], "commands": ["org.timer.start"] },
@@ -633,6 +639,9 @@ every file; outside Org files the commands say they do not apply):
 | `org.block.next` | Org: Move to the next block |
 | `org.block.previous` | Org: Move to the previous block |
 | `org.edit.special` | Org: Edit the block in a file of its own |
+| `org.narrow.subtree` | Org: Narrow to the subtree: it in a file of its own |
+| `org.narrow.block` | Org: Narrow to the block: it in a file of its own |
+| `org.tree.indirect` | Org: Show the subtree in a file of its own |
 | `org.table.edit.field` | Org: Edit the table field in a file of its own |
 | `org.crypt.encrypt` | Org: Encrypt the entry |
 | `org.crypt.decrypt` | Org: Decrypt the entry |

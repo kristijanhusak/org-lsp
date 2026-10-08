@@ -135,7 +135,7 @@ export const AREAS = [
       ['Blank lines after a subtree kept outside its fold (`org-cycle-separator-lines`)', true],
       ['Archived subtrees left folded (`org-cycle-hide-archived-subtrees`)', true],
       ['Sparse trees (`C-c /`)', true],
-      ['Narrowing to a subtree or block (`C-x n s`, `C-x n b`)', false],
+      ['Narrowing to a subtree or block (`C-x n s`, `C-x n b`) and the subtree in an indirect buffer (`C-c C-x b`): it in a file of its own, all there is to see there, written back each time it is saved', true],
       ['Showing the context of the cursor (`org-reveal`, `C-c C-r`)', false],
     ],
     editors: {
@@ -148,6 +148,7 @@ export const AREAS = [
       { text: 'A file with `#+STARTUP: overview` opens folded; with `content` its headlines show, those without children folded, and its drawers folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'A subtree with `:VISIBILITY: children` opens with its children folded, one with `all` open', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'Two blank lines after a subtree stay visible below it when it is folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
+      { text: 'Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it', cmd: 'org.narrow.subtree' },
       { text: 'Opening the parent of an `:ARCHIVE:` subtree leaves that subtree folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'A sparse tree of the TODO entries folds everything else and highlights them', cmd: 'org.sparse.tree', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'Zed\'s own folds open and close on headlines, drawers and blocks', only: ['zed'] },

@@ -186,6 +186,26 @@ enum SpecialKind {
     /// A field of a table (`org-table-edit-field`), put back
     /// (`org-table-finish-edit-field`).
     Field,
+    /// A subtree or a block, narrowed to: put back as it is.
+    Region,
+}
+
+/// A part of an Org file to edit in a file of its own (see
+/// [`Server::open_special`]).
+struct NewSpecial {
+    uri: Uri,
+    /// The Org file's.
+    stem: String,
+    /// The part (characters, from 1), its text, and the file's text.
+    begin: usize,
+    end: usize,
+    region: String,
+    content: String,
+    extension: String,
+    /// What Emacs calls the buffer it edits it in.
+    name: String,
+    kind: SpecialKind,
+    point: usize,
 }
 
 /// Text that goes in place of `start..end`.
@@ -4034,6 +4054,15 @@ impl Server {
         if params.command == commands::CAPTURE {
             let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
             return self.capture(&context);
+        }
+        if matches!(
+            params.command.as_str(),
+            commands::NARROW_SUBTREE | commands::NARROW_BLOCK | commands::TREE_INDIRECT
+        ) {
+            let context: Context = argument
+                .and_then(|value| serde_json::from_value(value).ok())
+                .ok_or("This command needs the cursor position")?;
+            return self.narrow(&params.command, &context);
         }
         if params.command == commands::EDIT_SPECIAL || params.command == commands::TABLE_EDIT_FIELD {
             return self.edit_special(argument, params.command == commands::TABLE_EDIT_FIELD);
@@ -8223,14 +8252,37 @@ impl Server {
         let field = |key: &str| edit.get(key).and_then(Value::as_str).unwrap_or_default().to_string();
         let number = |key: &str| edit.get(key).and_then(Value::as_u64).unwrap_or(1) as usize;
         let (begin, end, region) = (number("begin"), number("end"), field("region"));
-        // The part edited already: its file again (a field, the same
-        // field).
+        let kind = match field("kind").as_str() {
+            "formulas" => SpecialKind::Formulas,
+            "field" => SpecialKind::Field,
+            _ => SpecialKind::Element,
+        };
+        let stem = path.file_stem().map(|stem| stem.to_string_lossy().into_owned()).unwrap_or_default();
+        self.open_special(NewSpecial {
+            uri,
+            stem,
+            begin,
+            end,
+            region,
+            content: field("text"),
+            extension: field("extension"),
+            name: field("name"),
+            kind,
+            point,
+        })
+    }
+
+    /// Shows a part of an Org file in a file of its own, written back each
+    /// time it is saved (see [`SpecialEdit`]); the same part again, its file
+    /// again (a field, the same field).
+    fn open_special(&mut self, new: NewSpecial) -> std::result::Result<Value, Refusal> {
         let same = |open: &&SpecialEdit| {
-            open.uri == uri
-                && open.begin == begin
-                && open.region == region
+            open.uri == new.uri
+                && open.begin == new.begin
+                && open.region == new.region
+                && open.kind == new.kind
                 && open.file.exists()
-                && (field("kind") != "field" || open.point == point)
+                && (new.kind != SpecialKind::Field || open.point == new.point)
         };
         if let Some(open) = self.special_edits.iter().find(same) {
             let target = uri::from_path(&open.file).ok_or("This file cannot be shown")?;
@@ -8238,37 +8290,82 @@ impl Server {
             self.send_request::<ShowDocument>(params, None);
             return Ok(Value::Null);
         }
-        let content = field("text");
-        let kind = match field("kind").as_str() {
-            "formulas" => SpecialKind::Formulas,
-            "field" => SpecialKind::Field,
-            _ => SpecialKind::Element,
-        };
-        let stem = path.file_stem().map(|stem| stem.to_string_lossy().into_owned()).unwrap_or_default();
         let directory = self.special_directory.join(self.special_edits.len().to_string());
-        let file = directory.join(format!("{stem}-edit.{}", field("extension")));
+        let suffix = if new.kind == SpecialKind::Region { "narrowed" } else { "edit" };
+        let file = directory.join(format!("{}-{suffix}.{}", new.stem, new.extension));
         std::fs::create_dir_all(&directory)
-            .and_then(|()| std::fs::write(&file, &content))
+            .and_then(|()| std::fs::write(&file, &new.content))
             .map_err(|error| Refusal::Failed(format!("Cannot write {}: {error}", file.display())))?;
         let target = uri::from_path(&file).ok_or("This file cannot be shown")?;
+        let (begin, end, kind, point) = (new.begin, new.end, new.kind, new.point);
         self.special_edits.push(SpecialEdit {
             modified: std::fs::metadata(&file).and_then(|metadata| metadata.modified()).ok(),
             file,
-            content,
-            uri,
+            content: new.content,
+            uri: new.uri,
             // In the part, Org edits it again from its start; at a footnote
             // reference, from there; a field, from in it.
             point: if kind != SpecialKind::Field && (begin..=end).contains(&point) { begin } else { point },
             begin,
             end,
-            region,
+            region: new.region,
             busy: false,
             kind,
         });
         let params = ShowDocumentParams { uri: target, external: None, take_focus: Some(true), selection: None };
         self.send_request::<ShowDocument>(params, None);
-        self.message = Some(format!("{}: saving the file writes it back", field("name")));
+        self.message = Some(format!("{}: saving the file writes it back", new.name));
         Ok(Value::Null)
+    }
+
+    /// `org-narrow-to-subtree` (`C-x n s`), `org-narrow-to-block` (`C-x n
+    /// b`) and `org-tree-to-indirect-buffer` (`C-c C-x b`): the subtree or
+    /// the block at the cursor in a file of its own, all there is to see
+    /// there, written back as it is each time it is saved.
+    fn narrow(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = context.text_document.uri.clone();
+        let path = uri::to_path(&uri).ok_or("Only a file on disk can be narrowed")?;
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let text = &document.text;
+        let offset = document.index.offset(text, context.position, self.client.encoding);
+        let root = document.syntax();
+        let range = if id == commands::NARROW_BLOCK {
+            let token = root
+                .token_at_offset(org_syntax::TextSize::from(offset as u32))
+                .right_biased()
+                .ok_or("Not in a block")?;
+            token
+                .parent_ancestors()
+                .find(|node| {
+                    matches!(node.kind(), org_syntax::SyntaxKind::BLOCK | org_syntax::SyntaxKind::DYNAMIC_BLOCK)
+                })
+                .ok_or("Not in a block")?
+                .text_range()
+        } else {
+            org_syntax::ast::headline_at(&root, org_syntax::TextSize::from(offset as u32))
+                .ok_or("Before first headline")?
+                .syntax()
+                .text_range()
+        };
+        let (start, finish) = (usize::from(range.start()), usize::from(range.end()));
+        let region = text[start..finish].to_string();
+        let begin = text[..start].chars().count() + 1;
+        let end = begin + region.chars().count();
+        let point = text[..offset].chars().count() + 1;
+        let stem = path.file_stem().map(|stem| stem.to_string_lossy().into_owned()).unwrap_or_default();
+        let name = if id == commands::TREE_INDIRECT { format!("{stem}.org-1") } else { format!("{stem}.org") };
+        self.open_special(NewSpecial {
+            uri,
+            stem,
+            begin,
+            end,
+            content: region.clone(),
+            region,
+            extension: "org".to_string(),
+            name,
+            kind: SpecialKind::Region,
+            point,
+        })
     }
 
     /// Whether the files of [`Server::edit_special`] were saved: each that
@@ -8326,6 +8423,18 @@ impl Server {
                 }
             }
         }
+        // A part narrowed to goes back as it is.
+        if edit.kind == SpecialKind::Region {
+            let (file, uri) = (edit.file.clone(), edit.uri.clone());
+            let begin = if point == edit.point { edit.begin } else { point };
+            let start = byte(begin);
+            let finish =
+                text[start..].char_indices().nth(edit.region.chars().count()).map_or(text.len(), |(at, _)| start + at);
+            let new = format!("{}{}{}", &text[..start], content, &text[finish..]);
+            let result = json!({ "text": new, "extra": { "begin": begin, "end": begin + content.chars().count() } });
+            self.written_back(&file, &uri, version, &text, content, Ok(result));
+            return;
+        }
         let params = json!({
             "file": path.to_string_lossy(),
             "text": text,
@@ -8334,6 +8443,7 @@ impl Server {
                 SpecialKind::Element => "org-lsp-bridge-edit-special-save",
                 SpecialKind::Formulas => "org-lsp-bridge-formulas-save",
                 SpecialKind::Field => "org-lsp-bridge-field-save",
+                SpecialKind::Region => unreachable!("a region goes back without Emacs"),
             },
             "args": [content],
         });

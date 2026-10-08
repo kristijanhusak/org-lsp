@@ -959,6 +959,27 @@
     }
   },
   {
+    "caption": "Org: Narrow to the subtree: it in a file of its own",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.narrow.subtree"
+    }
+  },
+  {
+    "caption": "Org: Narrow to the block: it in a file of its own",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.narrow.block"
+    }
+  },
+  {
+    "caption": "Org: Show the subtree in a file of its own",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.tree.indirect"
+    }
+  },
+  {
     "caption": "Org: Edit the table field in a file of its own",
     "command": "org_lsp_run",
     "args": {
