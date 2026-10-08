@@ -41,6 +41,9 @@ pub struct Context<'a> {
     /// The name of the text's file, without its directory (the
     /// `input-file` macro).
     pub file_name: &'a dyn Fn() -> Option<String>,
+    /// Whether an entry has this `ID` (`org-id-find-id-file`), or None
+    /// when that is not known: the IDs of other files are the editor's.
+    pub id_known: &'a dyn Fn(&str) -> Option<bool>,
 }
 
 /// A checker's reports: places and messages.
@@ -420,6 +423,20 @@ impl Doc<'_> {
             .collect()
     }
 
+    /// A language with neither a Babel backend nor a major mode.
+    fn suspicious_language_in_src_block(&self) -> Found {
+        self.blocks()
+            .filter(|(_, name, _)| name.eq_ignore_ascii_case("src"))
+            .filter_map(|(node, _, parameters)| {
+                let language = parameters.split_whitespace().next()?.to_string();
+                let known = crate::lint_languages::KNOWN.binary_search(&language.as_str()).is_ok();
+                (!known).then(|| {
+                    (post_affiliated(self.text, &node), format!("Unknown source block language: '{language}'"))
+                })
+            })
+            .collect()
+    }
+
     fn missing_backend_in_export_block(&self) -> Found {
         self.blocks()
             .filter(|(_, name, parameters)| name.eq_ignore_ascii_case("export") && parameters.is_empty())
@@ -463,6 +480,14 @@ impl Doc<'_> {
             .into_iter()
             .filter(|link| link.kind == "custom-id" && !ids.contains(&link.path))
             .map(|link| (link.start, format!("Unknown custom ID \"{}\"", link.path)))
+            .collect()
+    }
+
+    fn invalid_id_link(&self) -> Found {
+        self.links()
+            .into_iter()
+            .filter(|link| link.kind == "id" && (self.context.id_known)(&link.path) == Some(false))
+            .map(|link| (link.start, format!("Unknown ID \"{}\"", link.path)))
             .collect()
     }
 
@@ -2497,6 +2522,7 @@ fn checkers<'d>() -> Vec<Checker<'d>> {
         ("link-to-local-file", "low", Doc::link_to_local_file),
         ("unclosed-brackets-in-link-description", "low", Doc::brackets_inside_description),
         ("trailing-bracket-after-link", "low", Doc::confusing_brackets),
+        ("invalid-id-link", "nil", Doc::invalid_id_link),
         ("invalid-fuzzy-link", "nil", Doc::invalid_fuzzy_link),
         ("invalid-custom-id-link", "nil", Doc::invalid_custom_id_link),
         ("invalid-coderef-link", "nil", Doc::invalid_coderef_link),
@@ -2507,6 +2533,7 @@ fn checkers<'d>() -> Vec<Checker<'d>> {
         ("wrong-header-argument", "nil", Doc::wrong_header_argument),
         ("invalid-babel-call-block", "nil", Doc::invalid_babel_call_block),
         ("missing-backend-in-export-block", "nil", Doc::missing_backend_in_export_block),
+        ("suspicious-language-in-src-block", "low", Doc::suspicious_language_in_src_block),
         ("missing-language-in-src-block", "nil", Doc::missing_language_in_src_block),
         ("deprecated-header-syntax", "low", Doc::deprecated_header_syntax),
         ("deprecated-export-blocks", "low", Doc::deprecated_export_blocks),

@@ -878,6 +878,9 @@ struct Server {
     /// The documents with diagnostics published, which a change without
     /// any clears.
     diagnosed: HashSet<String>,
+    /// The `ID`s of the files on disk that IDs are looked for in, as of
+    /// their time of change (`org-id-locations`).
+    id_files: HashMap<PathBuf, (std::time::SystemTime, Vec<String>)>,
     /// `org_lint`: Org's linter checks the documents.
     lint: bool,
     /// `org_lint_ignore`: the checkers it leaves out.
@@ -1199,6 +1202,7 @@ pub fn run(connection: Connection) -> Result<()> {
         link_abbreviations: options.link_abbrev_alist.clone().unwrap_or_default().into_iter().collect(),
         bibliographies: HashMap::new(),
         diagnosed: HashSet::new(),
+        id_files: HashMap::new(),
         lint: options.lint.unwrap_or(true),
         lint_ignore: options.lint_ignore.clone().unwrap_or_default(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
@@ -1634,6 +1638,18 @@ fn temp_dir() -> PathBuf {
         return real;
     }
     temp
+}
+
+/// The values of the `:ID:` properties of `text`, as
+/// `org-id-update-id-locations` finds them.
+fn property_ids(text: &str) -> Vec<String> {
+    text.lines()
+        .filter_map(|line| {
+            let line = line.trim_start_matches([' ', '\t']);
+            let rest = line.get(..4).filter(|key| key.eq_ignore_ascii_case(":ID:")).map(|_| &line[4..])?;
+            rest.starts_with([' ', '\t']).then(|| rest.split_whitespace().next()).flatten().map(str::to_string)
+        })
+        .collect()
 }
 
 /// Write the agenda's file and leave it read-only: the agenda is to read,
@@ -3712,6 +3728,36 @@ impl Server {
             }
         }
         paths
+    }
+
+    /// Every `ID` of the files IDs are looked for in: the open files as
+    /// the editor has them, the others as they are on disk, read again
+    /// once they change.
+    fn known_ids(&mut self) -> HashSet<String> {
+        let mut ids = HashSet::new();
+        let mut on_disk = HashMap::new();
+        for path in self.id_paths() {
+            let open = self.documents.iter().find(|(key, _)| {
+                key.parse::<Uri>().ok().and_then(|key| uri::to_path(&key)).is_some_and(|key| key == path)
+            });
+            if let Some((_, document)) = open {
+                ids.extend(property_ids(&document.text));
+                continue;
+            }
+            let Some(changed) = std::fs::metadata(&path).and_then(|metadata| metadata.modified()).ok() else {
+                continue;
+            };
+            let found = match self.id_files.remove(&path) {
+                Some((time, found)) if time == changed => found,
+                _ => {
+                    std::fs::read(&path).map(|bytes| property_ids(&String::from_utf8_lossy(&bytes))).unwrap_or_default()
+                }
+            };
+            ids.extend(found.iter().cloned());
+            on_disk.insert(path, (changed, found));
+        }
+        self.id_files = on_disk;
+        ids
     }
 
     /// `org-id-find`: the file and the headline of the entry with this
@@ -11212,7 +11258,9 @@ impl Server {
                 }
             }
         }
-        diagnostics.extend(self.lint_diagnostics(&uri, &text, &parse));
+        // `invalid-id-link`: the IDs of the open files and the agenda files.
+        let ids = (self.lint && text.contains("id:")).then(|| self.known_ids());
+        diagnostics.extend(self.lint_diagnostics(&uri, &text, &parse, ids.as_ref()));
         diagnostics.sort_by_key(|diagnostic| (diagnostic.range.start.line, diagnostic.range.start.character));
         if diagnostics.is_empty() && !self.diagnosed.remove(key) {
             return;
@@ -11231,7 +11279,13 @@ impl Server {
     /// What `org-lint` reports in a document, as diagnostics from the
     /// report's place to the end of its line: a warning, or information
     /// for a checker of low trust. The checker's name is the code.
-    fn lint_diagnostics(&self, uri: &Uri, text: &str, parse: &org_syntax::Parse) -> Vec<lsp_types::Diagnostic> {
+    fn lint_diagnostics(
+        &self,
+        uri: &Uri,
+        text: &str,
+        parse: &org_syntax::Parse,
+        ids: Option<&HashSet<String>>,
+    ) -> Vec<lsp_types::Diagnostic> {
         if !self.lint || uri::file_name(uri).starts_with(CAPTURE_PREFIX) {
             return Vec::new();
         }
@@ -11263,11 +11317,13 @@ impl Server {
         };
         let read = |name: &str| resolve(name).and_then(|path| std::fs::read_to_string(path).ok());
         let file_name = || uri::to_path(uri).and_then(|path| Some(path.file_name()?.to_string_lossy().into_owned()));
+        let id_known = |id: &str| ids.map(|ids| ids.contains(id));
         let context = org_core::lint::Context {
             file_exists: &exists,
             priorities: self.edit_settings.priorities,
             read_file: &read,
             file_name: &file_name,
+            id_known: &id_known,
         };
         let encoding = self.client.encoding;
         org_core::lint::lint(text, parse, &context)

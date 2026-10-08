@@ -42,6 +42,7 @@ fn run(case: &Value) -> Vec<Value> {
         priorities: org_core::priority::Priorities::default(),
         read_file: &read,
         file_name: &name,
+        id_known: &|_| None,
     };
     let parse = org_syntax::parse(text, &Default::default());
     lint::lint(text, &parse, &context)

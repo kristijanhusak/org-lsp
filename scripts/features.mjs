@@ -737,7 +737,7 @@ export const AREAS = [
   },
   {
     name: 'Diagnostics (org-lint)',
-    emacs: [['org-lint\'s checkers', 59, 61]],
+    emacs: [['org-lint\'s checkers', 61, 61]],
     checks: [
       { text: 'A heading in a paragraph (`text ** heading`), a link to nowhere and a block left open are reported' },
       { text: 'An unknown header argument (`:foo 1`) on a source block is reported, as information: nothing is ever an error or a warning, only information (or a hint, where org-lint trusts its finding less)' },

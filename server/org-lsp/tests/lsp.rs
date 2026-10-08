@@ -1431,10 +1431,12 @@ fn toggles_checkboxes() {
 
 /// `org-lint` reports as diagnostics: warnings, information for checkers
 /// of low trust, the checker as the code; `org_lint_ignore` leaves
-/// checkers out, `org_lint` false all of them.
+/// checkers out, `org_lint` false all of them. An ID is looked for in the
+/// open files and the agenda files.
 #[test]
 fn lints_documents() {
-    let text = "* H\n[[*Missing]]\n#+CATEGORY: a\n#+CATEGORY: b\n#+begin_src\n#+end_src\n";
+    let text = "* H\n[[*Missing]]\n#+CATEGORY: a\n#+CATEGORY: b\n#+begin_src\n#+end_src\n\
+                * I\n:PROPERTIES:\n:ID: here\n:END:\n[[id:here]] [[id:nowhere]]\n#+begin_src nolang\n#+end_src\n";
     let diagnostics = |options: Value| {
         let client = Client::start(json!({}), options);
         client.open(&uri(), text);
@@ -1466,10 +1468,20 @@ fn lints_documents() {
                 "Spurious CATEGORY keyword.  Set :CATEGORY: property instead".to_string()
             ),
             (4, 3, "missing-language-in-src-block".to_string(), "Missing language in source block".to_string()),
+            (10, 3, "invalid-id-link".to_string(), "Unknown ID \"nowhere\"".to_string()),
+            (
+                11,
+                4,
+                "suspicious-language-in-src-block".to_string(),
+                "Unknown source block language: 'nolang'".to_string()
+            ),
         ]
     );
     let found = diagnostics(json!({ "org_lint_ignore": ["invalid-fuzzy-link", "deprecated-category-setup"] }));
-    assert_eq!(found.iter().map(|found| found.2.as_str()).collect::<Vec<_>>(), ["missing-language-in-src-block"]);
+    assert_eq!(
+        found.iter().map(|found| found.2.as_str()).collect::<Vec<_>>(),
+        ["missing-language-in-src-block", "invalid-id-link", "suspicious-language-in-src-block"]
+    );
     let mut client = Client::start(json!({}), json!({ "org_lint": false }));
     client.open(&uri(), text);
     // Nothing: the next message is the answer to a request.

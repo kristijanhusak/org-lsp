@@ -22,6 +22,7 @@ pub mod indent;
 pub mod link;
 pub mod link_preview;
 pub mod lint;
+mod lint_languages;
 mod lint_tables;
 pub mod list;
 pub mod meta_return;

@@ -36,7 +36,7 @@ The Neovim plugin is the repository itself (`lua/`, `plugin/`): install
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 100% | ✅ |  |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 100% | ✅ |  |
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |
-| [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
+| [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 100% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ✅ |  |
 | [Notes and logging](../../docs/parity.md#notes-and-logging) | 100% | ✅ |  |
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ✅ | Completion needs an LSP completion plugin (or `vim.lsp.completion`). |
