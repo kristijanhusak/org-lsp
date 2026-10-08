@@ -317,6 +317,20 @@ and the duration it would offer."
         (default . ,(let ((default (format "%s" org-timer-default-timer)))
                       (if (string-equal default "0") "" default)))))))
 
+;;; Capture
+
+(defun org-lsp-bridge-eval (params)
+  "What the `%(sexp)' of a capture template, the `sexp' of PARAMS, puts in:
+a string or nil, as `org-capture-expand-embedded-elisp' takes it (an error
+in it becomes `%![Error: …]')."
+  (let* ((sexp (alist-get 'sexp params))
+         (directory (alist-get 'directory params))
+         (default-directory (if directory (file-name-as-directory directory) default-directory))
+         (result (with-temp-buffer (org-mode) (org-eval (read sexp)))))
+    (cond ((null result) nil)
+          ((stringp result) result)
+          (t (error "Capture template sexp `%s' must evaluate to string or nil" sexp)))))
+
 ;;; What the server asks about
 
 (defun org-lsp-bridge-src-block-names (params)

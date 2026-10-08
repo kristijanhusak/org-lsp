@@ -7,7 +7,7 @@
 
 use std::path::PathBuf;
 
-use org_core::capture::{fill, place, Context, Filled, Group, Kind, Properties, Target};
+use org_core::capture::{fill_with, place, Context, Filled, Group, Kind, Outside, Properties, Target};
 use org_core::date::DateTime;
 use org_core::indent::Adapt;
 use org_core::read_date::Settings;
@@ -55,10 +55,23 @@ fn run(case: &Value) -> Result<(String, String, String), String> {
         clock_heading,
         clock_link: String::new(),
         tags_column: -77,
+        clipboard: case["clipboard"].as_str().unwrap_or_default().to_string(),
+    };
+    // `%[file]`: the case's files, by name; `%(sexp)`: evaluated by Emacs.
+    let insert_file = |name: &str| case["files"][name].as_str().unwrap_or_default().to_string();
+    let mut eval = |sexp: &str| -> Result<Option<String>, String> {
+        let form = format!("(princ (let ((value (org-eval (read {sexp:?})))) (if value (concat \"S\" value) \"N\")))");
+        let out = std::process::Command::new("emacs")
+            .args(["--batch", "-Q", "--eval", "(require 'org)", "--eval", &form])
+            .output()
+            .map_err(|error| error.to_string())?;
+        let out = String::from_utf8_lossy(&out.stdout).into_owned();
+        Ok(out.strip_prefix('S').map(str::to_string))
     };
     let given = answers.len();
     let text = loop {
-        match fill(template["template"].as_str().unwrap(), &context, &answers, &Settings::default())
+        let outside = Outside { insert_file: &insert_file, eval: &mut eval };
+        match fill_with(template["template"].as_str().unwrap(), &context, &answers, &Settings::default(), Some(outside))
             .map_err(|refusal| refusal.message().to_string())?
         {
             Filled::Text(text) => break text,
@@ -161,7 +174,13 @@ fn capturing_matches_emacs() {
     let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     let mut failures = String::new();
     let mut failed = 0;
+    // `%(sexp)` needs Emacs, which CI's Rust job has not.
+    let emacs = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    assert!(emacs || std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
     for (index, case) in cases.iter().enumerate() {
+        if !emacs && case["template"]["template"].as_str().is_some_and(|template| template.contains("%(")) {
+            continue;
+        }
         let expected = &case["expected"];
         let result = run(case);
         let same = match (expected, &result) {

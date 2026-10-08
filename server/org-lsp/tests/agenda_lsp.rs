@@ -3105,6 +3105,48 @@ fn a_template_without_a_target_captures_into_the_default_notes_file() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// `%(sexp)` evaluated by Emacs, `%[file]` read relative to the file
+/// captured from, `%c` the clipboard the editor sends.
+#[test]
+fn captures_with_lisp_files_and_the_clipboard() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("captures_with_lisp_files_and_the_clipboard: no Emacs, skipped");
+        return;
+    }
+    let root = workspace("capture-lisp");
+    let notes = root.join("notes.org");
+    std::fs::write(&notes, "* Old\n").unwrap();
+    std::fs::write(root.join("snippet.txt"), "from a file").unwrap();
+    let mut options = clock();
+    options["org_default_notes_file"] = json!(notes.display().to_string());
+    options["org_capture_templates"] = json!([{
+        "key": "n",
+        "description": "Note",
+        "template": "* %(upcase \"abc\") %(concat \"%c\" \"!\") %[snippet.txt]",
+        "immediate_finish": true,
+    }]);
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    let mut client = Client::editor(options, None);
+    let at = json!({
+        "textDocument": { "uri": format!("file://{}", notes.display()) },
+        "position": { "line": 0, "character": 0 },
+        "input": "n",
+        "clipboard": "a \"kill\"",
+    });
+    let done = client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [at] }));
+    assert_eq!(done, Ok(Value::Null));
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    assert_eq!(apply("* Old\n", &edits), "* Old\n* ABC a \"kill\"! from a file\n");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 /// Capturing from where there is no document (no file open): the
 /// template and the answers come without a cursor.
 #[test]

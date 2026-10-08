@@ -37,6 +37,19 @@ pub struct Context {
     pub clock_link: String,
     /// `org-tags-column`, for the tags `%^g` puts on a headline.
     pub tags_column: i64,
+    /// `%c` and `%x`: what the editor would paste, Emacs's latest kill and
+    /// clipboard.
+    pub clipboard: String,
+}
+
+/// What a template reaches out for, which Emacs reads and runs:
+/// the files of `%[file]` and the Lisp of `%(sexp)`.
+pub struct Outside<'a> {
+    /// The text `%[name]` puts in: the file's, or Org's note that it could
+    /// not (`%![could not insert …]`).
+    pub insert_file: &'a dyn Fn(&str) -> String,
+    /// What `%(sexp)` evaluates to: a string, or nothing.
+    pub eval: &'a mut dyn FnMut(&str) -> Result<Option<String>, String>,
 }
 
 /// A question a template asks (`%^{…}`, `%^t`…).
@@ -52,6 +65,9 @@ pub enum Question {
     Tags { prompt: Option<String>, all_files: bool },
     /// `%^{NAME}p`: the value of a property, set in the template's entry.
     Property { name: String, default: String },
+    /// `%^C`, `%^L`: the initial content or the clipboard, typed
+    /// (`Clipboard/kill value: `); a link of it for `%^L`.
+    Clipboard { link: bool, default: String, choices: Vec<String> },
 }
 
 /// A template expanded as far as the answers given allow.
@@ -101,6 +117,135 @@ fn replace_unescaped(
         last = found.end();
     }
     out.push_str(&text[last..]);
+    Ok(out)
+}
+
+/// What `%^C` (the text) or `%^L` (a link to it) puts in for `value`.
+fn clipboard_value(key: &str, value: &str) -> String {
+    if key == "L" && !value.is_empty() {
+        format!("[[{value}]]")
+    } else if key == "L" {
+        String::new()
+    } else {
+        value.to_string()
+    }
+}
+
+/// `%[file]`: each name replaced by what `insert` makes of it, the text put
+/// in searched again, as Emacs inserts a file before the point.
+fn insert_files(template: &str, insert: &dyn Fn(&str) -> String) -> String {
+    let mut text = template.to_string();
+    let mut from = 0;
+    // A file that names itself would never end.
+    for _ in 0..1000 {
+        let Some(captures) = FILE.captures_at(&text, from) else { break };
+        let found = captures.get(0).expect("whole match");
+        let (is_escaped, remove) = escaped(&text, found.start());
+        let start = found.start() - remove;
+        if is_escaped {
+            let end = found.end() - remove;
+            text.replace_range(start..found.start(), "");
+            from = end;
+            continue;
+        }
+        let content = insert(&captures[1]);
+        text.replace_range(start..found.end(), &content);
+        from = start;
+    }
+    text
+}
+
+/// Mark each `%(sexp)` that is not escaped and reads as a sexp, as
+/// `org-capture-expand-embedded-elisp` marks them, by [`SEXP_START`] before
+/// it and [`SEXP_END`] after it.
+fn mark_sexps(template: &str) -> String {
+    let mut out = String::with_capacity(template.len());
+    let mut last = 0;
+    let mut from = 0;
+    while let Some(at) = template[from..].find("%(").map(|at| from + at) {
+        let (is_escaped, remove) = escaped(template, at);
+        out.push_str(&template[last..at - remove]);
+        last = at;
+        from = at + 2;
+        if is_escaped {
+            continue;
+        }
+        if let Some(end) = sexp_end(template, at + 1) {
+            out.push(SEXP_START);
+            out.push_str(&template[at..end]);
+            out.push(SEXP_END);
+            last = end;
+            from = end;
+        }
+    }
+    out.push_str(&template[last..]);
+    out
+}
+
+/// Where the sexp opening at `open` (a `(`) ends, as Emacs Lisp reads it:
+/// strings, character literals and comments taken into account. `None`
+/// when it does not end.
+fn sexp_end(text: &str, open: usize) -> Option<usize> {
+    let bytes = text.as_bytes();
+    let mut depth = 0usize;
+    let mut at = open;
+    while at < bytes.len() {
+        match bytes[at] {
+            b'\\' => at += 1,
+            b'?' => {
+                // A character: `?a`, `?\(`.
+                at += if bytes.get(at + 1) == Some(&b'\\') { 2 } else { 1 };
+            }
+            b'"' => {
+                at += 1;
+                while at < bytes.len() && bytes[at] != b'"' {
+                    if bytes[at] == b'\\' {
+                        at += 1;
+                    }
+                    at += 1;
+                }
+            }
+            b';' => {
+                while at < bytes.len() && bytes[at] != b'\n' {
+                    at += 1;
+                }
+            }
+            b'(' | b'[' => depth += 1,
+            b')' | b']' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    return Some(at + 1);
+                }
+            }
+            _ => {}
+        }
+        at += 1;
+    }
+    None
+}
+
+/// The marked sexps of `text` replaced by what `outside` evaluates them
+/// to (a string, or nothing); without it, left as they are.
+fn eval_sexps(text: &str, mut outside: Option<&mut Outside>) -> Result<String, Refusal> {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(start) = rest.find(SEXP_START) {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + SEXP_START.len_utf8()..];
+        let end = after.find(SEXP_END).unwrap_or(after.len());
+        let sexp = &after[..end];
+        match outside.as_mut() {
+            Some(outside) => {
+                let lisp = sexp.strip_prefix('%').unwrap_or(sexp);
+                if let Some(value) = (outside.eval)(lisp).map_err(Refusal::Failed)? {
+                    out.push_str(&value);
+                }
+            }
+            None => out.push_str(sexp),
+        }
+        rest = after.get(end + SEXP_END.len_utf8()..).unwrap_or("");
+    }
+    out.push_str(rest);
     Ok(out)
 }
 
@@ -156,16 +301,41 @@ pub(crate) fn format_time(format: &str, time: DateTime) -> String {
     out
 }
 
+/// Where `%(` and the end of its sexp are marked while the template is
+/// expanded (`org-embedded-elisp`): characters no template has.
+const SEXP_START: char = '\u{E000}';
+const SEXP_END: char = '\u{E001}';
+
+static FILE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"%\[(.+)\]").unwrap());
+
 /// Expand `template` (`org-capture-fill-template`). `answers` answer its
 /// questions in order; while one is missing, the result is that question.
-/// `%[file]` and `%(…)` are not expanded: there is no Emacs to read the
-/// file in, or to run the Lisp.
+/// `%[file]` and `%(…)` are left as they are: see [`fill_with`].
 pub fn fill(
     template: &str,
     context: &Context,
     answers: &[String],
     settings: &ReadDateSettings,
 ) -> Result<Filled, Refusal> {
+    fill_with(template, context, answers, settings, None)
+}
+
+/// [`fill`], with `%[file]` and `%(sexp)` expanded by `outside`: the files
+/// first, their text expanded as the template's; then the sexps marked,
+/// the escapes inside them expanded with `\` and `"` escaped; then the
+/// sexps evaluated, before the questions are asked.
+pub fn fill_with(
+    template: &str,
+    context: &Context,
+    answers: &[String],
+    settings: &ReadDateSettings,
+    mut outside: Option<Outside>,
+) -> Result<Filled, Refusal> {
+    let template = match &outside {
+        Some(outside) => mark_sexps(&insert_files(template, outside.insert_file)),
+        None => template.to_string(),
+    };
+    let template = template.as_str();
     let time = context.now;
     let annotation = if context.annotation == "[[]]" { "" } else { context.annotation.as_str() };
     let link = |with: &str| -> String {
@@ -186,21 +356,24 @@ pub fn fill(
     // The non-interactive escapes.
     let text = replace_unescaped(template, &NON_INTERACTIVE, |captures| {
         let value = &captures[1];
-        let line_start =
-            captures.get(0).map_or(0, |found| template[..found.start()].rfind('\n').map_or(0, |at| at + 1));
-        Ok(Some(match value.as_bytes()[0] {
+        let start = captures.get(0).expect("whole match").start();
+        let line_start = template[..start].rfind('\n').map_or(0, |at| at + 1);
+        let before = &template[..start];
+        let inside = before.matches(SEXP_START).count() > before.matches(SEXP_END).count();
+        let value = match value.as_bytes()[0] {
             b'<' => format_time(&captures[2], time),
             b':' => String::new(),
+            b'i' if inside => context.initial.clone(),
             b'i' => {
                 // Lines after the first repeat what stands before `%i`.
-                let lead = &template[line_start..captures.get(0).expect("whole match").start()];
+                let lead = &template[line_start..start];
                 context.initial.replace('\n', &format!("\n{lead}"))
             }
             b'a' => annotation.to_string(),
             b'A' => link("[[\\1][%^{Link description}]]"),
             b'l' => link("[[\\1]]"),
             b'L' => link("\\1"),
-            b'c' | b'x' => String::new(),
+            b'c' | b'x' => context.clipboard.clone(),
             b'k' => context.clock_heading.clone(),
             b'K' => context.clock_link.clone(),
             b'f' => file.clone(),
@@ -211,8 +384,12 @@ pub fn fill(
             b'u' => format_timestamp(time, false, true, ""),
             b'U' => format_timestamp(time, true, true, ""),
             _ => return Ok(None),
-        }))
+        };
+        // In Lisp, the value is a string's content.
+        Ok(Some(if inside { value.replace('\\', "\\\\").replace('"', "\\\"") } else { value }))
     })?;
+    // The sexps, evaluated.
+    let text = eval_sexps(&text, outside.as_mut())?;
     // The questions, in order.
     let mut asked = 0;
     let mut strings: Vec<String> = Vec::new();
@@ -245,15 +422,19 @@ pub fn fill(
             },
             Some(key @ ("g" | "G")) => Question::Tags { prompt: prompt.clone(), all_files: key == "G" },
             Some("p") => Question::Property { name: prompt.clone().unwrap_or_default(), default: default.clone() },
-            // The clipboard and the kill ring are the initial content here.
-            Some("C") => {
-                strings_all.push(context.initial.clone());
-                return Ok(Some(context.initial.clone()));
-            }
-            Some("L") => {
-                strings_all.push(context.initial.clone());
-                let link = if context.initial.is_empty() { String::new() } else { format!("[[{}]]", context.initial) };
-                return Ok(Some(link));
+            // The initial content, and what the editor would paste: one
+            // of them, asked for when there is a choice.
+            Some(key @ ("C" | "L")) => {
+                let mut values = vec![context.initial.clone()];
+                if !context.clipboard.is_empty() && context.clipboard != context.initial {
+                    values.push(context.clipboard.clone());
+                }
+                if values.len() == 1 {
+                    let value = values.remove(0);
+                    strings_all.push(value.clone());
+                    return Ok(Some(clipboard_value(key, &value)));
+                }
+                Question::Clipboard { link: key == "L", default: values[0].clone(), choices: values }
             }
             Some(other) => return Err(Refusal::Failed(format!("Unknown template placeholder: \"%^{other}\""))),
         };
@@ -288,6 +469,11 @@ pub fn fill(
                 properties.push((source[..found.start()].matches('\n').count(), name, answer.clone()));
                 strings_all.push(answer.clone());
                 Ok(Some(String::new()))
+            }
+            Question::Clipboard { link, default, .. } => {
+                let value = if answer.is_empty() { default } else { answer.clone() };
+                strings_all.push(value.clone());
+                Ok(Some(clipboard_value(if link { "L" } else { "C" }, &value)))
             }
             Question::Date { with_time, inactive, .. } => {
                 let mut read = read_date(answer, None, time, settings)?;
@@ -1436,6 +1622,7 @@ mod tests {
             clock_heading: String::new(),
             clock_link: String::new(),
             tags_column: -77,
+            clipboard: String::new(),
         };
         let settings = ReadDateSettings::default();
         let filled = fill("* TODO %?\n  %U %t %f %<%Y-%m-%d %A> \\%t", &context, &[], &settings).unwrap();

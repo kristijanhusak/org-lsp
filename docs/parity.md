@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 71%**
+**All of Org: 72%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Dates and times](#dates-and-times) | 86% | 6 of 7 |
 | [Agenda](#agenda) | 74% | 14 of 19 |
 | [Clocking](#clocking) | 88% | 7 of 8 |
-| [Capture](#capture) | 50% | 5 of 10 |
+| [Capture](#capture) | 73% | 8 of 11 |
 | [Refile and archive](#refile-and-archive) | 55% | 6 of 11 |
 | [Links](#links) | 67% | 6 of 9 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
@@ -250,7 +250,7 @@ Where editors fall short:
 
 ## Capture
 
-50% (5 of 10)
+73% (8 of 11)
 
 - ✅ Templates of every type: entries, items, checkboxes, table lines, plain text
 - ✅ Targets: files, headlines, outline paths, regexps, date trees, IDs, the clock
@@ -258,9 +258,10 @@ Where editors fall short:
 - ✅ The capture buffer: finishing, aborting, refiling
 - ✅ Clock options (`:clock-in`, `:clock-resume`…)
 - ❌ `function` targets
-- ❌ `%(…)` (Emacs Lisp)
-- ❌ `%[file]`
-- ❌ `%c`, `%x`, `%:keyword`
+- ✅ `%(…)` (Emacs Lisp, through Emacs)
+- ✅ `%[file]`
+- ✅ `%c`, `%x` and `%^C` (the editor's clipboard)
+- ❌ `%:keyword` (the properties of a stored link)
 - ❌ Template contexts
 
 Where editors fall short:

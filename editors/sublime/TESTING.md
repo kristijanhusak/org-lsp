@@ -155,6 +155,9 @@ here and why.
 - [ ] Refiling from the capture buffer: `Ctrl+C Ctrl+W`
 - [ ] A date tree target files under year, month and day: `Ctrl+C c`
 - [ ] `%a` links back to where the capture started: `Ctrl+C c`
+- [ ] `%c` puts in what was copied last (in Neovim and Vim, the register the key was typed with): `Ctrl+C c`
+- [ ] `%[snippet.txt]` puts in the file's text, relative to the file captured from: `Ctrl+C c`
+- [ ] `%(upcase "abc")` puts in `ABC`, what Emacs makes of it (needs Emacs): `Ctrl+C c`
 
 ## Refile and archive
 

@@ -239,6 +239,8 @@ struct CaptureContext {
     /// The answers to the template's questions so far; `input` is then the
     /// next one.
     answers: Option<Vec<String>>,
+    /// What the editor would paste (`%c`, `%x`, `%^C`).
+    clipboard: Option<String>,
 }
 
 /// The editing command that ran last, and the entry it ran on. Some
@@ -572,6 +574,8 @@ struct Server {
     /// When the countdown Org runs in Emacs (`org-timer-set-timer`) ends:
     /// Emacs in batch runs no timers, so the server says it.
     countdown: Option<std::time::Instant>,
+    /// What the `%(sexp)` of the capture being filled evaluated to.
+    capture_lisp: HashMap<String, Option<String>>,
     publish_projects: Option<Value>,
     /// What Emacs is doing, by tag.
     emacs_jobs: HashMap<u64, EmacsJob>,
@@ -832,6 +836,7 @@ pub fn run(connection: Connection) -> Result<()> {
         export_menu: None,
         structure_templates: None,
         countdown: None,
+        capture_lisp: HashMap::new(),
         publish_projects: None,
         emacs_jobs: HashMap::new(),
         export_directory: server_directory("export"),
@@ -942,6 +947,25 @@ pub fn run(connection: Connection) -> Result<()> {
     }
     let _ = std::fs::remove_dir_all(&server.export_directory);
     Ok(())
+}
+
+/// What `%[name]` puts in a capture: the file's text, or Org's note that
+/// it could not read it. `~/` is the home directory; a relative name is
+/// relative to `directory`.
+fn capture_file_text(name: &str, directory: Option<&Path>) -> String {
+    let path = match name.strip_prefix("~/") {
+        Some(rest) => std::env::var_os("HOME").map(PathBuf::from).unwrap_or_default().join(rest),
+        None if Path::new(name).is_absolute() => PathBuf::from(name),
+        None => directory.map(Path::to_path_buf).unwrap_or_default().join(name),
+    };
+    match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => format!(
+            "%![could not insert {0}: (file-missing Opening input file No such file or directory {0})]",
+            path.display()
+        ),
+        Err(error) => format!("%![could not insert {}: (file-error {error})]", path.display()),
+    }
 }
 
 /// The values property `name` has in the property drawers of `text`.
@@ -5252,9 +5276,33 @@ impl Server {
             clock_heading,
             clock_link,
             tags_column: self.edit_settings.todo.tags_column,
+            clipboard: context.clipboard.clone().unwrap_or_default(),
         };
         let text = template_text(&template);
-        let filled = match capture::fill(&text, &fill_context, asked, &self.read_date)? {
+        // `%[file]`: relative to the directory of the file captured from.
+        let directory = from.and_then(uri::to_path).and_then(|path| path.parent().map(Path::to_path_buf));
+        let insert_file = |name: &str| capture_file_text(name, directory.as_deref());
+        // `%(sexp)`: evaluated by Emacs once a capture, as the template's
+        // questions come one at a time.
+        if answers.is_empty() {
+            self.capture_lisp.clear();
+        }
+        let mut evaluated = std::mem::take(&mut self.capture_lisp);
+        let emacs = &self.emacs;
+        let mut eval = |sexp: &str| -> std::result::Result<Option<String>, String> {
+            if let Some(value) = evaluated.get(sexp) {
+                return Ok(value.clone());
+            }
+            let params = json!({ "sexp": sexp, "directory": directory.as_ref().map(|path| path.to_string_lossy()) });
+            let result = emacs.call("eval", params, std::time::Duration::from_secs(30))?;
+            let value = result.as_str().map(str::to_string);
+            evaluated.insert(sexp.to_string(), value.clone());
+            Ok(value)
+        };
+        let outside = capture::Outside { insert_file: &insert_file, eval: &mut eval };
+        let filled = capture::fill_with(&text, &fill_context, asked, &self.read_date, Some(outside));
+        self.capture_lisp = evaluated;
+        let filled = match filled? {
             capture::Filled::Text(filled) => filled,
             capture::Filled::Ask(question) => {
                 let context = json!({ "keys": keys, "answers": answers });
@@ -5294,6 +5342,14 @@ impl Server {
                             "kind": "text", "prompt": prompt, "value": "", "completions": tags, "context": context,
                         } })
                     }
+                    // `%^C`, `%^L`: the initial content or the clipboard.
+                    capture::Question::Clipboard { default, choices, .. } => json!({ "input": {
+                        "kind": "text",
+                        "prompt": "Clipboard/kill value",
+                        "value": default,
+                        "completions": choices,
+                        "context": context,
+                    } }),
                     capture::Question::Property { name, default } => {
                         let prompt = if default.is_empty() {
                             format!("{name} value")

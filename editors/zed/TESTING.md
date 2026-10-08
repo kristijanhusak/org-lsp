@@ -137,6 +137,9 @@ here and why.
 - [ ] The menu lists the templates by key: the code action *Capture*
 - [ ] A date tree target files under year, month and day: the code action *Capture*
 - [ ] `%a` links back to where the capture started: the code action *Capture*
+- [ ] `%c` puts in what was copied last (in Neovim and Vim, the register the key was typed with): the code action *Capture*
+- [ ] `%[snippet.txt]` puts in the file's text, relative to the file captured from: the code action *Capture*
+- [ ] `%(upcase "abc")` puts in `ABC`, what Emacs makes of it (needs Emacs): the code action *Capture*
 - [ ] A template without prompts goes in at once: the code action *Capture*
 
 ## Refile and archive

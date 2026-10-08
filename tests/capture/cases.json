@@ -5118,5 +5118,310 @@
     "notes.org": "#+TITLE: Notes\n* Tasks :work:\n** TODO Old one :urgent:\n** Note  X\n"
    }
   }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Tasks\n",
+   "snippet.txt": "Snippet line\nsecond %U\n"
+  },
+  "from": "notes.org",
+  "typed": "x",
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* TODO %c%?"
+  },
+  "clipboard": "copied text",
+  "expected": {
+   "buffer": "** TODO copied text¦\n",
+   "files": {
+    "notes.org": "* Tasks\n** TODO copied textx\n",
+    "snippet.txt": "Snippet line\nsecond %U\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Tasks\n",
+   "snippet.txt": "Snippet line\nsecond %U\n"
+  },
+  "from": "notes.org",
+  "typed": "x",
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %^C %?"
+  },
+  "clipboard": "kill",
+  "answers": [
+   ""
+  ],
+  "expected": {
+   "buffer": "**  ¦\n",
+   "files": {
+    "notes.org": "* Tasks\n**  x\n",
+    "snippet.txt": "Snippet line\nsecond %U\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Tasks\n",
+   "snippet.txt": "Snippet line\nsecond %U\n"
+  },
+  "from": "notes.org",
+  "typed": "x",
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %^C %?"
+  },
+  "clipboard": "kill",
+  "answers": [
+   "typed value"
+  ],
+  "expected": {
+   "buffer": "** typed value ¦\n",
+   "files": {
+    "notes.org": "* Tasks\n** typed value x\n",
+    "snippet.txt": "Snippet line\nsecond %U\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Tasks\n",
+   "snippet.txt": "Snippet line\nsecond %U\n"
+  },
+  "from": "notes.org",
+  "typed": "x",
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %^L %?"
+  },
+  "clipboard": "https://orgmode.org",
+  "answers": [
+   "https://orgmode.org"
+  ],
+  "expected": {
+   "buffer": "** [[https://orgmode.org]] ¦\n",
+   "files": {
+    "notes.org": "* Tasks\n** [[https://orgmode.org]] x\n",
+    "snippet.txt": "Snippet line\nsecond %U\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Tasks\n",
+   "snippet.txt": "Snippet line\nsecond %U\n"
+  },
+  "from": "notes.org",
+  "typed": "x",
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %?\n%[snippet.txt]"
+  },
+  "expected": {
+   "buffer": "** ¦\nSnippet line\nsecond [2026-05-18 Mon 10:30]\n",
+   "files": {
+    "notes.org": "* Tasks\n** x\nSnippet line\nsecond [2026-05-18 Mon 10:30]\n",
+    "snippet.txt": "Snippet line\nsecond %U\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Tasks\n",
+   "snippet.txt": "Snippet line\nsecond %U\n"
+  },
+  "from": "notes.org",
+  "typed": "x",
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %?\n\\%[snippet.txt]"
+  },
+  "expected": {
+   "buffer": "** ¦\n%[snippet.txt]\n",
+   "files": {
+    "notes.org": "* Tasks\n** x\n%[snippet.txt]\n",
+    "snippet.txt": "Snippet line\nsecond %U\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Tasks\n",
+   "snippet.txt": "Snippet line\nsecond %U\n"
+  },
+  "from": "notes.org",
+  "typed": "x",
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %(upcase \"abc\") %?"
+  },
+  "expected": {
+   "buffer": "** ABC ¦\n",
+   "files": {
+    "notes.org": "* Tasks\n** ABC x\n",
+    "snippet.txt": "Snippet line\nsecond %U\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Tasks\n",
+   "snippet.txt": "Snippet line\nsecond %U\n"
+  },
+  "from": "notes.org",
+  "typed": "x",
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %(concat \"%f\" \"!\") %?"
+  },
+  "expected": {
+   "buffer": "** notes.org! ¦\n",
+   "files": {
+    "notes.org": "* Tasks\n** notes.org! x\n",
+    "snippet.txt": "Snippet line\nsecond %U\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Tasks\n",
+   "snippet.txt": "Snippet line\nsecond %U\n"
+  },
+  "from": "notes.org",
+  "typed": "x",
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %(identity nil)%?"
+  },
+  "expected": {
+   "buffer": "** ¦\n",
+   "files": {
+    "notes.org": "* Tasks\n** x\n",
+    "snippet.txt": "Snippet line\nsecond %U\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Tasks\n",
+   "snippet.txt": "Snippet line\nsecond %U\n"
+  },
+  "from": "notes.org",
+  "typed": "x",
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* \\%(upcase \"x\") %?"
+  },
+  "expected": {
+   "buffer": "** %(upcase \"x\") ¦\n",
+   "files": {
+    "notes.org": "* Tasks\n** %(upcase \"x\") x\n",
+    "snippet.txt": "Snippet line\nsecond %U\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Tasks\n",
+   "snippet.txt": "Snippet line\nsecond %U\n"
+  },
+  "from": "notes.org",
+  "typed": "x",
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %(format \"%s\" (+ 1 2)) %^{Name} %?"
+  },
+  "answers": [
+   "Bob"
+  ],
+  "expected": {
+   "buffer": "** 3 Bob ¦\n",
+   "files": {
+    "notes.org": "* Tasks\n** 3 Bob x\n",
+    "snippet.txt": "Snippet line\nsecond %U\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "* Tasks\n",
+   "snippet.txt": "Snippet line\nsecond %U\n"
+  },
+  "from": "notes.org",
+  "typed": "x",
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %(concat \"%c\" \"!\") %?"
+  },
+  "clipboard": "a \"quoted\" \\ kill",
+  "expected": {
+   "buffer": "** a \"quoted\" \\ kill! ¦\n",
+   "files": {
+    "notes.org": "* Tasks\n** a \"quoted\" \\ kill! x\n",
+    "snippet.txt": "Snippet line\nsecond %U\n"
+   }
+  }
  }
 ]

@@ -1013,6 +1013,7 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Global, "C-c c")],
         vim: &[key(Global, "<Leader>oc")],
         input: Some(Input { kind: "key", prompt: "Select a capture template" }),
+        clipboard: true,
         ..command(CAPTURE, "Capture")
     },
     Command {
