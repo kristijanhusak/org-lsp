@@ -13,6 +13,7 @@ here and why.
 - [ ] Installed with one client (yegappan/lsp, vim-lsp, coc.nvim or ALE): the server starts on an Org file. Go through the list once with each client you use
 - [ ] `g?` in an Org file and in the agenda lists the keys; `<Leader>oa` works in any buffer
 - [ ] Options from `~/.config/org-lsp/config.toml` apply, and `g:org_lsp`'s `settings` go on top
+- [ ] Inlay hints are on in the client (yegappan/lsp's `showInlayHints`, vim-lsp's `g:lsp_inlay_hints_enabled`; coc.nvim shows them as it is, ALE has none): the time clocked and the `…` of shrunk columns come as inlay hints
 
 ## Highlighting
 
@@ -216,7 +217,7 @@ here and why.
 
 **Partly:** A shrunk column shows its whole text and `…`: Vim cannot hide text that has text properties.
 
-- [ ] `C-c TAB` in a column with a `<5>` cookie shows five characters of each field and `…`; again, the whole column; a file with `#+STARTUP: shrink` opens so: `<Leader>o<Tab>`
+- [ ] Shrinking a column with a `<5>` cookie puts `…` after each of its fields, their text left whole; again, the `…` go; a file with `#+STARTUP: shrink` opens with them: `<Leader>o<Tab>`
 - [ ] Formatting the file aligns the tables: the client's format command
 - [ ] Moving to the next and previous field; past the last field a row is made: `:Org table next field`, `:Org table previous field`
 - [ ] Moving a column left and right, a row up and down: `<<`, `>>`, `<Leader>oK`, `<Leader>oJ`

@@ -107,7 +107,7 @@ here and why.
 
 ## Agenda
 
-**Partly:** The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension).
+**Partly:** The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension). Column view in the agenda is left out: it draws over the lines.
 
 - [ ] The agenda menu lists the views and the custom commands: the code action *Agenda commands*
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: the code action *Agenda for the current week or day*
@@ -183,6 +183,7 @@ here and why.
 
 **Partly:** Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and `…`: Zed lets no server hide text.
 
+- [ ] Shrinking a column with a `<5>` cookie puts `…` after each of its fields, their text left whole; again, the `…` go; a file with `#+STARTUP: shrink` opens with them: the code action *Shrink or expand the table column*
 - [ ] Formatting the file aligns the tables: editor: format
 - [ ] Moving a column left and right, a row up and down: the code action *Promote the heading; outdent the item; move the table column left*, the code action *Demote the heading; indent the item, the drawer or the block; move the table column right*, the code action *Move the subtree, the item or the table row up*, the code action *Move the subtree, the item or the table row down*
 - [ ] Inserting and deleting a column and a row: the code action *Demote the subtree; indent the item with its children; insert a table column*, the code action *Promote the subtree; outdent the item with its children; delete the table column*, the code action *Insert a table row above*, the code action *Delete the table row*

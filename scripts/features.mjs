@@ -37,6 +37,7 @@ export const EDITORS = [
       'Installed with one client (yegappan/lsp, vim-lsp, coc.nvim or ALE): the server starts on an Org file. Go through the list once with each client you use',
       '`g?` in an Org file and in the agenda lists the keys; `<Leader>oa` works in any buffer',
       'Options from `~/.config/org-lsp/config.toml` apply, and `g:org_lsp`\'s `settings` go on top',
+      'Inlay hints are on in the client (yegappan/lsp\'s `showInlayHints`, vim-lsp\'s `g:lsp_inlay_hints_enabled`; coc.nvim shows them as it is, ALE has none): the time clocked and the `…` of shrunk columns come as inlay hints',
     ],
   },
   {
@@ -57,6 +58,7 @@ export const EDITORS = [
     setup: [
       'Installed with `scripts/install-sublime.sh`: LSP comes with it, and the server is found or downloaded',
       'LSP\'s `semantic_highlighting` is on',
+      'LSP\'s `show_inlay_hints` is on: the time clocked and the `…` of shrunk columns come as inlay hints',
       'The `Org:` commands are in the Command Palette; *Org: Download the latest server* replaces the downloaded server',
     ],
   },
@@ -387,7 +389,7 @@ export const AREAS = [
       vim: ['part', 'Column view in the agenda is left out: it draws over the lines, which Vim cannot.'],
       sublime: ['part', 'Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.'],
       vscode: ['part', 'Tags are at column 80, not at the window\'s edge (`org_agenda_tags_column` `"auto"`): VS Code does not tell an extension how many columns an editor shows.'],
-      zed: ['part', `The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (${ZED_TEXT}), and follow mode (Zed reports no cursor moves to an extension).`],
+      zed: ['part', `The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (${ZED_TEXT}), and follow mode (Zed reports no cursor moves to an extension). Column view in the agenda is left out: it draws over the lines.`],
       helix: ['no', 'Helix cannot open a document on a server\'s request. `org-lsp agenda FILE...` prints the agenda in a terminal.'],
     },
     checks: [
@@ -592,7 +594,8 @@ export const AREAS = [
       helix: ['part', `Moving between fields with \`TAB\`, copying down, summing, field information and creating a table are left out: ${NO_KEY_HELIX}, and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and \`…\`: Helix lets no server hide text.`],
     },
     checks: [
-      { text: '`C-c TAB` in a column with a `<5>` cookie shows five characters of each field and `…`; again, the whole column; a file with `#+STARTUP: shrink` opens so', cmd: 'org.table.toggle.column.width', not: ['zed', 'helix'] },
+      { text: '`C-c TAB` in a column with a `<5>` cookie shows five characters of each field and `…`; again, the whole column; a file with `#+STARTUP: shrink` opens so', cmd: 'org.table.toggle.column.width', only: ['neovim', 'vscode'] },
+      { text: 'Shrinking a column with a `<5>` cookie puts `…` after each of its fields, their text left whole; again, the `…` go; a file with `#+STARTUP: shrink` opens with them', cmd: 'org.table.toggle.column.width', only: ['vim', 'sublime', 'zed', 'helix'] },
       { text: 'Formatting the file aligns the tables', keys: { neovim: '`vim.lsp.buf.format()`', vim: 'the client\'s format command', vscode: 'Format Document', sublime: '*LSP: Format File*', zed: 'editor: format', helix: '`:format`' } },
       { text: 'Moving to the next and previous field; past the last field a row is made', cmd: ['org.table.next.field', 'org.table.previous.field'], not: ['zed', 'helix'] },
       { text: 'Moving a column left and right, a row up and down', cmd: ['org.meta.left', 'org.meta.right', 'org.meta.up', 'org.meta.down'] },
