@@ -1773,7 +1773,7 @@ fn tells_the_editor_how_the_timer_shows() {
             .response_result
             .expect("a result");
         let Message::Notification(note) = next_from_server(
-            &mut client,
+            &client,
             |message| matches!(message, Message::Notification(note) if note.method == "org-lsp/timer"),
         ) else {
             unreachable!()
