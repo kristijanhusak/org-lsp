@@ -585,6 +585,10 @@ require('org-lsp').setup({
     -- Shift+Enter, with the vim keys) always does it.
     return_uses_meta_return = false,
 
+    -- The deepest headings `org.goto` (`C-c C-j`) offers.
+    -- (org-goto-max-level)
+    org_goto_max_level = 5,
+
     -- How many months the calendar of the date prompt shows: 3 side by side,
     -- as Emacs's calendar shows them, the one with the selected day in the
     -- middle; or 1, that month alone, for a narrow window.

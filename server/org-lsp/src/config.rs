@@ -275,6 +275,9 @@ pub struct Options {
     pub auto_save: Option<bool>,
     /// RET on the first line of a list item makes the next item, as M-RET.
     pub return_uses_meta_return: Option<bool>,
+    /// `org-goto-max-level`
+    #[serde(rename = "org_goto_max_level")]
+    pub goto_max_level: Option<usize>,
     /// How many months the date prompt's calendar shows: 3, or 1.
     pub calendar_months: Option<usize>,
     /// The Emacs program for what only Org itself does (export).

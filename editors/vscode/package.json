@@ -551,6 +551,46 @@
         "category": "Org"
       },
       {
+        "command": "org.heading.next",
+        "title": "Move to the next heading",
+        "category": "Org"
+      },
+      {
+        "command": "org.heading.previous",
+        "title": "Move to the previous heading",
+        "category": "Org"
+      },
+      {
+        "command": "org.heading.forward",
+        "title": "Move to the next heading of the same level",
+        "category": "Org"
+      },
+      {
+        "command": "org.heading.backward",
+        "title": "Move to the previous heading of the same level",
+        "category": "Org"
+      },
+      {
+        "command": "org.heading.up",
+        "title": "Move to the parent heading",
+        "category": "Org"
+      },
+      {
+        "command": "org.link.next",
+        "title": "Move to the next link",
+        "category": "Org"
+      },
+      {
+        "command": "org.link.previous",
+        "title": "Move to the previous link",
+        "category": "Org"
+      },
+      {
+        "command": "org.goto",
+        "title": "Go to a heading of the file",
+        "category": "Org"
+      },
+      {
         "command": "org.export.dispatch",
         "title": "Export the file through Emacs",
         "category": "Org"
@@ -1590,6 +1630,11 @@
               "type": "boolean",
               "markdownDescription": "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
               "default": false
+            },
+            "org_goto_max_level": {
+              "type": "integer",
+              "markdownDescription": "The deepest headings `org.goto` (`C-c C-j`) offers. (`org-goto-max-level`)",
+              "default": 5
             },
             "calendar_months": {
               "enum": [
@@ -3577,6 +3622,46 @@
       {
         "command": "org.babel.remove_result",
         "key": "ctrl+c ctrl+v k",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.heading.next",
+        "key": "ctrl+c ctrl+n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.heading.previous",
+        "key": "ctrl+c ctrl+p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.heading.forward",
+        "key": "ctrl+c ctrl+f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.heading.backward",
+        "key": "ctrl+c ctrl+b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.heading.up",
+        "key": "ctrl+c ctrl+u",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.link.next",
+        "key": "ctrl+c ctrl+x ctrl+n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.link.previous",
+        "key": "ctrl+c ctrl+x ctrl+p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.goto",
+        "key": "ctrl+c ctrl+j",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

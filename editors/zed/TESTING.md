@@ -36,6 +36,8 @@ here and why.
 
 ## Headings and structure
 
+**Partly:** Moving between headings and `org-goto` are left out: Zed cannot bind a key to a server's command (the commands are code actions), and a motion needs a key.
+
 - [ ] On a headline, a new heading of the same level goes below: the code action *New heading, item or table row*
 - [ ] A new TODO heading: the code action *New TODO heading, or item with a checkbox*
 - [ ] A new heading after the subtree, and a TODO one: the code action *New heading after the subtree*, the code action *New TODO heading after the subtree*
@@ -148,7 +150,7 @@ here and why.
 
 ## Links
 
-**Partly:** Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf. Following works through go to definition, for links inside Org files and to files.
+**Partly:** Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition, for links inside Org files and to files.
 
 - [ ] Following a link to a headline, a custom ID and a `<<target>>`: the code action *Open the link or thing at the cursor*
 - [ ] Following a `file:` link with a search (`file:notes.org::*Heading`) and an `id:` link: the code action *Open the link or thing at the cursor*

@@ -693,6 +693,62 @@
     }
   },
   {
+    "caption": "Org: Move to the next heading",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.heading.next"
+    }
+  },
+  {
+    "caption": "Org: Move to the previous heading",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.heading.previous"
+    }
+  },
+  {
+    "caption": "Org: Move to the next heading of the same level",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.heading.forward"
+    }
+  },
+  {
+    "caption": "Org: Move to the previous heading of the same level",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.heading.backward"
+    }
+  },
+  {
+    "caption": "Org: Move to the parent heading",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.heading.up"
+    }
+  },
+  {
+    "caption": "Org: Move to the next link",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.link.next"
+    }
+  },
+  {
+    "caption": "Org: Move to the previous link",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.link.previous"
+    }
+  },
+  {
+    "caption": "Org: Go to a heading of the file",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.goto"
+    }
+  },
+  {
     "caption": "Org: Export the file through Emacs",
     "command": "org_lsp_run",
     "args": {

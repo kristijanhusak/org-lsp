@@ -688,6 +688,7 @@ Emacs in `tests/tblfm/cases.json`.
   | Promote, demote, move subtrees (`M-<left>`, `M-S-<right>`, `M-<up>`, …) | `tests/structure/cases.json` | `scripts/update-structure-fixtures.py` | `scripts/fuzz-structure.py` |
   | Cut, copy, paste subtrees (`org-cut-subtree`, `org-copy-subtree`, `org-paste-subtree`, with the kill ring) | `tests/subtree/cases.json` | `scripts/update-subtree-fixtures.py` | `scripts/fuzz-subtree.py` |
   | Sorting entries (`org-sort-entries`, every sorting type, in the C locale at a fixed time) | `tests/sort/cases.json` | `scripts/update-sort-fixtures.py` | `scripts/fuzz-sort.py` |
+  | Moving between headings and links (`C-c C-n`, `C-c C-p`, `C-c C-f`, `C-c C-b`, `C-c C-u`, `C-c C-x C-n`, `C-c C-x C-p`) | `tests/motion/cases.json` | `scripts/motion_reference.py` | `scripts/fuzz-motion.py` |
   | Sparse trees (`org-occur`, `org-show-todo-tree`, `org-match-sparse-tree`, `org-check-deadlines` and the date checks): the matches | `tests/sparse/cases.json` | `scripts/update-sparse-fixtures.py` | |
   | List items: the meta and shifted keys, `C-c C-c` and `C-c ^` on an item | `tests/lists/cases.json` | `scripts/update-lists-fixtures.py` | `scripts/fuzz-lists.py` |
   | Setting tags (`org-set-tags-command`: fast tag selection by key, the completion prompt's answer) | `tests/tags/cases.json` | `scripts/update-tags-fixtures.py` | `scripts/fuzz-tags.py` |

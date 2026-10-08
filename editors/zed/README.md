@@ -125,7 +125,7 @@ those dates in the file itself, where completion helps.
 | --- | --- | --- | --- |
 | [Highlighting](../../docs/parity.md#highlighting) | 83% | ❓ | Links and emphasis markers are not concealed: Zed lets no server hide text. The colors need `"semantic_tokens": "combined"`; code blocks take their language's colors, inline code does not. |
 | [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 67% | ❓ | Zed folds with its own folding: Org's cycling and sparse trees need folds an extension can set, which Zed does not offer. |
-| [Headings and structure](../../docs/parity.md#headings-and-structure) | 55% | ✅ |  |
+| [Headings and structure](../../docs/parity.md#headings-and-structure) | 73% | ❓ | Moving between headings and `org-goto` are left out: Zed cannot bind a key to a server's command (the commands are code actions), and a motion needs a key. |
 | [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 73% | ❓ | `RET` stays Zed's own and bullets are not cycled: Zed cannot bind a key to a server's command (the commands are code actions), and those two are not among them. |
 | [TODO keywords](../../docs/parity.md#todo-keywords) | 83% | ❓ | A note for a state change (`@`) cannot be typed: Zed cannot ask for text on a server's behalf. States are picked with buttons. |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
@@ -136,7 +136,7 @@ those dates in the file itself, where completion helps.
 | [Clocking](../../docs/parity.md#clocking) | 88% | ❓ | No clock in the status line: Zed has no place there for an extension's text. |
 | [Capture](../../docs/parity.md#capture) | 50% | ❓ | Templates with prompts are left out, and there is no capture buffer to type in: Zed cannot ask for text on a server's behalf. |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 55% | ✅ |  |
-| [Links](../../docs/parity.md#links) | 56% | ❓ | Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf. Following works through go to definition, for links inside Org files and to files. |
+| [Links](../../docs/parity.md#links) | 67% | ❓ | Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition, for links inside Org files and to files. |
 | [Footnotes](../../docs/parity.md#footnotes) | 50% | ✅ |  |
 | [Tables](../../docs/parity.md#tables) | 44% | ❓ | Moving between fields with `TAB` is left out: Zed cannot bind a key to a server's command (the commands are code actions), and it needs one. The other edits are code actions in a table. |
 | [Table formulas](../../docs/parity.md#table-formulas) | 50% | ✅ |  |
@@ -151,7 +151,7 @@ those dates in the file itself, where completion helps.
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **60%** |  |  |
+| **All of Org** | **61%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

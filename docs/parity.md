@@ -7,13 +7,13 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 60%**
+**All of Org: 61%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
 | [Highlighting](#highlighting) | 83% | 10 of 12 |
 | [Folding and visibility](#folding-and-visibility) | 67% | 6 of 9 |
-| [Headings and structure](#headings-and-structure) | 55% | 6 of 11 |
+| [Headings and structure](#headings-and-structure) | 73% | 8 of 11 |
 | [Lists and checkboxes](#lists-and-checkboxes) | 73% | 8 of 11 |
 | [TODO keywords](#todo-keywords) | 83% | 5 of 6 |
 | [Priorities](#priorities) | 100% | 3 of 3 |
@@ -24,7 +24,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Clocking](#clocking) | 88% | 7 of 8 |
 | [Capture](#capture) | 50% | 5 of 10 |
 | [Refile and archive](#refile-and-archive) | 55% | 6 of 11 |
-| [Links](#links) | 56% | 5 of 9 |
+| [Links](#links) | 67% | 6 of 9 |
 | [Footnotes](#footnotes) | 50% | 2 of 4 |
 | [Tables](#tables) | 44% | 7 of 16 |
 | [Table formulas](#table-formulas) | 50% | 6 of 12 |
@@ -85,7 +85,7 @@ Where editors fall short:
 
 ## Headings and structure
 
-55% (6 of 11)
+73% (8 of 11)
 
 - ✅ New headings (`M-RET`, `M-S-RET`, `C-RET`, `C-S-RET`)
 - ✅ Promoting and demoting a heading or a subtree
@@ -93,15 +93,16 @@ Where editors fall short:
 - ✅ Cutting, copying and pasting subtrees, their level fitted
 - ✅ Sorting entries (`C-c ^`)
 - ✅ The outline of the file (document symbols)
-- ❌ Moving between headings (`C-c C-n`, `C-c C-p`, `C-c C-f`, `C-c C-b`, `C-c C-u`)
-- ❌ Jumping to a heading (`org-goto`, `C-c C-j`)
+- ✅ Moving between headings (`C-c C-n`, `C-c C-p`, `C-c C-f`, `C-c C-b`, `C-c C-u`)
+- ✅ Jumping to a heading (`org-goto`, `C-c C-j`, by outline path)
 - ❌ Turning lines into headings and back (`C-c *`)
 - ❌ Toggling `COMMENT` (`C-c ;`)
 - ❌ Cloning a subtree with its dates shifted (`C-c C-x c`)
 
 Where editors fall short:
 
-- Helix ❓: New headings (`M-RET` and its relatives) are left out: they carry the cursor for the editor to move after the edit, which Helix's code actions cannot do.
+- Zed ❓: Moving between headings and `org-goto` are left out: Zed cannot bind a key to a server's command (the commands are code actions), and a motion needs a key.
+- Helix ❓: New headings (`M-RET` and its relatives), moving between headings and `org-goto` are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do.
 
 ## Lists and checkboxes
 
@@ -289,7 +290,7 @@ Where editors fall short:
 
 ## Links
 
-56% (5 of 9)
+67% (6 of 9)
 
 - ✅ Following links: headlines, targets, custom IDs, files with searches, IDs, URLs, timestamps, tags
 - ✅ Storing and inserting links, with descriptions, editing the link at the cursor
@@ -299,12 +300,12 @@ Where editors fall short:
 - ❌ Link abbreviations (`#+LINK:`, `org-link-abbrev-alist`)
 - ❌ A region as the search of a stored link
 - ❌ Completing `id:` and `help:` links
-- ❌ Moving to the next and previous link (`C-c C-x C-n`, `C-c C-x C-p`)
+- ✅ Moving to the next and previous link (`C-c C-x C-n`, `C-c C-x C-p`)
 
 Where editors fall short:
 
-- Zed ❓: Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf. Following works through go to definition, for links inside Org files and to files.
-- Helix ❓: Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf. Following works through go to definition.
+- Zed ❓: Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition, for links inside Org files and to files.
+- Helix ❓: Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition.
 
 ## Footnotes
 

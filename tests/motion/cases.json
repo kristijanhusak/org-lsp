@@ -1,0 +1,4889 @@
+[
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 6,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "org-next-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 23,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 23,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "org-next-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 44,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 44,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "org-next-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 65,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 65,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "org-next-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 70,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 76,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "org-next-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 97,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 97,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "org-next-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 97,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 6,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 6,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 23,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 6,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 65,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 44,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 76,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 70,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 6,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 6,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 44,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 76,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 23,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 23,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 76,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 76,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 70,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 70,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 76,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 76,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "org-backward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 6,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "org-backward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 6,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 23,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "org-backward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 23,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 6,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "org-backward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 6,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 70,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "org-backward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 70,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 44,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "org-backward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 6,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "outline-up-heading",
+  "count": 2,
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "outline-up-heading",
+  "count": 2,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 6,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "outline-up-heading",
+  "count": 2,
+  "expected": {
+   "point": 6,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "outline-up-heading",
+  "count": 2,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 65,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "outline-up-heading",
+  "count": 2,
+  "expected": {
+   "point": 44,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "outline-up-heading",
+  "count": 2,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "org-next-link",
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "org-next-link",
+  "count": 2,
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "org-next-link",
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "org-next-link",
+  "count": 2,
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "org-next-link",
+  "expected": {
+   "point": 85,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "org-next-link",
+  "count": 2,
+  "expected": {
+   "point": 85,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "org-next-link",
+  "expected": {
+   "point": 85,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "org-next-link",
+  "count": 2,
+  "expected": {
+   "point": 85,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "org-next-link",
+  "expected": {
+   "point": 85,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "org-next-link",
+  "count": 2,
+  "expected": {
+   "point": 85,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "org-next-link",
+  "expected": {
+   "point": 97,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "org-next-link",
+  "count": 2,
+  "expected": {
+   "point": 97,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 0,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 0,
+  "command": "org-previous-link",
+  "count": 2,
+  "expected": {
+   "point": 0,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 10,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 10,
+  "command": "org-previous-link",
+  "count": 2,
+  "expected": {
+   "point": 10,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 23,
+  "command": "org-previous-link",
+  "count": 2,
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 44,
+  "command": "org-previous-link",
+  "count": 2,
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 72,
+  "command": "org-previous-link",
+  "count": 2,
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 85,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 97,
+  "command": "org-previous-link",
+  "count": 2,
+  "expected": {
+   "point": 85,
+   "message": null
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 80,
+  "command": "org-next-link",
+  "times": 2,
+  "expected": {
+   "point": 85,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 80,
+  "command": "org-previous-link",
+  "times": 2,
+  "expected": {
+   "point": 15,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 80,
+  "command": "org-next-link",
+  "times": 3,
+  "expected": {
+   "point": 15,
+   "message": "Link search wrapped back to beginning of buffer"
+  }
+ },
+ {
+  "text": "Intro\n* A\ntext [[x]] y\n** B\n#+begin_src org\n* in block\n#+end_src\n** C\n*** D\n* E\nlast https://a.b\n",
+  "point": 80,
+  "command": "org-previous-link",
+  "times": 3,
+  "expected": {
+   "point": 85,
+   "message": "Link search wrapped back to end of buffer"
+  }
+ },
+ {
+  "text": "Ünïcode [[a]] ü\n* Ä\n** Ö\n",
+  "point": 3,
+  "command": "org-next-link",
+  "expected": {
+   "point": 10,
+   "message": null
+  }
+ },
+ {
+  "text": "Ünïcode [[a]] ü\n* Ä\n** Ö\n",
+  "point": 25,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 19,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "** first\n* top\n",
+  "point": 3,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "** DONE Done\n*not heading\n** Sub\n*** Deep\n[[file:a.org]]\n* TODO Task :tag:\n",
+  "point": 46,
+  "command": "outline-up-heading",
+  "count": 3,
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n\n*** Deep\n[[file:a.org]]\n * indented star\n** Sub\n#+TITLE: Doc\n",
+  "point": 15,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\n",
+  "point": 9,
+  "command": "org-backward-heading-same-level",
+  "count": 3,
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": " * indented star\n** DONE Done\n[[file:a.org]]\n* TODO Task :tag:\n#+TITLE: Doc\n",
+  "point": 39,
+  "command": "outline-up-heading",
+  "times": 2,
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n[[file:a.org]]\n*** Deep\n#+TITLE: Doc\n** Sub\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 26,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n#+TITLE: Doc\nA [[https://orgmode.org][link]] and [[*Heading]].\n*bold* text\n#+begin_src org\n* not a heading?\n#+end_src\n\n",
+  "point": 46,
+  "command": "org-next-link",
+  "times": 3,
+  "expected": {
+   "point": 99,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n#+begin_example\n** inside\n#+end_example\nA [[https://orgmode.org][link]] and [[*Heading]].\n#+begin_src org\n* not a heading?\n#+end_src\n:PROPERTIES:\n:ID: x\n:END:\n*** Deep\n* TODO Task :tag:\n=[[verbatim]]= text\n * indented star\n",
+  "point": 84,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 32,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\n*** Deep\n[[file:a.org]]\n#+TITLE: Doc\n#+begin_example\n** inside\n#+end_example\n#+begin_example\n** inside\n#+end_example\n*bold* text\n",
+  "point": 127,
+  "command": "outline-up-heading",
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n*** Deep\n** Sub\n#+begin_src org\n* not a heading?\n#+end_src\n#+TITLE: Doc\n",
+  "point": 87,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 32,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\nA [[https://orgmode.org][link]] and [[*Heading]].\n*bold* text\n**** Four\n:PROPERTIES:\n:ID: x\n:END:\n* TODO Task :tag:\n",
+  "point": 63,
+  "command": "org-next-visible-heading",
+  "count": -1,
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\nPlain https://example.com/x and <mailto:a@b.c>.\n*** Deep\n**** Four\nA [[https://orgmode.org][link]] and [[*Heading]].\n*not heading\n[[file:a.org]]\n",
+  "point": 71,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 61,
+   "message": null
+  }
+ },
+ {
+  "text": " * indented star\n*bold* text\n*not heading\n\n** DONE Done\n",
+  "point": 5,
+  "command": "org-previous-visible-heading",
+  "count": 3,
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n* Heading\n** DONE Done\n * indented star\n[[file:a.org]]\n",
+  "point": 47,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n** Sub\nA [[https://orgmode.org][link]] and [[*Heading]].\n[[file:a.org]]\n*not heading\n*not heading\n*not heading\n*not heading\n* TODO Task :tag:\n",
+  "point": 123,
+  "command": "org-next-link",
+  "times": 2,
+  "expected": {
+   "point": 35,
+   "message": "Link search wrapped back to beginning of buffer"
+  }
+ },
+ {
+  "text": "**** Four\n* TODO Task :tag:\n#+begin_example\n** inside\n#+end_example\n:PROPERTIES:\n:ID: x\n:END:\n** Sub\n* TODO Task :tag:\n* Heading\n#+TITLE: Doc\n",
+  "point": 38,
+  "command": "outline-up-heading",
+  "count": -1,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "Text line.\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 24,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n* TODO Task :tag:\n* TODO Task :tag:\nPlain https://example.com/x and <mailto:a@b.c>.\nA [[https://orgmode.org][link]] and [[*Heading]].\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 123,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 66,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n**** Four\n=[[verbatim]]= text\n* Heading\nText line.\n",
+  "point": 67,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 48,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n- item\n- item two\n=[[verbatim]]= text\n*bold* text\n**** Four\n",
+  "point": 45,
+  "command": "org-previous-link",
+  "count": -1,
+  "expected": {
+   "point": 45,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "\n*not heading\n\nText line.\n",
+  "point": 16,
+  "command": "org-backward-heading-same-level",
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n- item\n- item two\nText line.\n:PROPERTIES:\n:ID: x\n:END:\n*bold* text\n",
+  "point": 57,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 32,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n\n* TODO Task :tag:\n\nPlain https://example.com/x and <mailto:a@b.c>.\nText line.\n",
+  "point": 43,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 10,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 41,
+  "command": "org-forward-heading-same-level",
+  "times": 2,
+  "expected": {
+   "point": 48,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\nPlain https://example.com/x and <mailto:a@b.c>.\n**** Four\n * indented star\n#+begin_example\n** inside\n#+end_example\n*** Deep\n*not heading\n",
+  "point": 118,
+  "command": "org-backward-heading-same-level",
+  "times": 2,
+  "expected": {
+   "point": 102,
+   "message": null
+  }
+ },
+ {
+  "text": "** DONE Done\n* Heading\n** DONE Done\n",
+  "point": 29,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 29,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "*bold* text\n** DONE Done\n[[file:a.org]]\n[[file:a.org]]\n** DONE Done\n* Heading\n* Heading\n* TODO Task :tag:\n",
+  "point": 67,
+  "command": "org-next-link",
+  "expected": {
+   "point": 67,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Text line.\n* Heading\n- item\n- item two\nText line.\n",
+  "point": 18,
+  "command": "outline-up-heading",
+  "count": -1,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "** DONE Done\n** Sub\n*bold* text\nA [[https://orgmode.org][link]] and [[*Heading]].\n#+TITLE: Doc\n=[[verbatim]]= text\n * indented star\n",
+  "point": 128,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 13,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 49,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n** DONE Done\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 15,
+  "command": "outline-up-heading",
+  "count": -2,
+  "expected": {
+   "point": 10,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n** Sub\n",
+  "point": 7,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\n*** Deep\nA [[https://orgmode.org][link]] and [[*Heading]].\n#+begin_example\n** inside\n#+end_example\n:PROPERTIES:\n:ID: x\n:END:\n=[[verbatim]]= text\n:PROPERTIES:\n:ID: x\n:END:\n=[[verbatim]]= text\nText line.\n",
+  "point": 177,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 85,
+   "message": null
+  }
+ },
+ {
+  "text": "=[[verbatim]]= text\n\n=[[verbatim]]= text\n- item\n- item two\n[[file:a.org]]\nText line.\nA [[https://orgmode.org][link]] and [[*Heading]].\n** DONE Done\n",
+  "point": 106,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 135,
+   "message": null
+  }
+ },
+ {
+  "text": " * indented star\n*** Deep\nText line.\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 15,
+  "command": "org-previous-link",
+  "count": -1,
+  "times": 2,
+  "expected": {
+   "point": 15,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "\n* TODO Task :tag:\n*not heading\nPlain https://example.com/x and <mailto:a@b.c>.\n**** Four\n\n**** Four\n * indented star\n",
+  "point": 65,
+  "command": "org-backward-heading-same-level",
+  "times": 3,
+  "expected": {
+   "point": 1,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n* Heading\n",
+  "point": 10,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n=[[verbatim]]= text\n:PROPERTIES:\n:ID: x\n:END:\n#+begin_src org\n* not a heading?\n#+end_src\n=[[verbatim]]= text\n*** Deep\n* TODO Task :tag:\n",
+  "point": 58,
+  "command": "org-next-visible-heading",
+  "count": -1,
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "** DONE Done\n * indented star\n- item\n- item two\n*not heading\n** DONE Done\n",
+  "point": 68,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "- item\n- item two\n** Sub\n",
+  "point": 25,
+  "command": "org-next-link",
+  "count": 2,
+  "expected": {
+   "point": 25,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "*** Deep\n",
+  "point": 4,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 9,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\nA [[https://orgmode.org][link]] and [[*Heading]].\n* Heading\n#+begin_example\n** inside\n#+end_example\n[[file:a.org]]\n",
+  "point": 106,
+  "command": "org-forward-heading-same-level",
+  "times": 2,
+  "expected": {
+   "point": 94,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n- item\n- item two\n",
+  "point": 1,
+  "command": "org-previous-visible-heading",
+  "count": -1,
+  "expected": {
+   "point": 28,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n#+begin_src org\n* not a heading?\n#+end_src\nA [[https://orgmode.org][link]] and [[*Heading]].\n=[[verbatim]]= text\n**** Four\n- item\n- item two\n*bold* text\n* Heading\n- item\n- item two\n",
+  "point": 9,
+  "command": "org-next-visible-heading",
+  "count": 3,
+  "expected": {
+   "point": 164,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n* TODO Task :tag:\n * indented star\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 100,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\nText line.\n** DONE Done\n*not heading\n",
+  "point": 44,
+  "command": "org-next-visible-heading",
+  "times": 3,
+  "expected": {
+   "point": 77,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n** Sub\n*** Deep\n*not heading\n=[[verbatim]]= text\n#+begin_src org\n* not a heading?\n#+end_src\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 62,
+  "command": "org-next-link",
+  "count": -2,
+  "times": 3,
+  "expected": {
+   "point": 62,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "* Heading\n- item\n- item two\n*bold* text\n#+begin_example\n** inside\n#+end_example\n[[file:a.org]]\n#+begin_example\n** inside\n#+end_example\n\n** Sub\n",
+  "point": 79,
+  "command": "org-previous-visible-heading",
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n- item\n- item two\n",
+  "point": 64,
+  "command": "org-next-link",
+  "count": 2,
+  "times": 2,
+  "expected": {
+   "point": 6,
+   "message": "Link search wrapped back to beginning of buffer"
+  }
+ },
+ {
+  "text": "*not heading\n#+TITLE: Doc\n** Sub\n",
+  "point": 25,
+  "command": "org-next-visible-heading",
+  "count": 3,
+  "times": 2,
+  "expected": {
+   "point": 33,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\nPlain https://example.com/x and <mailto:a@b.c>.\n** DONE Done\n#+begin_src org\n* not a heading?\n#+end_src\n:PROPERTIES:\n:ID: x\n:END:\n** DONE Done\n** Sub\n",
+  "point": 183,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 117,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "** DONE Done\n=[[verbatim]]= text\n=[[verbatim]]= text\n#+TITLE: Doc\n* Heading\n#+TITLE: Doc\n\n*** Deep\n* Heading\n",
+  "point": 5,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n[[file:a.org]]\n** Sub\n* Heading\n[[file:a.org]]\n\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 67,
+  "command": "org-next-visible-heading",
+  "times": 2,
+  "expected": {
+   "point": 146,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\nPlain https://example.com/x and <mailto:a@b.c>.\n- item\n- item two\n*** Deep\n- item\n- item two\n\nText line.\n\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 126,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 41,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\n:PROPERTIES:\n:ID: x\n:END:\nText line.\n*** Deep\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 18,
+  "command": "org-forward-heading-same-level",
+  "count": -1,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\nPlain https://example.com/x and <mailto:a@b.c>.\n** Sub\n",
+  "point": 62,
+  "command": "org-forward-heading-same-level",
+  "times": 2,
+  "expected": {
+   "point": 58,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n=[[verbatim]]= text\n#+begin_src org\n* not a heading?\n#+end_src\nA [[https://orgmode.org][link]] and [[*Heading]].\nA [[https://orgmode.org][link]] and [[*Heading]].\nA [[https://orgmode.org][link]] and [[*Heading]].\n* TODO Task :tag:\n[[file:a.org]]\n",
+  "point": 102,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 256,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 29,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 43,
+   "message": null
+  }
+ },
+ {
+  "text": "- item\n- item two\n*not heading\nText line.\nText line.\n*** Deep\n#+TITLE: Doc\n*** Deep\n** DONE Done\n",
+  "point": 95,
+  "command": "outline-up-heading",
+  "count": -1,
+  "times": 3,
+  "expected": {
+   "point": 84,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n\n",
+  "point": 7,
+  "command": "org-backward-heading-same-level",
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n#+begin_src org\n* not a heading?\n#+end_src\n** DONE Done\n * indented star\n*bold* text\n*not heading\n#+begin_example\n** inside\n#+end_example\n* TODO Task :tag:\n",
+  "point": 84,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 127,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\nText line.\n* Heading\n#+begin_src org\n* not a heading?\n#+end_src\n- item\n- item two\n*bold* text\n*** Deep\n",
+  "point": 50,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": " * indented star\n- item\n- item two\n** Sub\n- item\n- item two\n* TODO Task :tag:\n** Sub\n",
+  "point": 84,
+  "command": "org-forward-heading-same-level",
+  "times": 3,
+  "expected": {
+   "point": 78,
+   "message": null
+  }
+ },
+ {
+  "text": "=[[verbatim]]= text\n#+begin_example\n** inside\n#+end_example\nText line.\n*bold* text\n * indented star\n* Heading\n*not heading\n",
+  "point": 116,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": " * indented star\n",
+  "point": 14,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n** Sub\n[[file:a.org]]\n** DONE Done\n**** Four\n",
+  "point": 60,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 48,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n\n#+begin_src org\n* not a heading?\n#+end_src\nPlain https://example.com/x and <mailto:a@b.c>.\n[[file:a.org]]\n",
+  "point": 85,
+  "command": "org-backward-heading-same-level",
+  "count": 3,
+  "times": 3,
+  "expected": {
+   "point": 30,
+   "message": null
+  }
+ },
+ {
+  "text": "\nA [[https://orgmode.org][link]] and [[*Heading]].\n#+begin_example\n** inside\n#+end_example\nA [[https://orgmode.org][link]] and [[*Heading]].\n * indented star\n** DONE Done\n[[file:a.org]]\nText line.\n\n",
+  "point": 23,
+  "command": "org-previous-visible-heading",
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "- item\n- item two\n#+TITLE: Doc\nText line.\n* Heading\n * indented star\n*not heading\n",
+  "point": 52,
+  "command": "org-next-link",
+  "expected": {
+   "point": 52,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "** Sub\nPlain https://example.com/x and <mailto:a@b.c>.\n- item\n- item two\n#+TITLE: Doc\n*bold* text\n** DONE Done\n",
+  "point": 87,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "*** Deep\n- item\n- item two\n\n*not heading\n",
+  "point": 25,
+  "command": "org-next-link",
+  "expected": {
+   "point": 25,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "** DONE Done\n",
+  "point": 0,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\nPlain https://example.com/x and <mailto:a@b.c>.\n* Heading\n*** Deep\n*not heading\n=[[verbatim]]= text\nA [[https://orgmode.org][link]] and [[*Heading]].\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 63,
+  "command": "org-previous-link",
+  "count": 3,
+  "times": 2,
+  "expected": {
+   "point": 19,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n[[file:a.org]]\n** Sub\n* Heading\n** DONE Done\n\n#+TITLE: Doc\n** Sub\n",
+  "point": 38,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 24,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n* TODO Task :tag:\n*** Deep\n#+begin_src org\n* not a heading?\n#+end_src\n=[[verbatim]]= text\n#+TITLE: Doc\nText line.\n",
+  "point": 99,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "times": 3,
+  "expected": {
+   "point": 61,
+   "message": null
+  }
+ },
+ {
+  "text": "- item\n- item two\n#+begin_example\n** inside\n#+end_example\n\nPlain https://example.com/x and <mailto:a@b.c>.\n=[[verbatim]]= text\n\n[[file:a.org]]\n\n",
+  "point": 7,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n",
+  "point": 7,
+  "command": "org-next-link",
+  "times": 2,
+  "expected": {
+   "point": 7,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "*bold* text\n\nPlain https://example.com/x and <mailto:a@b.c>.\n** Sub\n#+begin_example\n** inside\n#+end_example\n * indented star\n*bold* text\n",
+  "point": 101,
+  "command": "org-previous-visible-heading",
+  "count": -1,
+  "expected": {
+   "point": 137,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\nText line.\nPlain https://example.com/x and <mailto:a@b.c>.\nText line.\n#+begin_src org\n* not a heading?\n#+end_src\nText line.\n\nA [[https://orgmode.org][link]] and [[*Heading]].\n\n",
+  "point": 67,
+  "command": "org-previous-link",
+  "times": 3,
+  "expected": {
+   "point": 26,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "\nPlain https://example.com/x and <mailto:a@b.c>.\n * indented star\n",
+  "point": 7,
+  "command": "outline-up-heading",
+  "count": -2,
+  "times": 2,
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": " * indented star\n** Sub\n** Sub\n",
+  "point": 11,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n*** Deep\n**** Four\n#+begin_example\n** inside\n#+end_example\nText line.\n**** Four\n",
+  "point": 83,
+  "command": "outline-up-heading",
+  "times": 3,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\nA [[https://orgmode.org][link]] and [[*Heading]].\n**** Four\n* TODO Task :tag:\n* Heading\n*** Deep\n",
+  "point": 71,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 90,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\nText line.\n",
+  "point": 12,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 26,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n** Sub\nPlain https://example.com/x and <mailto:a@b.c>.\nText line.\n*bold* text\n[[file:a.org]]\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 49,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 9,
+   "message": null
+  }
+ },
+ {
+  "text": " * indented star\n",
+  "point": 7,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 7,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "** Sub\nA [[https://orgmode.org][link]] and [[*Heading]].\n*** Deep\n** Sub\n- item\n- item two\nText line.\n*** Deep\n",
+  "point": 77,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 66,
+   "message": null
+  }
+ },
+ {
+  "text": "- item\n- item two\n",
+  "point": 10,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "times": 2,
+  "expected": {
+   "point": 18,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 49,
+  "command": "org-previous-link",
+  "count": -2,
+  "expected": {
+   "point": 32,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n**** Four\n* Heading\n",
+  "point": 38,
+  "command": "org-previous-link",
+  "times": 2,
+  "expected": {
+   "point": 6,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\nA [[https://orgmode.org][link]] and [[*Heading]].\n*bold* text\n:PROPERTIES:\n:ID: x\n:END:\n*** Deep\n=[[verbatim]]= text\n",
+  "point": 50,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 16,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 35,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "*** Deep\n- item\n- item two\n",
+  "point": 19,
+  "command": "org-next-visible-heading",
+  "count": -2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n\n** DONE Done\n * indented star\nA [[https://orgmode.org][link]] and [[*Heading]].\n:PROPERTIES:\n:ID: x\n:END:\n\n[[file:a.org]]\n",
+  "point": 31,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 31,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "*bold* text\n- item\n- item two\n- item\n- item two\nText line.\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 31,
+  "command": "org-previous-visible-heading",
+  "count": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n*** Deep\n*not heading\n- item\n- item two\n",
+  "point": 31,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n** Sub\n",
+  "point": 6,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 50,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n** Sub\n#+begin_src org\n* not a heading?\n#+end_src\n\n* TODO Task :tag:\n** Sub\nText line.\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 124,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 124,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "=[[verbatim]]= text\n**** Four\nA [[https://orgmode.org][link]] and [[*Heading]].\n:PROPERTIES:\n:ID: x\n:END:\n- item\n- item two\n* Heading\n",
+  "point": 27,
+  "command": "org-next-link",
+  "expected": {
+   "point": 32,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\n*bold* text\n#+begin_example\n** inside\n#+end_example\n** DONE Done\n",
+  "point": 5,
+  "command": "org-previous-visible-heading",
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n",
+  "point": 26,
+  "command": "org-next-link",
+  "expected": {
+   "point": 26,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Text line.\n** Sub\n",
+  "point": 15,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n** DONE Done\n[[file:a.org]]\n*** Deep\n**** Four\n*not heading\n- item\n- item two\n",
+  "point": 52,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 52,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 36,
+  "command": "org-forward-heading-same-level",
+  "times": 3,
+  "expected": {
+   "point": 16,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n*not heading\nText line.\n* Heading\n",
+  "point": 27,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\n*bold* text\nA [[https://orgmode.org][link]] and [[*Heading]].\n**** Four\n** DONE Done\n* Heading\n** Sub\n",
+  "point": 70,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 23,
+  "command": "org-next-link",
+  "times": 3,
+  "expected": {
+   "point": 23,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "=[[verbatim]]= text\n**** Four\n*** Deep\n",
+  "point": 6,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n** DONE Done\n** Sub\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 40,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 43,
+   "message": null
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n**** Four\n",
+  "point": 14,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "**** Four\n#+TITLE: Doc\nText line.\n** Sub\n*not heading\n=[[verbatim]]= text\n**** Four\n*not heading\n",
+  "point": 45,
+  "command": "org-next-visible-heading",
+  "count": 3,
+  "times": 2,
+  "expected": {
+   "point": 97,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n*not heading\n:PROPERTIES:\n:ID: x\n:END:\nA [[https://orgmode.org][link]] and [[*Heading]].\n[[file:a.org]]\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 107,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 138,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n=[[verbatim]]= text\nA [[https://orgmode.org][link]] and [[*Heading]].\n**** Four\n* Heading\n* Heading\n",
+  "point": 125,
+  "command": "org-backward-heading-same-level",
+  "count": -2,
+  "expected": {
+   "point": 120,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n* TODO Task :tag:\n*** Deep\n** DONE Done\n*bold* text\n * indented star\n*bold* text\n*** Deep\n",
+  "point": 102,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 94,
+   "message": null
+  }
+ },
+ {
+  "text": "** DONE Done\n",
+  "point": 1,
+  "command": "org-next-link",
+  "expected": {
+   "point": 1,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "** Sub\n=[[verbatim]]= text\n",
+  "point": 12,
+  "command": "org-next-link",
+  "times": 2,
+  "expected": {
+   "point": 12,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Text line.\n** DONE Done\n",
+  "point": 15,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 11,
+   "message": null
+  }
+ },
+ {
+  "text": "\n*** Deep\n*bold* text\n",
+  "point": 19,
+  "command": "org-previous-link",
+  "count": -1,
+  "expected": {
+   "point": 19,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n** DONE Done\n- item\n- item two\n=[[verbatim]]= text\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 53,
+  "command": "outline-up-heading",
+  "count": 3,
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "Text line.\n",
+  "point": 2,
+  "command": "org-backward-heading-same-level",
+  "count": -1,
+  "expected": {
+   "point": 11,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n- item\n- item two\n* TODO Task :tag:\n=[[verbatim]]= text\n** Sub\n*bold* text\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 133,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 28,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "*bold* text\n=[[verbatim]]= text\n* Heading\nA [[https://orgmode.org][link]] and [[*Heading]].\n\n",
+  "point": 83,
+  "command": "org-next-visible-heading",
+  "times": 3,
+  "expected": {
+   "point": 93,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n[[file:a.org]]\n* TODO Task :tag:\n#+TITLE: Doc\n",
+  "point": 15,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 28,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n**** Four\n*** Deep\n",
+  "point": 8,
+  "command": "outline-up-heading",
+  "times": 2,
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "Text line.\n",
+  "point": 3,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\nText line.\n**** Four\nText line.\n",
+  "point": 24,
+  "command": "org-forward-heading-same-level",
+  "count": -2,
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n#+begin_example\n** inside\n#+end_example\n#+begin_src org\n* not a heading?\n#+end_src\n:PROPERTIES:\n:ID: x\n:END:\n#+TITLE: Doc\n",
+  "point": 0,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "*bold* text\n#+begin_src org\n* not a heading?\n#+end_src\nPlain https://example.com/x and <mailto:a@b.c>.\n#+begin_example\n** inside\n#+end_example\n**** Four\n",
+  "point": 123,
+  "command": "org-backward-heading-same-level",
+  "times": 2,
+  "expected": {
+   "point": 119,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n* Heading\n[[file:a.org]]\n * indented star\n*bold* text\n*not heading\n",
+  "point": 74,
+  "command": "org-previous-link",
+  "count": 2,
+  "expected": {
+   "point": 23,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n\nA [[https://orgmode.org][link]] and [[*Heading]].\n*bold* text\n",
+  "point": 65,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n#+TITLE: Doc\n*bold* text\n#+begin_src org\n* not a heading?\n#+end_src\n** Sub\n * indented star\n*** Deep\nText line.\n",
+  "point": 87,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 59,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "- item\n- item two\n[[file:a.org]]\n*** Deep\n#+begin_src org\n* not a heading?\n#+end_src\n#+begin_example\n** inside\n#+end_example\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 45,
+  "command": "org-previous-link",
+  "count": 3,
+  "expected": {
+   "point": 18,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n**** Four\n** Sub\n*** Deep\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 68,
+  "command": "org-backward-heading-same-level",
+  "count": -1,
+  "expected": {
+   "point": 65,
+   "message": null
+  }
+ },
+ {
+  "text": " * indented star\n** DONE Done\n** Sub\n** Sub\nPlain https://example.com/x and <mailto:a@b.c>.\n#+begin_example\n** inside\n#+end_example\nText line.\n** DONE Done\n",
+  "point": 144,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 108,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n * indented star\n",
+  "point": 11,
+  "command": "org-previous-visible-heading",
+  "count": -2,
+  "expected": {
+   "point": 27,
+   "message": null
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n**** Four\n=[[verbatim]]= text\nA [[https://orgmode.org][link]] and [[*Heading]].\nPlain https://example.com/x and <mailto:a@b.c>.\n#+begin_example\n** inside\n#+end_example\nPlain https://example.com/x and <mailto:a@b.c>.\n- item\n- item two\n",
+  "point": 149,
+  "command": "org-backward-heading-same-level",
+  "times": 3,
+  "expected": {
+   "point": 26,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\nPlain https://example.com/x and <mailto:a@b.c>.\n#+begin_example\n** inside\n#+end_example\n**** Four\n*** Deep\nPlain https://example.com/x and <mailto:a@b.c>.\n- item\n- item two\n=[[verbatim]]= text\n[[file:a.org]]\n",
+  "point": 128,
+  "command": "org-forward-heading-same-level",
+  "count": -1,
+  "expected": {
+   "point": 108,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 23,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "- item\n- item two\n#+begin_src org\n* not a heading?\n#+end_src\n#+begin_example\n** inside\n#+end_example\n**** Four\n#+TITLE: Doc\n* Heading\nPlain https://example.com/x and <mailto:a@b.c>.\n[[file:a.org]]\n",
+  "point": 64,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 124,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n*bold* text\n- item\n- item two\n*bold* text\n * indented star\n*bold* text\n**** Four\nA [[https://orgmode.org][link]] and [[*Heading]].\n*bold* text\n",
+  "point": 85,
+  "command": "outline-up-heading",
+  "count": 3,
+  "times": 3,
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n*** Deep\n * indented star\n**** Four\n:PROPERTIES:\n:ID: x\n:END:\n#+TITLE: Doc\n=[[verbatim]]= text\n * indented star\n",
+  "point": 77,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 43,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* Heading\nText line.\n**** Four\n#+TITLE: Doc\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 79,
+  "command": "org-next-link",
+  "count": 3,
+  "expected": {
+   "point": 80,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 14,
+  "command": "org-previous-visible-heading",
+  "count": 3,
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n[[file:a.org]]\n** Sub\n * indented star\nA [[https://orgmode.org][link]] and [[*Heading]].\n*bold* text\n*not heading\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 18,
+  "command": "outline-up-heading",
+  "count": -1,
+  "times": 3,
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": " * indented star\n* TODO Task :tag:\n[[file:a.org]]\n*bold* text\n** Sub\n",
+  "point": 38,
+  "command": "org-next-visible-heading",
+  "count": -1,
+  "expected": {
+   "point": 17,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n** DONE Done\n * indented star\n * indented star\n#+TITLE: Doc\n",
+  "point": 68,
+  "command": "org-forward-heading-same-level",
+  "times": 3,
+  "expected": {
+   "point": 12,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n** DONE Done\n:PROPERTIES:\n:ID: x\n:END:\n*** Deep\n*bold* text\n* Heading\n*not heading\n* TODO Task :tag:\n",
+  "point": 41,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\n*not heading\n * indented star\n * indented star\n\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 37,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n:PROPERTIES:\n:ID: x\n:END:\n- item\n- item two\n",
+  "point": 38,
+  "command": "org-backward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n#+begin_src org\n* not a heading?\n#+end_src\n** DONE Done\nPlain https://example.com/x and <mailto:a@b.c>.\n* Heading\n",
+  "point": 31,
+  "command": "org-next-link",
+  "expected": {
+   "point": 32,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\n** DONE Done\n*not heading\n* Heading\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 68,
+  "command": "outline-up-heading",
+  "count": -2,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n- item\n- item two\n** DONE Done\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 37,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\n** DONE Done\n",
+  "point": 9,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "=[[verbatim]]= text\n* Heading\nA [[https://orgmode.org][link]] and [[*Heading]].\n*bold* text\n*bold* text\n",
+  "point": 87,
+  "command": "org-next-link",
+  "times": 2,
+  "expected": {
+   "point": 32,
+   "message": "Link search wrapped back to beginning of buffer"
+  }
+ },
+ {
+  "text": "[[file:a.org]]\nA [[https://orgmode.org][link]] and [[*Heading]].\n* TODO Task :tag:\n[[file:a.org]]\nText line.\n",
+  "point": 1,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\nPlain https://example.com/x and <mailto:a@b.c>.\n*not heading\nText line.\n#+begin_src org\n* not a heading?\n#+end_src\nA [[https://orgmode.org][link]] and [[*Heading]].\n*** Deep\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 214,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 230,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n#+begin_src org\n* not a heading?\n#+end_src\n** DONE Done\n**** Four\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 140,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 104,
+   "message": null
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\n[[file:a.org]]\n** Sub\n*** Deep\n\n- item\n- item two\n*** Deep\n",
+  "point": 8,
+  "command": "org-next-link",
+  "expected": {
+   "point": 13,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n*not heading\nPlain https://example.com/x and <mailto:a@b.c>.\n** Sub\n* TODO Task :tag:\n* TODO Task :tag:\n\n",
+  "point": 78,
+  "command": "org-next-link",
+  "times": 2,
+  "expected": {
+   "point": 28,
+   "message": "Link search wrapped back to beginning of buffer"
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n** DONE Done\n**** Four\n:PROPERTIES:\n:ID: x\n:END:\n**** Four\n",
+  "point": 52,
+  "command": "org-previous-link",
+  "count": 3,
+  "times": 2,
+  "expected": {
+   "point": 2,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n- item\n- item two\n** Sub\n#+TITLE: Doc\n#+TITLE: Doc\n* TODO Task :tag:\n*not heading\n",
+  "point": 79,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 27,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n*bold* text\n*bold* text\n** Sub\n** DONE Done\n#+begin_src org\n* not a heading?\n#+end_src\n** DONE Done\n#+TITLE: Doc\n",
+  "point": 161,
+  "command": "org-next-link",
+  "expected": {
+   "point": 161,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n:PROPERTIES:\n:ID: x\n:END:\n\n- item\n- item two\n*** Deep\n[[file:a.org]]\n\n- item\n- item two\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 132,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 60,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n**** Four\n** DONE Done\n* Heading\n#+begin_example\n** inside\n#+end_example\n*** Deep\n#+TITLE: Doc\n** Sub\n",
+  "point": 11,
+  "command": "org-previous-link",
+  "count": -2,
+  "expected": {
+   "point": 11,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n#+begin_example\n** inside\n#+end_example\n* TODO Task :tag:\n=[[verbatim]]= text\n* Heading\n[[file:a.org]]\n*not heading\n** Sub\n",
+  "point": 38,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 52,
+  "command": "org-previous-visible-heading",
+  "count": -2,
+  "expected": {
+   "point": 57,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n#+begin_example\n** inside\n#+end_example\n:PROPERTIES:\n:ID: x\n:END:\n*bold* text\n",
+  "point": 101,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 59,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n * indented star\n*bold* text\n=[[verbatim]]= text\n** Sub\n#+TITLE: Doc\n",
+  "point": 73,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 16,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\n** Sub\n",
+  "point": 2,
+  "command": "org-previous-visible-heading",
+  "count": -2,
+  "expected": {
+   "point": 14,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n* Heading\n * indented star\nPlain https://example.com/x and <mailto:a@b.c>.\n#+begin_src org\n* not a heading?\n#+end_src\n:PROPERTIES:\n:ID: x\n:END:\n * indented star\n#+begin_example\n** inside\n#+end_example\n",
+  "point": 119,
+  "command": "org-backward-heading-same-level",
+  "count": 3,
+  "expected": {
+   "point": 12,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n*not heading\n",
+  "point": 15,
+  "command": "org-previous-visible-heading",
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "\n** Sub\nPlain https://example.com/x and <mailto:a@b.c>.\n** Sub\n*bold* text\n",
+  "point": 47,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 56,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n** DONE Done\n* TODO Task :tag:\n#+begin_example\n** inside\n#+end_example\n#+begin_src org\n* not a heading?\n#+end_src\nA [[https://orgmode.org][link]] and [[*Heading]].\n\n**** Four\n",
+  "point": 8,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n*not heading\n",
+  "point": 23,
+  "command": "org-next-link",
+  "expected": {
+   "point": 23,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "*** Deep\nA [[https://orgmode.org][link]] and [[*Heading]].\n**** Four\n\n**** Four\n",
+  "point": 26,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 59,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\nA [[https://orgmode.org][link]] and [[*Heading]].\n** Sub\nA [[https://orgmode.org][link]] and [[*Heading]].\n * indented star\n",
+  "point": 43,
+  "command": "org-next-visible-heading",
+  "count": -1,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 5,
+  "command": "org-backward-heading-same-level",
+  "count": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n** Sub\n** Sub\n- item\n- item two\n * indented star\nA [[https://orgmode.org][link]] and [[*Heading]].\n#+begin_src org\n* not a heading?\n#+end_src\n** Sub\n",
+  "point": 9,
+  "command": "org-previous-visible-heading",
+  "count": -2,
+  "times": 2,
+  "expected": {
+   "point": 155,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n* TODO Task :tag:\n",
+  "point": 5,
+  "command": "outline-up-heading",
+  "times": 2,
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n* Heading\nA [[https://orgmode.org][link]] and [[*Heading]].\n[[file:a.org]]\n",
+  "point": 45,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 26,
+   "message": null
+  }
+ },
+ {
+  "text": "** DONE Done\n* Heading\n#+begin_src org\n* not a heading?\n#+end_src\nA [[https://orgmode.org][link]] and [[*Heading]].\n\n[[file:a.org]]\n* TODO Task :tag:\n** DONE Done\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 123,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 132,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n** DONE Done\n** DONE Done\n[[file:a.org]]\n*** Deep\nPlain https://example.com/x and <mailto:a@b.c>.\n\n",
+  "point": 21,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 21,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "- item\n- item two\n** Sub\nPlain https://example.com/x and <mailto:a@b.c>.\n\n",
+  "point": 6,
+  "command": "org-next-link",
+  "count": -1,
+  "expected": {
+   "point": 31,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n * indented star\n",
+  "point": 24,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 41,
+  "command": "org-previous-link",
+  "count": 2,
+  "expected": {
+   "point": 41,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "** Sub\n",
+  "point": 6,
+  "command": "org-forward-heading-same-level",
+  "count": -2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n#+begin_src org\n* not a heading?\n#+end_src\n**** Four\n** DONE Done\n- item\n- item two\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 82,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "times": 2,
+  "expected": {
+   "point": 62,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n * indented star\n- item\n- item two\n",
+  "point": 39,
+  "command": "org-next-visible-heading",
+  "count": -2,
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n* Heading\n**** Four\n#+TITLE: Doc\n:PROPERTIES:\n:ID: x\n:END:\n**** Four\n",
+  "point": 12,
+  "command": "org-forward-heading-same-level",
+  "times": 2,
+  "expected": {
+   "point": 12,
+   "message": null
+  }
+ },
+ {
+  "text": " * indented star\n * indented star\n* TODO Task :tag:\n#+begin_example\n** inside\n#+end_example\n#+begin_example\n** inside\n#+end_example\nA [[https://orgmode.org][link]] and [[*Heading]].\n\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 152,
+  "command": "org-backward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 68,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\nPlain https://example.com/x and <mailto:a@b.c>.\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 76,
+  "command": "org-next-visible-heading",
+  "count": -2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\n** Sub\n#+TITLE: Doc\n\n",
+  "point": 30,
+  "command": "org-next-link",
+  "expected": {
+   "point": 30,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Text line.\n- item\n- item two\nText line.\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 71,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "*bold* text\n*bold* text\n\n** Sub\n",
+  "point": 31,
+  "command": "org-backward-heading-same-level",
+  "times": 2,
+  "expected": {
+   "point": 25,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n** Sub\n* TODO Task :tag:\n**** Four\n*not heading\n* TODO Task :tag:\n#+begin_src org\n* not a heading?\n#+end_src\nText line.\n",
+  "point": 82,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 20,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n*not heading\n",
+  "point": 22,
+  "command": "org-next-visible-heading",
+  "count": 3,
+  "expected": {
+   "point": 24,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n",
+  "point": 1,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n*not heading\nA [[https://orgmode.org][link]] and [[*Heading]].\n#+TITLE: Doc\n[[file:a.org]]\n** Sub\n[[file:a.org]]\n** DONE Done\n",
+  "point": 106,
+  "command": "org-forward-heading-same-level",
+  "times": 2,
+  "expected": {
+   "point": 128,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n*** Deep\n* Heading\n*** Deep\n*bold* text\n",
+  "point": 78,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 52,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n* Heading\n- item\n- item two\n\n*** Deep\n** Sub\n*** Deep\n",
+  "point": 85,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 81,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\nPlain https://example.com/x and <mailto:a@b.c>.\n=[[verbatim]]= text\n*** Deep\n* TODO Task :tag:\n\n#+begin_example\n** inside\n#+end_example\n[[file:a.org]]\n * indented star\n",
+  "point": 100,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 123,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n:PROPERTIES:\n:ID: x\n:END:\n#+begin_example\n** inside\n#+end_example\n*not heading\n#+begin_example\n** inside\n#+end_example\n* TODO Task :tag:\n[[file:a.org]]\n*bold* text\n\n",
+  "point": 25,
+  "command": "org-previous-visible-heading",
+  "count": -1,
+  "expected": {
+   "point": 53,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n*** Deep\n",
+  "point": 13,
+  "command": "org-previous-link",
+  "count": 2,
+  "expected": {
+   "point": 13,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": " * indented star\n * indented star\n\n * indented star\nPlain https://example.com/x and <mailto:a@b.c>.\n=[[verbatim]]= text\n:PROPERTIES:\n:ID: x\n:END:\n\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 107,
+  "command": "org-forward-heading-same-level",
+  "count": -1,
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n#+begin_src org\n* not a heading?\n#+end_src\n#+TITLE: Doc\n",
+  "point": 71,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n* TODO Task :tag:\n#+begin_example\n** inside\n#+end_example\n*** Deep\n** Sub\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 35,
+  "command": "org-previous-link",
+  "times": 2,
+  "expected": {
+   "point": 132,
+   "message": "Link search wrapped back to end of buffer"
+  }
+ },
+ {
+  "text": "*not heading\n\n:PROPERTIES:\n:ID: x\n:END:\nPlain https://example.com/x and <mailto:a@b.c>.\n* TODO Task :tag:\n* Heading\nText line.\n**** Four\n",
+  "point": 28,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 88,
+   "message": null
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 41,
+  "command": "org-previous-link",
+  "times": 2,
+  "expected": {
+   "point": 49,
+   "message": "Link search wrapped back to end of buffer"
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n*** Deep\nText line.\nText line.\n#+begin_example\n** inside\n#+end_example\n*bold* text\n",
+  "point": 22,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 18,
+   "message": null
+  }
+ },
+ {
+  "text": "\n*not heading\n",
+  "point": 8,
+  "command": "org-backward-heading-same-level",
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\nPlain https://example.com/x and <mailto:a@b.c>.\n*not heading\n",
+  "point": 43,
+  "command": "org-next-link",
+  "count": -1,
+  "times": 3,
+  "expected": {
+   "point": 42,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n#+begin_example\n** inside\n#+end_example\n*not heading\n** DONE Done\n#+begin_src org\n* not a heading?\n#+end_src\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 164,
+  "command": "org-next-link",
+  "times": 2,
+  "expected": {
+   "point": 126,
+   "message": "Link search wrapped back to beginning of buffer"
+  }
+ },
+ {
+  "text": " * indented star\n#+begin_example\n** inside\n#+end_example\n*** Deep\n=[[verbatim]]= text\n * indented star\n",
+  "point": 6,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "** DONE Done\n- item\n- item two\n",
+  "point": 6,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "*not heading\n\n*** Deep\nA [[https://orgmode.org][link]] and [[*Heading]].\n*bold* text\n** DONE Done\n*** Deep\n* Heading\n** DONE Done\n",
+  "point": 92,
+  "command": "org-previous-link",
+  "count": -1,
+  "expected": {
+   "point": 59,
+   "message": null
+  }
+ },
+ {
+  "text": "=[[verbatim]]= text\n*** Deep\n** Sub\nText line.\nText line.\nA [[https://orgmode.org][link]] and [[*Heading]].\n* Heading\n",
+  "point": 60,
+  "command": "outline-up-heading",
+  "count": -1,
+  "expected": {
+   "point": 29,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "=[[verbatim]]= text\n* Heading\n** Sub\n**** Four\n*not heading\n=[[verbatim]]= text\n * indented star\n#+TITLE: Doc\n",
+  "point": 84,
+  "command": "org-next-link",
+  "expected": {
+   "point": 84,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "* Heading\n * indented star\n * indented star\n * indented star\n",
+  "point": 58,
+  "command": "org-backward-heading-same-level",
+  "count": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\nText line.\n * indented star\n",
+  "point": 9,
+  "command": "org-forward-heading-same-level",
+  "count": -2,
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n#+begin_src org\n* not a heading?\n#+end_src\n* Heading\n* TODO Task :tag:\n**** Four\nA [[https://orgmode.org][link]] and [[*Heading]].\n*** Deep\n*** Deep\n",
+  "point": 97,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 143,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\nPlain https://example.com/x and <mailto:a@b.c>.\n#+begin_example\n** inside\n#+end_example\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 58,
+  "command": "org-previous-visible-heading",
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\n",
+  "point": 2,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 2,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\nText line.\n** DONE Done\n#+begin_src org\n* not a heading?\n#+end_src\n=[[verbatim]]= text\n[[file:a.org]]\n",
+  "point": 23,
+  "command": "org-forward-heading-same-level",
+  "count": -2,
+  "expected": {
+   "point": 16,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n[[file:a.org]]\n#+TITLE: Doc\nA [[https://orgmode.org][link]] and [[*Heading]].\n\n#+TITLE: Doc\n",
+  "point": 35,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 140,
+   "message": null
+  }
+ },
+ {
+  "text": "\nPlain https://example.com/x and <mailto:a@b.c>.\n** Sub\n",
+  "point": 0,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 49,
+   "message": null
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n\n#+begin_src org\n* not a heading?\n#+end_src\n** Sub\n=[[verbatim]]= text\n\n** Sub\n*not heading\n*bold* text\n",
+  "point": 5,
+  "command": "outline-up-heading",
+  "count": -2,
+  "times": 2,
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\n=[[verbatim]]= text\n- item\n- item two\n#+TITLE: Doc\n:PROPERTIES:\n:ID: x\n:END:\n*not heading\n",
+  "point": 48,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 103,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n** Sub\n",
+  "point": 47,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n[[file:a.org]]\n*bold* text\n * indented star\n** DONE Done\nA [[https://orgmode.org][link]] and [[*Heading]].\n*bold* text\n*** Deep\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 0,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "** Sub\n",
+  "point": 1,
+  "command": "org-next-visible-heading",
+  "times": 3,
+  "expected": {
+   "point": 7,
+   "message": null
+  }
+ },
+ {
+  "text": "- item\n- item two\nPlain https://example.com/x and <mailto:a@b.c>.\n** DONE Done\n* TODO Task :tag:\n- item\n- item two\n",
+  "point": 32,
+  "command": "org-previous-link",
+  "count": -1,
+  "expected": {
+   "point": 32,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "- item\n- item two\n#+TITLE: Doc\nA [[https://orgmode.org][link]] and [[*Heading]].\n**** Four\n",
+  "point": 76,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n* TODO Task :tag:\n* Heading\nA [[https://orgmode.org][link]] and [[*Heading]].\n** Sub\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 63,
+  "command": "org-next-link",
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": "Link search wrapped back to beginning of buffer"
+  }
+ },
+ {
+  "text": " * indented star\n=[[verbatim]]= text\n",
+  "point": 28,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "*** Deep\n#+TITLE: Doc\n",
+  "point": 2,
+  "command": "org-next-visible-heading",
+  "count": -2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n*** Deep\n- item\n- item two\n* TODO Task :tag:\n*not heading\n#+begin_src org\n* not a heading?\n#+end_src\n- item\n- item two\nA [[https://orgmode.org][link]] and [[*Heading]].\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 76,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 89,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n*not heading\n** DONE Done\nText line.\n- item\n- item two\n#+begin_example\n** inside\n#+end_example\n:PROPERTIES:\n:ID: x\n:END:\nText line.\n",
+  "point": 117,
+  "command": "org-next-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 182,
+   "message": null
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n=[[verbatim]]= text\n*not heading\n**** Four\nText line.\n** DONE Done\nPlain https://example.com/x and <mailto:a@b.c>.\n**** Four\n",
+  "point": 128,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 80,
+   "message": null
+  }
+ },
+ {
+  "text": "** DONE Done\n",
+  "point": 6,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n\n**** Four\n * indented star\n",
+  "point": 35,
+  "command": "org-previous-link",
+  "count": -1,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n- item\n- item two\n",
+  "point": 13,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 29,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n* TODO Task :tag:\n* TODO Task :tag:\n#+begin_example\n** inside\n#+end_example\n* TODO Task :tag:\n* TODO Task :tag:\n#+begin_src org\n* not a heading?\n#+end_src\n#+TITLE: Doc\n",
+  "point": 45,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 61,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n- item\n- item two\n* TODO Task :tag:\n",
+  "point": 52,
+  "command": "org-previous-link",
+  "times": 2,
+  "expected": {
+   "point": 52,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n * indented star\n * indented star\n*** Deep\n*** Deep\n",
+  "point": 38,
+  "command": "org-next-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 83,
+   "message": null
+  }
+ },
+ {
+  "text": " * indented star\n* TODO Task :tag:\nA [[https://orgmode.org][link]] and [[*Heading]].\n * indented star\n*** Deep\n\n * indented star\n* Heading\n#+TITLE: Doc\n",
+  "point": 138,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 129,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n*** Deep\nA [[https://orgmode.org][link]] and [[*Heading]].\n*not heading\n* TODO Task :tag:\n**** Four\n",
+  "point": 98,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n- item\n- item two\n#+begin_src org\n* not a heading?\n#+end_src\n[[file:a.org]]\nA [[https://orgmode.org][link]] and [[*Heading]].\n * indented star\n** Sub\n",
+  "point": 53,
+  "command": "outline-up-heading",
+  "times": 2,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n=[[verbatim]]= text\n*** Deep\n** DONE Done\n",
+  "point": 39,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 60,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n[[file:a.org]]\n#+TITLE: Doc\n=[[verbatim]]= text\n- item\n- item two\n",
+  "point": 36,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n:PROPERTIES:\n:ID: x\n:END:\n* TODO Task :tag:\n** DONE Done\n:PROPERTIES:\n:ID: x\n:END:\nText line.\nA [[https://orgmode.org][link]] and [[*Heading]].\n* TODO Task :tag:\n",
+  "point": 113,
+  "command": "org-previous-visible-heading",
+  "count": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "- item\n- item two\n:PROPERTIES:\n:ID: x\n:END:\nA [[https://orgmode.org][link]] and [[*Heading]].\n**** Four\nPlain https://example.com/x and <mailto:a@b.c>.\n* TODO Task :tag:\n#+begin_src org\n* not a heading?\n#+end_src\n#+TITLE: Doc\n",
+  "point": 226,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 186,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n* TODO Task :tag:\nText line.\n* Heading\n#+begin_example\n** inside\n#+end_example\n#+TITLE: Doc\n#+TITLE: Doc\nPlain https://example.com/x and <mailto:a@b.c>.\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 133,
+  "command": "outline-up-heading",
+  "count": -1,
+  "times": 3,
+  "expected": {
+   "point": 70,
+   "message": null
+  }
+ },
+ {
+  "text": "=[[verbatim]]= text\n * indented star\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 53,
+  "command": "org-forward-heading-same-level",
+  "times": 2,
+  "expected": {
+   "point": 53,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\n",
+  "point": 7,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": " * indented star\n#+TITLE: Doc\nA [[https://orgmode.org][link]] and [[*Heading]].\n#+begin_example\n** inside\n#+end_example\n=[[verbatim]]= text\n",
+  "point": 129,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 96,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n",
+  "point": 9,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n*bold* text\n** Sub\n\n[[file:a.org]]\n* Heading\nPlain https://example.com/x and <mailto:a@b.c>.\n* TODO Task :tag:\n",
+  "point": 51,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n* TODO Task :tag:\n*not heading\n * indented star\n",
+  "point": 41,
+  "command": "org-previous-link",
+  "count": -1,
+  "expected": {
+   "point": 41,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "\n#+TITLE: Doc\n*** Deep\n=[[verbatim]]= text\n",
+  "point": 23,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 14,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n[[file:a.org]]\n",
+  "point": 19,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "- item\n- item two\n",
+  "point": 16,
+  "command": "org-previous-link",
+  "count": -2,
+  "times": 2,
+  "expected": {
+   "point": 16,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Text line.\n* TODO Task :tag:\n**** Four\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 56,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 56,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "* Heading\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 29,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 29,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "* Heading\nA [[https://orgmode.org][link]] and [[*Heading]].\n=[[verbatim]]= text\nText line.\n",
+  "point": 8,
+  "command": "org-next-link",
+  "times": 3,
+  "expected": {
+   "point": 46,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "**** Four\n\n",
+  "point": 6,
+  "command": "org-next-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 11,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n**** Four\n* TODO Task :tag:\n*not heading\nText line.\nText line.\n** DONE Done\n",
+  "point": 51,
+  "command": "org-backward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 23,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n- item\n- item two\n*** Deep\n\n * indented star\n * indented star\n[[file:a.org]]\nA [[https://orgmode.org][link]] and [[*Heading]].\nText line.\n",
+  "point": 51,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 29,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n",
+  "point": 8,
+  "command": "org-previous-link",
+  "count": 2,
+  "expected": {
+   "point": 8,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "*bold* text\n** DONE Done\n#+begin_src org\n* not a heading?\n#+end_src\n**** Four\n* Heading\n[[file:a.org]]\n** DONE Done\n",
+  "point": 90,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 41,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n#+begin_example\n** inside\n#+end_example\n*** Deep\nPlain https://example.com/x and <mailto:a@b.c>.\n** DONE Done\n*bold* text\n* Heading\n** Sub\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 94,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 36,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n:PROPERTIES:\n:ID: x\n:END:\n[[file:a.org]]\n * indented star\n**** Four\n*not heading\n * indented star\n[[file:a.org]]\n",
+  "point": 112,
+  "command": "org-previous-link",
+  "count": -2,
+  "expected": {
+   "point": 66,
+   "message": null
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n*bold* text\n- item\n- item two\n** DONE Done\n**** Four\n* Heading\n#+begin_example\n** inside\n#+end_example\n=[[verbatim]]= text\n",
+  "point": 118,
+  "command": "outline-up-heading",
+  "count": 2,
+  "expected": {
+   "point": 79,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n * indented star\n**** Four\n",
+  "point": 21,
+  "command": "org-previous-visible-heading",
+  "count": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n* TODO Task :tag:\n",
+  "point": 18,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n- item\n- item two\nText line.\n*not heading\n- item\n- item two\n#+begin_example\n** inside\n#+end_example\n** Sub\n",
+  "point": 25,
+  "command": "org-next-link",
+  "expected": {
+   "point": 25,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "*not heading\n",
+  "point": 13,
+  "command": "org-backward-heading-same-level",
+  "count": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n* Heading\n",
+  "point": 7,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 7,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n* Heading\n*** Deep\n** DONE Done\n",
+  "point": 69,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 72,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n * indented star\n*** Deep\n*not heading\nText line.\n*** Deep\n#+TITLE: Doc\n** DONE Done\n**** Four\n",
+  "point": 77,
+  "command": "org-next-link",
+  "times": 2,
+  "expected": {
+   "point": 77,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\n** Sub\n* TODO Task :tag:\n*not heading\n\n",
+  "point": 10,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\n#+TITLE: Doc\n*** Deep\n*bold* text\n* TODO Task :tag:\n#+TITLE: Doc\n*bold* text\nA [[https://orgmode.org][link]] and [[*Heading]].\nText line.\n",
+  "point": 102,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 47,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n",
+  "point": 12,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "\nA [[https://orgmode.org][link]] and [[*Heading]].\n- item\n- item two\n#+begin_example\n** inside\n#+end_example\n",
+  "point": 104,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 109,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\n* Heading\n*not heading\n[[file:a.org]]\n * indented star\nPlain https://example.com/x and <mailto:a@b.c>.\n*bold* text\n\n#+TITLE: Doc\n",
+  "point": 16,
+  "command": "org-backward-heading-same-level",
+  "times": 3,
+  "expected": {
+   "point": 7,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n[[file:a.org]]\n*bold* text\n** DONE Done\n#+begin_src org\n* not a heading?\n#+end_src\n**** Four\n- item\n- item two\n* Heading\n** Sub\n",
+  "point": 44,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 39,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\n** Sub\n** Sub\n",
+  "point": 14,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n",
+  "point": 4,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 44,
+  "command": "org-next-visible-heading",
+  "count": -2,
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "- item\n- item two\n:PROPERTIES:\n:ID: x\n:END:\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 63,
+  "command": "org-forward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 70,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n*** Deep\n**** Four\n",
+  "point": 24,
+  "command": "org-previous-link",
+  "count": 2,
+  "expected": {
+   "point": 24,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n#+TITLE: Doc\n[[file:a.org]]\n[[file:a.org]]\n*not heading\n*** Deep\n**** Four\n[[file:a.org]]\n",
+  "point": 123,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 106,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\n",
+  "point": 9,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n#+TITLE: Doc\n[[file:a.org]]\n#+begin_src org\n* not a heading?\n#+end_src\n*** Deep\n\n** DONE Done\n* TODO Task :tag:\n* TODO Task :tag:\n",
+  "point": 125,
+  "command": "org-backward-heading-same-level",
+  "count": 2,
+  "expected": {
+   "point": 53,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n",
+  "point": 3,
+  "command": "org-backward-heading-same-level",
+  "count": -2,
+  "expected": {
+   "point": 12,
+   "message": null
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 19,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 26,
+   "message": null
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\n*** Deep\n*** Deep\nText line.\n** Sub\n:PROPERTIES:\n:ID: x\n:END:\n**** Four\n",
+  "point": 10,
+  "command": "org-next-visible-heading",
+  "count": -2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\n*** Deep\n#+begin_example\n** inside\n#+end_example\n*** Deep\n#+begin_example\n** inside\n#+end_example\n* Heading\nA [[https://orgmode.org][link]] and [[*Heading]].\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 151,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 108,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n*bold* text\n\n",
+  "point": 28,
+  "command": "org-previous-link",
+  "count": 3,
+  "times": 2,
+  "expected": {
+   "point": 28,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "*** Deep\n*** Deep\n",
+  "point": 11,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 18,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n*bold* text\n*** Deep\n\n* Heading\n- item\n- item two\n=[[verbatim]]= text\nText line.\n* Heading\n",
+  "point": 56,
+  "command": "org-forward-heading-same-level",
+  "times": 2,
+  "expected": {
+   "point": 92,
+   "message": null
+  }
+ },
+ {
+  "text": " * indented star\n** Sub\n- item\n- item two\nPlain https://example.com/x and <mailto:a@b.c>.\n#+begin_example\n** inside\n#+end_example\n:PROPERTIES:\n:ID: x\n:END:\n\n** Sub\n- item\n- item two\n",
+  "point": 33,
+  "command": "org-forward-heading-same-level",
+  "count": 3,
+  "expected": {
+   "point": 157,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\n#+begin_src org\n* not a heading?\n#+end_src\n* TODO Task :tag:\n* Heading\n#+begin_example\n** inside\n#+end_example\nA [[https://orgmode.org][link]] and [[*Heading]].\n\n",
+  "point": 106,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 71,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": " * indented star\nText line.\n*** Deep\n- item\n- item two\n#+begin_src org\n* not a heading?\n#+end_src\nA [[https://orgmode.org][link]] and [[*Heading]].\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 156,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "*not heading\n** Sub\n#+begin_example\n** inside\n#+end_example\n*** Deep\n**** Four\n#+begin_example\n** inside\n#+end_example\n",
+  "point": 69,
+  "command": "org-next-visible-heading",
+  "count": -1,
+  "expected": {
+   "point": 60,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n#+begin_example\n** inside\n#+end_example\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 77,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "Text line.\n[[file:a.org]]\n#+begin_example\n** inside\n#+end_example\n*** Deep\n* Heading\n[[file:a.org]]\n * indented star\n",
+  "point": 60,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 42,
+   "message": null
+  }
+ },
+ {
+  "text": "=[[verbatim]]= text\n* TODO Task :tag:\nA [[https://orgmode.org][link]] and [[*Heading]].\n* Heading\n#+begin_src org\n* not a heading?\n#+end_src\n[[file:a.org]]\nText line.\n*** Deep\n\n",
+  "point": 2,
+  "command": "org-forward-heading-same-level",
+  "count": 3,
+  "expected": {
+   "point": 20,
+   "message": null
+  }
+ },
+ {
+  "text": "=[[verbatim]]= text\n*not heading\n",
+  "point": 25,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "=[[verbatim]]= text\n*bold* text\n*bold* text\n",
+  "point": 17,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n**** Four\n#+TITLE: Doc\n",
+  "point": 10,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 26,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n=[[verbatim]]= text\n * indented star\n*** Deep\n- item\n- item two\n",
+  "point": 36,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n#+begin_example\n** inside\n#+end_example\n** DONE Done\n*bold* text\n",
+  "point": 6,
+  "command": "outline-up-heading",
+  "count": -1,
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\nA [[https://orgmode.org][link]] and [[*Heading]].\n** DONE Done\n#+begin_example\n** inside\n#+end_example\nText line.\n[[file:a.org]]\n** DONE Done\n * indented star\nText line.\n",
+  "point": 131,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 97,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n",
+  "point": 1,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 1,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "*bold* text\n",
+  "point": 12,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 12,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n* TODO Task :tag:\n**** Four\n#+TITLE: Doc\n",
+  "point": 5,
+  "command": "org-forward-heading-same-level",
+  "count": 3,
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n=[[verbatim]]= text\n* Heading\n[[file:a.org]]\n#+begin_example\n** inside\n#+end_example\n\n**** Four\n* Heading\n** Sub\n",
+  "point": 91,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 40,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n** DONE Done\n#+begin_example\n** inside\n#+end_example\n#+begin_src org\n* not a heading?\n#+end_src\n*not heading\n** Sub\n",
+  "point": 19,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 16,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\n#+begin_example\n** inside\n#+end_example\n**** Four\n** DONE Done\n#+TITLE: Doc\nText line.\n=[[verbatim]]= text\n#+TITLE: Doc\n",
+  "point": 97,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 97,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "** DONE Done\n*not heading\n** Sub\n*not heading\n** DONE Done\n#+begin_src org\n* not a heading?\n#+end_src\n * indented star\nPlain https://example.com/x and <mailto:a@b.c>.\n**** Four\n",
+  "point": 170,
+  "command": "org-next-link",
+  "expected": {
+   "point": 170,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "=[[verbatim]]= text\n- item\n- item two\n- item\n- item two\n*bold* text\n:PROPERTIES:\n:ID: x\n:END:\n*bold* text\n[[file:a.org]]\n* Heading\n",
+  "point": 50,
+  "command": "org-next-link",
+  "count": -2,
+  "expected": {
+   "point": 106,
+   "message": null
+  }
+ },
+ {
+  "text": "Text line.\n* Heading\n",
+  "point": 6,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "\n* Heading\n**** Four\n * indented star\n- item\n- item two\n",
+  "point": 23,
+  "command": "org-next-link",
+  "expected": {
+   "point": 23,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n* Heading\n** DONE Done\n",
+  "point": 13,
+  "command": "org-next-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 25,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n*bold* text\n[[file:a.org]]\n*** Deep\n* TODO Task :tag:\n * indented star\n * indented star\n**** Four\n",
+  "point": 7,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\nText line.\n*bold* text\n=[[verbatim]]= text\n=[[verbatim]]= text\n * indented star\n** Sub\n",
+  "point": 20,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": " * indented star\n[[file:a.org]]\n * indented star\n* TODO Task :tag:\n** Sub\n",
+  "point": 45,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 17,
+   "message": null
+  }
+ },
+ {
+  "text": "- item\n- item two\n*bold* text\nA [[https://orgmode.org][link]] and [[*Heading]].\n*bold* text\n*** Deep\n * indented star\n=[[verbatim]]= text\n",
+  "point": 46,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 92,
+   "message": null
+  }
+ },
+ {
+  "text": " * indented star\nPlain https://example.com/x and <mailto:a@b.c>.\n* Heading\n#+begin_src org\n* not a heading?\n#+end_src\n * indented star\n*** Deep\n",
+  "point": 99,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 91,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n:PROPERTIES:\n:ID: x\n:END:\n* Heading\n\n#+begin_src org\n* not a heading?\n#+end_src\n* Heading\n=[[verbatim]]= text\n* TODO Task :tag:\n",
+  "point": 1,
+  "command": "org-previous-visible-heading",
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n=[[verbatim]]= text\n=[[verbatim]]= text\n",
+  "point": 42,
+  "command": "org-forward-heading-same-level",
+  "count": -2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\nPlain https://example.com/x and <mailto:a@b.c>.\n#+begin_src org\n* not a heading?\n#+end_src\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 129,
+  "command": "org-next-link",
+  "expected": {
+   "point": 140,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n** Sub\n#+TITLE: Doc\n[[file:a.org]]\nPlain https://example.com/x and <mailto:a@b.c>.\n*** Deep\n*** Deep\n * indented star\n#+begin_example\n** inside\n#+end_example\n",
+  "point": 18,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 18,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n** DONE Done\nPlain https://example.com/x and <mailto:a@b.c>.\n * indented star\n[[file:a.org]]\nPlain https://example.com/x and <mailto:a@b.c>.\n* TODO Task :tag:\n#+TITLE: Doc\n=[[verbatim]]= text\n",
+  "point": 3,
+  "command": "org-next-link",
+  "count": 2,
+  "expected": {
+   "point": 45,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n**** Four\n- item\n- item two\n* Heading\n#+begin_example\n** inside\n#+end_example\n",
+  "point": 65,
+  "command": "org-next-link",
+  "expected": {
+   "point": 65,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n**** Four\n**** Four\n#+begin_example\n** inside\n#+end_example\n#+begin_example\n** inside\n#+end_example\n#+begin_example\n** inside\n#+end_example\n",
+  "point": 122,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 156,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n#+TITLE: Doc\n- item\n- item two\n#+begin_src org\n* not a heading?\n#+end_src\n** Sub\n",
+  "point": 77,
+  "command": "org-backward-heading-same-level",
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n#+begin_src org\n* not a heading?\n#+end_src\n*not heading\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 130,
+  "command": "org-next-visible-heading",
+  "times": 2,
+  "expected": {
+   "point": 156,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n*** Deep\n",
+  "point": 9,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 18,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 46,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n**** Four\n",
+  "point": 8,
+  "command": "org-next-link",
+  "expected": {
+   "point": 8,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n#+TITLE: Doc\n[[file:a.org]]\nText line.\n",
+  "point": 52,
+  "command": "org-next-link",
+  "expected": {
+   "point": 61,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n- item\n- item two\n- item\n- item two\n** DONE Done\n**** Four\n* Heading\n:PROPERTIES:\n:ID: x\n:END:\n",
+  "point": 76,
+  "command": "org-backward-heading-same-level",
+  "count": -2,
+  "times": 2,
+  "expected": {
+   "point": 68,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n[[file:a.org]]\n#+begin_example\n** inside\n#+end_example\n** DONE Done\n\n#+begin_example\n** inside\n#+end_example\n\n",
+  "point": 45,
+  "command": "outline-up-heading",
+  "times": 2,
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "*bold* text\n",
+  "point": 9,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n* Heading\nA [[https://orgmode.org][link]] and [[*Heading]].\n- item\n- item two\n#+TITLE: Doc\n#+begin_example\n** inside\n#+end_example\n**** Four\n*bold* text\n",
+  "point": 16,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n* TODO Task :tag:\n* Heading\n",
+  "point": 15,
+  "command": "outline-up-heading",
+  "count": 2,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n*** Deep\n*not heading\n",
+  "point": 8,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n * indented star\n** DONE Done\n- item\n- item two\n* TODO Task :tag:\n=[[verbatim]]= text\n** DONE Done\n** DONE Done\n",
+  "point": 61,
+  "command": "outline-up-heading",
+  "count": -1,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\n#+TITLE: Doc\n",
+  "point": 20,
+  "command": "org-forward-heading-same-level",
+  "times": 3,
+  "expected": {
+   "point": 26,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n=[[verbatim]]= text\n*bold* text\n- item\n- item two\nText line.\n**** Four\n#+begin_example\n** inside\n#+end_example\n* Heading\n\n",
+  "point": 21,
+  "command": "org-previous-visible-heading",
+  "count": -2,
+  "expected": {
+   "point": 97,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\n** Sub\nText line.\n#+begin_src org\n* not a heading?\n#+end_src\n#+begin_src org\n* not a heading?\n#+end_src\n[[file:a.org]]\n*** Deep\n * indented star\n",
+  "point": 140,
+  "command": "org-previous-link",
+  "count": 3,
+  "times": 2,
+  "expected": {
+   "point": 114,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n** Sub\nA [[https://orgmode.org][link]] and [[*Heading]].\n**** Four\n",
+  "point": 91,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n- item\n- item two\n",
+  "point": 16,
+  "command": "org-previous-visible-heading",
+  "count": -1,
+  "expected": {
+   "point": 33,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n* Heading\n- item\n- item two\n",
+  "point": 30,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n** DONE Done\nText line.\n** DONE Done\n#+TITLE: Doc\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 68,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 9,
+   "message": null
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\nPlain https://example.com/x and <mailto:a@b.c>.\n\nText line.\nPlain https://example.com/x and <mailto:a@b.c>.\n- item\n- item two\nA [[https://orgmode.org][link]] and [[*Heading]].\n** Sub\n",
+  "point": 120,
+  "command": "outline-up-heading",
+  "count": -2,
+  "times": 2,
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "*bold* text\n**** Four\n#+begin_example\n** inside\n#+end_example\nA [[https://orgmode.org][link]] and [[*Heading]].\n:PROPERTIES:\n:ID: x\n:END:\n* TODO Task :tag:\n** Sub\n",
+  "point": 34,
+  "command": "org-next-visible-heading",
+  "times": 3,
+  "expected": {
+   "point": 156,
+   "message": null
+  }
+ },
+ {
+  "text": "- item\n- item two\n* TODO Task :tag:\n=[[verbatim]]= text\n- item\n- item two\nA [[https://orgmode.org][link]] and [[*Heading]].\n * indented star\nText line.\n*not heading\nText line.\n",
+  "point": 74,
+  "command": "org-next-link",
+  "expected": {
+   "point": 76,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n** DONE Done\nText line.\n*** Deep\n** Sub\n** Sub\n",
+  "point": 21,
+  "command": "org-next-link",
+  "expected": {
+   "point": 21,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": " * indented star\n*bold* text\n:PROPERTIES:\n:ID: x\n:END:\n* Heading\n#+begin_example\n** inside\n#+end_example\n**** Four\nA [[https://orgmode.org][link]] and [[*Heading]].\n- item\n- item two\n",
+  "point": 14,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 55,
+   "message": null
+  }
+ },
+ {
+  "text": "- item\n- item two\n",
+  "point": 12,
+  "command": "org-next-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 18,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n * indented star\n:PROPERTIES:\n:ID: x\n:END:\n*** Deep\n=[[verbatim]]= text\n#+begin_src org\n* not a heading?\n#+end_src\n*bold* text\n",
+  "point": 63,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 106,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n** Sub\n*bold* text\n * indented star\n*not heading\n*bold* text\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 70,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 0,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\nPlain https://example.com/x and <mailto:a@b.c>.\n* Heading\n#+begin_example\n** inside\n#+end_example\nText line.\n\n* TODO Task :tag:\n",
+  "point": 97,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 150,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n * indented star\n",
+  "point": 15,
+  "command": "org-next-link",
+  "expected": {
+   "point": 15,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "*not heading\n\n#+TITLE: Doc\n*bold* text\n* TODO Task :tag:\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 8,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\nText line.\n=[[verbatim]]= text\n#+begin_example\n** inside\n#+end_example\n",
+  "point": 55,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "*** Deep\n",
+  "point": 0,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 0,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": ":PROPERTIES:\n:ID: x\n:END:\n\n",
+  "point": 18,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\n**** Four\n#+begin_src org\n* not a heading?\n#+end_src\n* TODO Task :tag:\n=[[verbatim]]= text\n** DONE Done\n",
+  "point": 1,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 7,
+   "message": null
+  }
+ },
+ {
+  "text": "\n*not heading\n\n** Sub\n#+begin_src org\n* not a heading?\n#+end_src\n* TODO Task :tag:\n*not heading\n** Sub\n- item\n- item two\n",
+  "point": 99,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 65,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n*bold* text\n*bold* text\n- item\n- item two\n",
+  "point": 48,
+  "command": "org-previous-link",
+  "count": -1,
+  "expected": {
+   "point": 48,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n",
+  "point": 3,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 47,
+  "command": "org-next-link",
+  "expected": {
+   "point": 47,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "*not heading\n\n",
+  "point": 2,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n",
+  "point": 2,
+  "command": "org-next-link",
+  "expected": {
+   "point": 2,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "* Heading\n:PROPERTIES:\n:ID: x\n:END:\n** Sub\n* TODO Task :tag:\n#+begin_example\n** inside\n#+end_example\n*** Deep\n#+begin_example\n** inside\n#+end_example\n** Sub\n* TODO Task :tag:\n",
+  "point": 13,
+  "command": "org-next-link",
+  "count": 2,
+  "expected": {
+   "point": 13,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "#+TITLE: Doc\n:PROPERTIES:\n:ID: x\n:END:\n- item\n- item two\n[[file:a.org]]\n",
+  "point": 0,
+  "command": "org-previous-visible-heading",
+  "count": 3,
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "* Heading\nText line.\n=[[verbatim]]= text\nPlain https://example.com/x and <mailto:a@b.c>.\n#+begin_example\n** inside\n#+end_example\n * indented star\n*** Deep\n* Heading\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 23,
+  "command": "org-next-visible-heading",
+  "times": 3,
+  "expected": {
+   "point": 155,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n*not heading\n\n*not heading\n*** Deep\n* Heading\n",
+  "point": 39,
+  "command": "outline-up-heading",
+  "count": -2,
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n#+TITLE: Doc\n",
+  "point": 10,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 31,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\n#+begin_example\n** inside\n#+end_example\n*** Deep\nText line.\n",
+  "point": 60,
+  "command": "outline-up-heading",
+  "expected": {
+   "point": 23,
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n#+begin_example\n** inside\n#+end_example\nPlain https://example.com/x and <mailto:a@b.c>.\n * indented star\n*bold* text\n*** Deep\n",
+  "point": 88,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 160,
+   "message": null
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n#+TITLE: Doc\n** DONE Done\n",
+  "point": 58,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 16,
+   "message": null
+  }
+ },
+ {
+  "text": "** DONE Done\n*** Deep\n- item\n- item two\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 2,
+  "command": "org-previous-visible-heading",
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": " * indented star\n",
+  "point": 2,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n*** Deep\nText line.\nA [[https://orgmode.org][link]] and [[*Heading]].\n * indented star\n** Sub\n* Heading\n#+TITLE: Doc\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 81,
+  "command": "outline-up-heading",
+  "times": 2,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 55,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n*bold* text\n#+begin_src org\n* not a heading?\n#+end_src\n[[file:a.org]]\n** DONE Done\n=[[verbatim]]= text\nPlain https://example.com/x and <mailto:a@b.c>.\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 50,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\n*** Deep\n**** Four\n** DONE Done\n* Heading\nA [[https://orgmode.org][link]] and [[*Heading]].\n\n",
+  "point": 18,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "**** Four\n** DONE Done\n * indented star\n\n * indented star\n#+TITLE: Doc\n#+TITLE: Doc\n",
+  "point": 25,
+  "command": "outline-up-heading",
+  "count": 2,
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\n",
+  "point": 3,
+  "command": "org-previous-visible-heading",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*** Deep\n*not heading\n#+begin_src org\n* not a heading?\n#+end_src\n* Heading\n*** Deep\n",
+  "point": 46,
+  "command": "org-previous-link",
+  "count": -2,
+  "times": 3,
+  "expected": {
+   "point": 46,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "#+begin_example\n** inside\n#+end_example\n* TODO Task :tag:\nPlain https://example.com/x and <mailto:a@b.c>.\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 88,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 40,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n*not heading\n[[file:a.org]]\n=[[verbatim]]= text\n\n:PROPERTIES:\n:ID: x\n:END:\n#+begin_example\n** inside\n#+end_example\n- item\n- item two\n** DONE Done\n",
+  "point": 107,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 25,
+   "message": null
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n- item\n- item two\n* TODO Task :tag:\n",
+  "point": 4,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*bold* text\n* Heading\n- item\n- item two\n#+TITLE: Doc\n*** Deep\n** DONE Done\n",
+  "point": 58,
+  "command": "org-next-link",
+  "expected": {
+   "point": 58,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": " * indented star\n",
+  "point": 7,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 7,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "A [[https://orgmode.org][link]] and [[*Heading]].\n\n** DONE Done\n\n:PROPERTIES:\n:ID: x\n:END:\n:PROPERTIES:\n:ID: x\n:END:\n#+TITLE: Doc\nA [[https://orgmode.org][link]] and [[*Heading]].\n",
+  "point": 90,
+  "command": "org-backward-heading-same-level",
+  "times": 3,
+  "expected": {
+   "point": 51,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\nPlain https://example.com/x and <mailto:a@b.c>.\n:PROPERTIES:\n:ID: x\n:END:\n*not heading\n:PROPERTIES:\n:ID: x\n:END:\n=[[verbatim]]= text\n*not heading\n",
+  "point": 101,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 44,
+  "command": "outline-up-heading",
+  "times": 3,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "Text line.\n * indented star\n=[[verbatim]]= text\n",
+  "point": 43,
+  "command": "org-next-link",
+  "expected": {
+   "point": 43,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n*bold* text\n* Heading\n#+begin_example\n** inside\n#+end_example\nText line.\n* TODO Task :tag:\n*not heading\n:PROPERTIES:\n:ID: x\n:END:\n\n",
+  "point": 77,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "\n",
+  "point": 0,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n * indented star\n#+TITLE: Doc\nText line.\n*bold* text\n- item\n- item two\n* Heading\n[[file:a.org]]\n",
+  "point": 57,
+  "command": "org-next-visible-heading",
+  "count": -2,
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "\n * indented star\n* TODO Task :tag:\n[[file:a.org]]\n",
+  "point": 33,
+  "command": "org-next-link",
+  "times": 3,
+  "expected": {
+   "point": 36,
+   "message": "Link search wrapped back to beginning of buffer"
+  }
+ },
+ {
+  "text": "** Sub\n#+begin_example\n** inside\n#+end_example\n:PROPERTIES:\n:ID: x\n:END:\n** Sub\nPlain https://example.com/x and <mailto:a@b.c>.\n[[file:a.org]]\n#+begin_example\n** inside\n#+end_example\n",
+  "point": 84,
+  "command": "org-next-link",
+  "count": -2,
+  "expected": {
+   "point": 86,
+   "message": null
+  }
+ },
+ {
+  "text": "** Sub\n * indented star\n#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 14,
+  "command": "org-forward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "\n*not heading\n * indented star\n*** Deep\n",
+  "point": 25,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 25,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "\n*not heading\n",
+  "point": 10,
+  "command": "outline-up-heading",
+  "count": -1,
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "*** Deep\nText line.\n",
+  "point": 9,
+  "command": "org-previous-link",
+  "expected": {
+   "point": 9,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "**** Four\n",
+  "point": 3,
+  "command": "org-next-visible-heading",
+  "expected": {
+   "point": 10,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n#+TITLE: Doc\n#+TITLE: Doc\n** Sub\n:PROPERTIES:\n:ID: x\n:END:\n:PROPERTIES:\n:ID: x\n:END:\n** Sub\n*not heading\n",
+  "point": 41,
+  "command": "org-previous-visible-heading",
+  "count": 2,
+  "times": 2,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "Plain https://example.com/x and <mailto:a@b.c>.\n\n* TODO Task :tag:\n** Sub\n- item\n- item two\n#+begin_src org\n* not a heading?\n#+end_src\n\n",
+  "point": 9,
+  "command": "outline-up-heading",
+  "expected": {
+   "error": "Before first heading"
+  }
+ },
+ {
+  "text": "#+begin_src org\n* not a heading?\n#+end_src\n",
+  "point": 2,
+  "command": "org-backward-heading-same-level",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "*not heading\n- item\n- item two\n** Sub\n",
+  "point": 18,
+  "command": "org-previous-link",
+  "times": 2,
+  "expected": {
+   "point": 18,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n** DONE Done\n#+begin_src org\n* not a heading?\n#+end_src\n\n** Sub\n:PROPERTIES:\n:ID: x\n:END:\nA [[https://orgmode.org][link]] and [[*Heading]].\n- item\n- item two\n\n",
+  "point": 45,
+  "command": "org-next-link",
+  "count": -1,
+  "expected": {
+   "point": 107,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]]\n=[[verbatim]]= text\n*not heading\n** Sub\n* TODO Task :tag:\n** DONE Done\nPlain https://example.com/x and <mailto:a@b.c>.\n*bold* text\n",
+  "point": 82,
+  "command": "org-next-link",
+  "count": -1,
+  "expected": {
+   "point": 92,
+   "message": null
+  }
+ },
+ {
+  "text": "* TODO Task :tag:\n\n* TODO Task :tag:\n*** Deep\n * indented star\n[[file:a.org]]\n*not heading\n- item\n- item two\n",
+  "point": 22,
+  "command": "outline-up-heading",
+  "times": 2,
+  "expected": {
+   "error": "Already at top level of the outline"
+  }
+ },
+ {
+  "text": "** Sub\n[[file:a.org]]\n*** Deep\n:PROPERTIES:\n:ID: x\n:END:\n#+begin_example\n** inside\n#+end_example\nA [[https://orgmode.org][link]] and [[*Heading]].\n- item\n- item two\nPlain https://example.com/x and <mailto:a@b.c>.\n",
+  "point": 140,
+  "command": "org-backward-heading-same-level",
+  "times": 3,
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]] [[https://x.y][d]]\n",
+  "point": 1,
+  "command": "org-next-link",
+  "expected": {
+   "point": 0,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]] [[https://x.y][d]]\n",
+  "point": 2,
+  "command": "org-next-link",
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "[[file:a.org]] [[https://x.y][d]]\n",
+  "point": 3,
+  "command": "org-next-link",
+  "expected": {
+   "point": 15,
+   "message": null
+  }
+ },
+ {
+  "text": "a <mailto:a@b.c> b\n",
+  "point": 2,
+  "command": "org-next-link",
+  "expected": {
+   "point": 2,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "a <mailto:a@b.c> b\n",
+  "point": 3,
+  "command": "org-next-link",
+  "expected": {
+   "point": 3,
+   "message": "No further link found"
+  }
+ },
+ {
+  "text": "a <mailto:a@b.c> b\n",
+  "point": 4,
+  "command": "org-next-link",
+  "expected": {
+   "point": 4,
+   "message": "No further link found"
+  }
+ }
+]
