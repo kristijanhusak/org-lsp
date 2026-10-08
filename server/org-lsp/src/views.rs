@@ -139,7 +139,7 @@ fn token_style(style: Style) -> Option<(TokenType, u32)> {
             Face::DeadlineWarning => (TokenType::AgendaDeadline, modifier::IMMINENT),
             Face::DeadlineUpcoming => (TokenType::AgendaDeadline, 0),
             Face::DeadlineDistant => (TokenType::AgendaDeadline, modifier::DISTANT),
-            Face::CalendarEvent => (TokenType::AgendaEvent, 0),
+            Face::CalendarEvent | Face::CalendarSexp => (TokenType::AgendaEvent, 0),
             Face::CalendarDateRange => (TokenType::AgendaEvent, modifier::RANGE),
             Face::Done => (TokenType::AgendaDone, 0),
             Face::TimeGrid => (TokenType::AgendaTimeGrid, 0),

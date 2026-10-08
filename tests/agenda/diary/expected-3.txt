@@ -1,0 +1,67 @@
+Month-agenda (W21-W25):
+Monday     18 May 2026 W21
+               8:00...... ----------------
+               8:20...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              10:00...... ----------------
+  cal:        10:00...... Every other Monday, the 1st time 
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  cal:        Ann is 36 years old                                          :fam:
+  cal:        Third Monday of the month
+  cal:        Mondays in May
+  cal:        Trip
+  cal:        Weekly from today
+Tuesday    19 May 2026
+  cal:        Bob's 46th birthday                                          :fam:
+  cal:        Trip
+Wednesday  20 May 2026
+  cal:        14:00...... Class on Wednesdays 
+  cal:        Monthly bill                                                 :fam:
+Thursday   21 May 2026
+  cal:        One day
+Friday     22 May 2026
+  cal:         9:30...... Payday
+Saturday   23 May 2026
+  cal:        Weekend
+Sunday     24 May 2026
+  cal:        Weekend
+Monday     25 May 2026 W22
+  cal:        Mondays in May
+  cal:        Weekly from today
+Tuesday    26 May 2026
+Wednesday  27 May 2026
+Thursday   28 May 2026
+Friday     29 May 2026
+  cal:        Last Friday of May or June
+Saturday   30 May 2026
+Sunday     31 May 2026
+Monday      1 June 2026 W23
+  cal:        10:00...... Every other Monday, the 2nd time 
+  cal:        Weekly from today
+Tuesday     2 June 2026
+Wednesday   3 June 2026
+  cal:        14:00...... Class on Wednesdays 
+Thursday    4 June 2026
+Friday      5 June 2026
+Saturday    6 June 2026
+Sunday      7 June 2026
+Monday      8 June 2026 W24
+  cal:        Weekly from today
+Tuesday     9 June 2026
+Wednesday  10 June 2026
+  cal:        14:00...... Class on Wednesdays 
+Thursday   11 June 2026
+  cal:        TODO Garbage <%%(diary-float t 4 2)>
+Friday     12 June 2026
+Saturday   13 June 2026
+Sunday     14 June 2026
+Monday     15 June 2026 W25
+  cal:        10:00...... Every other Monday, the 3rd time 
+  cal:        Third Monday of the month
+  cal:        Weekly from today
+Tuesday    16 June 2026
+Wednesday  17 June 2026
+  cal:        14:00...... Class on Wednesdays 

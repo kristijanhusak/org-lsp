@@ -162,6 +162,9 @@ pub struct Stamp {
     pub repeat_end: Option<usize>,
     /// What shows when the scan stops at the repeater form.
     pub on_repeat: Option<Shown>,
+    /// A diary timestamp, `<%%(…)>`: its sexp, and what shows on the days
+    /// it applies to.
+    pub diary: Option<(String, Shown)>,
 }
 
 /// The entry a timestamp belongs to, and the timestamp as the agenda reads it.
@@ -169,6 +172,19 @@ pub struct Stamp {
 pub struct Shown {
     pub entry: usize,
     pub text: String,
+}
+
+/// A diary sexp line.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SexpLine {
+    /// Byte offset of the line.
+    pub offset: usize,
+    /// The sexp, from its `(` to its `)`.
+    pub sexp: String,
+    /// The text after it, without the blanks around it.
+    pub text: String,
+    /// The entry it is in; none before the first headline.
+    pub entry: Option<usize>,
 }
 
 /// A date range, `<…>--<…>`, that the agenda shows.
@@ -229,6 +245,8 @@ pub struct Outline {
     pub entries: Vec<Entry>,
     pub stamps: Vec<Stamp>,
     pub blocks: Vec<Block>,
+    /// The diary sexp lines, `%%(…)` or `&%%(…)` at the start of a line.
+    pub sexps: Vec<SexpLine>,
     pub logs: Vec<Log>,
     pub clocks: Vec<ClockLine>,
     /// The properties of the drawer before the first headline, keys in
@@ -275,6 +293,7 @@ impl Outline {
             entries: Vec::new(),
             stamps: Vec::new(),
             blocks: Vec::new(),
+            sexps: Vec::new(),
             logs: Vec::new(),
             clocks: Vec::new(),
             keyword_properties: keyword_properties(&root),
@@ -293,6 +312,7 @@ impl Outline {
         }
         outline.collect_stamps(&root, text);
         outline.collect_blocks(&root, text);
+        outline.collect_sexps(text);
         outline.collect_logs(text);
         outline
     }
@@ -537,6 +557,29 @@ impl Outline {
             from = offset + 1;
             let date = is_date_at(bytes, offset + 1).then(|| parse_date(&text[offset + 1..offset + 11]));
             let repeat_end = repeater_form_end(text, offset);
+            // `<%%(SEXP)REST>`: the sexp runs to the last `)` before `>`.
+            if date.is_none() && text[offset..].starts_with("<%%(") {
+                let line_end = text[offset..].find('\n').map_or(text.len(), |at| offset + at);
+                let Some(close) = text[offset..line_end].find('>').map(|at| offset + at) else { continue };
+                let Some(sexp_end) = text[offset..close].rfind(')').map(|at| offset + at + 1) else { continue };
+                if sexp_end <= offset + 4 {
+                    continue;
+                }
+                let end = close + 1;
+                let shown = self.stamp_entry(root, text, end, offset + 1, end).map(|entry| {
+                    (text[offset + 3..sexp_end].to_string(), Shown { entry, text: text[offset..end].to_string() })
+                });
+                self.stamps.push(Stamp {
+                    offset,
+                    date: None,
+                    on_date: None,
+                    repeat_end: None,
+                    on_repeat: None,
+                    diary: shown,
+                });
+                from = end;
+                continue;
+            }
             if date.is_none() && repeat_end.is_none() {
                 continue;
             }
@@ -551,7 +594,7 @@ impl Outline {
                 let entry = self.stamp_entry(root, text, end, end - 1, end)?;
                 Some(Shown { entry, text: text[offset..end].to_string() })
             });
-            self.stamps.push(Stamp { offset, date, on_date, repeat_end, on_repeat });
+            self.stamps.push(Stamp { offset, date, on_date, repeat_end, on_repeat, diary: None });
         }
     }
 
@@ -592,6 +635,26 @@ impl Outline {
         // In a property drawer anything shaped like a timestamp counts.
         let line_end = text[inside..].find('\n').map_or(text.len(), |index| inside + index);
         (timestamp || (in_property && end <= line_end)).then_some(entry)
+    }
+
+    /// The diary sexp lines (`org-agenda-get-sexps`): `%%(` or `&%%(` at
+    /// the start of a line, the sexp read as `forward-sexp` reads it.
+    fn collect_sexps(&mut self, text: &str) {
+        let mut offset = 0;
+        for line in text.split_inclusive('\n') {
+            let start = offset;
+            offset += line.len();
+            let Some(rest) = line.strip_prefix("%%(").or_else(|| line.strip_prefix("&%%(")) else { continue };
+            let open = start + line.len() - rest.len() - 1;
+            let Some(close) = sexp_end(text, open) else { continue };
+            let after = text[close..].split('\n').next().unwrap_or("");
+            self.sexps.push(SexpLine {
+                offset: start,
+                sexp: text[open..close].to_string(),
+                text: after.trim_matches([' ', '\t']).to_string(),
+                entry: self.entry_at(start),
+            });
+        }
     }
 
     /// Date ranges, found the way `org-agenda-get-blocks` finds them: by
@@ -1075,6 +1138,31 @@ fn clock_end(rest: &str) -> Option<(String, String)> {
         }
         if let Some(second_end) = time_at(rest, at) {
             return Some((until, rest[at..second_end].to_string()));
+        }
+    }
+    None
+}
+
+/// Where the list that opens at `open` ends (`forward-sexp`): past its
+/// closing parenthesis, strings and escapes taken into account.
+fn sexp_end(text: &str, open: usize) -> Option<usize> {
+    let mut depth = 0;
+    let mut in_string = false;
+    let mut chars = text[open..].char_indices();
+    while let Some((at, c)) = chars.next() {
+        match c {
+            '\\' => {
+                chars.next();
+            }
+            '"' => in_string = !in_string,
+            '(' if !in_string => depth += 1,
+            ')' if !in_string => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(open + at + 1);
+                }
+            }
+            _ => {}
         }
     }
     None

@@ -1,0 +1,30 @@
+Week-agenda (W21):
+Monday     18 May 2026 W21
+               8:00...... ----------------
+               8:20...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              10:00...... ----------------
+  cal:        10:00...... Every other Monday, the 1st time 
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  cal:        Ann is 36 years old                                          :fam:
+  cal:        Third Monday of the month
+  cal:        Mondays in May
+  cal:        Trip
+  cal:        Weekly from today
+Tuesday    19 May 2026
+  cal:        Bob's 46th birthday                                          :fam:
+  cal:        Trip
+Wednesday  20 May 2026
+  cal:        14:00...... Class on Wednesdays 
+  cal:        Monthly bill                                                 :fam:
+Thursday   21 May 2026
+  cal:        One day
+Friday     22 May 2026
+  cal:         9:30...... Payday
+Saturday   23 May 2026
+  cal:        Weekend
+Sunday     24 May 2026
+  cal:        Weekend

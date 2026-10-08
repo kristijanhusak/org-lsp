@@ -20,7 +20,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Tags](#tags) | 100% | 6 of 6 |
 | [Properties and column view](#properties-and-column-view) | 67% | 4 of 6 |
 | [Dates and times](#dates-and-times) | 100% | 8 of 8 |
-| [Agenda](#agenda) | 80% | 16 of 20 |
+| [Agenda](#agenda) | 81% | 17 of 21 |
 | [Clocking](#clocking) | 100% | 8 of 8 |
 | [Capture](#capture) | 82% | 9 of 11 |
 | [Refile and archive](#refile-and-archive) | 82% | 9 of 11 |
@@ -205,7 +205,7 @@ Where editors fall short:
 
 ## Agenda
 
-80% (16 of 20)
+81% (17 of 21)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
@@ -223,7 +223,8 @@ Where editors fall short:
 - ✅ Lines formatted as Org formats them (`org-agenda-prefix-format` and the rest)
 - ✅ The time grid
 - ✅ Habits (`org-habit`): the consistency graph, `K`
-- ❌ Diary entries and sexps (`%%(diary-…)`)
+- ✅ Diary sexps (`%%(diary-…)` lines, `<%%(…)>` timestamps): the date functions of `diary-lib` and Org (`diary-anniversary`, `-block`, `-cyclic`, `-date`, `-float`, `org-class`…) with `and`, `or`, `not` and comparisons
+- ❌ Diary sexps calling other Lisp
 - ❌ Column view in the agenda
 - ❌ Writing the agenda to a file (`C-x C-w`)
 - ❌ Appointment reminders (`org-agenda-to-appt`)
