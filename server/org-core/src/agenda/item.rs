@@ -77,6 +77,11 @@ pub struct Item {
     /// Length of the TODO keyword at `heading`, if the headline has one.
     pub keyword_len: usize,
     pub keyword_done: bool,
+    /// The habit a scheduled line is (`org-habit-p`), with `org-habit`.
+    pub habit: Option<Box<super::habit::Habit>>,
+    /// Where the line's consistency graph starts, and the face of each of
+    /// its days.
+    pub graph: Option<(usize, Vec<super::habit::Face>)>,
 }
 
 /// What a specifier of `org-agenda-prefix-format` stands for.

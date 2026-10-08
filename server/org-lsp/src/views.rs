@@ -146,6 +146,20 @@ fn token_style(style: Style) -> Option<(TokenType, u32)> {
             Face::CurrentTime => (TokenType::AgendaTimeGrid, modifier::CURRENT),
             Face::Default => return None,
         },
+        Style::Habit(face) => {
+            use org_core::agenda::habit::Face as Habit;
+            let (kind, future) = match face {
+                Habit::Clear => (0, false),
+                Habit::ClearFuture => (0, true),
+                Habit::Ready => (modifier::READY, false),
+                Habit::ReadyFuture => (modifier::READY, true),
+                Habit::Alert => (modifier::ALERT, false),
+                Habit::AlertFuture => (modifier::ALERT, true),
+                Habit::Overdue => (modifier::OVERDUE, false),
+                Habit::OverdueFuture => (modifier::OVERDUE, true),
+            };
+            (TokenType::AgendaHabit, kind | if future { modifier::FUTURE } else { 0 })
+        }
     })
 }
 

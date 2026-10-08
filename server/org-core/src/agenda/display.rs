@@ -28,6 +28,8 @@ pub enum Style {
     Link,
     /// A clock report's table.
     Table,
+    /// A day of a habit's consistency graph.
+    Habit(super::habit::Face),
 }
 
 /// A styled byte range of a displayed line.
@@ -104,6 +106,16 @@ pub fn display(line: &Line) -> Displayed {
             let target = if open.1 - open.0 > 2 { &raw[open.0 + 2..open.1 - 2] } else { &raw[open.1..close.0] };
             raw_links.push((open.1, close.0, target.to_string()));
             parts.push(Segment { start: open.1, end: close.0, style: Style::Link });
+        }
+    }
+    // The days of a habit's graph, over whatever they stand on.
+    if let Some((start, faces)) = &item.graph {
+        let mut at = *start;
+        for face in faces {
+            let Some(c) = raw[at.min(raw.len())..].chars().next() else { break };
+            parts.retain(|part| part.end <= at || part.start >= at + c.len_utf8());
+            parts.push(Segment { start: at, end: at + c.len_utf8(), style: Style::Habit(*face) });
+            at += c.len_utf8();
         }
     }
     if let Some((_, tags_start)) = tag_group(raw) {
@@ -231,6 +243,8 @@ mod tests {
                 marker: None,
                 keyword_len,
                 keyword_done: false,
+                habit: None,
+                graph: None,
             }),
         }
     }

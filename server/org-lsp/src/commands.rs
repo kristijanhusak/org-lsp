@@ -131,6 +131,7 @@ pub const AGENDA_QUERY_SUBTRACT: &str = "org.agenda.query.subtract";
 pub const AGENDA_QUERY_ADD_REGEXP: &str = "org.agenda.query.add.regexp";
 pub const AGENDA_QUERY_SUBTRACT_REGEXP: &str = "org.agenda.query.subtract.regexp";
 pub const AGENDA_LOG: &str = "org.agenda.log";
+pub const AGENDA_HABITS: &str = "org.agenda.habits";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
 pub const AGENDA_ENTRY_TEXT: &str = "org.agenda.entry.text";
 pub const AGENDA_FOLLOW: &str = "org.agenda.follow";
@@ -360,6 +361,9 @@ pub const COMMANDS: &[Command] = &[
     Command { emacs: &[key(Agenda, "TAB")], ..command(AGENDA_GOTO_OTHER, "Agenda: go to the entry in another window") },
     Command { emacs: &[key(Agenda, "s"), key(Agenda, "C-x C-s")], ..command(AGENDA_SAVE, "Save all Org files") },
     Command { emacs: &[key(Agenda, "v l")], ..command(AGENDA_LOG, "Agenda: log mode, what was closed and clocked") },
+    // `org-habit-toggle-display-in-agenda`; with `C-u`, every habit today
+    // or only those due (`org-habit-show-all-today`).
+    Command { emacs: &[key(Agenda, "K")], ..command(AGENDA_HABITS, "Agenda: show or hide habits") },
     Command {
         emacs: &[key(Agenda, "R"), key(Agenda, "v R")],
         ..command(AGENDA_CLOCKREPORT, "Agenda: the clock report")

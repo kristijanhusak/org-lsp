@@ -11,6 +11,7 @@
 mod display;
 pub mod entry_text;
 pub mod filter;
+pub mod habit;
 mod item;
 pub mod matcher;
 pub mod report;
@@ -237,6 +238,9 @@ pub struct Config {
     pub archives: bool,
     /// `org-agenda-prefix-format`
     pub prefix_format: PrefixFormats,
+    /// The `org-habit-…` options, when `org-habit` is loaded (it is one of
+    /// `org-modules`); none without it.
+    pub habits: Option<habit::Settings>,
     /// How the search view reads its search string.
     pub search: SearchSettings,
     /// `org-agenda-todo-keyword-format`
@@ -380,6 +384,7 @@ impl Default for Config {
             hide_empty_blocks: false,
             archives: false,
             prefix_format: PrefixFormats::default(),
+            habits: None,
             search: SearchSettings::default(),
             todo_keyword_format: "%-1s".to_string(),
             scheduled_leaders: ["Scheduled: ".to_string(), "Sched.%2dx: ".to_string()],
@@ -412,6 +417,8 @@ struct Builder<'a> {
     today: Day,
     /// The view's `org-agenda-prefix-format`, compiled.
     format: PrefixFormat,
+    /// The first habit Org could not read: the view fails with it.
+    error: std::cell::RefCell<Option<String>>,
 }
 
 /// Which of `org-agenda-prefix-format`'s formats a view uses.
@@ -432,7 +439,7 @@ impl<'a> Builder<'a> {
             ViewKind::Tags => &formats.tags,
             ViewKind::Search => &formats.search,
         };
-        Builder { files, config, today, format: PrefixFormat::new(format) }
+        Builder { files, config, today, format: PrefixFormat::new(format), error: Default::default() }
     }
 
     /// `%b`: the titles above the entry, each followed by the separator
@@ -522,6 +529,8 @@ impl Builder<'_> {
             marker: None,
             keyword_len,
             keyword_done,
+            habit: None,
+            graph: None,
         }
     }
 
@@ -574,6 +583,40 @@ impl Builder<'_> {
         }
     }
 
+    /// Whether the entry is a habit (`org-is-habit-p`, its own `STYLE`),
+    /// with `org-habit` loaded.
+    fn is_habit(&self, file: usize, entry: usize) -> bool {
+        self.config.habits.is_some()
+            && self.files[file].entries[entry]
+                .properties
+                .iter()
+                .any(|(key, value)| key.eq_ignore_ascii_case("STYLE") && value == "habit")
+    }
+
+    /// `org-habit-parse-todo` of the entry, scheduled at `scheduled`; an
+    /// error makes the view fail.
+    fn habit(&self, file: usize, entry: usize, scheduled: Option<&str>) -> Option<habit::Habit> {
+        let settings = self.config.habits.as_ref()?;
+        let outline = self.files[file];
+        let found = &outline.entries[entry];
+        let end = outline.entries.get(entry + 1).map_or(outline.text.len(), |next| next.offset);
+        let text = &outline.text[found.offset..end.max(found.offset)];
+        let limit = (settings.preceding_days + settings.following_days).max(0) as usize;
+        let done: Vec<String> =
+            outline.todo.names().filter(|name| outline.todo.is_done(name)).map(str::to_string).collect();
+        let parsed = match scheduled {
+            Some(scheduled) => habit::parse(scheduled, &found.head, text, &done, limit),
+            None => Err(format!("Habit {} has no scheduled date", found.head)),
+        };
+        match parsed {
+            Ok(habit) => Some(habit),
+            Err(error) => {
+                self.error.borrow_mut().get_or_insert(error);
+                None
+            }
+        }
+    }
+
     /// `org-agenda-get-scheduled`
     fn scheduled(&self, file: usize, current: Day, out: &mut Vec<Item>) {
         let is_today = current == self.today;
@@ -587,31 +630,62 @@ impl Builder<'_> {
             let repeat = self.future_repeat(raw, schedule, current);
             let diff = current - schedule;
             let past = schedule < self.today;
+            let future = schedule > self.today;
+            let habits = self.config.habits.as_ref();
+            let is_habit = self.is_habit(file, index);
             let delay = warning_days(raw, self.config.scheduled_delay_days, true, false);
             // A scheduled entry shows on its date, today once that date has
-            // passed, and on later repeats; a delay holds it back.
-            let hidden = (delay > 0 && diff < delay)
-                || diff > self.config.scheduled_past_days
-                || schedule > current
-                || (current != schedule && !is_today && current != repeat);
+            // passed, and on later repeats; a delay holds it back. With
+            // `org-habit-show-all-today`, a habit shows today in any case.
+            let past_days = habits
+                .and_then(|habits| habits.scheduled_past_days)
+                .filter(|_| is_habit)
+                .unwrap_or(self.config.scheduled_past_days);
+            let all_today = is_today && is_habit && habits.is_some_and(|habits| habits.show_all_today);
+            let hidden = !all_today
+                && ((delay > 0 && diff < delay)
+                    || diff > past_days
+                    || schedule > current
+                    || (current != schedule && !is_today && current != repeat));
             if hidden || (entry.element_done && (self.config.skip_scheduled_if_done || schedule != current)) {
                 continue;
             }
+            // Habits not shown, or only today, and never once done.
+            if is_habit
+                && (entry.element_done
+                    || habits
+                        .is_some_and(|habits| !habits.show_habits || (!is_today && habits.show_habits_only_for_today)))
+            {
+                continue;
+            }
             let [first, later] = &self.config.scheduled_leaders;
-            let extra = if is_today && past { format_numbers(later, &[diff]) } else { first.clone() };
-            let face = if entry.element_done {
+            let extra = if is_habit {
+                String::new()
+            } else if is_today && past {
+                format_numbers(later, &[diff])
+            } else {
+                first.clone()
+            };
+            let face = if entry.element_done || (is_habit && future) {
                 Face::Done
-            } else if past {
+            } else if past && !is_habit {
                 Face::ScheduledPreviously
             } else if is_today {
                 Face::ScheduledToday
             } else {
                 Face::Scheduled
             };
-            let time = planning_time(raw, current != schedule && current != repeat);
+            // Habits show their time of day on any day.
+            let time = planning_time(raw, !is_habit && current != schedule && current != repeat);
             let mut item = self.item(file, index, ItemKind::Scheduled, face, &extra, time.as_dotime());
             item.marker = Some(planning.offset);
-            item.priority += 99 + diff;
+            match is_habit.then(|| self.habit(file, index, Some(raw))).flatten() {
+                Some(habit) => {
+                    item.priority = habit.urgency(self.today);
+                    item.habit = Some(Box::new(habit));
+                }
+                None => item.priority += 99 + diff,
+            }
             out.push(item);
         }
     }
@@ -689,6 +763,13 @@ impl Builder<'_> {
             let mut item =
                 self.item(file, shown.entry, ItemKind::Timestamp, Face::CalendarEvent, "", Dotime::Text(&shown.text));
             item.marker = Some(stamp.offset);
+            // A habit's urgency (`org-habit-get-urgency`).
+            if self.is_habit(file, shown.entry) {
+                let scheduled = outline.entries[shown.entry].scheduled.as_ref().map(|planning| planning.raw.as_str());
+                if let Some(habit) = self.habit(file, shown.entry, scheduled) {
+                    item.priority = habit.urgency(self.today);
+                }
+            }
             out.push(item);
         }
     }
@@ -753,6 +834,8 @@ impl Builder<'_> {
                 marker: Some(log.offset),
                 keyword_len,
                 keyword_done,
+                habit: None,
+                graph: None,
             });
         }
     }
@@ -803,6 +886,8 @@ impl Builder<'_> {
                 marker: None,
                 keyword_len: 0,
                 keyword_done: false,
+                habit: None,
+                graph: None,
             }
         };
         // Org builds this list back to front, and the order decides ties.
@@ -868,12 +953,17 @@ fn planning_time(raw: &str, reminder: bool) -> PlanningTime {
     }
 }
 
-/// `org-entries-lessp` with the default strategies: by time (lines
-/// without one last), then by priority, highest first.
+/// `org-entries-lessp` with the default strategies: in the agenda, habits
+/// last (`habit-down`), then by time (lines without one last); then by
+/// urgency, highest first.
 fn sort(items: &mut [Item], by_time: bool) {
     items.sort_by(|a, b| {
         let time = |item: &Item| item.time_of_day.unwrap_or(9901);
-        let by_time = if by_time { time(a).cmp(&time(b)) } else { std::cmp::Ordering::Equal };
+        let by_time = if by_time {
+            a.habit.is_some().cmp(&b.habit.is_some()).then(time(a).cmp(&time(b)))
+        } else {
+            std::cmp::Ordering::Equal
+        };
         by_time.then(b.priority.cmp(&a.priority))
     });
 }
@@ -959,12 +1049,53 @@ impl View {
     }
 }
 
-fn item_line(item: Item, config: &Config) -> Line {
+fn item_line(mut item: Item, config: &Config, today: Day) -> Line {
     let column = match config.tags_column {
         TagsColumn::Column(column) => column,
         TagsColumn::Auto => -(config.window_width.unwrap_or(80) as i64),
     };
-    Line { text: align_tags(&item.text, column), kind: LineKind::Item, item: Some(item) }
+    let mut text = align_tags(&item.text, column);
+    // `org-habit-insert-consistency-graphs`, once the tags are aligned.
+    if let (Some(habit), Some(settings)) = (&item.habit, &config.habits) {
+        let graph = habit.graph(today - settings.preceding_days, today, today + settings.following_days, settings);
+        let (graphed, start) = insert_graph(&text, settings.graph_column, &graph);
+        text = graphed;
+        item.graph = Some((start, graph.iter().map(|(_, face)| *face).collect()));
+    }
+    Line { text, kind: LineKind::Item, item: Some(item) }
+}
+
+/// `text` with `graph` put in at display column `column` (`move-to-column`
+/// with blanks added up to it), over as many characters as the graph and
+/// its trailing blank have; and where it starts.
+fn insert_graph(text: &str, column: usize, graph: &[(char, habit::Face)]) -> (String, usize) {
+    let mut at = text.len();
+    let mut padding = 0;
+    let mut width = 0;
+    let hidden = item::hidden_ranges(text);
+    for (offset, c) in text.char_indices() {
+        if width >= column {
+            at = offset;
+            break;
+        }
+        if hidden.iter().any(|(start, end)| *start <= offset && offset < *end) {
+            continue;
+        }
+        width = if c == '\t' { (width / 8 + 1) * 8 } else { width + crate::text::char_width(c) };
+    }
+    if width < column {
+        padding = column - width;
+    }
+    let length = graph.len() + 1;
+    let cut = text[at..].char_indices().nth(length).map_or(text.len(), |(offset, _)| at + offset);
+    let mut out = String::with_capacity(text.len() + length + padding);
+    out.push_str(&text[..at]);
+    out.push_str(&" ".repeat(padding));
+    let start = out.len();
+    out.extend(graph.iter().map(|(glyph, _)| *glyph));
+    out.push(' ');
+    out.push_str(&text[cut..]);
+    (out, start)
 }
 
 /// The first day of an agenda that should include `day`: week views go
@@ -1049,7 +1180,11 @@ pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, co
         });
         builder.add_time_grid(&mut items, ndays, is_today, now.minute);
         sort(&mut items, true);
-        lines.extend(items.into_iter().map(|item| item_line(item, config)));
+        lines.extend(items.into_iter().map(|item| item_line(item, config, now.today)));
+    }
+    // A habit Org cannot read stops the agenda, with why.
+    if let Some(error) = builder.error.take() {
+        lines = vec![Line { text: error, kind: LineKind::Header, item: None }];
     }
     View { lines, start, end: last + 1 }
 }
@@ -1062,7 +1197,7 @@ pub fn todo_view(files: &[&Outline], keywords: Option<&str>, config: &Config) ->
     let shown = wanted.as_ref().map_or("ALL".to_string(), |keywords| keywords.join("|"));
     let header = format!("Global list of TODO items of type: {shown}");
     let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    lines.extend(todo_items(files, wanted.as_deref(), config).into_iter().map(|item| item_line(item, config)));
+    lines.extend(todo_items(files, wanted.as_deref(), config).into_iter().map(|item| item_line(item, config, 0)));
     View { lines, start: 0, end: 0 }
 }
 
@@ -1084,7 +1219,7 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
     sort(&mut items, false);
     let header = format!("Headlines with TAGS match: {}", matcher.text);
     let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    lines.extend(items.into_iter().map(|item| item_line(item, config)));
+    lines.extend(items.into_iter().map(|item| item_line(item, config, 0)));
     View { lines, start: 0, end: 0 }
 }
 
@@ -1162,7 +1297,7 @@ pub fn stuck_view(files: &[&Outline], now: Now, config: &Config) -> Result<View,
     }
     sort(&mut items, false);
     let mut lines = vec![Line { text: "List of stuck projects: ".to_string(), kind: LineKind::Header, item: None }];
-    lines.extend(items.into_iter().map(|item| item_line(item, config)));
+    lines.extend(items.into_iter().map(|item| item_line(item, config, 0)));
     Ok(View { lines, start: 0, end: 0 })
 }
 
@@ -1228,7 +1363,7 @@ pub fn search_view(
     // the order: as found.
     let header = format!("Search words: {string}");
     let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    lines.extend(items.into_iter().map(|item| item_line(item, config)));
+    lines.extend(items.into_iter().map(|item| item_line(item, config, 0)));
     Ok(View { lines, start: 0, end: 0 })
 }
 

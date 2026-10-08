@@ -147,6 +147,13 @@
     }
   },
   {
+    "caption": "Org: Agenda: show or hide habits",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.habits"
+    }
+  },
+  {
     "caption": "Org: Agenda: the clock report",
     "command": "org_lsp_run",
     "args": {

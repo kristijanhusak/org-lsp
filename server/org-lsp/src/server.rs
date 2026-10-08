@@ -4458,6 +4458,20 @@ impl Server {
                 self.refresh_view();
                 Ok(())
             }
+            commands::AGENDA_HABITS => {
+                self.view.as_ref().ok_or("No agenda is open")?;
+                let count = context.and_then(|context| context.count);
+                let habits =
+                    self.agenda.habits.as_mut().ok_or("Habits are off: `org-habit` is not in `org_modules`")?;
+                if count.is_some_and(|count| count > 1) {
+                    habits.show_all_today = !habits.show_all_today;
+                } else {
+                    habits.show_habits = !habits.show_habits;
+                    self.message = Some(format!("Habits turned {}", if habits.show_habits { "on" } else { "off" }));
+                }
+                self.refresh_view();
+                Ok(())
+            }
             commands::AGENDA_LOG | commands::AGENDA_CLOCKREPORT => {
                 self.view.as_ref().ok_or("No agenda is open")?;
                 let (flag, name) = if command == commands::AGENDA_LOG {

@@ -47,6 +47,7 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::AgendaEvent => "Agenda: an entry with a plain timestamp",
         TokenType::AgendaDone => "Agenda: an entry that is done",
         TokenType::AgendaDimmed => "Agenda: a task its dependencies block, dimmed",
+        TokenType::AgendaHabit => "Agenda: a day of a habit's consistency graph, before it is due",
         TokenType::AgendaTimeGrid => "Agenda: a line of the time grid",
         TokenType::AgendaClocking => "Agenda: the line of the entry the clock runs on, between its other parts",
         TokenType::CalendarHeader => "Date prompt: the month and year above a month",
@@ -84,6 +85,10 @@ const MODIFIER_DESCRIPTIONS: &[&str] = &[
     "Text Org hides (link brackets and targets, emphasis markers); editors that can conceal text conceal it",
     "Agenda: part of the line of the entry the clock runs on",
     "A headline with the ARCHIVE tag",
+    "Agenda: a day of a habit's graph in its time to be done",
+    "Agenda: the day a habit is due by",
+    "Agenda: a day of a habit's graph past its due day",
+    "Agenda: a day of a habit's graph to come",
 ];
 
 /// The default look of the tokens a selector matches.
@@ -253,6 +258,29 @@ pub const LOOKS: &[Look] = &[
     ),
     look("agendaEvent", &[], &[]),
     look("agendaDone", &["@org.agenda.done", "Comment"], &["comment.done.agenda.org", "comment"]),
+    // A habit's graph: Org colors the days' backgrounds, blue before a
+    // habit is due, green while it is, yellow on the day it must be done
+    // by and red after.
+    look(
+        "agendaHabit",
+        &["@org.agenda.habit.clear", "DiffChange"],
+        &["markup.changed.habit.agenda.org", "markup.changed"],
+    ),
+    look(
+        "agendaHabit.ready",
+        &["@org.agenda.habit.ready", "DiffAdd"],
+        &["markup.inserted.habit.agenda.org", "markup.inserted"],
+    ),
+    look(
+        "agendaHabit.alert",
+        &["@org.agenda.habit.alert", "DiffText"],
+        &["markup.changed.alert.habit.agenda.org", "markup.changed", "constant.numeric"],
+    ),
+    look(
+        "agendaHabit.overdue",
+        &["@org.agenda.habit.overdue", "DiffDelete"],
+        &["markup.deleted.habit.agenda.org", "markup.deleted"],
+    ),
     look("agendaTimeGrid", &["@org.agenda.time_grid", "Comment"], &["comment.time-grid.agenda.org", "comment"]),
     look(
         "agendaTimeGrid.current",

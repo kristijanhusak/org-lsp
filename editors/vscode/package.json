@@ -161,6 +161,11 @@
         "category": "Org"
       },
       {
+        "command": "org.agenda.habits",
+        "title": "Agenda: show or hide habits",
+        "category": "Org"
+      },
+      {
         "command": "org.agenda.clockreport",
         "title": "Agenda: the clock report",
         "category": "Org"
@@ -2026,6 +2031,66 @@
               "markdownDescription": "How many days a scheduled entry that is not done keeps showing up. (`org-scheduled-past-days`)",
               "default": 10000
             },
+            "org_modules": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "markdownDescription": "Org modules to load. `org-habit` turns habits on: entries with the `STYLE` property `habit` and a scheduled date with a repeater (`.+2d`, `.+2d/4d` for a deadline too) show in the agenda with a graph of the days they were done. Others are ignored. (`org-modules`)",
+              "default": []
+            },
+            "org_habit_graph_column": {
+              "minimum": 0,
+              "type": "integer",
+              "markdownDescription": "The column the consistency graph of a habit starts at in the agenda. (`org-habit-graph-column`)",
+              "default": 40
+            },
+            "org_habit_preceding_days": {
+              "minimum": 0,
+              "type": "integer",
+              "markdownDescription": "How many days before today a habit's graph shows. (`org-habit-preceding-days`)",
+              "default": 21
+            },
+            "org_habit_following_days": {
+              "minimum": 0,
+              "type": "integer",
+              "markdownDescription": "How many days after today a habit's graph shows. (`org-habit-following-days`)",
+              "default": 7
+            },
+            "org_habit_show_habits": {
+              "type": "boolean",
+              "markdownDescription": "Show habits in the agenda. (`org-habit-show-habits`)",
+              "default": true
+            },
+            "org_habit_show_habits_only_for_today": {
+              "type": "boolean",
+              "markdownDescription": "Show habits only on today's date, not on future days of the agenda. (`org-habit-show-habits-only-for-today`)",
+              "default": true
+            },
+            "org_habit_show_all_today": {
+              "type": "boolean",
+              "markdownDescription": "Show every habit today, even those not scheduled for today. (`org-habit-show-all-today`)",
+              "default": false
+            },
+            "org_habit_today_glyph": {
+              "type": "string",
+              "markdownDescription": "The mark of today in a habit's graph. (`org-habit-today-glyph`)",
+              "default": "!"
+            },
+            "org_habit_completed_glyph": {
+              "type": "string",
+              "markdownDescription": "The mark of a day a habit was done in its graph. (`org-habit-completed-glyph`)",
+              "default": "*"
+            },
+            "org_habit_show_done_always_green": {
+              "type": "boolean",
+              "markdownDescription": "A day a habit was done is green in its graph even when it was done late. (`org-habit-show-done-always-green`)",
+              "default": false
+            },
+            "org_habit_scheduled_past_days": {
+              "type": "integer",
+              "markdownDescription": "How many days a habit that is not done keeps showing up. (`org-habit-scheduled-past-days`)"
+            },
             "org_deadline_past_days": {
               "type": "integer",
               "markdownDescription": "How many days a missed deadline keeps showing up. (`org-deadline-past-days`)",
@@ -2689,6 +2754,10 @@
         "description": "Agenda: a task its dependencies block, dimmed"
       },
       {
+        "id": "agendaHabit",
+        "description": "Agenda: a day of a habit's consistency graph, before it is due"
+      },
+      {
         "id": "calendarHeader",
         "description": "Date prompt: the month and year above a month"
       },
@@ -2809,6 +2878,22 @@
       {
         "id": "archived",
         "description": "A headline with the ARCHIVE tag"
+      },
+      {
+        "id": "ready",
+        "description": "Agenda: a day of a habit's graph in its time to be done"
+      },
+      {
+        "id": "alert",
+        "description": "Agenda: the day a habit is due by"
+      },
+      {
+        "id": "overdue",
+        "description": "Agenda: a day of a habit's graph past its due day"
+      },
+      {
+        "id": "future",
+        "description": "Agenda: a day of a habit's graph to come"
       }
     ],
     "semanticTokenScopes": [
@@ -3033,6 +3118,23 @@
           "agendaDone": [
             "comment.done.agenda.org",
             "comment"
+          ],
+          "agendaHabit": [
+            "markup.changed.habit.agenda.org",
+            "markup.changed"
+          ],
+          "agendaHabit.ready": [
+            "markup.inserted.habit.agenda.org",
+            "markup.inserted"
+          ],
+          "agendaHabit.alert": [
+            "markup.changed.alert.habit.agenda.org",
+            "markup.changed",
+            "constant.numeric"
+          ],
+          "agendaHabit.overdue": [
+            "markup.deleted.habit.agenda.org",
+            "markup.deleted"
           ],
           "agendaTimeGrid": [
             "comment.time-grid.agenda.org",
@@ -3303,6 +3405,23 @@
             "comment.done.agenda.org",
             "comment"
           ],
+          "agendaHabit": [
+            "markup.changed.habit.agenda.org",
+            "markup.changed"
+          ],
+          "agendaHabit.ready": [
+            "markup.inserted.habit.agenda.org",
+            "markup.inserted"
+          ],
+          "agendaHabit.alert": [
+            "markup.changed.alert.habit.agenda.org",
+            "markup.changed",
+            "constant.numeric"
+          ],
+          "agendaHabit.overdue": [
+            "markup.deleted.habit.agenda.org",
+            "markup.deleted"
+          ],
           "agendaTimeGrid": [
             "comment.time-grid.agenda.org",
             "comment"
@@ -3571,6 +3690,23 @@
           "agendaDone": [
             "comment.done.agenda.org",
             "comment"
+          ],
+          "agendaHabit": [
+            "markup.changed.habit.agenda.org",
+            "markup.changed"
+          ],
+          "agendaHabit.ready": [
+            "markup.inserted.habit.agenda.org",
+            "markup.inserted"
+          ],
+          "agendaHabit.alert": [
+            "markup.changed.alert.habit.agenda.org",
+            "markup.changed",
+            "constant.numeric"
+          ],
+          "agendaHabit.overdue": [
+            "markup.deleted.habit.agenda.org",
+            "markup.deleted"
           ],
           "agendaTimeGrid": [
             "comment.time-grid.agenda.org",
@@ -4584,6 +4720,16 @@
       {
         "command": "org.agenda.log",
         "key": "v l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.habits",
+        "key": "shift+k",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.habits",
+        "key": "shift+k",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {

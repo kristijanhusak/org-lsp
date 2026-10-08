@@ -1,0 +1,16 @@
+Day-agenda (W21):
+Monday     18 May 2026 W21
+               8:00...... ----------------
+               8:20...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+  habits:      9:00...... TODO Meeting
+              10:00...... ----------------
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  habits:     Scheduled:  TODO Not a habit
+  habits:      7:00...... TODO Exercise               * ** **!          :health:
+  habits:     TODO Water plants               *   *          !            :home:
+  habits:     TODO A weekly review with                      !       s well past the graph
+  habits:     TODO Shave                    *   *  *   *  *  !       

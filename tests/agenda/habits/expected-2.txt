@@ -1,0 +1,9 @@
+Global list of TODO items of type: ALL
+  habits:     TODO Shave
+  habits:     TODO Exercise                                             :health:
+  habits:     TODO Read
+  habits:     TODO Water plants                                           :home:
+  habits:     TODO Not a habit
+  habits:     TODO A weekly review with a very long headline that goes well past the graph
+  habits:     TODO New habit, never done
+  habits:     TODO Meeting

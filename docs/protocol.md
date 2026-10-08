@@ -166,6 +166,17 @@ the editor's own syntax.
 | `org_deadline_warning_days` | number | `14` | How many days before a deadline it shows up. (`org-deadline-warning-days`) |
 | `org_scheduled_delay_days` | number | `0` | How many days after its date a scheduled entry shows up. (`org-scheduled-delay-days`) |
 | `org_scheduled_past_days` | number | `10000` | How many days a scheduled entry that is not done keeps showing up. (`org-scheduled-past-days`) |
+| `org_modules` | string[] | `[]` | Org modules to load. `org-habit` turns habits on: entries with the `STYLE` property `habit` and a scheduled date with a repeater (`.+2d`, `.+2d/4d` for a deadline too) show in the agenda with a graph of the days they were done. Others are ignored. (`org-modules`) |
+| `org_habit_graph_column` | number | `40` | The column the consistency graph of a habit starts at in the agenda. (`org-habit-graph-column`) |
+| `org_habit_preceding_days` | number | `21` | How many days before today a habit's graph shows. (`org-habit-preceding-days`) |
+| `org_habit_following_days` | number | `7` | How many days after today a habit's graph shows. (`org-habit-following-days`) |
+| `org_habit_show_habits` | boolean | `true` | Show habits in the agenda. (`org-habit-show-habits`) |
+| `org_habit_show_habits_only_for_today` | boolean | `true` | Show habits only on today's date, not on future days of the agenda. (`org-habit-show-habits-only-for-today`) |
+| `org_habit_show_all_today` | boolean | `false` | Show every habit today, even those not scheduled for today. (`org-habit-show-all-today`) |
+| `org_habit_today_glyph` | string | `"!"` | The mark of today in a habit's graph. (`org-habit-today-glyph`) |
+| `org_habit_completed_glyph` | string | `"*"` | The mark of a day a habit was done in its graph. (`org-habit-completed-glyph`) |
+| `org_habit_show_done_always_green` | boolean | `false` | A day a habit was done is green in its graph even when it was done late. (`org-habit-show-done-always-green`) |
+| `org_habit_scheduled_past_days` | number | `org_scheduled_past_days` | How many days a habit that is not done keeps showing up. (`org-habit-scheduled-past-days`) |
 | `org_deadline_past_days` | number | `10000` | How many days a missed deadline keeps showing up. (`org-deadline-past-days`) |
 | `org_agenda_skip_scheduled_if_done` | boolean | `false` | Leave out scheduled entries that are done. (`org-agenda-skip-scheduled-if-done`) |
 | `org_agenda_skip_deadline_if_done` | boolean | `false` | Leave out deadlines of entries that are done. (`org-agenda-skip-deadline-if-done`) |
@@ -304,6 +315,7 @@ number.
 | `org.agenda.goto.other` | The same in another window (`org-agenda-goto`, TAB): see `window/showDocument` above. |
 | `org.agenda.save` | `org-save-all-org-buffers`: returns `{ "save": [uri…] }`, the Org files the editor has open; the editor saves those with changes. |
 | `org.agenda.log`, `org.agenda.clockreport` | Turn log mode (`org-agenda-log-mode`: what was closed and clocked each day) or the clock report under the agenda (`org-agenda-clockreport-mode`) on or off. |
+| `org.agenda.habits` | `org-habit-toggle-display-in-agenda` (`K`), with `org-habit` in `org_modules`: hide habits or show them again (`Habits turned off`); with a count above 1 (`C-u K`), show every habit today or only those due (`org_habit_show_all_today`). Each day of a habit's consistency graph is a token of type `agendaHabit`, its modifier the face Org gives it: none before the habit is due (`org-habit-clear-face`), `ready`, `alert` or `overdue`, and `future` for the days to come. |
 | `org.agenda.bulk.mark`, `org.agenda.bulk.unmark`, `org.agenda.bulk.toggle` | `org-agenda-bulk-mark` (`m`), `-unmark` (`u`), `-toggle` (`M-m`): mark the cursor's line for a bulk action (a count marks that many lines with entries), or take the mark away (with a count, all of them); the cursor goes to the next line with an entry. A marked line starts with `>` in the face of a TODO keyword, as Emacs's overlay shows it. The result's `message` says how many lines are marked. Marks stay as the view is built again, and a new agenda command clears them. |
 | `org.agenda.bulk.unmark.all`, `org.agenda.bulk.mark.all`, `org.agenda.bulk.toggle.all` | `org-agenda-bulk-unmark-all` (`U`), `-mark-all` (`*`), `-toggle-all` (`M-*`). |
 | `org.agenda.bulk.mark.regexp` | `org-agenda-bulk-mark-regexp` (`%`): asks for a regexp (input kind `text`) and marks the lines whose entry's text it matches, searching the agenda as Emacs does (which stops at a match on a line without an entry). |

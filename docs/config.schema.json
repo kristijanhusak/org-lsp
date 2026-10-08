@@ -918,6 +918,66 @@
       "description": "How many days a scheduled entry that is not done keeps showing up. (`org-scheduled-past-days`)",
       "default": 10000
     },
+    "org_modules": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array",
+      "description": "Org modules to load. `org-habit` turns habits on: entries with the `STYLE` property `habit` and a scheduled date with a repeater (`.+2d`, `.+2d/4d` for a deadline too) show in the agenda with a graph of the days they were done. Others are ignored. (`org-modules`)",
+      "default": []
+    },
+    "org_habit_graph_column": {
+      "minimum": 0,
+      "type": "integer",
+      "description": "The column the consistency graph of a habit starts at in the agenda. (`org-habit-graph-column`)",
+      "default": 40
+    },
+    "org_habit_preceding_days": {
+      "minimum": 0,
+      "type": "integer",
+      "description": "How many days before today a habit's graph shows. (`org-habit-preceding-days`)",
+      "default": 21
+    },
+    "org_habit_following_days": {
+      "minimum": 0,
+      "type": "integer",
+      "description": "How many days after today a habit's graph shows. (`org-habit-following-days`)",
+      "default": 7
+    },
+    "org_habit_show_habits": {
+      "type": "boolean",
+      "description": "Show habits in the agenda. (`org-habit-show-habits`)",
+      "default": true
+    },
+    "org_habit_show_habits_only_for_today": {
+      "type": "boolean",
+      "description": "Show habits only on today's date, not on future days of the agenda. (`org-habit-show-habits-only-for-today`)",
+      "default": true
+    },
+    "org_habit_show_all_today": {
+      "type": "boolean",
+      "description": "Show every habit today, even those not scheduled for today. (`org-habit-show-all-today`)",
+      "default": false
+    },
+    "org_habit_today_glyph": {
+      "type": "string",
+      "description": "The mark of today in a habit's graph. (`org-habit-today-glyph`)",
+      "default": "!"
+    },
+    "org_habit_completed_glyph": {
+      "type": "string",
+      "description": "The mark of a day a habit was done in its graph. (`org-habit-completed-glyph`)",
+      "default": "*"
+    },
+    "org_habit_show_done_always_green": {
+      "type": "boolean",
+      "description": "A day a habit was done is green in its graph even when it was done late. (`org-habit-show-done-always-green`)",
+      "default": false
+    },
+    "org_habit_scheduled_past_days": {
+      "type": "integer",
+      "description": "How many days a habit that is not done keeps showing up. (`org-habit-scheduled-past-days`)"
+    },
     "org_deadline_past_days": {
       "type": "integer",
       "description": "How many days a missed deadline keeps showing up. (`org-deadline-past-days`)",

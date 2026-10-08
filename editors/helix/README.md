@@ -31,7 +31,7 @@ its behalf.
 | [Tags](../../docs/parity.md#tags) | 100% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work. |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ❓ | Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works. |
-| [Agenda](../../docs/parity.md#agenda) | 75% | ❌ | Helix cannot open a document on a server's request. `org-lsp agenda FILE...` prints the agenda in a terminal. |
+| [Agenda](../../docs/parity.md#agenda) | 80% | ❌ | Helix cannot open a document on a server's request. `org-lsp agenda FILE...` prints the agenda in a terminal. |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ❓ | No clock in the status line: Helix has no place there for a server's text. |
 | [Capture](../../docs/parity.md#capture) | 82% | ❌ | Helix cannot open the capture buffer, and Helix cannot ask for text on a server's behalf. |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 82% | ❓ | Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions. |
