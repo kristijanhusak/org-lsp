@@ -2101,12 +2101,7 @@ fn appointments_go_to_emacs() {
     std::fs::write(&file, "* Undated\n").unwrap();
     let uri = format!("file://{}", file.display());
     let mut client = Client::editor(options, None);
-    client.open(
-        &uri,
-        &format!(
-            "* Meeting\n<{today} {time}>\n* DONE Finished\n<{today} {time}>\n* Undated\n"
-        ),
-    );
+    client.open(&uri, &format!("* Meeting\n<{today} {time}>\n* DONE Finished\n<{today} {time}>\n* Undated\n"));
     let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 } });
     let result =
         client.request("workspace/executeCommand", json!({ "command": "org.agenda.appt", "arguments": [context] }));
@@ -2126,7 +2121,10 @@ fn appointments_go_to_emacs() {
         client.settle();
     }
     let message = shown(&client).expect("an appointment is shown");
-    assert!(message.starts_with("Appointment in ") && message.ends_with(&format!(" minutes: {time} Meeting")), "{message}");
+    assert!(
+        message.starts_with("Appointment in ") && message.ends_with(&format!(" minutes: {time} Meeting")),
+        "{message}"
+    );
     client.shutdown();
 }
 
