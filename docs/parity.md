@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 76%**
+**All of Org: 77%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -15,7 +15,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Folding and visibility](#folding-and-visibility) | 67% | 6 of 9 |
 | [Headings and structure](#headings-and-structure) | 100% | 11 of 11 |
 | [Lists and checkboxes](#lists-and-checkboxes) | 91% | 10 of 11 |
-| [TODO keywords](#todo-keywords) | 88% | 7 of 8 |
+| [TODO keywords](#todo-keywords) | 100% | 8 of 8 |
 | [Priorities](#priorities) | 100% | 3 of 3 |
 | [Tags](#tags) | 100% | 6 of 6 |
 | [Properties and column view](#properties-and-column-view) | 67% | 4 of 6 |
@@ -127,7 +127,7 @@ Where editors fall short:
 
 ## TODO keywords
 
-88% (7 of 8)
+100% (8 of 8)
 
 - ✅ Cycling states, and fast selection by key (`TODO(t)`)
 - ✅ Sequences and types from `#+TODO:` and `org_todo_keywords`
@@ -136,7 +136,7 @@ Where editors fall short:
 - ✅ The parent's statistics cookies recounted
 - ✅ Blocking a state change by children, `ORDERED` siblings and checkboxes (`org-enforce-todo-dependencies`)
 - ✅ Dimming blocked tasks in the agenda (`org-agenda-dim-blocked-tasks`)
-- ❌ Hiding blocked tasks in the agenda (`org-agenda-dim-blocked-tasks` `invisible`)
+- ✅ Hiding blocked tasks in the agenda (`org-agenda-dim-blocked-tasks` `invisible`)
 
 Where editors fall short:
 

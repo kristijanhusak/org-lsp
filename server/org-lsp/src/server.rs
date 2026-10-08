@@ -44,7 +44,7 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use crate::config::{self, ArchivesMode, CaptureTemplateOption, RefileFiles, RefileTarget};
+use crate::config::{self, ArchivesMode, CaptureTemplateOption, LogOption, RefileFiles, RefileTarget};
 use crate::document::Document;
 use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target, TimeField};
@@ -185,6 +185,16 @@ impl OpenView {
     fn is_current(&self) -> bool {
         self.client.as_ref().is_some_and(|copy| copy.text == self.view.text)
     }
+}
+
+/// `org-agenda-dim-blocked-tasks`: what the agenda does with the tasks
+/// their dependencies block.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DimBlocked {
+    No,
+    Dim,
+    /// `invisible`: leaves them out, unless checkboxes block them.
+    Hide,
 }
 
 /// Where a command was invoked: a document and a place in it.
@@ -628,7 +638,8 @@ struct Server {
     /// `org-link-abbrev-alist`.
     link_abbreviations: Vec<(String, String)>,
     /// `org-agenda-dim-blocked-tasks`.
-    dim_blocked: bool,
+    /// `org-agenda-dim-blocked-tasks`
+    dim_blocked: DimBlocked,
     /// The entry the last refile put somewhere: its file, where its
     /// headline was, and the headline.
     last_refiled: Option<(Uri, usize, String)>,
@@ -884,7 +895,11 @@ pub fn run(connection: Connection) -> Result<()> {
         display: options.display(),
         virtually_indented: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
-        dim_blocked: options.agenda_dim_blocked_tasks.unwrap_or(true),
+        dim_blocked: match &options.agenda_dim_blocked_tasks {
+            Some(LogOption::Flag(false)) => DimBlocked::No,
+            Some(LogOption::Name(name)) if name == "invisible" => DimBlocked::Hide,
+            _ => DimBlocked::Dim,
+        },
         last_refiled: None,
         link_abbreviations: options.link_abbrev_alist.clone().unwrap_or_default().into_iter().collect(),
         bibliographies: HashMap::new(),
@@ -3309,11 +3324,15 @@ impl Server {
     /// dependencies block (`org-entry-blocked-p`) in one dimmed token each.
     fn dim_blocked(&mut self, view: &mut View) {
         let todo = self.edit_settings.todo.clone();
-        if !self.dim_blocked || (!todo.enforce_todo_dependencies && !todo.enforce_todo_checkbox_dependencies) {
+        if self.dim_blocked == DimBlocked::No
+            || (!todo.enforce_todo_dependencies && !todo.enforce_todo_checkbox_dependencies)
+        {
             return;
         }
-        let mut known: HashMap<(String, usize), bool> = HashMap::new();
+        // For each entry: whether it is blocked, and by checkboxes.
+        let mut known: HashMap<(String, usize), Option<bool>> = HashMap::new();
         let mut dimmed: Vec<(usize, usize)> = Vec::new();
+        let mut hidden: Vec<usize> = Vec::new();
         let mut start = 0;
         for (number, line_text) in view.text.split('\n').enumerate() {
             let end = start + line_text.len();
@@ -3325,22 +3344,31 @@ impl Server {
                         let blocked = self
                             .with_source(&entry.uri, |text, _, parse, _, _| {
                                 org_core::todo::entry_blocked(text, parse.todo_keywords(), entry.offset, &todo)
-                                    .is_some()
                             })
-                            .unwrap_or(false);
+                            .flatten();
                         known.insert(key, blocked);
                         blocked
                     }
                 };
-                if blocked && end > start {
-                    dimmed.push((start, end));
+                // `invisible`: out of sight, unless checkboxes block it,
+                // which the agenda does not show.
+                match blocked {
+                    Some(false) if self.dim_blocked == DimBlocked::Hide => hidden.push(number),
+                    Some(_) if end > start => dimmed.push((start, end)),
+                    _ => {}
                 }
             }
             start = end + 1;
         }
-        if dimmed.is_empty() {
-            return;
+        if !dimmed.is_empty() {
+            Self::dim_lines(view, dimmed);
         }
+        view.hide_lines(&hidden);
+    }
+
+    /// The text from each start to each end in `dimmed` shown as a blocked
+    /// task (`org-agenda-dimmed-todo-face`).
+    fn dim_lines(view: &mut View, dimmed: Vec<(usize, usize)>) {
         let inside = |token: &crate::highlight::Token| {
             dimmed
                 .iter()

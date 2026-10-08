@@ -1797,6 +1797,44 @@ fn dims_blocked_tasks_in_the_agenda() {
     assert!(on(row("Child")).iter().all(|token| token.3 != "agendaDimmed"));
     assert!(on(row("Free")).iter().all(|token| token.3 != "agendaDimmed"));
     client.shutdown();
+
+    // `invisible`: blocked tasks are left out, but for those blocked by
+    // checkboxes, which stay dimmed; the lines after them still lead to
+    // their entries.
+    let mut options = clock();
+    options["org_enforce_todo_dependencies"] = json!(true);
+    options["org_enforce_todo_checkbox_dependencies"] = json!(true);
+    options["org_agenda_dim_blocked_tasks"] = json!("invisible");
+    let mut client = Client::editor(options, None);
+    let file = "file:///org/deps.org";
+    client.open(file, "* TODO Parent\n** TODO Child\n* TODO Boxes\n- [ ] one\n* TODO Free\n");
+    client.command("org.agenda.todos", VIEW, 0);
+    let text = client.view_text(VIEW);
+    assert!(!text.contains("Parent"), "{text}");
+    let row = |title: &str| text.lines().position(|line| line.contains(title)).unwrap();
+    let tokens =
+        client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": VIEW } })).unwrap();
+    let data: Vec<u64> = tokens["data"].as_array().unwrap().iter().map(|n| n.as_u64().unwrap()).collect();
+    let legend = &client.initialize["capabilities"]["semanticTokensProvider"]["legend"];
+    let mut line = 0;
+    let mut dimmed = Vec::new();
+    for token in data.chunks(5) {
+        line += token[0];
+        if legend["tokenTypes"][token[3] as usize] == "agendaDimmed" {
+            dimmed.push(line as usize);
+        }
+    }
+    assert_eq!(dimmed, [row("Boxes")], "{text}");
+    let free = row("Free") as u32;
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": free, "character": 0 } });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.todo.next", "arguments": [context] })).unwrap();
+    client.settle();
+    let request = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (uri, edits) = edits_of(request);
+    assert_eq!(uri, file);
+    assert_eq!(edits[0]["range"]["start"]["line"], 4, "{edits:?}");
+    client.shutdown();
 }
 
 /// `org-refile-copy` keeps the entry; `org-refile` with `C-u` goes to the
