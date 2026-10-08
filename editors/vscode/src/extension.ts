@@ -388,6 +388,11 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           return key ? fallBack(key.fallback) : undefined;
         }
         const params = { command: name, arguments: args.length > 0 && !key ? args : cursor(running) };
+        // In column view, the column picked.
+        if (name.startsWith('org.columns.') && params.arguments[0]) {
+          const editor = vscode.window.activeTextEditor;
+          params.arguments[0] = { ...(params.arguments[0] as object), column: editor ? columnPicked(editor) : 0 };
+        }
         // What the command reads as Emacs's latest kill: the clipboard.
         if (clipboardCommands.includes(name) && params.arguments[0]) {
           params.arguments[0] = { ...(params.arguments[0] as object), clipboard: await vscode.env.clipboard.readText() };
@@ -508,6 +513,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     client.onNotification('org-lsp/save', (params: { uris?: string[] }) => saveAsked({ save: params.uris ?? [] }));
     // The clock that runs, for the status bar.
     client.onNotification('org-lsp/clock', (params: ClockReport | null) => showClock(params));
+    // What column view shows, or that it is off.
+    client.onNotification('org-lsp/columns', (params: ColumnsShown) => showColumns(params));
     // The relative timer or the countdown, for the status bar.
     client.onNotification('org-lsp/timer', (params: TimerReport | null) => showTimer(params));
     // How far the lines of a file with `org-indent-mode` show indented.
@@ -528,6 +535,102 @@ async function stopClient(): Promise<void> {
   const running = client;
   client = undefined;
   await running?.stop();
+}
+
+// ----- column view
+
+/** What the server says column view shows on a document (`org-lsp/columns`). */
+interface ColumnsShown {
+  uri: string;
+  header?: string;
+  columns?: { key: string; title: string; width: number }[];
+  /** Each headline's line, the text it shows, its values; null when off. */
+  lines: [number, string, string[]][] | null;
+}
+
+const columnsShown = new Map<string, ColumnsShown>();
+const columnsPicked = new Map<string, number>();
+/** A headline's own text, under its columns. */
+const columnsHidden = vscode.window.createTextEditorDecorationType({ textDecoration: 'none; display: none;' });
+/** The columns over a headline, in the colours of Emacs's `org-column`. */
+const columnsDecoration = vscode.window.createTextEditorDecorationType({});
+let columnsItem: vscode.StatusBarItem | undefined;
+
+function columnPicked(editor: vscode.TextEditor): number {
+  return columnsPicked.get(editor.document.uri.toString()) ?? 0;
+}
+
+/**
+ * Column view in `editor`: each headline covered by its columns, and the
+ * header in the status bar, the column picked in brackets (Emacs's cursor
+ * moves between them, Left and Right here).
+ */
+function drawColumns(editor: vscode.TextEditor): void {
+  const shown = columnsShown.get(editor.document.uri.toString());
+  const lines = (shown?.lines ?? []).filter(([line]) => line < editor.document.lineCount);
+  editor.setDecorations(
+    columnsHidden,
+    lines.map(([line]) => editor.document.lineAt(line).range),
+  );
+  editor.setDecorations(
+    columnsDecoration,
+    lines.map(([line, text]) => ({
+      range: new vscode.Range(line, 0, line, 0),
+      renderOptions: {
+        before: {
+          contentText: text.replaceAll(' ', '\u00a0'),
+          backgroundColor: new vscode.ThemeColor('editor.lineHighlightBackground'),
+        },
+      },
+    })),
+  );
+  if (editor === vscode.window.activeTextEditor) {
+    updateColumnsItem(editor);
+  }
+}
+
+function updateColumnsItem(editor: vscode.TextEditor | undefined): void {
+  const shown = editor && columnsShown.get(editor.document.uri.toString());
+  void vscode.commands.executeCommand('setContext', 'org-lsp.columns', shown !== undefined);
+  if (!columnsItem) {
+    return;
+  }
+  if (!shown || !editor) {
+    columnsItem.hide();
+    return;
+  }
+  const picked = columnPicked(editor);
+  const titles = (shown.columns ?? []).map((column, index) => (index === picked ? `[${column.title}]` : column.title));
+  columnsItem.text = `$(table) ${titles.join(' | ')}`;
+  columnsItem.show();
+}
+
+function showColumns(params: ColumnsShown): void {
+  if (params.lines) {
+    columnsShown.set(params.uri, params);
+    const count = params.columns?.length ?? 1;
+    columnsPicked.set(params.uri, Math.min(columnsPicked.get(params.uri) ?? 0, count - 1));
+  } else {
+    columnsShown.delete(params.uri);
+  }
+  for (const editor of vscode.window.visibleTextEditors) {
+    if (sameUri(editor.document.uri.toString(), params.uri)) {
+      drawColumns(editor);
+    }
+  }
+  updateColumnsItem(vscode.window.activeTextEditor);
+}
+
+/** Left and Right in column view: the column picked moves. */
+function moveColumn(delta: number): void {
+  const editor = vscode.window.activeTextEditor;
+  const shown = editor && columnsShown.get(editor.document.uri.toString());
+  if (!editor || !shown) {
+    return;
+  }
+  const last = (shown.columns?.length ?? 1) - 1;
+  columnsPicked.set(editor.document.uri.toString(), Math.max(0, Math.min(last, columnPicked(editor) + delta)));
+  updateColumnsItem(editor);
 }
 
 // ----- the clock
@@ -1188,6 +1291,10 @@ export interface Api {
   concealed(editor: vscode.TextEditor): string[];
   /** What the status bar shows for the clock: empty when none runs. */
   clock(): string;
+  /** What the status bar shows for column view. */
+  columns(): string;
+  /** The headlines column view covers in `editor`: `[line, text shown]`. */
+  columnsShown(editor: vscode.TextEditor): [number, string][];
   /** What the status bar shows for the relative timer or the countdown: empty when none is on. */
   timer(): string;
   /** The lines of `editor` shown indented: `[line, prefix, hidden stars]`. */
@@ -1219,6 +1326,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   clockItem.tooltip = 'Org: the clock runs on this entry. Click to go to it.';
   clockItem.command = 'org.clock.goto';
   context.subscriptions.push(clockItem, { dispose: () => clearInterval(clockTimer) });
+  columnsItem = vscode.window.createStatusBarItem('org-lsp.columns', vscode.StatusBarAlignment.Left, 48);
+  columnsItem.name = 'Org column view';
+  columnsItem.tooltip = 'Org: column view, the column picked in brackets. q quits.';
+  context.subscriptions.push(columnsItem);
   timerItem = vscode.window.createStatusBarItem('org-lsp.timer', vscode.StatusBarAlignment.Left, 49);
   timerItem.name = 'Org timer';
   timerItem.tooltip = 'Org: the relative timer, or the countdown.';
@@ -1234,6 +1345,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     // A cycle goes on from the last one only when nothing came between.
     vscode.window.onDidChangeActiveTextEditor(() => (lastCycle = undefined)),
     vscode.window.onDidChangeActiveTextEditor(foldAtStartup),
+    vscode.window.onDidChangeActiveTextEditor(updateColumnsItem),
+    vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(drawColumns)),
+    vscode.commands.registerCommand('org-lsp.columns.left', () => moveColumn(-1)),
+    vscode.commands.registerCommand('org-lsp.columns.right', () => moveColumn(1)),
     vscode.workspace.onDidCloseTextDocument((document) => startupFolded.delete(document.uri.toString())),
   );
   void foldAtStartup(vscode.window.activeTextEditor);
@@ -1249,6 +1364,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   return {
     concealed: (editor) => concealedText.get(editor) ?? [],
     clock: clockText,
+    columns: () => columnsItem?.text ?? '',
+    columnsShown: (editor) => (columnsShown.get(editor.document.uri.toString())?.lines ?? []).map(([line, text]) => [line, text]),
     timer: timerText,
     virtualIndent: (editor) => virtualIndentShown.get(editor) ?? [],
     lineHighlights: (editor) => lineHighlightsShown.get(editor) ?? [],

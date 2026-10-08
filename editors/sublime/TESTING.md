@@ -97,6 +97,8 @@ here and why.
 
 ## Properties and column view
 
+**Partly:** Column view is left out: it draws over the headlines, which Sublime Text cannot.
+
 - [ ] Setting a property: the name and the value are completed, `NAME_ALL`'s values offered: `Ctrl+C Ctrl+X p`
 - [ ] On a property line with `NAME_ALL`, cycling through its values: `Shift+Right`, `Shift+Left`
 - [ ] Deleting a property from the entry, and from the whole file: *Org: Delete a property of the entry*, *Org: Delete a property from every entry of the file*

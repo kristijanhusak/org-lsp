@@ -100,6 +100,7 @@ const scopeWhen = {
   agenda: `editorLangId == '${AGENDA}'`,
   calendar: `editorLangId == '${DATE}'`,
   capture: `editorLangId == '${ORG}' && resourceFilename =~ /^${manifest.capture.prefix}/`,
+  columns: `editorLangId == '${ORG}' && org-lsp.columns`,
 };
 // Keys for the whole editor are bound where `C-c` is Org's already.
 const globalScopes = ['org', 'agenda'];
@@ -166,6 +167,25 @@ const ownCommands = [
       { key: 'q', in: 'agenda', preset: 'vim' },
     ],
   },
+  // Column view's cursor moves between its columns.
+  {
+    command: 'org-lsp.columns.left',
+    title: 'Column view: the column to the left',
+    keys: [
+      { key: '<left>', in: 'columns', preset: 'emacs' },
+      { key: 'h', in: 'columns', preset: 'vim' },
+      { key: '<Left>', in: 'columns', preset: 'vim' },
+    ],
+  },
+  {
+    command: 'org-lsp.columns.right',
+    title: 'Column view: the column to the right',
+    keys: [
+      { key: '<right>', in: 'columns', preset: 'emacs' },
+      { key: 'l', in: 'columns', preset: 'vim' },
+      { key: '<Right>', in: 'columns', preset: 'vim' },
+    ],
+  },
   {
     command: 'org-lsp.cycleGlobal',
     title: 'Cycle the visibility of the whole file',
@@ -176,7 +196,7 @@ const ownCommands = [
   },
 ];
 
-const ORDER = ['org', 'global', 'capture', 'agenda', 'calendar'];
+const ORDER = ['org', 'global', 'capture', 'agenda', 'calendar', 'columns'];
 // Later bindings win: a capture buffer's `C-c C-c` over an Org file's.
 const keybindings = [...manifest.commands, ...ownCommands]
   .flatMap((command) => command.keys.map((binding) => ({ command: command.command, ...binding })))
@@ -194,7 +214,7 @@ const keybindings = [...manifest.commands, ...ownCommands]
       return [];
     }
     const conditions = [];
-    if (binding.preset === 'vim' && (binding.in === 'org' || binding.in === 'capture')) {
+    if (binding.preset === 'vim' && (binding.in === 'org' || binding.in === 'capture' || binding.in === 'columns')) {
       conditions.push(binding.mode === 'insert' ? vimInsert : vimNormal);
     }
     if (vsKey === 'tab' || vsKey === 'shift+tab') {

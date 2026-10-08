@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 92%**
+**All of Org: 93%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -18,7 +18,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [TODO keywords](#todo-keywords) | 100% | 8 of 8 |
 | [Priorities](#priorities) | 100% | 3 of 3 |
 | [Tags](#tags) | 100% | 6 of 6 |
-| [Properties and column view](#properties-and-column-view) | 83% | 5 of 6 |
+| [Properties and column view](#properties-and-column-view) | 100% | 6 of 6 |
 | [Dates and times](#dates-and-times) | 100% | 8 of 8 |
 | [Agenda](#agenda) | 95% | 20 of 21 |
 | [Clocking](#clocking) | 100% | 8 of 8 |
@@ -169,19 +169,22 @@ Where editors fall short:
 
 ## Properties and column view
 
-83% (5 of 6)
+100% (6 of 6)
 
 - ✅ Setting and deleting properties, also from the agenda
 - ✅ Allowed values (`NAME_ALL`) cycled with `S-<left>` and `S-<right>`
 - ✅ Effort (`C-c C-x e`) and `ORDERED`
 - ✅ Inheritance, special properties and property searches
-- ❌ Column view (`C-c C-x C-c`)
+- ✅ Column view (`C-c C-x C-c`, through Emacs): the columns over the headlines, the header, summaries; editing, cycling and the allowed values of a column, moving, narrowing, widening and deleting columns, moving entries
 - ✅ Column view dynamic blocks and summaries (`C-c C-x x`, filled in by Emacs)
 
 Where editors fall short:
 
-- Zed ❓: Setting a property or the effort is left out: they are typed, and Zed cannot ask for text on a server's behalf.
-- Helix ❓: Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf.
+- Vim ❓: Column view is left out: it draws over the headlines, which Vim cannot.
+- VS Code ❓: Column view's header is in the status bar, with the column picked in brackets.
+- Sublime Text ❓: Column view is left out: it draws over the headlines, which Sublime Text cannot.
+- Zed ❓: Setting a property or the effort is left out: they are typed, and Zed cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines.
+- Helix ❓: Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines.
 
 ## Dates and times
 

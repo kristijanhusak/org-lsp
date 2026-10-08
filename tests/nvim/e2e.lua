@@ -1282,5 +1282,52 @@ if vim.fn.executable('emacs') == 1 then
   end)
 end
 
+-- Column view (`org-columns`, through Emacs): the headlines covered by
+-- their columns, the header in the window bar; `l` picks the next column,
+-- `n` its next allowed value; `q` takes the view away.
+if vim.fn.executable('emacs') == 1 then
+  -- Emacs's last edit above moves the cursor in its file a moment later.
+  vim.wait(1000, function()
+    return false
+  end)
+  local columned = vim.fn.tempname() .. '.org'
+  vim.fn.writefile({ '#+COLUMNS: %25ITEM %TODO', '* Project', '** Task' }, columned)
+  vim.cmd.edit(columned)
+  wait('the server to attach to the columns file', function()
+    return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+  end)
+  local columns = require('org-lsp.columns')
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  require('org-lsp').run('org.columns')
+  wait('column view', function()
+    return columns.on(0)
+  end)
+  local ns = vim.api.nvim_get_namespaces().org_lsp_columns
+  local function shown(row)
+    local marks = vim.api.nvim_buf_get_extmarks(0, ns, { row, 0 }, { row, 0 }, { details = true })
+    return marks[1] and table.concat(vim.tbl_map(function(chunk)
+      return chunk[1]
+    end, marks[1][4].virt_text), '') or ''
+  end
+  eq(vim.trim(shown(2)), '** Task                   |      |', 'the headline covered by its columns')
+  check(vim.wo.winbar:find('ITEM                      | TODO |', 1, true) ~= nil, 'the header in the window bar')
+  vim.api.nvim_win_set_cursor(0, { 3, 0 })
+  press('l')
+  eq(columns.column(0), 1, 'l picks the next column')
+  press('n')
+  wait('the next TODO state', function()
+    return vim.api.nvim_buf_get_lines(0, 2, 3, false)[1] == '** TODO Task'
+  end)
+  wait('the view following it', function()
+    return vim.trim(shown(2)) == '** Task                   | TODO |'
+  end)
+  press('q')
+  wait('column view off', function()
+    return not columns.on(0)
+  end)
+  eq(vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, {}), {}, 'nothing covers the headlines')
+  eq(vim.wo.winbar, '', 'the window bar as it was')
+end
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

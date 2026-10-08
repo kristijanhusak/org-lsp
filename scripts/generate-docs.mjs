@@ -43,6 +43,7 @@ const SCOPES = [
   ['capture', 'In a capture buffer'],
   ['agenda', 'In the agenda'],
   ['calendar', 'In the date prompt'],
+  ['columns', 'In column view'],
 ];
 
 const code = (text) => '`' + text.replaceAll('|', '\\|') + '`';
@@ -60,7 +61,7 @@ function table(header, rows) {
 
 /** The keys the Neovim and Vim plugins keep for their own commands, by
  * scope: a command of the server's goes without them there. */
-const OWN_KEYS = { org: ['<Tab>', '<S-Tab>', 'g?'], agenda: ['q', 'K', 'g?'] };
+const OWN_KEYS = { org: ['<Tab>', '<S-Tab>', 'g?'], agenda: ['q', 'K', 'g?'], columns: ['h', 'l', '<Left>', '<Right>'] };
 
 /** The Neovim plugin's keys: the `vim` preset of every command. */
 function neovimKeys() {

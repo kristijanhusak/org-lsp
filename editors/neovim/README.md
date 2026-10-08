@@ -23,7 +23,7 @@ The Neovim plugin is the repository itself (`lua/`, `plugin/`): install
 | [TODO keywords](../../docs/parity.md#todo-keywords) | 100% | ✅ |  |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
-| [Properties and column view](../../docs/parity.md#properties-and-column-view) | 83% | ✅ |  |
+| [Properties and column view](../../docs/parity.md#properties-and-column-view) | 100% | ✅ |  |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ✅ |  |
 | [Agenda](../../docs/parity.md#agenda) | 95% | ✅ |  |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
@@ -44,7 +44,7 @@ The Neovim plugin is the repository itself (`lua/`, `plugin/`): install
 | [Attachments](../../docs/parity.md#attachments) | 100% | ✅ |  |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **92%** |  |  |
+| **All of Org** | **93%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

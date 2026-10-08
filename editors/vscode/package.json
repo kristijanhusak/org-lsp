@@ -766,6 +766,91 @@
         "category": "Org"
       },
       {
+        "command": "org.columns",
+        "title": "Column view",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.quit",
+        "title": "Column view: quit",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.redo",
+        "title": "Column view: recompute",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.edit",
+        "title": "Column view: edit the value",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.next",
+        "title": "Column view: the next allowed value",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.previous",
+        "title": "Column view: the previous allowed value",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.show",
+        "title": "Column view: show the value",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.allowed",
+        "title": "Column view: edit the allowed values",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.todo",
+        "title": "Column view: change the TODO state",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.toggle",
+        "title": "Column view: toggle a checkbox, or quit",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.move.left",
+        "title": "Column view: move the column left",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.move.right",
+        "title": "Column view: move the column right",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.delete",
+        "title": "Column view: delete the column",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.narrow",
+        "title": "Column view: make the column narrower",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.widen",
+        "title": "Column view: make the column wider",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.row.up",
+        "title": "Column view: move the entry up",
+        "category": "Org"
+      },
+      {
+        "command": "org.columns.row.down",
+        "title": "Column view: move the entry down",
+        "category": "Org"
+      },
+      {
         "command": "org.timer.start",
         "title": "Start the relative timer",
         "category": "Org"
@@ -1093,6 +1178,16 @@
       {
         "command": "org-lsp.agenda.close",
         "title": "Agenda: close",
+        "category": "Org"
+      },
+      {
+        "command": "org-lsp.columns.left",
+        "title": "Column view: the column to the left",
+        "category": "Org"
+      },
+      {
+        "command": "org-lsp.columns.right",
+        "title": "Column view: the column to the right",
         "category": "Org"
       },
       {
@@ -4376,6 +4471,11 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
+        "command": "org.columns",
+        "key": "ctrl+c ctrl+x ctrl+c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
         "command": "org.timer.start",
         "key": "ctrl+c ctrl+x 0",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
@@ -5541,6 +5641,221 @@
         "command": "org.calendar.cancel",
         "key": "escape",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.columns.quit",
+        "key": "q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.quit",
+        "key": "q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.redo",
+        "key": "g",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.redo",
+        "key": "r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.redo",
+        "key": "r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.edit",
+        "key": "e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.edit",
+        "key": "e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.next",
+        "key": "n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.next",
+        "key": "shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.next",
+        "key": "n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.next",
+        "key": "shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.previous",
+        "key": "p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.previous",
+        "key": "shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.previous",
+        "key": "p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.previous",
+        "key": "shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.show",
+        "key": "v",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.show",
+        "key": "v",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.allowed",
+        "key": "a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.allowed",
+        "key": "a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.todo",
+        "key": "ctrl+c ctrl+t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.todo",
+        "key": "t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.toggle",
+        "key": "ctrl+c ctrl+c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.toggle",
+        "key": "enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal') && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorHasMultipleSelections && !editorReadonly"
+      },
+      {
+        "command": "org.columns.move.left",
+        "key": "alt+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.move.left",
+        "key": "alt+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.move.right",
+        "key": "alt+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.move.right",
+        "key": "alt+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.delete",
+        "key": "alt+shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.delete",
+        "key": "alt+shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.narrow",
+        "key": "shift+,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.narrow",
+        "key": "shift+,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.widen",
+        "key": "shift+.",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.widen",
+        "key": "shift+.",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.row.up",
+        "key": "alt+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.row.up",
+        "key": "alt+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.row.down",
+        "key": "alt+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.row.down",
+        "key": "alt+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org-lsp.columns.left",
+        "key": "left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org-lsp.columns.left",
+        "key": "h",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org-lsp.columns.left",
+        "key": "left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org-lsp.columns.right",
+        "key": "right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && org-lsp.columns"
+      },
+      {
+        "command": "org-lsp.columns.right",
+        "key": "l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org-lsp.columns.right",
+        "key": "right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
       }
     ],
     "grammars": [

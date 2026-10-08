@@ -49,6 +49,7 @@ local SERVER = 'org_lsp'
 ---@field agenda? table<string, string|string[]|false>|false Keys in the agenda.
 ---@field calendar? table<string, string|string[]|false>|false Keys in the date prompt's calendar.
 ---@field capture? table<string, string|string[]|false>|false Keys in a capture or note buffer.
+---@field columns? table<string, string|string[]|false>|false Keys in column view (`org.columns`); `h` and `l` pick the column.
 
 local defaults = {
   cmd = nil,
@@ -209,6 +210,10 @@ function M.run(name, opts)
   with_client(function(client)
     local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
     context.count = count
+    -- In column view, the column picked.
+    if vim.startswith(name, 'org.columns.') then
+      context.column = require('org-lsp.columns').column(vim.api.nvim_get_current_buf())
+    end
     if selection then
       local function position(at)
         local line = vim.api.nvim_buf_get_lines(0, at[1], at[1] + 1, false)[1] or ''
@@ -654,7 +659,7 @@ end
 
 --- The keys of a scope: the server's defaults for modal editors, with the
 --- configuration's entries taking their place command by command.
----@param scope 'global'|'org'|'agenda'|'calendar'|'capture'
+---@param scope 'global'|'org'|'agenda'|'calendar'|'capture'|'columns'
 ---@return table<string, string[]> # command to keys
 ---@return table<string, boolean> # the keys that keep a meaning of their own
 local function keys_in(scope)
@@ -694,7 +699,7 @@ end
 
 --- The keys of a scope as they are set, for the help: in the order of the
 --- server's commands, then the plugin's own.
----@param scope 'global'|'org'|'agenda'|'calendar'|'capture'
+---@param scope 'global'|'org'|'agenda'|'calendar'|'capture'|'columns'
 ---@return { command: string, title: string, keys: string[] }[]
 function M.keys(scope)
   local keys = keys_in(scope)
@@ -724,9 +729,20 @@ end
 --- them back.
 local global_keys = {}
 
----@param scope 'global'|'org'|'agenda'|'calendar'|'capture'
+---@param scope 'global'|'org'|'agenda'|'calendar'|'capture'|'columns'
 ---@param bufnr? integer the buffer the keys are for; none for global keys
-local function set_keys(scope, bufnr)
+local set_keys
+
+--- Sets the keys of `scope` in buffer `bufnr`; for column view (see
+--- org-lsp.columns), which comes and goes. The keys set.
+---@param scope string
+---@param bufnr integer
+---@return string[]
+function M._set_keys(scope, bufnr)
+  return set_keys(scope, bufnr)
+end
+
+set_keys = function(scope, bufnr)
   if scope == 'global' then
     for _, lhs in ipairs(global_keys) do
       pcall(vim.keymap.del, 'n', lhs)
@@ -739,7 +755,7 @@ local function set_keys(scope, bufnr)
   -- of the user's (`tn`) is typed. A key that starts a longer one of
   -- these (`v` of `v d`) still waits.
   local nowait = {}
-  if scope == 'agenda' or scope == 'calendar' then
+  if scope == 'agenda' or scope == 'calendar' or scope == 'columns' then
     -- A key waits for more when it starts a longer one of the buffer's,
     -- or a global one, with the leader as it is set: `,` (priority) and
     -- `<Leader>ois` (schedule) with `,` as the leader.
@@ -753,10 +769,12 @@ local function set_keys(scope, bufnr)
       end)
     end
   end
+  local set = {}
   for name, list in pairs(keys) do
     local command = server_command(name)
     local title = own_commands[name] and own_commands[name][1] or command and command.title or name
     for _, lhs in ipairs(list) do
+      table.insert(set, lhs)
       if scope == 'global' then
         table.insert(global_keys, lhs)
       end
@@ -792,6 +810,7 @@ local function set_keys(scope, bufnr)
       end
     end
   end
+  return set
 end
 
 -- ----- attaching

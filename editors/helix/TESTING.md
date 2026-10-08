@@ -70,7 +70,7 @@ here and why.
 
 ## Properties and column view
 
-**Partly:** Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf.
+**Partly:** Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines.
 
 - [ ] On a property line with `NAME_ALL`, cycling through its values: the code action *Move the date a day later, or cycle the TODO state or the list's bullets forward*, the code action *Move the date a day earlier, or cycle the TODO state or the list's bullets backward*
 - [ ] Deleting a property from the entry, and from the whole file: the code action *Delete a property of the entry*, the code action *Delete a property from every entry of the file*
