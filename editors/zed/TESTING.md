@@ -32,6 +32,7 @@ here and why.
 
 - [ ] On a headline, cycling goes folded → children → subtree
 - [ ] Cycling the whole file goes overview → contents → everything
+- [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: the code action *Narrow to the subtree: it in a file of its own*
 - [ ] Zed's own folds open and close on headlines, drawers and blocks
 
 ## Headings and structure

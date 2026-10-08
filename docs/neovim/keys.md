@@ -109,6 +109,9 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>obg` | `org.babel.goto` | Go to a named code block |
 | `<Leader>obi` | `org.babel.lob.ingest` | Add the file's named code blocks to the Library of Babel |
 | `<Leader>o'` | `org.edit.special` | Edit the block in a file of its own |
+| `<Leader>ons` | `org.narrow.subtree` | Narrow to the subtree: it in a file of its own |
+| `<Leader>onb` | `org.narrow.block` | Narrow to the block: it in a file of its own |
+| `<Leader>oxb` | `org.tree.indirect` | Show the subtree in a file of its own |
 | `<Leader>o`` | `org.table.edit.field` | Edit the table field in a file of its own |
 | `<Leader>oxc` | `org.columns` | Column view |
 | `<Leader>ox0` | `org.timer.start` | Start the relative timer |

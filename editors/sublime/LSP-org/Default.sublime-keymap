@@ -1955,6 +1955,75 @@
   },
   {
     "keys": [
+      "ctrl+x",
+      "n",
+      "s"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.narrow.subtree"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+x",
+      "n",
+      "b"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.narrow.block"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+x",
+      "b"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.tree.indirect"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
       "ctrl+c",
       "`"
     ],

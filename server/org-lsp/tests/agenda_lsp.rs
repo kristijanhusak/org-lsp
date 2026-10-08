@@ -2546,6 +2546,67 @@ fn shows_column_view() {
     client.shutdown();
 }
 
+/// Narrowing (`C-x n s`, `C-x n b`): the subtree or the block at the
+/// cursor in a file of its own, written back as it is each time it is
+/// saved, and the Org file saved.
+#[test]
+fn narrows_to_a_subtree_in_a_file_of_its_own() {
+    let directory = workspace("narrow");
+    let file = directory.join("narrow.org");
+    let mut text = "* A\nbefore\n* B\nbody\n#+begin_src sh\nls\n#+end_src\n** C\n* D\n".to_string();
+    std::fs::write(&file, &text).unwrap();
+    let mut client = Client::editor(clock(), None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, &text);
+    let run = |client: &mut Client, command: &str, line: u32| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": 1 } });
+        client.received.clear();
+        client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        client.settle();
+        let shown =
+            client.received.iter().find(|request| request.method == "window/showDocument").expect("a file shown");
+        PathBuf::from(shown.params["uri"].as_str().unwrap().strip_prefix("file://").unwrap())
+    };
+    let narrowed = run(&mut client, "org.narrow.subtree", 3);
+    assert!(narrowed.ends_with("narrow-narrowed.org"), "{}", narrowed.display());
+    assert_eq!(std::fs::read_to_string(&narrowed).unwrap(), "* B\nbody\n#+begin_src sh\nls\n#+end_src\n** C\n");
+    let save = |client: &mut Client, text: &mut String, content: &str| {
+        client.received.clear();
+        client.notifications.clear();
+        std::fs::write(&narrowed, content).unwrap();
+        let start = std::time::Instant::now();
+        while !client.received.iter().any(|request| request.method == "workspace/applyEdit")
+            && start.elapsed() < std::time::Duration::from_secs(10)
+        {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            client.settle();
+        }
+        apply_received(client, &uri, text);
+        assert!(client.notifications.iter().any(|note| note.method == "org-lsp/save"), "{:?}", client.notifications);
+    };
+    save(&mut client, &mut text, "* B\nnew body\n** C\n");
+    assert_eq!(text, "* A\nbefore\n* B\nnew body\n** C\n* D\n");
+    // Changed above it in the meantime: found again where it moved.
+    text = format!("* Z\n{text}");
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+    );
+    save(&mut client, &mut text, "* B\nnewer\n");
+    assert_eq!(text, "* Z\n* A\nbefore\n* B\nnewer\n* D\n");
+    // A block.
+    text = "* A\n#+begin_quote\nwise\n#+end_quote\nafter\n".to_string();
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+    );
+    let block = run(&mut client, "org.narrow.block", 2);
+    assert_eq!(std::fs::read_to_string(&block).unwrap(), "#+begin_quote\nwise\n#+end_quote\n");
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

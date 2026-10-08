@@ -14,7 +14,7 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | Feature | Parity | Vim | What does not work, and why |
 | --- | --- | --- | --- |
 | [Highlighting](../../docs/parity.md#highlighting) | 92% | ❓ | Links, emphasis markers and pretty entities are not concealed: Vim cannot hide text that has text properties. |
-| [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 75% | ✅ |  |
+| [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 88% | ✅ |  |
 | [Headings and structure](../../docs/parity.md#headings-and-structure) | 100% | ✅ |  |
 | [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 100% | ✅ |  |
 | [TODO keywords](../../docs/parity.md#todo-keywords) | 100% | ✅ |  |

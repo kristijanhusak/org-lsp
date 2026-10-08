@@ -12,7 +12,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | Feature | Parity | Done |
 | --- | --- | --- |
 | [Highlighting](#highlighting) | 92% | 12 of 13 |
-| [Folding and visibility](#folding-and-visibility) | 75% | 6 of 8 |
+| [Folding and visibility](#folding-and-visibility) | 88% | 7 of 8 |
 | [Headings and structure](#headings-and-structure) | 100% | 12 of 12 |
 | [Lists and checkboxes](#lists-and-checkboxes) | 100% | 10 of 10 |
 | [TODO keywords](#todo-keywords) | 100% | 8 of 8 |
@@ -67,7 +67,7 @@ Where editors fall short:
 
 ## Folding and visibility
 
-75% (6 of 8)
+88% (7 of 8)
 
 - ✅ Cycling a subtree (`TAB`): folded, children, subtree
 - ✅ Cycling the file (`S-TAB`): overview, contents, everything
@@ -75,7 +75,7 @@ Where editors fall short:
 - ✅ Blank lines after a subtree kept outside its fold (`org-cycle-separator-lines`)
 - ✅ Archived subtrees left folded (`org-cycle-hide-archived-subtrees`)
 - ✅ Sparse trees (`C-c /`)
-- ❌ Narrowing to a subtree or block (`C-x n s`, `C-x n b`)
+- ✅ Narrowing to a subtree or block (`C-x n s`, `C-x n b`) and the subtree in an indirect buffer (`C-c C-x b`): it in a file of its own, all there is to see there, written back each time it is saved
 - ❌ Showing the context of the cursor (`org-reveal`, `C-c C-r`)
 
 Where editors fall short:
