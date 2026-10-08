@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 95%**
+**All of Org: 96%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -20,7 +20,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Tags](#tags) | 100% | 6 of 6 |
 | [Properties and column view](#properties-and-column-view) | 100% | 6 of 6 |
 | [Dates and times](#dates-and-times) | 100% | 8 of 8 |
-| [Agenda](#agenda) | 95% | 20 of 21 |
+| [Agenda](#agenda) | 100% | 21 of 21 |
 | [Clocking](#clocking) | 100% | 8 of 8 |
 | [Capture](#capture) | 100% | 11 of 11 |
 | [Refile and archive](#refile-and-archive) | 100% | 11 of 11 |
@@ -208,7 +208,7 @@ Where editors fall short:
 
 ## Agenda
 
-95% (20 of 21)
+100% (21 of 21)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
@@ -228,13 +228,15 @@ Where editors fall short:
 - ✅ Habits (`org-habit`): the consistency graph, `K`
 - ✅ Diary sexps (`%%(diary-…)` lines, `<%%(…)>` timestamps): the date functions of `diary-lib` and Org (`diary-anniversary`, `-block`, `-cyclic`, `-date`, `-float`, `org-class`…) with `and`, `or`, `not` and comparisons
 - ✅ Diary sexps calling other Lisp, evaluated by Emacs (`org-diary-sexp-entry`) for each day of the view
-- ❌ Column view in the agenda
+- ✅ Column view in the agenda (`C-c C-x C-c`, through Emacs): each entry's line covered by its columns, the summaries on the date lines and the blocks' headers; editing, cycling and showing the values of the entries, changed in their files
 - ✅ Writing the agenda to a file (`C-x C-w`): `.org` and plain text
 - ✅ Appointment reminders (`org-agenda-to-appt`, through Emacs's `appt.el`): today's entries with a time, checked each minute, the reminders shown as messages
 
 Where editors fall short:
 
+- Vim ❓: Column view in the agenda is left out: it draws over the lines, which Vim cannot.
 - VS Code ❓: Tags are at column 80, not at the window's edge (`org_agenda_tags_column` `"auto"`): VS Code does not tell an extension how many columns an editor shows.
+- Sublime Text ❓: Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.
 - Zed ❓: The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension).
 - Helix ❌: Helix cannot open a document on a server's request. `org-lsp agenda FILE...` prints the agenda in a terminal.
 

@@ -132,7 +132,7 @@ those dates in the file itself, where completion helps.
 | [Tags](../../docs/parity.md#tags) | 100% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Zed cannot ask for text on a server's behalf. Completion and renaming work. |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 100% | ❓ | Setting a property or the effort is left out: they are typed, and Zed cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines. |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Zed cannot ask for text on a server's behalf. Changing a timestamp works. |
-| [Agenda](../../docs/parity.md#agenda) | 95% | ❓ | The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension). |
+| [Agenda](../../docs/parity.md#agenda) | 100% | ❓ | The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension). |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ❓ | No clock in the status line: Zed has no place there for an extension's text. |
 | [Capture](../../docs/parity.md#capture) | 100% | ❓ | Templates with prompts are left out, and there is no capture buffer to type in: Zed cannot ask for text on a server's behalf. |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 100% | ✅ |  |
@@ -151,7 +151,7 @@ those dates in the file itself, where completion helps.
 | [Attachments](../../docs/parity.md#attachments) | 100% | ❓ | `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Zed cannot bind a key to a server's command (the commands are code actions), and it is not among them. |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **95%** |  |  |
+| **All of Org** | **96%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

@@ -175,6 +175,7 @@ The other options are in [configuration.md](configuration.md).
 | `s`, `<C-x><C-s>` | `org.agenda.save` | Save all Org files |
 | `vl` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `<C-x><C-w>` | `org.agenda.write` | Agenda: write it to a file |
+| `<C-c><C-x><C-c>` | `org.agenda.columns` | Agenda: column view |
 | `R`, `vR` | `org.agenda.clockreport` | Agenda: the clock report |
 | `E`, `vE` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
 | `F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |

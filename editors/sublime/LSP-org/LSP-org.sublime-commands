@@ -168,6 +168,13 @@
     }
   },
   {
+    "caption": "Org: Agenda: column view",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.columns"
+    }
+  },
+  {
     "caption": "Org: Agenda: the clock report",
     "command": "org_lsp_run",
     "args": {

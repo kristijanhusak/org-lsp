@@ -150,7 +150,7 @@ local function attach(bufnr)
 end
 
 --- Column view off in buffer `bufnr`: the text as it is, the keys of Org
---- files again.
+--- files (or of the agenda) again.
 ---@param bufnr integer
 function M.off(bufnr)
   local view = shown[bufnr]
@@ -169,7 +169,9 @@ function M.off(bufnr)
       vim.w[win].org_lsp_winbar = nil
     end
   end
-  require('org-lsp')._set_keys('org', bufnr)
+  local org = require('org-lsp')
+  local agenda = org.manifest and vim.bo[bufnr].filetype == org.manifest.agenda.languageId
+  org._set_keys(agenda and 'agenda' or 'org', bufnr)
 end
 
 --- What the server says column view shows (`org-lsp/columns`).

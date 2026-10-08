@@ -22,7 +22,7 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 100% | ❓ | Column view is left out: it draws over the headlines, which Vim cannot. |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ❓ | Dates are typed, without the calendar: the Vim plugin asks with an input line. |
-| [Agenda](../../docs/parity.md#agenda) | 95% | ✅ |  |
+| [Agenda](../../docs/parity.md#agenda) | 100% | ❓ | Column view in the agenda is left out: it draws over the lines, which Vim cannot. |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 100% | ✅ |  |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 100% | ✅ |  |
@@ -41,7 +41,7 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Attachments](../../docs/parity.md#attachments) | 100% | ✅ |  |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **95%** |  |  |
+| **All of Org** | **96%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

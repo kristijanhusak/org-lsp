@@ -128,6 +128,8 @@ here and why.
 
 ## Agenda
 
+**Partly:** Column view in the agenda is left out: it draws over the lines, which Vim cannot.
+
 - [ ] The agenda menu lists the views and the custom commands: `<Leader>oa`
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: `:Org agenda list`
 - [ ] Later, earlier, today; day, week, month views; going to a date: `f`, `b`, `.`, `vd`, `vw`, `vm`, `J`

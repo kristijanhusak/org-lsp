@@ -139,6 +139,7 @@ here and why.
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: *Org: Agenda for the current week or day*
 - [ ] Later, earlier, today; day, week, month views; going to a date: `f`, `b`, `.`, `v d`, `v w`, `v m`, `J`
 - [ ] The TODO list, a tag search (`work+urgent`), a word search: `Ctrl+C a`
+- [ ] Column view in the agenda covers each entry's line with its columns and sums the efforts on the header; `e` on an effort changes it in the entry's file; `q` turns it off (needs Emacs): `Ctrl+C Ctrl+X Ctrl+C`
 - [ ] Going to the line's entry in another window, and where the agenda is: `Tab`, `Enter`
 - [ ] Changing the line's TODO state and priority; the line follows: `t`, `+` or `Shift+Up`
 - [ ] Scheduling the line's entry and setting its deadline: `Ctrl+C Ctrl+S`, `Ctrl+C Ctrl+D`

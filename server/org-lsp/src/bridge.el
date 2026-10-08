@@ -847,13 +847,135 @@ width), its header line, and for each headline it covers its line (from
     (prog1 (org-lsp-bridge--columns-view)
       (org-columns-quit))))
 
+;;; Column view in the agenda
+
+(defmacro org-lsp-bridge--with-agenda (params &rest body)
+  "Run BODY in an agenda buffer made of PARAMS, column view on there
+\(`org-agenda-columns'): its `lines', each its `text' and, for an entry,
+its `file' and the `point' of its headline (a character, from 1), or
+`date' for a date line and `structure' for a block's header; the `start'
+line (from 0) it is turned on at, whose entry has the format; the `files'
+as the editor has them, each its `file' and `text', in buffers visiting
+them. The buffers go afterwards."
+  (declare (indent 1))
+  `(let (org-lsp-bridge--agenda-files)
+     (unwind-protect
+         (progn
+           (dolist (file (append (alist-get 'files ,params) nil))
+             (let* ((path (expand-file-name (alist-get 'file file)))
+                    (buffer (generate-new-buffer (file-name-nondirectory path))))
+               (with-current-buffer buffer
+                 (insert (alist-get 'text file))
+                 (setq buffer-file-name path
+                       buffer-file-truename (abbreviate-file-name (file-truename path))
+                       default-directory (file-name-directory path))
+                 (set-buffer-modified-p nil)
+                 (delay-mode-hooks (org-mode)))
+               (push (list path buffer (alist-get 'text file)) org-lsp-bridge--agenda-files)))
+           (with-current-buffer (get-buffer-create " *org-lsp agenda*")
+             (org-agenda-mode)
+             (let ((inhibit-read-only t))
+               (erase-buffer)
+               (dolist (line (append (alist-get 'lines ,params) nil))
+                 (let ((text (copy-sequence (alist-get 'text line)))
+                       (file (alist-get 'file line)))
+                   (cond
+                    (file
+                     (let ((marker (with-current-buffer
+                                       (nth 1 (assoc (expand-file-name file) org-lsp-bridge--agenda-files))
+                                     (copy-marker (alist-get 'point line)))))
+                       (add-text-properties 0 (length text) `(org-hd-marker ,marker org-marker ,marker) text)))
+                    ((eq (alist-get 'date line) t)
+                     (add-text-properties 0 (length text) '(org-date-line t) text))
+                    ((eq (alist-get 'structure line) t)
+                     (add-text-properties 0 (length text) '(face org-agenda-structure) text)))
+                   (insert text "\n"))))
+             (setq-local org-agenda-contributing-files (mapcar #'car org-lsp-bridge--agenda-files))
+             (setq-local org-done-keywords-for-agenda
+                         (delete-dups
+                          (apply #'append
+                                 (mapcar (lambda (file) (with-current-buffer (nth 1 file) org-done-keywords))
+                                         org-lsp-bridge--agenda-files))))
+             (switch-to-buffer (current-buffer))
+             (goto-char (point-min))
+             (forward-line (or (alist-get 'start ,params) 0))
+             (let ((inhibit-message t)) (org-agenda-columns))
+             ,@body))
+       (when-let* ((agenda (get-buffer " *org-lsp agenda*")))
+         (with-current-buffer agenda (org-columns-remove-overlays))
+         (kill-buffer agenda))
+       (dolist (file org-lsp-bridge--agenda-files)
+         (with-current-buffer (nth 1 file)
+           (set-buffer-modified-p nil)
+           (setq buffer-file-name nil))
+         (kill-buffer (nth 1 file))))))
+
+(defvar org-lsp-bridge--agenda-files nil
+  "The files of the agenda being shown in column view: each its name, its
+buffer and its text before.")
+
+(defun org-lsp-bridge-agenda-columns (params)
+  "Column view of the agenda of PARAMS (see `org-lsp-bridge--with-agenda'):
+what it shows, as for a file."
+  (require 'org-colview)
+  (require 'org-agenda)
+  (org-lsp-bridge--with-agenda params
+    (org-lsp-bridge--columns-view)))
+
+(defun org-lsp-bridge--call-answered (command answer)
+  "Call COMMAND, one of column view's, interactively; what it asks is
+ANSWER, without fast selection or a calendar, when there is one."
+  (unless (string-prefix-p "org-columns-" (format "%s" command))
+    (error "org-lsp does not run %s" command))
+  (let ((org-use-fast-todo-selection nil)
+        (org-use-fast-tag-selection nil)
+        (org-read-date-popup-calendar nil)
+        (command (intern (format "%s" command))))
+    (if (not answer)
+        (call-interactively command)
+      (cl-letf* ((answered (lambda (&rest _) answer))
+                 ((symbol-function 'read-string) answered)
+                 ((symbol-function 'read-from-minibuffer) answered)
+                 ((symbol-function 'completing-read) answered)
+                 ((symbol-function 'org-completing-read) answered)
+                 ((symbol-function 'read-char-exclusive)
+                  (lambda (&rest _) (if (string-empty-p answer) ?\s (string-to-char answer)))))
+        (call-interactively command)))))
+
+(defun org-lsp-bridge-agenda-columns-command (params)
+  "Column view of the agenda of PARAMS (see `org-lsp-bridge--with-agenda'),
+its `command' run on the `column'th column (from 0) of its `line' (from
+0), `answer' what it asks: the files it changed, each its `file' and
+`text', what the view shows then and what Emacs said."
+  (require 'org-colview)
+  (require 'org-agenda)
+  (setq org-lsp-bridge--message nil)
+  (org-lsp-bridge--with-agenda params
+    (goto-char (point-min))
+    (forward-line (alist-get 'line params))
+    (goto-char (min (+ (point) (alist-get 'column params)) (line-end-position)))
+    (advice-add 'message :around #'org-lsp-bridge--record-message)
+    (unwind-protect
+        (org-lsp-bridge--call-answered (alist-get 'command params) (alist-get 'answer params))
+      (advice-remove 'message #'org-lsp-bridge--record-message))
+    (when (and org-lsp-bridge--message (string-prefix-p "Recomputing columns" org-lsp-bridge--message))
+      (setq org-lsp-bridge--message nil))
+    `((files . ,(vconcat
+                 (delq nil
+                       (mapcar (lambda (file)
+                                 (with-current-buffer (nth 1 file)
+                                   (let ((text (buffer-substring-no-properties (point-min) (point-max))))
+                                     (unless (equal text (nth 2 file))
+                                       `((file . ,(nth 0 file)) (text . ,text))))))
+                               org-lsp-bridge--agenda-files))))
+      (view . ,(and (bound-and-true-p org-columns-overlays) (org-lsp-bridge--columns-view)))
+      (message . ,org-lsp-bridge--message))))
+
 (defun org-lsp-bridge-columns-command (start global column command &optional answer)
   "Column view turned on at START (for the whole file with GLOBAL), COMMAND
 run on the COLUMNth column (from 0) of the line at point, ANSWER what it
 asks: what the view shows then, in `org-lsp-bridge--extra'."
   (require 'org-colview)
-  (unless (string-prefix-p "org-columns-" (format "%s" command))
-    (error "org-lsp does not run %s" command))
   (switch-to-buffer (current-buffer))
   (let ((line (line-beginning-position)))
     (save-excursion
@@ -863,20 +985,7 @@ asks: what the view shows then, in `org-lsp-bridge--extra'."
     (goto-char (min (+ line column) (line-end-position)))
     ;; What the command asks, the editor answered first; without fast
     ;; selection or a calendar, a question is one line of text.
-    (let ((org-use-fast-todo-selection nil)
-          (org-use-fast-tag-selection nil)
-          (org-read-date-popup-calendar nil)
-          (command (intern (format "%s" command))))
-      (if (not answer)
-          (call-interactively command)
-        (cl-letf* ((answered (lambda (&rest _) answer))
-                   ((symbol-function 'read-string) answered)
-                   ((symbol-function 'read-from-minibuffer) answered)
-                   ((symbol-function 'completing-read) answered)
-                   ((symbol-function 'org-completing-read) answered)
-                   ((symbol-function 'read-char-exclusive)
-                    (lambda (&rest _) (if (string-empty-p answer) ?\s (string-to-char answer)))))
-          (call-interactively command))))
+    (org-lsp-bridge--call-answered command answer)
     (when (and org-lsp-bridge--message (string-prefix-p "Recomputing columns" org-lsp-bridge--message))
       (setq org-lsp-bridge--message nil))
     ;; Still on unless the command turned it off (`q').

@@ -125,6 +125,8 @@ here and why.
 
 ## Agenda
 
+**Partly:** Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.
+
 - [ ] The agenda menu lists the views and the custom commands: `Ctrl+C a`
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: *Org: Agenda for the current week or day*
 - [ ] Later, earlier, today; day, week, month views; going to a date: `f`, `b`, `.`, `v d`, `v w`, `v m`, `J`
