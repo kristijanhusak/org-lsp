@@ -29,6 +29,9 @@ class Region:
     def end(self):
         return max(self.a, self.b)
 
+    def empty(self):
+        return self.a == self.b
+
     def __eq__(self, other):
         return (self.begin(), self.end()) == (other.begin(), other.end())
 
@@ -88,7 +91,7 @@ class View:
 
             def add(self, region):
                 view.cursor = region.b
-        return Selection([Region(self.cursor)])
+        return Selection([getattr(self, 'selection', None) or Region(self.cursor)])
 
     def size(self):
         return len(self.text)
@@ -314,6 +317,14 @@ class Tests(unittest.TestCase):
         self.assertIn('>Org<', content)
         self.assertEqual(location, self.view.cursor)
         self.assertFalse(self.view.popup_visible)
+
+    def test_sends_the_selection_as_the_region(self):
+        self.view.selection = Region(self.view.text_point(1, 0), self.view.text_point(2, 1))
+        session = self.run_command([('result', None)], command='org.meta.right')
+        self.assertEqual(session.sent[0][1]['arguments'][0]['range'], {
+            'start': {'line': 1, 'character': 0}, 'end': {'line': 2, 'character': 1},
+        })
+        self.assertEqual(session.sent[0][1]['arguments'][0]['position'], {'line': 2, 'character': 1})
 
     def test_messages_go_to_the_status_bar_only_when_asked(self):
         self.sublime.settings['org_messages'] = 'status'

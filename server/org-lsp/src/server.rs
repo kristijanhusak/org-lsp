@@ -234,6 +234,25 @@ struct Context {
     /// What the editor would paste, for the commands that read it
     /// (`"clipboard": true` in the manifest).
     clipboard: Option<String>,
+    /// The selection the command was run on, Emacs's active region: the
+    /// cursor is at one of its ends, the mark at the other.
+    range: Option<Range>,
+}
+
+/// The Emacs command a command is on a selection, the active region, for
+/// those whose work Org changes there and org-lsp leaves to Emacs.
+fn region_command(id: &str) -> Option<&'static str> {
+    Some(match id {
+        commands::META_LEFT => "org-metaleft",
+        commands::META_RIGHT => "org-metaright",
+        commands::META_UP => "org-metaup",
+        commands::META_DOWN => "org-metadown",
+        commands::SHIFT_META_LEFT => "org-shiftmetaleft",
+        commands::SHIFT_META_RIGHT => "org-shiftmetaright",
+        commands::CHECKBOX_TOGGLE => "org-toggle-checkbox",
+        commands::TABLE_CREATE => "org-table-create-or-convert-from-region",
+        _ => return None,
+    })
 }
 
 /// The target a refile command was given: `input`, or after "Create new
@@ -2035,7 +2054,13 @@ impl Server {
             self.saw_cursor(uri, params.range.start);
         }
         let only = params.context.only.as_deref();
-        let context = json!({ "textDocument": { "uri": uri }, "position": params.range.start });
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": params.range.start });
+        // Over a selection: the region, the point at its start. Not over
+        // one character, which is the cursor in Helix.
+        let (start, end) = (params.range.start, params.range.end);
+        if start.line != end.line || end.character > start.character + 1 {
+            context["range"] = json!(params.range);
+        }
         let as_action = |id: &'static str| {
             let title = commands::title(id).to_string();
             CodeActionOrCommand::CodeAction(CodeAction {
@@ -3781,6 +3806,13 @@ impl Server {
             if table_key && !self.at_table(found) {
                 let command =
                     if params.command == commands::TABLE_HLINE { "org-toggle-item" } else { "org-toggle-heading" };
+                return self.emacs_run(command, found);
+            }
+        }
+        // On a selection, the commands Org gives a meaning there run in
+        // Emacs, with the selection as the active region.
+        if let Some(found) = context.as_ref().filter(|found| Self::has_region(found)) {
+            if let Some(command) = region_command(&params.command) {
                 return self.emacs_run(command, found);
             }
         }
@@ -7883,6 +7915,11 @@ impl Server {
         }
     }
 
+    /// Whether the command was run on a selection (`org-region-active-p`).
+    fn has_region(context: &Context) -> bool {
+        context.range.is_some_and(|range| range.start != range.end)
+    }
+
     /// [`Server::emacs_run`] with the command called with `args`.
     fn emacs_run_with(
         &mut self,
@@ -7896,13 +7933,20 @@ impl Server {
         let document = self.document(&uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
         let point = document.text[..offset].chars().count() + 1;
-        let params = json!({
+        let mut params = json!({
             "file": path.to_string_lossy(),
             "text": document.text,
             "point": point,
             "command": command,
             "args": args,
         });
+        // The region: the mark at the end of the selection the cursor is
+        // not at.
+        if let Some(range) = context.range.filter(|range| range.start != range.end) {
+            let other = if range.start == context.position { range.end } else { range.start };
+            let at = document.index.offset(&document.text, other, encoding);
+            params["mark"] = json!(document.text[..at].chars().count() + 1);
+        }
         let job = EmacsJob::Edit { uri: uri.clone(), version: document.version, text: document.text.clone(), point };
         self.next_export += 1;
         let tag = self.next_export;

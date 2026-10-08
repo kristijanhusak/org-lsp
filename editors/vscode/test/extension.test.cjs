@@ -630,6 +630,24 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('works on the selection as Emacs on its region', async function () {
+    this.timeout(90000);
+    // Through the server's Emacs.
+    if (!require('node:child_process').spawnSync('emacs', ['--version']).stdout) {
+      this.skip();
+    }
+    const file = vscode.Uri.file(path.join(workspace, 'region.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* A\n* B\none\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    editor.selection = new vscode.Selection(0, 0, 2, 0);
+    await vscode.commands.executeCommand('org.meta.right');
+    await until('both headlines demoted', () => editor.document.getText() === '** A\n** B\none\n', 60000);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('sorts the children of an entry by the key picked', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'sorting.org'));
     await vscode.workspace.fs.writeFile(file, Buffer.from('* Parent\n** b\n** C\ntext\n** a\n'));

@@ -13,7 +13,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | --- | --- | --- |
 | [Highlighting](#highlighting) | 92% | 11 of 12 |
 | [Folding and visibility](#folding-and-visibility) | 67% | 6 of 9 |
-| [Headings and structure](#headings-and-structure) | 100% | 11 of 11 |
+| [Headings and structure](#headings-and-structure) | 100% | 12 of 12 |
 | [Lists and checkboxes](#lists-and-checkboxes) | 91% | 10 of 11 |
 | [TODO keywords](#todo-keywords) | 100% | 8 of 8 |
 | [Priorities](#priorities) | 100% | 3 of 3 |
@@ -26,7 +26,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Refile and archive](#refile-and-archive) | 82% | 9 of 11 |
 | [Links](#links) | 91% | 10 of 11 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
-| [Tables](#tables) | 65% | 11 of 17 |
+| [Tables](#tables) | 71% | 12 of 17 |
 | [Table formulas](#table-formulas) | 83% | 10 of 12 |
 | [Code blocks (Babel)](#code-blocks-babel) | 82% | 9 of 11 |
 | [Export and publishing](#export-and-publishing) | 67% | 6 of 9 |
@@ -85,7 +85,7 @@ Where editors fall short:
 
 ## Headings and structure
 
-100% (11 of 11)
+100% (12 of 12)
 
 - ✅ New headings (`M-RET`, `M-S-RET`, `C-RET`, `C-S-RET`)
 - ✅ Promoting and demoting a heading or a subtree
@@ -98,6 +98,7 @@ Where editors fall short:
 - ✅ Turning lines into headings and back (`C-c *`, through Emacs)
 - ✅ Toggling `COMMENT` (`C-c ;`, through Emacs)
 - ✅ Cloning a subtree with its dates shifted (`C-c C-x c`, through Emacs)
+- ✅ Commands on a region, a selection in the editor: the headlines in it promoted, demoted or moved, lines turned into headings or items, checkboxes toggled, the region wrapped in a block, a drawer or emphasis (through Emacs)
 
 Where editors fall short:
 
@@ -331,7 +332,7 @@ Where editors fall short:
 
 ## Tables
 
-65% (11 of 17)
+71% (12 of 17)
 
 - ✅ Aligning (`C-c C-c`, formatting)
 - ✅ Moving between fields (`TAB`, `S-TAB`), a row made past the last
@@ -345,7 +346,7 @@ Where editors fall short:
 - ❌ Editing a field in its own buffer (`C-c \``)
 - ❌ Shrunk columns (`<5>`)
 - ✅ Creating an empty table (`C-c |`, through Emacs)
-- ❌ Making a table from a region (`C-c |` on a region)
+- ✅ Making a table from a region (`C-c |` on a selection, through Emacs)
 - ✅ Summing (`C-c +`) and field information (`C-c ?`), through Emacs
 - ✅ Moving the field with the shifted cursor keys (through Emacs)
 - ❌ Importing and exporting tables

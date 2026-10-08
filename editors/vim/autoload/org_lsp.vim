@@ -237,6 +237,23 @@ function! s:character(text, byte) abort
   return encoding ==# 'utf-8' ? len(prefix) : encoding ==# 'utf-32' ? strchars(prefix) : strutf16len(prefix)
 endfunction
 
+" The last Visual selection as a range: from its first character to after
+" its last, whole lines in Visual line mode.
+function! s:selection_range() abort
+  let [first, last] = [getpos("'<"), getpos("'>")]
+  let start_line = getline(first[1])
+  let start = {'line': first[1] - 1, 'character': s:character(start_line, visualmode() ==# 'V' ? 0 : first[2] - 1)}
+  if visualmode() ==# 'V'
+    return {'start': start, 'end': {'line': last[1], 'character': 0}}
+  endif
+  let end_line = getline(last[1])
+  let after = min([last[2] - 1, len(end_line)])
+  if after < len(end_line)
+    let after += len(strcharpart(end_line[after :], 0, 1))
+  endif
+  return {'start': start, 'end': {'line': last[1] - 1, 'character': s:character(end_line, after)}}
+endfunction
+
 " Where the cursor is, as the server's commands take it.
 function! s:cursor_context() abort
   let nr = s:org_buffer()
@@ -291,6 +308,12 @@ function! org_lsp#run(name, ...) abort
   let [nr, context] = s:cursor_context()
   if get(opts, 'count', 0) > 0
     let context.count = opts.count
+  endif
+  " The Visual selection just left, as Emacs's region, the point at its
+  " start.
+  if get(opts, 'region', 0) && nr == bufnr()
+    let context.range = s:selection_range()
+    let context.position = context.range.start
   endif
   " The register the key was typed with (`"a`), as `y` and `p` take it;
   " what the command reads as Emacs's latest kill comes from there.
@@ -760,6 +783,10 @@ function! org_lsp#set_keys(scope) abort
         execute printf('nnoremap %s <silent> <expr> %s org_lsp#repeatable(%d)', buffer, mapped, index)
       else
         execute printf('nnoremap %s %s <silent> %s :<C-u>call org_lsp#key(%d, v:count)<CR>', buffer, nowait, mapped, index)
+      endif
+      " On a selection, the commands Org gives a region.
+      if get(command, 'region', v:false) && a:scope ==# 'org'
+        execute printf('xnoremap %s <silent> %s :<C-u>call org_lsp#run(%s, {''region'': 1})<CR>', buffer, mapped, string(name))
       endif
     endfor
   endfor

@@ -1243,5 +1243,34 @@ eq(
   'key names'
 )
 
+-- A command on a Visual selection works on it as Emacs's region: lines
+-- selected become headings (`org-toggle-heading`, through Emacs), and
+-- the headings selected are demoted together.
+if vim.fn.executable('emacs') == 1 then
+  local region = vim.fn.tempname() .. '.org'
+  vim.fn.writefile({ 'one', 'two', 'three' }, region)
+  vim.cmd.edit(region)
+  wait('the server to attach to the region file', function()
+    return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+  end)
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys('Vj', 'nx', false)
+  eq(require('org-lsp').selection(), { start = { 0, 0 }, ['end'] = { 2, 0 }, cursor_at_end = true }, 'whole lines')
+  require('org-lsp').run('org.toggle.heading', { region = true })
+  eq(vim.fn.mode(), 'n', 'out of Visual mode')
+  wait('the lines selected made headings', function()
+    return table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '|') == '* one|* two|three'
+  end)
+  -- Charwise, the cursor at its start: Emacs demotes the headlines from
+  -- the start of the region on.
+  vim.api.nvim_win_set_cursor(0, { 2, 2 })
+  vim.api.nvim_feedkeys('vk0', 'nx', false)
+  eq(require('org-lsp').selection(), { start = { 0, 0 }, ['end'] = { 1, 3 }, cursor_at_end = false }, 'characters')
+  require('org-lsp').run('org.meta.right', { region = true })
+  wait('both headings demoted', function()
+    return table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '|') == '** one|** two|three'
+  end)
+end
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

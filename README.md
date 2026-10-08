@@ -41,7 +41,7 @@ hand: [Neovim](editors/neovim/README.md), [Vim](editors/vim/README.md),
 | [Refile and archive](docs/parity.md#refile-and-archive) | 82% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
 | [Links](docs/parity.md#links) | 91% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [Footnotes](docs/parity.md#footnotes) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
-| [Tables](docs/parity.md#tables) | 65% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [Tables](docs/parity.md#tables) | 71% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [Table formulas](docs/parity.md#table-formulas) | 83% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
 | [Code blocks (Babel)](docs/parity.md#code-blocks-babel) | 82% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [Export and publishing](docs/parity.md#export-and-publishing) | 67% | ✅ / ✅ / ✅ / ✅ / ❌ / ❌ |

@@ -257,6 +257,19 @@ Vim's count). The commands that move something by steps take it as the
 number of steps; the others ignore it. Commands that open a view work
 without the argument.
 
+`range`, the selection the command was run on, is Emacs's active region,
+with `position` at one of its ends (the point) and the mark at the other.
+The commands marked `"region": true` in the manifest act on it as Org
+does: `org-do-promote` and `org-do-demote` on the headlines in it, items
+outdented and indented, lines turned into headings or items
+(`org-toggle-heading`, `org-toggle-item`), checkboxes toggled
+(`org-toggle-checkbox`), lines made a table (`org-table-convert-region`,
+`C-c |`), the region moved (`org-metaup`, `org-metadown`), wrapped in a
+block, a drawer or emphasis markers. These run in the server's Emacs
+(see "Emacs" below). An empty range is no selection. Code actions
+requested over a selection carry it in their commands, unless it is a
+single character (Helix's cursor).
+
 A command's result may carry `"message"`: what Emacs says in the echo area
 when it is done, for the editor to show the same way (Neovim's messages, VS
 Code's status bar). `TODO state changed to DONE` (from the agenda, where

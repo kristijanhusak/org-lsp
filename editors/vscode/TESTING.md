@@ -54,6 +54,7 @@ here and why.
 - [ ] Off a table, turning a line into a heading and back (needs Emacs): `Ctrl+C *`
 - [ ] Toggling `COMMENT` on the heading (needs Emacs): `Ctrl+C ;`
 - [ ] Cloning the subtree twice a week apart (`+1w`): the copies follow it with their dates moved (needs Emacs): `Ctrl+C Ctrl+X c`
+- [ ] On a selection of whole lines: two headlines demoted together; lines turned into headings (needs Emacs): `Alt+Right`, `Ctrl+C *`
 - [ ] The outline lists the headings nested: the Outline view
 
 ## Lists and checkboxes

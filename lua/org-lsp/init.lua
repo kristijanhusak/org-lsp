@@ -202,9 +202,24 @@ function M.run(name, opts)
   local count = opts.count and opts.count > 0 and opts.count or nil
   -- The register the key was typed with (`"a`), as `y` and `p` take it.
   local register = vim.v.register
+  -- In Visual mode, the selection: the region the command works on.
+  local selection = opts.region and M.selection() or nil
+  if selection then
+    vim.api.nvim_feedkeys(vim.keycode('<Esc>'), 'nx', false)
+  end
   with_client(function(client)
     local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
     context.count = count
+    if selection then
+      local function position(at)
+        local line = vim.api.nvim_buf_get_lines(0, at[1], at[1] + 1, false)[1] or ''
+        local character = at[2] > 0 and vim.lsp.util.character_offset(0, at[1], math.min(at[2], #line), client.offset_encoding) or 0
+        return { line = at[1], character = character }
+      end
+      context.range = { start = position(selection.start), ['end'] = position(selection['end']) }
+      -- The point at the end of the selection the cursor was at.
+      context.position = selection.cursor_at_end and context.range['end'] or context.range.start
+    end
     -- What the command reads as Emacs's latest kill: the register.
     if (server_command(name) or {}).clipboard then
       context.clipboard = vim.fn.getreg(register)
@@ -436,6 +451,34 @@ function M.read_key(prompt, choices)
     return nil
   end
   return key
+end
+
+--- The Visual selection, as Emacs's region: its start and the position
+--- after its end, `{ line, byte }` from 0; whole lines from Visual line
+--- mode. Nil out of Visual mode.
+---@return { start: integer[], end: integer[], cursor_at_end: boolean }?
+function M.selection()
+  local mode = vim.fn.mode()
+  if mode ~= 'v' and mode ~= 'V' and mode ~= '\22' then
+    return nil
+  end
+  local cursor = vim.fn.getpos('.')
+  local other = vim.fn.getpos('v')
+  local first, last = other, cursor
+  if cursor[2] < other[2] or (cursor[2] == other[2] and cursor[3] < other[3]) then
+    first, last = cursor, other
+  end
+  local cursor_at_end = last == cursor
+  if mode == 'V' then
+    return { start = { first[2] - 1, 0 }, ['end'] = { last[2], 0 }, cursor_at_end = cursor_at_end }
+  end
+  -- The last character is in the selection: the end is after it.
+  local line = vim.fn.getline(last[2])
+  local after = last[3] - 1
+  if after < #line then
+    after = after + #vim.fn.strcharpart(line:sub(last[3]), 0, 1)
+  end
+  return { start = { first[2] - 1, first[3] - 1 }, ['end'] = { last[2] - 1, after }, cursor_at_end = cursor_at_end }
 end
 
 --- The editing command that `.` repeats, with its options.
@@ -741,6 +784,12 @@ local function set_keys(scope, bufnr)
         vim.keymap.set('n', lhs, function()
           M.run(name, { count = vim.v.count, key = key })
         end, { buffer = bufnr, desc = title, nowait = nowait[lhs] })
+      end
+      -- On a selection, the commands Org gives a region.
+      if command and command.region and scope == 'org' then
+        vim.keymap.set('x', lhs, function()
+          M.run(name, { region = true })
+        end, { buffer = bufnr, desc = title })
       end
     end
   end

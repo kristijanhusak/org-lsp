@@ -27,18 +27,23 @@ function serverCommand(context: vscode.ExtensionContext): string {
   return fs.existsSync(bundled) ? bundled : exe;
 }
 
-/** Where the cursor is, in the form the server's commands take. */
+/**
+ * Where the cursor is, in the form the server's commands take; with the
+ * selection, if any, as Emacs's region.
+ */
 function cursor(running: LanguageClient): unknown[] {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
     return [];
   }
-  return [
-    {
-      textDocument: running.code2ProtocolConverter.asTextDocumentIdentifier(editor.document),
-      position: running.code2ProtocolConverter.asPosition(editor.selection.active),
-    },
-  ];
+  const context: Record<string, unknown> = {
+    textDocument: running.code2ProtocolConverter.asTextDocumentIdentifier(editor.document),
+    position: running.code2ProtocolConverter.asPosition(editor.selection.active),
+  };
+  if (!editor.selection.isEmpty) {
+    context.range = running.code2ProtocolConverter.asRange(editor.selection);
+  }
+  return [context];
 }
 
 /**
