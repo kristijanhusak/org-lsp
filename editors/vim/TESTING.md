@@ -155,6 +155,7 @@ its sections says what it should look like.
 - [ ] Rebuilding the agenda, saving the changed files, quitting: `r`, `s` or `<C-x><C-s>`
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt
 - [ ] Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): `:Org agenda appt`
+- [ ] Started with no file, `:Org agenda list` starts the server and shows the agenda
 
 ## Clocking
 
