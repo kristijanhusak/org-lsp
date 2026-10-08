@@ -137,13 +137,16 @@ enum EmacsJob {
     ColumnsView { uri: Uri, version: i32 },
     /// Column view of the agenda `uri`, for the view's text.
     AgendaColumns { uri: Uri, text: String },
-    /// A column view command in the agenda `uri`: the files sent, each
-    /// its document's version when open and its text.
-    AgendaColumnsCommand { uri: Uri, files: Vec<(Uri, Option<i32>, String)> },
+    /// A column view command in the agenda `uri`: the files sent.
+    AgendaColumnsCommand { uri: Uri, files: SentFiles },
     /// The text of the file `file` (`content`) written back into the part
     /// of `uri` it edits (see [`SpecialEdit`]), run on `text`, its `version`.
     WriteBack { file: PathBuf, uri: Uri, version: i32, text: String, content: String },
 }
+
+/// The files sent to Emacs for a command in the agenda: each its URI, its
+/// document's version when open, and its text.
+type SentFiles = Vec<(Uri, Option<i32>, String)>;
 
 /// Column view (`org-columns`) on a document: where it was turned on (a
 /// character, from 1), and whether on the whole file.
@@ -8413,10 +8416,10 @@ impl Server {
     /// files, as the editor has them.
     /// Also the agenda's URI and each file's URI, version when open and
     /// text, to apply what a command changes.
-    fn agenda_columns_params(&self) -> Option<(Uri, Value, Vec<(Uri, Option<i32>, String)>)> {
+    fn agenda_columns_params(&self) -> Option<(Uri, Value, SentFiles)> {
         let open = self.view.as_ref()?;
         let view = &open.view;
-        let mut files: Vec<(Uri, Option<i32>, String)> = Vec::new();
+        let mut files: SentFiles = Vec::new();
         let mut lines = Vec::new();
         for (number, text) in view.text.lines().enumerate() {
             let line = view.lines.get(number);
@@ -8520,7 +8523,7 @@ impl Server {
     /// view, and what it changed in the files, applied there unless they
     /// changed meanwhile. The agenda is redone then, and its column view
     /// with it.
-    fn agenda_columns_done(&mut self, uri: &Uri, files: Vec<(Uri, Option<i32>, String)>, result: &Value) {
+    fn agenda_columns_done(&mut self, uri: &Uri, files: SentFiles, result: &Value) {
         if let Some(message) = result.get("message").and_then(Value::as_str).filter(|said| !said.is_empty()) {
             self.show_message(MessageType::INFO, message);
         }
