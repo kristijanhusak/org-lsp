@@ -136,7 +136,11 @@ fn alignment(text: &str, table: &Table, column: usize, cookie: Option<char>) -> 
             }
         }
     }
-    if filled > 0 && numbers * 2 >= filled { 'r' } else { 'l' }
+    if filled > 0 && numbers * 2 >= filled {
+        'r'
+    } else {
+        'l'
+    }
 }
 
 /// The overlays of the column `column` (from 1) of `table` shrunk to
@@ -251,8 +255,10 @@ pub fn shrunk_width(text: &str, table: &Table, column: usize) -> usize {
 
 /// The overlays of every shrunk column of `table`.
 pub fn overlays(text: &str, table: &Table, columns: &BTreeSet<usize>) -> Vec<Overlay> {
-    let mut out: Vec<Overlay> =
-        columns.iter().flat_map(|column| shrink_column(text, table, *column, shrunk_width(text, table, *column))).collect();
+    let mut out: Vec<Overlay> = columns
+        .iter()
+        .flat_map(|column| shrink_column(text, table, *column, shrunk_width(text, table, *column)))
+        .collect();
     out.sort_by_key(|overlay| overlay.start);
     out
 }
@@ -297,7 +303,10 @@ mod tests {
             shown("| <r4> | b |\n| 12 | x |\n| 1234567 | y |\n", &[1]),
             expected(&[(1, 2, " "), (6, 7, "…"), (14, 15, "   "), (17, 18, "…"), (25, 26, " "), (30, 34, "…")])
         );
-        assert_eq!(shown("| a | b |\n|---+---|\n| cc | d |\n", &[1]), expected(&[(1, 4, "…"), (11, 14, "…"), (21, 25, "…")]));
+        assert_eq!(
+            shown("| a | b |\n|---+---|\n| cc | d |\n", &[1]),
+            expected(&[(1, 4, "…"), (11, 14, "…"), (21, 25, "…")])
+        );
     }
 
     #[test]

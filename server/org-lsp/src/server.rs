@@ -2116,7 +2116,9 @@ impl Server {
         } else {
             Vec::new()
         };
-        hidden.extend(self.shrunk_overlays(uri.as_str(), &document.text).into_iter().map(|overlay| (overlay.start, overlay.end)));
+        hidden.extend(
+            self.shrunk_overlays(uri.as_str(), &document.text).into_iter().map(|overlay| (overlay.start, overlay.end)),
+        );
         hidden.sort_unstable();
         let tokens = if hidden.is_empty() { tokens } else { highlight::with_hidden(tokens, &hidden) };
         let only = range.map(|range| document.index.text_range(&document.text, range, encoding));
@@ -8171,7 +8173,8 @@ impl Server {
         let mut sets = self.shrunk.remove(&key).unwrap_or_default();
         sets.resize(tables.len(), Default::default());
         let shrunk = sets[index].clone();
-        let line = table.lines.iter().find(|(start, end)| (*start..=*end).contains(&offset)).copied().unwrap_or_default();
+        let line =
+            table.lines.iter().find(|(start, end)| (*start..=*end).contains(&offset)).copied().unwrap_or_default();
         let before_cursor = &text[line.0..offset];
         let columns = before_cursor.matches('|').count() + before_cursor.matches('+').count();
         let fields = text[line.0..line.1].matches('|').count().max(1) - 1;
@@ -8182,7 +8185,9 @@ impl Server {
                 // Before the first column or past the last: which ones.
                 let Some(input) = context.input.clone() else {
                     self.shrunk.insert(key, sets);
-                    return Ok(json!({ "input": { "kind": "text", "prompt": "Column ranges (e.g. 2-4 6-): ", "value": "" } }));
+                    return Ok(
+                        json!({ "input": { "kind": "text", "prompt": "Column ranges (e.g. 2-4 6-): ", "value": "" } }),
+                    );
                 };
                 let asked = column_ranges(&input, fields);
                 shrunk.symmetric_difference(&asked).copied().collect()

@@ -1771,12 +1771,16 @@ fn shrinks_table_columns() {
     // Shrunk when the file opens: `abc…`, as Emacs shows it.
     assert_eq!(hints(&mut client), [(1, 1, " ".into()), (1, 5, "…".into()), (2, 1, " ".into()), (2, 5, "…".into())]);
     let toggle = |client: &mut Client, line: u32, character: u32, extra: Value| {
-        let mut context = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        let mut context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
         for (key, value) in extra.as_object().unwrap() {
             context[key] = value.clone();
         }
         client
-            .raw_request("workspace/executeCommand", json!({ "command": "org.table.toggle.column.width", "arguments": [context] }))
+            .raw_request(
+                "workspace/executeCommand",
+                json!({ "command": "org.table.toggle.column.width", "arguments": [context] }),
+            )
             .response_result
             .unwrap()
     };
