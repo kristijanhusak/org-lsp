@@ -209,12 +209,16 @@ impl DatePrompt {
     }
 
     /// Show the months `by` months on; the selected day stays if it is
-    /// still shown, or else goes to the first of the middle month
-    /// (`calendar-scroll-left`).
+    /// still shown, or else goes to today if that is shown, or else to the
+    /// first of the middle month (`calendar-scroll-left`).
     pub fn scroll(&mut self, by: i64, now: DateTime, settings: &Settings) {
         self.calendar = self.calendar.scrolled(by);
         if !self.calendar.shows(self.selected) {
-            self.selected = Date::new(self.calendar.year, self.calendar.month, 1).to_day();
+            self.selected = if self.calendar.shows(now.day) {
+                now.day
+            } else {
+                Date::new(self.calendar.year, self.calendar.month, 1).to_day()
+            };
         }
         self.moved = true;
         self.render(now, settings);
@@ -375,10 +379,14 @@ mod tests {
         assert_eq!((prompt.calendar.year, prompt.calendar.month), (2027, 3));
         prompt.scroll(-1, now(), &Settings::default());
         assert_eq!(Date::from_day(prompt.selected), Date::new(2027, 3, 1));
+        // Out of view, the day goes to today when it is shown.
         prompt.scroll(-3, now(), &Settings::default());
-        assert_eq!(Date::from_day(prompt.selected), Date::new(2026, 11, 1));
+        assert_eq!(Date::from_day(prompt.selected), Date::new(2026, 10, 5));
         assert_eq!((prompt.calendar.year, prompt.calendar.month), (2026, 11));
         assert_eq!(prompt.day_at(Position::new(2, 31)), Some(Date::new(2026, 11, 1).to_day()));
+        // Else to the first of the middle month.
+        prompt.scroll(6, now(), &Settings::default());
+        assert_eq!(Date::from_day(prompt.selected), Date::new(2027, 5, 1));
     }
 
     #[test]
