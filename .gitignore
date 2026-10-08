@@ -7,3 +7,5 @@ __pycache__/
 /editors/vscode/.vscode-test
 
 /editors/zed/target
+/editors/zed/extension.wasm
+/editors/zed/grammars/org
