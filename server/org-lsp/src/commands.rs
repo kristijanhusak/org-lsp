@@ -1259,6 +1259,13 @@ pub const REGION: &[&str] = &[
     EMPHASIZE,
     STRUCTURE_TEMPLATE,
     DRAWER_INSERT,
+    // Its text the search of the link (`org-link-precise-link-target`).
+    LINK_STORE,
+    // Its text the link's description, the link in its place.
+    LINK_INSERT,
+    // The subtrees in it refiled together.
+    REFILE,
+    REFILE_COPY,
 ];
 
 /// `{ "command", "title", "edits", "keys": [{ "key", "in", "preset" }] }`.

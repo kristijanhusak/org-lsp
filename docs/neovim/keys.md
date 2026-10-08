@@ -297,8 +297,10 @@ subtree at the cursor.
   promote the headlines selected (or indent and outdent the items),
   `<Leader>o*` and `<Leader>o-` turn the lines into headings and items,
   `<C-Space>` toggles the checkboxes, `<Leader>oi<Bar>` makes a table of them,
-  `<Leader>oib` and `<Leader>oiD` wrap them in a block or a drawer. These
-  run in Emacs. The Vim plugin does the same.
+  `<Leader>oib` and `<Leader>oiD` wrap them in a block or a drawer (in
+  Emacs); `<Leader>or` refiles the subtrees selected, `<Leader>ols` stores
+  a link that searches for the text selected and `<Leader>oli` makes it
+  the description of a link. The Vim plugin does the same.
 - **Keys with a meaning of their own** (marked ¹) give it back where the
   command does not apply, so `<C-a>`, `<C-x>`, `<S-Up>` and `<S-Down>`
   still work on ordinary numbers and lines.

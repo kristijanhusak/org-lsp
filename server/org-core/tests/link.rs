@@ -87,8 +87,11 @@ fn run(case: &Value) -> Result<Value, String> {
         .get("id_files")
         .and_then(Value::as_array)
         .map(|names| names.iter().map(|name| name.as_str().unwrap().to_string()).collect());
+    let mut region: Option<(usize, usize)> = None;
     for step in case["steps"].as_array().unwrap() {
         let step = step.as_array().unwrap();
+        // The region of a `select` lasts one step.
+        let selected = region.take();
         let path = format!("{DIRECTORY}/{current}");
         let file = File { path: &path, home: Some(HOME) };
         let context = context(&current);
@@ -103,24 +106,43 @@ fn run(case: &Value) -> Result<Value, String> {
                 cursor = 0;
             }
             "goto" => cursor = text.find(step[1].as_str().unwrap()).unwrap(),
+            // The region, for the next step; the cursor at its end.
+            "select" => {
+                let start = text.find(step[1].as_str().unwrap()).unwrap();
+                cursor = start + step[1].as_str().unwrap().len();
+                region = Some((start, cursor));
+                continue;
+            }
             "store" => {
-                let made = link::store(&text, cursor, &file, &settings, true, prefix(step) > 0, &context, &mut new_id)?;
+                let made = link::store(
+                    &text,
+                    cursor,
+                    selected,
+                    &file,
+                    &settings,
+                    true,
+                    prefix(step) > 0,
+                    &context,
+                    &mut new_id,
+                )?;
                 if let Some((edited, at)) = &made.edited {
                     files.insert(current.clone(), edited.clone());
                     cursor = *at;
                 }
                 link::remember(&mut stored, &made);
             }
-            "annotation" => match link::store(&text, cursor, &file, &settings, false, false, &context, &mut new_id) {
-                Ok(made) => {
-                    if let Some((edited, at)) = &made.edited {
-                        files.insert(current.clone(), edited.clone());
-                        cursor = *at;
+            "annotation" => {
+                match link::store(&text, cursor, selected, &file, &settings, false, false, &context, &mut new_id) {
+                    Ok(made) => {
+                        if let Some((edited, at)) = &made.edited {
+                            files.insert(current.clone(), edited.clone());
+                            cursor = *at;
+                        }
+                        returned.push(link::annotation(&made));
                     }
-                    returned.push(link::annotation(&made));
+                    Err(_) => returned.push(String::new()),
                 }
-                Err(_) => returned.push(String::new()),
-            },
+            }
             "insert" => {
                 let given: Vec<Option<String>> =
                     step[2..].iter().map(|answer| answer.as_str().map(str::to_string)).collect();
@@ -190,8 +212,17 @@ fn run(case: &Value) -> Result<Value, String> {
                         context: &context,
                         new_id: &mut fresh_id,
                     };
-                    match link::insert(&text, cursor, &file, &stored, prefix(step), &answers, &settings, &mut outside)?
-                    {
+                    match link::insert(
+                        &text,
+                        cursor,
+                        selected,
+                        &file,
+                        &stored,
+                        prefix(step),
+                        &answers,
+                        &settings,
+                        &mut outside,
+                    )? {
                         Step::Ask(question) => {
                             offered |= question.prompt == "Entry";
                             let Some(answer) = given.get(answers.len()) else {

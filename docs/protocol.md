@@ -266,7 +266,12 @@ outdented and indented, lines turned into headings or items
 (`org-toggle-checkbox`), lines made a table (`org-table-convert-region`,
 `C-c |`), the region moved (`org-metaup`, `org-metadown`), wrapped in a
 block, a drawer or emphasis markers. These run in the server's Emacs
-(see "Emacs" below). An empty range is no selection. Code actions
+(see "Emacs" below). The server itself refiles the subtrees selected
+together (`Refile region to`; "The region is not a (sequence of)
+subtree(s)" otherwise; with `org_log_refile`, Org's time note in the last
+headline it set one up for), stores a link whose search is the text
+selected (`org-link-precise-link-target`, no description), and inserts a
+link with the text selected as its description, in its place. An empty range is no selection. Code actions
 requested over a selection carry it in their commands, unless it is a
 single character (Helix's cursor).
 

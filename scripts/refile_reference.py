@@ -4,7 +4,9 @@ A case is a JSON object:
 
     {
       "files": {"a.org": "* A¦\\n* B\\n"},   Org files; ¦ marks the cursor,
-                                            in exactly one of them
+                                            in exactly one of them, and «
+                                            the mark of an active region
+                                            when there is one
       "answer": "B",                        the target the user picks, or
       "answerIndex": 2,                     the one at this place among those
                                             offered (each name counted once)
@@ -41,6 +43,8 @@ import todo_reference
 from todo_reference import CURSOR, lisp_string, load, save  # noqa: F401
 
 CLOCK = "2026-05-18 10:30"
+# The mark of an active region.
+MARK = "«"
 
 DRIVER = r"""
 (require 'org)
@@ -55,7 +59,7 @@ DRIVER = r"""
 (defvar org-lsp-confirm t "The answer to `y-or-n-p'.")
 (defvar org-lsp-asked nil "What `y-or-n-p' asked.")
 (advice-add 'y-or-n-p :override (lambda (prompt) (push prompt org-lsp-asked) org-lsp-confirm))
-(defun org-lsp-refile-case (files cursor-file offset answer index out &optional note copy)
+(defun org-lsp-refile-case (files cursor-file offset answer index out &optional note copy mark)
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer)
       (with-current-buffer buffer (set-buffer-modified-p nil))
@@ -67,6 +71,10 @@ DRIVER = r"""
                 (dolist (file files) (find-file-noselect file))
                 (with-current-buffer (find-file-noselect cursor-file)
                   (goto-char (1+ offset))
+                  (when mark
+                    (transient-mark-mode 1)
+                    (set-mark (1+ mark))
+                    (activate-mark))
                   (cl-letf (((symbol-function 'completing-read)
                              (lambda (_prompt collection &rest _)
                                (setq offered (mapcar (lambda (x) (if (consp x) (car x) x)) collection))
@@ -164,12 +172,15 @@ def reference(cases):
             os.makedirs(folder)
             paths = {}
             cursor = None
+            mark = None
             for name, text in sorted(case["files"].items()):
                 paths[name] = os.path.join(folder, name)
                 if CURSOR in text:
-                    cursor = (paths[name], text.index(CURSOR))
+                    cursor = (paths[name], text.replace(MARK, "", 1).index(CURSOR))
+                if MARK in text:
+                    mark = text.replace(CURSOR, "", 1).index(MARK)
                 with open(paths[name], "w", encoding="utf-8") as handle:
-                    handle.write(text.replace(CURSOR, "", 1))
+                    handle.write(text.replace(CURSOR, "", 1).replace(MARK, "", 1))
             target = os.path.join(folder, "out")
             outputs.append((case, target))
             files = " ".join(lisp_string(paths[name]) for name in sorted(paths))
@@ -179,7 +190,7 @@ def reference(cases):
                 f"  (org-lsp-refile-case (list {files}) {lisp_string(cursor[0])} {cursor[1]}"
                 f" {lisp_string(case['answer']) if 'answer' in case else 'nil'} {case.get('answerIndex', 0)}"
                 f" {lisp_string(target)} {lisp_string(case['note']) if 'note' in case else 'nil'}"
-                f" {'t' if case.get('copy') else 'nil'}))"
+                f" {'t' if case.get('copy') else 'nil'} {mark if mark is not None else 'nil'}))"
             )
         driver = os.path.join(directory, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:

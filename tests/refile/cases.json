@@ -1717,5 +1717,388 @@
         "a.org": "* P\n** Task\n"
       }
     }
+  },
+  {
+    "files": {
+      "a.org": "«* A\n** A1\n* B\n¦* Target\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": "ERROR: (error \"Cannot refile to position inside the tree or region\")"
+  },
+  {
+    "files": {
+      "a.org": "* Target\n«* A\nbody\n* B\n¦"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Target",
+        "A",
+        "B"
+      ],
+      "files": {
+        "a.org": "* Target\n** A\nbody\n** B\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Target\n* A\n«** A1\n** A2¦\n* B\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Target",
+        "A",
+        "A1",
+        "A2",
+        "B"
+      ],
+      "files": {
+        "a.org": "* Target\n** A1\n** A2\n* A\n\n* B\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* A\n«text\n** A1¦\n* Target\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": "ERROR: (user-error \"The region is not a (sequence of) subtree(s)\")"
+  },
+  {
+    "files": {
+      "a.org": "«* A\n* Target\n¦* B\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": "ERROR: (error \"Cannot refile to position inside the tree or region\")"
+  },
+  {
+    "files": {
+      "a.org": "* Target\n¦** X\n* A\n«* B\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": "ERROR: (user-error \"The region is not a (sequence of) subtree(s)\")"
+  },
+  {
+    "files": {
+      "a.org": "«* A\n* B\n¦* C\n",
+      "b.org": "* Inbox\n"
+    },
+    "answer": "Inbox",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 1
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "A",
+        "B",
+        "C",
+        "Inbox (b.org)"
+      ],
+      "files": {
+        "a.org": "* C\n",
+        "b.org": "* Inbox\n** A\n** B\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "«* A\n* B\n¦* C\n",
+      "b.org": "* Inbox\n"
+    },
+    "answer": "Inbox",
+    "copy": true,
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 1
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "A",
+        "B",
+        "C",
+        "Inbox (b.org)"
+      ],
+      "files": {
+        "a.org": "* A\n* B\n* C\n",
+        "b.org": "* Inbox\n** A\n** B\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "«* A\n* B\n¦* Target\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ],
+      "org_log_refile": "time"
+    },
+    "expected": "ERROR: (error \"Cannot refile to position inside the tree or region\")"
+  },
+  {
+    "files": {
+      "a.org": "«* A\n* B\n¦* Target\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ],
+      "org_log_refile": "note"
+    },
+    "note": "x",
+    "expected": "ERROR: (error \"Cannot refile to position inside the tree or region\")"
+  },
+  {
+    "files": {
+      "a.org": "* Tar«get\n* B¦\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": "ERROR: (error \"Cannot refile to position inside the tree or region\")"
+  },
+  {
+    "files": {
+      "a.org": "¦* A\n* B\n«* Target\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": "ERROR: (error \"Cannot refile to position inside the tree or region\")"
+  },
+  {
+    "files": {
+      "a.org": "«* A\n** A1\n* B\n¦* C\n* Target\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "A",
+        "A1",
+        "B",
+        "C",
+        "Target"
+      ],
+      "files": {
+        "a.org": "* C\n* Target\n** A\n*** A1\n** B\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Target\n«* A\n** A1\n* B\n¦* C\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ],
+      "org_log_refile": "time"
+    },
+    "expected": {
+      "offered": [
+        "Target",
+        "A",
+        "A1",
+        "B",
+        "C"
+      ],
+      "files": {
+        "a.org": "* Target\n** A\n*** A1\n** B\n- Refiled on [2026-05-18 Mon 10:30]\n* C\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Target\n«* A\n** A1\n* B\n¦* C\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ],
+      "org_log_refile": "note"
+    },
+    "note": "x",
+    "expected": {
+      "offered": [
+        "Target",
+        "A",
+        "A1",
+        "B",
+        "C"
+      ],
+      "files": {
+        "a.org": "* Target\n** A\n*** A1\n** B\n- Refiled on [2026-05-18 Mon 10:30]\n* C\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Target\n«* A\n* B\n¦"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ],
+      "org_reverse_note_order": true
+    },
+    "expected": {
+      "offered": [
+        "Target",
+        "A",
+        "B"
+      ],
+      "files": {
+        "a.org": "* Target\n** A\n** B\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Target\n** Old\n«* A\n¦* B\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Target",
+        "Old",
+        "A",
+        "B"
+      ],
+      "files": {
+        "a.org": "* Target\n** Old\n** A\n* B\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "\n«* A\n¦* B\n* Target\n"
+    },
+    "answer": "Target",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "current",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "A",
+        "B",
+        "Target"
+      ],
+      "files": {
+        "a.org": "\n* B\n* Target\n** A\n"
+      }
+    }
   }
 ]

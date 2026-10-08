@@ -3084,5 +3084,235 @@
       ]
     ],
     "expected": "{\"files\":{\"main.org\":\"#+LINK: gh https://github.com/%s\\n* A\\nx[[gh:org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nsome two words here\n",
+    "steps": [
+      [
+        "select",
+        "two words"
+      ],
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nsome two words¦ here\\n\"},\"stored\":[[\"file:~/org/main.org::two words\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nline one\nline two\n",
+    "steps": [
+      [
+        "select",
+        "one\nline"
+      ],
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nline one\\nline¦ two\\n\"},\"stored\":[[\"file:~/org/main.org::one\\nline\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n(paren text)\n",
+    "steps": [
+      [
+        "select",
+        "(paren text)"
+      ],
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n(paren text)¦\\n\"},\"stored\":[[\"file:~/org/main.org::paren text\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n  spaced   out  \n",
+    "steps": [
+      [
+        "select",
+        "spaced   out  "
+      ],
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n  spaced   out  ¦\\n\"},\"stored\":[[\"file:~/org/main.org::spaced out\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nsome two words here\n",
+    "steps": [
+      [
+        "select",
+        "two words"
+      ],
+      [
+        "store",
+        "C-u"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nsome two words¦ here\\n\"},\"stored\":[[\"file:~/org/main.org\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nsome two words here\n",
+    "steps": [
+      [
+        "select",
+        "two words"
+      ],
+      [
+        "annotation"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nsome two words¦ here\\n\"},\"stored\":[],\"returned\":[\"[[file:~/org/main.org::two words]]\"]}"
+  },
+  {
+    "text": "* Head\nsome two words here\n",
+    "options": {
+      "org_id_link_to_org_use_id": "t"
+    },
+    "steps": [
+      [
+        "select",
+        "two words"
+      ],
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\nsome two words¦ here\\n\"},\"stored\":[[\"id:id-1::two words\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\n:PROPERTIES:\n:CUSTOM_ID: hd\n:END:\nsome two words here\n",
+    "steps": [
+      [
+        "select",
+        "two words"
+      ],
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\n:PROPERTIES:\\n:CUSTOM_ID: hd\\n:END:\\nsome two words¦ here\\n\"},\"stored\":[[\"file:~/org/main.org::two words\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nsee <<tgt>> here\n",
+    "steps": [
+      [
+        "select",
+        "tgt>> here"
+      ],
+      [
+        "store"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nsee <<tgt>> here¦\\n\"},\"stored\":[[\"file:~/org/main.org::tgt>> here\",null]],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nsee click here now\n",
+    "steps": [
+      [
+        "select",
+        "click here"
+      ],
+      [
+        "insert",
+        "",
+        "https://orgmode.org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nsee [[https://orgmode.org][click here]]¦ now\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nsee click here now\n",
+    "steps": [
+      [
+        "select",
+        "click here"
+      ],
+      [
+        "insert",
+        "",
+        "https://orgmode.org",
+        "typed"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nsee [[https://orgmode.org][typed]]¦ now\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nbody\n* Other\nsee word now\n",
+    "steps": [
+      [
+        "goto",
+        "body"
+      ],
+      [
+        "store"
+      ],
+      [
+        "select",
+        "word"
+      ],
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nbody\\n* Other\\nsee [[*Head][word]]¦ now\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nsee click here now\n",
+    "steps": [
+      [
+        "select",
+        "click here"
+      ],
+      [
+        "insert",
+        "C-u",
+        "other.org",
+        null
+      ]
+    ],
+    "files": [
+      [
+        "other.org",
+        "* X\n"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nsee [[file:other.org][click here]]¦ now\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nsee [[https://a.b][old]] now\n",
+    "steps": [
+      [
+        "select",
+        "[[https://a.b][old]] now"
+      ],
+      [
+        "insert",
+        "",
+        "https://c.d",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nsee [[https://c.d][[[https://a.b][old]​] now]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Head\nsee [[https://a.b][old]] now\n",
+    "steps": [
+      [
+        "select",
+        "see [[https://a.b][o"
+      ],
+      [
+        "insert",
+        "",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Head\\nsee [[https://a.b][old]]¦ now\\n\"},\"stored\":[],\"returned\":[]}"
   }
 ]
