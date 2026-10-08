@@ -33,6 +33,9 @@ pub struct Options {
     /// `org-log-repeat`: `false`, `"time"` or `"note"`.
     #[serde(rename = "org_log_repeat")]
     pub log_repeat: Option<LogOption>,
+    /// `org-list-use-circular-motion`
+    #[serde(rename = "org_list_use_circular_motion")]
+    pub list_use_circular_motion: Option<bool>,
     /// `org-agenda-dim-blocked-tasks`
     #[serde(rename = "org_agenda_dim_blocked_tasks")]
     pub agenda_dim_blocked_tasks: Option<bool>,
@@ -876,6 +879,7 @@ impl Options {
                 .unwrap_or(defaults.timestamp_rounding_minutes),
             tags: self.tag_settings(),
             global_properties: self.global_properties.clone().unwrap_or_default().into_iter().collect(),
+            list_circular_motion: self.list_use_circular_motion.unwrap_or(false),
         }
     }
 

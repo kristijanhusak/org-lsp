@@ -651,6 +651,27 @@
     }
   },
   {
+    "caption": "Org: Copy the entry to a refile target",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.refile.copy"
+    }
+  },
+  {
+    "caption": "Org: Go to a refile target",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.refile.goto"
+    }
+  },
+  {
+    "caption": "Org: Go to where the last refile put its entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.refile.goto.last"
+    }
+  },
+  {
     "caption": "Org: Add a note to the entry",
     "command": "org_lsp_run",
     "args": {

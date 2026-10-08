@@ -210,6 +210,9 @@ pub const INSERT_TODO_HEADING: &str = "org.insert.todo.heading";
 pub const INSERT_HEADING_AFTER: &str = "org.insert.heading.after";
 pub const INSERT_TODO_HEADING_AFTER: &str = "org.insert.todo.heading.after";
 pub const REFILE: &str = "org.refile";
+pub const REFILE_COPY: &str = "org.refile.copy";
+pub const REFILE_GOTO: &str = "org.refile.goto";
+pub const REFILE_GOTO_LAST: &str = "org.refile.goto.last";
 pub const OPEN: &str = "org.open";
 pub const ADD_NOTE: &str = "org.add.note";
 pub const TANGLE: &str = "org.babel.tangle";
@@ -705,6 +708,17 @@ pub const COMMANDS: &[Command] = &[
         input: Some(Input { kind: "choice", prompt: "Refile to" }),
         ..edit(REFILE, "Refile the entry")
     },
+    // `org-refile-copy`: as refiling, the entry staying where it was too.
+    Command {
+        emacs: &[key(Org, "C-c M-w")],
+        vim: &[key(Org, "<Leader>oy")],
+        input: Some(Input { kind: "choice", prompt: "Copy to" }),
+        ..edit(REFILE_COPY, "Copy the entry to a refile target")
+    },
+    // `org-refile` with `C-u` and `C-u C-u`: to a target, or to where the
+    // last refile put its entry, without moving anything.
+    Command { input: Some(Input { kind: "choice", prompt: "Goto" }), ..command(REFILE_GOTO, "Go to a refile target") },
+    command(REFILE_GOTO_LAST, "Go to where the last refile put its entry"),
     // `org-add-note`: a note in the entry's log, written in a note buffer
     // as a state change's note is; in the agenda the line's entry's
     // (`org-agenda-add-note`).

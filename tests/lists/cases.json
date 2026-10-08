@@ -23192,5 +23192,885 @@
    "text": "1) 0:10:00 :: ten\n2) 0:02:00 :: two\n3) -0:01:00 :: minus\n",
    "point": 56
   }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 0,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 0,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 0,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- b\n  - c\n  - d\n- e\n- a\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 0,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- b\n  - c\n  - d\n- a\n- e\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 3,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 3,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 3,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- b\n  - c\n  - d\n- e\n- a\n",
+   "point": 23
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 3,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- b\n  - c\n  - d\n- a\n- e\n",
+   "point": 19
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 4,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 4,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 4,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- b\n  - c\n  - d\n- a\n- e\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 4,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- e\n- b\n  - c\n  - d\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 7,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 7,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 7,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- b\n  - c\n  - d\n- a\n- e\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 7,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- e\n- b\n  - c\n  - d\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 8,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 8,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 8,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - d\n  - c\n- e\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 8,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - d\n  - c\n- e\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 13,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 13,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 13,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - d\n  - c\n- e\n",
+   "point": 19
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 13,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - d\n  - c\n- e\n",
+   "point": 19
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 14,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 14,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 14,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - d\n  - c\n- e\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 14,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - d\n  - c\n- e\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 19,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 19,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 19,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - d\n  - c\n- e\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 19,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - d\n  - c\n- e\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 20,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 20,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 20,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- e\n- b\n  - c\n  - d\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 20,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- e\n- a\n- b\n  - c\n  - d\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 23,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 23,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- b\n  - c\n  - d\n- e\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 23,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n- e\n- b\n  - c\n  - d\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- a\n- b\n  - c\n  - d\n- e\n",
+  "point": 23,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- e\n- a\n- b\n  - c\n  - d\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 0,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. two\n3. three\nafter\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 0,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. two\n3. three\nafter\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 0,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "1. two\n2. three\n3. one\nafter\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 0,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "1. two\n2. one\n3. three\nafter\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 6,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. two\n3. three\nafter\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 6,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. two\n3. three\nafter\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 6,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "1. two\n2. three\n3. one\nafter\n",
+   "point": 22
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 6,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "1. two\n2. one\n3. three\nafter\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 7,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. two\n3. three\nafter\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 7,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. two\n3. three\nafter\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 7,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "1. two\n2. one\n3. three\nafter\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 7,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. three\n3. two\nafter\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 13,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. two\n3. three\nafter\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 13,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. two\n3. three\nafter\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 13,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "1. two\n2. one\n3. three\nafter\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 13,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. three\n3. two\nafter\n",
+   "point": 22
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 14,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. two\n3. three\nafter\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 14,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. two\n3. three\nafter\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 14,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. three\n3. two\nafter\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 14,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "1. three\n2. one\n3. two\nafter\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 22,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. two\n3. three\nafter\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 22,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. two\n3. three\nafter\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 22,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "1. one\n2. three\n3. two\nafter\n",
+   "point": 15
+  }
+ },
+ {
+  "text": "1. one\n2. two\n3. three\nafter\n",
+  "point": 22,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "1. three\n2. one\n3. two\nafter\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 0,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- b\n- c\n",
+   "point": 15
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 0,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- b\n- c\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 0,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- b\n- c\n- a\n  more\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 0,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- b\n- a\n  more\n- c\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 3,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- b\n- c\n",
+   "point": 15
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 3,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- b\n- c\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 3,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- b\n- c\n- a\n  more\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 3,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- b\n- a\n  more\n- c\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 11,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- b\n- c\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 11,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- b\n- c\n",
+   "point": 15
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 11,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- b\n- a\n  more\n- c\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 11,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- c\n- b\n",
+   "point": 15
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 14,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- b\n- c\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 14,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- b\n- c\n",
+   "point": 15
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 14,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- b\n- a\n  more\n- c\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 14,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- c\n- b\n",
+   "point": 18
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 15,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- b\n- c\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 15,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- b\n- c\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 15,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- c\n- b\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 15,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- c\n- a\n  more\n- b\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 18,
+  "key": "S-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- b\n- c\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 18,
+  "key": "S-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- b\n- c\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 18,
+  "key": "M-<up>",
+  "circular": true,
+  "expected": {
+   "text": "- a\n  more\n- c\n- b\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "- a\n  more\n- b\n- c\n",
+  "point": 18,
+  "key": "M-<down>",
+  "circular": true,
+  "expected": {
+   "text": "- c\n- a\n  more\n- b\n",
+   "point": 3
+  }
  }
 ]

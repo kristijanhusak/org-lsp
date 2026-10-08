@@ -176,6 +176,7 @@ here and why.
 
 ## Refile and archive
 
+- [ ] Copying an entry to a target keeps it where it was; going to a target and to the entry refiled last moves the cursor there: `<Leader>oy`, `:Org refile goto`, `:Org refile goto last`
 - [ ] With `org_log_refile` `"time"`, the refiled entry gets `Refiled on […]`; with `"note"` a note buffer opens for it: `<Leader>or`
 - [ ] Refiling a subtree under a heading of the same file, and of another file: `<Leader>or`
 - [ ] Archiving a subtree: it goes to `FILE_archive` with its `ARCHIVE_…` properties: `<Leader>o$`

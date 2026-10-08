@@ -10,6 +10,8 @@ A case is a JSON object:
                                             offered (each name counted once)
       "note": "Moved",                      optional: the note `org-log-refile`
                                             asks for
+      "copy": true,                         optional: `org-refile-copy`, the
+                                            entry kept where it was
       "options": {                          optional: server settings
         "org_refile_targets": [{"files": "agenda", "maxlevel": 2}],
         "org_refile_use_outline_path": "file",
@@ -47,7 +49,7 @@ DRIVER = r"""
 (defun ask-user-about-supersession-threat (&rest _) nil)
 (defun userlock--ask-user-about-supersession-threat (&rest _) nil)
 (advice-add 'yes-or-no-p :override (lambda (&rest _) nil))
-(defun org-lsp-refile-case (files cursor-file offset answer index out &optional note)
+(defun org-lsp-refile-case (files cursor-file offset answer index out &optional note copy)
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer)
       (with-current-buffer buffer (set-buffer-modified-p nil))
@@ -65,7 +67,7 @@ DRIVER = r"""
                                (or answer
                                    (let ((names (delete-dups (copy-sequence offered))))
                                      (nth (mod index (max 1 (length names))) names))))))
-                    (org-refile)
+                    (org-refile (and copy 3))
                     (let ((org-lsp-note-text (or note "")))
                       (org-lsp-finish-notes))))
                 (mapconcat
@@ -166,7 +168,8 @@ def reference(cases):
                 f"(let ({bindings(case.get('options'), paths)})\n"
                 f"  (org-lsp-refile-case (list {files}) {lisp_string(cursor[0])} {cursor[1]}"
                 f" {lisp_string(case['answer']) if 'answer' in case else 'nil'} {case.get('answerIndex', 0)}"
-                f" {lisp_string(target)} {lisp_string(case['note']) if 'note' in case else 'nil'}))"
+                f" {lisp_string(target)} {lisp_string(case['note']) if 'note' in case else 'nil'}"
+                f" {'t' if case.get('copy') else 'nil'}))"
             )
         driver = os.path.join(directory, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:

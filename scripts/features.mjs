@@ -203,7 +203,7 @@ export const AREAS = [
       ['Moving to the next and previous item', true],
       ['Turning lines into items and back (`C-c -`, through Emacs)', true],
       ['Radio lists', false],
-      ['Circular motion between items (`org-list-use-circular-motion`)', false],
+      ['Circular motion between items (`org-list-use-circular-motion`)', true],
     ],
     editors: {
       zed: ['part', `\`RET\` stays Zed's own, bullets are not cycled and lines not turned into items: ${NO_KEY_ZED}, and those are not among them.`],
@@ -473,13 +473,14 @@ export const AREAS = [
       ['Logging refiles (`org-log-refile`)', true],
       ['Creating parent nodes as the target', false],
       ['Refiling a region', false],
-      ['The prefix arguments (going to the target, copying)', false],
+      ['Copying (`C-c M-w`), going to a target (`C-u C-c C-w`) and to the last refiled entry (`C-u C-u C-c C-w`)', true],
       ['`org-refile-target-verify-function`', false],
     ],
     editors: {
       helix: ['part', 'Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions.'],
     },
     checks: [
+      { text: 'Copying an entry to a target keeps it where it was; going to a target and to the entry refiled last moves the cursor there', cmd: ['org.refile.copy', 'org.refile.goto', 'org.refile.goto.last'], not: ['zed', 'helix'] },
       { text: 'With `org_log_refile` `"time"`, the refiled entry gets `Refiled on […]`; with `"note"` a note buffer opens for it', cmd: 'org.refile', not: ['zed', 'helix'] },
       { text: 'Refiling a subtree under a heading of the same file, and of another file', cmd: 'org.refile', not: ['helix'] },
       { text: 'Archiving a subtree: it goes to `FILE_archive` with its `ARCHIVE_…` properties', cmd: 'org.archive.subtree' },

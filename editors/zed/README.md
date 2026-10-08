@@ -126,7 +126,7 @@ those dates in the file itself, where completion helps.
 | [Highlighting](../../docs/parity.md#highlighting) | 83% | ❓ | Links and emphasis markers are not concealed: Zed lets no server hide text. The colors need `"semantic_tokens": "combined"`; code blocks take their language's colors, inline code does not. |
 | [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 67% | ❓ | Zed folds with its own folding: Org's cycling and sparse trees need folds an extension can set, which Zed does not offer. |
 | [Headings and structure](../../docs/parity.md#headings-and-structure) | 100% | ❓ | Moving between headings, `org-goto` and the commands run by Emacs (`C-c *`, `C-c ;`, cloning) are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. |
-| [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 82% | ❓ | `RET` stays Zed's own, bullets are not cycled and lines not turned into items: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. |
+| [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 91% | ❓ | `RET` stays Zed's own, bullets are not cycled and lines not turned into items: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. |
 | [TODO keywords](../../docs/parity.md#todo-keywords) | 88% | ❓ | A note for a state change (`@`) cannot be typed: Zed cannot ask for text on a server's behalf. States are picked with buttons. |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Zed cannot ask for text on a server's behalf. Completion and renaming work. |
@@ -135,7 +135,7 @@ those dates in the file itself, where completion helps.
 | [Agenda](../../docs/parity.md#agenda) | 74% | ❓ | The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension). |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ❓ | No clock in the status line: Zed has no place there for an extension's text. |
 | [Capture](../../docs/parity.md#capture) | 73% | ❓ | Templates with prompts are left out, and there is no capture buffer to type in: Zed cannot ask for text on a server's behalf. |
-| [Refile and archive](../../docs/parity.md#refile-and-archive) | 64% | ✅ |  |
+| [Refile and archive](../../docs/parity.md#refile-and-archive) | 73% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 70% | ❓ | Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition, for links inside Org files and to files. |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ❓ | Making footnotes and their menu are left out: they are not among Zed's code actions. Following them works. |
 | [Tables](../../docs/parity.md#tables) | 65% | ❓ | Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table. |
@@ -151,7 +151,7 @@ those dates in the file itself, where completion helps.
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **75%** |  |  |
+| **All of Org** | **76%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

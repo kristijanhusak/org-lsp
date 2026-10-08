@@ -330,6 +330,15 @@ struct Noting {
     log: Option<NoteLog>,
 }
 
+/// What refiling does with the entry: `org-refile`, `org-refile-copy`, or
+/// `org-refile` with `C-u`, which goes to the target.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RefileMode {
+    Move,
+    Copy,
+    Goto,
+}
+
 /// What a note the server asks for logs, besides a state change.
 #[derive(Debug, Clone)]
 enum NoteLog {
@@ -620,6 +629,9 @@ struct Server {
     link_abbreviations: Vec<(String, String)>,
     /// `org-agenda-dim-blocked-tasks`.
     dim_blocked: bool,
+    /// The entry the last refile put somewhere: its file, where its
+    /// headline was, and the headline.
+    last_refiled: Option<(Uri, usize, String)>,
     /// The bibliography files read, with when each changed and its size,
     /// to read one again when it changes.
     bibliographies: HashMap<PathBuf, (Option<std::time::SystemTime>, u64, Rc<BibFile>)>,
@@ -873,6 +885,7 @@ pub fn run(connection: Connection) -> Result<()> {
         virtually_indented: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
         dim_blocked: options.agenda_dim_blocked_tasks.unwrap_or(true),
+        last_refiled: None,
         link_abbreviations: options.link_abbrev_alist.clone().unwrap_or_default().into_iter().collect(),
         bibliographies: HashMap::new(),
         diagnosed: HashSet::new(),
@@ -2135,7 +2148,14 @@ impl Server {
                 if !actions::requested(id, only) {
                     continue;
                 }
-                let Ok(edited) = item_structure(id, text, offset, keywords, self.refile.2.tags_column) else {
+                let Ok(edited) = item_structure(
+                    id,
+                    text,
+                    offset,
+                    keywords,
+                    self.refile.2.tags_column,
+                    self.edit_settings.list_circular_motion,
+                ) else {
                     continue;
                 };
                 if edited.text == *text {
@@ -3712,6 +3732,13 @@ impl Server {
             id if id.starts_with("org.agenda.bulk.") => self.agenda_bulk_mark(id, context.as_ref()),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
             commands::REFILE => self.refile(&context.ok_or("This command needs the cursor position")?),
+            commands::REFILE_COPY => {
+                self.refile_as(&context.ok_or("This command needs the cursor position")?, RefileMode::Copy)
+            }
+            commands::REFILE_GOTO => {
+                self.refile_as(&context.ok_or("This command needs the cursor position")?, RefileMode::Goto)
+            }
+            commands::REFILE_GOTO_LAST => self.refile_goto_last(),
             commands::OPEN => self.open_at_point(&context.ok_or("This command needs the cursor position")?),
             commands::LINK_STORE => self.link_store(&context.ok_or("This command needs the cursor position")?),
             commands::LINK_INSERT | commands::LINK_INSERT_LAST | commands::LINK_INSERT_ALL => {
@@ -4975,6 +5002,11 @@ impl Server {
     /// "kind": "choice", "prompt", "choices" } }`; with one it moves the
     /// subtree under the target it names, in its file or another.
     fn refile(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        self.refile_as(context, RefileMode::Move)
+    }
+
+    /// [`Server::refile`] as `mode` says: moving, copying or going there.
+    fn refile_as(&mut self, context: &Context, mode: RefileMode) -> std::result::Result<Value, Refusal> {
         self.last = None;
         let uri = &context.text_document.uri;
         let from_agenda = self.is_view(uri);
@@ -4992,7 +5024,32 @@ impl Server {
             let document = self.document(uri).ok_or("The document is not open")?;
             (uri.clone(), document.index.offset(&document.text, context.position, self.client.encoding))
         };
-        self.refile_from(file, offset, None, from_agenda, context.input.as_deref())
+        self.refile_from(file, offset, None, from_agenda, context.input.as_deref(), mode)
+    }
+
+    /// `org-refile-goto-last-stored` (`C-u C-u C-c C-w`): where the last
+    /// refile put its entry.
+    fn refile_goto_last(&mut self) -> std::result::Result<Value, Refusal> {
+        let (uri, at, head) = self.last_refiled.clone().ok_or("No refile has put an entry anywhere yet")?;
+        let encoding = self.client.encoding;
+        let position = self
+            .with_source(&uri, |text, index, _, outline, _| {
+                // The headline, nearest where it was.
+                let entry = outline
+                    .entries
+                    .iter()
+                    .filter(|entry| entry.head == head)
+                    .min_by_key(|entry| entry.offset.abs_diff(at))?;
+                Some(index.position(text, entry.offset, encoding))
+            })
+            .flatten()
+            .ok_or("The entry refiled last is gone")?;
+        let selection = Some(Range::new(position, position));
+        self.send_request::<ShowDocument>(
+            ShowDocumentParams { uri, external: None, take_focus: Some(true), selection },
+            None,
+        );
+        Ok(Value::Null)
     }
 
     /// `org-archive-subtree` (`C-c C-x C-s`) and its relatives, in an Org
@@ -5152,6 +5209,7 @@ impl Server {
         text: Option<String>,
         from_agenda: bool,
         answer: Option<&str>,
+        mode: RefileMode,
     ) -> std::result::Result<Value, Refusal> {
         // The files the targets come from, the entry's own first.
         let (targets, outline_path, settings) = self.refile.clone();
@@ -5259,12 +5317,15 @@ impl Server {
         if all.is_empty() {
             return Err("No refile targets".into());
         }
+        let action = if mode == RefileMode::Copy { "Copy" } else { "Refile" };
         let Some(answer) = answer else {
-            let prompt = if from_agenda {
-                "Refile to".to_string()
+            let prompt = if mode == RefileMode::Goto {
+                "Goto".to_string()
+            } else if from_agenda {
+                format!("{action} to")
             } else {
                 format!(
-                    "Refile subtree \"{}\" to",
+                    "{action} subtree \"{}\" to",
                     refile::heading_text(readable[0].text, offset, readable[0].keywords)
                 )
             };
@@ -5277,9 +5338,23 @@ impl Server {
         let target_file = position.iter().position(|at| *at == Some(*target_file)).expect("a readable file");
         let source = &readable[0].text;
         let other = (target_file != 0).then(|| loaded[target_file].as_ref().expect("read").text.as_str());
+        // `C-u`: to the target, nothing moved; the top of a file is its
+        // start or end, as notes go there.
+        if mode == RefileMode::Goto {
+            let text = other.unwrap_or(source);
+            let at = target.offset.unwrap_or(if settings.reverse_note_order { 0 } else { text.len() });
+            let position = LineIndex::new(text).position(text, at, self.client.encoding);
+            let selection = Some(Range::new(position, position));
+            let uri = uris[target_file].clone();
+            self.send_request::<ShowDocument>(
+                ShowDocumentParams { uri, external: None, take_focus: Some(true), selection },
+                None,
+            );
+            return Ok(Value::Null);
+        }
         // The target file's `org-adapt-indentation`, as Emacs pastes there.
         let settings = refile::Settings { adapt: self.adapt_in(other.unwrap_or(source)), ..settings };
-        let mut refiled = refile::refile(source, offset, other, target.offset, &settings)?;
+        let mut refiled = refile::refile(source, offset, other, target.offset, &settings, mode == RefileMode::Copy)?;
         // `org-log-refile`: the time logged in the refiled entry at once, or
         // a note asked for once it is there.
         let into = if refiled.target.is_some() { target_file } else { 0 };
@@ -5306,7 +5381,14 @@ impl Server {
         }
         let target_path = uri::to_path(&uris[target_file])
             .map_or_else(|| uris[target_file].as_str().to_string(), |path| path.display().to_string());
-        let message = format!("Refile to \"{}\" in file {}: done", target.name, target_path);
+        let message = format!("{action} to \"{}\" in file {}: done", target.name, target_path);
+        // For `org-refile-goto-last-stored`: the entry, by its headline.
+        if let Some(at) = refiled.pasted {
+            let text = refiled.target.as_ref().unwrap_or(&refiled.source);
+            let line = &text[at..text[at..].find('\n').map_or(text.len(), |end| at + end)];
+            let head = line.trim_start_matches('*').trim().to_string();
+            self.last_refiled = Some((uris[into].clone(), at, head));
+        }
         let mut documents = vec![(
             uris[0].clone(),
             loaded[0].as_ref().expect("read").version,
@@ -6101,7 +6183,7 @@ impl Server {
             - done[capture.placed.start..].trim_start_matches(['\n', ' ', '\t']).len();
         let uri = capture.uri.clone();
         let target = capture.target.clone();
-        let result = self.refile_from(target, start, Some(done), false, answer);
+        let result = self.refile_from(target, start, Some(done), false, answer, RefileMode::Move);
         match result {
             // Still asking where to: the capture stays.
             Ok(value) if value.get("input").is_some() => {
@@ -7570,7 +7652,8 @@ impl Server {
         }
         let tags_column = self.refile.2.tags_column;
         if !structure::at_heading(&text, offset) && org_core::list::at_item(&text, offset) {
-            let edited = item_structure(id, &text, offset, &keywords, tags_column)?;
+            let edited =
+                item_structure(id, &text, offset, &keywords, tags_column, self.edit_settings.list_circular_motion)?;
             let outcome = org_core::newline::Outcome { text: edited.text, cursor: edited.cursor };
             return self.carried(context, outcome);
         }
@@ -7638,8 +7721,13 @@ impl Server {
                 org_core::list::cycle_bullet(&text, offset, id == commands::SHIFT_LEFT)
                     .map(|edited| org_core::newline::Outcome { text: edited.text, cursor: edited.cursor })
             }
-            _ => org_core::list::next_item(&text, offset, id == commands::SHIFT_UP)
-                .map(|cursor| org_core::newline::Outcome { text: text.clone(), cursor }),
+            _ => org_core::list::next_item(
+                &text,
+                offset,
+                id == commands::SHIFT_UP,
+                self.edit_settings.list_circular_motion,
+            )
+            .map(|cursor| org_core::newline::Outcome { text: text.clone(), cursor }),
         };
         Some(outcome.and_then(|outcome| self.carried(context, outcome)))
     }
@@ -9280,6 +9368,7 @@ fn item_structure(
     offset: usize,
     keywords: &org_syntax::TodoKeywords,
     tags_column: i64,
+    circular: bool,
 ) -> std::result::Result<org_core::list::Edited, Refusal> {
     use org_core::list;
     match id {
@@ -9287,8 +9376,8 @@ fn item_structure(
         commands::META_RIGHT => list::indent_item(text, offset, 1, false, keywords, tags_column),
         commands::SHIFT_META_LEFT => list::indent_item(text, offset, -1, true, keywords, tags_column),
         commands::SHIFT_META_RIGHT => list::indent_item(text, offset, 1, true, keywords, tags_column),
-        commands::META_UP => list::move_item(text, offset, false),
-        _ => list::move_item(text, offset, true),
+        commands::META_UP => list::move_item(text, offset, false, circular),
+        _ => list::move_item(text, offset, true, circular),
     }
 }
 

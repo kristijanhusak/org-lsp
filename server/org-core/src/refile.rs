@@ -325,13 +325,15 @@ pub struct Refiled {
 
 /// Move the subtree at byte `offset` of `source` under the headline at
 /// byte `to` of `target` (`None`: the same file), or to the top level of
-/// that file when `to` is none.
+/// that file when `to` is none. With `keep` (`org-refile-keep`, as
+/// `org-refile-copy` has it) the subtree stays where it was too.
 pub fn refile(
     source: &str,
     offset: usize,
     target: Option<&str>,
     to: Option<usize>,
     settings: &Settings,
+    keep: bool,
 ) -> Result<Refiled, Refusal> {
     // `org-back-to-heading`, and the subtree up to the next headline of the
     // same or a higher level, blank lines included.
@@ -376,8 +378,13 @@ pub fn refile(
     let pasted_at = at + usize::from(pasted.starts_with('\n'));
     if target.is_some() {
         let mut source = source.to_string();
-        source.replace_range(heading..end, "");
+        if !keep {
+            source.replace_range(heading..end, "");
+        }
         return Ok(Refiled { source, target: Some(changed), pasted: Some(pasted_at) });
+    }
+    if keep {
+        return Ok(Refiled { source: changed, target: None, pasted: Some(pasted_at) });
     }
     // The same file: Emacs goes back to where the cursor was, which moves
     // with text inserted there or before, and deletes the subtree of the

@@ -288,6 +288,11 @@ require('org-lsp').setup({
     -- in a file, and the `LOGGING` property in an entry. (org-log-repeat)
     org_log_repeat = 'time',
 
+    -- Moving to the next item from the last goes to the first, and back;
+    -- moving the last item down puts it first, the first up puts it last.
+    -- (org-list-use-circular-motion)
+    org_list_use_circular_motion = false,
+
     -- An entry cannot be done while a child is not, or, under a parent with
     -- the `ORDERED` property, while an earlier sibling is not: the change is
     -- refused with what blocks it. (org-enforce-todo-dependencies)

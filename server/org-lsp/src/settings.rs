@@ -91,6 +91,14 @@ pub const SETTINGS: &[Setting] = &[
          `lognoterepeat` and `nologrepeat` change it in a file, and the `LOGGING` property in an entry.",
     ),
     setting(
+        "org_list_use_circular_motion",
+        "boolean",
+        "false",
+        "org-list-use-circular-motion",
+        "Moving to the next item from the last goes to the first, and back; moving the last item down puts \
+         it first, the first up puts it last.",
+    ),
+    setting(
         "org_enforce_todo_dependencies",
         "boolean",
         "false",
@@ -1162,6 +1170,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_log_done", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_repeat", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_agenda_dim_blocked_tasks", BOOLEAN),
+    ("org_list_use_circular_motion", BOOLEAN),
     ("org_enforce_todo_dependencies", BOOLEAN),
     ("org_enforce_todo_checkbox_dependencies", BOOLEAN),
     ("org_log_refile", r#"{ "enum": [false, "time", "note"] }"#),

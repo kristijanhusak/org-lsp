@@ -76,6 +76,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>osy` | `org.copy.subtree` | Copy the subtree |
 | `<Leader>osp` | `org.paste.subtree` | Paste the subtree |
 | `<Leader>or` | `org.refile` | Refile the entry |
+| `<Leader>oy` | `org.refile.copy` | Copy the entry to a refile target |
 | `<Leader>ona` | `org.add.note` | Add a note to the entry |
 | `<Leader>obt` | `org.babel.tangle` | Tangle the file's code blocks |
 | `<Leader>obe` | `org.babel.execute` | Evaluate the code block or call at the cursor through Emacs |
@@ -238,6 +239,8 @@ The other options are in [configuration.md](configuration.md).
 | `org.table.next.field` | Go to the next table field, making a row after the last |
 | `org.table.previous.field` | Go to the previous table field |
 | `org.table.hline.above` | Insert a rule above the table row |
+| `org.refile.goto` | Go to a refile target |
+| `org.refile.goto.last` | Go to where the last refile put its entry |
 | `org.toggle.item` | Turn the line into an item, or the item into a line |
 | `org.toggle.heading` | Turn the line into a heading, or the heading into a line |
 | `org.block.next` | Move to the next block |
