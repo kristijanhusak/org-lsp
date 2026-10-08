@@ -1,0 +1,194 @@
+#+TITLE: org-lsp: what a file looks like
+#+STARTUP: showall indent hidestars shrink entitiespretty descriptivelinks
+#+TODO: TODO NEXT | DONE CANCELLED
+#+LINK: gh https://github.com/%s
+#+MACRO: greet Hello, $1!
+
+Open this file in an editor and look: each section says what it should
+show, in lines starting with →. It sets what it can itself (the
+=#+STARTUP:= line above); what it cannot is said where it matters. The
+editor's notes in its TESTING.md say what it leaves out.
+
+→ The text of each section is indented under its headline (=indent=),
+  without a space in the file: the file is unchanged. Of each headline's
+  stars only the last shows (=hidestars=).
+
+* Headlines and keywords
+→ Each level has its color; TODO, NEXT, DONE and CANCELLED have colors of
+  their own, the done ones (DONE, CANCELLED) another than the others.
+  Priorities and tags are colored too. Tags may sit at the right edge.
+** TODO [#A] A task with a priority and tags                    :work:urgent:
+** NEXT [#B] The next one                                              :home:
+** DONE [#C] Done
+CLOSED: [2026-05-18 Mon 10:30]
+** CANCELLED Not to be done
+** COMMENT A commented subtree
+→ Its headline is shaded as a comment.
+** Statistics cookies [1/3] [33%]
+- [X] one
+- [ ] two
+- [ ] three
+*** Level three
+**** Level four
+***** Level five
+
+* Emphasis, links and markup
+→ Each word below is in its own look: *bold*, /italic/, _underline_,
+  +strike-through+, =verbatim= and ~code~; mixed: */bold italic/*.
+→ With ~org_hide_emphasis_markers = true~ (a setting: =#+STARTUP:= has
+  no word for it) the =*=, =/=, =_=, =+=, === and =~= markers are hidden.
+
+→ Links show their description alone, or their target when they have
+  none; the brackets and the rest show when the cursor is on the line:
+  - [[https://orgmode.org][Org's site]]
+  - [[https://orgmode.org]]
+  - a plain URL: https://orgmode.org/manual/
+  - an angle link: <https://orgmode.org/worg/>
+  - an abbreviation: [[gh:kristijanhusak/org-lsp][org-lsp on GitHub]]
+  - a headline here: [[*Tables][the Tables section]]
+  - a target here: [[the target][to the target]]
+
+→ A radio target makes its words a link wherever they are: it is
+defined here, <<<radio word>>>, and here is the radio word again,
+colored as a link.
+
+* Entities and sub- and superscripts
+→ Entities show as their characters (=entitiespretty=): \alpha, \beta{},
+  \to, \pm, \infty and \there4 show as α, β, →, ±, ∞ and ∴.
+→ Sub- and superscripts show raised or lowered, in Unicode where every
+  character has a form: x^2 as x², H_{2}O as H₂O, a_{n} as aₙ,
+  y^(n+1) as y⁽ⁿ⁺¹⁾, 10^-3 as 10⁻³.
+→ These stay as typed: z^* (no raised =*=), file_name.txt (=.= has no
+  lowered form); in e^{i\pi} the entity becomes π, the superscript stays.
+# \alpha x^2 on a comment line stay as typed.
+→ The comment line above (starting with =#=) is colored as a comment,
+  and its entity and superscript stay as typed.
+
+* Dates, planning and drawers
+:PROPERTIES:
+:CUSTOM_ID: dates
+:Effort: 1:00
+:END:
+→ The =PROPERTIES= drawer above is folded when the file opens; open it:
+  its keys and values are colored.
+** TODO Planned
+SCHEDULED: <2026-05-20 Wed 09:00 +1w> DEADLINE: <2026-05-22 Fri -2d>
+:LOGBOOK:
+CLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:30] =>  1:30
+:END:
+→ =SCHEDULED:= and =DEADLINE:= are colored as keywords, the dates as
+  dates; the =LOGBOOK= drawer is folded, and its =CLOCK:= line colored.
+→ Active <2026-05-18 Mon>, inactive [2026-05-18 Mon], a range
+  <2026-05-18 Mon>--<2026-05-19 Tue> and a time range
+  <2026-05-18 Mon 14:00-15:00>: active and inactive differ.
+
+* Keywords, comments, footnotes and the rest
+#+AUTHOR: A keyword line: its key and value colored.
+# A comment line.
+: A fixed-width line.
+
+-----
+
+→ Above: a keyword line, a comment, a fixed-width line, a rule.
+→ A footnote reference[fn:1], an inline one[fn:: inline text], a
+  <<the target>> (the link in the links section leads here), a macro
+  {{{greet(world)}}}, inline code src_python{x = 1} in Python's colors, a
+  LaTeX fragment $E = mc^2$ and \(a + b\), an export snippet
+  @@html:<b>@@.
+
+[fn:1] The footnote's definition, colored as one.
+
+* Blocks
+→ The code is in its language's colors; the =#+begin_= and =#+end_=
+  lines are colored as block lines.
+#+begin_src python :results output
+def greet(name: str) -> str:
+    return f"Hello, {name}"  # a comment
+#+end_src
+
+#+begin_src emacs-lisp
+(defun greet (name) (format "Hello, %s" name))
+#+end_src
+
+#+begin_example
+An example block: plain, not markup: *not bold*.
+#+end_example
+
+#+begin_quote
+A quote block, with *markup* in it.
+#+end_quote
+
+#+begin_export html
+<p>An export block, in HTML's colors.</p>
+#+end_export
+
+* Lists
+→ Bullets, numbers, checkboxes and description terms are colored.
+- a bullet
+  + nested
+    * deeper
+
+A numbered list:
+1. first
+2. second
+   1) nested, numbered
+
+Checkboxes and a description list:
+- [X] done box
+- [-] partly done box
+- [ ] empty box
+- term :: its description
+
+* Tables
+→ The bars, rules and the =#+TBLFM:= line are colored. The second
+  column has a =<5>= cookie: it opens shrunk (=shrink=), five characters
+  of each field and =…= (Vim, Sublime Text, Zed and Helix cannot hide
+  text: the field stays whole, =…= after it). The caption and name above
+  it are colored as keywords.
+#+CAPTION: A table with a caption.
+#+NAME: counts
+| Name  | <5>                     | Count |
+|-------+-------------------------+-------|
+| Alpha | a long text to shrink   |     1 |
+| Beta  | another long field here |     2 |
+|-------+-------------------------+-------|
+| Total |                         |     3 |
+#+TBLFM: @>$3=vsum(@I..@II)
+
+* Folding when the file opens
+→ What follows opens as Org opens it with =showall=: everything shows
+  but the subtrees and drawers Org folds whatever the startup.
+** A folded subtree
+:PROPERTIES:
+:VISIBILITY: folded
+:END:
+→ This headline is folded when the file opens: this line is hidden.
+*** Its child, hidden too
+** A subtree with its children folded
+:PROPERTIES:
+:VISIBILITY: children
+:END:
+→ Its text shows; the headlines below it show folded.
+*** First child
+Hidden until the child is opened.
+*** Second child
+Hidden as well.
+** An archived subtree                                              :ARCHIVE:
+→ Shaded, and folded when the file opens; opening its parent leaves it
+  folded.
+** Two blank lines follow this subtree's text
+→ Fold this subtree: the two blank lines below stay visible under it.
+
+
+* Diagnostics
+→ Each of these is reported (org-lint), as a squiggle or in the list:
+  - a link to a file that is not there: [[file:no-such-file.org][missing]]
+  - a footnote reference with no definition[fn:missing]
+  - an unknown header argument, as information:
+#+begin_src sh :foo 1
+echo hello
+#+end_src
+
+* The end
+→ Cycling the whole file (=S-TAB=) goes overview, contents, everything;
+  =TAB= on a headline goes folded, children, subtree.

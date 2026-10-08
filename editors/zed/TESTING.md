@@ -8,6 +8,11 @@ there. The keys are the defaults. Tick a box once it works; a check that
 fails is a bug to report. The [README](README.md) says what is left out
 here and why.
 
+To look at most of what a file shows at once (highlighting, concealing,
+entities, folding when it opens, indentation, shrunk columns,
+diagnostics), open [tests/visual.org](../../tests/visual.org): each of
+its sections says what it should look like.
+
 ## Setup
 
 - [ ] Installed as a dev extension: `org-lsp` is found on PATH or downloaded

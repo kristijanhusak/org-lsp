@@ -734,6 +734,50 @@ fn shows_entities_as_their_characters() {
     client.shutdown();
 }
 
+/// `#+STARTUP:` decides for its file: `entitiespretty` shows entities as
+/// their characters with the setting off, `literallinks` leaves links as
+/// they are with `org_link_descriptive` on; `entitiesplain` and
+/// `descriptivelinks` the other way.
+#[test]
+fn startup_decides_entities_and_links() {
+    let hidden_and_hints = |settings: Value, text: &str| -> (usize, Vec<String>) {
+        let mut client = Client::start(json!({}), settings);
+        client.open(&uri(), text);
+        let hints = client
+            .request::<lsp_types::request::InlayHintRequest>(lsp_types::InlayHintParams {
+                text_document: identifier(),
+                range: Range::new(Position::new(0, 0), Position::new(3, 0)),
+                work_done_progress_params: Default::default(),
+            })
+            .unwrap();
+        let labels = hints
+            .iter()
+            .filter_map(|hint| match &hint.label {
+                lsp_types::InlayHintLabel::String(label) => Some(label.clone()),
+                _ => None,
+            })
+            .collect();
+        let tokens = client
+            .request::<lsp_types::request::SemanticTokensFullRequest>(lsp_types::SemanticTokensParams {
+                text_document: identifier(),
+                work_done_progress_params: Default::default(),
+                partial_result_params: Default::default(),
+            })
+            .unwrap();
+        let lsp_types::SemanticTokensResult::Tokens(tokens) = tokens else { panic!("tokens") };
+        let hidden = tokens.data.iter().filter(|token| token.token_modifiers_bitset & (1 << 23) != 0).count();
+        client.shutdown();
+        (hidden, labels)
+    };
+    let text = "#+STARTUP: entitiespretty literallinks\n\\alpha and [[https://orgmode.org][Org]]\n";
+    // The entity alone hidden, shown as its character; the link whole.
+    assert_eq!(hidden_and_hints(json!({}), text), (1, vec!["α".to_string()]));
+    let plain = "#+STARTUP: entitiesplain descriptivelinks\n\\alpha and [[https://orgmode.org][Org]]\n";
+    let (hidden, hints) =
+        hidden_and_hints(json!({ "org_pretty_entities": true, "org_link_descriptive": false }), plain);
+    assert!(hints.is_empty() && hidden > 0, "{hidden} {hints:?}");
+}
+
 /// `org_pretty_entities` with sub- and superscripts: those whose every
 /// character has a raised or lowered form hidden, shown in Unicode as an
 /// inlay hint; with `org_use_sub_superscripts = "{}"`, those in braces
