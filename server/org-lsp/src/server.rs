@@ -698,6 +698,10 @@ struct Server {
     conceal: highlight::Conceal,
     /// `org-pretty-entities`
     pretty_entities: bool,
+    /// Sub- and superscripts shown (`org-pretty-entities` with
+    /// `org-pretty-entities-include-sub-superscripts`), and whether they
+    /// need braces (`org-use-sub-superscripts` `{}`).
+    pretty_scripts: Option<bool>,
     /// `org-complete-tags-always-offer-all-agenda-tags`
     all_agenda_tags: bool,
     /// The files to save once the edit request with this id is applied.
@@ -1040,6 +1044,15 @@ pub fn run(connection: Connection) -> Result<()> {
         calendar_months: options.calendar_months.unwrap_or(3),
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         pretty_entities: options.pretty_entities.unwrap_or(false),
+        pretty_scripts: match (
+            options.pretty_entities.unwrap_or(false)
+                && options.pretty_entities_include_sub_superscripts.unwrap_or(true),
+            &options.use_sub_superscripts,
+        ) {
+            (false, _) | (_, Some(LogOption::Flag(false))) => None,
+            (_, Some(LogOption::Name(name))) if name == "{}" => Some(true),
+            _ => Some(false),
+        },
         conceal: highlight::Conceal {
             links: options.link_descriptive.unwrap_or(true),
             emphasis: options.hide_emphasis_markers.unwrap_or(false),
@@ -2116,6 +2129,13 @@ impl Server {
         } else {
             Vec::new()
         };
+        if let Some(braces) = self.pretty_scripts {
+            hidden.extend(
+                org_core::pretty::scripts(&document.syntax(), &document.text, braces)
+                    .into_iter()
+                    .map(|(start, end, _)| (start, end)),
+            );
+        }
         hidden.extend(
             self.shrunk_overlays(uri.as_str(), &document.text).into_iter().map(|overlay| (overlay.start, overlay.end)),
         );
@@ -2217,6 +2237,15 @@ impl Server {
                 let at = document.index.position(text, start, self.client.encoding);
                 if (first..=last).contains(&(at.line as usize)) {
                     hints.push(hint(at.line, at.character, utf8.to_string()));
+                }
+            }
+        }
+        // Sub- and superscripts, in Unicode where they can be.
+        if let Some(braces) = self.pretty_scripts {
+            for (start, _, shown) in org_core::pretty::scripts(&document.syntax(), text, braces) {
+                let at = document.index.position(text, start, self.client.encoding);
+                if (first..=last).contains(&(at.line as usize)) {
+                    hints.push(hint(at.line, at.character, shown));
                 }
             }
         }

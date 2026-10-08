@@ -11,7 +11,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 
 | Feature | Parity | Done |
 | --- | --- | --- |
-| [Highlighting](#highlighting) | 92% | 12 of 13 |
+| [Highlighting](#highlighting) | 100% | 13 of 13 |
 | [Folding and visibility](#folding-and-visibility) | 100% | 8 of 8 |
 | [Headings and structure](#headings-and-structure) | 100% | 12 of 12 |
 | [Lists and checkboxes](#lists-and-checkboxes) | 100% | 10 of 10 |
@@ -42,7 +42,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 
 ## Highlighting
 
-92% (12 of 13)
+100% (13 of 13)
 
 - ✅ Headlines by level, TODO keywords, priorities and tags
 - ✅ Emphasis, verbatim and code
@@ -56,13 +56,13 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 - ✅ Archived subtrees shaded (`org-archived`)
 - ✅ Radio targets turning their words into links: highlighted, followed, document links
 - ✅ Entities shown as their characters (`org-pretty-entities`): hidden, the character an inlay hint in their place
-- ❌ Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`)
+- ✅ Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`, `org-use-sub-superscripts`): where Org raises them, shown in Unicode (`x²`, `H₂O`) as an inlay hint in place of the hidden text where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text
 
 Where editors fall short:
 
-- Vim ❓: Links, emphasis markers and pretty entities are not concealed: Vim cannot hide text that has text properties.
-- Sublime Text ❓: Links, emphasis markers and pretty entities are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's `semantic_highlighting` on.
-- Zed ❓: Links, emphasis markers and pretty entities are not concealed: Zed lets no server hide text. The colors need `"semantic_tokens": "combined"`; code blocks take their language's colors, inline code does not.
+- Vim ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties.
+- Sublime Text ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's `semantic_highlighting` on.
+- Zed ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Zed lets no server hide text. The colors need `"semantic_tokens": "combined"`; code blocks take their language's colors, inline code does not.
 - Helix ❌: Helix does not use semantic tokens: it colors Org with its own tree-sitter grammar.
 
 ## Folding and visibility

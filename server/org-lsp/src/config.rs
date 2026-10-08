@@ -268,6 +268,14 @@ pub struct Options {
     /// character.
     #[serde(rename = "org_pretty_entities")]
     pub pretty_entities: Option<bool>,
+    /// `org-pretty-entities-include-sub-superscripts`: with
+    /// `org_pretty_entities`, sub- and superscripts shown too.
+    #[serde(rename = "org_pretty_entities_include_sub_superscripts")]
+    pub pretty_entities_include_sub_superscripts: Option<bool>,
+    /// `org-use-sub-superscripts`: `true`, `"{}"` (braces needed) or
+    /// `false`.
+    #[serde(rename = "org_use_sub_superscripts")]
+    pub use_sub_superscripts: Option<LogOption>,
     #[serde(rename = "org_refile_allow_creating_parent_nodes")]
     pub refile_allow_creating_parent_nodes: Option<LogOption>,
     /// `org-refile-target-verify-function`: the name of an Emacs Lisp

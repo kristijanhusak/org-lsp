@@ -808,6 +808,20 @@
       "description": "Show entities (`\\alpha`, `\\to`) as their character (`α`, `→`): the entity is hidden as link brackets are, and its character is an inlay hint in its place. (`org-pretty-entities`)",
       "default": false
     },
+    "org_pretty_entities_include_sub_superscripts": {
+      "type": "boolean",
+      "description": "With `org_pretty_entities`, show sub- and superscripts (`x^2`, `H_{2}O`, `a_{n}`) raised and lowered: in Unicode (`x²`, `H₂O`, `aₙ`) where every character has a raised or lowered form, as an inlay hint in place of the hidden text; the others are left as they are. (`org-pretty-entities-include-sub-superscripts`)",
+      "default": true
+    },
+    "org_use_sub_superscripts": {
+      "enum": [
+        true,
+        false,
+        "{}"
+      ],
+      "description": "Which sub- and superscripts `org_pretty_entities` shows: all, only those in braces (`a_{b}`, `\"{}\"`), or none. (`org-use-sub-superscripts`)",
+      "default": true
+    },
     "return_uses_meta_return": {
       "type": "boolean",
       "description": "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",

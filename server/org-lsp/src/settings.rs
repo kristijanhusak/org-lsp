@@ -653,6 +653,23 @@ pub const SETTINGS: &[Setting] = &[
          brackets are, and its character is an inlay hint in its place.",
     ),
     setting(
+        "org_pretty_entities_include_sub_superscripts",
+        "boolean",
+        "true",
+        "org-pretty-entities-include-sub-superscripts",
+        "With `org_pretty_entities`, show sub- and superscripts (`x^2`, `H_{2}O`, `a_{n}`) raised and lowered: \
+         in Unicode (`x²`, `H₂O`, `aₙ`) where every character has a raised or lowered form, as an inlay hint \
+         in place of the hidden text; the others are left as they are.",
+    ),
+    setting(
+        "org_use_sub_superscripts",
+        "true, \"{}\" or false",
+        "true",
+        "org-use-sub-superscripts",
+        "Which sub- and superscripts `org_pretty_entities` shows: all, only those in braces (`a_{b}`, \
+         `\"{}\"`), or none.",
+    ),
+    setting(
         "return_uses_meta_return",
         "boolean",
         "false",
@@ -1459,6 +1476,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_link_descriptive", BOOLEAN),
     ("org_hide_emphasis_markers", BOOLEAN),
     ("org_pretty_entities", BOOLEAN),
+    ("org_pretty_entities_include_sub_superscripts", BOOLEAN),
+    ("org_use_sub_superscripts", r#"{ "enum": [true, false, "{}"] }"#),
     ("return_uses_meta_return", BOOLEAN),
     ("org_goto_max_level", INTEGER),
     ("calendar_months", r#"{ "enum": [1, 3] }"#),
