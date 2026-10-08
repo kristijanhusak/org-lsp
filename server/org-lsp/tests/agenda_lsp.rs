@@ -4773,7 +4773,11 @@ fn run_applying(client: &mut Client, uri: &str, text: &mut String, command: &str
 fn apply_received(client: &mut Client, uri: &str, text: &mut String) {
     for request in std::mem::take(&mut client.received) {
         if request.method == "workspace/applyEdit" {
-            let (_, edits) = edits_of(&request);
+            // Only the file's edits: an ID a link made goes elsewhere.
+            let (edited, edits) = edits_of(&request);
+            if edited != uri {
+                continue;
+            }
             *text = apply(text, &edits);
             client.file_version += 1;
             client.notify(
@@ -4986,6 +4990,42 @@ fn captures_a_link_to_the_agenda_entry() {
     client.settle();
     apply_received(&mut client, "file:///org/home.org", &mut home);
     assert!(home.ends_with("* Inbox\n** About [[file:/org/work.org::*Write report][Write report]]\n"), "{home}");
+}
+
+/// `%:keyword`: the properties of the stored link. An `id:` link has
+/// `:type`, `:link` and `:description`; `:annotation` is `%a`; others are
+/// empty, as Emacs leaves them for a link to an Org file.
+#[test]
+fn captures_the_properties_of_the_link() {
+    for use_id in [false, true] {
+        let mut options = clock();
+        options["org_id_link_to_org_use_id"] = json!(use_id);
+        options["org_capture_templates"] = json!([{ "key": "l", "description": "Link",
+            "target": ["file+headline", "/org/home.org", "Inbox"],
+            "template": "* %:type|%:link|%:description|%:annotation|%:initial|%:foo|%:Type", "immediate_finish": true }]);
+        let mut client = Client::editor(options, None);
+        client.open("file:///org/work.org", WORK);
+        let mut home = format!("{HOME}* Inbox\n");
+        client.open("file:///org/home.org", &home);
+        client.command("org.agenda.list", "file:///org/work.org", 0);
+        client.view_text(VIEW);
+        let context =
+            json!({ "textDocument": { "uri": VIEW }, "position": { "line": 3, "character": 0 }, "input": "l" });
+        client.received.clear();
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [context] }))
+            .unwrap();
+        client.settle();
+        apply_received(&mut client, "file:///org/home.org", &mut home);
+        let line = home.lines().last().unwrap();
+        if use_id {
+            let id = line.split('|').nth(1).unwrap().strip_prefix("id:").expect(line);
+            assert_eq!(line, format!("** id|id:{id}|Write report|[[id:{id}][Write report]]|||"));
+        } else {
+            assert_eq!(line, "** |||[[file:/org/work.org::*Write report][Write report]]|||");
+        }
+        client.shutdown();
+    }
 }
 
 /// `org-store-link` and `org-insert-link`: a link to a headline, stored,

@@ -441,7 +441,7 @@ export const AREAS = [
       ['`%(…)` (Emacs Lisp, through Emacs)', true],
       ['`%[file]`', true],
       ['`%c`, `%x` and `%^C` (the editor\'s clipboard)', true],
-      ['`%:keyword` (the properties of a stored link)', false],
+      ['`%:keyword` (the properties of the link `%a` makes: `:annotation`, `:initial`, and an `id:` link\'s `:link`, `:description`, `:type`)', true],
       ['Template contexts (`org-capture-templates-contexts`)', true],
     ],
     editors: {

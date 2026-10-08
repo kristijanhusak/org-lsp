@@ -451,6 +451,10 @@ pub struct Store {
     /// The file with the ID made for the link, and where the cursor is
     /// then.
     pub edited: Option<(String, usize)>,
+    /// The link's properties (`org-store-link-plist`) when a function of
+    /// a link type stored it: an `id:` link's `:link`, `:description` and
+    /// `:type`.
+    pub props: Vec<(String, String)>,
 }
 
 /// A file after a change, and where the cursor is in it.
@@ -576,8 +580,15 @@ pub fn store(
         _ => entry_id(text, at, settings.consider_parent_id && settings.id_use_context && context_for_files, context)
             .is_some(),
     };
+    let mut props = Vec::new();
     let (link, description, edited) = if by_id {
-        id_link(text, at, file, settings, negate, context, new_id)?
+        let (link, description, edited) = id_link(text, at, file, settings, negate, context, new_id)?;
+        props = vec![
+            (":link".to_string(), link.clone()),
+            (":description".to_string(), description.clone().unwrap_or_default()),
+            (":type".to_string(), "id".to_string()),
+        ];
+        (link, description, edited)
     } else if let Some(target) = target_at(text, at) {
         (format!("file:{}::{target}", file.abbreviate(file.path)), None, None)
     } else {
@@ -593,7 +604,7 @@ pub fn store(
         let (current, current_at) = edited.as_ref().map_or((text, at), |(text, cursor)| (text.as_str(), *cursor));
         file_link_to_here(current, current_at, file, context_for_files, context)
     });
-    Ok(Store { link, description, custom_id, edited })
+    Ok(Store { link, description, custom_id, edited, props })
 }
 
 /// `org-link--add-to-stored-links`: the link first in `stored`, and the

@@ -51,6 +51,7 @@ fn run(case: &Value) -> Result<(String, String, String), String> {
         file,
         initial: String::new(),
         annotation: String::new(),
+        link_props: Vec::new(),
         user_name: String::new(),
         clock_heading,
         clock_link: String::new(),
