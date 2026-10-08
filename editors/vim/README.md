@@ -17,7 +17,7 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 67% | ✅ |  |
 | [Headings and structure](../../docs/parity.md#headings-and-structure) | 100% | ✅ |  |
 | [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 82% | ✅ |  |
-| [TODO keywords](../../docs/parity.md#todo-keywords) | 86% | ✅ |  |
+| [TODO keywords](../../docs/parity.md#todo-keywords) | 88% | ✅ |  |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ✅ |  |

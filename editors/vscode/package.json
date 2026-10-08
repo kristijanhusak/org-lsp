@@ -1144,6 +1144,11 @@
               "markdownDescription": "An entry cannot be done while a child is not, or, under a parent with the `ORDERED` property, while an earlier sibling is not: the change is refused with what blocks it. (`org-enforce-todo-dependencies`)",
               "default": false
             },
+            "org_agenda_dim_blocked_tasks": {
+              "type": "boolean",
+              "markdownDescription": "Dim the tasks of the agenda and the TODO list that their dependencies keep from being done (with `org_enforce_todo_dependencies` or `org_enforce_todo_checkbox_dependencies`). (`org-agenda-dim-blocked-tasks`)",
+              "default": true
+            },
             "org_enforce_todo_checkbox_dependencies": {
               "type": "boolean",
               "markdownDescription": "An entry cannot be done while it has an unchecked box. (`org-enforce-todo-checkbox-dependencies`)",
@@ -2541,6 +2546,10 @@
         "description": "Agenda: the line of the entry the clock runs on, between its other parts"
       },
       {
+        "id": "agendaDimmed",
+        "description": "Agenda: a task its dependencies block, dimmed"
+      },
+      {
         "id": "calendarHeader",
         "description": "Date prompt: the month and year above a month"
       },
@@ -2903,6 +2912,10 @@
             "markup.highlight.clocking.agenda.org",
             "markup.inserted"
           ],
+          "agendaDimmed": [
+            "comment.dimmed.agenda.org",
+            "comment"
+          ],
           "*.archived": [
             "comment.archived.org",
             "comment"
@@ -3168,6 +3181,10 @@
             "markup.highlight.clocking.agenda.org",
             "markup.inserted"
           ],
+          "agendaDimmed": [
+            "comment.dimmed.agenda.org",
+            "comment"
+          ],
           "*.archived": [
             "comment.archived.org",
             "comment"
@@ -3432,6 +3449,10 @@
           "*.clocking": [
             "markup.highlight.clocking.agenda.org",
             "markup.inserted"
+          ],
+          "agendaDimmed": [
+            "comment.dimmed.agenda.org",
+            "comment"
           ],
           "*.archived": [
             "comment.archived.org",

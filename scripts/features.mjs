@@ -231,7 +231,8 @@ export const AREAS = [
       ['Repeating entries moving to their next date', true],
       ['The parent\'s statistics cookies recounted', true],
       ['Blocking a state change by children, `ORDERED` siblings and checkboxes (`org-enforce-todo-dependencies`)', true],
-      ['Dimming blocked tasks in the agenda (`org-agenda-dim-blocked-tasks`)', false],
+      ['Dimming blocked tasks in the agenda (`org-agenda-dim-blocked-tasks`)', true],
+      ['Hiding blocked tasks in the agenda (`org-agenda-dim-blocked-tasks` `invisible`)', false],
     ],
     editors: {
       zed: ['part', `A note for a state change (\`@\`) cannot be typed: ${ZED_TEXT}. States are picked with buttons.`],
@@ -239,6 +240,7 @@ export const AREAS = [
     },
     checks: [
       { text: 'With `org_enforce_todo_dependencies`, a parent with a child not done cannot be done: the change is refused with `blocked (by "TODO Child")`; with `org_enforce_todo_checkbox_dependencies`, an entry with an unchecked box cannot either', cmd: 'org.todo' },
+      { text: 'Those tasks are dimmed in the agenda and the TODO list', in: 'agenda' },
       { text: 'Changing the TODO state of a headline (with `org_todo_keywords` keys, picked by key)', cmd: 'org.todo' },
       { text: 'Cycling to the next and previous state', cmd: ['org.todo.next', 'org.todo.previous'], not: ['helix'] },
       { text: 'Repeating the change with `.`', only: ['neovim', 'vim'] },

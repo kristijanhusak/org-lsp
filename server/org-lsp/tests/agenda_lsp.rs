@@ -1761,6 +1761,44 @@ fn logs_a_refile_with_a_note() {
     client.shutdown();
 }
 
+/// `org-agenda-dim-blocked-tasks`: with `org_enforce_todo_dependencies`,
+/// a task whose child is not done is one dimmed token in the TODO list.
+#[test]
+fn dims_blocked_tasks_in_the_agenda() {
+    let mut options = clock();
+    options["org_enforce_todo_dependencies"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/deps.org", "* TODO Parent\n** TODO Child\n* TODO Free\n");
+    client.command("org.agenda.todos", VIEW, 0);
+    let text = client.view_text(VIEW);
+    let tokens =
+        client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": VIEW } })).unwrap();
+    let data: Vec<u64> = tokens["data"].as_array().unwrap().iter().map(|n| n.as_u64().unwrap()).collect();
+    let legend = &client.initialize["capabilities"]["semanticTokensProvider"]["legend"];
+    let type_name = |index: u64| legend["tokenTypes"][index as usize].as_str().unwrap().to_string();
+    // The tokens by line: (line, start, length, type).
+    let mut line = 0;
+    let mut start = 0;
+    let mut found: Vec<(u64, u64, u64, String)> = Vec::new();
+    for token in data.chunks(5) {
+        if token[0] > 0 {
+            start = 0;
+        }
+        line += token[0];
+        start += token[1];
+        found.push((line, start, token[2], type_name(token[3])));
+    }
+    let row = |title: &str| text.lines().position(|line| line.contains(title)).unwrap() as u64;
+    let on = |line: u64| found.iter().filter(|token| token.0 == line).collect::<Vec<_>>();
+    let parent = row("Parent");
+    let shown = text.lines().nth(parent as usize).unwrap();
+    let blanks = (shown.len() - shown.trim_start().len()) as u64;
+    assert_eq!(on(parent), [&(parent, blanks, shown.trim().len() as u64, "agendaDimmed".to_string())], "{text}");
+    assert!(on(row("Child")).iter().all(|token| token.3 != "agendaDimmed"));
+    assert!(on(row("Free")).iter().all(|token| token.3 != "agendaDimmed"));
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

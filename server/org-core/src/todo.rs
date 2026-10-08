@@ -1041,6 +1041,13 @@ impl<'a> Editor<'a> {
         if this.as_deref().is_some_and(|this| self.keywords.is_done(this)) || !self.keywords.is_done(to) {
             return None;
         }
+        self.blocked_by()
+    }
+
+    /// What blocks the entry from being done, if anything does: the
+    /// checks of [`Editor::blocked`] past the states.
+    fn blocked_by(&self) -> Option<String> {
+        let settings = self.settings;
         if settings.enforce_todo_checkbox_dependencies {
             static UNCHECKED: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
                 regex::Regex::new(
@@ -1534,6 +1541,28 @@ pub fn planning_logging(settings: &Settings, text: &str, change: PlanningChange)
     } else {
         log.reschedule
     }
+}
+
+/// `org-entry-blocked-p` for the entry at byte `offset`: whether it is a
+/// task its dependencies keep from being done (`org-enforce-todo-dependencies`
+/// and its checkbox sibling), and if so whether by checkboxes.
+pub fn entry_blocked(text: &str, keywords: &TodoKeywords, offset: usize, settings: &Settings) -> Option<bool> {
+    if !settings.enforce_todo_dependencies && !settings.enforce_todo_checkbox_dependencies {
+        return None;
+    }
+    let mut editor = Editor::new(text, keywords, settings, DateTime { day: 0, minute: 0 });
+    editor.go_to_heading(offset).ok()?;
+    let (this, _, _) = editor.keyword_match();
+    if this.as_deref().is_none_or(|this| keywords.is_done(this)) {
+        return None;
+    }
+    let parse = org_syntax::parse(text, keywords);
+    let outline = Outline::new(&parse, text, "");
+    let entry = outline.entry_at(editor.heading)?;
+    if outline.entries[entry].properties.iter().any(|(key, _)| key == "NOBLOCKING") {
+        return None;
+    }
+    editor.blocked_by().map(|reason| reason == "contained checkboxes")
 }
 
 /// What refiling to `text` logs: `org-log-refile`, with the file's

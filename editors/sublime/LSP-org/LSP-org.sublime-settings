@@ -67,6 +67,7 @@
     "agendaTimeGrid.current": "comment markup.bold markup.bold.current-time.agenda.org",
     "agendaClocking": "markup.inserted markup.highlight.clocking.agenda.org",
     "text.clocking": "markup.inserted markup.highlight.clocking.agenda.org",
+    "agendaDimmed": "comment comment.dimmed.agenda.org",
     "text.archived": "comment comment.archived.org",
     "calendarHeader": "entity.name.function entity.name.function.month.calendar.org",
     "calendarWeekday": "constant.other constant.other.weekday.calendar.org",

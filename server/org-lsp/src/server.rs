@@ -618,6 +618,8 @@ struct Server {
     cite_global: Vec<String>,
     /// `org-link-abbrev-alist`.
     link_abbreviations: Vec<(String, String)>,
+    /// `org-agenda-dim-blocked-tasks`.
+    dim_blocked: bool,
     /// The bibliography files read, with when each changed and its size,
     /// to read one again when it changes.
     bibliographies: HashMap<PathBuf, (Option<std::time::SystemTime>, u64, Rc<BibFile>)>,
@@ -870,6 +872,7 @@ pub fn run(connection: Connection) -> Result<()> {
         display: options.display(),
         virtually_indented: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
+        dim_blocked: options.agenda_dim_blocked_tasks.unwrap_or(true),
         link_abbreviations: options.link_abbrev_alist.clone().unwrap_or_default().into_iter().collect(),
         bibliographies: HashMap::new(),
         diagnosed: HashSet::new(),
@@ -3260,7 +3263,7 @@ impl Server {
             })?;
             Some((uri, outline.entries[line.entry?].offset))
         });
-        views::render(
+        let mut view = views::render(
             query,
             &blocks,
             &outlines,
@@ -3269,7 +3272,64 @@ impl Server {
             clocked,
             Some(&self.agenda_filters),
             &self.agenda_marks,
-        )
+        );
+        drop(outlines);
+        drop(files);
+        self.dim_blocked(&mut view);
+        view
+    }
+
+    /// `org-agenda-dim-blocked-tasks`: the lines of tasks their
+    /// dependencies block (`org-entry-blocked-p`) in one dimmed token each.
+    fn dim_blocked(&mut self, view: &mut View) {
+        let todo = self.edit_settings.todo.clone();
+        if !self.dim_blocked || (!todo.enforce_todo_dependencies && !todo.enforce_todo_checkbox_dependencies) {
+            return;
+        }
+        let mut known: HashMap<(String, usize), bool> = HashMap::new();
+        let mut dimmed: Vec<(usize, usize)> = Vec::new();
+        let mut start = 0;
+        for (number, line_text) in view.text.split('\n').enumerate() {
+            let end = start + line_text.len();
+            if let Some(entry) = view.lines.get(number).and_then(|line| line.entry.as_ref()) {
+                let key = (entry.uri.as_str().to_string(), entry.offset);
+                let blocked = match known.get(&key) {
+                    Some(blocked) => *blocked,
+                    None => {
+                        let blocked = self
+                            .with_source(&entry.uri, |text, _, parse, _, _| {
+                                org_core::todo::entry_blocked(text, parse.todo_keywords(), entry.offset, &todo)
+                                    .is_some()
+                            })
+                            .unwrap_or(false);
+                        known.insert(key, blocked);
+                        blocked
+                    }
+                };
+                if blocked && end > start {
+                    dimmed.push((start, end));
+                }
+            }
+            start = end + 1;
+        }
+        if dimmed.is_empty() {
+            return;
+        }
+        let inside = |token: &crate::highlight::Token| {
+            dimmed
+                .iter()
+                .any(|(start, end)| usize::from(token.range.start()) < *end && usize::from(token.range.end()) > *start)
+        };
+        view.tokens.retain(|token| !inside(token));
+        for (start, end) in dimmed {
+            let range = org_syntax::TextRange::new((start as u32).into(), (end as u32).into());
+            view.tokens.push(crate::highlight::Token {
+                range,
+                ty: crate::highlight::TokenType::AgendaDimmed,
+                modifiers: 0,
+            });
+        }
+        view.tokens.sort_by_key(|token| token.range.start());
     }
 
     /// The blocks `query` shows, in log mode and with the clock report as

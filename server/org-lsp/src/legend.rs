@@ -46,6 +46,7 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::AgendaDeadline => "Agenda: an entry with a deadline",
         TokenType::AgendaEvent => "Agenda: an entry with a plain timestamp",
         TokenType::AgendaDone => "Agenda: an entry that is done",
+        TokenType::AgendaDimmed => "Agenda: a task its dependencies block, dimmed",
         TokenType::AgendaTimeGrid => "Agenda: a line of the time grid",
         TokenType::AgendaClocking => "Agenda: the line of the entry the clock runs on, between its other parts",
         TokenType::CalendarHeader => "Date prompt: the month and year above a month",
@@ -269,6 +270,8 @@ pub const LOOKS: &[Look] = &[
         &["@org.agenda.clocking", "Visual"],
         &["markup.highlight.clocking.agenda.org", "markup.inserted"],
     ),
+    // `org-agenda-dimmed-todo-face`: a task its dependencies block.
+    look("agendaDimmed", &["@org.agenda.dimmed", "Comment"], &["comment.dimmed.agenda.org", "comment"]),
     // `org-archived`, which inherits `shadow`.
     look("*.archived", &["@org.archived", "Comment"], &["comment.archived.org", "comment"]),
     // The date prompt, after Emacs's calendar and minibuffer faces.
