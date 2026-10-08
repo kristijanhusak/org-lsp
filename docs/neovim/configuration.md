@@ -595,6 +595,17 @@ require('org-lsp').setup({
     -- its sibling, or tag it. (org-archive-default-command)
     org_archive_default_command = 'subtree',
 
+    -- Where templates are offered. Each has the `key` of a template,
+    -- `contexts`, rules such as `{ "in_file": "work" }` (`in_file`,
+    -- `in_mode`, `in_buffer`, `not_in_file`, `not_in_mode` or
+    -- `not_in_buffer`, each with a regexp of the `regex` crate's syntax,
+    -- matched ignoring case), and maybe `use`, the key of the template it
+    -- stands for there. A template with contexts is offered only where one of
+    -- their rules holds. The mode is `org-mode` in an Org file and
+    -- `org-agenda-mode` in the agenda, where there is no file; the buffer's
+    -- name is the file's. (org-capture-templates-contexts)
+    org_capture_templates_contexts = {},
+
     -- Capture templates. Each has a `key`, a `description`, a `type`
     -- (`entry`, the default, `plain`, `item`, `checkitem` or `table-line`), a
     -- `target` and a `template` (text, or a list of lines), and may have
@@ -906,6 +917,10 @@ require('org-lsp').setup({
     -- The day the agenda starts from, as the date prompt reads it: `-1d`,
     -- `+2d`, `2026-10-01`. (org-agenda-start-day)
     -- org_agenda_start_day = nil, -- unset: today
+
+    -- Where the commands of `org_agenda_custom_commands` are offered, as for
+    -- `org_capture_templates_contexts`. (org-agenda-custom-commands-contexts)
+    org_agenda_custom_commands_contexts = {},
 
     -- Commands of the agenda menu. Each has a `key` and a `description`, and
     -- either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`)

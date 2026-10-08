@@ -1698,6 +1698,59 @@
               "markdownDescription": "What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it. (`org-archive-default-command`)",
               "default": "subtree"
             },
+            "org_capture_templates_contexts": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "contexts": {
+                    "description": "Rules, each a regexp on the file, the mode or the buffer's name; the context holds where one of them does",
+                    "items": {
+                      "additionalProperties": false,
+                      "maxProperties": 1,
+                      "minProperties": 1,
+                      "properties": {
+                        "in_buffer": {
+                          "type": "string"
+                        },
+                        "in_file": {
+                          "type": "string"
+                        },
+                        "in_mode": {
+                          "type": "string"
+                        },
+                        "not_in_buffer": {
+                          "type": "string"
+                        },
+                        "not_in_file": {
+                          "type": "string"
+                        },
+                        "not_in_mode": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "key": {
+                    "description": "The keys the context is about",
+                    "type": "string"
+                  },
+                  "use": {
+                    "description": "The keys whose template or command these keys stand for where the context holds",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "key",
+                  "contexts"
+                ],
+                "type": "object"
+              },
+              "type": "array",
+              "markdownDescription": "Where templates are offered. Each has the `key` of a template, `contexts`, rules such as `{ \"in_file\": \"work\" }` (`in_file`, `in_mode`, `in_buffer`, `not_in_file`, `not_in_mode` or `not_in_buffer`, each with a regexp of the `regex` crate's syntax, matched ignoring case), and maybe `use`, the key of the template it stands for there. A template with contexts is offered only where one of their rules holds. The mode is `org-mode` in an Org file and `org-agenda-mode` in the agenda, where there is no file; the buffer's name is the file's. (`org-capture-templates-contexts`)",
+              "default": []
+            },
             "org_capture_templates": {
               "items": {
                 "additionalProperties": false,
@@ -2340,6 +2393,59 @@
             "org_agenda_start_day": {
               "type": "string",
               "markdownDescription": "The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)"
+            },
+            "org_agenda_custom_commands_contexts": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "contexts": {
+                    "description": "Rules, each a regexp on the file, the mode or the buffer's name; the context holds where one of them does",
+                    "items": {
+                      "additionalProperties": false,
+                      "maxProperties": 1,
+                      "minProperties": 1,
+                      "properties": {
+                        "in_buffer": {
+                          "type": "string"
+                        },
+                        "in_file": {
+                          "type": "string"
+                        },
+                        "in_mode": {
+                          "type": "string"
+                        },
+                        "not_in_buffer": {
+                          "type": "string"
+                        },
+                        "not_in_file": {
+                          "type": "string"
+                        },
+                        "not_in_mode": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "key": {
+                    "description": "The keys the context is about",
+                    "type": "string"
+                  },
+                  "use": {
+                    "description": "The keys whose template or command these keys stand for where the context holds",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "key",
+                  "contexts"
+                ],
+                "type": "object"
+              },
+              "type": "array",
+              "markdownDescription": "Where the commands of `org_agenda_custom_commands` are offered, as for `org_capture_templates_contexts`. (`org-agenda-custom-commands-contexts`)",
+              "default": []
             },
             "org_agenda_custom_commands": {
               "items": {

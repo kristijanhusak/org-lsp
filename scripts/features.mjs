@@ -355,6 +355,7 @@ export const AREAS = [
       ['Searches for words, phrases and regexps', true],
       ['Stuck projects', true],
       ['Custom commands and block agendas (`org-agenda-custom-commands`)', true],
+      ['Commands offered by context (`org-agenda-custom-commands-contexts`)', true],
       ['Filters by tag, category, effort, regexp and top headline', true],
       ['Bulk marks and actions', true],
       ['Follow mode and entry text', true],
@@ -440,7 +441,7 @@ export const AREAS = [
       ['`%[file]`', true],
       ['`%c`, `%x` and `%^C` (the editor\'s clipboard)', true],
       ['`%:keyword` (the properties of a stored link)', false],
-      ['Template contexts', false],
+      ['Template contexts (`org-capture-templates-contexts`)', true],
     ],
     editors: {
       zed: ['part', `Templates with prompts are left out, and there is no capture buffer to type in: ${ZED_TEXT}.`],

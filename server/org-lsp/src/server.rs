@@ -594,6 +594,8 @@ struct Server {
     /// `org-capture-templates`, `org-directory` and
     /// `org-default-notes-file`.
     capture_templates: Vec<CaptureTemplateOption>,
+    /// `org-capture-templates-contexts`
+    capture_contexts: Vec<org_core::contexts::Context>,
     org_directory: String,
     default_notes_file: String,
     /// The capture whose buffer the editor shows.
@@ -878,6 +880,7 @@ pub fn run(connection: Connection) -> Result<()> {
         refile: (options.refile_targets(), options.refile_outline_path(), options.refile_settings()),
         archive: (options.archive_settings(), options.archive_default_command().to_string()),
         capture_templates: options.capture_templates(),
+        capture_contexts: config::contexts(options.capture_templates_contexts.as_deref()),
         org_directory: options.org_directory(),
         default_notes_file: options.default_notes_file(),
         capture: None,
@@ -4602,6 +4605,22 @@ impl Server {
         self.send_raw_request(ShowDocument::METHOD, params, None);
     }
 
+    /// Where a command runs, as the contexts of capture templates and
+    /// agenda commands see it: the file, the major mode and the buffer's
+    /// name. The agenda is `org-agenda-mode` and has no file; an Org file
+    /// the server has is `org-mode`.
+    fn here(&self, uri: Option<&Uri>) -> (Option<String>, &'static str, String) {
+        match uri {
+            Some(uri) if self.is_view(uri) => (None, "org-agenda-mode", "*Org Agenda*".to_string()),
+            Some(uri) => {
+                let file = uri::to_path(uri).map(|path| path.display().to_string());
+                let mode = if self.document(uri).is_some() { "org-mode" } else { "fundamental-mode" };
+                (file, mode, uri::file_name(uri))
+            }
+            None => (None, "fundamental-mode", "*scratch*".to_string()),
+        }
+    }
+
     /// `org-agenda` (`C-c a`): the views by their keys, as Emacs's menu
     /// offers them, and the one picked. `keys` are those typed so far (a
     /// prefix of custom commands); `m` and `M` then ask for a match
@@ -4621,10 +4640,35 @@ impl Server {
             return self.search(input.unwrap_or_default(), prefix == "S");
         }
         let keys = format!("{prefix}{}", input.as_deref().unwrap_or(""));
-        let commands = self.agenda_options.custom_commands.clone().unwrap_or_default();
+        // The commands offered where the menu was asked for, each with the
+        // key of the command it stands for.
+        let uri = argument
+            .and_then(|value| value.get("textDocument")?.get("uri")?.as_str())
+            .and_then(|uri| uri.parse::<Uri>().ok());
+        let (file, mode, buffer) = self.here(uri.as_ref());
+        let here = org_core::contexts::Here { file: file.as_deref(), mode, buffer: &buffer };
+        let all = self.agenda_options.custom_commands.clone().unwrap_or_default();
+        let keyed: Vec<(String, String)> =
+            all.iter().map(|command| (command.key.clone(), command.key.clone())).collect();
+        let contexts = config::contexts(self.agenda_options.custom_commands_contexts.as_deref());
+        let keyed = org_core::contexts::contextualize(
+            &keyed,
+            |(key, _)| key,
+            |(_, used), key| (key.to_string(), used.clone()),
+            &contexts,
+            &here,
+        )?;
+        let commands: Vec<config::CustomCommandOption> = keyed
+            .iter()
+            .filter_map(|(key, used)| {
+                let command = all.iter().find(|command| command.key == *used)?;
+                Some(config::CustomCommandOption { key: key.clone(), ..command.clone() })
+            })
+            .collect();
         // The user's commands come first, as in Emacs.
         if custom::find(&commands, &keys).is_some() {
-            let query = Query::Custom { keys, moved: None };
+            let used = keyed.iter().find(|(key, _)| *key == keys).map_or(keys.clone(), |(_, used)| used.clone());
+            let query = Query::Custom { keys: used, moved: None };
             self.blocks(&query)?;
             self.agenda_filters = Default::default();
             self.agenda_marks.clear();
@@ -5560,7 +5604,16 @@ impl Server {
     /// as it will stand in its target. Each step asks with an `input`
     /// whose `context` the editor sends back.
     fn capture(&mut self, context: &CaptureContext) -> std::result::Result<Value, Refusal> {
-        let templates = self.capture_templates.clone();
+        // The templates offered where the capture starts.
+        let (file, mode, buffer) = self.here(context.text_document.as_ref().map(|document| &document.uri));
+        let here = org_core::contexts::Here { file: file.as_deref(), mode, buffer: &buffer };
+        let templates = org_core::contexts::contextualize(
+            &self.capture_templates,
+            |template| &template.key,
+            |template, key| CaptureTemplateOption { key: key.to_string(), ..template.clone() },
+            &self.capture_contexts,
+            &here,
+        )?;
         let answering = context.answers.clone();
         let mut keys = context.keys.clone().unwrap_or_default();
         if answering.is_none() {

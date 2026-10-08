@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 77%**
+**All of Org: 78%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -20,9 +20,9 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Tags](#tags) | 100% | 6 of 6 |
 | [Properties and column view](#properties-and-column-view) | 67% | 4 of 6 |
 | [Dates and times](#dates-and-times) | 100% | 8 of 8 |
-| [Agenda](#agenda) | 74% | 14 of 19 |
+| [Agenda](#agenda) | 75% | 15 of 20 |
 | [Clocking](#clocking) | 100% | 8 of 8 |
-| [Capture](#capture) | 73% | 8 of 11 |
+| [Capture](#capture) | 82% | 9 of 11 |
 | [Refile and archive](#refile-and-archive) | 82% | 9 of 11 |
 | [Links](#links) | 91% | 10 of 11 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
@@ -205,7 +205,7 @@ Where editors fall short:
 
 ## Agenda
 
-74% (14 of 19)
+75% (15 of 20)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
@@ -213,6 +213,7 @@ Where editors fall short:
 - ✅ Searches for words, phrases and regexps
 - ✅ Stuck projects
 - ✅ Custom commands and block agendas (`org-agenda-custom-commands`)
+- ✅ Commands offered by context (`org-agenda-custom-commands-contexts`)
 - ✅ Filters by tag, category, effort, regexp and top headline
 - ✅ Bulk marks and actions
 - ✅ Follow mode and entry text
@@ -253,7 +254,7 @@ Where editors fall short:
 
 ## Capture
 
-73% (8 of 11)
+82% (9 of 11)
 
 - ✅ Templates of every type: entries, items, checkboxes, table lines, plain text
 - ✅ Targets: files, headlines, outline paths, regexps, date trees, IDs, the clock
@@ -265,7 +266,7 @@ Where editors fall short:
 - ✅ `%[file]`
 - ✅ `%c`, `%x` and `%^C` (the editor's clipboard)
 - ❌ `%:keyword` (the properties of a stored link)
-- ❌ Template contexts
+- ✅ Template contexts (`org-capture-templates-contexts`)
 
 Where editors fall short:
 
