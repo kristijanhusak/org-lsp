@@ -1195,6 +1195,8 @@ function! org_lsp#handle_notification(method, params) abort
     call org_lsp#save(get(a:params, 'uris', []))
   elseif a:method ==# 'org-lsp/clock'
     call s:clock_update(a:params)
+  elseif a:method ==# 'org-lsp/timer'
+    call s:timer_update(a:params)
   elseif a:method ==# 'org-lsp/virtualIndent'
     call s:virtual_indent(a:params)
   elseif a:method ==# 'org-lsp/lineHighlights'
@@ -1299,15 +1301,47 @@ function! s:duration(minutes) abort
 endfunction
 
 " What Emacs's mode line shows while a clock runs, for 'statusline':
-" `[0:25/1:00] (Write the report)`, or an empty string.
+" `[0:25/1:00] (Write the report)`, then the relative timer or the
+" countdown while one is on (`<0:05:23>`); or an empty string.
 function! org_lsp#clock_status() abort
-  if empty(s:clock)
-    return ''
+  let parts = []
+  if !empty(s:clock)
+    let minutes = s:clock.minutes + float2nr(reltimefloat(reltime(s:clock.received)) / 60)
+    let effort = get(s:clock, 'effort', v:null)
+    let time = effort is v:null ? s:duration(minutes) : s:duration(minutes) . '/' . s:duration(effort)
+    call add(parts, printf('[%s] (%s)', time, s:clock.heading))
   endif
-  let minutes = s:clock.minutes + float2nr(reltimefloat(reltime(s:clock.received)) / 60)
-  let effort = get(s:clock, 'effort', v:null)
-  let time = effort is v:null ? s:duration(minutes) : s:duration(minutes) . '/' . s:duration(effort)
-  return printf('[%s] (%s)', time, s:clock.heading)
+  if !empty(s:timer)
+    let seconds = s:timer.seconds
+    if !s:timer.paused
+      let passed = float2nr(reltimefloat(reltime(s:timer.received)))
+      let seconds = s:timer.countdown ? max([0, seconds - passed]) : seconds + passed
+    endif
+    call add(parts, printf('<%d:%02d:%02d>', seconds / 3600, seconds % 3600 / 60, seconds % 60))
+  endif
+  return join(parts, ' ')
+endfunction
+
+" The relative timer or the countdown (`org-lsp/timer`): the statusline
+" shows its seconds as they pass.
+let s:timer = {}
+let s:timer_ticks = -1
+
+function! s:timer_update(params) abort
+  if type(a:params) == v:t_dict && has_key(a:params, 'seconds')
+    let s:timer = {'seconds': a:params.seconds, 'countdown': get(a:params, 'countdown', v:false) is v:true,
+          \ 'paused': get(a:params, 'paused', v:false) is v:true, 'received': reltime()}
+  else
+    let s:timer = {}
+  endif
+  let running = !empty(s:timer) && !s:timer.paused
+  if running && s:timer_ticks == -1
+    let s:timer_ticks = timer_start(1000, {-> execute('redrawstatus!')}, {'repeat': -1})
+  elseif !running && s:timer_ticks != -1
+    call timer_stop(s:timer_ticks)
+    let s:timer_ticks = -1
+  endif
+  redrawstatus!
 endfunction
 
 function! s:clock_update(params) abort

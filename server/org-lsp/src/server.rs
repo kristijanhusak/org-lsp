@@ -428,6 +428,10 @@ enum NoteLog {
     Refile,
 }
 
+/// The relative timer or the countdown of Org in Emacs, for the editor's
+/// status line as Emacs's mode line shows it: `{ "seconds", "countdown",
+/// "paused" }` when it was sent, or null when none runs.
+pub const TIMER: &str = "org-lsp/timer";
 /// The notification that asks the editor to save files, `{ "uris": [...] }`.
 pub const SAVE: &str = "org-lsp/save";
 /// From the client: how many columns of text the window that shows the
@@ -691,6 +695,9 @@ struct Server {
     /// When the countdown Org runs in Emacs (`org-timer-set-timer`) ends:
     /// Emacs in batch runs no timers, so the server says it.
     countdown: Option<std::time::Instant>,
+    /// The relative timer or the countdown, as the editor was last told
+    /// (`org-lsp/timer`).
+    timer: Option<Value>,
     /// The parts of Org files edited in files of their own, and where
     /// those files are.
     special_edits: Vec<SpecialEdit>,
@@ -712,6 +719,10 @@ struct Server {
     /// What the `%(sexp)` of the capture being filled evaluated to.
     capture_lisp: HashMap<String, Option<String>>,
     publish_projects: Option<Value>,
+    /// What the exports made, the last last (`org-export-stack`): what
+    /// the menu called each, and the file.
+    /// An export to a buffer always shows in the editor.
+    export_stack: Vec<(String, PathBuf, bool)>,
     /// What Emacs is doing, by tag.
     emacs_jobs: HashMap<u64, EmacsJob>,
     /// Where exports to a buffer are written to be shown.
@@ -1003,6 +1014,7 @@ pub fn run(connection: Connection) -> Result<()> {
         export_menu: None,
         structure_templates: None,
         countdown: None,
+        timer: None,
         appt_check: None,
         special_edits: Vec::new(),
         special_directory: server_directory("edit"),
@@ -1015,6 +1027,7 @@ pub fn run(connection: Connection) -> Result<()> {
         capture_lisp: HashMap::new(),
         publish_projects: None,
         emacs_jobs: HashMap::new(),
+        export_stack: Vec::new(),
         export_directory: server_directory("export"),
         next_export: 0,
         view_directory: server_directory("view"),
@@ -1244,6 +1257,7 @@ fn export_question(menu: &Value, step: Option<&str>, options: &str) -> Value {
                 choices.push(json!({ "key": top.get("key"), "label": top.get("label") }));
             }
             choices.push(json!({ "key": "#", "label": "Insert template" }));
+            choices.push(json!({ "key": "&", "label": "Export stack" }));
             choices.push(json!({ "key": "P", "label": "Publish" }));
             choices.push(json!({ "key": "q", "label": "Exit" }));
         }
@@ -7705,6 +7719,36 @@ impl Server {
                     "context": { "step": "#", "answers": options },
                 } }))
             }
+            // `&`: `org-export-stack`, what the exports made, the last
+            // first; the one picked shows (`org-export-stack-view`).
+            None if key == "&" => {
+                if self.export_stack.is_empty() {
+                    return Err("The export stack is empty".into());
+                }
+                let choices: Vec<Value> = self
+                    .export_stack
+                    .iter()
+                    .enumerate()
+                    .rev()
+                    .map(|(index, (label, file, _))| {
+                        json!({ "key": index.to_string(), "label": format!("{label}: {}", file.display()) })
+                    })
+                    .collect();
+                Ok(json!({ "input": {
+                    "kind": "choice", "prompt": "Export stack", "value": "", "choices": choices,
+                    "context": { "step": "&", "answers": options },
+                } }))
+            }
+            Some("&") => {
+                let (_, file, buffer) = key
+                    .parse::<usize>()
+                    .ok()
+                    .and_then(|index| self.export_stack.get(index))
+                    .ok_or("No such export in the stack")?
+                    .clone();
+                self.show_exported(&file, buffer);
+                Ok(Value::Null)
+            }
             Some("#") => {
                 let subtree = options.contains('s');
                 self.emacs_run_with("org-lsp-bridge-export-template", vec![json!(key), json!(subtree)], context)
@@ -7858,14 +7902,16 @@ impl Server {
                 (Some(EmacsJob::Export(label)), Err(error)) => {
                     self.show_message(MessageType::ERROR, format!("{label}: {error}"));
                 }
-                (Some(EmacsJob::Export(_)), Ok(result)) => self.exported(&result),
+                (Some(EmacsJob::Export(label)), Ok(result)) => self.exported(&label, &result),
                 (Some(EmacsJob::Edit { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
                 (Some(EmacsJob::Edit { uri, version, text, point }), Ok(result)) => {
-                    // Every command says how long the countdown has left.
+                    // Every command says how long the countdown has left,
+                    // and how the timer shows.
                     self.countdown = result
                         .get("countdown")
                         .and_then(Value::as_f64)
                         .map(|left| std::time::Instant::now() + std::time::Duration::from_secs_f64(left));
+                    self.timer_said(&result);
                     self.emacs_edited(&uri, version, &text, point, &result);
                     // What the command opened (an attachment, its
                     // directory), the system opens; what it visited (a new
@@ -8229,9 +8275,22 @@ impl Server {
                 if let Some(message) = result.get("message").and_then(Value::as_str) {
                     self.show_message(MessageType::INFO, message);
                 }
+                self.timer_said(&result);
             }
             Err(error) => self.show_message(MessageType::ERROR, error),
         }
+    }
+
+    /// Tells the editor how the timer shows now (see [`TIMER`]), when one
+    /// runs or ran.
+    fn timer_said(&mut self, result: &Value) {
+        let timer = result.get("timer").filter(|timer| !timer.is_null()).cloned();
+        if timer.is_none() && self.timer.is_none() {
+            return;
+        }
+        self.timer = timer.clone();
+        let notification = Notification::new(TIMER.to_string(), timer.unwrap_or(Value::Null));
+        let _ = self.sender.send(Message::Notification(notification));
     }
 
     /// Org's motion commands (`org-next-visible-heading` and the rest):
@@ -8772,7 +8831,7 @@ impl Server {
     /// Show what an export made: the text of an export to a buffer as a
     /// file of its own; a file to be opened in the editor, or by the
     /// system when it is no text (HTML, PDF, ODT); else where it went.
-    fn exported(&mut self, result: &Value) {
+    fn exported(&mut self, label: &str, result: &Value) {
         if let Some(text) = result.get("text").and_then(Value::as_str) {
             let name = result.get("name").and_then(Value::as_str).unwrap_or("Org Export").trim_matches('*');
             let extension = result.get("extension").and_then(Value::as_str).unwrap_or("txt");
@@ -8786,6 +8845,7 @@ impl Server {
                 let params = ShowDocumentParams { uri, external: None, take_focus: Some(true), selection: None };
                 self.send_request::<ShowDocument>(params, None);
             }
+            self.export_stack.push((label.to_string(), file, true));
             return;
         }
         if result.get("published").is_some() {
@@ -8794,20 +8854,27 @@ impl Server {
         }
         let Some(file) = result.get("file").and_then(Value::as_str) else { return };
         let path = PathBuf::from(file);
-        if result.get("open").and_then(Value::as_bool) == Some(true) {
-            let extension = path.extension().map(|extension| extension.to_string_lossy().to_lowercase());
-            let external = !matches!(
+        self.export_stack.push((label.to_string(), path.clone(), false));
+        if result.get("open").and_then(Value::as_bool) == Some(true) && self.show_exported(&path, false) {
+            return;
+        }
+        self.show_message(MessageType::INFO, format!("Exported to {file}"));
+    }
+
+    /// Shows what an export made: an export to a buffer or a text file in
+    /// the editor, any other (a PDF, a page) with the system's program for
+    /// it. Whether it could.
+    fn show_exported(&mut self, path: &Path, buffer: bool) -> bool {
+        let extension = path.extension().map(|extension| extension.to_string_lossy().to_lowercase());
+        let external = !buffer
+            && !matches!(
                 extension.as_deref(),
                 Some("org" | "txt" | "md" | "tex" | "texi" | "ics" | "el" | "csv" | "json" | "xml")
             );
-            if let Some(uri) = uri::from_path(&path) {
-                let params =
-                    ShowDocumentParams { uri, external: Some(external), take_focus: Some(!external), selection: None };
-                self.send_request::<ShowDocument>(params, None);
-                return;
-            }
-        }
-        self.show_message(MessageType::INFO, format!("Exported to {file}"));
+        let Some(uri) = uri::from_path(path) else { return false };
+        let params = ShowDocumentParams { uri, external: Some(external), take_focus: Some(!external), selection: None };
+        self.send_request::<ShowDocument>(params, None);
+        true
     }
 
     /// M-RET (`org-meta-return`), M-S-RET (`org-insert-todo-heading`),

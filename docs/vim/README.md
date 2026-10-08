@@ -60,7 +60,8 @@ agenda shows the entry of the line in a popup at the cursor, highlighted
 as Org files are; moving the cursor closes it. `:Org agenda`, `:Org
 capture`, `:Org todo next` … run any command.
 
-For the clock in the statusline:
+For the clock in the statusline, and the relative timer or the countdown
+while one is on (`[0:25] (Write the report) <0:05:23>`):
 
 ```vim
 set statusline=%f\ %=%{org_lsp#clock_status()}

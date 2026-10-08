@@ -289,7 +289,8 @@ wants one), else interactively."
         (opened . ,org-lsp-bridge--opened)
         (visited . ,org-lsp-bridge--visited)
         (extra . ,org-lsp-bridge--extra)
-        (countdown . ,(org-lsp-bridge--countdown))))))
+        (countdown . ,(org-lsp-bridge--countdown))
+        (timer . ,(org-lsp-bridge--timer))))))
 
 (defun org-lsp-bridge-footnote-renumber-and-sort ()
   "`S' in `org-footnote-action''s menu."
@@ -347,10 +348,23 @@ none), for the subtree when SUBTREE is t."
     (org-timer-set-timer '(64))))
 
 (defun org-lsp-bridge--countdown ()
-  "The seconds before the countdown ends, or nil when none runs."
+  "The seconds before the countdown ends, or nil when none runs (or it
+is paused)."
   (and (boundp 'org-timer-countdown-timer)
        (timerp org-timer-countdown-timer)
+       (not org-timer-pause-time)
        (max 0 (float-time (time-subtract (timer--time org-timer-countdown-timer) nil)))))
+
+(defun org-lsp-bridge--timer ()
+  "The relative timer or the countdown as the mode line shows it
+(`org-timer-update-mode-line'): its value in seconds, whether it counts
+down, whether it is paused. Nil when none is on, or none shows
+(`org-timer-display')."
+  (when (and (boundp 'org-timer-start-time) org-timer-start-time org-timer-display)
+    (let ((time (- (float-time org-timer-pause-time) (float-time org-timer-start-time))))
+      `((seconds . ,(abs (floor (if org-timer-countdown-timer (- time) time))))
+        (countdown . ,(if org-timer-countdown-timer t :json-false))
+        (paused . ,(if org-timer-pause-time t :json-false))))))
 
 (defun org-lsp-bridge-timer-fire (_params)
   "End the countdown, as its timer would: what Org says then."
@@ -363,7 +377,8 @@ none), for the subtree when SUBTREE is t."
       (advice-add 'message :around #'org-lsp-bridge--record-message)
       (unwind-protect (apply (timer--function timer) (timer--args timer))
         (advice-remove 'message #'org-lsp-bridge--record-message)))
-    `((message . ,org-lsp-bridge--message))))
+    `((message . ,org-lsp-bridge--message)
+      (timer . ,(org-lsp-bridge--timer)))))
 
 (defun org-lsp-bridge-timer-default (params)
   "Whether `org-timer-set-timer' at the point of PARAMS takes the effort,

@@ -265,6 +265,7 @@ here and why.
 - [ ] To an HTML file and opened: the browser opens it: `<Leader>oe`
 - [ ] The subtree at the cursor as UTF-8 text in a buffer: a file of it is shown: `<Leader>oe`
 - [ ] Unsaved changes are in the export: `<Leader>oe`
+- [ ] `&` in the export menu lists what the exports made, the last first; picking one shows it again: `<Leader>oe`
 - [ ] `emacs_config` adds Markdown (`org-export-backends`): it is in the menu after a restart
 
 ## Citations
@@ -312,6 +313,7 @@ here and why.
 - [ ] Pausing and continuing; stopping: `<Leader>ox,`, `<Leader>ox_`
 - [ ] A countdown asks for its length (`1` for a minute); when it ends, `Heading: time out` is shown: `<Leader>ox;`
 - [ ] On an entry with an effort the countdown takes it, without asking: `<Leader>ox;`
+- [ ] While the timer or a countdown is on, the status line shows its value, counting each second; paused, it stays; stopped, it goes
 
 ## Attachments
 

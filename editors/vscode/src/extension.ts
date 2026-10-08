@@ -508,6 +508,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     client.onNotification('org-lsp/save', (params: { uris?: string[] }) => saveAsked({ save: params.uris ?? [] }));
     // The clock that runs, for the status bar.
     client.onNotification('org-lsp/clock', (params: ClockReport | null) => showClock(params));
+    // The relative timer or the countdown, for the status bar.
+    client.onNotification('org-lsp/timer', (params: TimerReport | null) => showTimer(params));
     // How far the lines of a file with `org-indent-mode` show indented.
     client.onNotification('org-lsp/virtualIndent', (params: VirtualIndent) => showVirtualIndent(params));
     // Lines of the agenda highlighted from edge to edge: the clocked entry.
@@ -570,6 +572,51 @@ function updateClockItem(): void {
   }
   clockItem.text = `$(clock) ${clockText()}`;
   clockItem.show();
+}
+
+/** What the server says about the relative timer or the countdown (`org-lsp/timer`). */
+interface TimerReport {
+  /** Its value when the report was sent. */
+  seconds: number;
+  countdown: boolean;
+  paused: boolean;
+}
+
+let timerItem: vscode.StatusBarItem | undefined;
+let timerTicks: NodeJS.Timeout | undefined;
+let timerState: (TimerReport & { received: number }) | undefined;
+
+/**
+ * What Emacs's mode line shows while the relative timer or a countdown is
+ * on (`org-timer-update-mode-line`), such as `<0:05:23>`; empty when none is.
+ */
+function timerText(): string {
+  if (!timerState) {
+    return '';
+  }
+  const passed = timerState.paused ? 0 : Math.floor((Date.now() - timerState.received) / 1000);
+  const seconds = timerState.countdown ? Math.max(0, timerState.seconds - passed) : timerState.seconds + passed;
+  const two = (n: number) => String(n).padStart(2, '0');
+  return `<${Math.floor(seconds / 3600)}:${two(Math.floor((seconds % 3600) / 60))}:${two(seconds % 60)}>`;
+}
+
+function updateTimerItem(): void {
+  if (!timerItem) {
+    return;
+  }
+  if (!timerState) {
+    timerItem.hide();
+    return;
+  }
+  timerItem.text = `$(watch) ${timerText()}`;
+  timerItem.show();
+}
+
+function showTimer(report: TimerReport | null): void {
+  timerState = report && typeof report.seconds === 'number' ? { ...report, received: Date.now() } : undefined;
+  clearInterval(timerTicks);
+  timerTicks = timerState && !timerState.paused ? setInterval(updateTimerItem, 1000) : undefined;
+  updateTimerItem();
 }
 
 function showClock(report: ClockReport | null): void {
@@ -1141,6 +1188,8 @@ export interface Api {
   concealed(editor: vscode.TextEditor): string[];
   /** What the status bar shows for the clock: empty when none runs. */
   clock(): string;
+  /** What the status bar shows for the relative timer or the countdown: empty when none is on. */
+  timer(): string;
   /** The lines of `editor` shown indented: `[line, prefix, hidden stars]`. */
   virtualIndent(editor: vscode.TextEditor): number[][];
   /** The lines of `editor` highlighted from edge to edge: `[line, highlight]`. */
@@ -1170,6 +1219,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   clockItem.tooltip = 'Org: the clock runs on this entry. Click to go to it.';
   clockItem.command = 'org.clock.goto';
   context.subscriptions.push(clockItem, { dispose: () => clearInterval(clockTimer) });
+  timerItem = vscode.window.createStatusBarItem('org-lsp.timer', vscode.StatusBarAlignment.Left, 49);
+  timerItem.name = 'Org timer';
+  timerItem.tooltip = 'Org: the relative timer, or the countdown.';
+  context.subscriptions.push(timerItem, { dispose: () => clearInterval(timerTicks) });
   await startClient(context);
   watchConcealing(context);
   concealVisible();
@@ -1196,6 +1249,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   return {
     concealed: (editor) => concealedText.get(editor) ?? [],
     clock: clockText,
+    timer: timerText,
     virtualIndent: (editor) => virtualIndentShown.get(editor) ?? [],
     lineHighlights: (editor) => lineHighlightsShown.get(editor) ?? [],
     sparse: (editor) => (sparseShown.get(editor.document.uri.toString()) ?? []).map((range) => editor.document.getText(range)),

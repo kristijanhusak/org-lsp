@@ -141,17 +141,17 @@ those dates in the file itself, where completion helps.
 | [Tables](../../docs/parity.md#tables) | 88% | ❓ | Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table. |
 | [Table formulas](../../docs/parity.md#table-formulas) | 92% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 91% | ❓ | Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server. |
-| [Export and publishing](../../docs/parity.md#export-and-publishing) | 67% | ❌ | Not offered as a code action yet; its menu would come as buttons. |
+| [Export and publishing](../../docs/parity.md#export-and-publishing) | 89% | ❌ | Not offered as a code action yet; its menu would come as buttons. |
 | [Citations](../../docs/parity.md#citations) | 100% | ❓ | Inserting citations is not offered as a code action yet. Completion, hover and following work. |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. |
 | [Notes and logging](../../docs/parity.md#notes-and-logging) | 100% | ❌ | A note is typed text: Zed cannot ask for text on a server's behalf. |
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ❓ | Structure templates, emphasis and drawers are not among Zed's code actions. |
-| [Timers](../../docs/parity.md#timers) | 80% | ❌ | Timers are left out: Zed cannot bind a key to a server's command (the commands are code actions), and they are not among them. |
+| [Timers](../../docs/parity.md#timers) | 100% | ❌ | Timers are left out: Zed cannot bind a key to a server's command (the commands are code actions), and they are not among them. |
 | [Attachments](../../docs/parity.md#attachments) | 100% | ❓ | `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Zed cannot bind a key to a server's command (the commands are code actions), and it is not among them. |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **91%** |  |  |
+| **All of Org** | **92%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

@@ -254,6 +254,7 @@ here and why.
 - [ ] To an HTML file and opened: the browser opens it: `Ctrl+C Ctrl+E`
 - [ ] The subtree at the cursor as UTF-8 text in a buffer: a file of it is shown: `Ctrl+C Ctrl+E`
 - [ ] Unsaved changes are in the export: `Ctrl+C Ctrl+E`
+- [ ] `&` in the export menu lists what the exports made, the last first; picking one shows it again: `Ctrl+C Ctrl+E`
 - [ ] `emacs_config` adds Markdown (`org-export-backends`): it is in the menu after a restart
 
 ## Citations
@@ -301,6 +302,7 @@ here and why.
 - [ ] Pausing and continuing; stopping: `Ctrl+C Ctrl+X ,`, `Ctrl+C Ctrl+X _`
 - [ ] A countdown asks for its length (`1` for a minute); when it ends, `Heading: time out` is shown: `Ctrl+C Ctrl+X ;`
 - [ ] On an entry with an effort the countdown takes it, without asking: `Ctrl+C Ctrl+X ;`
+- [ ] While the timer or a countdown is on, the status line shows its value, counting each second; paused, it stays; stopped, it goes
 
 ## Attachments
 
