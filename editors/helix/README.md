@@ -46,11 +46,11 @@ its behalf.
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. |
 | [Notes and logging](../../docs/parity.md#notes-and-logging) | 75% | ❌ | A note is typed text: Helix cannot ask for text on a server's behalf. |
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ❓ | Structure templates, emphasis and drawers are not among Helix's code actions. |
-| [Timers](../../docs/parity.md#timers) | 0% | — |  |
+| [Timers](../../docs/parity.md#timers) | 60% | ❌ | Timers are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and they are not among them. |
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **69%** |  |  |
+| **All of Org** | **71%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

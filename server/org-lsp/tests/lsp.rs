@@ -1679,6 +1679,93 @@ fn apply_text_edits(text: &str, edits: &[TextEdit]) -> String {
 }
 
 #[test]
+fn keeps_timers_through_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("keeps_timers_through_emacs: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-emacs-timers-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    let text = "* Meeting\n\n* Report\n:PROPERTIES:\n:Effort:   0:30\n:END:\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    client.open(&uri, text);
+    let request = |client: &mut Client, command: &str, at: (u32, u32), input: Option<&str>| -> Value {
+        let mut argument =
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": at.0, "character": at.1 } });
+        if let Some(input) = input {
+            argument["input"] = json!(input);
+        }
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }))
+            .response_result
+            .expect("a result")
+    };
+    let said = |client: &mut Client| -> String {
+        let Message::Notification(note) = next_from_server(
+            client,
+            |message| matches!(message, Message::Notification(note) if note.method == "window/showMessage"),
+        ) else {
+            unreachable!()
+        };
+        note.params["message"].as_str().unwrap().to_string()
+    };
+    // The edit Emacs makes, applied as the editor would.
+    let edited = |client: &mut Client| -> Vec<TextEdit> {
+        let Message::Request(edit) = next_from_server(
+            client,
+            |message| matches!(message, Message::Request(request) if request.method == "workspace/applyEdit"),
+        ) else {
+            unreachable!()
+        };
+        client
+            .connection
+            .sender
+            .send(Message::Response(Response::new_ok(edit.id.clone(), json!({ "applied": false }))))
+            .unwrap();
+        serde_json::from_value(edit.params["edit"]["changes"][uri.as_str()].clone()).unwrap()
+    };
+    request(&mut client, "org.timer.start", (1, 0), None);
+    assert!(said(&mut client).starts_with("Timer start time set to "));
+    request(&mut client, "org.timer.insert", (1, 0), None);
+    assert_eq!(
+        apply_text_edits(text, &edited(&mut client)),
+        "* Meeting\n0:00:00 \n* Report\n:PROPERTIES:\n:Effort:   0:30\n:END:\n"
+    );
+    request(&mut client, "org.timer.item", (1, 0), None);
+    assert_eq!(
+        apply_text_edits(text, &edited(&mut client)),
+        "* Meeting\n- 0:00:00 :: \n* Report\n:PROPERTIES:\n:Effort:   0:30\n:END:\n"
+    );
+    request(&mut client, "org.timer.pause", (1, 0), None);
+    assert_eq!(said(&mut client), "Timer paused at 0:00:00 ");
+    request(&mut client, "org.timer.stop", (1, 0), None);
+    assert_eq!(said(&mut client), "Timer stopped");
+    // A countdown: asked for, then said when it ends, by the server.
+    let asked = request(&mut client, "org.timer.set", (0, 0), None);
+    assert_eq!(asked["input"]["kind"], "text", "{asked}");
+    request(&mut client, "org.timer.set", (0, 0), Some("0:00:01"));
+    assert_eq!(said(&mut client), "Meeting: time out");
+    // With an effort, Org takes its minutes and asks nothing.
+    let asked = request(&mut client, "org.timer.set", (2, 0), None);
+    assert_eq!(asked, Value::Null);
+    request(&mut client, "org.timer.pause", (2, 0), None);
+    let paused = said(&mut client);
+    assert!(paused == "Timer paused at 0:30:00 " || paused.starts_with("Timer paused at 0:29:5"), "{paused}");
+    request(&mut client, "org.timer.stop", (2, 0), None);
+    assert_eq!(said(&mut client), "Timer stopped");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
 fn reports_and_moves_through_emacs() {
     let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
     if !found {

@@ -104,6 +104,12 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>obn` | `org.babel.next` | Move to the next code block |
 | `<Leader>obp` | `org.babel.previous` | Move to the previous code block |
 | `<Leader>obg` | `org.babel.goto` | Go to a named code block |
+| `<Leader>ox0` | `org.timer.start` | Start the relative timer |
+| `<Leader>ox.` | `org.timer.insert` | Insert the timer's value |
+| `<Leader>ox-` | `org.timer.item` | Insert a list item with the timer's value |
+| `<Leader>ox,` | `org.timer.pause` | Pause or continue the timer |
+| `<Leader>ox_` | `org.timer.stop` | Stop the timer |
+| `<Leader>ox;` | `org.timer.set` | Set a countdown timer |
 | `<Leader>oe` | `org.export.dispatch` | Export the file through Emacs |
 | `<Leader>o*` | `org.table.recalculate` | Recalculate the table |
 | `<Leader>oo` | `org.open` | Open the link or thing at the cursor |

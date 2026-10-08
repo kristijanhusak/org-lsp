@@ -746,7 +746,27 @@ export const AREAS = [
       { text: 'A drawer, its name completed from the file\'s (needs Emacs)', cmd: 'org.drawer.insert', not: ['zed', 'helix'] },
     ],
   },
-  { name: 'Timers', emacs: [['Relative timers and countdowns (`org-timer`)', false], ['Timer items in lists', false]] },
+  {
+    name: 'Timers',
+    emacs: [
+      ['The relative timer: starting, inserting its value, pausing and stopping (through Emacs)', true],
+      ['Timer items in lists (`C-c C-x -`, through Emacs)', true],
+      ['Countdowns (`C-c C-x ;`), the effort taken when there is one (through Emacs)', true],
+      ['The timer in the mode line', false],
+      ['Starting with an offset, shifting timer values in a region (prefix arguments)', false],
+    ],
+    editors: {
+      zed: ['no', `Timers are left out: ${NO_KEY_ZED}, and they are not among them.`],
+      helix: ['no', `Timers are left out: ${NO_KEY_HELIX}, and they are not among them.`],
+    },
+    checks: [
+      { text: 'Starting the timer says when it started (needs Emacs)', cmd: 'org.timer.start', not: ['zed', 'helix'] },
+      { text: 'Inserting the timer\'s value (`0:00:12 `) and a timer item (`- 0:00:15 :: `)', cmd: ['org.timer.insert', 'org.timer.item'], not: ['zed', 'helix'] },
+      { text: 'Pausing and continuing; stopping', cmd: ['org.timer.pause', 'org.timer.stop'], not: ['zed', 'helix'] },
+      { text: 'A countdown asks for its length (`1` for a minute); when it ends, `Heading: time out` is shown', cmd: 'org.timer.set', not: ['zed', 'helix'] },
+      { text: 'On an entry with an effort the countdown takes it, without asking', cmd: 'org.timer.set', not: ['zed', 'helix'] },
+    ],
+  },
   { name: 'Attachments', emacs: [['Attaching files to an entry (`C-c C-a`)', false], ['`attachment:` links', false]] },
   { name: 'Encryption', emacs: [['Encrypting and decrypting entries (`org-crypt`)', false]] },
   { name: 'Inline images and LaTeX previews', emacs: [['Inline images (`C-c C-x C-v`)', false], ['LaTeX previews (`C-c C-x C-l`)', false]] },

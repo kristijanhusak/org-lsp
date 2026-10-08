@@ -109,6 +109,12 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+V g` | `org.babel.goto` | Go to a named code block |
 | `Ctrl+C Alt+F` | `org.block.next` | Move to the next block |
 | `Ctrl+C Alt+B` | `org.block.previous` | Move to the previous block |
+| `Ctrl+C Ctrl+X 0` | `org.timer.start` | Start the relative timer |
+| `Ctrl+C Ctrl+X .` | `org.timer.insert` | Insert the timer's value |
+| `Ctrl+C Ctrl+X -` | `org.timer.item` | Insert a list item with the timer's value |
+| `Ctrl+C Ctrl+X ,` | `org.timer.pause` | Pause or continue the timer |
+| `Ctrl+C Ctrl+X _` | `org.timer.stop` | Stop the timer |
+| `Ctrl+C Ctrl+X ;` | `org.timer.set` | Set a countdown timer |
 | `Ctrl+C Ctrl+E` | `org.export.dispatch` | Export the file through Emacs |
 | `Ctrl+C Shift+8` | `org.table.recalculate.line` | Recalculate the table's current line |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
@@ -410,6 +416,12 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "b", "n"], "commands": ["org.babel.next"] },
   { "before": ["<leader>", "o", "b", "p"], "commands": ["org.babel.previous"] },
   { "before": ["<leader>", "o", "b", "g"], "commands": ["org.babel.goto"] },
+  { "before": ["<leader>", "o", "x", "0"], "commands": ["org.timer.start"] },
+  { "before": ["<leader>", "o", "x", "."], "commands": ["org.timer.insert"] },
+  { "before": ["<leader>", "o", "x", "-"], "commands": ["org.timer.item"] },
+  { "before": ["<leader>", "o", "x", ","], "commands": ["org.timer.pause"] },
+  { "before": ["<leader>", "o", "x", "_"], "commands": ["org.timer.stop"] },
+  { "before": ["<leader>", "o", "x", ";"], "commands": ["org.timer.set"] },
   { "before": ["<leader>", "o", "e"], "commands": ["org.export.dispatch"] },
   { "before": ["<leader>", "o", "*"], "commands": ["org.table.recalculate"] },
   { "before": ["<leader>", "o", "o"], "commands": ["org.open"] },
@@ -555,6 +567,12 @@ every file; outside Org files the commands say they do not apply):
 | `org.babel.goto` | Org: Go to a named code block |
 | `org.block.next` | Org: Move to the next block |
 | `org.block.previous` | Org: Move to the previous block |
+| `org.timer.start` | Org: Start the relative timer |
+| `org.timer.insert` | Org: Insert the timer's value |
+| `org.timer.item` | Org: Insert a list item with the timer's value |
+| `org.timer.pause` | Org: Pause or continue the timer |
+| `org.timer.stop` | Org: Stop the timer |
+| `org.timer.set` | Org: Set a countdown timer |
 | `org.export.dispatch` | Org: Export the file through Emacs |
 | `org.table.recalculate` | Org: Recalculate the table |
 | `org.table.recalculate.line` | Org: Recalculate the table's current line |

@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 69%**
+**All of Org: 71%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Indentation and formatting](#indentation-and-formatting) | 83% | 5 of 6 |
 | [Notes and logging](#notes-and-logging) | 75% | 3 of 4 |
 | [Completion and editing helpers](#completion-and-editing-helpers) | 100% | 4 of 4 |
-| [Timers](#timers) | 0% | 0 of 2 |
+| [Timers](#timers) | 60% | 3 of 5 |
 | [Attachments](#attachments) | 0% | 0 of 2 |
 | [Encryption](#encryption) | 0% | 0 of 1 |
 | [Inline images and LaTeX previews](#inline-images-and-latex-previews) | 0% | 0 of 2 |
@@ -474,10 +474,18 @@ Where editors fall short:
 
 ## Timers
 
-0% (0 of 2)
+60% (3 of 5)
 
-- ❌ Relative timers and countdowns (`org-timer`)
-- ❌ Timer items in lists
+- ✅ The relative timer: starting, inserting its value, pausing and stopping (through Emacs)
+- ✅ Timer items in lists (`C-c C-x -`, through Emacs)
+- ✅ Countdowns (`C-c C-x ;`), the effort taken when there is one (through Emacs)
+- ❌ The timer in the mode line
+- ❌ Starting with an offset, shifting timer values in a region (prefix arguments)
+
+Where editors fall short:
+
+- Zed ❌: Timers are left out: Zed cannot bind a key to a server's command (the commands are code actions), and they are not among them.
+- Helix ❌: Timers are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and they are not among them.
 
 ## Attachments
 

@@ -205,3 +205,7 @@ here and why.
 - [ ] `#+` keywords, and the values after `#+STARTUP:`
 - [ ] Block names after `#+begin_`, drawer names after `:`
 - [ ] Entities after `\` (`\alp` → `\alpha`)
+
+## Timers
+
+**Not in Helix:** Timers are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and they are not among them.

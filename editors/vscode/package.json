@@ -681,6 +681,36 @@
         "category": "Org"
       },
       {
+        "command": "org.timer.start",
+        "title": "Start the relative timer",
+        "category": "Org"
+      },
+      {
+        "command": "org.timer.insert",
+        "title": "Insert the timer's value",
+        "category": "Org"
+      },
+      {
+        "command": "org.timer.item",
+        "title": "Insert a list item with the timer's value",
+        "category": "Org"
+      },
+      {
+        "command": "org.timer.pause",
+        "title": "Pause or continue the timer",
+        "category": "Org"
+      },
+      {
+        "command": "org.timer.stop",
+        "title": "Stop the timer",
+        "category": "Org"
+      },
+      {
+        "command": "org.timer.set",
+        "title": "Set a countdown timer",
+        "category": "Org"
+      },
+      {
         "command": "org.export.dispatch",
         "title": "Export the file through Emacs",
         "category": "Org"
@@ -3847,6 +3877,36 @@
       {
         "command": "org.block.previous",
         "key": "ctrl+c alt+b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timer.start",
+        "key": "ctrl+c ctrl+x 0",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timer.insert",
+        "key": "ctrl+c ctrl+x .",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timer.item",
+        "key": "ctrl+c ctrl+x -",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timer.pause",
+        "key": "ctrl+c ctrl+x ,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timer.stop",
+        "key": "ctrl+c ctrl+x shift+-",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timer.set",
+        "key": "ctrl+c ctrl+x ;",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

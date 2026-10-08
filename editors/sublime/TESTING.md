@@ -271,3 +271,11 @@ here and why.
 - [ ] A block from the structure templates (`s` for a source block) (needs Emacs): `Ctrl+C Ctrl+,`
 - [ ] Emphasis markers around the cursor, `*` for bold (needs Emacs): `Ctrl+C Ctrl+X Ctrl+F`
 - [ ] A drawer, its name completed from the file's (needs Emacs): `Ctrl+C Ctrl+X d`
+
+## Timers
+
+- [ ] Starting the timer says when it started (needs Emacs): `Ctrl+C Ctrl+X 0`
+- [ ] Inserting the timer's value (`0:00:12 `) and a timer item (`- 0:00:15 :: `): `Ctrl+C Ctrl+X .`, `Ctrl+C Ctrl+X -`
+- [ ] Pausing and continuing; stopping: `Ctrl+C Ctrl+X ,`, `Ctrl+C Ctrl+X _`
+- [ ] A countdown asks for its length (`1` for a minute); when it ends, `Heading: time out` is shown: `Ctrl+C Ctrl+X ;`
+- [ ] On an entry with an effort the countdown takes it, without asking: `Ctrl+C Ctrl+X ;`
