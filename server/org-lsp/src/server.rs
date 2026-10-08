@@ -830,6 +830,10 @@ struct Server {
     next_export: u64,
     /// Where the agenda's file goes, for a client that cannot fetch it.
     view_directory: PathBuf,
+    /// The date prompt's document: [`prompt::URI`], or the file it is
+    /// written to for a client that cannot fetch it (`prompt_file`).
+    prompt_uri: Uri,
+    prompt_file: Option<PathBuf>,
     /// The date prompt that waits for an answer, in clients that show it.
     date_prompt: Option<DatePrompt>,
     /// The client's copy of the date prompt document, which it may keep
@@ -1026,7 +1030,8 @@ pub fn run(connection: Connection) -> Result<()> {
             window.and_then(|window| window.show_document.as_ref()).is_some_and(|show| show.support)
         }),
         date_prompt: raw_params.pointer("/capabilities/experimental/orgDatePrompt").and_then(Value::as_bool)
-            == Some(true),
+            == Some(true)
+            || options.date_prompt == Some(true),
         virtual_indent: raw_params.pointer("/capabilities/experimental/orgVirtualIndent").and_then(Value::as_bool)
             == Some(true)
             || options.virtual_indent == Some(true),
@@ -1052,8 +1057,10 @@ pub fn run(connection: Connection) -> Result<()> {
             .map(|path| config::expand_home(path, &|name| std::env::var(name).ok()))
             .or_else(port::script_path),
     };
-    let client =
-        Client { date_prompt: client.date_prompt && client.virtual_documents && client.show_document, ..client };
+    // The prompt is a document the client fetches, or a file it reads
+    // again when told.
+    let shown = client.virtual_documents || client.view_changed;
+    let client = Client { date_prompt: client.date_prompt && shown && client.show_document, ..client };
 
     let todo = options.todo_keywords();
     let faces = faces::faces(&options.todo_keyword_faces, &options.priority_faces);
@@ -1065,6 +1072,9 @@ pub fn run(connection: Connection) -> Result<()> {
     };
 
     let view_directory = agenda_directory(&client, &folders).unwrap_or_else(|| server_directory("view"));
+    let prompt_file = (!client.virtual_documents).then(|| view_directory.join(prompt::FILE_NAME));
+    let prompt_uri =
+        prompt_file.as_deref().and_then(uri::from_path).unwrap_or_else(|| prompt::URI.parse().expect("valid URI"));
 
     let result = InitializeResult {
         capabilities: capabilities(client.encoding, true, client.command_actions, &faces),
@@ -1165,6 +1175,8 @@ pub fn run(connection: Connection) -> Result<()> {
         export_directory: server_directory("export"),
         next_export: 0,
         view_directory,
+        prompt_uri,
+        prompt_file,
         date_prompt: None,
         prompt_copy: None,
         separator_lines: options.separator_lines(),
@@ -2158,7 +2170,7 @@ impl Server {
             DidOpenTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidOpenTextDocumentParams>(notification) else { return };
                 let document = params.text_document;
-                if document.uri.as_str() == prompt::URI {
+                if document.uri == self.prompt_uri {
                     self.prompt_copy = Some(Document::new(document.text, document.version, &self.todo));
                     self.reveal_prompt_when_current();
                     return;
@@ -2196,7 +2208,7 @@ impl Server {
             }
             DidChangeTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidChangeTextDocumentParams>(notification) else { return };
-                if params.text_document.uri.as_str() == prompt::URI {
+                if params.text_document.uri == self.prompt_uri {
                     let (encoding, todo) = (self.client.encoding, &self.todo);
                     if let Some(copy) = self.prompt_copy.as_mut() {
                         copy.apply(params.content_changes, params.text_document.version, encoding, todo);
@@ -2269,7 +2281,7 @@ impl Server {
                 // The client may close its copy of the date prompt any time
                 // after the prompt is done, even after another has opened,
                 // so this cancels nothing: the next prompt replaces it.
-                if params.text_document.uri.as_str() == prompt::URI {
+                if params.text_document.uri == self.prompt_uri {
                     self.prompt_copy = None;
                     return;
                 }
@@ -2297,7 +2309,7 @@ impl Server {
 
     fn semantic_tokens(&self, uri: &Uri, range: Option<Range>) -> Option<SemanticTokens> {
         let encoding = self.client.encoding;
-        if uri.as_str() == prompt::URI {
+        if *uri == self.prompt_uri {
             let open = self.date_prompt.as_ref()?;
             let index = LineIndex::new(&open.text);
             let only = range.map(|range| index.text_range(&open.text, range, encoding));
@@ -3716,7 +3728,7 @@ impl Server {
 
     fn text_document_content(&mut self, params: &Value) -> Value {
         let uri = params.get("uri").and_then(Value::as_str);
-        if uri == Some(prompt::URI) {
+        if uri == Some(self.prompt_uri.as_str()) {
             return json!({ "text": self.date_prompt.as_ref().map(|open| open.text.clone()).unwrap_or_default() });
         }
         match &self.view {
@@ -4898,7 +4910,7 @@ impl Server {
             None => self.date_target(id, context)?,
         };
         self.apply_date(id, &target, &answer)?;
-        Ok(if pending.is_some() { json!({ "close": prompt::URI }) } else { Value::Null })
+        Ok(if pending.is_some() { json!({ "close": self.prompt_uri.as_str() }) } else { Value::Null })
     }
 
     /// Run the command `id` that asked for a date, at `target`, with
@@ -5060,9 +5072,9 @@ impl Server {
             // The client has the document: it shows it again and fetches
             // the new text, and the cursor follows once it has.
             self.date_prompt = Some(open);
-            self.send_raw_request(TEXT_DOCUMENT_CONTENT_REFRESH, json!({ "uri": prompt::URI }), None);
+            self.refresh_prompt_document();
             let params = ShowDocumentParams {
-                uri: prompt::URI.parse().expect("valid URI"),
+                uri: self.prompt_uri.clone(),
                 external: None,
                 take_focus: Some(true),
                 selection: None,
@@ -5073,8 +5085,12 @@ impl Server {
             open.reveal = false;
             open.moving_cursor = true;
             self.date_prompt = Some(open);
+            // A file is there before the client opens it.
+            if self.prompt_file.is_some() {
+                self.refresh_prompt_document();
+            }
             let params = ShowDocumentParams {
-                uri: prompt::URI.parse().expect("valid URI"),
+                uri: self.prompt_uri.clone(),
                 external: None,
                 take_focus: Some(true),
                 selection: Some(Range::new(cursor, cursor)),
@@ -5100,8 +5116,27 @@ impl Server {
             }
             self.reveal_prompt_when_current();
         } else {
+            self.refresh_prompt_document();
+        }
+    }
+
+    /// Have the client fetch the date prompt's new text, or write it to
+    /// its file and tell the client to read that again.
+    fn refresh_prompt_document(&mut self) {
+        let Some(file) = &self.prompt_file else {
             let params = json!({ "uri": prompt::URI });
             self.send_raw_request(TEXT_DOCUMENT_CONTENT_REFRESH, params, None);
+            return;
+        };
+        let Some(text) = self.date_prompt.as_ref().map(|open| open.text.clone()) else { return };
+        let written = file.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|()| write_read_only(file, &text));
+        match written {
+            Err(error) => self.show_message(MessageType::ERROR, format!("Cannot write the date prompt: {error}")),
+            Ok(()) => {
+                let params = json!({ "uri": self.prompt_uri.as_str() });
+                let notification = lsp_server::Notification::new(VIEW_CHANGED.to_string(), params);
+                let _ = self.sender.send(Message::Notification(notification));
+            }
         }
     }
 
@@ -5116,7 +5151,7 @@ impl Server {
         open.moving_cursor = true;
         let cursor = open.cursor();
         let params = ShowDocumentParams {
-            uri: prompt::URI.parse().expect("valid URI"),
+            uri: self.prompt_uri.clone(),
             external: None,
             take_focus: Some(true),
             selection: Some(Range::new(cursor, cursor)),
@@ -5156,7 +5191,7 @@ impl Server {
         // is an old one: a key pressed again quickly goes on from the
         // selected day.
         let at = context
-            .filter(|context| context.text_document.uri.as_str() == prompt::URI)
+            .filter(|context| context.text_document.uri == self.prompt_uri)
             .filter(|_| !open.reveal && !open.moving_cursor)
             .and_then(|context| open.day_at(context.position))
             .unwrap_or(open.selected);
@@ -5201,7 +5236,7 @@ impl Server {
             }
             commands::CALENDAR_CANCEL => {
                 self.date_prompt = None;
-                return Ok(json!({ "close": prompt::URI }));
+                return Ok(json!({ "close": self.prompt_uri.as_str() }));
             }
             other => return Err(format!("org-lsp has no command `{other}`").into()),
         }
@@ -5220,7 +5255,7 @@ impl Server {
         }
         self.apply_date(&id, &target, answer)?;
         self.date_prompt = None;
-        Ok(json!({ "close": prompt::URI }))
+        Ok(json!({ "close": self.prompt_uri.as_str() }))
     }
 
     /// `org.date.preview`: the timestamp an answer to the prompt of

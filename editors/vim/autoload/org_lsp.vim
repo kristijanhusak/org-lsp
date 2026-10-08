@@ -23,6 +23,8 @@ let s:defaults = {
       \ 'virtual_indent': 1,
       \ 'win_split_mode': 'split',
       \ 'win_split_size': 0,
+      \ 'calendar': 1,
+      \ 'calendar_win_mode': 'botright split',
       \ 'mappings': {
       \   'global': {
       \     'org.agenda.dispatch': '<Leader>oa',
@@ -93,6 +95,7 @@ function! org_lsp#init_options() abort
   return extend(deepcopy(org_lsp#config().settings), {
         \ 'show_document': v:true,
         \ 'view_changed': v:true,
+        \ 'date_prompt': org_lsp#config().calendar ? v:true : v:false,
         \ 'virtual_documents': v:false,
         \ 'virtual_indent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
         \ 'line_highlights': v:true,
@@ -142,7 +145,8 @@ function! org_lsp#register() abort
     return
   endif
   let manifest = org_lsp#manifest()
-  let filetypes = ['org', get(get(manifest, 'agenda', {}), 'languageId', 'org-agenda')]
+  let filetypes = ['org', get(get(manifest, 'agenda', {}), 'languageId', 'org-agenda'),
+        \ get(get(manifest, 'datePrompt', {}), 'languageId', 'org-date')]
   call s:call('register', cmd, org_lsp#init_options(), filetypes)
 endfunction
 
@@ -191,8 +195,8 @@ endfunction
 " text before it.
 let s:flushed = {}
 function! s:flush_changes(bufnr) abort
-  if getbufvar(a:bufnr, '&filetype') ==# get(get(org_lsp#manifest(), 'agenda', {}), 'languageId', 'org-agenda')
-    call s:give_agenda(a:bufnr)
+  if s:is_view_type(getbufvar(a:bufnr, '&filetype'))
+    call s:give_view(a:bufnr)
   endif
   for info in getbufinfo({'bufloaded': 1})
     let nr = info.bufnr
@@ -408,7 +412,7 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
     call s:show_sparse(a:bufnr, result.sparse)
   endif
   " The agenda's file may have been written anew.
-  call s:reload_agenda()
+  call s:reload_views()
   if type(get(result, 'save', 0)) == v:t_list
     call org_lsp#save(result.save)
   endif
@@ -848,7 +852,7 @@ function! org_lsp#set_keys(scope) abort
         execute printf('inoremap %s <silent> %s <Cmd>call org_lsp#insert_key(%d)<CR>', buffer, mapped, index)
         continue
       endif
-      let nowait = a:scope ==# 'agenda' && !s:starts_longer(lhs, all) ? '<nowait>' : ''
+      let nowait = index(['agenda', 'calendar'], a:scope) >= 0 && !s:starts_longer(lhs, all) ? '<nowait>' : ''
       if has_key(s:append_commands, name)
         execute printf('nnoremap %s <silent> %s :<C-u>call org_lsp#run(%s, {''append'': 1})<CR>', buffer, mapped, string(name))
       elseif get(command, 'edits', v:false) && a:scope ==# 'org'
@@ -866,7 +870,7 @@ endfunction
 
 " ----- help
 
-let s:scope_titles = {'org': 'Org file', 'capture': 'Capture buffer', 'agenda': 'Agenda', 'global': 'Anywhere'}
+let s:scope_titles = {'org': 'Org file', 'capture': 'Capture buffer', 'agenda': 'Agenda', 'calendar': 'Date prompt', 'global': 'Anywhere'}
 
 " The keys of `scope` as they are set: `[{keys, title}]`, in the order of
 " the server's commands, then the plugin's own.
@@ -954,6 +958,49 @@ function! s:open_apart(path) abort
   execute 'edit' fnameescape(a:path)
 endfunction
 
+" The date prompt, at the bottom (`calendar_win_mode`), as Emacs shows
+" its calendar, as high as its text.
+function! s:open_prompt(path, win) abort
+  if a:win != -1
+    call win_gotoid(a:win)
+    call s:reload_views()
+  else
+    let from = win_getid()
+    execute org_lsp#config().calendar_win_mode
+    let w:org_lsp_opened = 1
+    let w:org_lsp_from = from
+    execute 'edit' fnameescape(a:path)
+  endif
+  if org_lsp#config().calendar_win_mode !~# 'v'
+    execute 'resize' line('$')
+  endif
+  call winrestview({'topline': 1, 'leftcol': 0})
+endfunction
+
+" The date prompt in a window the plugin did not open: put it at the
+" bottom, and the window back to the buffer it showed.
+function! s:place_prompt(nr) abort
+  let win = bufwinid(a:nr)
+  if win == -1 || getwinvar(win, 'org_lsp_opened', 0)
+    return
+  endif
+  let cursor = getcurpos(win)
+  call win_gotoid(win)
+  let back = bufnr('#')
+  execute org_lsp#config().calendar_win_mode
+  let prompt = win_getid()
+  let w:org_lsp_opened = 1
+  let w:org_lsp_from = win
+  execute 'buffer' a:nr
+  call win_execute(win, back > 0 && back != a:nr ? 'buffer ' . back : 'close')
+  call win_gotoid(prompt)
+  if org_lsp#config().calendar_win_mode !~# 'v'
+    execute 'resize' line('$')
+  endif
+  call winrestview({'topline': 1, 'leftcol': 0})
+  call setpos('.', cursor[0:3])
+endfunction
+
 " `win_split_size`: lines for a split, columns for a vertical one (`vsplit`,
 " `vnew`, `vertical`), or below 1 that part of the editor; 0 leaves the
 " window as the command made it.
@@ -982,7 +1029,7 @@ function! org_lsp#tell_agenda_width() abort
         " The server has written the agenda anew by the time it answers;
         " it is read again outside the client's callback.
         call org_lsp#request(nr, 'org-lsp/agendaWidth', {'width': width},
-              \ {_error, _result -> timer_start(0, {-> s:reload_agenda()})})
+              \ {_error, _result -> timer_start(0, {-> s:reload_views()})})
       endif
       return
     endif
@@ -1005,34 +1052,48 @@ function! s:is_agenda(path) abort
   return fnamemodify(a:path, ':t') ==# get(get(org_lsp#manifest(), 'agenda', {}), 'fileName', "\n")
 endfunction
 
+function! s:is_prompt(path) abort
+  return fnamemodify(a:path, ':t') ==# get(get(org_lsp#manifest(), 'datePrompt', {}), 'fileName', "\n")
+endfunction
+
+" Whether `filetype` is that of a file the server writes: the agenda or
+" the date prompt.
+function! s:is_view_type(filetype) abort
+  let manifest = org_lsp#manifest()
+  return a:filetype ==# get(get(manifest, 'agenda', {}), 'languageId', 'org-agenda')
+        \ || a:filetype ==# get(get(manifest, 'datePrompt', {}), 'languageId', 'org-date')
+endfunction
+
 function! s:is_capture(path) abort
   let prefix = get(get(org_lsp#manifest(), 'capture', {}), 'prefix', "\n")
   return stridx(fnamemodify(a:path, ':t'), prefix) == 0
 endfunction
 
-" The agenda is a file the server writes: read it again when it has.
-" Reading drops the highlighting; the lines that stayed get theirs back at
-" once, from the tokens they had, until the new tokens come.
-function! s:reload_agenda() abort
+" The agenda and the date prompt are files the server writes: read them
+" again when it has. Reading drops the highlighting; the lines that stayed
+" get theirs back at once, from the tokens they had, until the new tokens
+" come.
+function! s:reload_views() abort
   for info in getbufinfo({'bufloaded': 1})
-    if s:is_agenda(info.name)
+    if s:is_agenda(info.name) || s:is_prompt(info.name)
       let old = getbufline(info.bufnr, 1, '$')
       execute 'checktime' info.bufnr
-      call s:give_agenda(info.bufnr)
+      call s:give_view(info.bufnr)
       call s:repaint_kept(info.bufnr, old)
     endif
   endfor
 endfunction
 
-" Have the client send the whole agenda again when Vim read it anew. A
-" buffer read again is not a change Vim tells listeners of, and the clients
-" that learn of changes from them (vim-lsp, coc.nvim) keep the old text,
-" while the server maps the agenda's lines by the text the client sent.
+" Have the client send the whole agenda (or date prompt) again when Vim
+" read it anew. A buffer read again is not a change Vim tells listeners
+" of, and the clients that learn of changes from them (vim-lsp, coc.nvim)
+" keep the old text, while the server maps the agenda's lines by the text
+" the client sent.
 " Vim reads the file again on its own too, at times without autocommands,
 " so the lines last given are kept (`b:org_lsp_given`), and given again
 " when the buffer has others: put back as two changes, which such a client
 " sends as the whole text.
-function! s:give_agenda(nr) abort
+function! s:give_view(nr) abort
   let lines = getbufline(a:nr, 1, '$')
   if lines ==# getbufvar(a:nr, 'org_lsp_given', lines)
     return
@@ -1055,6 +1116,7 @@ function! s:give_agenda(nr) abort
     endfor
   endtry
   call s:call('flush', a:nr)
+  call s:changed(a:nr)
 endfunction
 
 " Paint buffer `nr` with the tokens it had when it had the lines `old`:
@@ -1096,10 +1158,12 @@ function! org_lsp#show_document(params) abort
   let from = win_getid()
   " Follow mode shows an entry and leaves the cursor in the agenda.
   let keep_focus = get(a:params, 'takeFocus', v:true) is v:false && get(a:params, 'orgOtherWindow', v:false)
-  if s:is_agenda(path) || s:is_capture(path)
+  if s:is_prompt(path)
+    call s:open_prompt(path, win)
+  elseif s:is_agenda(path) || s:is_capture(path)
     if win != -1
       call win_gotoid(win)
-      call s:reload_agenda()
+      call s:reload_views()
     else
       call s:open_apart(path)
     endif
@@ -1310,7 +1374,7 @@ function! org_lsp#handle_notification(method, params) abort
   elseif a:method ==# 'org-lsp/viewChanged'
     " The agenda's file is new: read it again, outside the client's
     " callback.
-    call timer_start(0, {-> s:reload_agenda()})
+    call timer_start(0, {-> s:reload_views()})
   endif
 endfunction
 
@@ -1894,6 +1958,11 @@ function! org_lsp#attach() abort
   if &filetype ==# get(org_lsp#manifest().agenda, 'languageId', 'org-agenda')
     setlocal autoread readonly noswapfile bufhidden=hide nowrap nonumber norelativenumber nofoldenable
     call org_lsp#set_keys('agenda')
+  elseif &filetype ==# get(get(org_lsp#manifest(), 'datePrompt', {}), 'languageId', 'org-date')
+    " A calendar to move about in, never to type into.
+    setlocal autoread readonly noswapfile bufhidden=wipe nowrap nonumber norelativenumber
+          \ nofoldenable nolist signcolumn=no scrolloff=0 sidescrolloff=0 winfixheight
+    call org_lsp#set_keys('calendar')
   else
     call org_lsp#set_keys('org')
     if s:is_capture(bufname(nr))
@@ -1905,9 +1974,14 @@ function! org_lsp#attach() abort
     execute 'autocmd! * <buffer=' . nr . '>'
     execute 'autocmd TextChanged,InsertLeave,BufReadPost <buffer=' . nr . '> call s:changed(' . nr . ')'
     execute 'autocmd BufWinEnter <buffer=' . nr . '> call s:changed(' . nr . ')'
-    if &filetype ==# get(org_lsp#manifest().agenda, 'languageId', 'org-agenda')
+    if &filetype ==# get(get(org_lsp#manifest(), 'datePrompt', {}), 'languageId', 'org-date')
+      " coc.nvim shows documents itself, in the window it jumps from: the
+      " calendar moves to the bottom.
+      execute 'autocmd BufWinEnter <buffer=' . nr . '> call timer_start(0, {-> s:place_prompt(' . nr . ')})'
+    endif
+    if s:is_view_type(&filetype)
       let b:org_lsp_given = getline(1, '$')
-      execute 'autocmd FileChangedShellPost,BufReadPost <buffer=' . nr . '> call s:give_agenda(' . nr . ')'
+      execute 'autocmd FileChangedShellPost,BufReadPost <buffer=' . nr . '> call s:give_view(' . nr . ')'
     endif
   augroup END
   " The client may still be starting the server: ask again until it

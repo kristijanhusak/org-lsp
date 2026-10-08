@@ -51,10 +51,9 @@ highlighted as Org files are; moving the cursor closes it. `:Org agenda`,
 
 ## What differs from Neovim
 
-- Dates are typed, as at Org's prompt (`fri 10:00`, `+2d`); there is no
-  calendar to pick them from.
-- The agenda is the file the server writes (`Agenda.org-agenda` in a
-  temporary directory), read again when it changes.
+- The agenda and the date prompt's calendar are files the server writes
+  (`Agenda.org-agenda`, `Date.org-date` in a temporary directory), read
+  again when it says they changed.
 - Nothing is concealed: Vim cannot hide text that text properties mark,
   so link brackets and emphasis markers show.
 - New lines are not indented by the server.

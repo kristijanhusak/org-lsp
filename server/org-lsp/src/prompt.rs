@@ -32,6 +32,9 @@ use crate::views::ViewLine;
 pub const URI: &str = "org-agenda:/Org%20Date";
 /// The language of the prompt document.
 pub const LANGUAGE: &str = "org-date";
+/// The name of the file the prompt is written to, beside the agenda's, for
+/// clients that cannot fetch it.
+pub const FILE_NAME: &str = "Date.org-date";
 
 /// Where the command that asked for a date acts.
 #[derive(Debug, Clone)]

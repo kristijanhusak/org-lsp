@@ -125,8 +125,6 @@ its sections says what it should look like.
 
 ## Dates and times
 
-**Partly:** Dates are typed, without the calendar: the Vim plugin asks with an input line.
-
 - [ ] Scheduling with `+2d`: `SCHEDULED: <…>` goes below the headline: `<Leader>ois`
 - [ ] A deadline on `fri 10:00`: `<Leader>oid`
 - [ ] Removing the scheduled date and the deadline: `:Org schedule remove`, `:Org deadline remove`

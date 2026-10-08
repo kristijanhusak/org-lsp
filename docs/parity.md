@@ -204,7 +204,6 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Vim ❓: Dates are typed, without the calendar: the Vim plugin asks with an input line.
 - Sublime Text ❓: Dates are typed, without the calendar: the package asks with an input panel.
 - Zed ❓: Scheduling, deadlines and new timestamps are left out: they ask for a date, and Zed cannot ask for text on a server's behalf. Changing a timestamp works.
 - Helix ❓: Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works.

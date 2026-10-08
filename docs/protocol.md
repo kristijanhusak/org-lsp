@@ -45,6 +45,7 @@ And this notification:
 | `org-lsp/virtualIndent` | For a client that announces `experimental.orgVirtualIndent: true`: how the lines of a file with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`) or hidden leading stars (`org_hide_leading_stars`, `#+STARTUP: hidestars`) show. `{ "uri", "version", "lines" }`, each line `[line, prefix, wrap, hiddenStars]`: the columns shown before the line (`line-prefix`), before the lines it wraps into (`wrap-prefix`), and how many of a headline's leading stars show as blanks. Lines with nothing to show are left out. Sent after the file opens and after every change while it shows so, and once with no lines when it stops. Only for the version given. |
 | `org-lsp/images` | For a client that announces `experimental.orgImages: true`: the images of the LaTeX fragments `org.latex.preview` asked for, once Emacs has made them, in the form the preview commands answer with (see `org.link.preview`), `kind` `latex`. |
 | `org-lsp/lineHighlights` | For a client that announces `experimental.orgLineHighlights: true` (or sets the option `line_highlights`): the lines of the agenda to highlight from edge to edge, as Emacs's overlays cover them, past the end of their text. `{ "uri", "lines" }`, each line `{ "line", "highlight" }`; `highlight` names the token type whose look it takes (`agendaClocking`: the entry the clock runs on, `org-agenda-clocking`). Sent once the client shows the agenda's current text, after each new text it shows, and when the lines change (clocking in or out), with no lines when none is highlighted. The text of those lines also has the token type, for clients that show only tokens. |
+| `org-lsp/viewChanged` | With the option `view_changed`: `{ "uri" }`, the file of the agenda or of the date prompt has been written anew, for the client to read it again. |
 | `org-lsp/clock` | The clock that runs, for a status line: `null` when none does, or `{ "heading", "minutes", "effort", "text", "uri", "line" }`, the entry's headline, the minutes clocked on it so far (since `LAST_REPEAT` if it has one), its effort in minutes or `null`, the text of Emacs's mode line (`[0:25/1:00] (Write the report)`), and where the entry is. Sent when the clock starts or stops, and when the server starts with a clock running in the files. The editor counts the minutes on from there. When the time clocked reaches the entry's effort, the server shows `Task ‘Write the report’ should be finished by now. (1:00)` (`org-clock-notify-once-if-expired`), once for each clock; `effortText` is the effort as written. |
 
 And from the client, these notifications (also taken as requests, for
@@ -240,7 +241,8 @@ the editor's own syntax.
 | `show_document` | boolean | from the client's capabilities | Whether the client shows the documents the server asks it to show (`window/showDocument`): the agenda, capture buffers, an entry's file. A client that announces that capability need not set this; the Vim plugin does, for the LSP clients that leave the request to it. |
 | `message_prompts` | boolean | `false` | Ask what commands ask for (a key, one of a list) with `window/showMessageRequest`, and say what they have to say with `window/showMessage`, for a client that does nothing with a command's result. The Zed extension sets it. |
 | `line_highlights` | boolean | `false` | Whether the client highlights lines of the agenda from edge to edge as the server sends them (`org-lsp/lineHighlights`): the entry the clock runs on. As a client announcing `experimental.orgLineHighlights` does: for the Vim plugin and the Sublime Text package. |
-| `view_changed` | boolean | `false` | Whether the server says when it has written the agenda's file anew (`org-lsp/viewChanged`), for a client that does not see the file change on disk and reads it again when told: the Vim plugin. |
+| `view_changed` | boolean | `false` | Whether the server says when it has written the agenda's or the date prompt's file anew (`org-lsp/viewChanged` `{ uri }`), for a client that does not see the file change on disk and reads it again when told: the Vim plugin. |
+| `date_prompt` | boolean | `false` | Whether the client shows the date prompt's calendar, for a client that cannot announce `experimental.orgDatePrompt`: the Vim plugin. Without documents fetched from the server, the calendar is a file the server writes, which the client reads again when told (`view_changed`). |
 | `virtual_indent` | boolean | `false` | Whether the client shows `org-indent-mode`'s prefixes and hidden stars that the server sends (`org-lsp/virtualIndent`), as a client announcing `experimental.orgVirtualIndent` does: for the Vim plugin and the Sublime Text package, whose LSP clients announce nothing of the kind. A client that shows neither gets the prefixes as inlay hints instead. |
 | `command_actions` | boolean | `false` | Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked from a list, a new heading or item (M-RET and its neighbours), for a client that cannot run a command from a key. The agenda's commands go through a local port instead: the server writes a script (`command_script`) that runs `SCRIPT COMMAND [ROW COLUMN]` in the agenda, where the cursor is when no row is given (the server follows the cursor through the document highlights the client asks for), for the editor's keys to call; with no agenda open, the commands that need none (the agenda, the TODO list, the agenda menu, capture). The agenda's file is beside the script, the same one for the same folders, and the server takes over the one the editor opens again when it starts. The Zed extension sets it. |
 | `command_script` | string | `"~/.local/state/org-lsp/agenda-command"` | Where the server writes the script of `command_actions`. Of several servers, the one whose agenda the cursor was last in has it, and a server that starts takes it when no other answers there. It stays when the server stops: run then, it opens the Org file last opened, in its folder, with the editor's command line (`zed`), and sends the command to the server that starts for it. |
@@ -604,7 +606,12 @@ time.
     "fileName": "Agenda.org-agenda",
     "languageId": "org-agenda"
   },
-  "datePrompt": { "scheme": "org-agenda", "uri": "org-agenda:/Org%20Date", "languageId": "org-date" },
+  "datePrompt": {
+    "scheme": "org-agenda",
+    "uri": "org-agenda:/Org%20Date",
+    "fileName": "Date.org-date",
+    "languageId": "org-date"
+  },
   "capture": { "prefix": "CAPTURE-" },
   "tokenTypes": [{ "id": "headline", "description": "The title text of a headline", "standard": false }],
   "tokenModifiers": [{ "id": "level1", "description": "Headline level 1" }],
@@ -692,7 +699,10 @@ same for a client that announces `experimental.orgDatePrompt: true` in
 its capabilities (and supports `workspace/textDocumentContent` and
 `window/showDocument`). The prompt is a second document of the agenda's
 scheme, `org-agenda:/Org%20Date` with the language `org-date`, as the
-manifest's `datePrompt` names it:
+manifest's `datePrompt` names it. A client that cannot fetch documents
+sets the options `date_prompt` and `view_changed` instead (the Vim
+plugin): the prompt is then a read-only file, `Date.org-date` beside the
+agenda's file, written anew with `org-lsp/viewChanged` after each change.
 
 ```text
           April 2026                May 2026                June 2026

@@ -3,10 +3,10 @@
 The Vim plugin binds the same keys as the Neovim plugin: when the server
 starts, it announces its commands with their default keys (`org-lsp
 manifest` prints the list), and the plugin binds those of the `vim`
-preset, which are nvim-orgmode's defaults. Vim has no calendar and no
-column view, so their keys are left out. Keys for Org files, the agenda
-and capture buffers are local to those buffers; the keys listed under
-*Anywhere* are global.
+preset, which are nvim-orgmode's defaults. Vim has no column view, so its
+keys are left out. Keys for Org files, the agenda, the date prompt's
+calendar and capture buffers are local to those buffers; the keys listed
+under *Anywhere* are global.
 
 `g?` in an Org file or the agenda shows the keys set there, yours
 included, in a popup.
@@ -226,6 +226,26 @@ The other options are in [configuration.md](configuration.md).
 | `<C-c><C-s>`, `<Leader>ois` | `org.schedule` | Schedule the entry |
 | `<C-c><C-d>`, `<Leader>oid` | `org.deadline` | Set the deadline of the entry |
 
+### In the date prompt
+
+| Keys | Command | What it does |
+| --- | --- | --- |
+| `l`, `<S-Right>` | `org.calendar.day.later` | Date prompt: one day later |
+| `h`, `<S-Left>` | `org.calendar.day.earlier` | Date prompt: one day earlier |
+| `j`, `<S-Down>` | `org.calendar.week.later` | Date prompt: one week later |
+| `k`, `<S-Up>` | `org.calendar.week.earlier` | Date prompt: one week earlier |
+| `<M-S-Right>` | `org.calendar.month.later` | Date prompt: one month later |
+| `<M-S-Left>` | `org.calendar.month.earlier` | Date prompt: one month earlier |
+| `<M-S-Down>` | `org.calendar.year.later` | Date prompt: one year later |
+| `<M-S-Up>` | `org.calendar.year.earlier` | Date prompt: one year earlier |
+| `>` | `org.calendar.scroll.later` | Date prompt: show the next months |
+| `<` | `org.calendar.scroll.earlier` | Date prompt: show the previous months |
+| `.` | `org.calendar.today` | Date prompt: go to today |
+| `<CR>` | `org.calendar.select` | Date prompt: take the day at the cursor |
+| `i` | `org.calendar.type` | Date prompt: type the date |
+| `t` | `org.calendar.time` | Date prompt: pick the time, or go back to the day |
+| `q`, `<Esc>` | `org.calendar.cancel` | Date prompt: cancel |
+
 ### Without a default key
 
 | Command | What it does |
@@ -288,21 +308,6 @@ The other options are in [configuration.md](configuration.md).
 | `org.deadline.remove` | Remove the deadline of the entry |
 | `org.schedule.delay` | Delay the scheduled date until a day |
 | `org.deadline.warning` | Warn of the deadline from a day |
-| `org.calendar.day.later` | Date prompt: one day later |
-| `org.calendar.day.earlier` | Date prompt: one day earlier |
-| `org.calendar.week.later` | Date prompt: one week later |
-| `org.calendar.week.earlier` | Date prompt: one week earlier |
-| `org.calendar.month.later` | Date prompt: one month later |
-| `org.calendar.month.earlier` | Date prompt: one month earlier |
-| `org.calendar.year.later` | Date prompt: one year later |
-| `org.calendar.year.earlier` | Date prompt: one year earlier |
-| `org.calendar.scroll.later` | Date prompt: show the next months |
-| `org.calendar.scroll.earlier` | Date prompt: show the previous months |
-| `org.calendar.today` | Date prompt: go to today |
-| `org.calendar.select` | Date prompt: take the day at the cursor |
-| `org.calendar.type` | Date prompt: type the date |
-| `org.calendar.time` | Date prompt: pick the time, or go back to the day |
-| `org.calendar.cancel` | Date prompt: cancel |
 
 ¹ Where the command does not apply, the key does what it does in any
 buffer: `<C-a>` off a timestamp still increments the number under the
