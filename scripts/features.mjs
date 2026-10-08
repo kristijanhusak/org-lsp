@@ -414,6 +414,7 @@ export const AREAS = [
       { text: 'An entry changed in its file shows in the agenda when it is rebuilt' },
       { text: 'Adding today\'s appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs)', cmd: 'org.agenda.appt' },
       { text: 'Pressing `f` many times in a row moves the agenda a week each time, in the editor too', only: ['zed'] },
+      { text: 'Started with no file, `:Org agenda list` starts the server and shows the agenda', only: ['vim'] },
       { text: 'With no Org file open and no server running, the *Org: Agenda for the current week or day* task opens the Org file last opened and the agenda', only: ['zed'] },
       { text: 'Zed started again with the agenda\'s tab open shows the current week there, and its keys work', only: ['zed'] },
       { text: '`ctrl-c a` in an Org file asks for the agenda view with buttons; `ctrl-c c` captures', only: ['zed'] },

@@ -338,7 +338,15 @@ function! org_lsp#run(name, ...) abort
   call s:execute(nr, a:name, context, opts)
 endfunction
 
-function! s:execute(bufnr, name, context, opts) abort
+" A server still starting (the agenda asked for with no Org file open, the
+" scratch file just loaded) gets the command once it answers, for up to
+" ten seconds.
+function! s:execute(bufnr, name, context, opts, ...) abort
+  let tries = get(a:, 1, 0)
+  if tries < 100 && !org_lsp#ready(a:bufnr)
+    call timer_start(100, {-> s:execute(a:bufnr, a:name, a:context, a:opts, tries + 1)})
+    return
+  endif
   let params = {'command': a:name, 'arguments': [a:context]}
   call org_lsp#request(a:bufnr, 'workspace/executeCommand', params,
         \ function('s:executed', [a:bufnr, a:name, a:context, a:opts]))
