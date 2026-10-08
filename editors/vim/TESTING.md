@@ -229,6 +229,8 @@ here and why.
 - [ ] Date arithmetic (`$2=$1+7`) on timestamps
 - [ ] Iterating until the table is stable: `:Org table iterate`
 - [ ] An Emacs Lisp formula `$3='(+ $1 $2);N` and a remote reference `remote(name,@1$1)` are computed by Emacs (needs Emacs): `<Leader>o*`
+- [ ] Editing the formulas in a file of their own: saving it writes them to the `#+TBLFM:` line (needs Emacs): `<Leader>o'`
+- [ ] Editing a field in a file of its own: saving it puts the text back on one line and realigns the table (needs Emacs): `<Leader>o``
 
 ## Code blocks (Babel)
 

@@ -240,7 +240,8 @@ was to be opened, or the text of an export to a buffer."
     org-table-copy-region org-table-paste-rectangle org-lsp-bridge-timer-offset
     org-lsp-bridge-timer-shift org-table-import org-table-export org-dblock-update
     org-update-all-dblocks org-lsp-bridge-columns-insert-dblock org-lsp-bridge-attach
-    org-lsp-bridge-edit-special-save)
+    org-lsp-bridge-edit-special-save org-lsp-bridge-formulas-save
+    org-lsp-bridge-field-save)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--extra nil
@@ -563,7 +564,7 @@ what the element is, for the server to do as Org does there."
         ((or 'table 'table-row)
          (if (eq (org-element-property :type element) 'table.el)
              (org-lsp-bridge--edit-buffer element)
-           '((other . "table"))))
+           (org-lsp-bridge--formulas)))
         ('planning `((other . ,(if (org-element-property :deadline element) "deadline" "schedule"))))
         ('keyword
          (let ((value (org-element-property :value element)))
@@ -606,6 +607,84 @@ buffer of its own: what the buffer shows (see `org-lsp-bridge-edit-special')."
                  (begin . ,begin)
                  (end . ,end)
                  (region . ,(buffer-substring-no-properties begin end))))))))
+
+(defun org-lsp-bridge--table-bounds ()
+  "Where the table at point starts, and where it ends with its `#+TBLFM:'
+lines."
+  (list (org-table-begin)
+        (save-excursion
+          (goto-char (org-table-end))
+          (while (looking-at-p "[ \t]*#\\+TBLFM:")
+            (forward-line))
+          (point))))
+
+(defun org-lsp-bridge--formulas ()
+  "`org-table-edit-formulas' at point: what its buffer shows (see
+`org-lsp-bridge-edit-special'), the table with its formulas the part it
+edits."
+  (pcase-let ((`(,begin ,end) (org-lsp-bridge--table-bounds))
+              (region nil)
+              (text nil))
+    (setq region (buffer-substring-no-properties begin end))
+    (switch-to-buffer (current-buffer))
+    (save-window-excursion
+      (org-table-edit-formulas)
+      (setq text (buffer-substring-no-properties (point-min) (point-max)))
+      (kill-buffer))
+    `((edit . ((text . ,text)
+               (extension . "txt")
+               (name . "*Edit Formulas*")
+               (kind . "formulas")
+               (begin . ,begin)
+               (end . ,end)
+               (region . ,region))))))
+
+(defun org-lsp-bridge-edit-field (params)
+  "`org-table-edit-field' at the point of PARAMS: what its buffer shows
+(see `org-lsp-bridge-edit-special'), the table the part it edits."
+  (org-lsp-bridge--in-document params
+    (unless (org-at-table-p) (user-error "Not at a table"))
+    (pcase-let* ((`(,begin ,end) (org-lsp-bridge--table-bounds))
+                 (region (buffer-substring-no-properties begin end))
+                 (text nil))
+      (switch-to-buffer (current-buffer))
+      (save-window-excursion
+        (org-table-edit-field nil)
+        (setq text (buffer-substring-no-properties (point-min) (point-max)))
+        (kill-buffer))
+      `((edit . ((text . ,text)
+                 (extension . "org")
+                 (name . "*Org Table Edit Field*")
+                 (kind . "field")
+                 (begin . ,begin)
+                 (end . ,end)
+                 (region . ,region)))))))
+
+(defun org-lsp-bridge-field-save (content)
+  "The field at point edited (`org-table-edit-field'), CONTENT its
+buffer's text, and put back (`org-table-finish-edit-field'): the table
+then, in `org-lsp-bridge--extra'."
+  (switch-to-buffer (current-buffer))
+  (save-window-excursion
+    (org-table-edit-field nil)
+    (erase-buffer)
+    (insert content)
+    (org-table-finish-edit-field))
+  (pcase-let ((`(,begin ,end) (org-lsp-bridge--table-bounds)))
+    (setq org-lsp-bridge--extra `((begin . ,begin) (end . ,end)))))
+
+(defun org-lsp-bridge-formulas-save (content)
+  "The formulas of the table at point edited (`org-table-edit-formulas'),
+CONTENT their buffer's text, and installed (`org-table-fedit-finish'): the
+table then, in `org-lsp-bridge--extra'."
+  (switch-to-buffer (current-buffer))
+  (save-window-excursion
+    (org-table-edit-formulas)
+    (erase-buffer)
+    (insert content)
+    (org-table-fedit-finish))
+  (pcase-let ((`(,begin ,end) (org-lsp-bridge--table-bounds)))
+    (setq org-lsp-bridge--extra `((begin . ,begin) (end . ,end)))))
 
 (defun org-lsp-bridge-edit-special-save (content)
   "Edit the element at point in its buffer (`org-edit-special'), its text

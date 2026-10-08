@@ -2320,6 +2320,76 @@ fn edits_blocks_in_files_of_their_own() {
     client.shutdown();
 }
 
+/// `C-c '` on a table: its formulas, one by line (`org-table-edit-formulas`);
+/// saving the file installs them (`org-table-fedit-finish`).
+#[test]
+fn edits_table_formulas_in_a_file() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("edits_table_formulas_in_a_file: no Emacs, skipped");
+        return;
+    }
+    let directory = workspace("edit-formulas");
+    let file = directory.join("table.org");
+    let mut text = "* T\n| a | b | c |\n|---+---+---|\n| 1 | 2 |   |\n#+TBLFM: $3=$1+$2\n\nAfter\n".to_string();
+    std::fs::write(&file, &text).unwrap();
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, &text);
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 3, "character": 2 } });
+    client.received.clear();
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.edit.special", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("a file shown");
+    let edited = PathBuf::from(shown.params["uri"].as_str().unwrap().strip_prefix("file://").unwrap());
+    assert!(edited.ends_with("table-edit.txt"), "{}", edited.display());
+    assert_eq!(std::fs::read_to_string(&edited).unwrap(), "# Column Formulas\n$3 = $1+$2\n");
+    client.received.clear();
+    std::fs::write(&edited, "# Column Formulas\n$3 = $1*$2\n@2$1 = 5\n").unwrap();
+    let start = std::time::Instant::now();
+    while !client.received.iter().any(|request| request.method == "workspace/applyEdit")
+        && start.elapsed() < std::time::Duration::from_secs(10)
+    {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        client.settle();
+    }
+    apply_received(&mut client, &uri, &mut text);
+    assert_eq!(text, "* T\n| a | b | c |\n|---+---+---|\n| 1 | 2 |   |\n#+TBLFM: $3=$1*$2::@2$1=5\n\nAfter\n");
+    // `C-c \``: the field at the cursor; saved twice, the table realigned
+    // each time.
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 3, "character": 2 } });
+    client.received.clear();
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.table.edit.field", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("a file shown");
+    let field = PathBuf::from(shown.params["uri"].as_str().unwrap().strip_prefix("file://").unwrap());
+    assert!(field.ends_with("table-edit.org"), "{}", field.display());
+    assert_eq!(std::fs::read_to_string(&field).unwrap(), "#\n# Edit field @2$1 and finish with C-c C-c\n#\n1");
+    for (content, row) in [("#\none\nhundred", "| one hundred | 2 |   |"), ("1000", "| 1000 | 2 |   |")] {
+        client.received.clear();
+        std::fs::write(&field, content).unwrap();
+        let start = std::time::Instant::now();
+        while !client.received.iter().any(|request| request.method == "workspace/applyEdit")
+            && start.elapsed() < std::time::Duration::from_secs(10)
+        {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            client.settle();
+        }
+        apply_received(&mut client, &uri, &mut text);
+        assert_eq!(text.lines().nth(3), Some(row), "{text}");
+    }
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

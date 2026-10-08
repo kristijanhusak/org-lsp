@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 86%**
+**All of Org: 87%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -26,8 +26,8 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Refile and archive](#refile-and-archive) | 100% | 11 of 11 |
 | [Links](#links) | 100% | 11 of 11 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
-| [Tables](#tables) | 82% | 14 of 17 |
-| [Table formulas](#table-formulas) | 83% | 10 of 12 |
+| [Tables](#tables) | 88% | 15 of 17 |
+| [Table formulas](#table-formulas) | 92% | 11 of 12 |
 | [Code blocks (Babel)](#code-blocks-babel) | 91% | 10 of 11 |
 | [Export and publishing](#export-and-publishing) | 67% | 6 of 9 |
 | [Citations](#citations) | 100% | 5 of 5 |
@@ -332,7 +332,7 @@ Where editors fall short:
 
 ## Tables
 
-82% (14 of 17)
+88% (15 of 17)
 
 - ✅ Aligning (`C-c C-c`, formatting)
 - ✅ Moving between fields (`TAB`, `S-TAB`), a row made past the last
@@ -343,7 +343,7 @@ Where editors fall short:
 - ✅ The `#+TBLFM:` line following moved columns and rows
 - ✅ Rectangles: cutting, copying and pasting the cells of a selection (through Emacs)
 - ✅ Copying down (`S-RET`, through Emacs)
-- ❌ Editing a field in its own buffer (`C-c \``)
+- ✅ Editing a field in a file of its own (`C-c \``, through Emacs): put back, the table realigned, each time it is saved
 - ❌ Shrunk columns (`<5>`)
 - ✅ Creating an empty table (`C-c |`, through Emacs)
 - ✅ Making a table from a region (`C-c |` on a selection, through Emacs)
@@ -359,7 +359,7 @@ Where editors fall short:
 
 ## Table formulas
 
-83% (10 of 12)
+92% (11 of 12)
 
 - ✅ Column, field and range formulas
 - ✅ References by row, column, hline and name
@@ -371,7 +371,7 @@ Where editors fall short:
 - ✅ Remote references (through Emacs)
 - ✅ Units (through Emacs)
 - ✅ Calc's fractions, symbolic mode and engineering notation (through Emacs)
-- ❌ The formula editor (`C-c '`)
+- ✅ The formula editor (`C-c '`, through Emacs): the table's formulas in a file of their own, installed each time it is saved
 - ❌ The formula debugger
 
 ## Code blocks (Babel)

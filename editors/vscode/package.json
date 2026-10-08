@@ -741,6 +741,11 @@
         "category": "Org"
       },
       {
+        "command": "org.table.edit.field",
+        "title": "Edit the table field in a file of its own",
+        "category": "Org"
+      },
+      {
         "command": "org.timer.start",
         "title": "Start the relative timer",
         "category": "Org"
@@ -4312,6 +4317,11 @@
       {
         "command": "org.edit.special",
         "key": "ctrl+c '",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.edit.field",
+        "key": "ctrl+c `",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

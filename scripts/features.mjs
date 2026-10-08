@@ -564,7 +564,7 @@ export const AREAS = [
       ['The `#+TBLFM:` line following moved columns and rows', true],
       ['Rectangles: cutting, copying and pasting the cells of a selection (through Emacs)', true],
       ['Copying down (`S-RET`, through Emacs)', true],
-      ['Editing a field in its own buffer (`C-c \\``)', false],
+      ['Editing a field in a file of its own (`C-c \\``, through Emacs): put back, the table realigned, each time it is saved', true],
       ['Shrunk columns (`<5>`)', false],
       ['Creating an empty table (`C-c |`, through Emacs)', true],
       ['Making a table from a region (`C-c |` on a selection, through Emacs)', true],
@@ -605,7 +605,7 @@ export const AREAS = [
       ['Remote references (through Emacs)', true],
       ['Units (through Emacs)', true],
       ['Calc\'s fractions, symbolic mode and engineering notation (through Emacs)', true],
-      ['The formula editor (`C-c \'`)', false],
+      ['The formula editor (`C-c \'`, through Emacs): the table\'s formulas in a file of their own, installed each time it is saved', true],
       ['The formula debugger', false],
     ],
     checks: [
@@ -616,6 +616,8 @@ export const AREAS = [
       { text: 'Date arithmetic (`$2=$1+7`) on timestamps' },
       { text: 'Iterating until the table is stable', cmd: 'org.table.iterate' },
       { text: 'An Emacs Lisp formula `$3=\'(+ $1 $2);N` and a remote reference `remote(name,@1$1)` are computed by Emacs (needs Emacs)', cmd: 'org.table.recalculate' },
+      { text: 'Editing the formulas in a file of their own: saving it writes them to the `#+TBLFM:` line (needs Emacs)', cmd: 'org.edit.special', not: ['zed', 'helix'] },
+      { text: 'Editing a field in a file of its own: saving it puts the text back on one line and realigns the table (needs Emacs)', cmd: 'org.table.edit.field', not: ['zed', 'helix'] },
     ],
   },
   {

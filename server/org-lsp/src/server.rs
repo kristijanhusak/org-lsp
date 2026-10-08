@@ -156,6 +156,21 @@ struct SpecialEdit {
     region: String,
     /// Emacs is writing it back.
     busy: bool,
+    /// What is edited, and so how it is written back.
+    kind: SpecialKind,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SpecialKind {
+    /// What `org-edit-special` edits with `org-src`, written back by
+    /// `org-edit-src-save`.
+    Element,
+    /// The formulas of a table (`org-table-edit-formulas`), installed
+    /// (`org-table-fedit-finish`).
+    Formulas,
+    /// A field of a table (`org-table-edit-field`), put back
+    /// (`org-table-finish-edit-field`).
+    Field,
 }
 
 /// Text that goes in place of `start..end`.
@@ -3914,8 +3929,8 @@ impl Server {
             let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
             return self.capture(&context);
         }
-        if params.command == commands::EDIT_SPECIAL {
-            return self.edit_special(argument);
+        if params.command == commands::EDIT_SPECIAL || params.command == commands::TABLE_EDIT_FIELD {
+            return self.edit_special(argument, params.command == commands::TABLE_EDIT_FIELD);
         }
         let context: Option<Context> = argument.and_then(|value| serde_json::from_value(value).ok());
         // Off a table, `C-c -` and `C-c *` turn lines into items and
@@ -7841,10 +7856,13 @@ impl Server {
 
     /// `org-edit-special` (`C-c '`), through Emacs. What Org edits in a
     /// buffer of its own goes in a file of its own, shown, its text as Org
-    /// puts it there (indentation and commas taken away); at `#+INCLUDE:`
+    /// puts it there (indentation and commas taken away; a table's
+    /// formulas one by line, `org-table-edit-formulas`); at `#+INCLUDE:`
     /// and the like, the file is shown; at a date, a planning line or a
     /// link, the command Org runs there runs.
-    fn edit_special(&mut self, argument: Option<Value>) -> std::result::Result<Value, Refusal> {
+    /// With `table_field`, `org-table-edit-field` (C-c and a backquote): the field at the
+    /// cursor in a file of its own, put back when it is saved.
+    fn edit_special(&mut self, argument: Option<Value>, table_field: bool) -> std::result::Result<Value, Refusal> {
         let context: Context = argument
             .clone()
             .and_then(|value| serde_json::from_value(value).ok())
@@ -7855,8 +7873,8 @@ impl Server {
         let offset = document.index.offset(&document.text, context.position, self.client.encoding);
         let point = document.text[..offset].chars().count() + 1;
         let params = json!({ "file": path.to_string_lossy(), "text": document.text, "point": point });
-        let result =
-            self.emacs.call("edit-special", params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
+        let method = if table_field { "edit-field" } else { "edit-special" };
+        let result = self.emacs.call(method, params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
         if let Some(file) = result.get("visit").and_then(Value::as_str) {
             let target = uri::from_path(Path::new(file)).ok_or("This file cannot be shown")?;
             let params = ShowDocumentParams { uri: target, external: None, take_focus: Some(true), selection: None };
@@ -7865,7 +7883,6 @@ impl Server {
         }
         if let Some(other) = result.get("other").and_then(Value::as_str) {
             let command = match other {
-                "table" => return Err(Refusal::Failed("The formula editor is not supported".to_string())),
                 "deadline" => commands::DEADLINE,
                 "schedule" => commands::SCHEDULE,
                 "timestamp-inactive" => commands::TIMESTAMP_INSERT_INACTIVE,
@@ -7883,18 +7900,27 @@ impl Server {
         let field = |key: &str| edit.get(key).and_then(Value::as_str).unwrap_or_default().to_string();
         let number = |key: &str| edit.get(key).and_then(Value::as_u64).unwrap_or(1) as usize;
         let (begin, end, region) = (number("begin"), number("end"), field("region"));
-        // The part edited already: its file again.
-        if let Some(open) = self
-            .special_edits
-            .iter()
-            .find(|open| open.uri == uri && open.begin == begin && open.region == region && open.file.exists())
-        {
+        // The part edited already: its file again (a field, the same
+        // field).
+        let same = |open: &&SpecialEdit| {
+            open.uri == uri
+                && open.begin == begin
+                && open.region == region
+                && open.file.exists()
+                && (field("kind") != "field" || open.point == point)
+        };
+        if let Some(open) = self.special_edits.iter().find(same) {
             let target = uri::from_path(&open.file).ok_or("This file cannot be shown")?;
             let params = ShowDocumentParams { uri: target, external: None, take_focus: Some(true), selection: None };
             self.send_request::<ShowDocument>(params, None);
             return Ok(Value::Null);
         }
         let content = field("text");
+        let kind = match field("kind").as_str() {
+            "formulas" => SpecialKind::Formulas,
+            "field" => SpecialKind::Field,
+            _ => SpecialKind::Element,
+        };
         let stem = path.file_stem().map(|stem| stem.to_string_lossy().into_owned()).unwrap_or_default();
         let directory = self.special_directory.join(self.special_edits.len().to_string());
         let file = directory.join(format!("{stem}-edit.{}", field("extension")));
@@ -7908,12 +7934,13 @@ impl Server {
             content,
             uri,
             // In the part, Org edits it again from its start; at a footnote
-            // reference, from there.
-            point: if (begin..=end).contains(&point) { begin } else { point },
+            // reference, from there; a field, from in it.
+            point: if kind != SpecialKind::Field && (begin..=end).contains(&point) { begin } else { point },
             begin,
             end,
             region,
             busy: false,
+            kind,
         });
         let params = ShowDocumentParams { uri: target, external: None, take_focus: Some(true), selection: None };
         self.send_request::<ShowDocument>(params, None);
@@ -7960,11 +7987,11 @@ impl Server {
         let mut point = edit.point;
         if text.get(byte(edit.begin)..byte(edit.end)) != Some(edit.region.as_str()) {
             // Moved, by changes before it: found again when it is the only
-            // such text, and edited from its start.
+            // such text, and edited from the same place in it.
             let found: Vec<usize> = text.match_indices(&edit.region).map(|(at, _)| at).collect();
             match found[..] {
-                [at] if edit.point == edit.begin && !edit.region.is_empty() => {
-                    point = text[..at].chars().count() + 1;
+                [at] if (edit.begin..=edit.end).contains(&edit.point) && !edit.region.is_empty() => {
+                    point = text[..at].chars().count() + 1 + (edit.point - edit.begin);
                 }
                 _ => {
                     let message = format!(
@@ -7980,7 +8007,11 @@ impl Server {
             "file": path.to_string_lossy(),
             "text": text,
             "point": point,
-            "command": "org-lsp-bridge-edit-special-save",
+            "command": match edit.kind {
+                SpecialKind::Element => "org-lsp-bridge-edit-special-save",
+                SpecialKind::Formulas => "org-lsp-bridge-formulas-save",
+                SpecialKind::Field => "org-lsp-bridge-field-save",
+            },
             "args": [content],
         });
         let edit = &mut self.special_edits[index];
@@ -8026,7 +8057,10 @@ impl Server {
             let (begin, end) = (begin as usize, end as usize);
             let chars: Vec<char> = new.chars().collect();
             let (old_begin, old_end) = (edit.begin, edit.end);
-            edit.point = if edit.point == old_begin {
+            let moved = result.get("point").and_then(Value::as_u64).map(|at| at as usize);
+            edit.point = if let (SpecialKind::Field, Some(at)) = (edit.kind, moved) {
+                at
+            } else if edit.point == old_begin {
                 begin
             } else if edit.point > old_end {
                 (edit.point + end).saturating_sub(old_end)
