@@ -2,7 +2,10 @@
 // about itself, so that it lists the keys the editors really bind and the
 // options and defaults the server really has:
 //
-//   docs/<editor>/keys.md            the key tables
+//   docs/<editor>/keys.md            the key tables (Sublime Text's from its
+//                                    keymap, Zed's from keymap.json and
+//                                    tasks.json, which their own generators
+//                                    write from the server's manifest)
 //   docs/<editor>/configuration.md   the default options, in the editor's syntax
 //   docs/configuration.md            the shared configuration file, at its defaults
 //   docs/protocol.md                 the table of options
@@ -63,10 +66,11 @@ function table(header, rows) {
  * scope: a command of the server's goes without them there. */
 const OWN_KEYS = { org: ['<Tab>', '<S-Tab>', 'g?'], agenda: ['q', 'K', 'g?'], columns: ['h', 'l', '<Left>', '<Right>'] };
 
-/** The Neovim plugin's keys: the `vim` preset of every command. */
-function neovimKeys() {
+/** The Neovim plugin's keys: the `vim` preset of every command, in the
+ * scopes the plugin has (all of them for Neovim). */
+function neovimKeys(scopes = SCOPES.map(([scope]) => scope)) {
   const sections = [];
-  for (const [scope, heading] of SCOPES) {
+  for (const [scope, heading] of SCOPES.filter(([scope]) => scopes.includes(scope))) {
     const rows = manifest.commands.flatMap((command) => {
       const keys = command.keys.filter(
         (key) => key.preset === 'vim' && key.in === scope && !(OWN_KEYS[scope] ?? []).includes(key.key),
@@ -80,7 +84,9 @@ function neovimKeys() {
   const keyless = manifest.commands
     .filter(
       (command) =>
-        !command.keys.some((key) => key.preset === 'vim' && !(OWN_KEYS[key.in] ?? []).includes(key.key)),
+        !command.keys.some(
+          (key) => key.preset === 'vim' && scopes.includes(key.in) && !(OWN_KEYS[key.in] ?? []).includes(key.key),
+        ),
     )
     .map((command) => [code(command.command), cell(command.title)]);
   sections.push('### Without a default key\n\n' + table(['Command', 'What it does'], keyless));
@@ -90,6 +96,12 @@ function neovimKeys() {
       'cursor, and `<CR>` in a source block\'s code is Vim\'s own.',
   );
   return sections.join('\n\n');
+}
+
+/** The Vim plugin's keys: the Neovim plugin's, without the date prompt's
+ * calendar and column view, which Vim does not have. */
+function vimKeys() {
+  return neovimKeys(['global', 'org', 'capture', 'agenda']);
 }
 
 /** A key of VS Code's `keybindings` (`ctrl+c ctrl+w`) as its UI writes it. */
@@ -180,6 +192,103 @@ function vscodeKeys() {
   return sections.join('\n\n');
 }
 
+/** A key of Sublime Text's key bindings (`["ctrl+c", "ctrl+t"]`) as its
+ * menus write it (`Ctrl+C Ctrl+T`); a stroke that is one character (`+`,
+ * `-`) is that character. */
+function sublimeKey(keys) {
+  const names = { ctrl: 'Ctrl', alt: 'Alt', shift: 'Shift', enter: 'Enter', tab: 'Tab', space: 'Space' };
+  return keys
+    .map((stroke) =>
+      stroke.length === 1
+        ? stroke
+        : stroke
+            .split('+')
+            .map((part) => names[part] ?? (part.length === 1 ? part.toUpperCase() : part[0].toUpperCase() + part.slice(1)))
+            .join('+'),
+    )
+    .join(' ');
+}
+
+/** The Sublime Text package's keys, as its Default.sublime-keymap binds
+ * them, by preset (`org_keys`) and by where they apply. */
+function sublimeKeys() {
+  const dir = join(root, 'editors', 'sublime', 'LSP-org');
+  const keymap = JSON.parse(readFileSync(join(dir, 'Default.sublime-keymap'), 'utf8'));
+  const palette = JSON.parse(readFileSync(join(dir, 'LSP-org.sublime-commands'), 'utf8'));
+  const titles = Object.fromEntries(manifest.commands.map((command) => [command.command, command.title]));
+  // The package's own commands, by the caption of the Command Palette.
+  for (const entry of palette) {
+    if (entry.command !== 'org_lsp_run') titles[entry.command] ??= entry.caption.replace(/^Org: /, '');
+  }
+  titles.close ??= 'Close the agenda';
+  const name = (binding) => (binding.command === 'org_lsp_run' ? binding.args.command : binding.command);
+  const context = (binding, key) => binding.context?.find((entry) => entry.key === key)?.operand;
+  const where = (binding) =>
+    context(binding, 'selector') === 'text.org-agenda'
+      ? 'agenda'
+      : context(binding, 'org_lsp.capture') === true
+        ? 'capture'
+        : 'org';
+  const presets = [
+    ['emacs', 'Emacs (`"org_keys": "emacs"`, the default)'],
+    ['vim', 'Vim (`"org_keys": "vim"`, in command mode unless it says otherwise)'],
+  ];
+  const sections = [];
+  for (const [preset, presetHeading] of presets) {
+    sections.push(`### ${presetHeading}`);
+    for (const [scope, heading] of SCOPES) {
+      const byCommand = new Map();
+      for (const binding of keymap) {
+        if (context(binding, 'org_lsp.keys') !== preset || where(binding) !== scope) continue;
+        const command = name(binding);
+        if (!byCommand.has(command)) byCommand.set(command, []);
+        const insert = context(binding, 'setting.command_mode') === false ? ' (insert mode)' : '';
+        byCommand.get(command).push(code(sublimeKey(binding.keys)) + (binding.args?.fallback ? '¹' : '') + insert);
+      }
+      if (byCommand.size === 0) continue;
+      const rows = [...byCommand].map(([command, keys]) => [keys.join(', '), code(command), cell(titles[command] ?? '')]);
+      sections.push(`#### ${heading}\n\n` + table(['Keys', 'Command', 'What it does'], rows));
+    }
+  }
+  sections.push(
+    '¹ Where the command does not apply, the key does what it does without\n' +
+      'the package: `Shift+Up` off a timestamp or headline selects, `Tab` off\n' +
+      'a headline, block or drawer indents or completes, `Enter` makes a new\n' +
+      'line.',
+  );
+  const bound = new Set(keymap.map(name));
+  const keyless = manifest.commands
+    .filter((command) => !bound.has(command.command))
+    .map((command) => [code(command.command), cell(`Org: ${command.title}`)]);
+  sections.push('### Without a key\n\n' + table(['Command', 'In the Command Palette'], keyless));
+  return sections.join('\n\n');
+}
+
+/** The keys of Zed's agenda: keymap.json binds them to the tasks of
+ * tasks.json, each of which runs a command of the server. */
+function zedKeys() {
+  const dir = join(root, 'editors', 'zed');
+  const keymap = JSON.parse(readFileSync(join(dir, 'keymap.json'), 'utf8'));
+  const tasks = JSON.parse(readFileSync(join(dir, 'tasks.json'), 'utf8'));
+  const commandOf = Object.fromEntries(tasks.map((task) => [task.label, task.command.split(' ').pop()]));
+  const titles = Object.fromEntries(manifest.commands.map((command) => [command.command, command.title]));
+  const zedActions = {
+    'pane::CloseActiveItem': 'Close the agenda',
+    'editor::GoToDefinition': 'Go to the entry of the line',
+    'editor::GoToDefinitionSplit': 'Show the entry of the line in a split',
+  };
+  const byAction = new Map();
+  for (const [key, action] of Object.entries(keymap[0].bindings)) {
+    const [command, title] = Array.isArray(action)
+      ? [commandOf[action[1].task_name], titles[commandOf[action[1].task_name]]]
+      : [action, zedActions[action]];
+    if (!byAction.has(command)) byAction.set(command, { keys: [], title });
+    byAction.get(command).keys.push(code(key));
+  }
+  const rows = [...byAction].map(([command, { keys, title }]) => [keys.join(', '), code(command), cell(title ?? '')]);
+  return table(['Keys', 'Command or Zed action', 'What it does'], rows);
+}
+
 // ----- options
 
 /**
@@ -253,6 +362,19 @@ function json(value) {
   return JSON.stringify(value);
 }
 
+/** `value` as a Vim script expression. */
+function vimValue(value) {
+  if (Array.isArray(value)) return `[${value.map(vimValue).join(', ')}]`;
+  if (value && typeof value === 'object') {
+    return `{${entries(value).map(([key, item]) => `${vimValue(key)}: ${vimValue(item)}`).join(', ')}}`;
+  }
+  // A string with a line break in double quotes, whose escapes are JSON's.
+  if (typeof value === 'string') return /[\n\t]/.test(value) ? JSON.stringify(value) : `'${value.replaceAll("'", "''")}'`;
+  if (typeof value === 'boolean') return value ? 'v:true' : 'v:false';
+  if (value === null) return 'v:null';
+  return String(value);
+}
+
 function toml(value) {
   if (Array.isArray(value)) return `[${value.map(toml).join(', ')}]`;
   if (value && typeof value === 'object') {
@@ -303,6 +425,29 @@ function jsonOptions(node, indent) {
   return lines;
 }
 
+/** The same as a Vim script dictionary, its lines continued with `\`
+ * and its comments `"\ `, as `g:org_lsp`'s `settings` takes it. */
+function vimDict(node, indent) {
+  const lines = [];
+  // No blank lines between the options: a comment line is `"\ ` with its
+  // space, and a line of `"\` alone would end the dictionary.
+  for (const child of node.children) {
+    if (child.setting) {
+      const setting = child.setting;
+      // Each comment line is `      "\ ` and the indentation.
+      lines.push(...comment(about(setting), '      "\\', ` ${indent.slice(0, -1)}`));
+      lines.push(
+        setting.default === undefined
+          ? `      "\\ ${indent}'${child.name}': unset: ${setting.unset}`
+          : `      \\ ${indent}'${child.name}': ${vimValue(setting.default)},`,
+      );
+    } else {
+      lines.push(`      \\ ${indent}'${child.name}': {`, ...vimDict(child, indent + '  '), `      \\ ${indent}},`);
+    }
+  }
+  return lines;
+}
+
 /** The same in TOML, as Helix's languages.toml and the shared file take it. */
 function tomlOptions(node, table) {
   const lines = table ? [`[${table}]`] : [];
@@ -329,6 +474,30 @@ function neovimOptions() {
   return ['```lua', "require('org-lsp').setup({", '  settings = {', ...luaOptions(optionTree(), '    '), '  },', '})', '```'].join(
     '\n',
   );
+}
+
+function vimOptions() {
+  return ['```vim', 'let g:org_lsp = {', "      \\ 'settings': {", ...vimDict(optionTree(), '  '), '      \\ },', '      \\ }', '```'].join('\n');
+}
+
+function sublimeOptions() {
+  return ['```jsonc', '{', '  "initializationOptions": {', ...jsonOptions(optionTree(), '    '), '  }', '}', '```'].join('\n');
+}
+
+function zedOptions() {
+  return [
+    '```jsonc',
+    '{',
+    '  "lsp": {',
+    '    "org-lsp": {',
+    '      "initialization_options": {',
+    ...jsonOptions(optionTree(), '        '),
+    '      }',
+    '    }',
+    '  }',
+    '}',
+    '```',
+  ].join('\n');
 }
 
 function vscodeOptions() {
@@ -657,10 +826,16 @@ const unticked = (text) => text.replace(/^- \[[xX]\] /gm, '- [ ] ');
 // ----- the pages
 
 const PAGES = {
-  'docs/neovim/keys.md': { keys: neovimKeys },
+  'docs/neovim/keys.md': { keys: () => neovimKeys() },
+  'docs/vim/keys.md': { keys: vimKeys },
   'docs/vscode/keys.md': { keys: vscodeKeys },
+  'docs/sublime/keys.md': { keys: sublimeKeys },
+  'docs/zed/keys.md': { keys: zedKeys },
   'docs/neovim/configuration.md': { options: neovimOptions },
+  'docs/vim/configuration.md': { options: vimOptions },
   'docs/vscode/configuration.md': { options: vscodeOptions },
+  'docs/sublime/configuration.md': { options: sublimeOptions },
+  'docs/zed/configuration.md': { options: zedOptions },
   'docs/helix/configuration.md': { options: helixOptions },
   'docs/protocol.md': { options: protocolOptions },
   'docs/configuration.md': { options: fileOptions, 'options-json': fileOptionsJson },

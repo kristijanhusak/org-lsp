@@ -28,46 +28,15 @@ PATH, or where `cmd` says.
 Leave the client's own semantic highlighting and folding off for Org files
 (they are off by default in all four): the plugin does both.
 
-## Options
+## Keys and options
 
-Set `g:org_lsp` before the plugin loads. Every key may be left out.
+- [keys.md](keys.md): every key, what it does, and how to change it.
+- [configuration.md](configuration.md): the plugin's options and the
+  server's, with their defaults.
 
-```vim
-let g:org_lsp = {
-      \ 'settings': {'org_agenda_files': ['~/org'], 'org_todo_keywords': ['TODO', 'NEXT', '|', 'DONE']},
-      \ 'mappings': {'org': {'org.todo.next': '<Leader>t'}},
-      \ }
-```
-
-| Option | Default | Meaning |
-| --- | --- | --- |
-| `cmd` | found | The server command, as a list. |
-| `settings` | `{}` | The server's options; see [docs/configuration.md](../configuration.md). The shared `~/.config/org-lsp/config.toml` is read too. |
-| `client` | `'auto'` | The LSP client: `'lsp'` (yegappan/lsp), `'vim-lsp'`, `'coc'` or `'ale'`. `'auto'` takes the first of these that is installed. |
-| `folding` | `1` | Fold with the server's folding ranges, and cycle with `<Tab>` / `<S-Tab>`. |
-| `startup_folded` | `''` | `'overview'` opens files with every fold closed, `'showeverything'` with every fold open. Empty: the server's `org_startup_folded`, the file's `#+STARTUP:` and its `VISIBILITY` properties decide, as in Emacs. |
-| `highlight` | `1` | Highlight with the server's tokens. |
-| `virtual_indent` | `1` | Show files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`) indented by level without changing them, and their hidden leading stars in the color of the background, as Org's `org-hide` face does. Text properties of their own text: Vim 9.0.0067 or later. |
-| `src_highlight` | `1` | Highlight the code of source and export blocks (`#+begin_src python`, `#+begin_export html`) and of inline source blocks (`src_python{…}`, to the first `}`) with the syntax file of its language, as Emacs's `org-src-fontify-natively` does. |
-| `win_split_mode` | `'split'` | How the agenda and capture buffers open: `'split'`, `'vsplit'`, `'current'`, or an Ex command that opens a window (`'botright split'`, `'tabnew'`). |
-| `win_split_size` | `0` | How big the window `win_split_mode` opens is: lines for a split, columns for a vertical one (`vsplit`, `vnew`, `vertical`), or below 1 that part of the editor. `0` leaves it as the command makes it. |
-| `mappings` | the server's | Keys by scope (`global`, `org`, `agenda`, `capture`), as for the Neovim plugin: a command maps to a key, a list of keys, or `0`; `0` for a scope (or for `mappings`) sets no keys there. |
-
-The keys are the Neovim plugin's; [docs/neovim/keys.md](../neovim/keys.md)
-lists them (the date prompt's calendar aside). `g?` in an Org file or the
-agenda shows the keys set there, yours included, in a popup. `K` in the
-agenda shows the entry of the line in a popup at the cursor, highlighted
-as Org files are; moving the cursor closes it. `:Org agenda`, `:Org
-capture`, `:Org todo next` … run any command.
-
-For the clock in the statusline, and the relative timer or the countdown
-while one is on (`[0:25] (Write the report) <0:05:23>`):
-
-```vim
-set statusline=%f\ %=%{org_lsp#clock_status()}
-```
-
-`User OrgLspClock` fires when the clock starts or stops.
+`K` in the agenda shows the entry of the line in a popup at the cursor,
+highlighted as Org files are; moving the cursor closes it. `:Org agenda`,
+`:Org capture`, `:Org todo next` … run any command.
 
 ## What differs from Neovim
 

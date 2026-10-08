@@ -163,8 +163,13 @@ let g:org_lsp = { 'settings': { 'org_agenda_files': ['~/org'] } }
 
 The keys are the Neovim plugin's (`cit`, `<C-a>`, `<Leader>oa`, `<Tab>`,
 …), and the agenda opens in a split as the file the server writes.
-[docs/vim/README.md](docs/vim/README.md) has the options, what each client
-does and what Vim cannot.
+[docs/vim/README.md](docs/vim/README.md) has what each client does and
+what Vim cannot, and:
+
+- [docs/vim/keys.md](docs/vim/keys.md): every key, what it does, and how
+  to change it.
+- [docs/vim/configuration.md](docs/vim/configuration.md): the plugin's
+  options and the server's, with their defaults.
 
 ### Sublime Text
 
@@ -176,7 +181,12 @@ folder and has Package Control install LSP; the package finds `org-lsp`
 build. It binds Emacs's keys in Org files (`Ctrl+C Ctrl+T`, `Tab`, …);
 `org_keys` in its settings picks `vim` (for Vintage and NeoVintageous) or
 `custom` instead. [editors/sublime/README.md](editors/sublime/README.md)
-has the details.
+has the details, and:
+
+- [docs/sublime/keys.md](docs/sublime/keys.md): every key of both
+  presets, and how to bind your own.
+- [docs/sublime/configuration.md](docs/sublime/configuration.md): the
+  package's settings and the server's options, with their defaults.
 
 ### Zed
 
@@ -185,8 +195,13 @@ pick that folder. It uses `org-lsp` from PATH or downloads the nightly
 build. Turn on `"semantic_tokens": "combined"` for Org for the server's
 highlighting. The commands, the agenda and capture among
 them, are in the code actions, and what they ask for is asked with
-buttons; [editors/zed/README.md](editors/zed/README.md) has the settings
-and what Zed can and cannot do.
+buttons; [editors/zed/README.md](editors/zed/README.md) has what Zed can
+and cannot do, and:
+
+- [docs/zed/keys.md](docs/zed/keys.md): the code actions, and the
+  agenda's keys through Zed's tasks.
+- [docs/zed/configuration.md](docs/zed/configuration.md): Zed's settings
+  for Org and the server's options, with their defaults.
 
 ### Helix
 
