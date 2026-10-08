@@ -87,7 +87,6 @@ export const EDITORS = [
 
 const ZED_TEXT = 'Zed cannot ask for text on a server\'s behalf';
 const HELIX_TEXT = 'Helix cannot ask for text on a server\'s behalf';
-const NO_KEY_ZED = 'Zed cannot bind a key to a server\'s command (the commands are code actions)';
 const NO_KEY_HELIX = 'Helix cannot bind a key to a server\'s command (the commands are code actions, `Space a`)';
 
 export const AREAS = [
@@ -177,7 +176,7 @@ export const AREAS = [
       ['Commands on a region, a selection in the editor: the headlines in it promoted, demoted or moved, lines turned into headings or items, checkboxes toggled, the region wrapped in a block, a drawer or emphasis (through Emacs)', true],
     ],
     editors: {
-      zed: ['part', `Moving between headings, \`org-goto\` and the commands run by Emacs (\`C-c *\`, \`C-c ;\`, cloning) are left out: ${NO_KEY_ZED}, and those are not among them.`],
+      zed: ['part', `Cloning is left out: it asks for text, and ${ZED_TEXT}. A command on a selection acts on the cursor's line: Zed tells a server no selection. The rest goes through the keys of keymap.json (Zed's tasks).`],
       helix: ['part', 'New headings (`M-RET` and its relatives), moving between headings and `org-goto` are left out: they carry the cursor for the editor to move, which Helix\'s code actions cannot do; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions.'],
     },
     checks: [
@@ -190,12 +189,12 @@ export const AREAS = [
       { text: 'Cutting a subtree and pasting it under another heading: its level fits there', cmd: ['org.cut.subtree', 'org.paste.subtree'] },
       { text: 'Copying a subtree and pasting it', cmd: ['org.copy.subtree', 'org.paste.subtree'] },
       { text: 'Sorting the children of a heading alphabetically, then by TODO state', cmd: 'org.sort' },
-      { text: 'Moving to the next and previous heading; with a count, that many', cmd: ['org.heading.next', 'org.heading.previous'], not: ['zed', 'helix'] },
-      { text: 'Moving to the next and previous heading of the same level, stopping at the parent\'s end', cmd: ['org.heading.forward', 'org.heading.backward'], not: ['zed', 'helix'] },
-      { text: 'Moving to the parent heading; on a top heading Org says it is at the top level', cmd: 'org.heading.up', not: ['zed', 'helix'] },
-      { text: 'Going to a heading picked by its outline path (`A/B/`)', cmd: 'org.goto', not: ['zed', 'helix'] },
-      { text: 'Off a table, turning a line into a heading and back (needs Emacs)', cmd: 'org.table.recalculate.line', not: ['zed', 'helix'] },
-      { text: 'Toggling `COMMENT` on the heading (needs Emacs)', cmd: 'org.toggle.comment', not: ['zed', 'helix'] },
+      { text: 'Moving to the next and previous heading; with a count, that many', cmd: ['org.heading.next', 'org.heading.previous'], not: ['helix'] },
+      { text: 'Moving to the next and previous heading of the same level, stopping at the parent\'s end', cmd: ['org.heading.forward', 'org.heading.backward'], not: ['helix'] },
+      { text: 'Moving to the parent heading; on a top heading Org says it is at the top level', cmd: 'org.heading.up', not: ['helix'] },
+      { text: 'Going to a heading picked by its outline path (`A/B/`)', cmd: 'org.goto', not: ['helix'] },
+      { text: 'Off a table, turning a line into a heading and back (needs Emacs)', cmd: 'org.table.recalculate.line', not: ['helix'] },
+      { text: 'Toggling `COMMENT` on the heading (needs Emacs)', cmd: 'org.toggle.comment', not: ['helix'] },
       { text: 'Cloning the subtree twice a week apart (`+1w`): the copies follow it with their dates moved (needs Emacs)', cmd: 'org.subtree.clone', not: ['zed', 'helix'] },
       { text: 'On a selection of whole lines: two headlines demoted together; lines turned into headings (needs Emacs)', cmd: ['org.meta.right', 'org.table.recalculate.line'], not: ['zed', 'helix'] },
       { text: 'The outline lists the headings nested, also in pickers that filter symbols by kind', keys: { neovim: '`:lua vim.lsp.buf.document_symbol()` or a picker such as snacks.nvim\'s `lsp_symbols`', vim: 'the client\'s document symbols', vscode: 'the Outline view', sublime: '*Goto Symbol*', zed: 'the outline panel', helix: '`Space s`' } },
@@ -216,7 +215,7 @@ export const AREAS = [
       ['Circular motion between items (`org-list-use-circular-motion`)', true],
     ],
     editors: {
-      zed: ['part', `\`RET\` stays Zed's own, bullets are not cycled and lines not turned into items: ${NO_KEY_ZED}, and those are not among them.`],
+      zed: ['part', '`RET` stays Zed\'s own, and so do Shift and Alt with the arrows, which cycle bullets and move items in Org.'],
       helix: ['part', `\`RET\` stays Helix's own, new items, cycled bullets and lines turned into items are left out: ${NO_KEY_HELIX}, and those are not among them.`],
     },
     checks: [
@@ -229,7 +228,7 @@ export const AREAS = [
       { text: 'Toggling a checkbox: its parent box and the `[1/3]` cookie follow', cmd: 'org.checkbox.toggle' },
       { text: 'On a list numbered 1, 3, 2, the same command renumbers and repairs it', cmd: 'org.checkbox.toggle' },
       { text: 'Sorting a list\'s items alphabetically', cmd: 'org.sort' },
-      { text: 'Off a table, turning lines into items and back (needs Emacs); in a table the same key inserts a rule below the row', cmd: 'org.table.hline', not: ['zed', 'helix'] },
+      { text: 'Off a table, turning lines into items and back (needs Emacs); in a table the same key inserts a rule below the row', cmd: 'org.table.hline', not: ['helix'] },
     ],
   },
   {
@@ -470,22 +469,21 @@ export const AREAS = [
       ['Template contexts (`org-capture-templates-contexts`)', true],
     ],
     editors: {
-      zed: ['part', `Templates with prompts are left out, and there is no capture buffer to type in: ${ZED_TEXT}.`],
+      zed: ['part', `Templates with prompts are left out: ${ZED_TEXT}. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.`],
       helix: ['no', `Helix cannot open the capture buffer, and ${HELIX_TEXT}.`],
     },
     checks: [
       { text: 'The menu lists the templates by key', cmd: 'org.capture', in: 'global' },
-      { text: 'An entry template opens the capture buffer with the cursor at `%?`', cmd: 'org.capture', in: 'global', not: ['zed'] },
+      { text: 'An entry template opens the capture buffer with the cursor at `%?`', cmd: 'org.capture', in: 'global' },
       { text: 'A `%^{Name}` prompt asks for text', cmd: 'org.capture', in: 'global', not: ['zed'] },
-      { text: 'Finishing puts the entry under its target', in: 'capture', cmd: 'org.capture.finish', not: ['zed'] },
-      { text: 'Aborting leaves the target unchanged', in: 'capture', cmd: 'org.capture.abort', not: ['zed'] },
+      { text: 'Finishing puts the entry under its target', in: 'capture', cmd: 'org.capture.finish' },
+      { text: 'Aborting leaves the target unchanged', in: 'capture', cmd: 'org.capture.abort' },
       { text: 'Refiling from the capture buffer', in: 'capture', cmd: 'org.capture.refile', not: ['zed'] },
       { text: 'A date tree target files under year, month and day', cmd: 'org.capture', in: 'global' },
       { text: '`%a` links back to where the capture started', cmd: 'org.capture', in: 'global' },
       { text: '`%c` puts in what was copied last (in Neovim and Vim, the register the key was typed with)', cmd: 'org.capture', in: 'global' },
       { text: '`%[snippet.txt]` puts in the file\'s text, relative to the file captured from', cmd: 'org.capture', in: 'global' },
       { text: '`%(upcase "abc")` puts in `ABC`, what Emacs makes of it (needs Emacs)', cmd: 'org.capture', in: 'global' },
-      { text: 'A template without prompts goes in at once', cmd: 'org.capture', in: 'global', only: ['zed'] },
     ],
   },
   {
@@ -597,7 +595,7 @@ export const AREAS = [
     editors: {
       vim: ['part', 'A shrunk column shows its whole text and `…`: Vim cannot hide text that has text properties.'],
       sublime: ['part', 'A shrunk column shows its whole text and `…`: Sublime Text cannot hide text in a view.'],
-      zed: ['part', `Moving between fields with \`TAB\`, copying down, summing, field information and creating a table are left out: ${NO_KEY_ZED}, and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and \`…\`: Zed lets no server hide text.`],
+      zed: ['part', `Moving between fields with \`TAB\` and copying down (\`S-RET\`) are left out: those keys stay Zed's own. Creating a table is left out: it asks for its size, and ${ZED_TEXT}. A shrunk column shows its whole text and \`…\`: Zed lets no server hide text.`],
       helix: ['part', `Moving between fields with \`TAB\`, copying down, summing, field information and creating a table are left out: ${NO_KEY_HELIX}, and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and \`…\`: Helix lets no server hide text.`],
     },
     checks: [
@@ -611,7 +609,7 @@ export const AREAS = [
       { text: 'Blanking the field', cmd: 'org.table.blank.field' },
       { text: 'The shifted cursor keys move the field up, down, left and right (needs Emacs); on a timestamp in a field they change it', cmd: ['org.shift.up', 'org.shift.down', 'org.shift.left', 'org.shift.right'], not: ['zed', 'helix'] },
       { text: 'Copying the field down to the next row, a number incremented (needs Emacs); off a table the key keeps its own meaning', cmd: 'org.table.copy.down', not: ['zed', 'helix'] },
-      { text: 'The sum of the column and the field\'s references are shown as messages (needs Emacs)', cmd: ['org.table.sum', 'org.table.field.info'], not: ['zed', 'helix'] },
+      { text: 'The sum of the column and the field\'s references are shown as messages (needs Emacs)', cmd: ['org.table.sum', 'org.table.field.info'], not: ['helix'] },
       { text: 'Creating a table asks for its size (`3x2`; empty for Org\'s default) (needs Emacs)', cmd: 'org.table.create', not: ['zed', 'helix'] },
       { text: 'Sorting the rows by the cursor\'s column', cmd: 'org.sort' },
       { text: 'The `#+TBLFM:` line follows a moved column' },
@@ -817,13 +815,13 @@ export const AREAS = [
       ['Starting with an offset (`C-u`), shifting the timer values of a selection (`C-u C-u`, or the selection alone; through Emacs)', true],
     ],
     editors: {
-      zed: ['no', `Timers are left out: ${NO_KEY_ZED}, and they are not among them.`],
+      zed: ['part', `A countdown that asks for its length is left out: ${ZED_TEXT}. No timer in the status line: Zed has no place there for an extension\'s text.`],
       helix: ['no', `Timers are left out: ${NO_KEY_HELIX}, and they are not among them.`],
     },
     checks: [
-      { text: 'Starting the timer says when it started (needs Emacs)', cmd: 'org.timer.start', not: ['zed', 'helix'] },
-      { text: 'Inserting the timer\'s value (`0:00:12 `) and a timer item (`- 0:00:15 :: `)', cmd: ['org.timer.insert', 'org.timer.item'], not: ['zed', 'helix'] },
-      { text: 'Pausing and continuing; stopping', cmd: ['org.timer.pause', 'org.timer.stop'], not: ['zed', 'helix'] },
+      { text: 'Starting the timer says when it started (needs Emacs)', cmd: 'org.timer.start', not: ['helix'] },
+      { text: 'Inserting the timer\'s value (`0:00:12 `) and a timer item (`- 0:00:15 :: `)', cmd: ['org.timer.insert', 'org.timer.item'], not: ['helix'] },
+      { text: 'Pausing and continuing; stopping', cmd: ['org.timer.pause', 'org.timer.stop'], not: ['helix'] },
       { text: 'A countdown asks for its length (`1` for a minute); when it ends, `Heading: time out` is shown', cmd: 'org.timer.set', not: ['zed', 'helix'] },
       { text: 'On an entry with an effort the countdown takes it, without asking', cmd: 'org.timer.set', not: ['zed', 'helix'] },
       { text: 'While the timer or a countdown is on, the status line shows its value, counting each second; paused, it stays; stopped, it goes', not: ['zed', 'helix'] },
@@ -836,7 +834,7 @@ export const AREAS = [
       ['`attachment:` links (through Emacs)', true],
     ],
     editors: {
-      zed: ['part', `\`attachment:\` links open; the dispatcher (\`C-c C-a\`) is left out: ${NO_KEY_ZED}, and it is not among them.`],
+      zed: ['part', `\`attachment:\` links open; attaching a file is left out: it asks for the file, and ${ZED_TEXT}.`],
       helix: ['part', `\`attachment:\` links open; the dispatcher (\`C-c C-a\`) is left out: ${NO_KEY_HELIX}, and it is not among them.`],
     },
     checks: [

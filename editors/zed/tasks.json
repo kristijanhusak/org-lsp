@@ -52,6 +52,1215 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org: Clock in",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.clock.in",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Clock in the last clocked task",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.clock.in.last",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Clock out",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.clock.out",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Cancel the clock",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.clock.cancel",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Go to the clocked entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.clock.goto",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Show the time clocked under each headline",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.clock.display",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert or update a clock table",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.clock.report",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Update the dynamic block",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.dblock.update",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert a dynamic block",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.dblock.insert",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Attachments of the entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.attach",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Change the TODO state",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.todo",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Set the priority",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.priority",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Set a property of the entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.property.set",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Set the effort of the entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.effort.set",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Set the effort to the next allowed value",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.effort.increase",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Toggle whether subtasks must be done in order (ORDERED)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.ordered.toggle",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert a citation, or edit the one at the cursor",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.cite.insert",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Set the tags of the headline",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.tags.set",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: New heading, item or table row",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.meta.return",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: New TODO heading, or item with a checkbox",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.insert.todo.heading",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: New heading after the subtree",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.insert.heading.after",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: New TODO heading after the subtree",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.insert.todo.heading.after",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert a rule below the table row",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.table.hline",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert a rule below the table row and go below it",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.table.hline.move",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Sort the entries, the items or the table rows",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.sort",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Show a sparse tree",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.sparse.tree",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Show the context of the cursor",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.reveal",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Cut the subtree",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.cut.subtree",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Copy the subtree",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.copy.subtree",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Paste the subtree",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.paste.subtree",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Copy the entry to a refile target",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.refile.copy",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Add a note to the entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.add.note",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Tangle the file's code blocks",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.babel.tangle",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Evaluate the code block or call at the cursor through Emacs",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.babel.execute",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Evaluate the file's code blocks through Emacs",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.babel.execute.buffer",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Evaluate the subtree's code blocks through Emacs",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.babel.execute.subtree",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Remove the results of the code block at the cursor",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.babel.remove_result",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Move to the next heading",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.heading.next",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Move to the previous heading",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.heading.previous",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Move to the next heading of the same level",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.heading.forward",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Move to the previous heading of the same level",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.heading.backward",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Move to the parent heading",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.heading.up",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Move to the next link",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.link.next",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Move to the previous link",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.link.previous",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Go to a heading of the file",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.goto",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Make a footnote, or go between a footnote and its definition",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.footnote.action",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Toggle the COMMENT keyword of the heading",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.toggle.comment",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert emphasis markers",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.emphasize",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert a block (structure template)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.structure.template",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert a drawer",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.drawer.insert",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Clone the subtree, shifting its dates",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.subtree.clone",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Sum the numbers of the table column",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.table.sum",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Show the references of the table field",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.table.field.info",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert an empty table",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.table.create",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Move to the next code block",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.babel.next",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Move to the previous code block",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.babel.previous",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Go to a named code block",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.babel.goto",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Add the file's named code blocks to the Library of Babel",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.babel.lob.ingest",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Move to the next block",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.block.next",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Move to the previous block",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.block.previous",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Edit the block in a file of its own",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.edit.special",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Narrow to the subtree: it in a file of its own",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.narrow.subtree",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Narrow to the block: it in a file of its own",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.narrow.block",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Widen: the narrowed file written back and closed",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.narrow.widen",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Show the subtree in a file of its own",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.tree.indirect",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Edit the table field in a file of its own",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.table.edit.field",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Column view",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.columns",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Start the relative timer",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.timer.start",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert the timer's value",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.timer.insert",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert a list item with the timer's value",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.timer.item",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Pause or continue the timer",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.timer.pause",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Stop the timer",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.timer.stop",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Set a countdown timer",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.timer.set",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Export the file through Emacs",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.export.dispatch",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Shrink or expand the table column",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.table.toggle.column.width",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Recalculate the table's current line",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.table.recalculate.line",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Turn the formula debugger on or off",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.table.formula.debugger",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Open the link or thing at the cursor",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.open",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Store a link to the place at the cursor",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.link.store",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert a link, or edit the one at the cursor",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.link.insert",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert the last stored link",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.link.insert.last",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert all stored links",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.link.insert.all",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Archive the subtree",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.archive.subtree",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Archive the subtree under its Archive sibling",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.archive.sibling",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Toggle the ARCHIVE tag",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.archive.tag",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Archive with the default command",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.archive.default",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Capture: abort",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.capture.abort",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Schedule the entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.schedule",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Set the deadline of the entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.deadline",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert or change a timestamp",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.timestamp.insert",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Insert or change an inactive timestamp",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.timestamp.insert.inactive",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: C-c C-c",
+    "command": "$HOME/.local/state/org-lsp/agenda-command 'key:C-c C-c'",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: C-c C-w",
+    "command": "$HOME/.local/state/org-lsp/agenda-command 'key:C-c C-w'",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: go forward in time",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.later",
     "tags": [

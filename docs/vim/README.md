@@ -25,6 +25,16 @@ With Vim's own packages, clone the repository and add `editors/vim` to
 'runtimepath'. The server is found in the checkout (`target/release`), on
 PATH, or where `cmd` says.
 
+To try it without touching your own configuration,
+[editors/vim/minimal.vim](../../editors/vim/minimal.vim) is a vimrc that
+puts vim-plug and yegappan/lsp in a temporary folder and loads the plugin
+from a checkout (`~/github/org-lsp`; change `s:org_lsp` for another):
+
+```sh
+cargo build --release -p org-lsp
+vim -N -u editors/vim/minimal.vim ~/org/todo.org
+```
+
 Leave the client's own semantic highlighting and folding off for Org files
 (they are off by default in all four): the plugin does both.
 

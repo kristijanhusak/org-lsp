@@ -43,7 +43,7 @@ its sections says what it should look like.
 
 ## Headings and structure
 
-**Partly:** Moving between headings, `org-goto` and the commands run by Emacs (`C-c *`, `C-c ;`, cloning) are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them.
+**Partly:** Cloning is left out: it asks for text, and Zed cannot ask for text on a server's behalf. A command on a selection acts on the cursor's line: Zed tells a server no selection. The rest goes through the keys of keymap.json (Zed's tasks).
 
 - [ ] On a headline, a new heading of the same level goes below: the code action *New heading, item or table row*
 - [ ] A new TODO heading: the code action *New TODO heading, or item with a checkbox*
@@ -54,11 +54,17 @@ its sections says what it should look like.
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: the code action *Cut the subtree*, the code action *Paste the subtree*
 - [ ] Copying a subtree and pasting it: the code action *Copy the subtree*, the code action *Paste the subtree*
 - [ ] Sorting the children of a heading alphabetically, then by TODO state: the code action *Sort the entries, the items or the table rows*
+- [ ] Moving to the next and previous heading; with a count, that many: the code action *Move to the next heading*, the code action *Move to the previous heading*
+- [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: the code action *Move to the next heading of the same level*, the code action *Move to the previous heading of the same level*
+- [ ] Moving to the parent heading; on a top heading Org says it is at the top level: the code action *Move to the parent heading*
+- [ ] Going to a heading picked by its outline path (`A/B/`): the code action *Go to a heading of the file*
+- [ ] Off a table, turning a line into a heading and back (needs Emacs): the code action *Recalculate the table's current line*
+- [ ] Toggling `COMMENT` on the heading (needs Emacs): the code action *Toggle the COMMENT keyword of the heading*
 - [ ] The outline lists the headings nested, also in pickers that filter symbols by kind: the outline panel
 
 ## Lists and checkboxes
 
-**Partly:** `RET` stays Zed's own, bullets are not cycled and lines not turned into items: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them.
+**Partly:** `RET` stays Zed's own, and so do Shift and Alt with the arrows, which cycle bullets and move items in Org.
 
 - [ ] On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has `[ ]`: the code action *New heading, item or table row*
 - [ ] Indenting and outdenting an item; and with its children: the code action *Demote the heading; indent the item, the drawer or the block; move the table column right*, the code action *Promote the heading; outdent the item; move the table column left*, the code action *Demote the subtree; indent the item with its children; insert a table column*, the code action *Promote the subtree; outdent the item with its children; delete the table column*
@@ -66,6 +72,7 @@ its sections says what it should look like.
 - [ ] Toggling a checkbox: its parent box and the `[1/3]` cookie follow: the code action *Toggle the checkbox*
 - [ ] On a list numbered 1, 3, 2, the same command renumbers and repairs it: the code action *Toggle the checkbox*
 - [ ] Sorting a list's items alphabetically: the code action *Sort the entries, the items or the table rows*
+- [ ] Off a table, turning lines into items and back (needs Emacs); in a table the same key inserts a rule below the row: the code action *Insert a rule below the table row*
 
 ## TODO keywords
 
@@ -148,15 +155,17 @@ its sections says what it should look like.
 
 ## Capture
 
-**Partly:** Templates with prompts are left out, and there is no capture buffer to type in: Zed cannot ask for text on a server's behalf.
+**Partly:** Templates with prompts are left out: Zed cannot ask for text on a server's behalf. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.
 
 - [ ] The menu lists the templates by key: the code action *Capture*
+- [ ] An entry template opens the capture buffer with the cursor at `%?`: the code action *Capture*
+- [ ] Finishing puts the entry under its target: the code action *Capture: finish*
+- [ ] Aborting leaves the target unchanged: the code action *Capture: abort*
 - [ ] A date tree target files under year, month and day: the code action *Capture*
 - [ ] `%a` links back to where the capture started: the code action *Capture*
 - [ ] `%c` puts in what was copied last (in Neovim and Vim, the register the key was typed with): the code action *Capture*
 - [ ] `%[snippet.txt]` puts in the file's text, relative to the file captured from: the code action *Capture*
 - [ ] `%(upcase "abc")` puts in `ABC`, what Emacs makes of it (needs Emacs): the code action *Capture*
-- [ ] A template without prompts goes in at once: the code action *Capture*
 
 ## Refile and archive
 
@@ -191,7 +200,7 @@ its sections says what it should look like.
 
 ## Tables
 
-**Partly:** Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and `…`: Zed lets no server hide text.
+**Partly:** Moving between fields with `TAB` and copying down (`S-RET`) are left out: those keys stay Zed's own. Creating a table is left out: it asks for its size, and Zed cannot ask for text on a server's behalf. A shrunk column shows its whole text and `…`: Zed lets no server hide text.
 
 - [ ] Shrinking a column with a `<5>` cookie puts `…` after each of its fields, their text left whole; again, the `…` go; a file with `#+STARTUP: shrink` opens with them: the code action *Shrink or expand the table column*
 - [ ] Formatting the file aligns the tables: editor: format
@@ -199,6 +208,7 @@ its sections says what it should look like.
 - [ ] Inserting and deleting a column and a row: the code action *Demote the subtree; indent the item with its children; insert a table column*, the code action *Promote the subtree; outdent the item with its children; delete the table column*, the code action *Insert a table row above*, the code action *Delete the table row*
 - [ ] A rule below the row; a rule and a move to the row below: the code action *Insert a rule below the table row*, the code action *Insert a rule below the table row and go below it*
 - [ ] Blanking the field: the code action *Blank the table field*
+- [ ] The sum of the column and the field's references are shown as messages (needs Emacs): the code action *Sum the numbers of the table column*, the code action *Show the references of the table field*
 - [ ] Sorting the rows by the cursor's column: the code action *Sort the entries, the items or the table rows*
 - [ ] The `#+TBLFM:` line follows a moved column
 
@@ -266,11 +276,15 @@ its sections says what it should look like.
 
 ## Timers
 
-**Not in Zed:** Timers are left out: Zed cannot bind a key to a server's command (the commands are code actions), and they are not among them.
+**Partly:** A countdown that asks for its length is left out: Zed cannot ask for text on a server's behalf. No timer in the status line: Zed has no place there for an extension's text.
+
+- [ ] Starting the timer says when it started (needs Emacs): the code action *Start the relative timer*
+- [ ] Inserting the timer's value (`0:00:12 `) and a timer item (`- 0:00:15 :: `): the code action *Insert the timer's value*, the code action *Insert a list item with the timer's value*
+- [ ] Pausing and continuing; stopping: the code action *Pause or continue the timer*, the code action *Stop the timer*
 
 ## Attachments
 
-**Partly:** `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Zed cannot bind a key to a server's command (the commands are code actions), and it is not among them.
+**Partly:** `attachment:` links open; attaching a file is left out: it asks for the file, and Zed cannot ask for text on a server's behalf.
 
 - [ ] An `attachment:` link opens the attached file (needs Emacs): the code action *Open the link or thing at the cursor*
 

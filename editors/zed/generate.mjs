@@ -105,19 +105,23 @@ const rank = (selector) =>
 const rules = selectors.sort((a, b) => rank(a) - rank(b)).map((selector) => rule(selector, looks[selector]));
 const text = JSON.stringify(rules, null, 2) + '\n';
 
-// The agenda's keys. An extension cannot bind keys, and a key of Zed's
+// The keys. An extension cannot bind keys, and a key of Zed's
 // cannot run a language server's command, but it can run a task. A task
 // of the extension (a language's) does not do: Zed looks for those only
 // in files of the project's folders, and the agenda is a file of the
 // server's own, elsewhere. So tasks.json is for the user's own tasks
 // (`zed: open tasks`), and keymap.json, for the user's keymap, binds the
-// agenda's keys to them. With `command_actions` the server writes
-// `~/.local/state/org-lsp/agenda-command`, which runs a command in the
-// agenda where the cursor is (the server follows it); each task calls it.
-// The commands that need no agenda (the agenda itself, the TODO list, the
-// agenda menu, capture) have tasks too, which the task picker offers
-// anywhere and Org's keys (`C-c a`, `C-c c`) run in Org files; with no
-// server running, the script starts one.
+// agenda's keys, and Org's in Org files, to them. With `command_actions`
+// the server writes `~/.local/state/org-lsp/agenda-command`, which runs a
+// command where the cursor last was (the server follows it): in the
+// agenda, on its line; with `file:`, at the cursor in an Org file; with
+// `key:`, the command a key has there, which differs in a capture buffer
+// (`C-c C-c` files the capture). The tasks use no `$ZED_FILE` or
+// `$ZED_ROW`: Zed offers no task that uses them in a file outside the
+// project, as the agenda and a capture buffer are. The commands that need
+// no agenda (the agenda itself, the TODO list, the agenda menu, capture)
+// run anywhere, from the task picker too; with no server running, the
+// script starts one.
 // The command is one string, with no `args`: Zed quotes a command that has
 // arguments, and `$HOME` would then not be expanded.
 /** An Emacs key (`C-c C-s`, `S-<right>`, `J`) in Zed's notation. */
@@ -142,31 +146,50 @@ function zedKey(emacs) {
     })
     .join(' ');
 }
-const agendaCommands = manifest.commands
-  .map((command) => ({
-    command: command.command,
-    label: `Org agenda: ${command.title.replace(/^Agenda: /, '')}`,
-    keys: command.keys.filter((key) => key.in === 'agenda' && key.preset === 'emacs').map((key) => zedKey(key.key)),
-  }))
-  .filter((command) => command.keys.length > 0);
-// What opens the agenda and capture, from anywhere: the global commands,
-// and the two views the agenda menu has first.
+// Zed offers a task that names `$ZED_FILE` or `$ZED_ROW` only in files of
+// the project's folders, and the agenda and capture buffers are elsewhere:
+// a task names none. The server follows the cursor through the document
+// highlights Zed asks for as it moves, and runs an agenda task where it is
+// in the agenda, and an Org file's (`file:COMMAND`) where it is in an Org
+// file or a capture buffer. Keys that keep a meaning of their own where
+// the command does not apply (`native`: Shift and Alt with the arrows,
+// Enter) stay Zed's.
+const keysIn = (command, scopes) =>
+  command.keys.filter((key) => scopes.includes(key.in) && key.preset === 'emacs' && !key.native).map((key) => key.key);
+const task = (label, run, tag, keys) => ({ label, run, tag, keys });
+// What opens the agenda and capture, from anywhere (the task picker): the
+// global commands, and the two views the agenda menu has first.
+const OPENING = ['org.agenda.list', 'org.agenda.todos'];
 const opening = manifest.commands
-  .filter(
-    (command) =>
-      ['org.agenda.list', 'org.agenda.todos'].includes(command.command) ||
-      command.keys.some((key) => key.in === 'global' && key.preset === 'emacs'),
-  )
-  .map((command) => ({
-    command: command.command,
-    label: `Org: ${command.title}`,
-    keys: command.keys.filter((key) => key.in === 'global' && key.preset === 'emacs').map((key) => zedKey(key.key)),
-    tag: 'org',
-  }));
-const tasks = [...opening, ...agendaCommands].map((command) => ({
-  label: command.label,
-  command: `$HOME/.local/state/org-lsp/agenda-command ${command.command}`,
-  tags: [command.tag ?? 'org-agenda'],
+  .filter((command) => OPENING.includes(command.command) || keysIn(command, ['global']).length > 0)
+  .map((command) => task(`Org: ${command.title}`, command.command, 'org', keysIn(command, ['global'])));
+const openingIds = new Set(opening.map((task) => task.run));
+const inAgenda = manifest.commands
+  .filter((command) => keysIn(command, ['agenda']).length > 0)
+  .map((command) =>
+    task(`Org agenda: ${command.title.replace(/^Agenda: /, '')}`, command.command, 'org-agenda', keysIn(command, ['agenda'])),
+  );
+// A key that runs one command in a capture buffer and another in an Org
+// file (`C-c C-c` files the entry, or toggles a checkbox): a task of its
+// own, which has the server pick.
+const commandsOfKey = (key, scope) =>
+  manifest.commands.filter((command) => keysIn(command, [scope]).includes(key)).map((command) => command.command);
+const shared = new Set(
+  [...new Set(manifest.commands.flatMap((command) => keysIn(command, ['org', 'capture'])))].filter((key) => {
+    const [org, capture] = [commandsOfKey(key, 'org'), commandsOfKey(key, 'capture')];
+    return org.length > 0 && capture.length > 0 && org.join() !== capture.join();
+  }),
+);
+const byKey = [...shared].map((key) => task(`Org: ${key}`, `'key:${key}'`, 'org', [key]));
+const inFiles = manifest.commands
+  .filter((command) => !openingIds.has(command.command))
+  .map((command) => [command, keysIn(command, ['org', 'capture']).filter((key) => !shared.has(key))])
+  .filter(([, keys]) => keys.length > 0)
+  .map(([command, keys]) => task(`Org: ${command.title}`, `file:${command.command}`, 'org', keys));
+const tasks = [...opening, ...inFiles, ...byKey, ...inAgenda].map((task) => ({
+  label: task.label,
+  command: `$HOME/.local/state/org-lsp/agenda-command ${task.run}`,
+  tags: [task.tag],
   // Out of sight: a terminal shows only when the command fails.
   reveal: 'never',
   hide: 'on_success',
@@ -175,24 +198,31 @@ const tasks = [...opening, ...agendaCommands].map((command) => ({
   allow_concurrent_runs: true,
   use_new_terminal: false,
 }));
-const bindings = {
-  // Zed's own: close the agenda, and go to a line's entry (the server
-  // answers go to definition there) in this pane or in a split.
-  q: 'pane::CloseActiveItem',
-  enter: 'editor::GoToDefinition',
-  tab: 'editor::GoToDefinitionSplit',
-};
-const spawn = (command) => ['task::Spawn', { task_name: command.label }];
-for (const command of [...agendaCommands, ...opening]) {
-  for (const key of command.keys) {
-    if (!(key in bindings)) bindings[key] = spawn(command);
+const spawn = (task) => ['task::Spawn', { task_name: task.label }];
+const bindAll = (bindings, tasks) => {
+  for (const task of tasks) {
+    for (const key of task.keys) {
+      if (!(zedKey(key) in bindings)) bindings[zedKey(key)] = spawn(task);
+    }
   }
-}
-// In Org files, Org's keys for the agenda menu and capture.
-const orgBindings = Object.fromEntries(opening.flatMap((command) => command.keys.map((key) => [key, spawn(command)])));
+  return bindings;
+};
 const keymap = [
-  { context: 'Editor && extension == org-agenda', bindings },
-  { context: 'Editor && extension == org', bindings: orgBindings },
+  {
+    context: 'Editor && extension == org-agenda',
+    bindings: bindAll(
+      {
+        // Zed's own: close the agenda, and go to a line's entry (the server
+        // answers go to definition there) in this pane or in a split.
+        q: 'pane::CloseActiveItem',
+        enter: 'editor::GoToDefinition',
+        tab: 'editor::GoToDefinitionSplit',
+      },
+      [...inAgenda, ...opening],
+    ),
+  },
+  // In Org files and capture buffers: Org's keys.
+  { context: 'Editor && extension == org', bindings: bindAll({}, [...byKey, ...inFiles, ...opening]) },
 ];
 const files = {
   [join(here, 'languages', 'org', 'semantic_token_rules.json')]: text,

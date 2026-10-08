@@ -102,7 +102,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: Moving between headings, `org-goto` and the commands run by Emacs (`C-c *`, `C-c ;`, cloning) are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them.
+- Zed ❓: Cloning is left out: it asks for text, and Zed cannot ask for text on a server's behalf. A command on a selection acts on the cursor's line: Zed tells a server no selection. The rest goes through the keys of keymap.json (Zed's tasks).
 - Helix ❓: New headings (`M-RET` and its relatives), moving between headings and `org-goto` are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions.
 
 ## Lists and checkboxes
@@ -122,7 +122,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: `RET` stays Zed's own, bullets are not cycled and lines not turned into items: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them.
+- Zed ❓: `RET` stays Zed's own, and so do Shift and Alt with the arrows, which cycle bullets and move items in Org.
 - Helix ❓: `RET` stays Helix's own, new items, cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them.
 
 ## TODO keywords
@@ -276,7 +276,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: Templates with prompts are left out, and there is no capture buffer to type in: Zed cannot ask for text on a server's behalf.
+- Zed ❓: Templates with prompts are left out: Zed cannot ask for text on a server's behalf. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.
 - Helix ❌: Helix cannot open the capture buffer, and Helix cannot ask for text on a server's behalf.
 
 ## Refile and archive
@@ -360,7 +360,7 @@ Where editors fall short:
 
 - Vim ❓: A shrunk column shows its whole text and `…`: Vim cannot hide text that has text properties.
 - Sublime Text ❓: A shrunk column shows its whole text and `…`: Sublime Text cannot hide text in a view.
-- Zed ❓: Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and `…`: Zed lets no server hide text.
+- Zed ❓: Moving between fields with `TAB` and copying down (`S-RET`) are left out: those keys stay Zed's own. Creating a table is left out: it asks for its size, and Zed cannot ask for text on a server's behalf. A shrunk column shows its whole text and `…`: Zed lets no server hide text.
 - Helix ❓: Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and `…`: Helix lets no server hide text.
 
 ## Table formulas
@@ -500,7 +500,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❌: Timers are left out: Zed cannot bind a key to a server's command (the commands are code actions), and they are not among them.
+- Zed ❓: A countdown that asks for its length is left out: Zed cannot ask for text on a server's behalf. No timer in the status line: Zed has no place there for an extension's text.
 - Helix ❌: Timers are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and they are not among them.
 
 ## Attachments
@@ -512,7 +512,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Zed cannot bind a key to a server's command (the commands are code actions), and it is not among them.
+- Zed ❓: `attachment:` links open; attaching a file is left out: it asks for the file, and Zed cannot ask for text on a server's behalf.
 - Helix ❓: `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and it is not among them.
 
 ## Encryption
