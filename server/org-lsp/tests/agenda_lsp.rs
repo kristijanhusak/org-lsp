@@ -3484,6 +3484,54 @@ fn follows_links_whose_abbreviation_calls_a_function() {
     client.shutdown();
 }
 
+/// `org-capture-templates-contexts` and
+/// `org-agenda-custom-commands-contexts`: the menus offer what holds where
+/// they are asked for, a key standing for another one's template or
+/// command there.
+#[test]
+fn offers_templates_and_commands_by_context() {
+    let mut options = clock();
+    options["org_capture_templates"] = json!([
+        { "key": "t", "description": "Task", "template": "* TODO %?" },
+        { "key": "w", "description": "Work task", "template": "* TODO %?" },
+        { "key": "j", "description": "Journal", "template": "* %?" },
+    ]);
+    options["org_capture_templates_contexts"] = json!([
+        { "key": "w", "contexts": [{ "in_file": "work" }] },
+        { "key": "j", "use": "t", "contexts": [{ "not_in_mode": "agenda" }] },
+    ]);
+    options["org_agenda_custom_commands"] = json!([
+        { "key": "h", "description": "Home", "type": "todo" },
+        { "key": "o", "description": "Office", "type": "alltodo" },
+    ]);
+    options["org_agenda_custom_commands_contexts"] = json!([{ "key": "o", "contexts": [{ "in_buffer": "^work" }] }]);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", "* A\n");
+    client.open("file:///org/home.org", "* B\n");
+    let menu = |client: &mut Client, command: &str, uri: &str| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 } });
+        let asked =
+            client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        asked["input"]["choices"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|choice| format!("{}:{}", choice["key"].as_str().unwrap(), choice["label"].as_str().unwrap()))
+            .collect::<Vec<_>>()
+    };
+    // `j` stands for `t` in files: `t` is not offered under its own key.
+    assert_eq!(menu(&mut client, "org.capture", "file:///org/work.org"), ["w:Work task", "j:Task"]);
+    assert_eq!(menu(&mut client, "org.capture", "file:///org/home.org"), ["j:Task"]);
+    client.command("org.agenda.list", "file:///org/home.org", 0);
+    client.view_text(VIEW);
+    assert_eq!(menu(&mut client, "org.capture", VIEW), ["t:Task"]);
+    let commands =
+        |choices: Vec<String>| choices.into_iter().filter(|choice| choice.starts_with(['h', 'o'])).collect::<Vec<_>>();
+    assert_eq!(commands(menu(&mut client, "org.agenda.dispatch", "file:///org/work.org")), ["h:Home", "o:Office"]);
+    assert_eq!(commands(menu(&mut client, "org.agenda.dispatch", "file:///org/home.org")), ["h:Home"]);
+    client.shutdown();
+}
+
 /// Capturing from where there is no document (no file open): the
 /// template and the answers come without a cursor.
 #[test]

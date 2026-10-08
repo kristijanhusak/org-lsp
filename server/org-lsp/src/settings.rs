@@ -571,6 +571,18 @@ pub const SETTINGS: &[Setting] = &[
         "What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it.",
     ),
     setting(
+        "org_capture_templates_contexts",
+        "object[]",
+        "[]",
+        "org-capture-templates-contexts",
+        "Where templates are offered. Each has the `key` of a template, `contexts`, rules such as \
+         `{ \"in_file\": \"work\" }` (`in_file`, `in_mode`, `in_buffer`, `not_in_file`, `not_in_mode` or \
+         `not_in_buffer`, each with a regexp of the `regex` crate's syntax, matched ignoring case), and maybe \
+         `use`, the key of the template it stands for there. A template with contexts is offered only where one \
+         of their rules holds. The mode is `org-mode` in an Org file and `org-agenda-mode` in the agenda, where \
+         there is no file; the buffer's name is the file's.",
+    ),
+    setting(
         "org_capture_templates",
         "object[]",
         r#"[{ "key": "t", "description": "Task", "target": ["file+headline", "", "Tasks"], "template": "* TODO %?\n  %u\n  %a" }]"#,
@@ -1065,6 +1077,14 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     setting(
+        "org_agenda_custom_commands_contexts",
+        "object[]",
+        "[]",
+        "org-agenda-custom-commands-contexts",
+        "Where the commands of `org_agenda_custom_commands` are offered, as for \
+         `org_capture_templates_contexts`.",
+    ),
+    setting(
         "org_agenda_custom_commands",
         "object[]",
         "[]",
@@ -1261,6 +1281,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_archive_sibling_heading", STRING),
     ("org_archive_file_header_format", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
     ("org_archive_default_command", r#"{ "enum": ["subtree", "sibling", "tag"] }"#),
+    ("org_capture_templates_contexts", CONTEXTS),
+    ("org_agenda_custom_commands_contexts", CONTEXTS),
     (
         "org_capture_templates",
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.CaptureTemplate", "required": ["key", "description"], "additionalProperties": false, "properties": {
@@ -1403,6 +1425,14 @@ const SCHEMAS: &[(&str, &str)] = &[
 ];
 
 const BOOLEAN: &str = r#"{ "type": "boolean" }"#;
+/// `org-capture-templates-contexts`, `org-agenda-custom-commands-contexts`
+const CONTEXTS: &str = r#"{ "type": "array", "items": { "type": "object", "required": ["key", "contexts"], "additionalProperties": false, "properties": {
+            "key": { "type": "string", "description": "The keys the context is about" },
+            "use": { "type": "string", "description": "The keys whose template or command these keys stand for where the context holds" },
+            "contexts": { "type": "array", "items": { "type": "object", "minProperties": 1, "maxProperties": 1, "additionalProperties": false, "properties": {
+                "in_file": { "type": "string" }, "in_mode": { "type": "string" }, "in_buffer": { "type": "string" },
+                "not_in_file": { "type": "string" }, "not_in_mode": { "type": "string" }, "not_in_buffer": { "type": "string" } } },
+                "description": "Rules, each a regexp on the file, the mode or the buffer's name; the context holds where one of them does" } } } }"#;
 const INTEGER: &str = r#"{ "type": "integer" }"#;
 const STRING: &str = r#"{ "type": "string" }"#;
 const PRIORITY: &str = r#"{ "anyOf": [{ "type": "string", "pattern": "^[A-Za-z]$" }, { "type": "integer", "minimum": 0, "maximum": 64 }] }"#;

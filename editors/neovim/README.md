@@ -25,9 +25,9 @@ The Neovim plugin is the repository itself (`lua/`, `plugin/`): install
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ✅ |  |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ✅ |  |
-| [Agenda](../../docs/parity.md#agenda) | 74% | ✅ |  |
+| [Agenda](../../docs/parity.md#agenda) | 75% | ✅ |  |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
-| [Capture](../../docs/parity.md#capture) | 73% | ✅ |  |
+| [Capture](../../docs/parity.md#capture) | 82% | ✅ |  |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 82% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 91% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
@@ -44,7 +44,7 @@ The Neovim plugin is the repository itself (`lua/`, `plugin/`): install
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **77%** |  |  |
+| **All of Org** | **78%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

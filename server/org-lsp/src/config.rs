@@ -285,6 +285,9 @@ pub struct Options {
     /// "Tasks" in `org_default_notes_file`.
     #[serde(rename = "org_capture_templates")]
     pub capture_templates: Option<Vec<CaptureTemplateOption>>,
+    /// `org-capture-templates-contexts`: where templates are offered.
+    #[serde(rename = "org_capture_templates_contexts")]
+    pub capture_templates_contexts: Option<Vec<ContextOption>>,
     /// `org-directory`: where relative capture targets are. `~/org`.
     pub org_directory: Option<String>,
     /// `org-default-notes-file`: the target of a template whose file is
@@ -510,6 +513,38 @@ impl LogOption {
             LogOption::Name(_) => None,
         }
     }
+}
+
+/// One context of `org-capture-templates-contexts` or
+/// `org-agenda-custom-commands-contexts`: the key it is about, the key it
+/// stands for where it holds (`use`, the key itself without it) and its
+/// rules, each one of `in_file`, `in_mode`, `in_buffer`, `not_in_file`,
+/// `not_in_mode` or `not_in_buffer` with a regexp.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ContextOption {
+    pub key: String,
+    #[serde(rename = "use", default, skip_serializing_if = "Option::is_none")]
+    pub use_key: Option<String>,
+    pub contexts: Vec<std::collections::BTreeMap<String, String>>,
+}
+
+/// The contexts of `options`, rules that cannot be read left out.
+pub fn contexts(options: Option<&[ContextOption]>) -> Vec<org_core::contexts::Context> {
+    use org_core::contexts::{Context, Kind, Rule};
+    options
+        .unwrap_or_default()
+        .iter()
+        .map(|option| Context {
+            key: option.key.clone(),
+            use_key: option.use_key.clone().filter(|key| !key.is_empty()).unwrap_or_else(|| option.key.clone()),
+            rules: option
+                .contexts
+                .iter()
+                .flatten()
+                .filter_map(|(kind, pattern)| Rule::new(Kind::named(kind)?, pattern).ok())
+                .collect(),
+        })
+        .collect()
 }
 
 /// A tag table: a `#+TAGS:` line, or its words.
@@ -1646,6 +1681,9 @@ pub struct AgendaOptions {
     /// `org-agenda-custom-commands`
     #[serde(rename = "org_agenda_custom_commands")]
     pub custom_commands: Option<Vec<CustomCommandOption>>,
+    /// `org-agenda-custom-commands-contexts`: where commands are offered.
+    #[serde(rename = "org_agenda_custom_commands_contexts")]
+    pub custom_commands_contexts: Option<Vec<ContextOption>>,
     /// `org-agenda-prefix-format`
     #[serde(rename = "org_agenda_prefix_format")]
     pub prefix_format: PrefixFormatOptions,
