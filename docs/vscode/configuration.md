@@ -468,6 +468,17 @@ them out:
     // hint in its place. (org-pretty-entities)
     "org_pretty_entities": false,
 
+    // With `org_pretty_entities`, show sub- and superscripts (`x^2`,
+    // `H_{2}O`, `a_{n}`) raised and lowered: in Unicode (`x²`, `H₂O`, `aₙ`)
+    // where every character has a raised or lowered form, as an inlay hint in
+    // place of the hidden text; the others are left as they are.
+    // (org-pretty-entities-include-sub-superscripts)
+    "org_pretty_entities_include_sub_superscripts": true,
+
+    // Which sub- and superscripts `org_pretty_entities` shows: all, only
+    // those in braces (`a_{b}`, `"{}"`), or none. (org-use-sub-superscripts)
+    "org_use_sub_superscripts": true,
+
     // RET on the first line of a list item makes the next item, numbered and
     // with a checkbox as M-RET (`org-meta-return`) makes it, the items after
     // it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does.

@@ -16,7 +16,7 @@ The Neovim plugin is the repository itself (`lua/`, `plugin/`): install
 
 | Feature | Parity | Neovim | What does not work, and why |
 | --- | --- | --- | --- |
-| [Highlighting](../../docs/parity.md#highlighting) | 92% | ✅ |  |
+| [Highlighting](../../docs/parity.md#highlighting) | 100% | ✅ |  |
 | [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 100% | ✅ |  |
 | [Headings and structure](../../docs/parity.md#headings-and-structure) | 100% | ✅ |  |
 | [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 100% | ✅ |  |

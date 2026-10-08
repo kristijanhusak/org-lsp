@@ -23,6 +23,7 @@ here and why.
 - [ ] A link shows its description alone; its brackets and target show when the cursor is on its line
 - [ ] With `org_hide_emphasis_markers = true`, the markers of `*bold*` are hidden
 - [ ] With `org_pretty_entities = true`, `\alpha` shows as `α`
+- [ ] With `org_pretty_entities = true`, `x^2` shows as `x²` and `H_{2}O` as `H₂O`
 - [ ] Timestamps, `SCHEDULED:`/`DEADLINE:`, `CLOCK:` lines, drawers, `#+` keywords and `#` comments are colored
 - [ ] A `#+begin_src python` block shows its code in Python's colors
 - [ ] Inline code (`src_python{x = 1}`) is in Python's colors

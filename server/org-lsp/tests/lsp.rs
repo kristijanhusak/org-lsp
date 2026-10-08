@@ -734,6 +734,72 @@ fn shows_entities_as_their_characters() {
     client.shutdown();
 }
 
+/// `org_pretty_entities` with sub- and superscripts: those whose every
+/// character has a raised or lowered form hidden, shown in Unicode as an
+/// inlay hint; with `org_use_sub_superscripts = "{}"`, those in braces
+/// only.
+#[test]
+fn shows_sub_and_superscripts() {
+    let text = "x^2 and H_{2}O and z^* \\alpha_1\n";
+    type Hints = Vec<(u32, u32, String)>;
+    type Hidden = Vec<(u32, u32, u32)>;
+    let shown = |settings: Value| -> (Hints, Hidden) {
+        let mut client = Client::start(json!({}), settings);
+        client.open(&uri(), text);
+        let hints = client
+            .request::<lsp_types::request::InlayHintRequest>(lsp_types::InlayHintParams {
+                text_document: identifier(),
+                range: Range::new(Position::new(0, 0), Position::new(1, 0)),
+                work_done_progress_params: Default::default(),
+            })
+            .unwrap();
+        let mut hints: Vec<(u32, u32, String)> = hints
+            .iter()
+            .map(|hint| match &hint.label {
+                lsp_types::InlayHintLabel::String(label) => {
+                    (hint.position.line, hint.position.character, label.clone())
+                }
+                _ => panic!("a plain label"),
+            })
+            .collect();
+        hints.sort();
+        let tokens = client
+            .request::<lsp_types::request::SemanticTokensFullRequest>(lsp_types::SemanticTokensParams {
+                text_document: identifier(),
+                work_done_progress_params: Default::default(),
+                partial_result_params: Default::default(),
+            })
+            .unwrap();
+        let lsp_types::SemanticTokensResult::Tokens(tokens) = tokens else { panic!("tokens") };
+        let hidden = 1 << 23;
+        let mut at = (0, 0);
+        let mut hid = Vec::new();
+        for token in &tokens.data {
+            at = if token.delta_line == 0 {
+                (at.0, at.1 + token.delta_start)
+            } else {
+                (at.0 + token.delta_line, token.delta_start)
+            };
+            if token.token_modifiers_bitset & hidden != 0 {
+                hid.push((at.0, at.1, token.length));
+            }
+        }
+        client.shutdown();
+        (hints, hid)
+    };
+    let (hints, hid) = shown(json!({ "org_pretty_entities": true }));
+    assert_eq!(
+        hints,
+        [(0, 1, "²".to_string()), (0, 9, "₂".to_string()), (0, 23, "α".to_string()), (0, 29, "₁".to_string())]
+    );
+    assert_eq!(hid, [(0, 1, 2), (0, 9, 4), (0, 23, 6), (0, 29, 2)]);
+    let (hints, _) = shown(json!({ "org_pretty_entities": true, "org_use_sub_superscripts": "{}" }));
+    assert_eq!(hints, [(0, 9, "₂".to_string()), (0, 23, "α".to_string())]);
+    let (hints, _) =
+        shown(json!({ "org_pretty_entities": true, "org_pretty_entities_include_sub_superscripts": false }));
+    assert_eq!(hints, [(0, 23, "α".to_string())]);
+}
+
 /// RET (`org-return`): the result carries the edit and where the cursor
 /// goes, for the editor to apply as the key is typed; in a source block's
 /// code the command does not apply, and the editor's own RET does.
