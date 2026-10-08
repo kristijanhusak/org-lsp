@@ -861,6 +861,13 @@
     }
   },
   {
+    "caption": "Org: Add the file's named code blocks to the Library of Babel",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.lob.ingest"
+    }
+  },
+  {
     "caption": "Org: Move to the next block",
     "command": "org_lsp_run",
     "args": {

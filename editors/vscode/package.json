@@ -671,6 +671,11 @@
         "category": "Org"
       },
       {
+        "command": "org.babel.lob.ingest",
+        "title": "Add the file's named code blocks to the Library of Babel",
+        "category": "Org"
+      },
+      {
         "command": "org.block.next",
         "title": "Move to the next block",
         "category": "Org"
@@ -3932,6 +3937,11 @@
       {
         "command": "org.babel.goto",
         "key": "ctrl+c ctrl+v g",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.lob.ingest",
+        "key": "ctrl+c ctrl+v i",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

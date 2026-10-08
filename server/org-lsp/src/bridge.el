@@ -233,7 +233,8 @@ was to be opened, or the text of an export to a buffer."
     org-next-block org-previous-block org-timer-start org-timer org-timer-item
     org-timer-pause-or-continue org-timer-stop org-timer-set-timer
     org-lsp-bridge-timer-set org-table-move-cell-up org-table-move-cell-down
-    org-table-move-cell-left org-table-move-cell-right)
+    org-table-move-cell-left org-table-move-cell-right org-babel-lob-ingest
+    org-lsp-bridge-export-template)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--message nil
@@ -281,6 +282,20 @@ wants one), else interactively."
 (defun org-lsp-bridge-table-create (size)
   "`org-table-create' of SIZE, `org-table-default-size' when it is empty."
   (org-table-create (if (string-empty-p size) org-table-default-size size)))
+
+;;; Export templates
+
+(defun org-lsp-bridge-export-backends (_params)
+  "The options categories `org-export-insert-default-template' offers."
+  (vconcat (cons "default"
+                 (mapcar (lambda (backend) (symbol-name (org-export-backend-name backend)))
+                         org-export-registered-backends))))
+
+(defun org-lsp-bridge-export-template (name subtree)
+  "`org-export-insert-default-template' for the backend NAME (`default' for
+none), for the subtree when SUBTREE is t."
+  (org-export-insert-default-template (if (equal name "default") 'default (intern name))
+                                      (eq subtree t)))
 
 ;;; Timers
 

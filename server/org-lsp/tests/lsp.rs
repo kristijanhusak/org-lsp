@@ -1837,6 +1837,8 @@ fn reports_and_moves_through_emacs() {
         asked["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
     assert_eq!(names, ["one", "two"]);
     assert_eq!(moved(&mut client, "org.babel.goto", (0, 0), Some("two")), (13, 0));
+    // The named blocks into the Library of Babel.
+    assert_eq!(said(&mut client, "org.babel.lob.ingest", (0, 0)), "2 source blocks added to Library of Babel");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }
@@ -2019,6 +2021,22 @@ fn edits_through_emacs() {
     assert_eq!(asked["input"]["kind"], "text");
     run(&mut client, &mut text, &mut version, "org.table.create", (1, 0), json!({ "input": "2x2" }));
     assert_eq!(text, "Text\n|   |   |\n|---+---|\n|   |   |\n\n");
+    // `#` in the export menu: the options template of a backend.
+    replace(&mut client, &mut text, &mut version, "* Head\n".to_string());
+    let (asked, _) = run(&mut client, &mut text, &mut version, "org.export.dispatch", (0, 0), json!({ "input": "#" }));
+    let backends: Vec<&str> =
+        asked["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
+    assert_eq!(backends.first(), Some(&"default"), "{asked}");
+    assert!(backends.contains(&"html"), "{backends:?}");
+    run(
+        &mut client,
+        &mut text,
+        &mut version,
+        "org.export.dispatch",
+        (0, 0),
+        json!({ "input": "default", "step": "#", "answers": "" }),
+    );
+    assert!(text.contains("#+title: ") && text.contains("#+options: ") && text.ends_with("* Head\n"), "{text}");
     // `S-<down>` and `S-<right>` in a table move the field.
     replace(&mut client, &mut text, &mut version, "| a | b |\n| c | d |\n".to_string());
     let (_, cursor) = run(&mut client, &mut text, &mut version, "org.shift.down", (0, 2), json!({}));

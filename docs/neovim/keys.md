@@ -104,6 +104,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>obn` | `org.babel.next` | Move to the next code block |
 | `<Leader>obp` | `org.babel.previous` | Move to the previous code block |
 | `<Leader>obg` | `org.babel.goto` | Go to a named code block |
+| `<Leader>obi` | `org.babel.lob.ingest` | Add the file's named code blocks to the Library of Babel |
 | `<Leader>ox0` | `org.timer.start` | Start the relative timer |
 | `<Leader>ox.` | `org.timer.insert` | Insert the timer's value |
 | `<Leader>ox-` | `org.timer.item` | Insert a list item with the timer's value |
