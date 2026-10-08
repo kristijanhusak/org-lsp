@@ -717,6 +717,12 @@ require('org-lsp').setup({
     -- (org-startup-folded)
     org_startup_folded = 'showeverything',
 
+    -- Shrink the columns of every table that have a width cookie (`<10>`)
+    -- when a file opens. `#+STARTUP: shrink` decides for a file. Shrunk
+    -- fields show their first characters and `…`, in editors that can hide
+    -- text. (org-startup-shrink-all-tables)
+    org_startup_shrink_all_tables = false,
+
     -- Fold blocks when a file opens folded (`org_startup_folded`).
     -- `#+STARTUP: hideblocks` and `nohideblocks` decide for a file.
     -- (org-cycle-hide-block-startup)

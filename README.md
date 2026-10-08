@@ -41,7 +41,7 @@ hand: [Neovim](editors/neovim/README.md), [Vim](editors/vim/README.md),
 | [Refile and archive](docs/parity.md#refile-and-archive) | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
 | [Links](docs/parity.md#links) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [Footnotes](docs/parity.md#footnotes) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
-| [Tables](docs/parity.md#tables) | 88% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [Tables](docs/parity.md#tables) | 94% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
 | [Table formulas](docs/parity.md#table-formulas) | 92% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
 | [Code blocks (Babel)](docs/parity.md#code-blocks-babel) | 91% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [Export and publishing](docs/parity.md#export-and-publishing) | 89% | ✅ / ✅ / ✅ / ✅ / ❌ / ❌ |
@@ -54,7 +54,7 @@ hand: [Neovim](editors/neovim/README.md), [Vim](editors/vim/README.md),
 | [Attachments](docs/parity.md#attachments) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [Encryption](docs/parity.md#encryption) | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
 | [Inline images and LaTeX previews](docs/parity.md#inline-images-and-latex-previews) | 0% | — / — / — / — / — / — |
-| **All of Org** | **93%** |  |
+| **All of Org** | **94%** |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the editor's
 README says what and why), ❌ none does, — nothing to support yet.

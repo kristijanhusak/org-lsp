@@ -220,6 +220,7 @@ here and why.
 
 ## Tables
 
+- [ ] `C-c TAB` in a column with a `<5>` cookie shows five characters of each field and `…`; again, the whole column; a file with `#+STARTUP: shrink` opens so: `<Leader>o<Tab>`
 - [ ] Formatting the file aligns the tables: `vim.lsp.buf.format()`
 - [ ] Moving to the next and previous field; past the last field a row is made: `:Org table next field`, `:Org table previous field`
 - [ ] Moving a column left and right, a row up and down: `<<`, `>>`, `<Leader>oK`, `<Leader>oJ`

@@ -743,6 +743,14 @@ pub const SETTINGS: &[Setting] = &[
          Org shows a headline's children but not its text, the text shows.",
     ),
     setting(
+        "org_startup_shrink_all_tables",
+        "boolean",
+        "false",
+        "org-startup-shrink-all-tables",
+        "Shrink the columns of every table that have a width cookie (`<10>`) when a file opens. `#+STARTUP: shrink` \
+         decides for a file. Shrunk fields show their first characters and `…`, in editors that can hide text.",
+    ),
+    setting(
         "org_cycle_hide_block_startup",
         "boolean",
         "false",
@@ -1463,6 +1471,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         "org_startup_folded",
         r#"{ "enum": ["overview", "fold", "content", "show2levels", "show3levels", "show4levels", "show5levels", "showeverything", "nofold", "showall"] }"#,
     ),
+    ("org_startup_shrink_all_tables", BOOLEAN),
     ("org_cycle_hide_block_startup", BOOLEAN),
     ("org_cycle_hide_drawer_startup", BOOLEAN),
     ("org_cycle_open_archived_trees", BOOLEAN),

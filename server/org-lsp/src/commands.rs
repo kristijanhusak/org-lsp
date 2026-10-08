@@ -137,6 +137,7 @@ pub const AGENDA_LOG: &str = "org.agenda.log";
 pub const AGENDA_HABITS: &str = "org.agenda.habits";
 pub const AGENDA_WRITE: &str = "org.agenda.write";
 pub const AGENDA_APPT: &str = "org.agenda.appt";
+pub const TABLE_TOGGLE_COLUMN_WIDTH: &str = "org.table.toggle.column.width";
 pub const COLUMNS: &str = "org.columns";
 pub const COLUMNS_QUIT: &str = "org.columns.quit";
 pub const COLUMNS_REDO: &str = "org.columns.redo";
@@ -1151,6 +1152,17 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>oe")],
         input: Some(Input { kind: "key", prompt: "Export command" }),
         ..command(EXPORT, "Export the file through Emacs")
+    },
+    // `org-table-toggle-column-width` (`C-c TAB` in a table): the column
+    // at the cursor shrunk to its width cookie (`<5>`), or to nothing but
+    // `…`, or shown whole again; before the first column, the columns asked
+    // for. With `C-u` every column with a cookie shrunk and the others
+    // shown (`org-table-shrink`), with `C-u C-u` all shown
+    // (`org-table-expand`).
+    Command {
+        emacs: &[key(Org, "C-c TAB")],
+        vim: &[key(Org, "<Leader>o<Tab>")],
+        ..command(TABLE_TOGGLE_COLUMN_WIDTH, "Shrink or expand the table column")
     },
     // `org-table-recalculate`: the formulas of the `#+TBLFM:` line under
     // the table. Emacs's `C-c *` recalculates the cursor's line (and the

@@ -121,6 +121,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>ox_` | `org.timer.stop` | Stop the timer |
 | `<Leader>ox;` | `org.timer.set` | Set a countdown timer |
 | `<Leader>oe` | `org.export.dispatch` | Export the file through Emacs |
+| `<Leader>o<Tab>` | `org.table.toggle.column.width` | Shrink or expand the table column |
 | `<Leader>o*` | `org.table.recalculate` | Recalculate the table |
 | `<Leader>oo` | `org.open` | Open the link or thing at the cursor |
 | `<Leader>ols` | `org.link.store` | Store a link to the place at the cursor |

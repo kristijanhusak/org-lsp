@@ -901,6 +901,11 @@
         "category": "Org"
       },
       {
+        "command": "org.table.toggle.column.width",
+        "title": "Shrink or expand the table column",
+        "category": "Org"
+      },
+      {
         "command": "org.table.recalculate",
         "title": "Recalculate the table",
         "category": "Org"
@@ -2147,6 +2152,11 @@
               ],
               "markdownDescription": "How files show when opened: `\"overview\"` (or `\"fold\"`) only the top headlines, `\"content\"` all the headlines, `\"show2levels\"` to `\"show5levels\"` the headlines down to that level, `\"showeverything\"` (or `\"nofold\"`, `\"showall\"`) everything. `#+STARTUP:` decides for a file. Unless everything shows, a subtree's `VISIBILITY` property (`folded`, `children`, `content`, `all`) decides for it, archived subtrees are folded, and drawers too. Folds hide whole subtrees, so where Org shows a headline's children but not its text, the text shows. (`org-startup-folded`)",
               "default": "showeverything"
+            },
+            "org_startup_shrink_all_tables": {
+              "type": "boolean",
+              "markdownDescription": "Shrink the columns of every table that have a width cookie (`<10>`) when a file opens. `#+STARTUP: shrink` decides for a file. Shrunk fields show their first characters and `…`, in editors that can hide text. (`org-startup-shrink-all-tables`)",
+              "default": false
             },
             "org_cycle_hide_block_startup": {
               "type": "boolean",
@@ -4538,6 +4548,11 @@
       {
         "command": "org.export.dispatch",
         "key": "ctrl+c ctrl+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.toggle.column.width",
+        "key": "ctrl+c tab",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
