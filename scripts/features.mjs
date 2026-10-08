@@ -663,9 +663,9 @@ export const AREAS = [
       ['To a buffer, to a file, and opened', true],
       ['Publishing a file, a project, all projects', true],
       ['Forcing publishing', true],
-      ['Exporting in the background (`C-a`)', false],
+      ['Exporting in the background: every export runs in the background, the editor never waits for it', true],
       ['Only the visible part (`C-v`)', false],
-      ['The export stack (`&`)', false],
+      ['The export stack (`&`): what the exports made, the last first, to show again', true],
       ['Inserting a template (`#`, through Emacs)', true],
     ],
     editors: {
@@ -679,6 +679,7 @@ export const AREAS = [
       { text: 'To an HTML file and opened: the browser opens it', cmd: 'org.export.dispatch' },
       { text: 'The subtree at the cursor as UTF-8 text in a buffer: a file of it is shown', cmd: 'org.export.dispatch' },
       { text: 'Unsaved changes are in the export', cmd: 'org.export.dispatch' },
+      { text: '`&` in the export menu lists what the exports made, the last first; picking one shows it again', cmd: 'org.export.dispatch' },
       { text: '`emacs_config` adds Markdown (`org-export-backends`): it is in the menu after a restart' },
     ],
   },
@@ -783,7 +784,7 @@ export const AREAS = [
       ['The relative timer: starting, inserting its value, pausing and stopping (through Emacs)', true],
       ['Timer items in lists (`C-c C-x -`, through Emacs)', true],
       ['Countdowns (`C-c C-x ;`), the effort taken when there is one (through Emacs)', true],
-      ['The timer in the mode line', false],
+      ['The timer in the status line, as in the mode line (`<0:05:23>`, `org-timer-display`)', true],
       ['Starting with an offset (`C-u`), shifting the timer values of a selection (`C-u C-u`, or the selection alone; through Emacs)', true],
     ],
     editors: {
@@ -796,6 +797,7 @@ export const AREAS = [
       { text: 'Pausing and continuing; stopping', cmd: ['org.timer.pause', 'org.timer.stop'], not: ['zed', 'helix'] },
       { text: 'A countdown asks for its length (`1` for a minute); when it ends, `Heading: time out` is shown', cmd: 'org.timer.set', not: ['zed', 'helix'] },
       { text: 'On an entry with an effort the countdown takes it, without asking', cmd: 'org.timer.set', not: ['zed', 'helix'] },
+      { text: 'While the timer or a countdown is on, the status line shows its value, counting each second; paused, it stays; stopped, it goes', not: ['zed', 'helix'] },
     ],
   },
   {

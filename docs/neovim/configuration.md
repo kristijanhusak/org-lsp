@@ -216,14 +216,15 @@ the cursor on the same text, moved down with it when the date went in
 above, as in Emacs, whatever 'scrolloff' and 'splitkeep' are. The
 calendar itself shows whole, its months' names included.
 
-## The clock in the statusline
+## The clock and the timer in the statusline
 
 While a clock runs, `require('org-lsp').clock_status()` returns what
 Emacs's mode line shows: the time clocked on the entry, its effort, and its
-headline, as in `[0:25/1:00] (Write the report)`. Without a clock it
-returns an empty string. The plugin redraws the statusline every minute
-while a clock runs, and fires the `User OrgLspClock` autocommand when the
-clock starts or stops.
+headline, as in `[0:25/1:00] (Write the report)`. While the relative timer
+or a countdown is on, its value follows (`<0:05:23>`), as Emacs shows it.
+With neither it returns an empty string. The plugin redraws the statusline
+every minute while a clock runs, every second while a timer runs, and fires
+the `User OrgLspClock` autocommand when the clock starts or stops.
 
 ```lua
 vim.o.statusline = '%f %h%m%r%=%{v:lua.require("org-lsp").clock_status()}  %l,%c'

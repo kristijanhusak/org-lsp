@@ -132,6 +132,13 @@ class View:
     def is_valid(self):
         return not getattr(self, 'closed', False)
 
+    def set_status(self, key, text):
+        self.statuses = getattr(self, 'statuses', {})
+        self.statuses[key] = text
+
+    def erase_status(self, key):
+        getattr(self, 'statuses', {}).pop(key, None)
+
     def set_scratch(self, scratch):
         self.scratch = scratch
 
@@ -471,6 +478,28 @@ class Tests(unittest.TestCase):
         # Other notifications and other files ask nothing.
         plugin.on_pre_send_notification_async(types.SimpleNamespace(method='textDocument/didChange', params={}))
         self.assertEqual(len(session.sent), 1)
+
+    def test_shows_the_timer_in_the_status_bar(self):
+        later = []
+        self.sublime.set_timeout = lambda f, delay=0: f() if delay == 0 else later.append(f)
+        self.sublime.windows = lambda: [self.window]
+        clock = [1000.0]
+        self.addCleanup(setattr, self.plugin, 'time', self.plugin.time)
+        self.plugin.time = types.SimpleNamespace(time=lambda: clock[0])
+        plugin = self.plugin.OrgLsp(lambda: None)
+        plugin.m_org_lsp_timer({'seconds': 323, 'countdown': False, 'paused': False})
+        self.assertEqual(self.view.statuses['org-lsp-timer'], '<0:05:23>')
+        # A second later, it shows the next one.
+        clock[0] += 1
+        later.pop(0)()
+        self.assertEqual(self.view.statuses['org-lsp-timer'], '<0:05:24>')
+        # A countdown counts down; once stopped, nothing shows.
+        plugin.m_org_lsp_timer({'seconds': 60, 'countdown': True, 'paused': False})
+        clock[0] += 2
+        later.pop()()
+        self.assertEqual(self.view.statuses['org-lsp-timer'], '<0:00:58>')
+        plugin.m_org_lsp_timer(None)
+        self.assertNotIn('org-lsp-timer', self.view.statuses)
 
     def test_the_contexts_of_the_keys(self):
         listener = self.plugin.OrgLspListener()

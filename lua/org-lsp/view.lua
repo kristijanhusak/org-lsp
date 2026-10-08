@@ -624,6 +624,12 @@ M.handlers = {
     require('org-lsp.clock').update(params)
   end,
 
+  --- The relative timer or the countdown started, paused or stopped: for
+  --- the statusline.
+  ['org-lsp/timer'] = function(_, params)
+    require('org-lsp.clock').update_timer(params)
+  end,
+
   --- The server's text for a document has changed: fetch it again.
   ['workspace/textDocumentContent/refresh'] = function(_, params, ctx)
     local client = vim.lsp.get_client_by_id(ctx.client_id)

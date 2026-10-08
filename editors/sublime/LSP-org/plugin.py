@@ -13,6 +13,7 @@ import os
 import shutil
 import tarfile
 import threading
+import time
 import urllib.request
 import zipfile
 
@@ -242,6 +243,10 @@ class OrgLsp(AbstractPlugin):
     def m_org_lsp_clock(self, params) -> None:
         sublime.set_timeout(lambda: show_clock(params))
 
+    # The relative timer or the countdown, for the status bar.
+    def m_org_lsp_timer(self, params) -> None:
+        sublime.set_timeout(lambda: show_timer(params))
+
     # How the lines of a file with `org-indent-mode` show.
     def m_org_lsp_virtualIndent(self, params) -> None:
         sublime.set_timeout(lambda: show_virtual_indent(params))
@@ -431,6 +436,47 @@ def show_clock(params) -> None:
                 view.set_status(CLOCK_KEY, text)
             else:
                 view.erase_status(CLOCK_KEY)
+
+
+TIMER_KEY = 'org-lsp-timer'
+timer_state = {}
+
+
+def timer_text() -> str:
+    """What Emacs's mode line shows while the relative timer or a countdown
+    is on (`org-timer-update-mode-line`), such as `<0:05:23>`; empty when
+    none is."""
+    if not timer_state:
+        return ''
+    seconds = timer_state['seconds']
+    if not timer_state['paused']:
+        passed = int(time.time() - timer_state['received'])
+        seconds = max(0, seconds - passed) if timer_state['countdown'] else seconds + passed
+    return '<{}:{:02d}:{:02d}>'.format(seconds // 3600, seconds % 3600 // 60, seconds % 60)
+
+
+def show_timer(params) -> None:
+    timer_state.clear()
+    if params and isinstance(params.get('seconds'), int):
+        timer_state.update(seconds=params['seconds'], countdown=params.get('countdown') is True,
+                           paused=params.get('paused') is True, received=time.time())
+    tick_timer(timer_state.get('received'))
+
+
+def tick_timer(report) -> None:
+    """Show the timer in every view's status bar, each second while it
+    runs, until another report comes."""
+    if timer_state.get('received') != report:
+        return
+    text = timer_text()
+    for window in sublime.windows():
+        for view in window.views():
+            if text:
+                view.set_status(TIMER_KEY, text)
+            else:
+                view.erase_status(TIMER_KEY)
+    if timer_state and not timer_state['paused']:
+        sublime.set_timeout(lambda: tick_timer(report), 1000)
 
 
 def starter_path() -> str:

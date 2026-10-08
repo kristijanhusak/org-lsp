@@ -1070,14 +1070,19 @@ end
 local started = false
 
 --- What Emacs's mode line shows while a clock runs, for the statusline:
---- `[0:25/1:00] (Write the report)`, or an empty string.
+--- `[0:25/1:00] (Write the report)`, then the relative timer or the
+--- countdown while one is on (`<0:05:23>`); or an empty string.
 ---
 --- ```lua
 --- vim.o.statusline = '%f %=%{v:lua.require("org-lsp").clock_status()}'
 --- ```
 ---@return string
 function M.clock_status()
-  return require('org-lsp.clock').status()
+  local clock = require('org-lsp.clock')
+  local parts = vim.tbl_filter(function(part)
+    return part ~= ''
+  end, { clock.status(), clock.timer_status() })
+  return table.concat(parts, ' ')
 end
 
 --- Called once by plugin/org-lsp.lua.

@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 91%**
+**All of Org: 92%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -29,13 +29,13 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Tables](#tables) | 88% | 15 of 17 |
 | [Table formulas](#table-formulas) | 92% | 11 of 12 |
 | [Code blocks (Babel)](#code-blocks-babel) | 91% | 10 of 11 |
-| [Export and publishing](#export-and-publishing) | 67% | 6 of 9 |
+| [Export and publishing](#export-and-publishing) | 89% | 8 of 9 |
 | [Citations](#citations) | 100% | 5 of 5 |
 | [Diagnostics (org-lint)](#diagnostics-org-lint) | 97% | 59 of 61 |
 | [Indentation and formatting](#indentation-and-formatting) | 83% | 5 of 6 |
 | [Notes and logging](#notes-and-logging) | 100% | 4 of 4 |
 | [Completion and editing helpers](#completion-and-editing-helpers) | 100% | 4 of 4 |
-| [Timers](#timers) | 80% | 4 of 5 |
+| [Timers](#timers) | 100% | 5 of 5 |
 | [Attachments](#attachments) | 100% | 2 of 2 |
 | [Encryption](#encryption) | 100% | 2 of 2 |
 | [Inline images and LaTeX previews](#inline-images-and-latex-previews) | 0% | 0 of 2 |
@@ -396,16 +396,16 @@ Where editors fall short:
 
 ## Export and publishing
 
-67% (6 of 9)
+89% (8 of 9)
 
 - ✅ The export menu, with the backends Emacs has (through Emacs)
 - ✅ Body only and the subtree at the cursor
 - ✅ To a buffer, to a file, and opened
 - ✅ Publishing a file, a project, all projects
 - ✅ Forcing publishing
-- ❌ Exporting in the background (`C-a`)
+- ✅ Exporting in the background: every export runs in the background, the editor never waits for it
 - ❌ Only the visible part (`C-v`)
-- ❌ The export stack (`&`)
+- ✅ The export stack (`&`): what the exports made, the last first, to show again
 - ✅ Inserting a template (`#`, through Emacs)
 
 Where editors fall short:
@@ -482,12 +482,12 @@ Where editors fall short:
 
 ## Timers
 
-80% (4 of 5)
+100% (5 of 5)
 
 - ✅ The relative timer: starting, inserting its value, pausing and stopping (through Emacs)
 - ✅ Timer items in lists (`C-c C-x -`, through Emacs)
 - ✅ Countdowns (`C-c C-x ;`), the effort taken when there is one (through Emacs)
-- ❌ The timer in the mode line
+- ✅ The timer in the status line, as in the mode line (`<0:05:23>`, `org-timer-display`)
 - ✅ Starting with an offset (`C-u`), shifting the timer values of a selection (`C-u C-u`, or the selection alone; through Emacs)
 
 Where editors fall short:

@@ -34,17 +34,17 @@ The Neovim plugin is the repository itself (`lua/`, `plugin/`): install
 | [Tables](../../docs/parity.md#tables) | 88% | ✅ |  |
 | [Table formulas](../../docs/parity.md#table-formulas) | 92% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 91% | ✅ |  |
-| [Export and publishing](../../docs/parity.md#export-and-publishing) | 67% | ✅ |  |
+| [Export and publishing](../../docs/parity.md#export-and-publishing) | 89% | ✅ |  |
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ✅ |  |
 | [Notes and logging](../../docs/parity.md#notes-and-logging) | 100% | ✅ |  |
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ✅ | Completion needs an LSP completion plugin (or `vim.lsp.completion`). |
-| [Timers](../../docs/parity.md#timers) | 80% | ✅ |  |
+| [Timers](../../docs/parity.md#timers) | 100% | ✅ |  |
 | [Attachments](../../docs/parity.md#attachments) | 100% | ✅ |  |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **91%** |  |  |
+| **All of Org** | **92%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

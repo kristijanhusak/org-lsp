@@ -63,4 +63,65 @@ function M.update(params)
   vim.api.nvim_exec_autocmds('User', { pattern = 'OrgLspClock', modeline = false })
 end
 
+---@class org_lsp.TimerState
+---@field seconds integer its value when the report came
+---@field countdown boolean whether it counts down
+---@field paused boolean
+---@field received integer when the report came (`vim.uv.now()`)
+
+--- The relative timer or the countdown (`org-lsp/timer`).
+---@type org_lsp.TimerState?
+M.timer = nil
+
+local ticking
+
+local function hms(seconds)
+  return ('%d:%02d:%02d'):format(math.floor(seconds / 3600), math.floor(seconds % 3600 / 60), seconds % 60)
+end
+
+--- What Emacs's mode line shows while the relative timer or a countdown is
+--- on (`org-timer-update-mode-line`), such as `<0:05:23>`. Empty when none
+--- is.
+---@return string
+function M.timer_status()
+  local state = M.timer
+  if not state then
+    return ''
+  end
+  local seconds = state.seconds
+  if not state.paused then
+    local passed = math.floor((vim.uv.now() - state.received) / 1000)
+    seconds = state.countdown and math.max(0, seconds - passed) or seconds + passed
+  end
+  return ('<%s>'):format(hms(seconds))
+end
+
+--- The server's report: the timer that runs, or none.
+---@param params table|nil
+function M.update_timer(params)
+  if params and params ~= vim.NIL and params.seconds then
+    M.timer = {
+      seconds = params.seconds,
+      countdown = params.countdown == true,
+      paused = params.paused == true,
+      received = vim.uv.now(),
+    }
+  else
+    M.timer = nil
+  end
+  -- The statusline shows the seconds as they pass.
+  local running = M.timer ~= nil and not M.timer.paused
+  if running and not ticking then
+    ticking = vim.uv.new_timer()
+    ticking:start(1000, 1000, vim.schedule_wrap(function()
+      vim.cmd('redrawstatus!')
+    end))
+  elseif not running and ticking then
+    ticking:stop()
+    ticking:close()
+    ticking = nil
+  end
+  vim.cmd('redrawstatus!')
+end
+
 return M

@@ -35,6 +35,8 @@ struct Client {
     server: Option<JoinHandle<()>>,
     next_id: i32,
     pub initialize: InitializeResult,
+    /// What the server asked while a request waited for its answer.
+    asked: Vec<Request>,
 }
 
 impl Client {
@@ -54,6 +56,7 @@ impl Client {
             server: Some(server),
             next_id: 0,
             initialize: InitializeResult::default(),
+            asked: Vec::new(),
         };
         let result = client.raw_request(
             <Initialize as lsp_types::request::Request>::METHOD,
@@ -72,6 +75,7 @@ impl Client {
         loop {
             match self.connection.receiver.recv().expect("server answers") {
                 Message::Response(response) if response.id == id => return response,
+                Message::Request(request) => self.asked.push(request),
                 _ => {}
             }
         }
@@ -1538,6 +1542,19 @@ fn exports_through_emacs() {
     assert!(exported.contains("HÉLLO") && exported.contains("First.") && !exported.contains("Code"), "{exported}");
     client.connection.sender.send(Message::Response(Response::new_ok(show.id, json!({ "success": true })))).unwrap();
 
+    // `&`: the export stack, the last first; the one picked shows, a file
+    // as it would open, an export to a buffer in the editor.
+    let stack = run(&mut client, context((0, 0), json!({ "input": "&", "answers": "", "step": "" })));
+    let labels: Vec<&str> =
+        stack["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["label"].as_str().unwrap()).collect();
+    assert_eq!(labels.len(), 2, "{stack}");
+    assert!(labels[0].starts_with("As UTF-8 buffer: ") && labels[1].starts_with("As HTML file: "), "{labels:?}");
+    client.asked.clear();
+    run(&mut client, context((0, 0), json!({ "input": "0", "answers": "", "step": "&" })));
+    let show = client.asked.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(show.params["uri"], json!(format!("file://{}", html_file.display())), "{:?}", show.params);
+    assert_eq!(show.params["external"], json!(true));
+
     // An entry that is not there.
     let response = client.raw_request(
         "workspace/executeCommand",
@@ -1722,6 +1739,54 @@ fn apply_text_edits(text: &str, edits: &[TextEdit]) -> String {
         out.replace_range(offset(edit.range.start)..offset(edit.range.end), &edit.new_text);
     }
     out
+}
+
+/// The relative timer and the countdown, for the editor's status line as
+/// Emacs's mode line shows them (`org-lsp/timer`).
+#[test]
+fn tells_the_editor_how_the_timer_shows() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("tells_the_editor_how_the_timer_shows: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-timer-status-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    let text = "* Meeting\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    client.open(&uri, text);
+    let mut run = |command: &str, input: Option<&str>| -> Value {
+        let mut argument =
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 0 } });
+        if let Some(input) = input {
+            argument["input"] = json!(input);
+        }
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }))
+            .response_result
+            .expect("a result");
+        let Message::Notification(note) = next_from_server(
+            &mut client,
+            |message| matches!(message, Message::Notification(note) if note.method == "org-lsp/timer"),
+        ) else {
+            unreachable!()
+        };
+        note.params
+    };
+    assert_eq!(run("org.timer.start", None), json!({ "seconds": 0, "countdown": false, "paused": false }));
+    assert_eq!(run("org.timer.pause", None), json!({ "seconds": 0, "countdown": false, "paused": true }));
+    assert_eq!(run("org.timer.stop", None), Value::Null);
+    let countdown = run("org.timer.set", Some("10"));
+    assert_eq!((countdown["countdown"].clone(), countdown["paused"].clone()), (json!(true), json!(false)));
+    assert!(countdown["seconds"].as_i64().is_some_and(|seconds| (599..=600).contains(&seconds)), "{countdown}");
+    assert_eq!(run("org.timer.stop", None), Value::Null);
 }
 
 #[test]
