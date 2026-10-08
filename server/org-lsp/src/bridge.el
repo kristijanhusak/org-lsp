@@ -236,7 +236,9 @@ was to be opened, or the text of an export to a buffer."
     org-table-move-cell-left org-table-move-cell-right org-babel-lob-ingest
     org-lsp-bridge-export-template org-metaleft org-metaright org-metaup
     org-metadown org-shiftmetaleft org-shiftmetaright org-toggle-checkbox
-    org-table-create-or-convert-from-region)
+    org-table-create-or-convert-from-region org-table-cut-region
+    org-table-copy-region org-table-paste-rectangle org-lsp-bridge-timer-offset
+    org-lsp-bridge-timer-shift)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--message nil
@@ -280,6 +282,15 @@ wants one), else interactively."
   "`S' in `org-footnote-action''s menu."
   (org-footnote-renumber-fn:N)
   (org-footnote-sort))
+
+(defun org-lsp-bridge-timer-offset (offset default)
+  "`C-u C-c C-x 0': the timer started with OFFSET, DEFAULT when it is blank."
+  (org-timer-start
+   (org-timer-fix-incomplete (if (string-match "\\S-" offset) offset default))))
+
+(defun org-lsp-bridge-timer-shift (delta)
+  "`C-u C-u C-c C-x 0': the timer values of the region shifted by DELTA."
+  (org-timer-change-times-in-region (region-beginning) (region-end) delta))
 
 (defun org-lsp-bridge-table-sum ()
   "`org-table-sum', saying the sum as it does when called by a key."

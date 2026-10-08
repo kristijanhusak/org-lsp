@@ -1761,6 +1761,44 @@ fn keeps_timers_through_emacs() {
     assert!(paused == "Timer paused at 0:30:00 " || paused.starts_with("Timer paused at 0:29:5"), "{paused}");
     request(&mut client, "org.timer.stop", (2, 0), None);
     assert_eq!(said(&mut client), "Timer stopped");
+    // `C-u`: started with an offset, the value at the cursor by default;
+    // `C-u C-u` or a selection: the values in it shifted, the first to
+    // zero by default.
+    let items = "- 0:01:00 :: a\n- 0:02:30 :: b\n";
+    let list: Uri = format!("file://{}", directory.join("items.org").display()).parse().unwrap();
+    client.open(&list, items);
+    let call = |client: &mut Client, extra: Value| -> Value {
+        let mut argument =
+            json!({ "textDocument": { "uri": list.as_str() }, "position": { "line": 0, "character": 4 } });
+        for (key, value) in extra.as_object().unwrap() {
+            argument[key] = value.clone();
+        }
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.timer.start", "arguments": [argument] }))
+            .response_result
+            .expect("a result")
+    };
+    let asked = call(&mut client, json!({ "count": 4 }));
+    assert_eq!(asked["input"]["prompt"], "Restart timer with offset [0:01:00]", "{asked}");
+    call(&mut client, json!({ "count": 4, "input": "" }));
+    let started = said(&mut client);
+    assert!(started.ends_with("current value is 0:01:00"), "{started}");
+    request(&mut client, "org.timer.stop", (2, 0), None);
+    assert_eq!(said(&mut client), "Timer stopped");
+    let range = json!({ "start": { "line": 0, "character": 0 }, "end": { "line": 2, "character": 0 } });
+    // The cursor at the end of the selection.
+    let end = json!({ "line": 2, "character": 0 });
+    let asked = call(&mut client, json!({ "range": range, "position": end }));
+    assert_eq!(asked["input"]["kind"], "text", "{asked}");
+    call(&mut client, json!({ "range": range, "position": end, "input": "" }));
+    let Message::Request(edit) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Request(request) if request.method == "workspace/applyEdit"),
+    ) else {
+        unreachable!()
+    };
+    let edits: Vec<TextEdit> = serde_json::from_value(edit.params["edit"]["changes"][list.as_str()].clone()).unwrap();
+    assert_eq!(apply_text_edits(items, &edits), "- 0:00:00 :: a\n- 0:01:30 :: b\n");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }
@@ -2032,6 +2070,13 @@ fn edits_through_emacs() {
     assert_eq!(text, "** A\n** B\none\ntwo\n");
     run(&mut client, &mut text, &mut version, "org.table.hline", (2, 0), region((2, 0), (4, 0)));
     assert_eq!(text, "** A\n** B\n- one\n- two\n");
+    // In a table, cutting the cells of the region and pasting them as a
+    // rectangle (`org-table-cut-region`, `org-table-paste-rectangle`).
+    replace(&mut client, &mut text, &mut version, "| a | b |\n| c | d |\n".to_string());
+    run(&mut client, &mut text, &mut version, "org.cut.subtree", (0, 2), region((0, 2), (1, 3)));
+    assert_eq!(text, "|   | b |\n|   | d |\n");
+    run(&mut client, &mut text, &mut version, "org.paste.subtree", (0, 6), json!({}));
+    assert_eq!(text, "|   | a |\n|   | c |\n");
     // `#` in the export menu: the options template of a backend.
     replace(&mut client, &mut text, &mut version, "* Head\n".to_string());
     let (asked, _) = run(&mut client, &mut text, &mut version, "org.export.dispatch", (0, 0), json!({ "input": "#" }));

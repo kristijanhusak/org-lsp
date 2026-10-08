@@ -3935,6 +3935,19 @@ impl Server {
             }
             commands::SORT => self.sort(&context.ok_or("This command needs the cursor position")?),
             commands::SPARSE_TREE => self.sparse_tree(&context.ok_or("This command needs the cursor position")?),
+            // In a table, `org-cut-special` and its neighbours cut, copy and
+            // paste the cells of the region, or of the field (Emacs's own
+            // clipboard, `org-table-clip`).
+            commands::CUT_SUBTREE | commands::COPY_SUBTREE | commands::PASTE_SUBTREE
+                if context.as_ref().is_some_and(|context| self.at_table(context)) =>
+            {
+                let command = match params.command.as_str() {
+                    commands::CUT_SUBTREE => "org-table-cut-region",
+                    commands::COPY_SUBTREE => "org-table-copy-region",
+                    _ => "org-table-paste-rectangle",
+                };
+                self.emacs_run(command, &context.expect("a context"))
+            }
             commands::CUT_SUBTREE | commands::COPY_SUBTREE | commands::PASTE_SUBTREE => {
                 self.subtree_clipboard(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
@@ -7719,6 +7732,37 @@ impl Server {
             commands::BABEL_LOB_INGEST => {
                 let path = uri::to_path(&context.text_document.uri).ok_or("Only a file on disk can be ingested")?;
                 self.emacs_run_with("org-babel-lob-ingest", vec![json!(path.to_string_lossy())], context)
+            }
+            // `C-u C-u`, or a selection: the timer values of the region
+            // shifted (`org-timer-change-times-in-region`).
+            commands::TIMER_START if context.count == Some(16) || Self::has_region(context) => {
+                if !Self::has_region(context) {
+                    return Err("The mark is not set now, so there is no region".into());
+                }
+                let Some(answer) = answer else {
+                    return Ok(json!({ "input": {
+                        "kind": "text",
+                        "prompt": "Enter time difference like \"-1:08:26\".  Default is first time to zero",
+                        "value": "",
+                    } }));
+                };
+                self.emacs_run_with("org-lsp-bridge-timer-shift", vec![json!(answer)], context)
+            }
+            // `C-u`: started with an offset, the timer value at the cursor
+            // by default.
+            commands::TIMER_START if context.count == Some(4) => {
+                let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+                let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+                let default =
+                    org_core::timestr::timer_value_at(&document.text, offset).unwrap_or_else(|| "0:00:00".to_string());
+                let Some(answer) = answer else {
+                    return Ok(json!({ "input": {
+                        "kind": "text",
+                        "prompt": format!("Restart timer with offset [{default}]"),
+                        "value": "",
+                    } }));
+                };
+                self.emacs_run_with("org-lsp-bridge-timer-offset", vec![json!(answer), json!(default)], context)
             }
             commands::TIMER_START => self.emacs_run("org-timer-start", context),
             commands::TIMER_INSERT => self.emacs_run("org-timer", context),
