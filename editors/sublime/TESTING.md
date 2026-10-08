@@ -50,6 +50,9 @@ here and why.
 - [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: `Ctrl+C Ctrl+F`, `Ctrl+C Ctrl+B`
 - [ ] Moving to the parent heading; on a top heading Org says it is at the top level: `Ctrl+C Ctrl+U`
 - [ ] Going to a heading picked by its outline path (`A/B/`): `Ctrl+C Ctrl+J`
+- [ ] Off a table, turning a line into a heading and back (needs Emacs): `Ctrl+C *`
+- [ ] Toggling `COMMENT` on the heading (needs Emacs): `Ctrl+C ;`
+- [ ] Cloning the subtree twice a week apart (`+1w`): the copies follow it with their dates moved (needs Emacs): `Ctrl+C Ctrl+X c`
 - [ ] The outline lists the headings nested: *Goto Symbol*
 
 ## Lists and checkboxes
@@ -62,6 +65,7 @@ here and why.
 - [ ] Toggling a checkbox: its parent box and the `[1/3]` cookie follow: `Ctrl+C Ctrl+C`
 - [ ] On a list numbered 1, 3, 2, the same command renumbers and repairs it: `Ctrl+C Ctrl+C`
 - [ ] Sorting a list's items alphabetically: `Ctrl+C ^`
+- [ ] Off a table, turning lines into items and back (needs Emacs): `Ctrl+C -`
 
 ## TODO keywords
 
@@ -181,6 +185,9 @@ here and why.
 
 - [ ] Following `[fn:1]` goes to its definition, and from the definition back to the reference: `Ctrl+C Ctrl+O`
 - [ ] A reference without a definition is reported
+- [ ] A new footnote (needs Emacs): `[fn:1]` at the cursor, its definition in the `Footnotes` section, the cursor there: `Ctrl+C Ctrl+X f`
+- [ ] On a reference without a definition, Emacs asks whether to make one, in the editor: `Ctrl+C Ctrl+X f`
+- [ ] The footnote menu: sorting, renumbering `fn:N`, normalizing, deleting: *Org: Sort, renumber, normalize or delete footnotes*
 
 ## Tables
 
@@ -254,3 +261,6 @@ here and why.
 - [ ] `#+` keywords, and the values after `#+STARTUP:`
 - [ ] Block names after `#+begin_`, drawer names after `:`
 - [ ] Entities after `\` (`\alp` → `\alpha`)
+- [ ] A block from the structure templates (`s` for a source block) (needs Emacs): `Ctrl+C Ctrl+,`
+- [ ] Emphasis markers around the cursor, `*` for bold (needs Emacs): `Ctrl+C Ctrl+X Ctrl+F`
+- [ ] A drawer, its name completed from the file's (needs Emacs): `Ctrl+C Ctrl+X d`

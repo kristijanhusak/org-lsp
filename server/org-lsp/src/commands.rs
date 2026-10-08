@@ -222,6 +222,15 @@ pub const HEADING_UP: &str = "org.heading.up";
 pub const LINK_NEXT: &str = "org.link.next";
 pub const LINK_PREVIOUS: &str = "org.link.previous";
 pub const GOTO: &str = "org.goto";
+pub const FOOTNOTE_ACTION: &str = "org.footnote.action";
+pub const FOOTNOTE_MENU: &str = "org.footnote.menu";
+pub const TOGGLE_ITEM: &str = "org.toggle.item";
+pub const TOGGLE_HEADING: &str = "org.toggle.heading";
+pub const TOGGLE_COMMENT: &str = "org.toggle.comment";
+pub const EMPHASIZE: &str = "org.emphasize";
+pub const STRUCTURE_TEMPLATE: &str = "org.structure.template";
+pub const DRAWER_INSERT: &str = "org.drawer.insert";
+pub const SUBTREE_CLONE: &str = "org.subtree.clone";
 pub const BABEL_EXECUTE: &str = "org.babel.execute";
 pub const BABEL_EXECUTE_BUFFER: &str = "org.babel.execute.buffer";
 pub const BABEL_EXECUTE_SUBTREE: &str = "org.babel.execute.subtree";
@@ -764,6 +773,56 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>oj")],
         input: Some(Input { kind: "choice", prompt: "Goto" }),
         ..command(GOTO, "Go to a heading of the file")
+    },
+    // Run by Emacs itself (`emacs`): what it changes comes back as an edit,
+    // and the cursor goes where Emacs leaves the point.
+    //
+    // `org-footnote-action`: a new footnote (the reference at the cursor,
+    // the definition in the `Footnotes` section, the cursor there), or from
+    // a reference to its definition and back.
+    Command {
+        emacs: &[key(Org, "C-c C-x f")],
+        vim: &[key(Org, "<Leader>of")],
+        ..command(FOOTNOTE_ACTION, "Make a footnote, or go between a footnote and its definition")
+    },
+    // `org-footnote-action` with the prefix argument: its menu.
+    Command {
+        vim: &[key(Org, "<Leader>oF")],
+        input: Some(Input { kind: "key", prompt: "Footnotes" }),
+        ..command(FOOTNOTE_MENU, "Sort, renumber, normalize or delete footnotes")
+    },
+    // `org-toggle-item` and `org-toggle-heading`: also `C-c -` and `C-c *`
+    // off a table.
+    command(TOGGLE_ITEM, "Turn the line into an item, or the item into a line"),
+    command(TOGGLE_HEADING, "Turn the line into a heading, or the heading into a line"),
+    Command {
+        emacs: &[key(Org, "C-c ;")],
+        vim: &[key(Org, "<Leader>o;")],
+        ..command(TOGGLE_COMMENT, "Toggle the COMMENT keyword of the heading")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x C-f")],
+        vim: &[key(Org, "<Leader>oie")],
+        input: Some(Input { kind: "key", prompt: "Emphasis marker or tag" }),
+        ..command(EMPHASIZE, "Insert emphasis markers")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-,")],
+        vim: &[key(Org, "<Leader>oib")],
+        input: Some(Input { kind: "key", prompt: "Select a key" }),
+        ..command(STRUCTURE_TEMPLATE, "Insert a block (structure template)")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x d")],
+        vim: &[key(Org, "<Leader>oiD")],
+        input: Some(Input { kind: "text", prompt: "Drawer" }),
+        ..command(DRAWER_INSERT, "Insert a drawer")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x c")],
+        vim: &[key(Org, "<Leader>osc")],
+        input: Some(Input { kind: "text", prompt: "Number of clones to produce" }),
+        ..command(SUBTREE_CLONE, "Clone the subtree, shifting its dates")
     },
     // `org-export-dispatch`: Org's export menu, from the backends Emacs
     // has, run by Emacs itself (`emacs`); the file or buffer it makes is

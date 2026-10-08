@@ -94,6 +94,12 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X Ctrl+N` | `org.link.next` | Move to the next link |
 | `Ctrl+C Ctrl+X Ctrl+P` | `org.link.previous` | Move to the previous link |
 | `Ctrl+C Ctrl+J` | `org.goto` | Go to a heading of the file |
+| `Ctrl+C Ctrl+X f` | `org.footnote.action` | Make a footnote, or go between a footnote and its definition |
+| `Ctrl+C ;` | `org.toggle.comment` | Toggle the COMMENT keyword of the heading |
+| `Ctrl+C Ctrl+X Ctrl+F` | `org.emphasize` | Insert emphasis markers |
+| `Ctrl+C Ctrl+,` | `org.structure.template` | Insert a block (structure template) |
+| `Ctrl+C Ctrl+X d` | `org.drawer.insert` | Insert a drawer |
+| `Ctrl+C Ctrl+X c` | `org.subtree.clone` | Clone the subtree, shifting its dates |
 | `Ctrl+C Ctrl+E` | `org.export.dispatch` | Export the file through Emacs |
 | `Ctrl+C Shift+8` | `org.table.recalculate.line` | Recalculate the table's current line |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
@@ -381,6 +387,13 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "b", "s"], "commands": ["org.babel.execute.subtree"] },
   { "before": ["<leader>", "o", "b", "k"], "commands": ["org.babel.remove_result"] },
   { "before": ["<leader>", "o", "j"], "commands": ["org.goto"] },
+  { "before": ["<leader>", "o", "f"], "commands": ["org.footnote.action"] },
+  { "before": ["<leader>", "o", "F"], "commands": ["org.footnote.menu"] },
+  { "before": ["<leader>", "o", ";"], "commands": ["org.toggle.comment"] },
+  { "before": ["<leader>", "o", "i", "e"], "commands": ["org.emphasize"] },
+  { "before": ["<leader>", "o", "i", "b"], "commands": ["org.structure.template"] },
+  { "before": ["<leader>", "o", "i", "D"], "commands": ["org.drawer.insert"] },
+  { "before": ["<leader>", "o", "s", "c"], "commands": ["org.subtree.clone"] },
   { "before": ["<leader>", "o", "e"], "commands": ["org.export.dispatch"] },
   { "before": ["<leader>", "o", "*"], "commands": ["org.table.recalculate"] },
   { "before": ["<leader>", "o", "o"], "commands": ["org.open"] },
@@ -508,6 +521,15 @@ every file; outside Org files the commands say they do not apply):
 | `org.link.next` | Org: Move to the next link |
 | `org.link.previous` | Org: Move to the previous link |
 | `org.goto` | Org: Go to a heading of the file |
+| `org.footnote.action` | Org: Make a footnote, or go between a footnote and its definition |
+| `org.footnote.menu` | Org: Sort, renumber, normalize or delete footnotes |
+| `org.toggle.item` | Org: Turn the line into an item, or the item into a line |
+| `org.toggle.heading` | Org: Turn the line into a heading, or the heading into a line |
+| `org.toggle.comment` | Org: Toggle the COMMENT keyword of the heading |
+| `org.emphasize` | Org: Insert emphasis markers |
+| `org.structure.template` | Org: Insert a block (structure template) |
+| `org.drawer.insert` | Org: Insert a drawer |
+| `org.subtree.clone` | Org: Clone the subtree, shifting its dates |
 | `org.export.dispatch` | Org: Export the file through Emacs |
 | `org.table.recalculate` | Org: Recalculate the table |
 | `org.table.recalculate.line` | Org: Recalculate the table's current line |

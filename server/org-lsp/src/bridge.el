@@ -220,7 +220,12 @@ was to be opened, or the text of an export to a buffer."
 
 (defconst org-lsp-bridge--commands
   '(org-ctrl-c-ctrl-c org-babel-execute-maybe org-babel-execute-buffer
-    org-babel-execute-subtree org-babel-remove-result-one-or-many)
+    org-babel-execute-subtree org-babel-remove-result-one-or-many
+    org-footnote-action org-footnote-sort org-footnote-renumber-fn:N
+    org-footnote-normalize org-footnote-delete
+    org-toggle-item org-toggle-heading org-toggle-comment org-emphasize
+    org-insert-structure-template org-insert-drawer
+    org-clone-subtree-with-time-shift org-lsp-bridge-footnote-renumber-and-sort)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--message nil
@@ -234,8 +239,11 @@ was to be opened, or the text of an export to a buffer."
 
 (defun org-lsp-bridge-run (params)
   "Run the command PARAMS names in its document, at its point: the text it
-leaves, where the point is then, and what Emacs said last."
-  (let ((command (intern (alist-get 'command params))))
+leaves, where the point is then, and what Emacs said last. With `args' it
+is called with them (a number stands for a character where the command
+wants one), else interactively."
+  (let ((command (intern (alist-get 'command params)))
+        (args (append (alist-get 'args params) nil)))
     (unless (memq command org-lsp-bridge--commands)
       (error "org-lsp does not run %s" command))
     (setq org-lsp-bridge--message nil)
@@ -243,11 +251,25 @@ leaves, where the point is then, and what Emacs said last."
       (advice-add 'message :around #'org-lsp-bridge--record-message)
       (unwind-protect
           (let ((current-prefix-arg nil))
-            (call-interactively command))
+            (if (or args (not (commandp command)))
+                (apply command args)
+              (call-interactively command)))
         (advice-remove 'message #'org-lsp-bridge--record-message))
       `((text . ,(buffer-substring-no-properties (point-min) (point-max)))
         (point . ,(point))
         (message . ,org-lsp-bridge--message)))))
+
+(defun org-lsp-bridge-footnote-renumber-and-sort ()
+  "`S' in `org-footnote-action''s menu."
+  (org-footnote-renumber-fn:N)
+  (org-footnote-sort))
+
+;;; What the server asks about
+
+(defun org-lsp-bridge-structure-templates (_params)
+  "`org-structure-template-alist': each key with the type it inserts."
+  (vconcat (mapcar (lambda (entry) (vector (car entry) (cdr entry)))
+                   org-structure-template-alist)))
 
 ;;; The loop
 

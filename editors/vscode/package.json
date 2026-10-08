@@ -591,6 +591,51 @@
         "category": "Org"
       },
       {
+        "command": "org.footnote.action",
+        "title": "Make a footnote, or go between a footnote and its definition",
+        "category": "Org"
+      },
+      {
+        "command": "org.footnote.menu",
+        "title": "Sort, renumber, normalize or delete footnotes",
+        "category": "Org"
+      },
+      {
+        "command": "org.toggle.item",
+        "title": "Turn the line into an item, or the item into a line",
+        "category": "Org"
+      },
+      {
+        "command": "org.toggle.heading",
+        "title": "Turn the line into a heading, or the heading into a line",
+        "category": "Org"
+      },
+      {
+        "command": "org.toggle.comment",
+        "title": "Toggle the COMMENT keyword of the heading",
+        "category": "Org"
+      },
+      {
+        "command": "org.emphasize",
+        "title": "Insert emphasis markers",
+        "category": "Org"
+      },
+      {
+        "command": "org.structure.template",
+        "title": "Insert a block (structure template)",
+        "category": "Org"
+      },
+      {
+        "command": "org.drawer.insert",
+        "title": "Insert a drawer",
+        "category": "Org"
+      },
+      {
+        "command": "org.subtree.clone",
+        "title": "Clone the subtree, shifting its dates",
+        "category": "Org"
+      },
+      {
         "command": "org.export.dispatch",
         "title": "Export the file through Emacs",
         "category": "Org"
@@ -3662,6 +3707,36 @@
       {
         "command": "org.goto",
         "key": "ctrl+c ctrl+j",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.footnote.action",
+        "key": "ctrl+c ctrl+x f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.toggle.comment",
+        "key": "ctrl+c ;",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.emphasize",
+        "key": "ctrl+c ctrl+x ctrl+f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.structure.template",
+        "key": "ctrl+c ctrl+,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.drawer.insert",
+        "key": "ctrl+c ctrl+x d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.subtree.clone",
+        "key": "ctrl+c ctrl+x c",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

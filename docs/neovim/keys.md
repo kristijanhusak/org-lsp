@@ -90,6 +90,13 @@ The other options are in [configuration.md](configuration.md).
 | `]l` | `org.link.next` | Move to the next link |
 | `[l` | `org.link.previous` | Move to the previous link |
 | `<Leader>oj` | `org.goto` | Go to a heading of the file |
+| `<Leader>of` | `org.footnote.action` | Make a footnote, or go between a footnote and its definition |
+| `<Leader>oF` | `org.footnote.menu` | Sort, renumber, normalize or delete footnotes |
+| `<Leader>o;` | `org.toggle.comment` | Toggle the COMMENT keyword of the heading |
+| `<Leader>oie` | `org.emphasize` | Insert emphasis markers |
+| `<Leader>oib` | `org.structure.template` | Insert a block (structure template) |
+| `<Leader>oiD` | `org.drawer.insert` | Insert a drawer |
+| `<Leader>osc` | `org.subtree.clone` | Clone the subtree, shifting its dates |
 | `<Leader>oe` | `org.export.dispatch` | Export the file through Emacs |
 | `<Leader>o*` | `org.table.recalculate` | Recalculate the table |
 | `<Leader>oo` | `org.open` | Open the link or thing at the cursor |
@@ -217,6 +224,8 @@ The other options are in [configuration.md](configuration.md).
 | `org.table.next.field` | Go to the next table field, making a row after the last |
 | `org.table.previous.field` | Go to the previous table field |
 | `org.table.hline.above` | Insert a rule above the table row |
+| `org.toggle.item` | Turn the line into an item, or the item into a line |
+| `org.toggle.heading` | Turn the line into a heading, or the heading into a line |
 | `org.table.recalculate.line` | Recalculate the table's current line |
 | `org.table.iterate` | Recalculate the table until it does not change |
 | `org.link.insert.last` | Insert the last stored link |
