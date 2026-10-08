@@ -32,7 +32,7 @@ The Neovim plugin is the repository itself (`lua/`, `plugin/`): install
 | [Links](../../docs/parity.md#links) | 100% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
 | [Tables](../../docs/parity.md#tables) | 94% | ✅ |  |
-| [Table formulas](../../docs/parity.md#table-formulas) | 92% | ✅ |  |
+| [Table formulas](../../docs/parity.md#table-formulas) | 100% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 100% | ✅ |  |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 89% | ✅ |  |
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |

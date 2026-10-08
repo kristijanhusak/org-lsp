@@ -298,6 +298,7 @@ pub const BABEL_REMOVE_RESULT: &str = "org.babel.remove_result";
 pub const TABLE_RECALCULATE: &str = "org.table.recalculate";
 pub const TABLE_RECALCULATE_LINE: &str = "org.table.recalculate.line";
 pub const TABLE_ITERATE: &str = "org.table.iterate";
+pub const TABLE_FORMULA_DEBUGGER: &str = "org.table.formula.debugger";
 pub const ARCHIVE_SUBTREE: &str = "org.archive.subtree";
 pub const ARCHIVE_SIBLING: &str = "org.archive.sibling";
 pub const ARCHIVE_TAG: &str = "org.archive.tag";
@@ -1196,6 +1197,14 @@ pub const COMMANDS: &[Command] = &[
     Command { vim: &[key(Org, "<Leader>o*")], ..edit(TABLE_RECALCULATE, "Recalculate the table") },
     Command { emacs: &[key(Org, "C-c *")], ..edit(TABLE_RECALCULATE_LINE, "Recalculate the table's current line") },
     edit(TABLE_ITERATE, "Recalculate the table until it does not change"),
+    // `org-table-toggle-formula-debugger`: while it is on, recalculating
+    // goes through Emacs, which asks after each formula whether to go on,
+    // its substitution history with the question.
+    Command {
+        emacs: &[key(Org, "C-c {")],
+        vim: &[key(Org, "<Leader>o{")],
+        ..command(TABLE_FORMULA_DEBUGGER, "Turn the formula debugger on or off")
+    },
     // `org-open-at-point`: a link, a timestamp, a footnote, a tag, or the
     // links of the entry; in the agenda the links of the line's entry
     // (`org-agenda-open-link`).

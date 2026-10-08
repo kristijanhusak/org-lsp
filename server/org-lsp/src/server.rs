@@ -698,6 +698,9 @@ struct Server {
     conceal: highlight::Conceal,
     /// `org-pretty-entities`
     pretty_entities: bool,
+    /// `org-table-formula-debug`: recalculating goes through Emacs, which
+    /// asks after each formula.
+    formula_debug: bool,
     /// Sub- and superscripts shown (`org-pretty-entities` with
     /// `org-pretty-entities-include-sub-superscripts`), and whether they
     /// need braces (`org-use-sub-superscripts` `{}`).
@@ -1044,6 +1047,7 @@ pub fn run(connection: Connection) -> Result<()> {
         calendar_months: options.calendar_months.unwrap_or(3),
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         pretty_entities: options.pretty_entities.unwrap_or(false),
+        formula_debug: false,
         pretty_scripts: match (
             options.pretty_entities.unwrap_or(false)
                 && options.pretty_entities_include_sub_superscripts.unwrap_or(true),
@@ -4190,6 +4194,12 @@ impl Server {
                 &context.ok_or("This command needs the cursor position")?,
             ),
             commands::TANGLE => self.tangle(&context.ok_or("This command needs the cursor position")?),
+            commands::TABLE_FORMULA_DEBUGGER => {
+                self.formula_debug = !self.formula_debug;
+                let state = if self.formula_debug { "on" } else { "off" };
+                self.message = Some(format!("Formula debugging has been turned {state}"));
+                Ok(Value::Null)
+            }
             commands::DETANGLE => self.detangle(&context.ok_or("This command needs the cursor position")?),
             commands::EXPORT => self.export(&context.ok_or("This command needs the cursor position")?),
             commands::HEADING_NEXT
@@ -9251,6 +9261,10 @@ impl Server {
     /// The edit `id` at `context`, by org-lsp; but a table whose formulas
     /// only Emacs computes is recalculated there.
     fn edit_or_recalculate(&mut self, context: &Context, id: &str) -> std::result::Result<Value, Refusal> {
+        // With the formula debugger on, Emacs recalculates.
+        if self.formula_debug && self.recalculates(context, id) {
+            return self.emacs_recalculate(id, context);
+        }
         match self.edit_with(context, id, None, &Extra::default()) {
             Err(Refusal::Failed(message)) if org_core::tblfm::needs_emacs(&message) => {
                 self.emacs_recalculate(id, context)
@@ -9259,19 +9273,42 @@ impl Server {
         }
     }
 
+    /// Whether `id` at `context` recalculates a table: `C-c *` and its
+    /// forms, or `C-c C-c` on a `#+TBLFM:` line.
+    fn recalculates(&self, context: &Context, id: &str) -> bool {
+        if matches!(id, commands::TABLE_RECALCULATE | commands::TABLE_RECALCULATE_LINE | commands::TABLE_ITERATE) {
+            return true;
+        }
+        let Some(document) = self.document(&context.text_document.uri) else { return false };
+        let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+        id == commands::CHECKBOX_TOGGLE && org_core::tblfm::on_formula_line(&document.text, offset)
+    }
+
     /// `org-table-recalculate` (`C-c *`, `C-u C-c *`), `org-table-iterate`
     /// or, on a `#+TBLFM:` line, `org-table-calc-current-TBLFM`, in Emacs:
-    /// for the formulas org-lsp leaves to it.
+    /// for the formulas org-lsp leaves to it, and for all of them while the
+    /// formula debugger is on.
     fn emacs_recalculate(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
         let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, self.client.encoding);
-        if org_core::tblfm::on_formula_line(&document.text, offset) {
-            return self.emacs_run("org-table-calc-current-TBLFM", context);
+        let (command, args) = if org_core::tblfm::on_formula_line(&document.text, offset) {
+            ("org-table-calc-current-TBLFM", vec![])
+        } else {
+            match id {
+                commands::TABLE_RECALCULATE => ("org-table-recalculate", vec![json!(true)]),
+                commands::TABLE_ITERATE => ("org-table-iterate", vec![]),
+                _ => ("org-table-recalculate", vec![]),
+            }
+        };
+        if self.formula_debug {
+            let mut wrapped = vec![json!(command)];
+            wrapped.extend(args);
+            return self.emacs_run_with("org-lsp-bridge-debug-formulas", wrapped, context);
         }
-        match id {
-            commands::TABLE_RECALCULATE => self.emacs_run_with("org-table-recalculate", vec![json!(true)], context),
-            commands::TABLE_ITERATE => self.emacs_run("org-table-iterate", context),
-            _ => self.emacs_run("org-table-recalculate", context),
+        if args.is_empty() {
+            self.emacs_run(command, context)
+        } else {
+            self.emacs_run_with(command, args, context)
         }
     }
 

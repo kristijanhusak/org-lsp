@@ -1239,6 +1239,13 @@
     }
   },
   {
+    "caption": "Org: Turn the formula debugger on or off",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.formula.debugger"
+    }
+  },
+  {
     "caption": "Org: Open the link or thing at the cursor",
     "command": "org_lsp_run",
     "args": {

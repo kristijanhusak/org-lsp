@@ -200,6 +200,7 @@ here and why.
 - [ ] Date arithmetic (`$2=$1+7`) on timestamps
 - [ ] Iterating until the table is stable: the code action *Recalculate the table until it does not change*
 - [ ] An Emacs Lisp formula `$3='(+ $1 $2);N` and a remote reference `remote(name,@1$1)` are computed by Emacs (needs Emacs): the code action *Recalculate the table*
+- [ ] With the formula debugger on, recalculating shows each formula's substitution history and asks whether to go on (needs Emacs): the code action *Turn the formula debugger on or off*
 
 ## Code blocks (Babel)
 
