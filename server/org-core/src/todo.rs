@@ -53,6 +53,12 @@ pub struct Settings {
     pub log_done: Option<Logging>,
     /// `org-log-repeat`
     pub log_repeat: Option<Logging>,
+    /// `org-enforce-todo-dependencies`: an entry is not done while a
+    /// child is not, or an earlier sibling under `ORDERED` is not.
+    pub enforce_todo_dependencies: bool,
+    /// `org-enforce-todo-checkbox-dependencies`: an entry is not done
+    /// while it has an unchecked box.
+    pub enforce_todo_checkbox_dependencies: bool,
     /// `org-log-reschedule`
     pub log_reschedule: Option<Logging>,
     /// `org-log-redeadline`
@@ -72,6 +78,8 @@ impl Default for Settings {
         Settings {
             log_done: None,
             log_repeat: Some(Logging::Time),
+            enforce_todo_dependencies: false,
+            enforce_todo_checkbox_dependencies: false,
             log_reschedule: None,
             log_redeadline: None,
             log_into_drawer: None,
@@ -1010,6 +1018,72 @@ impl<'a> Editor<'a> {
         })
     }
 
+    /// `org-blocker-hook` with `org-block-todo-from-checkboxes` and
+    /// `org-block-todo-from-children-or-siblings-or-parent`: why the entry
+    /// may not go from `this` to the done state `state`, if it may not.
+    fn blocked(&self, this: &Option<String>, state: &Option<String>) -> Option<String> {
+        let settings = self.settings;
+        if !settings.enforce_todo_dependencies && !settings.enforce_todo_checkbox_dependencies {
+            return None;
+        }
+        let to = state.as_deref()?;
+        if this.as_deref().is_some_and(|this| self.keywords.is_done(this)) || !self.keywords.is_done(to) {
+            return None;
+        }
+        if settings.enforce_todo_checkbox_dependencies {
+            static UNCHECKED: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+                regex::Regex::new(
+                    r"(?m)^[ \t]*(?:[-+]|[ \t]\*|(?:[0-9]+|[A-Za-z])[.)])[ \t]+(?:\[@(?:start:)?(?:[0-9]+|[A-Za-z])\][ \t]*)?\[[- ]\]",
+                )
+                .expect("a valid regex")
+            });
+            if UNCHECKED.is_match(&self.text[self.heading..self.entry_end()]) {
+                return Some("contained checkboxes".to_string());
+            }
+        }
+        if !settings.enforce_todo_dependencies {
+            return None;
+        }
+        let parse = org_syntax::parse(&self.text, self.keywords);
+        let outline = Outline::new(&parse, &self.text, "");
+        let entries = &outline.entries;
+        let index = outline.entry_at(self.heading)?;
+        let open = |entry: usize| entries[entry].todo.is_some() && !entries[entry].done;
+        let quoted =
+            |entry: usize| format!("\"{}\"", org_get_heading(&entries[entry].head, entries[entry].todo.as_deref()));
+        // A child not done.
+        let level = entries[index].level;
+        if let Some(child) =
+            (index + 1..entries.len()).take_while(|&child| entries[child].level > level).find(|&child| open(child))
+        {
+            return Some(quoted(child));
+        }
+        // An earlier sibling not done, under `ORDERED`.
+        let ordered =
+            |entry: usize| entries[entry].properties.iter().any(|(key, value)| key == "ORDERED" && value != "nil");
+        let parent = entries[index].parent?;
+        if ordered(parent) {
+            if let Some(earlier) = (parent + 1..index).find(|&earlier| open(earlier)) {
+                let line = &self.text[entries[earlier].offset..entries[earlier].line_end];
+                return Some(format!("\"{line}\""));
+            }
+        }
+        // An ancestor blocked so.
+        let mut current = parent;
+        loop {
+            if !open(current) {
+                return None;
+            }
+            let above = entries[current].parent?;
+            if ordered(above) {
+                if let Some(earlier) = (above + 1..current).find(|&earlier| open(earlier)) {
+                    return Some(quoted(earlier));
+                }
+            }
+            current = above;
+        }
+    }
+
     /// `org-entry-get` with inheritance and `literal-nil` at the entry.
     fn inherited(&self, name: &str) -> Option<String> {
         let parse = org_syntax::parse(&self.text, self.keywords);
@@ -1264,6 +1338,15 @@ impl<'a> Editor<'a> {
                 Some(state.clone())
             }
         };
+        if top {
+            if let Some(reason) = self.blocked(&this, &state) {
+                return Err(format!(
+                    "TODO state change from {} to {} blocked (by {reason})",
+                    this.as_deref().unwrap_or("nil"),
+                    state.as_deref().unwrap_or("nil"),
+                ));
+            }
+        }
         let replacement = match &state {
             Some(state) => format!(" {state} "),
             None => " ".to_string(),
@@ -1611,6 +1694,39 @@ pub fn edits(old: &str, new: &str) -> Vec<LineEdit> {
     }
     out.extend(open);
     out
+}
+
+/// `org-get-heading` of a headline whose text after the stars is `head`
+/// and keyword `todo`: the keyword, priority, title and tags, a space
+/// apart.
+fn org_get_heading(head: &str, todo: Option<&str>) -> String {
+    let mut rest = head.trim();
+    let mut parts: Vec<&str> = Vec::new();
+    if let Some(todo) = todo {
+        if let Some(after) = rest.strip_prefix(todo) {
+            parts.push(todo);
+            rest = after.trim_start();
+        }
+    }
+    if rest.len() >= 4 && rest.starts_with("[#") && rest.as_bytes()[3] == b']' {
+        parts.push(&rest[..4]);
+        rest = rest[4..].trim_start();
+    }
+    let tags = rest
+        .rfind([' ', '\t'])
+        .map(|at| &rest[at + 1..])
+        .filter(|tags| tags.len() > 1 && tags.starts_with(':') && tags.ends_with(':'));
+    let title = match tags {
+        Some(tags) => rest[..rest.len() - tags.len()].trim_end(),
+        None => rest,
+    };
+    if !title.is_empty() {
+        parts.push(title);
+    }
+    if let Some(tags) = tags {
+        parts.push(tags);
+    }
+    parts.join(" ")
 }
 
 #[cfg(test)]

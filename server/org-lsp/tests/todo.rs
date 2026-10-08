@@ -95,9 +95,20 @@ fn todo_changes_match_emacs() {
         let actual = match target {
             None => "QUIT".to_string(),
             Some(target) => {
-                change_state_with_note(&text, &keywords, offset, &target, &options.todo_settings(), now, Some(note))
-                    .map(|changed| changed.text)
-                    .unwrap_or_else(|error| format!("ERROR: {error}"))
+                match change_state_with_note(
+                    &text,
+                    &keywords,
+                    offset,
+                    &target,
+                    &options.todo_settings(),
+                    now,
+                    Some(note),
+                ) {
+                    Ok(changed) => changed.text,
+                    // A change Org blocked leaves the text, saying why.
+                    Err(error) if case.get("blocked").and_then(Value::as_str) == Some(error.as_str()) => text.clone(),
+                    Err(error) => format!("ERROR: {error}"),
+                }
             }
         };
         compared += 1;

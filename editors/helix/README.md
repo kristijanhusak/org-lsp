@@ -26,7 +26,7 @@ its behalf.
 | [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 67% | ❌ | Helix has no folding. |
 | [Headings and structure](../../docs/parity.md#headings-and-structure) | 100% | ❓ | New headings (`M-RET` and its relatives), moving between headings and `org-goto` are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions. |
 | [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 82% | ❓ | `RET` stays Helix's own, new items, cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them. |
-| [TODO keywords](../../docs/parity.md#todo-keywords) | 83% | ❓ | A note for a state change (`@`) cannot be typed: Helix cannot ask for text on a server's behalf. |
+| [TODO keywords](../../docs/parity.md#todo-keywords) | 86% | ❓ | A note for a state change (`@`) cannot be typed: Helix cannot ask for text on a server's behalf. |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work. |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ❓ | Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. |
