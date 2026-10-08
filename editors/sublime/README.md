@@ -126,7 +126,7 @@ the view at hand. To bind one yourself:
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ✅ |  |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ❓ | Dates are typed, without the calendar: the package asks with an input panel. |
-| [Agenda](../../docs/parity.md#agenda) | 81% | ✅ |  |
+| [Agenda](../../docs/parity.md#agenda) | 86% | ✅ |  |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 82% | ✅ |  |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 82% | ✅ |  |

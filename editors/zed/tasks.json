@@ -247,6 +247,19 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org agenda: write it to a file",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.write",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: the clock report",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.clockreport",
     "tags": [

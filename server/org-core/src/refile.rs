@@ -477,6 +477,19 @@ pub fn new_child(text: &str, parent: Option<usize>, child: &str) -> (String, usi
     (text, at + 1)
 }
 
+/// The entry whose headline is at `heading`, without its children
+/// (`org-copy-subtree` with `nosubtrees`), at the top level as
+/// `org-paste-subtree` puts it there: for `org-agenda-write` to an Org
+/// file.
+pub fn entry_at_top(text: &str, heading: usize, settings: &Settings) -> String {
+    let end = next_heading(text, heading).unwrap_or(text.len());
+    let mut entry = text[heading..end].to_string();
+    if !entry.ends_with('\n') {
+        entry.push('\n');
+    }
+    shift_levels(&entry, 1, settings, false)
+}
+
 /// Where the subtree of the headline at `heading` ends: at the next
 /// headline of the same or a higher level, or at the end of the text.
 pub(crate) fn subtree_end(text: &str, heading: usize) -> usize {

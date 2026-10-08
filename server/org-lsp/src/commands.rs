@@ -132,6 +132,7 @@ pub const AGENDA_QUERY_ADD_REGEXP: &str = "org.agenda.query.add.regexp";
 pub const AGENDA_QUERY_SUBTRACT_REGEXP: &str = "org.agenda.query.subtract.regexp";
 pub const AGENDA_LOG: &str = "org.agenda.log";
 pub const AGENDA_HABITS: &str = "org.agenda.habits";
+pub const AGENDA_WRITE: &str = "org.agenda.write";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
 pub const AGENDA_ENTRY_TEXT: &str = "org.agenda.entry.text";
 pub const AGENDA_FOLLOW: &str = "org.agenda.follow";
@@ -364,6 +365,8 @@ pub const COMMANDS: &[Command] = &[
     // `org-habit-toggle-display-in-agenda`; with `C-u`, every habit today
     // or only those due (`org-habit-show-all-today`).
     Command { emacs: &[key(Agenda, "K")], ..command(AGENDA_HABITS, "Agenda: show or hide habits") },
+    // `org-agenda-write`
+    Command { emacs: &[key(Agenda, "C-x C-w")], ..command(AGENDA_WRITE, "Agenda: write it to a file") },
     Command {
         emacs: &[key(Agenda, "R"), key(Agenda, "v R")],
         ..command(AGENDA_CLOCKREPORT, "Agenda: the clock report")

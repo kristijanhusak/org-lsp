@@ -368,7 +368,7 @@ export const AREAS = [
       ['Diary sexps (`%%(diary-…)` lines, `<%%(…)>` timestamps): the date functions of `diary-lib` and Org (`diary-anniversary`, `-block`, `-cyclic`, `-date`, `-float`, `org-class`…) with `and`, `or`, `not` and comparisons', true],
       ['Diary sexps calling other Lisp', false],
       ['Column view in the agenda', false],
-      ['Writing the agenda to a file (`C-x C-w`)', false],
+      ['Writing the agenda to a file (`C-x C-w`): `.org` and plain text', true],
       ['Appointment reminders (`org-agenda-to-appt`)', false],
     ],
     editors: {

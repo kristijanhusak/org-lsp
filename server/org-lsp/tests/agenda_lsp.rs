@@ -1890,6 +1890,44 @@ fn shows_habits_with_their_graph() {
     client.shutdown();
 }
 
+/// `org-agenda-write`: to an `.org` file the agenda's entries, each
+/// without its children and at the top level, as Emacs writes them; to
+/// any other the agenda's text. An existing file is overwritten once the
+/// user says yes.
+#[test]
+fn writes_the_agenda_to_a_file() {
+    let root = workspace("agenda-write");
+    let notes = root.join("x.org");
+    std::fs::write(&notes, "* TODO A\nbody a\n** Sub a\n* TODO B :t:\n* Proj\n*** TODO C deep\ntext c\n").unwrap();
+    let mut options = clock();
+    options["org_agenda_files"] = json!([notes.display().to_string()]);
+    let mut client = Client::editor(options, None);
+    client.command("org.agenda.todos", VIEW, 0);
+    let shown = client.view_text(VIEW);
+    let write = |client: &mut Client, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        client.request("workspace/executeCommand", json!({ "command": "org.agenda.write", "arguments": [context] }))
+    };
+    let asked = write(&mut client, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Write agenda to file");
+    let org = root.join("out.org");
+    assert_eq!(write(&mut client, json!({ "input": org.display().to_string() })), Ok(Value::Null));
+    assert_eq!(std::fs::read_to_string(&org).unwrap(), "* TODO A\nbody a\n* TODO B :t:\n* TODO C deep\ntext c\n");
+    // Again: asked first.
+    let asked = write(&mut client, json!({ "input": org.display().to_string() })).unwrap();
+    assert!(asked["input"]["prompt"].as_str().unwrap().starts_with("Overwrite existing file"), "{asked}");
+    let refused = write(&mut client, json!({ "input": "n", "answers": asked["input"]["context"]["answers"] }));
+    assert!(refused.unwrap_err().starts_with("Cannot write agenda to file"));
+    let text = root.join("out.txt");
+    assert_eq!(write(&mut client, json!({ "input": text.display().to_string() })), Ok(Value::Null));
+    assert_eq!(std::fs::read_to_string(&text).unwrap(), shown);
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 /// `org-refile-copy` keeps the entry; `org-refile` with `C-u` goes to the
 /// target, and with `C-u C-u` to where the last refile put its entry.
 #[test]

@@ -26,7 +26,7 @@ hand.
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ✅ |  |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ✅ |  |
-| [Agenda](../../docs/parity.md#agenda) | 81% | ❓ | Tags are at column 80, not at the window's edge (`org_agenda_tags_column` `"auto"`): VS Code does not tell an extension how many columns an editor shows. |
+| [Agenda](../../docs/parity.md#agenda) | 86% | ❓ | Tags are at column 80, not at the window's edge (`org_agenda_tags_column` `"auto"`): VS Code does not tell an extension how many columns an editor shows. |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 82% | ✅ |  |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 82% | ✅ |  |
