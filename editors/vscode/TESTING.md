@@ -38,6 +38,7 @@ here and why.
 - [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: `Ctrl+X n s`
 - [ ] Opening the parent of an `:ARCHIVE:` subtree leaves that subtree folded
 - [ ] A sparse tree of the TODO entries folds everything else and highlights them: `Ctrl+C /`
+- [ ] With everything folded, showing the context of a line deep in a subtree opens the headlines above it and leaves the other subtrees folded: `Ctrl+C Ctrl+R`
 
 ## Headings and structure
 

@@ -74,6 +74,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>o<Space>` | `org.table.blank.field` | Blank the table field |
 | `<Leader>o^` | `org.sort` | Sort the entries, the items or the table rows |
 | `<Leader>o/` | `org.sparse.tree` | Show a sparse tree |
+| `<Leader>oR` | `org.reveal` | Show the context of the cursor |
 | `<Leader>osd` | `org.cut.subtree` | Cut the subtree |
 | `<Leader>osy` | `org.copy.subtree` | Copy the subtree |
 | `<Leader>osp` | `org.paste.subtree` | Paste the subtree |
@@ -272,6 +273,8 @@ The other options are in [configuration.md](configuration.md).
 | `org.table.next.field` | Go to the next table field, making a row after the last |
 | `org.table.previous.field` | Go to the previous table field |
 | `org.table.hline.above` | Insert a rule above the table row |
+| `org.reveal.siblings` | Show the context of the cursor, each level with its children |
+| `org.reveal.tree` | Show the whole tree of the cursor's parent |
 | `org.refile.goto` | Go to a refile target |
 | `org.refile.goto.last` | Go to where the last refile put its entry |
 | `org.toggle.item` | Turn the line into an item, or the item into a line |

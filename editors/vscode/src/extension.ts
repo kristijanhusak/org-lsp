@@ -945,12 +945,21 @@ const sparseShown = new Map<string, vscode.Range[]>();
  * A sparse tree (`org-sparse-tree`) in the editor at hand: everything
  * folded, then the regions around each of its lines unfolded, as
  * `org-occur` shows its matches; the matches highlighted until the text
- * changes.
+ * changes. With `keep` (`org-reveal`), only the folds that start on the
+ * lines of `unfold` open; the others stay as they are.
  */
 async function showSparse(running: LanguageClient, result: unknown): Promise<void> {
-  const sparse = (result as { sparse?: { lines?: number[]; highlights?: unknown[] } } | null)?.sparse;
+  type Sparse = { lines?: number[]; highlights?: unknown[]; keep?: boolean; unfold?: number[] };
+  const sparse = (result as { sparse?: Sparse } | null)?.sparse;
   const editor = vscode.window.activeTextEditor;
   if (!sparse || !editor) {
+    return;
+  }
+  if (sparse.keep) {
+    const unfold = sparse.unfold ?? [];
+    if (unfold.length > 0) {
+      await vscode.commands.executeCommand('editor.unfold', { levels: 1, selectionLines: unfold });
+    }
     return;
   }
   const ranges = (sparse.highlights ?? [])

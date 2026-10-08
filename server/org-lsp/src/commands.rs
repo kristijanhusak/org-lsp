@@ -234,6 +234,9 @@ pub const TABLE_HLINE_MOVE: &str = "org.table.hline.move";
 pub const TABLE_BLANK_FIELD: &str = "org.table.blank.field";
 pub const SORT: &str = "org.sort";
 pub const SPARSE_TREE: &str = "org.sparse.tree";
+pub const REVEAL: &str = "org.reveal";
+pub const REVEAL_SIBLINGS: &str = "org.reveal.siblings";
+pub const REVEAL_TREE: &str = "org.reveal.tree";
 pub const CUT_SUBTREE: &str = "org.cut.subtree";
 pub const COPY_SUBTREE: &str = "org.copy.subtree";
 pub const PASTE_SUBTREE: &str = "org.paste.subtree";
@@ -746,6 +749,17 @@ pub const COMMANDS: &[Command] = &[
         input: Some(Input { kind: "key", prompt: "Sparse tree" }),
         ..command(SPARSE_TREE, "Show a sparse tree")
     },
+    // `org-reveal`: the context of the cursor shown, the other folds left
+    // as they are; the result has `sparse` with `keep`. With `C-u`, which
+    // no editor binds as a prefix, each level with its entry and children
+    // (`canonical`), with `C-u C-u` the parent's whole tree.
+    Command {
+        emacs: &[key(Org, "C-c C-r")],
+        vim: &[key(Org, "<Leader>oR")],
+        ..command(REVEAL, "Show the context of the cursor")
+    },
+    command(REVEAL_SIBLINGS, "Show the context of the cursor, each level with its children"),
+    command(REVEAL_TREE, "Show the whole tree of the cursor's parent"),
     // The subtree to and from the clipboard: the result of cutting and
     // copying has the text to put there in `copy`.
     Command {

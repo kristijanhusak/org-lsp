@@ -12,7 +12,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | Feature | Parity | Done |
 | --- | --- | --- |
 | [Highlighting](#highlighting) | 92% | 12 of 13 |
-| [Folding and visibility](#folding-and-visibility) | 88% | 7 of 8 |
+| [Folding and visibility](#folding-and-visibility) | 100% | 8 of 8 |
 | [Headings and structure](#headings-and-structure) | 100% | 12 of 12 |
 | [Lists and checkboxes](#lists-and-checkboxes) | 100% | 10 of 10 |
 | [TODO keywords](#todo-keywords) | 100% | 8 of 8 |
@@ -67,7 +67,7 @@ Where editors fall short:
 
 ## Folding and visibility
 
-88% (7 of 8)
+100% (8 of 8)
 
 - ✅ Cycling a subtree (`TAB`): folded, children, subtree
 - ✅ Cycling the file (`S-TAB`): overview, contents, everything
@@ -76,7 +76,7 @@ Where editors fall short:
 - ✅ Archived subtrees left folded (`org-cycle-hide-archived-subtrees`)
 - ✅ Sparse trees (`C-c /`)
 - ✅ Narrowing to a subtree or block (`C-x n s`, `C-x n b`) and the subtree in an indirect buffer (`C-c C-x b`): it in a file of its own, all there is to see there, written back each time it is saved
-- ❌ Showing the context of the cursor (`org-reveal`, `C-c C-r`)
+- ✅ Showing the context of the cursor (`org-reveal`, `C-c C-r`): its entry, the next headline, its siblings and its ancestors, the other folds left as they are; `org.reveal.siblings` (`C-u`) each level with its children, `org.reveal.tree` (`C-u C-u`) the parent's whole tree
 
 Where editors fall short:
 

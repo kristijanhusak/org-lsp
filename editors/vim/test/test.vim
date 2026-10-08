@@ -570,6 +570,13 @@ function! s:sparse() abort
   let Marked = {line -> empty(prop_type_get('org_lsp_sparse')) ? 0 : len(prop_list(line, {'types': ['org_lsp_sparse']}))}
   call s:until('the matches highlighted', {-> Marked(2) == 1 && Marked(6) == 1})
   call assert_equal([-1, -1, 7], [foldclosed(2), foldclosed(6), foldclosed(8)])
+  " `\oR` (`org-reveal`): the cursor's context shown, the other folds
+  " left as they are.
+  normal! zM
+  call cursor(6, 1)
+  call feedkeys("\\oR", 'xt')
+  call s:until('the context of the cursor shown', {-> foldclosed(6) == -1})
+  call assert_equal([-1, 1, 7], [foldclosed(5), foldclosed(2), foldclosed(8)])
   normal! zR
 endfunction
 call s:test('makes a sparse tree', function('s:sparse'))

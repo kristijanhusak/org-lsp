@@ -118,7 +118,7 @@ the view at hand. To bind one yourself:
 | Feature | Parity | Sublime Text | What does not work, and why |
 | --- | --- | --- | --- |
 | [Highlighting](../../docs/parity.md#highlighting) | 92% | ❓ | Links, emphasis markers and pretty entities are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's `semantic_highlighting` on. |
-| [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 88% | ✅ |  |
+| [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 100% | ✅ |  |
 | [Headings and structure](../../docs/parity.md#headings-and-structure) | 100% | ✅ |  |
 | [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 100% | ✅ |  |
 | [TODO keywords](../../docs/parity.md#todo-keywords) | 100% | ✅ |  |

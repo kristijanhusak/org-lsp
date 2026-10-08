@@ -78,6 +78,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Enter` | `org.table.hline.move` | Insert a rule below the table row and go below it |
 | `Ctrl+C Shift+6` | `org.sort` | Sort the entries, the items or the table rows |
 | `Ctrl+C /` | `org.sparse.tree` | Show a sparse tree |
+| `Ctrl+C Ctrl+R` | `org.reveal` | Show the context of the cursor |
 | `Ctrl+C Ctrl+X Ctrl+W` | `org.cut.subtree` | Cut the subtree |
 | `Ctrl+C Ctrl+X Alt+W` | `org.copy.subtree` | Copy the subtree |
 | `Ctrl+C Ctrl+X Ctrl+Y` | `org.paste.subtree` | Paste the subtree |
@@ -444,6 +445,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "<Space>"], "commands": ["org.table.blank.field"] },
   { "before": ["<leader>", "o", "^"], "commands": ["org.sort"] },
   { "before": ["<leader>", "o", "/"], "commands": ["org.sparse.tree"] },
+  { "before": ["<leader>", "o", "R"], "commands": ["org.reveal"] },
   { "before": ["<leader>", "o", "s", "d"], "commands": ["org.cut.subtree"] },
   { "before": ["<leader>", "o", "s", "y"], "commands": ["org.copy.subtree"] },
   { "before": ["<leader>", "o", "s", "p"], "commands": ["org.paste.subtree"] },
@@ -598,6 +600,9 @@ every file; outside Org files the commands say they do not apply):
 | `org.table.blank.field` | Org: Blank the table field |
 | `org.sort` | Org: Sort the entries, the items or the table rows |
 | `org.sparse.tree` | Org: Show a sparse tree |
+| `org.reveal` | Org: Show the context of the cursor |
+| `org.reveal.siblings` | Org: Show the context of the cursor, each level with its children |
+| `org.reveal.tree` | Org: Show the whole tree of the cursor's parent |
 | `org.cut.subtree` | Org: Cut the subtree |
 | `org.copy.subtree` | Org: Copy the subtree |
 | `org.paste.subtree` | Org: Paste the subtree |

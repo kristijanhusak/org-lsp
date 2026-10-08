@@ -1179,6 +1179,30 @@ fn sorts_entries() {
     client.shutdown();
 }
 
+/// `org-reveal` (`C-c C-r`): the lines to show around the cursor, the
+/// editor's other folds kept; with `C-u` each level's children, with
+/// `C-u C-u` the parent's whole tree.
+#[test]
+fn reveals_the_context() {
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri(), "* A\ntext of A\n** B\n:PROPERTIES:\n:ID: b\n:END:\ntext of B\n*** C\n** D\n*** E\n* F\n");
+    let run = |client: &mut Client, command: &str, line: u32| -> Value {
+        let context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": 0 } });
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+            .unwrap()
+    };
+    let shown = run(&mut client, "org.reveal", 6);
+    assert_eq!(
+        shown["sparse"],
+        json!({ "lines": [0, 2, 3, 6, 7, 8], "highlights": [], "keep": true, "unfold": [0, 2] })
+    );
+    assert_eq!(run(&mut client, "org.reveal.siblings", 6)["sparse"]["lines"], json!([0, 1, 2, 3, 6, 7, 8]));
+    assert_eq!(run(&mut client, "org.reveal.tree", 9)["sparse"]["lines"], json!([8, 9]));
+}
+
 /// `org-sparse-tree`: what to show asked for as a key, then what it
 /// needs; the lines to show and the matches to highlight come back.
 #[test]

@@ -396,8 +396,20 @@ endfunction
 " Show a sparse tree (`org-sparse-tree`) in the current window: all folds
 " closed, then those around each of `sparse.lines` opened, as `org-occur`
 " shows its matches; the matches highlighted (`OrgLspSparseMatch`) until
-" the text changes. The cursor stays.
+" the text changes. The cursor stays. With `keep` (`org-reveal`), only
+" the folds that start on the lines of `unfold` open, outer ones first;
+" the others stay as they are.
 function! s:show_sparse(nr, sparse) abort
+  if get(a:sparse, 'keep', v:false)
+    if &foldenable
+      for line in get(a:sparse, 'unfold', [])
+        if foldclosed(line + 1) == line + 1
+          execute (line + 1) . 'foldopen'
+        endif
+      endfor
+    endif
+    return
+  endif
   highlight default link OrgLspSparseMatch Search
   if empty(prop_type_get('org_lsp_sparse'))
     call prop_type_add('org_lsp_sparse', {'highlight': 'OrgLspSparseMatch', 'priority': 200, 'combine': 1})

@@ -658,6 +658,27 @@
     }
   },
   {
+    "caption": "Org: Show the context of the cursor",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.reveal"
+    }
+  },
+  {
+    "caption": "Org: Show the context of the cursor, each level with its children",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.reveal.siblings"
+    }
+  },
+  {
+    "caption": "Org: Show the whole tree of the cursor's parent",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.reveal.tree"
+    }
+  },
+  {
     "caption": "Org: Cut the subtree",
     "command": "org_lsp_run",
     "args": {

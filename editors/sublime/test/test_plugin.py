@@ -367,6 +367,15 @@ class Tests(unittest.TestCase):
         self.plugin.OrgLspListener().on_modified(self.view)
         self.assertNotIn('org-lsp-sparse', self.view.regions)
 
+    def test_reveals_the_context(self):
+        self.view.text = '* A\nan apple\n* B\nnothing\n'
+        first = self.plugin.fold_region(self.view, {'startLine': 0, 'endLine': 1})
+        second = self.plugin.fold_region(self.view, {'startLine': 2, 'endLine': 3})
+        self.view.folds = {first, second}
+        sparse = {'lines': [0, 1], 'highlights': [], 'keep': True, 'unfold': [0]}
+        self.run_command([('result', {'sparse': sparse})], command='org.reveal')
+        self.assertEqual(self.view.folds, {second})
+
     def test_asks_for_text_and_keys(self):
         self.window.typed = '+1d'
         session = self.run_command(

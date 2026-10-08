@@ -136,7 +136,7 @@ export const AREAS = [
       ['Archived subtrees left folded (`org-cycle-hide-archived-subtrees`)', true],
       ['Sparse trees (`C-c /`)', true],
       ['Narrowing to a subtree or block (`C-x n s`, `C-x n b`) and the subtree in an indirect buffer (`C-c C-x b`): it in a file of its own, all there is to see there, written back each time it is saved', true],
-      ['Showing the context of the cursor (`org-reveal`, `C-c C-r`)', false],
+      ['Showing the context of the cursor (`org-reveal`, `C-c C-r`): its entry, the next headline, its siblings and its ancestors, the other folds left as they are; `org.reveal.siblings` (`C-u`) each level with its children, `org.reveal.tree` (`C-u C-u`) the parent\'s whole tree', true],
     ],
     editors: {
       zed: ['part', 'Zed folds with its own folding: Org\'s cycling and sparse trees need folds an extension can set, which Zed does not offer.'],
@@ -151,6 +151,7 @@ export const AREAS = [
       { text: 'Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it', cmd: 'org.narrow.subtree' },
       { text: 'Opening the parent of an `:ARCHIVE:` subtree leaves that subtree folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'A sparse tree of the TODO entries folds everything else and highlights them', cmd: 'org.sparse.tree', only: ['neovim', 'vim', 'vscode', 'sublime'] },
+      { text: 'With everything folded, showing the context of a line deep in a subtree opens the headlines above it and leaves the other subtrees folded', cmd: 'org.reveal', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'Zed\'s own folds open and close on headlines, drawers and blocks', only: ['zed'] },
     ],
   },
