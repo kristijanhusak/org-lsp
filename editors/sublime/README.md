@@ -58,28 +58,12 @@ say:
 { "rules": [{ "scope": "meta.semantic-token", "background": "#00000101" }] }
 ```
 
-## Settings
+## Using it
 
-*Preferences → Package Settings → LSP → Servers → LSP-org*, or
-*Preferences: LSP-org Settings* in the Command Palette:
-
-| Setting | Meaning |
-| --- | --- |
-| `command` | The server command; by default the package finds or downloads it (see above). |
-| `initializationOptions` | The server's options, such as `{"org_agenda_files": ["~/org"]}`; see [docs/configuration.md](../../docs/configuration.md). The shared `~/.config/org-lsp/config.toml` is read too. |
-| `org_keys` | The keys: `emacs` (the default), `vim` (for Vintage and NeoVintageous, in command mode) or `custom` (none). |
-| `org_messages` | How Org's messages show: `popup` (the default), at the cursor for a few seconds and in the status bar, or `status`, in the status bar only. |
-| `semantic_tokens` | The scopes of the server's tokens; generated. |
-
-## Keys
-
-With `emacs`, Org files get Emacs's keys: `Ctrl+C Ctrl+T` changes the TODO
-state, `Shift+arrows` change the priority, the timestamp under the cursor
-or the TODO state, `Ctrl+C Ctrl+S` schedules, `Ctrl+C Ctrl+W` refiles,
-`Ctrl+C c` captures, `Ctrl+C a` opens the agenda menu, `Tab` and
-`Shift+Tab` cycle folds as Org's TAB and S-TAB do. In a capture buffer,
-`Ctrl+C Ctrl+C` files the entry. Where a command does not apply,
-`Shift+arrows` select and `Tab` indents as usual.
+- [docs/sublime/keys.md](../../docs/sublime/keys.md): every key of both
+  presets (`emacs`, the default, and `vim`), and how to bind your own.
+- [docs/sublime/configuration.md](../../docs/sublime/configuration.md):
+  the package's settings and the server's options, with their defaults.
 
 Files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`)
 show indented by level, without being changed: blanks before the lines,
@@ -89,27 +73,6 @@ wraps into are not indented.
 The agenda and capture need no Org file open: from the Command Palette
 (`Org: Agenda commands`, `Org: Capture`, …) in any view, the package starts the
 server first, with a tab that says so and closes when the agenda opens.
-Their keys are bound in Org files and the agenda only, where `Ctrl+C`
-does not copy.
-
-With `vim`, the Neovim plugin's keys that do not start with a plain letter
-or the leader are bound in command mode (`Tab`, `Ctrl+Space`, `Ctrl+A`,
-…). Bind the others yourself.
-
-The agenda has the same keys with either preset, and in every editor:
-Emacs's agenda keys (`f`, `b`, `.`, `t`, `+`, `Enter`, `Ctrl+C Ctrl+S`,
-…), with `Shift+J` for a date and the views under `v` (`v d`, `v w`), so
-that Vintage and NeoVintageous keep their motions; `q` closes the agenda
-and `g ?` lists its keys.
-
-`Default.sublime-keymap` has every binding, and the Command Palette lists
-every command under *Org:*. *Org: Show the keys* lists the keys bound in
-the view at hand. To bind one yourself:
-
-```json
-{ "keys": ["alt+t"], "command": "org_lsp_run", "args": {"command": "org.todo"},
-  "context": [{"key": "selector", "operand": "text.org"}] }
-```
 
 ## What works
 

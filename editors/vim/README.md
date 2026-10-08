@@ -3,8 +3,12 @@
 The Vim plugin (this folder) runs Org on top of an LSP client:
 yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 
-- [docs/vim/README.md](../../docs/vim/README.md): installing it, the
-  options, what each client needs
+- [docs/vim/README.md](../../docs/vim/README.md): installing it, what
+  each client needs
+- [docs/vim/keys.md](../../docs/vim/keys.md): every key, and how to
+  change it
+- [docs/vim/configuration.md](../../docs/vim/configuration.md): the
+  plugin's options and the server's, with their defaults
 - [TESTING.md](TESTING.md): what to try by hand, once with each client
 
 ## What works
