@@ -118,14 +118,43 @@ function! s:increment() abort
 endfunction
 call s:test('<C-a> changes a timestamp, and increments a number elsewhere', function('s:increment'))
 
+function! s:calendar_window() abort
+  for win in range(1, winnr('$'))
+    if getbufvar(winbufnr(win), '&filetype') ==# 'org-date'
+      return win_getid(win)
+    endif
+  endfor
+  return 0
+endfunction
+
 function! s:deadline() abort
-  let g:answers = ['2026-05-25']
+  let file = win_getid()
   call cursor(6, 3)
   call org_lsp#run('org.deadline')
-  call s:until('the new deadline', {-> getline(7) ==# 'DEADLINE: <2026-05-25 Mon>'})
+  " The calendar at the bottom, the cursor on the day of the deadline
+  " Org proposes (that of the entry's timestamp).
+  call s:until('the calendar', {-> s:calendar_window() == win_getid()})
+  call s:until('the prompt line', {-> getline('$') =~# '^DEADLINE'})
+  call s:until('the calendar as high as its text', {-> s:calendar_window() == win_getid() && winheight(0) == line('$')})
+  call s:until('the cursor on the day', {-> expand('<cword>') ==# '20'})
+  " `j` a week later, `<CR>` takes that day.
+  call feedkeys('j', 'x')
+  call s:until('the selected day a week later', {-> getline('$') =~# '=> <2026-05-27 Wed>'})
+  call s:until('the cursor on it', {-> expand('<cword>') ==# '27'})
+  call feedkeys("\<CR>", 'x')
+  call s:until('the calendar closed', {-> s:calendar_window() == 0})
+  call assert_equal(file, win_getid())
+  call s:until('the new deadline', {-> getline(7) ==# 'DEADLINE: <2026-05-27 Wed>'})
+  " `i` there asks for the date as text.
+  let g:answers = ['2026-05-25']
+  call org_lsp#run('org.deadline')
+  call s:until('the calendar again', {-> s:calendar_window() == win_getid()})
+  call feedkeys('i', 'x')
+  call s:until('the calendar closed again', {-> s:calendar_window() == 0})
+  call s:until('the typed deadline', {-> getline(7) ==# 'DEADLINE: <2026-05-25 Mon>'})
   silent write
 endfunction
-call s:test('asks for a date and sets the deadline', function('s:deadline'))
+call s:test('picks a date in the calendar and sets the deadline', function('s:deadline'))
 
 function! s:agenda_window() abort
   for win in range(1, winnr('$'))
@@ -672,9 +701,11 @@ function! s:code_link_note() abort
   call cursor(5, 8)
   call feedkeys("\\oo", 'xt')
   call s:until('the cursor on the headline', {-> line('.') == 1})
-  " `<Leader>ona` asks for a note and writes it in the entry.
-  let g:answers = ['Looked at it']
+  " `<Leader>ona` opens a buffer for the note, and writes it in the entry.
   call feedkeys("\\ona", 'xt')
+  call s:until('the note buffer', {-> fnamemodify(bufname(), ':t') =~# '^CAPTURE-'})
+  call setline(3, 'Looked at it')
+  call feedkeys("\<C-c>", 'x')
   call s:until('the note in the entry', {-> index(getbufline(file, 1, '$'), '  Looked at it') >= 0})
   silent! execute 'buffer' bufnr(file)
   silent write

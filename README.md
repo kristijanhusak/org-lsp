@@ -34,7 +34,7 @@ hand: [Neovim](editors/neovim/README.md), [Vim](editors/vim/README.md),
 | [Priorities](docs/parity.md#priorities) | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
 | [Tags](docs/parity.md#tags) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [Properties and column view](docs/parity.md#properties-and-column-view) | 100% | ✅ / ❓ / ❓ / ❓ / ❓ / ❓ |
-| [Dates and times](docs/parity.md#dates-and-times) | 100% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
+| [Dates and times](docs/parity.md#dates-and-times) | 100% | ✅ / ✅ / ✅ / ❓ / ❓ / ❓ |
 | [Agenda](docs/parity.md#agenda) | 100% | ✅ / ❓ / ❓ / ❓ / ❓ / ❌ |
 | [Clocking](docs/parity.md#clocking) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [Capture](docs/parity.md#capture) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |

@@ -9,7 +9,7 @@ command! -nargs=* -complete=customlist,org_lsp#complete Org call org_lsp#user_co
 
 augroup org_lsp
   autocmd!
-  autocmd FileType org,org-agenda call org_lsp#attach()
+  autocmd FileType org,org-agenda,org-date call org_lsp#attach()
   autocmd ColorScheme * call org_lsp#define_highlights()
   " A client maps keys of its own (yegappan/lsp's `<CR>`) when it attaches.
   autocmd User LspAttached,lsp_buffer_enabled call org_lsp#remap_insert_keys(bufnr())

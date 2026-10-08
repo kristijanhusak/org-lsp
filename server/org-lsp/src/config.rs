@@ -270,6 +270,11 @@ pub struct Options {
     /// The client reads the agenda's file again when told
     /// (`org-lsp/viewChanged`).
     pub view_changed: Option<bool>,
+    /// The client shows the date prompt's calendar, as a file when it
+    /// cannot fetch documents, read again when told
+    /// (`org-lsp/viewChanged`): for clients that cannot announce
+    /// `experimental.orgDatePrompt`.
+    pub date_prompt: Option<bool>,
     /// `org-refile-targets`: where entries can be refiled to. Without it,
     /// the top-level headlines of the entry's own file.
     #[serde(rename = "org_refile_targets")]

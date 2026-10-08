@@ -345,7 +345,6 @@ export const AREAS = [
       ['Setting a delay or a warning period (`C-u C-u C-c C-s`, `C-u C-u C-c C-d`)', true],
     ],
     editors: {
-      vim: ['part', 'Dates are typed, without the calendar: the Vim plugin asks with an input line.'],
       sublime: ['part', 'Dates are typed, without the calendar: the package asks with an input panel.'],
       zed: ['part', `Scheduling, deadlines and new timestamps are left out: they ask for a date, and ${ZED_TEXT}. Changing a timestamp works.`],
       helix: ['part', `Scheduling, deadlines and new timestamps are left out: they ask for a date, and ${HELIX_TEXT}. Changing a timestamp works.`],

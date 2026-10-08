@@ -25,7 +25,7 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 100% | ❓ | Column view is left out: it draws over the headlines, which Vim cannot. |
-| [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ❓ | Dates are typed, without the calendar: the Vim plugin asks with an input line. |
+| [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ✅ |  |
 | [Agenda](../../docs/parity.md#agenda) | 100% | ❓ | Column view in the agenda is left out: it draws over the lines, which Vim cannot. |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 100% | ✅ |  |

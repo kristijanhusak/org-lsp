@@ -25,7 +25,9 @@ let g:org_lsp = {
 | `src_highlight` | `1` | Highlight the code of source and export blocks (`#+begin_src python`, `#+begin_export html`) and of inline source blocks (`src_python{…}`, to the first `}`) with the syntax file of its language, as Emacs's `org-src-fontify-natively` does. |
 | `win_split_mode` | `'split'` | How the agenda and capture buffers open: `'split'`, `'vsplit'`, `'current'`, or an Ex command that opens a window (`'botright split'`, `'tabnew'`). |
 | `win_split_size` | `0` | How big the window `win_split_mode` opens is: lines for a split, columns for a vertical one (`vsplit`, `vnew`, `vertical`), or below 1 that part of the editor. `0` leaves it as the command makes it. |
-| `mappings` | the server's | Keys by scope (`global`, `org`, `agenda`, `capture`); see [keys.md](keys.md). |
+| `calendar` | `1` | Pick dates in Org's calendar, at the bottom, as Emacs shows it while it asks for a date; `i` there types the date. `0` asks for the date as text only. |
+| `calendar_win_mode` | `'botright split'` | The Ex command that opens the calendar's window (`'topleft split'`, `'botright vsplit'`). A split is as high as the calendar. |
+| `mappings` | the server's | Keys by scope (`global`, `org`, `agenda`, `capture`, `calendar`); see [keys.md](keys.md). |
 
 ## The clock and the timer in the statusline
 

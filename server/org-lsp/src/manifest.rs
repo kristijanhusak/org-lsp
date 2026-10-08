@@ -29,6 +29,8 @@ pub fn manifest() -> Value {
         "datePrompt": {
             "scheme": views::SCHEME,
             "uri": prompt::URI,
+            // The name of the file other clients are shown instead.
+            "fileName": prompt::FILE_NAME,
             "languageId": prompt::LANGUAGE,
         },
         // A capture buffer is an Org file whose name starts with this. Its

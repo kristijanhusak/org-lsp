@@ -1349,8 +1349,21 @@ pub const SETTINGS: &[Setting] = &[
             "boolean",
             "false",
             "",
-            "Whether the server says when it has written the agenda's file anew (`org-lsp/viewChanged`), for a \
+            "Whether the server says when it has written the agenda's or the date prompt's file anew \
+             (`org-lsp/viewChanged` `{ uri }`), for a \
              client that does not see the file change on disk and reads it again when told: the Vim plugin.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
+            "date_prompt",
+            "boolean",
+            "false",
+            "",
+            "Whether the client shows the date prompt's calendar, for a client that cannot announce \
+             `experimental.orgDatePrompt`: the Vim plugin. Without documents fetched from the server, the calendar \
+             is a file the server writes, which the client reads again when told (`view_changed`).",
         )
     },
     Setting {
@@ -1663,6 +1676,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("message_prompts", BOOLEAN),
     ("line_highlights", BOOLEAN),
     ("view_changed", BOOLEAN),
+    ("date_prompt", BOOLEAN),
     ("virtual_indent", BOOLEAN),
     ("command_actions", BOOLEAN),
     ("command_script", STRING),
