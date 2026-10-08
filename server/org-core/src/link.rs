@@ -396,9 +396,18 @@ pub fn heading_search_string(title: &str) -> String {
 
 /// `org-link-precise-link-target`: the search string to the place at
 /// `at`, its description and where it matches.
-fn precise_target(text: &str, at: usize, context: &properties::Context) -> Option<(String, Option<String>, usize)> {
+fn precise_target(
+    text: &str,
+    at: usize,
+    region: Option<(usize, usize)>,
+    context: &properties::Context,
+) -> Option<(String, Option<String>, usize)> {
     let (begin, name) = crate::indent::element_at(text, at).unwrap_or((at, None));
-    let result = if let Some(name) = name {
+    // The active region, as it is (`org-link--context-from-region`), with
+    // no description.
+    let result = if let Some((start, end)) = region {
+        (normalize_string(&text[start..end], true), None, start)
+    } else if let Some(name) = name {
         (name.clone(), Some(name), begin)
     } else if before_first_heading(text, at) {
         let start = line_start(text, at);
@@ -418,6 +427,7 @@ fn precise_target(text: &str, at: usize, context: &properties::Context) -> Optio
 fn file_link_to_here(
     text: &str,
     at: usize,
+    region: Option<(usize, usize)>,
     file: &File,
     context_for_files: bool,
     context: &properties::Context,
@@ -425,7 +435,7 @@ fn file_link_to_here(
     let mut link = format!("file:{}", file.abbreviate(file.path));
     let mut description = None;
     if context_for_files {
-        if let Some((search, desc, _)) = precise_target(text, at, context) {
+        if let Some((search, desc, _)) = precise_target(text, at, region, context) {
             link = format!("{link}::{search}");
             description = desc;
         }
@@ -505,9 +515,11 @@ fn after_insertion(old: &str, new: &str, at: usize) -> usize {
 
 /// `org-id-store-link`: a link to the entry at `at` by its ID, the ID
 /// made when there is none.
+#[allow(clippy::too_many_arguments)]
 fn id_link(
     text: &str,
     at: usize,
+    region: Option<(usize, usize)>,
     file: &File,
     settings: &Settings,
     negate: bool,
@@ -515,7 +527,8 @@ fn id_link(
     new_id: &mut dyn FnMut() -> String,
 ) -> Result<(String, Option<String>, Option<Edited>), String> {
     let context_for_files = settings.context_for_files != negate;
-    let precise = (context_for_files && settings.id_use_context).then(|| precise_target(text, at, context)).flatten();
+    let precise =
+        (context_for_files && settings.id_use_context).then(|| precise_target(text, at, region, context)).flatten();
     let inherit = settings.consider_parent_id && settings.id_use_context && context_for_files;
     let (id, inherited_from, edited) = match entry_id(text, at, inherit, context) {
         Some((id, from)) => (id, from, None),
@@ -555,13 +568,15 @@ fn id_link(
 }
 
 /// `org-store-link` in an Org file at `at`: the link, with its
-/// description. `interactive` is the command (`C-c l`), else the link
-/// capture's `%a` makes; `negate` is `C-u`, which turns
+/// description. `region` is the active region, whose text is the search
+/// of a link to the file; `interactive` is the command (`C-c l`), else the
+/// link capture's `%a` makes; `negate` is `C-u`, which turns
 /// `org-link-context-for-files` around.
 #[allow(clippy::too_many_arguments)]
 pub fn store(
     text: &str,
     at: usize,
+    region: Option<(usize, usize)>,
     file: &File,
     settings: &Settings,
     interactive: bool,
@@ -582,7 +597,7 @@ pub fn store(
     };
     let mut props = Vec::new();
     let (link, description, edited) = if by_id {
-        let (link, description, edited) = id_link(text, at, file, settings, negate, context, new_id)?;
+        let (link, description, edited) = id_link(text, at, region, file, settings, negate, context, new_id)?;
         props = vec![
             (":link".to_string(), link.clone()),
             (":description".to_string(), description.clone().unwrap_or_default()),
@@ -592,7 +607,7 @@ pub fn store(
     } else if let Some(target) = target_at(text, at) {
         (format!("file:{}::{target}", file.abbreviate(file.path)), None, None)
     } else {
-        let (link, description) = file_link_to_here(text, at, file, context_for_files, context);
+        let (link, description) = file_link_to_here(text, at, region, file, context_for_files, context);
         (link, description, None)
     };
     let description = match description {
@@ -602,7 +617,10 @@ pub fn store(
     };
     let custom_id = (interactive && custom_id_here()).then(|| {
         let (current, current_at) = edited.as_ref().map_or((text, at), |(text, cursor)| (text.as_str(), *cursor));
-        file_link_to_here(current, current_at, file, context_for_files, context)
+        // The region, where it is once the ID went in.
+        let region =
+            region.map(|(start, end)| (after_insertion(text, current, start), after_insertion(text, current, end)));
+        file_link_to_here(current, current_at, region, file, context_for_files, context)
     });
     Ok(Store { link, description, custom_id, edited, props })
 }
@@ -905,11 +923,13 @@ fn link_at(text: &str, at: usize) -> Option<((usize, usize), String, Option<Stri
 }
 
 /// `org-insert-link` (`C-c C-l`) at `at`, with `prefix` the `C-u`s (0 to
-/// 3), the answers so far and the stored links.
+/// 3), the answers so far and the stored links. The active region,
+/// `region`, is the link's description, and the link takes its place.
 #[allow(clippy::too_many_arguments)]
 pub fn insert(
     text: &str,
     at: usize,
+    region: Option<(usize, usize)>,
     file: &File,
     stored: &Stored,
     prefix: usize,
@@ -918,8 +938,8 @@ pub fn insert(
     outside: &mut Outside,
 ) -> Result<Step, String> {
     let mut answers = answers.iter();
-    let mut remove = None;
-    let mut description = None;
+    let mut remove = region;
+    let mut description = region.map(|(start, end)| text[start..end].to_string());
     let link;
     // The file and the cursor once an `id:` entry of this file has its ID.
     let mut text = std::borrow::Cow::Borrowed(text);
@@ -981,6 +1001,9 @@ pub fn insert(
                         let (edited, id) = id_get_create(&text, heading, outside.context, outside.new_id)?;
                         if let Some((edited, _)) = edited {
                             at = after_insertion(&text, &edited, at);
+                            remove = remove.map(|(start, end)| {
+                                (after_insertion(&text, &edited, start), after_insertion(&text, &edited, end))
+                            });
                             text = std::borrow::Cow::Owned(edited);
                         }
                         completed = Some(entry_heading(&text, heading, &outside.context.keywords));
@@ -1001,7 +1024,9 @@ pub fn insert(
             };
         }
         link = answer;
-        description = stored.iter().find(|(stored_link, _)| *stored_link == link).and_then(|(_, desc)| desc.clone());
+        // The region's text, else the stored link's description.
+        description = description
+            .or_else(|| stored.iter().find(|(stored_link, _)| *stored_link == link).and_then(|(_, desc)| desc.clone()));
         // `org-id-description`, of an entry whose ID may be new.
         description = description.or(completed);
     }

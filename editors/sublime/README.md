@@ -129,8 +129,8 @@ the view at hand. To bind one yourself:
 | [Agenda](../../docs/parity.md#agenda) | 86% | ✅ |  |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 91% | ✅ |  |
-| [Refile and archive](../../docs/parity.md#refile-and-archive) | 82% | ✅ |  |
-| [Links](../../docs/parity.md#links) | 91% | ✅ |  |
+| [Refile and archive](../../docs/parity.md#refile-and-archive) | 91% | ✅ |  |
+| [Links](../../docs/parity.md#links) | 100% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
 | [Tables](../../docs/parity.md#tables) | 71% | ✅ |  |
 | [Table formulas](../../docs/parity.md#table-formulas) | 83% | ✅ |  |
@@ -145,7 +145,7 @@ the view at hand. To bind one yourself:
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **79%** |  |  |
+| **All of Org** | **80%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

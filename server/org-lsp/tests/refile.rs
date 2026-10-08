@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use org_core::refile::{all_targets, file_title, find, names, new_child, new_node, refile, File, NewNodes};
+use org_core::refile::{self, all_targets, file_title, find, names, new_child, new_node, refile, File, NewNodes};
 use org_lsp::config::{Options, RefileFiles};
 use org_syntax::TodoKeywords;
 use serde_json::Value;
@@ -24,18 +24,24 @@ fn refiling_matches_emacs() {
         let mut named: Vec<(&String, &Value)> = case["files"].as_object().unwrap().iter().collect();
         named.sort_by_key(|(name, _)| *name);
         let mut cursor = None;
+        // `«`: the mark of an active region.
+        let mut mark = None;
         let texts: Vec<String> = named
             .iter()
             .enumerate()
             .map(|(index, (_, text))| {
                 let text = text.as_str().unwrap();
-                if let Some(at) = text.find('¦') {
+                if let Some(at) = text.replacen('«', "", 1).find('¦') {
                     cursor = Some((index, at));
                 }
-                text.replacen('¦', "", 1)
+                if let Some(at) = text.replacen('¦', "", 1).find('«') {
+                    mark = Some(at);
+                }
+                text.replacen('¦', "", 1).replacen('«', "", 1)
             })
             .collect();
         let (current, offset) = cursor.expect("a cursor");
+        let region = mark.map(|mark| refile::region(&texts[current], mark.min(offset), mark.max(offset)));
         let parses: Vec<_> = texts
             .iter()
             .map(|text| org_syntax::parse(text, &TodoKeywords::from_document(text).unwrap_or_default()))
@@ -101,9 +107,11 @@ fn refiling_matches_emacs() {
         };
         let result = picked.and_then(|picked| {
             let Some((file, at)) = picked else { return Ok(None) };
+            let region = region.clone().transpose()?;
             let other = (file != current).then(|| work[file].as_str());
             let keep = case["copy"].as_bool() == Some(true);
-            refile(&work[current], offset, other, at, &options.refile_settings(), keep).map(|done| Some((file, done)))
+            refile(&work[current], offset, region, other, at, &options.refile_settings(), keep)
+                .map(|done| Some((file, done)))
         });
         // `org-log-refile`, at the time Emacs ran at.
         let result = result.map(|refiled| {
@@ -111,9 +119,20 @@ fn refiling_matches_emacs() {
             let todo = options.todo_settings();
             if let Some(at) = done.pasted {
                 let text = done.target.as_mut().unwrap_or(&mut done.source);
+                // A region: the time, in the last headline set up.
+                let at = match region.clone().and_then(Result::ok) {
+                    Some((start, end)) => match refile::region_log_heading(text, at, end - start) {
+                        Some(at) => at,
+                        None => return Some((file, done)),
+                    },
+                    None => at,
+                };
                 if let Some(logged) = org_core::todo::refile_logging(&todo, text) {
-                    let note =
-                        if logged == org_syntax::Logging::Note { case["note"].as_str().unwrap_or("") } else { "" };
+                    let note = if logged == org_syntax::Logging::Note && region.is_none() {
+                        case["note"].as_str().unwrap_or("")
+                    } else {
+                        ""
+                    };
                     let keywords = org_syntax::parse(text, &Default::default()).todo_keywords().clone();
                     let now = org_core::date::DateTime::new(org_core::date::Date::new(2026, 5, 18), 10, 30);
                     *text = org_core::todo::log_refile(text, &keywords, at, &todo, now, note).unwrap();

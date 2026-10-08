@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 79%**
+**All of Org: 80%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -23,8 +23,8 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Agenda](#agenda) | 86% | 18 of 21 |
 | [Clocking](#clocking) | 100% | 8 of 8 |
 | [Capture](#capture) | 91% | 10 of 11 |
-| [Refile and archive](#refile-and-archive) | 82% | 9 of 11 |
-| [Links](#links) | 91% | 10 of 11 |
+| [Refile and archive](#refile-and-archive) | 91% | 10 of 11 |
+| [Links](#links) | 100% | 11 of 11 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
 | [Tables](#tables) | 71% | 12 of 17 |
 | [Table formulas](#table-formulas) | 83% | 10 of 12 |
@@ -277,7 +277,7 @@ Where editors fall short:
 
 ## Refile and archive
 
-82% (9 of 11)
+91% (10 of 11)
 
 - ✅ Refiling to a heading, between files too (`org-refile-targets`)
 - ✅ Archiving a subtree to its archive file
@@ -287,7 +287,7 @@ Where editors fall short:
 - ✅ Archiving all done subtrees
 - ✅ Logging refiles (`org-log-refile`)
 - ✅ Creating parent nodes as the target (`org-refile-allow-creating-parent-nodes`)
-- ❌ Refiling a region
+- ✅ Refiling a region (a selection of whole subtrees)
 - ✅ Copying (`C-c M-w`), going to a target (`C-u C-c C-w`) and to the last refiled entry (`C-u C-u C-c C-w`)
 - ❌ `org-refile-target-verify-function`
 
@@ -297,7 +297,7 @@ Where editors fall short:
 
 ## Links
 
-91% (10 of 11)
+100% (11 of 11)
 
 - ✅ Following links: headlines, targets, custom IDs, files with searches, IDs, URLs, timestamps, tags
 - ✅ Storing and inserting links, with descriptions, editing the link at the cursor
@@ -306,7 +306,7 @@ Where editors fall short:
 - ✅ Backlinks, hovers and clickable links (beyond Emacs: references, document links)
 - ✅ Link abbreviations (`#+LINK:`, `org-link-abbrev-alist`)
 - ✅ Link abbreviations that call a function (`%(…)`), through Emacs, when the function is safe
-- ❌ A region as the search of a stored link
+- ✅ A region as the search of a stored link, and as the description of a link inserted
 - ✅ Completing `id:` links to entries, which get an ID (`org-id-complete`; Org completes no `help:` links)
 - ✅ Default descriptions from the link type: an `id:` link's headline, an `info:` link's command
 - ✅ Moving to the next and previous link (`C-c C-x C-n`, `C-c C-x C-p`)

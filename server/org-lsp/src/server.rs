@@ -5290,7 +5290,15 @@ impl Server {
             let document = self.document(uri).ok_or("The document is not open")?;
             (uri.clone(), document.index.offset(&document.text, context.position, self.client.encoding))
         };
-        self.refile_from(file, offset, None, from_agenda, refile_answer(context).as_deref(), mode)
+        // A selection: the region refiled, whole subtrees or none.
+        let region = match self.region_of(context).filter(|_| !from_agenda && mode != RefileMode::Goto) {
+            Some((start, end)) => {
+                let document = self.document(uri).ok_or("The document is not open")?;
+                Some(refile::region(&document.text, start, end)?)
+            }
+            None => None,
+        };
+        self.refile_from(file, offset, region, None, from_agenda, refile_answer(context).as_deref(), mode)
     }
 
     /// `org-refile-goto-last-stored` (`C-u C-u C-c C-w`): where the last
@@ -5468,10 +5476,12 @@ impl Server {
     /// when that is given rather than as it is now (an entry a capture is
     /// about to add); the edits still turn the file as it is now into the
     /// result.
+    #[allow(clippy::too_many_arguments)]
     fn refile_from(
         &mut self,
         file: Uri,
         offset: usize,
+        region: Option<(usize, usize)>,
         text: Option<String>,
         from_agenda: bool,
         answer: Option<&str>,
@@ -5589,6 +5599,8 @@ impl Server {
                 "Goto".to_string()
             } else if from_agenda {
                 format!("{action} to")
+            } else if region.is_some() {
+                format!("{action} region to")
             } else {
                 format!(
                     "{action} subtree \"{}\" to",
@@ -5639,10 +5651,12 @@ impl Server {
         };
         let made_in = made.as_ref().map(|(file, _)| *file);
         // The entry, after a new target made above it in its own file.
-        let offset = match (&made, target_offset) {
-            (Some((0, text)), Some(heading)) if heading - 1 <= offset => offset + text.len() - readable[0].text.len(),
-            _ => offset,
+        let moved = |at: usize| match (&made, target_offset) {
+            (Some((0, text)), Some(heading)) if heading - 1 <= at => at + text.len() - readable[0].text.len(),
+            _ => at,
         };
+        let offset = moved(offset);
+        let region = region.map(|(start, end)| (moved(start), moved(end)));
         // Back from readable files to all of them.
         let target_file = position.iter().position(|at| *at == Some(target_file)).expect("a readable file");
         let made_text = made.map(|(_, text)| text);
@@ -5672,17 +5686,26 @@ impl Server {
         }
         // The target file's `org-adapt-indentation`, as Emacs pastes there.
         let settings = refile::Settings { adapt: self.adapt_in(other.unwrap_or(source)), ..settings };
-        let mut refiled = refile::refile(source, offset, other, target_offset, &settings, mode == RefileMode::Copy)?;
+        let mut refiled =
+            refile::refile(source, offset, region, other, target_offset, &settings, mode == RefileMode::Copy)?;
         // `org-log-refile`: the time logged in the refiled entry at once, or
         // a note asked for once it is there.
         let into = if refiled.target.is_some() { target_file } else { 0 };
         let mut wanted_note = None;
-        if let Some(at) = refiled.pasted {
+        // A region: the time, in the last headline Org set a note up for.
+        let logged_at = match (refiled.pasted, region) {
+            (Some(at), Some((start, end))) => {
+                let text = refiled.target.as_ref().unwrap_or(&refiled.source);
+                refile::region_log_heading(text, at, end - start)
+            }
+            (pasted, _) => pasted,
+        };
+        if let Some(at) = logged_at {
             use org_syntax::Logging;
             let text = refiled.target.as_mut().unwrap_or(&mut refiled.source);
             let todo_settings = &self.edit_settings.todo;
             match org_core::todo::refile_logging(todo_settings, text) {
-                Some(Logging::Note) if self.client.date_prompt && self.client.show_document => {
+                Some(Logging::Note) if region.is_none() && self.client.date_prompt && self.client.show_document => {
                     wanted_note =
                         Some((uris[into].clone(), LineIndex::new(text).position(text, at, self.client.encoding)));
                 }
@@ -6174,7 +6197,7 @@ impl Server {
             let offset = index.offset(text, position, encoding);
             let property_context = edit::property_context(parse, &edit_settings, &category);
             let file = link::File { path: &path, home: home.as_deref() };
-            link::store(text, offset, &file, &settings, false, false, &property_context, &mut link::new_uuid)
+            link::store(text, offset, None, &file, &settings, false, false, &property_context, &mut link::new_uuid)
                 .map(|made| (made, text.to_string(), version))
         });
         let Some(Ok((made, text, version))) = made else { return (String::new(), Vec::new()) };
@@ -6199,14 +6222,25 @@ impl Server {
         let (uri, offset) = self.command_place(context)?;
         let (path, home) = Self::link_file(&uri).ok_or("This file has no name")?;
         let negate = context.count == Some(4);
+        let region = self.region_of(context).filter(|_| !self.is_view(&context.text_document.uri));
         let (settings, edit_settings, category) =
             (self.link_settings.clone(), self.edit_settings.clone(), uri::file_stem(&uri));
         let (made, text, version) = self
             .with_source(&uri, |text, _, parse, _, version| {
                 let property_context = edit::property_context(parse, &edit_settings, &category);
                 let file = link::File { path: &path, home: home.as_deref() };
-                link::store(text, offset, &file, &settings, true, negate, &property_context, &mut link::new_uuid)
-                    .map(|made| (made, text.to_string(), version))
+                link::store(
+                    text,
+                    offset,
+                    region,
+                    &file,
+                    &settings,
+                    true,
+                    negate,
+                    &property_context,
+                    &mut link::new_uuid,
+                )
+                .map(|made| (made, text.to_string(), version))
             })
             .ok_or("Cannot read the file")?
             .map_err(Refusal::Failed)?;
@@ -6231,6 +6265,7 @@ impl Server {
         let document = self.document(&uri).ok_or("This file is not open")?;
         let (text, version) = (document.text.clone(), document.version);
         let offset = document.index.offset(&text, context.position, encoding);
+        let region = self.region_of(context);
         let (path, home) = Self::link_file(&uri).ok_or("This file has no name")?;
         let file = link::File { path: &path, home: home.as_deref() };
         // The other file an `id:` link's entry got its ID in.
@@ -6333,6 +6368,7 @@ impl Server {
             let step = link::insert(
                 &text,
                 offset,
+                region,
                 &file,
                 &self.stored_links,
                 prefix,
@@ -6612,7 +6648,7 @@ impl Server {
             - done[capture.placed.start..].trim_start_matches(['\n', ' ', '\t']).len();
         let uri = capture.uri.clone();
         let target = capture.target.clone();
-        let result = self.refile_from(target, start, Some(done), false, answer, RefileMode::Move);
+        let result = self.refile_from(target, start, None, Some(done), false, answer, RefileMode::Move);
         match result {
             // Still asking where to: the capture stays.
             Ok(value) if value.get("input").is_some() => {
@@ -7918,6 +7954,17 @@ impl Server {
     /// Whether the command was run on a selection (`org-region-active-p`).
     fn has_region(context: &Context) -> bool {
         context.range.is_some_and(|range| range.start != range.end)
+    }
+
+    /// The selection a command was run on in an Org file, as byte offsets:
+    /// the active region, from its beginning to its end.
+    fn region_of(&self, context: &Context) -> Option<(usize, usize)> {
+        let range = context.range.filter(|_| Self::has_region(context))?;
+        let document = self.document(&context.text_document.uri)?;
+        let encoding = self.client.encoding;
+        let start = document.index.offset(&document.text, range.start, encoding);
+        let end = document.index.offset(&document.text, range.end, encoding);
+        Some((start.min(end), start.max(end)))
     }
 
     /// [`Server::emacs_run`] with the command called with `args`.

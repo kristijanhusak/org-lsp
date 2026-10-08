@@ -24,6 +24,9 @@ A case is a JSON object:
                                             buffer, at its start
           ["goto", "text"]                  the cursor to the start of that
                                             text
+          ["select", "text"]                that text the active region, the
+                                            cursor at its end, for the next
+                                            step only
       "options": {"org_id_link_to_org_use_id": "t"}   optional
       "id_files": ["other.org"]             optional: IDs are tracked
                                             (`org-id-track-globally`), and
@@ -98,6 +101,11 @@ DRIVER = r"""
                      ("goto" (goto-char (point-min))
                       (search-forward (cadr step))
                       (goto-char (match-beginning 0)))
+                     ("select" (goto-char (point-min))
+                      (search-forward (cadr step))
+                      (transient-mark-mode 1)
+                      (set-mark (match-beginning 0))
+                      (activate-mark))
                      ("store" (let ((current-prefix-arg (and (cadr step) '(4))))
                                 (call-interactively #'org-store-link)))
                      ("annotation" (push (or (ignore-errors (org-store-link nil)) "") returned))
@@ -110,7 +118,8 @@ DRIVER = r"""
                      ("insert-last" (call-interactively #'org-insert-last-stored-link))
                      ("insert-all" (let ((current-prefix-arg (and (cadr step) '(4))))
                                      (call-interactively #'org-insert-all-links)))
-                     ("id" (org-id-get-create))))
+                     ("id" (org-id-get-create)))
+                   (unless (equal (car step) "select") (deactivate-mark)))
                  (let ((files nil))
                    (dolist (b (buffer-list))
                      (when (buffer-file-name b)

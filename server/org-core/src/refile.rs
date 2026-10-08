@@ -322,13 +322,26 @@ pub struct Refiled {
     pub pasted: Option<usize>,
 }
 
+/// The region `org-refile` moves, from the start of the line `start` is
+/// on to `end`: a sequence of subtrees (`org-kill-is-subtree-p`), or the
+/// error Org gives.
+pub fn region(source: &str, start: usize, end: usize) -> Result<(usize, usize), Refusal> {
+    let start = source[..start].rfind('\n').map_or(0, |at| at + 1);
+    if !crate::structure::is_subtree(&source[start..end]) {
+        return Err(Refusal::Failed("The region is not a (sequence of) subtree(s)".to_string()));
+    }
+    Ok((start, end))
+}
+
 /// Move the subtree at byte `offset` of `source` under the headline at
 /// byte `to` of `target` (`None`: the same file), or to the top level of
-/// that file when `to` is none. With `keep` (`org-refile-keep`, as
-/// `org-refile-copy` has it) the subtree stays where it was too.
+/// that file when `to` is none. With `region` (see [`region`]) that text
+/// goes instead. With `keep` (`org-refile-keep`, as `org-refile-copy` has
+/// it) the subtree stays where it was too.
 pub fn refile(
     source: &str,
     offset: usize,
+    region: Option<(usize, usize)>,
     target: Option<&str>,
     to: Option<usize>,
     settings: &Settings,
@@ -336,9 +349,17 @@ pub fn refile(
 ) -> Result<Refiled, Refusal> {
     // `org-back-to-heading`, and the subtree up to the next headline of the
     // same or a higher level, blank lines included.
-    let heading = heading_at(source, offset).ok_or_else(|| Refusal::NotHere("Before first headline".to_string()))?;
-    let end = subtree_end(source, heading);
-    if target.is_none() && to.is_some_and(|to| (heading..end).contains(&to)) {
+    let (heading, end) = match region {
+        Some(region) => region,
+        None => {
+            let heading =
+                heading_at(source, offset).ok_or_else(|| Refusal::NotHere("Before first headline".to_string()))?;
+            (heading, subtree_end(source, heading))
+        }
+    };
+    let inside =
+        |to: usize| if region.is_some() { (heading..=end).contains(&to) } else { (heading..end).contains(&to) };
+    if target.is_none() && to.is_some_and(inside) {
         return Err(Refusal::Failed("Cannot refile to position inside the tree or region".to_string()));
     }
     let tree = &source[heading..end];
@@ -385,6 +406,15 @@ pub fn refile(
     if keep {
         return Ok(Refiled { source: changed, target: None, pasted: Some(pasted_at) });
     }
+    // A region goes from where it is now: after the paste when that went
+    // in before it, or right where it started.
+    if region.is_some() {
+        let origin = if at <= heading { heading + pasted.len() } else { heading };
+        let length = end - heading;
+        changed.replace_range(origin..origin + length, "");
+        let pasted = if pasted_at >= origin + length { pasted_at - length } else { pasted_at };
+        return Ok(Refiled { source: changed, target: None, pasted: Some(pasted) });
+    }
     // The same file: Emacs goes back to where the cursor was, which moves
     // with text inserted there or before, and deletes the subtree of the
     // headline it finds from there, up to the end of that subtree now. That
@@ -403,6 +433,21 @@ pub fn refile(
         _ => None,
     };
     Ok(Refiled { source: changed, target: None, pasted })
+}
+
+/// Where `org-log-refile` logs a refiled region, pasted at `at`, that
+/// was `length` bytes long: Org sets up a note for every headline from
+/// there to `length` past it (`org-map-region`), and the last one set up
+/// is the one logged, with the time.
+pub fn region_log_heading(text: &str, at: usize, length: usize) -> Option<usize> {
+    let end = at + length;
+    let mut last = None;
+    let mut heading = if headline_level(line_at(text, at)).is_some() { Some(at) } else { next_heading(text, at) };
+    while let Some(found) = heading.filter(|found| *found < end) {
+        last = Some(found);
+        heading = next_heading(text, found);
+    }
+    last
 }
 
 /// The headline at or above byte `offset`.

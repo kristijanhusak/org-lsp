@@ -2012,6 +2012,40 @@ fn creates_parent_nodes_to_refile_to() {
     client.shutdown();
 }
 
+/// A selection refiles the subtrees in it together (`Refile region to`);
+/// one that is not whole subtrees is refused before anything is asked.
+#[test]
+fn refiles_the_subtrees_selected() {
+    let mut options = clock();
+    options["org_refile_targets"] = json!([{ "files": "current", "maxlevel": 2 }]);
+    let mut client = Client::editor(options, None);
+    let file = "file:///org/a.org";
+    let text = "* Target\n* A\n** A1\n* B\n* C\n";
+    client.open(file, text);
+    let refile = |client: &mut Client, from: u32, to: u32, extra: Value| {
+        let range = json!({ "start": { "line": from, "character": 0 }, "end": { "line": to, "character": 0 } });
+        let mut context =
+            json!({ "textDocument": { "uri": file }, "position": { "line": to, "character": 0 }, "range": range });
+        for (key, value) in extra.as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.refile", "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let refused = refile(&mut client, 2, 4, json!({})).unwrap_err();
+    assert!(refused.contains("The region is not a (sequence of) subtree(s)"), "{refused}");
+    let asked = refile(&mut client, 1, 4, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Refile region to", "{asked}");
+    let done = refile(&mut client, 1, 4, json!({ "input": "Target" })).unwrap();
+    assert_eq!(done["message"], "Refile to \"Target\" in file /org/a.org: done", "{done}");
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the refile");
+    assert_eq!(apply(text, &edits_of(edit).1), "* Target\n** A\n*** A1\n** B\n* C\n");
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
