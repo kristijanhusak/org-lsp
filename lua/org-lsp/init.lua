@@ -631,8 +631,21 @@ local function keys_in(scope)
       end
     end
   end
+  -- The keys of the mappings, the plugin's own (`K` for `hover`) and the
+  -- user's, are theirs: a command of the server's with the same key
+  -- (`K`, `org.agenda.habits`) goes without it.
+  local mapped = {}
   for name, key in pairs(M.config.mappings[scope] or {}) do
     keys[name] = type(key) == 'table' and key or key and { key } or {}
+    for _, lhs in ipairs(keys[name]) do
+      mapped[vim.keycode(lhs)] = name
+    end
+  end
+  for name, list in pairs(keys) do
+    keys[name] = vim.tbl_filter(function(lhs)
+      local owner = mapped[vim.keycode(lhs)]
+      return owner == nil or owner == name
+    end, list)
   end
   return keys, native
 end

@@ -694,8 +694,18 @@ function! s:keys_in(scope) abort
       endif
     endfor
   endfor
+  " The keys of the mappings, the plugin's own (`K` for `hover`) and the
+  " user's, are theirs: a command of the server's with the same key (`K`,
+  " `org.agenda.habits`) goes without it.
+  let mapped = {}
   for [name, key] in items(get(mappings, a:scope, {}))
     let keys[name] = type(key) == v:t_list ? key : (type(key) == v:t_string ? [key] : [])
+    for lhs in keys[name]
+      let mapped[lhs] = name
+    endfor
+  endfor
+  for name in keys(keys)
+    call filter(keys[name], {_, lhs -> get(mapped, lhs, name) ==# name})
   endfor
   return [keys, native]
 endfunction
