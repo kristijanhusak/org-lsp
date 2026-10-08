@@ -46,6 +46,16 @@
       "description": "Record when a repeating entry is done and moves to its next date. `#+STARTUP:` `logrepeat`, `lognoterepeat` and `nologrepeat` change it in a file, and the `LOGGING` property in an entry. (`org-log-repeat`)",
       "default": "time"
     },
+    "org_enforce_todo_dependencies": {
+      "type": "boolean",
+      "description": "An entry cannot be done while a child is not, or, under a parent with the `ORDERED` property, while an earlier sibling is not: the change is refused with what blocks it. (`org-enforce-todo-dependencies`)",
+      "default": false
+    },
+    "org_enforce_todo_checkbox_dependencies": {
+      "type": "boolean",
+      "description": "An entry cannot be done while it has an unchecked box. (`org-enforce-todo-checkbox-dependencies`)",
+      "default": false
+    },
     "org_log_reschedule": {
       "enum": [
         false,

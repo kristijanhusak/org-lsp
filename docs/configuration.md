@@ -290,6 +290,15 @@ org_log_done = false
 # file, and the `LOGGING` property in an entry. (org-log-repeat)
 org_log_repeat = "time"
 
+# An entry cannot be done while a child is not, or, under a parent with the
+# `ORDERED` property, while an earlier sibling is not: the change is refused
+# with what blocks it. (org-enforce-todo-dependencies)
+org_enforce_todo_dependencies = false
+
+# An entry cannot be done while it has an unchecked box.
+# (org-enforce-todo-checkbox-dependencies)
+org_enforce_todo_checkbox_dependencies = false
+
 # Record when a scheduled date changes or is removed (`Rescheduled from
 # "[2026-05-18 Mon]" on …`), with `note` asking for a note too. `#+STARTUP:`
 # `logreschedule`, `lognotereschedule` and `nologreschedule` change it in a
@@ -905,6 +914,15 @@ org_agenda_custom_commands = []
   // `#+STARTUP:` `logrepeat`, `lognoterepeat` and `nologrepeat` change it in
   // a file, and the `LOGGING` property in an entry. (org-log-repeat)
   "org_log_repeat": "time",
+
+  // An entry cannot be done while a child is not, or, under a parent with the
+  // `ORDERED` property, while an earlier sibling is not: the change is
+  // refused with what blocks it. (org-enforce-todo-dependencies)
+  "org_enforce_todo_dependencies": false,
+
+  // An entry cannot be done while it has an unchecked box.
+  // (org-enforce-todo-checkbox-dependencies)
+  "org_enforce_todo_checkbox_dependencies": false,
 
   // Record when a scheduled date changes or is removed (`Rescheduled from
   // "[2026-05-18 Mon]" on …`), with `note` asking for a note too.

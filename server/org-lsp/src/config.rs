@@ -33,6 +33,12 @@ pub struct Options {
     /// `org-log-repeat`: `false`, `"time"` or `"note"`.
     #[serde(rename = "org_log_repeat")]
     pub log_repeat: Option<LogOption>,
+    /// `org-enforce-todo-dependencies`
+    #[serde(rename = "org_enforce_todo_dependencies")]
+    pub enforce_todo_dependencies: Option<bool>,
+    /// `org-enforce-todo-checkbox-dependencies`
+    #[serde(rename = "org_enforce_todo_checkbox_dependencies")]
+    pub enforce_todo_checkbox_dependencies: Option<bool>,
     /// `org-log-reschedule`: `false`, `"time"` or `"note"`.
     #[serde(rename = "org_log_reschedule")]
     pub log_reschedule: Option<LogOption>,
@@ -901,6 +907,8 @@ impl Options {
         if let Some(option) = &self.log_repeat {
             settings.log_repeat = option.to_logging();
         }
+        settings.enforce_todo_dependencies = self.enforce_todo_dependencies.unwrap_or(false);
+        settings.enforce_todo_checkbox_dependencies = self.enforce_todo_checkbox_dependencies.unwrap_or(false);
         if let Some(option) = &self.log_reschedule {
             settings.log_reschedule = option.to_logging();
         }

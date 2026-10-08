@@ -15,7 +15,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Folding and visibility](#folding-and-visibility) | 67% | 6 of 9 |
 | [Headings and structure](#headings-and-structure) | 100% | 11 of 11 |
 | [Lists and checkboxes](#lists-and-checkboxes) | 82% | 9 of 11 |
-| [TODO keywords](#todo-keywords) | 83% | 5 of 6 |
+| [TODO keywords](#todo-keywords) | 86% | 6 of 7 |
 | [Priorities](#priorities) | 100% | 3 of 3 |
 | [Tags](#tags) | 100% | 6 of 6 |
 | [Properties and column view](#properties-and-column-view) | 67% | 4 of 6 |
@@ -127,14 +127,15 @@ Where editors fall short:
 
 ## TODO keywords
 
-83% (5 of 6)
+86% (6 of 7)
 
 - ✅ Cycling states, and fast selection by key (`TODO(t)`)
 - ✅ Sequences and types from `#+TODO:` and `org_todo_keywords`
 - ✅ Logging: `CLOSED:`, the time or a note on a state change (`!`, `@`), `LOG_INTO_DRAWER`
 - ✅ Repeating entries moving to their next date
 - ✅ The parent's statistics cookies recounted
-- ❌ Blocking a state change by children and `ORDERED` (`org-enforce-todo-dependencies`)
+- ✅ Blocking a state change by children, `ORDERED` siblings and checkboxes (`org-enforce-todo-dependencies`)
+- ❌ Dimming blocked tasks in the agenda (`org-agenda-dim-blocked-tasks`)
 
 Where editors fall short:
 

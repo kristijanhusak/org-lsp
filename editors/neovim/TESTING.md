@@ -73,6 +73,7 @@ here and why.
 
 ## TODO keywords
 
+- [ ] With `org_enforce_todo_dependencies`, a parent with a child not done cannot be done: the change is refused with `blocked (by "TODO Child")`; with `org_enforce_todo_checkbox_dependencies`, an entry with an unchecked box cannot either: `cit`
 - [ ] Changing the TODO state of a headline (with `org_todo_keywords` keys, picked by key): `cit`
 - [ ] Cycling to the next and previous state: `:Org todo next`, `ciT`
 - [ ] Repeating the change with `.`

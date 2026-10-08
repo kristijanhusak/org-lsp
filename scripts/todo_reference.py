@@ -15,6 +15,9 @@ A case is a JSON object:
       "options": {"org_log_done": "time"}   optional: server settings
     }
 
+A change Org blocks (`org-enforce-todo-dependencies`) also gets
+`blocked`, what Org says about it.
+
 `reference(cases)` adds `expected`, the document after the command, to each
 case, or `QUIT` when the key quits the fast selection. Emacs runs under faketime, so both programs see the same clock. Set
 ORG_LISP_DIR to the `lisp` directory of an Org checkout to use that version
@@ -31,6 +34,21 @@ CURSOR = "¦"
 DRIVER = r"""
 (require 'org)
 (require 'cl-lib)
+;; The blockers of `org-enforce-todo-dependencies' and its checkbox
+;; sibling, in the order Org installs them when it loads with both set (the
+;; checkboxes' runs first); Org mode takes out those whose option is nil.
+(defun org-lsp-blockers ()
+  (remove-hook 'org-blocker-hook #'org-block-todo-from-children-or-siblings-or-parent)
+  (remove-hook 'org-blocker-hook #'org-block-todo-from-checkboxes)
+  (add-hook 'org-blocker-hook #'org-block-todo-from-children-or-siblings-or-parent)
+  (add-hook 'org-blocker-hook #'org-block-todo-from-checkboxes))
+(defvar org-lsp-blocked nil)
+(advice-add 'message :around
+            (lambda (f &rest args)
+              (let ((said (and (car args) (apply #'format-message args))))
+                (when (and said (string-prefix-p "TODO state change from" said))
+                  (setq org-lsp-blocked said)))
+              (apply f args)))
 (defvar org-lsp-note-text ""
   "What the user writes in a note buffer.")
 (defun org-lsp-finish-notes ()
@@ -45,7 +63,8 @@ DRIVER = r"""
 (defun org-lsp-todo-case (in out offset arg &optional key note)
   ;; A case that stopped with an error may have left a note pending.
   (remove-hook 'post-command-hook 'org-add-log-note)
-  (setq org-log-setup nil)
+  (setq org-log-setup nil org-lsp-blocked nil)
+  (org-lsp-blockers)
   (let ((result
          (condition-case err
              (with-temp-buffer
@@ -64,7 +83,8 @@ DRIVER = r"""
                (buffer-string))
            (quit "QUIT")
            (error (format "ERROR: %S" err)))))
-    (with-temp-file out (insert result))))
+    (with-temp-file out (insert result))
+    (with-temp-file (concat out ".blocked") (insert (or org-lsp-blocked "")))))
 """
 
 
@@ -104,6 +124,10 @@ def bindings(options):
             out["org-log-reschedule"] = symbol(value)
         elif key == "org_log_redeadline":
             out["org-log-redeadline"] = symbol(value)
+        elif key == "org_enforce_todo_dependencies":
+            out["org-enforce-todo-dependencies"] = lisp_value(value)
+        elif key == "org_enforce_todo_checkbox_dependencies":
+            out["org-enforce-todo-checkbox-dependencies"] = lisp_value(value)
         elif key == "org_log_into_drawer":
             out["org-log-into-drawer"] = lisp_value(value)
         elif key == "org_tags_column":
@@ -171,6 +195,12 @@ def reference(cases):
             for case, target in outputs:
                 with open(target, encoding="utf-8") as handle:
                     case["expected"] = handle.read()
+                # A change Org blocked: what it said (Emacs in batch says it
+                # rather than signal it).
+                with open(target + ".blocked", encoding="utf-8") as handle:
+                    blocked = handle.read()
+                if blocked:
+                    case["blocked"] = blocked
     return cases
 
 

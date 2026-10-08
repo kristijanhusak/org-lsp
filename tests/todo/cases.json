@@ -2439,5 +2439,218 @@
   },
   "clock": "2026-05-18 10:30",
   "expected": "* Parent\n:PROPERTIES:\n:LOG_INTO_DRAWER: nil\n:END:\n** DONE Child\nCLOSED: [2026-05-18 Mon 10:30]\n- CLOSING NOTE [2026-05-18 Mon 10:30] \\\\\n  Body"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Parent¦\n** TODO Child\n** DONE Other\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* TODO Parent\n** TODO Child\n** DONE Other\n",
+  "blocked": "TODO state change from TODO to DONE blocked (by \"TODO Child\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Parent¦\n** DONE Child\n** DONE Other\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* DONE Parent\n** DONE Child\n** DONE Other\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Parent¦\n** DONE Child\n*** NEXT Grand :tag:\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* DONE Parent\n** DONE Child\n*** NEXT Grand :tag:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Parent¦\n** TODO Child\n",
+  "command": {
+   "state": "DONE"
+  },
+  "expected": "* DONE Parent\n** TODO Child\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Parent¦\n** TODO Child\n",
+  "command": "next",
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* TODO Parent\n** TODO Child\n",
+  "blocked": "TODO state change from TODO to DONE blocked (by \"TODO Child\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Parent¦\n** Child without keyword\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* DONE Parent\n** Child without keyword\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Parent\n:PROPERTIES:\n:ORDERED: t\n:END:\n** TODO First\n** TODO Second¦\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* Parent\n:PROPERTIES:\n:ORDERED: t\n:END:\n** TODO First\n** TODO Second\n",
+  "blocked": "TODO state change from TODO to DONE blocked (by \"** TODO First\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Parent\n:PROPERTIES:\n:ORDERED: t\n:END:\n** DONE First\n** TODO Second¦\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* Parent\n:PROPERTIES:\n:ORDERED: t\n:END:\n** DONE First\n** DONE Second\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Parent\n:PROPERTIES:\n:ORDERED: nil\n:END:\n** TODO First\n** TODO Second¦\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* Parent\n:PROPERTIES:\n:ORDERED: nil\n:END:\n** TODO First\n** DONE Second\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Top\n:PROPERTIES:\n:ORDERED: t\n:END:\n** TODO A [#A] task  :x:\n** TODO B\n*** TODO Inner¦\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* Top\n:PROPERTIES:\n:ORDERED: t\n:END:\n** TODO A [#A] task  :x:\n** TODO B\n*** TODO Inner\n",
+  "blocked": "TODO state change from TODO to DONE blocked (by \"TODO A [#A] task :x:\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Top\n:PROPERTIES:\n:ORDERED: t\n:END:\n** TODO A\n** B\n*** TODO Inner¦\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* Top\n:PROPERTIES:\n:ORDERED: t\n:END:\n** TODO A\n** B\n*** DONE Inner\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task¦\n- [ ] one\n- [X] two\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_checkbox_dependencies": true
+  },
+  "expected": "* TODO Task\n- [ ] one\n- [X] two\n",
+  "blocked": "TODO state change from TODO to DONE blocked (by contained checkboxes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task¦\n- [X] one\n- [X] two\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_checkbox_dependencies": true
+  },
+  "expected": "* DONE Task\n- [X] one\n- [X] two\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task¦\n- [-] one\n  - [X] a\n  - [ ] b\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_checkbox_dependencies": true
+  },
+  "expected": "* TODO Task\n- [-] one\n  - [X] a\n  - [ ] b\n",
+  "blocked": "TODO state change from TODO to DONE blocked (by contained checkboxes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task¦\n- [ ] one\n** TODO Child\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true,
+   "org_enforce_todo_checkbox_dependencies": true
+  },
+  "expected": "* TODO Task\n- [ ] one\n** TODO Child\n",
+  "blocked": "TODO state change from TODO to DONE blocked (by contained checkboxes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task¦\n** TODO Child\n- [ ] in child\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_checkbox_dependencies": true
+  },
+  "expected": "* DONE Task\n** TODO Child\n- [ ] in child\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE Task¦\n** TODO Child\n",
+  "command": {
+   "state": "TODO"
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* TODO Task\n** TODO Child\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Parent¦\n** TODO Child\n",
+  "command": {
+   "state": ""
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* Parent\n** TODO Child\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Parent¦\n** TODO Child\n",
+  "command": {
+   "state": "DONE"
+  },
+  "options": {
+   "org_enforce_todo_dependencies": true
+  },
+  "expected": "* Parent\n** TODO Child\n",
+  "blocked": "TODO state change from nil to DONE blocked (by \"TODO Child\")"
  }
 ]

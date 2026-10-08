@@ -91,6 +91,21 @@ pub const SETTINGS: &[Setting] = &[
          `lognoterepeat` and `nologrepeat` change it in a file, and the `LOGGING` property in an entry.",
     ),
     setting(
+        "org_enforce_todo_dependencies",
+        "boolean",
+        "false",
+        "org-enforce-todo-dependencies",
+        "An entry cannot be done while a child is not, or, under a parent with the `ORDERED` property, while \
+         an earlier sibling is not: the change is refused with what blocks it.",
+    ),
+    setting(
+        "org_enforce_todo_checkbox_dependencies",
+        "boolean",
+        "false",
+        "org-enforce-todo-checkbox-dependencies",
+        "An entry cannot be done while it has an unchecked box.",
+    ),
+    setting(
         "org_log_reschedule",
         r#"false, "time", "note""#,
         "false",
@@ -1130,6 +1145,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_todo_keywords", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_log_done", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_repeat", r#"{ "enum": [false, "time", "note"] }"#),
+    ("org_enforce_todo_dependencies", BOOLEAN),
+    ("org_enforce_todo_checkbox_dependencies", BOOLEAN),
     ("org_log_reschedule", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_redeadline", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_into_drawer", r#"{ "type": ["boolean", "string"] }"#),
