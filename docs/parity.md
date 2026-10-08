@@ -15,7 +15,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Folding and visibility](#folding-and-visibility) | 100% | 8 of 8 |
 | [Headings and structure](#headings-and-structure) | 100% | 12 of 12 |
 | [Lists and checkboxes](#lists-and-checkboxes) | 100% | 10 of 10 |
-| [TODO keywords](#todo-keywords) | 100% | 8 of 8 |
+| [TODO keywords](#todo-keywords) | 100% | 10 of 10 |
 | [Priorities](#priorities) | 100% | 3 of 3 |
 | [Tags](#tags) | 100% | 6 of 6 |
 | [Properties and column view](#properties-and-column-view) | 100% | 6 of 6 |
@@ -127,10 +127,12 @@ Where editors fall short:
 
 ## TODO keywords
 
-100% (8 of 8)
+100% (10 of 10)
 
 - ✅ Cycling states, and fast selection by key (`TODO(t)`)
 - ✅ Sequences and types from `#+TODO:` and `org_todo_keywords`
+- ✅ Several sequences: cycling stays in the entry's sequence, and `C-S-<right>`, `C-S-<left>` switch sets
+- ✅ Faces of particular keywords and priorities (`org-todo-keyword-faces`, `org-priority-faces`)
 - ✅ Logging: `CLOSED:`, the time or a note on a state change (`!`, `@`), `LOG_INTO_DRAWER`
 - ✅ Repeating entries moving to their next date
 - ✅ The parent's statistics cookies recounted
@@ -140,8 +142,9 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: A note for a state change (`@`) cannot be typed: Zed cannot ask for text on a server's behalf. States are picked with buttons.
-- Helix ❓: A note for a state change (`@`) cannot be typed: Helix cannot ask for text on a server's behalf.
+- Sublime Text ❓: Faces of particular keywords and priorities are not shown: Sublime Text colors text by its color scheme only.
+- Zed ❓: A note for a state change (`@`) cannot be typed: Zed cannot ask for text on a server's behalf. States are picked with buttons. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.
+- Helix ❓: A note for a state change (`@`) cannot be typed: Helix cannot ask for text on a server's behalf. Faces of particular keywords and priorities are not shown.
 
 ## Priorities
 

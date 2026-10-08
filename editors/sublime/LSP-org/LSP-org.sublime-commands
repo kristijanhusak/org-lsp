@@ -413,6 +413,20 @@
     }
   },
   {
+    "caption": "Org: Switch to the next TODO keyword set",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo.nextset"
+    }
+  },
+  {
+    "caption": "Org: Switch to the previous TODO keyword set",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo.previousset"
+    }
+  },
+  {
     "caption": "Org: Raise the priority",
     "command": "org_lsp_run",
     "args": {

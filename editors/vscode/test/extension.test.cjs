@@ -106,6 +106,16 @@ describe('Org files', () => {
     assert.ok(found.some(([, text, type, modifiers]) => text === '*bold*' && type === 'text' && modifiers.includes('bold')));
   });
 
+  it('gives keywords and priorities their faces', async () => {
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const editor = await vscode.window.showTextDocument(document);
+    const shown = await until('the faces', () => {
+      const found = api.faces(editor);
+      return found.length >= 3 && found;
+    });
+    assert.deepEqual(shown, [[1, 'TODO'], [1, '[#A]'], [5, 'TODO']]);
+  });
+
   it('folds and outlines', async () => {
     const folds = await vscode.commands.executeCommand('vscode.executeFoldingRangeProvider', workUri);
     assert.deepEqual(folds.map((fold) => [fold.start, fold.end]), [[1, 4], [5, 6]]);

@@ -84,7 +84,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 100% | ✅ |  |
 | [Headings and structure](../../docs/parity.md#headings-and-structure) | 100% | ✅ |  |
 | [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 100% | ✅ |  |
-| [TODO keywords](../../docs/parity.md#todo-keywords) | 100% | ✅ |  |
+| [TODO keywords](../../docs/parity.md#todo-keywords) | 100% | ❓ | Faces of particular keywords and priorities are not shown: Sublime Text colors text by its color scheme only. |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 100% | ❓ | Column view is left out: it draws over the headlines, which Sublime Text cannot. |

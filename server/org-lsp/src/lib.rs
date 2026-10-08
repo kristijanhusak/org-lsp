@@ -14,6 +14,7 @@ pub mod config;
 pub mod custom;
 pub mod document;
 pub mod emacs;
+pub mod faces;
 pub mod folding;
 pub mod highlight;
 pub mod legend;

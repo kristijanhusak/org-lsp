@@ -80,6 +80,8 @@ its sections says what it should look like.
 
 ## TODO keywords
 
+**Partly:** Faces of particular keywords and priorities are not shown: Sublime Text colors text by its color scheme only.
+
 - [ ] With `org_enforce_todo_dependencies`, a parent with a child not done cannot be done: the change is refused with `blocked (by "TODO Child")`; with `org_enforce_todo_checkbox_dependencies`, an entry with an unchecked box cannot either: `Ctrl+C Ctrl+T`
 - [ ] Those tasks are dimmed in the agenda and the TODO list
 - [ ] Changing the TODO state of a headline (with `org_todo_keywords` keys, picked by key): `Ctrl+C Ctrl+T`
@@ -89,6 +91,8 @@ its sections says what it should look like.
 - [ ] Done on a repeating entry (`<2026-01-01 Thu +1w>`) moves its date a week on and keeps it TODO: `Ctrl+C Ctrl+T`
 - [ ] The parent's `[1/2]` cookie is recounted: `Ctrl+C Ctrl+T`
 - [ ] A `#+TODO: A B | C` line in the file is used instead of the settings: `Ctrl+C Ctrl+T`
+- [ ] With `#+TODO: TODO | DONE` and `#+TODO: REPORT BUG | FIXED`, changing the state without keys goes `BUG`, `FIXED`, none, then back to `REPORT`: `Ctrl+C Ctrl+T`
+- [ ] Switching to the next and previous keyword set says `Keyword-Set 2/2: REPORT BUG FIXED`: `Ctrl+Shift+Right`, `Ctrl+Shift+Left`
 
 ## Priorities
 

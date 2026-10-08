@@ -1628,6 +1628,7 @@ function! org_lsp#define_highlights() abort
     endif
     let s:selectors[look.token] = type
   endfor
+  call s:define_faces()
 endfunction
 
 " `K` in the agenda: the entry of the line in a popup at the cursor, its
@@ -1669,7 +1670,68 @@ function! s:got_tokens(nr, tick, error, result) abort
   if !empty(a:error) || type(a:result) != v:t_dict || !bufloaded(a:nr) || getbufvar(a:nr, 'changedtick') != a:tick
     return
   endif
+  if !exists('s:faces')
+    call s:load_faces(a:nr)
+  endif
   call s:paint(a:nr, getbufline(a:nr, 1, '$'), get(a:result, 'data', []))
+endfunction
+
+" Faces of particular TODO keywords and priorities (`org_todo_keyword_faces`,
+" `org_priority_faces`), as the server has them: a highlight group and a
+" text property type for each, over the server's highlighting.
+function! s:load_faces(nr) abort
+  let s:faces = {}
+  call org_lsp#request(a:nr, 'org-lsp/faces', v:null, function('s:got_faces', [a:nr]))
+endfunction
+
+function! s:got_faces(nr, error, result) abort
+  if !empty(a:error) || type(a:result) != v:t_dict
+    return
+  endif
+  let s:faces = a:result
+  call s:define_faces()
+  if !empty(filter(values(s:faces), '!empty(v:val)')) && bufloaded(a:nr)
+    call s:update_tokens(a:nr)
+  endif
+endfunction
+
+function! s:face_group(kind, name) abort
+  return 'OrgLsp' . (a:kind ==# 'todo' ? 'Todo' : 'Priority') . 'Face_' . substitute(a:name, '\W', '_', 'g')
+endfunction
+
+function! s:define_faces() abort
+  for [kind, list] in items(get(s:, 'faces', {}))
+    for [name, face] in items(list)
+      let group = s:face_group(kind, name)
+      let attributes = filter(['bold', 'italic', 'underline', 'strikethrough'], {_, a -> get(face, a, v:false)})
+      let attr = empty(attributes) ? 'NONE' : join(attributes, ',')
+      let colors = ''
+      if has_key(face, 'foreground')
+        let colors .= ' guifg=' . face.foreground
+      endif
+      if has_key(face, 'background')
+        let colors .= ' guibg=' . face.background
+      endif
+      try
+        execute 'highlight default' group 'term=' . attr 'cterm=' . attr 'gui=' . attr colors
+      catch
+      endtry
+      " A color name the terminal knows, without 'termguicolors'.
+      for [key, value] in [['ctermfg', get(face, 'foreground', '')], ['ctermbg', get(face, 'background', '')]]
+        if value =~# '^\a\+$'
+          try
+            execute 'highlight' group key . '=' . value
+          catch
+          endtry
+        endif
+      endfor
+      let type = 'org_lsp_face_' . kind . '_' . substitute(name, '\W', '_', 'g')
+      if empty(prop_type_get(type))
+        call prop_type_add(type, {'highlight': group, 'combine': 1, 'priority': 110})
+      endif
+      let s:selectors['face:' . kind . ':' . name] = type
+    endfor
+  endfor
 endfunction
 
 " The tokens each buffer was last painted with, as
@@ -1715,6 +1777,14 @@ function! s:paint_absolute(nr, lines, tokens) abort
         call add(selectors, type . '.' . modifiers[bit])
       endif
     endfor
+    " A keyword or a priority with a face of its own.
+    if type ==# 'todoKeyword' || type ==# 'priority'
+      let name = text[start : end - 1]
+      if type ==# 'priority'
+        let name = substitute(name, '^\[#\(.\{-}\)\]$', '\1', '')
+      endif
+      call add(selectors, 'face:' . (type ==# 'todoKeyword' ? 'todo' : 'priority') . ':' . name)
+    endif
     for selector in selectors
       if has_key(s:selectors, selector)
         call add(get(extend(props, {selector: []}, 'keep'), selector), [line + 1, start + 1, line + 1, end + 1])

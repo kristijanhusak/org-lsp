@@ -252,6 +252,48 @@
   },
   {
     "keys": [
+      "ctrl+shift+right"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo.nextset"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+shift+left"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo.previousset"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
       "ctrl+c",
       ","
     ],
@@ -5383,6 +5425,90 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.todo"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+shift+right"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo.nextset"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+shift+right"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo.nextset"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+shift+left"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo.previousset"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+shift+left"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo.previousset"
     },
     "context": [
       {

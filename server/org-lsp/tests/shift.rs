@@ -10,7 +10,6 @@ use org_core::date::DateTime;
 use org_core::edit::{document_priorities, run, Call, Command, Direction};
 use org_core::priority::{self, Action};
 use org_lsp::config::Options;
-use org_syntax::TodoKeywords;
 use serde_json::Value;
 
 fn cases() -> Vec<Value> {
@@ -58,7 +57,7 @@ fn priority_and_timestamp_changes_match_emacs() {
         let text = marked.replacen('¦', "", 1);
         let options: Options =
             serde_json::from_value(case.get("options").cloned().unwrap_or_else(|| serde_json::json!({}))).unwrap();
-        let default = options.todo_keywords.clone().map(TodoKeywords::from_sequence).unwrap_or_default();
+        let default = options.todo_keywords();
         let parse = org_syntax::parse(&text, &default);
         let call = Call {
             count: case.get("count").and_then(Value::as_i64),

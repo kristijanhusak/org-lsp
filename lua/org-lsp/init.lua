@@ -984,6 +984,7 @@ local function on_init(client)
     return notify('org-lsp: the server is older than this plugin; run :OrgLspDownload or :OrgLspBuild', vim.log.levels.WARN)
   end
   require('org-lsp.highlights').define(M.manifest)
+  require('org-lsp.highlights').define_faces((client.server_capabilities.experimental or {}).orgFaces)
   require('org-lsp.view').setup(M.manifest)
   set_keys('global')
   for _, fn in ipairs(waiting) do
@@ -998,6 +999,7 @@ local function on_attach(client, bufnr)
   if not M.manifest then
     return
   end
+  require('org-lsp.highlights').attach_faces(bufnr)
   if vim.bo[bufnr].filetype == M.manifest.agenda.languageId then
     return set_keys('agenda', bufnr)
   end
@@ -1188,6 +1190,7 @@ function M.start()
     callback = function()
       if M.manifest then
         require('org-lsp.highlights').define(M.manifest)
+        require('org-lsp.highlights').define_faces()
       end
     end,
   })

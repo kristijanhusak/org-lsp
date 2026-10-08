@@ -281,6 +281,18 @@
           "task_name": "Org agenda: Change the TODO state"
         }
       ],
+      "ctrl-shift-right": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: Switch to the next TODO keyword set"
+        }
+      ],
+      "ctrl-shift-left": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: Switch to the previous TODO keyword set"
+        }
+      ],
       "+": [
         "task::Spawn",
         {
@@ -506,6 +518,18 @@
         "task::Spawn",
         {
           "task_name": "Org: Change the TODO state"
+        }
+      ],
+      "ctrl-shift-right": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Switch to the next TODO keyword set"
+        }
+      ],
+      "ctrl-shift-left": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Switch to the previous TODO keyword set"
         }
       ],
       "ctrl-c ,": [

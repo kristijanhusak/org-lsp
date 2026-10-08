@@ -53,6 +53,8 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X x` | `org.dblock.insert` | Insert a dynamic block |
 | `Ctrl+C Ctrl+A` | `org.attach` | Attachments of the entry |
 | `Ctrl+C Ctrl+T` | `org.todo` | Change the TODO state |
+| `Ctrl+Shift+Right` | `org.todo.nextset` | Switch to the next TODO keyword set |
+| `Ctrl+Shift+Left` | `org.todo.previousset` | Switch to the previous TODO keyword set |
 | `Ctrl+C ,` | `org.priority` | Set the priority |
 | `Ctrl+C Ctrl+X p` | `org.property.set` | Set a property of the entry |
 | `Ctrl+C Ctrl+X e` | `org.effort.set` | Set the effort of the entry |
@@ -212,6 +214,8 @@ The other options are in [configuration.md](configuration.md).
 | `Shift+O` | `org.clock.out` | Clock out |
 | `Shift+X` | `org.clock.cancel` | Cancel the clock |
 | `t` | `org.todo` | Change the TODO state |
+| `Ctrl+Shift+Right` | `org.todo.nextset` | Switch to the next TODO keyword set |
+| `Ctrl+Shift+Left` | `org.todo.previousset` | Switch to the previous TODO keyword set |
 | `+`, `Shift+Up` | `org.priority.up` | Raise the priority |
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
@@ -344,6 +348,8 @@ The other options are in [configuration.md](configuration.md).
 | `Shift+O` | `org.clock.out` | Clock out |
 | `Shift+X` | `org.clock.cancel` | Cancel the clock |
 | `t` | `org.todo` | Change the TODO state |
+| `Ctrl+Shift+Right` | `org.todo.nextset` | Switch to the next TODO keyword set |
+| `Ctrl+Shift+Left` | `org.todo.previousset` | Switch to the previous TODO keyword set |
 | `+`, `Shift+Up` | `org.priority.up` | Raise the priority |
 | `-`, `Shift+Down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
@@ -572,6 +578,8 @@ every file; outside Org files the commands say they do not apply):
 | `org.todo` | Org: Change the TODO state |
 | `org.todo.next` | Org: Cycle TODO state forward |
 | `org.todo.previous` | Org: Cycle TODO state backward |
+| `org.todo.nextset` | Org: Switch to the next TODO keyword set |
+| `org.todo.previousset` | Org: Switch to the previous TODO keyword set |
 | `org.priority.up` | Org: Raise the priority |
 | `org.priority.down` | Org: Lower the priority |
 | `org.priority` | Org: Set the priority |

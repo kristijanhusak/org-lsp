@@ -48,4 +48,71 @@ function M.define(manifest)
   end
 end
 
+--- Faces of particular TODO keywords and priorities
+--- (`org_todo_keyword_faces`, `org_priority_faces`), as the server
+--- announced them: `{ todo = { WAIT = face }, priority = { A = face } }`.
+local faces = { todo = {}, priority = {} }
+
+--- The highlight group of the face of keyword or priority `name`.
+---@param kind 'todo'|'priority'
+---@param name string
+---@return string
+local function face_group(kind, name)
+  return ('OrgLsp%sFace_%s'):format(kind == 'todo' and 'Todo' or 'Priority', (name:gsub('[^%w_]', '_')))
+end
+
+--- (Re)define the groups of the faces; with `given`, those faces from now
+--- on. Runs when the server starts and after a colorscheme change.
+---@param given? table
+function M.define_faces(given)
+  faces = given or faces
+  for kind, list in pairs(faces) do
+    for name, face in pairs(list) do
+      pcall(vim.api.nvim_set_hl, 0, face_group(kind, name), {
+        fg = face.foreground,
+        bg = face.background,
+        bold = face.bold,
+        italic = face.italic,
+        underline = face.underline,
+        strikethrough = face.strikethrough,
+        default = true,
+      })
+    end
+  end
+end
+
+--- Give the TODO keywords and priorities of buffer `bufnr` that have a
+--- face of their own that face, over the server's highlighting.
+---@param bufnr integer
+function M.attach_faces(bufnr)
+  if vim.tbl_isempty(faces.todo or {}) and vim.tbl_isempty(faces.priority or {}) then
+    return
+  end
+  local priority = (vim.hl or vim.highlight).priorities.semantic_tokens + 3
+  vim.api.nvim_create_autocmd('LspTokenUpdate', {
+    buffer = bufnr,
+    group = vim.api.nvim_create_augroup('org_lsp_faces_' .. bufnr, { clear = true }),
+    callback = function(args)
+      local token = args.data.token
+      local kind = (token.type == 'todoKeyword' and 'todo') or (token.type == 'priority' and 'priority') or nil
+      if not kind then
+        return
+      end
+      local ok, text = pcall(vim.api.nvim_buf_get_text, bufnr, token.line, token.start_col, token.line, token.end_col, {})
+      if not ok then
+        return
+      end
+      local name = text[1] or ''
+      if kind == 'priority' then
+        name = name:match('%[#(.-)%]') or name
+      end
+      if faces[kind] and faces[kind][name] then
+        vim.lsp.semantic_tokens.highlight_token(token, bufnr, args.data.client_id, face_group(kind, name), {
+          priority = priority,
+        })
+      end
+    end,
+  })
+end
+
 return M

@@ -26,10 +26,28 @@ use crate::timestr::parse_time_string;
 /// The state to give the entry.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Target {
-    /// The next keyword, or none after the last one.
+    /// The next keyword, or none after the last one (`org-todo` with
+    /// `right`: Shift-right).
     Next,
     /// The previous keyword, or none before the first one.
     Previous,
+    /// `org-todo` without fast selection: the next state of the entry's
+    /// sequence, none after its last done state, and from none the head
+    /// of `head`'s sequence (the one the entry was last in). `repeated`:
+    /// the command again, which steps on through a `type` sequence.
+    Cycle {
+        head: Option<String>,
+        repeated: bool,
+    },
+    /// The first keyword of the next sequence (`nextset`), or of the
+    /// previous one (`previousset`); `head` is the sequence of an entry
+    /// with no keyword.
+    NextSet {
+        head: Option<String>,
+    },
+    PreviousSet {
+        head: Option<String>,
+    },
     /// This keyword, or none.
     State(Option<String>),
 }
@@ -1347,6 +1365,13 @@ impl<'a> Editor<'a> {
                 Some(index) => Some(names[index - 1].to_string()),
                 None => names.last().map(|name| name.to_string()),
             },
+            Target::Cycle { head, repeated } => {
+                self.keywords.cycle(this.as_deref(), head.as_deref(), *repeated).map(str::to_string)
+            }
+            Target::NextSet { head } => self.keywords.next_set(this.as_deref(), head.as_deref()).map(str::to_string),
+            Target::PreviousSet { head } => {
+                self.keywords.previous_set(this.as_deref(), head.as_deref()).map(str::to_string)
+            }
             Target::State(None) => None,
             Target::State(Some(state)) if state.is_empty() => None,
             Target::State(Some(state)) => {
@@ -1501,7 +1526,7 @@ pub fn fast_selection(
     answer: &str,
 ) -> Result<Option<Target>, String> {
     if keywords.fast_keys().is_empty() {
-        return Ok(Some(Target::Next));
+        return Ok(Some(Target::Cycle { head: None, repeated: false }));
     }
     let settings = Settings::default();
     let mut editor = Editor::new(text, keywords, &settings, DateTime::new(crate::date::Date::new(1970, 1, 1), 0, 0));

@@ -212,6 +212,8 @@ pub const CITE_INSERT: &str = "org.cite.insert";
 pub const CITE_INSERT_PREFIX: &str = "org.cite.insert.prefix";
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
+pub const TODO_NEXT_SET: &str = "org.todo.nextset";
+pub const TODO_PREVIOUS_SET: &str = "org.todo.previousset";
 pub const PRIORITY_UP: &str = "org.priority.up";
 pub const PRIORITY_DOWN: &str = "org.priority.down";
 pub const PRIORITY: &str = "org.priority";
@@ -557,6 +559,16 @@ pub const COMMANDS: &[Command] = &[
     },
     Command { ..edit(TODO_NEXT, "Cycle TODO state forward") },
     Command { vim: &[key(Org, "ciT")], ..edit(TODO_PREVIOUS, "Cycle TODO state backward") },
+    // `org-shiftcontrolright` and `org-shiftcontrolleft` on a headline:
+    // `org-todo` with `nextset` and `previousset`.
+    Command {
+        emacs: &[key(Org, "C-S-<right>"), key(Agenda, "C-S-<right>")],
+        ..edit(TODO_NEXT_SET, "Switch to the next TODO keyword set")
+    },
+    Command {
+        emacs: &[key(Org, "C-S-<left>"), key(Agenda, "C-S-<left>")],
+        ..edit(TODO_PREVIOUS_SET, "Switch to the previous TODO keyword set")
+    },
     Command {
         emacs: &[key(Agenda, "+"), key(Agenda, "S-<up>")],
         vim: &[key(Org, "ciR")],

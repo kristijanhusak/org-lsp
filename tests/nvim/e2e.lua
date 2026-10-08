@@ -41,7 +41,10 @@ end
 
 -- Load the plugin the way a plugin manager would: the repo root on the
 -- runtime path, then its plugin/ file.
-vim.g.org_lsp = { cmd = { server } }
+vim.g.org_lsp = {
+  cmd = { server },
+  settings = { org_todo_keyword_faces = { TODO = ':foreground #ff8800 :weight bold' } },
+}
 vim.opt.runtimepath:prepend(root)
 vim.cmd('filetype plugin on')
 vim.cmd('syntax on')
@@ -91,6 +94,18 @@ vim.api.nvim_set_hl(0, '@org.headline.level2', { fg = '#123456' })
 vim.cmd('hi clear @lsp.typemod.headline.level2.org')
 vim.api.nvim_exec_autocmds('ColorScheme', {})
 eq(vim.api.nvim_get_hl(0, { name = '@lsp.typemod.headline.level2.org' }).link, '@org.headline.level2', 'prefers @org.* groups')
+-- A keyword with a face of its own (`org_todo_keyword_faces`) shows in it.
+local todo_face = vim.api.nvim_get_hl(0, { name = 'OrgLspTodoFace_TODO' })
+eq({ todo_face.fg, todo_face.bold }, { 0xff8800, true }, 'the face of TODO')
+wait('the face on the TODO keyword', function()
+  local marks = vim.api.nvim_buf_get_extmarks(bufnr, -1, { 1, 2 }, { 1, 2 }, { details = true, overlap = true })
+  for _, mark in ipairs(marks) do
+    if mark[4].hl_group == 'OrgLspTodoFace_TODO' then
+      return true
+    end
+  end
+  return false
+end)
 wait('regex syntax to be replaced', function()
   return vim.bo.syntax == ''
 end)
