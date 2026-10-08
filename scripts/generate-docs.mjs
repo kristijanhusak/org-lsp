@@ -58,12 +58,18 @@ function table(header, rows) {
 
 // ----- keys
 
+/** The keys the Neovim and Vim plugins keep for their own commands, by
+ * scope: a command of the server's goes without them there. */
+const OWN_KEYS = { org: ['<Tab>', '<S-Tab>', 'g?'], agenda: ['q', 'K', 'g?'] };
+
 /** The Neovim plugin's keys: the `vim` preset of every command. */
 function neovimKeys() {
   const sections = [];
   for (const [scope, heading] of SCOPES) {
     const rows = manifest.commands.flatMap((command) => {
-      const keys = command.keys.filter((key) => key.preset === 'vim' && key.in === scope);
+      const keys = command.keys.filter(
+        (key) => key.preset === 'vim' && key.in === scope && !(OWN_KEYS[scope] ?? []).includes(key.key),
+      );
       if (keys.length === 0) return [];
       const shown = keys.map((key) => code(key.key) + (key.native ? '¹' : '') + (key.mode === 'insert' ? ' (insert mode)' : '')).join(', ');
       return [[shown, code(command.command), cell(command.title)]];
@@ -71,7 +77,10 @@ function neovimKeys() {
     if (rows.length > 0) sections.push(`### ${heading}\n\n` + table(['Keys', 'Command', 'What it does'], rows));
   }
   const keyless = manifest.commands
-    .filter((command) => !command.keys.some((key) => key.preset === 'vim'))
+    .filter(
+      (command) =>
+        !command.keys.some((key) => key.preset === 'vim' && !(OWN_KEYS[key.in] ?? []).includes(key.key)),
+    )
     .map((command) => [code(command.command), cell(command.title)]);
   sections.push('### Without a default key\n\n' + table(['Command', 'What it does'], keyless));
   sections.push(

@@ -162,7 +162,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Tab>` | `org.agenda.goto.other` | Agenda: go to the entry in another window |
 | `s`, `<C-x><C-s>` | `org.agenda.save` | Save all Org files |
 | `vl` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
-| `K` | `org.agenda.habits` | Agenda: show or hide habits |
+| `<C-x><C-w>` | `org.agenda.write` | Agenda: write it to a file |
 | `R`, `vR` | `org.agenda.clockreport` | Agenda: the clock report |
 | `E`, `vE` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
 | `F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |
@@ -233,6 +233,7 @@ The other options are in [configuration.md](configuration.md).
 | --- | --- |
 | `org.agenda.list` | Agenda for the current week or day |
 | `org.agenda.todos` | List of all TODO entries |
+| `org.agenda.habits` | Agenda: show or hide habits |
 | `org.todo.next` | Cycle TODO state forward |
 | `org.property.delete` | Delete a property of the entry |
 | `org.property.delete.globally` | Delete a property from every entry of the file |

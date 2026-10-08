@@ -3799,6 +3799,7 @@ impl Server {
             }
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             id if id.starts_with("org.agenda.filter") => self.agenda_filter(id, context.as_ref()),
+            commands::AGENDA_WRITE => self.agenda_write(context.as_ref()),
             commands::AGENDA_BULK_ACTION => self.agenda_bulk_action(context.as_ref()),
             id if id.starts_with("org.agenda.bulk.") => self.agenda_bulk_mark(id, context.as_ref()),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
@@ -4762,6 +4763,113 @@ impl Server {
     /// each asks, then the filters set and the view shown again with the
     /// lines they keep. The result's `message` says what filters there
     /// are, as Emacs's mode line does.
+    /// `org-agenda-write` (`C-x C-w`): the agenda as plain text, or with
+    /// an `.org` name its entries (each without its children, at the top
+    /// level). Asks for the file, and whether to overwrite it.
+    fn agenda_write(&mut self, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
+        let view = self.view.as_ref().ok_or("No agenda is open")?;
+        let query = view.view.query.clone();
+        let entries: Vec<views::EntryRef> = {
+            let mut seen = Vec::new();
+            for line in &view.view.lines {
+                if let Some(entry) = &line.entry {
+                    if !seen
+                        .iter()
+                        .any(|known: &views::EntryRef| known.uri == entry.uri && known.offset == entry.offset)
+                    {
+                        seen.push(entry.clone());
+                    }
+                }
+            }
+            seen
+        };
+        let Some(input) = context.and_then(|context| context.input.clone()) else {
+            return Ok(json!({ "input": { "kind": "text", "prompt": "Write agenda to file", "value": "" } }));
+        };
+        let (name, confirmed) = match context.and_then(|context| context.answers.clone()) {
+            Some(name) => (name, Some(matches!(input.as_str(), "y" | "Y" | " "))),
+            None => (input, None),
+        };
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        let path = match (name.strip_prefix("~/"), &home) {
+            (Some(rest), Some(home)) => home.join(rest),
+            _ => PathBuf::from(&name),
+        };
+        let path = if path.is_absolute() { path } else { self.capture_file(&self.org_directory.clone()).join(path) };
+        if path.exists() {
+            match confirmed {
+                None => {
+                    return Ok(json!({ "input": {
+                        "kind": "key",
+                        "prompt": format!("Overwrite existing file {}? ", path.display()),
+                        "value": "",
+                        "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+                        "context": { "answers": name },
+                    } }));
+                }
+                Some(false) => return Err(format!("Cannot write agenda to file {}", path.display()).into()),
+                Some(true) => {}
+            }
+        }
+        let extension = path.extension().and_then(|extension| extension.to_str()).unwrap_or("").to_lowercase();
+        let (text, done) = match extension.as_str() {
+            "org" => {
+                let settings = self.refile.2;
+                let mut parts: Vec<String> = Vec::new();
+                for entry in &entries {
+                    let found = self
+                        .with_source(&entry.uri, |text, _, _, outline, _| {
+                            let found = views::resolve(entry, outline)?;
+                            Some((text.to_string(), outline.entries[found].offset))
+                        })
+                        .flatten();
+                    let part = found.map(|(text, offset)| {
+                        let settings = refile::Settings { adapt: self.adapt_in(&text), ..settings };
+                        refile::entry_at_top(&text, offset, &settings)
+                    });
+                    if let Some(part) = part.filter(|part| !parts.contains(part)) {
+                        parts.push(part);
+                    }
+                }
+                (parts.concat(), "Org file written to")
+            }
+            "html" | "htm" | "ps" | "pdf" | "ics" => {
+                return Err(format!(
+                "Writing the agenda as .{extension} is Emacs's (htmlize, ps-print, ox-icalendar); write .txt or .org"
+            )
+                .into())
+            }
+            _ => (self.agenda_text(query), "Plain text written to"),
+        };
+        if let Some(directory) = path.parent() {
+            let _ = std::fs::create_dir_all(directory);
+        }
+        std::fs::write(&path, text)
+            .map_err(|error| format!("Cannot write agenda to file {}: {error}", path.display()))?;
+        self.show_message(MessageType::INFO, format!("{done} {}", path.display()));
+        Ok(Value::Null)
+    }
+
+    /// The agenda of `query` as Org prints it (`org-batch-agenda`), links as
+    /// written.
+    fn agenda_text(&mut self, query: Query) -> String {
+        let mut files = self.agenda_files();
+        let blocks = self.blocks(&query).unwrap_or_default();
+        let search = if blocks.iter().any(|block| matches!(block.kind, views::BlockKind::Search { .. })) {
+            self.search_files(&mut files)
+        } else {
+            None
+        };
+        let named: Vec<(&Outline, String, String)> = files
+            .iter()
+            .map(|(uri, held)| {
+                let path = uri::to_path(uri).map(|path| path.display().to_string()).unwrap_or_default();
+                (held.outline(), path, uri::file_name(uri))
+            })
+            .collect();
+        views::org_text(&blocks, &named, search.as_ref(), self.now(), Some(&self.agenda_filters))
+    }
+
     fn agenda_filter(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
         use org_core::agenda::filter;
         self.view.as_ref().ok_or("No agenda is open")?;

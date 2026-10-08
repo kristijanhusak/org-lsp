@@ -154,6 +154,13 @@
     }
   },
   {
+    "caption": "Org: Agenda: write it to a file",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.write"
+    }
+  },
+  {
     "caption": "Org: Agenda: the clock report",
     "command": "org_lsp_run",
     "args": {

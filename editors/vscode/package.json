@@ -166,6 +166,11 @@
         "category": "Org"
       },
       {
+        "command": "org.agenda.write",
+        "title": "Agenda: write it to a file",
+        "category": "Org"
+      },
+      {
         "command": "org.agenda.clockreport",
         "title": "Agenda: the clock report",
         "category": "Org"
@@ -4730,6 +4735,16 @@
       {
         "command": "org.agenda.habits",
         "key": "shift+k",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.write",
+        "key": "ctrl+x ctrl+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.write",
+        "key": "ctrl+x ctrl+w",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {

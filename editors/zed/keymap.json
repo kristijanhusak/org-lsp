@@ -113,6 +113,12 @@
           "task_name": "Org agenda: show or hide habits"
         }
       ],
+      "ctrl-x ctrl-w": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: write it to a file"
+        }
+      ],
       "shift-r": [
         "task::Spawn",
         {
