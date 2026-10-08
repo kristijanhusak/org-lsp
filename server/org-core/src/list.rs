@@ -1633,12 +1633,18 @@ pub fn indent_item(
 
 /// `org-move-item-down` (`M-<down>` on an item) and `org-move-item-up`:
 /// the item and its children swapped with the next or previous one, the
-/// cursor going with it, at its column.
-pub fn move_item(text: &str, at: usize, down: bool) -> Result<Edited, Refusal> {
+/// cursor going with it, at its column. With `circular`
+/// (`org-list-use-circular-motion`) the last item goes to the start of
+/// its list, the first to its end.
+pub fn move_item(text: &str, at: usize, down: bool, circular: bool) -> Result<Edited, Refusal> {
     let (item, mut list, index) = item_here(text, at)?;
     let column = text[item..at.min(text.len())].chars().count();
     let prevs_of = prevs(&list);
     let mut buffer = Buffer { text: text.to_string(), point: at.min(text.len()), md: MatchData::default() };
+    let next_of = |index: usize| prevs_of.iter().position(|prev| *prev == Some(index));
+    if circular && ((down && next_of(index).is_none()) || (!down && prevs_of[index].is_none())) {
+        return send_item(text, at, item, column, down);
+    }
     if down {
         let Some(next) = prevs_of.iter().position(|prev| *prev == Some(index)) else {
             return Err(failed("Cannot move this item further down"));
@@ -1869,18 +1875,56 @@ pub(crate) fn repair(text: &str, at: usize) -> Result<Edited, Refusal> {
 }
 
 /// `org-next-item` (`S-<down>` on an item) and `org-previous-item`
-/// (`S-<up>`): the start of the next or previous item of the list.
-pub fn next_item(text: &str, at: usize, previous: bool) -> Result<usize, Refusal> {
+/// (`S-<up>`): the start of the next or previous item of the list; with
+/// `circular` (`org-list-use-circular-motion`), from the last to the first
+/// and back.
+pub fn next_item(text: &str, at: usize, previous: bool, circular: bool) -> Result<usize, Refusal> {
     let item = in_item(text, at).ok_or_else(|| Refusal::NotHere("Not in an item".to_string()))?;
     let list = structure(text, item);
     let index = list.iter().position(|found| found.pos == item).ok_or_else(|| failed("Not in an item"))?;
     let prevs_of = prevs(&list);
-    if previous {
-        prevs_of[index].map(|prev| list[prev].pos).ok_or_else(|| failed("On first item"))
-    } else {
-        let next = prevs_of.iter().position(|prev| *prev == Some(index));
-        next.map(|next| list[next].pos).ok_or_else(|| failed("On last item"))
+    let next_of = |index: usize| prevs_of.iter().position(|prev| *prev == Some(index));
+    let found = if previous { prevs_of[index] } else { next_of(index) };
+    match found {
+        Some(found) => Ok(list[found].pos),
+        None if circular => {
+            // `org-list-get-last-item` or `org-list-get-first-item`.
+            let mut at = index;
+            if previous {
+                while let Some(next) = next_of(at) {
+                    at = next;
+                }
+            } else {
+                while let Some(prev) = prevs_of[at] {
+                    at = prev;
+                }
+            }
+            Ok(list[at].pos)
+        }
+        None => Err(failed(if previous { "On first item" } else { "On last item" })),
     }
+}
+
+/// `org-list-send-item` to `begin` (the last item moved down) or `end`
+/// (the first moved up): the item swapped past each of its siblings, the
+/// cursor going with it, at its column.
+fn send_item(text: &str, _at: usize, item: usize, column: usize, to_begin: bool) -> Result<Edited, Refusal> {
+    let mut current = text.to_string();
+    let mut place = item;
+    loop {
+        let (here, list, index) = item_here(&current, place)?;
+        let prevs_of = prevs(&list);
+        let other = if to_begin { prevs_of[index] } else { prevs_of.iter().position(|prev| *prev == Some(index)) };
+        let Some(other) = other else { break };
+        let _ = other;
+        let edited = move_item(&current, here, !to_begin, false)?;
+        current = edited.text;
+        place = line_start(&current, edited.cursor);
+    }
+    let start = line_start(&current, place.min(current.len()));
+    let end = line_end(&current, start);
+    let cursor = current[start..end].char_indices().nth(column).map_or(end, |(offset, _)| start + offset);
+    Ok(Edited { text: current, cursor })
 }
 
 #[cfg(test)]

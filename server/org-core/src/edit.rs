@@ -91,6 +91,8 @@ pub struct Settings {
     pub tags: crate::tags::Settings,
     /// `org-global-properties`
     pub global_properties: Vec<(String, String)>,
+    /// `org-list-use-circular-motion`
+    pub list_circular_motion: bool,
 }
 
 impl Default for Settings {
@@ -102,6 +104,7 @@ impl Default for Settings {
             timestamp_rounding_minutes: 5,
             tags: crate::tags::Settings::default(),
             global_properties: Vec::new(),
+            list_circular_motion: false,
         }
     }
 }
@@ -405,7 +408,12 @@ pub fn run(
                     return Ok(Outcome { text: edited.text, cursor: Some(edited.cursor), note: None, message: None });
                 }
                 Direction::Up | Direction::Down if crate::list::at_item(text, offset) => {
-                    let cursor = crate::list::next_item(text, offset, *direction == Direction::Up)?;
+                    let cursor = crate::list::next_item(
+                        text,
+                        offset,
+                        *direction == Direction::Up,
+                        settings.list_circular_motion,
+                    )?;
                     return Ok(Outcome { text: text.to_string(), cursor: Some(cursor), note: None, message: None });
                 }
                 // On a property line: its next or previous allowed value

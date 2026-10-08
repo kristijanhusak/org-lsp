@@ -29,6 +29,7 @@ fn edits_lists_as_emacs_does() {
         let keywords = TodoKeywords::from_document(text).unwrap_or_default();
         let point = byte(text, case["point"].as_u64().unwrap() as usize);
         let key = case["key"].as_str().unwrap();
+        let circular = case["circular"].as_bool() == Some(true);
         // On a timestamp the shifted keys change it, not the list.
         if key.starts_with("S-<") && !org_core::edit::shifts_item(text, point) {
             continue;
@@ -38,11 +39,11 @@ fn edits_lists_as_emacs_does() {
             "M-<right>" => list::indent_item(text, point, 1, false, &keywords, -77),
             "M-S-<left>" => list::indent_item(text, point, -1, true, &keywords, -77),
             "M-S-<right>" => list::indent_item(text, point, 1, true, &keywords, -77),
-            "M-<up>" => list::move_item(text, point, false),
-            "M-<down>" => list::move_item(text, point, true),
+            "M-<up>" => list::move_item(text, point, false, circular),
+            "M-<down>" => list::move_item(text, point, true, circular),
             "S-<left>" => list::cycle_bullet(text, point, true),
             "S-<right>" => list::cycle_bullet(text, point, false),
-            "S-<up>" | "S-<down>" => list::next_item(text, point, key == "S-<up>")
+            "S-<up>" | "S-<down>" => list::next_item(text, point, key == "S-<up>", circular)
                 .map(|cursor| list::Edited { text: text.to_string(), cursor }),
             sort if sort.starts_with("C-c ^ ") => {
                 // Items without a date sort as now, after the dates here.

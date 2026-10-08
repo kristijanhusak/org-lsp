@@ -1799,6 +1799,55 @@ fn dims_blocked_tasks_in_the_agenda() {
     client.shutdown();
 }
 
+/// `org-refile-copy` keeps the entry; `org-refile` with `C-u` goes to the
+/// target, and with `C-u C-u` to where the last refile put its entry.
+#[test]
+fn copies_to_and_goes_to_refile_targets() {
+    let mut options = clock();
+    options["org_refile_targets"] = json!([{ "files": "current", "level": 1 }]);
+    let mut client = Client::editor(options, None);
+    let file = "file:///org/a.org";
+    let text = "* Task\n* Inbox\n* Projects\n";
+    client.open(file, text);
+    let at = |line: u32, input: Option<&str>| {
+        let mut context = json!({ "textDocument": { "uri": file }, "position": { "line": line, "character": 0 } });
+        if let Some(input) = input {
+            context["input"] = json!(input);
+        }
+        context
+    };
+    let asked = client
+        .request("workspace/executeCommand", json!({ "command": "org.refile.copy", "arguments": [at(0, None)] }))
+        .unwrap();
+    assert_eq!(asked["input"]["prompt"], "Copy subtree \"Task\" to");
+    client.received.clear();
+    let done = client
+        .request(
+            "workspace/executeCommand",
+            json!({ "command": "org.refile.copy", "arguments": [at(0, Some("Projects"))] }),
+        )
+        .unwrap();
+    assert_eq!(done["message"], "Copy to \"Projects\" in file /org/a.org: done");
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the copy");
+    let copied = apply(text, &edits_of(edit).1);
+    assert_eq!(copied, "* Task\n* Inbox\n* Projects\n** Task\n");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": file, "version": 2 }, "contentChanges": [{ "text": copied }] }),
+    );
+    let shown = |client: &mut Client, command: &str, context: Value| {
+        client.received.clear();
+        client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        client.settle();
+        let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("a jump");
+        show.params["selection"]["start"]["line"].as_u64().unwrap()
+    };
+    assert_eq!(shown(&mut client, "org.refile.goto", at(0, Some("Inbox"))), 1);
+    assert_eq!(shown(&mut client, "org.refile.goto.last", at(0, None)), 3);
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

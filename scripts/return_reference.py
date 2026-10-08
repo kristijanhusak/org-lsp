@@ -88,11 +88,13 @@ def reference(cases, timeout=None, preamble=""):
             outputs.append((case, target))
             adapt = case.get("adapt", "nil")
             adapt = adapt if adapt in ("nil", "t") else "'" + adapt
+            circular = "t" if case.get("circular") else "nil"
             forms.append(
-                f"(condition-case err (org-lsp-return-case {lisp_string(source)} {lisp_string(target)}"
+                f"(let ((org-list-use-circular-motion {circular}))"
+                f" (condition-case err (org-lsp-return-case {lisp_string(source)} {lisp_string(target)}"
                 f" {case['point']} {lisp_string(case.get('key', 'RET'))} {adapt})"
                 f" (error (with-temp-file {lisp_string(target)}"
-                f" (insert (json-encode (list (cons 'error (error-message-string err))))))))"
+                f" (insert (json-encode (list (cons 'error (error-message-string err)))))))))"
             )
         driver = os.path.join(directory, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:

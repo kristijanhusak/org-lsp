@@ -80,6 +80,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X Alt+W` | `org.copy.subtree` | Copy the subtree |
 | `Ctrl+C Ctrl+X Ctrl+Y` | `org.paste.subtree` | Paste the subtree |
 | `Ctrl+C Ctrl+W` | `org.refile` | Refile the entry |
+| `Ctrl+C Alt+W` | `org.refile.copy` | Copy the entry to a refile target |
 | `Ctrl+C Ctrl+Z` | `org.add.note` | Add a note to the entry |
 | `Ctrl+C Ctrl+V t`, `Ctrl+C Ctrl+V Ctrl+T` | `org.babel.tangle` | Tangle the file's code blocks |
 | `Ctrl+C Ctrl+V e`, `Ctrl+C Ctrl+V Ctrl+E` | `org.babel.execute` | Evaluate the code block or call at the cursor through Emacs |
@@ -396,6 +397,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "s", "y"], "commands": ["org.copy.subtree"] },
   { "before": ["<leader>", "o", "s", "p"], "commands": ["org.paste.subtree"] },
   { "before": ["<leader>", "o", "r"], "commands": ["org.refile"] },
+  { "before": ["<leader>", "o", "y"], "commands": ["org.refile.copy"] },
   { "before": ["<leader>", "o", "n", "a"], "commands": ["org.add.note"] },
   { "before": ["<leader>", "o", "b", "t"], "commands": ["org.babel.tangle"] },
   { "before": ["<leader>", "o", "b", "e"], "commands": ["org.babel.execute"] },
@@ -537,6 +539,9 @@ every file; outside Org files the commands say they do not apply):
 | `org.copy.subtree` | Org: Copy the subtree |
 | `org.paste.subtree` | Org: Paste the subtree |
 | `org.refile` | Org: Refile the entry |
+| `org.refile.copy` | Org: Copy the entry to a refile target |
+| `org.refile.goto` | Org: Go to a refile target |
+| `org.refile.goto.last` | Org: Go to where the last refile put its entry |
 | `org.add.note` | Org: Add a note to the entry |
 | `org.babel.tangle` | Org: Tangle the file's code blocks |
 | `org.babel.execute` | Org: Evaluate the code block or call at the cursor through Emacs |

@@ -46,6 +46,11 @@
       "description": "Record when a repeating entry is done and moves to its next date. `#+STARTUP:` `logrepeat`, `lognoterepeat` and `nologrepeat` change it in a file, and the `LOGGING` property in an entry. (`org-log-repeat`)",
       "default": "time"
     },
+    "org_list_use_circular_motion": {
+      "type": "boolean",
+      "description": "Moving to the next item from the last goes to the first, and back; moving the last item down puts it first, the first up puts it last. (`org-list-use-circular-motion`)",
+      "default": false
+    },
     "org_enforce_todo_dependencies": {
       "type": "boolean",
       "description": "An entry cannot be done while a child is not, or, under a parent with the `ORDERED` property, while an earlier sibling is not: the change is refused with what blocks it. (`org-enforce-todo-dependencies`)",

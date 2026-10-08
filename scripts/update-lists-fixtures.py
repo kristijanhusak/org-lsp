@@ -49,6 +49,19 @@ for text in TEXTS:
             for key in KEYS + (SORT_KEYS if column == 0 else []):
                 CASES.append({"text": text, "point": start + min(column, len(line)), "key": key})
 
+# `org-list-use-circular-motion`: the moves past the first and the last item,
+# in lists without blank lines between items (where Org re-spaces the list
+# as it inserts the item, which org-lsp does not).
+for text in ["- a\n- b\n  - c\n  - d\n- e\n", "1. one\n2. two\n3. three\nafter\n", "- a\n  more\n- b\n- c\n"]:
+    starts = [0] + [index + 1 for index, c in enumerate(text) if c == "\n" and index + 1 < len(text)]
+    for start in starts:
+        line = text[start:].split("\n", 1)[0]
+        if not line.lstrip()[:1] in ("-", "1", "2", "3"):
+            continue
+        for column in (0, len(line)):
+            for key in ["S-<up>", "S-<down>", "M-<up>", "M-<down>"]:
+                CASES.append({"text": text, "point": start + column, "key": key, "circular": True})
+
 if __name__ == "__main__":
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tests", "lists", "cases.json")
     os.makedirs(os.path.dirname(path), exist_ok=True)

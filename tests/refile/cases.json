@@ -1326,5 +1326,108 @@
     "a.org": "* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]\n*** Sub\n"
    }
   }
+ },
+ {
+  "files": {
+   "a.org": "* Task¦\nBody\n* Inbox\n* Projects\n"
+  },
+  "answer": "Projects",
+  "copy": true,
+  "options": {
+   "org_refile_targets": [
+    {
+     "files": "agenda",
+     "maxlevel": 2
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Task",
+    "Inbox",
+    "Projects"
+   ],
+   "files": {
+    "a.org": "* Task\nBody\n* Inbox\n* Projects\n** Task\nBody\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Projects\n* Task¦\n** Sub\n"
+  },
+  "answer": "Projects",
+  "copy": true,
+  "options": {
+   "org_refile_targets": [
+    {
+     "files": "agenda",
+     "maxlevel": 2
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Projects",
+    "Task",
+    "Sub"
+   ],
+   "files": {
+    "a.org": "* Projects\n** Task\n*** Sub\n* Task\n** Sub\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* TODO Task¦\n",
+   "b.org": "* Projects\n** Old\n"
+  },
+  "answer": "Projects",
+  "copy": true,
+  "options": {
+   "org_refile_targets": [
+    {
+     "files": "agenda",
+     "maxlevel": 2
+    }
+   ],
+   "org_log_refile": "time"
+  },
+  "expected": {
+   "offered": [
+    "Task",
+    "Projects (b.org)",
+    "Old (b.org)"
+   ],
+   "files": {
+    "a.org": "* TODO Task\n",
+    "b.org": "* Projects\n** Old\n** TODO Task\n- Refiled on [2026-05-18 Mon 10:30]"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Task¦\n* Projects\n"
+  },
+  "answer": "Projects",
+  "copy": true,
+  "options": {
+   "org_refile_targets": [
+    {
+     "files": "agenda",
+     "maxlevel": 2
+    }
+   ],
+   "org_reverse_note_order": true
+  },
+  "expected": {
+   "offered": [
+    "Task",
+    "Projects"
+   ],
+   "files": {
+    "a.org": "* Task\n* Projects\n** Task\n"
+   }
+  }
  }
 ]

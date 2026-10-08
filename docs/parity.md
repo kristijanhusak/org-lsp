@@ -7,14 +7,14 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 75%**
+**All of Org: 76%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
 | [Highlighting](#highlighting) | 83% | 10 of 12 |
 | [Folding and visibility](#folding-and-visibility) | 67% | 6 of 9 |
 | [Headings and structure](#headings-and-structure) | 100% | 11 of 11 |
-| [Lists and checkboxes](#lists-and-checkboxes) | 82% | 9 of 11 |
+| [Lists and checkboxes](#lists-and-checkboxes) | 91% | 10 of 11 |
 | [TODO keywords](#todo-keywords) | 88% | 7 of 8 |
 | [Priorities](#priorities) | 100% | 3 of 3 |
 | [Tags](#tags) | 100% | 6 of 6 |
@@ -23,7 +23,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Agenda](#agenda) | 74% | 14 of 19 |
 | [Clocking](#clocking) | 100% | 8 of 8 |
 | [Capture](#capture) | 73% | 8 of 11 |
-| [Refile and archive](#refile-and-archive) | 64% | 7 of 11 |
+| [Refile and archive](#refile-and-archive) | 73% | 8 of 11 |
 | [Links](#links) | 70% | 7 of 10 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
 | [Tables](#tables) | 65% | 11 of 17 |
@@ -106,7 +106,7 @@ Where editors fall short:
 
 ## Lists and checkboxes
 
-82% (9 of 11)
+91% (10 of 11)
 
 - ✅ New items, numbered and with checkboxes (`M-RET`, `M-S-RET`)
 - ✅ `RET` in an item (`org-return`)
@@ -118,7 +118,7 @@ Where editors fall short:
 - ✅ Moving to the next and previous item
 - ✅ Turning lines into items and back (`C-c -`, through Emacs)
 - ❌ Radio lists
-- ❌ Circular motion between items (`org-list-use-circular-motion`)
+- ✅ Circular motion between items (`org-list-use-circular-motion`)
 
 Where editors fall short:
 
@@ -274,7 +274,7 @@ Where editors fall short:
 
 ## Refile and archive
 
-64% (7 of 11)
+73% (8 of 11)
 
 - ✅ Refiling to a heading, between files too (`org-refile-targets`)
 - ✅ Archiving a subtree to its archive file
@@ -285,7 +285,7 @@ Where editors fall short:
 - ✅ Logging refiles (`org-log-refile`)
 - ❌ Creating parent nodes as the target
 - ❌ Refiling a region
-- ❌ The prefix arguments (going to the target, copying)
+- ✅ Copying (`C-c M-w`), going to a target (`C-u C-c C-w`) and to the last refiled entry (`C-u C-u C-c C-w`)
 - ❌ `org-refile-target-verify-function`
 
 Where editors fall short:

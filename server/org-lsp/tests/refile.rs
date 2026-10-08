@@ -77,7 +77,9 @@ fn refiling_matches_emacs() {
         let answer = answer.as_str();
         let result = find(&targets, answer).ok_or("Invalid target location".into()).and_then(|(file, target)| {
             let other = (*file != current).then(|| texts[*file].as_str());
-            refile(&texts[current], offset, other, target.offset, &options.refile_settings()).map(|done| (*file, done))
+            let keep = case["copy"].as_bool() == Some(true);
+            refile(&texts[current], offset, other, target.offset, &options.refile_settings(), keep)
+                .map(|done| (*file, done))
         });
         // `org-log-refile`, at the time Emacs ran at.
         let result = result.map(|(file, mut done)| {

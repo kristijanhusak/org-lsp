@@ -166,6 +166,7 @@ here and why.
 
 ## Refile and archive
 
+- [ ] Copying an entry to a target keeps it where it was; going to a target and to the entry refiled last moves the cursor there: `Ctrl+C Alt+W`, *Org: Go to a refile target*, *Org: Go to where the last refile put its entry*
 - [ ] With `org_log_refile` `"time"`, the refiled entry gets `Refiled on […]`; with `"note"` a note buffer opens for it: `Ctrl+C Ctrl+W`
 - [ ] Refiling a subtree under a heading of the same file, and of another file: `Ctrl+C Ctrl+W`
 - [ ] Archiving a subtree: it goes to `FILE_archive` with its `ARCHIVE_…` properties: `Ctrl+C Ctrl+X Ctrl+S` or `Ctrl+C $`
