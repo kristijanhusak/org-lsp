@@ -585,6 +585,12 @@ struct Server {
     /// When the countdown Org runs in Emacs (`org-timer-set-timer`) ends:
     /// Emacs in batch runs no timers, so the server says it.
     countdown: Option<std::time::Instant>,
+    /// When the clock passes the effort of its entry
+    /// (`org-clock-notify-once-if-expired`), and what Org says then. Once
+    /// for each clock.
+    overrun: Option<(std::time::Instant, String)>,
+    /// The clock (its start) whose overrun was said.
+    overrun_said: Option<DateTime>,
     /// What the `%(sexp)` of the capture being filled evaluated to.
     capture_lisp: HashMap<String, Option<String>>,
     publish_projects: Option<Value>,
@@ -849,6 +855,8 @@ pub fn run(connection: Connection) -> Result<()> {
         export_menu: None,
         structure_templates: None,
         countdown: None,
+        overrun: None,
+        overrun_said: None,
         capture_lisp: HashMap::new(),
         publish_projects: None,
         emacs_jobs: HashMap::new(),
@@ -929,6 +937,8 @@ pub fn run(connection: Connection) -> Result<()> {
     let emacs_events = server.emacs.events().clone();
     loop {
         let alarm = server.countdown.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
+        let overrun =
+            server.overrun.as_ref().map_or_else(crossbeam_channel::never, |(at, _)| crossbeam_channel::at(*at));
         crossbeam_channel::select! {
             recv(connection.receiver) -> message => match message {
                 Ok(Message::Request(request)) => {
@@ -953,6 +963,7 @@ pub fn run(connection: Connection) -> Result<()> {
                 }
             }
             recv(alarm) -> _ => server.countdown_done(),
+            recv(overrun) -> _ => server.overrun_done(),
         }
     }
     server.remove_view_file();
@@ -1059,6 +1070,7 @@ fn export_question(menu: &Value, step: Option<&str>, options: &str) -> Value {
             for top in &tops {
                 choices.push(json!({ "key": top.get("key"), "label": top.get("label") }));
             }
+            choices.push(json!({ "key": "#", "label": "Insert template" }));
             choices.push(json!({ "key": "P", "label": "Publish" }));
             choices.push(json!({ "key": "q", "label": "Exit" }));
         }
@@ -3680,6 +3692,7 @@ impl Server {
             | commands::BABEL_GOTO
             | commands::BLOCK_NEXT
             | commands::BLOCK_PREVIOUS
+            | commands::BABEL_LOB_INGEST
             | commands::TIMER_START
             | commands::TIMER_INSERT
             | commands::TIMER_ITEM
@@ -6780,6 +6793,28 @@ impl Server {
         match step.as_deref() {
             None if key == "q" => Ok(Value::Null),
             None if key == "P" => Ok(export_question(&menu, Some("P"), &options)),
+            // `#`: `org-export-insert-default-template`, for a backend.
+            None if key == "#" => {
+                let backends = self
+                    .emacs
+                    .call("export-backends", json!({}), std::time::Duration::from_secs(60))
+                    .map_err(Refusal::Failed)?;
+                let choices: Vec<Value> = backends
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str)
+                    .map(|name| json!({ "key": name, "label": name }))
+                    .collect();
+                Ok(json!({ "input": {
+                    "kind": "choice", "prompt": "Options category", "value": "", "choices": choices,
+                    "context": { "step": "#", "answers": options },
+                } }))
+            }
+            Some("#") => {
+                let subtree = options.contains('s');
+                self.emacs_run_with("org-lsp-bridge-export-template", vec![json!(key), json!(subtree)], context)
+            }
             None => {
                 let top = menu
                     .as_array()
@@ -6944,6 +6979,42 @@ impl Server {
         }
     }
 
+    /// `org-clock-notify-once-if-expired`: when the clock that runs, as
+    /// `status` describes it, reaches the effort of its entry, Org says so,
+    /// once for each clock.
+    fn arm_overrun(&mut self, status: &Value) {
+        self.overrun = None;
+        let Some(running) = &self.running else {
+            self.overrun_said = None;
+            return;
+        };
+        if self.overrun_said == Some(running.start) {
+            return;
+        }
+        let (Some(minutes), Some(effort)) =
+            (status.get("minutes").and_then(Value::as_i64), status.get("effort").and_then(Value::as_i64))
+        else {
+            return;
+        };
+        if effort <= 0 {
+            return;
+        }
+        let heading = status.get("heading").and_then(Value::as_str).unwrap_or_default();
+        let written = status.get("effortText").and_then(Value::as_str).unwrap_or_default();
+        let message = format!("Task \u{2018}{heading}\u{2019} should be finished by now. ({written})");
+        let left = std::time::Duration::from_secs(60 * (effort - minutes).max(0) as u64);
+        self.overrun = Some((std::time::Instant::now() + left, message));
+    }
+
+    /// The clock passed the effort: what Org says (see
+    /// [`Server::arm_overrun`]).
+    fn overrun_done(&mut self) {
+        if let Some((_, message)) = self.overrun.take() {
+            self.overrun_said = self.running.as_ref().map(|running| running.start);
+            self.show_message(MessageType::INFO, message);
+        }
+    }
+
     /// The countdown is over: Emacs ends it as its timer would, and what
     /// Org says then (`Write the report: time out`) is shown.
     fn countdown_done(&mut self) {
@@ -7037,6 +7108,10 @@ impl Server {
             }
             commands::TABLE_COPY_DOWN => {
                 self.emacs_run_with("org-table-copy-down", vec![json!(context.count.unwrap_or(1))], context)
+            }
+            commands::BABEL_LOB_INGEST => {
+                let path = uri::to_path(&context.text_document.uri).ok_or("Only a file on disk can be ingested")?;
+                self.emacs_run_with("org-babel-lob-ingest", vec![json!(path.to_string_lossy())], context)
             }
             commands::TIMER_START => self.emacs_run("org-timer-start", context),
             commands::TIMER_INSERT => self.emacs_run("org-timer", context),
@@ -7960,6 +8035,7 @@ impl Server {
                 }
             },
         };
+        self.arm_overrun(&params);
         self.clock_pending = false;
         let notification = lsp_server::Notification::new("org-lsp/clock".to_string(), params);
         let _ = self.sender.send(Message::Notification(notification));
@@ -8386,6 +8462,7 @@ impl Server {
                 "heading": heading,
                 "minutes": minutes,
                 "effort": effort,
+                "effortText": property("EFFORT"),
                 "text": format!("[{time}] ({heading})"),
                 "uri": running.uri.as_str(),
                 "line": position.line,

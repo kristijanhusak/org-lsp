@@ -238,6 +238,7 @@ pub const TABLE_CREATE: &str = "org.table.create";
 pub const BABEL_NEXT: &str = "org.babel.next";
 pub const BABEL_PREVIOUS: &str = "org.babel.previous";
 pub const BABEL_GOTO: &str = "org.babel.goto";
+pub const BABEL_LOB_INGEST: &str = "org.babel.lob.ingest";
 pub const BLOCK_NEXT: &str = "org.block.next";
 pub const BLOCK_PREVIOUS: &str = "org.block.previous";
 pub const TIMER_START: &str = "org.timer.start";
@@ -884,6 +885,13 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>obg")],
         input: Some(Input { kind: "choice", prompt: "source-block name" }),
         ..command(BABEL_GOTO, "Go to a named code block")
+    },
+    // `org-babel-lob-ingest`: the file's named code blocks into the Library
+    // of Babel of the server's Emacs, for `#+CALL:` lines in any file.
+    Command {
+        emacs: &[key(Org, "C-c C-v i")],
+        vim: &[key(Org, "<Leader>obi")],
+        ..command(BABEL_LOB_INGEST, "Add the file's named code blocks to the Library of Babel")
     },
     Command { emacs: &[key(Org, "C-c M-f")], ..command(BLOCK_NEXT, "Move to the next block") },
     Command { emacs: &[key(Org, "C-c M-b")], ..command(BLOCK_PREVIOUS, "Move to the previous block") },

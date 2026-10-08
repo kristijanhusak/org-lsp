@@ -137,6 +137,7 @@ here and why.
 
 ## Clocking
 
+- [ ] Clocking into an entry whose effort its time passes shows `Task ‘…’ should be finished by now. (0:30)`, once: `Ctrl+C Ctrl+X Ctrl+I`
 - [ ] Clocking in: `:LOGBOOK:` gets a `CLOCK:` line and the clock shows (`[0:01] (Task)`): `Ctrl+C Ctrl+X Ctrl+I`
 - [ ] Clocking out writes the end and the duration: `Ctrl+C Ctrl+X Ctrl+O`
 - [ ] Cancelling the clock takes its line out: `Ctrl+C Ctrl+X Ctrl+Q`
@@ -224,6 +225,7 @@ here and why.
 
 ## Code blocks (Babel)
 
+- [ ] Adding the file's named blocks to the Library of Babel; a `#+CALL:` in another file runs one (needs Emacs): `Ctrl+C Ctrl+V i`
 - [ ] Tangling writes each block to its `:tangle` file, `:mkdirp` and `:shebang` applied: `Ctrl+C Ctrl+V t` or `Ctrl+C Ctrl+V Ctrl+T`
 - [ ] A `:tangle (concat "out" ".el")` block is tangled by Emacs to `out.el` (needs Emacs): `Ctrl+C Ctrl+V t` or `Ctrl+C Ctrl+V Ctrl+T`
 - [ ] Evaluating an `emacs-lisp` block asks first (yes or no), then puts `#+RESULTS:` below it (needs Emacs): `Ctrl+C Ctrl+V e` or `Ctrl+C Ctrl+V Ctrl+E`
@@ -237,6 +239,7 @@ here and why.
 
 ## Export and publishing
 
+- [ ] `#` in the export menu inserts the options template of the backend picked (`default` for all): `Ctrl+C Ctrl+E`
 - [ ] The menu shows Emacs's backends, `C-b`, `C-s` and `C-f` toggle the options (needs Emacs): `Ctrl+C Ctrl+E`
 - [ ] To an HTML file: the file is written next to the Org file and announced: `Ctrl+C Ctrl+E`
 - [ ] To an HTML file and opened: the browser opens it: `Ctrl+C Ctrl+E`

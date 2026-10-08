@@ -1158,6 +1158,41 @@ fn moves_a_lower_block_and_hides_empty_ones() {
     client.shutdown();
 }
 
+/// `org-clock-notify-once-if-expired`: clocking into an entry whose time
+/// already passes its effort says so, once.
+#[test]
+fn says_when_the_clock_passes_the_effort() {
+    const URI: &str = "file:///org/overrun.org";
+    let text = "* TODO Write\n:PROPERTIES:\n:EFFORT: 0:30\n:END:\n:LOGBOOK:\n\
+                CLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\n";
+    let mut client = Client::editor(clock(), None);
+    client.open(URI, text);
+    client.notifications.clear();
+    let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } });
+    client.request("workspace/executeCommand", json!({ "command": "org.clock.in", "arguments": [at] })).unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the clock");
+    let clocked = apply(text, &edits_of(edit).1);
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": URI, "version": 2 }, "contentChanges": [{ "text": clocked }] }),
+    );
+    client.settle();
+    std::thread::sleep(std::time::Duration::from_millis(200));
+    client.settle();
+    let said: Vec<String> = client
+        .notifications
+        .iter()
+        .filter(|notification| notification.method == "window/showMessage")
+        .map(|notification| notification.params["message"].as_str().unwrap().to_string())
+        .collect();
+    assert!(
+        said.iter().any(|message| message == "Task \u{2018}Write\u{2019} should be finished by now. (0:30)"),
+        "{said:?}"
+    );
+    client.shutdown();
+}
+
 /// `org-clock-in` and its relatives: the `CLOCK:` line in its drawer, the
 /// clock's status for the editor (`org-lsp/clock`), switching to another
 /// entry, clocking out, cancelling, and a done state stopping the clock.

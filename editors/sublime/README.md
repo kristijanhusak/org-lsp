@@ -127,15 +127,15 @@ the view at hand. To bind one yourself:
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ✅ |  |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ❓ | Dates are typed, without the calendar: the package asks with an input panel. |
 | [Agenda](../../docs/parity.md#agenda) | 74% | ✅ |  |
-| [Clocking](../../docs/parity.md#clocking) | 88% | ✅ |  |
+| [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 73% | ✅ |  |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 64% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 70% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
 | [Tables](../../docs/parity.md#tables) | 65% | ✅ |  |
 | [Table formulas](../../docs/parity.md#table-formulas) | 83% | ✅ |  |
-| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 73% | ✅ |  |
-| [Export and publishing](../../docs/parity.md#export-and-publishing) | 56% | ✅ |  |
+| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 82% | ✅ |  |
+| [Export and publishing](../../docs/parity.md#export-and-publishing) | 67% | ✅ |  |
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. |
@@ -145,7 +145,7 @@ the view at hand. To bind one yourself:
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **74%** |  |  |
+| **All of Org** | **75%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

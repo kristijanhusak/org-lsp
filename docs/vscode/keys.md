@@ -107,6 +107,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+V n`, `Ctrl+C Ctrl+V Ctrl+N` | `org.babel.next` | Move to the next code block |
 | `Ctrl+C Ctrl+V p`, `Ctrl+C Ctrl+V Ctrl+P` | `org.babel.previous` | Move to the previous code block |
 | `Ctrl+C Ctrl+V g` | `org.babel.goto` | Go to a named code block |
+| `Ctrl+C Ctrl+V i` | `org.babel.lob.ingest` | Add the file's named code blocks to the Library of Babel |
 | `Ctrl+C Alt+F` | `org.block.next` | Move to the next block |
 | `Ctrl+C Alt+B` | `org.block.previous` | Move to the previous block |
 | `Ctrl+C Ctrl+X 0` | `org.timer.start` | Start the relative timer |
@@ -416,6 +417,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "b", "n"], "commands": ["org.babel.next"] },
   { "before": ["<leader>", "o", "b", "p"], "commands": ["org.babel.previous"] },
   { "before": ["<leader>", "o", "b", "g"], "commands": ["org.babel.goto"] },
+  { "before": ["<leader>", "o", "b", "i"], "commands": ["org.babel.lob.ingest"] },
   { "before": ["<leader>", "o", "x", "0"], "commands": ["org.timer.start"] },
   { "before": ["<leader>", "o", "x", "."], "commands": ["org.timer.insert"] },
   { "before": ["<leader>", "o", "x", "-"], "commands": ["org.timer.item"] },
@@ -565,6 +567,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.babel.next` | Org: Move to the next code block |
 | `org.babel.previous` | Org: Move to the previous code block |
 | `org.babel.goto` | Org: Go to a named code block |
+| `org.babel.lob.ingest` | Org: Add the file's named code blocks to the Library of Babel |
 | `org.block.next` | Org: Move to the next block |
 | `org.block.previous` | Org: Move to the previous block |
 | `org.timer.start` | Org: Start the relative timer |

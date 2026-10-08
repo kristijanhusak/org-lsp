@@ -140,6 +140,7 @@ here and why.
 
 ## Clocking
 
+- [ ] Clocking into an entry whose effort its time passes shows `Task ‘…’ should be finished by now. (0:30)`, once: `<Leader>oxi`
 - [ ] Clocking in: `:LOGBOOK:` gets a `CLOCK:` line and the clock shows (`[0:01] (Task)`): `<Leader>oxi`
 - [ ] Clocking out writes the end and the duration: `<Leader>oxo`
 - [ ] Cancelling the clock takes its line out: `<Leader>oxq`
@@ -227,6 +228,7 @@ here and why.
 
 ## Code blocks (Babel)
 
+- [ ] Adding the file's named blocks to the Library of Babel; a `#+CALL:` in another file runs one (needs Emacs): `<Leader>obi`
 - [ ] Tangling writes each block to its `:tangle` file, `:mkdirp` and `:shebang` applied: `<Leader>obt`
 - [ ] A `:tangle (concat "out" ".el")` block is tangled by Emacs to `out.el` (needs Emacs): `<Leader>obt`
 - [ ] Evaluating an `emacs-lisp` block asks first (yes or no), then puts `#+RESULTS:` below it (needs Emacs): `<Leader>obe`
@@ -240,6 +242,7 @@ here and why.
 
 ## Export and publishing
 
+- [ ] `#` in the export menu inserts the options template of the backend picked (`default` for all): `<Leader>oe`
 - [ ] The menu shows Emacs's backends, `C-b`, `C-s` and `C-f` toggle the options (needs Emacs): `<Leader>oe`
 - [ ] To an HTML file: the file is written next to the Org file and announced: `<Leader>oe`
 - [ ] To an HTML file and opened: the browser opens it: `<Leader>oe`

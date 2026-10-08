@@ -403,13 +403,14 @@ export const AREAS = [
       ['Clock tables, with every parameter', true],
       ['Resolving dangling clocks and idle time', true],
       ['Clocking from the agenda, the clocked entry highlighted', true],
-      ['A notice when the clock passes the effort', false],
+      ['A notice when the clock passes the effort (`org-clock-notify-once-if-expired`)', true],
     ],
     editors: {
       zed: ['part', 'No clock in the status line: Zed has no place there for an extension\'s text.'],
       helix: ['part', 'No clock in the status line: Helix has no place there for a server\'s text.'],
     },
     checks: [
+      { text: 'Clocking into an entry whose effort its time passes shows `Task ‘…’ should be finished by now. (0:30)`, once', cmd: 'org.clock.in' },
       { text: 'Clocking in: `:LOGBOOK:` gets a `CLOCK:` line and the clock shows (`[0:01] (Task)`)', cmd: 'org.clock.in' },
       { text: 'Clocking out writes the end and the duration', cmd: 'org.clock.out' },
       { text: 'Cancelling the clock takes its line out', cmd: 'org.clock.cancel' },
@@ -620,13 +621,14 @@ export const AREAS = [
       ['Tangling\'s Emacs Lisp (evaluated header arguments, `<<block()>>`; through Emacs)', true],
       ['Detangling', false],
       ['Moving between blocks (`C-c C-v n`, `C-c C-v p`, `C-c C-v g`, `C-c M-f`, `C-c M-b`; through Emacs)', true],
-      ['The Library of Babel (`C-c C-v i`)', false],
+      ['The Library of Babel (`C-c C-v i`, through Emacs)', true],
     ],
     editors: {
       zed: ['part', 'Only tangling and the block at the cursor are offered (code actions in a block): the file\'s and the subtree\'s evaluation, removing results and moving between blocks need keys, which Zed cannot give a server.'],
       helix: ['part', 'Only tangling and the block at the cursor are offered (code actions in a block): the file\'s and the subtree\'s evaluation, removing results and moving between blocks need keys, which Helix cannot give a server.'],
     },
     checks: [
+      { text: 'Adding the file\'s named blocks to the Library of Babel; a `#+CALL:` in another file runs one (needs Emacs)', cmd: 'org.babel.lob.ingest', not: ['zed', 'helix'] },
       { text: 'Tangling writes each block to its `:tangle` file, `:mkdirp` and `:shebang` applied', cmd: 'org.babel.tangle' },
       { text: 'A `:tangle (concat "out" ".el")` block is tangled by Emacs to `out.el` (needs Emacs)', cmd: 'org.babel.tangle' },
       { text: 'Evaluating an `emacs-lisp` block asks first (yes or no), then puts `#+RESULTS:` below it (needs Emacs)', cmd: 'org.babel.execute' },
@@ -650,13 +652,14 @@ export const AREAS = [
       ['Exporting in the background (`C-a`)', false],
       ['Only the visible part (`C-v`)', false],
       ['The export stack (`&`)', false],
-      ['Inserting a template (`#`)', false],
+      ['Inserting a template (`#`, through Emacs)', true],
     ],
     editors: {
       zed: ['no', 'Not offered as a code action yet; its menu would come as buttons.'],
       helix: ['no', 'Not offered as a code action yet.'],
     },
     checks: [
+      { text: '`#` in the export menu inserts the options template of the backend picked (`default` for all)', cmd: 'org.export.dispatch', not: ['zed', 'helix'] },
       { text: 'The menu shows Emacs\'s backends, `C-b`, `C-s` and `C-f` toggle the options (needs Emacs)', cmd: 'org.export.dispatch' },
       { text: 'To an HTML file: the file is written next to the Org file and announced', cmd: 'org.export.dispatch' },
       { text: 'To an HTML file and opened: the browser opens it', cmd: 'org.export.dispatch' },

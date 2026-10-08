@@ -122,6 +122,7 @@ here and why.
 
 **Partly:** No clock in the status line: Zed has no place there for an extension's text.
 
+- [ ] Clocking into an entry whose effort its time passes shows `Task ‘…’ should be finished by now. (0:30)`, once: the code action *Clock in*
 - [ ] Clocking in: `:LOGBOOK:` gets a `CLOCK:` line and the clock shows (`[0:01] (Task)`): the code action *Clock in*
 - [ ] Clocking out writes the end and the duration: the code action *Clock out*
 - [ ] Cancelling the clock takes its line out: the code action *Cancel the clock*
