@@ -45,6 +45,18 @@ pub struct Choice {
     pub label: String,
 }
 
+/// Expands a link whose abbreviation calls a function (`%(…)`), which
+/// only Emacs can (`org-link-expand-abbrev`): given the link and the
+/// abbreviations in force, the file's first, the link it stands for.
+pub type CallAbbreviation<'a> = &'a dyn Fn(&str, &[(String, String)]) -> Result<String, String>;
+
+/// The link abbreviations in force, and what expands those that call a
+/// function, if anything.
+struct Abbreviations<'a> {
+    list: Vec<(String, String)>,
+    call: Option<CallAbbreviation<'a>>,
+}
+
 /// `org-open-at-point` at `offset`. `answer` is the key picked when the
 /// links of an entry were offered. `global` is `org-link-abbrev-alist`.
 pub fn at_point(
@@ -54,7 +66,19 @@ pub fn at_point(
     answer: Option<char>,
     global: &[(String, String)],
 ) -> Result<Open, String> {
-    let abbreviations = abbreviations(text, global);
+    at_point_calling(text, parse, offset, answer, global, None)
+}
+
+/// `at_point`, with `call` for the abbreviations that call a function.
+pub fn at_point_calling(
+    text: &str,
+    parse: &Parse,
+    offset: usize,
+    answer: Option<char>,
+    global: &[(String, String)],
+    call: Option<CallAbbreviation>,
+) -> Result<Open, String> {
+    let abbreviations = Abbreviations { list: abbreviations(text, global), call };
     let root = parse.syntax();
     let Some(token) = token_at(&root, offset) else { return Err(NO_LINK.to_string()) };
     // The nearest of the things Org opens, as `org-element-lineage` finds
@@ -97,7 +121,7 @@ pub fn at_point(
                 Some("src") => return Err("Source block results are not supported".to_string()),
                 _ => {}
             },
-            SyntaxKind::HEADLINE => return headline(&node, text, parse, offset, answer, global),
+            SyntaxKind::HEADLINE => return headline(&node, text, parse, offset, answer, global, call),
             _ => {}
         }
     }
@@ -122,7 +146,7 @@ pub struct Link {
     pub open: Result<Open, String>,
 }
 
-fn link_of(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &[(String, String)]) -> Link {
+fn link_of(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbreviations) -> Link {
     let range = node.text_range();
     let path = node
         .children_with_tokens()
@@ -147,7 +171,7 @@ fn is_link(node: &SyntaxNode) -> bool {
 /// The links of a text: bracket, angle and plain links, in order.
 /// `global` is `org-link-abbrev-alist`.
 pub fn links(text: &str, parse: &Parse, global: &[(String, String)]) -> Vec<Link> {
-    let abbreviations = abbreviations(text, global);
+    let abbreviations = Abbreviations { list: abbreviations(text, global), call: None };
     parse.syntax().descendants().filter(is_link).map(|node| link_of(&node, text, parse, &abbreviations)).collect()
 }
 
@@ -155,7 +179,7 @@ pub fn links(text: &str, parse: &Parse, global: &[(String, String)]) -> Vec<Link
 pub fn link_at(text: &str, parse: &Parse, offset: usize, global: &[(String, String)]) -> Option<Link> {
     let token = token_at(&parse.syntax(), offset)?;
     let node = token.parent_ancestors().find(is_link)?;
-    Some(link_of(&node, text, parse, &abbreviations(text, global)))
+    Some(link_of(&node, text, parse, &Abbreviations { list: abbreviations(text, global), call: None }))
 }
 
 /// The link abbreviations of `text`: its `#+LINK:` lines, the last first
@@ -184,16 +208,7 @@ pub fn abbreviations(text: &str, global: &[(String, String)]) -> Vec<(String, St
 /// `key` alone) replaced, `%s` by the tag, `%h` by the tag URL-encoded,
 /// else the tag after it.
 pub fn expand_abbreviation(raw: &str, abbreviations: &[(String, String)]) -> Result<String, String> {
-    let (key, tag) = match raw.find(':') {
-        Some(at) => {
-            let rest = &raw[at + 1..];
-            (&raw[..at], Some(rest.strip_prefix(':').unwrap_or(rest)))
-        }
-        None => (raw, None),
-    };
-    let Some((_, replacement)) = abbreviations.iter().find(|(name, _)| name == key) else {
-        return Ok(raw.to_string());
-    };
+    let Some((replacement, tag)) = abbreviation_of(raw, abbreviations) else { return Ok(raw.to_string()) };
     let tag = tag.unwrap_or("");
     if replacement.contains("%(") {
         return Err(format!("Link abbreviations calling a function are not supported: {replacement}"));
@@ -205,6 +220,19 @@ pub fn expand_abbreviation(raw: &str, abbreviations: &[(String, String)]) -> Res
     } else {
         format!("{replacement}{tag}")
     })
+}
+
+/// The replacement of the abbreviation `raw` uses (`key:tag`, or `key`
+/// alone), and its tag.
+fn abbreviation_of<'a>(raw: &'a str, abbreviations: &'a [(String, String)]) -> Option<(&'a str, Option<&'a str>)> {
+    let (key, tag) = match raw.find(':') {
+        Some(at) => {
+            let rest = &raw[at + 1..];
+            (&raw[..at], Some(rest.strip_prefix(':').unwrap_or(rest)))
+        }
+        None => (raw, None),
+    };
+    abbreviations.iter().find(|(name, _)| name == key).map(|(_, replacement)| (replacement.as_str(), tag))
 }
 
 /// `url-hexify-string`: all but the unreserved characters percent-encoded.
@@ -299,10 +327,17 @@ fn link_type(raw: &str) -> Option<(&str, &str)> {
     org_syntax::link_types().iter().find(|known| known.eq_ignore_ascii_case(head)).map(|_| (head, rest))
 }
 
-fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &[(String, String)]) -> Result<Open, String> {
+fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbreviations) -> Result<Open, String> {
     let (raw, bracket) = raw_link(node);
-    // Only a bracket link's abbreviation is expanded.
-    let raw = if bracket { expand_abbreviation(&raw, abbreviations)? } else { raw };
+    // Only a bracket link's abbreviation is expanded; one that calls a
+    // function, by Emacs.
+    let list = &abbreviations.list;
+    let calls = abbreviation_of(&raw, list).is_some_and(|(replacement, _)| replacement.contains("%("));
+    let raw = match abbreviations.call {
+        Some(call) if bracket && calls => call(&raw, list)?,
+        _ if bracket => expand_abbreviation(&raw, list)?,
+        _ => raw,
+    };
     // Only bracket links can be files without a type, or internal.
     if bracket && (raw.starts_with('/') || raw.starts_with('~') || raw.starts_with("./") || raw.starts_with("../")) {
         return Ok(file(&raw, None));
@@ -417,7 +452,7 @@ fn previous_reference(label: &str, root: &SyntaxNode, offset: usize) -> Result<O
 
 /// `org-open-at-point-global`, in a comment, a property or a keyword: a
 /// link or a timestamp on the line, around `offset`.
-fn open_in_line(text: &str, offset: usize, abbreviations: &[(String, String)]) -> Result<Open, String> {
+fn open_in_line(text: &str, offset: usize, abbreviations: &Abbreviations) -> Result<Open, String> {
     let start = text[..offset].rfind('\n').map_or(0, |at| at + 1);
     let end = text[offset..].find('\n').map_or(text.len(), |at| offset + at);
     // The line as a paragraph: what precedes its text blanked out.
@@ -458,6 +493,7 @@ fn headline(
     offset: usize,
     answer: Option<char>,
     global: &[(String, String)],
+    call: Option<CallAbbreviation>,
 ) -> Result<Open, String> {
     let line_end = text[usize::from(node.text_range().start())..]
         .find('\n')
@@ -493,7 +529,7 @@ fn headline(
             Some(key) => (0..links.len()).find(|index| offered_key(*index) == key).ok_or("Abort")?,
         },
     };
-    at_point(text, parse, links[chosen].2, None, global)
+    at_point_calling(text, parse, links[chosen].2, None, global, call)
 }
 
 /// The key of the link at `index` among those offered: `1`, `2`…

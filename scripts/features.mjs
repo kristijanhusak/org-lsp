@@ -499,7 +499,7 @@ export const AREAS = [
       ['Completion of file names, headlines and custom IDs in links', true],
       ['Backlinks, hovers and clickable links (beyond Emacs: references, document links)', true],
       ['Link abbreviations (`#+LINK:`, `org-link-abbrev-alist`)', true],
-      ['Link abbreviations that call a function (`%(…)`)', false],
+      ['Link abbreviations that call a function (`%(…)`), through Emacs, when the function is safe', true],
       ['A region as the search of a stored link', false],
       ['Completing `id:` links to entries, which get an ID (`org-id-complete`; Org completes no `help:` links)', true],
       ['Default descriptions from the link type: an `id:` link\'s headline, an `info:` link\'s command', true],
