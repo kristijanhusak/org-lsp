@@ -98,10 +98,9 @@ function neovimKeys(scopes = SCOPES.map(([scope]) => scope)) {
   return sections.join('\n\n');
 }
 
-/** The Vim plugin's keys: the Neovim plugin's, without column view, which
- * Vim does not have. */
+/** The Vim plugin's keys: the Neovim plugin's. */
 function vimKeys() {
-  return neovimKeys(['global', 'org', 'capture', 'agenda', 'calendar']);
+  return neovimKeys(['global', 'org', 'capture', 'agenda', 'calendar', 'columns']);
 }
 
 /** A key of VS Code's `keybindings` (`ctrl+c ctrl+w`) as its UI writes it. */

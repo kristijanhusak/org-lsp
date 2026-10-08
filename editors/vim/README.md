@@ -24,9 +24,9 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [TODO keywords](../../docs/parity.md#todo-keywords) | 100% | ✅ |  |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
-| [Properties and column view](../../docs/parity.md#properties-and-column-view) | 100% | ❓ | Column view is left out: it draws over the headlines, which Vim cannot. |
+| [Properties and column view](../../docs/parity.md#properties-and-column-view) | 100% | ❓ | Column view's header is in the window's status line, shown when the window has one (`laststatus`). |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ✅ |  |
-| [Agenda](../../docs/parity.md#agenda) | 100% | ❓ | Column view in the agenda is left out: it draws over the lines, which Vim cannot. |
+| [Agenda](../../docs/parity.md#agenda) | 100% | ✅ |  |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 100% | ✅ |  |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 100% | ✅ |  |

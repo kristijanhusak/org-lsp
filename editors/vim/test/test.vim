@@ -728,6 +728,50 @@ function! s:virtual_indent() abort
 endfunction
 call s:test('org-indent-mode shows the file indented, unchanged', function('s:virtual_indent'))
 
+" Column view (`org-columns`, through Emacs): the headlines covered by
+" their columns, the header in the status line; `l` picks the next column,
+" `n` its next allowed value; `q` takes the view away.
+function! s:columns() abort
+  let file = s:work . '/notes/columned.org'
+  call writefile(['#+COLUMNS: %25ITEM %TODO', '* Project', '** Task'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(1, 1)
+  call org_lsp#run('org.columns')
+  call s:until('column view', {-> org_lsp#columns_on(bufnr())})
+  call s:until('the headline covered by its columns', {-> trim(org_lsp#columns_shown(bufnr(), 2)) ==# '** Task                   |      |'})
+  call assert_match('ITEM                      | TODO |', &l:statusline)
+  call cursor(3, 1)
+  call feedkeys('l', 'x')
+  call assert_equal(1, b:org_lsp_column, 'l picks the next column')
+  call feedkeys('n', 'x')
+  call s:until('the next TODO state', {-> getline(3) ==# '** TODO Task'})
+  call s:until('the view following it', {-> trim(org_lsp#columns_shown(bufnr(), 2)) ==# '** Task                   | TODO |'})
+  call feedkeys('q', 'x')
+  call s:until('column view off', {-> !org_lsp#columns_on(bufnr())})
+  call assert_equal([], prop_list(1, {'end_lnum': -1, 'types': ['org_lsp_columns']}), 'nothing covers the headlines')
+  call assert_equal('', maparg('q', 'n'), 'q as Vim has it')
+  silent write
+  " In the agenda (`org-agenda-columns`): each entry's line covered by its
+  " columns; `q` gives the agenda its own keys back.
+  call org_lsp#run('org.agenda.todos')
+  call s:until('the TODO list', {-> &filetype ==# 'org-agenda' && search('TODO Task$', 'nw') > 0})
+  let agenda = bufnr()
+  let task = search('TODO Task$', 'nw')
+  call cursor(task, 1)
+  call org_lsp#run('org.agenda.columns')
+  call s:until('column view in the agenda', {-> org_lsp#columns_on(agenda)})
+  call s:until('the entry covered by its columns', {-> trim(org_lsp#columns_shown(agenda, task - 1)) =~# '^Task\s\+| TODO |'})
+  call feedkeys('q', 'x')
+  call s:until('column view off in the agenda', {-> !org_lsp#columns_on(agenda)})
+  " `q` closes the agenda again.
+  call feedkeys('q', 'x')
+  call s:until('the agenda closed', {-> &filetype !=# 'org-agenda'})
+endfunction
+if executable('emacs')
+  call s:test('column view covers the headlines with their columns', function('s:columns'))
+endif
+
 for error in v:errors
   call add(s:results, 'not ok - ' . error)
 endfor
