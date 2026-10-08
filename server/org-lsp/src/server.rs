@@ -315,6 +315,10 @@ struct Context {
     range: Option<Range>,
     /// In column view: the column picked, from 0.
     column: Option<usize>,
+    /// For the commands that read them (`"folds": true` in the manifest):
+    /// the closed folds of the editor's window, as their first and last
+    /// lines, from 0.
+    folded: Option<Vec<[u32; 2]>>,
 }
 
 /// The Emacs command a command is on a selection, the active region, for
@@ -1319,6 +1323,7 @@ fn export_question(menu: &Value, step: Option<&str>, options: &str) -> Value {
         json!({ "key": "\u{2}", "label": format!("Body only: {}", if on('b') { "On" } else { "Off" }) }),
         json!({ "key": "\u{13}", "label": format!("Export scope: {}", if on('s') { "Subtree" } else { "Buffer" }) }),
         json!({ "key": "\u{6}", "label": format!("Force publishing: {}", if on('f') { "On" } else { "Off" }) }),
+        json!({ "key": "\u{16}", "label": format!("Visible only: {}", if on('v') { "On" } else { "Off" }) }),
     ];
     let tops = menu.as_array().cloned().unwrap_or_default();
     match step {
@@ -7853,7 +7858,8 @@ impl Server {
     /// `org-export-dispatch` (`C-c C-e`): Org's export menu, run by Emacs.
     /// Without an answer it asks for the first key: a backend from the
     /// menu Emacs makes of the backends it has, `P` to publish, or one of
-    /// the options to turn on or off (`C-b` body only, `C-s` the subtree at
+    /// the options to turn on or off (`C-v` visible only, the editor's
+    /// closed folds left out, `C-b` body only, `C-s` the subtree at
     /// the cursor, `C-f` force publishing). A backend's key asks for one of
     /// its entries (`step` is then the backend's key, `answers` the options
     /// on, as letters). The entry runs in Emacs on the document as the
@@ -7875,6 +7881,7 @@ impl Server {
             "\u{2}" => Some('b'),
             "\u{13}" => Some('s'),
             "\u{6}" => Some('f'),
+            "\u{16}" => Some('v'),
             _ => None,
         };
         if let Some(option) = option {
@@ -8043,6 +8050,7 @@ impl Server {
                 'b' => Some("body"),
                 's' => Some("subtree"),
                 'f' => Some("force"),
+                'v' => Some("visible"),
                 _ => None,
             })
             .collect();
@@ -8057,6 +8065,8 @@ impl Server {
             "project": project,
             "options": names,
             "agenda_files": agenda_files,
+            // What `C-v` (visible only) leaves out: the editor's closed folds.
+            "folded": context.folded.clone().unwrap_or_default(),
         });
         self.next_export += 1;
         let tag = self.next_export;

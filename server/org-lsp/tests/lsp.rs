@@ -1645,6 +1645,28 @@ fn exports_through_emacs() {
     assert_eq!(show.params["uri"], json!(format!("file://{}", html_file.display())), "{:?}", show.params);
     assert_eq!(show.params["external"], json!(true));
 
+    // `C-v`, visible only: what the editor has folded is left out.
+    let visible = run(&mut client, context((0, 0), json!({ "input": "\u{16}", "answers": "", "step": "" })));
+    assert_eq!(visible["input"]["context"]["answers"], "v");
+    run(&mut client, context((0, 0), json!({ "input": "U", "answers": "v", "step": "t", "folded": [[1, 2]] })));
+    let Message::Request(question) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Request(request) if request.method == "window/showMessageRequest"),
+    ) else {
+        unreachable!()
+    };
+    client.connection.sender.send(Message::Response(Response::new_ok(question.id, json!({ "title": "No" })))).unwrap();
+    let Message::Request(show) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Request(request) if request.method == "window/showDocument"),
+    ) else {
+        unreachable!()
+    };
+    let shown: Uri = serde_json::from_value(show.params["uri"].clone()).unwrap();
+    let exported = std::fs::read_to_string(percent_decode(shown.path().as_str())).unwrap();
+    assert!(exported.contains("Héllo") && !exported.contains("First.") && exported.contains("Code"), "{exported}");
+    client.connection.sender.send(Message::Response(Response::new_ok(show.id, json!({ "success": true })))).unwrap();
+
     // An entry that is not there.
     let response = client.raw_request(
         "workspace/executeCommand",

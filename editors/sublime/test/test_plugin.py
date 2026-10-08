@@ -102,6 +102,9 @@ class View:
     def unfold(self, region):
         self.folds = {f for f in self.folds if f.end() < region.begin() or f.begin() > region.end()}
 
+    def folded_regions(self):
+        return sorted(self.folds, key=lambda region: region.begin())
+
     def is_folded(self, region):
         return region in self.folds
 
@@ -366,6 +369,11 @@ class Tests(unittest.TestCase):
         self.assertEqual(self.view.folds, {self.plugin.fold_region(self.view, {'startLine': 2, 'endLine': 3})})
         self.plugin.OrgLspListener().on_modified(self.view)
         self.assertNotIn('org-lsp-sparse', self.view.regions)
+
+    def test_tells_the_closed_folds(self):
+        self.view.text = '* A\nan apple\n* B\nnothing\nmore\n'
+        self.view.folds = {self.plugin.fold_region(self.view, {'startLine': 2, 'endLine': 4})}
+        self.assertEqual(self.plugin.closed_folds(self.view), [[2, 4]])
 
     def test_reveals_the_context(self):
         self.view.text = '* A\nan apple\n* B\nnothing\n'

@@ -141,7 +141,7 @@ those dates in the file itself, where completion helps.
 | [Tables](../../docs/parity.md#tables) | 94% | ❓ | Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and `…`: Zed lets no server hide text. |
 | [Table formulas](../../docs/parity.md#table-formulas) | 100% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 100% | ❓ | Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server. |
-| [Export and publishing](../../docs/parity.md#export-and-publishing) | 89% | ❌ | Not offered as a code action yet; its menu would come as buttons. |
+| [Export and publishing](../../docs/parity.md#export-and-publishing) | 100% | ❌ | Not offered as a code action yet; its menu would come as buttons. |
 | [Citations](../../docs/parity.md#citations) | 100% | ❓ | Inserting citations is not offered as a code action yet. Completion, hover and following work. |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. |

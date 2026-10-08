@@ -678,15 +678,17 @@ export const AREAS = [
       ['Publishing a file, a project, all projects', true],
       ['Forcing publishing', true],
       ['Exporting in the background: every export runs in the background, the editor never waits for it', true],
-      ['Only the visible part (`C-v`)', false],
+      ['Only the visible part (`C-v`): what the editor has folded left out', true],
       ['The export stack (`&`): what the exports made, the last first, to show again', true],
       ['Inserting a template (`#`, through Emacs)', true],
     ],
     editors: {
+      vscode: ['part', 'VS Code does not tell an extension which folds are closed: with `C-v` everything is exported.'],
       zed: ['no', 'Not offered as a code action yet; its menu would come as buttons.'],
       helix: ['no', 'Not offered as a code action yet.'],
     },
     checks: [
+      { text: 'With a subtree folded, `C-v` then an export to a buffer leaves the subtree\'s text out (needs Emacs)', cmd: 'org.export.dispatch', only: ['neovim', 'vim', 'sublime'] },
       { text: '`#` in the export menu inserts the options template of the backend picked (`default` for all)', cmd: 'org.export.dispatch', not: ['zed', 'helix'] },
       { text: 'The menu shows Emacs\'s backends, `C-b`, `C-s` and `C-f` toggle the options (needs Emacs)', cmd: 'org.export.dispatch' },
       { text: 'To an HTML file: the file is written next to the Org file and announced', cmd: 'org.export.dispatch' },

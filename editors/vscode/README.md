@@ -35,7 +35,7 @@ hand.
 | [Tables](../../docs/parity.md#tables) | 94% | ✅ |  |
 | [Table formulas](../../docs/parity.md#table-formulas) | 100% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 100% | ✅ |  |
-| [Export and publishing](../../docs/parity.md#export-and-publishing) | 89% | ✅ |  |
+| [Export and publishing](../../docs/parity.md#export-and-publishing) | 100% | ❓ | VS Code does not tell an extension which folds are closed: with `C-v` everything is exported. |
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ✅ |  |

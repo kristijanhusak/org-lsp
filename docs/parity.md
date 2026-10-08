@@ -29,7 +29,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Tables](#tables) | 94% | 16 of 17 |
 | [Table formulas](#table-formulas) | 100% | 12 of 12 |
 | [Code blocks (Babel)](#code-blocks-babel) | 100% | 11 of 11 |
-| [Export and publishing](#export-and-publishing) | 89% | 8 of 9 |
+| [Export and publishing](#export-and-publishing) | 100% | 9 of 9 |
 | [Citations](#citations) | 100% | 5 of 5 |
 | [Diagnostics (org-lint)](#diagnostics-org-lint) | 97% | 59 of 61 |
 | [Indentation and formatting](#indentation-and-formatting) | 83% | 5 of 6 |
@@ -401,7 +401,7 @@ Where editors fall short:
 
 ## Export and publishing
 
-89% (8 of 9)
+100% (9 of 9)
 
 - ✅ The export menu, with the backends Emacs has (through Emacs)
 - ✅ Body only and the subtree at the cursor
@@ -409,12 +409,13 @@ Where editors fall short:
 - ✅ Publishing a file, a project, all projects
 - ✅ Forcing publishing
 - ✅ Exporting in the background: every export runs in the background, the editor never waits for it
-- ❌ Only the visible part (`C-v`)
+- ✅ Only the visible part (`C-v`): what the editor has folded left out
 - ✅ The export stack (`&`): what the exports made, the last first, to show again
 - ✅ Inserting a template (`#`, through Emacs)
 
 Where editors fall short:
 
+- VS Code ❓: VS Code does not tell an extension which folds are closed: with `C-v` everything is exported.
 - Zed ❌: Not offered as a code action yet; its menu would come as buttons.
 - Helix ❌: Not offered as a code action yet.
 

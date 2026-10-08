@@ -265,6 +265,8 @@ here and why.
 
 ## Export and publishing
 
+**Partly:** VS Code does not tell an extension which folds are closed: with `C-v` everything is exported.
+
 - [ ] `#` in the export menu inserts the options template of the backend picked (`default` for all): `Ctrl+C Ctrl+E`
 - [ ] The menu shows Emacs's backends, `C-b`, `C-s` and `C-f` toggle the options (needs Emacs): `Ctrl+C Ctrl+E`
 - [ ] To an HTML file: the file is written next to the Org file and announced: `Ctrl+C Ctrl+E`

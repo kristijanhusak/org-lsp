@@ -135,7 +135,7 @@ the view at hand. To bind one yourself:
 | [Tables](../../docs/parity.md#tables) | 94% | ❓ | A shrunk column shows its whole text and `…`: Sublime Text cannot hide text in a view. |
 | [Table formulas](../../docs/parity.md#table-formulas) | 100% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 100% | ✅ |  |
-| [Export and publishing](../../docs/parity.md#export-and-publishing) | 89% | ✅ |  |
+| [Export and publishing](../../docs/parity.md#export-and-publishing) | 100% | ✅ |  |
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. |

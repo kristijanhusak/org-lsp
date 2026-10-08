@@ -321,6 +321,10 @@ function! org_lsp#run(name, ...) abort
   if get(s:command(a:name), 'clipboard', v:false)
     let context.clipboard = getreg(opts.register)
   endif
+  " The closed folds, for what is visible.
+  if get(s:command(a:name), 'folds', v:false)
+    let context.folded = s:closed_folds()
+  endif
   " Below the cursor's line, as nvim-orgmode's `<Leader><CR>` puts it:
   " never above it, and nothing split.
   if get(opts, 'append', 0)
@@ -391,6 +395,22 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
     " Asked from a callback, the prompt waits for the screen to settle.
     call timer_start(0, {-> s:ask(a:bufnr, a:name, a:context, a:opts, result.input)})
   endif
+endfunction
+
+" The closed folds of the current window, as their first and last lines,
+" from 0.
+function! s:closed_folds() abort
+  let folds = []
+  let lnum = 1
+  while lnum <= line('$')
+    if foldclosed(lnum) == lnum
+      call add(folds, [lnum - 1, foldclosedend(lnum) - 1])
+      let lnum = foldclosedend(lnum) + 1
+    else
+      let lnum += 1
+    endif
+  endwhile
+  return folds
 endfunction
 
 " Show a sparse tree (`org-sparse-tree`) in the current window: all folds

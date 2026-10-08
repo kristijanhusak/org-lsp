@@ -268,6 +268,7 @@ here and why.
 
 ## Export and publishing
 
+- [ ] With a subtree folded, `C-v` then an export to a buffer leaves the subtree's text out (needs Emacs): `<Leader>oe`
 - [ ] `#` in the export menu inserts the options template of the backend picked (`default` for all): `<Leader>oe`
 - [ ] The menu shows Emacs's backends, `C-b`, `C-s` and `C-f` toggle the options (needs Emacs): `<Leader>oe`
 - [ ] To an HTML file: the file is written next to the Org file and announced: `<Leader>oe`

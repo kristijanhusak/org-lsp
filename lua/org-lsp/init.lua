@@ -228,6 +228,10 @@ function M.run(name, opts)
     if (server_command(name) or {}).clipboard then
       context.clipboard = vim.fn.getreg(register)
     end
+    -- The closed folds, for what is visible.
+    if (server_command(name) or {}).folds then
+      context.folded = M.closed_folds()
+    end
     if opts.append then
       -- Below the cursor's line, as nvim-orgmode's `<Leader><CR>` puts it:
       -- never above it, and nothing split.
@@ -335,6 +339,23 @@ function _G.OrgLspCompleteInput(lead)
   return vim.tbl_filter(function(candidate)
     return candidate:lower():sub(1, #lower) == lower
   end, M.completions or {})
+end
+
+--- The closed folds of the current window, as their first and last
+--- lines, from 0.
+---@return integer[][]
+function M.closed_folds()
+  local folds, line, last = {}, 1, vim.api.nvim_buf_line_count(0)
+  while line <= last do
+    if vim.fn.foldclosed(line) == line then
+      local finish = vim.fn.foldclosedend(line)
+      table.insert(folds, { line - 1, finish - 1 })
+      line = finish + 1
+    else
+      line = line + 1
+    end
+  end
+  return folds
 end
 
 local sparse_namespace = vim.api.nvim_create_namespace('org_lsp_sparse')
