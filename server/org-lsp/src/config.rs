@@ -38,7 +38,7 @@ pub struct Options {
     pub list_use_circular_motion: Option<bool>,
     /// `org-agenda-dim-blocked-tasks`
     #[serde(rename = "org_agenda_dim_blocked_tasks")]
-    pub agenda_dim_blocked_tasks: Option<bool>,
+    pub agenda_dim_blocked_tasks: Option<LogOption>,
     /// `org-enforce-todo-dependencies`
     #[serde(rename = "org_enforce_todo_dependencies")]
     pub enforce_todo_dependencies: Option<bool>,

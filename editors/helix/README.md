@@ -26,7 +26,7 @@ its behalf.
 | [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 67% | ❌ | Helix has no folding. |
 | [Headings and structure](../../docs/parity.md#headings-and-structure) | 100% | ❓ | New headings (`M-RET` and its relatives), moving between headings and `org-goto` are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions. |
 | [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 91% | ❓ | `RET` stays Helix's own, new items, cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them. |
-| [TODO keywords](../../docs/parity.md#todo-keywords) | 88% | ❓ | A note for a state change (`@`) cannot be typed: Helix cannot ask for text on a server's behalf. |
+| [TODO keywords](../../docs/parity.md#todo-keywords) | 100% | ❓ | A note for a state change (`@`) cannot be typed: Helix cannot ask for text on a server's behalf. |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work. |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ❓ | Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. |
@@ -50,7 +50,7 @@ its behalf.
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **76%** |  |  |
+| **All of Org** | **77%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

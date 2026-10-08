@@ -497,6 +497,54 @@ impl View {
         self.lines.get(line as usize)
     }
 
+    /// The view without the lines `hidden` (by number), as Org hides them
+    /// (`org-agenda-filter-hide-line`): each with the line break before it.
+    pub fn hide_lines(&mut self, hidden: &[usize]) {
+        if hidden.is_empty() {
+            return;
+        }
+        let old: Vec<&str> = self.text.split('\n').collect();
+        let mut starts = Vec::with_capacity(old.len());
+        let mut at = 0;
+        for line in &old {
+            starts.push(at);
+            at += line.len() + 1;
+        }
+        // Each line's new number and start, if it stays.
+        let mut moved: Vec<Option<(u32, usize)>> = Vec::with_capacity(old.len());
+        let mut kept: Vec<&str> = Vec::new();
+        let mut start = 0;
+        for (number, line) in old.iter().enumerate() {
+            if hidden.contains(&number) {
+                moved.push(None);
+                continue;
+            }
+            moved.push(Some((kept.len() as u32, start)));
+            kept.push(line);
+            start += line.len() + 1;
+        }
+        let text = kept.join("\n");
+        let line_of = |offset: usize| starts.partition_point(|start| *start <= offset).saturating_sub(1);
+        self.tokens.retain_mut(|token| {
+            let (from, to) = (usize::from(token.range.start()), usize::from(token.range.end()));
+            let line = line_of(from);
+            let Some((_, new_start)) = moved[line] else { return false };
+            let shift = |offset: usize| (offset - starts[line] + new_start) as u32;
+            token.range = org_syntax::TextRange::new(shift(from).into(), shift(to).into());
+            true
+        });
+        let renumber = |line: u32| moved.get(line as usize).copied().flatten().map(|(number, _)| number);
+        self.clocking = self.clocking.iter().filter_map(|line| renumber(*line)).collect();
+        self.today_line = self.today_line.and_then(renumber);
+        let mut number = 0;
+        self.lines.retain(|_| {
+            number += 1;
+            !hidden.contains(&(number - 1))
+        });
+        self.index = LineIndex::new(&text);
+        self.text = text;
+    }
+
     /// The line that shows the entry at `offset` of `uri` the way line
     /// `from` did before the view was rebuilt: for the same reason and
     /// under the same day if there is such a line, or else the nearest

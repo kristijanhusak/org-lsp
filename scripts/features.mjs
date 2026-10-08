@@ -232,7 +232,7 @@ export const AREAS = [
       ['The parent\'s statistics cookies recounted', true],
       ['Blocking a state change by children, `ORDERED` siblings and checkboxes (`org-enforce-todo-dependencies`)', true],
       ['Dimming blocked tasks in the agenda (`org-agenda-dim-blocked-tasks`)', true],
-      ['Hiding blocked tasks in the agenda (`org-agenda-dim-blocked-tasks` `invisible`)', false],
+      ['Hiding blocked tasks in the agenda (`org-agenda-dim-blocked-tasks` `invisible`)', true],
     ],
     editors: {
       zed: ['part', `A note for a state change (\`@\`) cannot be typed: ${ZED_TEXT}. States are picked with buttons.`],

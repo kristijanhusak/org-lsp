@@ -108,11 +108,12 @@ pub const SETTINGS: &[Setting] = &[
     ),
     setting(
         "org_agenda_dim_blocked_tasks",
-        "boolean",
+        r#"true, false, "invisible""#,
         "true",
         "org-agenda-dim-blocked-tasks",
         "Dim the tasks of the agenda and the TODO list that their dependencies keep from being done (with \
-         `org_enforce_todo_dependencies` or `org_enforce_todo_checkbox_dependencies`).",
+         `org_enforce_todo_dependencies` or `org_enforce_todo_checkbox_dependencies`); `invisible` leaves them \
+         out instead, except those blocked by checkboxes, which stay dimmed.",
     ),
     setting(
         "org_enforce_todo_checkbox_dependencies",
@@ -1169,7 +1170,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_todo_keywords", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_log_done", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_repeat", r#"{ "enum": [false, "time", "note"] }"#),
-    ("org_agenda_dim_blocked_tasks", BOOLEAN),
+    ("org_agenda_dim_blocked_tasks", r#"{ "enum": [true, false, "invisible"] }"#),
     ("org_list_use_circular_motion", BOOLEAN),
     ("org_enforce_todo_dependencies", BOOLEAN),
     ("org_enforce_todo_checkbox_dependencies", BOOLEAN),
