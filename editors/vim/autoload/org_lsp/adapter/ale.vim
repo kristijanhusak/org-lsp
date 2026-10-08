@@ -113,3 +113,10 @@ function! org_lsp#adapter#ale#request(bufnr, method, params, Callback) abort
     call a:Callback({'message': 'the server is not running'}, v:null)
   endif
 endfunction
+
+" Tell the server of the changes to buffer `bufnr` not sent yet.
+function! org_lsp#adapter#ale#flush(bufnr) abort
+  if exists('s:connection')
+    call ale#lsp#NotifyForChanges(s:connection, a:bufnr)
+  endif
+endfunction

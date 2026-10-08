@@ -267,6 +267,9 @@ pub struct Options {
     /// The client shows `org-lsp/lineHighlights`, as one announcing
     /// `experimental.orgLineHighlights` does.
     pub line_highlights: Option<bool>,
+    /// The client reads the agenda's file again when told
+    /// (`org-lsp/viewChanged`).
+    pub view_changed: Option<bool>,
     /// `org-refile-targets`: where entries can be refiled to. Without it,
     /// the top-level headlines of the entry's own file.
     #[serde(rename = "org_refile_targets")]

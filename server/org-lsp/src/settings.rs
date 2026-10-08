@@ -1345,6 +1345,17 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "view_changed",
+            "boolean",
+            "false",
+            "",
+            "Whether the server says when it has written the agenda's file anew (`org-lsp/viewChanged`), for a \
+             client that does not see the file change on disk and reads it again when told: the Vim plugin.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "virtual_indent",
             "boolean",
             "false",
@@ -1651,6 +1662,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("show_document", BOOLEAN),
     ("message_prompts", BOOLEAN),
     ("line_highlights", BOOLEAN),
+    ("view_changed", BOOLEAN),
     ("virtual_indent", BOOLEAN),
     ("command_actions", BOOLEAN),
     ("command_script", STRING),

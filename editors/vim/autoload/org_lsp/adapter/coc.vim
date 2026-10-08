@@ -11,7 +11,7 @@ function! org_lsp#adapter#coc#register(cmd, options, filetypes) abort
         \ 'filetypes': a:filetypes,
         \ 'initializationOptions': a:options,
         \ })
-  for method in ['org-lsp/save', 'org-lsp/clock', 'org-lsp/timer', 'org-lsp/virtualIndent', 'org-lsp/lineHighlights']
+  for method in ['org-lsp/save', 'org-lsp/clock', 'org-lsp/timer', 'org-lsp/virtualIndent', 'org-lsp/lineHighlights', 'org-lsp/viewChanged']
     call CocRegisterNotification(s:name, method, function('org_lsp#handle_notification', [method]))
   endfor
 endfunction
@@ -76,4 +76,16 @@ function! org_lsp#adapter#coc#request(bufnr, method, params, Callback) abort
     return s:send(a:method, a:params, a:Callback)
   endif
   call timer_start(wait, {-> s:send(a:method, a:params, a:Callback)})
+endfunction
+
+" Tell the server of the changes to buffer `bufnr` not sent yet: coc.nvim
+" syncs a buffer when told it changed, which Vim says of the current one.
+function! org_lsp#adapter#coc#flush(bufnr) abort
+  if exists('*listener_flush')
+    call listener_flush(a:bufnr)
+  endif
+  silent! call coc#api#Buf_flush(a:bufnr)
+  if coc#rpc#ready()
+    call coc#rpc#notify('CocAutocmd', ['TextChanged', a:bufnr, getbufvar(a:bufnr, 'changedtick')])
+  endif
 endfunction

@@ -18,6 +18,7 @@ function! org_lsp#adapter#lsp#register(cmd, options, filetypes) abort
         \   'org-lsp/timer': function('s:notification'),
         \   'org-lsp/virtualIndent': function('s:notification'),
         \   'org-lsp/lineHighlights': function('s:notification'),
+        \   'org-lsp/viewChanged': function('s:notification'),
         \ },
         \ }])
 endfunction
@@ -58,4 +59,11 @@ function! org_lsp#adapter#lsp#request(bufnr, method, params, Callback) abort
   endif
   call ch_sendexpr(job_getchannel(server.job), {'method': a:method, 'params': a:params},
         \ {'callback': {_, reply -> a:Callback(get(reply, 'error', {}), get(reply, 'result', v:null))}})
+endfunction
+
+" Tell the server of the changes to buffer `bufnr` not sent yet.
+function! org_lsp#adapter#lsp#flush(bufnr) abort
+  if exists('*listener_flush')
+    call listener_flush(a:bufnr)
+  endif
 endfunction
