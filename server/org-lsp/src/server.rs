@@ -10068,16 +10068,32 @@ impl Server {
         let items: Vec<Value> =
             org_core::link_preview::previews(&text, &parse, &self.link_abbreviations, include_linked, from, to)
                 .into_iter()
-                .filter(|found| !found.attachment)
                 .filter_map(|found| {
+                    let path = if found.attachment {
+                        self.attachment_path(&uri, &text, found.start, &found.path)?
+                    } else {
+                        self.link_path(&uri, &found.path)?
+                    };
                     // `a/./b.png` as `a/b.png`.
-                    let path: PathBuf = self.link_path(&uri, &found.path)?.components().collect();
+                    let path: PathBuf = path.components().collect();
                     let path = Some(path).filter(|path| path.is_file())?;
                     Some(json!({ "range": range(found.start, found.end), "path": path.to_string_lossy() }))
                 })
                 .collect();
         preview["items"] = json!(items);
         Ok(json!({ "preview": preview }))
+    }
+
+    /// The file of the `attachment:` link `name` at `offset` of `text`:
+    /// `org-attach-expand` in Emacs, in the attachment directory of the
+    /// entry there. None without Emacs, or without a directory.
+    fn attachment_path(&mut self, uri: &Uri, text: &str, offset: usize, name: &str) -> Option<PathBuf> {
+        let name = name.find("::").map_or(name, |at| &name[..at]);
+        let file = uri::to_path(uri)?;
+        let point = text[..offset].chars().count() + 1;
+        let params = json!({ "file": file.to_string_lossy(), "text": text, "point": point, "name": name });
+        let found = self.emacs.call("attach-expand", params, std::time::Duration::from_secs(60)).ok()?;
+        found.as_str().map(PathBuf::from)
     }
 
     /// The images Emacs made for the LaTeX fragments of `uri`, sent in

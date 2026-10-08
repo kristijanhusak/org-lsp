@@ -43,8 +43,8 @@ The Neovim plugin is the repository itself (`lua/`, `plugin/`): install
 | [Timers](../../docs/parity.md#timers) | 100% | ✅ |  |
 | [Attachments](../../docs/parity.md#attachments) | 100% | ✅ |  |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
-| [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 67% | ❓ | From Neovim 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick. |
-| **All of Org** | **98%** |  |  |
+| [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 100% | ❓ | From Neovim 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick. |
+| **All of Org** | **99%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

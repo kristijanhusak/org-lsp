@@ -38,14 +38,14 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 100% | ✅ |  |
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
-| [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | New lines are not indented by the server (no `indentexpr`), and wrapped lines are not. |
+| [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | The lines a long line wraps into are not indented. |
 | [Notes and logging](../../docs/parity.md#notes-and-logging) | 100% | ✅ |  |
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ✅ |  |
 | [Timers](../../docs/parity.md#timers) | 100% | ✅ |  |
 | [Attachments](../../docs/parity.md#attachments) | 100% | ✅ |  |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
-| [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 67% | ❌ | Vim cannot show images. |
-| **All of Org** | **98%** |  |  |
+| [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 100% | ❌ | Vim cannot show images. |
+| **All of Org** | **99%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

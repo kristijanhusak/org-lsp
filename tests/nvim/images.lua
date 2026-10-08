@@ -130,5 +130,20 @@ wait('no picture', function()
   return #previews.list(bufnr) == 0 and images() == 0
 end)
 
+-- 6. An `attachment:` link: the file in the entry's attachment directory,
+-- as Emacs finds it (`org-attach-expand`).
+if vim.fn.executable('emacs') == 1 then
+  local attached = directory .. '/data'
+  vim.fn.mkdir(attached, 'p')
+  vim.fn.writefile(vim.fn.readfile(png, 'b'), attached .. '/shot.png', 'b')
+  vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { '* Attached', ':PROPERTIES:', ':DIR: ' .. attached, ':END:', '[[attachment:shot.png]]' })
+  vim.api.nvim_win_set_cursor(0, { vim.api.nvim_buf_line_count(bufnr), 3 })
+  require('org-lsp').run('org.link.preview')
+  check(vim.wait(60000, function()
+    return #previews.list(bufnr) == 1
+  end, 50), 'timed out waiting for the attached picture')
+  eq(previews.list(bufnr)[1].path, attached .. '/shot.png', 'the attached file')
+end
+
 print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')

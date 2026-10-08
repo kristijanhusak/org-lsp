@@ -755,7 +755,7 @@ export const AREAS = [
       ['Lines a long line wraps into indented (`wrap-prefix`)', false],
     ],
     editors: {
-      vim: ['part', 'New lines are not indented by the server (no `indentexpr`), and wrapped lines are not.'],
+      vim: ['part', 'The lines a long line wraps into are not indented.'],
       sublime: ['part', 'Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed.'],
       zed: ['part', 'Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed.'],
       helix: ['part', 'Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed.'],
@@ -864,7 +864,7 @@ export const AREAS = [
     emacs: [
       ['Previews of links to images (`org-link-preview`, `C-c C-x C-v`): the link at the cursor, the section, the file, with links with a description (counts 1, 11), cleared (4, 64); `#+STARTUP: inlineimages`', true],
       ['LaTeX previews (`org-latex-preview`, `C-c C-x C-l`), made by Emacs as Org makes them (`latex`, `dvipng`, into `ltximg/`)', true],
-      ['Previews of `attachment:` links', false],
+      ['Previews of `attachment:` links (the file found through Emacs, `org-attach-expand`)', true],
     ],
     editors: {
       neovim: ['part', 'From Neovim 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick.'],

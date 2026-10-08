@@ -70,8 +70,8 @@ how to use a server binary of your own.
 | [Timers](../../docs/parity.md#timers) | 100% | ❓ | A countdown that asks for its length is left out: Zed cannot ask for text on a server's behalf. No timer in the status line: Zed has no place there for an extension's text. |
 | [Attachments](../../docs/parity.md#attachments) | 100% | ❓ | `attachment:` links open; attaching a file is left out: it asks for the file, and Zed cannot ask for text on a server's behalf. |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
-| [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 67% | ❌ | Zed lets no extension show images in a file. |
-| **All of Org** | **98%** |  |  |
+| [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 100% | ❌ | Zed lets no extension show images in a file. |
+| **All of Org** | **99%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

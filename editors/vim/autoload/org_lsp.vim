@@ -21,6 +21,7 @@ let s:defaults = {
       \ 'highlight': 1,
       \ 'src_highlight': 1,
       \ 'virtual_indent': 1,
+      \ 'indent': 1,
       \ 'win_split_mode': 'split',
       \ 'win_split_size': 0,
       \ 'calendar': 1,
@@ -870,6 +871,74 @@ function! org_lsp#set_keys(scope) abort
       endif
     endfor
   endfor
+endfunction
+
+" ----- indentation
+
+" Indentation as Org does it, computed by the server: new lines get the
+" column `org-indent-line` gives them ('indentexpr', from the server's
+" on-type formatting), and `=` re-indents lines as `org-indent-region`
+" does (range formatting). `org_adapt_indentation` decides how far text
+" goes.
+function! s:indent_attach() abort
+  setlocal indentexpr=org_lsp#indent_expr()
+  " Re-indent only lines that are opened (`o`, `O`, Enter) or asked for
+  " (CTRL-F), as Org does on RET and TAB, not as text is typed.
+  setlocal indentkeys=o,O,!^F
+  nnoremap <buffer> <expr> = org_lsp#indent_operator_keys('')
+  xnoremap <buffer> <expr> = org_lsp#indent_operator_keys('')
+  nnoremap <buffer> <expr> == org_lsp#indent_operator_keys('_')
+endfunction
+
+" 'indentexpr' of Org buffers: the column of line `v:lnum`, or -1 to keep
+" its indentation when the server does not answer in time.
+function! org_lsp#indent_expr() abort
+  let nr = bufnr()
+  if !org_lsp#ready(nr)
+    return -1
+  endif
+  let params = {
+        \ 'textDocument': {'uri': org_lsp#uri(nr)},
+        \ 'position': {'line': v:lnum - 1, 'character': 0},
+        \ 'ch': "\n",
+        \ 'options': {'tabSize': &tabstop, 'insertSpaces': v:true},
+        \ }
+  let response = org_lsp#request_sync(nr, 'textDocument/onTypeFormatting', params, 1000)
+  if !empty(get(response, 'error', {}))
+    return -1
+  endif
+  let edits = get(response, 'result', v:null)
+  " No edit: the line is indented as it should be.
+  if type(edits) != v:t_list || empty(edits)
+    return indent(v:lnum)
+  endif
+  return strdisplaywidth(edits[0].newText)
+endfunction
+
+function! org_lsp#indent_operator_keys(motion) abort
+  set operatorfunc=org_lsp#indent_operator
+  return 'g@' . a:motion
+endfunction
+
+" The operator of `=`: `org-indent-region` over the lines moved over.
+function! org_lsp#indent_operator(...) abort
+  let [first, last] = [line("'["), line("']")]
+  let nr = bufnr()
+  if !org_lsp#ready(nr)
+    return
+  endif
+  let finish = last < line('$') ? {'line': last, 'character': 0}
+        \ : {'line': last - 1, 'character': s:character(getline(last), len(getline(last)))}
+  let params = {
+        \ 'textDocument': {'uri': org_lsp#uri(nr)},
+        \ 'range': {'start': {'line': first - 1, 'character': 0}, 'end': finish},
+        \ 'options': {'tabSize': &tabstop, 'insertSpaces': v:true},
+        \ }
+  let response = org_lsp#request_sync(nr, 'textDocument/rangeFormatting', params, 2000)
+  let edits = get(response, 'result', v:null)
+  if empty(get(response, 'error', {})) && type(edits) == v:t_list && !empty(edits)
+    call org_lsp#apply_edit({'changes': {org_lsp#uri(nr): edits}})
+  endif
 endfunction
 
 " ----- column view
@@ -2210,6 +2279,9 @@ function! org_lsp#attach() abort
     call org_lsp#set_keys('org')
     if s:is_capture(bufname(nr))
       call org_lsp#set_keys('capture')
+    endif
+    if org_lsp#config().indent
+      call s:indent_attach()
     endif
     call s:src_syntax()
   endif

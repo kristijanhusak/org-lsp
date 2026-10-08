@@ -301,7 +301,7 @@ its sections says what it should look like.
 
 ## Indentation and formatting
 
-**Partly:** New lines are not indented by the server (no `indentexpr`), and wrapped lines are not.
+**Partly:** The lines a long line wraps into are not indented.
 
 - [ ] A file with `#+STARTUP: indent` shows its text indented by level, the file unchanged
 - [ ] With `#+STARTUP: hidestars` only the last star shows
