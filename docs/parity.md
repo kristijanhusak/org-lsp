@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 94%**
+**All of Org: 95%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -28,7 +28,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
 | [Tables](#tables) | 94% | 16 of 17 |
 | [Table formulas](#table-formulas) | 92% | 11 of 12 |
-| [Code blocks (Babel)](#code-blocks-babel) | 91% | 10 of 11 |
+| [Code blocks (Babel)](#code-blocks-babel) | 100% | 11 of 11 |
 | [Export and publishing](#export-and-publishing) | 89% | 8 of 9 |
 | [Citations](#citations) | 100% | 5 of 5 |
 | [Diagnostics (org-lint)](#diagnostics-org-lint) | 97% | 59 of 61 |
@@ -380,7 +380,7 @@ Where editors fall short:
 
 ## Code blocks (Babel)
 
-91% (10 of 11)
+100% (11 of 11)
 
 - ✅ Tangling, with Noweb references, comments and header arguments from properties
 - ✅ Evaluating a block, a `#+CALL:` line and inline code (through Emacs)
@@ -390,7 +390,7 @@ Where editors fall short:
 - ✅ Asking before evaluating (`org-confirm-babel-evaluate`)
 - ✅ Editing a block in a file of its own (`C-c '`, through Emacs): code, example, export and comment blocks, footnote definitions, LaTeX, inline code; each save of the file writes it back and saves the Org file
 - ✅ Tangling's Emacs Lisp (evaluated header arguments, `<<block()>>`; through Emacs)
-- ❌ Detangling
+- ✅ Detangling (`org-babel-detangle`, through Emacs): the code of a file tangled with `:comments link` put back into the blocks of this file it came from, the file asked for among those this file tangles to
 - ✅ Moving between blocks (`C-c C-v n`, `C-c C-v p`, `C-c C-v g`, `C-c M-f`, `C-c M-b`; through Emacs)
 - ✅ The Library of Babel (`C-c C-v i`, through Emacs)
 

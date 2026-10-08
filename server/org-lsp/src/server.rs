@@ -4190,6 +4190,7 @@ impl Server {
                 &context.ok_or("This command needs the cursor position")?,
             ),
             commands::TANGLE => self.tangle(&context.ok_or("This command needs the cursor position")?),
+            commands::DETANGLE => self.detangle(&context.ok_or("This command needs the cursor position")?),
             commands::EXPORT => self.export(&context.ok_or("This command needs the cursor position")?),
             commands::HEADING_NEXT
             | commands::HEADING_PREVIOUS
@@ -7788,6 +7789,55 @@ impl Server {
         let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
         self.message = Some(outcome.message(&name));
         Ok(Value::Null)
+    }
+
+    /// `org-babel-detangle`, by Emacs: asks which file to detangle, among
+    /// those the file's blocks tangle to that are there (none asked when
+    /// there is one, its name typed when there are none), then Emacs runs
+    /// it on that file with this one as the editor has it; what it changes
+    /// here comes back as an edit. Blocks of other files are left alone.
+    fn detangle(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = &context.text_document.uri;
+        let document = self.document(uri).ok_or("This file is not open")?;
+        let path = uri::to_path(uri).ok_or("Only a file on disk can be detangled")?;
+        let chosen = match context.input.as_deref().filter(|input| !input.trim().is_empty()) {
+            Some(input) => Some(path.parent().map_or_else(|| PathBuf::from(input), |dir| dir.join(input.trim()))),
+            None => {
+                let settings =
+                    org_core::tangle::Settings { preserve_indentation: self.refile.2.src_preserve_indentation };
+                let mut files: Vec<PathBuf> =
+                    org_core::tangle::tangle(&document.text, &document.parse, &path, &settings)
+                        .map(|outcome| {
+                            outcome.files.into_iter().map(|file| file.path).filter(|file| file.exists()).collect()
+                        })
+                        .unwrap_or_default();
+                files.dedup();
+                match files.as_slice() {
+                    [only] => Some(only.clone()),
+                    [] => {
+                        return Ok(json!({ "input": { "kind": "text", "prompt": "Detangle file: ", "value": "" } }));
+                    }
+                    _ => {
+                        let dir = path.parent().unwrap_or(Path::new(""));
+                        let choices: Vec<Value> = files
+                            .iter()
+                            .map(|file| {
+                                let shown = file.strip_prefix(dir).unwrap_or(file).to_string_lossy().into_owned();
+                                json!({ "key": shown, "label": shown })
+                            })
+                            .collect();
+                        return Ok(json!({ "input": {
+                            "kind": "choice", "prompt": "Detangle", "value": "", "choices": choices,
+                        } }));
+                    }
+                }
+            }
+        };
+        let file = chosen.ok_or("No file to detangle")?;
+        if !file.exists() {
+            return Err(format!("No file {}", file.display()).into());
+        }
+        self.emacs_run_with("org-lsp-bridge-detangle", vec![json!(file.to_string_lossy())], context)
     }
 
     /// `org-export-dispatch` (`C-c C-e`): Org's export menu, run by Emacs.

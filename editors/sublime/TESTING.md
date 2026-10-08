@@ -242,6 +242,7 @@ here and why.
 - [ ] Adding the file's named blocks to the Library of Babel; a `#+CALL:` in another file runs one (needs Emacs): `Ctrl+C Ctrl+V i`
 - [ ] Tangling writes each block to its `:tangle` file, `:mkdirp` and `:shebang` applied: `Ctrl+C Ctrl+V t` or `Ctrl+C Ctrl+V Ctrl+T`
 - [ ] A `:tangle (concat "out" ".el")` block is tangled by Emacs to `out.el` (needs Emacs): `Ctrl+C Ctrl+V t` or `Ctrl+C Ctrl+V Ctrl+T`
+- [ ] After tangling a block with `:comments link` and changing its code in the tangled file, detangling puts the new code back into the block (needs Emacs): *Org: Put the code of a tangled file back into its blocks*
 - [ ] Evaluating an `emacs-lisp` block asks first (yes or no), then puts `#+RESULTS:` below it (needs Emacs): `Ctrl+C Ctrl+V e` or `Ctrl+C Ctrl+V Ctrl+E`
 - [ ] `C-c C-c` in the block does the same: `Ctrl+C Ctrl+C`
 - [ ] `src_emacs-lisp{(* 6 7)}` gets `{{{results(=42=)}}}`; a `#+CALL:` line its results: `Ctrl+C Ctrl+V e` or `Ctrl+C Ctrl+V Ctrl+E`

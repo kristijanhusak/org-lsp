@@ -250,6 +250,7 @@ pub const REFILE_GOTO_LAST: &str = "org.refile.goto.last";
 pub const OPEN: &str = "org.open";
 pub const ADD_NOTE: &str = "org.add.note";
 pub const TANGLE: &str = "org.babel.tangle";
+pub const DETANGLE: &str = "org.babel.detangle";
 pub const EXPORT: &str = "org.export.dispatch";
 pub const HEADING_NEXT: &str = "org.heading.next";
 pub const HEADING_PREVIOUS: &str = "org.heading.previous";
@@ -810,6 +811,15 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c C-v t"), key(Org, "C-c C-v C-t")],
         vim: &[key(Org, "<Leader>obt")],
         ..command(TANGLE, "Tangle the file's code blocks")
+    },
+    // `org-babel-detangle`, by Emacs: the code of a file tangled from this
+    // one (with `:comments link`) put back into the blocks it came from.
+    // Emacs runs it in the tangled file; here it asks which one, among
+    // those this file tangles to.
+    Command {
+        vim: &[key(Org, "<Leader>obd")],
+        input: Some(Input { kind: "choice", prompt: "Detangle" }),
+        ..command(DETANGLE, "Put the code of a tangled file back into its blocks")
     },
     // Babel's evaluation, by Emacs itself (`emacs`): the block or call at
     // the cursor (`org-babel-execute-maybe`; `C-c C-c` there too), the

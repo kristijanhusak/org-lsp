@@ -207,6 +207,7 @@ here and why.
 
 - [ ] Tangling writes each block to its `:tangle` file, `:mkdirp` and `:shebang` applied: the code action *Tangle the file's code blocks*
 - [ ] A `:tangle (concat "out" ".el")` block is tangled by Emacs to `out.el` (needs Emacs): the code action *Tangle the file's code blocks*
+- [ ] After tangling a block with `:comments link` and changing its code in the tangled file, detangling puts the new code back into the block (needs Emacs): the code action *Put the code of a tangled file back into its blocks*
 - [ ] Evaluating an `emacs-lisp` block asks first (yes or no), then puts `#+RESULTS:` below it (needs Emacs): the code action *Evaluate the code block or call at the cursor through Emacs*
 - [ ] `src_emacs-lisp{(* 6 7)}` gets `{{{results(=42=)}}}`; a `#+CALL:` line its results: the code action *Evaluate the code block or call at the cursor through Emacs*
 - [ ] Typing in the file while a slow block runs: the results are dropped with a warning

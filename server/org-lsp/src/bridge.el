@@ -87,8 +87,7 @@
     (require 'ox)
     (require 'ox-publish)
     ;; Opening is the editor's: the file is reported instead.
-    (advice-add 'org-open-file :override
-                (lambda (path &rest _) (setq org-lsp-bridge--opened (expand-file-name path)) path))
+    (advice-add 'org-open-file :override #'org-lsp-bridge--report-open)
     `((org . ,(org-version)) (emacs . ,emacs-version))))
 
 ;;; Export
@@ -227,7 +226,7 @@ was to be opened, or the text of an export to a buffer."
     org-insert-structure-template org-insert-drawer
     org-clone-subtree-with-time-shift org-lsp-bridge-footnote-renumber-and-sort
     org-table-recalculate org-table-iterate org-table-calc-current-TBLFM
-    org-babel-tangle org-table-copy-down org-lsp-bridge-table-sum org-table-field-info
+    org-babel-tangle org-lsp-bridge-detangle org-table-copy-down org-lsp-bridge-table-sum org-table-field-info
     org-lsp-bridge-table-create org-babel-next-src-block
     org-babel-previous-src-block org-babel-goto-named-src-block
     org-next-block org-previous-block org-timer-start org-timer org-timer-item
@@ -291,6 +290,29 @@ wants one), else interactively."
         (extra . ,org-lsp-bridge--extra)
         (countdown . ,(org-lsp-bridge--countdown))
         (timer . ,(org-lsp-bridge--timer))))))
+
+(defun org-lsp-bridge--report-open (path &rest _)
+  "`org-open-file', for the editor: PATH reported to open."
+  (setq org-lsp-bridge--opened (expand-file-name path))
+  path)
+
+(defun org-lsp-bridge-detangle (source)
+  "`org-babel-detangle' run in SOURCE, a file tangled from the document:
+the blocks its links lead to in the document get its code back. Other
+files it leads to are left as they are."
+  (require 'ob-tangle)
+  (let ((before (buffer-list))
+        (document (current-buffer)))
+    ;; The links lead back to the Org files: visited, not reported.
+    (advice-remove 'org-open-file #'org-lsp-bridge--report-open)
+    (unwind-protect
+        (with-current-buffer (find-file-noselect source)
+          (org-babel-detangle))
+      (advice-add 'org-open-file :override #'org-lsp-bridge--report-open)
+      (dolist (buffer (buffer-list))
+        (unless (or (memq buffer before) (eq buffer document))
+          (with-current-buffer buffer (set-buffer-modified-p nil))
+          (kill-buffer buffer))))))
 
 (defun org-lsp-bridge-footnote-renumber-and-sort ()
   "`S' in `org-footnote-action''s menu."

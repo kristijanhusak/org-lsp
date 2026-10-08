@@ -82,6 +82,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oy` | `org.refile.copy` | Copy the entry to a refile target |
 | `<Leader>ona` | `org.add.note` | Add a note to the entry |
 | `<Leader>obt` | `org.babel.tangle` | Tangle the file's code blocks |
+| `<Leader>obd` | `org.babel.detangle` | Put the code of a tangled file back into its blocks |
 | `<Leader>obe` | `org.babel.execute` | Evaluate the code block or call at the cursor through Emacs |
 | `<Leader>obb` | `org.babel.execute.buffer` | Evaluate the file's code blocks through Emacs |
 | `<Leader>obs` | `org.babel.execute.subtree` | Evaluate the subtree's code blocks through Emacs |
