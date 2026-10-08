@@ -2070,6 +2070,92 @@ fn diary_sexps_go_to_emacs() {
     client.shutdown();
 }
 
+/// `file+function` and `function` targets: Emacs runs the function, and
+/// the capture goes where it leaves the point, under the headline there.
+#[test]
+fn captures_where_a_function_says() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("captures_where_a_function_says: no Emacs, skipped");
+        return;
+    }
+    let directory = workspace("capture-function");
+    let other = directory.join("other.org");
+    std::fs::write(&other, "* X\n").unwrap();
+    let mut config = format!(
+        "(defun my-find () (goto-char (point-min)) (re-search-forward \"^\\\\* B\")) \
+         (defun my-go () (set-buffer (find-file-noselect {:?})) (goto-char (point-min)))",
+        other.display().to_string()
+    );
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        config = format!("(add-to-list 'load-path {dir:?}) {config}");
+    }
+    let mut options = clock();
+    options["emacs_config"] = json!(config);
+    options["org_capture_templates"] = json!([
+        { "key": "f", "description": "File function", "target": ["file+function", "/org/home.org", "my-find"],
+          "template": "* Captured", "immediate_finish": true },
+        { "key": "g", "description": "Function", "target": ["function", "my-go"],
+          "template": "* Elsewhere", "immediate_finish": true },
+    ]);
+    let mut client = Client::editor(options, None);
+    let mut home = "* A\n* B\n* C\n".to_string();
+    client.open("file:///org/home.org", &home);
+    let capture = |client: &mut Client, key: &str| {
+        let context = json!({ "textDocument": { "uri": "file:///org/home.org" }, "position": { "line": 0, "character": 0 }, "input": key });
+        client.received.clear();
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [context] }))
+            .unwrap();
+        client.settle();
+    };
+    capture(&mut client, "f");
+    apply_received(&mut client, "file:///org/home.org", &mut home);
+    assert_eq!(home, "* A\n* B\n** Captured\n* C\n");
+    capture(&mut client, "g");
+    let other_uri = format!("file://{}", other.display());
+    let edit = client
+        .received
+        .iter()
+        .find(|request| request.method == "workspace/applyEdit" && edits_of(request).0 == other_uri)
+        .expect("the capture in the file the function visited");
+    assert_eq!(apply("* X\n", &edits_of(edit).1), "* X\n** Elsewhere\n");
+    client.shutdown();
+}
+
+/// `org_refile_target_verify_function`: Emacs decides at each headline;
+/// one that moves the point past a subtree leaves its children out.
+#[test]
+fn refile_targets_pass_a_function_of_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("refile_targets_pass_a_function_of_emacs: no Emacs, skipped");
+        return;
+    }
+    let mut config = "(defun my-skip () (if (string= (org-get-heading t t t t) \"Skip\") \
+                      (progn (org-end-of-subtree t t) nil) t))"
+        .to_string();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        config = format!("(add-to-list 'load-path {dir:?}) {config}");
+    }
+    let mut options = clock();
+    options["emacs_config"] = json!(config);
+    options["org_refile_targets"] = json!([{ "files": "current", "maxlevel": 2 }]);
+    options["org_refile_target_verify_function"] = json!("my-skip");
+    let mut client = Client::editor(options, None);
+    let file = "file:///org/a.org";
+    client.open(file, "* Task\n* Skip\n** Inside\n* After\n");
+    let context = json!({ "textDocument": { "uri": file }, "position": { "line": 0, "character": 0 } });
+    let asked =
+        client.request("workspace/executeCommand", json!({ "command": "org.refile", "arguments": [context] })).unwrap();
+    let names: Vec<&str> =
+        asked["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
+    assert_eq!(names, ["Task", "After"], "{asked}");
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

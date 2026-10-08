@@ -22,8 +22,8 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Dates and times](#dates-and-times) | 100% | 8 of 8 |
 | [Agenda](#agenda) | 90% | 19 of 21 |
 | [Clocking](#clocking) | 100% | 8 of 8 |
-| [Capture](#capture) | 91% | 10 of 11 |
-| [Refile and archive](#refile-and-archive) | 91% | 10 of 11 |
+| [Capture](#capture) | 100% | 11 of 11 |
+| [Refile and archive](#refile-and-archive) | 100% | 11 of 11 |
 | [Links](#links) | 100% | 11 of 11 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
 | [Tables](#tables) | 76% | 13 of 17 |
@@ -256,14 +256,14 @@ Where editors fall short:
 
 ## Capture
 
-91% (10 of 11)
+100% (11 of 11)
 
 - ✅ Templates of every type: entries, items, checkboxes, table lines, plain text
 - ✅ Targets: files, headlines, outline paths, regexps, date trees, IDs, the clock
 - ✅ Prompts and `%`-escapes (`%^{…}`, `%t`, `%a`, `%i`, `%?`…)
 - ✅ The capture buffer: finishing, aborting, refiling
 - ✅ Clock options (`:clock-in`, `:clock-resume`…)
-- ❌ `function` targets
+- ✅ `function` and `file+function` targets (the function run by Emacs)
 - ✅ `%(…)` (Emacs Lisp, through Emacs)
 - ✅ `%[file]`
 - ✅ `%c`, `%x` and `%^C` (the editor's clipboard)
@@ -277,7 +277,7 @@ Where editors fall short:
 
 ## Refile and archive
 
-91% (10 of 11)
+100% (11 of 11)
 
 - ✅ Refiling to a heading, between files too (`org-refile-targets`)
 - ✅ Archiving a subtree to its archive file
@@ -289,7 +289,7 @@ Where editors fall short:
 - ✅ Creating parent nodes as the target (`org-refile-allow-creating-parent-nodes`)
 - ✅ Refiling a region (a selection of whole subtrees)
 - ✅ Copying (`C-c M-w`), going to a target (`C-u C-c C-w`) and to the last refiled entry (`C-u C-u C-c C-w`)
-- ❌ `org-refile-target-verify-function`
+- ✅ `org-refile-target-verify-function` (the function run by Emacs at each headline)
 
 Where editors fall short:
 

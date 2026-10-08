@@ -134,8 +134,8 @@ those dates in the file itself, where completion helps.
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Zed cannot ask for text on a server's behalf. Changing a timestamp works. |
 | [Agenda](../../docs/parity.md#agenda) | 90% | ❓ | The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension). |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ❓ | No clock in the status line: Zed has no place there for an extension's text. |
-| [Capture](../../docs/parity.md#capture) | 91% | ❓ | Templates with prompts are left out, and there is no capture buffer to type in: Zed cannot ask for text on a server's behalf. |
-| [Refile and archive](../../docs/parity.md#refile-and-archive) | 91% | ✅ |  |
+| [Capture](../../docs/parity.md#capture) | 100% | ❓ | Templates with prompts are left out, and there is no capture buffer to type in: Zed cannot ask for text on a server's behalf. |
+| [Refile and archive](../../docs/parity.md#refile-and-archive) | 100% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 100% | ❓ | Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition, for links inside Org files and to files. |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ❓ | Making footnotes and their menu are left out: they are not among Zed's code actions. Following them works. |
 | [Tables](../../docs/parity.md#tables) | 76% | ❓ | Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table. |

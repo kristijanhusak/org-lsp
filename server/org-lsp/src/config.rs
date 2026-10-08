@@ -251,6 +251,10 @@ pub struct Options {
     /// `"confirm"`.
     #[serde(rename = "org_refile_allow_creating_parent_nodes")]
     pub refile_allow_creating_parent_nodes: Option<LogOption>,
+    /// `org-refile-target-verify-function`: the name of an Emacs Lisp
+    /// function, run by the server's Emacs at each target.
+    #[serde(rename = "org_refile_target_verify_function")]
+    pub refile_target_verify_function: Option<String>,
     /// `org-reverse-note-order`: refiled entries go first, not last.
     #[serde(rename = "org_reverse_note_order")]
     pub reverse_note_order: Option<bool>,

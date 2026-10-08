@@ -553,6 +553,12 @@ require('org-lsp').setup({
     -- (org-refile-allow-creating-parent-nodes)
     org_refile_allow_creating_parent_nodes = false,
 
+    -- The name of an Emacs Lisp function that decides which headlines are
+    -- refile targets: the server's Emacs calls it at the start of each, and
+    -- keeps those it says yes to. Where it leaves the point, the search goes
+    -- on: a function can skip a subtree. (org-refile-target-verify-function)
+    -- org_refile_target_verify_function = nil, -- unset: none
+
     -- A refiled entry goes first under its target, not last.
     -- (org-reverse-note-order)
     org_reverse_note_order = false,
@@ -616,10 +622,13 @@ require('org-lsp').setup({
     -- headline; `file+olp`, a path and the headlines of an outline path;
     -- `file+regexp`, a path and a regular expression; `file+olp+datetree`, a
     -- path and the headlines of an outline path, maybe none, for a date tree
-    -- under them; `id` and an ID; or `clock`, the entry clocked now. An empty
-    -- path is `org_default_notes_file`, and without a target the entry goes
-    -- at the end of `org_default_notes_file`. A template with only a key and
-    -- a description groups the templates whose keys start with its key.
+    -- under them; `id` and an ID; `clock`, the entry clocked now;
+    -- `file+function`, a path and the name of an Emacs Lisp function that
+    -- moves the point there, or `function` and the name of one that visits
+    -- the file too (run by the server's Emacs). An empty path is
+    -- `org_default_notes_file`, and without a target the entry goes at the
+    -- end of `org_default_notes_file`. A template with only a key and a
+    -- description groups the templates whose keys start with its key.
     -- (org-capture-templates)
     org_capture_templates = { { key = 't', description = 'Task', target = { 'file+headline', '', 'Tasks' }, template = '* TODO %?\n  %u\n  %a' } },
 

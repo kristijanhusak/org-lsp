@@ -28,8 +28,8 @@ hand.
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ✅ |  |
 | [Agenda](../../docs/parity.md#agenda) | 90% | ❓ | Tags are at column 80, not at the window's edge (`org_agenda_tags_column` `"auto"`): VS Code does not tell an extension how many columns an editor shows. |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
-| [Capture](../../docs/parity.md#capture) | 91% | ✅ |  |
-| [Refile and archive](../../docs/parity.md#refile-and-archive) | 91% | ✅ |  |
+| [Capture](../../docs/parity.md#capture) | 100% | ✅ |  |
+| [Refile and archive](../../docs/parity.md#refile-and-archive) | 100% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 100% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
 | [Tables](../../docs/parity.md#tables) | 76% | ✅ |  |
