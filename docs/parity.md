@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 78%**
+**All of Org: 79%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Dates and times](#dates-and-times) | 100% | 8 of 8 |
 | [Agenda](#agenda) | 86% | 18 of 21 |
 | [Clocking](#clocking) | 100% | 8 of 8 |
-| [Capture](#capture) | 82% | 9 of 11 |
+| [Capture](#capture) | 91% | 10 of 11 |
 | [Refile and archive](#refile-and-archive) | 82% | 9 of 11 |
 | [Links](#links) | 91% | 10 of 11 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
@@ -255,7 +255,7 @@ Where editors fall short:
 
 ## Capture
 
-82% (9 of 11)
+91% (10 of 11)
 
 - ✅ Templates of every type: entries, items, checkboxes, table lines, plain text
 - ✅ Targets: files, headlines, outline paths, regexps, date trees, IDs, the clock
@@ -266,7 +266,7 @@ Where editors fall short:
 - ✅ `%(…)` (Emacs Lisp, through Emacs)
 - ✅ `%[file]`
 - ✅ `%c`, `%x` and `%^C` (the editor's clipboard)
-- ❌ `%:keyword` (the properties of a stored link)
+- ✅ `%:keyword` (the properties of the link `%a` makes: `:annotation`, `:initial`, and an `id:` link's `:link`, `:description`, `:type`)
 - ✅ Template contexts (`org-capture-templates-contexts`)
 
 Where editors fall short:

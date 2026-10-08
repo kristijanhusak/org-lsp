@@ -5787,8 +5787,8 @@ impl Server {
         let file = from.map(|uri| {
             (uri::file_name(uri), uri::to_path(uri).map(|path| path.display().to_string()).unwrap_or_default())
         });
-        let annotation = match (from, context.position) {
-            (Some(uri), Some(position)) => self.link_to(uri, position),
+        let (annotation, link_props) = match (from, context.position) {
+            (Some(uri), Some(position)) => self.link_with_props(uri, position),
             // From an agenda line: a link to its entry.
             (None, Some(position)) => {
                 let entry = context
@@ -5807,11 +5807,11 @@ impl Server {
                     Some((reference.uri, at))
                 });
                 match found {
-                    Some((uri, at)) => self.link_to(&uri, at),
-                    None => String::new(),
+                    Some((uri, at)) => self.link_with_props(&uri, at),
+                    None => (String::new(), Vec::new()),
                 }
             }
-            _ => String::new(),
+            _ => (String::new(), Vec::new()),
         };
         // `:time-prompt`: the date of the tree entry is asked first, and
         // stands for the time of the capture.
@@ -5859,6 +5859,7 @@ impl Server {
             file,
             initial: String::new(),
             annotation,
+            link_props,
             user_name: String::new(),
             clock_heading,
             clock_link,
@@ -6128,8 +6129,13 @@ impl Server {
     /// A link to the place `position` of `uri` (`org-store-link`): to its
     /// headline when it has one.
     fn link_to(&mut self, uri: &Uri, position: Position) -> String {
+        self.link_with_props(uri, position).0
+    }
+
+    /// [`Self::link_to`], with the link's properties (`%:keyword`).
+    fn link_with_props(&mut self, uri: &Uri, position: Position) -> (String, Vec<(String, String)>) {
         let encoding = self.client.encoding;
-        let Some((path, home)) = Self::link_file(uri) else { return String::new() };
+        let Some((path, home)) = Self::link_file(uri) else { return (String::new(), Vec::new()) };
         let (settings, edit_settings, category) =
             (self.link_settings.clone(), self.edit_settings.clone(), uri::file_stem(uri));
         let made = self.with_source(uri, |text, index, parse, _, version| {
@@ -6139,12 +6145,12 @@ impl Server {
             link::store(text, offset, &file, &settings, false, false, &property_context, &mut link::new_uuid)
                 .map(|made| (made, text.to_string(), version))
         });
-        let Some(Ok((made, text, version))) = made else { return String::new() };
+        let Some(Ok((made, text, version))) = made else { return (String::new(), Vec::new()) };
         // An ID made for the link (`org_id_link_to_org_use_id` true).
         if let Some((edited, _)) = &made.edited {
             self.send_texts(vec![(uri.clone(), version, text, edited.clone())]);
         }
-        link::annotation(&made)
+        (link::annotation(&made), made.props)
     }
 
     /// The path of the file a link command runs in, and the home

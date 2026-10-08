@@ -29,6 +29,10 @@ pub struct Context {
     pub initial: String,
     /// `%a`: a link to where the capture started.
     pub annotation: String,
+    /// `%:keyword`: the properties of that link (`org-store-link-plist`),
+    /// keys with their colon. `:annotation` and `:initial` are `%a` and
+    /// `%i`.
+    pub link_props: Vec<(String, String)>,
     /// `%n`: `user-full-name`.
     pub user_name: String,
     /// `%k`: the headline of the entry clocked now, if any.
@@ -362,7 +366,16 @@ pub fn fill_with(
         let inside = before.matches(SEXP_START).count() > before.matches(SEXP_END).count();
         let value = match value.as_bytes()[0] {
             b'<' => format_time(&captures[2], time),
-            b':' => String::new(),
+            b':' => match value {
+                ":annotation" => annotation.to_string(),
+                ":initial" => context.initial.clone(),
+                key => context
+                    .link_props
+                    .iter()
+                    .find(|(name, _)| name == key)
+                    .map(|(_, value)| value.clone())
+                    .unwrap_or_default(),
+            },
             b'i' if inside => context.initial.clone(),
             b'i' => {
                 // Lines after the first repeat what stands before `%i`.
@@ -1612,12 +1625,32 @@ mod tests {
     }
 
     #[test]
+    fn fills_the_properties_of_the_link() {
+        let context = Context {
+            now: now(),
+            file: None,
+            initial: "start".into(),
+            annotation: "[[id:1][Head]]".into(),
+            link_props: vec![(":link".into(), "id:1".into()), (":type".into(), "id".into())],
+            user_name: String::new(),
+            clock_heading: String::new(),
+            clock_link: String::new(),
+            tags_column: -77,
+            clipboard: String::new(),
+        };
+        let settings = ReadDateSettings::default();
+        let filled = fill("%:type %:link %:annotation %:initial [%:description] [%:Type]", &context, &[], &settings);
+        assert_eq!(filled.unwrap(), Filled::Text("id id:1 [[id:1][Head]] start [] []\n".into()));
+    }
+
+    #[test]
     fn fills_escapes_and_asks() {
         let context = Context {
             now: now(),
             file: Some(("a.org".into(), "/x/a.org".into())),
             initial: String::new(),
             annotation: String::new(),
+            link_props: Vec::new(),
             user_name: String::new(),
             clock_heading: String::new(),
             clock_link: String::new(),
