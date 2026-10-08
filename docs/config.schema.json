@@ -937,6 +937,11 @@
       "description": "Indent the lines of an entry past its headline's stars: `true` for all of them, `\"headline-data\"` for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (`org-adapt-indentation`)",
       "default": false
     },
+    "org_startup_with_link_previews": {
+      "type": "boolean",
+      "description": "Show the images of links to image files in place when a file opens, as `C-c C-x C-v` (`org.link.preview`) shows them. `#+STARTUP: inlineimages` (or `linkpreviews`) and `noinlineimages` decide for a file. Editors that can show images: Neovim from 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol. (`org-startup-with-link-previews`)",
+      "default": false
+    },
     "org_startup_indented": {
       "type": "boolean",
       "description": "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. Editors that can show it: Neovim, and VS Code (not on wrapped lines). (`org-startup-indented`)",

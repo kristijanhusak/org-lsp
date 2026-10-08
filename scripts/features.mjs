@@ -861,7 +861,29 @@ export const AREAS = [
       { text: 'With `(org-crypt-use-before-save-magic)` in the Emacs configuration, saving a file encrypts its entries tagged `crypt` (needs Emacs and GnuPG)' },
     ],
   },
-  { name: 'Inline images and LaTeX previews', emacs: [['Inline images (`C-c C-x C-v`)', false], ['LaTeX previews (`C-c C-x C-l`)', false]] },
+  {
+    name: 'Inline images and LaTeX previews',
+    emacs: [
+      ['Previews of links to images (`org-link-preview`, `C-c C-x C-v`): the link at the cursor, the section, the file, with links with a description (counts 1, 11), cleared (4, 64); `#+STARTUP: inlineimages`', true],
+      ['LaTeX previews (`org-latex-preview`, `C-c C-x C-l`), made by Emacs as Org makes them (`latex`, `dvipng`, into `ltximg/`)', true],
+      ['Previews of `attachment:` links', false],
+    ],
+    editors: {
+      neovim: ['part', 'From Neovim 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick.'],
+      vim: ['no', 'Vim cannot show images.'],
+      vscode: ['no', 'Not shown yet.'],
+      sublime: ['no', 'Not shown yet.'],
+      zed: ['no', 'Zed lets no extension show images in a file.'],
+      helix: ['no', 'Helix cannot show images.'],
+    },
+    checks: [
+      { text: 'On a line with `[[file:pic.png]]`, the key shows the picture below the line, and takes it away again', cmd: 'org.link.preview', only: ['neovim'] },
+      { text: 'Away from a link, the pictures of the section; with a count of 16 those of the whole file; 64 takes them all away', cmd: 'org.link.preview', only: ['neovim'] },
+      { text: 'A file with `#+STARTUP: inlineimages` opens with its pictures', only: ['neovim'] },
+      { text: 'Scrolling moves the pictures with their lines; editing a link takes its picture away', only: ['neovim'] },
+      { text: '`$e^{i\\pi} = -1$` shows as its image (needs Emacs, `latex` and `dvipng`)', cmd: 'org.latex.preview', only: ['neovim'] },
+    ],
+  },
 ];
 
 /** The share of an area's Emacs features done, as a whole percentage. */

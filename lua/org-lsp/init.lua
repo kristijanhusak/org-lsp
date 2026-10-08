@@ -37,6 +37,7 @@ local SERVER = 'org_lsp'
 ---@field win_split_size? number The size of the window `win_split_mode` opens: lines for a split, columns for a vertical one, or with a number below 1 that part of the editor ('float' takes the part for both sides, 0.8 when unset). Unset, a split takes half of the window it splits.
 ---@field calendar_win_mode? 'bottom'|'float'|'cursor'|string|fun(bufnr: integer): integer? Where the date prompt's calendar opens: 'bottom' in a split along the bottom, as Emacs shows it; 'float' in a floating window in the middle; 'cursor' in a floating window below the cursor (above it when there is no room); another Ex command that opens a window ('topleft split'); or a function that opens a window for the buffer and returns it.
 ---@field calendar_border? string|string[] The border of the calendar's floating window ('float', 'cursor'), as `nvim_open_win()` takes it; 'rounded' when unset, 'none' for none.
+---@field images? { max_width?: integer, max_height?: integer }|false Previews of links to images and of LaTeX fragments (`<Leader>oxv`, `<Leader>oxl`), drawn with `vim.ui.img` (Neovim 0.13 and later, in a terminal with the Kitty graphics protocol): the most columns and lines an image takes (80 and 20), or `false` for no previews.
 ---@field mappings? org_lsp.Mappings|false Keys by scope; `false` sets no keys at all. See docs/neovim/keys.md.
 
 --- Keys by scope. In a scope, a command (`org.todo`, or one of the plugin's
@@ -64,6 +65,9 @@ local defaults = {
   virtual_indent = true,
   win_split_mode = 'split',
   calendar_win_mode = 'bottom',
+  -- Previews of images and LaTeX (`vim.ui.img`, Neovim 0.13): the most
+  -- cells an image takes, or false for none.
+  images = { max_width = 80, max_height = 20 },
   mappings = {
     -- The keys that must work before the server has said anything.
     global = {
@@ -232,6 +236,12 @@ function M.run(name, opts)
     if (server_command(name) or {}).folds then
       context.folded = M.closed_folds()
     end
+    -- LaTeX is drawn in the colors of the text.
+    if name == 'org.latex.preview' then
+      local normal = vim.api.nvim_get_hl(0, { name = 'Normal', link = false })
+      context.foreground = normal.fg and ('#%06x'):format(normal.fg) or nil
+      context.background = 'Transparent'
+    end
     if opts.append then
       -- Below the cursor's line, as nvim-orgmode's `<Leader><CR>` puts it:
       -- never above it, and nothing split.
@@ -271,6 +281,10 @@ function M.run(name, opts)
       -- The server names files to save; those with changes are written.
       if type(result) == 'table' and type(result.save) == 'table' then
         require('org-lsp.view').save(result.save)
+      end
+      -- Images to show in place of links or LaTeX, or to take away.
+      if type(result) == 'table' and type(result.preview) == 'table' then
+        require('org-lsp.images').apply(result.preview)
       end
       -- What the command has to say, as Emacs says it in the echo area.
       if type(result) == 'table' and type(result.message) == 'string' then
@@ -1033,6 +1047,18 @@ local function on_attach(client, bufnr)
   if preview then
     return
   end
+  -- The previews of links a file opens with (`#+STARTUP: inlineimages`).
+  if require('org-lsp.images').supported() then
+    local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+    params.textDocument = { uri = vim.uri_from_bufnr(bufnr) }
+    params.position = { line = 0, character = 0 }
+    params.startup = true
+    client:request('workspace/executeCommand', { command = 'org.link.preview', arguments = { params } }, function(_, result)
+      if type(result) == 'table' and type(result.preview) == 'table' then
+        require('org-lsp.images').apply(result.preview, true)
+      end
+    end, bufnr)
+  end
   if M.config.indent and client:supports_method('textDocument/onTypeFormatting') then
     require('org-lsp.indent').attach(bufnr)
   end
@@ -1073,7 +1099,10 @@ local function enable()
     cmd = cmd,
     filetypes = { 'org' },
     init_options = M.server_settings(),
-    capabilities = view.capabilities,
+    -- Images in place of text, where Neovim can draw them.
+    capabilities = vim.tbl_deep_extend('force', view.capabilities, {
+      experimental = { orgImages = require('org-lsp.images').supported() },
+    }),
     handlers = view.handlers,
     on_init = on_init,
   })

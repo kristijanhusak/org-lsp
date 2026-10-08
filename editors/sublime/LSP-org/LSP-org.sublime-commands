@@ -1078,6 +1078,20 @@
     }
   },
   {
+    "caption": "Org: Preview the images of links",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.link.preview"
+    }
+  },
+  {
+    "caption": "Org: Preview LaTeX fragments",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.latex.preview"
+    }
+  },
+  {
     "caption": "Org: Column view: quit",
     "command": "org_lsp_run",
     "args": {

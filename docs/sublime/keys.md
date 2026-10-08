@@ -123,6 +123,8 @@ The other settings are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X b` | `org.tree.indirect` | Show the subtree in a file of its own |
 | `Ctrl+C `` | `org.table.edit.field` | Edit the table field in a file of its own |
 | `Ctrl+C Ctrl+X Ctrl+C` | `org.columns` | Column view |
+| `Ctrl+C Ctrl+X Ctrl+V` | `org.link.preview` | Preview the images of links |
+| `Ctrl+C Ctrl+X Ctrl+L` | `org.latex.preview` | Preview LaTeX fragments |
 | `Ctrl+C Ctrl+X 0` | `org.timer.start` | Start the relative timer |
 | `Ctrl+C Ctrl+X .` | `org.timer.insert` | Insert the timer's value |
 | `Ctrl+C Ctrl+X -` | `org.timer.item` | Insert a list item with the timer's value |

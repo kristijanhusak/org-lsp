@@ -1058,6 +1058,27 @@ editor has open as it has them (`texts', each a file and its text), with
   "`appt-check', as the timer of `appt-activate' runs it each minute."
   (org-lsp-bridge--appt #'appt-check))
 
+;;; LaTeX previews
+
+(defun org-lsp-bridge-latex-preview (params)
+  "Make the images of the LaTeX fragments between `from' and `to' (characters,
+from 1) of the document PARAMS names, as `org-latex-preview' makes them
+(`org--latex-preview-region'), in the colors `foreground' and `background':
+where each fragment is and the file of its image, what Emacs shows over it."
+  (let ((found nil))
+    (org-lsp-bridge--in-document params
+      (let ((org-format-latex-options
+             (org-combine-plists
+              org-format-latex-options
+              (list :foreground (or (alist-get 'foreground params) "Black")
+                    :background (or (alist-get 'background params) "Transparent")))))
+        (cl-letf (((symbol-function 'org-place-formula-image)
+                   (lambda (_link _block-type beg end _value _overlays file _type)
+                     (push `((start . ,beg) (end . ,end) (file . ,file)) found)
+                     (goto-char end))))
+          (org--latex-preview-region (alist-get 'from params) (alist-get 'to params)))))
+    `((previews . ,(vconcat (nreverse found))))))
+
 ;;; The loop
 
 (defun org-lsp-bridge-main ()

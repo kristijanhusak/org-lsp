@@ -2158,6 +2158,52 @@
     "keys": [
       "ctrl+c",
       "ctrl+x",
+      "ctrl+v"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.link.preview"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+x",
+      "ctrl+l"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.latex.preview"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+x",
       "0"
     ],
     "command": "org_lsp_run",

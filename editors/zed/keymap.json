@@ -904,6 +904,18 @@
           "task_name": "Org: Column view"
         }
       ],
+      "ctrl-c ctrl-x ctrl-v": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Preview the images of links"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-l": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Preview LaTeX fragments"
+        }
+      ],
       "ctrl-c ctrl-x 0": [
         "task::Spawn",
         {

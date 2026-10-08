@@ -6162,3 +6162,142 @@ fn cycles_within_todo_sequences_and_switches_sets() {
     assert_eq!(state(&mut client, "org.todo.previousset", &mut text), "* REPORT Crash");
     client.shutdown();
 }
+
+/// `org-link-preview` (`C-c C-x C-v`): the links to image files of the
+/// current section, of the link at the cursor, or of the whole file, for
+/// an editor that shows images; nothing for one that cannot.
+#[test]
+fn previews_the_images_of_links() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-previews-{}", std::process::id()));
+    std::fs::create_dir_all(directory.join("img")).unwrap();
+    std::fs::write(directory.join("img/a.png"), b"png").unwrap();
+    std::fs::write(directory.join("b.png"), b"png").unwrap();
+    let file = directory.join("notes.org");
+    let uri = format!("file://{}", file.display());
+    let text =
+        "#+STARTUP: inlineimages\n* One\n[[file:img/a.png]] [[./missing.png]] [[file:b.png][B]]\n* Two\n[[./b.png]]\n";
+    let capabilities = json!({ "experimental": { "orgImages": true }, "general": { "positionEncodings": ["utf-8"] } });
+    let mut client = Client::start(capabilities, clock(), None);
+    client.open(&uri, text);
+    let preview = |client: &mut Client, line: u32, character: u32, extra: Value| {
+        let mut context =
+            json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": character } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        let result = client
+            .request("workspace/executeCommand", json!({ "command": "org.link.preview", "arguments": [context] }))
+            .unwrap();
+        result["preview"].clone()
+    };
+    let paths = |preview: &Value| -> Vec<String> {
+        preview["items"].as_array().unwrap().iter().map(|item| item["path"].as_str().unwrap().to_string()).collect()
+    };
+    // The section of the cursor: the existing image without a description.
+    let section = preview(&mut client, 1, 0, json!({}));
+    assert_eq!(section["scope"], "current section");
+    assert_eq!(section["remove"], false);
+    assert_eq!(paths(&section), [directory.join("img/a.png").to_string_lossy()]);
+    assert_eq!(
+        section["items"][0]["range"],
+        json!({ "start": { "line": 2, "character": 0 }, "end": { "line": 2, "character": 18 } })
+    );
+    // With 1, links with a description too.
+    assert_eq!(paths(&preview(&mut client, 1, 0, json!({ "count": 1 }))).len(), 2);
+    // On a link, that link, shown or hidden.
+    let at = preview(&mut client, 4, 2, json!({}));
+    assert_eq!((at["scope"].as_str(), at["remove"].is_null()), (Some("image at point"), true));
+    assert_eq!(paths(&at), [directory.join("b.png").to_string_lossy()]);
+    // C-u clears the section; C-u C-u shows the whole file.
+    assert_eq!(preview(&mut client, 1, 0, json!({ "count": 4 }))["remove"], true);
+    assert_eq!(paths(&preview(&mut client, 1, 0, json!({ "count": 16 }))).len(), 2);
+    // `#+STARTUP: inlineimages`: the whole file when it opens.
+    let startup = preview(&mut client, 0, 0, json!({ "startup": true }));
+    assert_eq!((startup["scope"].as_str(), paths(&startup).len()), (Some("buffer"), 2));
+    client.shutdown();
+
+    // An editor that cannot show images is told so.
+    let mut client = Client::start(json!({}), clock(), None);
+    client.open(&uri, text);
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 1, "character": 0 } });
+    let result = client
+        .request("workspace/executeCommand", json!({ "command": "org.link.preview", "arguments": [context] }))
+        .unwrap();
+    assert_eq!(result["message"], "This editor cannot show images");
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&directory);
+}
+
+/// `org-latex-preview` (`C-c C-x C-l`): Emacs makes the images of the
+/// fragments as Org does (`org--latex-preview-region`), and the server says
+/// where each one goes (`org-lsp/images`). Programs stand in for `latex`
+/// and `dvipng` here, which make a picture with ImageMagick.
+#[test]
+fn previews_latex_through_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    let convert = std::process::Command::new("convert").arg("-version").output().is_ok_and(|out| out.status.success());
+    if !found || !convert {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none() || !convert, "Emacs is required but not found");
+        eprintln!("previews_latex_through_emacs: no Emacs or ImageMagick, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-latex-{}", std::process::id()));
+    let bin = directory.join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    // latex -interaction nonstopmode -output-directory DIR FILE.tex
+    std::fs::write(
+        bin.join("latex"),
+        "#!/bin/sh\nfor last; do :; done\nout=$(echo \"$@\" | sed 's/.*-output-directory \\([^ ]*\\).*/\\1/')\n\
+         touch \"$out/$(basename \"$last\" .tex).dvi\"\n",
+    )
+    .unwrap();
+    // dvipng … -o OUT FILE.dvi
+    std::fs::write(
+        bin.join("dvipng"),
+        "#!/bin/sh\nwhile [ $# -gt 0 ]; do [ \"$1\" = -o ] && out=$2; shift; done\nconvert -size 30x12 xc:white \"$out\"\n",
+    )
+    .unwrap();
+    for program in ["latex", "dvipng"] {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(bin.join(program), std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let mut options = clock();
+    let mut config =
+        format!("(setenv \"PATH\" (concat {:?} \":\" (getenv \"PATH\"))) (add-to-list 'exec-path {:?})", bin, bin);
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        config.push_str(&format!(" (add-to-list 'load-path {dir:?})"));
+    }
+    options["emacs_config"] = json!(config);
+    let capabilities = json!({ "experimental": { "orgImages": true }, "general": { "positionEncodings": ["utf-8"] } });
+    let mut client = Client::start(capabilities, options, None);
+    let file = directory.join("math.org");
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, "* Math\nEuler: $e^{i\\pi} = -1$ and \\(a^2\\).\n");
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 } });
+    let result = client
+        .request("workspace/executeCommand", json!({ "command": "org.latex.preview", "arguments": [context] }))
+        .unwrap();
+    assert_eq!(result["message"], "Creating LaTeX previews...");
+    let mut images = None;
+    for _ in 0..1500 {
+        client.settle();
+        if let Some(found) = client.notifications.iter().find(|notification| notification.method == "org-lsp/images") {
+            images = Some(found.params.clone());
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    let images = images.expect("the images");
+    assert_eq!(images["kind"], "latex");
+    let items = images["items"].as_array().unwrap();
+    assert_eq!(items.len(), 2, "{images}");
+    assert_eq!(
+        items[0]["range"],
+        json!({ "start": { "line": 1, "character": 7 }, "end": { "line": 1, "character": 22 } })
+    );
+    let path = items[0]["path"].as_str().unwrap();
+    assert!(path.starts_with(&directory.join("ltximg").to_string_lossy().to_string()), "{path}");
+    assert!(std::path::Path::new(path).is_file(), "{path}");
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&directory);
+}

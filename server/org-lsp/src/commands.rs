@@ -139,6 +139,8 @@ pub const AGENDA_WRITE: &str = "org.agenda.write";
 pub const AGENDA_APPT: &str = "org.agenda.appt";
 pub const TABLE_TOGGLE_COLUMN_WIDTH: &str = "org.table.toggle.column.width";
 pub const COLUMNS: &str = "org.columns";
+pub const LINK_PREVIEW: &str = "org.link.preview";
+pub const LATEX_PREVIEW: &str = "org.latex.preview";
 pub const COLUMNS_QUIT: &str = "org.columns.quit";
 pub const COLUMNS_REDO: &str = "org.columns.redo";
 pub const COLUMNS_EDIT: &str = "org.columns.edit";
@@ -1083,6 +1085,19 @@ pub const COMMANDS: &[Command] = &[
     // whole file with `C-u` or before the first headline. While it shows,
     // its keys act on the column picked (the editor keeps which).
     Command { emacs: &[key(Org, "C-c C-x C-c")], vim: &[key(Org, "<Leader>oxc")], ..command(COLUMNS, "Column view") },
+    // `org-link-preview` and `org-latex-preview`: images in place of the
+    // links to image files and of the LaTeX fragments, for an editor that
+    // can show them.
+    Command {
+        emacs: &[key(Org, "C-c C-x C-v")],
+        vim: &[key(Org, "<Leader>oxv")],
+        ..command(LINK_PREVIEW, "Preview the images of links")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x C-l")],
+        vim: &[key(Org, "<Leader>oxl")],
+        ..command(LATEX_PREVIEW, "Preview LaTeX fragments")
+    },
     Command { emacs: &[key(Columns, "q")], vim: &[key(Columns, "q")], ..command(COLUMNS_QUIT, "Column view: quit") },
     Command {
         emacs: &[key(Columns, "g"), key(Columns, "r")],

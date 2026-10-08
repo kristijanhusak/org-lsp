@@ -117,6 +117,8 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oxb` | `org.tree.indirect` | Show the subtree in a file of its own |
 | `<Leader>o`` | `org.table.edit.field` | Edit the table field in a file of its own |
 | `<Leader>oxc` | `org.columns` | Column view |
+| `<Leader>oxv` | `org.link.preview` | Preview the images of links |
+| `<Leader>oxl` | `org.latex.preview` | Preview LaTeX fragments |
 | `<Leader>ox0` | `org.timer.start` | Start the relative timer |
 | `<Leader>ox.` | `org.timer.insert` | Insert the timer's value |
 | `<Leader>ox-` | `org.timer.item` | Insert a list item with the timer's value |
