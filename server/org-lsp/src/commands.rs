@@ -231,6 +231,15 @@ pub const EMPHASIZE: &str = "org.emphasize";
 pub const STRUCTURE_TEMPLATE: &str = "org.structure.template";
 pub const DRAWER_INSERT: &str = "org.drawer.insert";
 pub const SUBTREE_CLONE: &str = "org.subtree.clone";
+pub const TABLE_COPY_DOWN: &str = "org.table.copy.down";
+pub const TABLE_SUM: &str = "org.table.sum";
+pub const TABLE_FIELD_INFO: &str = "org.table.field.info";
+pub const TABLE_CREATE: &str = "org.table.create";
+pub const BABEL_NEXT: &str = "org.babel.next";
+pub const BABEL_PREVIOUS: &str = "org.babel.previous";
+pub const BABEL_GOTO: &str = "org.babel.goto";
+pub const BLOCK_NEXT: &str = "org.block.next";
+pub const BLOCK_PREVIOUS: &str = "org.block.previous";
 pub const BABEL_EXECUTE: &str = "org.babel.execute";
 pub const BABEL_EXECUTE_BUFFER: &str = "org.babel.execute.buffer";
 pub const BABEL_EXECUTE_SUBTREE: &str = "org.babel.execute.subtree";
@@ -824,6 +833,50 @@ pub const COMMANDS: &[Command] = &[
         input: Some(Input { kind: "text", prompt: "Number of clones to produce" }),
         ..command(SUBTREE_CLONE, "Clone the subtree, shifting its dates")
     },
+    // Tables, by Org in Emacs: `org-table-copy-down` (`S-RET`),
+    // `org-table-sum`, `org-table-field-info` and `org-table-create`.
+    Command {
+        emacs: &[native(Org, "S-RET")],
+        vim: &[key(Org, "<Leader>oD")],
+        ..command(TABLE_COPY_DOWN, "Copy the field down to the next row")
+    },
+    Command {
+        emacs: &[key(Org, "C-c +")],
+        vim: &[key(Org, "<Leader>o+")],
+        ..command(TABLE_SUM, "Sum the numbers of the table column")
+    },
+    Command {
+        emacs: &[key(Org, "C-c ?")],
+        vim: &[key(Org, "<Leader>o?")],
+        ..command(TABLE_FIELD_INFO, "Show the references of the table field")
+    },
+    Command {
+        emacs: &[key(Org, "C-c |")],
+        vim: &[key(Org, "<Leader>oi<Bar>")],
+        input: Some(Input { kind: "text", prompt: "Table size Columns x Rows" }),
+        ..command(TABLE_CREATE, "Insert an empty table")
+    },
+    // Moving between blocks, by Org in Emacs: source blocks
+    // (`org-babel-next-src-block`, `-previous-`, `org-babel-goto-named-src-block`)
+    // and any block (`org-next-block`, `org-previous-block`).
+    Command {
+        emacs: &[key(Org, "C-c C-v n"), key(Org, "C-c C-v C-n")],
+        vim: &[key(Org, "<Leader>obn")],
+        ..command(BABEL_NEXT, "Move to the next code block")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-v p"), key(Org, "C-c C-v C-p")],
+        vim: &[key(Org, "<Leader>obp")],
+        ..command(BABEL_PREVIOUS, "Move to the previous code block")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-v g")],
+        vim: &[key(Org, "<Leader>obg")],
+        input: Some(Input { kind: "choice", prompt: "source-block name" }),
+        ..command(BABEL_GOTO, "Go to a named code block")
+    },
+    Command { emacs: &[key(Org, "C-c M-f")], ..command(BLOCK_NEXT, "Move to the next block") },
+    Command { emacs: &[key(Org, "C-c M-b")], ..command(BLOCK_PREVIOUS, "Move to the previous block") },
     // `org-export-dispatch`: Org's export menu, from the backends Emacs
     // has, run by Emacs itself (`emacs`); the file or buffer it makes is
     // shown.

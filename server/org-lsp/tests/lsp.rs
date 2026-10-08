@@ -1679,6 +1679,82 @@ fn apply_text_edits(text: &str, edits: &[TextEdit]) -> String {
 }
 
 #[test]
+fn reports_and_moves_through_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("reports_and_moves_through_emacs: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-emacs-moves-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    let text = "| 1 | x |\n| 2 | y |\n\n#+name: one\n#+begin_src sh\necho 1\n#+end_src\n\n#+begin_quote\nq\n#+end_quote\n\n#+name: two\n#+begin_src sh\necho 2\n#+end_src\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    client.open(&uri, text);
+    let request = |client: &mut Client, command: &str, at: (u32, u32), input: Option<&str>| -> Value {
+        let mut argument =
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": at.0, "character": at.1 } });
+        if let Some(input) = input {
+            argument["input"] = json!(input);
+        }
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }))
+            .response_result
+            .expect("a result")
+    };
+    // What Emacs says.
+    let said = |client: &mut Client, command: &str, at: (u32, u32)| -> String {
+        request(client, command, at, None);
+        let Message::Notification(note) = next_from_server(
+            client,
+            |message| matches!(message, Message::Notification(note) if note.method == "window/showMessage"),
+        ) else {
+            unreachable!()
+        };
+        note.params["message"].as_str().unwrap().to_string()
+    };
+    // Where Emacs leaves the point.
+    let moved = |client: &mut Client, command: &str, at: (u32, u32), input: Option<&str>| -> (u32, u32) {
+        request(client, command, at, input);
+        let Message::Request(show) = next_from_server(
+            client,
+            |message| matches!(message, Message::Request(request) if request.method == "window/showDocument"),
+        ) else {
+            unreachable!()
+        };
+        client
+            .connection
+            .sender
+            .send(Message::Response(Response::new_ok(show.id.clone(), json!({ "success": true }))))
+            .unwrap();
+        let start = &show.params["selection"]["start"];
+        (start["line"].as_u64().unwrap() as u32, start["character"].as_u64().unwrap() as u32)
+    };
+    let sum = said(&mut client, "org.table.sum", (0, 2));
+    assert!(sum.starts_with("Sum of 2 items: 3"), "{sum}");
+    let info = said(&mut client, "org.table.field.info", (1, 6));
+    assert!(info.starts_with("line @2, col $2, ref @2$2 or B2"), "{info}");
+    assert_eq!(moved(&mut client, "org.babel.next", (0, 0), None), (4, 0));
+    assert_eq!(moved(&mut client, "org.babel.next", (4, 0), None), (13, 0));
+    assert_eq!(moved(&mut client, "org.babel.previous", (13, 0), None), (4, 0));
+    assert_eq!(moved(&mut client, "org.block.next", (4, 0), None), (8, 0));
+    assert_eq!(moved(&mut client, "org.block.previous", (8, 0), None), (4, 0));
+    let asked = request(&mut client, "org.babel.goto", (0, 0), None);
+    let names: Vec<&str> =
+        asked["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
+    assert_eq!(names, ["one", "two"]);
+    assert_eq!(moved(&mut client, "org.babel.goto", (0, 0), Some("two")), (13, 0));
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
 fn edits_through_emacs() {
     let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
     if !found {
@@ -1846,6 +1922,16 @@ fn edits_through_emacs() {
     let Message::Notification(said) = said else { unreachable!() };
     assert_eq!(said.params["message"], "Tangled 1 code block from notes.org", "{said:?}");
     assert_eq!(std::fs::read_to_string(directory.join("out.el")).unwrap(), "(message \"hi\")\n");
+    // Tables: copying down (`S-RET`), an empty table (`C-c |`).
+    replace(&mut client, &mut text, &mut version, "| a | 1 |\n|   |   |\n|   |   |\n".to_string());
+    let (_, cursor) = run(&mut client, &mut text, &mut version, "org.table.copy.down", (0, 6), json!({}));
+    assert_eq!(text, "| a | 1 |\n|   | 2 |\n|   |   |\n");
+    assert_eq!(cursor, Some((1, 6)));
+    replace(&mut client, &mut text, &mut version, "Text\n\n".to_string());
+    let (asked, _) = run(&mut client, &mut text, &mut version, "org.table.create", (1, 0), json!({}));
+    assert_eq!(asked["input"]["kind"], "text");
+    run(&mut client, &mut text, &mut version, "org.table.create", (1, 0), json!({ "input": "2x2" }));
+    assert_eq!(text, "Text\n|   |   |\n|---+---|\n|   |   |\n\n");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }

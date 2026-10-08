@@ -197,6 +197,9 @@ here and why.
 - [ ] Inserting and deleting a column and a row: `Alt+Shift+Right`, `Alt+Shift+Left`, `Alt+Shift+Down`, `Alt+Shift+Up`
 - [ ] A rule below the row; a rule and a move to the row below: `Ctrl+C -`, `Ctrl+C Enter`
 - [ ] Blanking the field: *Org: Blank the table field*
+- [ ] Copying the field down to the next row, a number incremented (needs Emacs); off a table the key keeps its own meaning: `Shift+Enter`
+- [ ] The sum of the column and the field's references are shown as messages (needs Emacs): `Ctrl+C +`, `Ctrl+C ?`
+- [ ] Creating a table asks for its size (`3x2`; empty for Org's default) (needs Emacs): `Ctrl+C |`
 - [ ] Sorting the rows by the cursor's column: `Ctrl+C ^`
 - [ ] The `#+TBLFM:` line follows a moved column
 
@@ -219,6 +222,8 @@ here and why.
 - [ ] `src_emacs-lisp{(* 6 7)}` gets `{{{results(=42=)}}}`; a `#+CALL:` line its results: `Ctrl+C Ctrl+V e` or `Ctrl+C Ctrl+V Ctrl+E`
 - [ ] Evaluating the file's and the subtree's blocks: `Ctrl+C Ctrl+V b` or `Ctrl+C Ctrl+V Ctrl+B`, `Ctrl+C Ctrl+V s` or `Ctrl+C Ctrl+V Ctrl+S`
 - [ ] Removing a block's results: `Ctrl+C Ctrl+V k`
+- [ ] Moving to the next and previous code block, and to any block (needs Emacs): `Ctrl+C Ctrl+V n` or `Ctrl+C Ctrl+V Ctrl+N`, `Ctrl+C Ctrl+V p` or `Ctrl+C Ctrl+V Ctrl+P`, `Ctrl+C Alt+F`, `Ctrl+C Alt+B`
+- [ ] Going to a named code block, picked from the names (needs Emacs): `Ctrl+C Ctrl+V g`
 - [ ] Typing in the file while a slow block runs: the results are dropped with a warning
 
 ## Export and publishing

@@ -3621,7 +3621,16 @@ impl Server {
             | commands::EMPHASIZE
             | commands::STRUCTURE_TEMPLATE
             | commands::DRAWER_INSERT
-            | commands::SUBTREE_CLONE => {
+            | commands::SUBTREE_CLONE
+            | commands::TABLE_COPY_DOWN
+            | commands::TABLE_SUM
+            | commands::TABLE_FIELD_INFO
+            | commands::TABLE_CREATE
+            | commands::BABEL_NEXT
+            | commands::BABEL_PREVIOUS
+            | commands::BABEL_GOTO
+            | commands::BLOCK_NEXT
+            | commands::BLOCK_PREVIOUS => {
                 self.emacs_command(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::BABEL_EXECUTE => {
@@ -6773,6 +6782,63 @@ impl Server {
             commands::TOGGLE_ITEM => self.emacs_run("org-toggle-item", context),
             commands::TOGGLE_HEADING => self.emacs_run("org-toggle-heading", context),
             commands::TOGGLE_COMMENT => self.emacs_run("org-toggle-comment", context),
+            // Off a table `S-RET` keeps its own meaning.
+            commands::TABLE_COPY_DOWN if !self.at_table(context) => {
+                Err(Refusal::NotHere("Not in table data field".to_string()))
+            }
+            commands::TABLE_COPY_DOWN => {
+                self.emacs_run_with("org-table-copy-down", vec![json!(context.count.unwrap_or(1))], context)
+            }
+            commands::TABLE_SUM => self.emacs_run("org-lsp-bridge-table-sum", context),
+            commands::TABLE_FIELD_INFO => self.emacs_run("org-table-field-info", context),
+            commands::TABLE_CREATE => {
+                let Some(answer) = answer else {
+                    return Ok(json!({ "input": {
+                        "kind": "text",
+                        "prompt": "Table size Columns x Rows (empty for Org's default)",
+                        "value": "",
+                    } }));
+                };
+                self.emacs_run_with("org-lsp-bridge-table-create", vec![json!(answer.trim())], context)
+            }
+            commands::BABEL_NEXT | commands::BABEL_PREVIOUS | commands::BLOCK_NEXT | commands::BLOCK_PREVIOUS => {
+                let command = match id {
+                    commands::BABEL_NEXT => "org-babel-next-src-block",
+                    commands::BABEL_PREVIOUS => "org-babel-previous-src-block",
+                    commands::BLOCK_NEXT => "org-next-block",
+                    _ => "org-previous-block",
+                };
+                self.emacs_run_with(command, vec![json!(context.count.unwrap_or(1))], context)
+            }
+            commands::BABEL_GOTO => {
+                let Some(answer) = answer.filter(|answer| !answer.is_empty()) else {
+                    let uri = &context.text_document.uri;
+                    let path = uri::to_path(uri).ok_or("Only a file on disk can run code through Emacs")?;
+                    let document = self.document(uri).ok_or("This file is not open")?;
+                    let params = json!({ "file": path.to_string_lossy(), "text": document.text });
+                    let names = self
+                        .emacs
+                        .call("src-block-names", params, std::time::Duration::from_secs(60))
+                        .map_err(Refusal::Failed)?;
+                    let choices: Vec<Value> = names
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(Value::as_str)
+                        .map(|name| json!({ "key": name, "label": name }))
+                        .collect();
+                    if choices.is_empty() {
+                        return Err(Refusal::Failed("No named code blocks".to_string()));
+                    }
+                    return Ok(json!({ "input": {
+                        "kind": "choice",
+                        "prompt": "source-block name",
+                        "value": "",
+                        "choices": choices,
+                    } }));
+                };
+                self.emacs_run_with("org-babel-goto-named-src-block", vec![json!(answer)], context)
+            }
             commands::FOOTNOTE_MENU => {
                 let Some(answer) = answer else {
                     let choices = [

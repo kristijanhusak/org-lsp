@@ -636,6 +636,51 @@
         "category": "Org"
       },
       {
+        "command": "org.table.copy.down",
+        "title": "Copy the field down to the next row",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.sum",
+        "title": "Sum the numbers of the table column",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.field.info",
+        "title": "Show the references of the table field",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.create",
+        "title": "Insert an empty table",
+        "category": "Org"
+      },
+      {
+        "command": "org.babel.next",
+        "title": "Move to the next code block",
+        "category": "Org"
+      },
+      {
+        "command": "org.babel.previous",
+        "title": "Move to the previous code block",
+        "category": "Org"
+      },
+      {
+        "command": "org.babel.goto",
+        "title": "Go to a named code block",
+        "category": "Org"
+      },
+      {
+        "command": "org.block.next",
+        "title": "Move to the next block",
+        "category": "Org"
+      },
+      {
+        "command": "org.block.previous",
+        "title": "Move to the previous block",
+        "category": "Org"
+      },
+      {
         "command": "org.export.dispatch",
         "title": "Export the file through Emacs",
         "category": "Org"
@@ -3737,6 +3782,71 @@
       {
         "command": "org.subtree.clone",
         "key": "ctrl+c ctrl+x c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.copy.down",
+        "key": "shift+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorHasMultipleSelections && !editorReadonly",
+        "args": {
+          "fallback": [
+            {
+              "command": "type",
+              "args": {
+                "text": "\n"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "command": "org.table.sum",
+        "key": "ctrl+c shift+=",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.field.info",
+        "key": "ctrl+c shift+/",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.create",
+        "key": "ctrl+c shift+\\",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.next",
+        "key": "ctrl+c ctrl+v n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.next",
+        "key": "ctrl+c ctrl+v ctrl+n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.previous",
+        "key": "ctrl+c ctrl+v p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.previous",
+        "key": "ctrl+c ctrl+v ctrl+p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.goto",
+        "key": "ctrl+c ctrl+v g",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.block.next",
+        "key": "ctrl+c alt+f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.block.previous",
+        "key": "ctrl+c alt+b",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

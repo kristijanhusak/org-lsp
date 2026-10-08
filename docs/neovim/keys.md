@@ -97,6 +97,13 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oib` | `org.structure.template` | Insert a block (structure template) |
 | `<Leader>oiD` | `org.drawer.insert` | Insert a drawer |
 | `<Leader>osc` | `org.subtree.clone` | Clone the subtree, shifting its dates |
+| `<Leader>oD` | `org.table.copy.down` | Copy the field down to the next row |
+| `<Leader>o+` | `org.table.sum` | Sum the numbers of the table column |
+| `<Leader>o?` | `org.table.field.info` | Show the references of the table field |
+| `<Leader>oi<Bar>` | `org.table.create` | Insert an empty table |
+| `<Leader>obn` | `org.babel.next` | Move to the next code block |
+| `<Leader>obp` | `org.babel.previous` | Move to the previous code block |
+| `<Leader>obg` | `org.babel.goto` | Go to a named code block |
 | `<Leader>oe` | `org.export.dispatch` | Export the file through Emacs |
 | `<Leader>o*` | `org.table.recalculate` | Recalculate the table |
 | `<Leader>oo` | `org.open` | Open the link or thing at the cursor |
@@ -226,6 +233,8 @@ The other options are in [configuration.md](configuration.md).
 | `org.table.hline.above` | Insert a rule above the table row |
 | `org.toggle.item` | Turn the line into an item, or the item into a line |
 | `org.toggle.heading` | Turn the line into a heading, or the heading into a line |
+| `org.block.next` | Move to the next block |
+| `org.block.previous` | Move to the previous block |
 | `org.table.recalculate.line` | Recalculate the table's current line |
 | `org.table.iterate` | Recalculate the table until it does not change |
 | `org.link.insert.last` | Insert the last stored link |

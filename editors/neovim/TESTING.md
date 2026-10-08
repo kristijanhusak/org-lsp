@@ -207,6 +207,9 @@ here and why.
 - [ ] Inserting and deleting a column and a row: `>s`, `<s`, `<Leader>oTO`, `<Leader>oTd`
 - [ ] A rule below the row; a rule and a move to the row below: `<Leader>o-`, `<Leader>o<CR>`
 - [ ] Blanking the field: `<Leader>o<Space>`
+- [ ] Copying the field down to the next row, a number incremented (needs Emacs); off a table the key keeps its own meaning: `<Leader>oD`
+- [ ] The sum of the column and the field's references are shown as messages (needs Emacs): `<Leader>o+`, `<Leader>o?`
+- [ ] Creating a table asks for its size (`3x2`; empty for Org's default) (needs Emacs): `<Leader>oi<Bar>`
 - [ ] Sorting the rows by the cursor's column: `<Leader>o^`
 - [ ] The `#+TBLFM:` line follows a moved column
 
@@ -229,6 +232,8 @@ here and why.
 - [ ] `src_emacs-lisp{(* 6 7)}` gets `{{{results(=42=)}}}`; a `#+CALL:` line its results: `<Leader>obe`
 - [ ] Evaluating the file's and the subtree's blocks: `<Leader>obb`, `<Leader>obs`
 - [ ] Removing a block's results: `<Leader>obk`
+- [ ] Moving to the next and previous code block, and to any block (needs Emacs): `<Leader>obn`, `<Leader>obp`, `:Org block next`, `:Org block previous`
+- [ ] Going to a named code block, picked from the names (needs Emacs): `<Leader>obg`
 - [ ] Typing in the file while a slow block runs: the results are dropped with a warning
 
 ## Export and publishing
