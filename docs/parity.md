@@ -26,7 +26,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Refile and archive](#refile-and-archive) | 91% | 10 of 11 |
 | [Links](#links) | 100% | 11 of 11 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
-| [Tables](#tables) | 71% | 12 of 17 |
+| [Tables](#tables) | 76% | 13 of 17 |
 | [Table formulas](#table-formulas) | 83% | 10 of 12 |
 | [Code blocks (Babel)](#code-blocks-babel) | 82% | 9 of 11 |
 | [Export and publishing](#export-and-publishing) | 67% | 6 of 9 |
@@ -35,7 +35,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Indentation and formatting](#indentation-and-formatting) | 83% | 5 of 6 |
 | [Notes and logging](#notes-and-logging) | 100% | 4 of 4 |
 | [Completion and editing helpers](#completion-and-editing-helpers) | 100% | 4 of 4 |
-| [Timers](#timers) | 60% | 3 of 5 |
+| [Timers](#timers) | 80% | 4 of 5 |
 | [Attachments](#attachments) | 0% | 0 of 2 |
 | [Encryption](#encryption) | 0% | 0 of 1 |
 | [Inline images and LaTeX previews](#inline-images-and-latex-previews) | 0% | 0 of 2 |
@@ -332,7 +332,7 @@ Where editors fall short:
 
 ## Tables
 
-71% (12 of 17)
+76% (13 of 17)
 
 - ✅ Aligning (`C-c C-c`, formatting)
 - ✅ Moving between fields (`TAB`, `S-TAB`), a row made past the last
@@ -341,7 +341,7 @@ Where editors fall short:
 - ✅ Blanking a field
 - ✅ Sorting rows
 - ✅ The `#+TBLFM:` line following moved columns and rows
-- ❌ Rectangles: cutting, copying and pasting
+- ✅ Rectangles: cutting, copying and pasting the cells of a selection (through Emacs)
 - ✅ Copying down (`S-RET`, through Emacs)
 - ❌ Editing a field in its own buffer (`C-c \``)
 - ❌ Shrunk columns (`<5>`)
@@ -483,13 +483,13 @@ Where editors fall short:
 
 ## Timers
 
-60% (3 of 5)
+80% (4 of 5)
 
 - ✅ The relative timer: starting, inserting its value, pausing and stopping (through Emacs)
 - ✅ Timer items in lists (`C-c C-x -`, through Emacs)
 - ✅ Countdowns (`C-c C-x ;`), the effort taken when there is one (through Emacs)
 - ❌ The timer in the mode line
-- ❌ Starting with an offset, shifting timer values in a region (prefix arguments)
+- ✅ Starting with an offset (`C-u`), shifting the timer values of a selection (`C-u C-u`, or the selection alone; through Emacs)
 
 Where editors fall short:
 

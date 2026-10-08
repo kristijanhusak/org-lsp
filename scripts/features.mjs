@@ -560,7 +560,7 @@ export const AREAS = [
       ['Blanking a field', true],
       ['Sorting rows', true],
       ['The `#+TBLFM:` line following moved columns and rows', true],
-      ['Rectangles: cutting, copying and pasting', false],
+      ['Rectangles: cutting, copying and pasting the cells of a selection (through Emacs)', true],
       ['Copying down (`S-RET`, through Emacs)', true],
       ['Editing a field in its own buffer (`C-c \\``)', false],
       ['Shrunk columns (`<5>`)', false],
@@ -778,7 +778,7 @@ export const AREAS = [
       ['Timer items in lists (`C-c C-x -`, through Emacs)', true],
       ['Countdowns (`C-c C-x ;`), the effort taken when there is one (through Emacs)', true],
       ['The timer in the mode line', false],
-      ['Starting with an offset, shifting timer values in a region (prefix arguments)', false],
+      ['Starting with an offset (`C-u`), shifting the timer values of a selection (`C-u C-u`, or the selection alone; through Emacs)', true],
     ],
     editors: {
       zed: ['no', `Timers are left out: ${NO_KEY_ZED}, and they are not among them.`],

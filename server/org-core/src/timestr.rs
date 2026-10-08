@@ -6,8 +6,25 @@
 //! shows up where. The functions here are ports of those expressions and
 //! of the functions around them in `org.el`; each names its original.
 
+use std::sync::LazyLock;
+
+use regex::Regex;
+
 use crate::date::{Date, DateTime, Day};
 use crate::text::{word_end, word_start};
+
+/// The timer value (`h:mm:ss`) on the line of `offset` that holds it
+/// (`org-in-regexp` of `org-timer-re`).
+pub fn timer_value_at(text: &str, offset: usize) -> Option<String> {
+    static TIMER: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"[-+]?[0-9]+:[0-9]{2}:[0-9]{2}").expect("a valid regex"));
+    let start = text[..offset].rfind('\n').map_or(0, |at| at + 1);
+    let end = text[offset..].find('\n').map_or(text.len(), |at| offset + at);
+    TIMER
+        .find_iter(&text[start..end])
+        .find(|found| (start + found.start()..=start + found.end()).contains(&offset))
+        .map(|found| found.as_str().to_string())
+}
 
 /// The pieces `org-parse-time-string` extracts: the first `YYYY-MM-DD` in
 /// the text and the `H:MM` after it, if any.

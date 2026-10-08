@@ -132,7 +132,7 @@ the view at hand. To bind one yourself:
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 91% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 100% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
-| [Tables](../../docs/parity.md#tables) | 71% | ✅ |  |
+| [Tables](../../docs/parity.md#tables) | 76% | ✅ |  |
 | [Table formulas](../../docs/parity.md#table-formulas) | 83% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 82% | ✅ |  |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 67% | ✅ |  |
@@ -141,7 +141,7 @@ the view at hand. To bind one yourself:
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. |
 | [Notes and logging](../../docs/parity.md#notes-and-logging) | 100% | ✅ |  |
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ✅ |  |
-| [Timers](../../docs/parity.md#timers) | 60% | ✅ |  |
+| [Timers](../../docs/parity.md#timers) | 80% | ✅ |  |
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |

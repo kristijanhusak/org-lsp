@@ -1266,6 +1266,12 @@ pub const REGION: &[&str] = &[
     // The subtrees in it refiled together.
     REFILE,
     REFILE_COPY,
+    // In a table, the cells in it (`org-table-cut-region`,
+    // `org-table-copy-region`).
+    CUT_SUBTREE,
+    COPY_SUBTREE,
+    // The timer values in it shifted.
+    TIMER_START,
 ];
 
 /// `{ "command", "title", "edits", "keys": [{ "key", "in", "preset" }] }`.
