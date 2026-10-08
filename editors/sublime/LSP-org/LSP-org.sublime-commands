@@ -952,6 +952,13 @@
     }
   },
   {
+    "caption": "Org: Edit the block in a file of its own",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.edit.special"
+    }
+  },
+  {
     "caption": "Org: Start the relative timer",
     "command": "org_lsp_run",
     "args": {

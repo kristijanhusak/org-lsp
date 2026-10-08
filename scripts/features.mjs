@@ -206,7 +206,6 @@ export const AREAS = [
       ['Sorting items', true],
       ['Moving to the next and previous item', true],
       ['Turning lines into items and back (`C-c -`, through Emacs)', true],
-      ['Radio lists', false],
       ['Circular motion between items (`org-list-use-circular-motion`)', true],
     ],
     editors: {
@@ -397,6 +396,7 @@ export const AREAS = [
       { text: 'Hovering a line shows its entry', in: 'agenda', keys: { neovim: '`K`', vim: '`K`', vscode: 'the mouse, `Ctrl+K Ctrl+I`', sublime: 'the mouse', zed: 'the mouse' } },
       { text: 'Rebuilding the agenda, saving the changed files, quitting', in: 'agenda', cmd: ['org.agenda.redo', 'org.agenda.save'] },
       { text: 'An entry changed in its file shows in the agenda when it is rebuilt' },
+      { text: 'Adding today\'s appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs)', cmd: 'org.agenda.appt' },
       { text: 'The agenda window opens as `win_split_mode` says (`split`, `vsplit`, `float`, `current`)', only: ['neovim'] },
       { text: 'The agenda opens as `org-lsp.winSplitMode` says', only: ['vscode'] },
     ],
@@ -627,15 +627,15 @@ export const AREAS = [
       ['Removing results', true],
       ['Sessions', true],
       ['Asking before evaluating (`org-confirm-babel-evaluate`)', true],
-      ['Editing a block in its own buffer (`C-c \'`)', false],
+      ['Editing a block in a file of its own (`C-c \'`, through Emacs): code, example, export and comment blocks, footnote definitions, LaTeX, inline code; each save of the file writes it back and saves the Org file', true],
       ['Tangling\'s Emacs Lisp (evaluated header arguments, `<<block()>>`; through Emacs)', true],
       ['Detangling', false],
       ['Moving between blocks (`C-c C-v n`, `C-c C-v p`, `C-c C-v g`, `C-c M-f`, `C-c M-b`; through Emacs)', true],
       ['The Library of Babel (`C-c C-v i`, through Emacs)', true],
     ],
     editors: {
-      zed: ['part', 'Only tangling and the block at the cursor are offered (code actions in a block): the file\'s and the subtree\'s evaluation, removing results and moving between blocks need keys, which Zed cannot give a server.'],
-      helix: ['part', 'Only tangling and the block at the cursor are offered (code actions in a block): the file\'s and the subtree\'s evaluation, removing results and moving between blocks need keys, which Helix cannot give a server.'],
+      zed: ['part', 'Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file\'s and the subtree\'s evaluation, removing results and moving between blocks need keys, which Zed cannot give a server.'],
+      helix: ['part', 'Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file\'s and the subtree\'s evaluation, removing results and moving between blocks need keys, which Helix cannot give a server.'],
     },
     checks: [
       { text: 'Adding the file\'s named blocks to the Library of Babel; a `#+CALL:` in another file runs one (needs Emacs)', cmd: 'org.babel.lob.ingest', not: ['zed', 'helix'] },
@@ -649,6 +649,8 @@ export const AREAS = [
       { text: 'Moving to the next and previous code block, and to any block (needs Emacs)', cmd: ['org.babel.next', 'org.babel.previous', 'org.block.next', 'org.block.previous'], not: ['zed', 'helix'] },
       { text: 'Going to a named code block, picked from the names (needs Emacs)', cmd: 'org.babel.goto', not: ['zed', 'helix'] },
       { text: 'Typing in the file while a slow block runs: the results are dropped with a warning' },
+      { text: 'Editing a code block in a file of its own: the file has the language\'s extension, its lines unindented and `,*` unescaped; saving it writes the block back and saves the Org file; the same block again shows the same file (needs Emacs)', cmd: 'org.edit.special' },
+      { text: 'The same at a footnote reference (its definition, the label kept), a LaTeX fragment and an export block; at `#+INCLUDE:` the file included is shown (needs Emacs)', cmd: 'org.edit.special', not: ['zed', 'helix'] },
     ],
   },
   {

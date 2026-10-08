@@ -146,6 +146,7 @@ here and why.
 - [ ] Hovering a line shows its entry: `K`
 - [ ] Rebuilding the agenda, saving the changed files, quitting: `r`, `s` or `<C-x><C-s>`
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt
+- [ ] Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): `:Org agenda appt`
 - [ ] The agenda window opens as `win_split_mode` says (`split`, `vsplit`, `float`, `current`)
 
 ## Clocking
@@ -250,6 +251,8 @@ here and why.
 - [ ] Moving to the next and previous code block, and to any block (needs Emacs): `<Leader>obn`, `<Leader>obp`, `:Org block next`, `:Org block previous`
 - [ ] Going to a named code block, picked from the names (needs Emacs): `<Leader>obg`
 - [ ] Typing in the file while a slow block runs: the results are dropped with a warning
+- [ ] Editing a code block in a file of its own: the file has the language's extension, its lines unindented and `,*` unescaped; saving it writes the block back and saves the Org file; the same block again shows the same file (needs Emacs): `<Leader>o'`
+- [ ] The same at a footnote reference (its definition, the label kept), a LaTeX fragment and an export block; at `#+INCLUDE:` the file included is shown (needs Emacs): `<Leader>o'`
 
 ## Export and publishing
 

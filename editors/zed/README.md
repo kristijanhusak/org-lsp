@@ -126,7 +126,7 @@ those dates in the file itself, where completion helps.
 | [Highlighting](../../docs/parity.md#highlighting) | 92% | ❓ | Links, emphasis markers and pretty entities are not concealed: Zed lets no server hide text. The colors need `"semantic_tokens": "combined"`; code blocks take their language's colors, inline code does not. |
 | [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 67% | ❓ | Zed folds with its own folding: Org's cycling and sparse trees need folds an extension can set, which Zed does not offer. |
 | [Headings and structure](../../docs/parity.md#headings-and-structure) | 100% | ❓ | Moving between headings, `org-goto` and the commands run by Emacs (`C-c *`, `C-c ;`, cloning) are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. |
-| [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 91% | ❓ | `RET` stays Zed's own, bullets are not cycled and lines not turned into items: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. |
+| [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 100% | ❓ | `RET` stays Zed's own, bullets are not cycled and lines not turned into items: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. |
 | [TODO keywords](../../docs/parity.md#todo-keywords) | 100% | ❓ | A note for a state change (`@`) cannot be typed: Zed cannot ask for text on a server's behalf. States are picked with buttons. |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Zed cannot ask for text on a server's behalf. Completion and renaming work. |
@@ -140,7 +140,7 @@ those dates in the file itself, where completion helps.
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ❓ | Making footnotes and their menu are left out: they are not among Zed's code actions. Following them works. |
 | [Tables](../../docs/parity.md#tables) | 82% | ❓ | Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table. |
 | [Table formulas](../../docs/parity.md#table-formulas) | 83% | ✅ |  |
-| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 82% | ❓ | Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server. |
+| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 91% | ❓ | Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server. |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 67% | ❌ | Not offered as a code action yet; its menu would come as buttons. |
 | [Citations](../../docs/parity.md#citations) | 100% | ❓ | Inserting citations is not offered as a code action yet. Completion, hover and following work. |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |

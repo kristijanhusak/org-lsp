@@ -239,8 +239,12 @@ was to be opened, or the text of an export to a buffer."
     org-table-create-or-convert-from-region org-table-cut-region
     org-table-copy-region org-table-paste-rectangle org-lsp-bridge-timer-offset
     org-lsp-bridge-timer-shift org-table-import org-table-export org-dblock-update
-    org-update-all-dblocks org-lsp-bridge-columns-insert-dblock org-lsp-bridge-attach)
+    org-update-all-dblocks org-lsp-bridge-columns-insert-dblock org-lsp-bridge-attach
+    org-lsp-bridge-edit-special-save)
   "The commands the server may run on a document.")
+
+(defvar org-lsp-bridge--extra nil
+  "More a command run by the server gives back.")
 
 (defvar org-lsp-bridge--message nil
   "What Emacs said last while a command ran.")
@@ -262,7 +266,8 @@ wants one), else interactively."
       (error "org-lsp does not run %s" command))
     (setq org-lsp-bridge--message nil
           org-lsp-bridge--opened nil
-          org-lsp-bridge--visited nil)
+          org-lsp-bridge--visited nil
+          org-lsp-bridge--extra nil)
     (org-lsp-bridge--in-document params
       ;; The selection, as the active region.
       (when-let* ((mark (alist-get 'mark params)))
@@ -281,6 +286,7 @@ wants one), else interactively."
         (message . ,org-lsp-bridge--message)
         (opened . ,org-lsp-bridge--opened)
         (visited . ,org-lsp-bridge--visited)
+        (extra . ,org-lsp-bridge--extra)
         (countdown . ,(org-lsp-bridge--countdown))))))
 
 (defun org-lsp-bridge-footnote-renumber-and-sort ()
@@ -510,6 +516,123 @@ asks: a file, a URL, a name, a directory or an attachment."
   "`org-structure-template-alist': each key with the type it inserts."
   (vconcat (mapcar (lambda (entry) (vector (car entry) (cdr entry)))
                    org-structure-template-alist)))
+
+;;; Editing in a buffer of its own
+
+(defconst org-lsp-bridge--languages
+  '(("rust" . "rs") ("go" . "go") ("typescript" . "ts") ("ts" . "ts") ("json" . "json")
+    ("yaml" . "yaml") ("toml" . "toml") ("kotlin" . "kt") ("swift" . "swift")
+    ("dockerfile" . "Dockerfile") ("nix" . "nix") ("zig" . "zig") ("elixir" . "ex")
+    ("php" . "php") ("csharp" . "cs") ("fish" . "fish") ("zsh" . "zsh"))
+  "Extensions of languages Org's own Babel does not know.")
+
+(defun org-lsp-bridge--language-extension (language)
+  "The extension of a file of LANGUAGE, as tangling names it."
+  (require 'ob-tangle)
+  (let ((language (downcase language)))
+    (or (progn (require (intern (concat "ob-" language)) nil t)
+               (cdr (assoc language org-babel-tangle-lang-exts)))
+        (cdr (assoc language org-lsp-bridge--languages))
+        (and (string-match-p "\\`[a-z0-9]+\\'" language) language)
+        "txt")))
+
+(defun org-lsp-bridge--read-only-ends ()
+  "The read-only text at the start and the end of the edit buffer
+(a footnote's label, `Cannot edit footnote label')."
+  (let ((start (or (text-property-not-all (point-min) (point-max) 'read-only nil) (point-max)))
+        (end (point-max)))
+    (while (and (> end (point-min)) (get-text-property (1- end) 'read-only))
+      (setq end (1- end)))
+    (list (if (= start (point-min))
+              (buffer-substring-no-properties (point-min)
+                                              (or (next-single-property-change (point-min) 'read-only) (point-max)))
+            "")
+          (buffer-substring-no-properties end (point-max)))))
+
+(defun org-lsp-bridge-edit-special (params)
+  "What `org-edit-special' does at the point of PARAMS. In an edit buffer
+of `org-src' (a block, a footnote, a LaTeX fragment…): its text, an
+extension for its file, and the part of the document it edits, from
+`begin' to `end'. At `#+INCLUDE:' and the like: the file to visit. Else
+what the element is, for the server to do as Org does there."
+  (require 'org-src)
+  (org-lsp-bridge--in-document params
+    (let* ((element (org-element-at-point))
+           (context (org-element-context element)))
+      (pcase (org-element-type element)
+        ((or 'table 'table-row)
+         (if (eq (org-element-property :type element) 'table.el)
+             (org-lsp-bridge--edit-buffer element)
+           '((other . "table"))))
+        ('planning `((other . ,(if (org-element-property :deadline element) "deadline" "schedule"))))
+        ('keyword
+         (let ((value (org-element-property :value element)))
+           (unless (member (org-element-property :key element) '("BIBLIOGRAPHY" "INCLUDE" "SETUPFILE"))
+             (user-error "No special environment to edit here"))
+           (unless (org-string-nw-p value) (user-error "No file to edit"))
+           (let ((file (and (string-match "\\`\"\\(.*?\\)\"\\|\\S-+" value)
+                            (or (match-string 1 value) (match-string 0 value)))))
+             (when (org-url-p file)
+               (user-error "Files located with a URL cannot be edited"))
+             `((visit . ,(expand-file-name file))))))
+        ((guard (eq (org-element-type context) 'timestamp))
+         `((other . ,(if (eq (org-element-property :type context) 'inactive) "timestamp-inactive" "timestamp"))))
+        ((guard (eq (org-element-type context) 'link)) '((other . "link")))
+        (_ (org-lsp-bridge--edit-buffer element))))))
+
+(defun org-lsp-bridge--edit-buffer (element)
+  "`org-edit-special' on ELEMENT at point, which `org-src' edits in a
+buffer of its own: what the buffer shows (see `org-lsp-bridge-edit-special')."
+  (let ((org-src-window-setup 'current-window)
+        (language (pcase (org-element-type element)
+                    ('src-block (org-element-property :language element))
+                    (_ (let ((context (org-element-context element)))
+                         (and (eq (org-element-type context) 'inline-src-block)
+                              (org-element-property :language context)))))))
+    (org-edit-special)
+    (unless (org-src-edit-buffer-p)
+      (user-error "No special environment to edit here"))
+    (let ((text (buffer-substring-no-properties (point-min) (point-max)))
+          (extension (if (org-string-nw-p language)
+                         (org-lsp-bridge--language-extension language)
+                       (org-lsp-bridge--mode-extension major-mode)))
+          (begin (marker-position org-src--beg-marker))
+          (end (marker-position org-src--end-marker))
+          (name (buffer-name)))
+      (org-edit-src-abort)
+      `((edit . ((text . ,text)
+                 (extension . ,extension)
+                 (name . ,name)
+                 (begin . ,begin)
+                 (end . ,end)
+                 (region . ,(buffer-substring-no-properties begin end))))))))
+
+(defun org-lsp-bridge-edit-special-save (content)
+  "Edit the element at point in its buffer (`org-edit-special'), its text
+now CONTENT, and back (`org-edit-src-exit'): the part of the document it
+edits then, in `org-lsp-bridge--extra'."
+  (require 'org-src)
+  (let ((org-src-window-setup 'current-window))
+    (org-edit-special)
+    (unless (org-src-edit-buffer-p)
+      (user-error "No special environment to edit here"))
+    (pcase-let ((`(,head ,tail) (org-lsp-bridge--read-only-ends)))
+      (unless (and (string-prefix-p head content) (string-suffix-p tail content)
+                   (<= (+ (length head) (length tail)) (length content)))
+        (org-edit-src-abort)
+        (user-error "%s" (if (string-prefix-p head content)
+                             "Cannot edit past footnote reference"
+                           "Cannot edit footnote label"))))
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (insert content))
+    (let ((begin (copy-marker org-src--beg-marker))
+          (end (copy-marker org-src--end-marker t)))
+      (org-edit-src-exit)
+      (setq org-lsp-bridge--extra `((begin . ,(marker-position begin))
+                                    (end . ,(marker-position end))))
+      (set-marker begin nil)
+      (set-marker end nil))))
 
 ;;; Appointments
 
