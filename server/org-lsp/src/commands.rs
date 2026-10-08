@@ -165,6 +165,7 @@ pub const CLOCK_DISPLAY: &str = "org.clock.display";
 pub const CLOCK_REPORT: &str = "org.clock.report";
 pub const DBLOCK_UPDATE: &str = "org.dblock.update";
 pub const DBLOCK_INSERT: &str = "org.dblock.insert";
+pub const ATTACH: &str = "org.attach";
 pub const TODO: &str = "org.todo";
 pub const SET_TAGS: &str = "org.tags.set";
 pub const SET_PROPERTY: &str = "org.property.set";
@@ -492,6 +493,14 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>oix")],
         input: Some(Input { kind: "choice", prompt: "Dynamic block" }),
         ..edit(DBLOCK_INSERT, "Insert a dynamic block")
+    },
+    // `org-attach` (`C-c C-a`): Org's dispatcher of attachment commands,
+    // run by Emacs.
+    Command {
+        emacs: &[key(Org, "C-c C-a")],
+        vim: &[key(Org, "<Leader>oxa")],
+        input: Some(Input { kind: "key", prompt: "Attachments" }),
+        ..edit(ATTACH, "Attachments of the entry")
     },
     // `org-todo`: the state picked by key when the keywords have keys,
     // and else the next one.

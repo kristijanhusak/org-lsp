@@ -142,10 +142,10 @@ the view at hand. To bind one yourself:
 | [Notes and logging](../../docs/parity.md#notes-and-logging) | 100% | ✅ |  |
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ✅ |  |
 | [Timers](../../docs/parity.md#timers) | 80% | ✅ |  |
-| [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
+| [Attachments](../../docs/parity.md#attachments) | 100% | ✅ |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **82%** |  |  |
+| **All of Org** | **86%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

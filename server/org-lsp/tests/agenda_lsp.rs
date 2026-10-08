@@ -2156,6 +2156,40 @@ fn refile_targets_pass_a_function_of_emacs() {
     client.shutdown();
 }
 
+/// An `attachment:` link opens the file in the entry's attachment
+/// directory, as Emacs finds it (`org-attach-expand`).
+#[test]
+fn follows_attachment_links() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("follows_attachment_links: no Emacs, skipped");
+        return;
+    }
+    let directory = workspace("attachment-links");
+    let attached = directory.join("data").join("ab").join("cdef");
+    std::fs::create_dir_all(&attached).unwrap();
+    std::fs::write(attached.join("doc.txt"), "attached\n").unwrap();
+    let file = directory.join("notes.org");
+    let text = "* Task :ATTACH:\n:PROPERTIES:\n:ID:       abcdef\n:END:\nSee [[attachment:doc.txt]]\n";
+    std::fs::write(&file, text).unwrap();
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 4, "character": 8 } });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] })).unwrap();
+    client.settle();
+    let shown =
+        client.received.iter().find(|request| request.method == "window/showDocument").expect("a document shown");
+    assert_eq!(shown.params["uri"], format!("file://{}", attached.join("doc.txt").display()), "{shown:?}");
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

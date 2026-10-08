@@ -371,6 +371,13 @@
     }
   },
   {
+    "caption": "Org: Attachments of the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.attach"
+    }
+  },
+  {
     "caption": "Org: Change the TODO state",
     "command": "org_lsp_run",
     "args": {

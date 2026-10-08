@@ -51,6 +51,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X Ctrl+R` | `org.clock.report` | Insert or update a clock table |
 | `Ctrl+C Ctrl+X Ctrl+U` | `org.dblock.update` | Update the dynamic block |
 | `Ctrl+C Ctrl+X x` | `org.dblock.insert` | Insert a dynamic block |
+| `Ctrl+C Ctrl+A` | `org.attach` | Attachments of the entry |
 | `Ctrl+C Ctrl+T` | `org.todo` | Change the TODO state |
 | `Ctrl+C ,` | `org.priority` | Set the priority |
 | `Ctrl+C Ctrl+X p` | `org.property.set` | Set a property of the entry |
@@ -378,6 +379,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "x", "r"], "commands": ["org.clock.report"] },
   { "before": ["<leader>", "o", "x", "u"], "commands": ["org.dblock.update"] },
   { "before": ["<leader>", "o", "i", "x"], "commands": ["org.dblock.insert"] },
+  { "before": ["<leader>", "o", "x", "a"], "commands": ["org.attach"] },
   { "before": ["<leader>", "o", ","], "commands": ["org.priority"] },
   { "before": ["<leader>", "o", "x", "p"], "commands": ["org.property.set"] },
   { "before": ["<leader>", "o", "x", "e"], "commands": ["org.effort.set"] },
@@ -505,6 +507,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.clock.report` | Org: Insert or update a clock table |
 | `org.dblock.update` | Org: Update the dynamic block |
 | `org.dblock.insert` | Org: Insert a dynamic block |
+| `org.attach` | Org: Attachments of the entry |
 | `org.todo` | Org: Change the TODO state |
 | `org.todo.next` | Org: Cycle TODO state forward |
 | `org.todo.previous` | Org: Cycle TODO state backward |

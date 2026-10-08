@@ -2107,6 +2107,17 @@ fn edits_through_emacs() {
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
     assert_eq!(std::fs::read_to_string(&written).unwrap(), "a,b\nc,d\n");
+    // `C-c C-a c`: a file attached by copying it, the entry tagged and
+    // given an ID.
+    std::fs::write(directory.join("doc.txt"), "attached\n").unwrap();
+    replace(&mut client, &mut text, &mut version, "* Task\n".to_string());
+    let (asked, _) = run(&mut client, &mut text, &mut version, "org.attach", (0, 0), json!({ "input": "c" }));
+    assert_eq!(asked["input"]["prompt"], "File to keep as an attachment", "{asked}");
+    run(&mut client, &mut text, &mut version, "org.attach", (0, 0), json!({ "input": "doc.txt", "step": "c" }));
+    assert!(text.starts_with("* Task") && text.contains(":ATTACH:") && text.contains(":ID:"), "{text}");
+    let id = text.lines().find_map(|line| line.trim().strip_prefix(":ID:")).unwrap().trim().to_string();
+    let copied = directory.join("data").join(&id[..2]).join(&id[2..]).join("doc.txt");
+    assert_eq!(std::fs::read_to_string(&copied).unwrap(), "attached\n");
     // A column view inserted (`C-c C-x x`), then filled in again by
     // `C-c C-c` on its `#+BEGIN:` line, both by Emacs.
     replace(&mut client, &mut text, &mut version, "* TODO A\n* B\n\n".to_string());

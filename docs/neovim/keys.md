@@ -41,6 +41,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oxr` | `org.clock.report` | Insert or update a clock table |
 | `<Leader>oxu` | `org.dblock.update` | Update the dynamic block |
 | `<Leader>oix` | `org.dblock.insert` | Insert a dynamic block |
+| `<Leader>oxa` | `org.attach` | Attachments of the entry |
 | `cit` | `org.todo` | Change the TODO state |
 | `ciT` | `org.todo.previous` | Cycle TODO state backward |
 | `ciR` | `org.priority.up` | Raise the priority |

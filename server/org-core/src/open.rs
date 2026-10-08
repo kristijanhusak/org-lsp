@@ -36,6 +36,9 @@ pub enum Open {
     Citation(Vec<String>),
     /// Nothing to open; what Emacs says then.
     Nothing(String),
+    /// An `attachment:` link: a file of the entry's attachment directory,
+    /// which Emacs knows (`org-attach-expand`), and a search after `::`.
+    Attachment(String),
 }
 
 /// A link offered by `org-offer-links-in-entry`.
@@ -368,6 +371,7 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
             "file" => Ok(file(path, None)),
             "file+emacs" => Ok(file(path, Some("emacs"))),
             "file+sys" => Ok(file(path, Some("sys"))),
+            "attachment" => Ok(Open::Attachment(path.to_string())),
             // `org-id-open`: an ID, and a search after `::`.
             "id" => Ok(Open::Id(path.split("::").next().unwrap_or(path).to_string())),
             "http" | "https" | "ftp" | "mailto" | "news" => Ok(Open::External(raw.clone())),
@@ -381,6 +385,12 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
     }
     // Internal: a coderef `(name)`, a custom ID `#id`, or fuzzy.
     search(text, parse, &raw).map(Open::Here)
+}
+
+/// A `file:` link to `path` (with a search after `::`), as [`file`] opens
+/// it: an attachment once its directory is known.
+pub fn file_link(path: &str) -> Open {
+    file(path, None)
 }
 
 /// A `file:` link: the path, the search option after `::`, and who opens

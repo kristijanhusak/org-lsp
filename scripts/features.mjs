@@ -792,7 +792,21 @@ export const AREAS = [
       { text: 'On an entry with an effort the countdown takes it, without asking', cmd: 'org.timer.set', not: ['zed', 'helix'] },
     ],
   },
-  { name: 'Attachments', emacs: [['Attaching files to an entry (`C-c C-a`)', false], ['`attachment:` links', false]] },
+  {
+    name: 'Attachments',
+    emacs: [
+      ['Attaching files to an entry (`C-c C-a`): attaching, opening, deleting, synchronizing, the directory set (through Emacs)', true],
+      ['`attachment:` links (through Emacs)', true],
+    ],
+    editors: {
+      zed: ['part', `\`attachment:\` links open; the dispatcher (\`C-c C-a\`) is left out: ${NO_KEY_ZED}, and it is not among them.`],
+      helix: ['part', `\`attachment:\` links open; the dispatcher (\`C-c C-a\`) is left out: ${NO_KEY_HELIX}, and it is not among them.`],
+    },
+    checks: [
+      { text: 'Attaching a file by copying it: the entry gets an ID and the `ATTACH` tag, the file goes in its directory (needs Emacs)', cmd: 'org.attach', not: ['zed', 'helix'] },
+      { text: 'An `attachment:` link opens the attached file (needs Emacs)', cmd: 'org.open' },
+    ],
+  },
   { name: 'Encryption', emacs: [['Encrypting and decrypting entries (`org-crypt`)', false]] },
   { name: 'Inline images and LaTeX previews', emacs: [['Inline images (`C-c C-x C-v`)', false], ['LaTeX previews (`C-c C-x C-l`)', false]] },
 ];

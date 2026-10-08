@@ -239,7 +239,7 @@ was to be opened, or the text of an export to a buffer."
     org-table-create-or-convert-from-region org-table-cut-region
     org-table-copy-region org-table-paste-rectangle org-lsp-bridge-timer-offset
     org-lsp-bridge-timer-shift org-table-import org-table-export org-dblock-update
-    org-update-all-dblocks org-lsp-bridge-columns-insert-dblock)
+    org-update-all-dblocks org-lsp-bridge-columns-insert-dblock org-lsp-bridge-attach)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--message nil
@@ -260,7 +260,9 @@ wants one), else interactively."
         (args (append (alist-get 'args params) nil)))
     (unless (memq command org-lsp-bridge--commands)
       (error "org-lsp does not run %s" command))
-    (setq org-lsp-bridge--message nil)
+    (setq org-lsp-bridge--message nil
+          org-lsp-bridge--opened nil
+          org-lsp-bridge--visited nil)
     (org-lsp-bridge--in-document params
       ;; The selection, as the active region.
       (when-let* ((mark (alist-get 'mark params)))
@@ -277,6 +279,8 @@ wants one), else interactively."
       `((text . ,(buffer-substring-no-properties (point-min) (point-max)))
         (point . ,(point))
         (message . ,org-lsp-bridge--message)
+        (opened . ,org-lsp-bridge--opened)
+        (visited . ,org-lsp-bridge--visited)
         (countdown . ,(org-lsp-bridge--countdown))))))
 
 (defun org-lsp-bridge-footnote-renumber-and-sort ()
@@ -449,6 +453,53 @@ where the function left the point after another is skipped, as
             (push (if (funcall fn) t :json-false) verdicts)
             (setq cursor (if (= (point) start) (line-end-position) (point)))))
         (vconcat (nreverse verdicts))))))
+
+(defun org-lsp-bridge-attach-expand (params)
+  "`org-attach-expand' of the name in PARAMS, at its point of its document:
+the file in the entry's attachment directory, or nil without one."
+  (require 'org-attach)
+  (org-lsp-bridge--in-document params
+    (when (org-attach-dir)
+      (org-attach-expand (alist-get 'name params)))))
+
+(defun org-lsp-bridge-attach-files (params)
+  "The attachments of the entry at the point of PARAMS's document."
+  (require 'org-attach)
+  (org-lsp-bridge--in-document params
+    (let ((dir (org-attach-dir)))
+      (vconcat (and dir (org-attach-file-list dir))))))
+
+(defvar org-lsp-bridge--visited nil
+  "The file an attachment command visited, for the editor to open.")
+
+(defun org-lsp-bridge-attach (key answer)
+  "The command of KEY in `org-attach-commands', with ANSWER for what it
+asks: a file, a URL, a name, a directory or an attachment."
+  (require 'org-attach)
+  (setq org-lsp-bridge--visited nil)
+  (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) answer))
+            ((symbol-function 'read-directory-name) (lambda (&rest _) answer))
+            ((symbol-function 'completing-read) (lambda (&rest _) answer))
+            ((symbol-function 'find-file)
+             (lambda (file &rest _) (setq org-lsp-bridge--visited (expand-file-name file))))
+            ((symbol-function 'dired)
+             (lambda (dir &rest _) (setq org-lsp-bridge--opened (expand-file-name dir)))))
+    (pcase key
+      ("a" (org-attach-attach (expand-file-name answer)))
+      ("c" (org-attach-attach (expand-file-name answer) nil 'cp))
+      ("m" (org-attach-attach (expand-file-name answer) nil 'mv))
+      ("l" (org-attach-attach (expand-file-name answer) nil 'ln))
+      ("y" (org-attach-attach (expand-file-name answer) nil 'lns))
+      ("u" (org-attach-url answer))
+      ("n" (org-attach-new answer))
+      ("z" (org-attach-sync))
+      ("o" (org-attach-open))
+      ("f" (org-attach-reveal))
+      ("d" (org-attach-delete-one answer))
+      ("D" (org-attach-delete-all))
+      ("s" (org-attach-set-directory))
+      ("S" (org-attach-unset-directory))
+      (_ (error "No attachment command under %s" key)))))
 
 (defun org-lsp-bridge-src-block-names (params)
   "The names of the code blocks of the document of PARAMS, in its order."
