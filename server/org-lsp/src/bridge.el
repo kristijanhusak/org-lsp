@@ -511,6 +511,70 @@ asks: a file, a URL, a name, a directory or an attachment."
   (vconcat (mapcar (lambda (entry) (vector (car entry) (cdr entry)))
                    org-structure-template-alist)))
 
+;;; Appointments
+
+(defvar org-lsp-bridge--appt-shown nil
+  "What `appt.el' showed in its window while it ran, newest first.")
+
+(defun org-lsp-bridge--appt-window (mins _time strings)
+  "`appt-disp-window', for the editor: the appointments due in MINS
+minutes, said as the mode line counts them down, with their text."
+  (let ((mins (if (listp mins) mins (list mins)))
+        (strings (if (listp strings) strings (list strings))))
+    (push (format "%s: %s" (appt-mode-line (copy-sequence mins)) (string-join strings "; "))
+          org-lsp-bridge--appt-shown)))
+
+(defun org-lsp-bridge--appt (fn)
+  "Call FN as `appt.el' would run it in Emacs: what Emacs said last, what
+the appointment window showed, and how many appointments are left."
+  (require 'appt)
+  (let ((appt-audible nil)
+        (appt-display-diary nil)
+        (appt-disp-window-function (if (eq appt-disp-window-function #'appt-disp-window)
+                                       #'org-lsp-bridge--appt-window
+                                     appt-disp-window-function))
+        (appt-delete-window-function #'ignore))
+    (setq org-lsp-bridge--message nil
+          org-lsp-bridge--appt-shown nil)
+    (advice-add 'message :around #'org-lsp-bridge--record-message)
+    (unwind-protect (funcall fn)
+      (advice-remove 'message #'org-lsp-bridge--record-message))
+    ;; The server checks each minute: Emacs's timer, which would run while
+    ;; a command waits for a process, never does.
+    (when (timerp appt-timer)
+      (cancel-timer appt-timer))
+    `((message . ,org-lsp-bridge--message)
+      (shown . ,(vconcat (reverse org-lsp-bridge--appt-shown)))
+      (appointments . ,(length appt-time-msg-list)))))
+
+(defun org-lsp-bridge-appt (params)
+  "`org-agenda-to-appt' on the agenda files of PARAMS (`files'), those the
+editor has open as it has them (`texts', each a file and its text), with
+`C-u' when `refresh'."
+  (require 'org-agenda)
+  (let ((org-agenda-files (append (alist-get 'files params) nil))
+        (buffers nil))
+    (unwind-protect
+        (progn
+          (dolist (open (append (alist-get 'texts params) nil))
+            (let ((buffer (find-file-noselect (aref open 0) t)))
+              (with-current-buffer buffer
+                (let ((inhibit-read-only t))
+                  (erase-buffer)
+                  (insert (aref open 1))))
+              (push buffer buffers)))
+          (org-lsp-bridge--appt
+           (lambda () (org-agenda-to-appt (and (eq (alist-get 'refresh params) t) '(4))))))
+      (dolist (buffer buffers)
+        (when (buffer-live-p buffer)
+          (with-current-buffer buffer
+            (set-buffer-modified-p nil))
+          (kill-buffer buffer))))))
+
+(defun org-lsp-bridge-appt-check (_params)
+  "`appt-check', as the timer of `appt-activate' runs it each minute."
+  (org-lsp-bridge--appt #'appt-check))
+
 ;;; The loop
 
 (defun org-lsp-bridge-main ()

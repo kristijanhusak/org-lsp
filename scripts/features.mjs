@@ -373,7 +373,7 @@ export const AREAS = [
       ['Diary sexps calling other Lisp, evaluated by Emacs (`org-diary-sexp-entry`) for each day of the view', true],
       ['Column view in the agenda', false],
       ['Writing the agenda to a file (`C-x C-w`): `.org` and plain text', true],
-      ['Appointment reminders (`org-agenda-to-appt`)', false],
+      ['Appointment reminders (`org-agenda-to-appt`, through Emacs\'s `appt.el`): today\'s entries with a time, checked each minute, the reminders shown as messages', true],
     ],
     editors: {
       vscode: ['part', 'Tags are at column 80, not at the window\'s edge (`org_agenda_tags_column` `"auto"`): VS Code does not tell an extension how many columns an editor shows.'],

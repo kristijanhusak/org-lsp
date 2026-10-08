@@ -1476,6 +1476,9 @@ fn keep_readable(
 pub struct ClockOption {
     pub today: String,
     pub now: Option<String>,
+    /// How many seconds a minute of Emacs's timers (appointments) lasts.
+    #[serde(default)]
+    pub minute: Option<f64>,
 }
 
 impl ClockOption {

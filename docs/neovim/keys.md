@@ -236,6 +236,7 @@ The other options are in [configuration.md](configuration.md).
 | `org.agenda.list` | Agenda for the current week or day |
 | `org.agenda.todos` | List of all TODO entries |
 | `org.agenda.habits` | Agenda: show or hide habits |
+| `org.agenda.appt` | Add today's appointments from the agenda files |
 | `org.todo.next` | Cycle TODO state forward |
 | `org.property.delete` | Delete a property of the entry |
 | `org.property.delete.globally` | Delete a property from every entry of the file |

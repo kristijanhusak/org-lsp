@@ -161,6 +161,13 @@
     }
   },
   {
+    "caption": "Org: Add today's appointments from the agenda files",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.appt"
+    }
+  },
+  {
     "caption": "Org: Agenda: the clock report",
     "command": "org_lsp_run",
     "args": {
