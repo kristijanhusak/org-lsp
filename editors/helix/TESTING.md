@@ -118,6 +118,7 @@ here and why.
 
 **Partly:** Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition.
 
+- [ ] A `#+LINK: gh https://github.com/%s` line makes `[[gh:org-lsp]]` follow `https://github.com/org-lsp`; `org_link_abbrev_alist` does the same from the settings: the code action *Open the link or thing at the cursor*
 - [ ] Following a link to a headline, a custom ID and a `<<target>>`: the code action *Open the link or thing at the cursor*
 - [ ] Following a `file:` link with a search (`file:notes.org::*Heading`) and an `id:` link: the code action *Open the link or thing at the cursor*
 - [ ] Go to definition on a link does the same: `gd`

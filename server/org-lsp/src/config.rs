@@ -120,6 +120,10 @@ pub struct Options {
     /// document, after those of its `#+BIBLIOGRAPHY:` lines.
     #[serde(rename = "org_cite_global_bibliography")]
     pub cite_global_bibliography: Option<Vec<String>>,
+    /// `org-link-abbrev-alist`: link abbreviations, each with what it
+    /// stands for (`%s` the tag, `%h` the tag URL-encoded).
+    #[serde(rename = "org_link_abbrev_alist")]
+    pub link_abbrev_alist: Option<std::collections::BTreeMap<String, String>>,
     /// `org-tag-alist`: the tags offered when a file has no `#+TAGS:`
     /// line, written like one (`"work(w) { @office(o) @home(h) }"`), or as
     /// its words.

@@ -24,9 +24,9 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Clocking](#clocking) | 88% | 7 of 8 |
 | [Capture](#capture) | 73% | 8 of 11 |
 | [Refile and archive](#refile-and-archive) | 55% | 6 of 11 |
-| [Links](#links) | 67% | 6 of 9 |
+| [Links](#links) | 70% | 7 of 10 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
-| [Tables](#tables) | 59% | 10 of 17 |
+| [Tables](#tables) | 65% | 11 of 17 |
 | [Table formulas](#table-formulas) | 83% | 10 of 12 |
 | [Code blocks (Babel)](#code-blocks-babel) | 73% | 8 of 11 |
 | [Export and publishing](#export-and-publishing) | 56% | 5 of 9 |
@@ -291,14 +291,15 @@ Where editors fall short:
 
 ## Links
 
-67% (6 of 9)
+70% (7 of 10)
 
 - ✅ Following links: headlines, targets, custom IDs, files with searches, IDs, URLs, timestamps, tags
 - ✅ Storing and inserting links, with descriptions, editing the link at the cursor
 - ✅ IDs created (`org-id-get-create`)
 - ✅ Completion of file names, headlines and custom IDs in links
 - ✅ Backlinks, hovers and clickable links (beyond Emacs: references, document links)
-- ❌ Link abbreviations (`#+LINK:`, `org-link-abbrev-alist`)
+- ✅ Link abbreviations (`#+LINK:`, `org-link-abbrev-alist`)
+- ❌ Link abbreviations that call a function (`%(…)`)
 - ❌ A region as the search of a stored link
 - ❌ Completing `id:` and `help:` links
 - ✅ Moving to the next and previous link (`C-c C-x C-n`, `C-c C-x C-p`)
@@ -324,7 +325,7 @@ Where editors fall short:
 
 ## Tables
 
-59% (10 of 17)
+65% (11 of 17)
 
 - ✅ Aligning (`C-c C-c`, formatting)
 - ✅ Moving between fields (`TAB`, `S-TAB`), a row made past the last
@@ -340,7 +341,7 @@ Where editors fall short:
 - ✅ Creating an empty table (`C-c |`, through Emacs)
 - ❌ Making a table from a region (`C-c |` on a region)
 - ✅ Summing (`C-c +`) and field information (`C-c ?`), through Emacs
-- ❌ Moving the field with the shifted cursor keys
+- ✅ Moving the field with the shifted cursor keys (through Emacs)
 - ❌ Importing and exporting tables
 - ❌ Plotting (`org-plot`)
 

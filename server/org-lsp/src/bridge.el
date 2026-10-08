@@ -232,7 +232,8 @@ was to be opened, or the text of an export to a buffer."
     org-babel-previous-src-block org-babel-goto-named-src-block
     org-next-block org-previous-block org-timer-start org-timer org-timer-item
     org-timer-pause-or-continue org-timer-stop org-timer-set-timer
-    org-lsp-bridge-timer-set)
+    org-lsp-bridge-timer-set org-table-move-cell-up org-table-move-cell-down
+    org-table-move-cell-left org-table-move-cell-right)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--message nil

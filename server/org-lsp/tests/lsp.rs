@@ -2019,6 +2019,13 @@ fn edits_through_emacs() {
     assert_eq!(asked["input"]["kind"], "text");
     run(&mut client, &mut text, &mut version, "org.table.create", (1, 0), json!({ "input": "2x2" }));
     assert_eq!(text, "Text\n|   |   |\n|---+---|\n|   |   |\n\n");
+    // `S-<down>` and `S-<right>` in a table move the field.
+    replace(&mut client, &mut text, &mut version, "| a | b |\n| c | d |\n".to_string());
+    let (_, cursor) = run(&mut client, &mut text, &mut version, "org.shift.down", (0, 2), json!({}));
+    assert_eq!(text, "| c | b |\n| a | d |\n");
+    assert_eq!(cursor, Some((1, 2)));
+    run(&mut client, &mut text, &mut version, "org.shift.right", (1, 2), json!({}));
+    assert_eq!(text, "| c | b |\n| d | a |\n");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }

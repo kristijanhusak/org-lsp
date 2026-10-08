@@ -420,6 +420,13 @@ org_complete_tags_always_offer_all_agenda_tags = false
 # (org-cite-global-bibliography)
 org_cite_global_bibliography = []
 
+# Link abbreviations: `[[gh:org-lsp]]` with `{ "gh": "https://github.com/%s"
+# }` follows `https://github.com/org-lsp`. `%s` stands for what follows the
+# colon, `%h` for it URL-encoded; without either it goes at the end. A file's
+# `#+LINK:` lines come first. A function (`%(…)`) is not supported.
+# (org-link-abbrev-alist)
+org_link_abbrev_alist = {  }
+
 # The tags offered when setting tags in a file without a `#+TAGS:` line,
 # written like one: `"work(w) home(h) { @office(o) @home(m) } [ GTD : Control
 # Persp ]"` gives `work` the key `w`, makes `@office` and `@home` exclusive,
@@ -1016,6 +1023,13 @@ org_agenda_custom_commands = []
   // a key, and where following a key goes; a key none has is marked.
   // (org-cite-global-bibliography)
   "org_cite_global_bibliography": [],
+
+  // Link abbreviations: `[[gh:org-lsp]]` with `{ "gh":
+  // "https://github.com/%s" }` follows `https://github.com/org-lsp`. `%s`
+  // stands for what follows the colon, `%h` for it URL-encoded; without
+  // either it goes at the end. A file's `#+LINK:` lines come first. A
+  // function (`%(…)`) is not supported. (org-link-abbrev-alist)
+  "org_link_abbrev_alist": {  },
 
   // The tags offered when setting tags in a file without a `#+TAGS:` line,
   // written like one: `"work(w) home(h) { @office(o) @home(m) } [ GTD :

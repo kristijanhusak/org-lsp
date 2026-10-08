@@ -53,11 +53,11 @@ fn opening_matches_emacs() {
             files.iter().find(|(other, _)| other == wanted).map(|(_, text)| text.clone())
         };
         let mut offered = None;
-        let mut result = at_point(&text, &parsed, offset, None);
+        let mut result = at_point(&text, &parsed, offset, None, &[]);
         if let Ok(Open::Choose(choices)) = &result {
             offered =
                 Some(choices.iter().map(|choice| format!("[{}]  {}\n", choice.key, choice.label)).collect::<String>());
-            result = at_point(&text, &parsed, offset, answer);
+            result = at_point(&text, &parsed, offset, answer, &[]);
         }
         let mut actual = match result {
             Ok(Open::Here(at)) => goto(name, &text, at),

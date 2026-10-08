@@ -130,9 +130,9 @@ the view at hand. To bind one yourself:
 | [Clocking](../../docs/parity.md#clocking) | 88% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 73% | ✅ |  |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 55% | ✅ |  |
-| [Links](../../docs/parity.md#links) | 67% | ✅ |  |
+| [Links](../../docs/parity.md#links) | 70% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
-| [Tables](../../docs/parity.md#tables) | 59% | ✅ |  |
+| [Tables](../../docs/parity.md#tables) | 65% | ✅ |  |
 | [Table formulas](../../docs/parity.md#table-formulas) | 83% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 73% | ✅ |  |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 56% | ✅ |  |

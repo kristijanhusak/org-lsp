@@ -599,6 +599,8 @@ struct Server {
     virtually_indented: HashSet<String>,
     /// `org-cite-global-bibliography`
     cite_global: Vec<String>,
+    /// `org-link-abbrev-alist`.
+    link_abbreviations: Vec<(String, String)>,
     /// The bibliography files read, with when each changed and its size,
     /// to read one again when it changes.
     bibliographies: HashMap<PathBuf, (Option<std::time::SystemTime>, u64, Rc<BibFile>)>,
@@ -849,6 +851,7 @@ pub fn run(connection: Connection) -> Result<()> {
         display: options.display(),
         virtually_indented: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
+        link_abbreviations: options.link_abbrev_alist.clone().unwrap_or_default().into_iter().collect(),
         bibliographies: HashMap::new(),
         diagnosed: HashSet::new(),
         lint: options.lint.unwrap_or(true),
@@ -2393,7 +2396,7 @@ impl Server {
         let document = self.document(uri)?;
         let text = document.text.clone();
         let offset = document.index.offset(&text, position.position, self.client.encoding);
-        let opened = open::at_point(&text, &document.parse, offset, None).ok()?;
+        let opened = open::at_point(&text, &document.parse, offset, None, &self.link_abbreviations).ok()?;
         // A citation: the entries of its keys.
         if let Open::Citation(keys) = &opened {
             let files = self.bibliography(uri, &text);
@@ -2440,7 +2443,7 @@ impl Server {
         let document = self.document(&uri)?;
         let (text, parse, index) = (document.text.clone(), document.parse.clone(), document.index.clone());
         let mut out = Vec::new();
-        for link in open::links(&text, &parse) {
+        for link in open::links(&text, &parse, &self.link_abbreviations) {
             let (target, data) = match &link.open {
                 Ok(Open::External(url)) => (url.parse::<Uri>().ok(), None),
                 Ok(Open::File { path, search: None, .. }) => {
@@ -2469,7 +2472,10 @@ impl Server {
         let (Some(uri), Some(offset)) = (uri, offset) else { return link };
         let Some(document) = self.document(&uri) else { return link };
         let (text, parse) = (document.text.clone(), document.parse.clone());
-        let Some(Ok(opened)) = open::link_at(&text, &parse, offset).map(|found| found.open) else { return link };
+        let Some(Ok(opened)) = open::link_at(&text, &parse, offset, &self.link_abbreviations).map(|found| found.open)
+        else {
+            return link;
+        };
         if let Ok(Some(location)) = self.open_location(&uri, &text, &opened) {
             let start = location.range.start;
             link.target = format!("{}#L{},{}", location.uri.as_str(), start.line + 1, start.character + 1).parse().ok();
@@ -2484,7 +2490,7 @@ impl Server {
         let document = self.document(uri)?;
         let (text, parse, index) = (document.text.clone(), document.parse.clone(), document.index.clone());
         let offset = index.offset(&text, position, encoding);
-        let link = open::link_at(&text, &parse, offset)?;
+        let link = open::link_at(&text, &parse, offset, &self.link_abbreviations)?;
         let entry = link.open.as_ref().ok().and_then(|opened| self.link_entry(uri, &text, opened));
         let line = format!("LINK: {}", link.raw);
         let value = match entry {
@@ -2543,7 +2549,7 @@ impl Server {
         let document = self.document(&uri)?;
         let (text, parse) = (document.text.clone(), document.parse.clone());
         let offset = document.index.offset(&text, place.position, encoding);
-        let (target, target_text, heading) = match open::link_at(&text, &parse, offset) {
+        let (target, target_text, heading) = match open::link_at(&text, &parse, offset, &self.link_abbreviations) {
             Some(link) => {
                 let opened = link.open.ok()?;
                 let location = self.open_location(&uri, &text, &opened).ok()??;
@@ -2591,7 +2597,7 @@ impl Server {
         for (file, file_text) in self.known_files() {
             let Some(file_path) = uri::to_path(&file) else { continue };
             let file_parse = org_syntax::parse(&file_text, &self.todo);
-            for link in open::links(&file_text, &file_parse) {
+            for link in open::links(&file_text, &file_parse, &self.link_abbreviations) {
                 let leads = match &link.open {
                     Ok(Open::Here(at)) => same(&file_path) && *at == heading,
                     Ok(Open::Id(found)) => id.as_deref() == Some(found.as_str()),
@@ -2823,7 +2829,7 @@ impl Server {
         };
         let parse = org_syntax::parse(&text, &self.todo);
         let answer = context.input.as_deref().and_then(|input| input.chars().next());
-        let opened = open::at_point(&text, &parse, offset, answer)?;
+        let opened = open::at_point(&text, &parse, offset, answer, &self.link_abbreviations)?;
         match &opened {
             Open::External(url) => {
                 let target = url.parse::<Uri>().map_err(|_| format!("Cannot open {url}"))?;
@@ -6132,6 +6138,15 @@ impl Server {
     /// Whether `C-c C-c` at `context` is `org-property-action`: in the
     /// property drawer of an entry of an Org file, or answering its
     /// questions.
+    /// Whether the cursor of `context` is on a timestamp
+    /// (`org-at-timestamp-p` with `lax`).
+    fn at_timestamp(&self, context: &Context) -> bool {
+        self.document(&context.text_document.uri).is_some_and(|document| {
+            let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+            org_core::stamp::Stamp::around(&document.text, offset).is_some()
+        })
+    }
+
     /// Whether the cursor of `context` is on a line of an Org table.
     fn at_table(&self, context: &Context) -> bool {
         let uri = &context.text_document.uri;
@@ -6492,6 +6507,17 @@ impl Server {
             // `org-clocktable-try-shift`: the block of a clock table.
             if self.at_clocktable(&context, org_core::clocktable::at_clocktable_begin) {
                 return self.clocktable(id, &context);
+            }
+            // In a table, off a timestamp: `org-table-move-cell-up` and
+            // the rest, in Emacs.
+            if self.at_table(&context) && !self.at_timestamp(&context) {
+                let command = match id {
+                    commands::SHIFT_UP => "org-table-move-cell-up",
+                    commands::SHIFT_DOWN => "org-table-move-cell-down",
+                    commands::SHIFT_LEFT => "org-table-move-cell-left",
+                    _ => "org-table-move-cell-right",
+                };
+                return self.emacs_run(command, &context);
             }
         }
         // `C-c C-c` on the `#+BEGIN:` or `#+END:` line of a dynamic block
