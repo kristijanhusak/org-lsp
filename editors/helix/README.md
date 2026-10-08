@@ -38,8 +38,8 @@ its behalf.
 | [Links](../../docs/parity.md#links) | 67% | ❓ | Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition. |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ❓ | Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works. |
 | [Tables](../../docs/parity.md#tables) | 44% | ❓ | Moving between fields with `TAB` is left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and it needs one. The other edits are code actions in a table. |
-| [Table formulas](../../docs/parity.md#table-formulas) | 50% | ✅ |  |
-| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 55% | ❓ | Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation and removing results need keys, which Helix cannot give a server. |
+| [Table formulas](../../docs/parity.md#table-formulas) | 83% | ✅ |  |
+| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 64% | ❓ | Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation and removing results need keys, which Helix cannot give a server. |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 56% | ❌ | Not offered as a code action yet. |
 | [Citations](../../docs/parity.md#citations) | 100% | ❓ | Inserting citations is not offered as a code action yet. Completion, hover and following work. |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
@@ -50,7 +50,7 @@ its behalf.
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **67%** |  |  |
+| **All of Org** | **68%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

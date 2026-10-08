@@ -101,6 +101,13 @@ fn param<'a>(params: &'a Params, key: &str) -> Option<&'a str> {
     params.get(key).and_then(Value::text)
 }
 
+/// Whether `message`, a refusal of [`tangle`], is about what only Emacs
+/// can do: evaluate Emacs Lisp in a header argument, or a code block for a
+/// noweb reference.
+pub fn needs_emacs(message: &str) -> bool {
+    message.starts_with("Cannot evaluate the ")
+}
+
 /// Tangle the file at `path`, whose text is `text`.
 pub fn tangle(text: &str, parse: &Parse, path: &Path, settings: &Settings) -> Result<Outcome, String> {
     let outline = Outline::new(parse, text, "");

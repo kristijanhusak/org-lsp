@@ -211,10 +211,12 @@ here and why.
 - [ ] A range sum `@>$2=vsum(@2..@-1)` and a format `;%.2f`
 - [ ] Date arithmetic (`$2=$1+7`) on timestamps
 - [ ] Iterating until the table is stable: `:Org table iterate`
+- [ ] An Emacs Lisp formula `$3='(+ $1 $2);N` and a remote reference `remote(name,@1$1)` are computed by Emacs (needs Emacs): `<Leader>o*`
 
 ## Code blocks (Babel)
 
 - [ ] Tangling writes each block to its `:tangle` file, `:mkdirp` and `:shebang` applied: `<Leader>obt`
+- [ ] A `:tangle (concat "out" ".el")` block is tangled by Emacs to `out.el` (needs Emacs): `<Leader>obt`
 - [ ] Evaluating an `emacs-lisp` block asks first (yes or no), then puts `#+RESULTS:` below it (needs Emacs): `<Leader>obe`
 - [ ] `C-c C-c` in the block does the same: `<C-Space>`
 - [ ] `src_emacs-lisp{(* 6 7)}` gets `{{{results(=42=)}}}`; a `#+CALL:` line its results: `<Leader>obe`

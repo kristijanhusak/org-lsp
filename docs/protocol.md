@@ -328,7 +328,7 @@ number.
 | `org.archive.default`, `org.archive.confirm` | `org-archive-subtree-default`: one of the three, as `org_archive_default_command` says; `org.archive.confirm` (`a` in the agenda) asks first (input kind `key`, `y` or `n`). |
 | `org.archive.done`, `org.archive.tag.done` | `org-archive-subtree` and `org-toggle-archive-tag` with `C-u`: each subtree without open TODO items (the children of the headline at the cursor, or the top-level ones before the first headline) is archived or tagged when the answer to its question is yes. One question at a time, input kind `key` (`y` or `n`), with the answers so far in the input's `context` (`answers`, a string of `y` and `n`). |
 | `org.priority` | Asks for a priority (`Priority A-C, SPC to remove`, an input of kind `priority`) and sets it, or removes it for a space; in an Org file or on an agenda line. |
-| `org.table.recalculate`, `org.table.recalculate.line`, `org.table.iterate` | `org-table-recalculate` (`C-u C-c *`, `C-c *`) and `org-table-iterate` (`C-u C-u C-c *`): apply the formulas of the `#+TBLFM:` line under the table at the cursor, to every line, to the cursor's line (with every field formula), or again until the table no longer changes (at most ten times; the result's `message` says how many it took). On a `#+TBLFM:` line, that line's formulas apply to every line, as `C-c C-c` there applies them (`org.checkbox.toggle` does that there too). Formulas are read as Org reads them and evaluated as Calc evaluates them, results written as Calc writes them; Emacs Lisp formulas, remote references, units, `;F`, `;S` and `;e` are refused with a message. `org.table.recalculate` is also a code action in a table whose formulas would change it. |
+| `org.table.recalculate`, `org.table.recalculate.line`, `org.table.iterate` | `org-table-recalculate` (`C-u C-c *`, `C-c *`) and `org-table-iterate` (`C-u C-u C-c *`): apply the formulas of the `#+TBLFM:` line under the table at the cursor, to every line, to the cursor's line (with every field formula), or again until the table no longer changes (at most ten times; the result's `message` says how many it took). On a `#+TBLFM:` line, that line's formulas apply to every line, as `C-c C-c` there applies them (`org.checkbox.toggle` does that there too). Formulas are read as Org reads them and evaluated as Calc evaluates them, results written as Calc writes them; a table with Emacs Lisp formulas, remote references, units, `;F`, `;S` or `;e` is recalculated by Org in Emacs instead (`org-table-recalculate`, `org-table-iterate`, `org-table-calc-current-TBLFM`; see `emacs`), the cursor left where Emacs leaves its point. `org.table.recalculate` is also a code action in a table whose formulas would change it. |
 | `org.timestamp.up`, `org.timestamp.down` | Changes the part of the timestamp the cursor is on. Org files only. |
 | `org.date.later`, `org.date.earlier` | Moves a date by days: in an Org file the timestamp at the cursor, on an agenda line the date the line is listed for. Right after one of the commands below, on an agenda line, by the unit that one moved by (Emacs's `S-<right>` after `C-u S-<right>`). |
 | `org.date.later.hours`, `org.date.earlier.hours`, `org.date.later.minutes`, `org.date.earlier.minutes` | `org-agenda-date-later-hours` and its siblings (Emacs's `C-u S-<right>`, `C-u C-u S-<right>`): on an agenda line, move its timestamp by hours, or by `org_time_stamp_rounding_minutes`; a count is how many. A date without a time stands for its midnight: an hour later it is the same day, an hour earlier the day before. |
@@ -473,8 +473,14 @@ What only Org itself can do, the server has Emacs do: export
 (`org.export.dispatch`), Babel's evaluation (`org.babel.execute` and
 its relatives, `C-c C-c` on code), footnotes (`org.footnote.action`) and
 a few editing commands (`C-c -` and `C-c *` off a table, `C-c ;`,
-emphasis, structure templates, drawers, cloning subtrees). Emacs is optional; without it those commands
-fail with `Cannot start Emacs (…)` and nothing else changes.
+emphasis, structure templates, drawers, cloning subtrees). It also does
+what org-lsp's own code leaves to Org: tables whose formulas are Emacs
+Lisp, remote references or Calc's units, fractions, symbolic mode and
+engineering notation (`org.table.recalculate` and its relatives), and
+tangling a file whose header arguments are Emacs Lisp or whose Noweb
+references call a block (`org.babel.tangle`). Emacs is optional; without
+it those commands fail with `Cannot start Emacs (…)` and nothing else
+changes.
 
 The server starts one `emacs --batch -Q` the first time it is needed and
 keeps it running, so that Org loads once (a second or so) and each
