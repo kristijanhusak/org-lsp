@@ -242,8 +242,9 @@ pub struct Options {
     pub message_prompts: Option<bool>,
     /// Offer more commands as code actions (the agenda, capture, refile,
     /// a TODO state or a priority picked from a list, a new heading or
-    /// item), and the agenda's commands through the command port (see
-    /// `port`): for a client that cannot run a command from a key (Zed).
+    /// item), and every command, in the agenda and in Org files,
+    /// through the command port (see `port`): for a client that cannot
+    /// run a command from a key (Zed).
     pub command_actions: Option<bool>,
     /// Where the command port's script is written, instead of
     /// `~/.local/state/org-lsp/agenda-command`.

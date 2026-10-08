@@ -4,13 +4,16 @@
 //! a script in a place of the user's own that sends a command there:
 //!
 //! ```text
-//! ~/.local/state/org-lsp/agenda-command COMMAND [ROW COLUMN]
+//! ~/.local/state/org-lsp/agenda-command COMMAND [ROW COLUMN [FILE]]
 //! ```
 //!
-//! runs `COMMAND` (`org.agenda.later`) in the agenda, as
-//! `workspace/executeCommand` would: at the row and column given (from 1),
-//! or else where the server last saw the cursor; with no agenda open, the
-//! commands that need none (`org.agenda.list`, `org.capture`). The place
+//! runs `COMMAND` (`org.agenda.later`) as `workspace/executeCommand` would:
+//! in `FILE` at the row and column given (from 1), an Org file, a capture
+//! buffer or the agenda; without a file, in the agenda, where the cursor
+//! is when no row is given (the server follows it); with no agenda open,
+//! the commands that need none (`org.agenda.list`, `org.capture`).
+//! `key:KEY` in place of a command (`key:C-c C-c`) runs what Org's key
+//! does there: in a capture buffer, `C-c C-c` files the entry. The place
 //! is fixed, so that the editor's keys can name it: the server whose
 //! agenda the cursor was last in makes it its own. The script holds a
 //! token the server checks, so that no other user's program can run
@@ -35,6 +38,7 @@ use serde_json::json;
 pub struct Command {
     pub command: String,
     pub position: Option<(u32, u32)>,
+    pub file: Option<PathBuf>,
 }
 
 #[derive(Deserialize)]
@@ -43,6 +47,7 @@ struct Sent {
     command: String,
     line: Option<u32>,
     character: Option<u32>,
+    file: Option<PathBuf>,
 }
 
 /// An open port: where it listens, the token it asks for, and whether it
@@ -185,9 +190,11 @@ fn receive(mut stream: TcpStream, token: &str) -> Option<Command> {
     let mut line = String::new();
     BufReader::new(Read::by_ref(&mut stream).take(4096)).read_line(&mut line).ok()?;
     let sent: Option<Sent> = serde_json::from_str(&line).ok();
-    let command = sent
-        .filter(|sent| sent.token == token)
-        .map(|sent| Command { command: sent.command, position: sent.line.zip(sent.character) });
+    let command = sent.filter(|sent| sent.token == token).map(|sent| Command {
+        command: sent.command,
+        position: sent.line.zip(sent.character),
+        file: sent.file,
+    });
     let _ = stream.write_all(if command.is_some() { b"ok\n" } else { b"refused\n" });
     command
 }
@@ -225,7 +232,7 @@ fn script(address: &SocketAddr, token: &str, start: &Start) -> std::io::Result<S
     let exe = quote(&std::env::current_exe()?);
     let options = start_options(start, quote);
     Ok(format!(
-        "#!/bin/sh\n# Runs a command in the agenda of an org-lsp: COMMAND [ROW COLUMN].\n\
+        "#!/bin/sh\n# Runs a command of an org-lsp: COMMAND [ROW COLUMN [FILE]].\n\
          exec {exe} command --script \"$0\" {options}{address} {token} \"$@\"\n"
     ))
 }
@@ -236,7 +243,7 @@ fn script(address: &SocketAddr, token: &str, start: &Start) -> std::io::Result<S
     let exe = quote(&std::env::current_exe()?);
     let options = start_options(start, quote);
     Ok(format!(
-        "@rem Runs a command in the agenda of an org-lsp: COMMAND [ROW COLUMN].\r\n\
+        "@rem Runs a command of an org-lsp: COMMAND [ROW COLUMN [FILE]].\r\n\
          @{exe} command --script \"%~f0\" {options}{address} {token} %*\r\n"
     ))
 }
@@ -288,7 +295,7 @@ enum Failure {
 }
 
 /// `org-lsp command [--script PATH] [--folder DIR] [--open FILE --editor
-/// EDITOR] ADDRESS TOKEN COMMAND [ROW COLUMN]`: send a command to the port
+/// EDITOR] ADDRESS TOKEN COMMAND [ROW COLUMN [FILE]]`: send a command to the port
 /// of a running server; with none there, start one (see the module).
 pub fn send(arguments: &[String]) -> Result<(), String> {
     let mut rest = arguments;
@@ -305,15 +312,22 @@ pub fn send(arguments: &[String]) -> Result<(), String> {
         rest = tail;
     }
     let (address, token, command) = match rest {
-        [address, token, command] | [address, token, command, _, _] => (address, token, command),
-        _ => return Err("expected ADDRESS TOKEN COMMAND [ROW COLUMN]".to_string()),
+        [address, token, command] | [address, token, command, _, _] | [address, token, command, _, _, _] => {
+            (address, token, command)
+        }
+        _ => return Err("expected ADDRESS TOKEN COMMAND [ROW COLUMN [FILE]]".to_string()),
     };
     let number =
         |text: &str| text.parse::<u32>().map(|n| n.saturating_sub(1)).map_err(|_| format!("not a number: {text}"));
     let mut sent = json!({ "token": token, "command": command });
-    if let [_, _, _, row, column] = rest {
+    if let [_, _, _, row, column, ..] = rest {
         sent["line"] = json!(number(row)?);
         sent["character"] = json!(number(column)?);
+    }
+    if let [_, _, _, _, _, file] = rest {
+        // An absolute path: the server runs elsewhere.
+        let file = std::path::absolute(file).map_err(|error| format!("{file}: {error}"))?;
+        sent["file"] = json!(file);
     }
     match deliver(address, &sent) {
         Ok(()) => Ok(()),
@@ -388,10 +402,20 @@ mod tests {
         send(&arguments(&token, &["3", "1"])).unwrap();
         assert_eq!(
             receiver.recv().unwrap(),
-            Command { command: "org.agenda.later".to_string(), position: Some((2, 0)) }
+            Command { command: "org.agenda.later".to_string(), position: Some((2, 0)), file: None }
         );
         send(&arguments(&token, &[])).unwrap();
-        assert_eq!(receiver.recv().unwrap(), Command { command: "org.agenda.later".to_string(), position: None });
+        assert_eq!(
+            receiver.recv().unwrap(),
+            Command { command: "org.agenda.later".to_string(), position: None, file: None }
+        );
+        // In a file: the row, the column and the file, its path absolute.
+        let work = directory.join("work.org");
+        send(&arguments(&token, &["2", "5", &work.display().to_string()])).unwrap();
+        assert_eq!(
+            receiver.recv().unwrap(),
+            Command { command: "org.agenda.later".to_string(), position: Some((1, 4)), file: Some(work) }
+        );
         assert!(send(&arguments("guessed", &[])).is_err());
         assert!(receiver.try_recv().is_err());
         #[cfg(unix)]

@@ -1,8 +1,9 @@
 # Keys in Zed
 
-Zed cannot run a language server's command from a key, so in Org files
-the commands are in the **code actions** (**editor: toggle code actions**,
-`ctrl-.` / `cmd-.`), which list what applies where the cursor is:
+In Org files the commands are in the **code actions** (**editor: toggle
+code actions**, `ctrl-.` / `cmd-.`), which list what applies where the
+cursor is, and Org's keys run them too once the two files of
+[Keys through tasks](#keys-through-tasks) are pasted:
 
 - In an Org file: change the TODO state (the next one, the previous one,
   or one picked from a list), the priority, the timestamp under the
@@ -33,18 +34,35 @@ that up, once (and again when they change, after an update):
    (*Org: …* and *Org agenda: …*). Paste its entries into your tasks
    (**zed: open tasks**, `~/.config/zed/tasks.json`).
 2. [keymap.json](../../editors/zed/keymap.json): binds the agenda's keys,
-   and Org's `ctrl-c a` and `ctrl-c c` in Org files, to those tasks.
-   Paste its blocks into your keymap (**zed: open keymap**).
+   and Org's keys in Org files and capture buffers (`ctrl-c ctrl-t`,
+   `ctrl-c ctrl-c`, `ctrl-c ,`, `alt-enter`, `ctrl-c a`, `ctrl-c c` and
+   the rest), to those tasks. Paste its blocks into your keymap
+   (**zed: open keymap**).
+
+The tasks use none of Zed's `$ZED_FILE` or `$ZED_ROW`: Zed offers no task
+that uses them in a file outside the project, which the agenda and a
+capture buffer are. The server follows the cursor itself instead (from the
+highlights Zed asks for as it moves), and a task runs its command where the
+cursor last was: on the agenda's line in the agenda, at the cursor in an
+Org file. A key that means one thing in a capture buffer and another
+elsewhere, as `ctrl-c ctrl-c` files the capture there and toggles a
+checkbox or updates a block elsewhere, runs the command of the buffer the
+cursor is in.
+
+`ctrl-c ctrl-c` in a capture buffer files the entry, `ctrl-c ctrl-k`
+gives up and `ctrl-c ctrl-w` refiles it. Its tab stays open afterwards,
+as Zed lets no server close one; close it with `ctrl-w` and do not save
+it.
 
 ### Opening the agenda
 
 The agenda, the TODO list, the agenda menu and capture need no Org file
 open: run them from the task picker (**task: spawn**, `alt-shift-t` on Linux; type
-`Org:`) anywhere, or with `ctrl-c a` and `ctrl-c c` in an Org file. When
-no server runs yet, the task opens the Org file you last opened, in its
-folder, with Zed's command line (found beside Zed, or `zed` or `zeditor`
-on `PATH`; on macOS run **cli: install** once), which starts one, and
-then runs the command there.
+`Org:`) anywhere, or with `ctrl-c a` and `ctrl-c c` in an Org file or the
+agenda. When no server runs yet, the task opens the Org file you last
+opened, in its folder, with Zed's command line (found beside Zed, or `zed`
+or `zeditor` on `PATH`; on macOS run **cli: install** once), which starts
+one, and then runs the command there.
 
 The agenda is a read-only file the server writes,
 `~/.local/state/org-lsp/agenda/…/Agenda.org-agenda` (the same one for the
@@ -141,6 +159,99 @@ keeps its motions.
 
 | Keys | Command or Zed action | What it does |
 | --- | --- | --- |
+| `ctrl-c ctrl-c` | `key:C-c C-c` | In a capture buffer: finish; elsewhere: toggle the checkbox |
+| `ctrl-c ctrl-w` | `key:C-c C-w` | Refile the entry |
+| `ctrl-c ctrl-x ctrl-i` | `org.clock.in` | Clock in |
+| `ctrl-c ctrl-x ctrl-x` | `org.clock.in.last` | Clock in the last clocked task |
+| `ctrl-c ctrl-x ctrl-o` | `org.clock.out` | Clock out |
+| `ctrl-c ctrl-x ctrl-q` | `org.clock.cancel` | Cancel the clock |
+| `ctrl-c ctrl-x ctrl-j` | `org.clock.goto` | Go to the clocked entry |
+| `ctrl-c ctrl-x ctrl-d` | `org.clock.display` | Show the time clocked under each headline |
+| `ctrl-c ctrl-x ctrl-r` | `org.clock.report` | Insert or update a clock table |
+| `ctrl-c ctrl-x ctrl-u` | `org.dblock.update` | Update the dynamic block |
+| `ctrl-c ctrl-x x` | `org.dblock.insert` | Insert a dynamic block |
+| `ctrl-c ctrl-a` | `org.attach` | Attachments of the entry |
+| `ctrl-c ctrl-t` | `org.todo` | Change the TODO state |
+| `ctrl-c ,` | `org.priority` | Set the priority |
+| `ctrl-c ctrl-x p` | `org.property.set` | Set a property of the entry |
+| `ctrl-c ctrl-x e` | `org.effort.set` | Set the effort of the entry |
+| `ctrl-c ctrl-x shift-e` | `org.effort.increase` | Set the effort to the next allowed value |
+| `ctrl-c ctrl-x o` | `org.ordered.toggle` | Toggle whether subtasks must be done in order (ORDERED) |
+| `ctrl-c ctrl-x @` | `org.cite.insert` | Insert a citation, or edit the one at the cursor |
+| `ctrl-c ctrl-q` | `org.tags.set` | Set the tags of the headline |
+| `alt-enter` | `org.meta.return` | New heading, item or table row |
+| `alt-shift-enter` | `org.insert.todo.heading` | New TODO heading, or item with a checkbox |
+| `ctrl-enter` | `org.insert.heading.after` | New heading after the subtree |
+| `ctrl-shift-enter` | `org.insert.todo.heading.after` | New TODO heading after the subtree |
+| `ctrl-c -` | `org.table.hline` | Insert a rule below the table row |
+| `ctrl-c enter` | `org.table.hline.move` | Insert a rule below the table row and go below it |
+| `ctrl-c ^` | `org.sort` | Sort the entries, the items or the table rows |
+| `ctrl-c /` | `org.sparse.tree` | Show a sparse tree |
+| `ctrl-c ctrl-r` | `org.reveal` | Show the context of the cursor |
+| `ctrl-c ctrl-x ctrl-w` | `org.cut.subtree` | Cut the subtree |
+| `ctrl-c ctrl-x alt-w` | `org.copy.subtree` | Copy the subtree |
+| `ctrl-c ctrl-x ctrl-y` | `org.paste.subtree` | Paste the subtree |
+| `ctrl-c alt-w` | `org.refile.copy` | Copy the entry to a refile target |
+| `ctrl-c ctrl-z` | `org.add.note` | Add a note to the entry |
+| `ctrl-c ctrl-v t`, `ctrl-c ctrl-v ctrl-t` | `org.babel.tangle` | Tangle the file's code blocks |
+| `ctrl-c ctrl-v e`, `ctrl-c ctrl-v ctrl-e` | `org.babel.execute` | Evaluate the code block or call at the cursor through Emacs |
+| `ctrl-c ctrl-v b`, `ctrl-c ctrl-v ctrl-b` | `org.babel.execute.buffer` | Evaluate the file's code blocks through Emacs |
+| `ctrl-c ctrl-v s`, `ctrl-c ctrl-v ctrl-s` | `org.babel.execute.subtree` | Evaluate the subtree's code blocks through Emacs |
+| `ctrl-c ctrl-v k` | `org.babel.remove_result` | Remove the results of the code block at the cursor |
+| `ctrl-c ctrl-n` | `org.heading.next` | Move to the next heading |
+| `ctrl-c ctrl-p` | `org.heading.previous` | Move to the previous heading |
+| `ctrl-c ctrl-f` | `org.heading.forward` | Move to the next heading of the same level |
+| `ctrl-c ctrl-b` | `org.heading.backward` | Move to the previous heading of the same level |
+| `ctrl-c ctrl-u` | `org.heading.up` | Move to the parent heading |
+| `ctrl-c ctrl-x ctrl-n` | `org.link.next` | Move to the next link |
+| `ctrl-c ctrl-x ctrl-p` | `org.link.previous` | Move to the previous link |
+| `ctrl-c ctrl-j` | `org.goto` | Go to a heading of the file |
+| `ctrl-c ctrl-x f` | `org.footnote.action` | Make a footnote, or go between a footnote and its definition |
+| `ctrl-c ;` | `org.toggle.comment` | Toggle the COMMENT keyword of the heading |
+| `ctrl-c ctrl-x ctrl-f` | `org.emphasize` | Insert emphasis markers |
+| `ctrl-c ctrl-,` | `org.structure.template` | Insert a block (structure template) |
+| `ctrl-c ctrl-x d` | `org.drawer.insert` | Insert a drawer |
+| `ctrl-c ctrl-x c` | `org.subtree.clone` | Clone the subtree, shifting its dates |
+| `ctrl-c +` | `org.table.sum` | Sum the numbers of the table column |
+| `ctrl-c ?` | `org.table.field.info` | Show the references of the table field |
+| `ctrl-c \|` | `org.table.create` | Insert an empty table |
+| `ctrl-c ctrl-v n`, `ctrl-c ctrl-v ctrl-n` | `org.babel.next` | Move to the next code block |
+| `ctrl-c ctrl-v p`, `ctrl-c ctrl-v ctrl-p` | `org.babel.previous` | Move to the previous code block |
+| `ctrl-c ctrl-v g` | `org.babel.goto` | Go to a named code block |
+| `ctrl-c ctrl-v i` | `org.babel.lob.ingest` | Add the file's named code blocks to the Library of Babel |
+| `ctrl-c alt-f` | `org.block.next` | Move to the next block |
+| `ctrl-c alt-b` | `org.block.previous` | Move to the previous block |
+| `ctrl-c '` | `org.edit.special` | Edit the block in a file of its own |
+| `ctrl-x n s` | `org.narrow.subtree` | Narrow to the subtree: it in a file of its own |
+| `ctrl-x n b` | `org.narrow.block` | Narrow to the block: it in a file of its own |
+| `ctrl-x n w` | `org.narrow.widen` | Widen: the narrowed file written back and closed |
+| `ctrl-c ctrl-x b` | `org.tree.indirect` | Show the subtree in a file of its own |
+| `ctrl-c `` | `org.table.edit.field` | Edit the table field in a file of its own |
+| `ctrl-c ctrl-x ctrl-c` | `org.columns` | Column view |
+| `ctrl-c ctrl-x 0` | `org.timer.start` | Start the relative timer |
+| `ctrl-c ctrl-x .` | `org.timer.insert` | Insert the timer's value |
+| `ctrl-c ctrl-x -` | `org.timer.item` | Insert a list item with the timer's value |
+| `ctrl-c ctrl-x ,` | `org.timer.pause` | Pause or continue the timer |
+| `ctrl-c ctrl-x _` | `org.timer.stop` | Stop the timer |
+| `ctrl-c ctrl-x ;` | `org.timer.set` | Set a countdown timer |
+| `ctrl-c ctrl-e` | `org.export.dispatch` | Export the file through Emacs |
+| `ctrl-c tab` | `org.table.toggle.column.width` | Shrink or expand the table column |
+| `ctrl-c *` | `org.table.recalculate.line` | Recalculate the table's current line |
+| `ctrl-c {` | `org.table.formula.debugger` | Turn the formula debugger on or off |
+| `ctrl-c ctrl-o` | `org.open` | Open the link or thing at the cursor |
+| `ctrl-c l` | `org.link.store` | Store a link to the place at the cursor |
+| `ctrl-c ctrl-l` | `org.link.insert` | Insert a link, or edit the one at the cursor |
+| `ctrl-c alt-l` | `org.link.insert.last` | Insert the last stored link |
+| `ctrl-c ctrl-alt-l` | `org.link.insert.all` | Insert all stored links |
+| `ctrl-c ctrl-x ctrl-s`, `ctrl-c $` | `org.archive.subtree` | Archive the subtree |
+| `ctrl-c ctrl-x shift-a` | `org.archive.sibling` | Archive the subtree under its Archive sibling |
+| `ctrl-c ctrl-x a` | `org.archive.tag` | Toggle the ARCHIVE tag |
+| `ctrl-c ctrl-x ctrl-a` | `org.archive.default` | Archive with the default command |
+| `ctrl-c ctrl-k` | `org.capture.abort` | Capture: abort |
+| `ctrl-c ctrl-s` | `org.schedule` | Schedule the entry |
+| `ctrl-c ctrl-d` | `org.deadline` | Set the deadline of the entry |
+| `ctrl-c .` | `org.timestamp.insert` | Insert or change a timestamp |
+| `ctrl-c !` | `org.timestamp.insert.inactive` | Insert or change an inactive timestamp |
 | `ctrl-c a` | `org.agenda.dispatch` | Agenda commands |
 | `ctrl-c c` | `org.capture` | Capture |
 

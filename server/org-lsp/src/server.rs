@@ -696,6 +696,9 @@ struct Server {
     /// commands that do not say: from the requests the client makes as
     /// the cursor moves, and from where the server put it.
     agenda_cursor: Option<Position>,
+    /// Where the cursor was last seen in an Org file or a capture buffer,
+    /// for the port's commands of Org files (`file:`, `key:`).
+    file_cursor: Option<(Uri, Position)>,
     next_request: i32,
     pending: HashMap<RequestId, Pending>,
     /// What the command being run has to say, as Emacs says it in the echo
@@ -1065,6 +1068,7 @@ pub fn run(connection: Connection) -> Result<()> {
         port: None,
         port_start: port::Start::default(),
         agenda_cursor: None,
+        file_cursor: None,
         next_request: 0,
         pending: HashMap::new(),
         message: None,
@@ -2491,14 +2495,18 @@ impl Server {
         None
     }
 
-    /// The cursor is at `position` of `uri`: if that is the agenda, its
-    /// commands from the port go there, and the port's script to this
+    /// The cursor is at `position` of `uri`, the agenda or an Org file:
+    /// the port's commands for it go there, and the port's script to this
     /// server.
     fn saw_cursor(&mut self, uri: &Uri, position: Position) {
-        if !self.is_view(uri) {
+        if self.is_view(uri) {
+            self.agenda_cursor = Some(position);
+        } else if self.documents.contains_key(uri.as_str()) {
+            self.file_cursor = Some((uri.clone(), position));
+        } else {
             return;
         }
-        self.agenda_cursor = Some(position);
+        // The keys go to the server whose file the cursor is in.
         self.claim_script();
     }
 
@@ -4072,31 +4080,93 @@ impl Server {
 
     fn run_from_port(&mut self, sent: port::Command) {
         self.drop_closed_view();
-        // With no agenda open, the commands that need none: the agenda,
-        // the TODO list, the agenda menu, capture.
-        let argument = match self.view.as_ref().map(|open| open.uri.clone()) {
-            Some(uri) => {
-                let position = match sent.position {
-                    Some((line, character)) => Position::new(line, character),
-                    None => self.agenda_cursor.unwrap_or_default(),
+        let view = self.view.as_ref().map(|open| open.uri.clone());
+        let at = sent.position.map(|(line, character)| Position::new(line, character));
+        // `file:COMMAND` and `key:KEY` act in the Org file or capture buffer
+        // the cursor was last seen in; a file given acts there.
+        let in_file = sent.command.starts_with("file:") || sent.command.starts_with("key:");
+        let file = match sent.file.as_deref().and_then(uri::from_path).filter(|uri| Some(uri) != view.as_ref()) {
+            Some(uri) => Some((uri, at.unwrap_or_default())),
+            None if in_file => match self.file_cursor.clone() {
+                Some(seen) => Some(seen),
+                None => return self.show_message(MessageType::INFO, "Put the cursor in an Org file first"),
+            },
+            None => None,
+        };
+        let (argument, scopes) = match (file, view) {
+            // An Org file or a capture buffer: the server applies what the
+            // command does there, and moves the cursor, as an editor would.
+            (Some((uri, position)), _) => {
+                let capture = self.capture.as_ref().is_some_and(|capture| capture.uri == uri)
+                    || self.note.as_ref().is_some_and(|note| note.uri == uri);
+                let scopes: &[commands::Scope] = if capture {
+                    &[commands::Scope::Capture, commands::Scope::Org, commands::Scope::Global]
+                } else {
+                    &[commands::Scope::Org, commands::Scope::Global]
                 };
-                json!({ "textDocument": { "uri": uri }, "position": position })
+                (json!({ "textDocument": { "uri": uri }, "position": position, "apply": true }), scopes)
             }
-            None => json!({}),
+            (None, Some(uri)) => {
+                let position = at.or(self.agenda_cursor).unwrap_or_default();
+                (
+                    json!({ "textDocument": { "uri": uri }, "position": position }),
+                    &[commands::Scope::Agenda, commands::Scope::Global][..],
+                )
+            }
+            // With no agenda open, the commands that need none: the agenda,
+            // the TODO list, the agenda menu, capture.
+            (None, None) => (json!({}), &[commands::Scope::Global][..]),
+        };
+        // `key:C-c C-c`: what that key of Org's runs where it is pressed.
+        let command = match sent.command.strip_prefix("key:") {
+            Some(key) => match commands::by_key(key, scopes) {
+                Some(id) => id.to_string(),
+                None => return self.show_message(MessageType::INFO, format!("{key} is undefined here")),
+            },
+            None => sent.command.strip_prefix("file:").unwrap_or(&sent.command).to_string(),
         };
         let params = ExecuteCommandParams {
-            command: sent.command.clone(),
+            command: command.clone(),
             arguments: vec![argument.clone()],
             work_done_progress_params: Default::default(),
         };
         match self.run_command(params) {
             Ok(value) => {
+                self.apply_result(&argument, &value);
                 if self.client.message_prompts {
-                    self.prompt_with_messages(sent.command, argument, &value);
+                    self.prompt_with_messages(command, argument, &value);
                 }
             }
             Err(refusal) => self.show_message(MessageType::INFO, refusal.message().to_string()),
         }
+    }
+
+    /// A command's result that the editor would carry out, for a client
+    /// that does nothing with one: the edits it carries applied, and the
+    /// cursor moved where it says.
+    fn apply_result(&mut self, argument: &Value, value: &Value) {
+        let Some(uri) =
+            argument.pointer("/textDocument/uri").and_then(Value::as_str).and_then(|uri| uri.parse::<Uri>().ok())
+        else {
+            return;
+        };
+        let Some(cursor) =
+            value.get("cursor").and_then(|cursor| serde_json::from_value::<Position>(cursor.clone()).ok())
+        else {
+            return;
+        };
+        let edits: Vec<TextEdit> =
+            value.get("edits").and_then(|edits| serde_json::from_value(edits.clone()).ok()).unwrap_or_default();
+        if edits.is_empty() {
+            let selection = Some(Range::new(cursor, cursor));
+            let params = ShowDocumentParams { uri, external: None, take_focus: Some(true), selection };
+            self.send_request::<ShowDocument>(params, None);
+            return;
+        }
+        let version = self.document(&uri).map(|document| document.version);
+        let edit = self.workspace_edit(&uri, version, edits);
+        let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+        self.apply_edit(params, Pending::EditAndMove { uri, position: cursor });
     }
 
     /// Tell the client that the view has new text.
@@ -4305,7 +4375,14 @@ impl Server {
             work_done_progress_params: Default::default(),
         };
         match self.run_command(params) {
-            Ok(value) => self.prompt_with_messages(command, argument, &value),
+            Ok(value) => {
+                // A command run from the command port: what it does is
+                // applied here too (`org-goto`'s heading picked).
+                if argument.get("apply").and_then(Value::as_bool) == Some(true) {
+                    self.apply_result(&argument, &value);
+                }
+                self.prompt_with_messages(command, argument, &value)
+            }
             Err(refusal) => self.show_message(MessageType::WARNING, refusal.message()),
         }
     }

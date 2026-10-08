@@ -270,8 +270,23 @@ function zedKeys() {
   const dir = join(root, 'editors', 'zed');
   const keymap = JSON.parse(readFileSync(join(dir, 'keymap.json'), 'utf8'));
   const tasks = JSON.parse(readFileSync(join(dir, 'tasks.json'), 'utf8'));
-  const commandOf = Object.fromEntries(tasks.map((task) => [task.label, task.command.split(' ').pop()]));
+  // The command a task runs: the word after the script, or `key:KEY`.
+  const commandOf = Object.fromEntries(
+    tasks.map((task) => [task.label, /agenda-command ('[^']+'|\S+)/.exec(task.command)[1].replaceAll("'", '').replace(/^file:/, '')]),
+  );
   const titles = Object.fromEntries(manifest.commands.map((command) => [command.command, command.title]));
+  // What a key's own task does: one command in a capture buffer, another
+  // in an Org file.
+  for (const id of Object.values(commandOf).filter((id) => id.startsWith('key:'))) {
+    const key = id.slice('key:'.length);
+    const by = (scope) =>
+      manifest.commands.find((command) => command.keys.some((bound) => bound.preset === 'emacs' && bound.in === scope && bound.key === key));
+    const what = (scope) => by(scope).title.replace(/^Capture: /, '').toLowerCase();
+    titles[id] =
+      what('capture') === what('org')
+        ? by('org').title
+        : `In a capture buffer: ${what('capture')}; elsewhere: ${what('org')}`;
+  }
   const zedActions = {
     'pane::CloseActiveItem': 'Close the agenda',
     'editor::GoToDefinition': 'Go to the entry of the line',

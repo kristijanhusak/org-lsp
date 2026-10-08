@@ -50,7 +50,7 @@ hand: [Neovim](editors/neovim/README.md), [Vim](editors/vim/README.md),
 | [Indentation and formatting](docs/parity.md#indentation-and-formatting) | 83% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
 | [Notes and logging](docs/parity.md#notes-and-logging) | 100% | ✅ / ✅ / ✅ / ✅ / ❌ / ❌ |
 | [Completion and editing helpers](docs/parity.md#completion-and-editing-helpers) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
-| [Timers](docs/parity.md#timers) | 100% | ✅ / ✅ / ✅ / ✅ / ❌ / ❌ |
+| [Timers](docs/parity.md#timers) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
 | [Attachments](docs/parity.md#attachments) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [Encryption](docs/parity.md#encryption) | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
 | [Inline images and LaTeX previews](docs/parity.md#inline-images-and-latex-previews) | 0% | — / — / — / — / — / — |

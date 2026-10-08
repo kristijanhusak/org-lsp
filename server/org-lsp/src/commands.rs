@@ -1640,6 +1640,18 @@ fn vim_notation(emacs: &str) -> String {
         .collect()
 }
 
+/// The command Emacs's `key` runs in the first of `scopes` that has it
+/// (`C-c C-c` in a capture buffer files the entry, in an Org file it
+/// toggles a checkbox).
+pub fn by_key(key: &str, scopes: &[Scope]) -> Option<&'static str> {
+    scopes.iter().find_map(|scope| {
+        COMMANDS
+            .iter()
+            .find(|command| command.emacs.iter().any(|bound| bound.scope == *scope && bound.key == key))
+            .map(|command| command.id)
+    })
+}
+
 pub fn title(id: &str) -> &'static str {
     COMMANDS.iter().find(|command| command.id == id).map_or("", |command| command.title)
 }
@@ -1728,5 +1740,20 @@ mod tests {
                 keys.iter().any(|(other_scope, other)| other_scope == scope && other.starts_with(&format!("{key} ")));
             assert!(!clash, "`{key}` is a key and a prefix in {scope:?}");
         }
+    }
+}
+
+#[cfg(test)]
+mod key_tests {
+    use super::*;
+
+    #[test]
+    fn finds_what_a_key_runs_where_it_is_pressed() {
+        assert_eq!(by_key("C-c C-c", &[Scope::Capture, Scope::Org]), Some(CAPTURE_FINISH));
+        assert_eq!(by_key("C-c C-c", &[Scope::Org]), Some("org.checkbox.toggle"));
+        assert_eq!(by_key("C-c C-w", &[Scope::Capture, Scope::Org]), Some(CAPTURE_REFILE));
+        assert_eq!(by_key("C-c C-t", &[Scope::Capture, Scope::Org]), Some("org.todo"));
+        assert_eq!(by_key("f", &[Scope::Agenda]), Some("org.agenda.later"));
+        assert_eq!(by_key("C-c C-y C-z", &[Scope::Org]), None);
     }
 }

@@ -3997,6 +3997,56 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
         std::thread::sleep(std::time::Duration::from_millis(5));
     }
     assert_eq!(shown.expect("the entry shown").params["uri"], WORK_URI);
+    // In an Org file, with the row, the column and the file a task passes:
+    // the server applies what the command does there, as Zed does nothing
+    // with a command's result; `key:` runs what Org's key does there.
+    let port_requests = |client: &mut Client, method: &str| {
+        for _ in 0..200 {
+            client.settle();
+            if let Some(found) = client.received.iter().find(|request| request.method == method) {
+                return Some(found.clone());
+            }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        None
+    };
+    client.received.clear();
+    let in_work = |command: &str| -> Vec<String> {
+        [&address, &token, command, "2", "3", "/org/work.org"].into_iter().map(str::to_string).collect()
+    };
+    org_lsp::port::send(&in_work("org.priority.up")).unwrap();
+    let edit = port_requests(&mut client, "workspace/applyEdit").expect("the edit applied");
+    let (file, edits) = edits_of(&edit);
+    assert_eq!(file, WORK_URI);
+    assert!(edits.iter().all(|edit| edit["range"]["start"]["line"] == 1), "{edits:?}");
+    // Without a file, `key:` and `file:` act where the cursor was last
+    // seen in an Org file, which Zed says by asking for highlights.
+    client
+        .request(
+            "textDocument/documentHighlight",
+            json!({ "textDocument": { "uri": WORK_URI }, "position": { "line": 1, "character": 2 } }),
+        )
+        .unwrap();
+    client.received.clear();
+    org_lsp::port::send(&[address.clone(), token.clone(), "key:C-c C-n".into()]).unwrap();
+    let moved = port_requests(&mut client, "window/showDocument").expect("the cursor moved");
+    assert_eq!(moved.params["uri"], WORK_URI);
+    assert!(moved.params["selection"]["start"]["line"].as_u64().unwrap() > 1, "{:?}", moved.params);
+    // What is asked with buttons is applied once answered: `org-goto`
+    // moves to the heading picked.
+    client.choice = None;
+    client.received.clear();
+    org_lsp::port::send(&in_work("org.goto")).unwrap();
+    let asked = port_requests(&mut client, "window/showMessageRequest").expect("asked");
+    let last = asked.params["actions"].as_array().unwrap().last().unwrap()["title"].as_str().unwrap().to_string();
+    assert!(last.starts_with("Meeting"), "{last}");
+    client.choice = Some(last);
+    client.received.clear();
+    org_lsp::port::send(&in_work("org.goto")).unwrap();
+    let moved = port_requests(&mut client, "window/showDocument").expect("the cursor moved");
+    assert_eq!(moved.params["uri"], WORK_URI);
+    assert_eq!(moved.params["selection"]["start"]["line"], 5, "{:?}", moved.params);
+    client.choice = None;
     client.received.clear();
     org_lsp::port::send(&[address.clone(), token, "org.agenda.later".into(), "1".into(), "1".into()]).unwrap();
     // The port's command comes on a channel of its own: wait for it.

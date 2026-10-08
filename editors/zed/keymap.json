@@ -430,6 +430,606 @@
   {
     "context": "Editor && extension == org",
     "bindings": {
+      "ctrl-c ctrl-c": [
+        "task::Spawn",
+        {
+          "task_name": "Org: C-c C-c"
+        }
+      ],
+      "ctrl-c ctrl-w": [
+        "task::Spawn",
+        {
+          "task_name": "Org: C-c C-w"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-i": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Clock in"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-x": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Clock in the last clocked task"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-o": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Clock out"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-q": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Cancel the clock"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-j": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Go to the clocked entry"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-d": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Show the time clocked under each headline"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-r": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert or update a clock table"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-u": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Update the dynamic block"
+        }
+      ],
+      "ctrl-c ctrl-x x": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert a dynamic block"
+        }
+      ],
+      "ctrl-c ctrl-a": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Attachments of the entry"
+        }
+      ],
+      "ctrl-c ctrl-t": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Change the TODO state"
+        }
+      ],
+      "ctrl-c ,": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Set the priority"
+        }
+      ],
+      "ctrl-c ctrl-x p": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Set a property of the entry"
+        }
+      ],
+      "ctrl-c ctrl-x e": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Set the effort of the entry"
+        }
+      ],
+      "ctrl-c ctrl-x shift-e": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Set the effort to the next allowed value"
+        }
+      ],
+      "ctrl-c ctrl-x o": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Toggle whether subtasks must be done in order (ORDERED)"
+        }
+      ],
+      "ctrl-c ctrl-x @": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert a citation, or edit the one at the cursor"
+        }
+      ],
+      "ctrl-c ctrl-q": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Set the tags of the headline"
+        }
+      ],
+      "alt-enter": [
+        "task::Spawn",
+        {
+          "task_name": "Org: New heading, item or table row"
+        }
+      ],
+      "alt-shift-enter": [
+        "task::Spawn",
+        {
+          "task_name": "Org: New TODO heading, or item with a checkbox"
+        }
+      ],
+      "ctrl-enter": [
+        "task::Spawn",
+        {
+          "task_name": "Org: New heading after the subtree"
+        }
+      ],
+      "ctrl-shift-enter": [
+        "task::Spawn",
+        {
+          "task_name": "Org: New TODO heading after the subtree"
+        }
+      ],
+      "ctrl-c -": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert a rule below the table row"
+        }
+      ],
+      "ctrl-c enter": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert a rule below the table row and go below it"
+        }
+      ],
+      "ctrl-c ^": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Sort the entries, the items or the table rows"
+        }
+      ],
+      "ctrl-c /": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Show a sparse tree"
+        }
+      ],
+      "ctrl-c ctrl-r": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Show the context of the cursor"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-w": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Cut the subtree"
+        }
+      ],
+      "ctrl-c ctrl-x alt-w": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Copy the subtree"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-y": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Paste the subtree"
+        }
+      ],
+      "ctrl-c alt-w": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Copy the entry to a refile target"
+        }
+      ],
+      "ctrl-c ctrl-z": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Add a note to the entry"
+        }
+      ],
+      "ctrl-c ctrl-v t": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Tangle the file's code blocks"
+        }
+      ],
+      "ctrl-c ctrl-v ctrl-t": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Tangle the file's code blocks"
+        }
+      ],
+      "ctrl-c ctrl-v e": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Evaluate the code block or call at the cursor through Emacs"
+        }
+      ],
+      "ctrl-c ctrl-v ctrl-e": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Evaluate the code block or call at the cursor through Emacs"
+        }
+      ],
+      "ctrl-c ctrl-v b": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Evaluate the file's code blocks through Emacs"
+        }
+      ],
+      "ctrl-c ctrl-v ctrl-b": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Evaluate the file's code blocks through Emacs"
+        }
+      ],
+      "ctrl-c ctrl-v s": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Evaluate the subtree's code blocks through Emacs"
+        }
+      ],
+      "ctrl-c ctrl-v ctrl-s": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Evaluate the subtree's code blocks through Emacs"
+        }
+      ],
+      "ctrl-c ctrl-v k": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Remove the results of the code block at the cursor"
+        }
+      ],
+      "ctrl-c ctrl-n": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the next heading"
+        }
+      ],
+      "ctrl-c ctrl-p": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the previous heading"
+        }
+      ],
+      "ctrl-c ctrl-f": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the next heading of the same level"
+        }
+      ],
+      "ctrl-c ctrl-b": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the previous heading of the same level"
+        }
+      ],
+      "ctrl-c ctrl-u": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the parent heading"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-n": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the next link"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-p": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the previous link"
+        }
+      ],
+      "ctrl-c ctrl-j": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Go to a heading of the file"
+        }
+      ],
+      "ctrl-c ctrl-x f": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Make a footnote, or go between a footnote and its definition"
+        }
+      ],
+      "ctrl-c ;": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Toggle the COMMENT keyword of the heading"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-f": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert emphasis markers"
+        }
+      ],
+      "ctrl-c ctrl-,": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert a block (structure template)"
+        }
+      ],
+      "ctrl-c ctrl-x d": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert a drawer"
+        }
+      ],
+      "ctrl-c ctrl-x c": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Clone the subtree, shifting its dates"
+        }
+      ],
+      "ctrl-c +": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Sum the numbers of the table column"
+        }
+      ],
+      "ctrl-c ?": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Show the references of the table field"
+        }
+      ],
+      "ctrl-c |": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert an empty table"
+        }
+      ],
+      "ctrl-c ctrl-v n": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the next code block"
+        }
+      ],
+      "ctrl-c ctrl-v ctrl-n": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the next code block"
+        }
+      ],
+      "ctrl-c ctrl-v p": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the previous code block"
+        }
+      ],
+      "ctrl-c ctrl-v ctrl-p": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the previous code block"
+        }
+      ],
+      "ctrl-c ctrl-v g": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Go to a named code block"
+        }
+      ],
+      "ctrl-c ctrl-v i": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Add the file's named code blocks to the Library of Babel"
+        }
+      ],
+      "ctrl-c alt-f": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the next block"
+        }
+      ],
+      "ctrl-c alt-b": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Move to the previous block"
+        }
+      ],
+      "ctrl-c '": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Edit the block in a file of its own"
+        }
+      ],
+      "ctrl-x n s": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Narrow to the subtree: it in a file of its own"
+        }
+      ],
+      "ctrl-x n b": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Narrow to the block: it in a file of its own"
+        }
+      ],
+      "ctrl-x n w": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Widen: the narrowed file written back and closed"
+        }
+      ],
+      "ctrl-c ctrl-x b": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Show the subtree in a file of its own"
+        }
+      ],
+      "ctrl-c `": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Edit the table field in a file of its own"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-c": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Column view"
+        }
+      ],
+      "ctrl-c ctrl-x 0": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Start the relative timer"
+        }
+      ],
+      "ctrl-c ctrl-x .": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert the timer's value"
+        }
+      ],
+      "ctrl-c ctrl-x -": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert a list item with the timer's value"
+        }
+      ],
+      "ctrl-c ctrl-x ,": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Pause or continue the timer"
+        }
+      ],
+      "ctrl-c ctrl-x _": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Stop the timer"
+        }
+      ],
+      "ctrl-c ctrl-x ;": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Set a countdown timer"
+        }
+      ],
+      "ctrl-c ctrl-e": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Export the file through Emacs"
+        }
+      ],
+      "ctrl-c tab": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Shrink or expand the table column"
+        }
+      ],
+      "ctrl-c *": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Recalculate the table's current line"
+        }
+      ],
+      "ctrl-c {": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Turn the formula debugger on or off"
+        }
+      ],
+      "ctrl-c ctrl-o": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Open the link or thing at the cursor"
+        }
+      ],
+      "ctrl-c l": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Store a link to the place at the cursor"
+        }
+      ],
+      "ctrl-c ctrl-l": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert a link, or edit the one at the cursor"
+        }
+      ],
+      "ctrl-c alt-l": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert the last stored link"
+        }
+      ],
+      "ctrl-c ctrl-alt-l": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert all stored links"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-s": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Archive the subtree"
+        }
+      ],
+      "ctrl-c $": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Archive the subtree"
+        }
+      ],
+      "ctrl-c ctrl-x shift-a": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Archive the subtree under its Archive sibling"
+        }
+      ],
+      "ctrl-c ctrl-x a": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Toggle the ARCHIVE tag"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-a": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Archive with the default command"
+        }
+      ],
+      "ctrl-c ctrl-k": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Capture: abort"
+        }
+      ],
+      "ctrl-c ctrl-s": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Schedule the entry"
+        }
+      ],
+      "ctrl-c ctrl-d": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Set the deadline of the entry"
+        }
+      ],
+      "ctrl-c .": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert or change a timestamp"
+        }
+      ],
+      "ctrl-c !": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert or change an inactive timestamp"
+        }
+      ],
       "ctrl-c a": [
         "task::Spawn",
         {
