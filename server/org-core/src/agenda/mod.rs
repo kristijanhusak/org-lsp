@@ -242,6 +242,8 @@ pub struct Config {
     /// The `org-habit-…` options, when `org-habit` is loaded (it is one of
     /// `org-modules`); none without it.
     pub habits: Option<habit::Settings>,
+    /// Who evaluates the diary sexps the agenda cannot (Emacs).
+    pub diary: diary::Outside,
     /// How the search view reads its search string.
     pub search: SearchSettings,
     /// `org-agenda-todo-keyword-format`
@@ -386,6 +388,7 @@ impl Default for Config {
             archives: false,
             prefix_format: PrefixFormats::default(),
             habits: None,
+            diary: diary::Outside::default(),
             search: SearchSettings::default(),
             todo_keyword_format: "%-1s".to_string(),
             scheduled_leaders: ["Scheduled: ".to_string(), "Sched.%2dx: ".to_string()],
@@ -557,7 +560,9 @@ impl Builder<'_> {
     fn sexps(&self, file: usize, current: Day, out: &mut Vec<Item>) {
         let outline = self.files[file];
         for line in &outline.sexps {
-            let Some(results) = diary::entries(&line.sexp, &line.text, current) else { continue };
+            let Some(results) = diary::entries_with(&line.sexp, &line.text, current, &self.config.diary) else {
+                continue;
+            };
             // Org has no entry for one before the first headline, and stops.
             let Some(entry) = line.entry else {
                 let error = format!("Before first headline at position {}", line.offset + 1);
@@ -789,7 +794,7 @@ impl Builder<'_> {
                 let entry = &outline.entries[shown.entry];
                 if entry.skipped(self.config.archives)
                     || (entry.done && self.config.skip_timestamp_if_done)
-                    || diary::entries(sexp, "", current).is_none()
+                    || diary::entries_with(sexp, "", current, &self.config.diary).is_none()
                 {
                     continue;
                 }

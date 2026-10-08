@@ -382,6 +382,18 @@ the error."
 
 ;;; What the server asks about
 
+(defun org-lsp-bridge-diary-sexp (params)
+  "What the diary sexp of PARAMS, with its entry, gives on its date
+\(`org-diary-sexp-entry'): the lines it shows, or nil."
+  (require 'diary-lib)
+  (let* ((date (append (alist-get 'date params) nil))
+         (result (cl-letf (((symbol-function 'sleep-for) #'ignore)
+                           ((symbol-function 'beep) #'ignore))
+                   (org-diary-sexp-entry (alist-get 'sexp params) (alist-get 'entry params) date))))
+    (cond ((null result) nil)
+          ((stringp result) (vector result))
+          (t (vconcat (seq-filter #'stringp result))))))
+
 (defun org-lsp-bridge-src-block-names (params)
   "The names of the code blocks of the document of PARAMS, in its order."
   (org-lsp-bridge--in-document params

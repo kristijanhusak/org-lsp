@@ -87,9 +87,32 @@ impl Emacs {
         receiver.recv_timeout(timeout).map_err(|_| "Emacs did not answer in time".to_string())?
     }
 
+    /// A handle that runs methods and waits for them, as [`Emacs::call`],
+    /// for those that hold no reference to the server.
+    pub fn caller(&self) -> Caller {
+        Caller { jobs: self.jobs.clone() }
+    }
+
     /// Run `method`; its answer comes as [`Event::Done`] with `tag`.
     pub fn start(&self, tag: u64, method: &str, params: Value) {
         let _ = self.jobs.send(Job { method: method.to_string(), params, reply: Reply::Later(tag) });
+    }
+}
+
+/// See [`Emacs::caller`].
+#[derive(Clone)]
+pub struct Caller {
+    jobs: Sender<Job>,
+}
+
+impl Caller {
+    /// [`Emacs::call`]
+    pub fn call(&self, method: &str, params: Value, timeout: Duration) -> Result<Value, String> {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        self.jobs
+            .send(Job { method: method.to_string(), params, reply: Reply::Now(sender) })
+            .map_err(|_| "Emacs is not running".to_string())?;
+        receiver.recv_timeout(timeout).map_err(|_| "Emacs did not answer in time".to_string())?
     }
 }
 

@@ -5,8 +5,8 @@
 //! `diary-anniversary`, `diary-cyclic`, with `calendar-date-style`
 //! `american`) and Org's own (`org-date`, `org-block`, `org-anniversary`,
 //! `org-cyclic`, `org-class`) are, with `and`, `or`, `not`, comparisons,
-//! `memq` and the calendar's accessors of `date`. Anything else does not
-//! apply.
+//! `memq` and the calendar's accessors of `date`. Anything else goes to
+//! Emacs (see [`Outside`]), or does not apply.
 
 use crate::date::{days_in_month, weekday, Date, Day};
 
@@ -325,13 +325,52 @@ fn evaluate(form: &Value, scope: &Scope) -> Option<Value> {
     })
 }
 
+/// What another evaluator, Emacs's, makes of a diary sexp this one cannot
+/// read: `(sexp, entry, day)` to the lines it shows, none when it does not
+/// apply.
+#[derive(Clone, Default)]
+pub struct Outside(pub Option<std::sync::Arc<Evaluate>>);
+
+/// `(sexp, entry, day)` to the lines shown, none when the sexp does not
+/// apply.
+pub type Evaluate = dyn Fn(&str, &str, Day) -> Option<Vec<String>> + Send + Sync;
+
+impl std::fmt::Debug for Outside {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str(if self.0.is_some() { "Outside(Some)" } else { "Outside(None)" })
+    }
+}
+
+/// The settings are equal whoever evaluates what this one cannot.
+impl PartialEq for Outside {
+    fn eq(&self, _: &Outside) -> bool {
+        true
+    }
+}
+
+impl Eq for Outside {}
+
 /// `org-diary-sexp-entry`: what the diary sexp `sexp` (with its `(` and
 /// `)`) with the text `entry` gives on `day`: none when it does not apply,
-/// or cannot be read here, else the lines it shows.
+/// else the lines it shows. One this evaluator cannot read goes to
+/// `outside`, when there is one; without it, it does not apply.
+pub fn entries_with(sexp: &str, entry: &str, day: Day, outside: &Outside) -> Option<Vec<String>> {
+    match evaluated(sexp, entry, day) {
+        Some(result) => result,
+        None => outside.0.as_ref().and_then(|outside| outside(sexp, entry, day)),
+    }
+}
+
+/// [`entries_with`], with nothing outside.
 pub fn entries(sexp: &str, entry: &str, day: Day) -> Option<Vec<String>> {
+    entries_with(sexp, entry, day, &Outside::default())
+}
+
+/// What this evaluator makes of the sexp: none when it cannot read it.
+fn evaluated(sexp: &str, entry: &str, day: Day) -> Option<Option<Vec<String>>> {
     let form = read(sexp)?;
     let scope = Scope { date: Date::from_day(day), day, entry };
-    match evaluate(&form, &scope)? {
+    Some(match evaluate(&form, &scope)? {
         Value::Nil => None,
         Value::Str(text) => Some(text.split("; ").map(str::to_string).collect()),
         Value::Entry(text) => Some(vec![text]),
@@ -346,7 +385,7 @@ pub fn entries(sexp: &str, entry: &str, day: Day) -> Option<Vec<String>> {
                 .collect(),
         ),
         _ => Some(vec![entry.to_string()]),
-    }
+    })
 }
 
 #[cfg(test)]
