@@ -812,6 +812,69 @@
     }
   },
   {
+    "caption": "Org: Copy the field down to the next row",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.copy.down"
+    }
+  },
+  {
+    "caption": "Org: Sum the numbers of the table column",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.sum"
+    }
+  },
+  {
+    "caption": "Org: Show the references of the table field",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.field.info"
+    }
+  },
+  {
+    "caption": "Org: Insert an empty table",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.create"
+    }
+  },
+  {
+    "caption": "Org: Move to the next code block",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.next"
+    }
+  },
+  {
+    "caption": "Org: Move to the previous code block",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.previous"
+    }
+  },
+  {
+    "caption": "Org: Go to a named code block",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.babel.goto"
+    }
+  },
+  {
+    "caption": "Org: Move to the next block",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.block.next"
+    }
+  },
+  {
+    "caption": "Org: Move to the previous block",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.block.previous"
+    }
+  },
+  {
     "caption": "Org: Export the file through Emacs",
     "command": "org_lsp_run",
     "args": {

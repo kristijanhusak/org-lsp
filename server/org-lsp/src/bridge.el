@@ -227,7 +227,10 @@ was to be opened, or the text of an export to a buffer."
     org-insert-structure-template org-insert-drawer
     org-clone-subtree-with-time-shift org-lsp-bridge-footnote-renumber-and-sort
     org-table-recalculate org-table-iterate org-table-calc-current-TBLFM
-    org-babel-tangle)
+    org-babel-tangle org-table-copy-down org-lsp-bridge-table-sum org-table-field-info
+    org-lsp-bridge-table-create org-babel-next-src-block
+    org-babel-previous-src-block org-babel-goto-named-src-block
+    org-next-block org-previous-block)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--message nil
@@ -266,7 +269,21 @@ wants one), else interactively."
   (org-footnote-renumber-fn:N)
   (org-footnote-sort))
 
+(defun org-lsp-bridge-table-sum ()
+  "`org-table-sum', saying the sum as it does when called by a key."
+  (cl-letf (((symbol-function 'called-interactively-p) (lambda (&rest _) t)))
+    (org-table-sum)))
+
+(defun org-lsp-bridge-table-create (size)
+  "`org-table-create' of SIZE, `org-table-default-size' when it is empty."
+  (org-table-create (if (string-empty-p size) org-table-default-size size)))
+
 ;;; What the server asks about
+
+(defun org-lsp-bridge-src-block-names (params)
+  "The names of the code blocks of the document of PARAMS, in its order."
+  (org-lsp-bridge--in-document params
+    (vconcat (reverse (org-babel-src-block-names)))))
 
 (defun org-lsp-bridge-structure-templates (_params)
   "`org-structure-template-alist': each key with the type it inserts."

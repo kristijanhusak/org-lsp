@@ -100,6 +100,15 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+,` | `org.structure.template` | Insert a block (structure template) |
 | `Ctrl+C Ctrl+X d` | `org.drawer.insert` | Insert a drawer |
 | `Ctrl+C Ctrl+X c` | `org.subtree.clone` | Clone the subtree, shifting its dates |
+| `Shift+Enter`¹ | `org.table.copy.down` | Copy the field down to the next row |
+| `Ctrl+C +` | `org.table.sum` | Sum the numbers of the table column |
+| `Ctrl+C ?` | `org.table.field.info` | Show the references of the table field |
+| `Ctrl+C Shift+\` | `org.table.create` | Insert an empty table |
+| `Ctrl+C Ctrl+V n`, `Ctrl+C Ctrl+V Ctrl+N` | `org.babel.next` | Move to the next code block |
+| `Ctrl+C Ctrl+V p`, `Ctrl+C Ctrl+V Ctrl+P` | `org.babel.previous` | Move to the previous code block |
+| `Ctrl+C Ctrl+V g` | `org.babel.goto` | Go to a named code block |
+| `Ctrl+C Alt+F` | `org.block.next` | Move to the next block |
+| `Ctrl+C Alt+B` | `org.block.previous` | Move to the previous block |
 | `Ctrl+C Ctrl+E` | `org.export.dispatch` | Export the file through Emacs |
 | `Ctrl+C Shift+8` | `org.table.recalculate.line` | Recalculate the table's current line |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
@@ -394,6 +403,13 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "i", "b"], "commands": ["org.structure.template"] },
   { "before": ["<leader>", "o", "i", "D"], "commands": ["org.drawer.insert"] },
   { "before": ["<leader>", "o", "s", "c"], "commands": ["org.subtree.clone"] },
+  { "before": ["<leader>", "o", "D"], "commands": ["org.table.copy.down"] },
+  { "before": ["<leader>", "o", "+"], "commands": ["org.table.sum"] },
+  { "before": ["<leader>", "o", "?"], "commands": ["org.table.field.info"] },
+  { "before": ["<leader>", "o", "i", "<Bar>"], "commands": ["org.table.create"] },
+  { "before": ["<leader>", "o", "b", "n"], "commands": ["org.babel.next"] },
+  { "before": ["<leader>", "o", "b", "p"], "commands": ["org.babel.previous"] },
+  { "before": ["<leader>", "o", "b", "g"], "commands": ["org.babel.goto"] },
   { "before": ["<leader>", "o", "e"], "commands": ["org.export.dispatch"] },
   { "before": ["<leader>", "o", "*"], "commands": ["org.table.recalculate"] },
   { "before": ["<leader>", "o", "o"], "commands": ["org.open"] },
@@ -530,6 +546,15 @@ every file; outside Org files the commands say they do not apply):
 | `org.structure.template` | Org: Insert a block (structure template) |
 | `org.drawer.insert` | Org: Insert a drawer |
 | `org.subtree.clone` | Org: Clone the subtree, shifting its dates |
+| `org.table.copy.down` | Org: Copy the field down to the next row |
+| `org.table.sum` | Org: Sum the numbers of the table column |
+| `org.table.field.info` | Org: Show the references of the table field |
+| `org.table.create` | Org: Insert an empty table |
+| `org.babel.next` | Org: Move to the next code block |
+| `org.babel.previous` | Org: Move to the previous code block |
+| `org.babel.goto` | Org: Go to a named code block |
+| `org.block.next` | Org: Move to the next block |
+| `org.block.previous` | Org: Move to the previous block |
 | `org.export.dispatch` | Org: Export the file through Emacs |
 | `org.table.recalculate` | Org: Recalculate the table |
 | `org.table.recalculate.line` | Org: Recalculate the table's current line |

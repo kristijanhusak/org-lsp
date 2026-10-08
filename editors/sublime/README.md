@@ -132,9 +132,9 @@ the view at hand. To bind one yourself:
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 55% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 67% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
-| [Tables](../../docs/parity.md#tables) | 44% | ✅ |  |
+| [Tables](../../docs/parity.md#tables) | 59% | ✅ |  |
 | [Table formulas](../../docs/parity.md#table-formulas) | 83% | ✅ |  |
-| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 64% | ✅ |  |
+| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 73% | ✅ |  |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 56% | ✅ |  |
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
@@ -145,7 +145,7 @@ the view at hand. To bind one yourself:
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **68%** |  |  |
+| **All of Org** | **69%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

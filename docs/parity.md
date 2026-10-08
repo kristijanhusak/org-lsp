@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 68%**
+**All of Org: 69%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -26,9 +26,9 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Refile and archive](#refile-and-archive) | 55% | 6 of 11 |
 | [Links](#links) | 67% | 6 of 9 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
-| [Tables](#tables) | 44% | 7 of 16 |
+| [Tables](#tables) | 59% | 10 of 17 |
 | [Table formulas](#table-formulas) | 83% | 10 of 12 |
-| [Code blocks (Babel)](#code-blocks-babel) | 64% | 7 of 11 |
+| [Code blocks (Babel)](#code-blocks-babel) | 73% | 8 of 11 |
 | [Export and publishing](#export-and-publishing) | 56% | 5 of 9 |
 | [Citations](#citations) | 100% | 5 of 5 |
 | [Diagnostics (org-lint)](#diagnostics-org-lint) | 97% | 59 of 61 |
@@ -323,7 +323,7 @@ Where editors fall short:
 
 ## Tables
 
-44% (7 of 16)
+59% (10 of 17)
 
 - ✅ Aligning (`C-c C-c`, formatting)
 - ✅ Moving between fields (`TAB`, `S-TAB`), a row made past the last
@@ -333,19 +333,20 @@ Where editors fall short:
 - ✅ Sorting rows
 - ✅ The `#+TBLFM:` line following moved columns and rows
 - ❌ Rectangles: cutting, copying and pasting
-- ❌ Copying down (`S-RET`)
+- ✅ Copying down (`S-RET`, through Emacs)
 - ❌ Editing a field in its own buffer (`C-c \``)
 - ❌ Shrunk columns (`<5>`)
-- ❌ Making a table from a region (`C-c |`)
-- ❌ Summing (`C-c +`) and field information (`C-c ?`)
+- ✅ Creating an empty table (`C-c |`, through Emacs)
+- ❌ Making a table from a region (`C-c |` on a region)
+- ✅ Summing (`C-c +`) and field information (`C-c ?`), through Emacs
 - ❌ Moving the field with the shifted cursor keys
 - ❌ Importing and exporting tables
 - ❌ Plotting (`org-plot`)
 
 Where editors fall short:
 
-- Zed ❓: Moving between fields with `TAB` is left out: Zed cannot bind a key to a server's command (the commands are code actions), and it needs one. The other edits are code actions in a table.
-- Helix ❓: Moving between fields with `TAB` is left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and it needs one. The other edits are code actions in a table.
+- Zed ❓: Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table.
+- Helix ❓: Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them. The other edits are code actions in a table.
 
 ## Table formulas
 
@@ -366,7 +367,7 @@ Where editors fall short:
 
 ## Code blocks (Babel)
 
-64% (7 of 11)
+73% (8 of 11)
 
 - ✅ Tangling, with Noweb references, comments and header arguments from properties
 - ✅ Evaluating a block, a `#+CALL:` line and inline code (through Emacs)
@@ -377,13 +378,13 @@ Where editors fall short:
 - ❌ Editing a block in its own buffer (`C-c '`)
 - ✅ Tangling's Emacs Lisp (evaluated header arguments, `<<block()>>`; through Emacs)
 - ❌ Detangling
-- ❌ Moving between blocks (`C-c C-v n`, `C-c C-v p`, `C-c C-v g`)
+- ✅ Moving between blocks (`C-c C-v n`, `C-c C-v p`, `C-c C-v g`, `C-c M-f`, `C-c M-b`; through Emacs)
 - ❌ The Library of Babel (`C-c C-v i`)
 
 Where editors fall short:
 
-- Zed ❓: Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation and removing results need keys, which Zed cannot give a server.
-- Helix ❓: Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation and removing results need keys, which Helix cannot give a server.
+- Zed ❓: Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server.
+- Helix ❓: Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Helix cannot give a server.
 
 ## Export and publishing
 

@@ -137,7 +137,7 @@ here and why.
 
 ## Tables
 
-**Partly:** Moving between fields with `TAB` is left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and it needs one. The other edits are code actions in a table.
+**Partly:** Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them. The other edits are code actions in a table.
 
 - [ ] Formatting the file aligns the tables: `:format`
 - [ ] Moving a column left and right, a row up and down: the code action *Promote the heading; outdent the item; move the table column left*, the code action *Demote the heading; indent the item, the drawer or the block; move the table column right*, the code action *Move the subtree, the item or the table row up*, the code action *Move the subtree, the item or the table row down*
@@ -159,7 +159,7 @@ here and why.
 
 ## Code blocks (Babel)
 
-**Partly:** Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation and removing results need keys, which Helix cannot give a server.
+**Partly:** Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Helix cannot give a server.
 
 - [ ] Tangling writes each block to its `:tangle` file, `:mkdirp` and `:shebang` applied: the code action *Tangle the file's code blocks*
 - [ ] A `:tangle (concat "out" ".el")` block is tangled by Emacs to `out.el` (needs Emacs): the code action *Tangle the file's code blocks*
