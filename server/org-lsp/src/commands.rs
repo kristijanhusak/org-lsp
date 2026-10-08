@@ -158,6 +158,7 @@ pub const COLUMNS_ROW_DOWN: &str = "org.columns.row.down";
 pub const EDIT_SPECIAL: &str = "org.edit.special";
 pub const NARROW_SUBTREE: &str = "org.narrow.subtree";
 pub const NARROW_BLOCK: &str = "org.narrow.block";
+pub const NARROW_WIDEN: &str = "org.narrow.widen";
 pub const TREE_INDIRECT: &str = "org.tree.indirect";
 pub const TABLE_EDIT_FIELD: &str = "org.table.edit.field";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
@@ -1036,6 +1037,14 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-x n b")],
         vim: &[key(Org, "<Leader>onb")],
         ..command(NARROW_BLOCK, "Narrow to the block: it in a file of its own")
+    },
+    // `widen` (`C-x n w`) in a narrowed file, and `C-c '` there as in an
+    // edit buffer (`org-edit-src-exit`): what it says goes back, and it
+    // closes.
+    Command {
+        emacs: &[key(Org, "C-x n w")],
+        vim: &[key(Org, "<Leader>onw")],
+        ..command(NARROW_WIDEN, "Widen: the narrowed file written back and closed")
     },
     Command {
         emacs: &[key(Org, "C-c C-x b")],

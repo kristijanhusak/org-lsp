@@ -117,6 +117,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C '` | `org.edit.special` | Edit the block in a file of its own |
 | `Ctrl+X n s` | `org.narrow.subtree` | Narrow to the subtree: it in a file of its own |
 | `Ctrl+X n b` | `org.narrow.block` | Narrow to the block: it in a file of its own |
+| `Ctrl+X n w` | `org.narrow.widen` | Widen: the narrowed file written back and closed |
 | `Ctrl+C Ctrl+X b` | `org.tree.indirect` | Show the subtree in a file of its own |
 | `Ctrl+C `` | `org.table.edit.field` | Edit the table field in a file of its own |
 | `Ctrl+C Ctrl+X Ctrl+C` | `org.columns` | Column view |
@@ -480,6 +481,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "'"], "commands": ["org.edit.special"] },
   { "before": ["<leader>", "o", "n", "s"], "commands": ["org.narrow.subtree"] },
   { "before": ["<leader>", "o", "n", "b"], "commands": ["org.narrow.block"] },
+  { "before": ["<leader>", "o", "n", "w"], "commands": ["org.narrow.widen"] },
   { "before": ["<leader>", "o", "x", "b"], "commands": ["org.tree.indirect"] },
   { "before": ["<leader>", "o", "`"], "commands": ["org.table.edit.field"] },
   { "before": ["<leader>", "o", "x", "c"], "commands": ["org.columns"] },
@@ -655,6 +657,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.edit.special` | Org: Edit the block in a file of its own |
 | `org.narrow.subtree` | Org: Narrow to the subtree: it in a file of its own |
 | `org.narrow.block` | Org: Narrow to the block: it in a file of its own |
+| `org.narrow.widen` | Org: Widen: the narrowed file written back and closed |
 | `org.tree.indirect` | Org: Show the subtree in a file of its own |
 | `org.table.edit.field` | Org: Edit the table field in a file of its own |
 | `org.crypt.encrypt` | Org: Encrypt the entry |

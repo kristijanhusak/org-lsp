@@ -484,6 +484,7 @@ function! org_lsp#prompt(input) abort
   if !empty(get(a:input, 'completions', []))
     " Typed, completed from a list (Emacs's `completing-read`).
     let s:completions = a:input.completions
+    let s:separator = get(a:input, 'separator', '')
     let answer = input({'prompt': a:input.prompt . ': ', 'default': get(a:input, 'value', ''),
           \ 'completion': 'customlist,org_lsp#complete_input', 'cancelreturn': cancelled})
     return answer ==# cancelled ? v:null : answer
@@ -493,11 +494,23 @@ function! org_lsp#prompt(input) abort
 endfunction
 
 let s:completions = []
+let s:separator = ''
 
 " The completions of what a command asks to be typed, beginning with what
-" is typed, without regard to case.
+" is typed, without regard to case. With a separator (the `:` between
+" tags), what follows the last one is completed, what comes before kept.
 function! org_lsp#complete_input(lead, line, pos) abort
-  return filter(copy(s:completions), {_, c -> stridx(tolower(c), tolower(a:lead)) == 0})
+  let before = ''
+  let lead = a:lead
+  if !empty(s:separator)
+    let last = strridx(lead, s:separator)
+    if last >= 0
+      let before = lead[: last + len(s:separator) - 1]
+      let lead = lead[last + len(s:separator) :]
+    endif
+  endif
+  let found = filter(copy(s:completions), {_, c -> stridx(tolower(c), tolower(lead)) == 0})
+  return map(found, {_, c -> before . c})
 endfunction
 
 " Read one key, as Emacs does at its fast selection prompts: the choices

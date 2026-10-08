@@ -26,7 +26,7 @@ local SERVER = 'org_lsp'
 ---@field download? boolean Whether a server is downloaded when none is found: the build of `release` for this platform, into `stdpath('data')/org-lsp` (needs `curl` and `tar`). `:OrgLspDownload` downloads it again, to update it.
 ---@field release? string The release `download` and `:OrgLspDownload` fetch the server from: 'nightly' (built from the latest `main`), or a version tag such as 'v0.2.0'.
 ---@field settings? org_lsp.Settings The server's options, such as `org_agenda_files` and `org_todo_keywords`; see docs/neovim/configuration.md.
----@field startup_folded? 'showeverything'|'overview' Fold state of a newly opened file: everything open or every fold closed. Unset, the server's `org_startup_folded`, the file's `#+STARTUP:` and `VISIBILITY` properties decide.
+---@field startup_folded? 'showeverything'|'overview' How a newly opened file shows when neither the settings' `org_startup_folded` nor its `#+STARTUP:` say: everything open or every subtree folded. The file's `#+STARTUP:` and `VISIBILITY` properties always decide for it.
 ---@field folding? boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
 ---@field src_highlight? boolean Whether the code of source and export blocks and of inline source blocks (`#+begin_src python`, `src_python{…}`) is highlighted by the tree-sitter parser of its language, or its Vim syntax file when there is no parser, as Emacs's `org-src-fontify-natively` shows it.
@@ -311,6 +311,7 @@ function M.run(name, opts)
         local completion
         if input.completions and #input.completions > 0 then
           M.completions = input.completions
+          M.completion_separator = input.separator
           completion = 'customlist,v:lua.OrgLspCompleteInput'
         end
         vim.ui.input({ prompt = input.prompt .. ': ', default = input.value, completion = completion }, function(answer)
@@ -335,10 +336,24 @@ end
 ---@param lead string
 ---@return string[]
 function _G.OrgLspCompleteInput(lead)
+  -- With a separator (the `:` between tags), what follows the last one is
+  -- completed, what comes before it kept.
+  local before = ''
+  local separator = M.completion_separator
+  if separator and separator ~= '' then
+    local last = lead:match('.*()' .. vim.pesc(separator))
+    if last then
+      before, lead = lead:sub(1, last), lead:sub(last + 1)
+    end
+  end
   local lower = lead:lower()
-  return vim.tbl_filter(function(candidate)
-    return candidate:lower():sub(1, #lower) == lower
-  end, M.completions or {})
+  local out = {}
+  for _, candidate in ipairs(M.completions or {}) do
+    if candidate:lower():sub(1, #lower) == lower then
+      table.insert(out, before .. candidate)
+    end
+  end
+  return out
 end
 
 --- The closed folds of the current window, as their first and last
@@ -901,10 +916,11 @@ local function set_window_folds(win)
   vim.w[win][key] = true
   vim.wo[win][0].foldmethod = 'expr'
   vim.wo[win][0].foldexpr = 'v:lua.vim.lsp.foldexpr()'
-  vim.wo[win][0].foldlevel = M.config.startup_folded == 'overview' and 0 or 99
-  if M.config.startup_folded == nil then
-    close_startup_folds(win)
-  end
+  -- Everything open, then closed as the server says the file opens
+  -- (`#+STARTUP:`, `VISIBILITY`, the settings): the user's 'foldlevel'
+  -- does not decide for an Org file.
+  vim.wo[win][0].foldlevel = 99
+  close_startup_folds(win)
 end
 
 --- Vim's regex syntax for Org is an approximation and disagrees with the
@@ -1032,6 +1048,17 @@ local function on_attach(client, bufnr)
   end
 end
 
+--- The settings the server starts with: `settings`, with `startup_folded`
+--- as `org_startup_folded` when the settings do not say.
+---@return table
+function M.server_settings()
+  local settings = vim.deepcopy(M.config.settings or {})
+  if settings.org_startup_folded == nil and M.config.startup_folded then
+    settings.org_startup_folded = M.config.startup_folded
+  end
+  return settings
+end
+
 --- Register the server with Neovim's LSP client and enable it for Org files.
 ---@return boolean enabled
 local function enable()
@@ -1043,7 +1070,7 @@ local function enable()
   vim.lsp.config(SERVER, {
     cmd = cmd,
     filetypes = { 'org' },
-    init_options = M.config.settings,
+    init_options = M.server_settings(),
     capabilities = view.capabilities,
     handlers = view.handlers,
     on_init = on_init,

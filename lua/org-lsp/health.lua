@@ -34,12 +34,38 @@ function M.check()
     health.error('Could not run ' .. cmd[1])
   end
 
-  local files = org_lsp.config.settings.org_agenda_files
+  -- The options the server makes of the configuration file and the
+  -- settings here, as it reads them when it starts.
+  local settings = org_lsp.server_settings()
+  local options = settings
+  local encoded = vim.tbl_isempty(settings) and '{}' or vim.json.encode(settings)
+  local ran, config = pcall(function()
+    return vim.system({ cmd[1], 'config', '--options', encoded }, { text = true }):wait(5000)
+  end)
+  if ran and config.code == 0 then
+    local file = config.stdout:match('^Configuration file: ([^\n]*)')
+    if file then
+      health.info('Configuration file: ' .. file)
+    end
+    for problem in config.stdout:gmatch('Problem: ([^\n]*)') do
+      health.warn(problem)
+    end
+    local json = config.stdout:match('Options:\n(.*)$')
+    local decoded, merged = pcall(vim.json.decode, json or '')
+    if decoded and type(merged) == 'table' then
+      options = merged
+    end
+  end
+  local files = options.org_agenda_files
+  if type(files) == 'string' then
+    files = { files }
+  end
   if type(files) == 'table' and #files > 0 then
     health.ok('Agenda files: ' .. table.concat(files, ', '))
   else
     health.warn('No agenda files are configured; the agenda shows the Org files that are open', {
       "Set them in the configuration: settings = { org_agenda_files = { '~/org' } }",
+      'or in ~/.config/org-lsp/config.toml: org_agenda_files = ["~/org"]',
     })
   end
 

@@ -268,6 +268,8 @@ interface Input {
   choices?: { key: string; label: string }[];
   /** Text that may be typed, offered as it is typed (kind `text`). */
   completions?: string[];
+  /** What separates several answers (the `:` between tags): what follows the last is completed. */
+  separator?: string;
   /** What to send back with the answer, besides it. */
   context?: Record<string, unknown>;
 }
@@ -306,8 +308,11 @@ function typeOrPick(input: Input, completions: string[]): Promise<string | undef
   pick.placeholder = input.prompt;
   pick.ignoreFocusOut = true;
   const items = (typed: string) => {
-    const others = completions.map((label) => ({ label }));
-    if (!typed || completions.includes(typed)) return others;
+    // With a separator, what comes before the last one is kept.
+    const at = input.separator ? typed.lastIndexOf(input.separator) : -1;
+    const before = at >= 0 ? typed.slice(0, at + (input.separator ?? '').length) : '';
+    const others = completions.map((label) => ({ label: before + label }));
+    if (!typed || others.some((other) => other.label === typed)) return others;
     return [{ label: typed, description: 'as typed' }, ...others];
   };
   pick.items = items(input.value);

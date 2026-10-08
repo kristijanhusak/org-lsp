@@ -2604,6 +2604,34 @@ fn narrows_to_a_subtree_in_a_file_of_its_own() {
     );
     let block = run(&mut client, "org.narrow.block", 2);
     assert_eq!(std::fs::read_to_string(&block).unwrap(), "#+begin_quote\nwise\n#+end_quote\n");
+    // `C-x n w` in the narrowed file: written back as the editor has it,
+    // unsaved, and closed.
+    let block_uri = format!("file://{}", block.display());
+    client.notify(
+        "textDocument/didOpen",
+        json!({ "textDocument": { "uri": block_uri, "languageId": "org", "version": 1,
+            "text": "#+begin_quote\nwiser\n#+end_quote\n" } }),
+    );
+    let context = json!({ "textDocument": { "uri": block_uri }, "position": { "line": 0, "character": 0 } });
+    client.received.clear();
+    let widened = client
+        .request("workspace/executeCommand", json!({ "command": "org.narrow.widen", "arguments": [context] }))
+        .unwrap();
+    assert_eq!(widened, json!({ "close": block_uri }));
+    client.settle();
+    apply_received(&mut client, &uri, &mut text);
+    assert_eq!(text, "* A\n#+begin_quote\nwiser\n#+end_quote\nafter\n");
+    assert!(!block.exists());
+    // An editor saving it before closing it: removed again once closed.
+    std::fs::write(&block, "#+begin_quote\nwiser\n#+end_quote\n").unwrap();
+    client.notify("textDocument/didClose", json!({ "textDocument": { "uri": block_uri } }));
+    client.settle();
+    assert!(!block.exists());
+    // Not narrowed any more: nothing to widen.
+    let context = json!({ "textDocument": { "uri": block_uri }, "position": { "line": 0, "character": 0 } });
+    assert!(client
+        .request("workspace/executeCommand", json!({ "command": "org.narrow.widen", "arguments": [context] }))
+        .is_err());
     client.shutdown();
 }
 
@@ -4869,7 +4897,13 @@ fn sets_tags_by_key_and_from_the_agenda() {
     let asked = client
         .request("workspace/executeCommand", json!({ "command": "org.tags.set", "arguments": [context] }))
         .unwrap();
-    assert_eq!(asked["input"], json!({ "kind": "text", "prompt": "Tags", "value": "" }));
+    assert_eq!(asked["input"]["kind"], "text");
+    assert_eq!(asked["input"]["prompt"], "Tags");
+    assert_eq!(asked["input"]["value"], "");
+    // Each tag completed, after the last `:` too.
+    assert_eq!(asked["input"]["separator"], ":");
+    let completions = asked["input"]["completions"].as_array().unwrap();
+    assert!(completions.contains(&json!("office")), "{completions:?}");
     let mut context = context;
     context["input"] = json!("call:phone");
     client.received.clear();

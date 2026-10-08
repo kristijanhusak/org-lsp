@@ -152,6 +152,7 @@ export const AREAS = [
       { text: 'A subtree with `:VISIBILITY: children` opens with its children folded, one with `all` open', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'Two blank lines after a subtree stay visible below it when it is folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it', cmd: 'org.narrow.subtree' },
+      { text: 'Widening in the narrowed file writes it back and closes it (`C-c \'` there does the same)', cmd: 'org.narrow.widen' },
       { text: 'Opening the parent of an `:ARCHIVE:` subtree leaves that subtree folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'A sparse tree of the TODO entries folds everything else and highlights them', cmd: 'org.sparse.tree', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'With everything folded, showing the context of a line deep in a subtree opens the headlines above it and leaves the other subtrees folded', cmd: 'org.reveal', only: ['neovim', 'vim', 'vscode', 'sublime'] },
@@ -196,7 +197,7 @@ export const AREAS = [
       { text: 'Toggling `COMMENT` on the heading (needs Emacs)', cmd: 'org.toggle.comment', not: ['zed', 'helix'] },
       { text: 'Cloning the subtree twice a week apart (`+1w`): the copies follow it with their dates moved (needs Emacs)', cmd: 'org.subtree.clone', not: ['zed', 'helix'] },
       { text: 'On a selection of whole lines: two headlines demoted together; lines turned into headings (needs Emacs)', cmd: ['org.meta.right', 'org.table.recalculate.line'], not: ['zed', 'helix'] },
-      { text: 'The outline lists the headings nested', keys: { neovim: '`:lua vim.lsp.buf.document_symbol()`', vim: 'the client\'s document symbols', vscode: 'the Outline view', sublime: '*Goto Symbol*', zed: 'the outline panel', helix: '`Space s`' } },
+      { text: 'The outline lists the headings nested, also in pickers that filter symbols by kind', keys: { neovim: '`:lua vim.lsp.buf.document_symbol()` or a picker such as snacks.nvim\'s `lsp_symbols`', vim: 'the client\'s document symbols', vscode: 'the Outline view', sublime: '*Goto Symbol*', zed: 'the outline panel', helix: '`Space s`' } },
     ],
   },
   {
@@ -227,7 +228,7 @@ export const AREAS = [
       { text: 'Toggling a checkbox: its parent box and the `[1/3]` cookie follow', cmd: 'org.checkbox.toggle' },
       { text: 'On a list numbered 1, 3, 2, the same command renumbers and repairs it', cmd: 'org.checkbox.toggle' },
       { text: 'Sorting a list\'s items alphabetically', cmd: 'org.sort' },
-      { text: 'Off a table, turning lines into items and back (needs Emacs)', cmd: 'org.table.hline', not: ['zed', 'helix'] },
+      { text: 'Off a table, turning lines into items and back (needs Emacs); in a table the same key inserts a rule below the row', cmd: 'org.table.hline', not: ['zed', 'helix'] },
     ],
   },
   {
@@ -290,6 +291,7 @@ export const AREAS = [
       { text: 'Setting tags from `#+TAGS: work(w) home(h)` by key; each key turns its tag on and off', cmd: 'org.tags.set', not: ['zed', 'helix'] },
       { text: 'An exclusive group (`{ @office(o) @home(m) }`) turns the other tag off', cmd: 'org.tags.set', not: ['zed', 'helix'] },
       { text: 'Typing tags when none have keys; they are sorted and aligned to `org_tags_column`', cmd: 'org.tags.set', not: ['zed', 'helix'] },
+      { text: 'While typing tags, the file\'s tags are completed, after each `:` too', cmd: 'org.tags.set', only: ['neovim', 'vim', 'vscode'] },
       { text: 'Tags are completed after `:` at the end of a headline' },
       { text: 'Renaming a tag renames it in every headline and `#+FILETAGS:`', keys: { neovim: '`:lua vim.lsp.buf.rename()` on the tag', vim: 'the client\'s rename on the tag', vscode: '`F2` on the tag', sublime: '*LSP: Rename* on the tag', zed: '`F2` on the tag', helix: '`Space r` on the tag' } },
     ],

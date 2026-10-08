@@ -121,7 +121,9 @@ eq(vim.fn.foldclosed(2), 2, 'S-TAB folds the whole file')
 press('<S-Tab>')
 eq(vim.fn.foldclosed(2), -1, 'S-TAB again unfolds it')
 -- A file opens as its `#+STARTUP:` says: with `content` the headlines
--- show, those without children folded, and drawers folded.
+-- show, those without children folded, and drawers folded; the plugin's
+-- `startup_folded` gives way to it.
+require('org-lsp').config.startup_folded = 'overview'
 local startup = vim.fn.tempname() .. '.org'
 vim.fn.writefile({ '#+STARTUP: content', '* A', ':PROPERTIES:', ':ID: 1', ':END:', 'text', '** B', 'b text', '* C', 'c text' }, startup)
 vim.cmd.edit(startup)
@@ -129,6 +131,7 @@ wait('the folds it opens with', function()
   return vim.fn.foldclosed(10) == 9
 end)
 eq({ vim.fn.foldclosed(3), vim.fn.foldclosed(6), vim.fn.foldclosed(8) }, { 3, -1, 7 }, 'startup folds: drawer and childless headlines')
+require('org-lsp').config.startup_folded = nil
 vim.cmd.buffer(bufnr)
 
 -- 5. TODO cycling through the default key, from inside the entry's body.

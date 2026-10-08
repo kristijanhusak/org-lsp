@@ -5,9 +5,10 @@ use org_syntax::{ast, ast::Headline, SyntaxNode, TextRange, TextSize};
 
 use crate::line_index::{Encoding, LineIndex};
 
-/// Headlines have no natural symbol kind; `String` is what editors' own
-/// Markdown outlines use.
-const KIND: SymbolKind = SymbolKind::STRING;
+/// Headlines have no natural symbol kind. `Module`, a section of a file:
+/// symbol pickers that list only some kinds by default (snacks.nvim's,
+/// aerial.nvim's) list it, where they leave `String` out.
+const KIND: SymbolKind = SymbolKind::MODULE;
 
 /// The outline as a tree, for clients with hierarchical symbol support.
 pub fn document_symbols(root: &SyntaxNode, text: &str, index: &LineIndex, encoding: Encoding) -> Vec<DocumentSymbol> {

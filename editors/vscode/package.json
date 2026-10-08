@@ -776,6 +776,11 @@
         "category": "Org"
       },
       {
+        "command": "org.narrow.widen",
+        "title": "Widen: the narrowed file written back and closed",
+        "category": "Org"
+      },
+      {
         "command": "org.tree.indirect",
         "title": "Show the subtree in a file of its own",
         "category": "Org"
@@ -4547,6 +4552,11 @@
       {
         "command": "org.narrow.block",
         "key": "ctrl+x n b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.narrow.widen",
+        "key": "ctrl+x n w",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

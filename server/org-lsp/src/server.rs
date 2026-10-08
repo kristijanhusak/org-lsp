@@ -764,6 +764,9 @@ struct Server {
     /// those files are.
     special_edits: Vec<SpecialEdit>,
     special_directory: PathBuf,
+    /// Narrowed files widened and asked closed: removed again when the
+    /// editor closes them, as some save a file before closing it.
+    widened: Vec<PathBuf>,
     /// Twice a second, while there are some: whether their files were
     /// saved.
     special_tick: crossbeam_channel::Receiver<std::time::Instant>,
@@ -1095,6 +1098,7 @@ pub fn run(connection: Connection) -> Result<()> {
         timer: None,
         appt_check: None,
         special_edits: Vec::new(),
+        widened: Vec::new(),
         special_directory: server_directory("edit"),
         special_tick: crossbeam_channel::tick(std::time::Duration::from_millis(500)),
         appt_minute: std::time::Duration::from_secs_f64(
@@ -2147,6 +2151,11 @@ impl Server {
                 }
                 self.documents.remove(params.text_document.uri.as_str());
                 self.virtually_indented.remove(params.text_document.uri.as_str());
+                if let Some(path) = uri::to_path(&params.text_document.uri) {
+                    if let Some(index) = self.widened.iter().position(|widened| *widened == path) {
+                        let _ = std::fs::remove_file(self.widened.remove(index));
+                    }
+                }
                 // The agenda was closed: stop rebuilding it, once it is clear
                 // that the client does not open its file again at once.
                 if let Some(open) = self.view.as_mut().filter(|open| open.uri == params.text_document.uri) {
@@ -4207,6 +4216,20 @@ impl Server {
                 .and_then(|value| serde_json::from_value(value).ok())
                 .ok_or("This command needs the cursor position")?;
             return self.narrow(&params.command, &context);
+        }
+        // In a narrowed file, `C-c '` leaves it, as `C-x n w` does.
+        let narrowed = argument
+            .as_ref()
+            .and_then(|value| value.pointer("/textDocument/uri")?.as_str()?.parse::<Uri>().ok())
+            .and_then(|uri| uri::to_path(&uri))
+            .is_some_and(|path| {
+                self.special_edits.iter().any(|edit| edit.file == path && edit.kind == SpecialKind::Region)
+            });
+        if params.command == commands::NARROW_WIDEN || (params.command == commands::EDIT_SPECIAL && narrowed) {
+            let context: Context = argument
+                .and_then(|value| serde_json::from_value(value).ok())
+                .ok_or("This command needs the cursor position")?;
+            return self.widen(&context);
         }
         if params.command == commands::EDIT_SPECIAL || params.command == commands::TABLE_EDIT_FIELD {
             return self.edit_special(argument, params.command == commands::TABLE_EDIT_FIELD);
@@ -7701,9 +7724,22 @@ impl Server {
             server.edit_with(context, commands::SET_TAGS, Some(EditCommand::Tags(chosen)), &Extra::default())
         };
         if !tags::uses_fast_selection(&table, &settings) {
+            // Typed, each tag completed from the table (`org-set-tags-command`'s
+            // `completing-read-multiple`): what follows the last `:`.
+            let mut completions: Vec<String> = Vec::new();
+            for entry in &table {
+                if let tags::TagEntry::Tag(tag, _) = entry {
+                    if !completions.contains(tag) {
+                        completions.push(tag.clone());
+                    }
+                }
+            }
             return match context.input.as_deref() {
                 Some(answer) => set(self, tags::parse_tags(answer)),
-                None => Ok(json!({ "input": { "kind": "text", "prompt": "Tags", "value": tags::tag_string(&own) } })),
+                None => Ok(json!({ "input": {
+                    "kind": "text", "prompt": "Tags", "value": tags::tag_string(&own),
+                    "completions": completions, "separator": ":",
+                } })),
             };
         }
         let selection = Selection::new(&table);
@@ -8811,6 +8847,31 @@ impl Server {
         self.send_request::<ShowDocument>(params, None);
         self.message = Some(format!("{}: saving the file writes it back", new.name));
         Ok(Value::Null)
+    }
+
+    /// `widen` (`C-x n w`) in a narrowed file: what it says now, saved or
+    /// not, goes back into the Org file, and it closes (the result has
+    /// `close`), its file gone.
+    fn widen(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = &context.text_document.uri;
+        let path = uri::to_path(uri).ok_or("Not in a narrowed file")?;
+        let index = self
+            .special_edits
+            .iter()
+            .position(|edit| edit.file == path && edit.kind == SpecialKind::Region)
+            .ok_or(Refusal::NotHere("Not in a narrowed file".to_string()))?;
+        let content = match self.document(uri) {
+            Some(document) => document.text.clone(),
+            None => std::fs::read_to_string(&path).map_err(|_| "The narrowed file is gone")?,
+        };
+        if content != self.special_edits[index].content {
+            // A narrowed part goes back at once, without Emacs.
+            self.write_back(index, content);
+        }
+        let edit = self.special_edits.remove(index);
+        let _ = std::fs::remove_file(&edit.file);
+        self.widened.push(edit.file);
+        Ok(json!({ "close": uri.as_str() }))
     }
 
     /// `org-narrow-to-subtree` (`C-x n s`), `org-narrow-to-block` (`C-x n
