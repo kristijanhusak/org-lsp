@@ -501,7 +501,8 @@ export const AREAS = [
       ['Link abbreviations (`#+LINK:`, `org-link-abbrev-alist`)', true],
       ['Link abbreviations that call a function (`%(…)`)', false],
       ['A region as the search of a stored link', false],
-      ['Completing `id:` and `help:` links', false],
+      ['Completing `id:` links to entries, which get an ID (`org-id-complete`; Org completes no `help:` links)', true],
+      ['Default descriptions from the link type: an `id:` link\'s headline, an `info:` link\'s command', true],
       ['Moving to the next and previous link (`C-c C-x C-n`, `C-c C-x C-p`)', true],
     ],
     editors: {

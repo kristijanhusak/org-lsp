@@ -673,6 +673,91 @@ pub fn new_uuid() -> String {
 
 // ----- inserting
 
+/// What `org-insert-link` knows beyond the file it inserts in.
+pub struct Outside<'a> {
+    /// The link abbreviations of the file and `org-link-abbrev-alist`,
+    /// whose names it offers as link types too.
+    pub abbreviations: &'a [(String, String)],
+    /// The entries an `id:` link completes to (`org-id-complete`), as
+    /// `org-refile-get-location` offers them.
+    pub id_entries: &'a [String],
+    /// The entry an "Entry: " answer names.
+    pub id_entry: &'a mut dyn FnMut(&str) -> Option<IdEntry>,
+    /// The headline of the entry with an ID, as `org-id-description` gives
+    /// it, when the ID is known.
+    pub id_heading: &'a mut dyn FnMut(&str) -> Option<String>,
+    /// For the ID an entry of this file gets.
+    pub context: &'a properties::Context,
+    pub new_id: &'a mut dyn FnMut() -> String,
+}
+
+/// An entry `id:` completes to.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IdEntry {
+    /// The headline at this byte offset of the file the link goes in; the
+    /// entry gets an ID there if it has none.
+    Here(usize),
+    /// An entry in another file, by its ID (which the caller makes when it
+    /// has none) and its headline.
+    There { id: String, heading: String },
+}
+
+/// The entries `org-id-complete` offers (`org-id-completion-targets`):
+/// every headline of `files[0]`, the file the link goes in, then of the
+/// others (`org-id-files`), by their outline paths.
+pub fn id_targets(files: &[crate::refile::File]) -> Vec<(usize, crate::refile::Target)> {
+    use crate::refile::{all_targets, OutlinePath, Select};
+    let selections = vec![(Select::All, vec![0]), (Select::All, (1..files.len()).collect())];
+    all_targets(&selections, files, Some(0), OutlinePath::Yes)
+}
+
+/// Whether a file has entries with IDs, and so is one of `org-id-files`
+/// once Org has scanned it.
+pub fn has_ids(text: &str) -> bool {
+    static ID: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?mi)^[ \t]*:ID:[ \t]+\S").expect("a valid regex"));
+    ID.is_match(text)
+}
+
+/// `org-id-description` of the entry whose headline is at `offset`:
+/// `(org-link-display-format (org-get-heading t t t t))`.
+pub fn entry_heading(text: &str, offset: usize, keywords: &org_syntax::TodoKeywords) -> String {
+    static COMMENT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\ACOMMENT[ \t]+").expect("a valid regex"));
+    let line = text[offset..].lines().next().unwrap_or("");
+    let level = line.bytes().take_while(|byte| *byte == b'*').count();
+    let Some((from, to)) = complex_heading_title(line, level, keywords) else { return String::new() };
+    crate::refile::link_display_format(&COMMENT.replace(&line[from..to], ""))
+}
+
+/// `org-link-get-description` without a description to fall back on: what
+/// the link's type says it is (`:insert-description`), for `id:` and
+/// `info:` links.
+fn link_description(link: &str, outside: &mut Outside) -> Option<String> {
+    let ty = link.find(':').map(|at| &link[..at])?;
+    let known = outside.abbreviations.iter().any(|(name, _)| name == ty) || org_syntax::link_types().contains(&ty);
+    if !known {
+        return None;
+    }
+    let rest = &link[ty.len() + 1..];
+    match ty {
+        "id" => (outside.id_heading)(rest),
+        // `org-info-description-as-command`
+        "info" => {
+            static FILE_NODE: LazyLock<Regex> =
+                LazyLock::new(|| Regex::new(r"\A([^#:]*)(?:[#:]:?(.*))?\z").expect("a valid regex"));
+            let found = FILE_NODE.captures(rest)?;
+            let trim = |text: &str| text.trim_matches([' ', '\t', '\n', '\r']).to_string();
+            let file = found.get(1).map(|file| trim(file.as_str())).filter(|file| !file.is_empty());
+            let node = found.get(2).map(|node| trim(node.as_str())).filter(|node| !node.is_empty());
+            Some(match (file.as_deref().unwrap_or("dir"), node.as_deref().unwrap_or("Top")) {
+                ("dir", "Top") => "info \"(dir)\"".to_string(),
+                (file, "Top") => format!("info {file}"),
+                (file, node) => format!("info \"({file}) {node}\""),
+            })
+        }
+        _ => None,
+    }
+}
+
 /// What a command asks next.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Question {
@@ -742,6 +827,7 @@ fn make_string_for_buffer(
     file: &File,
     path_type: PathType,
     answer: Option<Option<&String>>,
+    outside: Option<&mut Outside>,
 ) -> Result<Result<String, Step>, String> {
     static TIMESTAMP: LazyLock<Regex> = LazyLock::new(|| {
         Regex::new(r"<[0-9]{4}-[0-9]{2}-[0-9]{2}(?: +[^\]+0-9>\r\n -]+)?(?: +[0-9]{1,2}:[0-9]{2})?>")
@@ -775,6 +861,11 @@ fn make_string_for_buffer(
         }
         link = format!("{kind}{path}{}", search.map(|search| format!("::{search}")).unwrap_or_default());
     }
+    if description.is_none() {
+        if let Some(outside) = outside {
+            description = link_description(&link, outside);
+        }
+    }
     if let Some(answer) = answer {
         match answer {
             Some(answer) => description = Some(answer.clone()),
@@ -804,6 +895,7 @@ fn link_at(text: &str, at: usize) -> Option<((usize, usize), String, Option<Stri
 
 /// `org-insert-link` (`C-c C-l`) at `at`, with `prefix` the `C-u`s (0 to
 /// 3), the answers so far and the stored links.
+#[allow(clippy::too_many_arguments)]
 pub fn insert(
     text: &str,
     at: usize,
@@ -812,12 +904,18 @@ pub fn insert(
     prefix: usize,
     answers: &[String],
     settings: &Settings,
+    outside: &mut Outside,
 ) -> Result<Step, String> {
     let mut answers = answers.iter();
     let mut remove = None;
     let mut description = None;
     let link;
-    if let Some((range, initial, desc)) = link_at(text, at) {
+    // The file and the cursor once an `id:` entry of this file has its ID.
+    let mut text = std::borrow::Cow::Borrowed(text);
+    let mut at = at;
+    // The headline of the entry an `id:` link was completed to.
+    let mut completed = None;
+    if let Some((range, initial, desc)) = link_at(&text, at) {
         remove = Some(range);
         description = desc;
         match answers.next() {
@@ -830,7 +928,8 @@ pub fn insert(
             None => return Ok(ask("File", &file_prompt_initial(file))),
         }
     } else {
-        let prefixes: Vec<&str> = org_syntax::link_types().to_vec();
+        let mut prefixes: Vec<&str> = outside.abbreviations.iter().map(|(name, _)| name.as_str()).collect();
+        prefixes.extend(org_syntax::link_types());
         let default = stored.first().map(|(link, _)| link.clone());
         let Some(answer) = answers.next() else {
             let mut completions: Vec<String> = prefixes.iter().map(|ty| format!("{ty}:")).collect();
@@ -857,15 +956,53 @@ pub fn insert(
             answer = match (ty.as_str(), answers.next()) {
                 ("file", Some(name)) => complete_file(name, false, file),
                 ("file", None) => return Ok(ask("File", &file_prompt_initial(file))),
+                // `org-id-complete`: an entry, which gets an ID if it has
+                // none; failing that, the link typed.
+                ("id", None) if !outside.id_entries.is_empty() => {
+                    return Ok(Step::Ask(Question {
+                        prompt: "Entry".to_string(),
+                        initial: String::new(),
+                        completions: outside.id_entries.to_vec(),
+                    }));
+                }
+                ("id", Some(entry)) if !outside.id_entries.is_empty() => match (outside.id_entry)(entry) {
+                    Some(IdEntry::Here(heading)) => {
+                        let (edited, id) = id_get_create(&text, heading, outside.context, outside.new_id)?;
+                        if let Some((edited, _)) = edited {
+                            at = after_insertion(&text, &edited, at);
+                            text = std::borrow::Cow::Owned(edited);
+                        }
+                        completed = Some(entry_heading(&text, heading, &outside.context.keywords));
+                        format!("id:{id}")
+                    }
+                    Some(IdEntry::There { id, heading }) => {
+                        completed = Some(heading);
+                        format!("id:{id}")
+                    }
+                    None => match answers.next() {
+                        Some(typed) => typed.clone(),
+                        None => return Ok(ask("Link", "id:")),
+                    },
+                },
+                ("id", None) => return Ok(ask("Link", "id:")),
                 (_, Some(typed)) => typed.clone(),
                 (_, None) => return Ok(ask("Link (no completion support)", &format!("{ty}:"))),
             };
         }
         link = answer;
         description = stored.iter().find(|(stored_link, _)| *stored_link == link).and_then(|(_, desc)| desc.clone());
+        // `org-id-description`, of an entry whose ID may be new.
+        description = description.or(completed);
     }
     let path_type = if prefix == 2 { PathType::Absolute } else { settings.path_type };
-    let made = match make_string_for_buffer(&link, description.as_deref(), file, path_type, Some(answers.next()))? {
+    let made = match make_string_for_buffer(
+        &link,
+        description.as_deref(),
+        file,
+        path_type,
+        Some(answers.next()),
+        Some(outside),
+    )? {
         Ok(made) => made,
         Err(step) => return Ok(step),
     };
@@ -876,7 +1013,7 @@ pub fn insert(
         }
     }
     let (start, end) = remove.unwrap_or((at, at));
-    let mut edited = text.to_string();
+    let mut edited = text.into_owned();
     edited.replace_range(start..end, &made);
     Ok(Step::Done(Inserted { text: edited, cursor: start + made.len(), stored }))
 }
@@ -917,7 +1054,7 @@ pub fn insert_all(
         let Some((link, description)) = next else { break };
         inserted += 1;
         let description = description.unwrap_or_else(|| "<no description>".to_string());
-        let made = match make_string_for_buffer(&link, Some(&description), file, settings.path_type, None)? {
+        let made = match make_string_for_buffer(&link, Some(&description), file, settings.path_type, None, None)? {
             Ok(made) => made,
             Err(_) => unreachable!("nothing is asked"),
         };

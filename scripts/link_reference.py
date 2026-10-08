@@ -25,6 +25,11 @@ A case is a JSON object:
           ["goto", "text"]                  the cursor to the start of that
                                             text
       "options": {"org_id_link_to_org_use_id": "t"}   optional
+      "id_files": ["other.org"]             optional: IDs are tracked
+                                            (`org-id-track-globally`), and
+                                            these files are scanned for them
+                                            once `main.org` is open: those
+                                            with IDs are `org-id-files`
     }
 
 `reference(cases)` adds `expected`: the files after the steps (the current
@@ -58,8 +63,9 @@ DRIVER = r"""
 (defun org-lsp-answer (default)
   (let ((answer (pop org-lsp-answers)))
     (if (eq answer :default) (or default "") answer)))
-(defun org-lsp-link-case (dir main out offset steps)
-  (setq org-stored-links nil org-link--insert-history nil org-lsp-ids 0)
+(defun org-lsp-link-case (dir main out offset steps &optional id-files)
+  (setq org-stored-links nil org-link--insert-history nil org-lsp-ids 0
+        org-refile-history nil org-id-track-globally nil org-id-locations nil org-id-files nil)
   (let (returned buffer)
     (let ((result
            (condition-case err
@@ -80,6 +86,10 @@ DRIVER = r"""
                  (setq buffer (find-file-noselect main))
                  (set-buffer buffer)
                  (goto-char (1+ offset))
+                 (when id-files
+                   (setq org-id-track-globally t
+                         org-id-locations-file (expand-file-name ".org-id-locations" dir))
+                   (org-id-update-id-locations (mapcar (lambda (f) (expand-file-name f dir)) id-files) t))
                  (dolist (step steps)
                    (pcase (car step)
                      ("visit" (setq buffer (find-file-noselect (expand-file-name (cadr step) dir)))
@@ -185,7 +195,8 @@ def reference(cases):
                 f" (abbreviated-home-dir nil) {bindings(case.get('options'))})\n"
                 f"  (setenv \"HOME\" {lisp_string(os.path.join(BASE, str(index)))})\n"
                 f"  (org-lsp-link-case {lisp_string(directory)} {lisp_string(path)} {lisp_string(out)}"
-                f" {max(offset, 0)} {lisp_steps(case['steps'])}))"
+                f" {max(offset, 0)} {lisp_steps(case['steps'])}"
+                f" '({' '.join(lisp_string(name) for name in case.get('id_files', []))})))"
             )
         driver = os.path.join(BASE, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:

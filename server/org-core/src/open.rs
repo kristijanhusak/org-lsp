@@ -160,7 +160,7 @@ pub fn link_at(text: &str, parse: &Parse, offset: usize, global: &[(String, Stri
 
 /// The link abbreviations of `text`: its `#+LINK:` lines, the last first
 /// (`org-link-abbrev-alist-local`), then `global`.
-fn abbreviations(text: &str, global: &[(String, String)]) -> Vec<(String, String)> {
+pub fn abbreviations(text: &str, global: &[(String, String)]) -> Vec<(String, String)> {
     static LINK_LINE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r#"(?im)^[ \t]*#\+LINK:[ \t]*(.*?)[ \t]*$"#).expect("a valid regex"));
     static QUOTED: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"\A"(.+[^\\])"[ \t]+(.+)"#).expect("a valid regex"));

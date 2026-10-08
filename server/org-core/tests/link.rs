@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use org_core::link::{self, File, PathType, Settings, Step, Stored, UseId};
-use org_core::properties;
+use org_core::{properties, refile};
 use serde_json::{json, Value};
 
 const HOME: &str = "/home/u";
@@ -76,11 +76,17 @@ fn run(case: &Value) -> Result<Value, String> {
     let settings = settings(case);
     let mut stored: Stored = Vec::new();
     let mut returned: Vec<String> = Vec::new();
-    let mut ids = 0;
-    let mut new_id = || {
-        ids += 1;
-        format!("id-{ids}")
+    let ids = std::cell::Cell::new(0);
+    let new_id = || {
+        ids.set(ids.get() + 1);
+        format!("id-{}", ids.get())
     };
+    let mut new_id = new_id;
+    // `org-id-track-globally`, with the files scanned for IDs.
+    let id_files: Option<Vec<String>> = case
+        .get("id_files")
+        .and_then(Value::as_array)
+        .map(|names| names.iter().map(|name| name.as_str().unwrap().to_string()).collect());
     for step in case["steps"].as_array().unwrap() {
         let step = step.as_array().unwrap();
         let path = format!("{DIRECTORY}/{current}");
@@ -119,9 +125,75 @@ fn run(case: &Value) -> Result<Value, String> {
                 let given: Vec<Option<String>> =
                     step[2..].iter().map(|answer| answer.as_str().map(str::to_string)).collect();
                 let mut answers: Vec<String> = Vec::new();
+                let keywords = org_syntax::TodoKeywords::default();
+                // `org-id-files`: the files scanned that have IDs.
+                let others: Vec<String> = id_files
+                    .iter()
+                    .flatten()
+                    .filter(|name| **name != current && link::has_ids(&files[*name]))
+                    .cloned()
+                    .collect();
+                let names: Vec<String> = std::iter::once(current.clone()).chain(others.iter().cloned()).collect();
+                let paths: Vec<String> = names.iter().map(|name| format!("{DIRECTORY}/{name}")).collect();
+                let refile_files: Vec<refile::File> = names
+                    .iter()
+                    .zip(&paths)
+                    .map(|(name, path)| refile::File {
+                        text: if *name == current { &text } else { &files[name] },
+                        keywords: &keywords,
+                        name: name.rsplit('/').next().unwrap(),
+                        path,
+                        title: None,
+                    })
+                    .collect();
+                let targets = link::id_targets(&refile_files);
+                let entries = refile::names(&targets);
+                let abbreviations = org_core::open::abbreviations(&text, &[]);
+                let before = ids.get();
+                let mut made_there: Option<(String, String)>;
+                let tracked = id_files.is_some();
+                let mut offered = false;
                 loop {
-                    match link::insert(&text, cursor, &file, &stored, prefix(step), &answers, &settings)? {
+                    ids.set(before);
+                    made_there = None;
+                    let mut id_entry = |answer: &str| {
+                        let (index, target) = refile::find(&targets, answer)?;
+                        let offset = target.offset?;
+                        if *index == 0 {
+                            return Some(link::IdEntry::Here(offset));
+                        }
+                        let name = &names[*index];
+                        let (edited, id) =
+                            link::id_get_create(&files[name], offset, &self::context(name), &mut || new_id()).ok()?;
+                        if let Some((edited, _)) = edited {
+                            made_there = Some((name.clone(), edited));
+                        }
+                        let heading = link::entry_heading(&files[name], offset, &keywords);
+                        Some(link::IdEntry::There { id, heading })
+                    };
+                    // `org-id-find`: the current file, then the files
+                    // tracked.
+                    let mut id_heading = |id: &str| {
+                        let searched = std::iter::once(&current).chain(names[1..].iter().filter(|_| tracked));
+                        searched.into_iter().find_map(|name| {
+                            let text = if *name == current { &text } else { &files[name] };
+                            let offset = org_core::open::find_id(&org_syntax::parse(text, &keywords), id)?;
+                            Some(link::entry_heading(text, offset, &keywords))
+                        })
+                    };
+                    let mut fresh_id = || new_id();
+                    let mut outside = link::Outside {
+                        abbreviations: &abbreviations,
+                        id_entries: &entries,
+                        id_entry: &mut id_entry,
+                        id_heading: &mut id_heading,
+                        context: &context,
+                        new_id: &mut fresh_id,
+                    };
+                    match link::insert(&text, cursor, &file, &stored, prefix(step), &answers, &settings, &mut outside)?
+                    {
                         Step::Ask(question) => {
+                            offered |= question.prompt == "Entry";
                             let Some(answer) = given.get(answers.len()) else {
                                 panic!("no answer to {:?}", question.prompt);
                             };
@@ -133,6 +205,15 @@ fn run(case: &Value) -> Result<Value, String> {
                             stored = inserted.stored;
                             break;
                         }
+                    }
+                }
+                if let Some((name, edited)) = made_there.take() {
+                    files.insert(name, edited);
+                }
+                // Org visited the files it offered entries of.
+                for name in others.iter().filter(|_| offered) {
+                    if !visited.contains(name) {
+                        visited.push(name.clone());
                     }
                 }
             }

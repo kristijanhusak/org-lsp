@@ -4785,6 +4785,65 @@ fn stores_and_inserts_links() {
     assert!(text.ends_with(&format!(":END:\n[[id:{id}][Tasks]]\n")), "{text}");
 }
 
+/// `org-id-complete`: `id:` at the link prompt asks for an entry, of
+/// this file or of a file with IDs, which gets an ID if it has none; the
+/// description offered is its headline.
+#[test]
+fn completes_id_links_to_entries() {
+    let mut client = Client::editor(clock(), None);
+    let uri = "file:///org/notes.org";
+    let other = "file:///org/other.org";
+    let mut text = "* Here\nx\n".to_string();
+    client.open(uri, &text);
+    let other_text = "* Far\n:PROPERTIES:\n:ID: far-id\n:END:\n** Child\n";
+    client.open(other, other_text);
+    client.open("file:///org/plain.org", "* Plain\n");
+    let answer = |client: &mut Client, text: &mut String, asked: &Value, input: &str| {
+        let context = asked["input"]["context"].clone();
+        let extra = json!({ "input": input, "step": context["step"], "answers": context["answers"] });
+        run_applying(client, uri, text, "org.link.insert", 1, extra)
+    };
+    let asked = run_applying(&mut client, uri, &mut text, "org.link.insert", 1, json!({}));
+    let asked = answer(&mut client, &mut text, &asked, "id:");
+    assert_eq!(asked["input"]["prompt"], "Entry", "{asked}");
+    assert_eq!(asked["input"]["completions"], json!(["Here/", "Far/ (other.org)", "Far/Child/ (other.org)"]));
+    let asked = answer(&mut client, &mut text, &asked, "Far/Child/ (other.org)");
+    assert_eq!(asked["input"]["prompt"], "Description", "{asked}");
+    assert_eq!(asked["input"]["value"], "Child", "{asked}");
+    // The entry in the other file gets its ID in the same edit.
+    let context = asked["input"]["context"].clone();
+    let arguments = json!([{ "textDocument": { "uri": uri }, "position": { "line": 1, "character": 0 },
+        "input": "Child", "step": context["step"], "answers": context["answers"] }]);
+    client.received.clear();
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.link.insert", "arguments": arguments }))
+        .unwrap();
+    client.settle();
+    let request = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let changes = request.params["edit"]["documentChanges"].as_array().unwrap();
+    let edited = |name: &str, before: &str| {
+        let change = changes.iter().find(|change| change["textDocument"]["uri"] == name).expect(name);
+        apply(before, change["edits"].as_array().unwrap())
+    };
+    let far = edited(other, other_text);
+    let id = far.lines().filter_map(|line| line.strip_prefix(":ID:")).map(str::trim).nth(1).unwrap().to_string();
+    assert_eq!(
+        far,
+        format!("* Far\n:PROPERTIES:\n:ID: far-id\n:END:\n** Child\n:PROPERTIES:\n:ID:       {id}\n:END:\n")
+    );
+    assert_eq!(edited(uri, &text), format!("* Here\n[[id:{id}][Child]]x\n"));
+    client.received.clear();
+
+    // An entry of this file: its ID goes in first, the link after it.
+    let asked = run_applying(&mut client, uri, &mut text, "org.link.insert", 1, json!({}));
+    let asked = answer(&mut client, &mut text, &asked, "id");
+    let asked = answer(&mut client, &mut text, &asked, "Here");
+    assert_eq!(asked["input"]["value"], "Here", "{asked}");
+    answer(&mut client, &mut text, &asked, "");
+    let id = text.lines().find_map(|line| line.strip_prefix(":ID:")).map(str::trim).unwrap().to_string();
+    assert_eq!(text, format!("* Here\n:PROPERTIES:\n:ID:       {id}\n:END:\n[[id:{id}]]x\n"));
+}
+
 /// `textDocument/documentLink`: URLs and files at once, places in files
 /// once resolved, as the file and the line; hover over a link shows it as
 /// Emacs does, and the entry it leads to.
