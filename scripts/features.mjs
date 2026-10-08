@@ -813,7 +813,18 @@ export const AREAS = [
       { text: 'An `attachment:` link opens the attached file (needs Emacs)', cmd: 'org.open' },
     ],
   },
-  { name: 'Encryption', emacs: [['Encrypting and decrypting entries (`org-crypt`)', false]] },
+  {
+    name: 'Encryption',
+    emacs: [
+      ['Encrypting and decrypting an entry, and the entries tagged `crypt` (`org-crypt`, through Emacs and GnuPG): for `org-crypt-key` or the `CRYPTKEY` property, or with a passphrase GnuPG\'s pinentry asks for', true],
+      ['Encrypting before saving, with `org-crypt-use-before-save-magic` in the Emacs configuration (LSP\'s `willSaveWaitUntil`, for editors that send it)', true],
+    ],
+    checks: [
+      { text: 'With `org-crypt-key` set in the Emacs configuration, encrypting an entry replaces its text with a PGP message; decrypting brings it back (needs Emacs and GnuPG)', cmd: ['org.crypt.encrypt', 'org.crypt.decrypt'] },
+      { text: 'Encrypting and decrypting every entry tagged `crypt` (needs Emacs and GnuPG)', cmd: ['org.crypt.encrypt.all', 'org.crypt.decrypt.all'] },
+      { text: 'With `(org-crypt-use-before-save-magic)` in the Emacs configuration, saving a file encrypts its entries tagged `crypt` (needs Emacs and GnuPG)' },
+    ],
+  },
   { name: 'Inline images and LaTeX previews', emacs: [['Inline images (`C-c C-x C-v`)', false], ['LaTeX previews (`C-c C-x C-l`)', false]] },
 ];
 

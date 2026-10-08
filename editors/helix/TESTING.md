@@ -221,3 +221,9 @@ here and why.
 **Partly:** `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and it is not among them.
 
 - [ ] An `attachment:` link opens the attached file (needs Emacs): the code action *Open the link or thing at the cursor*
+
+## Encryption
+
+- [ ] With `org-crypt-key` set in the Emacs configuration, encrypting an entry replaces its text with a PGP message; decrypting brings it back (needs Emacs and GnuPG): the code action *Encrypt the entry*, the code action *Decrypt the entry*
+- [ ] Encrypting and decrypting every entry tagged `crypt` (needs Emacs and GnuPG): the code action *Encrypt the entries tagged crypt*, the code action *Decrypt the encrypted entries*
+- [ ] With `(org-crypt-use-before-save-magic)` in the Emacs configuration, saving a file encrypts its entries tagged `crypt` (needs Emacs and GnuPG)

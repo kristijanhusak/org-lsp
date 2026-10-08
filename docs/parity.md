@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 87%**
+**All of Org: 91%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -37,7 +37,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Completion and editing helpers](#completion-and-editing-helpers) | 100% | 4 of 4 |
 | [Timers](#timers) | 80% | 4 of 5 |
 | [Attachments](#attachments) | 100% | 2 of 2 |
-| [Encryption](#encryption) | 0% | 0 of 1 |
+| [Encryption](#encryption) | 100% | 2 of 2 |
 | [Inline images and LaTeX previews](#inline-images-and-latex-previews) | 0% | 0 of 2 |
 
 ## Highlighting
@@ -509,9 +509,10 @@ Where editors fall short:
 
 ## Encryption
 
-0% (0 of 1)
+100% (2 of 2)
 
-- ❌ Encrypting and decrypting entries (`org-crypt`)
+- ✅ Encrypting and decrypting an entry, and the entries tagged `crypt` (`org-crypt`, through Emacs and GnuPG): for `org-crypt-key` or the `CRYPTKEY` property, or with a passphrase GnuPG's pinentry asks for
+- ✅ Encrypting before saving, with `org-crypt-use-before-save-magic` in the Emacs configuration (LSP's `willSaveWaitUntil`, for editors that send it)
 
 ## Inline images and LaTeX previews
 

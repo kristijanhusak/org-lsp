@@ -42,9 +42,9 @@ The Neovim plugin is the repository itself (`lua/`, `plugin/`): install
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ✅ | Completion needs an LSP completion plugin (or `vim.lsp.completion`). |
 | [Timers](../../docs/parity.md#timers) | 80% | ✅ |  |
 | [Attachments](../../docs/parity.md#attachments) | 100% | ✅ |  |
-| [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
+| [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **87%** |  |  |
+| **All of Org** | **91%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

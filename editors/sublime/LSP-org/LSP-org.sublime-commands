@@ -966,6 +966,34 @@
     }
   },
   {
+    "caption": "Org: Encrypt the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.crypt.encrypt"
+    }
+  },
+  {
+    "caption": "Org: Decrypt the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.crypt.decrypt"
+    }
+  },
+  {
+    "caption": "Org: Encrypt the entries tagged crypt",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.crypt.encrypt.all"
+    }
+  },
+  {
+    "caption": "Org: Decrypt the encrypted entries",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.crypt.decrypt.all"
+    }
+  },
+  {
     "caption": "Org: Start the relative timer",
     "command": "org_lsp_run",
     "args": {

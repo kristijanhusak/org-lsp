@@ -2390,6 +2390,83 @@ fn edits_table_formulas_in_a_file() {
     client.shutdown();
 }
 
+/// `org-crypt`: the entry's text encrypted for `org-crypt-key`, and back,
+/// by Emacs and GnuPG.
+#[test]
+fn encrypts_and_decrypts_entries() {
+    let found = |program: &str| {
+        std::process::Command::new(program).arg("--version").output().is_ok_and(|out| out.status.success())
+    };
+    if !found("emacs") {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("encrypts_and_decrypts_entries: no Emacs, skipped");
+        return;
+    }
+    if !found("gpg") {
+        eprintln!("encrypts_and_decrypts_entries: no GnuPG, skipped");
+        return;
+    }
+    // A key without a passphrase, in a home of its own (short: gpg-agent's
+    // socket is in it).
+    let home = PathBuf::from(format!("/tmp/olg-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&home);
+    std::fs::create_dir_all(&home).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    let made = std::process::Command::new("gpg")
+        .env("GNUPGHOME", &home)
+        .args(["--batch", "--passphrase", "", "--quick-gen-key", "org-lsp@example.org", "default", "default", "never"])
+        .output()
+        .unwrap();
+    assert!(made.status.success(), "{}", String::from_utf8_lossy(&made.stderr));
+    let directory = workspace("crypt");
+    let file = directory.join("secret.org");
+    let mut text = "* Secret :crypt:\nThe plan.\n* Other\n".to_string();
+    std::fs::write(&file, &text).unwrap();
+    let mut config = format!(
+        "(setenv \"GNUPGHOME\" {:?}) (setq org-crypt-key \"org-lsp@example.org\") \
+         (require 'org-crypt) (org-crypt-use-before-save-magic)",
+        home.display().to_string()
+    );
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        config = format!("(add-to-list 'load-path {dir:?}) {config}");
+    }
+    let mut options = clock();
+    options["emacs_config"] = json!(config);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, &text);
+    let run = |client: &mut Client, text: &mut String, command: &str| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 2 } });
+        client.received.clear();
+        client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        let start = std::time::Instant::now();
+        while !client.received.iter().any(|request| request.method == "workspace/applyEdit")
+            && start.elapsed() < std::time::Duration::from_secs(20)
+        {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            client.settle();
+        }
+        apply_received(client, &uri, text);
+    };
+    run(&mut client, &mut text, "org.crypt.encrypt");
+    assert!(text.starts_with("* Secret :crypt:\n-----BEGIN PGP MESSAGE-----\n"), "{text}");
+    assert!(text.ends_with("-----END PGP MESSAGE-----\n* Other\n") && !text.contains("The plan"), "{text}");
+    run(&mut client, &mut text, "org.crypt.decrypt");
+    assert_eq!(text, "* Secret :crypt:\nThe plan.\n* Other\n");
+    // `org-crypt-use-before-save-magic`: encrypted before it is saved.
+    let saving = json!({ "textDocument": { "uri": uri }, "reason": 1 });
+    let edits = client.request("textDocument/willSaveWaitUntil", saving).unwrap();
+    let encrypted = apply(&text, edits.as_array().unwrap());
+    assert!(encrypted.starts_with("* Secret :crypt:\n-----BEGIN PGP MESSAGE-----\n"), "{encrypted}");
+    client.shutdown();
+    let _ = std::process::Command::new("gpgconf").env("GNUPGHOME", &home).args(["--kill", "gpg-agent"]).output();
+    let _ = std::fs::remove_dir_all(&home);
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

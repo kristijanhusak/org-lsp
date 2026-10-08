@@ -9,6 +9,7 @@ the agenda document and the semantic tokens.
 | Request | Notes |
 | --- | --- |
 | `textDocument/didOpen`, `didChange`, `didSave`, `didClose` | Incremental sync. A save rebuilds an open agenda. |
+| `textDocument/willSaveWaitUntil` | With `org-crypt-use-before-save-magic` in Emacs's configuration, the edit that encrypts the entries tagged `crypt` (`org-encrypt-entries`), through Emacs. Emacs is asked only for files with a `:crypt:` tag until it has said it has the magic. Else none. |
 | `textDocument/semanticTokens/full`, `/range` | For Org files and the agenda. See [Semantic tokens](#semantic-tokens). No deltas. |
 | `textDocument/foldingRange` | Subtrees, drawers, blocks, LaTeX environments and multi-line list items. Whole lines only. A subtree takes the blank lines before the next headline along, as Emacs hides them; see `org_cycle_separator_lines`. |
 | `textDocument/documentSymbol` | The outline of headlines. Hierarchical when the client supports it, flat otherwise. |

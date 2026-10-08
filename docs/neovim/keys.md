@@ -254,6 +254,10 @@ The other options are in [configuration.md](configuration.md).
 | `org.table.export` | Export the table to a file |
 | `org.block.next` | Move to the next block |
 | `org.block.previous` | Move to the previous block |
+| `org.crypt.encrypt` | Encrypt the entry |
+| `org.crypt.decrypt` | Decrypt the entry |
+| `org.crypt.encrypt.all` | Encrypt the entries tagged crypt |
+| `org.crypt.decrypt.all` | Decrypt the encrypted entries |
 | `org.table.recalculate.line` | Recalculate the table's current line |
 | `org.table.iterate` | Recalculate the table until it does not change |
 | `org.link.insert.last` | Insert the last stored link |

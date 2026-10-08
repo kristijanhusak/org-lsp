@@ -728,6 +728,9 @@ struct Server {
     separator_lines: i64,
     /// How files show when they are opened.
     startup: folding::Startup,
+    /// Whether Emacs encrypts entries before a file is saved
+    /// (`org-crypt-use-before-save-magic`), once it said.
+    crypt_before_save: Option<bool>,
     /// `org-adapt-indentation` and its relatives.
     indent: org_core::indent::Settings,
     /// `org-startup-indented` and `org-hide-leading-stars`.
@@ -1019,6 +1022,7 @@ pub fn run(connection: Connection) -> Result<()> {
         prompt_copy: None,
         separator_lines: options.separator_lines(),
         startup: options.startup(),
+        crypt_before_save: None,
         indent: options.indent_settings(),
         display: options.display(),
         virtually_indented: HashSet::new(),
@@ -1420,6 +1424,8 @@ fn capabilities(encoding: Encoding, inlay_hints: bool, cursor: bool) -> ServerCa
             open_close: Some(true),
             change: Some(TextDocumentSyncKind::INCREMENTAL),
             save: Some(TextDocumentSyncSaveOptions::Supported(true)),
+            // `org-crypt-use-before-save-magic`.
+            will_save_wait_until: Some(true),
             ..Default::default()
         })),
         semantic_tokens_provider: Some(SemanticTokensServerCapabilities::SemanticTokensOptions(
@@ -1839,6 +1845,7 @@ impl Server {
             lsp_types::request::RangeFormatting => range_formatting,
             lsp_types::request::Formatting => formatting,
             lsp_types::request::InlayHintRequest => inlay_hints,
+            lsp_types::request::WillSaveWaitUntil => will_save,
             lsp_types::request::DocumentHighlightRequest => document_highlights,
             lsp_types::request::DocumentLinkRequest => document_links,
             lsp_types::request::DocumentLinkResolve => document_link_resolve,
@@ -2044,6 +2051,35 @@ impl Server {
     fn folding_ranges(&mut self, params: FoldingRangeParams) -> Option<Vec<lsp_types::FoldingRange>> {
         let document = self.document(&params.text_document.uri)?;
         Some(folding::folding_ranges(&document.syntax(), &document.text, &document.index, self.separator_lines))
+    }
+
+    /// Before a file is saved: with `org-crypt-use-before-save-magic` in
+    /// Emacs's configuration, its entries tagged `crypt` encrypted
+    /// (`org-encrypt-entries`). Emacs is asked only for a file with a
+    /// `:crypt:` tag, until it says it has the magic.
+    fn will_save(&mut self, params: lsp_types::WillSaveTextDocumentParams) -> Option<Vec<TextEdit>> {
+        if self.crypt_before_save == Some(false) {
+            return None;
+        }
+        let uri = params.text_document.uri;
+        let path = uri::to_path(&uri)?;
+        let document = self.document(&uri)?;
+        if self.crypt_before_save.is_none() && !document.text.contains(":crypt:") {
+            return None;
+        }
+        let old = document.text.clone();
+        let params = json!({ "file": path.to_string_lossy(), "text": old, "point": 1 });
+        let result = match self.emacs.call("crypt-before-save", params, std::time::Duration::from_secs(10)) {
+            Ok(result) => result,
+            Err(error) => {
+                self.show_message(MessageType::ERROR, error);
+                return None;
+            }
+        };
+        let magic = result.get("magic").and_then(Value::as_bool).unwrap_or(false);
+        self.crypt_before_save = Some(magic);
+        let new = result.get("text").and_then(Value::as_str).filter(|new| *new != old)?;
+        Some(self.text_edits(&old, new))
     }
 
     /// The folds closed when a file opens (see [`STARTUP_FOLDS`]).
@@ -4064,6 +4100,18 @@ impl Server {
             }
             commands::BABEL_EXECUTE_SUBTREE => {
                 self.emacs_run("org-babel-execute-subtree", &context.ok_or("This command needs the cursor position")?)
+            }
+            commands::CRYPT_ENCRYPT
+            | commands::CRYPT_DECRYPT
+            | commands::CRYPT_ENCRYPT_ALL
+            | commands::CRYPT_DECRYPT_ALL => {
+                let command = match params.command.as_str() {
+                    commands::CRYPT_ENCRYPT => "org-encrypt-entry",
+                    commands::CRYPT_DECRYPT => "org-decrypt-entry",
+                    commands::CRYPT_ENCRYPT_ALL => "org-encrypt-entries",
+                    _ => "org-decrypt-entries",
+                };
+                self.emacs_run(command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::BABEL_REMOVE_RESULT => self.emacs_run(
                 "org-babel-remove-result-one-or-many",
