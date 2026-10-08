@@ -1237,11 +1237,36 @@ pub fn input(id: &str) -> Option<&'static Input> {
 }
 
 /// The table as JSON: a list of
+/// The commands that work on a selection, Emacs's active region, when
+/// they are run on one: editors with a visual mode give them their keys
+/// there too.
+pub const REGION: &[&str] = &[
+    META_LEFT,
+    META_RIGHT,
+    META_UP,
+    META_DOWN,
+    SHIFT_META_LEFT,
+    SHIFT_META_RIGHT,
+    CHECKBOX_TOGGLE,
+    TABLE_CREATE,
+    // Off a table, `C-c -` and `C-c *` (`<Leader>o*`) turn lines into
+    // items and headings.
+    TABLE_HLINE,
+    TABLE_RECALCULATE,
+    TABLE_RECALCULATE_LINE,
+    TOGGLE_ITEM,
+    TOGGLE_HEADING,
+    EMPHASIZE,
+    STRUCTURE_TEMPLATE,
+    DRAWER_INSERT,
+];
+
 /// `{ "command", "title", "edits", "keys": [{ "key", "in", "preset" }] }`.
 /// A key that keeps its own meaning where the command does not apply has
 /// `"native": true` as well. A command that asks for something has
 /// `"input": { "kind", "prompt" }`; one that reads the clipboard,
-/// `"clipboard": true`.
+/// `"clipboard": true`; one that works on a selection, `"region": true`
+/// (see [`REGION`]).
 pub fn manifest() -> Value {
     let commands: Vec<Value> = COMMANDS
         .iter()
@@ -1296,6 +1321,9 @@ pub fn manifest() -> Value {
             }
             if command.clipboard {
                 entry["clipboard"] = json!(true);
+            }
+            if REGION.contains(&command.id) {
+                entry["region"] = json!(true);
             }
             entry
         })

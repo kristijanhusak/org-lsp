@@ -234,7 +234,9 @@ was to be opened, or the text of an export to a buffer."
     org-timer-pause-or-continue org-timer-stop org-timer-set-timer
     org-lsp-bridge-timer-set org-table-move-cell-up org-table-move-cell-down
     org-table-move-cell-left org-table-move-cell-right org-babel-lob-ingest
-    org-lsp-bridge-export-template)
+    org-lsp-bridge-export-template org-metaleft org-metaright org-metaup
+    org-metadown org-shiftmetaleft org-shiftmetaright org-toggle-checkbox
+    org-table-create-or-convert-from-region)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--message nil
@@ -257,6 +259,11 @@ wants one), else interactively."
       (error "org-lsp does not run %s" command))
     (setq org-lsp-bridge--message nil)
     (org-lsp-bridge--in-document params
+      ;; The selection, as the active region.
+      (when-let* ((mark (alist-get 'mark params)))
+        (transient-mark-mode 1)
+        (set-mark (min (point-max) (max (point-min) mark)))
+        (activate-mark))
       (advice-add 'message :around #'org-lsp-bridge--record-message)
       (unwind-protect
           (let ((current-prefix-arg nil))

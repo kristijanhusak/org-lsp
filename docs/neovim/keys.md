@@ -292,6 +292,13 @@ subtree at the cursor.
 - **Repeat**: every key in Org files changes the text, and `.` repeats the
   last of them, with a new count if you type one (`.`, `3.`). A command
   that asks for something asks again.
+- **In Visual mode** the keys of the commands Org gives a region work on
+  the selection, as Emacs on its active region: `>>` and `<<` demote and
+  promote the headlines selected (or indent and outdent the items),
+  `<Leader>o*` and `<Leader>o-` turn the lines into headings and items,
+  `<C-Space>` toggles the checkboxes, `<Leader>oi<Bar>` makes a table of them,
+  `<Leader>oib` and `<Leader>oiD` wrap them in a block or a drawer. These
+  run in Emacs. The Vim plugin does the same.
 - **Keys with a meaning of their own** (marked ¹) give it back where the
   command does not apply, so `<C-a>`, `<C-x>`, `<S-Up>` and `<S-Down>`
   still work on ordinary numbers and lines.

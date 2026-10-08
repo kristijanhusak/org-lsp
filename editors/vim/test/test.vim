@@ -470,6 +470,30 @@ function! s:structure() abort
 endfunction
 call s:test('<< and >> promote and demote headlines, and move subtrees', function('s:structure'))
 
+" On a Visual selection the keys of the commands Org gives a region work
+" on it: `>>` demotes the headlines selected, `\o*` makes the lines
+" selected headings (through Emacs).
+function! s:region() abort
+  let file = s:work . '/notes/region.org'
+  call writefile(['* A', '* B', 'one', 'two'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(1, 1)
+  call feedkeys('Vj>>', 'xt')
+  call s:until('both headlines demoted', {-> getline(1, '$') == ['** A', '** B', 'one', 'two']})
+  if executable('emacs')
+    call cursor(3, 1)
+    call feedkeys("Vj\\o*", 'xt')
+    " A level below the headline above, as Emacs makes them.
+    call s:until('the lines made headings', {-> getline(1, '$') == ['** A', '** B', '*** one', '*** two']}, 60000)
+    " The cursor goes where Emacs left the point, after the edit.
+    sleep 1500m
+    call feedkeys('', 'x')
+  endif
+  silent write
+endfunction
+call s:test('a selection is the region of the commands Org gives one', function('s:region'))
+
 " On list items `>>` and `<<` indent and outdent the item, `\oJ` moves
 " it with the cursor, `<S-Right>` cycles the bullets and `<C-Space>`
 " (`C-c C-c`) renumbers the list.

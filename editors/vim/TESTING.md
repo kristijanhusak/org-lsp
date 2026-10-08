@@ -54,6 +54,7 @@ here and why.
 - [ ] Off a table, turning a line into a heading and back (needs Emacs): `:Org table recalculate line`
 - [ ] Toggling `COMMENT` on the heading (needs Emacs): `<Leader>o;`
 - [ ] Cloning the subtree twice a week apart (`+1w`): the copies follow it with their dates moved (needs Emacs): `<Leader>osc`
+- [ ] On a selection of whole lines: two headlines demoted together; lines turned into headings (needs Emacs): `>>`, `:Org table recalculate line`
 - [ ] The outline lists the headings nested: the client's document symbols
 
 ## Lists and checkboxes

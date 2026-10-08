@@ -466,7 +466,14 @@ class OrgLspRunCommand(LspWindowCommand):
                 self.start(lambda session: self.execute(session, view, command, {}, None))
             return
         if is_org(view):
-            context = text_document_position_params(view, view.sel()[0].b)
+            selection = view.sel()[0]
+            context = text_document_position_params(view, selection.b)
+            # The selection, as Emacs's region.
+            if not selection.empty():
+                context['range'] = {
+                    'start': text_document_position_params(view, selection.begin())['position'],
+                    'end': text_document_position_params(view, selection.end())['position'],
+                }
             # What the command reads as Emacs's latest kill: the clipboard.
             if reads_clipboard(session, command):
                 context['clipboard'] = sublime.get_clipboard()

@@ -2021,6 +2021,17 @@ fn edits_through_emacs() {
     assert_eq!(asked["input"]["kind"], "text");
     run(&mut client, &mut text, &mut version, "org.table.create", (1, 0), json!({ "input": "2x2" }));
     assert_eq!(text, "Text\n|   |   |\n|---+---|\n|   |   |\n\n");
+    // On a selection, Emacs's region: `C-c |` makes the lines a table,
+    // `M-<right>` demotes the headlines in it, `C-c -` makes items.
+    let region = |from: (u32, u32), to: (u32, u32)| json!({ "range": { "start": { "line": from.0, "character": from.1 }, "end": { "line": to.0, "character": to.1 } } });
+    replace(&mut client, &mut text, &mut version, "a,b\nc,d\n".to_string());
+    run(&mut client, &mut text, &mut version, "org.table.create", (0, 0), region((0, 0), (2, 0)));
+    assert_eq!(text, "| a | b |\n| c | d |\n");
+    replace(&mut client, &mut text, &mut version, "* A\n* B\none\ntwo\n".to_string());
+    run(&mut client, &mut text, &mut version, "org.meta.right", (0, 0), region((0, 0), (2, 0)));
+    assert_eq!(text, "** A\n** B\none\ntwo\n");
+    run(&mut client, &mut text, &mut version, "org.table.hline", (2, 0), region((2, 0), (4, 0)));
+    assert_eq!(text, "** A\n** B\n- one\n- two\n");
     // `#` in the export menu: the options template of a backend.
     replace(&mut client, &mut text, &mut version, "* Head\n".to_string());
     let (asked, _) = run(&mut client, &mut text, &mut version, "org.export.dispatch", (0, 0), json!({ "input": "#" }));
