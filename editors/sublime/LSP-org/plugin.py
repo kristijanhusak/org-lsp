@@ -219,6 +219,19 @@ class OrgLsp(AbstractPlugin):
         options.set('line_highlights', True)
         return None
 
+    # A file opens: the folds the server says it opens with closed
+    # (`org_startup_folded`, `#+STARTUP:`, `VISIBILITY` properties), asked
+    # for once the server has the file.
+    def on_pre_send_notification_async(self, notification) -> None:
+        if notification.method != 'textDocument/didOpen':
+            return
+        uri = notification.params.get('textDocument', {}).get('uri', '')
+        if not uri.endswith('.org'):
+            return
+        session = self.weaksession()
+        if session:
+            sublime.set_timeout_async(lambda: ask_startup_folds(session, uri))
+
     # The server changed files from elsewhere (the agenda, a capture, a
     # refile), and `auto_save` is on: save them.
     def m_org_lsp_save(self, params) -> None:
@@ -678,6 +691,19 @@ def show_sparse(session, view, sparse) -> None:
     params = {'textDocument': text_document_identifier(view)}
     session.send_request(Request('textDocument/foldingRange', params),
                          lambda ranges: sublime.set_timeout(lambda: fold(ranges)))
+
+
+def ask_startup_folds(session, uri: str) -> None:
+    params = {'textDocument': {'uri': uri}}
+    session.send_request(Request('org-lsp/startupFolds', params),
+                         lambda result: sublime.set_timeout(lambda: fold_at_startup(session.window, uri, result)))
+
+
+def fold_at_startup(window, uri: str, result) -> None:
+    """Close the folds a file opens with closed, as the server says."""
+    view = window.find_open_file(parse_uri(uri)[1]) if window else None
+    for r in (result or {}).get('folds', []) if view else []:
+        view.fold(fold_region(view, r))
 
 
 def fold_region(view, folding_range) -> sublime.Region:

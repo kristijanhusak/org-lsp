@@ -131,8 +131,7 @@ export const AREAS = [
     emacs: [
       ['Cycling a subtree (`TAB`): folded, children, subtree', true],
       ['Cycling the file (`S-TAB`): overview, contents, everything', true],
-      ['Startup visibility `overview` and `showeverything`', true],
-      ['Other startup visibilities (`content`, `show2levels`…) and the `VISIBILITY` property', false],
+      ['Startup visibility (`org_startup_folded`, `#+STARTUP:` `overview`, `content`, `show2levels`…, `showeverything`), the `VISIBILITY` property, archived subtrees and drawers folded, `hideblocks`; where Org shows a headline\'s children but not its text, the text shows', true],
       ['Blank lines after a subtree kept outside its fold (`org-cycle-separator-lines`)', true],
       ['Archived subtrees left folded (`org-cycle-hide-archived-subtrees`)', true],
       ['Sparse trees (`C-c /`)', true],
@@ -146,7 +145,8 @@ export const AREAS = [
     checks: [
       { text: 'On a headline, cycling goes folded → children → subtree', keys: { neovim: '`<Tab>`', vim: '`<Tab>`', vscode: '`Tab`', sublime: '`Tab`' } },
       { text: 'Cycling the whole file goes overview → contents → everything', keys: { neovim: '`<S-Tab>`', vim: '`<S-Tab>`', vscode: '`Shift+Tab`', sublime: '`Shift+Tab`' } },
-      { text: 'A file with `#+STARTUP: overview` opens folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
+      { text: 'A file with `#+STARTUP: overview` opens folded; with `content` its headlines show, those without children folded, and its drawers folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
+      { text: 'A subtree with `:VISIBILITY: children` opens with its children folded, one with `all` open', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'Two blank lines after a subtree stay visible below it when it is folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'Opening the parent of an `:ARCHIVE:` subtree leaves that subtree folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'A sparse tree of the TODO entries folds everything else and highlights them', cmd: 'org.sparse.tree', only: ['neovim', 'vim', 'vscode', 'sublime'] },

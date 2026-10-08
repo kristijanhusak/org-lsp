@@ -26,7 +26,7 @@ local SERVER = 'org_lsp'
 ---@field download? boolean Whether a server is downloaded when none is found: the build of `release` for this platform, into `stdpath('data')/org-lsp` (needs `curl` and `tar`). `:OrgLspDownload` downloads it again, to update it.
 ---@field release? string The release `download` and `:OrgLspDownload` fetch the server from: 'nightly' (built from the latest `main`), or a version tag such as 'v0.2.0'.
 ---@field settings? org_lsp.Settings The server's options, such as `org_agenda_files` and `org_todo_keywords`; see docs/neovim/configuration.md.
----@field startup_folded? 'showeverything'|'overview' Fold state of a newly opened file.
+---@field startup_folded? 'showeverything'|'overview' Fold state of a newly opened file: everything open or every fold closed. Unset, the server's `org_startup_folded`, the file's `#+STARTUP:` and `VISIBILITY` properties decide.
 ---@field folding? boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
 ---@field src_highlight? boolean Whether the code of source and export blocks and of inline source blocks (`#+begin_src python`, `src_python{…}`) is highlighted by the tree-sitter parser of its language, or its Vim syntax file when there is no parser, as Emacs's `org-src-fontify-natively` shows it.
@@ -55,7 +55,6 @@ local defaults = {
   download = true,
   release = 'nightly',
   settings = {},
-  startup_folded = 'showeverything',
   folding = true,
   replace_syntax = true,
   src_highlight = true,
@@ -797,6 +796,45 @@ end
 
 -- ----- attaching
 
+--- The folds the server says a file opens with closed (`org_startup_folded`,
+--- `#+STARTUP:`, `VISIBILITY` properties), closed in window `win` once it
+--- has the server's folds, innermost first.
+---@param win integer
+local function close_startup_folds(win)
+  local bufnr = vim.api.nvim_win_get_buf(win)
+  local client = vim.lsp.get_clients({ bufnr = bufnr, name = 'org_lsp' })[1]
+  if not client then
+    return
+  end
+  local params = { textDocument = vim.lsp.util.make_text_document_params(bufnr) }
+  client:request('org-lsp/startupFolds', params, function(err, result)
+    local folds = not err and result and result.folds or {}
+    if #folds == 0 then
+      return
+    end
+    local tries = 0
+    local function close()
+      if not vim.api.nvim_win_is_valid(win) or vim.api.nvim_win_get_buf(win) ~= bufnr then
+        return
+      end
+      -- The window's folds come from the server too, a moment later.
+      local ready = vim.api.nvim_win_call(win, function()
+        return vim.fn.foldlevel(folds[1].startLine + 1) > 0
+      end)
+      if not ready and tries < 40 then
+        tries = tries + 1
+        return vim.defer_fn(close, 50)
+      end
+      vim.api.nvim_win_call(win, function()
+        for _, fold in ipairs(folds) do
+          vim.cmd(('silent! %dfoldclose'):format(fold.startLine + 1))
+        end
+      end)
+    end
+    close()
+  end, bufnr)
+end
+
 --- The server's folds in window `win`, for the buffer it shows: once per
 --- buffer, as the options are local to it there and later changes of the
 --- user's are kept.
@@ -809,6 +847,9 @@ local function set_window_folds(win)
   vim.wo[win][0].foldmethod = 'expr'
   vim.wo[win][0].foldexpr = 'v:lua.vim.lsp.foldexpr()'
   vim.wo[win][0].foldlevel = M.config.startup_folded == 'overview' and 0 or 99
+  if M.config.startup_folded == nil then
+    close_startup_folds(win)
+  end
 end
 
 --- Vim's regex syntax for Org is an approximation and disagrees with the

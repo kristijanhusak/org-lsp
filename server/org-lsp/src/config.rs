@@ -207,6 +207,18 @@ pub struct Options {
     /// keep one of them visible when it is folded.
     #[serde(rename = "org_cycle_separator_lines")]
     pub cycle_separator_lines: Option<i64>,
+    /// `org-startup-folded`
+    #[serde(rename = "org_startup_folded")]
+    pub startup_folded: Option<String>,
+    /// `org-cycle-hide-block-startup`
+    #[serde(rename = "org_cycle_hide_block_startup")]
+    pub cycle_hide_block_startup: Option<bool>,
+    /// `org-cycle-hide-drawer-startup`
+    #[serde(rename = "org_cycle_hide_drawer_startup")]
+    pub cycle_hide_drawer_startup: Option<bool>,
+    /// `org-cycle-open-archived-trees`
+    #[serde(rename = "org_cycle_open_archived_trees")]
+    pub cycle_open_archived_trees: Option<bool>,
     /// `org-read-date-prefer-future`: `true`, `false` or `"time"`.
     #[serde(rename = "org_read_date_prefer_future")]
     pub read_date_prefer_future: Option<PreferFutureOption>,
@@ -657,6 +669,17 @@ impl Options {
     /// `org-cycle-separator-lines`
     pub fn separator_lines(&self) -> i64 {
         self.cycle_separator_lines.unwrap_or(crate::folding::SEPARATOR_LINES)
+    }
+
+    /// How files show when they are opened.
+    pub fn startup(&self) -> crate::folding::Startup {
+        let default = crate::folding::Startup::default();
+        crate::folding::Startup {
+            folded: self.startup_folded.clone().unwrap_or(default.folded),
+            hide_blocks: self.cycle_hide_block_startup.unwrap_or(default.hide_blocks),
+            hide_drawers: self.cycle_hide_drawer_startup.unwrap_or(default.hide_drawers),
+            open_archived: self.cycle_open_archived_trees.unwrap_or(default.open_archived),
+        }
     }
 
     /// `org-refile-targets`, with Org's default: the top-level headlines
@@ -1253,6 +1276,10 @@ const OLD_NAMES: &[(&str, &str)] = &[
     ("returnUsesMetaReturn", "return_uses_meta_return"),
     ("autoSave", "auto_save"),
     ("cycleSeparatorLines", "org_cycle_separator_lines"),
+    ("startupFolded", "org_startup_folded"),
+    ("cycleHideBlockStartup", "org_cycle_hide_block_startup"),
+    ("cycleHideDrawerStartup", "org_cycle_hide_drawer_startup"),
+    ("cycleOpenArchivedTrees", "org_cycle_open_archived_trees"),
     ("adaptIndentation", "org_adapt_indentation"),
     ("startupIndented", "org_startup_indented"),
     ("hideLeadingStars", "org_hide_leading_stars"),

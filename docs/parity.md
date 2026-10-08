@@ -12,7 +12,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | Feature | Parity | Done |
 | --- | --- | --- |
 | [Highlighting](#highlighting) | 92% | 12 of 13 |
-| [Folding and visibility](#folding-and-visibility) | 67% | 6 of 9 |
+| [Folding and visibility](#folding-and-visibility) | 75% | 6 of 8 |
 | [Headings and structure](#headings-and-structure) | 100% | 12 of 12 |
 | [Lists and checkboxes](#lists-and-checkboxes) | 100% | 10 of 10 |
 | [TODO keywords](#todo-keywords) | 100% | 8 of 8 |
@@ -67,12 +67,11 @@ Where editors fall short:
 
 ## Folding and visibility
 
-67% (6 of 9)
+75% (6 of 8)
 
 - ✅ Cycling a subtree (`TAB`): folded, children, subtree
 - ✅ Cycling the file (`S-TAB`): overview, contents, everything
-- ✅ Startup visibility `overview` and `showeverything`
-- ❌ Other startup visibilities (`content`, `show2levels`…) and the `VISIBILITY` property
+- ✅ Startup visibility (`org_startup_folded`, `#+STARTUP:` `overview`, `content`, `show2levels`…, `showeverything`), the `VISIBILITY` property, archived subtrees and drawers folded, `hideblocks`; where Org shows a headline's children but not its text, the text shows
 - ✅ Blank lines after a subtree kept outside its fold (`org-cycle-separator-lines`)
 - ✅ Archived subtrees left folded (`org-cycle-hide-archived-subtrees`)
 - ✅ Sparse trees (`C-c /`)

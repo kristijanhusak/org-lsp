@@ -31,7 +31,8 @@ here and why.
 
 - [ ] On a headline, cycling goes folded → children → subtree: `<Tab>`
 - [ ] Cycling the whole file goes overview → contents → everything: `<S-Tab>`
-- [ ] A file with `#+STARTUP: overview` opens folded
+- [ ] A file with `#+STARTUP: overview` opens folded; with `content` its headlines show, those without children folded, and its drawers folded
+- [ ] A subtree with `:VISIBILITY: children` opens with its children folded, one with `all` open
 - [ ] Two blank lines after a subtree stay visible below it when it is folded
 - [ ] Opening the parent of an `:ARCHIVE:` subtree leaves that subtree folded
 - [ ] A sparse tree of the TODO entries folds everything else and highlights them: `<Leader>o/`

@@ -731,6 +731,40 @@ pub const SETTINGS: &[Setting] = &[
          all of them stay outside. `0`: none does.",
     ),
     setting(
+        "org_startup_folded",
+        "string",
+        "\"showeverything\"",
+        "org-startup-folded",
+        "How files show when opened: `\"overview\"` (or `\"fold\"`) only the top headlines, `\"content\"` all \
+         the headlines, `\"show2levels\"` to `\"show5levels\"` the headlines down to that level, \
+         `\"showeverything\"` (or `\"nofold\"`, `\"showall\"`) everything. `#+STARTUP:` decides for a file. \
+         Unless everything shows, a subtree's `VISIBILITY` property (`folded`, `children`, `content`, `all`) \
+         decides for it, archived subtrees are folded, and drawers too. Folds hide whole subtrees, so where \
+         Org shows a headline's children but not its text, the text shows.",
+    ),
+    setting(
+        "org_cycle_hide_block_startup",
+        "boolean",
+        "false",
+        "org-cycle-hide-block-startup",
+        "Fold blocks when a file opens folded (`org_startup_folded`). `#+STARTUP: hideblocks` and `nohideblocks` \
+         decide for a file.",
+    ),
+    setting(
+        "org_cycle_hide_drawer_startup",
+        "boolean",
+        "true",
+        "org-cycle-hide-drawer-startup",
+        "Fold drawers when a file opens folded (`org_startup_folded`).",
+    ),
+    setting(
+        "org_cycle_open_archived_trees",
+        "boolean",
+        "false",
+        "org-cycle-open-archived-trees",
+        "Leave archived subtrees open when a file opens folded (`org_startup_folded`).",
+    ),
+    setting(
         "org_adapt_indentation",
         "boolean | \"headline-data\"",
         "false",
@@ -1425,6 +1459,13 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("emacs_config", STRING),
     ("auto_save", BOOLEAN),
     ("org_cycle_separator_lines", r#"{ "type": "integer" }"#),
+    (
+        "org_startup_folded",
+        r#"{ "enum": ["overview", "fold", "content", "show2levels", "show3levels", "show4levels", "show5levels", "showeverything", "nofold", "showall"] }"#,
+    ),
+    ("org_cycle_hide_block_startup", BOOLEAN),
+    ("org_cycle_hide_drawer_startup", BOOLEAN),
+    ("org_cycle_open_archived_trees", BOOLEAN),
     ("org_adapt_indentation", r#"{ "enum": [true, false, "headline-data"] }"#),
     ("org_startup_indented", BOOLEAN),
     ("org_hide_leading_stars", BOOLEAN),

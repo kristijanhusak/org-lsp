@@ -480,6 +480,29 @@ auto_save = true
 # (org-cycle-separator-lines)
 org_cycle_separator_lines = 2
 
+# How files show when opened: `"overview"` (or `"fold"`) only the top
+# headlines, `"content"` all the headlines, `"show2levels"` to `"show5levels"`
+# the headlines down to that level, `"showeverything"` (or `"nofold"`,
+# `"showall"`) everything. `#+STARTUP:` decides for a file. Unless everything
+# shows, a subtree's `VISIBILITY` property (`folded`, `children`, `content`,
+# `all`) decides for it, archived subtrees are folded, and drawers too. Folds
+# hide whole subtrees, so where Org shows a headline's children but not its
+# text, the text shows. (org-startup-folded)
+org_startup_folded = "showeverything"
+
+# Fold blocks when a file opens folded (`org_startup_folded`). `#+STARTUP:
+# hideblocks` and `nohideblocks` decide for a file.
+# (org-cycle-hide-block-startup)
+org_cycle_hide_block_startup = false
+
+# Fold drawers when a file opens folded (`org_startup_folded`).
+# (org-cycle-hide-drawer-startup)
+org_cycle_hide_drawer_startup = true
+
+# Leave archived subtrees open when a file opens folded
+# (`org_startup_folded`). (org-cycle-open-archived-trees)
+org_cycle_open_archived_trees = false
+
 # Indent the lines of an entry past its headline's stars: `true` for all of
 # them, `"headline-data"` for the planning line, drawers and clock lines right
 # below the headline. Applies to new lines, to re-indenting (range formatting)

@@ -408,6 +408,21 @@ describe('Org files', () => {
     await vscode.workspace.fs.delete(file);
   });
 
+  it('opens a file as its startup says', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'startup.org'));
+    const lines = ['#+STARTUP: content', '* A', ':PROPERTIES:', ':ID: 1', ':END:', 'text', '** B', 'b text', '* C', 'c text', ''];
+    await vscode.workspace.fs.writeFile(file, Buffer.from(lines.join('\n')));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    const hidden = () =>
+      [...Array(editor.document.lineCount - 1).keys()].filter(
+        (line) => !editor.visibleRanges.some((range) => range.start.line <= line && line <= range.end.line),
+      );
+    // The drawer and the headlines without children folded.
+    await until('the folds it opens with', () => JSON.stringify(hidden()) === JSON.stringify([3, 4, 7, 9]));
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    await vscode.workspace.fs.delete(file);
+  });
+
   it('cycles folds as Org\'s TAB and S-TAB do', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'cycle.org'));
     const text = ['* A', 'text', '** B', 'b text', '** C', 'c text', '* D', 'd text', ''].join('\n');

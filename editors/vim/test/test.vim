@@ -574,6 +574,18 @@ function! s:sparse() abort
 endfunction
 call s:test('makes a sparse tree', function('s:sparse'))
 
+" A file opens as its `#+STARTUP:` says: with `content` the headlines
+" show, those without children folded, and drawers folded.
+function! s:startup() abort
+  let file = s:work . '/notes/startup.org'
+  call writefile(['#+STARTUP: content', '* A', ':PROPERTIES:', ':ID: 1', ':END:', 'text', '** B', 'b text', '* C', 'c text'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the folds it opens with', {-> foldclosed(10) == 9})
+  call assert_equal([3, -1, 7], [foldclosed(3), foldclosed(6), foldclosed(8)])
+  normal! zR
+endfunction
+call s:test('opens a file as its startup says', function('s:startup'))
+
 function! s:help() abort
   execute 'buffer' s:work_buf
   let popup = org_lsp#help()
