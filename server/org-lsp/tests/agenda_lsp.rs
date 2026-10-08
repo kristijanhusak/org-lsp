@@ -1684,6 +1684,48 @@ fn logs_a_rescheduled_date_with_a_note() {
     client.shutdown();
 }
 
+/// `org_log_refile` `note`: the entry is refiled, then a note is asked for
+/// in its buffer and logged in the entry where it went.
+#[test]
+fn logs_a_refile_with_a_note() {
+    let mut options = clock();
+    options["org_refile_targets"] = json!([{ "files": "current", "level": 1 }]);
+    options["org_log_refile"] = json!("note");
+    let mut client = Client::with_date_prompt(options);
+    let file = "file:///org/a.org";
+    let text = "* Task\n* Projects\n";
+    client.open(file, text);
+    client.received.clear();
+    let context =
+        json!({ "textDocument": { "uri": file }, "position": { "line": 0, "character": 0 }, "input": "Projects" });
+    client.request("workspace/executeCommand", json!({ "command": "org.refile", "arguments": [context] })).unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the refile");
+    let refiled = apply(text, &edits_of(edit).1);
+    assert_eq!(refiled, "* Projects\n** Task\n");
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the note buffer");
+    let buffer = show.params["uri"].as_str().unwrap().to_string();
+    let note = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
+    assert_eq!(note, "# Insert note for refiling.\n\n\n");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": file, "version": 2 }, "contentChanges": [{ "text": refiled }] }),
+    );
+    client.open(&buffer, "# Insert note for refiling.\n\nWhere it belongs\n");
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.capture.finish", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the note");
+    assert_eq!(
+        apply(&refiled, &edits_of(edit).1),
+        "* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30] \\\\\n  Where it belongs"
+    );
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

@@ -326,8 +326,17 @@ struct Noting {
     context: Context,
     /// The state the note is for; empty for none.
     state: String,
-    /// For a date changed or removed: what, and the old date.
-    planning: Option<(org_core::todo::PlanningChange, String)>,
+    /// What the note logs, besides a state change.
+    log: Option<NoteLog>,
+}
+
+/// What a note the server asks for logs, besides a state change.
+#[derive(Debug, Clone)]
+enum NoteLog {
+    /// A date changed or removed, and the old date.
+    Planning(org_core::todo::PlanningChange, String),
+    /// The entry refiled (`org-log-refile`).
+    Refile,
 }
 
 /// The notification that asks the editor to save files, `{ "uris": [...] }`.
@@ -1343,6 +1352,8 @@ fn planning_command(id: &str) -> Option<PlanningCommand> {
     match id {
         commands::SCHEDULE => Some(PlanningCommand::Schedule),
         commands::DEADLINE => Some(PlanningCommand::Deadline),
+        commands::SCHEDULE_DELAY => Some(PlanningCommand::Delay { deadline: false }),
+        commands::DEADLINE_WARNING => Some(PlanningCommand::Delay { deadline: true }),
         commands::TIMESTAMP_INSERT => Some(PlanningCommand::Timestamp { inactive: false }),
         commands::TIMESTAMP_INSERT_INACTIVE => Some(PlanningCommand::Timestamp { inactive: true }),
         // Active or inactive as the timestamp is: see `date_command_at`.
@@ -3805,7 +3816,12 @@ impl Server {
         }
         if !matches!(
             id,
-            commands::SCHEDULE | commands::DEADLINE | commands::SCHEDULE_REMOVE | commands::DEADLINE_REMOVE
+            commands::SCHEDULE
+                | commands::DEADLINE
+                | commands::SCHEDULE_REMOVE
+                | commands::DEADLINE_REMOVE
+                | commands::SCHEDULE_DELAY
+                | commands::DEADLINE_WARNING
         ) {
             return Err(Refusal::NotHere("This command works in Org files".to_string()));
         }
@@ -4011,7 +4027,7 @@ impl Server {
             let wanted = org_core::todo::WantedNote { purpose: changed.change.purpose().to_string(), state: None };
             self.open_note(&context, id, wanted)?;
             if let Some(note) = &mut self.note {
-                note.planning = Some((changed.change, changed.old));
+                note.log = Some(NoteLog::Planning(changed.change, changed.old));
             }
         }
         Ok(())
@@ -5190,7 +5206,31 @@ impl Server {
         let other = (target_file != 0).then(|| loaded[target_file].as_ref().expect("read").text.as_str());
         // The target file's `org-adapt-indentation`, as Emacs pastes there.
         let settings = refile::Settings { adapt: self.adapt_in(other.unwrap_or(source)), ..settings };
-        let refiled = refile::refile(source, offset, other, target.offset, &settings)?;
+        let mut refiled = refile::refile(source, offset, other, target.offset, &settings)?;
+        // `org-log-refile`: the time logged in the refiled entry at once, or
+        // a note asked for once it is there.
+        let into = if refiled.target.is_some() { target_file } else { 0 };
+        let mut wanted_note = None;
+        if let Some(at) = refiled.pasted {
+            use org_syntax::Logging;
+            let text = refiled.target.as_mut().unwrap_or(&mut refiled.source);
+            let todo_settings = &self.edit_settings.todo;
+            match org_core::todo::refile_logging(todo_settings, text) {
+                Some(Logging::Note) if self.client.date_prompt && self.client.show_document => {
+                    wanted_note =
+                        Some((uris[into].clone(), LineIndex::new(text).position(text, at, self.client.encoding)));
+                }
+                Some(_) => {
+                    let keywords = org_syntax::parse(text, &self.todo).todo_keywords().clone();
+                    if let Ok(logged) =
+                        org_core::todo::log_refile(text, &keywords, at, todo_settings, self.date_time(), "")
+                    {
+                        *text = logged;
+                    }
+                }
+                None => {}
+            }
+        }
         let target_path = uri::to_path(&uris[target_file])
             .map_or_else(|| uris[target_file].as_str().to_string(), |path| path.display().to_string());
         let message = format!("Refile to \"{}\" in file {}: done", target.name, target_path);
@@ -5214,6 +5254,16 @@ impl Server {
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
         self.apply_edit(params, Pending::Edit);
         self.message = Some(message);
+        if let Some((uri, position)) = wanted_note {
+            let context: Context =
+                serde_json::from_value(json!({ "textDocument": { "uri": uri.as_str() }, "position": position }))
+                    .map_err(|error| error.to_string())?;
+            let wanted = org_core::todo::WantedNote { purpose: "refiling".to_string(), state: None };
+            self.open_note(&context, commands::REFILE, wanted)?;
+            if let Some(note) = &mut self.note {
+                note.log = Some(NoteLog::Refile);
+            }
+        }
         Ok(Value::Null)
     }
 
@@ -5579,7 +5629,7 @@ impl Server {
             id: id.to_string(),
             context: context.clone(),
             state: wanted.state.unwrap_or_default(),
-            planning: None,
+            log: None,
         });
         let end = Position::new(2, 0);
         let params =
@@ -5610,8 +5660,11 @@ impl Server {
             text = text.trim_start_matches([' ', '\t', '\n']);
         }
         let text = text.trim_end();
-        let command = match (note.id.as_str(), &note.planning) {
-            (_, Some((change, old))) => EditCommand::PlanningNote { change: *change, old: old.clone() },
+        let command = match (note.id.as_str(), &note.log) {
+            (_, Some(NoteLog::Planning(change, old))) => {
+                EditCommand::PlanningNote { change: *change, old: old.clone() }
+            }
+            (_, Some(NoteLog::Refile)) => EditCommand::RefileNote,
             (commands::ADD_NOTE, _) => EditCommand::Note,
             _ => EditCommand::Todo(TodoTarget::State((!note.state.is_empty()).then(|| note.state.clone()))),
         };

@@ -633,5 +633,69 @@
   "note": "Gone",
   "expected": "* TODO a¦\n  SCHEDULED: <2026-05-20 Wed>\n  - Removed deadline, was \"[2026-05-25 Mon]\" on [2026-05-18 Mon 10:30] \\\\\n    Gone",
   "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed>\n",
+  "command": "schedule-delay",
+  "answer": "+2",
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed -0d>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed>\n",
+  "command": "schedule-delay",
+  "answer": "2026-05-25",
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed -5d>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed -3d>\n",
+  "command": "schedule-delay",
+  "answer": "2026-05-21",
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed -1d>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-30 Sat 10:00 +1w>\n",
+  "command": "deadline-delay",
+  "answer": "2026-05-25",
+  "expected": "* TODO a¦\nDEADLINE: <2026-05-30 Sat 10:00 +1w -5d>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-30 Sat>\n",
+  "command": "deadline-delay",
+  "answer": "+1w",
+  "expected": "* TODO a¦\nDEADLINE: <2026-05-30 Sat -5d>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nBody\n",
+  "command": "schedule-delay",
+  "answer": "+2",
+  "expected": "ERROR: (user-error \"No scheduled information to update\")",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nCLOSED: [2026-05-17 Sun] DEADLINE: <2026-05-30 Sat> SCHEDULED: <2026-05-20 Wed>\n",
+  "command": "schedule-delay",
+  "answer": "2026-05-22",
+  "expected": "* TODO a¦\nCLOSED: [2026-05-17 Sun] DEADLINE: <2026-05-30 Sat> SCHEDULED: <2026-05-20 Wed -2d>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-30 Sat>\n",
+  "command": "deadline-delay",
+  "answer": "2026-06-02",
+  "expected": "* TODO a¦\nDEADLINE: <2026-05-30 Sat -3d>\n",
+  "prompt": ""
  }
 ]

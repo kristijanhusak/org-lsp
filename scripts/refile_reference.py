@@ -8,6 +8,8 @@ A case is a JSON object:
       "answer": "B",                        the target the user picks, or
       "answerIndex": 2,                     the one at this place among those
                                             offered (each name counted once)
+      "note": "Moved",                      optional: the note `org-log-refile`
+                                            asks for
       "options": {                          optional: server settings
         "org_refile_targets": [{"files": "agenda", "maxlevel": 2}],
         "org_refile_use_outline_path": "file",
@@ -19,7 +21,8 @@ A case is a JSON object:
 `reference(cases)` adds `expected` to each case: `{"offered": [...],
 "files": {...}}`, the targets offered in the order Emacs lists them and
 the files after the command, or `ERROR: …` when Emacs refuses. All the
-case's files are the agenda files. Set ORG_LISP_DIR to the `lisp`
+case's files are the agenda files. Emacs runs under faketime, at
+2026-05-18 10:30, for the time of a log note. Set ORG_LISP_DIR to the `lisp`
 directory of an Org checkout to use that version instead of the one
 bundled with Emacs.
 """
@@ -29,13 +32,22 @@ import os
 import subprocess
 import tempfile
 
+import todo_reference
 from todo_reference import CURSOR, lisp_string, load, save  # noqa: F401
+
+CLOCK = "2026-05-18 10:30"
 
 DRIVER = r"""
 (require 'org)
 (require 'org-refile)
 (require 'cl-lib)
-(defun org-lsp-refile-case (files cursor-file offset answer index out)
+;; Under a faked clock files seem changed on disk; nobody is there to ask,
+;; and the buffers are kept as they are.
+(load "userlock" nil t)
+(defun ask-user-about-supersession-threat (&rest _) nil)
+(defun userlock--ask-user-about-supersession-threat (&rest _) nil)
+(advice-add 'yes-or-no-p :override (lambda (&rest _) nil))
+(defun org-lsp-refile-case (files cursor-file offset answer index out &optional note)
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer)
       (with-current-buffer buffer (set-buffer-modified-p nil))
@@ -53,7 +65,9 @@ DRIVER = r"""
                                (or answer
                                    (let ((names (delete-dups (copy-sequence offered))))
                                      (nth (mod index (max 1 (length names))) names))))))
-                    (org-refile)))
+                    (org-refile)
+                    (let ((org-lsp-note-text (or note "")))
+                      (org-lsp-finish-notes))))
                 (mapconcat
                  (lambda (file)
                    (with-current-buffer (find-file-noselect file)
@@ -103,6 +117,7 @@ def bindings(options, paths):
         "org-tags-column": "-77",
         "org-log-refile": "nil",
     }
+    symbol = lambda value: "'" + value if isinstance(value, str) else ("t" if value else "nil")
     for key, value in (options or {}).items():
         if key == "org_refile_targets":
             out["org-refile-targets"] = targets_value(value, paths)
@@ -112,6 +127,10 @@ def bindings(options, paths):
             )
         elif key == "org_reverse_note_order":
             out["org-reverse-note-order"] = "t" if value else "nil"
+        elif key == "org_log_refile":
+            out["org-log-refile"] = symbol(value)
+        elif key == "org_log_into_drawer":
+            out["org-log-into-drawer"] = "t" if value is True else lisp_string(value) if value else "nil"
         elif key == "org_tags_column":
             out["org-tags-column"] = str(value)
         elif key == "org_adapt_indentation":
@@ -127,7 +146,7 @@ def reference(cases):
     """Fill in `expected` for every case."""
     org_path = ["-L", os.environ["ORG_LISP_DIR"]] if os.environ.get("ORG_LISP_DIR") else []
     with tempfile.TemporaryDirectory() as directory:
-        forms = [DRIVER]
+        forms = [todo_reference.DRIVER, DRIVER]
         outputs = []
         for index, case in enumerate(cases):
             folder = os.path.join(directory, f"case-{index}")
@@ -147,17 +166,18 @@ def reference(cases):
                 f"(let ({bindings(case.get('options'), paths)})\n"
                 f"  (org-lsp-refile-case (list {files}) {lisp_string(cursor[0])} {cursor[1]}"
                 f" {lisp_string(case['answer']) if 'answer' in case else 'nil'} {case.get('answerIndex', 0)}"
-                f" {lisp_string(target)}))"
+                f" {lisp_string(target)} {lisp_string(case['note']) if 'note' in case else 'nil'}))"
             )
         driver = os.path.join(directory, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:
             handle.write("\n".join(forms))
         subprocess.run(
-            ["emacs", "--batch", "-Q", *org_path, "-l", driver],
+            ["faketime", f"{CLOCK}:00", "emacs", "--batch", "-Q", *org_path, "-l", driver],
             check=True,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            env=dict(os.environ, TZ="UTC"),
         )
         for case, target in outputs:
             with open(target, encoding="utf-8") as handle:

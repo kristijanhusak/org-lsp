@@ -49,13 +49,15 @@ fn date_commands_match_emacs() {
         let command = match case["command"].as_str().unwrap() {
             "schedule" | "schedule-remove" => Command::Schedule,
             "deadline" | "deadline-remove" => Command::Deadline,
+            "schedule-delay" => Command::Delay { deadline: false },
+            "deadline-delay" => Command::Delay { deadline: true },
             "timestamp" => Command::Timestamp { inactive: false },
             "timestamp-inactive" => Command::Timestamp { inactive: true },
             other => panic!("unknown command {other}"),
         };
         let now = clock(case["clock"].as_str().unwrap());
         let repeated = case.get("repeated").and_then(Value::as_bool).unwrap_or(false);
-        let keeps_cursor = matches!(command, Command::Schedule | Command::Deadline);
+        let keeps_cursor = matches!(command, Command::Schedule | Command::Deadline | Command::Delay { .. });
         let adapt = match case.pointer("/options/org_adapt_indentation") {
             Some(Value::Bool(true)) => Adapt::All,
             Some(Value::String(name)) if name == "headline-data" => Adapt::HeadlineData,

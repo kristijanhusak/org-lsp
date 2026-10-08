@@ -39,6 +39,9 @@ pub struct Options {
     /// `org-enforce-todo-checkbox-dependencies`
     #[serde(rename = "org_enforce_todo_checkbox_dependencies")]
     pub enforce_todo_checkbox_dependencies: Option<bool>,
+    /// `org-log-refile`: `false`, `"time"` or `"note"`.
+    #[serde(rename = "org_log_refile")]
+    pub log_refile: Option<LogOption>,
     /// `org-log-reschedule`: `false`, `"time"` or `"note"`.
     #[serde(rename = "org_log_reschedule")]
     pub log_reschedule: Option<LogOption>,
@@ -909,6 +912,9 @@ impl Options {
         }
         settings.enforce_todo_dependencies = self.enforce_todo_dependencies.unwrap_or(false);
         settings.enforce_todo_checkbox_dependencies = self.enforce_todo_checkbox_dependencies.unwrap_or(false);
+        if let Some(option) = &self.log_refile {
+            settings.log_refile = option.to_logging();
+        }
         if let Some(option) = &self.log_reschedule {
             settings.log_reschedule = option.to_logging();
         }

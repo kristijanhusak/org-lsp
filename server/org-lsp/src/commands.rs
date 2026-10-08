@@ -283,6 +283,8 @@ pub const SCHEDULE: &str = "org.schedule";
 pub const DEADLINE: &str = "org.deadline";
 pub const SCHEDULE_REMOVE: &str = "org.schedule.remove";
 pub const DEADLINE_REMOVE: &str = "org.deadline.remove";
+pub const SCHEDULE_DELAY: &str = "org.schedule.delay";
+pub const DEADLINE_WARNING: &str = "org.deadline.warning";
 pub const TIMESTAMP_INSERT: &str = "org.timestamp.insert";
 pub const TIMESTAMP_INSERT_INACTIVE: &str = "org.timestamp.insert.inactive";
 pub const TIMESTAMP_CHANGE: &str = "org.timestamp.change";
@@ -1092,6 +1094,10 @@ pub const COMMANDS: &[Command] = &[
     // line, of its entry.
     Command { in_agenda: true, ..edit(SCHEDULE_REMOVE, "Remove the scheduled date of the entry") },
     Command { in_agenda: true, ..edit(DEADLINE_REMOVE, "Remove the deadline of the entry") },
+    // `C-u C-u C-c C-s` and `C-u C-u C-c C-d`: a delay for the scheduled
+    // date, a warning period for the deadline, to the day asked for.
+    Command { in_agenda: true, ..ask_date(SCHEDULE_DELAY, "Delay the scheduled date until a day", "Delay until") },
+    Command { in_agenda: true, ..ask_date(DEADLINE_WARNING, "Warn of the deadline from a day", "Warn starting from") },
     Command {
         emacs: &[key(Org, "C-c .")],
         vim: &[key(Org, "<Leader>oi.")],

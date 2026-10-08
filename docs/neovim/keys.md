@@ -256,6 +256,8 @@ The other options are in [configuration.md](configuration.md).
 | `org.shift.down` | Decrease the timestamp part, lower the priority, or go to the next item |
 | `org.schedule.remove` | Remove the scheduled date of the entry |
 | `org.deadline.remove` | Remove the deadline of the entry |
+| `org.schedule.delay` | Delay the scheduled date until a day |
+| `org.deadline.warning` | Warn of the deadline from a day |
 
 ¹ Where the command does not apply, the key does what it does in any
 buffer: `<C-a>` off a timestamp still increments the number under the

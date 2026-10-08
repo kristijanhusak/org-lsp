@@ -318,7 +318,7 @@ export const AREAS = [
       ['Changing the part at the cursor (`S-<up>`, `S-<down>`), with ranges, repeaters and warnings', true],
       ['Moving a date by days (`S-<left>`, `S-<right>`)', true],
       ['Removing a scheduled date or a deadline (`C-u C-c C-s`, `C-u C-c C-d`)', true],
-      ['Setting a delay or a warning period (`C-u C-u C-c C-s`)', false],
+      ['Setting a delay or a warning period (`C-u C-u C-c C-s`, `C-u C-u C-c C-d`)', true],
     ],
     editors: {
       vim: ['part', 'Dates are typed, without the calendar: the Vim plugin asks with an input line.'],
@@ -330,6 +330,7 @@ export const AREAS = [
       { text: 'Scheduling with `+2d`: `SCHEDULED: <…>` goes below the headline', cmd: 'org.schedule', not: ['zed', 'helix'] },
       { text: 'A deadline on `fri 10:00`', cmd: 'org.deadline', not: ['zed', 'helix'] },
       { text: 'Removing the scheduled date and the deadline', cmd: ['org.schedule.remove', 'org.deadline.remove'] },
+      { text: 'Delaying the scheduled date to a day (`-3d`) and setting the deadline\'s warning period', cmd: ['org.schedule.delay', 'org.deadline.warning'], not: ['zed', 'helix'] },
       { text: 'Inserting an active and an inactive timestamp; a second one right after makes a range', cmd: ['org.timestamp.insert', 'org.timestamp.insert.inactive'], not: ['zed', 'helix'] },
       { text: 'While typing the date, the answer shows what it means (`=> <2026-10-09 Fri>`)', only: ['neovim', 'vscode'] },
       { text: 'In the calendar: moving by day, week and month, scrolling months, today, picking a day', in: 'calendar', cmd: ['org.calendar.day.later', 'org.calendar.week.later', 'org.calendar.month.later', 'org.calendar.scroll.later', 'org.calendar.today', 'org.calendar.select'], only: ['neovim', 'vscode'] },
@@ -466,7 +467,7 @@ export const AREAS = [
       ['Toggling the `ARCHIVE` tag', true],
       ['Archive locations, `ARCHIVE` properties, date trees, `ARCHIVE_…` context', true],
       ['Archiving all done subtrees', true],
-      ['Logging refiles (`org-log-refile`)', false],
+      ['Logging refiles (`org-log-refile`)', true],
       ['Creating parent nodes as the target', false],
       ['Refiling a region', false],
       ['The prefix arguments (going to the target, copying)', false],
@@ -476,6 +477,7 @@ export const AREAS = [
       helix: ['part', 'Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions.'],
     },
     checks: [
+      { text: 'With `org_log_refile` `"time"`, the refiled entry gets `Refiled on […]`; with `"note"` a note buffer opens for it', cmd: 'org.refile', not: ['zed', 'helix'] },
       { text: 'Refiling a subtree under a heading of the same file, and of another file', cmd: 'org.refile', not: ['helix'] },
       { text: 'Archiving a subtree: it goes to `FILE_archive` with its `ARCHIVE_…` properties', cmd: 'org.archive.subtree' },
       { text: 'Archiving to the archive sibling', cmd: 'org.archive.sibling' },

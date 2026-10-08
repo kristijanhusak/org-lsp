@@ -21,11 +21,11 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ✅ |  |
-| [Dates and times](../../docs/parity.md#dates-and-times) | 88% | ❓ | Dates are typed, without the calendar: the Vim plugin asks with an input line. |
+| [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ❓ | Dates are typed, without the calendar: the Vim plugin asks with an input line. |
 | [Agenda](../../docs/parity.md#agenda) | 74% | ✅ |  |
 | [Clocking](../../docs/parity.md#clocking) | 88% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 73% | ✅ |  |
-| [Refile and archive](../../docs/parity.md#refile-and-archive) | 55% | ✅ |  |
+| [Refile and archive](../../docs/parity.md#refile-and-archive) | 64% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 70% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
 | [Tables](../../docs/parity.md#tables) | 65% | ✅ |  |
@@ -41,7 +41,7 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **73%** |  |  |
+| **All of Org** | **74%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.
