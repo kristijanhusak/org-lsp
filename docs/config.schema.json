@@ -233,6 +233,14 @@
       "description": "Bibliography files for the citations of every document (`[cite:@key]`), after those its `#+BIBLIOGRAPHY:` lines name: BibTeX (`.bib`, `.bibtex`) or CSL-JSON (`.json`). Their entries are completed after `@`, shown over a key, and where following a key goes; a key none has is marked. (`org-cite-global-bibliography`)",
       "default": []
     },
+    "org_link_abbrev_alist": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object",
+      "description": "Link abbreviations: `[[gh:org-lsp]]` with `{ \"gh\": \"https://github.com/%s\" }` follows `https://github.com/org-lsp`. `%s` stands for what follows the colon, `%h` for it URL-encoded; without either it goes at the end. A file's `#+LINK:` lines come first. A function (`%(…)`) is not supported. (`org-link-abbrev-alist`)",
+      "default": {}
+    },
     "org_tag_alist": {
       "items": {
         "type": "string"

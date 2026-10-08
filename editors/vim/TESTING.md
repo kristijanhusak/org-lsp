@@ -173,6 +173,7 @@ here and why.
 
 ## Links
 
+- [ ] A `#+LINK: gh https://github.com/%s` line makes `[[gh:org-lsp]]` follow `https://github.com/org-lsp`; `org_link_abbrev_alist` does the same from the settings: `<Leader>oo`
 - [ ] Following a link to a headline, a custom ID and a `<<target>>`: `<Leader>oo`
 - [ ] Following a `file:` link with a search (`file:notes.org::*Heading`) and an `id:` link: `<Leader>oo`
 - [ ] Following a URL opens the browser; a timestamp opens its day's agenda: `<Leader>oo`
@@ -203,6 +204,7 @@ here and why.
 - [ ] Inserting and deleting a column and a row: `>s`, `<s`, `<Leader>oTO`, `<Leader>oTd`
 - [ ] A rule below the row; a rule and a move to the row below: `<Leader>o-`, `<Leader>o<CR>`
 - [ ] Blanking the field: `<Leader>o<Space>`
+- [ ] The shifted cursor keys move the field up, down, left and right (needs Emacs); on a timestamp in a field they change it: `:Org shift up`, `:Org shift down`, `<S-Left>`, `<S-Right>`
 - [ ] Copying the field down to the next row, a number incremented (needs Emacs); off a table the key keeps its own meaning: `<Leader>oD`
 - [ ] The sum of the column and the field's references are shown as messages (needs Emacs): `<Leader>o+`, `<Leader>o?`
 - [ ] Creating a table asks for its size (`3x2`; empty for Org's default) (needs Emacs): `<Leader>oi<Bar>`

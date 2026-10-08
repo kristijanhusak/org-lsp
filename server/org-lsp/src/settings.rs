@@ -304,6 +304,15 @@ pub const SETTINGS: &[Setting] = &[
          completed after `@`, shown over a key, and where following a key goes; a key none has is marked.",
     ),
     setting(
+        "org_link_abbrev_alist",
+        "{ [abbreviation]: string }",
+        "{}",
+        "org-link-abbrev-alist",
+        "Link abbreviations: `[[gh:org-lsp]]` with `{ \"gh\": \"https://github.com/%s\" }` follows \
+         `https://github.com/org-lsp`. `%s` stands for what follows the colon, `%h` for it URL-encoded; without \
+         either it goes at the end. A file's `#+LINK:` lines come first. A function (`%(…)`) is not supported.",
+    ),
+    setting(
         "org_tag_alist",
         "string, string[]",
         r#""""#,
@@ -1112,6 +1121,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_global_properties", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_complete_tags_always_offer_all_agenda_tags", BOOLEAN),
     ("org_cite_global_bibliography", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_link_abbrev_alist", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_tag_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_tag_persistent_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_group_tags", BOOLEAN),

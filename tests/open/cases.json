@@ -663,5 +663,98 @@
     "column": 0
    }
   }
+ },
+ {
+  "files": {
+   "a.org": "#+LINK: gh https://github.com/%s\nSee [[gh:¦org-lsp]]\n"
+  },
+  "expected": {
+   "external": "https://github.com/org-lsp"
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+LINK: s https://search.example/?q=%h\n[[s:¦hello world/ü]]\n"
+  },
+  "expected": {
+   "external": "https://search.example/?q=hello%20world%2F%C3%BC"
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+LINK: wiki https://en.wikipedia.org/wiki/\n[[wiki:¦Org-mode][Org]]\n"
+  },
+  "expected": {
+   "external": "https://en.wikipedia.org/wiki/Org-mode"
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+LINK: \"my site\" https://example.com/%s\n[[my site:¦page]]\n"
+  },
+  "expected": {
+   "external": "https://example.com/page"
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+LINK: notes ./b.org::\n[[notes:¦*B]]\n",
+   "b.org": "x\n* B\n"
+  },
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+LINK: home https://example.com\n[[home¦]]\n"
+  },
+  "expected": {
+   "external": "https://example.com"
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+LINK: gh https://old/%s\n#+link: gh https://github.com/%s\n[[gh:¦x]]\n"
+  },
+  "expected": {
+   "external": "https://github.com/x"
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+LINK: gh https://github.com/%s\n[[gh::¦org-lsp]]\n"
+  },
+  "expected": {
+   "external": "https://github.com/org-lsp"
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+LINK: GH https://x/%s\n[[gh:¦y]]\n"
+  },
+  "expected": {
+   "error": "No match for fuzzy expression: gh:y"
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+LINK: gh https://github.com/%s\nhttps://example.com gh:¦plain\n"
+  },
+  "expected": {
+   "error": "No link found"
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+LINK: id https://not-an-id/%s\n[[id:¦abc]]\n"
+  },
+  "expected": {
+   "external": "https://not-an-id/abc"
+  }
  }
 ]

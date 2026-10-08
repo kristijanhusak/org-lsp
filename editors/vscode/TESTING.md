@@ -175,6 +175,7 @@ here and why.
 
 ## Links
 
+- [ ] A `#+LINK: gh https://github.com/%s` line makes `[[gh:org-lsp]]` follow `https://github.com/org-lsp`; `org_link_abbrev_alist` does the same from the settings: `Ctrl+C Ctrl+O`
 - [ ] Following a link to a headline, a custom ID and a `<<target>>`: `Ctrl+C Ctrl+O`
 - [ ] Following a `file:` link with a search (`file:notes.org::*Heading`) and an `id:` link: `Ctrl+C Ctrl+O`
 - [ ] Following a URL opens the browser; a timestamp opens its day's agenda: `Ctrl+C Ctrl+O`
@@ -205,6 +206,7 @@ here and why.
 - [ ] Inserting and deleting a column and a row: `Alt+Shift+Right`, `Alt+Shift+Left`, `Alt+Shift+Down`, `Alt+Shift+Up`
 - [ ] A rule below the row; a rule and a move to the row below: `Ctrl+C -`, `Ctrl+C Enter`
 - [ ] Blanking the field: *Org: Blank the table field*
+- [ ] The shifted cursor keys move the field up, down, left and right (needs Emacs); on a timestamp in a field they change it: `Shift+Up`, `Shift+Down`, `Shift+Left`, `Shift+Right`
 - [ ] Copying the field down to the next row, a number incremented (needs Emacs); off a table the key keeps its own meaning: `Shift+Enter`
 - [ ] The sum of the column and the field's references are shown as messages (needs Emacs): `Ctrl+C +`, `Ctrl+C ?`
 - [ ] Creating a table asks for its size (`3x2`; empty for Org's default) (needs Emacs): `Ctrl+C |`

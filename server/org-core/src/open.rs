@@ -5,7 +5,10 @@
 //! Places in the same text are resolved here. A file or an `ID` elsewhere
 //! is for the caller to look up, with `search_in_file` and `find_id`.
 
+use std::sync::LazyLock;
+
 use org_syntax::{Parse, SyntaxKind, SyntaxNode, TextSize};
+use regex::Regex;
 
 use crate::date::Date;
 
@@ -43,15 +46,24 @@ pub struct Choice {
 }
 
 /// `org-open-at-point` at `offset`. `answer` is the key picked when the
-/// links of an entry were offered.
-pub fn at_point(text: &str, parse: &Parse, offset: usize, answer: Option<char>) -> Result<Open, String> {
+/// links of an entry were offered. `global` is `org-link-abbrev-alist`.
+pub fn at_point(
+    text: &str,
+    parse: &Parse,
+    offset: usize,
+    answer: Option<char>,
+    global: &[(String, String)],
+) -> Result<Open, String> {
+    let abbreviations = abbreviations(text, global);
     let root = parse.syntax();
     let Some(token) = token_at(&root, offset) else { return Err(NO_LINK.to_string()) };
     // The nearest of the things Org opens, as `org-element-lineage` finds
     // it: the object under the cursor, else the element around it.
     for node in token.parent_ancestors() {
         match node.kind() {
-            SyntaxKind::LINK | SyntaxKind::PLAIN_LINK | SyntaxKind::ANGLE_LINK => return open_link(&node, text, parse),
+            SyntaxKind::LINK | SyntaxKind::PLAIN_LINK | SyntaxKind::ANGLE_LINK => {
+                return open_link(&node, text, parse, &abbreviations)
+            }
             SyntaxKind::TIMESTAMP => return timestamp(&node.text().to_string()).ok_or_else(|| NO_LINK.to_string()),
             SyntaxKind::CITATION => {
                 let start = usize::from(node.text_range().start());
@@ -78,14 +90,14 @@ pub fn at_point(text: &str, parse: &Parse, offset: usize, answer: Option<char>) 
             // Not on their timestamp, which is an object of its own.
             SyntaxKind::PLANNING | SyntaxKind::CLOCK => return Err(NO_LINK.to_string()),
             SyntaxKind::COMMENT | SyntaxKind::NODE_PROPERTY | SyntaxKind::KEYWORD => {
-                return open_in_line(text, offset);
+                return open_in_line(text, offset, &abbreviations);
             }
             SyntaxKind::BLOCK => match block_type(&node).as_deref() {
-                Some("comment") => return open_in_line(text, offset),
+                Some("comment") => return open_in_line(text, offset, &abbreviations),
                 Some("src") => return Err("Source block results are not supported".to_string()),
                 _ => {}
             },
-            SyntaxKind::HEADLINE => return headline(&node, text, parse, offset, answer),
+            SyntaxKind::HEADLINE => return headline(&node, text, parse, offset, answer, global),
             _ => {}
         }
     }
@@ -110,7 +122,7 @@ pub struct Link {
     pub open: Result<Open, String>,
 }
 
-fn link_of(node: &SyntaxNode, text: &str, parse: &Parse) -> Link {
+fn link_of(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &[(String, String)]) -> Link {
     let range = node.text_range();
     let path = node
         .children_with_tokens()
@@ -124,7 +136,7 @@ fn link_of(node: &SyntaxNode, text: &str, parse: &Parse) -> Link {
         raw,
         path: (usize::from(path.start()), usize::from(path.end())),
         bracket,
-        open: open_link(node, text, parse),
+        open: open_link(node, text, parse, abbreviations),
     }
 }
 
@@ -133,15 +145,79 @@ fn is_link(node: &SyntaxNode) -> bool {
 }
 
 /// The links of a text: bracket, angle and plain links, in order.
-pub fn links(text: &str, parse: &Parse) -> Vec<Link> {
-    parse.syntax().descendants().filter(is_link).map(|node| link_of(&node, text, parse)).collect()
+/// `global` is `org-link-abbrev-alist`.
+pub fn links(text: &str, parse: &Parse, global: &[(String, String)]) -> Vec<Link> {
+    let abbreviations = abbreviations(text, global);
+    parse.syntax().descendants().filter(is_link).map(|node| link_of(&node, text, parse, &abbreviations)).collect()
 }
 
 /// The link the character at `offset` is in.
-pub fn link_at(text: &str, parse: &Parse, offset: usize) -> Option<Link> {
+pub fn link_at(text: &str, parse: &Parse, offset: usize, global: &[(String, String)]) -> Option<Link> {
     let token = token_at(&parse.syntax(), offset)?;
     let node = token.parent_ancestors().find(is_link)?;
-    Some(link_of(&node, text, parse))
+    Some(link_of(&node, text, parse, &abbreviations(text, global)))
+}
+
+/// The link abbreviations of `text`: its `#+LINK:` lines, the last first
+/// (`org-link-abbrev-alist-local`), then `global`.
+fn abbreviations(text: &str, global: &[(String, String)]) -> Vec<(String, String)> {
+    static LINK_LINE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r#"(?im)^[ \t]*#\+LINK:[ \t]*(.*?)[ \t]*$"#).expect("a valid regex"));
+    static QUOTED: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"\A"(.+[^\\])"[ \t]+(.+)"#).expect("a valid regex"));
+    static PLAIN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A(\S+)[ \t]+(.+)").expect("a valid regex"));
+    let mut local: Vec<(String, String)> = LINK_LINE
+        .captures_iter(text)
+        .filter_map(|line| {
+            let value = line.get(1).map_or("", |found| found.as_str());
+            QUOTED
+                .captures(value)
+                .or_else(|| PLAIN.captures(value))
+                .map(|found| (found[1].to_string(), found[2].to_string()))
+        })
+        .collect();
+    local.reverse();
+    local.extend(global.iter().cloned());
+    local
+}
+
+/// `org-link-expand-abbrev`: `raw` with its abbreviation (`key:tag`, or
+/// `key` alone) replaced, `%s` by the tag, `%h` by the tag URL-encoded,
+/// else the tag after it.
+pub fn expand_abbreviation(raw: &str, abbreviations: &[(String, String)]) -> Result<String, String> {
+    let (key, tag) = match raw.find(':') {
+        Some(at) => {
+            let rest = &raw[at + 1..];
+            (&raw[..at], Some(rest.strip_prefix(':').unwrap_or(rest)))
+        }
+        None => (raw, None),
+    };
+    let Some((_, replacement)) = abbreviations.iter().find(|(name, _)| name == key) else {
+        return Ok(raw.to_string());
+    };
+    let tag = tag.unwrap_or("");
+    if replacement.contains("%(") {
+        return Err(format!("Link abbreviations calling a function are not supported: {replacement}"));
+    }
+    Ok(if replacement.contains("%s") {
+        replacement.replacen("%s", tag, 1)
+    } else if replacement.contains("%h") {
+        replacement.replacen("%h", &hexify(tag), 1)
+    } else {
+        format!("{replacement}{tag}")
+    })
+}
+
+/// `url-hexify-string`: all but the unreserved characters percent-encoded.
+fn hexify(text: &str) -> String {
+    let mut out = String::new();
+    for byte in text.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {
+            out.push(byte as char);
+        } else {
+            out.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    out
 }
 
 /// The token the character at `offset` is in.
@@ -223,8 +299,10 @@ fn link_type(raw: &str) -> Option<(&str, &str)> {
     org_syntax::link_types().iter().find(|known| known.eq_ignore_ascii_case(head)).map(|_| (head, rest))
 }
 
-fn open_link(node: &SyntaxNode, text: &str, parse: &Parse) -> Result<Open, String> {
+fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &[(String, String)]) -> Result<Open, String> {
     let (raw, bracket) = raw_link(node);
+    // Only a bracket link's abbreviation is expanded.
+    let raw = if bracket { expand_abbreviation(&raw, abbreviations)? } else { raw };
     // Only bracket links can be files without a type, or internal.
     if bracket && (raw.starts_with('/') || raw.starts_with('~') || raw.starts_with("./") || raw.starts_with("../")) {
         return Ok(file(&raw, None));
@@ -339,7 +417,7 @@ fn previous_reference(label: &str, root: &SyntaxNode, offset: usize) -> Result<O
 
 /// `org-open-at-point-global`, in a comment, a property or a keyword: a
 /// link or a timestamp on the line, around `offset`.
-fn open_in_line(text: &str, offset: usize) -> Result<Open, String> {
+fn open_in_line(text: &str, offset: usize, abbreviations: &[(String, String)]) -> Result<Open, String> {
     let start = text[..offset].rfind('\n').map_or(0, |at| at + 1);
     let end = text[offset..].find('\n').map_or(text.len(), |at| offset + at);
     // The line as a paragraph: what precedes its text blanked out.
@@ -358,7 +436,7 @@ fn open_in_line(text: &str, offset: usize) -> Result<Open, String> {
         }
         match node.kind() {
             SyntaxKind::LINK | SyntaxKind::PLAIN_LINK | SyntaxKind::ANGLE_LINK => {
-                return match open_link(&node, &paragraph, &parse)? {
+                return match open_link(&node, &paragraph, &parse, abbreviations)? {
                     // An internal link from here searches the text itself.
                     Open::Here(_) => Err(NO_LINK.to_string()),
                     open => Ok(open),
@@ -373,7 +451,14 @@ fn open_in_line(text: &str, offset: usize) -> Result<Open, String> {
 
 /// On a headline: its tag under the cursor (`org-tags-view`), else the
 /// links of the entry (`org-offer-links-in-entry`).
-fn headline(node: &SyntaxNode, text: &str, parse: &Parse, offset: usize, answer: Option<char>) -> Result<Open, String> {
+fn headline(
+    node: &SyntaxNode,
+    text: &str,
+    parse: &Parse,
+    offset: usize,
+    answer: Option<char>,
+    global: &[(String, String)],
+) -> Result<Open, String> {
     let line_end = text[usize::from(node.text_range().start())..]
         .find('\n')
         .map_or(text.len(), |at| usize::from(node.text_range().start()) + at);
@@ -408,7 +493,7 @@ fn headline(node: &SyntaxNode, text: &str, parse: &Parse, offset: usize, answer:
             Some(key) => (0..links.len()).find(|index| offered_key(*index) == key).ok_or("Abort")?,
         },
     };
-    at_point(text, parse, links[chosen].2, None)
+    at_point(text, parse, links[chosen].2, None, global)
 }
 
 /// The key of the link at `index` among those offered: `1`, `2`…
@@ -657,4 +742,23 @@ pub fn search_in_file(text: &str, parse: Option<&Parse>, option: &str) -> Result
         from = start + words[0].len();
     }
     Err(format!("No match for fuzzy expression: {option}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn expands_abbreviations_from_the_file_then_the_setting() {
+        let global =
+            vec![("gh".to_string(), "https://global/%s".to_string()), ("w".to_string(), "https://w/".to_string())];
+        let text = "#+LINK: gh https://local/%s\n[[gh:x]] [[w:Page]] [[fn:f]]\n";
+        let parsed = org_syntax::parse(text, &Default::default());
+        let opened: Vec<_> = links(text, &parsed, &global).into_iter().map(|link| link.open).collect();
+        assert_eq!(opened[0], Ok(Open::External("https://local/x".to_string())));
+        assert_eq!(opened[1], Ok(Open::External("https://w/Page".to_string())));
+        let function = vec![("f".to_string(), "%(my-function)".to_string())];
+        assert!(expand_abbreviation("f:x", &function).is_err());
+        assert_eq!(expand_abbreviation("other:x", &function), Ok("other:x".to_string()));
+    }
 }
