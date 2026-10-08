@@ -958,6 +958,18 @@ wait('the highlights gone with the change', function()
 end)
 vim.cmd('silent! write')
 
+-- 23h. `<Leader>oR` (`org-reveal`) shows the cursor's context: the folds
+-- around it opened, the others left as they are.
+vim.cmd('normal! zM')
+vim.api.nvim_win_set_cursor(0, { 6, 0 })
+press('<Leader>oR')
+wait('the context of the cursor shown', function()
+  return vim.fn.foldclosed(6) == -1
+end)
+eq({ vim.fn.foldclosed(5), vim.fn.foldclosed(2), vim.fn.foldclosed(8) }, { -1, 1, 7 },
+  'the entry and its parent shown, the other subtrees still folded')
+vim.cmd('normal! zR')
+
 -- 23c. Archived subtrees stay closed when TAB and S-TAB open what is
 -- around them (`org-cycle-hide-archived-subtrees`).
 local with_archived = vim.fn.tempname() .. '.org'

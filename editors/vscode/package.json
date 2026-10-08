@@ -526,6 +526,21 @@
         "category": "Org"
       },
       {
+        "command": "org.reveal",
+        "title": "Show the context of the cursor",
+        "category": "Org"
+      },
+      {
+        "command": "org.reveal.siblings",
+        "title": "Show the context of the cursor, each level with its children",
+        "category": "Org"
+      },
+      {
+        "command": "org.reveal.tree",
+        "title": "Show the whole tree of the cursor's parent",
+        "category": "Org"
+      },
+      {
         "command": "org.cut.subtree",
         "title": "Cut the subtree",
         "category": "Org"
@@ -4268,6 +4283,11 @@
       {
         "command": "org.sparse.tree",
         "key": "ctrl+c /",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.reveal",
+        "key": "ctrl+c ctrl+r",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

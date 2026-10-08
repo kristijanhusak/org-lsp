@@ -719,7 +719,14 @@ SPARSE_KEY = 'org-lsp-sparse'
 def show_sparse(session, view, sparse) -> None:
     """A sparse tree (`org-sparse-tree`): every fold closed but those with
     one of `sparse['lines']` inside, as `org-occur` shows its matches; the
-    matches highlighted until the text changes."""
+    matches highlighted until the text changes. With `keep`
+    (`org-reveal`), only the folds that start on the lines of `unfold`
+    open; the others stay as they are."""
+    if sparse.get('keep'):
+        for line in sparse.get('unfold', []):
+            start = view.line(view.text_point(line, 0)).b
+            view.unfold(sublime.Region(start, start + 1))
+        return
     regions = [sublime.Region(position_to_offset(r['start'], view), position_to_offset(r['end'], view))
                for r in sparse.get('highlights', [])]
     if regions:

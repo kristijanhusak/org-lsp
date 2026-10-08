@@ -4256,6 +4256,9 @@ impl Server {
             }
             commands::SORT => self.sort(&context.ok_or("This command needs the cursor position")?),
             commands::SPARSE_TREE => self.sparse_tree(&context.ok_or("This command needs the cursor position")?),
+            commands::REVEAL | commands::REVEAL_SIBLINGS | commands::REVEAL_TREE => {
+                self.reveal(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
             // In a table, `org-cut-special` and its neighbours cut, copy and
             // paste the cells of the region, or of the field (Emacs's own
             // clipboard, `org-table-clip`).
@@ -9628,6 +9631,37 @@ impl Server {
             .collect();
         self.message = message;
         Ok(json!({ "sparse": { "lines": lines, "highlights": highlights } }))
+    }
+
+    /// `org-reveal` (`C-c C-r`): the lines to show around the cursor, as
+    /// `org-fold-show-set-visibility` shows them; the result has `sparse`
+    /// with `keep`, the editor's other folds left as they are, and
+    /// `unfold`, the first lines of the folds to open, outer ones first.
+    fn reveal(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::reveal::{reveal, Detail};
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let text = &document.text;
+        let offset = document.index.offset(text, context.position, self.client.encoding);
+        let detail = match id {
+            commands::REVEAL_SIBLINGS => Detail::Canonical,
+            commands::REVEAL_TREE => Detail::Tree,
+            _ => Detail::Lineage,
+        };
+        let lines: Vec<u32> = reveal(text, offset, detail)
+            .into_iter()
+            .map(|at| document.index.position(text, at, self.client.encoding).line)
+            .collect();
+        // The folds to open: those around a line to show, not those that
+        // start on it (a headline shows, its subtree stays folded).
+        let mut unfold: Vec<u32> =
+            folding::folding_ranges(&document.syntax(), text, &document.index, self.separator_lines)
+                .into_iter()
+                .filter(|range| lines.iter().any(|line| range.start_line < *line && *line <= range.end_line))
+                .map(|range| range.start_line)
+                .collect();
+        unfold.sort_unstable();
+        unfold.dedup();
+        Ok(json!({ "sparse": { "lines": lines, "highlights": [], "keep": true, "unfold": unfold } }))
     }
 
     /// `org-sort` (`C-c ^`) on entries (`org-sort-entries`): asks for the
