@@ -119,6 +119,12 @@
           "task_name": "Org agenda: write it to a file"
         }
       ],
+      "ctrl-c ctrl-x ctrl-c": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: column view"
+        }
+      ],
       "shift-r": [
         "task::Spawn",
         {

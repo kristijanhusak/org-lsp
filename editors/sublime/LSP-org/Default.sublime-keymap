@@ -4230,6 +4230,52 @@
   },
   {
     "keys": [
+      "ctrl+c",
+      "ctrl+x",
+      "ctrl+c"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.columns"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+x",
+      "ctrl+c"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.columns"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
       "shift+r"
     ],
     "command": "org_lsp_run",

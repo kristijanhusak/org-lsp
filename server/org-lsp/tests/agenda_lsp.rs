@@ -5877,3 +5877,88 @@ fn renames_headlines_and_tags() {
     );
     assert_eq!(texts[b], "#+FILETAGS: :job:\n* B :job:x:\n[[file:a.org::*Old title]]\n");
 }
+
+/// `org-agenda-columns` (`C-c C-x C-c` in the agenda), through Emacs: the
+/// columns of each entry's line and the summaries of the block, and a
+/// value edited there changed in the entry's file.
+#[test]
+fn agenda_column_view_goes_to_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("agenda_column_view_goes_to_emacs: no Emacs, skipped");
+        return;
+    }
+    let mut options = clock();
+    let mut config = "(setq org-columns-default-format \"%25ITEM %TODO %Effort{:}\")".to_string();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        config = format!("(add-to-list 'load-path {dir:?}) {config}");
+    }
+    options["emacs_config"] = json!(config);
+    let file = workspace("columns").join("tasks.org");
+    let text = "* TODO Write\n:PROPERTIES:\n:Effort: 1:00\n:END:\n* TODO Read\n:PROPERTIES:\n:Effort: 0:30\n:END:\n";
+    std::fs::write(&file, text).unwrap();
+    let uri = format!("file://{}", file.display());
+    let mut client = Client::editor(options, None);
+    client.open(&uri, text);
+    let run = |client: &mut Client, command: &str, line: u32, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+    };
+    run(&mut client, "org.agenda.dispatch", 0, json!({ "input": "t" })).unwrap();
+    client.settle();
+    let view = client.view_text(VIEW);
+    let line_of = |head: &str| view.lines().position(|line| line.ends_with(head)).unwrap() as u32;
+    let (write, read) = (line_of("TODO Write"), line_of("TODO Read"));
+    // What column view shows, once Emacs has said.
+    let shown = |client: &mut Client| -> Value {
+        let start = std::time::Instant::now();
+        loop {
+            if let Some(found) = client.notifications.iter().rev().find(|note| note.method == "org-lsp/columns") {
+                return found.params.clone();
+            }
+            assert!(start.elapsed() < std::time::Duration::from_secs(20), "column view shows");
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            client.settle();
+        }
+    };
+    run(&mut client, "org.agenda.columns", write, json!({})).unwrap();
+    let columns = shown(&mut client);
+    assert_eq!(columns["uri"], VIEW);
+    assert_eq!(
+        columns["header"].as_str().unwrap().split('|').map(str::trim).collect::<Vec<_>>(),
+        ["ITEM", "TODO", "Effort", ""]
+    );
+    let row = |columns: &Value, line: u32| -> Vec<String> {
+        let row = columns["lines"].as_array().unwrap().iter().find(|row| row[0] == json!(line)).expect("a row");
+        row[2].as_array().unwrap().iter().map(|value| value.as_str().unwrap().to_string()).collect()
+    };
+    assert_eq!(row(&columns, write), ["Write", "TODO", "1:00"]);
+    assert_eq!(row(&columns, read), ["Read", "TODO", "0:30"]);
+    // The block's header sums the efforts.
+    assert_eq!(row(&columns, 0)[2], "1:30", "{columns}");
+    // `e` on the effort of `Read`: asked, then changed in its file.
+    client.notifications.clear();
+    let asked = run(&mut client, "org.columns.edit", read, json!({ "column": 2 })).unwrap();
+    assert_eq!(asked["input"]["prompt"], "EFFORT value [0:30]: ", "{asked}");
+    client.received.clear();
+    run(&mut client, "org.columns.edit", read, json!({ "column": 2, "input": "2:00" })).unwrap();
+    let start = std::time::Instant::now();
+    while !client.received.iter().any(|request| request.method == "workspace/applyEdit") {
+        assert!(start.elapsed() < std::time::Duration::from_secs(20), "the file is edited");
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        client.settle();
+    }
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").unwrap();
+    let (edited, edits) = edits_of(edit);
+    assert_eq!(edited, uri);
+    assert!(apply(text, &edits).contains(":EFFORT:   2:00"), "{}", apply(text, &edits));
+    // `q`: column view off.
+    client.notifications.clear();
+    run(&mut client, "org.columns.quit", read, json!({})).unwrap();
+    assert_eq!(shown(&mut client)["lines"], Value::Null);
+    client.shutdown();
+}

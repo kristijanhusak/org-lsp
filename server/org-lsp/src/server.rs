@@ -135,6 +135,11 @@ enum EmacsJob {
     Columns { uri: Uri, version: i32, text: String },
     /// What column view shows of the document `uri`, at its `version`.
     ColumnsView { uri: Uri, version: i32 },
+    /// Column view of the agenda `uri`, for the view's text.
+    AgendaColumns { uri: Uri, text: String },
+    /// A column view command in the agenda `uri`: the files sent, each
+    /// its document's version when open and its text.
+    AgendaColumnsCommand { uri: Uri, files: Vec<(Uri, Option<i32>, String)> },
     /// The text of the file `file` (`content`) written back into the part
     /// of `uri` it edits (see [`SpecialEdit`]), run on `text`, its `version`.
     WriteBack { file: PathBuf, uri: Uri, version: i32, text: String, content: String },
@@ -1311,6 +1316,37 @@ fn prompt_label(choice: &Value) -> String {
         }
         Some(key) if key != label && key.chars().count() == 1 => format!("{label} [{key}]"),
         _ => label.to_string(),
+    }
+}
+
+/// What a column view command asks, Org's question with its default, as
+/// one line of text: for `id` on the `column`th column of `line` in what
+/// the view shows.
+fn columns_question(id: &str, view: &Value, line: usize, column: usize) -> Option<(String, String)> {
+    // The column's key, and its value on the line.
+    let key = view["columns"][column]["key"].as_str().unwrap_or_default().to_string();
+    let value = view["lines"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|row| row[0].as_u64() == Some(line as u64))
+        .and_then(|row| row[2][column].as_str())
+        .unwrap_or_default()
+        .to_string();
+    match id {
+        commands::COLUMNS_EDIT => match key.as_str() {
+            "ITEM" => Some(("Edit: ".to_string(), value)),
+            "PRIORITY" => Some(("Priority A-C, SPC to remove: ".to_string(), String::new())),
+            "TAGS" => Some(("Tags: ".to_string(), value)),
+            "DEADLINE" | "SCHEDULED" => Some(("Date+time: ".to_string(), String::new())),
+            "TODO" | "CLOCKSUM" | "CLOCKSUM_T" => None,
+            _ => {
+                let current = if value.is_empty() { String::new() } else { format!(" [{value}]") };
+                Some((format!("{key} value{current}: "), value))
+            }
+        },
+        commands::COLUMNS_ALLOWED => Some(("Allowed: ".to_string(), String::new())),
+        _ => None,
     }
 }
 
@@ -3867,6 +3903,9 @@ impl Server {
     /// Stop rebuilding the agenda the client closed, and remove its file.
     fn drop_closed_view(&mut self) {
         if self.view.as_ref().is_some_and(|open| open.closing) {
+            if let Some(open) = &self.view {
+                self.columns.remove(open.uri.as_str());
+            }
             self.remove_view_file();
             self.view = None;
             self.reveal = None;
@@ -3912,6 +3951,8 @@ impl Server {
                 self.send_raw_request(TEXT_DOCUMENT_CONTENT_REFRESH, params, None);
             }
         }
+        // Column view stays on, as `org-agenda-redo` keeps it.
+        self.agenda_columns_view();
     }
 
     /// Ask the client to show the view with the cursor at `position`.
@@ -4893,6 +4934,14 @@ impl Server {
                     self.message = Some(format!("Habits turned {}", if habits.show_habits { "on" } else { "off" }));
                 }
                 self.refresh_view();
+                Ok(())
+            }
+            commands::AGENDA_COLUMNS => {
+                let uri = self.view.as_ref().map(|open| open.uri.clone()).ok_or("No agenda is open")?;
+                // The format is the one of the cursor's entry, as Org takes it.
+                let start = context.as_ref().map_or(0, |context| context.position.line as usize);
+                self.columns.insert(uri.as_str().to_string(), ColumnsOn { start, global: false, view: Value::Null });
+                self.agenda_columns_view();
                 Ok(())
             }
             commands::AGENDA_LOG | commands::AGENDA_CLOCKREPORT => {
@@ -8136,6 +8185,24 @@ impl Server {
                         }
                     }
                 }
+                (Some(EmacsJob::AgendaColumns { uri, text }), result) => {
+                    let current = self.view.as_ref().is_some_and(|open| open.uri == uri && open.view.text == text);
+                    if current && self.columns.contains_key(uri.as_str()) {
+                        match result {
+                            Ok(view) => self.columns_shown(&uri, 0, Some(view)),
+                            Err(error) => {
+                                self.columns_shown(&uri, 0, None);
+                                self.show_message(MessageType::ERROR, error);
+                            }
+                        }
+                    }
+                }
+                (Some(EmacsJob::AgendaColumnsCommand { .. }), Err(error)) => {
+                    self.show_message(MessageType::ERROR, error)
+                }
+                (Some(EmacsJob::AgendaColumnsCommand { uri, files }), Ok(result)) => {
+                    self.agenda_columns_done(&uri, files, &result);
+                }
                 (Some(EmacsJob::Columns { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
                 (Some(EmacsJob::Columns { uri, version, text }), Ok(mut result)) => {
                     // The cursor stays where it is; the view says the rest.
@@ -8340,6 +8407,170 @@ impl Server {
         self.emacs.start(tag, "columns", params);
     }
 
+    /// What Emacs needs for column view of the agenda: its lines, each
+    /// with the file and the headline of its entry, or marked as a date
+    /// line or a block's header; the line it was turned on at; and the
+    /// files, as the editor has them.
+    /// Also the agenda's URI and each file's URI, version when open and
+    /// text, to apply what a command changes.
+    fn agenda_columns_params(&self) -> Option<(Uri, Value, Vec<(Uri, Option<i32>, String)>)> {
+        let open = self.view.as_ref()?;
+        let view = &open.view;
+        let mut files: Vec<(Uri, Option<i32>, String)> = Vec::new();
+        let mut lines = Vec::new();
+        for (number, text) in view.text.lines().enumerate() {
+            let line = view.lines.get(number);
+            let entry = line.and_then(|line| line.entry.as_ref());
+            let mut item = json!({ "text": text });
+            if let Some(entry) = entry {
+                let path = uri::to_path(&entry.uri)?;
+                if !files.iter().any(|(uri, _, _)| *uri == entry.uri) {
+                    let (uri, file_text) = self.file_text(&path)?;
+                    let version = self.document(&uri).map(|document| document.version);
+                    files.push((uri, version, file_text));
+                }
+                let file_text = &files.iter().find(|(uri, _, _)| *uri == entry.uri)?.2;
+                let offset = entry.offset.min(file_text.len());
+                if file_text.is_char_boundary(offset) {
+                    item["file"] = json!(path.to_string_lossy());
+                    item["point"] = json!(file_text[..offset].chars().count() + 1);
+                }
+            } else if !text.is_empty() && !text.starts_with(' ') {
+                if line.is_some_and(|line| line.day.is_some()) {
+                    item["date"] = json!(true);
+                } else {
+                    item["structure"] = json!(true);
+                }
+            }
+            lines.push(item);
+        }
+        let sent: Vec<Value> = files
+            .iter()
+            .filter_map(|(uri, _, text)| Some(json!({ "file": uri::to_path(uri)?.to_string_lossy(), "text": text })))
+            .collect();
+        let start = self.columns.get(open.uri.as_str()).map_or(0, |on| on.start);
+        Some((open.uri.clone(), json!({ "lines": lines, "files": sent, "start": start }), files))
+    }
+
+    /// Asks Emacs what column view shows in the agenda now, when it is on.
+    fn agenda_columns_view(&mut self) {
+        let Some(uri) = self.view.as_ref().map(|open| open.uri.clone()) else { return };
+        if !self.columns.contains_key(uri.as_str()) {
+            return;
+        }
+        let Some((uri, params, _)) = self.agenda_columns_params() else { return };
+        let text = self.view.as_ref().map(|open| open.view.text.clone()).unwrap_or_default();
+        self.next_export += 1;
+        let tag = self.next_export;
+        self.emacs_jobs.insert(tag, EmacsJob::AgendaColumns { uri, text });
+        self.emacs.start(tag, "agenda-columns", params);
+    }
+
+    /// A column view command in the agenda (`org-columns-map` there): the
+    /// value of the entry of the cursor's line changed in its file, or
+    /// shown. Moving, narrowing and deleting columns are left out: they
+    /// change the format the agenda's view alone has.
+    fn agenda_columns_command(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = context.text_document.uri.clone();
+        let on = self.columns.get(uri.as_str()).cloned().ok_or("Column view is off")?;
+        match id {
+            commands::COLUMNS_QUIT => {
+                self.columns_shown(&uri, 0, None);
+                return Ok(Value::Null);
+            }
+            commands::COLUMNS_REDO => {
+                self.agenda_columns_view();
+                return Ok(Value::Null);
+            }
+            _ => {}
+        }
+        let command = match id {
+            commands::COLUMNS_EDIT => "org-columns-edit-value",
+            commands::COLUMNS_NEXT => "org-columns-next-allowed-value",
+            commands::COLUMNS_PREVIOUS => "org-columns-previous-allowed-value",
+            commands::COLUMNS_SHOW => "org-columns-show-value",
+            commands::COLUMNS_ALLOWED => "org-columns-edit-allowed",
+            commands::COLUMNS_TODO => "org-columns-todo",
+            _ => return Err(Refusal::NotHere("Not in the agenda's column view".to_string())),
+        };
+        let column = context.column.unwrap_or(0);
+        let line = context.position.line as usize;
+        let answer = match columns_question(id, &on.view, line, column) {
+            Some((prompt, value)) => match context.input.clone() {
+                Some(answer) => Some(answer),
+                None => return Ok(json!({ "input": { "kind": "text", "prompt": prompt, "value": value } })),
+            },
+            None => None,
+        };
+        let (uri, mut params, files) = self.agenda_columns_params().ok_or("No agenda is open")?;
+        params["line"] = json!(line);
+        params["column"] = json!(column);
+        params["command"] = json!(command);
+        if let Some(answer) = answer {
+            params["answer"] = json!(answer);
+        }
+        self.next_export += 1;
+        let tag = self.next_export;
+        self.emacs_jobs.insert(tag, EmacsJob::AgendaColumnsCommand { uri, files });
+        self.emacs.start(tag, "agenda-columns-command", params);
+        Ok(Value::Null)
+    }
+
+    /// What a column view command in the agenda did: what it said, the
+    /// view, and what it changed in the files, applied there unless they
+    /// changed meanwhile. The agenda is redone then, and its column view
+    /// with it.
+    fn agenda_columns_done(&mut self, uri: &Uri, files: Vec<(Uri, Option<i32>, String)>, result: &Value) {
+        if let Some(message) = result.get("message").and_then(Value::as_str).filter(|said| !said.is_empty()) {
+            self.show_message(MessageType::INFO, message);
+        }
+        if let Some(view) = result.get("view").filter(|view| !view.is_null()) {
+            self.columns_shown(uri, 0, Some(view.clone()));
+        }
+        let mut documents = Vec::new();
+        for changed in result.get("files").and_then(Value::as_array).into_iter().flatten() {
+            let (Some(file), Some(text)) = (changed.get("file").and_then(Value::as_str), changed["text"].as_str())
+            else {
+                continue;
+            };
+            let Some((file_uri, version, old)) = files
+                .iter()
+                .find(|(file_uri, _, _)| uri::to_path(file_uri).is_some_and(|path| path == Path::new(file)))
+            else {
+                continue;
+            };
+            let now = self.file_text(Path::new(file)).map(|(_, text)| text);
+            if now.as_deref() != Some(old.as_str())
+                || self.document(file_uri).map(|document| document.version) != *version
+            {
+                self.show_message(
+                    MessageType::WARNING,
+                    format!("{file} changed while Emacs ran the command; nothing was changed. Run it again."),
+                );
+                continue;
+            }
+            match version {
+                Some(version) => documents.push((file_uri.clone(), Some(*version), self.text_edits(old, text))),
+                None => {
+                    if let Err(error) = std::fs::write(file, text) {
+                        self.show_message(MessageType::ERROR, format!("Cannot write {file}: {error}"));
+                    }
+                }
+            }
+        }
+        documents.retain(|(_, _, edits)| !edits.is_empty());
+        if documents.is_empty() {
+            self.refresh_view();
+            return;
+        }
+        for (document, _, _) in &documents {
+            self.edited.insert(document.as_str().to_string());
+        }
+        let edit = self.workspace_edits(documents);
+        let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+        self.apply_edit(params, Pending::Edit);
+    }
+
     /// Tells the editor what column view shows on `uri`, or with no `view`
     /// that it is off.
     fn columns_shown(&mut self, uri: &Uri, version: i32, view: Option<Value>) {
@@ -8368,6 +8599,9 @@ impl Server {
     /// asked first (`e`, `a`).
     fn columns_command(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
         let uri = context.text_document.uri.clone();
+        if self.is_view(&uri) {
+            return self.agenda_columns_command(id, context);
+        }
         let on = self.columns.get(uri.as_str()).cloned().ok_or("Column view is off")?;
         if id == commands::COLUMNS_QUIT {
             let version = self.document(&uri).map_or(0, |document| document.version);
@@ -8399,33 +8633,7 @@ impl Server {
         let path = uri::to_path(&uri).ok_or("Only a file on disk can show column view through Emacs")?;
         let document = self.document(&uri).ok_or("This file is not open")?;
         let line = context.position.line as usize;
-        // The column's key, and its value on the cursor's line.
-        let key = on.view["columns"][column]["key"].as_str().unwrap_or_default().to_string();
-        let value = on.view["lines"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .find(|row| row[0].as_u64() == Some(line as u64))
-            .and_then(|row| row[2][column].as_str())
-            .unwrap_or_default()
-            .to_string();
-        // What Org asks, asked first: one line of text.
-        let question = match id {
-            commands::COLUMNS_EDIT => match key.as_str() {
-                "ITEM" => Some(("Edit: ".to_string(), value)),
-                "PRIORITY" => Some(("Priority A-C, SPC to remove: ".to_string(), String::new())),
-                "TAGS" => Some(("Tags: ".to_string(), value)),
-                "DEADLINE" | "SCHEDULED" => Some(("Date+time: ".to_string(), String::new())),
-                "TODO" | "CLOCKSUM" | "CLOCKSUM_T" => None,
-                _ => {
-                    let current = if value.is_empty() { String::new() } else { format!(" [{value}]") };
-                    Some((format!("{key} value{current}: "), value))
-                }
-            },
-            commands::COLUMNS_ALLOWED => Some(("Allowed: ".to_string(), String::new())),
-            _ => None,
-        };
-        let answer = match question {
+        let answer = match columns_question(id, &on.view, line, column) {
             Some((prompt, value)) => match context.input.clone() {
                 Some(answer) => Some(answer),
                 None => return Ok(json!({ "input": { "kind": "text", "prompt": prompt, "value": value } })),

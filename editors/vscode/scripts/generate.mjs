@@ -100,7 +100,7 @@ const scopeWhen = {
   agenda: `editorLangId == '${AGENDA}'`,
   calendar: `editorLangId == '${DATE}'`,
   capture: `editorLangId == '${ORG}' && resourceFilename =~ /^${manifest.capture.prefix}/`,
-  columns: `editorLangId == '${ORG}' && org-lsp.columns`,
+  columns: `(editorLangId == '${ORG}' || editorLangId == '${AGENDA}') && org-lsp.columns`,
 };
 // Keys for the whole editor are bound where `C-c` is Org's already.
 const globalScopes = ['org', 'agenda'];

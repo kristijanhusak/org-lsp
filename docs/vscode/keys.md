@@ -151,24 +151,6 @@ The other options are in [configuration.md](configuration.md).
 | `Shift+Tab` | `org-lsp.cycleGlobal` | Cycle the visibility of the whole file |
 | `Ctrl+C a` | `org.agenda.dispatch` | Agenda commands |
 | `Ctrl+C c` | `org.capture` | Capture |
-| `q` | `org.columns.quit` | Column view: quit |
-| `g`, `r` | `org.columns.redo` | Column view: recompute |
-| `e` | `org.columns.edit` | Column view: edit the value |
-| `n`, `Shift+Right` | `org.columns.next` | Column view: the next allowed value |
-| `p`, `Shift+Left` | `org.columns.previous` | Column view: the previous allowed value |
-| `v` | `org.columns.show` | Column view: show the value |
-| `a` | `org.columns.allowed` | Column view: edit the allowed values |
-| `Ctrl+C Ctrl+T` | `org.columns.todo` | Column view: change the TODO state |
-| `Ctrl+C Ctrl+C` | `org.columns.toggle` | Column view: toggle a checkbox, or quit |
-| `Alt+Left` | `org.columns.move.left` | Column view: move the column left |
-| `Alt+Right` | `org.columns.move.right` | Column view: move the column right |
-| `Alt+Shift+Left` | `org.columns.delete` | Column view: delete the column |
-| `<` | `org.columns.narrow` | Column view: make the column narrower |
-| `>` | `org.columns.widen` | Column view: make the column wider |
-| `Alt+Up` | `org.columns.row.up` | Column view: move the entry up |
-| `Alt+Down` | `org.columns.row.down` | Column view: move the entry down |
-| `Left` | `org-lsp.columns.left` | Column view: the column to the left |
-| `Right` | `org-lsp.columns.right` | Column view: the column to the right |
 
 #### In a capture buffer
 
@@ -204,6 +186,7 @@ The other options are in [configuration.md](configuration.md).
 | `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `Shift+K` | `org.agenda.habits` | Agenda: show or hide habits |
 | `Ctrl+X Ctrl+W` | `org.agenda.write` | Agenda: write it to a file |
+| `Ctrl+C Ctrl+X Ctrl+C` | `org.agenda.columns` | Agenda: column view |
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
 | `Shift+E`, `v Shift+E` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
 | `Shift+F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |
@@ -248,6 +231,24 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+D` | `org.deadline` | Set the deadline of the entry |
 | `g ?` | `org-lsp.help` | Show the keys |
 | `q` | `org-lsp.agenda.close` | Agenda: close |
+| `q` | `org.columns.quit` | Column view: quit |
+| `g`, `r` | `org.columns.redo` | Column view: recompute |
+| `e` | `org.columns.edit` | Column view: edit the value |
+| `n`, `Shift+Right` | `org.columns.next` | Column view: the next allowed value |
+| `p`, `Shift+Left` | `org.columns.previous` | Column view: the previous allowed value |
+| `v` | `org.columns.show` | Column view: show the value |
+| `a` | `org.columns.allowed` | Column view: edit the allowed values |
+| `Ctrl+C Ctrl+T` | `org.columns.todo` | Column view: change the TODO state |
+| `Ctrl+C Ctrl+C` | `org.columns.toggle` | Column view: toggle a checkbox, or quit |
+| `Alt+Left` | `org.columns.move.left` | Column view: move the column left |
+| `Alt+Right` | `org.columns.move.right` | Column view: move the column right |
+| `Alt+Shift+Left` | `org.columns.delete` | Column view: delete the column |
+| `<` | `org.columns.narrow` | Column view: make the column narrower |
+| `>` | `org.columns.widen` | Column view: make the column wider |
+| `Alt+Up` | `org.columns.row.up` | Column view: move the entry up |
+| `Alt+Down` | `org.columns.row.down` | Column view: move the entry down |
+| `Left` | `org-lsp.columns.left` | Column view: the column to the left |
+| `Right` | `org-lsp.columns.right` | Column view: the column to the right |
 
 #### In the date prompt
 
@@ -286,24 +287,6 @@ The other options are in [configuration.md](configuration.md).
 | `Shift+Right`¹ | `org.shift.right` | Move the date a day later, or cycle the TODO state or the list's bullets forward |
 | `Tab` | `org-lsp.cycle` | Cycle the visibility of the subtree, block or drawer at the cursor |
 | `Shift+Tab` | `org-lsp.cycleGlobal` | Cycle the visibility of the whole file |
-| `q` | `org.columns.quit` | Column view: quit |
-| `r` | `org.columns.redo` | Column view: recompute |
-| `e` | `org.columns.edit` | Column view: edit the value |
-| `n`, `Shift+Right` | `org.columns.next` | Column view: the next allowed value |
-| `p`, `Shift+Left` | `org.columns.previous` | Column view: the previous allowed value |
-| `v` | `org.columns.show` | Column view: show the value |
-| `a` | `org.columns.allowed` | Column view: edit the allowed values |
-| `t` | `org.columns.todo` | Column view: change the TODO state |
-| `Enter` | `org.columns.toggle` | Column view: toggle a checkbox, or quit |
-| `Alt+Left` | `org.columns.move.left` | Column view: move the column left |
-| `Alt+Right` | `org.columns.move.right` | Column view: move the column right |
-| `Alt+Shift+Left` | `org.columns.delete` | Column view: delete the column |
-| `<` | `org.columns.narrow` | Column view: make the column narrower |
-| `>` | `org.columns.widen` | Column view: make the column wider |
-| `Alt+Up` | `org.columns.row.up` | Column view: move the entry up |
-| `Alt+Down` | `org.columns.row.down` | Column view: move the entry down |
-| `h`, `Left` | `org-lsp.columns.left` | Column view: the column to the left |
-| `l`, `Right` | `org-lsp.columns.right` | Column view: the column to the right |
 
 #### In a capture buffer
 
@@ -335,6 +318,7 @@ The other options are in [configuration.md](configuration.md).
 | `v l` | `org.agenda.log` | Agenda: log mode, what was closed and clocked |
 | `Shift+K` | `org.agenda.habits` | Agenda: show or hide habits |
 | `Ctrl+X Ctrl+W` | `org.agenda.write` | Agenda: write it to a file |
+| `Ctrl+C Ctrl+X Ctrl+C` | `org.agenda.columns` | Agenda: column view |
 | `Shift+R`, `v Shift+R` | `org.agenda.clockreport` | Agenda: the clock report |
 | `Shift+E`, `v Shift+E` | `org.agenda.entry.text` | Agenda: entry text mode, some text of each entry under its line |
 | `Shift+F` | `org.agenda.follow` | Agenda: follow mode, the cursor's entry in another window |
@@ -379,6 +363,24 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+D` | `org.deadline` | Set the deadline of the entry |
 | `g ?` | `org-lsp.help` | Show the keys |
 | `q` | `org-lsp.agenda.close` | Agenda: close |
+| `q` | `org.columns.quit` | Column view: quit |
+| `r` | `org.columns.redo` | Column view: recompute |
+| `e` | `org.columns.edit` | Column view: edit the value |
+| `n`, `Shift+Right` | `org.columns.next` | Column view: the next allowed value |
+| `p`, `Shift+Left` | `org.columns.previous` | Column view: the previous allowed value |
+| `v` | `org.columns.show` | Column view: show the value |
+| `a` | `org.columns.allowed` | Column view: edit the allowed values |
+| `t` | `org.columns.todo` | Column view: change the TODO state |
+| `Enter` | `org.columns.toggle` | Column view: toggle a checkbox, or quit |
+| `Alt+Left` | `org.columns.move.left` | Column view: move the column left |
+| `Alt+Right` | `org.columns.move.right` | Column view: move the column right |
+| `Alt+Shift+Left` | `org.columns.delete` | Column view: delete the column |
+| `<` | `org.columns.narrow` | Column view: make the column narrower |
+| `>` | `org.columns.widen` | Column view: make the column wider |
+| `Alt+Up` | `org.columns.row.up` | Column view: move the entry up |
+| `Alt+Down` | `org.columns.row.down` | Column view: move the entry down |
+| `h`, `Left` | `org-lsp.columns.left` | Column view: the column to the left |
+| `l`, `Right` | `org-lsp.columns.right` | Column view: the column to the right |
 
 #### In the date prompt
 
@@ -533,6 +535,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.agenda.habits` | Org: Agenda: show or hide habits |
 | `org.agenda.write` | Org: Agenda: write it to a file |
 | `org.agenda.appt` | Org: Add today's appointments from the agenda files |
+| `org.agenda.columns` | Org: Agenda: column view |
 | `org.agenda.clockreport` | Org: Agenda: the clock report |
 | `org.agenda.entry.text` | Org: Agenda: entry text mode, some text of each entry under its line |
 | `org.agenda.follow` | Org: Agenda: follow mode, the cursor's entry in another window |

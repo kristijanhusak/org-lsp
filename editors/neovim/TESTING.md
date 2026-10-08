@@ -142,6 +142,7 @@ here and why.
 - [ ] Later, earlier, today; day, week, month views; going to a date: `f`, `b`, `.`, `vd`, `vw`, `vm`, `J`
 - [ ] Tags at the right edge of the window, following it as it is resized
 - [ ] The TODO list, a tag search (`work+urgent`), a word search: `<Leader>oa`
+- [ ] Column view in the agenda covers each entry's line with its columns and sums the efforts on the header; `e` on an effort changes it in the entry's file; `q` turns it off (needs Emacs): `<C-c><C-x><C-c>`
 - [ ] Going to the line's entry in another window, and where the agenda is: `<Tab>`, `<CR>`
 - [ ] Changing the line's TODO state and priority; the line follows: `t`, `+` or `<S-Up>`
 - [ ] Scheduling the line's entry and setting its deadline: `<C-c><C-s>` or `<Leader>ois`, `<C-c><C-d>` or `<Leader>oid`

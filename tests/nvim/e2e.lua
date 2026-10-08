@@ -1340,6 +1340,29 @@ if vim.fn.executable('emacs') == 1 then
   end)
   eq(vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, {}), {}, 'nothing covers the headlines')
   eq(vim.wo.winbar, '', 'the window bar as it was')
+
+  -- In the agenda (`org-agenda-columns`): each entry's line covered by its
+  -- columns; `q` gives the agenda its own keys back.
+  require('org-lsp').run('org.agenda.todos')
+  wait('the TODO list', function()
+    return vim.bo.filetype == 'org-agenda' and vim.fn.search('TODO Task$', 'nw') > 0
+  end)
+  local agenda = vim.api.nvim_get_current_buf()
+  local task = vim.fn.search('TODO Task$', 'nw')
+  local quit = vim.fn.maparg('q', 'n', false, true).desc
+  vim.api.nvim_win_set_cursor(0, { task, 0 })
+  require('org-lsp').run('org.agenda.columns')
+  wait('column view in the agenda', function()
+    return columns.on(agenda)
+  end)
+  wait('the entry covered by its columns', function()
+    return vim.trim(shown(task - 1)):find('^Task%s+| TODO |') ~= nil
+  end)
+  press('q')
+  wait('column view off in the agenda', function()
+    return not columns.on(agenda)
+  end)
+  eq(vim.fn.maparg('q', 'n', false, true).desc, quit, 'the agenda keys again')
 end
 
 print(('ok: %d checks passed'):format(checks))

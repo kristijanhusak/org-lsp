@@ -31,7 +31,7 @@ its behalf.
 | [Tags](../../docs/parity.md#tags) | 100% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work. |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 100% | ❓ | Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines. |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works. |
-| [Agenda](../../docs/parity.md#agenda) | 95% | ❌ | Helix cannot open a document on a server's request. `org-lsp agenda FILE...` prints the agenda in a terminal. |
+| [Agenda](../../docs/parity.md#agenda) | 100% | ❌ | Helix cannot open a document on a server's request. `org-lsp agenda FILE...` prints the agenda in a terminal. |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ❓ | No clock in the status line: Helix has no place there for a server's text. |
 | [Capture](../../docs/parity.md#capture) | 100% | ❌ | Helix cannot open the capture buffer, and Helix cannot ask for text on a server's behalf. |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 100% | ❓ | Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions. |
@@ -50,7 +50,7 @@ its behalf.
 | [Attachments](../../docs/parity.md#attachments) | 100% | ❓ | `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and it is not among them. |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **95%** |  |  |
+| **All of Org** | **96%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

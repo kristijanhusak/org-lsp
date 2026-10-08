@@ -161,6 +161,7 @@ pub const NARROW_BLOCK: &str = "org.narrow.block";
 pub const TREE_INDIRECT: &str = "org.tree.indirect";
 pub const TABLE_EDIT_FIELD: &str = "org.table.edit.field";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
+pub const AGENDA_COLUMNS: &str = "org.agenda.columns";
 pub const AGENDA_ENTRY_TEXT: &str = "org.agenda.entry.text";
 pub const AGENDA_FOLLOW: &str = "org.agenda.follow";
 pub const AGENDA_BULK_MARK: &str = "org.agenda.bulk.mark";
@@ -411,6 +412,10 @@ pub const COMMANDS: &[Command] = &[
     // files, become appointments of Emacs's `appt.el`, which the server
     // checks each minute; with `C-u`, the list starts over.
     command(AGENDA_APPT, "Add today's appointments from the agenda files"),
+    // `org-agenda-columns`: column view of the agenda's entries, through
+    // Emacs, with the summaries on the date lines; its keys are column
+    // view's, for the values of the entries.
+    Command { emacs: &[key(Agenda, "C-c C-x C-c")], ..command(AGENDA_COLUMNS, "Agenda: column view") },
     Command {
         emacs: &[key(Agenda, "R"), key(Agenda, "v R")],
         ..command(AGENDA_CLOCKREPORT, "Agenda: the clock report")
