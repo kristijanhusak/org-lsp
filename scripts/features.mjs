@@ -471,7 +471,7 @@ export const AREAS = [
       ['Archive locations, `ARCHIVE` properties, date trees, `ARCHIVE_…` context', true],
       ['Archiving all done subtrees', true],
       ['Logging refiles (`org-log-refile`)', true],
-      ['Creating parent nodes as the target', false],
+      ['Creating parent nodes as the target (`org-refile-allow-creating-parent-nodes`)', true],
       ['Refiling a region', false],
       ['Copying (`C-c M-w`), going to a target (`C-u C-c C-w`) and to the last refiled entry (`C-u C-u C-c C-w`)', true],
       ['`org-refile-target-verify-function`', false],

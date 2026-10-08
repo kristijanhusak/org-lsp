@@ -1,1433 +1,1721 @@
 [
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-  },
-  "answer": "Projects",
-  "expected": {
-   "offered": [
-    "Inbox",
-    "Projects",
-    "Archive"
-   ],
-   "files": {
-    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n** TODO Call Bob                                                       :work:\nSome text.\n\n* Archive\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-  },
-  "answer": "Archive",
-  "expected": {
-   "offered": [
-    "Inbox",
-    "Projects",
-    "Archive"
-   ],
-   "files": {
-    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n** TODO Call Bob                                                       :work:\nSome text.\n\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-  },
-  "answer": "Inbox",
-  "expected": {
-   "offered": [
-    "Inbox",
-    "Projects",
-    "Archive"
-   ],
-   "files": {
-    "a.org": "* Inbox\n** Read\n** TODO Call Bob                                                       :work:\nSome text.\n\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-  },
-  "answer": "Nope",
-  "expected": "ERROR: (user-error \"Invalid target location\")"
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-  },
-  "answer": "Projects",
-  "options": {
-   "org_reverse_note_order": true
-  },
-  "expected": {
-   "offered": [
-    "Inbox",
-    "Projects",
-    "Archive"
-   ],
-   "files": {
-    "a.org": "* Inbox\n** Read\n* Projects\n** TODO Call Bob                                                       :work:\nSome text.\n\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-  },
-  "answer": "Alpha",
-  "options": {
-   "org_refile_targets": [
-    {
-     "maxlevel": 2
-    }
-   ]
-  },
-  "expected": {
-   "offered": [
-    "Inbox",
-    "Call Bob",
-    "Read",
-    "Projects",
-    "Alpha",
-    "Beta",
-    "Archive"
-   ],
-   "files": {
-    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n*** TODO Call Bob                                                      :work:\nSome text.\n\n** Beta\n* Archive\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-  },
-  "answer": "Beta",
-  "options": {
-   "org_refile_targets": [
-    {
-     "maxlevel": 3
-    }
-   ]
-  },
-  "expected": {
-   "offered": [
-    "Inbox",
-    "Call Bob",
-    "Read",
-    "Projects",
-    "Alpha",
-    "Task",
-    "Beta",
-    "Archive"
-   ],
-   "files": {
-    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n*** TODO Call Bob                                                      :work:\nSome text.\n\n* Archive\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-  },
-  "answer": "Projects/Alpha/",
-  "options": {
-   "org_refile_targets": [
-    {
-     "maxlevel": 3
-    }
-   ],
-   "org_refile_use_outline_path": true
-  },
-  "expected": {
-   "offered": [
-    "Inbox/",
-    "Inbox/Call Bob/",
-    "Inbox/Read/",
-    "Projects/",
-    "Projects/Alpha/",
-    "Projects/Alpha/Task/",
-    "Projects/Beta/",
-    "Archive/"
-   ],
-   "files": {
-    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n*** TODO Call Bob                                                      :work:\nSome text.\n\n** Beta\n* Archive\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-  },
-  "answer": "a.org/Projects/",
-  "options": {
-   "org_refile_targets": [
-    {
-     "maxlevel": 2
-    }
-   ],
-   "org_refile_use_outline_path": "file"
-  },
-  "expected": {
-   "offered": [
-    "a.org/",
-    "a.org/Inbox/",
-    "a.org/Inbox/Call Bob/",
-    "a.org/Inbox/Read/",
-    "a.org/Projects/",
-    "a.org/Projects/Alpha/",
-    "a.org/Projects/Beta/",
-    "a.org/Archive/"
-   ],
-   "files": {
-    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n** TODO Call Bob                                                       :work:\nSome text.\n\n* Archive\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-  },
-  "answer": "a.org/",
-  "options": {
-   "org_refile_targets": [
-    {
-     "maxlevel": 2
-    }
-   ],
-   "org_refile_use_outline_path": "file"
-  },
-  "expected": {
-   "offered": [
-    "a.org/",
-    "a.org/Inbox/",
-    "a.org/Inbox/Call Bob/",
-    "a.org/Inbox/Read/",
-    "a.org/Projects/",
-    "a.org/Projects/Alpha/",
-    "a.org/Projects/Beta/",
-    "a.org/Archive/"
-   ],
-   "files": {
-    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n* TODO Call Bob                                                        :work:\nSome text.\n\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
-  },
-  "answer": "Task",
-  "options": {
-   "org_refile_targets": [
-    {
-     "all": true
-    }
-   ]
-  },
-  "expected": {
-   "offered": [
-    "Inbox",
-    "Call Bob",
-    "Read",
-    "Projects",
-    "Alpha",
-    "Task",
-    "Beta",
-    "Archive"
-   ],
-   "files": {
-    "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n**** TODO Call Bob                                                     :work:\nSome text.\n\n** Beta\n* Archive\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* A¦\n** B\n* C\n"
-  },
-  "answer": "B",
-  "options": {
-   "org_refile_targets": [
-    {
-     "maxlevel": 2
-    }
-   ]
-  },
-  "expected": "ERROR: (error \"Cannot refile to position inside the tree or region\")"
- },
- {
-  "files": {
-   "a.org": "* Top\n** Mid\n*** Deep¦ :x:\n**** Deeper\nbody\n* Other\n"
-  },
-  "answer": "Other",
-  "expected": {
-   "offered": [
-    "Top",
-    "Other"
-   ],
-   "files": {
-    "a.org": "* Top\n** Mid\n* Other\n** Deep                                                                   :x:\n*** Deeper\nbody\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Top\n** Mid\n*** Deep¦ :x:\n**** Deeper\nbody\n* Other\n"
-  },
-  "answer": "Top",
-  "expected": {
-   "offered": [
-    "Top",
-    "Other"
-   ],
-   "files": {
-    "a.org": "* Top\n** Mid\n** Deep                                                                   :x:\n*** Deeper\nbody\n* Other\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Top\n** Mid\n*** Deep¦ :x:\n**** Deeper\nbody\n* Other\n"
-  },
-  "answer": "a.org/",
-  "options": {
-   "org_refile_use_outline_path": "file"
-  },
-  "expected": {
-   "offered": [
-    "a.org/",
-    "a.org/Top/",
-    "a.org/Other/"
-   ],
-   "files": {
-    "a.org": "* Top\n** Mid\n* Other\n* Deep                                                                    :x:\n** Deeper\nbody\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* A\n\n* B¦\ntext\n\n\n* C"
-  },
-  "answer": "C",
-  "expected": {
-   "offered": [
-    "A",
-    "B",
-    "C"
-   ],
-   "files": {
-    "a.org": "* A\n\n* C\n** B\ntext\n\n\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* A\n* B¦\ntext"
-  },
-  "answer": "A",
-  "expected": {
-   "offered": [
-    "A",
-    "B"
-   ],
-   "files": {
-    "a.org": "* A\n** B\ntext\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* A\n** a1\n\n* B¦\n\n* C\n"
-  },
-  "answer": "A",
-  "expected": {
-   "offered": [
-    "A",
-    "B",
-    "C"
-   ],
-   "files": {
-    "a.org": "* A\n** a1\n\n** B\n\n* C\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* A\n** a1\n\n* B¦\n\n* C\n"
-  },
-  "answer": "A",
-  "options": {
-   "org_reverse_note_order": true
-  },
-  "expected": {
-   "offered": [
-    "A",
-    "B",
-    "C"
-   ],
-   "files": {
-    "a.org": "* A\n** B\n\n** a1\n\n* C\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
-   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
-  },
-  "answer": "Home (b.org)",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "level": 1
-    }
-   ]
-  },
-  "expected": {
-   "offered": [
-    "Inbox",
-    "Misc",
-    "Home (b.org)",
-    "Work (b.org)"
-   ],
-   "files": {
-    "a.org": "* Inbox\n* Misc\n",
-    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n* Work\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
-   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
-  },
-  "answer": "Misc",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "level": 1
-    }
-   ]
-  },
-  "expected": {
-   "offered": [
-    "Inbox",
-    "Misc",
-    "Home (b.org)",
-    "Work (b.org)"
-   ],
-   "files": {
-    "a.org": "* Inbox\n* Misc\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n",
-    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
-   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
-  },
-  "answer": "Garden (b.org)",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
-    }
-   ]
-  },
-  "expected": {
-   "offered": [
-    "Inbox",
-    "Pay",
-    "Misc",
-    "Home (b.org)",
-    "Garden (b.org)",
-    "Work (b.org)"
-   ],
-   "files": {
-    "a.org": "* Inbox\n* Misc\n",
-    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n*** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n* Work\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
-   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
-  },
-  "answer": "b.org/Work/",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
-    }
-   ],
-   "org_refile_use_outline_path": "file"
-  },
-  "expected": {
-   "offered": [
-    "a.org/",
-    "a.org/Inbox/",
-    "a.org/Inbox/Pay/",
-    "a.org/Misc/",
-    "b.org/",
-    "b.org/Home/",
-    "b.org/Home/Garden/",
-    "b.org/Work/"
-   ],
-   "files": {
-    "a.org": "* Inbox\n* Misc\n",
-    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
-   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
-  },
-  "answer": "b.org/",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
-    }
-   ],
-   "org_refile_use_outline_path": "file"
-  },
-  "expected": {
-   "offered": [
-    "a.org/",
-    "a.org/Inbox/",
-    "a.org/Inbox/Pay/",
-    "a.org/Misc/",
-    "b.org/",
-    "b.org/Home/",
-    "b.org/Home/Garden/",
-    "b.org/Work/"
-   ],
-   "files": {
-    "a.org": "* Inbox\n* Misc\n",
-    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n* TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
-   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
-  },
-  "answer": "Bee/Home/",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
-    }
-   ],
-   "org_refile_use_outline_path": "title"
-  },
-  "expected": {
-   "offered": [
-    "a.org/",
-    "a.org/Inbox/",
-    "a.org/Inbox/Pay/",
-    "a.org/Misc/",
-    "Bee/",
-    "Bee/Home/",
-    "Bee/Home/Garden/",
-    "Bee/Work/"
-   ],
-   "files": {
-    "a.org": "* Inbox\n* Misc\n",
-    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n* Work\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
-   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
-  },
-  "answer": "Home/Garden/ (b.org)",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
-    }
-   ],
-   "org_refile_use_outline_path": true
-  },
-  "expected": {
-   "offered": [
-    "Inbox/",
-    "Inbox/Pay/",
-    "Misc/",
-    "Home/ (b.org)",
-    "Home/Garden/ (b.org)",
-    "Work/ (b.org)"
-   ],
-   "files": {
-    "a.org": "* Inbox\n* Misc\n",
-    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n*** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n* Work\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
-   "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
-  },
-  "answer": "Work (b.org)",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": [
-      "b.org"
-     ],
-     "level": 1
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
     },
-    {
-     "level": 1
+    "answer": "Projects",
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Projects",
+        "Archive"
+      ],
+      "files": {
+        "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n** TODO Call Bob                                                       :work:\nSome text.\n\n* Archive\n"
+      }
     }
-   ]
   },
-  "expected": {
-   "offered": [
-    "Home (b.org)",
-    "Work (b.org)",
-    "Inbox",
-    "Misc"
-   ],
-   "files": {
-    "a.org": "* Inbox\n* Misc\n",
-    "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Projects :proj:\n* Notes\n** Sub :proj:\n* TODO Do it\n* NEXT Not kw\n* X¦\n"
-  },
-  "answer": "Sub",
-  "options": {
-   "org_refile_targets": [
-    {
-     "tag": "proj"
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+    },
+    "answer": "Archive",
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Projects",
+        "Archive"
+      ],
+      "files": {
+        "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n** TODO Call Bob                                                       :work:\nSome text.\n\n"
+      }
     }
-   ]
   },
-  "expected": {
-   "offered": [
-    "Projects",
-    "Sub"
-   ],
-   "files": {
-    "a.org": "* Projects :proj:\n* Notes\n** Sub :proj:\n*** X\n* TODO Do it\n* NEXT Not kw\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Projects :proj:\n* Notes\n** Sub :proj:\n* TODO Do it\n* NEXT Not kw\n* X¦\n"
-  },
-  "answer": "Do it",
-  "options": {
-   "org_refile_targets": [
-    {
-     "todo": "TODO"
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+    },
+    "answer": "Inbox",
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Projects",
+        "Archive"
+      ],
+      "files": {
+        "a.org": "* Inbox\n** Read\n** TODO Call Bob                                                       :work:\nSome text.\n\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+      }
     }
-   ]
   },
-  "expected": {
-   "offered": [
-    "Do it"
-   ],
-   "files": {
-    "a.org": "* Projects :proj:\n* Notes\n** Sub :proj:\n* TODO Do it\n** X\n* NEXT Not kw\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+    },
+    "answer": "Nope",
+    "expected": "ERROR: (user-error \"Invalid target location\")"
   },
-  "answer": "Site [1/2]",
-  "options": {
-   "org_refile_targets": [
-    {
-     "level": 1
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+    },
+    "answer": "Projects",
+    "options": {
+      "org_reverse_note_order": true
+    },
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Projects",
+        "Archive"
+      ],
+      "files": {
+        "a.org": "* Inbox\n** Read\n* Projects\n** TODO Call Bob                                                       :work:\nSome text.\n\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+      }
     }
-   ]
   },
-  "expected": {
-   "offered": [
-    "Site [1/2]",
-    "file:x.org",
-    "COMMENT Hidden"
-   ],
-   "files": {
-    "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n** y\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
-  },
-  "answer": "file:x.org",
-  "options": {
-   "org_refile_targets": [
-    {
-     "level": 1
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+    },
+    "answer": "Alpha",
+    "options": {
+      "org_refile_targets": [
+        {
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Call Bob",
+        "Read",
+        "Projects",
+        "Alpha",
+        "Beta",
+        "Archive"
+      ],
+      "files": {
+        "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n*** TODO Call Bob                                                      :work:\nSome text.\n\n** Beta\n* Archive\n"
+      }
     }
-   ]
   },
-  "expected": {
-   "offered": [
-    "Site [1/2]",
-    "file:x.org",
-    "COMMENT Hidden"
-   ],
-   "files": {
-    "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n** y\n* TODO\n* COMMENT Hidden\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
-  },
-  "answer": "[[https://x.org][Site]]/",
-  "options": {
-   "org_refile_targets": [
-    {
-     "level": 1
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+    },
+    "answer": "Beta",
+    "options": {
+      "org_refile_targets": [
+        {
+          "maxlevel": 3
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Call Bob",
+        "Read",
+        "Projects",
+        "Alpha",
+        "Task",
+        "Beta",
+        "Archive"
+      ],
+      "files": {
+        "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n*** TODO Call Bob                                                      :work:\nSome text.\n\n* Archive\n"
+      }
     }
-   ],
-   "org_refile_use_outline_path": true
   },
-  "expected": "ERROR: (user-error \"Invalid target location\")"
- },
- {
-  "files": {
-   "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
-  },
-  "answer": "Site/",
-  "options": {
-   "org_refile_targets": [
-    {
-     "level": 1
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+    },
+    "answer": "Projects/Alpha/",
+    "options": {
+      "org_refile_targets": [
+        {
+          "maxlevel": 3
+        }
+      ],
+      "org_refile_use_outline_path": true
+    },
+    "expected": {
+      "offered": [
+        "Inbox/",
+        "Inbox/Call Bob/",
+        "Inbox/Read/",
+        "Projects/",
+        "Projects/Alpha/",
+        "Projects/Alpha/Task/",
+        "Projects/Beta/",
+        "Archive/"
+      ],
+      "files": {
+        "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n*** TODO Call Bob                                                      :work:\nSome text.\n\n** Beta\n* Archive\n"
+      }
     }
-   ],
-   "org_refile_use_outline_path": true
   },
-  "expected": {
-   "offered": [
-    "Site/",
-    "file:x.org/",
-    "Hidden/"
-   ],
-   "files": {
-    "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n** y\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
-  },
-  "answer": "Hidden/",
-  "options": {
-   "org_refile_targets": [
-    {
-     "level": 1
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+    },
+    "answer": "a.org/Projects/",
+    "options": {
+      "org_refile_targets": [
+        {
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_use_outline_path": "file"
+    },
+    "expected": {
+      "offered": [
+        "a.org/",
+        "a.org/Inbox/",
+        "a.org/Inbox/Call Bob/",
+        "a.org/Inbox/Read/",
+        "a.org/Projects/",
+        "a.org/Projects/Alpha/",
+        "a.org/Projects/Beta/",
+        "a.org/Archive/"
+      ],
+      "files": {
+        "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n** TODO Call Bob                                                       :work:\nSome text.\n\n* Archive\n"
+      }
     }
-   ],
-   "org_refile_use_outline_path": true
   },
-  "expected": {
-   "offered": [
-    "Site/",
-    "file:x.org/",
-    "Hidden/"
-   ],
-   "files": {
-    "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* A\n*** B¦                    :tag:\n**** C :x:y:\n"
-  },
-  "answer": "A",
-  "options": {
-   "org_tags_column": -40
-  },
-  "expected": {
-   "offered": [
-    "A"
-   ],
-   "files": {
-    "a.org": "* A\n** B                               :tag:\n*** C                              :x:y:\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "intro¦\n* A\n"
-  },
-  "answer": "A",
-  "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer a.org\")"
- },
- {
-  "files": {
-   "a.org": "#+TITLE: Doc\n** Misc :a:b:\n*** Work :a:b:\n\n¦"
-  },
-  "answer": "Doc/",
-  "options": {
-   "org_refile_use_outline_path": "title"
-  },
-  "expected": {
-   "offered": [
-    "Doc/"
-   ],
-   "files": {
-    "a.org": "#+TITLE: Doc\n** Misc :a:b:\n*** Work :a:b:\n\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Misc\n** Task\nS¦ome text.\n*** Work\n\n  - item"
-  },
-  "answer": "Misc/",
-  "options": {
-   "org_refile_use_outline_path": true
-  },
-  "expected": {
-   "offered": [
-    "Misc/"
-   ],
-   "files": {
-    "a.org": "* Misc\n** Task\nSome text.\n*** Work\n\n  - item\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* A\n* B\n** b¦\n* C\n"
-  },
-  "answer": "C",
-  "options": {
-   "org_reverse_note_order": true
-  },
-  "expected": {
-   "offered": [
-    "A",
-    "B",
-    "C"
-   ],
-   "files": {
-    "a.org": "* A\n* B\n* C\n** b\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "*¦** Call\n**** TODO Notes\n**** TODO [#A] Call                       :a:b:\nSCHEDULED: <2026-05-18 Mon>\n\n",
-   "b.org": "#+TITLE: Doc\n** [#A] Misc\n** TODO Work               :tag:\n* DONE Home     :a:b:\n\n"
-  },
-  "answerIndex": 1,
-  "options": {
-   "org_refile_use_outline_path": "title",
-   "org_reverse_note_order": true,
-   "org_tags_column": 20,
-   "org_adapt_indentation": true
-  },
-  "expected": {
-   "offered": [
-    "a.org/"
-   ],
-   "files": {
-    "a.org": "* Call\n** TODO Notes\n** TODO [#A] Call   :a:b:\n   SCHEDULED: <2026-05-18 Mon>\n\n**** TODO Notes\n**** TODO [#A] Call                       :a:b:\nSCHEDULED: <2026-05-18 Mon>\n\n",
-    "b.org": "#+TITLE: Doc\n** [#A] Misc\n** TODO Work               :tag:\n* DONE Home     :a:b:\n\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "#+TITLE: Doc\n¦* TODO Task [1/2]  :tag:\nSome text.\nSome text.\n* Plan\nSome text.\n"
-  },
-  "answerIndex": 5,
-  "options": {
-   "org_refile_targets": [
-    {
-     "maxlevel": 3
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+    },
+    "answer": "a.org/",
+    "options": {
+      "org_refile_targets": [
+        {
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_use_outline_path": "file"
+    },
+    "expected": {
+      "offered": [
+        "a.org/",
+        "a.org/Inbox/",
+        "a.org/Inbox/Call Bob/",
+        "a.org/Inbox/Read/",
+        "a.org/Projects/",
+        "a.org/Projects/Alpha/",
+        "a.org/Projects/Beta/",
+        "a.org/Archive/"
+      ],
+      "files": {
+        "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n* TODO Call Bob                                                        :work:\nSome text.\n\n"
+      }
     }
-   ],
-   "org_tags_column": -40,
-   "org_adapt_indentation": true
   },
-  "expected": {
-   "offered": [
-    "Task [1/2]",
-    "Plan"
-   ],
-   "files": {
-    "a.org": "#+TITLE: Doc\n* Plan\nSome text.\n** TODO Task [1/2]                 :tag:\n Some text.\n Some text.\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "** Plan\n  - item\n* Notes           :proj:\nSCHEDULED: <2026-05-18 Mon>\n*** TODO Work\nSCHEDULED: <2026-05-18 Mon>\n* ¦DONE [[x][Link]]         :proj:\n  - item\n* a/b                 :a:b:\n** DONE Inbox    :proj:\n** Read\n",
-   "b.org": "#+TITLE: Doc\n* a/b\n** a/b\n** Misc\nSome text.\nSCHEDULED: <2026-05-18 Mon>\n** [[x][Link]]\nSCHEDULED: <2026-05-18 Mon>\n*** DONE Call                         :tag:\n"
-  },
-  "answerIndex": 6,
-  "options": {
-   "org_refile_targets": [
-    {
-     "maxlevel": 3,
-     "files": "agenda"
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Call Bob¦ :work:\nSome text.\n\n** Read\n* Projects\n** Alpha\n*** Task\n** Beta\n* Archive\n"
+    },
+    "answer": "Task",
+    "options": {
+      "org_refile_targets": [
+        {
+          "all": true
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Call Bob",
+        "Read",
+        "Projects",
+        "Alpha",
+        "Task",
+        "Beta",
+        "Archive"
+      ],
+      "files": {
+        "a.org": "* Inbox\n** Read\n* Projects\n** Alpha\n*** Task\n**** TODO Call Bob                                                     :work:\nSome text.\n\n** Beta\n* Archive\n"
+      }
     }
-   ],
-   "org_refile_use_outline_path": "title",
-   "org_adapt_indentation": true
   },
-  "expected": {
-   "offered": [
-    "a.org/",
-    "a.org/Plan/",
-    "a.org/Notes/",
-    "a.org/Notes/Work/",
-    "a.org/Link/",
-    "a.org/a\\/b/",
-    "a.org/a\\/b/Inbox/",
-    "a.org/a\\/b/Read/",
-    "Doc/",
-    "Doc/a\\/b/",
-    "Doc/a\\/b/a\\/b/",
-    "Doc/a\\/b/Misc/",
-    "Doc/a\\/b/Link/",
-    "Doc/a\\/b/Link/Call/"
-   ],
-   "files": {
-    "a.org": "** Plan\n  - item\n* Notes           :proj:\nSCHEDULED: <2026-05-18 Mon>\n*** TODO Work\nSCHEDULED: <2026-05-18 Mon>\n* a/b                 :a:b:\n** DONE Inbox    :proj:\n*** DONE [[x][Link]]                                                   :proj:\n    - item\n** Read\n",
-    "b.org": "#+TITLE: Doc\n* a/b\n** a/b\n** Misc\nSome text.\nSCHEDULED: <2026-05-18 Mon>\n** [[x][Link]]\nSCHEDULED: <2026-05-18 Mon>\n*** DONE Call                         :tag:\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Home\n** [#A] Task [1/2]\n**** [#A] Misc\n**** [#A] Work\n\n\n**** DONE Plan              :proj:\n¦  - item\n** Call\n"
+  {
+    "files": {
+      "a.org": "* A¦\n** B\n* C\n"
+    },
+    "answer": "B",
+    "options": {
+      "org_refile_targets": [
+        {
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": "ERROR: (error \"Cannot refile to position inside the tree or region\")"
   },
-  "answerIndex": 9,
-  "options": {
-   "org_refile_targets": [
-    {
-     "all": true
+  {
+    "files": {
+      "a.org": "* Top\n** Mid\n*** Deep¦ :x:\n**** Deeper\nbody\n* Other\n"
+    },
+    "answer": "Other",
+    "expected": {
+      "offered": [
+        "Top",
+        "Other"
+      ],
+      "files": {
+        "a.org": "* Top\n** Mid\n* Other\n** Deep                                                                   :x:\n*** Deeper\nbody\n"
+      }
     }
-   ],
-   "org_tags_column": 20,
-   "org_adapt_indentation": true
   },
-  "expected": {
-   "offered": [
-    "Home",
-    "Task [1/2]",
-    "Misc",
-    "Work",
-    "Plan",
-    "Call"
-   ],
-   "files": {
-    "a.org": "* Home\n** [#A] Task [1/2]\n**** [#A] Misc\n**** [#A] Work\n\n\n***** DONE Plan     :proj:\n   - item\n** Call\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* DONE Call\n  - item\nSCHEDULED: <2026-05-18 Mon>\n* a/b\n* Read\n  - item\nSome text.\n**¦ Misc\n\nSCHEDULED: <2026-05-18 Mon>\n",
-   "b.org": "* TODO [[x][Link]]                  :tag:\n** [#A] Home\n** TODO Misc                        :proj:\nSome text.\n**** TODO Work\n\nSome text.\n**** Call\nSome text.\n  - item\n**** [#A] Work\n\n"
-  },
-  "answerIndex": 7,
-  "options": {
-   "org_refile_targets": [
-    {
-     "todo": "TODO"
+  {
+    "files": {
+      "a.org": "* Top\n** Mid\n*** Deep¦ :x:\n**** Deeper\nbody\n* Other\n"
+    },
+    "answer": "Top",
+    "expected": {
+      "offered": [
+        "Top",
+        "Other"
+      ],
+      "files": {
+        "a.org": "* Top\n** Mid\n** Deep                                                                   :x:\n*** Deeper\nbody\n* Other\n"
+      }
     }
-   ],
-   "org_refile_use_outline_path": "file",
-   "org_adapt_indentation": true
   },
-  "expected": {
-   "offered": [
-    "a.org/"
-   ],
-   "files": {
-    "a.org": "* DONE Call\n  - item\nSCHEDULED: <2026-05-18 Mon>\n* a/b\n* Read\n  - item\nSome text.\n* Misc\n\nSCHEDULED: <2026-05-18 Mon>\n",
-    "b.org": "* TODO [[x][Link]]                  :tag:\n** [#A] Home\n** TODO Misc                        :proj:\nSome text.\n**** TODO Work\n\nSome text.\n**** Call\nSome text.\n  - item\n**** [#A] Work\n\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "** DONE Call\nSome text.\n  - item\n* TODO Call\nSCHEDULED: <2026-05-18 Mon>\n*** [#A] [[x][Link]]                      :proj:\n¦** TODO [[x][Link]]\n",
-   "b.org": "#+TITLE: Doc\n* [#A] Notes\n** TODO Notes\nSome text.\nSCHEDULED: <2026-05-18 Mon>"
-  },
-  "answerIndex": 3,
-  "options": {
-   "org_refile_targets": [
-    {
-     "tag": "proj"
+  {
+    "files": {
+      "a.org": "* Top\n** Mid\n*** Deep¦ :x:\n**** Deeper\nbody\n* Other\n"
+    },
+    "answer": "a.org/",
+    "options": {
+      "org_refile_use_outline_path": "file"
+    },
+    "expected": {
+      "offered": [
+        "a.org/",
+        "a.org/Top/",
+        "a.org/Other/"
+      ],
+      "files": {
+        "a.org": "* Top\n** Mid\n* Other\n* Deep                                                                    :x:\n** Deeper\nbody\n"
+      }
     }
-   ],
-   "org_refile_use_outline_path": true,
-   "org_adapt_indentation": "headline-data"
   },
-  "expected": {
-   "offered": [
-    "Call/Link/"
-   ],
-   "files": {
-    "a.org": "** DONE Call\nSome text.\n  - item\n* TODO Call\nSCHEDULED: <2026-05-18 Mon>\n*** [#A] [[x][Link]]                      :proj:\n**** TODO [[x][Link]]\n",
-    "b.org": "#+TITLE: Doc\n* [#A] Notes\n** TODO Notes\nSome text.\nSCHEDULED: <2026-05-18 Mon>"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* DONE a/b\nS¦CHEDULED: <2026-05-18 Mon>\n** TODO a/b\n* a/b\n  - item\n** Read\nSCHEDULED: <2026-05-18 Mon>\n\n** Work            :proj:\n* TODO Misc\nSome text.\n*** DONE Plan                     :a:b:\n\n"
-  },
-  "answerIndex": 3,
-  "options": {
-   "org_refile_targets": [
-    {
-     "maxlevel": 3
+  {
+    "files": {
+      "a.org": "* A\n\n* B¦\ntext\n\n\n* C"
+    },
+    "answer": "C",
+    "expected": {
+      "offered": [
+        "A",
+        "B",
+        "C"
+      ],
+      "files": {
+        "a.org": "* A\n\n* C\n** B\ntext\n\n\n"
+      }
     }
-   ],
-   "org_refile_use_outline_path": "file",
-   "org_reverse_note_order": true,
-   "org_adapt_indentation": "headline-data"
   },
-  "expected": {
-   "offered": [
-    "a.org/",
-    "a.org/a\\/b/",
-    "a.org/a\\/b/a\\/b/",
-    "a.org/a\\/b/",
-    "a.org/a\\/b/Read/",
-    "a.org/a\\/b/Work/",
-    "a.org/Misc/",
-    "a.org/Misc/Plan/"
-   ],
-   "files": {
-    "a.org": "* a/b\n  - item\n** Read\nSCHEDULED: <2026-05-18 Mon>\n\n*** DONE a/b\n    SCHEDULED: <2026-05-18 Mon>\n**** TODO a/b\n** Work            :proj:\n* TODO Misc\nSome text.\n*** DONE Plan                     :a:b:\n\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "#+TITLE: Doc\n*** DONE Inbox :tag:\n**** DONE [#A] a/b\nSome text.\n\n** [#A] a/b        :proj:\nSC¦HEDULED: <2026-05-18 Mon>\n  - item\n**** Work\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n**** Inbox"
-  },
-  "answerIndex": 10,
-  "options": {
-   "org_refile_targets": [
-    {
-     "maxlevel": 2
+  {
+    "files": {
+      "a.org": "* A\n* B¦\ntext"
+    },
+    "answer": "A",
+    "expected": {
+      "offered": [
+        "A",
+        "B"
+      ],
+      "files": {
+        "a.org": "* A\n** B\ntext\n"
+      }
     }
-   ],
-   "org_refile_use_outline_path": "file",
-   "org_adapt_indentation": true
   },
-  "expected": {
-   "offered": [
-    "a.org/",
-    "a.org/a\\/b/"
-   ],
-   "files": {
-    "a.org": "#+TITLE: Doc\n*** DONE Inbox :tag:\n**** DONE [#A] a/b\nSome text.\n\n* [#A] a/b                                                             :proj:\n  SCHEDULED: <2026-05-18 Mon>\n - item\n*** Work\n    SCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n*** Inbox\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "** Plan     :proj:\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n** Read\n** Call\n\n*** Plan    :proj:\n**¦* [#A] a/b\n**** [[x][Link]]\nSome text.\nSome text."
-  },
-  "answerIndex": 3,
-  "options": {
-   "org_refile_targets": [
-    {
-     "maxlevel": 3
+  {
+    "files": {
+      "a.org": "* A\n** a1\n\n* B¦\n\n* C\n"
+    },
+    "answer": "A",
+    "expected": {
+      "offered": [
+        "A",
+        "B",
+        "C"
+      ],
+      "files": {
+        "a.org": "* A\n** a1\n\n** B\n\n* C\n"
+      }
     }
-   ],
-   "org_refile_use_outline_path": true,
-   "org_reverse_note_order": true,
-   "org_adapt_indentation": true
   },
-  "expected": {
-   "offered": [
-    "Plan/",
-    "Read/",
-    "Call/",
-    "Call/Plan/",
-    "Call/a\\/b/"
-   ],
-   "files": {
-    "a.org": "** Plan     :proj:\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n** Read\n** Call\n\n*** Plan    :proj:\n**** [#A] a/b\n***** [[x][Link]]\n Some text.\n Some text.\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* TODO Task [1/2]\n* [#A] a/b\n* Plan\nSome text.\n*** [#A] Home\n**¦ a/b\nSome text.\n\n*** TODO Call     :a:b:\n**** [[x][Link]]\nSCHEDULED: <2026-05-18 Mon>\n** Read         :proj:\n\n"
-  },
-  "answerIndex": 9,
-  "options": {
-   "org_refile_targets": [
-    {
-     "tag": "proj"
+  {
+    "files": {
+      "a.org": "* A\n** a1\n\n* B¦\n\n* C\n"
+    },
+    "answer": "A",
+    "options": {
+      "org_reverse_note_order": true
+    },
+    "expected": {
+      "offered": [
+        "A",
+        "B",
+        "C"
+      ],
+      "files": {
+        "a.org": "* A\n** B\n\n** a1\n\n* C\n"
+      }
     }
-   ],
-   "org_reverse_note_order": true,
-   "org_adapt_indentation": true
   },
-  "expected": {
-   "offered": [
-    "Read"
-   ],
-   "files": {
-    "a.org": "* TODO Task [1/2]\n* [#A] a/b\n* Plan\nSome text.\n*** [#A] Home\n** Read         :proj:\n\n*** a/b\n Some text.\n\n**** TODO Call                                                          :a:b:\n***** [[x][Link]]\n      SCHEDULED: <2026-05-18 Mon>\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* TODO Inbox\nSCHEDULED: <2026-05-18 Mon>\nSome text.\n* [#A] Read                        :proj:\nSCHEDULED: <2026-05-18 Mon>\n*** Work\nSCHEDULED: <2026-05-18 Mon>\n  - item\n**** a/b\n**** Inbox                            :a:b:\nSCHEDULED: <2026-05-18 Mon>\n  - item\n*¦** [[x][Link]]\n**** Task [1/2]\n**** Misc          :tag:",
-   "b.org": "#+TITLE: Doc\n* DONE [#A] Misc\nSome text.\n* Task [1/2]\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n** Inbox                  :a:b:\n** Task [1/2]\n\n* Notes\n* TODO Misc\n\n"
-  },
-  "answerIndex": 6,
-  "options": {
-   "org_refile_targets": [
-    {
-     "level": 1,
-     "files": "agenda"
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+      "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+    },
+    "answer": "Home (b.org)",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "level": 1
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Misc",
+        "Home (b.org)",
+        "Work (b.org)"
+      ],
+      "files": {
+        "a.org": "* Inbox\n* Misc\n",
+        "b.org": "#+TITLE: Bee\n* Home\n** Garden\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n* Work\n"
+      }
     }
-   ],
-   "org_reverse_note_order": true,
-   "org_adapt_indentation": true
   },
-  "expected": {
-   "offered": [
-    "Inbox",
-    "Read",
-    "Misc (b.org)",
-    "Task [1/2] (b.org)",
-    "Notes (b.org)",
-    "Misc (b.org)"
-   ],
-   "files": {
-    "a.org": "* TODO Inbox\nSCHEDULED: <2026-05-18 Mon>\nSome text.\n* [#A] Read                        :proj:\nSCHEDULED: <2026-05-18 Mon>\n** [[x][Link]]\n*** Task [1/2]\n*** Misc                                                                :tag:\n*** Work\nSCHEDULED: <2026-05-18 Mon>\n  - item\n**** a/b\n**** Inbox                            :a:b:\nSCHEDULED: <2026-05-18 Mon>\n  - item\n",
-    "b.org": "#+TITLE: Doc\n* DONE [#A] Misc\nSome text.\n* Task [1/2]\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n** Inbox                  :a:b:\n** Task [1/2]\n\n* Notes\n* TODO Misc\n\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "¦* [[x][Link]]\n\n*** Notes\n",
-   "b.org": "* [#A] Call\n  - item\nSome text.\n* DONE Misc\nSCHEDULED: <2026-05-18 Mon>\n* TODO Task [1/2]\n** TODO Work\n*** TODO Inbox\n\nSCHEDULED: <2026-05-18 Mon>"
-  },
-  "answerIndex": 2,
-  "options": {
-   "org_refile_targets": [
-    {
-     "all": true,
-     "files": "agenda"
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+      "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+    },
+    "answer": "Misc",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "level": 1
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Misc",
+        "Home (b.org)",
+        "Work (b.org)"
+      ],
+      "files": {
+        "a.org": "* Inbox\n* Misc\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n",
+        "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+      }
     }
-   ],
-   "org_refile_use_outline_path": true,
-   "org_reverse_note_order": true,
-   "org_tags_column": -40,
-   "org_adapt_indentation": true
   },
-  "expected": {
-   "offered": [
-    "Link/",
-    "Link/Notes/",
-    "Call/ (b.org)",
-    "Misc/ (b.org)",
-    "Task/ (b.org)",
-    "Task/Work/ (b.org)",
-    "Task/Work/Inbox/ (b.org)"
-   ],
-   "files": {
-    "a.org": "",
-    "b.org": "* [#A] Call\n  - item\nSome text.\n** [[x][Link]]\n\n**** Notes\n* DONE Misc\nSCHEDULED: <2026-05-18 Mon>\n* TODO Task [1/2]\n** TODO Work\n*** TODO Inbox\n\nSCHEDULED: <2026-05-18 Mon>"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Task¦\n* Inbox\n* Projects\n"
-  },
-  "answer": "Projects",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+      "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+    },
+    "answer": "Garden (b.org)",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Pay",
+        "Misc",
+        "Home (b.org)",
+        "Garden (b.org)",
+        "Work (b.org)"
+      ],
+      "files": {
+        "a.org": "* Inbox\n* Misc\n",
+        "b.org": "#+TITLE: Bee\n* Home\n** Garden\n*** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n* Work\n"
+      }
     }
-   ],
-   "org_log_refile": "time"
   },
-  "expected": {
-   "offered": [
-    "Task",
-    "Inbox",
-    "Projects"
-   ],
-   "files": {
-    "a.org": "* Inbox\n* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Task¦\nBody\n* Projects\n** Old\n"
-  },
-  "answer": "Projects",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+      "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+    },
+    "answer": "b.org/Work/",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_use_outline_path": "file"
+    },
+    "expected": {
+      "offered": [
+        "a.org/",
+        "a.org/Inbox/",
+        "a.org/Inbox/Pay/",
+        "a.org/Misc/",
+        "b.org/",
+        "b.org/Home/",
+        "b.org/Home/Garden/",
+        "b.org/Work/"
+      ],
+      "files": {
+        "a.org": "* Inbox\n* Misc\n",
+        "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n"
+      }
     }
-   ],
-   "org_log_refile": "time",
-   "org_log_into_drawer": true
   },
-  "expected": {
-   "offered": [
-    "Task",
-    "Projects",
-    "Old"
-   ],
-   "files": {
-    "a.org": "* Projects\n** Old\n** Task\n:LOGBOOK:\n- Refiled on [2026-05-18 Mon 10:30]\n:END:\nBody\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* TODO Task¦\n:PROPERTIES:\n:ID: 1\n:END:\n",
-   "b.org": "* Projects\n"
-  },
-  "answer": "Projects",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+      "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+    },
+    "answer": "b.org/",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_use_outline_path": "file"
+    },
+    "expected": {
+      "offered": [
+        "a.org/",
+        "a.org/Inbox/",
+        "a.org/Inbox/Pay/",
+        "a.org/Misc/",
+        "b.org/",
+        "b.org/Home/",
+        "b.org/Home/Garden/",
+        "b.org/Work/"
+      ],
+      "files": {
+        "a.org": "* Inbox\n* Misc\n",
+        "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n* TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n"
+      }
     }
-   ],
-   "org_log_refile": "note"
   },
-  "note": "Belongs there",
-  "expected": {
-   "offered": [
-    "Task",
-    "Projects (b.org)"
-   ],
-   "files": {
-    "a.org": "",
-    "b.org": "* Projects\n** TODO Task\n:PROPERTIES:\n:ID: 1\n:END:\n- Refiled on [2026-05-18 Mon 10:30] \\\\\n  Belongs there"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Projects\n* Task¦\n"
-  },
-  "answer": "Projects",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+      "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+    },
+    "answer": "Bee/Home/",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_use_outline_path": "title"
+    },
+    "expected": {
+      "offered": [
+        "a.org/",
+        "a.org/Inbox/",
+        "a.org/Inbox/Pay/",
+        "a.org/Misc/",
+        "Bee/",
+        "Bee/Home/",
+        "Bee/Home/Garden/",
+        "Bee/Work/"
+      ],
+      "files": {
+        "a.org": "* Inbox\n* Misc\n",
+        "b.org": "#+TITLE: Bee\n* Home\n** Garden\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n* Work\n"
+      }
     }
-   ],
-   "org_log_refile": "time"
   },
-  "expected": {
-   "offered": [
-    "Projects",
-    "Task"
-   ],
-   "files": {
-    "a.org": "* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "#+STARTUP: logrefile\n* Task¦\n* Projects\n"
-  },
-  "answer": "Projects",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+      "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+    },
+    "answer": "Home/Garden/ (b.org)",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_use_outline_path": true
+    },
+    "expected": {
+      "offered": [
+        "Inbox/",
+        "Inbox/Pay/",
+        "Misc/",
+        "Home/ (b.org)",
+        "Home/Garden/ (b.org)",
+        "Work/ (b.org)"
+      ],
+      "files": {
+        "a.org": "* Inbox\n* Misc\n",
+        "b.org": "#+TITLE: Bee\n* Home\n** Garden\n*** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n* Work\n"
+      }
     }
-   ]
   },
-  "expected": {
-   "offered": [
-    "Task",
-    "Projects"
-   ],
-   "files": {
-    "a.org": "#+STARTUP: logrefile\n* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Task¦\n** Sub\n* Projects\n"
-  },
-  "answer": "Projects",
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Pay¦\nSCHEDULED: <2026-05-18 Mon>\n* Misc\n",
+      "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n"
+    },
+    "answer": "Work (b.org)",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": [
+            "b.org"
+          ],
+          "level": 1
+        },
+        {
+          "level": 1
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Home (b.org)",
+        "Work (b.org)",
+        "Inbox",
+        "Misc"
+      ],
+      "files": {
+        "a.org": "* Inbox\n* Misc\n",
+        "b.org": "#+TITLE: Bee\n* Home\n** Garden\n* Work\n** TODO Pay\nSCHEDULED: <2026-05-18 Mon>\n"
+      }
     }
-   ],
-   "org_log_refile": "time",
-   "org_reverse_note_order": true
   },
-  "expected": {
-   "offered": [
-    "Task",
-    "Sub",
-    "Projects"
-   ],
-   "files": {
-    "a.org": "* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]\n*** Sub\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Task¦\nBody\n* Inbox\n* Projects\n"
-  },
-  "answer": "Projects",
-  "copy": true,
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
+  {
+    "files": {
+      "a.org": "* Projects :proj:\n* Notes\n** Sub :proj:\n* TODO Do it\n* NEXT Not kw\n* X¦\n"
+    },
+    "answer": "Sub",
+    "options": {
+      "org_refile_targets": [
+        {
+          "tag": "proj"
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Projects",
+        "Sub"
+      ],
+      "files": {
+        "a.org": "* Projects :proj:\n* Notes\n** Sub :proj:\n*** X\n* TODO Do it\n* NEXT Not kw\n"
+      }
     }
-   ]
   },
-  "expected": {
-   "offered": [
-    "Task",
-    "Inbox",
-    "Projects"
-   ],
-   "files": {
-    "a.org": "* Task\nBody\n* Inbox\n* Projects\n** Task\nBody\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Projects\n* Task¦\n** Sub\n"
-  },
-  "answer": "Projects",
-  "copy": true,
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
+  {
+    "files": {
+      "a.org": "* Projects :proj:\n* Notes\n** Sub :proj:\n* TODO Do it\n* NEXT Not kw\n* X¦\n"
+    },
+    "answer": "Do it",
+    "options": {
+      "org_refile_targets": [
+        {
+          "todo": "TODO"
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Do it"
+      ],
+      "files": {
+        "a.org": "* Projects :proj:\n* Notes\n** Sub :proj:\n* TODO Do it\n** X\n* NEXT Not kw\n"
+      }
     }
-   ]
   },
-  "expected": {
-   "offered": [
-    "Projects",
-    "Task",
-    "Sub"
-   ],
-   "files": {
-    "a.org": "* Projects\n** Task\n*** Sub\n* Task\n** Sub\n"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* TODO Task¦\n",
-   "b.org": "* Projects\n** Old\n"
-  },
-  "answer": "Projects",
-  "copy": true,
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
+  {
+    "files": {
+      "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
+    },
+    "answer": "Site [1/2]",
+    "options": {
+      "org_refile_targets": [
+        {
+          "level": 1
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Site [1/2]",
+        "file:x.org",
+        "COMMENT Hidden"
+      ],
+      "files": {
+        "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n** y\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n"
+      }
     }
-   ],
-   "org_log_refile": "time"
   },
-  "expected": {
-   "offered": [
-    "Task",
-    "Projects (b.org)",
-    "Old (b.org)"
-   ],
-   "files": {
-    "a.org": "* TODO Task\n",
-    "b.org": "* Projects\n** Old\n** TODO Task\n- Refiled on [2026-05-18 Mon 10:30]"
-   }
-  }
- },
- {
-  "files": {
-   "a.org": "* Task¦\n* Projects\n"
-  },
-  "answer": "Projects",
-  "copy": true,
-  "options": {
-   "org_refile_targets": [
-    {
-     "files": "agenda",
-     "maxlevel": 2
+  {
+    "files": {
+      "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
+    },
+    "answer": "file:x.org",
+    "options": {
+      "org_refile_targets": [
+        {
+          "level": 1
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Site [1/2]",
+        "file:x.org",
+        "COMMENT Hidden"
+      ],
+      "files": {
+        "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n** y\n* TODO\n* COMMENT Hidden\n"
+      }
     }
-   ],
-   "org_reverse_note_order": true
   },
-  "expected": {
-   "offered": [
-    "Task",
-    "Projects"
-   ],
-   "files": {
-    "a.org": "* Task\n* Projects\n** Task\n"
-   }
+  {
+    "files": {
+      "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
+    },
+    "answer": "[[https://x.org][Site]]/",
+    "options": {
+      "org_refile_targets": [
+        {
+          "level": 1
+        }
+      ],
+      "org_refile_use_outline_path": true
+    },
+    "expected": "ERROR: (user-error \"Invalid target location\")"
+  },
+  {
+    "files": {
+      "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
+    },
+    "answer": "Site/",
+    "options": {
+      "org_refile_targets": [
+        {
+          "level": 1
+        }
+      ],
+      "org_refile_use_outline_path": true
+    },
+    "expected": {
+      "offered": [
+        "Site/",
+        "file:x.org/",
+        "Hidden/"
+      ],
+      "files": {
+        "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n** y\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y¦\n"
+    },
+    "answer": "Hidden/",
+    "options": {
+      "org_refile_targets": [
+        {
+          "level": 1
+        }
+      ],
+      "org_refile_use_outline_path": true
+    },
+    "expected": {
+      "offered": [
+        "Site/",
+        "file:x.org/",
+        "Hidden/"
+      ],
+      "files": {
+        "a.org": "* TODO [#A] [[https://x.org][Site]] [1/2] :t:\n* [[file:x.org]]\n* TODO\n* COMMENT Hidden\n** y\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* A\n*** B¦                    :tag:\n**** C :x:y:\n"
+    },
+    "answer": "A",
+    "options": {
+      "org_tags_column": -40
+    },
+    "expected": {
+      "offered": [
+        "A"
+      ],
+      "files": {
+        "a.org": "* A\n** B                               :tag:\n*** C                              :x:y:\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "intro¦\n* A\n"
+    },
+    "answer": "A",
+    "expected": "ERROR: (user-error \"Before first headline at position 1 in buffer a.org\")"
+  },
+  {
+    "files": {
+      "a.org": "#+TITLE: Doc\n** Misc :a:b:\n*** Work :a:b:\n\n¦"
+    },
+    "answer": "Doc/",
+    "options": {
+      "org_refile_use_outline_path": "title"
+    },
+    "expected": {
+      "offered": [
+        "Doc/"
+      ],
+      "files": {
+        "a.org": "#+TITLE: Doc\n** Misc :a:b:\n*** Work :a:b:\n\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Misc\n** Task\nS¦ome text.\n*** Work\n\n  - item"
+    },
+    "answer": "Misc/",
+    "options": {
+      "org_refile_use_outline_path": true
+    },
+    "expected": {
+      "offered": [
+        "Misc/"
+      ],
+      "files": {
+        "a.org": "* Misc\n** Task\nSome text.\n*** Work\n\n  - item\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* A\n* B\n** b¦\n* C\n"
+    },
+    "answer": "C",
+    "options": {
+      "org_reverse_note_order": true
+    },
+    "expected": {
+      "offered": [
+        "A",
+        "B",
+        "C"
+      ],
+      "files": {
+        "a.org": "* A\n* B\n* C\n** b\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "*¦** Call\n**** TODO Notes\n**** TODO [#A] Call                       :a:b:\nSCHEDULED: <2026-05-18 Mon>\n\n",
+      "b.org": "#+TITLE: Doc\n** [#A] Misc\n** TODO Work               :tag:\n* DONE Home     :a:b:\n\n"
+    },
+    "answerIndex": 1,
+    "options": {
+      "org_refile_use_outline_path": "title",
+      "org_reverse_note_order": true,
+      "org_tags_column": 20,
+      "org_adapt_indentation": true
+    },
+    "expected": {
+      "offered": [
+        "a.org/"
+      ],
+      "files": {
+        "a.org": "* Call\n** TODO Notes\n** TODO [#A] Call   :a:b:\n   SCHEDULED: <2026-05-18 Mon>\n\n**** TODO Notes\n**** TODO [#A] Call                       :a:b:\nSCHEDULED: <2026-05-18 Mon>\n\n",
+        "b.org": "#+TITLE: Doc\n** [#A] Misc\n** TODO Work               :tag:\n* DONE Home     :a:b:\n\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "#+TITLE: Doc\n¦* TODO Task [1/2]  :tag:\nSome text.\nSome text.\n* Plan\nSome text.\n"
+    },
+    "answerIndex": 5,
+    "options": {
+      "org_refile_targets": [
+        {
+          "maxlevel": 3
+        }
+      ],
+      "org_tags_column": -40,
+      "org_adapt_indentation": true
+    },
+    "expected": {
+      "offered": [
+        "Task [1/2]",
+        "Plan"
+      ],
+      "files": {
+        "a.org": "#+TITLE: Doc\n* Plan\nSome text.\n** TODO Task [1/2]                 :tag:\n Some text.\n Some text.\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "** Plan\n  - item\n* Notes           :proj:\nSCHEDULED: <2026-05-18 Mon>\n*** TODO Work\nSCHEDULED: <2026-05-18 Mon>\n* ¦DONE [[x][Link]]         :proj:\n  - item\n* a/b                 :a:b:\n** DONE Inbox    :proj:\n** Read\n",
+      "b.org": "#+TITLE: Doc\n* a/b\n** a/b\n** Misc\nSome text.\nSCHEDULED: <2026-05-18 Mon>\n** [[x][Link]]\nSCHEDULED: <2026-05-18 Mon>\n*** DONE Call                         :tag:\n"
+    },
+    "answerIndex": 6,
+    "options": {
+      "org_refile_targets": [
+        {
+          "maxlevel": 3,
+          "files": "agenda"
+        }
+      ],
+      "org_refile_use_outline_path": "title",
+      "org_adapt_indentation": true
+    },
+    "expected": {
+      "offered": [
+        "a.org/",
+        "a.org/Plan/",
+        "a.org/Notes/",
+        "a.org/Notes/Work/",
+        "a.org/Link/",
+        "a.org/a\\/b/",
+        "a.org/a\\/b/Inbox/",
+        "a.org/a\\/b/Read/",
+        "Doc/",
+        "Doc/a\\/b/",
+        "Doc/a\\/b/a\\/b/",
+        "Doc/a\\/b/Misc/",
+        "Doc/a\\/b/Link/",
+        "Doc/a\\/b/Link/Call/"
+      ],
+      "files": {
+        "a.org": "** Plan\n  - item\n* Notes           :proj:\nSCHEDULED: <2026-05-18 Mon>\n*** TODO Work\nSCHEDULED: <2026-05-18 Mon>\n* a/b                 :a:b:\n** DONE Inbox    :proj:\n*** DONE [[x][Link]]                                                   :proj:\n    - item\n** Read\n",
+        "b.org": "#+TITLE: Doc\n* a/b\n** a/b\n** Misc\nSome text.\nSCHEDULED: <2026-05-18 Mon>\n** [[x][Link]]\nSCHEDULED: <2026-05-18 Mon>\n*** DONE Call                         :tag:\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Home\n** [#A] Task [1/2]\n**** [#A] Misc\n**** [#A] Work\n\n\n**** DONE Plan              :proj:\n¦  - item\n** Call\n"
+    },
+    "answerIndex": 9,
+    "options": {
+      "org_refile_targets": [
+        {
+          "all": true
+        }
+      ],
+      "org_tags_column": 20,
+      "org_adapt_indentation": true
+    },
+    "expected": {
+      "offered": [
+        "Home",
+        "Task [1/2]",
+        "Misc",
+        "Work",
+        "Plan",
+        "Call"
+      ],
+      "files": {
+        "a.org": "* Home\n** [#A] Task [1/2]\n**** [#A] Misc\n**** [#A] Work\n\n\n***** DONE Plan     :proj:\n   - item\n** Call\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* DONE Call\n  - item\nSCHEDULED: <2026-05-18 Mon>\n* a/b\n* Read\n  - item\nSome text.\n**¦ Misc\n\nSCHEDULED: <2026-05-18 Mon>\n",
+      "b.org": "* TODO [[x][Link]]                  :tag:\n** [#A] Home\n** TODO Misc                        :proj:\nSome text.\n**** TODO Work\n\nSome text.\n**** Call\nSome text.\n  - item\n**** [#A] Work\n\n"
+    },
+    "answerIndex": 7,
+    "options": {
+      "org_refile_targets": [
+        {
+          "todo": "TODO"
+        }
+      ],
+      "org_refile_use_outline_path": "file",
+      "org_adapt_indentation": true
+    },
+    "expected": {
+      "offered": [
+        "a.org/"
+      ],
+      "files": {
+        "a.org": "* DONE Call\n  - item\nSCHEDULED: <2026-05-18 Mon>\n* a/b\n* Read\n  - item\nSome text.\n* Misc\n\nSCHEDULED: <2026-05-18 Mon>\n",
+        "b.org": "* TODO [[x][Link]]                  :tag:\n** [#A] Home\n** TODO Misc                        :proj:\nSome text.\n**** TODO Work\n\nSome text.\n**** Call\nSome text.\n  - item\n**** [#A] Work\n\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "** DONE Call\nSome text.\n  - item\n* TODO Call\nSCHEDULED: <2026-05-18 Mon>\n*** [#A] [[x][Link]]                      :proj:\n¦** TODO [[x][Link]]\n",
+      "b.org": "#+TITLE: Doc\n* [#A] Notes\n** TODO Notes\nSome text.\nSCHEDULED: <2026-05-18 Mon>"
+    },
+    "answerIndex": 3,
+    "options": {
+      "org_refile_targets": [
+        {
+          "tag": "proj"
+        }
+      ],
+      "org_refile_use_outline_path": true,
+      "org_adapt_indentation": "headline-data"
+    },
+    "expected": {
+      "offered": [
+        "Call/Link/"
+      ],
+      "files": {
+        "a.org": "** DONE Call\nSome text.\n  - item\n* TODO Call\nSCHEDULED: <2026-05-18 Mon>\n*** [#A] [[x][Link]]                      :proj:\n**** TODO [[x][Link]]\n",
+        "b.org": "#+TITLE: Doc\n* [#A] Notes\n** TODO Notes\nSome text.\nSCHEDULED: <2026-05-18 Mon>"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* DONE a/b\nS¦CHEDULED: <2026-05-18 Mon>\n** TODO a/b\n* a/b\n  - item\n** Read\nSCHEDULED: <2026-05-18 Mon>\n\n** Work            :proj:\n* TODO Misc\nSome text.\n*** DONE Plan                     :a:b:\n\n"
+    },
+    "answerIndex": 3,
+    "options": {
+      "org_refile_targets": [
+        {
+          "maxlevel": 3
+        }
+      ],
+      "org_refile_use_outline_path": "file",
+      "org_reverse_note_order": true,
+      "org_adapt_indentation": "headline-data"
+    },
+    "expected": {
+      "offered": [
+        "a.org/",
+        "a.org/a\\/b/",
+        "a.org/a\\/b/a\\/b/",
+        "a.org/a\\/b/",
+        "a.org/a\\/b/Read/",
+        "a.org/a\\/b/Work/",
+        "a.org/Misc/",
+        "a.org/Misc/Plan/"
+      ],
+      "files": {
+        "a.org": "* a/b\n  - item\n** Read\nSCHEDULED: <2026-05-18 Mon>\n\n*** DONE a/b\n    SCHEDULED: <2026-05-18 Mon>\n**** TODO a/b\n** Work            :proj:\n* TODO Misc\nSome text.\n*** DONE Plan                     :a:b:\n\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "#+TITLE: Doc\n*** DONE Inbox :tag:\n**** DONE [#A] a/b\nSome text.\n\n** [#A] a/b        :proj:\nSC¦HEDULED: <2026-05-18 Mon>\n  - item\n**** Work\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n**** Inbox"
+    },
+    "answerIndex": 10,
+    "options": {
+      "org_refile_targets": [
+        {
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_use_outline_path": "file",
+      "org_adapt_indentation": true
+    },
+    "expected": {
+      "offered": [
+        "a.org/",
+        "a.org/a\\/b/"
+      ],
+      "files": {
+        "a.org": "#+TITLE: Doc\n*** DONE Inbox :tag:\n**** DONE [#A] a/b\nSome text.\n\n* [#A] a/b                                                             :proj:\n  SCHEDULED: <2026-05-18 Mon>\n - item\n*** Work\n    SCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n*** Inbox\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "** Plan     :proj:\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n** Read\n** Call\n\n*** Plan    :proj:\n**¦* [#A] a/b\n**** [[x][Link]]\nSome text.\nSome text."
+    },
+    "answerIndex": 3,
+    "options": {
+      "org_refile_targets": [
+        {
+          "maxlevel": 3
+        }
+      ],
+      "org_refile_use_outline_path": true,
+      "org_reverse_note_order": true,
+      "org_adapt_indentation": true
+    },
+    "expected": {
+      "offered": [
+        "Plan/",
+        "Read/",
+        "Call/",
+        "Call/Plan/",
+        "Call/a\\/b/"
+      ],
+      "files": {
+        "a.org": "** Plan     :proj:\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n** Read\n** Call\n\n*** Plan    :proj:\n**** [#A] a/b\n***** [[x][Link]]\n Some text.\n Some text.\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* TODO Task [1/2]\n* [#A] a/b\n* Plan\nSome text.\n*** [#A] Home\n**¦ a/b\nSome text.\n\n*** TODO Call     :a:b:\n**** [[x][Link]]\nSCHEDULED: <2026-05-18 Mon>\n** Read         :proj:\n\n"
+    },
+    "answerIndex": 9,
+    "options": {
+      "org_refile_targets": [
+        {
+          "tag": "proj"
+        }
+      ],
+      "org_reverse_note_order": true,
+      "org_adapt_indentation": true
+    },
+    "expected": {
+      "offered": [
+        "Read"
+      ],
+      "files": {
+        "a.org": "* TODO Task [1/2]\n* [#A] a/b\n* Plan\nSome text.\n*** [#A] Home\n** Read         :proj:\n\n*** a/b\n Some text.\n\n**** TODO Call                                                          :a:b:\n***** [[x][Link]]\n      SCHEDULED: <2026-05-18 Mon>\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* TODO Inbox\nSCHEDULED: <2026-05-18 Mon>\nSome text.\n* [#A] Read                        :proj:\nSCHEDULED: <2026-05-18 Mon>\n*** Work\nSCHEDULED: <2026-05-18 Mon>\n  - item\n**** a/b\n**** Inbox                            :a:b:\nSCHEDULED: <2026-05-18 Mon>\n  - item\n*¦** [[x][Link]]\n**** Task [1/2]\n**** Misc          :tag:",
+      "b.org": "#+TITLE: Doc\n* DONE [#A] Misc\nSome text.\n* Task [1/2]\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n** Inbox                  :a:b:\n** Task [1/2]\n\n* Notes\n* TODO Misc\n\n"
+    },
+    "answerIndex": 6,
+    "options": {
+      "org_refile_targets": [
+        {
+          "level": 1,
+          "files": "agenda"
+        }
+      ],
+      "org_reverse_note_order": true,
+      "org_adapt_indentation": true
+    },
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Read",
+        "Misc (b.org)",
+        "Task [1/2] (b.org)",
+        "Notes (b.org)",
+        "Misc (b.org)"
+      ],
+      "files": {
+        "a.org": "* TODO Inbox\nSCHEDULED: <2026-05-18 Mon>\nSome text.\n* [#A] Read                        :proj:\nSCHEDULED: <2026-05-18 Mon>\n** [[x][Link]]\n*** Task [1/2]\n*** Misc                                                                :tag:\n*** Work\nSCHEDULED: <2026-05-18 Mon>\n  - item\n**** a/b\n**** Inbox                            :a:b:\nSCHEDULED: <2026-05-18 Mon>\n  - item\n",
+        "b.org": "#+TITLE: Doc\n* DONE [#A] Misc\nSome text.\n* Task [1/2]\nSCHEDULED: <2026-05-18 Mon>\nSCHEDULED: <2026-05-18 Mon>\n** Inbox                  :a:b:\n** Task [1/2]\n\n* Notes\n* TODO Misc\n\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "¦* [[x][Link]]\n\n*** Notes\n",
+      "b.org": "* [#A] Call\n  - item\nSome text.\n* DONE Misc\nSCHEDULED: <2026-05-18 Mon>\n* TODO Task [1/2]\n** TODO Work\n*** TODO Inbox\n\nSCHEDULED: <2026-05-18 Mon>"
+    },
+    "answerIndex": 2,
+    "options": {
+      "org_refile_targets": [
+        {
+          "all": true,
+          "files": "agenda"
+        }
+      ],
+      "org_refile_use_outline_path": true,
+      "org_reverse_note_order": true,
+      "org_tags_column": -40,
+      "org_adapt_indentation": true
+    },
+    "expected": {
+      "offered": [
+        "Link/",
+        "Link/Notes/",
+        "Call/ (b.org)",
+        "Misc/ (b.org)",
+        "Task/ (b.org)",
+        "Task/Work/ (b.org)",
+        "Task/Work/Inbox/ (b.org)"
+      ],
+      "files": {
+        "a.org": "",
+        "b.org": "* [#A] Call\n  - item\nSome text.\n** [[x][Link]]\n\n**** Notes\n* DONE Misc\nSCHEDULED: <2026-05-18 Mon>\n* TODO Task [1/2]\n** TODO Work\n*** TODO Inbox\n\nSCHEDULED: <2026-05-18 Mon>"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\n* Inbox\n* Projects\n"
+    },
+    "answer": "Projects",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_log_refile": "time"
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "Inbox",
+        "Projects"
+      ],
+      "files": {
+        "a.org": "* Inbox\n* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\nBody\n* Projects\n** Old\n"
+    },
+    "answer": "Projects",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_log_refile": "time",
+      "org_log_into_drawer": true
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "Projects",
+        "Old"
+      ],
+      "files": {
+        "a.org": "* Projects\n** Old\n** Task\n:LOGBOOK:\n- Refiled on [2026-05-18 Mon 10:30]\n:END:\nBody\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* TODO Task¦\n:PROPERTIES:\n:ID: 1\n:END:\n",
+      "b.org": "* Projects\n"
+    },
+    "answer": "Projects",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_log_refile": "note"
+    },
+    "note": "Belongs there",
+    "expected": {
+      "offered": [
+        "Task",
+        "Projects (b.org)"
+      ],
+      "files": {
+        "a.org": "",
+        "b.org": "* Projects\n** TODO Task\n:PROPERTIES:\n:ID: 1\n:END:\n- Refiled on [2026-05-18 Mon 10:30] \\\\\n  Belongs there"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Projects\n* Task¦\n"
+    },
+    "answer": "Projects",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_log_refile": "time"
+    },
+    "expected": {
+      "offered": [
+        "Projects",
+        "Task"
+      ],
+      "files": {
+        "a.org": "* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "#+STARTUP: logrefile\n* Task¦\n* Projects\n"
+    },
+    "answer": "Projects",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "Projects"
+      ],
+      "files": {
+        "a.org": "#+STARTUP: logrefile\n* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\n** Sub\n* Projects\n"
+    },
+    "answer": "Projects",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_log_refile": "time",
+      "org_reverse_note_order": true
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "Sub",
+        "Projects"
+      ],
+      "files": {
+        "a.org": "* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]\n*** Sub\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\nBody\n* Inbox\n* Projects\n"
+    },
+    "answer": "Projects",
+    "copy": true,
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "Inbox",
+        "Projects"
+      ],
+      "files": {
+        "a.org": "* Task\nBody\n* Inbox\n* Projects\n** Task\nBody\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Projects\n* Task¦\n** Sub\n"
+    },
+    "answer": "Projects",
+    "copy": true,
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Projects",
+        "Task",
+        "Sub"
+      ],
+      "files": {
+        "a.org": "* Projects\n** Task\n*** Sub\n* Task\n** Sub\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* TODO Task¦\n",
+      "b.org": "* Projects\n** Old\n"
+    },
+    "answer": "Projects",
+    "copy": true,
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_log_refile": "time"
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "Projects (b.org)",
+        "Old (b.org)"
+      ],
+      "files": {
+        "a.org": "* TODO Task\n",
+        "b.org": "* Projects\n** Old\n** TODO Task\n- Refiled on [2026-05-18 Mon 10:30]"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\n* Projects\n"
+    },
+    "answer": "Projects",
+    "copy": true,
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_reverse_note_order": true
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "Projects"
+      ],
+      "files": {
+        "a.org": "* Task\n* Projects\n** Task\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\n* P\nbody\n* Q\n"
+    },
+    "answer": "P/New",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_allow_creating_parent_nodes": true
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "P",
+        "Q"
+      ],
+      "files": {
+        "a.org": "* P\nbody\n\n** New\n*** Task\n* Q\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\n* P\nbody\n* Q\n"
+    },
+    "answer": "P/New",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_allow_creating_parent_nodes": false
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "P",
+        "Q"
+      ],
+      "files": {
+        "a.org": "* Task\n* P\nbody\n* Q\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\n* P\nbody\n* Q\n"
+    },
+    "answer": "P/New",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_allow_creating_parent_nodes": "confirm"
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "P",
+        "Q"
+      ],
+      "files": {
+        "a.org": "* P\nbody\n\n** New\n*** Task\n* Q\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\n* P\nbody\n* Q\n"
+    },
+    "answer": "P/New",
+    "confirm": false,
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_allow_creating_parent_nodes": "confirm"
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "P",
+        "Q"
+      ],
+      "files": {
+        "a.org": "* Task\n* P\nbody\n* Q\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\n",
+      "b.org": "* P\n** Sub\ntext\n\n* Q\n"
+    },
+    "answer": "P/Sub/New",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_allow_creating_parent_nodes": true,
+      "org_refile_use_outline_path": true
+    },
+    "expected": {
+      "offered": [
+        "Task/",
+        "P/ (b.org)",
+        "P/Sub/ (b.org)",
+        "Q/ (b.org)"
+      ],
+      "files": {
+        "a.org": "",
+        "b.org": "* P\n** Sub\ntext\n\n*** New\n\n**** Task\n* Q\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\n",
+      "b.org": "* P\n** Sub\ntext\n\n* Q\n"
+    },
+    "answer": "b.org/New",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_allow_creating_parent_nodes": true,
+      "org_refile_use_outline_path": "file"
+    },
+    "expected": {
+      "offered": [
+        "a.org/",
+        "a.org/Task/",
+        "b.org/",
+        "b.org/P/",
+        "b.org/P/Sub/",
+        "b.org/Q/"
+      ],
+      "files": {
+        "a.org": "",
+        "b.org": "* P\n** Sub\ntext\n\n* Q\n\n* New\n** Task\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\n",
+      "b.org": "* P\n** Sub\ntext\n\n* Q\n"
+    },
+    "answer": "b.org/P/New",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_allow_creating_parent_nodes": true,
+      "org_refile_use_outline_path": "file"
+    },
+    "expected": {
+      "offered": [
+        "a.org/",
+        "a.org/Task/",
+        "b.org/",
+        "b.org/P/",
+        "b.org/P/Sub/",
+        "b.org/Q/"
+      ],
+      "files": {
+        "a.org": "",
+        "b.org": "* P\n** Sub\ntext\n\n** New\n\n*** Task\n* Q\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* P\nbody\n* Task¦\nmore\n"
+    },
+    "answer": "P/New",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_allow_creating_parent_nodes": true
+    },
+    "expected": {
+      "offered": [
+        "P",
+        "Task"
+      ],
+      "files": {
+        "a.org": "* P\nbody\n\n** New\n*** Task\nmore\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\ntext\n* P\nbody"
+    },
+    "answer": "P/New",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_allow_creating_parent_nodes": true
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "P"
+      ],
+      "files": {
+        "a.org": "* P\nbody\n** New\n*** Task\ntext\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\n* P\n"
+    },
+    "answer": "Nope/New",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_allow_creating_parent_nodes": true
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "P"
+      ],
+      "files": {
+        "a.org": "* Task\n* P\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Task¦\n* P\n"
+    },
+    "answer": "P/",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 2
+        }
+      ],
+      "org_refile_allow_creating_parent_nodes": true
+    },
+    "expected": {
+      "offered": [
+        "Task",
+        "P"
+      ],
+      "files": {
+        "a.org": "* P\n** Task\n"
+      }
+    }
   }
- }
 ]

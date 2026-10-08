@@ -431,6 +431,52 @@ pub(crate) fn next_heading(text: &str, offset: usize) -> Option<usize> {
     }
 }
 
+/// `org-refile-allow-creating-parent-nodes`: whether an answer that names
+/// no target makes one, a new child of the target named by what comes
+/// before its last `/`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum NewNodes {
+    #[default]
+    No,
+    Yes,
+    /// `confirm`: once the user says yes.
+    Confirm,
+}
+
+/// When no target is named `answer` (`org-refile-allow-creating-parent-nodes`):
+/// the target named by what comes before its last `/`, and the name after
+/// it, of a new child to create there.
+pub fn new_node<'a>(targets: &'a [(usize, Target)], answer: &str) -> Option<(&'a (usize, Target), String)> {
+    let (parent, child) = answer.rsplit_once('/')?;
+    if child.is_empty() || child.contains('\n') || parent.contains('\n') {
+        return None;
+    }
+    find(targets, parent).map(|found| (found, child.to_string()))
+}
+
+/// `org-refile-new-child`: a headline `child` at the end of the subtree of
+/// the headline at `parent`, a level below it, or at the end of the file
+/// at the top level; before the blank lines there, one blank line above
+/// it. Returns the text and where the new headline is.
+pub fn new_child(text: &str, parent: Option<usize>, child: &str) -> (String, usize) {
+    let mut text = text.to_string();
+    let (end, level) = match parent {
+        Some(heading) => (subtree_end(&text, heading), headline_level(line_at(&text, heading)).unwrap_or(1) + 1),
+        None => {
+            if !text.is_empty() && !text.ends_with('\n') {
+                text.push('\n');
+            }
+            (text.len(), 1)
+        }
+    };
+    // `org-back-over-empty-lines`: back over the blanks, then to the start
+    // of the line after the last that is not blank.
+    let content = text[..end].trim_end_matches([' ', '\t', '\n', '\r']).len();
+    let at = text[content..].find('\n').map_or(text.len(), |newline| content + newline + 1).min(end);
+    text.insert_str(at, &format!("\n{} {child}\n", "*".repeat(level)));
+    (text, at + 1)
+}
+
 /// Where the subtree of the headline at `heading` ends: at the next
 /// headline of the same or a higher level, or at the end of the text.
 pub(crate) fn subtree_end(text: &str, heading: usize) -> usize {

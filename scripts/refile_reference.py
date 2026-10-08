@@ -12,11 +12,14 @@ A case is a JSON object:
                                             asks for
       "copy": true,                         optional: `org-refile-copy`, the
                                             entry kept where it was
+      "confirm": false,                     optional: the answer to "Create
+                                            new node …?" (yes without it)
       "options": {                          optional: server settings
         "org_refile_targets": [{"files": "agenda", "maxlevel": 2}],
         "org_refile_use_outline_path": "file",
         "org_reverse_note_order": true,
-        "org_tags_column": -40
+        "org_tags_column": -40,
+        "org_refile_allow_creating_parent_nodes": "confirm"
       }
     }
 
@@ -49,6 +52,9 @@ DRIVER = r"""
 (defun ask-user-about-supersession-threat (&rest _) nil)
 (defun userlock--ask-user-about-supersession-threat (&rest _) nil)
 (advice-add 'yes-or-no-p :override (lambda (&rest _) nil))
+(defvar org-lsp-confirm t "The answer to `y-or-n-p'.")
+(defvar org-lsp-asked nil "What `y-or-n-p' asked.")
+(advice-add 'y-or-n-p :override (lambda (prompt) (push prompt org-lsp-asked) org-lsp-confirm))
 (defun org-lsp-refile-case (files cursor-file offset answer index out &optional note copy)
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer)
@@ -118,6 +124,7 @@ def bindings(options, paths):
         "org-reverse-note-order": "nil",
         "org-tags-column": "-77",
         "org-log-refile": "nil",
+        "org-refile-allow-creating-parent-nodes": "nil",
     }
     symbol = lambda value: "'" + value if isinstance(value, str) else ("t" if value else "nil")
     for key, value in (options or {}).items():
@@ -133,6 +140,8 @@ def bindings(options, paths):
             out["org-log-refile"] = symbol(value)
         elif key == "org_log_into_drawer":
             out["org-log-into-drawer"] = "t" if value is True else lisp_string(value) if value else "nil"
+        elif key == "org_refile_allow_creating_parent_nodes":
+            out["org-refile-allow-creating-parent-nodes"] = symbol(value)
         elif key == "org_tags_column":
             out["org-tags-column"] = str(value)
         elif key == "org_adapt_indentation":
@@ -165,7 +174,8 @@ def reference(cases):
             outputs.append((case, target))
             files = " ".join(lisp_string(paths[name]) for name in sorted(paths))
             forms.append(
-                f"(let ({bindings(case.get('options'), paths)})\n"
+                f"(let ({bindings(case.get('options'), paths)}"
+                f" (org-lsp-confirm {'nil' if case.get('confirm') is False else 't'}))\n"
                 f"  (org-lsp-refile-case (list {files}) {lisp_string(cursor[0])} {cursor[1]}"
                 f" {lisp_string(case['answer']) if 'answer' in case else 'nil'} {case.get('answerIndex', 0)}"
                 f" {lisp_string(target)} {lisp_string(case['note']) if 'note' in case else 'nil'}"

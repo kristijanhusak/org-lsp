@@ -496,6 +496,14 @@ pub const SETTINGS: &[Setting] = &[
          file, and offer the file itself, for its top level.",
     ),
     setting(
+        "org_refile_allow_creating_parent_nodes",
+        r#"boolean, "confirm""#,
+        "false",
+        "org-refile-allow-creating-parent-nodes",
+        "A target that is not there yet can be named after an existing one, `Projects/New`: it is made, as the \
+         last child of `Projects`, and the entry goes under it. `confirm` asks first.",
+    ),
+    setting(
         "org_reverse_note_order",
         "boolean",
         "false",
@@ -1240,6 +1248,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         } } }"#,
     ),
     ("org_refile_use_outline_path", r#"{ "enum": [true, false, "file", "full-file-path", "title"] }"#),
+    ("org_refile_allow_creating_parent_nodes", r#"{ "enum": [true, false, "confirm"] }"#),
     ("org_reverse_note_order", BOOLEAN),
     ("org_archive_location", STRING),
     ("org_archive_reversed_order", BOOLEAN),

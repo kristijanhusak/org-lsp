@@ -1607,6 +1607,15 @@
               "markdownDescription": "Name targets by their outline path (`Projects/Alpha/`). The three names start the path with the file, and offer the file itself, for its top level. (`org-refile-use-outline-path`)",
               "default": false
             },
+            "org_refile_allow_creating_parent_nodes": {
+              "enum": [
+                true,
+                false,
+                "confirm"
+              ],
+              "markdownDescription": "A target that is not there yet can be named after an existing one, `Projects/New`: it is made, as the last child of `Projects`, and the entry goes under it. `confirm` asks first. (`org-refile-allow-creating-parent-nodes`)",
+              "default": false
+            },
             "org_reverse_note_order": {
               "type": "boolean",
               "markdownDescription": "A refiled entry goes first under its target, not last. (`org-reverse-note-order`)",
