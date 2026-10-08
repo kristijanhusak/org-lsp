@@ -181,10 +181,11 @@ Hidden as well.
 
 
 * Diagnostics
-→ Each of these is reported (org-lint), as a squiggle or in the list:
+→ Each of these is reported (org-lint) as information, never as an error
+  or a warning: a text file has none.
   - a link to a file that is not there: [[file:no-such-file.org][missing]]
   - a footnote reference with no definition[fn:missing]
-  - an unknown header argument, as information:
+  - an unknown header argument:
 #+begin_src sh :foo 1
 echo hello
 #+end_src

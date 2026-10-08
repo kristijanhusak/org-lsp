@@ -10584,9 +10584,11 @@ impl Server {
                         document.index.position(&text, reference.start, encoding),
                         document.index.position(&text, reference.end, encoding),
                     );
+                    // An Org file is text: nothing in it is an error or a
+                    // warning, only information.
                     diagnostics.push(lsp_types::Diagnostic {
                         range,
-                        severity: Some(lsp_types::DiagnosticSeverity::ERROR),
+                        severity: Some(lsp_types::DiagnosticSeverity::INFORMATION),
                         source: Some("org-lsp".to_string()),
                         message,
                         data: Some(json!({ "citationKeys": close })),
@@ -10665,10 +10667,12 @@ impl Server {
                 );
                 lsp_types::Diagnostic {
                     range,
+                    // An Org file is text: what org-lint finds is
+                    // information, a hint where it trusts it less.
                     severity: Some(if report.trust == "low" {
-                        lsp_types::DiagnosticSeverity::INFORMATION
+                        lsp_types::DiagnosticSeverity::HINT
                     } else {
-                        lsp_types::DiagnosticSeverity::WARNING
+                        lsp_types::DiagnosticSeverity::INFORMATION
                     }),
                     code: Some(lsp_types::NumberOrString::String(report.checker.to_string())),
                     source: Some("org-lint".to_string()),

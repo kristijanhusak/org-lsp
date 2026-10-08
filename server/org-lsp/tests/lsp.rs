@@ -1415,14 +1415,14 @@ fn lints_documents() {
     assert_eq!(
         found,
         vec![
-            (1, 2, "invalid-fuzzy-link".to_string(), "Unknown fuzzy location \"Missing\"".to_string()),
+            (1, 3, "invalid-fuzzy-link".to_string(), "Unknown fuzzy location \"Missing\"".to_string()),
             (
                 3,
-                2,
+                3,
                 "deprecated-category-setup".to_string(),
                 "Spurious CATEGORY keyword.  Set :CATEGORY: property instead".to_string()
             ),
-            (4, 2, "missing-language-in-src-block".to_string(), "Missing language in source block".to_string()),
+            (4, 3, "missing-language-in-src-block".to_string(), "Missing language in source block".to_string()),
         ]
     );
     let found = diagnostics(json!({ "org_lint_ignore": ["invalid-fuzzy-link", "deprecated-category-setup"] }));

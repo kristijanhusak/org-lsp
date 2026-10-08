@@ -409,8 +409,9 @@ org_clock_file_time_cell_format = "*%s*"
 
 # Org's linter checks the documents and reports what it finds as diagnostics:
 # misplaced headings and planning lines, links to nowhere, duplicate names,
-# footnotes without definitions… A checker Org trusts little reports
-# information, the others warnings. (org-lint)
+# footnotes without definitions… What it finds is information, a hint for a
+# checker Org trusts little: an Org file is text, nothing in it is an error or
+# a warning. (org-lint)
 org_lint = true
 
 # The `org-lint` checkers to leave out, by name, as a diagnostic's code shows
@@ -1166,8 +1167,9 @@ org_agenda_custom_commands = []
 
   // Org's linter checks the documents and reports what it finds as
   // diagnostics: misplaced headings and planning lines, links to nowhere,
-  // duplicate names, footnotes without definitions… A checker Org trusts
-  // little reports information, the others warnings. (org-lint)
+  // duplicate names, footnotes without definitions… What it finds is
+  // information, a hint for a checker Org trusts little: an Org file is text,
+  // nothing in it is an error or a warning. (org-lint)
   "org_lint": true,
 
   // The `org-lint` checkers to leave out, by name, as a diagnostic's code
