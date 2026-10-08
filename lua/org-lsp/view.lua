@@ -254,7 +254,8 @@ local function prompt_float(place, height, width, anchor)
   local framed = border ~= 'none' and border ~= '' and border ~= false
   local edge = framed and 2 or 0
   local lines = vim.o.lines - vim.o.cmdheight
-  width = math.min(width, vim.o.columns - edge)
+  -- Room after the widest line, which would touch the border otherwise.
+  width = math.min(width + 2, vim.o.columns - edge)
   height = math.min(height, lines - edge - 1)
   if place == 'bottom' then
     -- Along the whole bottom, as the split it stands for.

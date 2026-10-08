@@ -1211,6 +1211,11 @@ end)
 local float = vim.api.nvim_win_get_config(date_prompt())
 eq({ float.relative, float.border ~= nil }, { 'editor', true }, 'a floating calendar with a border')
 eq(float.height, vim.api.nvim_buf_line_count(vim.api.nvim_win_get_buf(date_prompt())), 'as high as its text')
+local widest = 0
+for _, text in ipairs(vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(date_prompt()), 0, -1, false)) do
+  widest = math.max(widest, vim.fn.strdisplaywidth(text))
+end
+eq(float.width, widest + 2, 'two columns wider than its text')
 press('q')
 wait('the floating calendar to close', function()
   vim.api.nvim_feedkeys('', 'x', false)
