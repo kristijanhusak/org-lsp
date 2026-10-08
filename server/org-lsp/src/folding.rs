@@ -200,7 +200,7 @@ pub fn startup_folds(
         folds.into_iter().zip(closed).filter(|(_, closed)| *closed).map(|((_, range), _)| range).collect();
     // Inner folds first: closing one inside a closed fold would close the
     // fold around it.
-    out.sort_by(|a, b| b.start_line.cmp(&a.start_line));
+    out.sort_by_key(|range| std::cmp::Reverse(range.start_line));
     out
 }
 

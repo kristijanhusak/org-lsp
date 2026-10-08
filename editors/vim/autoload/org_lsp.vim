@@ -1375,8 +1375,10 @@ endfunction
 
 " Fold the window again with the new levels; closed folds stay closed.
 function! org_lsp#refold() abort
-  let first = !exists('w:org_lsp_folded')
-  let w:org_lsp_folded = 1
+  " The first time the window shows the buffer: as it opens.
+  let key = 'org_lsp_folded_' . bufnr()
+  let first = !has_key(w:, key)
+  let w:[key] = 1
   let closed = first ? [] : filter(map(copy(s:fold_ranges(bufnr())), 'v:val[0]'), 'foldclosed(v:val) == v:val')
   setlocal foldmethod=manual
   setlocal foldexpr=org_lsp#foldexpr(v:lnum) foldmethod=expr
