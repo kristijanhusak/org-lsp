@@ -113,8 +113,10 @@ its sections says what it should look like.
 
 ## Properties and column view
 
-**Partly:** Column view is left out: it draws over the headlines, which Vim cannot.
+**Partly:** Column view's header is in the window's status line, shown when the window has one (`laststatus`).
 
+- [ ] Column view: the headlines covered by their columns (`#+COLUMNS:` or the default), the header above, effort sums on parents (needs Emacs): `<Leader>oxc`
+- [ ] In column view, picking a column, editing its value (`e`), the next and previous allowed value (`n`, `p`), its value shown (`v`); quitting (`q`)
 - [ ] Setting a property: the name and the value are completed, `NAME_ALL`'s values offered: `<Leader>oxp`
 - [ ] On a property line with `NAME_ALL`, cycling through its values: `<S-Right>`, `<S-Left>`
 - [ ] Deleting a property from the entry, and from the whole file: `:Org property delete`, `:Org property delete globally`
@@ -130,6 +132,9 @@ its sections says what it should look like.
 - [ ] Removing the scheduled date and the deadline: `:Org schedule remove`, `:Org deadline remove`
 - [ ] Delaying the scheduled date to a day (`-3d`) and setting the deadline's warning period: `:Org schedule delay`, `:Org deadline warning`
 - [ ] Inserting an active and an inactive timestamp; a second one right after makes a range: `<Leader>oi.`, `<Leader>oi!`
+- [ ] In the calendar: moving by day, week and month, scrolling months, today, picking a day: `l` or `<S-Right>`, `j` or `<S-Down>`, `<M-S-Right>`, `>`, `.`, `<CR>`
+- [ ] In the calendar: picking a time with the keys, typing the answer instead, cancelling: `t`, `i`, `q` or `<Esc>`
+- [ ] Switching to a month of six weeks keeps the whole calendar in view, the cursor on the selected day
 - [ ] On a timestamp, changing the day, month, year, hour and minute under the cursor; with a count: `<C-a>`, `<C-x>`
 - [ ] Moving a timestamp by days: `<S-Up>`, `<S-Down>`
 - [ ] Changing the timestamp at the cursor with the date prompt: `cid`
@@ -137,13 +142,12 @@ its sections says what it should look like.
 
 ## Agenda
 
-**Partly:** Column view in the agenda is left out: it draws over the lines, which Vim cannot.
-
 - [ ] The agenda menu lists the views and the custom commands: `<Leader>oa`
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: `:Org agenda list`
 - [ ] Later, earlier, today; day, week, month views; going to a date: `f`, `b`, `.`, `vd`, `vw`, `vm`, `J`
 - [ ] Tags at the right edge of the window, following it as it is resized
 - [ ] The TODO list, a tag search (`work+urgent`), a word search: `<Leader>oa`
+- [ ] Column view in the agenda covers each entry's line with its columns and sums the efforts on the header; `e` on an effort changes it in the entry's file; `q` turns it off (needs Emacs): `<C-c><C-x><C-c>`
 - [ ] Going to the line's entry in another window, and where the agenda is: `<Tab>`, `<CR>`
 - [ ] Changing the line's TODO state and priority; the line follows: `t`, `+` or `<S-Up>`
 - [ ] Scheduling the line's entry and setting its deadline: `<C-c><C-s>` or `<Leader>ois`, `<C-c><C-d>` or `<Leader>oid`

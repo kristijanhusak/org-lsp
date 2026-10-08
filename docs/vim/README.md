@@ -54,6 +54,8 @@ highlighted as Org files are; moving the cursor closes it. `:Org agenda`,
 - The agenda and the date prompt's calendar are files the server writes
   (`Agenda.org-agenda`, `Date.org-date` in a temporary directory), read
   again when it says they changed.
+- Column view covers each headline with a popup, and puts its header in
+  the window's status line rather than above the text.
 - Nothing is concealed: Vim cannot hide text that text properties mark,
   so link brackets and emphasis markers show.
 - New lines are not indented by the server.

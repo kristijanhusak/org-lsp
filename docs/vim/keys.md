@@ -3,10 +3,9 @@
 The Vim plugin binds the same keys as the Neovim plugin: when the server
 starts, it announces its commands with their default keys (`org-lsp
 manifest` prints the list), and the plugin binds those of the `vim`
-preset, which are nvim-orgmode's defaults. Vim has no column view, so its
-keys are left out. Keys for Org files, the agenda, the date prompt's
-calendar and capture buffers are local to those buffers; the keys listed
-under *Anywhere* are global.
+preset, which are nvim-orgmode's defaults. Keys for Org files, the agenda,
+the date prompt's calendar, column view and capture buffers are local to
+those buffers; the keys listed under *Anywhere* are global.
 
 `g?` in an Org file or the agenda shows the keys set there, yours
 included, in a popup.
@@ -246,6 +245,27 @@ The other options are in [configuration.md](configuration.md).
 | `t` | `org.calendar.time` | Date prompt: pick the time, or go back to the day |
 | `q`, `<Esc>` | `org.calendar.cancel` | Date prompt: cancel |
 
+### In column view
+
+| Keys | Command | What it does |
+| --- | --- | --- |
+| `q` | `org.columns.quit` | Column view: quit |
+| `r` | `org.columns.redo` | Column view: recompute |
+| `e` | `org.columns.edit` | Column view: edit the value |
+| `n`, `<S-Right>` | `org.columns.next` | Column view: the next allowed value |
+| `p`, `<S-Left>` | `org.columns.previous` | Column view: the previous allowed value |
+| `v` | `org.columns.show` | Column view: show the value |
+| `a` | `org.columns.allowed` | Column view: edit the allowed values |
+| `t` | `org.columns.todo` | Column view: change the TODO state |
+| `<CR>` | `org.columns.toggle` | Column view: toggle a checkbox, or quit |
+| `<M-Left>` | `org.columns.move.left` | Column view: move the column left |
+| `<M-Right>` | `org.columns.move.right` | Column view: move the column right |
+| `<M-S-Left>` | `org.columns.delete` | Column view: delete the column |
+| `<` | `org.columns.narrow` | Column view: make the column narrower |
+| `>` | `org.columns.widen` | Column view: make the column wider |
+| `<M-Up>` | `org.columns.row.up` | Column view: move the entry up |
+| `<M-Down>` | `org.columns.row.down` | Column view: move the entry down |
+
 ### Without a default key
 
 | Command | What it does |
@@ -275,22 +295,6 @@ The other options are in [configuration.md](configuration.md).
 | `org.crypt.decrypt` | Decrypt the entry |
 | `org.crypt.encrypt.all` | Encrypt the entries tagged crypt |
 | `org.crypt.decrypt.all` | Decrypt the encrypted entries |
-| `org.columns.quit` | Column view: quit |
-| `org.columns.redo` | Column view: recompute |
-| `org.columns.edit` | Column view: edit the value |
-| `org.columns.next` | Column view: the next allowed value |
-| `org.columns.previous` | Column view: the previous allowed value |
-| `org.columns.show` | Column view: show the value |
-| `org.columns.allowed` | Column view: edit the allowed values |
-| `org.columns.todo` | Column view: change the TODO state |
-| `org.columns.toggle` | Column view: toggle a checkbox, or quit |
-| `org.columns.move.left` | Column view: move the column left |
-| `org.columns.move.right` | Column view: move the column right |
-| `org.columns.delete` | Column view: delete the column |
-| `org.columns.narrow` | Column view: make the column narrower |
-| `org.columns.widen` | Column view: make the column wider |
-| `org.columns.row.up` | Column view: move the entry up |
-| `org.columns.row.down` | Column view: move the entry down |
 | `org.table.recalculate.line` | Recalculate the table's current line |
 | `org.table.iterate` | Recalculate the table until it does not change |
 | `org.link.insert.last` | Insert the last stored link |

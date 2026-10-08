@@ -329,6 +329,10 @@ function! org_lsp#run(name, ...) abort
     let &autoread = autoread
   endif
   let [nr, context] = s:cursor_context()
+  " Column view's commands act on the column picked.
+  if a:name =~# '^org\.columns\.' && org_lsp#columns_on(nr)
+    let context.column = getbufvar(nr, 'org_lsp_column', 0)
+  endif
   if get(opts, 'count', 0) > 0
     let context.count = opts.count
   endif
@@ -852,7 +856,7 @@ function! org_lsp#set_keys(scope) abort
         execute printf('inoremap %s <silent> %s <Cmd>call org_lsp#insert_key(%d)<CR>', buffer, mapped, index)
         continue
       endif
-      let nowait = index(['agenda', 'calendar'], a:scope) >= 0 && !s:starts_longer(lhs, all) ? '<nowait>' : ''
+      let nowait = index(['agenda', 'calendar', 'columns'], a:scope) >= 0 && !s:starts_longer(lhs, all) ? '<nowait>' : ''
       if has_key(s:append_commands, name)
         execute printf('nnoremap %s <silent> %s :<C-u>call org_lsp#run(%s, {''append'': 1})<CR>', buffer, mapped, string(name))
       elseif get(command, 'edits', v:false) && a:scope ==# 'org'
@@ -868,9 +872,239 @@ function! org_lsp#set_keys(scope) abort
   endfor
 endfunction
 
+" ----- column view
+
+" Column view (`org-columns`), as the server says Emacs shows it
+" (`org-lsp/columns`): each headline covered by its columns, a popup over
+" its line that follows it, the header in the window's status line, and the
+" column picked highlighted on the cursor's line. Emacs's cursor moves from
+" column to column there; `h` and `l` do here. By buffer: `{header,
+" columns, rows: {line: text}, popups: {line: id}, last}`.
+let s:columns = {}
+
+highlight default link OrgLspColumn CursorColumn
+highlight default link OrgLspColumnCurrent Visual
+highlight default link OrgLspColumnTitle StatusLine
+
+function! s:columns_types() abort
+  if empty(prop_type_get('org_lsp_columns'))
+    call prop_type_add('org_lsp_columns', {})
+  endif
+  if empty(prop_type_get('org_lsp_column_current'))
+    call prop_type_add('org_lsp_column_current', {'highlight': 'OrgLspColumnCurrent'})
+  endif
+endfunction
+
+" What the server says column view shows (`org-lsp/columns`).
+function! s:columns_show(params) abort
+  let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
+  if nr <= 0 || !bufloaded(nr)
+    return
+  endif
+  if get(a:params, 'lines', v:null) is v:null
+    return s:columns_off(nr)
+  endif
+  call s:columns_types()
+  let first = !has_key(s:columns, nr)
+  let view = first ? {'popups': {}, 'last': -1} : s:columns[nr]
+  let view.header = a:params.header
+  let view.columns = a:params.columns
+  let view.rows = {}
+  for [line, text, _] in a:params.lines
+    let view.rows[line] = text
+  endfor
+  let s:columns[nr] = view
+  let column = getbufvar(nr, 'org_lsp_column', 0)
+  call setbufvar(nr, 'org_lsp_column', max([0, min([len(view.columns) - 1, column])]))
+  if first
+    call s:columns_attach(nr)
+  endif
+  call s:columns_draw(nr)
+endfunction
+
+" The characters of column `index` in a line of the view, from 0: the
+" column, then ` | ` after it (`|` after the last one).
+function! s:columns_cell(view, index) abort
+  let start = 0
+  for i in range(a:index)
+    let start += a:view.columns[i].width + 3
+  endfor
+  let length = a:view.columns[a:index].width + (a:index + 1 == len(a:view.columns) ? 2 : 3)
+  return [start, length]
+endfunction
+
+" The popup's text for line `row` (from 0) of buffer `nr`: the view's,
+" as wide as the line it covers, with the column picked highlighted on
+" the cursor's line.
+function! s:columns_text(nr, row, win) abort
+  let view = s:columns[a:nr]
+  let line = get(getbufline(a:nr, a:row + 1), 0, '')
+  let text = view.rows[a:row]
+  let text .= repeat(' ', max([0, strdisplaywidth(line) - strdisplaywidth(text)]))
+  let props = []
+  if a:win != -1 && getcurpos(a:win)[1] - 1 == a:row
+    let [start, length] = s:columns_cell(view, getbufvar(a:nr, 'org_lsp_column', 0))
+    let from = byteidx(text, start)
+    let to = byteidx(text, start + length)
+    let to = to < 0 ? len(text) : to
+    if from >= 0 && to > from
+      call add(props, {'col': from + 1, 'length': to - from, 'type': 'org_lsp_column_current'})
+    endif
+  endif
+  return [{'text': text, 'props': props}]
+endfunction
+
+function! s:columns_draw(nr) abort
+  let view = get(s:columns, a:nr, {})
+  if empty(view)
+    return
+  endif
+  call s:columns_clear(a:nr)
+  let win = bufwinid(a:nr)
+  if win == -1
+    return
+  endif
+  for [row, _] in items(view.rows)
+    let row = str2nr(row)
+    if row >= getbufinfo(a:nr)[0].linecount
+      continue
+    endif
+    call prop_add(row + 1, 1, {'type': 'org_lsp_columns', 'id': row + 1, 'bufnr': a:nr})
+    let view.popups[row] = popup_create(s:columns_text(a:nr, row, win), {
+          \ 'textprop': 'org_lsp_columns', 'textpropid': row + 1, 'textpropwin': win,
+          \ 'line': -1, 'col': 0, 'pos': 'topleft', 'fixed': 1, 'wrap': 0,
+          \ 'highlight': 'OrgLspColumn', 'zindex': 40,
+          \ })
+  endfor
+  call s:columns_header(a:nr)
+endfunction
+
+function! s:columns_clear(nr) abort
+  let view = get(s:columns, a:nr, {})
+  for id in values(get(view, 'popups', {}))
+    call popup_close(id)
+  endfor
+  if !empty(view)
+    let view.popups = {}
+  endif
+  if bufloaded(a:nr) && !empty(prop_type_get('org_lsp_columns'))
+    call prop_remove({'type': 'org_lsp_columns', 'bufnr': a:nr, 'all': 1})
+  endif
+endfunction
+
+" Draw line `row` again, for the cursor that came or went.
+function! s:columns_line(nr, row) abort
+  let view = get(s:columns, a:nr, {})
+  if empty(view) || !has_key(view.popups, a:row)
+    return
+  endif
+  call popup_settext(view.popups[a:row], s:columns_text(a:nr, a:row, bufwinid(a:nr)))
+endfunction
+
+" The header in the status line of the windows that show buffer `nr`,
+" lined up with the text (Emacs puts it in `header-line-format`).
+function! s:columns_header(nr) abort
+  let view = s:columns[a:nr]
+  for win in win_findbuf(a:nr)
+    if type(getwinvar(win, 'org_lsp_statusline', v:null)) == v:t_none
+      call setwinvar(win, 'org_lsp_statusline', getwinvar(win, '&statusline'))
+    endif
+    let offset = get(get(getwininfo(win), 0, {}), 'textoff', 0)
+    call setwinvar(win, '&statusline', '%#OrgLspColumnTitle#' . repeat(' ', offset) . substitute(view.header, '%', '%%', 'g'))
+  endfor
+endfunction
+
+" Pick the column `delta` columns away, as Emacs's `left` and `right` move
+" between them.
+function! org_lsp#columns_move(delta) abort
+  let view = get(s:columns, bufnr(), {})
+  if empty(view)
+    return
+  endif
+  let b:org_lsp_column = max([0, min([len(view.columns) - 1, get(b:, 'org_lsp_column', 0) + a:delta])])
+  call s:columns_line(bufnr(), line('.') - 1)
+endfunction
+
+function! s:columns_cursor() abort
+  let nr = bufnr()
+  let view = get(s:columns, nr, {})
+  if empty(view)
+    return
+  endif
+  let row = line('.') - 1
+  if view.last != row
+    call s:columns_line(nr, view.last)
+  endif
+  call s:columns_line(nr, row)
+  let view.last = row
+endfunction
+
+" The keys of column view in buffer `nr`, `h` and `l` among them.
+function! s:columns_attach(nr) abort
+  let win = bufwinid(a:nr)
+  if win == -1
+    return
+  endif
+  call win_execute(win, 'call org_lsp#set_keys("columns")')
+  for [lhs, delta] in [['h', -1], ['<Left>', -1], ['l', 1], ['<Right>', 1]]
+    call win_execute(win, printf('nnoremap <buffer> <silent> %s <Cmd>call org_lsp#columns_move(%d)<CR>', lhs, delta))
+  endfor
+  execute 'augroup org_lsp_columns_' . a:nr
+  autocmd!
+  execute 'autocmd CursorMoved <buffer=' . a:nr . '> call s:columns_cursor()'
+  execute 'autocmd BufWinEnter <buffer=' . a:nr . '> call timer_start(0, {-> s:columns_draw(' . a:nr . ')})'
+  execute 'autocmd BufWinLeave <buffer=' . a:nr . '> call s:columns_clear(' . a:nr . ')'
+  augroup END
+endfunction
+
+" Column view off in buffer `nr`: the text as it is, the keys of Org files
+" (or of the agenda) again.
+function! s:columns_off(nr) abort
+  if !has_key(s:columns, a:nr)
+    return
+  endif
+  call s:columns_clear(a:nr)
+  call remove(s:columns, a:nr)
+  execute 'augroup org_lsp_columns_' . a:nr
+  autocmd!
+  augroup END
+  execute 'augroup! org_lsp_columns_' . a:nr
+  for win in win_findbuf(a:nr)
+    let saved = getwinvar(win, 'org_lsp_statusline', v:null)
+    if type(saved) != v:t_none
+      call setwinvar(win, '&statusline', saved)
+      call win_execute(win, 'unlet! w:org_lsp_statusline')
+    endif
+  endfor
+  let win = bufwinid(a:nr)
+  if win == -1
+    return
+  endif
+  let keys = ['h', '<Left>', 'l', '<Right>']
+  for entry in org_lsp#keys('columns')
+    let keys += entry.keys
+  endfor
+  for lhs in keys
+    call win_execute(win, 'silent! nunmap <buffer> ' . s:map_lhs(lhs))
+  endfor
+  let agenda = s:is_view_type(getbufvar(a:nr, '&filetype'))
+  call win_execute(win, printf('call org_lsp#set_keys(%s)', string(agenda ? 'agenda' : 'org')))
+endfunction
+
+" Whether column view shows in buffer `nr`, and the text it shows over
+" line `row` (from 0): for the tests.
+function! org_lsp#columns_on(nr) abort
+  return has_key(s:columns, a:nr)
+endfunction
+
+function! org_lsp#columns_shown(nr, row) abort
+  let id = get(get(get(s:columns, a:nr, {}), 'popups', {}), a:row, 0)
+  return id ? get(getbufline(winbufnr(id), 1), 0, '') : ''
+endfunction
+
 " ----- help
 
-let s:scope_titles = {'org': 'Org file', 'capture': 'Capture buffer', 'agenda': 'Agenda', 'calendar': 'Date prompt', 'global': 'Anywhere'}
+let s:scope_titles = {'org': 'Org file', 'capture': 'Capture buffer', 'agenda': 'Agenda', 'calendar': 'Date prompt', 'columns': 'Column view', 'global': 'Anywhere'}
 
 " The keys of `scope` as they are set: `[{keys, title}]`, in the order of
 " the server's commands, then the plugin's own.
@@ -1080,6 +1314,13 @@ function! s:reload_views() abort
       execute 'checktime' info.bufnr
       call s:give_view(info.bufnr)
       call s:repaint_kept(info.bufnr, old)
+      call s:columns_draw(info.bufnr)
+      " The calendar stays as high as its text: a month of six weeks.
+      if s:is_prompt(info.name) && org_lsp#config().calendar_win_mode !~# 'v'
+        for win in win_findbuf(info.bufnr)
+          call win_execute(win, 'resize ' . len(getbufline(info.bufnr, 1, '$')) . ' | call winrestview({"topline": 1})')
+        endfor
+      endif
     endif
   endfor
 endfunction
@@ -1371,6 +1612,8 @@ function! org_lsp#handle_notification(method, params) abort
     call s:virtual_indent(a:params)
   elseif a:method ==# 'org-lsp/lineHighlights'
     call s:line_highlights(a:params)
+  elseif a:method ==# 'org-lsp/columns'
+    call s:columns_show(a:params)
   elseif a:method ==# 'org-lsp/viewChanged'
     " The agenda's file is new: read it again, outside the client's
     " callback.

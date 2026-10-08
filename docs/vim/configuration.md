@@ -27,7 +27,7 @@ let g:org_lsp = {
 | `win_split_size` | `0` | How big the window `win_split_mode` opens is: lines for a split, columns for a vertical one (`vsplit`, `vnew`, `vertical`), or below 1 that part of the editor. `0` leaves it as the command makes it. |
 | `calendar` | `1` | Pick dates in Org's calendar, at the bottom, as Emacs shows it while it asks for a date; `i` there types the date. `0` asks for the date as text only. |
 | `calendar_win_mode` | `'botright split'` | The Ex command that opens the calendar's window (`'topleft split'`, `'botright vsplit'`). A split is as high as the calendar. |
-| `mappings` | the server's | Keys by scope (`global`, `org`, `agenda`, `capture`, `calendar`); see [keys.md](keys.md). |
+| `mappings` | the server's | Keys by scope (`global`, `org`, `agenda`, `capture`, `calendar`, `columns`); see [keys.md](keys.md). |
 
 ## The clock and the timer in the statusline
 

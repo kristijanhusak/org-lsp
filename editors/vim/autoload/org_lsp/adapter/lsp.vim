@@ -19,6 +19,7 @@ function! org_lsp#adapter#lsp#register(cmd, options, filetypes) abort
         \   'org-lsp/virtualIndent': function('s:notification'),
         \   'org-lsp/lineHighlights': function('s:notification'),
         \   'org-lsp/viewChanged': function('s:notification'),
+        \   'org-lsp/columns': function('s:notification'),
         \ },
         \ }])
 endfunction

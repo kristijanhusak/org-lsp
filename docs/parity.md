@@ -183,7 +183,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Vim ❓: Column view is left out: it draws over the headlines, which Vim cannot.
+- Vim ❓: Column view's header is in the window's status line, shown when the window has one (`laststatus`).
 - VS Code ❓: Column view's header is in the status bar, with the column picked in brackets.
 - Sublime Text ❓: Column view is left out: it draws over the headlines, which Sublime Text cannot.
 - Zed ❓: Setting a property or the effort is left out: they are typed, and Zed cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines.
@@ -236,7 +236,6 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Vim ❓: Column view in the agenda is left out: it draws over the lines, which Vim cannot.
 - VS Code ❓: Tags are at column 80, not at the window's edge (`org_agenda_tags_column` `"auto"`): VS Code does not tell an extension how many columns an editor shows.
 - Sublime Text ❓: Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.
 - Zed ❓: The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension). Column view in the agenda is left out: it draws over the lines.
