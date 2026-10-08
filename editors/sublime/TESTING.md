@@ -107,6 +107,7 @@ here and why.
 
 - [ ] Scheduling with `+2d`: `SCHEDULED: <…>` goes below the headline: `Ctrl+C Ctrl+S`
 - [ ] A deadline on `fri 10:00`: `Ctrl+C Ctrl+D`
+- [ ] Removing the scheduled date and the deadline: *Org: Remove the scheduled date of the entry*, *Org: Remove the deadline of the entry*
 - [ ] Inserting an active and an inactive timestamp; a second one right after makes a range: `Ctrl+C .`, `Ctrl+C !`
 - [ ] On a timestamp, changing the day, month, year, hour and minute under the cursor; with a count: *Org: Increase the part of the timestamp at the cursor*, *Org: Decrease the part of the timestamp at the cursor*
 - [ ] Moving a timestamp by days: *Org: Move the date one day later*, *Org: Move the date one day earlier*
@@ -266,6 +267,7 @@ here and why.
 - [ ] Adding a note: a note buffer opens, and finishing writes it in the entry's log: `Ctrl+C Ctrl+Z`
 - [ ] With `LOG_INTO_DRAWER`, the note goes in `:LOGBOOK:`: `Ctrl+C Ctrl+Z`
 - [ ] Adding a note from the agenda: `z`
+- [ ] With `org_log_reschedule` `"time"` (or `#+STARTUP: logreschedule`), rescheduling logs `Rescheduled from "[…]" on […]`; with `"note"` a note buffer opens for it: `Ctrl+C Ctrl+S`
 
 ## Completion and editing helpers
 

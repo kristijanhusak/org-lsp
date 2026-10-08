@@ -91,6 +91,23 @@ pub const SETTINGS: &[Setting] = &[
          `lognoterepeat` and `nologrepeat` change it in a file, and the `LOGGING` property in an entry.",
     ),
     setting(
+        "org_log_reschedule",
+        r#"false, "time", "note""#,
+        "false",
+        "org-log-reschedule",
+        "Record when a scheduled date changes or is removed (`Rescheduled from \"[2026-05-18 Mon]\" on …`), \
+         with `note` asking for a note too. `#+STARTUP:` `logreschedule`, `lognotereschedule` and \
+         `nologreschedule` change it in a file.",
+    ),
+    setting(
+        "org_log_redeadline",
+        r#"false, "time", "note""#,
+        "false",
+        "org-log-redeadline",
+        "Record when a deadline changes or is removed (`New deadline from …`), with `note` asking for a note \
+         too. `#+STARTUP:` `logredeadline`, `lognoteredeadline` and `nologredeadline` change it in a file.",
+    ),
+    setting(
         "org_log_into_drawer",
         "boolean, string",
         "false",
@@ -1113,6 +1130,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_todo_keywords", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_log_done", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_repeat", r#"{ "enum": [false, "time", "note"] }"#),
+    ("org_log_reschedule", r#"{ "enum": [false, "time", "note"] }"#),
+    ("org_log_redeadline", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_into_drawer", r#"{ "type": ["boolean", "string"] }"#),
     ("org_tags_column", r#"{ "type": "integer" }"#),
     ("org_use_tag_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),

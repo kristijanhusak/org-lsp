@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 72%**
+**All of Org: 73%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -19,7 +19,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Priorities](#priorities) | 100% | 3 of 3 |
 | [Tags](#tags) | 100% | 6 of 6 |
 | [Properties and column view](#properties-and-column-view) | 67% | 4 of 6 |
-| [Dates and times](#dates-and-times) | 86% | 6 of 7 |
+| [Dates and times](#dates-and-times) | 88% | 7 of 8 |
 | [Agenda](#agenda) | 74% | 14 of 19 |
 | [Clocking](#clocking) | 88% | 7 of 8 |
 | [Capture](#capture) | 73% | 8 of 11 |
@@ -33,7 +33,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Citations](#citations) | 100% | 5 of 5 |
 | [Diagnostics (org-lint)](#diagnostics-org-lint) | 97% | 59 of 61 |
 | [Indentation and formatting](#indentation-and-formatting) | 83% | 5 of 6 |
-| [Notes and logging](#notes-and-logging) | 75% | 3 of 4 |
+| [Notes and logging](#notes-and-logging) | 100% | 4 of 4 |
 | [Completion and editing helpers](#completion-and-editing-helpers) | 100% | 4 of 4 |
 | [Timers](#timers) | 60% | 3 of 5 |
 | [Attachments](#attachments) | 0% | 0 of 2 |
@@ -183,7 +183,7 @@ Where editors fall short:
 
 ## Dates and times
 
-86% (6 of 7)
+88% (7 of 8)
 
 - ✅ Inserting active and inactive timestamps (`C-c .`, `C-c !`)
 - ✅ Scheduling and deadlines (`C-c C-s`, `C-c C-d`)
@@ -191,7 +191,8 @@ Where editors fall short:
 - ✅ The calendar with the prompt
 - ✅ Changing the part at the cursor (`S-<up>`, `S-<down>`), with ranges, repeaters and warnings
 - ✅ Moving a date by days (`S-<left>`, `S-<right>`)
-- ❌ Removing a date or setting a delay (the prefix arguments)
+- ✅ Removing a scheduled date or a deadline (`C-u C-c C-s`, `C-u C-c C-d`)
+- ❌ Setting a delay or a warning period (`C-u C-u C-c C-s`)
 
 Where editors fall short:
 
@@ -448,12 +449,12 @@ Where editors fall short:
 
 ## Notes and logging
 
-75% (3 of 4)
+100% (4 of 4)
 
 - ✅ Notes (`org-add-note`), in the log or the `LOGBOOK` drawer
 - ✅ Notes and times on state changes
 - ✅ `LOG_INTO_DRAWER` and the `LOGGING` property
-- ❌ Logging rescheduled dates and deadlines (`org-log-reschedule`, `org-log-redeadline`)
+- ✅ Logging rescheduled dates and deadlines (`org-log-reschedule`, `org-log-redeadline`)
 
 Where editors fall short:
 

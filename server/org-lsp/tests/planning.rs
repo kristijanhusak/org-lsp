@@ -12,8 +12,10 @@ use std::path::PathBuf;
 
 use org_core::date::DateTime;
 use org_core::indent::Adapt;
-use org_core::planning::{prompt, run, Command};
+use org_core::planning::{prompt, remove, run, Command};
 use org_core::read_date::Settings;
+use org_core::todo::{log_planning_change, planning_logging, Settings as TodoSettings};
+use org_syntax::Logging;
 use serde_json::Value;
 
 fn cases() -> Vec<Value> {
@@ -43,9 +45,10 @@ fn date_commands_match_emacs() {
         let offset = marked.find('¦').expect("cursor marker");
         let text = marked.replacen('¦', "", 1);
         let answer = case["answer"].as_str().unwrap();
+        let removing = case["command"].as_str().unwrap().ends_with("-remove");
         let command = match case["command"].as_str().unwrap() {
-            "schedule" => Command::Schedule,
-            "deadline" => Command::Deadline,
+            "schedule" | "schedule-remove" => Command::Schedule,
+            "deadline" | "deadline-remove" => Command::Deadline,
             "timestamp" => Command::Timestamp { inactive: false },
             "timestamp-inactive" => Command::Timestamp { inactive: true },
             other => panic!("unknown command {other}"),
@@ -58,7 +61,46 @@ fn date_commands_match_emacs() {
             Some(Value::String(name)) if name == "headline-data" => Adapt::HeadlineData,
             _ => Adapt::Off,
         };
-        let actual = match run(command, &text, offset, answer, repeated, now, &Settings::default(), adapt) {
+        let ran = if removing {
+            remove(command, &text, offset)
+        } else {
+            run(command, &text, offset, answer, repeated, now, &Settings::default(), adapt)
+        };
+        // What `org-log-reschedule` and `org-log-redeadline` log.
+        let logging = |name: &str| match case.pointer(&format!("/options/{name}")).and_then(Value::as_str) {
+            Some("time") => Some(Logging::Time),
+            Some("note") => Some(Logging::Note),
+            _ => None,
+        };
+        let todo = TodoSettings {
+            log_reschedule: logging("org_log_reschedule"),
+            log_redeadline: logging("org_log_redeadline"),
+            log_into_drawer: (case.pointer("/options/org_log_into_drawer") == Some(&Value::Bool(true)))
+                .then(|| "LOGBOOK".to_string()),
+            adapt,
+            ..TodoSettings::default()
+        };
+        let ran = ran.map(|mut outcome| {
+            if let Some(changed) = outcome.changed.clone() {
+                if let Some(logged) = planning_logging(&todo, &outcome.text, changed.change) {
+                    let note = if logged == Logging::Note { case["note"].as_str().unwrap_or("") } else { "" };
+                    let keywords = org_syntax::parse(&outcome.text, &Default::default()).todo_keywords().clone();
+                    outcome.text = log_planning_change(
+                        &outcome.text,
+                        &keywords,
+                        changed.heading,
+                        &todo,
+                        now,
+                        changed.change,
+                        &changed.old,
+                        note,
+                    )
+                    .unwrap();
+                }
+            }
+            outcome
+        });
+        let actual = match ran {
             Ok(outcome) => match outcome.cursor {
                 Some(cursor) => format!("{}¦{}", &outcome.text[..cursor], &outcome.text[cursor..]),
                 None => outcome.text,

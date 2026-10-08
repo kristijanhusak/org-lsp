@@ -101,6 +101,18 @@ them out:
     // in a file, and the `LOGGING` property in an entry. (org-log-repeat)
     "org_log_repeat": "time",
 
+    // Record when a scheduled date changes or is removed (`Rescheduled from
+    // "[2026-05-18 Mon]" on …`), with `note` asking for a note too.
+    // `#+STARTUP:` `logreschedule`, `lognotereschedule` and `nologreschedule`
+    // change it in a file. (org-log-reschedule)
+    "org_log_reschedule": false,
+
+    // Record when a deadline changes or is removed (`New deadline from …`),
+    // with `note` asking for a note too. `#+STARTUP:` `logredeadline`,
+    // `lognoteredeadline` and `nologredeadline` change it in a file.
+    // (org-log-redeadline)
+    "org_log_redeadline": false,
+
     // Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the
     // name of a drawer. `#+STARTUP:` `logdrawer` and `nologdrawer` change it
     // in a file; an entry's `LOG_INTO_DRAWER` property (inherited) says which

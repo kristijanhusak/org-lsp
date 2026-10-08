@@ -1624,6 +1624,66 @@ fn writes_a_state_note_in_a_buffer_of_its_own() {
     client.shutdown();
 }
 
+/// `org_log_reschedule` `note`: the date changes, then the note is asked
+/// for in its buffer and logged with the old date; removing the date logs
+/// the time with `time`.
+#[test]
+fn logs_a_rescheduled_date_with_a_note() {
+    let mut options = clock();
+    options["org_log_reschedule"] = json!("note");
+    options["org_log_redeadline"] = json!("time");
+    let mut client = Client::with_date_prompt(options);
+    let file = "file:///org/a.org";
+    let text = "* TODO Call\nSCHEDULED: <2026-05-20 Wed> DEADLINE: <2026-05-25 Mon>\n";
+    client.open(file, text);
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": file }, "position": { "line": 0, "character": 0 }, "input": "fri" });
+    client.request("workspace/executeCommand", json!({ "command": "org.schedule", "arguments": [context] })).unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the date");
+    let rescheduled = apply(text, &edits_of(edit).1);
+    assert_eq!(rescheduled, "* TODO Call\nSCHEDULED: <2026-05-22 Fri> DEADLINE: <2026-05-25 Mon>\n");
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the note buffer");
+    let buffer = show.params["uri"].as_str().unwrap().to_string();
+    let note = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
+    assert_eq!(note, "# Insert note for rescheduling.\n\n\n");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": file, "version": 2 }, "contentChanges": [{ "text": rescheduled }] }),
+    );
+    client.open(&buffer, "# Insert note for rescheduling.\n\nBob is away\n");
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } });
+    let result = client
+        .request("workspace/executeCommand", json!({ "command": "org.capture.finish", "arguments": [context] }))
+        .unwrap();
+    assert_eq!(result["close"], buffer);
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the note");
+    let noted = apply(&rescheduled, &edits_of(edit).1);
+    assert_eq!(
+        noted,
+        "* TODO Call\nSCHEDULED: <2026-05-22 Fri> DEADLINE: <2026-05-25 Mon>\n- Rescheduled from \"[2026-05-20 Wed]\" on [2026-05-18 Mon 10:30] \\\\\n  Bob is away"
+    );
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": file, "version": 3 }, "contentChanges": [{ "text": noted }] }),
+    );
+    // Removing the deadline logs the time.
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": file }, "position": { "line": 0, "character": 0 } });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.deadline.remove", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the removal");
+    assert_eq!(
+        apply(&noted, &edits_of(edit).1),
+        "* TODO Call\nSCHEDULED: <2026-05-22 Fri>\n- Removed deadline, was \"[2026-05-25 Mon]\" on [2026-05-18 Mon 10:30]\n- Rescheduled from \"[2026-05-20 Wed]\" on [2026-05-18 Mon 10:30] \\\\\n  Bob is away"
+    );
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

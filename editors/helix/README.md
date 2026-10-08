@@ -30,7 +30,7 @@ its behalf.
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work. |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ❓ | Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. |
-| [Dates and times](../../docs/parity.md#dates-and-times) | 86% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works. |
+| [Dates and times](../../docs/parity.md#dates-and-times) | 88% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works. |
 | [Agenda](../../docs/parity.md#agenda) | 74% | ❌ | Helix cannot open a document on a server's request. `org-lsp agenda FILE...` prints the agenda in a terminal. |
 | [Clocking](../../docs/parity.md#clocking) | 88% | ❓ | No clock in the status line: Helix has no place there for a server's text. |
 | [Capture](../../docs/parity.md#capture) | 73% | ❌ | Helix cannot open the capture buffer, and Helix cannot ask for text on a server's behalf. |
@@ -44,13 +44,13 @@ its behalf.
 | [Citations](../../docs/parity.md#citations) | 100% | ❓ | Inserting citations is not offered as a code action yet. Completion, hover and following work. |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. |
-| [Notes and logging](../../docs/parity.md#notes-and-logging) | 75% | ❌ | A note is typed text: Helix cannot ask for text on a server's behalf. |
+| [Notes and logging](../../docs/parity.md#notes-and-logging) | 100% | ❌ | A note is typed text: Helix cannot ask for text on a server's behalf. |
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ❓ | Structure templates, emphasis and drawers are not among Helix's code actions. |
 | [Timers](../../docs/parity.md#timers) | 60% | ❌ | Timers are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and they are not among them. |
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **72%** |  |  |
+| **All of Org** | **73%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

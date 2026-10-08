@@ -51,6 +51,10 @@ pub enum Command {
     /// `org-add-note`: the note of the call. Without one, the outcome
     /// asks for its text.
     Note,
+    /// The note `org-log-reschedule` or `org-log-redeadline` asked for
+    /// (`note`), written with the note of the call, or nothing when it
+    /// was cancelled.
+    PlanningNote { change: todo::PlanningChange, old: String },
     /// `org-table-recalculate` and `org-table-iterate`: the table's
     /// formulas, or those of the `#+TBLFM:` line at the cursor.
     Table(tblfm::Mode),
@@ -232,6 +236,21 @@ pub fn run(
                 let wanted = todo::WantedNote { purpose: "this entry".to_string(), state: None };
                 Ok(Outcome { text: text.to_string(), cursor: None, note: Some(wanted), message: None })
             }
+        },
+        Command::PlanningNote { change, old } => match (&call.note, call.skip_note) {
+            (Some(note), false) => todo::log_planning_change(
+                text,
+                parse.todo_keywords(),
+                offset,
+                &settings.todo,
+                call.now,
+                *change,
+                old,
+                note,
+            )
+            .map(unplaced)
+            .map_err(Refusal::Failed),
+            _ => Ok(unplaced(text.to_string())),
         },
         // `C-c C-c` on a `#+TBLFM:` line applies its formulas.
         Command::Checkbox if tblfm::on_formula_line(text, offset) => {

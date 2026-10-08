@@ -33,6 +33,12 @@ pub struct Options {
     /// `org-log-repeat`: `false`, `"time"` or `"note"`.
     #[serde(rename = "org_log_repeat")]
     pub log_repeat: Option<LogOption>,
+    /// `org-log-reschedule`: `false`, `"time"` or `"note"`.
+    #[serde(rename = "org_log_reschedule")]
+    pub log_reschedule: Option<LogOption>,
+    /// `org-log-redeadline`: `false`, `"time"` or `"note"`.
+    #[serde(rename = "org_log_redeadline")]
+    pub log_redeadline: Option<LogOption>,
     /// `org-log-into-drawer`: `true` for `LOGBOOK`, or a drawer name.
     #[serde(rename = "org_log_into_drawer")]
     pub log_into_drawer: Option<DrawerOption>,
@@ -894,6 +900,12 @@ impl Options {
         }
         if let Some(option) = &self.log_repeat {
             settings.log_repeat = option.to_logging();
+        }
+        if let Some(option) = &self.log_reschedule {
+            settings.log_reschedule = option.to_logging();
+        }
+        if let Some(option) = &self.log_redeadline {
+            settings.log_redeadline = option.to_logging();
         }
         settings.log_into_drawer = match &self.log_into_drawer {
             Some(DrawerOption::Flag(true)) => Some("LOGBOOK".to_string()),

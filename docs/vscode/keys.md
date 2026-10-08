@@ -608,6 +608,8 @@ every file; outside Org files the commands say they do not apply):
 | `org.shift.right` | Org: Move the date a day later, or cycle the TODO state or the list's bullets forward |
 | `org.schedule` | Org: Schedule the entry |
 | `org.deadline` | Org: Set the deadline of the entry |
+| `org.schedule.remove` | Org: Remove the scheduled date of the entry |
+| `org.deadline.remove` | Org: Remove the deadline of the entry |
 | `org.timestamp.insert` | Org: Insert or change a timestamp |
 | `org.timestamp.insert.inactive` | Org: Insert or change an inactive timestamp |
 | `org.timestamp.change` | Org: Change the timestamp at the cursor |

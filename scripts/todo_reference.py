@@ -88,6 +88,8 @@ def bindings(options):
     out = {
         "org-log-done": "nil",
         "org-log-repeat": "'time",
+        "org-log-reschedule": "nil",
+        "org-log-redeadline": "nil",
         "org-log-into-drawer": "nil",
         "org-tags-column": "-77",
         "org-todo-repeat-to-state": "nil",
@@ -98,6 +100,10 @@ def bindings(options):
             out["org-log-done"] = symbol(value)
         elif key == "org_log_repeat":
             out["org-log-repeat"] = symbol(value)
+        elif key == "org_log_reschedule":
+            out["org-log-reschedule"] = symbol(value)
+        elif key == "org_log_redeadline":
+            out["org-log-redeadline"] = symbol(value)
         elif key == "org_log_into_drawer":
             out["org-log-into-drawer"] = lisp_value(value)
         elif key == "org_tags_column":

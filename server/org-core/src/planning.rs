@@ -16,7 +16,7 @@ use crate::indent::Adapt;
 use crate::read_date::{read_date, ReadDate, Settings};
 use crate::stamp::{format_timestamp, Stamp};
 use crate::timestr::parse_time_string;
-use crate::todo::headline_level;
+use crate::todo::{headline_level, PlanningChange};
 use crate::Refusal;
 
 /// A command that asks for a date.
@@ -49,6 +49,19 @@ pub struct Outcome {
     pub cursor: Option<usize>,
     /// What Emacs says when it is done: `Scheduled to <2026-05-22 Fri>`.
     pub message: Option<String>,
+    /// A date the entry had and no longer has, which
+    /// `org-log-reschedule` and `org-log-redeadline` may log.
+    pub changed: Option<Changed>,
+}
+
+/// A planning date changed or taken out.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Changed {
+    pub change: PlanningChange,
+    /// The old timestamp, as the entry had it (`<2026-05-18 Mon>`).
+    pub old: String,
+    /// Byte offset of the entry's headline.
+    pub heading: usize,
 }
 
 fn rx(pattern: &str) -> Regex {
@@ -305,17 +318,8 @@ fn schedule(
     let keyword = keyword(command);
     // The repeater of the old date (`org-entry-get`), put back afterwards.
     let planning_line = next_line(text, heading);
-    let is_planning =
-        |at: usize| regex!(r"(?i)\A[ \t]*(?:CLOSED:|DEADLINE:|SCHEDULED:)").is_match(&text[at..line_end(text, at)]);
-    let planning = planning_line < text.len() && is_planning(planning_line);
-    let old_date = planning.then(|| {
-        let line = &text[planning_line..line_end(text, planning_line)];
-        let at = line.to_uppercase().rfind(keyword)?;
-        let rest = line[at + keyword.len()..].trim_start_matches([' ', '\t']);
-        let stamp = regex!(r"\A[\[<][0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?[\]>]").find(rest)?;
-        Some(stamp.as_str().to_string())
-    });
-    let old_date = old_date.flatten();
+    let planning = is_planning(text, planning_line);
+    let old_date = old_date(text, heading, keyword);
     if let Some(old) = &old_date {
         time_string_to_time(old)?;
     }
@@ -356,6 +360,9 @@ fn schedule(
         end + 1 + indentation.len()
     };
     let stamp = insert_timestamp(&read, false, true);
+    // `org-add-log-setup` when the date is another (the repeater aside).
+    let change = if command == Command::Deadline { PlanningChange::Redeadline } else { PlanningChange::Reschedule };
+    let changed = old_date.clone().filter(|old| *old != stamp).map(|old| Changed { change, old, heading });
     let mut inserted = format!("{keyword} {stamp}");
     let after = insert_at + inserted.len();
     if !matches!(out[insert_at..].chars().next(), None | Some('\n')) {
@@ -372,7 +379,66 @@ fn schedule(
         Command::Deadline => format!("Deadline on {stamp}"),
         _ => format!("Scheduled to {stamp}"),
     };
-    Ok(Outcome { text: out, cursor: None, message: Some(message) })
+    Ok(Outcome { text: out, cursor: None, message: Some(message), changed })
+}
+
+/// Whether the line at `at` is a planning line.
+fn is_planning(text: &str, at: usize) -> bool {
+    at < text.len() && regex!(r"(?i)\A[ \t]*(?:CLOSED:|DEADLINE:|SCHEDULED:)").is_match(&text[at..line_end(text, at)])
+}
+
+/// The date `keyword` gives the entry of the headline at `heading`
+/// (`org-entry-get`), as written.
+fn old_date(text: &str, heading: usize, keyword: &str) -> Option<String> {
+    let planning_line = next_line(text, heading);
+    if !is_planning(text, planning_line) {
+        return None;
+    }
+    let line = &text[planning_line..line_end(text, planning_line)];
+    let at = line.to_uppercase().rfind(keyword)?;
+    let rest = line[at + keyword.len()..].trim_start_matches([' ', '\t']);
+    let stamp = regex!(r"\A[\[<][0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?[\]>]").find(rest)?;
+    Some(stamp.as_str().to_string())
+}
+
+/// `org-schedule` and `org-deadline` with `C-u`: the entry's dates of that
+/// kind taken out (`org-remove-timestamp-with-keyword`), and the one it
+/// had in `changed`, for `org-log-reschedule` and `org-log-redeadline`.
+pub fn remove(command: Command, text: &str, offset: usize) -> Result<Outcome, Refusal> {
+    let heading = heading_at(text, offset)?;
+    let keyword = keyword(command);
+    let deadline = command == Command::Deadline;
+    let Some(old) = old_date(text, heading, keyword) else {
+        let message = if deadline { "Entry had no deadline to remove" } else { "Entry was not scheduled" };
+        return Ok(Outcome { text: text.to_string(), cursor: None, message: Some(message.to_string()), changed: None });
+    };
+    // The entry: up to the next headline.
+    let start = next_line(text, heading);
+    let end = regex!(r"(?m)^\*+ ").find_at(text, start).map_or(text.len(), |found| found.start());
+    let pattern = Regex::new(&format!(r"\b{} +<[^>\n]+>[ \t]*", regex::escape(keyword))).expect("a valid regex");
+    let found: Vec<(usize, usize)> =
+        pattern.find_iter(&text[heading..end]).map(|found| (heading + found.start(), heading + found.end())).collect();
+    let mut out = text.to_string();
+    for (from, to) in found.into_iter().rev() {
+        out.replace_range(from..to, "");
+        let line = line_start(&out, from);
+        if out[line..from].bytes().any(|b| !matches!(b, b' ' | b'\t')) {
+            if from > 0 && out.as_bytes()[from - 1] == b' ' {
+                out.replace_range(from - 1..from, "");
+            }
+        } else if out[line..line_end(&out, line)].bytes().all(|b| matches!(b, b' ' | b'\t')) {
+            let stop = (line_end(&out, line) + 1).min(out.len());
+            out.replace_range(line..stop, "");
+        }
+    }
+    let message = if deadline { "Entry no longer has a deadline." } else { "Entry is no longer scheduled." };
+    let change = if deadline { PlanningChange::Undeadline } else { PlanningChange::Unschedule };
+    Ok(Outcome {
+        text: out,
+        cursor: None,
+        message: Some(message.to_string()),
+        changed: Some(Changed { change, old, heading }),
+    })
 }
 
 /// The timestamp that `org-in-regexp` matched last when it found none
@@ -419,7 +485,7 @@ fn timestamp(
     if found.is_some() && repeated {
         let inserted = format!("--{}", insert_timestamp(&read, inactive, false));
         out.insert_str(offset, &inserted);
-        return Ok(Outcome { text: out, cursor: Some(offset + inserted.len()), message: None });
+        return Ok(Outcome { text: out, cursor: Some(offset + inserted.len()), message: None, changed: None });
     }
     if found.is_some() {
         // On a timestamp; from the dashes of a range, on the one after.
@@ -438,11 +504,16 @@ fn timestamp(
             out.insert_str(cursor, &inserted);
             cursor += inserted.len();
         }
-        return Ok(Outcome { text: out, cursor: Some(cursor), message: Some("Timestamp updated".to_string()) });
+        return Ok(Outcome {
+            text: out,
+            cursor: Some(cursor),
+            message: Some("Timestamp updated".to_string()),
+            changed: None,
+        });
     }
     let new = insert_timestamp(&read, inactive, true);
     out.insert_str(offset, &new);
-    Ok(Outcome { text: out, cursor: Some(offset + new.len()), message: None })
+    Ok(Outcome { text: out, cursor: Some(offset + new.len()), message: None, changed: None })
 }
 
 #[cfg(test)]

@@ -79,6 +79,7 @@ here and why.
 
 **Partly:** Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works.
 
+- [ ] Removing the scheduled date and the deadline: the code action *Remove the scheduled date of the entry*, the code action *Remove the deadline of the entry*
 - [ ] On a timestamp, changing the day, month, year, hour and minute under the cursor; with a count: the code action *Increase the part of the timestamp at the cursor*, the code action *Decrease the part of the timestamp at the cursor*
 - [ ] Moving a timestamp by days: the code action *Move the date one day later*, the code action *Move the date one day earlier*
 - [ ] A repeater (`+1w`) and a warning (`-2d`) are kept as the date changes

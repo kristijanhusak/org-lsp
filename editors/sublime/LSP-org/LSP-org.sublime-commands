@@ -1162,6 +1162,20 @@
     }
   },
   {
+    "caption": "Org: Remove the scheduled date of the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.schedule.remove"
+    }
+  },
+  {
+    "caption": "Org: Remove the deadline of the entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.deadline.remove"
+    }
+  },
+  {
     "caption": "Org: Insert or change a timestamp",
     "command": "org_lsp_run",
     "args": {
