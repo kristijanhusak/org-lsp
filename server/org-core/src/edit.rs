@@ -55,6 +55,9 @@ pub enum Command {
     /// (`note`), written with the note of the call, or nothing when it
     /// was cancelled.
     PlanningNote { change: todo::PlanningChange, old: String },
+    /// The note `org-log-refile` asked for (`note`), for the entry just
+    /// refiled, or nothing when it was cancelled.
+    RefileNote,
     /// `org-table-recalculate` and `org-table-iterate`: the table's
     /// formulas, or those of the `#+TBLFM:` line at the cursor.
     Table(tblfm::Mode),
@@ -250,6 +253,14 @@ pub fn run(
             )
             .map(unplaced)
             .map_err(Refusal::Failed),
+            _ => Ok(unplaced(text.to_string())),
+        },
+        Command::RefileNote => match (&call.note, call.skip_note) {
+            (Some(note), false) => {
+                todo::log_refile(text, parse.todo_keywords(), offset, &settings.todo, call.now, note)
+                    .map(unplaced)
+                    .map_err(Refusal::Failed)
+            }
             _ => Ok(unplaced(text.to_string())),
         },
         // `C-c C-c` on a `#+TBLFM:` line applies its formulas.

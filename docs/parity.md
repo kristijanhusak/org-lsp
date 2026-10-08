@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 73%**
+**All of Org: 74%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -19,11 +19,11 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Priorities](#priorities) | 100% | 3 of 3 |
 | [Tags](#tags) | 100% | 6 of 6 |
 | [Properties and column view](#properties-and-column-view) | 67% | 4 of 6 |
-| [Dates and times](#dates-and-times) | 88% | 7 of 8 |
+| [Dates and times](#dates-and-times) | 100% | 8 of 8 |
 | [Agenda](#agenda) | 74% | 14 of 19 |
 | [Clocking](#clocking) | 88% | 7 of 8 |
 | [Capture](#capture) | 73% | 8 of 11 |
-| [Refile and archive](#refile-and-archive) | 55% | 6 of 11 |
+| [Refile and archive](#refile-and-archive) | 64% | 7 of 11 |
 | [Links](#links) | 70% | 7 of 10 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
 | [Tables](#tables) | 65% | 11 of 17 |
@@ -184,7 +184,7 @@ Where editors fall short:
 
 ## Dates and times
 
-88% (7 of 8)
+100% (8 of 8)
 
 - ✅ Inserting active and inactive timestamps (`C-c .`, `C-c !`)
 - ✅ Scheduling and deadlines (`C-c C-s`, `C-c C-d`)
@@ -193,7 +193,7 @@ Where editors fall short:
 - ✅ Changing the part at the cursor (`S-<up>`, `S-<down>`), with ranges, repeaters and warnings
 - ✅ Moving a date by days (`S-<left>`, `S-<right>`)
 - ✅ Removing a scheduled date or a deadline (`C-u C-c C-s`, `C-u C-c C-d`)
-- ❌ Setting a delay or a warning period (`C-u C-u C-c C-s`)
+- ✅ Setting a delay or a warning period (`C-u C-u C-c C-s`, `C-u C-u C-c C-d`)
 
 Where editors fall short:
 
@@ -273,7 +273,7 @@ Where editors fall short:
 
 ## Refile and archive
 
-55% (6 of 11)
+64% (7 of 11)
 
 - ✅ Refiling to a heading, between files too (`org-refile-targets`)
 - ✅ Archiving a subtree to its archive file
@@ -281,7 +281,7 @@ Where editors fall short:
 - ✅ Toggling the `ARCHIVE` tag
 - ✅ Archive locations, `ARCHIVE` properties, date trees, `ARCHIVE_…` context
 - ✅ Archiving all done subtrees
-- ❌ Logging refiles (`org-log-refile`)
+- ✅ Logging refiles (`org-log-refile`)
 - ❌ Creating parent nodes as the target
 - ❌ Refiling a region
 - ❌ The prefix arguments (going to the target, copying)

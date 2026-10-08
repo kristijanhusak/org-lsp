@@ -28,6 +28,9 @@ pub enum Command {
     Deadline,
     /// `org-timestamp`, or `org-timestamp-inactive` when `inactive`.
     Timestamp { inactive: bool },
+    /// `org-schedule` with `C-u C-u`: a delay for the scheduled date
+    /// (`-2d`); `org-deadline` so (`deadline`): a warning period.
+    Delay { deadline: bool },
 }
 
 /// What the date prompt starts from.
@@ -78,7 +81,7 @@ macro_rules! regex {
 /// `org-scheduled-time-regexp`, `org-deadline-time-regexp`
 fn planning_regexp(command: Command) -> &'static Regex {
     match command {
-        Command::Deadline => regex!(r"(?i)\bDEADLINE: *<([^>]+)>"),
+        Command::Deadline | Command::Delay { deadline: true } => regex!(r"(?i)\bDEADLINE: *<([^>]+)>"),
         _ => regex!(r"(?i)\bSCHEDULED: *<([^>]+)>"),
     }
 }
@@ -90,7 +93,7 @@ fn closed_regexp() -> &'static Regex {
 
 fn keyword(command: Command) -> &'static str {
     match command {
-        Command::Deadline => "DEADLINE:",
+        Command::Deadline | Command::Delay { deadline: true } => "DEADLINE:",
         _ => "SCHEDULED:",
     }
 }
@@ -196,6 +199,12 @@ pub fn prompt(command: Command, text: &str, offset: usize) -> Result<Prompt, Ref
             let entry = &text[heading..next_heading(text, heading)];
             planning_regexp(command).captures(entry).map(|captures| captures[1].to_string())
         }
+        // The date to delay, asked for without a time.
+        Command::Delay { deadline } => {
+            let heading = heading_at(text, offset)?;
+            let (_, rpl) = delayed(text, heading, deadline)?;
+            return Ok(Prompt { default: Some(time_string_to_time(&rpl)?), value: String::new() });
+        }
         Command::Timestamp { .. } => timestamp_at(text, offset),
     };
     match stamp {
@@ -238,6 +247,7 @@ pub fn run(
     match command {
         Command::Schedule | Command::Deadline => schedule(command, text, offset, answer, &prompt, now, settings, adapt),
         Command::Timestamp { inactive } => timestamp(text, offset, answer, &prompt, inactive, repeated, now, settings),
+        Command::Delay { deadline } => delay(deadline, text, offset, answer, &prompt, now, settings),
     }
 }
 
@@ -277,6 +287,8 @@ pub fn label(command: Command, default: Option<DateTime>, now: DateTime) -> Stri
         Command::Schedule => "SCHEDULED ",
         Command::Deadline => "DEADLINE ",
         Command::Timestamp { .. } => "",
+        Command::Delay { deadline: false } => "Delay until ",
+        Command::Delay { deadline: true } => "Warn starting from ",
     };
     format!("{prompt}Date+time [{date}]: ")
 }
@@ -380,6 +392,43 @@ fn schedule(
         _ => format!("Scheduled to {stamp}"),
     };
     Ok(Outcome { text: out, cursor: None, message: Some(message), changed })
+}
+
+/// The scheduled date or deadline `org-schedule` and `org-deadline` delay
+/// with `C-u C-u`, searched for in the headline and the line after it:
+/// where its timestamp is written, and the timestamp without a delay.
+fn delayed(text: &str, heading: usize, deadline: bool) -> Result<((usize, usize), String), Refusal> {
+    let command = Command::Delay { deadline };
+    let limit = line_end(text, next_line(text, heading).min(text.len()));
+    let Some(captures) = planning_regexp(command).captures(&text[heading..limit]) else {
+        let what = if deadline { "deadline" } else { "scheduled" };
+        return Err(Refusal::Failed(format!("No {what} information to update")));
+    };
+    let whole = captures.get(0).expect("a match");
+    let rpl = regex!(r" -[0-9]+[hdwmy]").replace_all(&captures[1], "").into_owned();
+    Ok(((heading + whole.start(), heading + whole.end()), rpl))
+}
+
+/// `org-schedule` and `org-deadline` with `C-u C-u`: the delay or warning
+/// period to the day `answer` names, counted from the date
+/// (`SCHEDULED: <2026-05-20 Wed -2d>`).
+fn delay(
+    deadline: bool,
+    text: &str,
+    offset: usize,
+    answer: &str,
+    prompt: &Prompt,
+    now: DateTime,
+    settings: &Settings,
+) -> Result<Outcome, Refusal> {
+    let heading = heading_at(text, offset)?;
+    let ((start, end), rpl) = delayed(text, heading, deadline)?;
+    let old = time_string_to_time(&rpl)?;
+    let read = read_date(answer, prompt.default, now, settings)?;
+    let days = (read.date.to_day() - old.date().to_day()).abs();
+    let mut out = text.to_string();
+    out.replace_range(start..end, &format!("{} <{rpl} -{days}d>", keyword(Command::Delay { deadline })));
+    Ok(Outcome { text: out, cursor: None, message: None, changed: None })
 }
 
 /// Whether the line at `at` is a planning line.

@@ -299,6 +299,11 @@ org_enforce_todo_dependencies = false
 # (org-enforce-todo-checkbox-dependencies)
 org_enforce_todo_checkbox_dependencies = false
 
+# Record when an entry is refiled (`Refiled on [2026-05-18 Mon 10:30]`), with
+# `note` asking for a note too. `#+STARTUP:` `logrefile`, `lognoterefile` and
+# `nologrefile` change it in the file refiled to. (org-log-refile)
+org_log_refile = false
+
 # Record when a scheduled date changes or is removed (`Rescheduled from
 # "[2026-05-18 Mon]" on …`), with `note` asking for a note too. `#+STARTUP:`
 # `logreschedule`, `lognotereschedule` and `nologreschedule` change it in a
@@ -923,6 +928,12 @@ org_agenda_custom_commands = []
   // An entry cannot be done while it has an unchecked box.
   // (org-enforce-todo-checkbox-dependencies)
   "org_enforce_todo_checkbox_dependencies": false,
+
+  // Record when an entry is refiled (`Refiled on [2026-05-18 Mon 10:30]`),
+  // with `note` asking for a note too. `#+STARTUP:` `logrefile`,
+  // `lognoterefile` and `nologrefile` change it in the file refiled to.
+  // (org-log-refile)
+  "org_log_refile": false,
 
   // Record when a scheduled date changes or is removed (`Rescheduled from
   // "[2026-05-18 Mon]" on …`), with `note` asking for a note too.

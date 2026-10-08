@@ -109,6 +109,7 @@ here and why.
 - [ ] Scheduling with `+2d`: `SCHEDULED: <…>` goes below the headline: `Ctrl+C Ctrl+S`
 - [ ] A deadline on `fri 10:00`: `Ctrl+C Ctrl+D`
 - [ ] Removing the scheduled date and the deadline: *Org: Remove the scheduled date of the entry*, *Org: Remove the deadline of the entry*
+- [ ] Delaying the scheduled date to a day (`-3d`) and setting the deadline's warning period: *Org: Delay the scheduled date until a day*, *Org: Warn of the deadline from a day*
 - [ ] Inserting an active and an inactive timestamp; a second one right after makes a range: `Ctrl+C .`, `Ctrl+C !`
 - [ ] On a timestamp, changing the day, month, year, hour and minute under the cursor; with a count: *Org: Increase the part of the timestamp at the cursor*, *Org: Decrease the part of the timestamp at the cursor*
 - [ ] Moving a timestamp by days: *Org: Move the date one day later*, *Org: Move the date one day earlier*
@@ -163,6 +164,7 @@ here and why.
 
 ## Refile and archive
 
+- [ ] With `org_log_refile` `"time"`, the refiled entry gets `Refiled on […]`; with `"note"` a note buffer opens for it: `Ctrl+C Ctrl+W`
 - [ ] Refiling a subtree under a heading of the same file, and of another file: `Ctrl+C Ctrl+W`
 - [ ] Archiving a subtree: it goes to `FILE_archive` with its `ARCHIVE_…` properties: `Ctrl+C Ctrl+X Ctrl+S` or `Ctrl+C $`
 - [ ] Archiving to the archive sibling: `Ctrl+C Ctrl+X A`

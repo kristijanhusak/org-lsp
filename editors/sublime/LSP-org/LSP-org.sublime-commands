@@ -1176,6 +1176,20 @@
     }
   },
   {
+    "caption": "Org: Delay the scheduled date until a day",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.schedule.delay"
+    }
+  },
+  {
+    "caption": "Org: Warn of the deadline from a day",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.deadline.warning"
+    }
+  },
+  {
     "caption": "Org: Insert or change a timestamp",
     "command": "org_lsp_run",
     "args": {

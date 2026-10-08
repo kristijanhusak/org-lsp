@@ -56,6 +56,15 @@
       "description": "An entry cannot be done while it has an unchecked box. (`org-enforce-todo-checkbox-dependencies`)",
       "default": false
     },
+    "org_log_refile": {
+      "enum": [
+        false,
+        "time",
+        "note"
+      ],
+      "description": "Record when an entry is refiled (`Refiled on [2026-05-18 Mon 10:30]`), with `note` asking for a note too. `#+STARTUP:` `logrefile`, `lognoterefile` and `nologrefile` change it in the file refiled to. (`org-log-refile`)",
+      "default": false
+    },
     "org_log_reschedule": {
       "enum": [
         false,

@@ -112,6 +112,7 @@ here and why.
 - [ ] Scheduling with `+2d`: `SCHEDULED: <…>` goes below the headline: `<Leader>ois`
 - [ ] A deadline on `fri 10:00`: `<Leader>oid`
 - [ ] Removing the scheduled date and the deadline: `:Org schedule remove`, `:Org deadline remove`
+- [ ] Delaying the scheduled date to a day (`-3d`) and setting the deadline's warning period: `:Org schedule delay`, `:Org deadline warning`
 - [ ] Inserting an active and an inactive timestamp; a second one right after makes a range: `<Leader>oi.`, `<Leader>oi!`
 - [ ] While typing the date, the answer shows what it means (`=> <2026-10-09 Fri>`)
 - [ ] In the calendar: moving by day, week and month, scrolling months, today, picking a day: `l` or `<S-Right>`, `j` or `<S-Down>`, `<M-S-Right>`, `>`, `.`, `<CR>`
@@ -173,6 +174,7 @@ here and why.
 
 ## Refile and archive
 
+- [ ] With `org_log_refile` `"time"`, the refiled entry gets `Refiled on […]`; with `"note"` a note buffer opens for it: `<Leader>or`
 - [ ] Refiling a subtree under a heading of the same file, and of another file: `<Leader>or`
 - [ ] Archiving a subtree: it goes to `FILE_archive` with its `ARCHIVE_…` properties: `<Leader>o$`
 - [ ] Archiving to the archive sibling: `<Leader>oxA`

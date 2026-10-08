@@ -896,6 +896,16 @@
         "category": "Org"
       },
       {
+        "command": "org.schedule.delay",
+        "title": "Delay the scheduled date until a day",
+        "category": "Org"
+      },
+      {
+        "command": "org.deadline.warning",
+        "title": "Warn of the deadline from a day",
+        "category": "Org"
+      },
+      {
         "command": "org.timestamp.insert",
         "title": "Insert or change a timestamp",
         "category": "Org"
@@ -1132,6 +1142,15 @@
             "org_enforce_todo_checkbox_dependencies": {
               "type": "boolean",
               "markdownDescription": "An entry cannot be done while it has an unchecked box. (`org-enforce-todo-checkbox-dependencies`)",
+              "default": false
+            },
+            "org_log_refile": {
+              "enum": [
+                false,
+                "time",
+                "note"
+              ],
+              "markdownDescription": "Record when an entry is refiled (`Refiled on [2026-05-18 Mon 10:30]`), with `note` asking for a note too. `#+STARTUP:` `logrefile`, `lognoterefile` and `nologrefile` change it in the file refiled to. (`org-log-refile`)",
               "default": false
             },
             "org_log_reschedule": {

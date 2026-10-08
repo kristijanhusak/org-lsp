@@ -106,6 +106,14 @@ pub const SETTINGS: &[Setting] = &[
         "An entry cannot be done while it has an unchecked box.",
     ),
     setting(
+        "org_log_refile",
+        r#"false, "time", "note""#,
+        "false",
+        "org-log-refile",
+        "Record when an entry is refiled (`Refiled on [2026-05-18 Mon 10:30]`), with `note` asking for a note \
+         too. `#+STARTUP:` `logrefile`, `lognoterefile` and `nologrefile` change it in the file refiled to.",
+    ),
+    setting(
         "org_log_reschedule",
         r#"false, "time", "note""#,
         "false",
@@ -1147,6 +1155,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_log_repeat", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_enforce_todo_dependencies", BOOLEAN),
     ("org_enforce_todo_checkbox_dependencies", BOOLEAN),
+    ("org_log_refile", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_reschedule", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_redeadline", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_into_drawer", r#"{ "type": ["boolean", "string"] }"#),

@@ -1175,5 +1175,156 @@
     "b.org": "* [#A] Call\n  - item\nSome text.\n** [[x][Link]]\n\n**** Notes\n* DONE Misc\nSCHEDULED: <2026-05-18 Mon>\n* TODO Task [1/2]\n** TODO Work\n*** TODO Inbox\n\nSCHEDULED: <2026-05-18 Mon>"
    }
   }
+ },
+ {
+  "files": {
+   "a.org": "* Task¦\n* Inbox\n* Projects\n"
+  },
+  "answer": "Projects",
+  "options": {
+   "org_refile_targets": [
+    {
+     "files": "agenda",
+     "maxlevel": 2
+    }
+   ],
+   "org_log_refile": "time"
+  },
+  "expected": {
+   "offered": [
+    "Task",
+    "Inbox",
+    "Projects"
+   ],
+   "files": {
+    "a.org": "* Inbox\n* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Task¦\nBody\n* Projects\n** Old\n"
+  },
+  "answer": "Projects",
+  "options": {
+   "org_refile_targets": [
+    {
+     "files": "agenda",
+     "maxlevel": 2
+    }
+   ],
+   "org_log_refile": "time",
+   "org_log_into_drawer": true
+  },
+  "expected": {
+   "offered": [
+    "Task",
+    "Projects",
+    "Old"
+   ],
+   "files": {
+    "a.org": "* Projects\n** Old\n** Task\n:LOGBOOK:\n- Refiled on [2026-05-18 Mon 10:30]\n:END:\nBody\n"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* TODO Task¦\n:PROPERTIES:\n:ID: 1\n:END:\n",
+   "b.org": "* Projects\n"
+  },
+  "answer": "Projects",
+  "options": {
+   "org_refile_targets": [
+    {
+     "files": "agenda",
+     "maxlevel": 2
+    }
+   ],
+   "org_log_refile": "note"
+  },
+  "note": "Belongs there",
+  "expected": {
+   "offered": [
+    "Task",
+    "Projects (b.org)"
+   ],
+   "files": {
+    "a.org": "",
+    "b.org": "* Projects\n** TODO Task\n:PROPERTIES:\n:ID: 1\n:END:\n- Refiled on [2026-05-18 Mon 10:30] \\\\\n  Belongs there"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Projects\n* Task¦\n"
+  },
+  "answer": "Projects",
+  "options": {
+   "org_refile_targets": [
+    {
+     "files": "agenda",
+     "maxlevel": 2
+    }
+   ],
+   "org_log_refile": "time"
+  },
+  "expected": {
+   "offered": [
+    "Projects",
+    "Task"
+   ],
+   "files": {
+    "a.org": "* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+STARTUP: logrefile\n* Task¦\n* Projects\n"
+  },
+  "answer": "Projects",
+  "options": {
+   "org_refile_targets": [
+    {
+     "files": "agenda",
+     "maxlevel": 2
+    }
+   ]
+  },
+  "expected": {
+   "offered": [
+    "Task",
+    "Projects"
+   ],
+   "files": {
+    "a.org": "#+STARTUP: logrefile\n* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]"
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Task¦\n** Sub\n* Projects\n"
+  },
+  "answer": "Projects",
+  "options": {
+   "org_refile_targets": [
+    {
+     "files": "agenda",
+     "maxlevel": 2
+    }
+   ],
+   "org_log_refile": "time",
+   "org_reverse_note_order": true
+  },
+  "expected": {
+   "offered": [
+    "Task",
+    "Sub",
+    "Projects"
+   ],
+   "files": {
+    "a.org": "* Projects\n** Task\n- Refiled on [2026-05-18 Mon 10:30]\n*** Sub\n"
+   }
+  }
  }
 ]

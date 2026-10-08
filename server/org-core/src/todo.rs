@@ -63,6 +63,8 @@ pub struct Settings {
     pub log_reschedule: Option<Logging>,
     /// `org-log-redeadline`
     pub log_redeadline: Option<Logging>,
+    /// `org-log-refile`
+    pub log_refile: Option<Logging>,
     /// `org-log-into-drawer`: the drawer state notes go into.
     pub log_into_drawer: Option<String>,
     /// `org-tags-column`
@@ -82,6 +84,7 @@ impl Default for Settings {
             enforce_todo_checkbox_dependencies: false,
             log_reschedule: None,
             log_redeadline: None,
+            log_refile: None,
             log_into_drawer: None,
             tags_column: -77,
             repeat_to_state: RepeatTo::Head,
@@ -134,6 +137,8 @@ enum Purpose {
     Note,
     /// A planning date changed or removed.
     Planning(PlanningChange),
+    /// `Refiled on`, of `org-log-refile`.
+    Refile,
 }
 
 /// A change of an entry's `SCHEDULED` or `DEADLINE` date, which
@@ -202,6 +207,7 @@ struct Log {
     repeat: Option<Logging>,
     reschedule: Option<Logging>,
     redeadline: Option<Logging>,
+    refile: Option<Logging>,
     into_drawer: Option<String>,
     /// The states that log when entered and when left; `None` for those
     /// the keywords say (`WAIT(w@/!)`).
@@ -219,6 +225,7 @@ impl Log {
             repeat: settings.log_repeat,
             reschedule: settings.log_reschedule,
             redeadline: settings.log_redeadline,
+            refile: settings.log_refile,
             into_drawer: settings.log_into_drawer.clone(),
             states: None,
         };
@@ -258,6 +265,9 @@ impl Log {
             "logredeadline" => self.redeadline = Some(Logging::Time),
             "lognoteredeadline" => self.redeadline = Some(Logging::Note),
             "nologredeadline" => self.redeadline = None,
+            "logrefile" => self.refile = Some(Logging::Time),
+            "lognoterefile" => self.refile = Some(Logging::Note),
+            "nologrefile" => self.refile = None,
             _ => return false,
         }
         true
@@ -884,6 +894,7 @@ impl<'a> Editor<'a> {
             Purpose::State => format!("State {:<12} from {:<12} {time}", quoted(&note.state), quoted(&note.previous)),
             Purpose::Done => format!("CLOSING NOTE {time}"),
             Purpose::Note => format!("Note taken on {time}"),
+            Purpose::Refile => format!("Refiled on {time}"),
             Purpose::Planning(change) => {
                 // `%S`: a timestamp as an inactive one, in quotes.
                 let old = note.previous.clone().unwrap_or_default();
@@ -1525,6 +1536,28 @@ pub fn planning_logging(settings: &Settings, text: &str, change: PlanningChange)
     }
 }
 
+/// What refiling to `text` logs: `org-log-refile`, with the file's
+/// `#+STARTUP:` words (`logrefile`, `lognoterefile`, `nologrefile`).
+pub fn refile_logging(settings: &Settings, text: &str) -> Option<Logging> {
+    Log::new(settings, text).refile
+}
+
+/// `org-store-log-note` for the entry at byte `offset` just refiled:
+/// `Refiled on [now]`, with the text `note` (empty for a time only).
+pub fn log_refile(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    settings: &Settings,
+    now: DateTime,
+    note: &str,
+) -> Result<String, String> {
+    let mut editor = Editor::new(text, keywords, settings, now);
+    editor.go_to_heading(offset)?;
+    editor.store_note(&Note { purpose: Purpose::Refile, state: None, previous: None, text: true }, note);
+    Ok(editor.text)
+}
+
 /// `org-store-log-note` for `change` of the entry at byte `offset`: the
 /// note headed `Rescheduled from "[old]" on [now]` and the rest, with the
 /// text `note` (empty for a time only), at `org-log-beginning`.
@@ -1639,6 +1672,7 @@ pub fn change_state_noted(
                 Purpose::Done => "closed todo item".to_string(),
                 Purpose::Note => "this entry".to_string(),
                 Purpose::Planning(change) => change.purpose().to_string(),
+                Purpose::Refile => "refiling".to_string(),
             };
             Some(WantedNote { purpose, state: wanted.state })
         }

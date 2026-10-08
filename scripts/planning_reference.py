@@ -14,7 +14,8 @@ A case is a JSON object:
 
 The commands `schedule-remove` and `deadline-remove` are `org-schedule`
 and `org-deadline` with `C-u`, which take the date out; their answer is
-not read.
+not read. `schedule-delay` and `deadline-delay` are those with `C-u C-u`,
+which set a delay or warning period to the day answered.
 
 `reference(cases)` adds two fields to each case. `expected` is the
 document after the command with ¦ where the cursor is, or `ERROR: …` when
@@ -39,6 +40,8 @@ COMMANDS = {
     "deadline": "org-deadline",
     "schedule-remove": "org-schedule",
     "deadline-remove": "org-deadline",
+    "schedule-delay": "org-schedule",
+    "deadline-delay": "org-deadline",
     "timestamp": "org-timestamp",
     "timestamp-inactive": "org-timestamp-inactive",
 }
@@ -91,7 +94,7 @@ def reference(cases):
                 with open(source, "w", encoding="utf-8") as handle:
                     handle.write(case["text"].replace(CURSOR, "", 1))
                 outputs.append((case, target))
-                prefix = "'(4)" if case["command"].endswith("-remove") else "nil"
+                prefix = {"remove": "'(4)", "delay": "'(16)"}.get(case["command"].rsplit("-", 1)[-1], "nil")
                 forms.append(
                     f"(let ({shift_reference.bindings(case.get('options'))}"
                     f" (org-lsp-note-text {lisp_string(case.get('note', ''))}))\n"

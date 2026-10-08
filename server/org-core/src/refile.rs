@@ -319,6 +319,8 @@ pub struct Refiled {
     pub source: String,
     /// The file it went to, when that is another file.
     pub target: Option<String>,
+    /// Where its headline is now, in the file it went to.
+    pub pasted: Option<usize>,
 }
 
 /// Move the subtree at byte `offset` of `source` under the headline at
@@ -371,10 +373,11 @@ pub fn refile(
     }
     let mut changed = into.to_string();
     changed.insert_str(at, &pasted);
+    let pasted_at = at + usize::from(pasted.starts_with('\n'));
     if target.is_some() {
         let mut source = source.to_string();
         source.replace_range(heading..end, "");
-        return Ok(Refiled { source, target: Some(changed) });
+        return Ok(Refiled { source, target: Some(changed), pasted: Some(pasted_at) });
     }
     // The same file: Emacs goes back to where the cursor was, which moves
     // with text inserted there or before, and deletes the subtree of the
@@ -386,7 +389,14 @@ pub fn refile(
     let heading = heading_at(&changed, origin).unwrap_or(heading);
     let end = subtree_end(&changed, heading);
     changed.replace_range(heading..end, "");
-    Ok(Refiled { source: changed, target: None })
+    // The copy pasted, where it is once the subtree is gone, unless it was
+    // the copy that went.
+    let pasted = match pasted_at {
+        at if at >= end => Some(at - (end - heading)),
+        at if at < heading => Some(at),
+        _ => None,
+    };
+    Ok(Refiled { source: changed, target: None, pasted })
 }
 
 /// The headline at or above byte `offset`.

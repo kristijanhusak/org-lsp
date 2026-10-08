@@ -79,6 +79,21 @@ fn refiling_matches_emacs() {
             let other = (*file != current).then(|| texts[*file].as_str());
             refile(&texts[current], offset, other, target.offset, &options.refile_settings()).map(|done| (*file, done))
         });
+        // `org-log-refile`, at the time Emacs ran at.
+        let result = result.map(|(file, mut done)| {
+            let todo = options.todo_settings();
+            if let Some(at) = done.pasted {
+                let text = done.target.as_mut().unwrap_or(&mut done.source);
+                if let Some(logged) = org_core::todo::refile_logging(&todo, text) {
+                    let note =
+                        if logged == org_syntax::Logging::Note { case["note"].as_str().unwrap_or("") } else { "" };
+                    let keywords = org_syntax::parse(text, &Default::default()).todo_keywords().clone();
+                    let now = org_core::date::DateTime::new(org_core::date::Date::new(2026, 5, 18), 10, 30);
+                    *text = org_core::todo::log_refile(text, &keywords, at, &todo, now, note).unwrap();
+                }
+            }
+            (file, done)
+        });
         let expected = &case["expected"];
         let same = match (expected, &result) {
             (Value::String(_), Err(_)) => true,
