@@ -126,6 +126,10 @@ its sections says what it should look like.
 - [ ] Rebuilding the agenda, saving the changed files, quitting: the code action *Agenda: rebuild*, the code action *Save all Org files*
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt
 - [ ] Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): the code action *Add today's appointments from the agenda files*
+- [ ] Pressing `f` many times in a row moves the agenda a week each time, in the editor too
+- [ ] With no Org file open and no server running, the *Org: Agenda for the current week or day* task opens the Org file last opened and the agenda
+- [ ] Zed started again with the agenda's tab open shows the current week there, and its keys work
+- [ ] `ctrl-c a` in an Org file asks for the agenda view with buttons; `ctrl-c c` captures
 
 ## Clocking
 

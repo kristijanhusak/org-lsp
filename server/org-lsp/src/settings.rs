@@ -1336,7 +1336,10 @@ pub const SETTINGS: &[Setting] = &[
              command from a key. The agenda's commands go through a local port instead: the server writes a \
              script (`command_script`) that runs `SCRIPT COMMAND [ROW COLUMN]` in the agenda, where the cursor \
              is when no row is given (the server follows the cursor through the document highlights the client \
-             asks for), for the editor's keys to call. The Zed extension sets it.",
+             asks for), for the editor's keys to call; with no agenda open, the commands that need none (the \
+             agenda, the TODO list, the agenda menu, capture). The agenda's file is beside the script, the same \
+             one for the same folders, and the server takes over the one the editor opens again when it starts. \
+             The Zed extension sets it.",
         )
     },
     Setting {
@@ -1346,8 +1349,10 @@ pub const SETTINGS: &[Setting] = &[
             "string",
             r#""~/.local/state/org-lsp/agenda-command""#,
             "",
-            "Where the server writes the script of `command_actions`. Of several servers with an agenda, the one \
-             whose agenda the cursor was last in has it.",
+            "Where the server writes the script of `command_actions`. Of several servers, the one whose agenda \
+             the cursor was last in has it, and a server that starts takes it when no other answers there. It \
+             stays when the server stops: run then, it opens the Org file last opened, in its folder, with the \
+             editor's command line (`zed`), and sends the command to the server that starts for it.",
         )
     },
 ];

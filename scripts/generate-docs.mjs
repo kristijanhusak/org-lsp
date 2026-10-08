@@ -264,8 +264,8 @@ function sublimeKeys() {
   return sections.join('\n\n');
 }
 
-/** The keys of Zed's agenda: keymap.json binds them to the tasks of
- * tasks.json, each of which runs a command of the server. */
+/** The keys of Zed's agenda and Org files: keymap.json binds them to the
+ * tasks of tasks.json, each of which runs a command of the server. */
 function zedKeys() {
   const dir = join(root, 'editors', 'zed');
   const keymap = JSON.parse(readFileSync(join(dir, 'keymap.json'), 'utf8'));
@@ -277,16 +277,22 @@ function zedKeys() {
     'editor::GoToDefinition': 'Go to the entry of the line',
     'editor::GoToDefinitionSplit': 'Show the entry of the line in a split',
   };
-  const byAction = new Map();
-  for (const [key, action] of Object.entries(keymap[0].bindings)) {
-    const [command, title] = Array.isArray(action)
-      ? [commandOf[action[1].task_name], titles[commandOf[action[1].task_name]]]
-      : [action, zedActions[action]];
-    if (!byAction.has(command)) byAction.set(command, { keys: [], title });
-    byAction.get(command).keys.push(code(key));
-  }
-  const rows = [...byAction].map(([command, { keys, title }]) => [keys.join(', '), code(command), cell(title ?? '')]);
-  return table(['Keys', 'Command or Zed action', 'What it does'], rows);
+  const headings = { 'extension == org-agenda': 'In the agenda', 'extension == org': 'In Org files' };
+  return keymap
+    .map((block) => {
+      const heading = Object.entries(headings).find(([context]) => block.context.endsWith(context))?.[1] ?? block.context;
+      const byAction = new Map();
+      for (const [key, action] of Object.entries(block.bindings)) {
+        const [command, title] = Array.isArray(action)
+          ? [commandOf[action[1].task_name], titles[commandOf[action[1].task_name]]]
+          : [action, zedActions[action]];
+        if (!byAction.has(command)) byAction.set(command, { keys: [], title });
+        byAction.get(command).keys.push(code(key));
+      }
+      const rows = [...byAction].map(([command, { keys, title }]) => [keys.join(', '), code(command), cell(title ?? '')]);
+      return `### ${heading}\n\n` + table(['Keys', 'Command or Zed action', 'What it does'], rows);
+    })
+    .join('\n\n');
 }
 
 // ----- options

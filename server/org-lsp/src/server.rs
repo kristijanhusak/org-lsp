@@ -685,11 +685,13 @@ struct BibFile {
 struct Server {
     client: Client,
     sender: crossbeam_channel::Sender<Message>,
-    /// Where the command port (`port`) sends what it is sent, and its
-    /// script once it is open: with `command_actions`, while the agenda is a
-    /// file.
+    /// Where the command port (`port`) sends what it is sent, and the
+    /// port: open from the start with `command_actions`.
     port_sender: crossbeam_channel::Sender<port::Command>,
     port: Option<port::Port>,
+    /// How the port's script starts a server when none answers: the Org
+    /// file last opened, with the editor's command line.
+    port_start: port::Start,
     /// Where the cursor was last seen in the agenda, for the port's
     /// commands that do not say: from the requests the client makes as
     /// the cursor moves, and from where the server put it.
@@ -1025,6 +1027,8 @@ pub fn run(connection: Connection) -> Result<()> {
         None => params.root_uri.as_ref().and_then(uri::to_path).into_iter().collect(),
     };
 
+    let view_directory = agenda_directory(&client, &folders).unwrap_or_else(|| server_directory("view"));
+
     let result = InitializeResult {
         capabilities: capabilities(client.encoding, true, client.command_actions),
         server_info: Some(ServerInfo {
@@ -1059,6 +1063,7 @@ pub fn run(connection: Connection) -> Result<()> {
         sender: connection.sender.clone(),
         port_sender,
         port: None,
+        port_start: port::Start::default(),
         agenda_cursor: None,
         next_request: 0,
         pending: HashMap::new(),
@@ -1120,7 +1125,7 @@ pub fn run(connection: Connection) -> Result<()> {
         export_stack: Vec::new(),
         export_directory: server_directory("export"),
         next_export: 0,
-        view_directory: server_directory("view"),
+        view_directory,
         date_prompt: None,
         prompt_copy: None,
         separator_lines: options.separator_lines(),
@@ -1206,6 +1211,9 @@ pub fn run(connection: Connection) -> Result<()> {
     if server.running.is_some() {
         server.publish_clock();
     }
+    // The port answers from the start: its script opens the agenda
+    // without one open (`org.agenda.list`).
+    server.open_port();
     let emacs_events = server.emacs.events().clone();
     loop {
         let alarm = server.countdown.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
@@ -1243,7 +1251,14 @@ pub fn run(connection: Connection) -> Result<()> {
             recv(special) -> _ => server.check_special_edits(),
         }
     }
-    server.remove_view_file();
+    if let Some(port) = &server.port {
+        port.close();
+    }
+    // Zed opens the agenda's tab again when it starts; the file stays for
+    // it, and the next server takes it over.
+    if !server.client.command_actions {
+        server.remove_view_file();
+    }
     if server.captures > 0 {
         let _ = std::fs::remove_dir_all(&server.capture_directory);
     }
@@ -1494,6 +1509,22 @@ fn span_name(span: Span) -> String {
 
 /// A directory for the capture buffers or the agenda file of a server:
 /// one of its own, also when a process runs more than one (the tests).
+/// Where the agenda's file goes for a client that keeps its tabs across
+/// restarts (`command_actions`, Zed): the same place for the same folders
+/// each time, beside the port's script, so that the tab it opens again
+/// finds the file, and the next server takes it over.
+fn agenda_directory(client: &Client, folders: &[PathBuf]) -> Option<PathBuf> {
+    if !client.command_actions {
+        return None;
+    }
+    // FNV-1a: a name that stays the same from one run to the next.
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in folders.iter().flat_map(|folder| folder.to_string_lossy().into_owned().into_bytes()) {
+        hash = (hash ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3);
+    }
+    Some(client.command_script.as_ref()?.parent()?.join("agenda").join(format!("{hash:016x}")))
+}
+
 fn server_directory(kind: &str) -> PathBuf {
     static SERVERS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let server = SERVERS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -1518,30 +1549,17 @@ fn temp_dir() -> PathBuf {
 /// and editors that go by a file's permissions (Zed, Vim) then do not let
 /// it be edited.
 fn write_read_only(file: &Path, text: &str) -> std::io::Result<()> {
-    // Whole, in one step: an editor that reads the file as it changes
-    // never finds it half written, or missing.
-    #[cfg(unix)]
-    {
-        let temporary = file.with_extension(format!("{}.new", std::process::id()));
-        std::fs::write(&temporary, text)?;
-        let mut permissions = std::fs::metadata(&temporary)?.permissions();
-        permissions.set_readonly(true);
-        std::fs::set_permissions(&temporary, permissions)?;
-        std::fs::rename(&temporary, file)
-    }
-    // Windows does not replace a read-only file.
-    #[cfg(not(unix))]
-    {
-        set_writable_if_present(file)?;
-        std::fs::write(file, text)?;
-        let mut permissions = std::fs::metadata(file)?.permissions();
-        permissions.set_readonly(true);
-        std::fs::set_permissions(file, permissions)
-    }
+    // In place, the same file each time: Zed follows a file outside the
+    // project by the file itself, and loses one that another is renamed
+    // over after the first time. The text goes in one write.
+    set_writable_if_present(file)?;
+    std::fs::write(file, text)?;
+    let mut permissions = std::fs::metadata(file)?.permissions();
+    permissions.set_readonly(true);
+    std::fs::set_permissions(file, permissions)
 }
 
 /// Let the owner of `file` write it again, if there is one.
-#[cfg(not(unix))]
 fn set_writable_if_present(file: &Path) -> std::io::Result<()> {
     if std::fs::metadata(file).is_ok_and(|metadata| metadata.permissions().readonly()) {
         set_writable(file)?;
@@ -2063,6 +2081,18 @@ impl Server {
                     self.reveal_prompt_when_current();
                     return;
                 }
+                // The agenda's file of an earlier server, which the client
+                // opens again as it starts: the agenda once more.
+                if self.view.is_none()
+                    && uri::to_path(&document.uri) == Some(self.view_directory.join(views::FILE_NAME))
+                {
+                    self.set_view(Query::Agenda { start: self.start_day(), span: self.agenda.span });
+                    if let Some(open) = self.view.as_mut().filter(|open| open.uri == document.uri) {
+                        open.client = Some(Document::new(document.text, document.version, &self.todo));
+                    }
+                    self.publish_view();
+                    return;
+                }
                 // The agenda is the server's own text; the client's copy is not read.
                 if self.is_view(&document.uri) {
                     if let Some(open) = self.view.as_mut().filter(|open| open.uri == document.uri) {
@@ -2074,6 +2104,7 @@ impl Server {
                     return;
                 }
                 let key = document.uri.as_str().to_string();
+                self.remember_start_file(&document.uri);
                 self.shrink_at_startup(&key, &document.text);
                 self.documents.insert(key.clone(), Document::new(document.text, document.version, &self.todo));
                 self.sync_clock(&key);
@@ -2471,10 +2502,35 @@ impl Server {
         self.claim_script();
     }
 
+    /// The Org file `uri` was opened: the port's script opens it, in its
+    /// workspace folder, to start a server when none answers. Not the
+    /// server's own files (capture buffers, narrowed files, an agenda),
+    /// which go away or are no project's.
+    fn remember_start_file(&mut self, uri: &Uri) {
+        let Some(path) = uri::to_path(uri) else { return };
+        let script_directory = self.client.command_script.as_ref().and_then(|script| script.parent());
+        if path.starts_with(temp_dir())
+            || script_directory.is_some_and(|directory| path.starts_with(directory))
+            || path.extension().is_some_and(|extension| extension == "org-agenda")
+            || self.port_start.file.as_ref() == Some(&path)
+        {
+            return;
+        }
+        let folder = self.workspace.folders().iter().find(|folder| path.starts_with(folder)).cloned();
+        self.port_start.folder = folder.or_else(|| path.parent().map(Path::to_path_buf));
+        self.port_start.file = Some(path);
+        // Only into the script this server answers to.
+        if let (Some(port), Some(script)) = (&self.port, &self.client.command_script) {
+            if port.owns(script) {
+                self.claim_script();
+            }
+        }
+    }
+
     /// Make the port's script send to this server.
     fn claim_script(&mut self) {
         let (Some(port), Some(path)) = (&self.port, &self.client.command_script) else { return };
-        if let Err(error) = port.claim(path) {
+        if let Err(error) = port.claim(path, &self.port_start) {
             self.show_message(MessageType::ERROR, format!("Cannot write {}: {error}", path.display()));
         }
     }
@@ -3956,7 +4012,9 @@ impl Server {
                 let directory = self.view_directory.clone();
                 let file = directory.join(views::FILE_NAME);
                 if std::fs::create_dir_all(&directory).is_ok() {
+                    // This server's agenda: its keys come here.
                     self.open_port();
+                    self.claim_script();
                     if let Some(uri) = uri::from_path(&file) {
                         self.view = Some(OpenView {
                             uri,
@@ -3974,14 +4032,21 @@ impl Server {
     }
 
     /// Open the command port, for a client that cannot run a command
-    /// from a key (`command_actions`), and make its script this server's.
+    /// from a key (`command_actions`), and make its script this server's,
+    /// unless another server answers there: that one keeps it until this
+    /// one's agenda is used.
     fn open_port(&mut self) {
         if !self.client.command_actions || self.port.is_some() {
             return;
         }
         match port::open(self.port_sender.clone()) {
             Ok(port) => {
+                let taken = self.client.command_script.as_ref().is_some_and(|script| port.answered_elsewhere(script));
                 self.port = Some(port);
+                self.port_start.editor = port::editor_command();
+                if taken {
+                    return;
+                }
                 self.claim_script();
             }
             Err(error) => self.show_message(MessageType::ERROR, format!("Cannot open the command port: {error}")),
@@ -4007,12 +4072,18 @@ impl Server {
 
     fn run_from_port(&mut self, sent: port::Command) {
         self.drop_closed_view();
-        let Some(uri) = self.view.as_ref().map(|open| open.uri.clone()) else { return };
-        let position = match sent.position {
-            Some((line, character)) => Position::new(line, character),
-            None => self.agenda_cursor.unwrap_or_default(),
+        // With no agenda open, the commands that need none: the agenda,
+        // the TODO list, the agenda menu, capture.
+        let argument = match self.view.as_ref().map(|open| open.uri.clone()) {
+            Some(uri) => {
+                let position = match sent.position {
+                    Some((line, character)) => Position::new(line, character),
+                    None => self.agenda_cursor.unwrap_or_default(),
+                };
+                json!({ "textDocument": { "uri": uri }, "position": position })
+            }
+            None => json!({}),
         };
-        let argument = json!({ "textDocument": { "uri": uri }, "position": position });
         let params = ExecuteCommandParams {
             command: sent.command.clone(),
             arguments: vec![argument.clone()],
@@ -4162,9 +4233,6 @@ impl Server {
             // Windows does not remove a read-only file.
             let _ = set_writable(file);
             let _ = std::fs::remove_file(file);
-            if let (Some(port), Some(path)) = (&self.port, &self.client.command_script) {
-                port.release(path);
-            }
             if let Some(directory) = file.parent() {
                 let _ = std::fs::remove_dir(directory);
             }
