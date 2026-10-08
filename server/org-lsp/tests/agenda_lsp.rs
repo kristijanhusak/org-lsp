@@ -2046,6 +2046,30 @@ fn refiles_the_subtrees_selected() {
     client.shutdown();
 }
 
+/// A diary sexp the agenda cannot read is Emacs's to evaluate
+/// (`org-diary-sexp-entry`), for each day of the view.
+#[test]
+fn diary_sexps_go_to_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("diary_sexps_go_to_emacs: no Emacs, skipped");
+        return;
+    }
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/diary.org", "* Days\n%%(cl-evenp (calendar-extract-day date)) Even day\n");
+    client.command("org.agenda.list", "file:///org/diary.org", 0);
+    let text = client.view_text(VIEW);
+    let even: Vec<&str> = text.lines().filter(|line| line.contains("Even day")).collect();
+    // Monday 18 to Sunday 24: the 18th, 20th, 22nd and 24th.
+    assert_eq!(even.len(), 4, "{text}");
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

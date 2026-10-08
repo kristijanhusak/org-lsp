@@ -871,6 +871,23 @@ pub fn run(connection: Connection) -> Result<()> {
     result["capabilities"]["workspace"] = json!({ "textDocumentContent": { "schemes": [views::SCHEME] } });
     connection.initialize_finish(id, result)?;
 
+    let emacs = crate::emacs::Emacs::new(crate::emacs::Settings {
+        program: options.emacs.clone().unwrap_or_default(),
+        config_file: options.emacs_config_file.clone().filter(|file| !file.is_empty()),
+        config: options.emacs_config.clone().filter(|config| !config.trim().is_empty()),
+    });
+    let mut agenda = options.agenda_config();
+    // The diary sexps the agenda cannot read, read by Emacs
+    // (`org-diary-sexp-entry`).
+    let caller = emacs.caller();
+    agenda.diary = org_core::agenda::diary::Outside(Some(std::sync::Arc::new(move |sexp, entry, day| {
+        let date = org_core::date::Date::from_day(day);
+        let params = json!({ "sexp": sexp, "entry": entry, "date": [date.month, date.day, date.year] });
+        let result = caller.call("diary-sexp", params, std::time::Duration::from_secs(30)).ok()?;
+        let lines: Vec<String> =
+            result.as_array()?.iter().filter_map(|line| line.as_str().map(str::to_string)).collect();
+        (!lines.is_empty()).then_some(lines)
+    })));
     let mut server = Server {
         client,
         sender: connection.sender.clone(),
@@ -892,7 +909,7 @@ pub fn run(connection: Connection) -> Result<()> {
         },
         saving: HashMap::new(),
         todo,
-        agenda: options.agenda_config(),
+        agenda,
         agenda_options: options.agenda.clone(),
         edit_settings: options.edit_settings(),
         read_date: options.read_date_settings(),
@@ -906,11 +923,7 @@ pub fn run(connection: Connection) -> Result<()> {
         note: None,
         captures: 0,
         capture_directory: server_directory("capture"),
-        emacs: crate::emacs::Emacs::new(crate::emacs::Settings {
-            program: options.emacs.clone().unwrap_or_default(),
-            config_file: options.emacs_config_file.clone().filter(|file| !file.is_empty()),
-            config: options.emacs_config.clone().filter(|config| !config.trim().is_empty()),
-        }),
+        emacs,
         export_menu: None,
         structure_templates: None,
         countdown: None,

@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 80%**
+**All of Org: 81%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -20,7 +20,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Tags](#tags) | 100% | 6 of 6 |
 | [Properties and column view](#properties-and-column-view) | 67% | 4 of 6 |
 | [Dates and times](#dates-and-times) | 100% | 8 of 8 |
-| [Agenda](#agenda) | 86% | 18 of 21 |
+| [Agenda](#agenda) | 90% | 19 of 21 |
 | [Clocking](#clocking) | 100% | 8 of 8 |
 | [Capture](#capture) | 91% | 10 of 11 |
 | [Refile and archive](#refile-and-archive) | 91% | 10 of 11 |
@@ -206,7 +206,7 @@ Where editors fall short:
 
 ## Agenda
 
-86% (18 of 21)
+90% (19 of 21)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
@@ -225,7 +225,7 @@ Where editors fall short:
 - ✅ The time grid
 - ✅ Habits (`org-habit`): the consistency graph, `K`
 - ✅ Diary sexps (`%%(diary-…)` lines, `<%%(…)>` timestamps): the date functions of `diary-lib` and Org (`diary-anniversary`, `-block`, `-cyclic`, `-date`, `-float`, `org-class`…) with `and`, `or`, `not` and comparisons
-- ❌ Diary sexps calling other Lisp
+- ✅ Diary sexps calling other Lisp, evaluated by Emacs (`org-diary-sexp-entry`) for each day of the view
 - ❌ Column view in the agenda
 - ✅ Writing the agenda to a file (`C-x C-w`): `.org` and plain text
 - ❌ Appointment reminders (`org-agenda-to-appt`)
