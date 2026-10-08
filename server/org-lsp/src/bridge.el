@@ -225,7 +225,9 @@ was to be opened, or the text of an export to a buffer."
     org-footnote-normalize org-footnote-delete
     org-toggle-item org-toggle-heading org-toggle-comment org-emphasize
     org-insert-structure-template org-insert-drawer
-    org-clone-subtree-with-time-shift org-lsp-bridge-footnote-renumber-and-sort)
+    org-clone-subtree-with-time-shift org-lsp-bridge-footnote-renumber-and-sort
+    org-table-recalculate org-table-iterate org-table-calc-current-TBLFM
+    org-babel-tangle)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--message nil

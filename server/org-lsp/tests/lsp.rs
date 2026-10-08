@@ -1812,6 +1812,40 @@ fn edits_through_emacs() {
         json!({ "input": "", "step": "shift", "answers": "2" }),
     );
     assert_eq!(text.matches("* COMMENT Head").count(), 3, "{text}");
+    // Formulas org-lsp leaves to Emacs: Emacs Lisp, computed there by
+    // `C-u C-c *`, and by `C-c C-c` on the `#+TBLFM:` line.
+    let replace = |client: &mut Client, text: &mut String, version: &mut i32, new: String| {
+        *text = new;
+        *version += 1;
+        client.notify::<DidChangeTextDocument>(DidChangeTextDocumentParams {
+            text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri.clone(), version: *version },
+            content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+                range: None,
+                range_length: None,
+                text: text.clone(),
+            }],
+        });
+    };
+    let table = "* Sums\n| 1 | 2 |   |\n| 3 | 4 |   |\n#+TBLFM: $3='(+ $1 $2);N\n".to_string();
+    replace(&mut client, &mut text, &mut version, table);
+    run(&mut client, &mut text, &mut version, "org.table.recalculate", (1, 2), json!({}));
+    assert_eq!(text, "* Sums\n| 1 | 2 | 3 |\n| 3 | 4 | 7 |\n#+TBLFM: $3='(+ $1 $2);N\n");
+    let changed = text.replace("(+ $1 $2)", "(* $1 $2)");
+    replace(&mut client, &mut text, &mut version, changed);
+    run(&mut client, &mut text, &mut version, "org.checkbox.toggle", (3, 0), json!({}));
+    assert_eq!(text, "* Sums\n| 1 | 2 |  2 |\n| 3 | 4 | 12 |\n#+TBLFM: $3='(* $1 $2);N\n");
+    // Tangling to a file named by Emacs Lisp: Emacs tangles.
+    let source = "#+begin_src emacs-lisp :tangle (concat \"out\" \".el\")\n(message \"hi\")\n#+end_src\n";
+    replace(&mut client, &mut text, &mut version, source.to_string());
+    let argument = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 0 } });
+    client.raw_request("workspace/executeCommand", json!({ "command": "org.babel.tangle", "arguments": [argument] }));
+    let said = next_from_server(
+        &client,
+        |message| matches!(message, Message::Notification(note) if note.method == "window/showMessage"),
+    );
+    let Message::Notification(said) = said else { unreachable!() };
+    assert_eq!(said.params["message"], "Tangled 1 code block from notes.org", "{said:?}");
+    assert_eq!(std::fs::read_to_string(directory.join("out.el")).unwrap(), "(message \"hi\")\n");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }

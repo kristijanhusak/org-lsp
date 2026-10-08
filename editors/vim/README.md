@@ -29,8 +29,8 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Links](../../docs/parity.md#links) | 67% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
 | [Tables](../../docs/parity.md#tables) | 44% | ✅ |  |
-| [Table formulas](../../docs/parity.md#table-formulas) | 50% | ✅ |  |
-| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 55% | ✅ |  |
+| [Table formulas](../../docs/parity.md#table-formulas) | 83% | ✅ |  |
+| [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 64% | ✅ |  |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 56% | ✅ |  |
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
@@ -41,7 +41,7 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **67%** |  |  |
+| **All of Org** | **68%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

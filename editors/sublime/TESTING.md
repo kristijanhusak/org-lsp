@@ -208,10 +208,12 @@ here and why.
 - [ ] A range sum `@>$2=vsum(@2..@-1)` and a format `;%.2f`
 - [ ] Date arithmetic (`$2=$1+7`) on timestamps
 - [ ] Iterating until the table is stable: *Org: Recalculate the table until it does not change*
+- [ ] An Emacs Lisp formula `$3='(+ $1 $2);N` and a remote reference `remote(name,@1$1)` are computed by Emacs (needs Emacs): *Org: Recalculate the table*
 
 ## Code blocks (Babel)
 
 - [ ] Tangling writes each block to its `:tangle` file, `:mkdirp` and `:shebang` applied: `Ctrl+C Ctrl+V t` or `Ctrl+C Ctrl+V Ctrl+T`
+- [ ] A `:tangle (concat "out" ".el")` block is tangled by Emacs to `out.el` (needs Emacs): `Ctrl+C Ctrl+V t` or `Ctrl+C Ctrl+V Ctrl+T`
 - [ ] Evaluating an `emacs-lisp` block asks first (yes or no), then puts `#+RESULTS:` below it (needs Emacs): `Ctrl+C Ctrl+V e` or `Ctrl+C Ctrl+V Ctrl+E`
 - [ ] `C-c C-c` in the block does the same: `Ctrl+C Ctrl+C`
 - [ ] `src_emacs-lisp{(* 6 7)}` gets `{{{results(=42=)}}}`; a `#+CALL:` line its results: `Ctrl+C Ctrl+V e` or `Ctrl+C Ctrl+V Ctrl+E`

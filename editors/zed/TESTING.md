@@ -189,12 +189,14 @@ here and why.
 - [ ] A range sum `@>$2=vsum(@2..@-1)` and a format `;%.2f`
 - [ ] Date arithmetic (`$2=$1+7`) on timestamps
 - [ ] Iterating until the table is stable: the code action *Recalculate the table until it does not change*
+- [ ] An Emacs Lisp formula `$3='(+ $1 $2);N` and a remote reference `remote(name,@1$1)` are computed by Emacs (needs Emacs): the code action *Recalculate the table*
 
 ## Code blocks (Babel)
 
 **Partly:** Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation and removing results need keys, which Zed cannot give a server.
 
 - [ ] Tangling writes each block to its `:tangle` file, `:mkdirp` and `:shebang` applied: the code action *Tangle the file's code blocks*
+- [ ] A `:tangle (concat "out" ".el")` block is tangled by Emacs to `out.el` (needs Emacs): the code action *Tangle the file's code blocks*
 - [ ] Evaluating an `emacs-lisp` block asks first (yes or no), then puts `#+RESULTS:` below it (needs Emacs): the code action *Evaluate the code block or call at the cursor through Emacs*
 - [ ] `src_emacs-lisp{(* 6 7)}` gets `{{{results(=42=)}}}`; a `#+CALL:` line its results: the code action *Evaluate the code block or call at the cursor through Emacs*
 - [ ] Typing in the file while a slow block runs: the results are dropped with a warning

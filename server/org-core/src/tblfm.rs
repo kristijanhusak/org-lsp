@@ -49,6 +49,13 @@ pub fn has_formulas(text: &str, offset: usize) -> bool {
     locate(text, offset).is_ok_and(|place| !place.formulas.trim().is_empty())
 }
 
+/// Whether `message`, a refusal of [`recalculate`], is about formulas
+/// only Emacs can compute: Emacs Lisp, remote references, and Calc's
+/// fractions, symbolic mode, units and engineering notation.
+pub fn needs_emacs(message: &str) -> bool {
+    message.contains(" not supported")
+}
+
 /// Whether the cursor at `offset` is on the `#+TBLFM:` line of a table.
 pub fn on_formula_line(text: &str, offset: usize) -> bool {
     locate(text, offset).is_ok_and(|place| place.on_formulas)

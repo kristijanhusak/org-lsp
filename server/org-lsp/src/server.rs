@@ -6437,7 +6437,7 @@ impl Server {
             return self.property_command(id, &context);
         }
         if id != commands::TODO {
-            return self.edit_with(&context, id, None, &Extra::default());
+            return self.edit_or_recalculate(&context, id);
         }
         let keys = self.fast_keys(&context)?;
         if keys.is_empty() {
@@ -6487,7 +6487,14 @@ impl Server {
         let document = self.document(uri).ok_or("This file is not open")?;
         let path = uri::to_path(uri).ok_or("Only a file on disk can be tangled")?;
         let settings = org_core::tangle::Settings { preserve_indentation: self.refile.2.src_preserve_indentation };
-        let outcome = org_core::tangle::tangle(&document.text, &document.parse, &path, &settings)?;
+        let outcome = match org_core::tangle::tangle(&document.text, &document.parse, &path, &settings) {
+            Ok(outcome) => outcome,
+            // Emacs Lisp to evaluate, or a block to run: Emacs tangles.
+            Err(message) if org_core::tangle::needs_emacs(&message) => {
+                return self.emacs_run("org-babel-tangle", context);
+            }
+            Err(message) => return Err(message.into()),
+        };
         for file in &outcome.files {
             write_tangled(file).map_err(|error| format!("{}: {error}", file.path.display()))?;
         }
@@ -6890,6 +6897,33 @@ impl Server {
         self.emacs_run_with(command, Vec::new(), context)
     }
 
+    /// The edit `id` at `context`, by org-lsp; but a table whose formulas
+    /// only Emacs computes is recalculated there.
+    fn edit_or_recalculate(&mut self, context: &Context, id: &str) -> std::result::Result<Value, Refusal> {
+        match self.edit_with(context, id, None, &Extra::default()) {
+            Err(Refusal::Failed(message)) if org_core::tblfm::needs_emacs(&message) => {
+                self.emacs_recalculate(id, context)
+            }
+            other => other,
+        }
+    }
+
+    /// `org-table-recalculate` (`C-c *`, `C-u C-c *`), `org-table-iterate`
+    /// or, on a `#+TBLFM:` line, `org-table-calc-current-TBLFM`, in Emacs:
+    /// for the formulas org-lsp leaves to it.
+    fn emacs_recalculate(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+        if org_core::tblfm::on_formula_line(&document.text, offset) {
+            return self.emacs_run("org-table-calc-current-TBLFM", context);
+        }
+        match id {
+            commands::TABLE_RECALCULATE => self.emacs_run_with("org-table-recalculate", vec![json!(true)], context),
+            commands::TABLE_ITERATE => self.emacs_run("org-table-iterate", context),
+            _ => self.emacs_run("org-table-recalculate", context),
+        }
+    }
+
     /// [`Server::emacs_run`] with the command called with `args`.
     fn emacs_run_with(
         &mut self,
@@ -7092,7 +7126,7 @@ impl Server {
             Ok(done) => done,
             // `C-c C-c` at the start of the table.
             Err(error) if error == table::RECALCULATE => {
-                return self.edit_with(context, commands::TABLE_RECALCULATE, None, &Extra::default());
+                return self.edit_or_recalculate(context, commands::TABLE_RECALCULATE);
             }
             Err(error) => return Err(Refusal::Failed(error)),
         };
