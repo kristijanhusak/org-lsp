@@ -36,7 +36,7 @@ here and why.
 
 ## Headings and structure
 
-**Partly:** Moving between headings and `org-goto` are left out: Zed cannot bind a key to a server's command (the commands are code actions), and a motion needs a key.
+**Partly:** Moving between headings, `org-goto` and the commands run by Emacs (`C-c *`, `C-c ;`, cloning) are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them.
 
 - [ ] On a headline, a new heading of the same level goes below: the code action *New heading, item or table row*
 - [ ] A new TODO heading: the code action *New TODO heading, or item with a checkbox*
@@ -51,7 +51,7 @@ here and why.
 
 ## Lists and checkboxes
 
-**Partly:** `RET` stays Zed's own and bullets are not cycled: Zed cannot bind a key to a server's command (the commands are code actions), and those two are not among them.
+**Partly:** `RET` stays Zed's own, bullets are not cycled and lines not turned into items: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them.
 
 - [ ] On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has `[ ]`: the code action *New heading, item or table row*
 - [ ] Indenting and outdenting an item; and with its children: the code action *Demote the heading; indent the item, the drawer or the block; move the table column right*, the code action *Promote the heading; outdent the item; move the table column left*, the code action *Demote the subtree; indent the item with its children; insert a table column*, the code action *Promote the subtree; outdent the item with its children; delete the table column*
@@ -164,6 +164,8 @@ here and why.
 
 ## Footnotes
 
+**Partly:** Making footnotes and their menu are left out: they are not among Zed's code actions. Following them works.
+
 - [ ] Following `[fn:1]` goes to its definition, and from the definition back to the reference: the code action *Open the link or thing at the cursor*
 - [ ] A reference without a definition is reported
 
@@ -228,6 +230,8 @@ here and why.
 **Not in Zed:** A note is typed text: Zed cannot ask for text on a server's behalf.
 
 ## Completion and editing helpers
+
+**Partly:** Structure templates, emphasis and drawers are not among Zed's code actions.
 
 - [ ] At the start of a headline, TODO keywords are completed
 - [ ] `#+` keywords, and the values after `#+STARTUP:`

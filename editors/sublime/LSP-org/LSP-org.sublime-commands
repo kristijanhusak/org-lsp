@@ -749,6 +749,69 @@
     }
   },
   {
+    "caption": "Org: Make a footnote, or go between a footnote and its definition",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.footnote.action"
+    }
+  },
+  {
+    "caption": "Org: Sort, renumber, normalize or delete footnotes",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.footnote.menu"
+    }
+  },
+  {
+    "caption": "Org: Turn the line into an item, or the item into a line",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.toggle.item"
+    }
+  },
+  {
+    "caption": "Org: Turn the line into a heading, or the heading into a line",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.toggle.heading"
+    }
+  },
+  {
+    "caption": "Org: Toggle the COMMENT keyword of the heading",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.toggle.comment"
+    }
+  },
+  {
+    "caption": "Org: Insert emphasis markers",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.emphasize"
+    }
+  },
+  {
+    "caption": "Org: Insert a block (structure template)",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.structure.template"
+    }
+  },
+  {
+    "caption": "Org: Insert a drawer",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.drawer.insert"
+    }
+  },
+  {
+    "caption": "Org: Clone the subtree, shifting its dates",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.subtree.clone"
+    }
+  },
+  {
     "caption": "Org: Export the file through Emacs",
     "command": "org_lsp_run",
     "args": {

@@ -19,8 +19,8 @@ hand.
 | --- | --- | --- | --- |
 | [Highlighting](../../docs/parity.md#highlighting) | 83% | ✅ |  |
 | [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 67% | ✅ |  |
-| [Headings and structure](../../docs/parity.md#headings-and-structure) | 73% | ✅ |  |
-| [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 73% | ✅ |  |
+| [Headings and structure](../../docs/parity.md#headings-and-structure) | 100% | ✅ |  |
+| [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 82% | ✅ |  |
 | [TODO keywords](../../docs/parity.md#todo-keywords) | 83% | ✅ |  |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
@@ -31,7 +31,7 @@ hand.
 | [Capture](../../docs/parity.md#capture) | 50% | ✅ |  |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 55% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 67% | ✅ |  |
-| [Footnotes](../../docs/parity.md#footnotes) | 50% | ✅ |  |
+| [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
 | [Tables](../../docs/parity.md#tables) | 44% | ✅ |  |
 | [Table formulas](../../docs/parity.md#table-formulas) | 50% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 55% | ✅ |  |
@@ -40,12 +40,12 @@ hand.
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ✅ |  |
 | [Notes and logging](../../docs/parity.md#notes-and-logging) | 75% | ✅ |  |
-| [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 25% | ✅ |  |
+| [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ✅ |  |
 | [Timers](../../docs/parity.md#timers) | 0% | — |  |
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **61%** |  |  |
+| **All of Org** | **67%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

@@ -24,7 +24,7 @@ here and why.
 
 ## Headings and structure
 
-**Partly:** New headings (`M-RET` and its relatives), moving between headings and `org-goto` are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do.
+**Partly:** New headings (`M-RET` and its relatives), moving between headings and `org-goto` are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions.
 
 - [ ] Promoting and demoting a heading; its tags stay aligned: the code action *Promote the heading; outdent the item; move the table column left*, the code action *Demote the heading; indent the item, the drawer or the block; move the table column right*
 - [ ] Promoting and demoting a subtree: the code action *Promote the subtree; outdent the item with its children; delete the table column*, the code action *Demote the subtree; indent the item with its children; insert a table column*
@@ -36,7 +36,7 @@ here and why.
 
 ## Lists and checkboxes
 
-**Partly:** `RET` stays Helix's own, new items and cycled bullets are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them.
+**Partly:** `RET` stays Helix's own, new items, cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them.
 
 - [ ] Indenting and outdenting an item; and with its children: the code action *Demote the heading; indent the item, the drawer or the block; move the table column right*, the code action *Promote the heading; outdent the item; move the table column left*, the code action *Demote the subtree; indent the item with its children; insert a table column*, the code action *Promote the subtree; outdent the item with its children; delete the table column*
 - [ ] Moving an item up and down: the code action *Move the subtree, the item or the table row up*, the code action *Move the subtree, the item or the table row down*
@@ -130,6 +130,8 @@ here and why.
 
 ## Footnotes
 
+**Partly:** Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works.
+
 - [ ] Following `[fn:1]` goes to its definition, and from the definition back to the reference: the code action *Open the link or thing at the cursor*
 - [ ] A reference without a definition is reported
 
@@ -194,6 +196,8 @@ here and why.
 **Not in Helix:** A note is typed text: Helix cannot ask for text on a server's behalf.
 
 ## Completion and editing helpers
+
+**Partly:** Structure templates, emphasis and drawers are not among Helix's code actions.
 
 - [ ] At the start of a headline, TODO keywords are completed
 - [ ] `#+` keywords, and the values after `#+STARTUP:`

@@ -3599,8 +3599,10 @@ fn recalculates_tables() {
         .request("workspace/executeCommand", json!({ "command": "org.table.recalculate", "arguments": [{ "textDocument": { "uri": URI }, "position": { "line": 1, "character": 1 } }] }))
         .unwrap_err();
     assert_eq!(error, "Row descriptor -3 leads outside table");
+    // Off the table (`C-c *` turns the line into a heading there, in
+    // Emacs), iterating refuses.
     let refused = client
-        .request_raw("workspace/executeCommand", json!({ "command": "org.table.recalculate", "arguments": [{ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 1 } }] }))
+        .request_raw("workspace/executeCommand", json!({ "command": "org.table.iterate", "arguments": [{ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 1 } }] }))
         .unwrap_err();
     assert_eq!(refused.message, "Not at a table");
     client.shutdown();
@@ -3848,12 +3850,13 @@ fn edits_tables() {
         .unwrap();
     let titles: Vec<&str> = actions.as_array().unwrap().iter().filter_map(|action| action["title"].as_str()).collect();
     assert!(titles.contains(&"Delete the table row"), "{titles:?}");
-    // Not in a table: the table's own commands refuse.
+    // Not in a table: the table's own commands refuse (`C-c -`,
+    // `org.table.hline`, turns the line into an item there, in Emacs).
     client.notify(
         "textDocument/didChange",
         json!({ "textDocument": { "uri": uri, "version": 4 }, "contentChanges": [{ "text": "Text\n" }] }),
     );
-    assert_eq!(run(&mut client, "org.table.hline", 0, 0, json!({})).unwrap_err(), "Not at a table");
+    assert_eq!(run(&mut client, "org.table.blank.field", 0, 0, json!({})).unwrap_err(), "Not at a table");
     client.shutdown();
 }
 

@@ -129,7 +129,7 @@ enum EmacsJob {
     /// A command that changes the document `uri`, run on `text`, its
     /// `version`: the text Emacs leaves becomes an edit, unless the
     /// document changed meanwhile.
-    Edit { uri: Uri, version: i32, text: String },
+    Edit { uri: Uri, version: i32, text: String, point: usize },
 }
 
 /// Text that goes in place of `start..end`.
@@ -564,9 +564,11 @@ struct Server {
     capture_directory: PathBuf,
     /// Emacs, for export (`emacs`); it starts when first asked.
     emacs: crate::emacs::Emacs,
-    /// The export menu and the publishing projects, once Emacs gave them:
-    /// its configuration does not change while it runs.
+    /// The export menu, the publishing projects and the structure
+    /// templates, once Emacs gave them: its configuration does not change
+    /// while it runs.
     export_menu: Option<Value>,
+    structure_templates: Option<Value>,
     publish_projects: Option<Value>,
     /// What Emacs is doing, by tag.
     emacs_jobs: HashMap<u64, EmacsJob>,
@@ -825,6 +827,7 @@ pub fn run(connection: Connection) -> Result<()> {
             config: options.emacs_config.clone().filter(|config| !config.trim().is_empty()),
         }),
         export_menu: None,
+        structure_templates: None,
         publish_projects: None,
         emacs_jobs: HashMap::new(),
         export_directory: server_directory("export"),
@@ -3556,6 +3559,19 @@ impl Server {
             return self.capture(&context);
         }
         let context: Option<Context> = argument.and_then(|value| serde_json::from_value(value).ok());
+        // Off a table, `C-c -` and `C-c *` turn lines into items and
+        // headings (`org-ctrl-c-minus`, `org-ctrl-c-star`), in Emacs.
+        if let Some(found) = context.as_ref().filter(|found| !self.is_view(&found.text_document.uri)) {
+            let table_key = matches!(
+                params.command.as_str(),
+                commands::TABLE_HLINE | commands::TABLE_RECALCULATE | commands::TABLE_RECALCULATE_LINE
+            );
+            if table_key && !self.at_table(found) {
+                let command =
+                    if params.command == commands::TABLE_HLINE { "org-toggle-item" } else { "org-toggle-heading" };
+                return self.emacs_run(command, found);
+            }
+        }
         match params.command.as_str() {
             commands::AGENDA_QUERY_ADD
             | commands::AGENDA_QUERY_SUBTRACT
@@ -3597,6 +3613,17 @@ impl Server {
                 self.motion(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::GOTO => self.goto(&context.ok_or("This command needs the cursor position")?),
+            commands::FOOTNOTE_ACTION
+            | commands::FOOTNOTE_MENU
+            | commands::TOGGLE_ITEM
+            | commands::TOGGLE_HEADING
+            | commands::TOGGLE_COMMENT
+            | commands::EMPHASIZE
+            | commands::STRUCTURE_TEMPLATE
+            | commands::DRAWER_INSERT
+            | commands::SUBTREE_CLONE => {
+                self.emacs_command(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
             commands::BABEL_EXECUTE => {
                 self.emacs_run("org-babel-execute-maybe", &context.ok_or("This command needs the cursor position")?)
             }
@@ -6658,8 +6685,8 @@ impl Server {
                 }
                 (Some(EmacsJob::Export(_)), Ok(result)) => self.exported(&result),
                 (Some(EmacsJob::Edit { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
-                (Some(EmacsJob::Edit { uri, version, text }), Ok(result)) => {
-                    self.emacs_edited(&uri, version, &text, &result);
+                (Some(EmacsJob::Edit { uri, version, text, point }), Ok(result)) => {
+                    self.emacs_edited(&uri, version, &text, point, &result);
                 }
                 (None, _) => {}
             },
@@ -6730,10 +6757,146 @@ impl Server {
         Ok(json!({ "edits": [], "cursor": cursor }))
     }
 
+    /// The commands Emacs runs that ask for something first: what they
+    /// ask, as Org asks it, then Emacs runs the command with the answers.
+    fn emacs_command(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        let answer = context.input.clone();
+        match id {
+            commands::FOOTNOTE_ACTION => self.emacs_run("org-footnote-action", context),
+            commands::TOGGLE_ITEM => self.emacs_run("org-toggle-item", context),
+            commands::TOGGLE_HEADING => self.emacs_run("org-toggle-heading", context),
+            commands::TOGGLE_COMMENT => self.emacs_run("org-toggle-comment", context),
+            commands::FOOTNOTE_MENU => {
+                let Some(answer) = answer else {
+                    let choices = [
+                        ("s", "sort"),
+                        ("r", "renumber fn:N"),
+                        ("S", "renumber and sort"),
+                        ("n", "normalize"),
+                        ("d", "delete"),
+                    ]
+                    .map(|(key, label)| json!({ "key": key, "label": label }));
+                    return Ok(
+                        json!({ "input": { "kind": "key", "prompt": "Footnotes", "value": "", "choices": choices } }),
+                    );
+                };
+                let command = match answer.as_str() {
+                    "s" => "org-footnote-sort",
+                    "r" => "org-footnote-renumber-fn:N",
+                    "S" => "org-lsp-bridge-footnote-renumber-and-sort",
+                    "n" => "org-footnote-normalize",
+                    "d" => "org-footnote-delete",
+                    other => return Err(format!("No such footnote command {other}").into()),
+                };
+                self.emacs_run(command, context)
+            }
+            commands::EMPHASIZE => {
+                let Some(answer) = answer else {
+                    let choices = [
+                        ("*", "bold"),
+                        ("/", "italic"),
+                        ("_", "underline"),
+                        ("=", "verbatim"),
+                        ("~", "code"),
+                        ("+", "strike-through"),
+                        (" ", "remove"),
+                    ]
+                    .map(|(key, label)| json!({ "key": key, "label": label }));
+                    return Ok(
+                        json!({ "input": { "kind": "key", "prompt": "Emphasis marker or tag", "value": "", "choices": choices } }),
+                    );
+                };
+                let marker = answer.chars().next().ok_or("No marker")?;
+                self.emacs_run_with("org-emphasize", vec![json!(u32::from(marker))], context)
+            }
+            commands::STRUCTURE_TEMPLATE => {
+                let templates = match &self.structure_templates {
+                    Some(templates) => templates.clone(),
+                    None => {
+                        let found = self
+                            .emacs
+                            .call("structure-templates", json!({}), std::time::Duration::from_secs(120))
+                            .map_err(Refusal::Failed)?;
+                        self.structure_templates = Some(found.clone());
+                        found
+                    }
+                };
+                let pairs: Vec<(String, String)> = templates
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|pair| Some((pair.get(0)?.as_str()?.to_string(), pair.get(1)?.as_str()?.to_string())))
+                    .collect();
+                let Some(answer) = answer else {
+                    let choices: Vec<Value> =
+                        pairs.iter().map(|(key, kind)| json!({ "key": key, "label": kind })).collect();
+                    return Ok(
+                        json!({ "input": { "kind": "key", "prompt": "Select a key", "value": "", "choices": choices } }),
+                    );
+                };
+                let kind = pairs
+                    .iter()
+                    .find(|(key, _)| *key == answer)
+                    .map(|(_, kind)| kind.clone())
+                    .ok_or_else(|| format!("No structure template under {answer}"))?;
+                self.emacs_run_with("org-insert-structure-template", vec![json!(kind)], context)
+            }
+            commands::DRAWER_INSERT => {
+                let Some(answer) = answer.filter(|answer| !answer.trim().is_empty()) else {
+                    let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+                    let mut names: Vec<String> = drawer_names(&document.text);
+                    names.sort();
+                    names.dedup();
+                    return Ok(
+                        json!({ "input": { "kind": "text", "prompt": "Drawer", "value": "", "completions": names } }),
+                    );
+                };
+                self.emacs_run_with("org-insert-drawer", vec![Value::Null, json!(answer.trim())], context)
+            }
+            _ => {
+                // `org-clone-subtree-with-time-shift`: how many, then the
+                // shift (`+1w`, empty to copy unchanged).
+                let Some(answer) = answer else {
+                    return Ok(
+                        json!({ "input": { "kind": "text", "prompt": "Number of clones to produce", "value": "" } }),
+                    );
+                };
+                if context.step.as_deref() != Some("shift") {
+                    let clones: i64 = answer.trim().parse().map_err(|_| format!("Not a number: {answer}"))?;
+                    if clones < 1 {
+                        return Err("Invalid number of replications".into());
+                    }
+                    return Ok(json!({ "input": {
+                        "kind": "text",
+                        "prompt": "Date shift per clone (e.g. +1w, empty to copy unchanged)",
+                        "value": "",
+                        "context": { "step": "shift", "answers": clones.to_string() },
+                    } }));
+                }
+                let clones: i64 = context.answers.as_deref().unwrap_or("1").parse().unwrap_or(1);
+                self.emacs_run_with(
+                    "org-clone-subtree-with-time-shift",
+                    vec![json!(clones), json!(answer.trim())],
+                    context,
+                )
+            }
+        }
+    }
+
     /// Run the Emacs command `command` (Babel's) on the document of
     /// `context`, at its cursor; the text it leaves comes back as an edit
     /// (see [`Server::emacs_edited`]).
     fn emacs_run(&mut self, command: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        self.emacs_run_with(command, Vec::new(), context)
+    }
+
+    /// [`Server::emacs_run`] with the command called with `args`.
+    fn emacs_run_with(
+        &mut self,
+        command: &str,
+        args: Vec<Value>,
+        context: &Context,
+    ) -> std::result::Result<Value, Refusal> {
         let uri = context.text_document.uri.clone();
         let path = uri::to_path(&uri).ok_or("Only a file on disk can run code through Emacs")?;
         let encoding = self.client.encoding;
@@ -6745,8 +6908,9 @@ impl Server {
             "text": document.text,
             "point": point,
             "command": command,
+            "args": args,
         });
-        let job = EmacsJob::Edit { uri: uri.clone(), version: document.version, text: document.text.clone() };
+        let job = EmacsJob::Edit { uri: uri.clone(), version: document.version, text: document.text.clone(), point };
         self.next_export += 1;
         let tag = self.next_export;
         self.emacs_jobs.insert(tag, job);
@@ -6757,12 +6921,28 @@ impl Server {
     /// What an Emacs command left of the document `uri`: the difference as
     /// an edit, unless the document changed since it was sent; else what
     /// Emacs said.
-    fn emacs_edited(&mut self, uri: &Uri, version: i32, old: &str, result: &Value) {
+    fn emacs_edited(&mut self, uri: &Uri, version: i32, old: &str, point: usize, result: &Value) {
         let new = result.get("text").and_then(Value::as_str).unwrap_or(old);
         let said = result.get("message").and_then(Value::as_str).filter(|message| !message.is_empty());
+        // Where Emacs leaves the point (a character, from 1), in the text
+        // it leaves.
+        let moved = result
+            .get("point")
+            .and_then(Value::as_u64)
+            .map(|at| new.char_indices().nth(at.saturating_sub(1) as usize).map_or(new.len(), |(byte, _)| byte));
+        let position = moved.map(|at| LineIndex::new(new).position(new, at, self.client.encoding));
         if new == old {
             if let Some(message) = said {
                 self.show_message(MessageType::INFO, message);
+            }
+            let jumped = result.get("point").and_then(Value::as_u64).is_some_and(|at| at as usize != point);
+            if let (Some(position), true) = (position, jumped) {
+                if self.document(uri).map(|document| document.version) == Some(version) {
+                    let selection = Some(Range::new(position, position));
+                    let params =
+                        ShowDocumentParams { uri: uri.clone(), external: None, take_focus: Some(true), selection };
+                    self.send_request::<ShowDocument>(params, None);
+                }
             }
             return;
         }
@@ -6777,8 +6957,11 @@ impl Server {
         let edit = self.workspace_edit(uri, Some(version), edits);
         // The file stays unsaved, as Emacs leaves it.
         self.origin = Some(uri.as_str().to_string());
-        let params = lsp_types::ApplyWorkspaceEditParams { label: Some("Babel".to_string()), edit };
-        self.apply_edit(params, Pending::Edit);
+        let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+        match position {
+            Some(position) => self.apply_edit(params, Pending::EditAndMove { uri: uri.clone(), position }),
+            None => self.apply_edit(params, Pending::Edit),
+        }
     }
 
     /// Show what an export made: the text of an export to a buffer as a
@@ -8591,4 +8774,18 @@ fn item_structure(
         commands::META_UP => list::move_item(text, offset, false),
         _ => list::move_item(text, offset, true),
     }
+}
+
+/// The names of the drawers in `text` (`:NAME:` alone on a line), for
+/// `org-insert-drawer`'s completion.
+fn drawer_names(text: &str) -> Vec<String> {
+    text.lines()
+        .filter_map(|line| {
+            let name = line.trim().strip_prefix(':')?.strip_suffix(':')?;
+            (!name.is_empty()
+                && !name.eq_ignore_ascii_case("END")
+                && name.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-'))
+            .then(|| name.to_string())
+        })
+        .collect()
 }

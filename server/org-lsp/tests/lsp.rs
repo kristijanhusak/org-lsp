@@ -1662,3 +1662,156 @@ fn moves_about_as_org_does() {
     assert_eq!(cursor(&run("org.goto", 0, 0, json!({ "input": "A/C/" }))), (4, 0));
     client.shutdown();
 }
+
+/// `text` with `edits` applied (positions in characters; ASCII text).
+fn apply_text_edits(text: &str, edits: &[TextEdit]) -> String {
+    let offset = |position: Position| -> usize {
+        let start: usize = text.split_inclusive('\n').take(position.line as usize).map(str::len).sum();
+        start + position.character as usize
+    };
+    let mut sorted = edits.to_vec();
+    sorted.sort_by_key(|edit| std::cmp::Reverse(offset(edit.range.start)));
+    let mut out = text.to_string();
+    for edit in sorted {
+        out.replace_range(offset(edit.range.start)..offset(edit.range.end), &edit.new_text);
+    }
+    out
+}
+
+#[test]
+fn edits_through_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("edits_through_emacs: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-emacs-edits-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    std::fs::write(&file, "").unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    let mut version = 1;
+    let mut text = "* Head\nSome text here.\nline\n".to_string();
+    client.open(&uri, &text);
+    // Run `command` at `line`:`character` with `extra` in the argument, then
+    // take the edit Emacs makes and the cursor it leaves.
+    let run = |client: &mut Client,
+               text: &mut String,
+               version: &mut i32,
+               command: &str,
+               at: (u32, u32),
+               extra: Value|
+     -> (Value, Option<(u32, u32)>) {
+        let mut argument =
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": at.0, "character": at.1 } });
+        for (key, value) in extra.as_object().unwrap() {
+            argument[key] = value.clone();
+        }
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }))
+            .response_result
+            .expect("a result");
+        if result.get("input").is_some() {
+            return (result, None);
+        }
+        let Message::Request(edit) = next_from_server(
+            client,
+            |message| matches!(message, Message::Request(request) if request.method == "workspace/applyEdit"),
+        ) else {
+            unreachable!()
+        };
+        let edits: Vec<TextEdit> =
+            serde_json::from_value(edit.params["edit"]["changes"][uri.as_str()].clone()).unwrap();
+        *text = apply_text_edits(text, &edits);
+        *version += 1;
+        client.notify::<DidChangeTextDocument>(DidChangeTextDocumentParams {
+            text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri.clone(), version: *version },
+            content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+                range: None,
+                range_length: None,
+                text: text.clone(),
+            }],
+        });
+        client
+            .connection
+            .sender
+            .send(Message::Response(Response::new_ok(edit.id, json!({ "applied": true }))))
+            .unwrap();
+        let Message::Request(show) = next_from_server(
+            client,
+            |message| matches!(message, Message::Request(request) if request.method == "window/showDocument"),
+        ) else {
+            unreachable!()
+        };
+        let start = &show.params["selection"]["start"];
+        let cursor = (start["line"].as_u64().unwrap() as u32, start["character"].as_u64().unwrap() as u32);
+        client
+            .connection
+            .sender
+            .send(Message::Response(Response::new_ok(show.id, json!({ "success": true }))))
+            .unwrap();
+        (result, Some(cursor))
+    };
+
+    // A new footnote: the reference at the cursor, the definition in the
+    // Footnotes section, the cursor after its label.
+    let (_, cursor) = run(&mut client, &mut text, &mut version, "org.footnote.action", (1, 5), json!({}));
+    assert_eq!(text, "* Head\nSome [fn:1]text here.\nline\n\n* Footnotes\n\n[fn:1] \n");
+    assert_eq!(cursor, Some((6, 6)));
+    // `C-c -` off a table: an item; `C-c *`: a heading.
+    run(&mut client, &mut text, &mut version, "org.table.hline", (2, 0), json!({}));
+    assert!(text.contains("\n- line\n"), "{text}");
+    run(&mut client, &mut text, &mut version, "org.table.recalculate.line", (2, 0), json!({}));
+    assert!(text.contains("\n** line\n"), "{text}");
+    // `C-c ;`
+    run(&mut client, &mut text, &mut version, "org.toggle.comment", (0, 0), json!({}));
+    assert!(text.starts_with("* COMMENT Head\n"), "{text}");
+    // Emphasis: asked for a marker, then the markers around the cursor.
+    let (asked, _) = run(&mut client, &mut text, &mut version, "org.emphasize", (1, 0), json!({}));
+    assert!(asked["input"]["choices"].as_array().unwrap().iter().any(|choice| choice["key"] == "*"), "{asked}");
+    let (_, cursor) = run(&mut client, &mut text, &mut version, "org.emphasize", (1, 18), json!({ "input": "*" }));
+    let (line, character) = cursor.expect("the cursor");
+    let marked = text.lines().nth(line as usize).unwrap();
+    assert_eq!(&marked[character as usize - 1..=character as usize], "**", "{text}");
+    // A block from the structure templates Emacs has.
+    let (asked, _) = run(&mut client, &mut text, &mut version, "org.structure.template", (3, 0), json!({}));
+    assert!(
+        asked["input"]["choices"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|choice| choice["key"] == "s" && choice["label"] == "src"),
+        "{asked}"
+    );
+    run(&mut client, &mut text, &mut version, "org.structure.template", (3, 0), json!({ "input": "q" }));
+    assert!(text.contains("#+begin_quote\n"), "{text}");
+    // A drawer.
+    let (asked, _) = run(&mut client, &mut text, &mut version, "org.drawer.insert", (0, 0), json!({}));
+    assert_eq!(asked["input"]["kind"], "text");
+    run(&mut client, &mut text, &mut version, "org.drawer.insert", (2, 0), json!({ "input": "NOTES" }));
+    assert!(text.contains(":NOTES:\n"), "{text}");
+    // The footnote menu, as `C-u C-c C-x f` offers it.
+    let (asked, _) = run(&mut client, &mut text, &mut version, "org.footnote.menu", (0, 0), json!({}));
+    let keys: Vec<&str> =
+        asked["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
+    assert_eq!(keys, ["s", "r", "S", "n", "d"]);
+    // Cloning: how many, then the shift.
+    let (asked, _) = run(&mut client, &mut text, &mut version, "org.subtree.clone", (0, 0), json!({ "input": "2" }));
+    assert_eq!(asked["input"]["context"]["step"], "shift");
+    run(
+        &mut client,
+        &mut text,
+        &mut version,
+        "org.subtree.clone",
+        (0, 0),
+        json!({ "input": "", "step": "shift", "answers": "2" }),
+    );
+    assert_eq!(text.matches("* COMMENT Head").count(), 3, "{text}");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}

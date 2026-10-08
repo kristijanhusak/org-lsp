@@ -7,14 +7,14 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 61%**
+**All of Org: 67%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
 | [Highlighting](#highlighting) | 83% | 10 of 12 |
 | [Folding and visibility](#folding-and-visibility) | 67% | 6 of 9 |
-| [Headings and structure](#headings-and-structure) | 73% | 8 of 11 |
-| [Lists and checkboxes](#lists-and-checkboxes) | 73% | 8 of 11 |
+| [Headings and structure](#headings-and-structure) | 100% | 11 of 11 |
+| [Lists and checkboxes](#lists-and-checkboxes) | 82% | 9 of 11 |
 | [TODO keywords](#todo-keywords) | 83% | 5 of 6 |
 | [Priorities](#priorities) | 100% | 3 of 3 |
 | [Tags](#tags) | 100% | 6 of 6 |
@@ -25,7 +25,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Capture](#capture) | 50% | 5 of 10 |
 | [Refile and archive](#refile-and-archive) | 55% | 6 of 11 |
 | [Links](#links) | 67% | 6 of 9 |
-| [Footnotes](#footnotes) | 50% | 2 of 4 |
+| [Footnotes](#footnotes) | 100% | 4 of 4 |
 | [Tables](#tables) | 44% | 7 of 16 |
 | [Table formulas](#table-formulas) | 50% | 6 of 12 |
 | [Code blocks (Babel)](#code-blocks-babel) | 55% | 6 of 11 |
@@ -34,7 +34,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Diagnostics (org-lint)](#diagnostics-org-lint) | 97% | 59 of 61 |
 | [Indentation and formatting](#indentation-and-formatting) | 83% | 5 of 6 |
 | [Notes and logging](#notes-and-logging) | 75% | 3 of 4 |
-| [Completion and editing helpers](#completion-and-editing-helpers) | 25% | 1 of 4 |
+| [Completion and editing helpers](#completion-and-editing-helpers) | 100% | 4 of 4 |
 | [Timers](#timers) | 0% | 0 of 2 |
 | [Attachments](#attachments) | 0% | 0 of 2 |
 | [Encryption](#encryption) | 0% | 0 of 1 |
@@ -85,7 +85,7 @@ Where editors fall short:
 
 ## Headings and structure
 
-73% (8 of 11)
+100% (11 of 11)
 
 - ✅ New headings (`M-RET`, `M-S-RET`, `C-RET`, `C-S-RET`)
 - ✅ Promoting and demoting a heading or a subtree
@@ -95,18 +95,18 @@ Where editors fall short:
 - ✅ The outline of the file (document symbols)
 - ✅ Moving between headings (`C-c C-n`, `C-c C-p`, `C-c C-f`, `C-c C-b`, `C-c C-u`)
 - ✅ Jumping to a heading (`org-goto`, `C-c C-j`, by outline path)
-- ❌ Turning lines into headings and back (`C-c *`)
-- ❌ Toggling `COMMENT` (`C-c ;`)
-- ❌ Cloning a subtree with its dates shifted (`C-c C-x c`)
+- ✅ Turning lines into headings and back (`C-c *`, through Emacs)
+- ✅ Toggling `COMMENT` (`C-c ;`, through Emacs)
+- ✅ Cloning a subtree with its dates shifted (`C-c C-x c`, through Emacs)
 
 Where editors fall short:
 
-- Zed ❓: Moving between headings and `org-goto` are left out: Zed cannot bind a key to a server's command (the commands are code actions), and a motion needs a key.
-- Helix ❓: New headings (`M-RET` and its relatives), moving between headings and `org-goto` are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do.
+- Zed ❓: Moving between headings, `org-goto` and the commands run by Emacs (`C-c *`, `C-c ;`, cloning) are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them.
+- Helix ❓: New headings (`M-RET` and its relatives), moving between headings and `org-goto` are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions.
 
 ## Lists and checkboxes
 
-73% (8 of 11)
+82% (9 of 11)
 
 - ✅ New items, numbered and with checkboxes (`M-RET`, `M-S-RET`)
 - ✅ `RET` in an item (`org-return`)
@@ -116,14 +116,14 @@ Where editors fall short:
 - ✅ Checkboxes, with their parents and `[1/3]` or `[33%]` cookies
 - ✅ Sorting items
 - ✅ Moving to the next and previous item
-- ❌ Turning lines into items and back (`C-c -`)
+- ✅ Turning lines into items and back (`C-c -`, through Emacs)
 - ❌ Radio lists
 - ❌ Circular motion between items (`org-list-use-circular-motion`)
 
 Where editors fall short:
 
-- Zed ❓: `RET` stays Zed's own and bullets are not cycled: Zed cannot bind a key to a server's command (the commands are code actions), and those two are not among them.
-- Helix ❓: `RET` stays Helix's own, new items and cycled bullets are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them.
+- Zed ❓: `RET` stays Zed's own, bullets are not cycled and lines not turned into items: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them.
+- Helix ❓: `RET` stays Helix's own, new items, cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them.
 
 ## TODO keywords
 
@@ -309,12 +309,17 @@ Where editors fall short:
 
 ## Footnotes
 
-50% (2 of 4)
+100% (4 of 4)
 
 - ✅ Following a reference to its definition and back
 - ✅ Highlighting and checking (`org-lint`)
-- ❌ Creating a footnote (`C-c C-x f`)
-- ❌ Renumbering, sorting and normalizing footnotes
+- ✅ Creating a footnote (`C-c C-x f`, through Emacs)
+- ✅ Renumbering, sorting, normalizing and deleting footnotes (through Emacs)
+
+Where editors fall short:
+
+- Zed ❓: Making footnotes and their menu are left out: they are not among Zed's code actions. Following them works.
+- Helix ❓: Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works.
 
 ## Tables
 
@@ -454,12 +459,17 @@ Where editors fall short:
 
 ## Completion and editing helpers
 
-25% (1 of 4)
+100% (4 of 4)
 
 - ✅ Completion: TODO keywords, tags, `#+` keywords and `#+STARTUP:` values, blocks, drawers, properties, entities, link targets
-- ❌ Structure templates (`C-c C-,`)
-- ❌ Emphasis (`C-c C-x C-f`)
-- ❌ Inserting a drawer (`C-c C-x d`)
+- ✅ Structure templates (`C-c C-,`, through Emacs)
+- ✅ Emphasis (`C-c C-x C-f`, through Emacs)
+- ✅ Inserting a drawer (`C-c C-x d`, through Emacs)
+
+Where editors fall short:
+
+- Zed ❓: Structure templates, emphasis and drawers are not among Zed's code actions.
+- Helix ❓: Structure templates, emphasis and drawers are not among Helix's code actions.
 
 ## Timers
 
