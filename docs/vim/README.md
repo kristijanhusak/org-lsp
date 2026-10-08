@@ -28,7 +28,8 @@ PATH, or where `cmd` says.
 To try it without touching your own configuration,
 [editors/vim/minimal.vim](../../editors/vim/minimal.vim) is a vimrc that
 puts vim-plug and yegappan/lsp in a temporary folder and loads the plugin
-from a checkout (`~/github/org-lsp`; change `s:org_lsp` for another):
+from a checkout (`~/github/org-lsp`; change both places it is named
+for another):
 
 ```sh
 cargo build --release -p org-lsp

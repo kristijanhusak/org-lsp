@@ -9,7 +9,7 @@
 set nocompatible
 
 let s:root = '/tmp/org-lsp-vim'
-let s:org_lsp = expand('~/github/org-lsp')   " the checkout
+let s:org_lsp = expand('~/github/org-lsp')   " the checkout, also below
 
 " vim-plug, fetched once into the temporary folder.
 if !filereadable(s:root . '/autoload/plug.vim')
@@ -20,7 +20,8 @@ let &runtimepath = s:root . ',' . &runtimepath
 
 call plug#begin(s:root . '/plugged')
 Plug 'yegappan/lsp'
-Plug s:org_lsp, {'rtp': 'editors/vim'}
+" A literal path: Plug evaluates its arguments where `s:` names are unknown.
+Plug '~/github/org-lsp', {'rtp': 'editors/vim'}
 call plug#end()
 
 " Install the client on the first start, before the plugins load.
