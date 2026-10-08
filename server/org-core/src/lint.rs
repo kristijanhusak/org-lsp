@@ -518,9 +518,24 @@ impl Doc<'_> {
                 _ => {}
             }
         }
+        // A link whose start is an abbreviation of `#+LINK:` is the link it
+        // stands for: Org expands it as it parses it.
+        let abbreviations: Vec<String> = self
+            .text
+            .lines()
+            .filter_map(|line| {
+                let line = line.trim_start();
+                let rest = line.get(..7).filter(|key| key.eq_ignore_ascii_case("#+link:")).map(|_| &line[7..])?;
+                rest.split_whitespace().next().map(str::to_string)
+            })
+            .collect();
+        let abbreviated = |path: &str| {
+            let key = path.split_once(':').map_or(path, |(key, _)| key);
+            abbreviations.iter().any(|abbreviation| abbreviation == key)
+        };
         self.links()
             .into_iter()
-            .filter(|link| link.kind == "fuzzy")
+            .filter(|link| link.kind == "fuzzy" && !abbreviated(&link.path))
             .filter(|link| {
                 let path = &link.path;
                 let wanted: Vec<(&'static str, Vec<String>)> = match path.strip_prefix('*') {

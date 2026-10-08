@@ -125,8 +125,12 @@ pub fn startup_folds(
             }
         }
     }
-    // Showing everything leaves drawers, blocks and archived subtrees
-    // open too.
+    // `showeverything` leaves drawers, blocks and archived subtrees open
+    // too; with `showall` (or `nofold`) every headline shows, and the rest
+    // folds as Org folds it (`org-cycle-set-startup-visibility`).
+    if startup.folded == "showeverything" {
+        return Vec::new();
+    }
     let levels = match startup.folded.as_str() {
         "overview" | "fold" | "t" => Some(1),
         "content" => Some(usize::MAX),
@@ -136,7 +140,6 @@ pub fn startup_folds(
         "show5levels" => Some(5),
         _ => None,
     };
-    let Some(levels) = levels else { return Vec::new() };
     let folds = folds(root, text, index, separator_lines);
     let mut closed = vec![false; folds.len()];
     let at = |node: &SyntaxNode| folds.iter().position(|(other, _)| other == node);
@@ -144,9 +147,11 @@ pub fn startup_folds(
     let leaf = |headline: &Headline| headline.children().next().is_none();
     // `org-cycle-content`: the headlines up to `levels` show, those below
     // a headline at that level hide with it.
-    for headline in &headlines {
-        if let Some(index) = at(headline.syntax()) {
-            closed[index] = headline.level() >= levels || leaf(headline);
+    if let Some(levels) = levels {
+        for headline in &headlines {
+            if let Some(index) = at(headline.syntax()) {
+                closed[index] = headline.level() >= levels || leaf(headline);
+            }
         }
     }
     for (index, (node, _)) in folds.iter().enumerate() {
@@ -268,7 +273,39 @@ text
         assert_eq!(startup(text, "show2levels"), [(9, 10), (7, 8), (5, 8), (1, 3)]);
         // `#+STARTUP:` decides.
         assert_eq!(startup(&format!("#+STARTUP: overview\n{text}"), "showeverything").len(), 5);
-        assert_eq!(startup(&format!("#+STARTUP: showall\n{text}"), "overview"), []);
+        // `showall` shows every headline, the drawer still folded.
+        assert_eq!(startup(&format!("#+STARTUP: showall\n{text}"), "overview"), [(2, 4)]);
+    }
+
+    /// `showall` and `nofold` show everything, but then fold what Org
+    /// folds whatever the startup: subtrees by their `VISIBILITY`,
+    /// archived subtrees, drawers, and blocks with `hideblocks`; as Emacs
+    /// hides lines 3-7, 9, 12-13 and 15-16 (from 1) of this text.
+    #[test]
+    fn showall_still_folds_what_org_folds() {
+        let text = "\
+#+STARTUP: showall hideblocks
+* A
+:PROPERTIES:
+:VISIBILITY: folded
+:END:
+a text
+** A1
+* B :ARCHIVE:
+b text
+* C
+:LOGBOOK:
+x
+:END:
+#+begin_src sh
+echo
+#+end_src
+";
+        let folds = startup(text, "showeverything");
+        assert_eq!(folds, [(13, 15), (10, 12), (7, 8), (2, 4), (1, 6)]);
+        let nofold = text.replacen("showall", "nofold", 1);
+        assert_eq!(startup(&nofold, "showeverything"), folds);
+        assert_eq!(startup(&text.replacen("showall", "showeverything", 1), "overview"), []);
     }
 
     #[test]

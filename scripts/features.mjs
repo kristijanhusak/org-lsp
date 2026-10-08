@@ -96,7 +96,7 @@ export const AREAS = [
     emacs: [
       ['Headlines by level, TODO keywords, priorities and tags', true],
       ['Emphasis, verbatim and code', true],
-      ['Links shown as their description (`org-link-descriptive`)', true],
+      ['Links shown as their description (`org-link-descriptive`, `#+STARTUP: descriptivelinks` or `literallinks`)', true],
       ['Emphasis markers hidden (`org-hide-emphasis-markers`)', true],
       ['Timestamps, planning and clock lines', true],
       ['Blocks, keywords, drawers, properties and comments', true],
@@ -105,7 +105,7 @@ export const AREAS = [
       ['Footnotes, targets, macros, entities and LaTeX fragments', true],
       ['Archived subtrees shaded (`org-archived`)', true],
       ['Radio targets turning their words into links: highlighted, followed, document links', true],
-      ['Entities shown as their characters (`org-pretty-entities`): hidden, the character an inlay hint in their place', true],
+      ['Entities shown as their characters (`org-pretty-entities`, `#+STARTUP: entitiespretty` or `entitiesplain`): hidden, the character an inlay hint in their place', true],
       ['Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`, `org-use-sub-superscripts`): where Org raises them, shown in Unicode (`x²`, `H₂O`) as an inlay hint in place of the hidden text where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text', true],
     ],
     editors: {
@@ -134,7 +134,7 @@ export const AREAS = [
     emacs: [
       ['Cycling a subtree (`TAB`): folded, children, subtree', true],
       ['Cycling the file (`S-TAB`): overview, contents, everything', true],
-      ['Startup visibility (`org_startup_folded`, `#+STARTUP:` `overview`, `content`, `show2levels`…, `showeverything`), the `VISIBILITY` property, archived subtrees and drawers folded, `hideblocks`; where Org shows a headline\'s children but not its text, the text shows', true],
+      ['Startup visibility (`org_startup_folded`, `#+STARTUP:` `overview`, `content`, `show2levels`…, `showall`, `showeverything`), the `VISIBILITY` property, archived subtrees and drawers folded, `hideblocks`; where Org shows a headline\'s children but not its text, the text shows', true],
       ['Blank lines after a subtree kept outside its fold (`org-cycle-separator-lines`)', true],
       ['Archived subtrees left folded (`org-cycle-hide-archived-subtrees`)', true],
       ['Sparse trees (`C-c /`)', true],

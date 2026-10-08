@@ -713,8 +713,8 @@ struct Server {
     /// `org-table-formula-debug`: recalculating goes through Emacs, which
     /// asks after each formula.
     formula_debug: bool,
-    /// Sub- and superscripts shown (`org-pretty-entities` with
-    /// `org-pretty-entities-include-sub-superscripts`), and whether they
+    /// Sub- and superscripts shown where entities are
+    /// (`org-pretty-entities-include-sub-superscripts`), and whether they
     /// need braces (`org-use-sub-superscripts` `{}`).
     pretty_scripts: Option<bool>,
     /// `org-complete-tags-always-offer-all-agenda-tags`
@@ -1061,8 +1061,7 @@ pub fn run(connection: Connection) -> Result<()> {
         pretty_entities: options.pretty_entities.unwrap_or(false),
         formula_debug: false,
         pretty_scripts: match (
-            options.pretty_entities.unwrap_or(false)
-                && options.pretty_entities_include_sub_superscripts.unwrap_or(true),
+            options.pretty_entities_include_sub_superscripts.unwrap_or(true),
             &options.use_sub_superscripts,
         ) {
             (false, _) | (_, Some(LogOption::Flag(false))) => None,
@@ -1320,6 +1319,17 @@ fn prompt_label(choice: &Value) -> String {
         Some(key) if key != label && key.chars().count() == 1 => format!("{label} [{key}]"),
         _ => label.to_string(),
     }
+}
+
+/// The words of a file's `#+STARTUP:` lines, lowercased, in order.
+fn startup_words(text: &str) -> Vec<String> {
+    text.lines()
+        .filter_map(|line| {
+            let line = line.trim_start_matches([' ', '\t']);
+            line.get(..10).filter(|key| key.eq_ignore_ascii_case("#+startup:")).map(|_| &line[10..])
+        })
+        .flat_map(|words| words.split_whitespace().map(str::to_ascii_lowercase))
+        .collect()
 }
 
 /// What a column view command asks, Org's question with its default, as
@@ -2166,18 +2176,19 @@ impl Server {
             return Some(SemanticTokens { result_id: None, data });
         }
         let document = self.document(uri)?;
-        let tokens = highlight::tokens(&document.syntax(), document.parse.todo_keywords(), self.conceal);
+        let (conceal, pretty, scripts) = self.display_of(&document.text);
+        let tokens = highlight::tokens(&document.syntax(), document.parse.todo_keywords(), conceal);
         let radio: Vec<(usize, usize)> =
             org_core::radio::links(&document.text, &document.parse).iter().map(|link| (link.start, link.end)).collect();
         let tokens = highlight::with_radio_links(tokens, &radio);
         // `org-pretty-entities`: an entity hidden, its character an inlay
         // hint in its place; so are the shrunk fields of tables.
-        let mut hidden: Vec<(usize, usize)> = if self.pretty_entities {
+        let mut hidden: Vec<(usize, usize)> = if pretty {
             org_core::pretty::entities(&document.text).into_iter().map(|(start, end, _)| (start, end)).collect()
         } else {
             Vec::new()
         };
-        if let Some(braces) = self.pretty_scripts {
+        if let Some(braces) = scripts {
             hidden.extend(
                 org_core::pretty::scripts(&document.syntax(), &document.text, braces)
                     .into_iter()
@@ -2192,6 +2203,27 @@ impl Server {
         let only = range.map(|range| document.index.text_range(&document.text, range, encoding));
         let data = highlight::encode(&tokens, &document.text, &document.index, encoding, only);
         Some(SemanticTokens { result_id: None, data })
+    }
+
+    /// How a file shows: what is concealed, whether entities show as their
+    /// characters, and the sub- and superscripts with them (whether they
+    /// need braces). As the settings say, unless the file's `#+STARTUP:`
+    /// says otherwise: `descriptivelinks` or `literallinks`
+    /// (`org-link-descriptive`), `entitiespretty` or `entitiesplain`
+    /// (`org-pretty-entities`); the last word wins.
+    fn display_of(&self, text: &str) -> (highlight::Conceal, bool, Option<bool>) {
+        let mut conceal = self.conceal;
+        let mut pretty = self.pretty_entities;
+        for word in startup_words(text) {
+            match word.as_str() {
+                "descriptivelinks" => conceal.links = true,
+                "literallinks" => conceal.links = false,
+                "entitiespretty" => pretty = true,
+                "entitiesplain" => pretty = false,
+                _ => {}
+            }
+        }
+        (conceal, pretty, self.pretty_scripts.filter(|_| pretty))
     }
 
     fn semantic_tokens_full(&mut self, params: SemanticTokensParams) -> Option<SemanticTokens> {
@@ -2280,7 +2312,8 @@ impl Server {
         }
         // `org-pretty-entities`: the character of each entity, whose text
         // the tokens hide.
-        if self.pretty_entities {
+        let (_, pretty, scripts) = self.display_of(text);
+        if pretty {
             for (start, _, utf8) in org_core::pretty::entities(text) {
                 let at = document.index.position(text, start, self.client.encoding);
                 if (first..=last).contains(&(at.line as usize)) {
@@ -2289,7 +2322,7 @@ impl Server {
             }
         }
         // Sub- and superscripts, in Unicode where they can be.
-        if let Some(braces) = self.pretty_scripts {
+        if let Some(braces) = scripts {
             for (start, _, shown) in org_core::pretty::scripts(&document.syntax(), text, braces) {
                 let at = document.index.position(text, start, self.client.encoding);
                 if (first..=last).contains(&(at.line as usize)) {

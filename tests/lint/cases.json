@@ -8378,5 +8378,26 @@
       ]
     ],
     "expected": []
+  },
+  {
+    "text": "#+LINK: gh https://github.com/%s\n* A\n[[gh:x/y][desc]] [[gh]] [[nope]]\n",
+    "files": [
+      [
+        "other.org",
+        "* Other\n"
+      ],
+      [
+        "refs.bib",
+        "@book{key, title={T}}\n"
+      ]
+    ],
+    "expected": [
+      [
+        61,
+        "nil",
+        "Unknown fuzzy location \"nope\"",
+        "invalid-fuzzy-link"
+      ]
+    ]
   }
 ]

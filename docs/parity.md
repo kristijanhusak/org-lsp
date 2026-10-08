@@ -46,7 +46,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 
 - ✅ Headlines by level, TODO keywords, priorities and tags
 - ✅ Emphasis, verbatim and code
-- ✅ Links shown as their description (`org-link-descriptive`)
+- ✅ Links shown as their description (`org-link-descriptive`, `#+STARTUP: descriptivelinks` or `literallinks`)
 - ✅ Emphasis markers hidden (`org-hide-emphasis-markers`)
 - ✅ Timestamps, planning and clock lines
 - ✅ Blocks, keywords, drawers, properties and comments
@@ -55,7 +55,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 - ✅ Footnotes, targets, macros, entities and LaTeX fragments
 - ✅ Archived subtrees shaded (`org-archived`)
 - ✅ Radio targets turning their words into links: highlighted, followed, document links
-- ✅ Entities shown as their characters (`org-pretty-entities`): hidden, the character an inlay hint in their place
+- ✅ Entities shown as their characters (`org-pretty-entities`, `#+STARTUP: entitiespretty` or `entitiesplain`): hidden, the character an inlay hint in their place
 - ✅ Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`, `org-use-sub-superscripts`): where Org raises them, shown in Unicode (`x²`, `H₂O`) as an inlay hint in place of the hidden text where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text
 
 Where editors fall short:
@@ -71,7 +71,7 @@ Where editors fall short:
 
 - ✅ Cycling a subtree (`TAB`): folded, children, subtree
 - ✅ Cycling the file (`S-TAB`): overview, contents, everything
-- ✅ Startup visibility (`org_startup_folded`, `#+STARTUP:` `overview`, `content`, `show2levels`…, `showeverything`), the `VISIBILITY` property, archived subtrees and drawers folded, `hideblocks`; where Org shows a headline's children but not its text, the text shows
+- ✅ Startup visibility (`org_startup_folded`, `#+STARTUP:` `overview`, `content`, `show2levels`…, `showall`, `showeverything`), the `VISIBILITY` property, archived subtrees and drawers folded, `hideblocks`; where Org shows a headline's children but not its text, the text shows
 - ✅ Blank lines after a subtree kept outside its fold (`org-cycle-separator-lines`)
 - ✅ Archived subtrees left folded (`org-cycle-hide-archived-subtrees`)
 - ✅ Sparse trees (`C-c /`)
