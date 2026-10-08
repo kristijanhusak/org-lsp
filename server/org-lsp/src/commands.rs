@@ -281,6 +281,8 @@ pub const SHIFT_LEFT: &str = "org.shift.left";
 pub const SHIFT_RIGHT: &str = "org.shift.right";
 pub const SCHEDULE: &str = "org.schedule";
 pub const DEADLINE: &str = "org.deadline";
+pub const SCHEDULE_REMOVE: &str = "org.schedule.remove";
+pub const DEADLINE_REMOVE: &str = "org.deadline.remove";
 pub const TIMESTAMP_INSERT: &str = "org.timestamp.insert";
 pub const TIMESTAMP_INSERT_INACTIVE: &str = "org.timestamp.insert.inactive";
 pub const TIMESTAMP_CHANGE: &str = "org.timestamp.change";
@@ -1086,6 +1088,10 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>oid")],
         ..ask_date(DEADLINE, "Set the deadline of the entry", "Deadline")
     },
+    // `C-u C-c C-s` and `C-u C-c C-d`: the date taken out; on an agenda
+    // line, of its entry.
+    Command { in_agenda: true, ..edit(SCHEDULE_REMOVE, "Remove the scheduled date of the entry") },
+    Command { in_agenda: true, ..edit(DEADLINE_REMOVE, "Remove the deadline of the entry") },
     Command {
         emacs: &[key(Org, "C-c .")],
         vim: &[key(Org, "<Leader>oi.")],

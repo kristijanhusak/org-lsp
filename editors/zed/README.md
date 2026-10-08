@@ -131,7 +131,7 @@ those dates in the file itself, where completion helps.
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Zed cannot ask for text on a server's behalf. Completion and renaming work. |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ❓ | Setting a property or the effort is left out: they are typed, and Zed cannot ask for text on a server's behalf. |
-| [Dates and times](../../docs/parity.md#dates-and-times) | 86% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Zed cannot ask for text on a server's behalf. Changing a timestamp works. |
+| [Dates and times](../../docs/parity.md#dates-and-times) | 88% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Zed cannot ask for text on a server's behalf. Changing a timestamp works. |
 | [Agenda](../../docs/parity.md#agenda) | 74% | ❓ | The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension). |
 | [Clocking](../../docs/parity.md#clocking) | 88% | ❓ | No clock in the status line: Zed has no place there for an extension's text. |
 | [Capture](../../docs/parity.md#capture) | 73% | ❓ | Templates with prompts are left out, and there is no capture buffer to type in: Zed cannot ask for text on a server's behalf. |
@@ -145,13 +145,13 @@ those dates in the file itself, where completion helps.
 | [Citations](../../docs/parity.md#citations) | 100% | ❓ | Inserting citations is not offered as a code action yet. Completion, hover and following work. |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. |
-| [Notes and logging](../../docs/parity.md#notes-and-logging) | 75% | ❌ | A note is typed text: Zed cannot ask for text on a server's behalf. |
+| [Notes and logging](../../docs/parity.md#notes-and-logging) | 100% | ❌ | A note is typed text: Zed cannot ask for text on a server's behalf. |
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ❓ | Structure templates, emphasis and drawers are not among Zed's code actions. |
 | [Timers](../../docs/parity.md#timers) | 60% | ❌ | Timers are left out: Zed cannot bind a key to a server's command (the commands are code actions), and they are not among them. |
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **72%** |  |  |
+| **All of Org** | **73%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

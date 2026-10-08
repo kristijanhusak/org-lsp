@@ -53,6 +53,10 @@ pub struct Settings {
     pub log_done: Option<Logging>,
     /// `org-log-repeat`
     pub log_repeat: Option<Logging>,
+    /// `org-log-reschedule`
+    pub log_reschedule: Option<Logging>,
+    /// `org-log-redeadline`
+    pub log_redeadline: Option<Logging>,
     /// `org-log-into-drawer`: the drawer state notes go into.
     pub log_into_drawer: Option<String>,
     /// `org-tags-column`
@@ -68,6 +72,8 @@ impl Default for Settings {
         Settings {
             log_done: None,
             log_repeat: Some(Logging::Time),
+            log_reschedule: None,
+            log_redeadline: None,
             log_into_drawer: None,
             tags_column: -77,
             repeat_to_state: RepeatTo::Head,
@@ -118,6 +124,38 @@ enum Purpose {
     State,
     /// `Note taken on`, of `org-add-note`.
     Note,
+    /// A planning date changed or removed.
+    Planning(PlanningChange),
+}
+
+/// A change of an entry's `SCHEDULED` or `DEADLINE` date, which
+/// `org-log-reschedule` and `org-log-redeadline` log.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlanningChange {
+    /// `Rescheduled from …`
+    Reschedule,
+    /// `Not scheduled, was …`
+    Unschedule,
+    /// `New deadline from …`
+    Redeadline,
+    /// `Removed deadline, was …`
+    Undeadline,
+}
+
+impl PlanningChange {
+    /// What the note buffer says the note is for (`org-add-log-note`).
+    pub fn purpose(self) -> &'static str {
+        match self {
+            PlanningChange::Reschedule => "rescheduling",
+            PlanningChange::Unschedule => "no longer scheduled",
+            PlanningChange::Redeadline => "changing deadline",
+            PlanningChange::Undeadline => "removing deadline",
+        }
+    }
+
+    fn is_deadline(self) -> bool {
+        matches!(self, PlanningChange::Redeadline | PlanningChange::Undeadline)
+    }
 }
 
 /// A note that waits to be written.
@@ -154,6 +192,8 @@ pub(crate) struct Editor<'a> {
 struct Log {
     done: Option<Logging>,
     repeat: Option<Logging>,
+    reschedule: Option<Logging>,
+    redeadline: Option<Logging>,
     into_drawer: Option<String>,
     /// The states that log when entered and when left; `None` for those
     /// the keywords say (`WAIT(w@/!)`).
@@ -169,6 +209,8 @@ impl Log {
         let mut log = Log {
             done: settings.log_done,
             repeat: settings.log_repeat,
+            reschedule: settings.log_reschedule,
+            redeadline: settings.log_redeadline,
             into_drawer: settings.log_into_drawer.clone(),
             states: None,
         };
@@ -202,6 +244,12 @@ impl Log {
             "logrepeat" => self.repeat = Some(Logging::Time),
             "lognoterepeat" => self.repeat = Some(Logging::Note),
             "nologrepeat" => self.repeat = None,
+            "logreschedule" => self.reschedule = Some(Logging::Time),
+            "lognotereschedule" => self.reschedule = Some(Logging::Note),
+            "nologreschedule" => self.reschedule = None,
+            "logredeadline" => self.redeadline = Some(Logging::Time),
+            "lognoteredeadline" => self.redeadline = Some(Logging::Note),
+            "nologredeadline" => self.redeadline = None,
             _ => return false,
         }
         true
@@ -828,6 +876,21 @@ impl<'a> Editor<'a> {
             Purpose::State => format!("State {:<12} from {:<12} {time}", quoted(&note.state), quoted(&note.previous)),
             Purpose::Done => format!("CLOSING NOTE {time}"),
             Purpose::Note => format!("Note taken on {time}"),
+            Purpose::Planning(change) => {
+                // `%S`: a timestamp as an inactive one, in quotes.
+                let old = note.previous.clone().unwrap_or_default();
+                let old = if old.len() > 2 && (old.starts_with('<') || old.starts_with('[')) {
+                    format!("\"[{}]\"", &old[1..old.len() - 1])
+                } else {
+                    format!("\"{old}\"")
+                };
+                match change {
+                    PlanningChange::Reschedule => format!("Rescheduled from {old} on {time}"),
+                    PlanningChange::Unschedule => format!("Not scheduled, was {old} on {time}"),
+                    PlanningChange::Redeadline => format!("New deadline from {old} on {time}"),
+                    PlanningChange::Undeadline => format!("Removed deadline, was {old} on {time}"),
+                }
+            }
         };
 
         let mut at = match self.log_into_drawer() {
@@ -1367,6 +1430,39 @@ pub fn add_note(
     Ok(editor.text)
 }
 
+/// What `change` logs in `text`: `org-log-reschedule` or
+/// `org-log-redeadline`, with the file's `#+STARTUP:` words
+/// (`logreschedule`, `lognoteredeadline`…) after them.
+pub fn planning_logging(settings: &Settings, text: &str, change: PlanningChange) -> Option<Logging> {
+    let log = Log::new(settings, text);
+    if change.is_deadline() {
+        log.redeadline
+    } else {
+        log.reschedule
+    }
+}
+
+/// `org-store-log-note` for `change` of the entry at byte `offset`: the
+/// note headed `Rescheduled from "[old]" on [now]` and the rest, with the
+/// text `note` (empty for a time only), at `org-log-beginning`.
+#[allow(clippy::too_many_arguments)]
+pub fn log_planning_change(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    settings: &Settings,
+    now: DateTime,
+    change: PlanningChange,
+    old: &str,
+    note: &str,
+) -> Result<String, String> {
+    let mut editor = Editor::new(text, keywords, settings, now);
+    editor.go_to_heading(offset)?;
+    let wanted = Note { purpose: Purpose::Planning(change), state: None, previous: Some(old.to_string()), text: true };
+    editor.store_note(&wanted, note);
+    Ok(editor.text)
+}
+
 /// A state change that may want a note.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Changed {
@@ -1459,6 +1555,7 @@ pub fn change_state_noted(
                 }
                 Purpose::Done => "closed todo item".to_string(),
                 Purpose::Note => "this entry".to_string(),
+                Purpose::Planning(change) => change.purpose().to_string(),
             };
             Some(WantedNote { purpose, state: wanted.state })
         }

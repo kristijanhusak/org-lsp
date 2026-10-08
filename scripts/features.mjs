@@ -315,7 +315,8 @@ export const AREAS = [
       ['The calendar with the prompt', true],
       ['Changing the part at the cursor (`S-<up>`, `S-<down>`), with ranges, repeaters and warnings', true],
       ['Moving a date by days (`S-<left>`, `S-<right>`)', true],
-      ['Removing a date or setting a delay (the prefix arguments)', false],
+      ['Removing a scheduled date or a deadline (`C-u C-c C-s`, `C-u C-c C-d`)', true],
+      ['Setting a delay or a warning period (`C-u C-u C-c C-s`)', false],
     ],
     editors: {
       vim: ['part', 'Dates are typed, without the calendar: the Vim plugin asks with an input line.'],
@@ -326,6 +327,7 @@ export const AREAS = [
     checks: [
       { text: 'Scheduling with `+2d`: `SCHEDULED: <…>` goes below the headline', cmd: 'org.schedule', not: ['zed', 'helix'] },
       { text: 'A deadline on `fri 10:00`', cmd: 'org.deadline', not: ['zed', 'helix'] },
+      { text: 'Removing the scheduled date and the deadline', cmd: ['org.schedule.remove', 'org.deadline.remove'] },
       { text: 'Inserting an active and an inactive timestamp; a second one right after makes a range', cmd: ['org.timestamp.insert', 'org.timestamp.insert.inactive'], not: ['zed', 'helix'] },
       { text: 'While typing the date, the answer shows what it means (`=> <2026-10-09 Fri>`)', only: ['neovim', 'vscode'] },
       { text: 'In the calendar: moving by day, week and month, scrolling months, today, picking a day', in: 'calendar', cmd: ['org.calendar.day.later', 'org.calendar.week.later', 'org.calendar.month.later', 'org.calendar.scroll.later', 'org.calendar.today', 'org.calendar.select'], only: ['neovim', 'vscode'] },
@@ -718,7 +720,7 @@ export const AREAS = [
       ['Notes (`org-add-note`), in the log or the `LOGBOOK` drawer', true],
       ['Notes and times on state changes', true],
       ['`LOG_INTO_DRAWER` and the `LOGGING` property', true],
-      ['Logging rescheduled dates and deadlines (`org-log-reschedule`, `org-log-redeadline`)', false],
+      ['Logging rescheduled dates and deadlines (`org-log-reschedule`, `org-log-redeadline`)', true],
     ],
     editors: {
       zed: ['no', `A note is typed text: ${ZED_TEXT}.`],
@@ -728,6 +730,7 @@ export const AREAS = [
       { text: 'Adding a note: a note buffer opens, and finishing writes it in the entry\'s log', cmd: 'org.add.note' },
       { text: 'With `LOG_INTO_DRAWER`, the note goes in `:LOGBOOK:`', cmd: 'org.add.note' },
       { text: 'Adding a note from the agenda', in: 'agenda', cmd: 'org.add.note' },
+      { text: 'With `org_log_reschedule` `"time"` (or `#+STARTUP: logreschedule`), rescheduling logs `Rescheduled from "[…]" on […]`; with `"note"` a note buffer opens for it', cmd: 'org.schedule', not: ['zed', 'helix'] },
     ],
   },
   {

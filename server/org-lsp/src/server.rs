@@ -326,6 +326,8 @@ struct Noting {
     context: Context,
     /// The state the note is for; empty for none.
     state: String,
+    /// For a date changed or removed: what, and the old date.
+    planning: Option<(org_core::todo::PlanningChange, String)>,
 }
 
 /// The notification that asks the editor to save files, `{ "uris": [...] }`.
@@ -3776,6 +3778,9 @@ impl Server {
             {
                 self.run_edit(id, context)
             }
+            commands::SCHEDULE_REMOVE | commands::DEADLINE_REMOVE => {
+                self.remove_date(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
             id if commands::input(id).is_some() => {
                 self.ask_date(id, &context.ok_or("This command needs the cursor position")?)
             }
@@ -3798,7 +3803,10 @@ impl Server {
         if !self.is_view(uri) {
             return Ok(Target::Place { uri: uri.clone(), position: context.position });
         }
-        if !matches!(id, commands::SCHEDULE | commands::DEADLINE) {
+        if !matches!(
+            id,
+            commands::SCHEDULE | commands::DEADLINE | commands::SCHEDULE_REMOVE | commands::DEADLINE_REMOVE
+        ) {
             return Err(Refusal::NotHere("This command works in Org files".to_string()));
         }
         let (line, row) = self.view_line(uri, context.position.line).ok_or("No entry on this line")?;
@@ -3921,6 +3929,34 @@ impl Server {
         let text = &source.text;
         let outcome =
             planning::run(command, text, source.offset, answer, repeated, now, &self.read_date, self.adapt_in(text))?;
+        self.apply_planning(id, target, &source, outcome)
+    }
+
+    /// `org-schedule` and `org-deadline` with `C-u`: the entry's date of
+    /// that kind taken out, and logged as `org_log_reschedule` and
+    /// `org_log_redeadline` say.
+    fn remove_date(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        let target = self.date_target(id, context)?;
+        let source = self.date_source(&target)?;
+        let command =
+            if id == commands::DEADLINE_REMOVE { PlanningCommand::Deadline } else { PlanningCommand::Schedule };
+        let outcome = planning::remove(command, &source.text, source.offset)?;
+        self.apply_planning(id, &target, &source, outcome)?;
+        Ok(Value::Null)
+    }
+
+    /// The change a command that asks for a date made, with what it logs:
+    /// the time at once, or a note asked for once the change is made.
+    fn apply_planning(
+        &mut self,
+        id: &str,
+        target: &Target,
+        source: &DateSource,
+        mut outcome: planning::Outcome,
+    ) -> std::result::Result<(), Refusal> {
+        let key = source.file.as_str().to_string();
+        let text = &source.text;
+        let wanted = self.log_planning(&mut outcome);
         let encoding = self.client.encoding;
         let index = LineIndex::new(text);
         let edits: Vec<TextEdit> = actions::edits_between(text, &outcome.text)
@@ -3963,7 +3999,52 @@ impl Server {
         self.edited.insert(key);
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
         self.apply_edit(params, pending);
+        // The note, in its buffer, for the entry where it now is.
+        if let Some(changed) = wanted {
+            let encoding = self.client.encoding;
+            let position = LineIndex::new(&outcome.text).position(&outcome.text, changed.heading, encoding);
+            let context: Context = serde_json::from_value(json!({
+                "textDocument": { "uri": source.file.as_str() },
+                "position": position,
+            }))
+            .map_err(|error| error.to_string())?;
+            let wanted = org_core::todo::WantedNote { purpose: changed.change.purpose().to_string(), state: None };
+            self.open_note(&context, id, wanted)?;
+            if let Some(note) = &mut self.note {
+                note.planning = Some((changed.change, changed.old));
+            }
+        }
         Ok(())
+    }
+
+    /// `org-log-reschedule` and `org-log-redeadline` for the date
+    /// `outcome` changed: the time logged in its text at once, or the
+    /// change returned when it wants a note, which an editor without a
+    /// note buffer logs without one.
+    fn log_planning(&self, outcome: &mut planning::Outcome) -> Option<planning::Changed> {
+        use org_core::todo;
+        use org_syntax::Logging;
+        let changed = outcome.changed.clone()?;
+        let settings = &self.edit_settings.todo;
+        let logging = todo::planning_logging(settings, &outcome.text, changed.change)?;
+        if logging == Logging::Note && self.client.date_prompt && self.client.show_document {
+            return Some(changed);
+        }
+        let keywords = org_syntax::parse(&outcome.text, &self.todo).todo_keywords().clone();
+        let now = self.date_time();
+        if let Ok(text) = todo::log_planning_change(
+            &outcome.text,
+            &keywords,
+            changed.heading,
+            settings,
+            now,
+            changed.change,
+            &changed.old,
+            "",
+        ) {
+            outcome.text = text;
+        }
+        None
     }
 
     /// `org-agenda-goto-date`: the agenda from the day `answer` names,
@@ -5498,6 +5579,7 @@ impl Server {
             id: id.to_string(),
             context: context.clone(),
             state: wanted.state.unwrap_or_default(),
+            planning: None,
         });
         let end = Position::new(2, 0);
         let params =
@@ -5528,8 +5610,9 @@ impl Server {
             text = text.trim_start_matches([' ', '\t', '\n']);
         }
         let text = text.trim_end();
-        let command = match note.id.as_str() {
-            commands::ADD_NOTE => EditCommand::Note,
+        let command = match (note.id.as_str(), &note.planning) {
+            (_, Some((change, old))) => EditCommand::PlanningNote { change: *change, old: old.clone() },
+            (commands::ADD_NOTE, _) => EditCommand::Note,
             _ => EditCommand::Todo(TodoTarget::State((!note.state.is_empty()).then(|| note.state.clone()))),
         };
         let extra = Extra { note: Some(text.to_string()), skip_note: cancelled, ..Extra::default() };

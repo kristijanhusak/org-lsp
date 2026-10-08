@@ -110,6 +110,7 @@ here and why.
 
 - [ ] Scheduling with `+2d`: `SCHEDULED: <…>` goes below the headline: `<Leader>ois`
 - [ ] A deadline on `fri 10:00`: `<Leader>oid`
+- [ ] Removing the scheduled date and the deadline: `:Org schedule remove`, `:Org deadline remove`
 - [ ] Inserting an active and an inactive timestamp; a second one right after makes a range: `<Leader>oi.`, `<Leader>oi!`
 - [ ] While typing the date, the answer shows what it means (`=> <2026-10-09 Fri>`)
 - [ ] In the calendar: moving by day, week and month, scrolling months, today, picking a day: `l` or `<S-Right>`, `j` or `<S-Down>`, `<M-S-Right>`, `>`, `.`, `<CR>`
@@ -276,6 +277,7 @@ here and why.
 - [ ] Adding a note: a note buffer opens, and finishing writes it in the entry's log: `<Leader>ona`
 - [ ] With `LOG_INTO_DRAWER`, the note goes in `:LOGBOOK:`: `<Leader>ona`
 - [ ] Adding a note from the agenda: `z` or `<Leader>ona`
+- [ ] With `org_log_reschedule` `"time"` (or `#+STARTUP: logreschedule`), rescheduling logs `Rescheduled from "[…]" on […]`; with `"note"` a note buffer opens for it: `<Leader>ois`
 
 ## Completion and editing helpers
 

@@ -125,7 +125,7 @@ the view at hand. To bind one yourself:
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ✅ |  |
-| [Dates and times](../../docs/parity.md#dates-and-times) | 86% | ❓ | Dates are typed, without the calendar: the package asks with an input panel. |
+| [Dates and times](../../docs/parity.md#dates-and-times) | 88% | ❓ | Dates are typed, without the calendar: the package asks with an input panel. |
 | [Agenda](../../docs/parity.md#agenda) | 74% | ✅ |  |
 | [Clocking](../../docs/parity.md#clocking) | 88% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 73% | ✅ |  |
@@ -139,13 +139,13 @@ the view at hand. To bind one yourself:
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. |
-| [Notes and logging](../../docs/parity.md#notes-and-logging) | 75% | ✅ |  |
+| [Notes and logging](../../docs/parity.md#notes-and-logging) | 100% | ✅ |  |
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ✅ |  |
 | [Timers](../../docs/parity.md#timers) | 60% | ✅ |  |
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **72%** |  |  |
+| **All of Org** | **73%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

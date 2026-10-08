@@ -9,7 +9,12 @@ A case is a JSON object:
       "answer": "fri 10:00",           what the user types at the date prompt
       "repeated": true,                optional: the same command ran just before
       "options": {"org_log_done": "time"}   optional: server settings
+      "note": "Moved"                  optional: the note a change asks for
     }
+
+The commands `schedule-remove` and `deadline-remove` are `org-schedule`
+and `org-deadline` with `C-u`, which take the date out; their answer is
+not read.
 
 `reference(cases)` adds two fields to each case. `expected` is the
 document after the command with ¦ where the cursor is, or `ERROR: …` when
@@ -32,13 +37,15 @@ from todo_reference import CURSOR, lisp_string, lisp_value, load, save  # noqa: 
 COMMANDS = {
     "schedule": "org-schedule",
     "deadline": "org-deadline",
+    "schedule-remove": "org-schedule",
+    "deadline-remove": "org-deadline",
     "timestamp": "org-timestamp",
     "timestamp-inactive": "org-timestamp-inactive",
 }
 
 DRIVER = r"""
 (defvar org-lsp-prompt nil)
-(defun org-lsp-planning-case (in out offset command answer repeated)
+(defun org-lsp-planning-case (in out offset command answer repeated &optional prefix)
   (remove-hook 'post-command-hook 'org-add-log-note)
   (setq org-log-setup nil)
   (setq org-lsp-prompt "")
@@ -49,6 +56,7 @@ DRIVER = r"""
                (org-mode)
                (goto-char (1+ offset))
                (let ((this-command command)
+                     (current-prefix-arg prefix)
                      (last-command (if repeated command 'ignore))
                      (org-read-date-popup-calendar nil))
                  (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t))
@@ -83,11 +91,14 @@ def reference(cases):
                 with open(source, "w", encoding="utf-8") as handle:
                     handle.write(case["text"].replace(CURSOR, "", 1))
                 outputs.append((case, target))
+                prefix = "'(4)" if case["command"].endswith("-remove") else "nil"
                 forms.append(
-                    f"(let ({shift_reference.bindings(case.get('options'))})\n"
+                    f"(let ({shift_reference.bindings(case.get('options'))}"
+                    f" (org-lsp-note-text {lisp_string(case.get('note', ''))}))\n"
                     f"  (org-lsp-planning-case {lisp_string(source)} {lisp_string(target)} {offset}"
                     f" '{COMMANDS[case['command']]} {lisp_string(case['answer'])}"
-                    f" {lisp_value(bool(case.get('repeated')))}))"
+                    f" {lisp_value(bool(case.get('repeated')))}"
+                    f" {prefix}))"
                 )
             driver = os.path.join(directory, "driver.el")
             with open(driver, "w", encoding="utf-8") as handle:

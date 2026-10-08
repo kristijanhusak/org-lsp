@@ -474,5 +474,164 @@
   },
   "expected": "#+TODO: A B C\nText before the first headline <2027-04-15 +12d>-[2027-04-07 Sat +1d]\n**  A [#5] x  y\nDEADLINE:  <2035-07-23 Mon 0:07 +>---<2018-11-03 sáb> SCHEDULED: [2027-04-15 sáb 00:00 -]--<2035-07-10 10:00 +1d foo>\n* C  [#]  with [[https://x.org][link]]¦ :a:\n  DEADLINE: <2027-04-22 Thu -1y> SCHEDULED: [2028-03-07 sáb 00:00 +1y  >\n  plain text\n** C[#D] x  y\n# <2027-04-17 Sun .+2d/4d -2w>\n",
   "prompt": "09:30"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed>\n",
+  "command": "schedule",
+  "answer": "fri",
+  "options": {
+   "org_log_reschedule": "time"
+  },
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-22 Fri>\n- Rescheduled from \"[2026-05-20 Wed]\" on [2026-05-18 Mon 10:30]",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed>\nBody\n",
+  "command": "schedule",
+  "answer": "fri",
+  "options": {
+   "org_log_reschedule": "time",
+   "org_log_into_drawer": true
+  },
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-22 Fri>\n:LOGBOOK:\n- Rescheduled from \"[2026-05-20 Wed]\" on [2026-05-18 Mon 10:30]\n:END:\nBody\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-20 Wed>\n",
+  "command": "deadline",
+  "answer": "+3",
+  "options": {
+   "org_log_redeadline": "note"
+  },
+  "note": "Pushed back",
+  "expected": "* TODO a¦\nDEADLINE: <2026-05-21 Thu>\n- New deadline from \"[2026-05-20 Wed]\" on [2026-05-18 Mon 10:30] \\\\\n  Pushed back",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed>\n",
+  "command": "schedule",
+  "answer": "2026-05-20",
+  "options": {
+   "org_log_reschedule": "time"
+  },
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed +1w>\n",
+  "command": "schedule",
+  "answer": "2026-05-20",
+  "options": {
+   "org_log_reschedule": "time"
+  },
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed +1w>\n- Rescheduled from \"[2026-05-20 Wed +1w]\" on [2026-05-18 Mon 10:30]",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+STARTUP: logreschedule\n* TODO a¦\nSCHEDULED: <2026-05-20 Wed>\n",
+  "command": "schedule",
+  "answer": "fri",
+  "expected": "#+STARTUP: logreschedule\n* TODO a¦\nSCHEDULED: <2026-05-22 Fri>\n- Rescheduled from \"[2026-05-20 Wed]\" on [2026-05-18 Mon 10:30]",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+STARTUP: lognoteredeadline\n* TODO a¦\nDEADLINE: <2026-05-20 Wed 10:00>\n",
+  "command": "deadline",
+  "answer": "fri",
+  "note": "Line one\nLine two",
+  "expected": "#+STARTUP: lognoteredeadline\n* TODO a¦\nDEADLINE: <2026-05-22 Fri>\n- New deadline from \"[2026-05-20 Wed 10:00]\" on [2026-05-18 Mon 10:30] \\\\\n  Line one\n  Line two",
+  "prompt": "10:00"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n",
+  "command": "schedule",
+  "answer": "fri",
+  "options": {
+   "org_log_reschedule": "time"
+  },
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-22 Fri>\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed> DEADLINE: <2026-05-25 Mon>\n",
+  "command": "schedule-remove",
+  "answer": "",
+  "options": {
+   "org_log_reschedule": "time"
+  },
+  "expected": "* TODO a¦\nDEADLINE: <2026-05-25 Mon>\n- Not scheduled, was \"[2026-05-20 Wed]\" on [2026-05-18 Mon 10:30]",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-25 Mon>\nBody\n",
+  "command": "deadline-remove",
+  "answer": "",
+  "options": {
+   "org_log_redeadline": "time",
+   "org_log_into_drawer": true
+  },
+  "expected": "* TODO a¦\n:LOGBOOK:\n- Removed deadline, was \"[2026-05-25 Mon]\" on [2026-05-18 Mon 10:30]\n:END:\nBody\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nBody\n",
+  "command": "schedule-remove",
+  "answer": "",
+  "options": {
+   "org_log_reschedule": "time"
+  },
+  "expected": "* TODO a¦\nBody\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE a¦\nCLOSED: [2026-05-17 Sun 09:00] SCHEDULED: <2026-05-20 Wed>\n",
+  "command": "schedule-remove",
+  "answer": "",
+  "expected": "* DONE a¦\nCLOSED: [2026-05-17 Sun 09:00]\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed>\n",
+  "command": "schedule-remove",
+  "answer": "",
+  "expected": "* TODO a¦\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed>\n:PROPERTIES:\n:X: 1\n:END:\nBody\n",
+  "command": "schedule",
+  "answer": "+2",
+  "options": {
+   "org_log_reschedule": "time",
+   "org_log_into_drawer": true
+  },
+  "expected": "* TODO a¦\nSCHEDULED: <2026-05-20 Wed>\n:PROPERTIES:\n:X: 1\n:END:\nBody\n",
+  "prompt": ""
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a¦\n  SCHEDULED: <2026-05-20 Wed> DEADLINE: <2026-05-25 Mon>\n",
+  "command": "deadline-remove",
+  "answer": "",
+  "options": {
+   "org_log_redeadline": "note"
+  },
+  "note": "Gone",
+  "expected": "* TODO a¦\n  SCHEDULED: <2026-05-20 Wed>\n  - Removed deadline, was \"[2026-05-25 Mon]\" on [2026-05-18 Mon 10:30] \\\\\n    Gone",
+  "prompt": ""
  }
 ]
