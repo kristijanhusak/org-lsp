@@ -66,6 +66,11 @@ others), as close to Emacs Org mode as it can get.
 
 ### Where to pick up
 
+A feature that lands is marked done in `scripts/features.mjs`, with what
+each editor makes of it and the checks to try by hand: the feature tables
+of README.md and the editors' READMEs, `docs/parity.md` and the editors'
+`TESTING.md` are written from it (`node scripts/generate-docs.mjs`).
+
 As of #103 (2026-10-07). Every milestone is done; what is left is
 smaller, each a PR or a few, checked against Emacs where Org decides the
 outcome (the sections below say more):

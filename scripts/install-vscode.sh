@@ -46,7 +46,7 @@ if $source; then
   npm ci --silent
   npm run --silent build
   npm run --silent bundle-server
-  npx --no-install vsce package --no-dependencies --out "$work/org-lsp.vsix"
+  npx --no-install vsce package --no-dependencies --baseContentUrl https://github.com/kristijanhusak/org-lsp/blob/HEAD/editors/vscode --baseImagesUrl https://github.com/kristijanhusak/org-lsp/raw/HEAD/editors/vscode --out "$work/org-lsp.vsix"
   vsix=$work/org-lsp.vsix
 else
   # VS Code's name for this platform, as the release names its packages.

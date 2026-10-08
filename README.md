@@ -8,99 +8,67 @@ edits. An editor needs only a thin shim (start the server, map highlight
 groups, bind keys), and editors without a plugin system still get whatever
 standard LSP can carry.
 
-**Status: early.** The parser, the agenda, TODO state changes, priorities
-and timestamp changes are checked against Emacs (Org 9.8.10) and match it
-on the test corpus. Much of Org is
-still missing; see [Not done yet](#not-done-yet).
+**Status:** most of Org works in Neovim, Vim, VS Code and Sublime Text;
+[What works](#what-works) says how much of each part of Org, and
+[docs/parity.md](docs/parity.md) what is missing.
 
 ## What works
 
-| Feature | Neovim | VS Code | Vim | Sublime Text | Zed | Helix |
-| --- | --- | --- | --- | --- | --- | --- |
-| Highlighting (semantic tokens) | yes | yes | yes | yes⁶ | yes⁷ | no¹ |
-| Code in its language's colors (`org-src-fontify-natively`): source and export blocks, inline source blocks (`src_python{…}`) | yes, with the language's tree-sitter parser, else its Vim syntax file (Emacs Lisp) | yes, for the languages VS Code ships | yes, with the language's syntax file | yes, for the languages Sublime Text ships | blocks, with `"semantic_tokens": "combined"` | no |
-| Folding | yes, with `<Tab>` / `<S-Tab>` cycling | yes, with `Tab` / `Shift+Tab` cycling | yes, with `<Tab>` / `<S-Tab>` cycling | yes, with `Tab` / `Shift+Tab` cycling | Zed's own | no² |
-| Concealing: links show their description, emphasis markers can hide (`org-link-descriptive`, `org-hide-emphasis-markers`) | yes | yes | no | no | no | no¹ |
-| Outline (document symbols) | yes | yes | through the client | yes | yes | yes |
-| Virtual indentation (`org-indent-mode`, `#+STARTUP: indent`) and hidden leading stars, without changing the file | yes, but not on wrapped lines | yes, but not on wrapped lines | yes (Vim 9.0.0067 or later), but not on wrapped lines | the indentation, as phantoms; the stars show | the indentation, as inlay hints (`"inlay_hints": { "enabled": true }`); the stars show | the indentation, as inlay hints (`display-inlay-hints`); the stars show |
-| Indentation, as `org-indent-line` and `org-indent-region` do it, under `org_adapt_indentation` (`org-adapt-indentation`); what commands write is indented the same way | new lines (`indentexpr`), `=` | new lines (format on type), Format Selection | no | Format Selection | format selections | `=` |
-| Formatting: tables aligned (`org-table-align`) and headlines' tags in their column (`org-align-tags`), in the whole file or in a range (with the range's indentation) | `vim.lsp.buf.format()`, with a range or in Visual mode; `=` | Format Document, Format Selection | the client's format commands | LSP: Format File, LSP: Format Selection | editor: format, format selections | `:format`, `=` |
-| RET as Org's `org-return`: the next row in a table, a headline split with its tags kept, the rest of a list item's line kept in the item; indented as Org indents. With `return_uses_meta_return`, or with `<S-CR>` in Vim and Neovim, on an item's line the next item, numbered as M-RET numbers it | `<CR>`, `<S-CR>` in insert mode | Enter | `<CR>`, `<S-CR>` in insert mode | Enter | no | no |
-| New headings, items and table rows as Org's M-RET, M-S-RET, C-RET and C-S-RET make them (`org-meta-return`, `org-insert-todo-heading`, and their `respect-content` forms): items with checkboxes, numbers and cookies put right, blank lines kept as around them | `<Leader><CR>`, `<Leader>oiT`, `<Leader>oih`, `<Leader>oit`, below the cursor's line, then typing on in insert mode | `Alt+Enter`, `Alt+Shift+Enter`, `Ctrl+Enter`, `Ctrl+Shift+Enter` | `<Leader><CR>`, `<Leader>oiT`, `<Leader>oih`, `<Leader>oit`, below the cursor's line, then typing on in insert mode | `Alt+Enter`, `Alt+Shift+Enter`, `Ctrl+Enter`, `Ctrl+Shift+Enter` | code actions | no |
-| Promoting, demoting and moving subtrees, as `org-do-promote`, `org-promote-subtree` and `org-move-subtree-up` do (tags aligned again, text indented with `org_adapt_indentation`); indenting a drawer or block | `<<`, `>>`, `<s`, `>s`, `<Leader>oK`, `<Leader>oJ` | `Alt+Left`/`Right`, `Alt+Shift+Left`/`Right`, `Alt+Up`/`Down` | `<<`, `>>`, `<s`, `>s`, `<Leader>oK`, `<Leader>oJ` | `Alt+Left`/`Right`, `Alt+Shift+Left`/`Right`, `Alt+Up`/`Down` | code actions | code actions |
-| List items: indenting, outdenting and moving them alone or with their children, as `org-indent-item`, `org-outdent-item-tree` and `org-move-item-up` do; cycling the bullets (`org-cycle-list-bullet`); the next and previous item; `C-c C-c` putting the list right (numbers, bullets, indentation) | `>>`, `<<`, `>s`, `<s`, `<Leader>oJ`, `<Leader>oK`, `<S-Left>`/`<S-Right>`, `<C-Space>` | `Alt+arrows`, `Alt+Shift+Left`/`Right`, `Shift+arrows`, `Ctrl+C Ctrl+C` | `>>`, `<<`, `>s`, `<s`, `<Leader>oJ`, `<Leader>oK`, `<S-Left>`/`<S-Right>`, `<C-Space>` | `Alt+arrows`, `Alt+Shift+Left`/`Right`, `Shift+arrows`, `Ctrl+C Ctrl+C` | code actions, but not the bullets | code actions, but not the bullets |
-| Cutting, copying and pasting subtrees, as `org-cut-subtree`, `org-copy-subtree` and `org-paste-subtree` do (levels fitted to where they go), through the editor's register or clipboard | `<Leader>osd`, `<Leader>osy`, `<Leader>osp` | `Ctrl+C Ctrl+X Ctrl+W`, `Ctrl+C Ctrl+X Alt+W`, `Ctrl+C Ctrl+X Ctrl+Y` | `<Leader>osd`, `<Leader>osy`, `<Leader>osp` | `Ctrl+C Ctrl+X Ctrl+W`, `Ctrl+C Ctrl+X Alt+W`, `Ctrl+C Ctrl+X Ctrl+Y` | code actions | code actions |
-| Sorting entries, as `org-sort-entries` does (alphabetically, by number, priority, property, TODO order, date, scheduled, deadline, creation or clocked time) | `<Leader>o^` | `Ctrl+C ^` | `<Leader>o^` | `Ctrl+C ^` | code actions | code actions |
-| Sparse trees, as `org-sparse-tree` makes them (regexp, TODO entries, keywords, tags and properties, deadlines, dates): everything folded but the matches, which are highlighted | `<Leader>o/` | `Ctrl+C /` | `<Leader>o/` | `Ctrl+C /` | no | no |
-| TODO state changes, as `org-todo` does them, with fast selection by key and notes (`TODO(t)`, `WAIT(w@/!)`) | `cit` / `ciT`, repeatable with `.` | `Ctrl+C Ctrl+T`, `Shift+Left`/`Right`, `Ctrl+.` | `cit` / `ciT`, repeatable with `.` | `Ctrl+C Ctrl+T`, `Shift+Left`/`Right` | code actions (`ctrl-.`) | `Space a` |
-| Checkboxes, as `C-c C-c` toggles them on an item and `org-toggle-checkbox` under a headline, with parent boxes and the cookies that count them (`[1/3]`, `[33%]`) | `<C-Space>` | `Ctrl+C Ctrl+C`, `Ctrl+.` | `<C-Space>` | `Ctrl+C Ctrl+C` | code actions | `Space a` |
-| Tags, as `org-set-tags-command` sets them: picked by key from `#+TAGS:` or `org_tag_alist` (fast tag selection, with exclusive groups) or typed, sorted and aligned; also from the agenda | `<Leader>ot` | `Ctrl+C Ctrl+Q` | `<Leader>ot` | `Ctrl+C Ctrl+Q` | no | no |
-| Properties: set (`org-set-property`, the name and the value completed, the allowed values of `NAME_ALL` offered), deleted from the entry or the whole file, `C-c C-c` in a drawer; `S-<left>`/`S-<right>` through the allowed values; the effort (`Effort_ALL`) and `ORDERED`; also from the agenda | `<Leader>oxp`, `<Leader>oxe`, `<S-Left>`/`<S-Right>` | `Ctrl+C Ctrl+X P`, `Ctrl+C Ctrl+X E`, `Shift+Left`/`Shift+Right` | `<Leader>oxp`, `<Leader>oxe` | `Ctrl+C Ctrl+X P`, `Ctrl+C Ctrl+X E` | no | no |
-| Priorities, as `org-priority` changes them | `ciR` / `cir`, `<Leader>o,` | commands, `Ctrl+.` | `ciR` / `cir`, `<Leader>o,` | `Shift+Up`/`Down`, `Ctrl+C ,` | code actions | `Space a` |
-| Timestamps: the part at the cursor, or the date by days | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>`, with counts | commands, `Ctrl+.` | `<C-a>` / `<C-x>`, `<S-Up>` / `<S-Down>` | `Shift+arrows` | code actions | `Space a` |
-| Schedule, deadline, insert a timestamp: dates typed as at Org's prompt, or picked in Emacs's calendar | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!` | commands, with a preview of the date | `<Leader>ois`, `<Leader>oid`, `<Leader>oi.`, `<Leader>oi!`; dates typed | `Ctrl+C Ctrl+S`, `Ctrl+C Ctrl+D`, `Ctrl+C .`, `Ctrl+C !`; dates typed | no⁸ | no⁴ |
-| Completion: TODO keywords and tags in headlines, `#+` keywords and `#+STARTUP:` values, drawers and property names, entities, and in links file names, headlines and custom IDs | with an LSP completion plugin | yes | through the client | yes | yes | yes |
-| Agenda: tags at the right edge of the window, following it as it is resized (`org_agenda_tags_column` `"auto"`, as Org's default); TAB shows an entry in another window (an empty one, or a new one), RET where the agenda is | yes | tags at column 80; TAB in another group | yes | yes | tags at column 80; TAB in a split | no³ |
-| Agenda: day, week, fortnight, month and year views, going to a date | yes | yes | yes, as a file | yes, as a file | code actions, as a file; no going to a date | no³ |
-| Agenda: list of all TODO entries, tags and property searches (`m`, `M`, group tags standing for their groups), stuck projects (`#`), entry text (`E`), filters by tag, category, effort, regexp and top headline (`/`, `\`, `<`, `_`, `=`, `^`, `\|`), searches for words, phrases and regexps (`s`, `S`, as `org-search-view`; `[`, `]`, `{`, `}` to search again with another word or regexp), custom commands and block agendas (`org-agenda-custom-commands`) | yes | yes | yes | yes | code actions; no searches | no³ |
-| Agenda: bulk marks and actions (`m`, `u`, `U`, `*`, `%`, `M-m`, `M-*`; `B` to archive, set a TODO state, add or remove a tag, schedule, set a deadline, refile or scatter all marked entries at once) | yes | yes | yes | yes | code actions | no³ |
-| Agenda: follow mode (`F`), the entry of the cursor's line in another window as the cursor moves | yes | yes, in another group | yes | yes, in another group | no | no³ |
-| Agenda: a hover over a line shows its entry, the headline and its text up to the next heading, each drawer folded to its first line (`:PROPERTIES:...`) | `K`, highlighted | the mouse, or `Ctrl+K Ctrl+I` | `K`, highlighted; the client's hover (`:LspHover`, coc.nvim's `doHover`, `:ALEHover`) | the mouse, or a key bound to LSP's `lsp_hover` | the mouse, or `Ctrl+K Ctrl+I` (`K` and `g h` with vim mode) | no³ |
-| Tag and property inheritance (`org_use_tag_inheritance`, `org_tags_exclude_from_inheritance`, `org_use_property_inheritance`): file tags, parents' tags and properties in the agenda's tags and property searches, inherited tags shown in the agenda | yes | yes | yes | yes | yes | no³ |
-| Agenda lines formatted as Org formats them, to your taste: `org_agenda_prefix_format` (`org-agenda-prefix-format`, with the category, time, leader, effort, level, last tag and breadcrumbs), the leaders of scheduled entries, deadlines and ranges, `todoKeywordFormat`, `removeTags`, `formatDate`; in custom commands and their blocks too | yes | yes | yes | yes | yes | no³ |
-| Tangling, as `org-babel-tangle` does it: `:tangle`, header arguments from properties and `#+HEADER:`, Noweb references, comments, `:shebang`, `:tangle-mode`, `:mkdirp` | `<Leader>obt` | `Ctrl+C Ctrl+V t`, `Ctrl+.` in a block | `<Leader>obt` | `Ctrl+C Ctrl+V t` | code actions in a block | `Space a` in a block |
-| Export and publishing, by Emacs itself (`org-export-dispatch`): Org's menu with the backends your Emacs has (HTML, LaTeX and PDF, plain text, ODT, iCalendar, Markdown and others once loaded), body only, the subtree at the cursor, publishing projects; the file or buffer it makes is shown. Needs Emacs (`emacs`, `emacs_config_file`, `emacs_config`) | `<Leader>oe` | `Ctrl+C Ctrl+E` | `<Leader>oe` | `Ctrl+C Ctrl+E` | no | no |
-| Evaluating code blocks, by Emacs itself (Babel): `C-c C-c` on a block, a `#+CALL:` line or inline code, the file's or the subtree's blocks, removing results; Emacs asks before it evaluates, in the editor. Needs Emacs, with the languages loaded in `emacs_config` (`org-babel-do-load-languages`) | `<C-Space>`, `<Leader>obe`, `<Leader>obb`, `<Leader>obs`, `<Leader>obk` | `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+V e`/`b`/`s`/`k` | `<C-Space>`, `<Leader>obe`, `<Leader>obb`, `<Leader>obs`, `<Leader>obk` | `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+V e`/`b`/`s`/`k` | code actions in a block | `Space a` in a block |
-| Table editing, as `org-table.el` does it: `TAB`/`S-TAB` from field to field (a row made past the last), moving, inserting and deleting columns and rows, rules, blanking a field, sorting the rows; the `#+TBLFM:` line follows the columns and rows | `<Tab>`/`<S-Tab>` on a table line, `<<`/`>>`, `<s`/`>s`, `<Leader>oK`/`<Leader>oJ`, `<Leader>oTd`, `<Leader>oTO`/`<Leader>oTo`, `<Leader>o-`, `<Leader>o<CR>`, `<Leader>o<Space>`, `<Leader>o^` | `Tab`/`Shift+Tab`, `Alt+arrows`, `Alt+Shift+arrows`, `Ctrl+C -`, `Ctrl+C Enter`, `Ctrl+C ^` | `<Tab>`/`<S-Tab>` on a table line, `<<`/`>>`, `<s`/`>s`, `<Leader>oK`/`<Leader>oJ`, `<Leader>oTd`, `<Leader>oTO`/`<Leader>oTo`, `<Leader>o-`, `<Leader>o<CR>`, `<Leader>o<Space>`, `<Leader>o^` | `Tab`/`Shift+Tab`, `Alt+arrows`, `Alt+Shift+arrows`, `Ctrl+C -`, `Ctrl+C Enter`, `Ctrl+C ^` | code actions in a table | `Space a` in a table |
-| Table formulas, as `org-table-recalculate` applies the `#+TBLFM:` line: column, field and range formulas, references by row, column, hline and name, parameters and constants, Calc's arithmetic, vectors, dates and durations, and its modes and formats (`;%.2f`, `;N`, `;T`); iterating until the table is stable | `<Leader>o*`; `<C-Space>` on a `#+TBLFM:` line | `Ctrl+C *` (the cursor's line), `Ctrl+C Ctrl+C` on a `#+TBLFM:` line, `Ctrl+.` in a table | `<Leader>o*`; `<C-Space>` on a `#+TBLFM:` line | `Ctrl+C *`, `Ctrl+C Ctrl+C` on a `#+TBLFM:` line | code actions in a table | `Space a` in a table |
-| Refile, as `org-refile` does it, between files too | `<Leader>or` | command | `<Leader>or` | `Ctrl+C Ctrl+W` | code actions | no⁴ |
-| Following links, as `org-open-at-point` does: headlines, targets, custom IDs, `file:` links with search options, `id:` links, URLs, timestamps (their day's agenda), tags, footnotes, an entry's links to pick from; in the agenda the line's entry's links | `<Leader>oo`, go to definition | `Ctrl+C Ctrl+O`, go to definition | `<Leader>oo` | `Ctrl+C Ctrl+O` | go to definition (internal and file links) | go to definition |
-| Storing and inserting links, as `org-store-link` and `org-insert-link` do: a link to the headline, its `CUSTOM_ID` or `ID` (`org_id_link_to_org_use_id`), a `#+NAME:` or a `<<target>>`; inserted with a description, relative to the file, the link at the cursor edited; also from the agenda; the last or all stored links at once | `<Leader>ols`, `<Leader>oli` | `Ctrl+C L`, `Ctrl+C Ctrl+L`, `Ctrl+C Alt+L` | `<Leader>ols`, `<Leader>oli` | `Ctrl+C L`, `Ctrl+C Ctrl+L` | no: Zed cannot ask for text | no⁴ |
-| Links as an editor sees them: clickable (document links, a place in a file as its line), a hover shows the link and the entry it leads to; backlinks (references: the links to an entry by its ID, headline or custom ID, in every file); headlines of every file (workspace symbols); renaming a headline (the links that search for it follow) or a tag (in every headline and `#+FILETAGS:` / `#+TAGS:`, aligned again) | LSP's hover, references, rename, workspace symbols | yes | through the client | yes | yes | yes |
-| Diagnostics from Org's linter (`org-lint`): misplaced headings and planning lines, links to nowhere, duplicate names and IDs, Babel header arguments and values Org does not know, footnotes without definitions, blocks and drawers left open, macros, includes, priorities, timestamps and clock lines that do not read back, deprecated syntax… (`org_lint`, `org_lint_ignore`) | yes | yes | through the client | yes | yes | yes |
-| Citations (`[cite:@key]`, as Org's `oc-basic` reads them): the bibliography of `#+BIBLIOGRAPHY:` and `org_cite_global_bibliography` (BibTeX and CSL-JSON); keys completed after `@`, a key's entry on hover, following a key to its entry, unknown keys marked with the close keys to put instead | yes | yes | yes | yes | yes | yes |
-| Inserting citations, as `org-cite-insert` does (`C-c C-x @`): keys picked from the bibliography, a key added or replaced on a citation, its style changed; with the prefix argument a citation or a reference deleted | `<Leader>oic`, `<Leader>oiC` | `Ctrl+C Ctrl+X @` | `<Leader>oic`, `<Leader>oiC` | `Ctrl+C Ctrl+X @` | no | no |
-| Notes, as `org-add-note` takes them, in the entry's log or its drawer; in the agenda `z` | `<Leader>ona`, in a note buffer | `Ctrl+C Ctrl+Z` | `<Leader>ona` | `Ctrl+C Ctrl+Z` | no: Zed cannot ask for text | no⁴ |
-| Archiving, as `org-archive-subtree`, `org-archive-to-archive-sibling` and `org-toggle-archive-tag` do it: archive locations (`org_archive_location`, `ARCHIVE` properties, `#+ARCHIVE:`, date trees), the context kept as `ARCHIVE_…` properties, all done subtrees at once | `<Leader>o$`, `<Leader>oxA`, `<Leader>oA`; `$` and `a` in the agenda | `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Ctrl+X A`, `Ctrl+C Ctrl+X a`; `$` and `a` in the agenda | `<Leader>o$`, `<Leader>oxA`, `<Leader>oA`; `$` and `a` in the agenda | `Ctrl+C Ctrl+X Ctrl+S`, `Ctrl+C Ctrl+X A`, `Ctrl+C Ctrl+X a`; `$` and `a` in the agenda | code actions | `Space a` |
-| Archived subtrees: left out of the agenda unless asked for (`v a`, `v A` with the archive files, `org-agenda-archives-mode`), closed when cycling opens what is around them (`org-cycle-hide-archived-subtrees`), shaded (`org-archived`) | `va`, `vA` in the agenda; `<Tab>`, `<S-Tab>` | `v a`, `v A` in the agenda; `Tab`, `Shift+Tab` | `va`, `vA` in the agenda; `<Tab>`, `<S-Tab>` | `v a`, `v A` in the agenda; shaded | code actions; shaded | shaded |
-| Capture, as `org-capture` does it: templates (entries, plain text, items, checkboxes, table lines), targets (headlines, outline paths, regexps, date trees, IDs, the clock), prompts, a capture buffer | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | commands; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | `<Leader>oc`; in the buffer `<C-c>`, `<Leader>ok`, `<Leader>or` | `Ctrl+C c`; in the buffer `Ctrl+C Ctrl+C`, `Ctrl+C Ctrl+K`, `Ctrl+C Ctrl+W` | code actions, templates without text prompts | no⁴ |
-| Agenda: change an entry's state, priority or date, schedule it or set its deadline, go to its entry | yes | yes | yes | yes | code actions, without dates asked for | no³ |
-| The time clocked under each headline (`org-clock-display`), as inlay hints until the next change | `<Leader>oxd` | `Ctrl+C Ctrl+X Ctrl+D` | `<Leader>oxd`, with the client's inlay hints on | with `show_inlay_hints` on | with inlay hints on | with `display-inlay-hints` on |
-| Clock tables (`#+BEGIN: clocktable`), as `org-clock-report` and `org-dblock-update` write them, with every parameter (`:scope`, `:block`, `:step`, `:maxlevel`, `:link`, `:formula`…); the shifted cursor keys on the `#+BEGIN:` line move the block | `<Leader>oxr`, `<Leader>oxu` | `Ctrl+C Ctrl+X Ctrl+R`, `Ctrl+C Ctrl+X Ctrl+U` | `<Leader>oxr`, `<Leader>oxu` | `Ctrl+C Ctrl+X Ctrl+R`, `Ctrl+C Ctrl+X Ctrl+U` | code actions | `Space a` |
-| Clocking, as `org-clock-in` and `org-clock-out` do it, with the clock in the status line; the clock history (`org-clock-in` with a count, `org-clock-in-last`); dangling clocks and idle time resolved | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`, `<Leader>oxx`; `clock_status()` | commands; the status bar | `<Leader>oxi`, `<Leader>oxo`, `<Leader>oxq`, `<Leader>oxj`, `<Leader>oxx`; `org_lsp#clock_status()` | `Ctrl+C Ctrl+X Ctrl+I`, `Ctrl+C Ctrl+X Ctrl+O`; the status bar | code actions | `Space a`⁵ |
-| Agenda: the clocked entry highlighted, log mode (what was closed and clocked each day), the clock report | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | `I`, `O`, `X`, `vl`, `R` | `I`, `O`, `X`, `J`, `l`, `R` | code actions | no³ |
+How much of what Emacs Org does org-lsp does, area by area, and how far
+each editor goes with it. Each editor's README has the same table with
+what does not work there and why, and its TESTING.md lists what to try by
+hand: [Neovim](editors/neovim/README.md), [Vim](editors/vim/README.md),
+[VS Code](editors/vscode/README.md),
+[Sublime Text](editors/sublime/README.md), [Zed](editors/zed/README.md),
+[Helix](editors/helix/README.md).
 
-¹ Helix does not consume semantic tokens; it highlights Org with its own grammar.
-² Helix has no folding.
-³ Helix cannot open a document on a server's request. `org-lsp agenda FILE...` prints the agenda in a terminal.
-⁴ Helix has no way to ask for text on a server's behalf.
-⁵ Through the commands Helix lists; it has no status line for the clock.
-⁶ With LSP's `semantic_highlighting` on. The Sublime Text package is
-checked with stand-ins for Sublime Text and its LSP package, not in Sublime
-Text itself.
-⁷ With `"semantic_tokens": "combined"` for Org in Zed's settings.
-⁸ Zed cannot run a server's command from a key or ask for text on its
-behalf: the commands are in its code actions, and what they ask for is
-asked with buttons (a state, a priority, a target, yes or no), but no date
-or text can be.
+<!-- BEGIN generated: features -->
+
+| Feature | Parity | Neovim / Vim / VS Code / Sublime Text / Zed / Helix |
+| --- | --- | --- |
+| [Highlighting](docs/parity.md#highlighting) | 83% | ✅ / ❓ / ✅ / ❓ / ❓ / ❌ |
+| [Folding and visibility](docs/parity.md#folding-and-visibility) | 67% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
+| [Headings and structure](docs/parity.md#headings-and-structure) | 55% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
+| [Lists and checkboxes](docs/parity.md#lists-and-checkboxes) | 73% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [TODO keywords](docs/parity.md#todo-keywords) | 83% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [Priorities](docs/parity.md#priorities) | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
+| [Tags](docs/parity.md#tags) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [Properties and column view](docs/parity.md#properties-and-column-view) | 67% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [Dates and times](docs/parity.md#dates-and-times) | 86% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
+| [Agenda](docs/parity.md#agenda) | 74% | ✅ / ✅ / ❓ / ✅ / ❓ / ❌ |
+| [Clocking](docs/parity.md#clocking) | 88% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [Capture](docs/parity.md#capture) | 50% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
+| [Refile and archive](docs/parity.md#refile-and-archive) | 55% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
+| [Links](docs/parity.md#links) | 56% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [Footnotes](docs/parity.md#footnotes) | 50% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
+| [Tables](docs/parity.md#tables) | 44% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [Table formulas](docs/parity.md#table-formulas) | 50% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
+| [Code blocks (Babel)](docs/parity.md#code-blocks-babel) | 55% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [Export and publishing](docs/parity.md#export-and-publishing) | 56% | ✅ / ✅ / ✅ / ✅ / ❌ / ❌ |
+| [Citations](docs/parity.md#citations) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [Diagnostics (org-lint)](docs/parity.md#diagnostics-org-lint) | 97% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
+| [Indentation and formatting](docs/parity.md#indentation-and-formatting) | 83% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
+| [Notes and logging](docs/parity.md#notes-and-logging) | 75% | ✅ / ✅ / ✅ / ✅ / ❌ / ❌ |
+| [Completion and editing helpers](docs/parity.md#completion-and-editing-helpers) | 25% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
+| [Timers](docs/parity.md#timers) | 0% | — / — / — / — / — / — |
+| [Attachments](docs/parity.md#attachments) | 0% | — / — / — / — / — / — |
+| [Encryption](docs/parity.md#encryption) | 0% | — / — / — / — / — / — |
+| [Inline images and LaTeX previews](docs/parity.md#inline-images-and-latex-previews) | 0% | — / — / — / — / — / — |
+| **All of Org** | **60%** |  |
+
+✅ all that org-lsp does works there, ❓ some does not (the editor's
+README says what and why), ❌ none does, — nothing to support yet.
+Parity is the share of what Emacs Org does in that area that org-lsp
+does; [docs/parity.md](docs/parity.md) lists both.
+
+<!-- END generated -->
 
 Tested with Neovim 0.11.0 and 0.12.5, VSCodium 1.135, Vim 9.1 (with yegappan/lsp, vim-lsp, coc.nvim and ALE) and Helix 25.07.1.
 
-**TODO state changes** follow Org: tags return to their column, statistics
-cookies in the parent are recounted, `CLOSED:` and state notes are logged
-when configured, and an entry with a repeater moves to its next date.
-
-**Priorities and timestamps** change as Org's `S-<up>` and its relatives
-change them: the priority of the entry, or the year, month, day, hour or
-minute under the cursor, with time ranges, repeaters, warning periods and
-`CLOCK:` durations kept in step. A `#+PRIORITIES:` line is honoured.
-
-**The agenda** shows scheduled entries, deadlines with their warnings,
-timestamps, date ranges and the time grid, sorted as in Org, and is
-rebuilt when its files change. It matches the output of Emacs's
-`org-batch-agenda` line for line on the test corpus. A change made from
-the agenda edits the entry's file in the editor and saves it (`auto_save`;
-off, it is left for you to save, as in Emacs).
+What org-lsp does, it does as Emacs does: each command is checked against
+Emacs (Org 9.8.10) on a test corpus and on random documents, and matches
+it there. Export and Babel's evaluation are Emacs itself, run by the
+server when Emacs is installed.
 
 ## Install
 
@@ -348,15 +316,8 @@ both programs on them. See
 
 ## Not done yet
 
-- Agenda: habits and diary entries;
-  custom commands of those types.
-- Table formulas in Emacs Lisp, remote references, units and Calc's
-  fractions and symbolic mode;
-  tangling's Emacs Lisp
-  (evaluated header arguments, `<<block()>>`), and other languages' `:var`.
-- The shifted cursor keys do nothing yet in tables (Org moves the field
-  there).
-- Fold cycling is still done by the Neovim plugin, not by the server.
+[docs/parity.md](docs/parity.md) lists what Emacs Org does that org-lsp
+does not yet, area by area; PLAN.md says in what order it comes.
 
 ## Licence
 
