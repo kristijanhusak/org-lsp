@@ -249,6 +249,10 @@ pub struct Options {
     pub refile_use_outline_path: Option<OutlinePathOption>,
     /// `org-refile-allow-creating-parent-nodes`: `false`, `true` or
     /// `"confirm"`.
+    /// `org-pretty-entities`: entities (`\\alpha`) shown as their
+    /// character.
+    #[serde(rename = "org_pretty_entities")]
+    pub pretty_entities: Option<bool>,
     #[serde(rename = "org_refile_allow_creating_parent_nodes")]
     pub refile_allow_creating_parent_nodes: Option<LogOption>,
     /// `org-refile-target-verify-function`: the name of an Emacs Lisp

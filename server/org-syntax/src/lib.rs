@@ -41,6 +41,12 @@ pub fn plain_link_end(text: &str, at: usize) -> Option<usize> {
 pub fn entity_names() -> &'static [&'static str] {
     entities::ENTITIES
 }
+
+/// What the entity `name` (`alpha`) is in UTF-8 (`α`), as `org-entities`
+/// has it.
+pub fn entity_utf8(name: &str) -> Option<&'static str> {
+    entities::ENTITIES.binary_search(&name).ok().map(|index| entities::UTF8[index])
+}
 pub use kind::{OrgLanguage, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
 pub use rowan::{TextRange, TextSize, TokenAtOffset};
 

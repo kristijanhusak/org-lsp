@@ -604,6 +604,8 @@ struct Server {
     auto_save: bool,
     /// What the highlighting marks as hidden.
     conceal: highlight::Conceal,
+    /// `org-pretty-entities`
+    pretty_entities: bool,
     /// `org-complete-tags-always-offer-all-agenda-tags`
     all_agenda_tags: bool,
     /// The files to save once the edit request with this id is applied.
@@ -914,6 +916,7 @@ pub fn run(connection: Connection) -> Result<()> {
         return_uses_meta_return: options.return_uses_meta_return.unwrap_or(false),
         calendar_months: options.calendar_months.unwrap_or(3),
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
+        pretty_entities: options.pretty_entities.unwrap_or(false),
         conceal: highlight::Conceal {
             links: options.link_descriptive.unwrap_or(true),
             emphasis: options.hide_emphasis_markers.unwrap_or(false),
@@ -1937,6 +1940,15 @@ impl Server {
         let radio: Vec<(usize, usize)> =
             org_core::radio::links(&document.text, &document.parse).iter().map(|link| (link.start, link.end)).collect();
         let tokens = highlight::with_radio_links(tokens, &radio);
+        // `org-pretty-entities`: an entity hidden, its character an inlay
+        // hint in its place.
+        let tokens = if self.pretty_entities {
+            let hidden: Vec<(usize, usize)> =
+                org_core::pretty::entities(&document.text).into_iter().map(|(start, end, _)| (start, end)).collect();
+            highlight::with_hidden(tokens, &hidden)
+        } else {
+            tokens
+        };
         let only = range.map(|range| document.index.text_range(&document.text, range, encoding));
         let data = highlight::encode(&tokens, &document.text, &document.index, encoding, only);
         Some(SemanticTokens { result_id: None, data })
@@ -1983,6 +1995,16 @@ impl Server {
                     .filter(|line| line.prefix > 0 && (first..=last).contains(&line.line))
                     .map(|line| hint(line.line as u32, 0, " ".repeat(line.prefix))),
             );
+        }
+        // `org-pretty-entities`: the character of each entity, whose text
+        // the tokens hide.
+        if self.pretty_entities {
+            for (start, _, utf8) in org_core::pretty::entities(text) {
+                let at = document.index.position(text, start, self.client.encoding);
+                if (first..=last).contains(&(at.line as usize)) {
+                    hints.push(hint(at.line, at.character, utf8.to_string()));
+                }
+            }
         }
         // `org-clock-display`: the time after each headline, its line
         // filled with dots up to column 60, as Emacs's overlay shows it.

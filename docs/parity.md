@@ -11,7 +11,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 
 | Feature | Parity | Done |
 | --- | --- | --- |
-| [Highlighting](#highlighting) | 92% | 11 of 12 |
+| [Highlighting](#highlighting) | 92% | 12 of 13 |
 | [Folding and visibility](#folding-and-visibility) | 67% | 6 of 9 |
 | [Headings and structure](#headings-and-structure) | 100% | 12 of 12 |
 | [Lists and checkboxes](#lists-and-checkboxes) | 91% | 10 of 11 |
@@ -42,7 +42,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 
 ## Highlighting
 
-92% (11 of 12)
+92% (12 of 13)
 
 - ✅ Headlines by level, TODO keywords, priorities and tags
 - ✅ Emphasis, verbatim and code
@@ -55,13 +55,14 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 - ✅ Footnotes, targets, macros, entities and LaTeX fragments
 - ✅ Archived subtrees shaded (`org-archived`)
 - ✅ Radio targets turning their words into links: highlighted, followed, document links
-- ❌ Entities and sub- and superscripts shown as characters (`org-pretty-entities`)
+- ✅ Entities shown as their characters (`org-pretty-entities`): hidden, the character an inlay hint in their place
+- ❌ Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`)
 
 Where editors fall short:
 
-- Vim ❓: Links and emphasis markers are not concealed: Vim cannot hide text that has text properties.
-- Sublime Text ❓: Links and emphasis markers are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's `semantic_highlighting` on.
-- Zed ❓: Links and emphasis markers are not concealed: Zed lets no server hide text. The colors need `"semantic_tokens": "combined"`; code blocks take their language's colors, inline code does not.
+- Vim ❓: Links, emphasis markers and pretty entities are not concealed: Vim cannot hide text that has text properties.
+- Sublime Text ❓: Links, emphasis markers and pretty entities are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's `semantic_highlighting` on.
+- Zed ❓: Links, emphasis markers and pretty entities are not concealed: Zed lets no server hide text. The colors need `"semantic_tokens": "combined"`; code blocks take their language's colors, inline code does not.
 - Helix ❌: Helix does not use semantic tokens: it colors Org with its own tree-sitter grammar.
 
 ## Folding and visibility
