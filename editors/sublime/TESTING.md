@@ -295,3 +295,8 @@ here and why.
 - [ ] Pausing and continuing; stopping: `Ctrl+C Ctrl+X ,`, `Ctrl+C Ctrl+X _`
 - [ ] A countdown asks for its length (`1` for a minute); when it ends, `Heading: time out` is shown: `Ctrl+C Ctrl+X ;`
 - [ ] On an entry with an effort the countdown takes it, without asking: `Ctrl+C Ctrl+X ;`
+
+## Attachments
+
+- [ ] Attaching a file by copying it: the entry gets an ID and the `ATTACH` tag, the file goes in its directory (needs Emacs): `Ctrl+C Ctrl+A`
+- [ ] An `attachment:` link opens the attached file (needs Emacs): `Ctrl+C Ctrl+O`

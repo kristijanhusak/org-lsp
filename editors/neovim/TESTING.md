@@ -305,3 +305,8 @@ here and why.
 - [ ] Pausing and continuing; stopping: `<Leader>ox,`, `<Leader>ox_`
 - [ ] A countdown asks for its length (`1` for a minute); when it ends, `Heading: time out` is shown: `<Leader>ox;`
 - [ ] On an entry with an effort the countdown takes it, without asking: `<Leader>ox;`
+
+## Attachments
+
+- [ ] Attaching a file by copying it: the entry gets an ID and the `ATTACH` tag, the file goes in its directory (needs Emacs): `<Leader>oxa`
+- [ ] An `attachment:` link opens the attached file (needs Emacs): `<Leader>oo`

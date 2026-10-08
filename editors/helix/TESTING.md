@@ -214,3 +214,9 @@ here and why.
 ## Timers
 
 **Not in Helix:** Timers are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and they are not among them.
+
+## Attachments
+
+**Partly:** `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and it is not among them.
+
+- [ ] An `attachment:` link opens the attached file (needs Emacs): the code action *Open the link or thing at the cursor*

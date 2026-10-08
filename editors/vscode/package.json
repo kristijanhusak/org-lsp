@@ -321,6 +321,11 @@
         "category": "Org"
       },
       {
+        "command": "org.attach",
+        "title": "Attachments of the entry",
+        "category": "Org"
+      },
+      {
         "command": "org.todo",
         "title": "Change the TODO state",
         "category": "Org"
@@ -3836,6 +3841,11 @@
       {
         "command": "org.dblock.insert",
         "key": "ctrl+c ctrl+x x",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.attach",
+        "key": "ctrl+c ctrl+a",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

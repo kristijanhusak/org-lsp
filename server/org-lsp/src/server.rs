@@ -2967,7 +2967,24 @@ impl Server {
         let parse = org_syntax::parse(&text, &self.todo);
         let answer = context.input.as_deref().and_then(|input| input.chars().next());
         let call = |link: &str, list: &[(String, String)]| self.expand_abbreviation(link, list);
-        let opened = open::at_point_calling(&text, &parse, offset, answer, &self.link_abbreviations, Some(&call))?;
+        let mut opened = open::at_point_calling(&text, &parse, offset, answer, &self.link_abbreviations, Some(&call))?;
+        // `org-attach-follow`: the file in the entry's attachment
+        // directory, as Emacs finds it.
+        if let Open::Attachment(link) = &opened {
+            let (name, search) = match link.rfind("::") {
+                Some(at) => (&link[..at], Some(&link[at..])),
+                None => (link.as_str(), None),
+            };
+            let path = uri::to_path(&uri).ok_or("Only a file on disk has attachments")?;
+            let point = text[..offset].chars().count() + 1;
+            let params = json!({ "file": path.to_string_lossy(), "text": text, "point": point, "name": name });
+            let found = self
+                .emacs
+                .call("attach-expand", params, std::time::Duration::from_secs(60))
+                .map_err(Refusal::Failed)?;
+            let full = found.as_str().ok_or("No attachment directory for this entry")?;
+            opened = open::file_link(&format!("{full}{}", search.unwrap_or("")));
+        }
         match &opened {
             Open::External(url) => {
                 let target = url.parse::<Uri>().map_err(|_| format!("Cannot open {url}"))?;
@@ -2998,6 +3015,7 @@ impl Server {
                 } }));
             }
             Open::Nothing(message) => self.message = Some(message.clone()),
+            Open::Attachment(_) => return Err("No attachment directory for this entry".into()),
             // `org-cite-basic-goto`: the entry of the key, picked among
             // the citation's when it has more than one.
             Open::Citation(keys) => {
@@ -4022,6 +4040,7 @@ impl Server {
                 Ok(json!({ "message": "Temporary highlights/overlays removed from current buffer" }))
             }
             commands::DBLOCK_INSERT => self.dblock_insert(&context.ok_or("This command needs the cursor position")?),
+            commands::ATTACH => self.attach(&context.ok_or("This command needs the cursor position")?),
             id @ (commands::CLOCK_REPORT | commands::DBLOCK_UPDATE) => {
                 self.clocktable(id, &context.ok_or("This command needs the cursor position")?)
             }
@@ -7681,6 +7700,20 @@ impl Server {
                         .and_then(Value::as_f64)
                         .map(|left| std::time::Instant::now() + std::time::Duration::from_secs_f64(left));
                     self.emacs_edited(&uri, version, &text, point, &result);
+                    // What the command opened (an attachment, its
+                    // directory), the system opens; what it visited (a new
+                    // attachment), the editor.
+                    let opened = |key: &str| {
+                        result.get(key).and_then(Value::as_str).and_then(|path| uri::from_path(Path::new(path)))
+                    };
+                    if let Some(target) = opened("opened") {
+                        self.show_external(target);
+                    }
+                    if let Some(target) = opened("visited") {
+                        let params =
+                            ShowDocumentParams { uri: target, external: None, take_focus: Some(true), selection: None };
+                        self.send_request::<ShowDocument>(params, None);
+                    }
                 }
                 (None, _) => {}
             },
@@ -9457,6 +9490,86 @@ impl Server {
             self.message = Some(message);
         }
         self.carried(context, org_core::newline::Outcome { text: done.text, cursor: done.cursor })
+    }
+
+    /// `org-attach` (`C-c C-a`): a command of Org's dispatcher, by key, then
+    /// what it asks for, and Emacs runs it: the attachment directory made
+    /// or changed, the entry's `ID` or `DIR` and `ATTACH` tag set; what it
+    /// opens, the editor or the system opens.
+    fn attach(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        const COMMANDS: [(&str, &str); 14] = [
+            ("a", "Attach a file, as org_attach_method says"),
+            ("c", "Attach a file by copying it"),
+            ("m", "Attach a file by moving it"),
+            ("l", "Attach a file by a hard link"),
+            ("y", "Attach a file by a symbolic link"),
+            ("u", "Attach a file from a URL"),
+            ("n", "Create a new attachment"),
+            ("z", "Synchronize with the attachment directory"),
+            ("o", "Open an attachment"),
+            ("f", "Open the attachment directory"),
+            ("d", "Delete an attachment"),
+            ("D", "Delete all attachments"),
+            ("s", "Set the attachment directory (DIR)"),
+            ("S", "Unset the attachment directory"),
+        ];
+        let key = context.step.clone().or_else(|| context.input.clone());
+        let Some(key) = key else {
+            let choices: Vec<Value> =
+                COMMANDS.iter().map(|(key, label)| json!({ "key": key, "label": label })).collect();
+            return Ok(json!({ "input": { "kind": "key", "prompt": "Attachments", "value": "", "choices": choices } }));
+        };
+        if !COMMANDS.iter().any(|(known, _)| *known == key) {
+            return Err(format!("No attachment command under {key}").into());
+        }
+        // What the command reads, answered: the input once the key is the
+        // step.
+        let answer = context.step.as_ref().and(context.input.clone());
+        let ask = |prompt: &str| json!({ "input": { "kind": "text", "prompt": prompt, "value": "", "context": { "step": key } } });
+        let answer = match (key.as_str(), answer) {
+            ("a" | "c" | "m" | "l" | "y", None) => return Ok(ask("File to keep as an attachment")),
+            ("u", None) => return Ok(ask("URL of the file to attach")),
+            ("n", None) => return Ok(ask("Create attachment named")),
+            ("s", None) => return Ok(ask("Attachment directory")),
+            ("o" | "d", None) => {
+                // The attachments to pick from (`org-attach-file-list`).
+                let uri = &context.text_document.uri;
+                let path = uri::to_path(uri).ok_or("Only a file on disk has attachments")?;
+                let document = self.document(uri).ok_or("This file is not open")?;
+                let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+                let point = document.text[..offset].chars().count() + 1;
+                let params = json!({ "file": path.to_string_lossy(), "text": document.text, "point": point });
+                let files = self
+                    .emacs
+                    .call("attach-files", params, std::time::Duration::from_secs(60))
+                    .map_err(Refusal::Failed)?;
+                let files: Vec<String> = files
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|file| file.as_str().map(str::to_string))
+                    .collect();
+                match files.as_slice() {
+                    [] if key == "d" => return Err("No attachments".into()),
+                    // One attachment opens at once (`org-attach-open`).
+                    [] | [_] => String::new(),
+                    _ => {
+                        let prompt = if key == "o" { "Open attachment" } else { "Delete attachment" };
+                        let choices: Vec<Value> =
+                            files.iter().map(|file| json!({ "key": file, "label": file })).collect();
+                        return Ok(json!({ "input": {
+                            "kind": "choice",
+                            "prompt": prompt,
+                            "value": "",
+                            "choices": choices,
+                            "context": { "step": key },
+                        } }));
+                    }
+                }
+            }
+            (_, answer) => answer.unwrap_or_default(),
+        };
+        self.emacs_run_with("org-lsp-bridge-attach", vec![json!(key), json!(answer)], context)
     }
 
     /// `org-dynamic-block-insert-dblock` (`C-c C-x x`): which block, then a

@@ -148,10 +148,10 @@ those dates in the file itself, where completion helps.
 | [Notes and logging](../../docs/parity.md#notes-and-logging) | 100% | ❌ | A note is typed text: Zed cannot ask for text on a server's behalf. |
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ❓ | Structure templates, emphasis and drawers are not among Zed's code actions. |
 | [Timers](../../docs/parity.md#timers) | 80% | ❌ | Timers are left out: Zed cannot bind a key to a server's command (the commands are code actions), and they are not among them. |
-| [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
+| [Attachments](../../docs/parity.md#attachments) | 100% | ❓ | `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Zed cannot bind a key to a server's command (the commands are code actions), and it is not among them. |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **82%** |  |  |
+| **All of Org** | **86%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

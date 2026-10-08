@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 82%**
+**All of Org: 86%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -36,7 +36,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Notes and logging](#notes-and-logging) | 100% | 4 of 4 |
 | [Completion and editing helpers](#completion-and-editing-helpers) | 100% | 4 of 4 |
 | [Timers](#timers) | 80% | 4 of 5 |
-| [Attachments](#attachments) | 0% | 0 of 2 |
+| [Attachments](#attachments) | 100% | 2 of 2 |
 | [Encryption](#encryption) | 0% | 0 of 1 |
 | [Inline images and LaTeX previews](#inline-images-and-latex-previews) | 0% | 0 of 2 |
 
@@ -498,10 +498,15 @@ Where editors fall short:
 
 ## Attachments
 
-0% (0 of 2)
+100% (2 of 2)
 
-- ❌ Attaching files to an entry (`C-c C-a`)
-- ❌ `attachment:` links
+- ✅ Attaching files to an entry (`C-c C-a`): attaching, opening, deleting, synchronizing, the directory set (through Emacs)
+- ✅ `attachment:` links (through Emacs)
+
+Where editors fall short:
+
+- Zed ❓: `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Zed cannot bind a key to a server's command (the commands are code actions), and it is not among them.
+- Helix ❓: `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and it is not among them.
 
 ## Encryption
 

@@ -92,6 +92,8 @@ fn opening_matches_emacs() {
                 json!({ "agenda": format!("{:04}-{:02}-{:02}", date.year, date.month, date.day), "span": span })
             }
             Ok(Open::Tags(tag)) => json!({ "tags": tag }),
+            // Emacs's to find, in the entry's attachment directory.
+            Ok(Open::Attachment(path)) => json!({ "attachment": path }),
             Ok(Open::Nothing(_)) => goto(name, &text, offset),
             Ok(Open::Choose(_)) => json!({ "error": "asked twice" }),
             Ok(Open::Citation(keys)) => json!({ "citation": keys }),
