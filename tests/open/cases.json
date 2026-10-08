@@ -756,5 +756,157 @@
   "expected": {
    "external": "https://not-an-id/abc"
   }
+ },
+ {
+  "files": {
+   "a.org": "* Intro\nA <<<my target>>> is here.\n* Later\nLater, My Target¦ appears.\n"
+  },
+  "note": "radio link, case ignored",
+  "expected": {
+   "error": "No link found"
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Intro\n<<<my target>>>\n* Later\nText my   tar¦get end\n"
+  },
+  "note": "radio link, blanks",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Intro\n<<<cat>>>\n* Later\nconcatenate ca¦ts\n"
+  },
+  "note": "radio target inside a word",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 4,
+    "column": 14
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Intro\n<<<cat>>>\n* Later\nthe ca¦t.\n"
+  },
+  "note": "radio link before a period",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Intro\n<<<cat>>>\n* Later\nthe =ca¦t= here\n"
+  },
+  "note": "radio target in verbatim",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 4,
+    "column": 7
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Intro\n<<<new york>>> and <<<york>>>\n* Later\nI love new yo¦rk\n"
+  },
+  "note": "longest radio target first",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Intro\n<<<new york>>> and <<<york>>>\n* Later\nI love yo¦rk\n"
+  },
+  "note": "shorter radio target",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 19
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* About the ca¦t\n<<<cat>>>\n"
+  },
+  "note": "radio link in a headline",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Intro\n<<<ca¦t>>>\n"
+  },
+  "note": "on the radio target",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 5
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Intro\n<<<cat>>>\n* Later\n- a ca¦t item\n"
+  },
+  "note": "radio link in an item",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Intro\n<<<cat>>>\n* Later\n| a | ca¦t |\n"
+  },
+  "note": "radio link in a table",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Intro\n<<<cat>>>\n* Later\n*bold ca¦t*\n"
+  },
+  "note": "radio link in bold",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   }
+  }
  }
 ]

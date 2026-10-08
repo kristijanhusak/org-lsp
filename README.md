@@ -26,7 +26,7 @@ hand: [Neovim](editors/neovim/README.md), [Vim](editors/vim/README.md),
 
 | Feature | Parity | Neovim / Vim / VS Code / Sublime Text / Zed / Helix |
 | --- | --- | --- |
-| [Highlighting](docs/parity.md#highlighting) | 83% | ✅ / ❓ / ✅ / ❓ / ❓ / ❌ |
+| [Highlighting](docs/parity.md#highlighting) | 92% | ✅ / ❓ / ✅ / ❓ / ❓ / ❌ |
 | [Folding and visibility](docs/parity.md#folding-and-visibility) | 67% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
 | [Headings and structure](docs/parity.md#headings-and-structure) | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [Lists and checkboxes](docs/parity.md#lists-and-checkboxes) | 91% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |

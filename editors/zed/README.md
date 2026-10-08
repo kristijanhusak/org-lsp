@@ -123,7 +123,7 @@ those dates in the file itself, where completion helps.
 
 | Feature | Parity | Zed | What does not work, and why |
 | --- | --- | --- | --- |
-| [Highlighting](../../docs/parity.md#highlighting) | 83% | ❓ | Links and emphasis markers are not concealed: Zed lets no server hide text. The colors need `"semantic_tokens": "combined"`; code blocks take their language's colors, inline code does not. |
+| [Highlighting](../../docs/parity.md#highlighting) | 92% | ❓ | Links and emphasis markers are not concealed: Zed lets no server hide text. The colors need `"semantic_tokens": "combined"`; code blocks take their language's colors, inline code does not. |
 | [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 67% | ❓ | Zed folds with its own folding: Org's cycling and sparse trees need folds an extension can set, which Zed does not offer. |
 | [Headings and structure](../../docs/parity.md#headings-and-structure) | 100% | ❓ | Moving between headings, `org-goto` and the commands run by Emacs (`C-c *`, `C-c ;`, cloning) are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. |
 | [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 91% | ❓ | `RET` stays Zed's own, bullets are not cycled and lines not turned into items: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. |
