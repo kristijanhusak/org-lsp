@@ -45,7 +45,7 @@ let g:org_lsp = {
 | `settings` | `{}` | The server's options; see [docs/configuration.md](../configuration.md). The shared `~/.config/org-lsp/config.toml` is read too. |
 | `client` | `'auto'` | The LSP client: `'lsp'` (yegappan/lsp), `'vim-lsp'`, `'coc'` or `'ale'`. `'auto'` takes the first of these that is installed. |
 | `folding` | `1` | Fold with the server's folding ranges, and cycle with `<Tab>` / `<S-Tab>`. |
-| `startup_folded` | `'showeverything'` | `'overview'` opens files folded. |
+| `startup_folded` | `''` | `'overview'` opens files with every fold closed, `'showeverything'` with every fold open. Empty: the server's `org_startup_folded`, the file's `#+STARTUP:` and its `VISIBILITY` properties decide, as in Emacs. |
 | `highlight` | `1` | Highlight with the server's tokens. |
 | `virtual_indent` | `1` | Show files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`) indented by level without changing them, and their hidden leading stars in the color of the background, as Org's `org-hide` face does. Text properties of their own text: Vim 9.0.0067 or later. |
 | `src_highlight` | `1` | Highlight the code of source and export blocks (`#+begin_src python`, `#+begin_export html`) and of inline source blocks (`src_python{…}`, to the first `}`) with the syntax file of its language, as Emacs's `org-src-fontify-natively` does. |

@@ -849,6 +849,37 @@
       "description": "With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`)",
       "default": 2
     },
+    "org_startup_folded": {
+      "enum": [
+        "overview",
+        "fold",
+        "content",
+        "show2levels",
+        "show3levels",
+        "show4levels",
+        "show5levels",
+        "showeverything",
+        "nofold",
+        "showall"
+      ],
+      "description": "How files show when opened: `\"overview\"` (or `\"fold\"`) only the top headlines, `\"content\"` all the headlines, `\"show2levels\"` to `\"show5levels\"` the headlines down to that level, `\"showeverything\"` (or `\"nofold\"`, `\"showall\"`) everything. `#+STARTUP:` decides for a file. Unless everything shows, a subtree's `VISIBILITY` property (`folded`, `children`, `content`, `all`) decides for it, archived subtrees are folded, and drawers too. Folds hide whole subtrees, so where Org shows a headline's children but not its text, the text shows. (`org-startup-folded`)",
+      "default": "showeverything"
+    },
+    "org_cycle_hide_block_startup": {
+      "type": "boolean",
+      "description": "Fold blocks when a file opens folded (`org_startup_folded`). `#+STARTUP: hideblocks` and `nohideblocks` decide for a file. (`org-cycle-hide-block-startup`)",
+      "default": false
+    },
+    "org_cycle_hide_drawer_startup": {
+      "type": "boolean",
+      "description": "Fold drawers when a file opens folded (`org_startup_folded`). (`org-cycle-hide-drawer-startup`)",
+      "default": true
+    },
+    "org_cycle_open_archived_trees": {
+      "type": "boolean",
+      "description": "Leave archived subtrees open when a file opens folded (`org_startup_folded`). (`org-cycle-open-archived-trees`)",
+      "default": false
+    },
     "org_adapt_indentation": {
       "enum": [
         true,

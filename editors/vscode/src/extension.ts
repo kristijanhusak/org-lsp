@@ -909,6 +909,35 @@ const fold = (lines: number[]) =>
   lines.length > 0
     ? vscode.commands.executeCommand('editor.fold', { levels: 1, direction: 'up', selectionLines: lines })
     : undefined;
+/** The files whose startup folds were closed: once each, as Org sets them when it visits a file. */
+const startupFolded = new Set<string>();
+
+/**
+ * The folds the server says a file opens with closed (`org_startup_folded`,
+ * `#+STARTUP:`, `VISIBILITY` properties), closed the first time the file is
+ * the active editor.
+ */
+async function foldAtStartup(editor: vscode.TextEditor | undefined): Promise<void> {
+  const document = editor?.document;
+  const key = document?.uri.toString();
+  if (!document || !key || document.languageId !== 'org' || startupFolded.has(key) || !client?.isRunning()) {
+    return;
+  }
+  startupFolded.add(key);
+  const result = (await client.sendRequest('org-lsp/startupFolds', { textDocument: { uri: key } })) as {
+    folds?: { startLine: number }[];
+  } | null;
+  const lines = (result?.folds ?? []).map((range) => range.startLine);
+  if (lines.length === 0) {
+    return;
+  }
+  // The editor folds with the server's ranges once it has them.
+  await foldingRanges(document);
+  if (vscode.window.activeTextEditor?.document === document) {
+    await fold(lines);
+  }
+}
+
 const unfoldAll = (line: number) =>
   vscode.commands.executeCommand('editor.unfold', { levels: 1000, direction: 'down', selectionLines: [line] });
 
@@ -1151,7 +1180,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     vscode.commands.registerCommand('org-lsp.agenda.close', () => vscode.commands.executeCommand('workbench.action.closeActiveEditor')),
     // A cycle goes on from the last one only when nothing came between.
     vscode.window.onDidChangeActiveTextEditor(() => (lastCycle = undefined)),
+    vscode.window.onDidChangeActiveTextEditor(foldAtStartup),
+    vscode.workspace.onDidCloseTextDocument((document) => startupFolded.delete(document.uri.toString())),
   );
+  void foldAtStartup(vscode.window.activeTextEditor);
   context.subscriptions.push(
     prefixDecoration,
     hiddenStarDecoration,

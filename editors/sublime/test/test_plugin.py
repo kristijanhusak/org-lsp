@@ -188,6 +188,7 @@ def load_plugin():
     sublime.Region = Region
     sublime.OP_EQUAL, sublime.OP_NOT_EQUAL = 0, 1
     sublime.set_timeout = lambda f, delay=0: f()
+    sublime.set_timeout_async = lambda f, delay=0: f()
     sublime.LAYOUT_INLINE = 0
     sublime.HIDE_ON_MOUSE_MOVE_AWAY = 2
     sublime.DRAW_NO_OUTLINE = 256
@@ -458,6 +459,18 @@ class Tests(unittest.TestCase):
         self.assertEqual(self.folded_rows(), [2, 4, 6])
         cycle()
         self.assertEqual(self.folded_rows(), [])
+
+    def test_a_file_opens_with_the_folds_the_server_says_closed(self):
+        session = Session([('result', {'folds': [{'startLine': 2, 'endLine': 3}, {'startLine': 0, 'endLine': 5}]})])
+        session.window = self.window
+        plugin = self.plugin.OrgLsp(lambda: session)
+        opened = types.SimpleNamespace(method='textDocument/didOpen', params={'textDocument': {'uri': 'file:///notes/work.org'}})
+        plugin.on_pre_send_notification_async(opened)
+        self.assertEqual(session.sent, [('org-lsp/startupFolds', {'textDocument': {'uri': 'file:///notes/work.org'}})])
+        self.assertEqual(self.folded_rows(), [0, 2])
+        # Other notifications and other files ask nothing.
+        plugin.on_pre_send_notification_async(types.SimpleNamespace(method='textDocument/didChange', params={}))
+        self.assertEqual(len(session.sent), 1)
 
     def test_the_contexts_of_the_keys(self):
         listener = self.plugin.OrgLspListener()

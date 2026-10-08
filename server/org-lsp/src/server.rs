@@ -435,6 +435,10 @@ pub const SAVE: &str = "org-lsp/save";
 pub const AGENDA_WIDTH: &str = "org-lsp/agendaWidth";
 /// The entry of an agenda line with its highlighting, for a popup.
 pub const PREVIEW: &str = "org-lsp/preview";
+/// The folds of a file closed when it opens (`org-startup-folded`, its
+/// `#+STARTUP:`, `VISIBILITY` properties), innermost first: `{ "folds":
+/// [FoldingRange…] }`. Params: `{ "textDocument" }`.
+pub const STARTUP_FOLDS: &str = "org-lsp/startupFolds";
 /// From the client: the cursor moved to another line of the agenda, `{
 /// "textDocument", "position" }`. In follow mode (`F`) the entry there
 /// shows in another window.
@@ -722,6 +726,8 @@ struct Server {
     prompt_copy: Option<Document>,
     /// `org-cycle-separator-lines`
     separator_lines: i64,
+    /// How files show when they are opened.
+    startup: folding::Startup,
     /// `org-adapt-indentation` and its relatives.
     indent: org_core::indent::Settings,
     /// `org-startup-indented` and `org-hide-leading-stars`.
@@ -1012,6 +1018,7 @@ pub fn run(connection: Connection) -> Result<()> {
         date_prompt: None,
         prompt_copy: None,
         separator_lines: options.separator_lines(),
+        startup: options.startup(),
         indent: options.indent_settings(),
         display: options.display(),
         virtually_indented: HashSet::new(),
@@ -1800,6 +1807,10 @@ impl Server {
                         }
                         Err(response) => response,
                     },
+                    STARTUP_FOLDS => match parameters::<FoldingRangeParams>(request) {
+                        Ok((id, params)) => respond(id, self.startup_folds(&params.text_document)),
+                        Err(response) => response,
+                    },
                     PREVIEW => match parameters::<Value>(request) {
                         Ok((id, params)) => respond(id, self.preview(&params)),
                         Err(response) => response,
@@ -2033,6 +2044,19 @@ impl Server {
     fn folding_ranges(&mut self, params: FoldingRangeParams) -> Option<Vec<lsp_types::FoldingRange>> {
         let document = self.document(&params.text_document.uri)?;
         Some(folding::folding_ranges(&document.syntax(), &document.text, &document.index, self.separator_lines))
+    }
+
+    /// The folds closed when a file opens (see [`STARTUP_FOLDS`]).
+    fn startup_folds(&mut self, params: &lsp_types::TextDocumentIdentifier) -> Option<Value> {
+        let document = self.document(&params.uri)?;
+        let folds = folding::startup_folds(
+            &document.syntax(),
+            &document.text,
+            &document.index,
+            self.separator_lines,
+            &self.startup,
+        );
+        Some(json!({ "folds": folds }))
     }
 
     /// `org-indent-mode`'s prefixes as inlay hints of blanks at the start of

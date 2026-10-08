@@ -17,7 +17,7 @@ let s:defaults = {
       \ 'settings': {},
       \ 'client': 'auto',
       \ 'folding': 1,
-      \ 'startup_folded': 'showeverything',
+      \ 'startup_folded': '',
       \ 'highlight': 1,
       \ 'src_highlight': 1,
       \ 'virtual_indent': 1,
@@ -1375,18 +1375,35 @@ endfunction
 
 " Fold the window again with the new levels; closed folds stay closed.
 function! org_lsp#refold() abort
-  let first = !exists('w:org_lsp_folded')
-  let w:org_lsp_folded = 1
+  " The first time the window shows the buffer: as it opens.
+  let key = 'org_lsp_folded_' . bufnr()
+  let first = !has_key(w:, key)
+  let w:[key] = 1
   let closed = first ? [] : filter(map(copy(s:fold_ranges(bufnr())), 'v:val[0]'), 'foldclosed(v:val) == v:val')
   setlocal foldmethod=manual
   setlocal foldexpr=org_lsp#foldexpr(v:lnum) foldmethod=expr
   if first
     let &l:foldlevel = org_lsp#config().startup_folded ==# 'overview' ? 0 : 99
+    if empty(org_lsp#config().startup_folded)
+      let params = {'textDocument': {'uri': org_lsp#uri(bufnr())}}
+      call org_lsp#request(bufnr(), 'org-lsp/startupFolds', params, function('s:close_startup_folds', [bufnr(), win_getid()]))
+    endif
     return
   endif
   silent! normal! zR
   for line in closed
     execute 'silent! ' . line . 'foldclose'
+  endfor
+endfunction
+
+" The folds the server says a file opens with closed (`org_startup_folded`,
+" `#+STARTUP:`, `VISIBILITY` properties), innermost first.
+function! s:close_startup_folds(nr, win, error, result) abort
+  if !empty(a:error) || type(a:result) != v:t_dict || winbufnr(a:win) != a:nr
+    return
+  endif
+  for fold in get(a:result, 'folds', [])
+    call win_execute(a:win, 'silent! ' . (fold.startLine + 1) . 'foldclose')
   endfor
 endfunction
 

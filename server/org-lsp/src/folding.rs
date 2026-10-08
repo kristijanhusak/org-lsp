@@ -1,7 +1,7 @@
 //! Folding ranges: subtrees, drawers, blocks and multi-line list items.
 
 use lsp_types::FoldingRange;
-use org_syntax::{SyntaxKind::*, SyntaxNode};
+use org_syntax::{ast::Headline, SyntaxKind::*, SyntaxNode};
 
 use crate::line_index::LineIndex;
 
@@ -17,6 +17,11 @@ pub const SEPARATOR_LINES: i64 = 2;
 /// lines at the end of the file always stay visible. Other elements end
 /// at their last line with text.
 pub fn folding_ranges(root: &SyntaxNode, text: &str, index: &LineIndex, separator_lines: i64) -> Vec<FoldingRange> {
+    folds(root, text, index, separator_lines).into_iter().map(|(_, range)| range).collect()
+}
+
+/// The folding ranges, each with the element it folds.
+fn folds(root: &SyntaxNode, text: &str, index: &LineIndex, separator_lines: i64) -> Vec<(SyntaxNode, FoldingRange)> {
     let mut ranges = Vec::new();
     for node in root.descendants() {
         let foldable = matches!(
@@ -51,17 +56,162 @@ pub fn folding_ranges(root: &SyntaxNode, text: &str, index: &LineIndex, separato
         };
         let start_line = index.line_of(start);
         if end_line > start_line {
-            ranges.push(FoldingRange {
-                start_line: start_line as u32,
-                start_character: None,
-                end_line: end_line as u32,
-                end_character: None,
-                kind: None,
-                collapsed_text: None,
-            });
+            ranges.push((
+                node.clone(),
+                FoldingRange {
+                    start_line: start_line as u32,
+                    start_character: None,
+                    end_line: end_line as u32,
+                    end_character: None,
+                    kind: None,
+                    collapsed_text: None,
+                },
+            ));
         }
     }
     ranges
+}
+
+/// How a file shows when it is opened (`org-cycle-set-startup-visibility`):
+/// the options, which its `#+STARTUP:` lines override.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Startup {
+    /// `org-startup-folded`: `overview` (or `fold`), `content`,
+    /// `show2levels` to `show5levels`, `showeverything` (or `nofold`,
+    /// `showall`).
+    pub folded: String,
+    /// `org-cycle-hide-block-startup`
+    pub hide_blocks: bool,
+    /// `org-cycle-hide-drawer-startup`
+    pub hide_drawers: bool,
+    /// `org-cycle-open-archived-trees`
+    pub open_archived: bool,
+}
+
+impl Default for Startup {
+    fn default() -> Self {
+        Startup { folded: "showeverything".to_string(), hide_blocks: false, hide_drawers: true, open_archived: false }
+    }
+}
+
+/// The folds closed when the file is opened, innermost first, as
+/// `org-cycle-set-startup-visibility` leaves the file: by
+/// `org-startup-folded` (`#+STARTUP: overview`, `content`, `show2levels`…),
+/// then each subtree's `VISIBILITY` property, archived subtrees, blocks
+/// with `hideblocks`, and drawers. Folds hide a whole subtree, so where Org
+/// shows a headline's children but not its text (`content`), the text
+/// stays visible.
+pub fn startup_folds(
+    root: &SyntaxNode,
+    text: &str,
+    index: &LineIndex,
+    separator_lines: i64,
+    options: &Startup,
+) -> Vec<FoldingRange> {
+    let mut startup = options.clone();
+    for line in text.lines() {
+        let line = line.trim_start_matches([' ', '\t']);
+        let Some(words) = line.get(..10).filter(|key| key.eq_ignore_ascii_case("#+startup:")).map(|_| &line[10..])
+        else {
+            continue;
+        };
+        for word in words.split_whitespace() {
+            match word.to_ascii_lowercase().as_str() {
+                folded @ ("overview" | "fold" | "content" | "show2levels" | "show3levels" | "show4levels"
+                | "show5levels" | "showall" | "nofold" | "showeverything") => startup.folded = folded.to_string(),
+                "hideblocks" => startup.hide_blocks = true,
+                "nohideblocks" | "showblocks" => startup.hide_blocks = false,
+                _ => {}
+            }
+        }
+    }
+    // Showing everything leaves drawers, blocks and archived subtrees
+    // open too.
+    let levels = match startup.folded.as_str() {
+        "overview" | "fold" | "t" => Some(1),
+        "content" => Some(usize::MAX),
+        "show2levels" => Some(2),
+        "show3levels" => Some(3),
+        "show4levels" => Some(4),
+        "show5levels" => Some(5),
+        _ => None,
+    };
+    let Some(levels) = levels else { return Vec::new() };
+    let folds = folds(root, text, index, separator_lines);
+    let mut closed = vec![false; folds.len()];
+    let at = |node: &SyntaxNode| folds.iter().position(|(other, _)| other == node);
+    let headlines: Vec<Headline> = root.descendants().filter_map(Headline::cast).collect();
+    let leaf = |headline: &Headline| headline.children().next().is_none();
+    // `org-cycle-content`: the headlines up to `levels` show, those below
+    // a headline at that level hide with it.
+    for headline in &headlines {
+        if let Some(index) = at(headline.syntax()) {
+            closed[index] = headline.level() >= levels || leaf(headline);
+        }
+    }
+    for (index, (node, _)) in folds.iter().enumerate() {
+        if startup.hide_blocks && matches!(node.kind(), BLOCK | DYNAMIC_BLOCK) {
+            closed[index] = true;
+        }
+    }
+    // `org-cycle-set-visibility-according-to-property`, in the order of
+    // the file.
+    for headline in &headlines {
+        let Some(state) = visibility(headline) else { continue };
+        let below: Vec<Headline> = headline.syntax().descendants().skip(1).filter_map(Headline::cast).collect();
+        let mut set = |headline: &Headline, value: bool| {
+            if let Some(index) = at(headline.syntax()) {
+                closed[index] = value;
+            }
+        };
+        match state.as_str() {
+            "folded" => {
+                set(headline, true);
+                below.iter().for_each(|child| set(child, true));
+            }
+            "children" => {
+                set(headline, false);
+                below.iter().for_each(|child| set(child, true));
+            }
+            "content" => {
+                set(headline, false);
+                for child in &below {
+                    set(child, leaf(child));
+                }
+            }
+            "all" | "showall" => {
+                set(headline, false);
+                below.iter().for_each(|child| set(child, false));
+            }
+            _ => {}
+        }
+    }
+    for (index, (node, _)) in folds.iter().enumerate() {
+        let archived = Headline::cast(node.clone())
+            .is_some_and(|headline| headline.tags().iter().any(|tag| tag == org_core::archive::ARCHIVE_TAG));
+        if archived && !startup.open_archived {
+            closed[index] = true;
+        }
+        if startup.hide_drawers && matches!(node.kind(), DRAWER | PROPERTY_DRAWER) {
+            closed[index] = true;
+        }
+    }
+    let mut out: Vec<FoldingRange> =
+        folds.into_iter().zip(closed).filter(|(_, closed)| *closed).map(|((_, range), _)| range).collect();
+    // Inner folds first: closing one inside a closed fold would close the
+    // fold around it.
+    out.sort_by_key(|range| std::cmp::Reverse(range.start_line));
+    out
+}
+
+/// The `VISIBILITY` property of a headline, from its property drawer.
+fn visibility(headline: &Headline) -> Option<String> {
+    let drawer = headline.section()?.children().find(|child| child.kind() == PROPERTY_DRAWER)?;
+    drawer.text().to_string().lines().find_map(|line| {
+        let rest = line.trim_start().strip_prefix(':')?;
+        let (name, value) = rest.split_once(':')?;
+        name.eq_ignore_ascii_case("VISIBILITY").then(|| value.trim().to_string())
+    })
 }
 
 #[cfg(test)]
@@ -81,6 +231,73 @@ mod tests {
 
     fn ranges(text: &str) -> Vec<(u32, u32)> {
         ranges_with(text, SEPARATOR_LINES)
+    }
+
+    fn startup(text: &str, folded: &str) -> Vec<(u32, u32)> {
+        let parse = org_syntax::parse(text, &TodoKeywords::default());
+        let index = LineIndex::new(text);
+        let options = Startup { folded: folded.to_string(), ..Startup::default() };
+        startup_folds(&parse.syntax(), text, &index, SEPARATOR_LINES, &options)
+            .into_iter()
+            .map(|range| (range.start_line, range.end_line))
+            .collect()
+    }
+
+    #[test]
+    fn startup_visibility() {
+        let text = "\
+* a
+:PROPERTIES:
+:ID: 1
+:END:
+text
+** b
+text
+*** c
+text
+* d
+text
+";
+        // Showing everything closes nothing, drawers neither.
+        assert_eq!(startup(text, "showeverything"), []);
+        // Every subtree folded, inner ones first; the drawer too.
+        assert_eq!(startup(text, "overview"), [(9, 10), (7, 8), (5, 8), (1, 3), (0, 8)]);
+        // The headlines show: only those without children fold.
+        assert_eq!(startup(text, "content"), [(9, 10), (7, 8), (1, 3)]);
+        // Down to the second level: `b` folds with `c` in it.
+        assert_eq!(startup(text, "show2levels"), [(9, 10), (7, 8), (5, 8), (1, 3)]);
+        // `#+STARTUP:` decides.
+        assert_eq!(startup(&format!("#+STARTUP: overview\n{text}"), "showeverything").len(), 5);
+        assert_eq!(startup(&format!("#+STARTUP: showall\n{text}"), "overview"), []);
+    }
+
+    #[test]
+    fn startup_follows_visibility_archives_and_blocks() {
+        let text = "\
+* a
+:PROPERTIES:
+:VISIBILITY: children
+:END:
+** b
+text
+** c :ARCHIVE:
+text
+* d
+:PROPERTIES:
+:VISIBILITY: all
+:END:
+** e
+#+begin_src sh
+ls
+#+end_src
+";
+        // `a` open, its children folded; `d` and `e` open, the drawers
+        // folded; the archived `c` folded.
+        assert_eq!(startup(text, "overview"), [(9, 11), (6, 7), (4, 5), (1, 3)]);
+        // `hideblocks` folds the block too.
+        assert_eq!(startup(&format!("#+STARTUP: hideblocks\n{text}"), "overview")[0], (14, 16));
+        // With `content` the same: the properties decide for their subtrees.
+        assert_eq!(startup(text, "content"), [(9, 11), (6, 7), (4, 5), (1, 3)]);
     }
 
     #[test]
