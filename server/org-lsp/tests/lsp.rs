@@ -741,7 +741,9 @@ fn shows_entities_as_their_characters() {
 #[test]
 fn shows_sub_and_superscripts() {
     let text = "x^2 and H_{2}O and z^* \\alpha_1\n";
-    let shown = |settings: Value| -> (Vec<(u32, u32, String)>, Vec<(u32, u32, u32)>) {
+    type Hints = Vec<(u32, u32, String)>;
+    type Hidden = Vec<(u32, u32, u32)>;
+    let shown = |settings: Value| -> (Hints, Hidden) {
         let mut client = Client::start(json!({}), settings);
         client.open(&uri(), text);
         let hints = client
