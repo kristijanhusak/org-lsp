@@ -503,6 +503,19 @@ pub const SETTINGS: &[Setting] = &[
         "A target that is not there yet can be named after an existing one, `Projects/New`: it is made, as the \
          last child of `Projects`, and the entry goes under it. `confirm` asks first.",
     ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+        "org_refile_target_verify_function",
+        "string",
+        "",
+        "org-refile-target-verify-function",
+        "The name of an Emacs Lisp function that decides which headlines are refile targets: the server's Emacs \
+         calls it at the start of each, and keeps those it says yes to. Where it leaves the point, the search \
+         goes on: a function can skip a subtree.",
+        )
+    },
     setting(
         "org_reverse_note_order",
         "boolean",
@@ -594,8 +607,9 @@ pub const SETTINGS: &[Setting] = &[
          `jump_to_captured`. The target is a list: `file` and a path; \
          `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; \
          `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and the headlines of an \
-         outline path, maybe none, for a date tree under them; `id` and an ID; or `clock`, the entry clocked \
-         now. An empty path is `org_default_notes_file`, and without a target the entry goes at the end of \
+         outline path, maybe none, for a date tree under them; `id` and an ID; `clock`, the entry clocked \
+         now; `file+function`, a path and the name of an Emacs Lisp function that moves the point there, or \
+         `function` and the name of one that visits the file too (run by the server's Emacs). An empty path is `org_default_notes_file`, and without a target the entry goes at the end of \
          `org_default_notes_file`. A template with only a key and a description groups the templates whose keys \
          start with its key.",
     ),
@@ -1352,6 +1366,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_refile_use_outline_path", r#"{ "enum": [true, false, "file", "full-file-path", "title"] }"#),
     ("org_refile_allow_creating_parent_nodes", r#"{ "enum": [true, false, "confirm"] }"#),
+    ("org_refile_target_verify_function", STRING),
     ("org_reverse_note_order", BOOLEAN),
     ("org_archive_location", STRING),
     ("org_archive_reversed_order", BOOLEAN),
@@ -1373,7 +1388,7 @@ const SCHEMAS: &[(&str, &str)] = &[
             "description": { "type": "string", "description": "What the menu shows" },
             "type": { "enum": ["entry", "plain", "item", "checkitem", "table-line"], "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line" },
             "target": { "type": "array", "items": { "type": "string" },
-                "description": "`file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and maybe an outline path; `id` and an ID; or `clock`" },
+                "description": "`file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and maybe an outline path; `id` and an ID; `clock`; `file+function`, a path and an Emacs Lisp function; or `function` and an Emacs Lisp function that visits the file" },
             "template": { "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "The template, or its lines" },
             "prepend": { "type": "boolean", "description": "First under the target, not last" },
             "empty_lines": { "type": "integer", "minimum": 0, "description": "Blank lines before and after" },

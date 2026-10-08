@@ -508,6 +508,10 @@
       "description": "A target that is not there yet can be named after an existing one, `Projects/New`: it is made, as the last child of `Projects`, and the entry goes under it. `confirm` asks first. (`org-refile-allow-creating-parent-nodes`)",
       "default": false
     },
+    "org_refile_target_verify_function": {
+      "type": "string",
+      "description": "The name of an Emacs Lisp function that decides which headlines are refile targets: the server's Emacs calls it at the start of each, and keeps those it says yes to. Where it leaves the point, the search goes on: a function can skip a subtree. (`org-refile-target-verify-function`)"
+    },
     "org_reverse_note_order": {
       "type": "boolean",
       "description": "A refiled entry goes first under its target, not last. (`org-reverse-note-order`)",
@@ -699,7 +703,7 @@
             "type": "string"
           },
           "target": {
-            "description": "`file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and maybe an outline path; `id` and an ID; or `clock`",
+            "description": "`file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and maybe an outline path; `id` and an ID; `clock`; `file+function`, a path and an Emacs Lisp function; or `function` and an Emacs Lisp function that visits the file",
             "items": {
               "type": "string"
             },
@@ -765,7 +769,7 @@
         "type": "object"
       },
       "type": "array",
-      "description": "Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, `plain`, `item`, `checkitem` or `table-line`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after`, `immediate_finish`, `tree_type`, `time_prompt`, `table_line_pos`, `clock_in`, `clock_keep`, `clock_resume` and `jump_to_captured`. The target is a list: `file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and the headlines of an outline path, maybe none, for a date tree under them; `id` and an ID; or `clock`, the entry clocked now. An empty path is `org_default_notes_file`, and without a target the entry goes at the end of `org_default_notes_file`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)",
+      "description": "Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, `plain`, `item`, `checkitem` or `table-line`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after`, `immediate_finish`, `tree_type`, `time_prompt`, `table_line_pos`, `clock_in`, `clock_keep`, `clock_resume` and `jump_to_captured`. The target is a list: `file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and the headlines of an outline path, maybe none, for a date tree under them; `id` and an ID; `clock`, the entry clocked now; `file+function`, a path and the name of an Emacs Lisp function that moves the point there, or `function` and the name of one that visits the file too (run by the server's Emacs). An empty path is `org_default_notes_file`, and without a target the entry goes at the end of `org_default_notes_file`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)",
       "default": [
         {
           "description": "Task",

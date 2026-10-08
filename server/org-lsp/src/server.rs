@@ -415,6 +415,9 @@ enum TargetSpec {
     Id(String),
     /// `(file+olp+datetree …)`: the date tree under this outline path.
     DateTree(Vec<String>, Vec<capture::Group>),
+    /// `(function …)` and `(file+function …)`: where the function, run by
+    /// Emacs, leaves the point, in the file it leaves it in.
+    Function { file: bool, name: String },
 }
 
 /// The kind and target of a capture template.
@@ -440,6 +443,12 @@ fn capture_spec(template: &CaptureTemplateOption) -> std::result::Result<(captur
         Some("file+olp+datetree") => {
             let tree = template.tree_type.as_ref().map(|tree| tree.names()).unwrap_or_default();
             TargetSpec::DateTree(rest(), capture::Group::parse(&tree)?)
+        }
+        Some("function") => {
+            TargetSpec::Function { file: false, name: template.target.get(1).cloned().unwrap_or_default() }
+        }
+        Some("file+function") => {
+            TargetSpec::Function { file: true, name: template.target.get(2).cloned().unwrap_or_default() }
         }
         Some("clock") => TargetSpec::Clock,
         Some("id") => TargetSpec::Id(template.target.get(1).cloned().unwrap_or_default()),
@@ -760,6 +769,8 @@ struct Server {
     refile_current: Option<Uri>,
     /// `org-refile-allow-creating-parent-nodes`
     refile_new_nodes: refile::NewNodes,
+    /// `org_refile_target_verify_function`
+    refile_verify: Option<String>,
     /// What the agenda shows of archives (`v a`, `v A`).
     agenda_archives: ArchivesMode,
     /// The filters of the agenda (`/`, `\\`, `<`, `=`, `_`, `^`), which
@@ -986,6 +997,7 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_display_range: options.clock_display_default_range.clone().unwrap_or_else(|| "thisyear".to_string()),
         refile_current: None,
         refile_new_nodes: options.refile_new_nodes(),
+        refile_verify: options.refile_target_verify_function.clone().filter(|name| !name.trim().is_empty()),
         agenda_filters: Default::default(),
         documents: HashMap::new(),
         workspace: {
@@ -5615,7 +5627,46 @@ impl Server {
             .collect();
         // In the agenda no file is the current one: every target names its file.
         let current = (!from_agenda).then_some(0);
-        let all = refile::all_targets(&selections, &readable, current, outline_path);
+        let mut all = refile::all_targets(&selections, &readable, current, outline_path);
+        // `org-refile-target-verify-function`, in Emacs, at each headline.
+        if let Some(function) = self.refile_verify.clone() {
+            let mut kept = vec![true; all.len()];
+            for (file, readable_file) in readable.iter().enumerate() {
+                let mut offsets: Vec<usize> = all
+                    .iter()
+                    .filter(|(at, target)| *at == file && target.offset.is_some())
+                    .filter_map(|(_, target)| target.offset)
+                    .collect();
+                offsets.sort_unstable();
+                offsets.dedup();
+                if offsets.is_empty() {
+                    continue;
+                }
+                let text = readable_file.text;
+                let points: Vec<usize> = offsets.iter().map(|at| text[..*at].chars().count() + 1).collect();
+                let params =
+                    json!({ "file": readable_file.path, "text": text, "function": function, "points": points });
+                let said = self
+                    .emacs
+                    .call("refile-verify", params, std::time::Duration::from_secs(60))
+                    .map_err(Refusal::Failed)?;
+                let verdicts: Vec<bool> = said
+                    .as_array()
+                    .map(|all| all.iter().map(|one| one.as_bool() == Some(true)).collect())
+                    .unwrap_or_default();
+                for (index, (at, target)) in all.iter().enumerate() {
+                    if *at != file {
+                        continue;
+                    }
+                    if let Some(offset) = target.offset {
+                        let place = offsets.iter().position(|known| *known == offset).expect("an offset");
+                        kept[index] = verdicts.get(place).copied().unwrap_or(false);
+                    }
+                }
+            }
+            let mut verdicts = kept.into_iter();
+            all.retain(|_| verdicts.next().unwrap_or(false));
+        }
         if all.is_empty() {
             return Err("No refile targets".into());
         }
@@ -6053,6 +6104,27 @@ impl Server {
             TargetSpec::Id(id) => {
                 let (uri, heading) = self.find_id(&id).ok_or_else(|| format!("Cannot find target ID \"{id}\""))?;
                 (uri, capture::Target::Heading(heading))
+            }
+            TargetSpec::Function { file, name } => {
+                // `file+function`: run in the file as the editor has it.
+                let mut params = json!({ "function": name });
+                if file {
+                    let path = self.capture_file(template.target.get(1).map(String::as_str).unwrap_or(""));
+                    let uri = uri::from_path(&path).ok_or("Cannot name the target file")?;
+                    let text = self.with_source(&uri, |text, _, _, _, _| text.to_string()).unwrap_or_default();
+                    params["file"] = json!(path.to_string_lossy());
+                    params["text"] = json!(text);
+                }
+                let found = self
+                    .emacs
+                    .call("capture-target", params, std::time::Duration::from_secs(60))
+                    .map_err(Refusal::Failed)?;
+                let path = found.get("file").and_then(Value::as_str).ok_or("The target function visited no file")?;
+                let uri = uri::from_path(Path::new(path)).ok_or("Cannot name the target file")?;
+                let point = found.get("point").and_then(Value::as_u64).unwrap_or(1) as usize;
+                let text = self.with_source(&uri, |text, _, _, _, _| text.to_string()).unwrap_or_default();
+                let at = text.char_indices().nth(point.saturating_sub(1)).map_or(text.len(), |(at, _)| at);
+                (uri, capture::Target::Exact(at))
             }
         };
         let (mut snapshot, version, keywords) = self

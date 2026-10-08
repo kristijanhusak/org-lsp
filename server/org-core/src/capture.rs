@@ -607,6 +607,9 @@ pub enum Target {
     DateTree { path: Vec<String>, date: crate::date::Date, groups: Vec<Group> },
     /// `(clock)`, `(id …)`: under the headline that starts here.
     Heading(usize),
+    /// `(function …)`, `(file+function …)`: where the function left the
+    /// point, as `file+regexp` at its match.
+    Exact(usize),
 }
 
 /// A level of a date tree (`:tree-type`): `(year month day)` by default,
@@ -981,6 +984,12 @@ fn find_target(
             };
             let found = regexp.find(text).ok_or_else(|| Refusal::Failed("No match for target regexp".to_string()))?;
             let exact = if prepend { found.start() } else { found.end() };
+            let start = text[..exact].rfind('\n').map_or(0, |index| index + 1);
+            let at_heading = headline_level(line_of(text, start)).is_some();
+            Ok(Location { heading: at_heading.then_some(start), exact: Some(exact) })
+        }
+        Target::Exact(at) => {
+            let exact = (*at).min(text.len());
             let start = text[..exact].rfind('\n').map_or(0, |index| index + 1);
             let at_heading = headline_level(line_of(text, start)).is_some();
             Ok(Location { heading: at_heading.then_some(start), exact: Some(exact) })

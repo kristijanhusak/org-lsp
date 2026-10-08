@@ -394,6 +394,50 @@ the error."
           ((stringp result) (vector result))
           (t (vconcat (seq-filter #'stringp result))))))
 
+(defun org-lsp-bridge-capture-target (params)
+  "Where the function of a `function' or `file+function' capture target
+leaves the point: the file and the point. For `file+function', in a
+buffer holding the file of PARAMS as the editor has it."
+  (let ((fn (intern-soft (alist-get 'function params)))
+        (buffers (buffer-list)))
+    (unless (functionp fn)
+      (error "Invalid capture target specification: %s" (alist-get 'function params)))
+    (unwind-protect
+        (if (alist-get 'file params)
+            (org-lsp-bridge--in-document params
+              (funcall fn)
+              `((file . ,buffer-file-name) (point . ,(point))))
+          (save-window-excursion
+            (save-excursion
+              (funcall fn)
+              (unless buffer-file-name
+                (error "The capture target function visited no file"))
+              `((file . ,buffer-file-name) (point . ,(point))))))
+      ;; The files it visited are read again next time.
+      (dolist (buffer (buffer-list))
+        (unless (memq buffer buffers)
+          (with-current-buffer buffer (set-buffer-modified-p nil))
+          (kill-buffer buffer))))))
+
+(defun org-lsp-bridge-refile-verify (params)
+  "`org-refile-target-verify-function' at the headlines of PARAMS (their
+points, in order), in its document: whether each is a target. One before
+where the function left the point after another is skipped, as
+`org-refile-get-targets' goes on from there."
+  (let ((fn (intern-soft (alist-get 'function params)))
+        (points (append (alist-get 'points params) nil)))
+    (unless (functionp fn)
+      (error "No function %s" (alist-get 'function params)))
+    (org-lsp-bridge--in-document params
+      (let ((cursor (point-min)) verdicts)
+        (dolist (start points)
+          (if (< start cursor)
+              (push :json-false verdicts)
+            (goto-char start)
+            (push (if (funcall fn) t :json-false) verdicts)
+            (setq cursor (if (= (point) start) (line-end-position) (point)))))
+        (vconcat (nreverse verdicts))))))
+
 (defun org-lsp-bridge-src-block-names (params)
   "The names of the code blocks of the document of PARAMS, in its order."
   (org-lsp-bridge--in-document params

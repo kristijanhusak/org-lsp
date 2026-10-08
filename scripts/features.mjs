@@ -439,7 +439,7 @@ export const AREAS = [
       ['Prompts and `%`-escapes (`%^{…}`, `%t`, `%a`, `%i`, `%?`…)', true],
       ['The capture buffer: finishing, aborting, refiling', true],
       ['Clock options (`:clock-in`, `:clock-resume`…)', true],
-      ['`function` targets', false],
+      ['`function` and `file+function` targets (the function run by Emacs)', true],
       ['`%(…)` (Emacs Lisp, through Emacs)', true],
       ['`%[file]`', true],
       ['`%c`, `%x` and `%^C` (the editor\'s clipboard)', true],
@@ -478,7 +478,7 @@ export const AREAS = [
       ['Creating parent nodes as the target (`org-refile-allow-creating-parent-nodes`)', true],
       ['Refiling a region (a selection of whole subtrees)', true],
       ['Copying (`C-c M-w`), going to a target (`C-u C-c C-w`) and to the last refiled entry (`C-u C-u C-c C-w`)', true],
-      ['`org-refile-target-verify-function`', false],
+      ['`org-refile-target-verify-function` (the function run by Emacs at each headline)', true],
     ],
     editors: {
       helix: ['part', 'Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions.'],
