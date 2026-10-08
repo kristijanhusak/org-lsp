@@ -619,6 +619,11 @@ M.handlers = {
     end
   end,
 
+  --- What column view shows (`org-columns`), or that it is off.
+  ['org-lsp/columns'] = function(_, params)
+    require('org-lsp.columns').show(params)
+  end,
+
   --- A clock started or stopped: for the statusline.
   ['org-lsp/clock'] = function(_, params)
     require('org-lsp.clock').update(params)

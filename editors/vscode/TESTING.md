@@ -99,6 +99,11 @@ here and why.
 
 ## Properties and column view
 
+**Partly:** Column view's header is in the status bar, with the column picked in brackets.
+
+- [ ] Column view: the headlines covered by their columns (`#+COLUMNS:` or the default), the header above, effort sums on parents (needs Emacs): `Ctrl+C Ctrl+X Ctrl+C`
+- [ ] In column view, picking a column, editing its value (`e`), the next and previous allowed value (`n`, `p`), its value shown (`v`); quitting (`q`)
+- [ ] In column view, moving a column, making it narrower and wider, deleting it; moving an entry up and down
 - [ ] Setting a property: the name and the value are completed, `NAME_ALL`'s values offered: `Ctrl+C Ctrl+X p`
 - [ ] On a property line with `NAME_ALL`, cycling through its values: `Shift+Right`, `Shift+Left`
 - [ ] Deleting a property from the entry, and from the whole file: *Org: Delete a property of the entry*, *Org: Delete a property from every entry of the file*

@@ -100,6 +100,8 @@ here and why.
 
 ## Properties and column view
 
+**Partly:** Column view is left out: it draws over the headlines, which Vim cannot.
+
 - [ ] Setting a property: the name and the value are completed, `NAME_ALL`'s values offered: `<Leader>oxp`
 - [ ] On a property line with `NAME_ALL`, cycling through its values: `<S-Right>`, `<S-Left>`
 - [ ] Deleting a property from the entry, and from the whole file: `:Org property delete`, `:Org property delete globally`

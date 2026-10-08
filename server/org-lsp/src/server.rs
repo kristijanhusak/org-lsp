@@ -130,9 +130,24 @@ enum EmacsJob {
     /// `version`: the text Emacs leaves becomes an edit, unless the
     /// document changed meanwhile.
     Edit { uri: Uri, version: i32, text: String, point: usize },
+    /// A command of column view on the document `uri`, run on `text`, its
+    /// `version`: its edit, and what the view shows then.
+    Columns { uri: Uri, version: i32, text: String },
+    /// What column view shows of the document `uri`, at its `version`.
+    ColumnsView { uri: Uri, version: i32 },
     /// The text of the file `file` (`content`) written back into the part
     /// of `uri` it edits (see [`SpecialEdit`]), run on `text`, its `version`.
     WriteBack { file: PathBuf, uri: Uri, version: i32, text: String, content: String },
+}
+
+/// Column view (`org-columns`) on a document: where it was turned on (a
+/// character, from 1), and whether on the whole file.
+#[derive(Clone)]
+struct ColumnsOn {
+    start: usize,
+    global: bool,
+    /// What it shows, as Emacs last said.
+    view: Value,
 }
 
 /// A part of an Org file edited in a file of its own (`org-edit-special`):
@@ -278,6 +293,8 @@ struct Context {
     /// The selection the command was run on, Emacs's active region: the
     /// cursor is at one of its ends, the mark at the other.
     range: Option<Range>,
+    /// In column view: the column picked, from 0.
+    column: Option<usize>,
 }
 
 /// The Emacs command a command is on a selection, the active region, for
@@ -439,6 +456,12 @@ pub const SAVE: &str = "org-lsp/save";
 pub const AGENDA_WIDTH: &str = "org-lsp/agendaWidth";
 /// The entry of an agenda line with its highlighting, for a popup.
 pub const PREVIEW: &str = "org-lsp/preview";
+/// What column view shows on a document, for the editor to draw over its
+/// headlines: `{ "uri", "version", "header", "columns": [{ "key", "title",
+/// "width" }], "lines": [[line, text, [value…]]] }`, each line one of a
+/// headline with the text it shows and its values; `lines` null when
+/// column view is off.
+pub const COLUMNS_SHOWN: &str = "org-lsp/columns";
 /// The folds of a file closed when it opens (`org-startup-folded`, its
 /// `#+STARTUP:`, `VISIBILITY` properties), innermost first: `{ "folds":
 /// [FoldingRange…] }`. Params: `{ "textDocument" }`.
@@ -739,6 +762,8 @@ struct Server {
     separator_lines: i64,
     /// How files show when they are opened.
     startup: folding::Startup,
+    /// The documents column view shows on, by URI.
+    columns: HashMap<String, ColumnsOn>,
     /// Whether Emacs encrypts entries before a file is saved
     /// (`org-crypt-use-before-save-magic`), once it said.
     crypt_before_save: Option<bool>,
@@ -1035,6 +1060,7 @@ pub fn run(connection: Connection) -> Result<()> {
         prompt_copy: None,
         separator_lines: options.separator_lines(),
         startup: options.startup(),
+        columns: HashMap::new(),
         crypt_before_save: None,
         indent: options.indent_settings(),
         display: options.display(),
@@ -1975,6 +2001,12 @@ impl Server {
                     );
                 }
                 self.sync_clock(key);
+                // Column view follows the text.
+                if self.columns.contains_key(key) {
+                    if let Ok(uri) = key.parse::<Uri>() {
+                        self.columns_view(&uri);
+                    }
+                }
                 self.publish_virtual_indent(key);
                 self.publish_diagnostics(key);
                 // The clock's times go with the next change, as Emacs's
@@ -4044,6 +4076,10 @@ impl Server {
             id if id.starts_with("org.agenda.filter") => self.agenda_filter(id, context.as_ref()),
             commands::AGENDA_WRITE => self.agenda_write(context.as_ref()),
             commands::AGENDA_APPT => self.agenda_to_appt(context.as_ref()),
+            commands::COLUMNS => self.columns(&context.ok_or("This command needs the cursor position")?),
+            id if id.starts_with("org.columns.") => {
+                self.columns_command(id, &context.ok_or("This command needs the cursor position")?)
+            }
             commands::AGENDA_BULK_ACTION => self.agenda_bulk_action(context.as_ref()),
             id if id.starts_with("org.agenda.bulk.") => self.agenda_bulk_mark(id, context.as_ref()),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
@@ -7928,6 +7964,27 @@ impl Server {
                         self.send_request::<ShowDocument>(params, None);
                     }
                 }
+                (Some(EmacsJob::ColumnsView { uri, version }), result) => {
+                    if self.document(&uri).map(|document| document.version) == Some(version) {
+                        match result {
+                            Ok(view) => self.columns_shown(&uri, version, Some(view)),
+                            Err(error) => {
+                                self.columns_shown(&uri, version, None);
+                                self.show_message(MessageType::ERROR, error);
+                            }
+                        }
+                    }
+                }
+                (Some(EmacsJob::Columns { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
+                (Some(EmacsJob::Columns { uri, version, text }), Ok(mut result)) => {
+                    // The cursor stays where it is; the view says the rest.
+                    if let Some(fields) = result.as_object_mut() {
+                        fields.remove("point");
+                    }
+                    let view = result.get("extra").cloned().filter(|view| !view.is_null());
+                    self.columns_shown(&uri, version + 1, view);
+                    self.emacs_edited(&uri, version, &text, 0, &result);
+                }
                 (Some(EmacsJob::WriteBack { file, uri, version, text, content }), result) => {
                     self.written_back(&file, &uri, version, &text, content, result);
                 }
@@ -7970,6 +8027,154 @@ impl Server {
             self.overrun_said = self.running.as_ref().map(|running| running.start);
             self.show_message(MessageType::INFO, message);
         }
+    }
+
+    /// `org-columns` (`C-c C-x C-c`), through Emacs: column view, on the
+    /// whole file with `C-u` or before the first headline, else on the
+    /// subtree Org takes (the first one above with `COLUMNS`, or the top
+    /// headline). The editor draws what it shows (see [`COLUMNS_SHOWN`]).
+    fn columns(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = context.text_document.uri.clone();
+        uri::to_path(&uri).ok_or("Only a file on disk can show column view through Emacs")?;
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+        let start = document.text[..offset].chars().count() + 1;
+        let global = context.count.is_some_and(|count| count > 1);
+        self.columns.insert(uri.as_str().to_string(), ColumnsOn { start, global, view: Value::Null });
+        self.columns_view(&uri);
+        Ok(Value::Null)
+    }
+
+    /// Asks Emacs what column view shows on `uri` now.
+    fn columns_view(&mut self, uri: &Uri) {
+        let Some(on) = self.columns.get(uri.as_str()) else { return };
+        let (Some(path), Some(document)) = (uri::to_path(uri), self.document(uri)) else { return };
+        let params = json!({
+            "file": path.to_string_lossy(),
+            "text": document.text,
+            "point": on.start,
+            "global": on.global,
+        });
+        let job = EmacsJob::ColumnsView { uri: uri.clone(), version: document.version };
+        self.next_export += 1;
+        let tag = self.next_export;
+        self.emacs_jobs.insert(tag, job);
+        self.emacs.start(tag, "columns", params);
+    }
+
+    /// Tells the editor what column view shows on `uri`, or with no `view`
+    /// that it is off.
+    fn columns_shown(&mut self, uri: &Uri, version: i32, view: Option<Value>) {
+        let params = match view {
+            Some(mut view) => {
+                if let Some(on) = self.columns.get_mut(uri.as_str()) {
+                    on.view = view.clone();
+                } else {
+                    return;
+                }
+                view["uri"] = json!(uri.as_str());
+                view["version"] = json!(version);
+                view
+            }
+            None => {
+                self.columns.remove(uri.as_str());
+                json!({ "uri": uri.as_str(), "version": version, "lines": null })
+            }
+        };
+        let notification = Notification::new(COLUMNS_SHOWN.to_string(), params);
+        let _ = self.sender.send(Message::Notification(notification));
+    }
+
+    /// The keys of column view (`org-columns-map`), on the column the
+    /// editor says is picked: Org's commands, in Emacs, with what they ask
+    /// asked first (`e`, `a`).
+    fn columns_command(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = context.text_document.uri.clone();
+        let on = self.columns.get(uri.as_str()).cloned().ok_or("Column view is off")?;
+        if id == commands::COLUMNS_QUIT {
+            let version = self.document(&uri).map_or(0, |document| document.version);
+            self.columns_shown(&uri, version, None);
+            return Ok(Value::Null);
+        }
+        if id == commands::COLUMNS_REDO {
+            self.columns_view(&uri);
+            return Ok(Value::Null);
+        }
+        let command = match id {
+            commands::COLUMNS_EDIT => "org-columns-edit-value",
+            commands::COLUMNS_NEXT => "org-columns-next-allowed-value",
+            commands::COLUMNS_PREVIOUS => "org-columns-previous-allowed-value",
+            commands::COLUMNS_SHOW => "org-columns-show-value",
+            commands::COLUMNS_ALLOWED => "org-columns-edit-allowed",
+            commands::COLUMNS_TODO => "org-columns-todo",
+            commands::COLUMNS_TOGGLE => "org-columns-toggle-or-columns-quit",
+            commands::COLUMNS_MOVE_LEFT => "org-columns-move-left",
+            commands::COLUMNS_MOVE_RIGHT => "org-columns-move-right",
+            commands::COLUMNS_DELETE => "org-columns-delete",
+            commands::COLUMNS_NARROW => "org-columns-narrow",
+            commands::COLUMNS_WIDEN => "org-columns-widen",
+            commands::COLUMNS_ROW_UP => "org-columns-move-row-up",
+            commands::COLUMNS_ROW_DOWN => "org-columns-move-row-down",
+            _ => return Err(format!("No such command: {id}").into()),
+        };
+        let column = context.column.unwrap_or(0);
+        let path = uri::to_path(&uri).ok_or("Only a file on disk can show column view through Emacs")?;
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let line = context.position.line as usize;
+        // The column's key, and its value on the cursor's line.
+        let key = on.view["columns"][column]["key"].as_str().unwrap_or_default().to_string();
+        let value = on.view["lines"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|row| row[0].as_u64() == Some(line as u64))
+            .and_then(|row| row[2][column].as_str())
+            .unwrap_or_default()
+            .to_string();
+        // What Org asks, asked first: one line of text.
+        let question = match id {
+            commands::COLUMNS_EDIT => match key.as_str() {
+                "ITEM" => Some(("Edit: ".to_string(), value)),
+                "PRIORITY" => Some(("Priority A-C, SPC to remove: ".to_string(), String::new())),
+                "TAGS" => Some(("Tags: ".to_string(), value)),
+                "DEADLINE" | "SCHEDULED" => Some(("Date+time: ".to_string(), String::new())),
+                "TODO" | "CLOCKSUM" | "CLOCKSUM_T" => None,
+                _ => {
+                    let current = if value.is_empty() { String::new() } else { format!(" [{value}]") };
+                    Some((format!("{key} value{current}: "), value))
+                }
+            },
+            commands::COLUMNS_ALLOWED => Some(("Allowed: ".to_string(), String::new())),
+            _ => None,
+        };
+        let answer = match question {
+            Some((prompt, value)) => match context.input.clone() {
+                Some(answer) => Some(answer),
+                None => return Ok(json!({ "input": { "kind": "text", "prompt": prompt, "value": value } })),
+            },
+            None => None,
+        };
+        // The start of the cursor's line: Emacs's columns are its first
+        // characters, padded as long as the line is too short.
+        let line_start = document.index.offset(&document.text, Position::new(line as u32, 0), self.client.encoding);
+        let point = document.text[..line_start].chars().count() + 1;
+        let mut args = vec![json!(on.start), json!(on.global), json!(column), json!(command)];
+        if let Some(answer) = answer {
+            args.push(json!(answer));
+        }
+        let params = json!({
+            "file": path.to_string_lossy(),
+            "text": document.text,
+            "point": point,
+            "command": "org-lsp-bridge-columns-command",
+            "args": args,
+        });
+        let job = EmacsJob::Columns { uri: uri.clone(), version: document.version, text: document.text.clone() };
+        self.next_export += 1;
+        let tag = self.next_export;
+        self.emacs_jobs.insert(tag, job);
+        self.emacs.start(tag, "run", params);
+        Ok(Value::Null)
     }
 
     /// `org-edit-special` (`C-c '`), through Emacs. What Org edits in a

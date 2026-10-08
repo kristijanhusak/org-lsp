@@ -2467,6 +2467,85 @@ fn encrypts_and_decrypts_entries() {
     let _ = std::fs::remove_dir_all(&home);
 }
 
+/// Column view (`org-columns`), through Emacs: what it shows over the
+/// headlines, for the editor to draw, and its keys on the column picked.
+#[test]
+fn shows_column_view() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("shows_column_view: no Emacs, skipped");
+        return;
+    }
+    let directory = workspace("columns");
+    let file = directory.join("columns.org");
+    let mut text =
+        "#+COLUMNS: %25ITEM %TODO %Effort{:}\n* TODO Project\n** DONE A\n:PROPERTIES:\n:Effort: 1:00\n:END:\n\
+                    ** B\n:PROPERTIES:\n:Effort: 0:30\n:END:\n"
+            .to_string();
+    std::fs::write(&file, &text).unwrap();
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, &text);
+    // Runs a command at `line`, on `column`; what column view shows then.
+    let run = |client: &mut Client, text: &mut String, command: &str, line: u32, extra: Value| -> Value {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        client.notifications.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] })).unwrap();
+        if result.get("input").is_some() {
+            return result;
+        }
+        let start = std::time::Instant::now();
+        let shown = |client: &Client| {
+            client
+                .notifications
+                .iter()
+                .rev()
+                .find(|note| note.method == "org-lsp/columns")
+                .map(|note| note.params.clone())
+        };
+        while shown(client).is_none() && start.elapsed() < std::time::Duration::from_secs(20) {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            client.settle();
+        }
+        apply_received(client, &uri, text);
+        shown(client).expect("column view shown")
+    };
+    let view = run(&mut client, &mut text, "org.columns", 0, json!({}));
+    assert_eq!(view["header"], "ITEM                      | TODO | Effort |");
+    assert_eq!(
+        view["lines"],
+        json!([
+            [1, "* Project                 | TODO | 1:30   |", ["Project", "TODO", "1:30"]],
+            [2, "** A                      | DONE | 1:00   |", ["A", "DONE", "1:00"]],
+            [6, "** B                      |      | 0:30   |", ["B", "", "0:30"]],
+        ])
+    );
+    assert_eq!(view["columns"][2], json!({ "key": "EFFORT", "title": "Effort", "width": 6 }));
+    // `n` on the TODO column of `B`: its next state.
+    let view = run(&mut client, &mut text, "org.columns.next", 6, json!({ "column": 1 }));
+    assert_eq!(view["lines"][2][1], "** B                      | TODO | 0:30   |");
+    assert!(text.contains("** TODO B\n"), "{text}");
+    // `e` on its effort asks for the value first.
+    let asked = run(&mut client, &mut text, "org.columns.edit", 6, json!({ "column": 2 }));
+    assert_eq!(asked["input"]["prompt"], "EFFORT value [0:30]: ");
+    let view = run(&mut client, &mut text, "org.columns.edit", 6, json!({ "column": 2, "input": "2:00" }));
+    assert_eq!(view["lines"][0][1], "* Project                 | TODO | 3:00   |");
+    // `q`: off.
+    let view = run(&mut client, &mut text, "org.columns.quit", 6, json!({ "column": 0 }));
+    assert_eq!(view["lines"], Value::Null);
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

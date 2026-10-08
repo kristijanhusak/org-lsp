@@ -242,7 +242,7 @@ was to be opened, or the text of an export to a buffer."
     org-update-all-dblocks org-lsp-bridge-columns-insert-dblock org-lsp-bridge-attach
     org-lsp-bridge-edit-special-save org-lsp-bridge-formulas-save
     org-lsp-bridge-field-save org-encrypt-entry org-decrypt-entry org-encrypt-entries
-    org-decrypt-entries)
+    org-decrypt-entries org-lsp-bridge-columns-command)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--extra nil
@@ -742,6 +742,85 @@ with its entries tagged `crypt' encrypted, as the hook does."
         (org-encrypt-entries))
       `((magic . t)
         (text . ,(buffer-substring-no-properties (point-min) (point-max)))))))
+
+;;; Column view
+
+(defun org-lsp-bridge--columns-view ()
+  "What column view shows in the current buffer: its columns (key, title,
+width), its header line, and for each headline it covers its line (from
+0), the text the line shows and the value of each column."
+  (let ((rows (make-hash-table)))
+    (dolist (ov (overlays-in (point-min) (point-max)))
+      (when (overlay-get ov 'org-columns-key)
+        (push ov (gethash (1- (line-number-at-pos (overlay-start ov) t)) rows))))
+    (let (lines)
+      (maphash
+       (lambda (line ovs)
+         (let ((ovs (sort ovs (lambda (a b) (< (overlay-start a) (overlay-start b))))))
+           (push (vector line
+                         (mapconcat (lambda (ov) (substring-no-properties (or (overlay-get ov 'display) ""))) ovs "")
+                         (vconcat (mapcar (lambda (ov) (format "%s" (or (overlay-get ov 'org-columns-value) ""))) ovs)))
+                 lines)))
+       rows)
+      (let ((i -1))
+        `((columns . ,(vconcat
+                       (mapcar (lambda (column)
+                                 (setq i (1+ i))
+                                 `((key . ,(nth 0 column))
+                                   (title . ,(or (nth 1 column) (nth 0 column)))
+                                   (width . ,(aref org-columns-current-maxwidths i))))
+                               org-columns-current-fmt-compiled)))
+          (header . ,(substring-no-properties (or org-columns-full-header-line-format " ") 1))
+          (lines . ,(vconcat (sort lines (lambda (a b) (< (aref a 0) (aref b 0)))))))))))
+
+(defun org-lsp-bridge-columns (params)
+  "Column view of the document of PARAMS, turned on where its point is
+\(`org-columns'; for the whole file with `global'): what it shows."
+  (require 'org-colview)
+  (org-lsp-bridge--in-document params
+    (switch-to-buffer (current-buffer))
+    (let ((inhibit-message t))
+      (org-columns (eq (alist-get 'global params) t)))
+    (prog1 (org-lsp-bridge--columns-view)
+      (org-columns-quit))))
+
+(defun org-lsp-bridge-columns-command (start global column command &optional answer)
+  "Column view turned on at START (for the whole file with GLOBAL), COMMAND
+run on the COLUMNth column (from 0) of the line at point, ANSWER what it
+asks: what the view shows then, in `org-lsp-bridge--extra'."
+  (require 'org-colview)
+  (unless (string-prefix-p "org-columns-" (format "%s" command))
+    (error "org-lsp does not run %s" command))
+  (switch-to-buffer (current-buffer))
+  (let ((line (line-beginning-position)))
+    (save-excursion
+      (goto-char start)
+      (let ((inhibit-message t))
+        (org-columns (eq global t))))
+    (goto-char (min (+ line column) (line-end-position)))
+    ;; What the command asks, the editor answered first; without fast
+    ;; selection or a calendar, a question is one line of text.
+    (let ((org-use-fast-todo-selection nil)
+          (org-use-fast-tag-selection nil)
+          (org-read-date-popup-calendar nil)
+          (command (intern (format "%s" command))))
+      (if (not answer)
+          (call-interactively command)
+        (cl-letf* ((answered (lambda (&rest _) answer))
+                   ((symbol-function 'read-string) answered)
+                   ((symbol-function 'read-from-minibuffer) answered)
+                   ((symbol-function 'completing-read) answered)
+                   ((symbol-function 'org-completing-read) answered)
+                   ((symbol-function 'read-char-exclusive)
+                    (lambda (&rest _) (if (string-empty-p answer) ?\s (string-to-char answer)))))
+          (call-interactively command))))
+    (when (and org-lsp-bridge--message (string-prefix-p "Recomputing columns" org-lsp-bridge--message))
+      (setq org-lsp-bridge--message nil))
+    ;; Still on unless the command turned it off (`q').
+    (setq org-lsp-bridge--extra
+          (and (bound-and-true-p org-columns-overlays) (org-lsp-bridge--columns-view)))
+    (when (bound-and-true-p org-columns-overlays)
+      (org-columns-quit))))
 
 ;;; Appointments
 

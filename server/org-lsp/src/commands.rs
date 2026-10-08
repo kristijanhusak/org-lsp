@@ -21,6 +21,8 @@ pub enum Scope {
     Calendar,
     /// In a capture buffer.
     Capture,
+    /// In an Org file while column view shows.
+    Columns,
 }
 
 impl Scope {
@@ -31,6 +33,7 @@ impl Scope {
             Scope::Agenda => "agenda",
             Scope::Calendar => "calendar",
             Scope::Capture => "capture",
+            Scope::Columns => "columns",
         }
     }
 }
@@ -134,6 +137,23 @@ pub const AGENDA_LOG: &str = "org.agenda.log";
 pub const AGENDA_HABITS: &str = "org.agenda.habits";
 pub const AGENDA_WRITE: &str = "org.agenda.write";
 pub const AGENDA_APPT: &str = "org.agenda.appt";
+pub const COLUMNS: &str = "org.columns";
+pub const COLUMNS_QUIT: &str = "org.columns.quit";
+pub const COLUMNS_REDO: &str = "org.columns.redo";
+pub const COLUMNS_EDIT: &str = "org.columns.edit";
+pub const COLUMNS_NEXT: &str = "org.columns.next";
+pub const COLUMNS_PREVIOUS: &str = "org.columns.previous";
+pub const COLUMNS_SHOW: &str = "org.columns.show";
+pub const COLUMNS_ALLOWED: &str = "org.columns.allowed";
+pub const COLUMNS_TODO: &str = "org.columns.todo";
+pub const COLUMNS_TOGGLE: &str = "org.columns.toggle";
+pub const COLUMNS_MOVE_LEFT: &str = "org.columns.move.left";
+pub const COLUMNS_MOVE_RIGHT: &str = "org.columns.move.right";
+pub const COLUMNS_DELETE: &str = "org.columns.delete";
+pub const COLUMNS_NARROW: &str = "org.columns.narrow";
+pub const COLUMNS_WIDEN: &str = "org.columns.widen";
+pub const COLUMNS_ROW_UP: &str = "org.columns.row.up";
+pub const COLUMNS_ROW_DOWN: &str = "org.columns.row.down";
 pub const EDIT_SPECIAL: &str = "org.edit.special";
 pub const TABLE_EDIT_FIELD: &str = "org.table.edit.field";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
@@ -324,7 +344,7 @@ pub const CALENDAR_TYPE: &str = "org.calendar.type";
 pub const CALENDAR_TIME: &str = "org.calendar.time";
 pub const CALENDAR_CANCEL: &str = "org.calendar.cancel";
 
-use Scope::{Agenda, Calendar, Capture, Global, Org};
+use Scope::{Agenda, Calendar, Capture, Columns, Global, Org};
 
 const fn command(id: &'static str, title: &'static str) -> Command {
     Command { id, title, edits: false, emacs: &[], vim: &[], input: None, clipboard: false, in_agenda: false }
@@ -984,6 +1004,88 @@ pub const COMMANDS: &[Command] = &[
     edit(CRYPT_DECRYPT, "Decrypt the entry"),
     edit(CRYPT_ENCRYPT_ALL, "Encrypt the entries tagged crypt"),
     edit(CRYPT_DECRYPT_ALL, "Decrypt the encrypted entries"),
+    // Column view (`org-columns`), through Emacs: the properties of the
+    // entries as a table over their headlines, the header above; on the
+    // whole file with `C-u` or before the first headline. While it shows,
+    // its keys act on the column picked (the editor keeps which).
+    Command { emacs: &[key(Org, "C-c C-x C-c")], vim: &[key(Org, "<Leader>oxc")], ..command(COLUMNS, "Column view") },
+    Command { emacs: &[key(Columns, "q")], vim: &[key(Columns, "q")], ..command(COLUMNS_QUIT, "Column view: quit") },
+    Command {
+        emacs: &[key(Columns, "g"), key(Columns, "r")],
+        // `g` would wait for `gg`.
+        vim: &[key(Columns, "r")],
+        ..command(COLUMNS_REDO, "Column view: recompute")
+    },
+    Command {
+        emacs: &[key(Columns, "e")],
+        vim: &[key(Columns, "e")],
+        ..edit(COLUMNS_EDIT, "Column view: edit the value")
+    },
+    Command {
+        emacs: &[key(Columns, "n"), key(Columns, "S-<right>")],
+        vim: &[key(Columns, "n"), key(Columns, "<S-Right>")],
+        ..edit(COLUMNS_NEXT, "Column view: the next allowed value")
+    },
+    Command {
+        emacs: &[key(Columns, "p"), key(Columns, "S-<left>")],
+        vim: &[key(Columns, "p"), key(Columns, "<S-Left>")],
+        ..edit(COLUMNS_PREVIOUS, "Column view: the previous allowed value")
+    },
+    Command {
+        emacs: &[key(Columns, "v")],
+        vim: &[key(Columns, "v")],
+        ..command(COLUMNS_SHOW, "Column view: show the value")
+    },
+    Command {
+        emacs: &[key(Columns, "a")],
+        vim: &[key(Columns, "a")],
+        ..edit(COLUMNS_ALLOWED, "Column view: edit the allowed values")
+    },
+    Command {
+        emacs: &[key(Columns, "C-c C-t")],
+        vim: &[key(Columns, "t")],
+        ..edit(COLUMNS_TODO, "Column view: change the TODO state")
+    },
+    Command {
+        emacs: &[key(Columns, "C-c C-c")],
+        vim: &[key(Columns, "<CR>")],
+        ..edit(COLUMNS_TOGGLE, "Column view: toggle a checkbox, or quit")
+    },
+    Command {
+        emacs: &[key(Columns, "M-<left>")],
+        vim: &[key(Columns, "<M-Left>")],
+        ..edit(COLUMNS_MOVE_LEFT, "Column view: move the column left")
+    },
+    Command {
+        emacs: &[key(Columns, "M-<right>")],
+        vim: &[key(Columns, "<M-Right>")],
+        ..edit(COLUMNS_MOVE_RIGHT, "Column view: move the column right")
+    },
+    Command {
+        emacs: &[key(Columns, "M-S-<left>")],
+        vim: &[key(Columns, "<M-S-Left>")],
+        ..edit(COLUMNS_DELETE, "Column view: delete the column")
+    },
+    Command {
+        emacs: &[key(Columns, "<")],
+        vim: &[key(Columns, "<")],
+        ..edit(COLUMNS_NARROW, "Column view: make the column narrower")
+    },
+    Command {
+        emacs: &[key(Columns, ">")],
+        vim: &[key(Columns, ">")],
+        ..edit(COLUMNS_WIDEN, "Column view: make the column wider")
+    },
+    Command {
+        emacs: &[key(Columns, "M-<up>")],
+        vim: &[key(Columns, "<M-Up>")],
+        ..edit(COLUMNS_ROW_UP, "Column view: move the entry up")
+    },
+    Command {
+        emacs: &[key(Columns, "M-<down>")],
+        vim: &[key(Columns, "<M-Down>")],
+        ..edit(COLUMNS_ROW_DOWN, "Column view: move the entry down")
+    },
     // Timers, kept by Org in Emacs (`org-timer.el`): the relative timer
     // (`org-timer-start`, `org-timer`, `org-timer-item`), pausing and
     // stopping it, and the countdown (`org-timer-set-timer`), whose end the

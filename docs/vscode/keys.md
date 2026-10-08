@@ -115,6 +115,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Alt+B` | `org.block.previous` | Move to the previous block |
 | `Ctrl+C '` | `org.edit.special` | Edit the block in a file of its own |
 | `Ctrl+C `` | `org.table.edit.field` | Edit the table field in a file of its own |
+| `Ctrl+C Ctrl+X Ctrl+C` | `org.columns` | Column view |
 | `Ctrl+C Ctrl+X 0` | `org.timer.start` | Start the relative timer |
 | `Ctrl+C Ctrl+X .` | `org.timer.insert` | Insert the timer's value |
 | `Ctrl+C Ctrl+X -` | `org.timer.item` | Insert a list item with the timer's value |
@@ -144,6 +145,24 @@ The other options are in [configuration.md](configuration.md).
 | `Shift+Tab` | `org-lsp.cycleGlobal` | Cycle the visibility of the whole file |
 | `Ctrl+C a` | `org.agenda.dispatch` | Agenda commands |
 | `Ctrl+C c` | `org.capture` | Capture |
+| `q` | `org.columns.quit` | Column view: quit |
+| `g`, `r` | `org.columns.redo` | Column view: recompute |
+| `e` | `org.columns.edit` | Column view: edit the value |
+| `n`, `Shift+Right` | `org.columns.next` | Column view: the next allowed value |
+| `p`, `Shift+Left` | `org.columns.previous` | Column view: the previous allowed value |
+| `v` | `org.columns.show` | Column view: show the value |
+| `a` | `org.columns.allowed` | Column view: edit the allowed values |
+| `Ctrl+C Ctrl+T` | `org.columns.todo` | Column view: change the TODO state |
+| `Ctrl+C Ctrl+C` | `org.columns.toggle` | Column view: toggle a checkbox, or quit |
+| `Alt+Left` | `org.columns.move.left` | Column view: move the column left |
+| `Alt+Right` | `org.columns.move.right` | Column view: move the column right |
+| `Alt+Shift+Left` | `org.columns.delete` | Column view: delete the column |
+| `<` | `org.columns.narrow` | Column view: make the column narrower |
+| `>` | `org.columns.widen` | Column view: make the column wider |
+| `Alt+Up` | `org.columns.row.up` | Column view: move the entry up |
+| `Alt+Down` | `org.columns.row.down` | Column view: move the entry down |
+| `Left` | `org-lsp.columns.left` | Column view: the column to the left |
+| `Right` | `org-lsp.columns.right` | Column view: the column to the right |
 
 #### In a capture buffer
 
@@ -261,6 +280,24 @@ The other options are in [configuration.md](configuration.md).
 | `Shift+Right`¹ | `org.shift.right` | Move the date a day later, or cycle the TODO state or the list's bullets forward |
 | `Tab` | `org-lsp.cycle` | Cycle the visibility of the subtree, block or drawer at the cursor |
 | `Shift+Tab` | `org-lsp.cycleGlobal` | Cycle the visibility of the whole file |
+| `q` | `org.columns.quit` | Column view: quit |
+| `r` | `org.columns.redo` | Column view: recompute |
+| `e` | `org.columns.edit` | Column view: edit the value |
+| `n`, `Shift+Right` | `org.columns.next` | Column view: the next allowed value |
+| `p`, `Shift+Left` | `org.columns.previous` | Column view: the previous allowed value |
+| `v` | `org.columns.show` | Column view: show the value |
+| `a` | `org.columns.allowed` | Column view: edit the allowed values |
+| `t` | `org.columns.todo` | Column view: change the TODO state |
+| `Enter` | `org.columns.toggle` | Column view: toggle a checkbox, or quit |
+| `Alt+Left` | `org.columns.move.left` | Column view: move the column left |
+| `Alt+Right` | `org.columns.move.right` | Column view: move the column right |
+| `Alt+Shift+Left` | `org.columns.delete` | Column view: delete the column |
+| `<` | `org.columns.narrow` | Column view: make the column narrower |
+| `>` | `org.columns.widen` | Column view: make the column wider |
+| `Alt+Up` | `org.columns.row.up` | Column view: move the entry up |
+| `Alt+Down` | `org.columns.row.down` | Column view: move the entry down |
+| `h`, `Left` | `org-lsp.columns.left` | Column view: the column to the left |
+| `l`, `Right` | `org-lsp.columns.right` | Column view: the column to the right |
 
 #### In a capture buffer
 
@@ -432,6 +469,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "b", "i"], "commands": ["org.babel.lob.ingest"] },
   { "before": ["<leader>", "o", "'"], "commands": ["org.edit.special"] },
   { "before": ["<leader>", "o", "`"], "commands": ["org.table.edit.field"] },
+  { "before": ["<leader>", "o", "x", "c"], "commands": ["org.columns"] },
   { "before": ["<leader>", "o", "x", "0"], "commands": ["org.timer.start"] },
   { "before": ["<leader>", "o", "x", "."], "commands": ["org.timer.insert"] },
   { "before": ["<leader>", "o", "x", "-"], "commands": ["org.timer.item"] },
@@ -600,6 +638,23 @@ every file; outside Org files the commands say they do not apply):
 | `org.crypt.decrypt` | Org: Decrypt the entry |
 | `org.crypt.encrypt.all` | Org: Encrypt the entries tagged crypt |
 | `org.crypt.decrypt.all` | Org: Decrypt the encrypted entries |
+| `org.columns` | Org: Column view |
+| `org.columns.quit` | Org: Column view: quit |
+| `org.columns.redo` | Org: Column view: recompute |
+| `org.columns.edit` | Org: Column view: edit the value |
+| `org.columns.next` | Org: Column view: the next allowed value |
+| `org.columns.previous` | Org: Column view: the previous allowed value |
+| `org.columns.show` | Org: Column view: show the value |
+| `org.columns.allowed` | Org: Column view: edit the allowed values |
+| `org.columns.todo` | Org: Column view: change the TODO state |
+| `org.columns.toggle` | Org: Column view: toggle a checkbox, or quit |
+| `org.columns.move.left` | Org: Column view: move the column left |
+| `org.columns.move.right` | Org: Column view: move the column right |
+| `org.columns.delete` | Org: Column view: delete the column |
+| `org.columns.narrow` | Org: Column view: make the column narrower |
+| `org.columns.widen` | Org: Column view: make the column wider |
+| `org.columns.row.up` | Org: Column view: move the entry up |
+| `org.columns.row.down` | Org: Column view: move the entry down |
 | `org.timer.start` | Org: Start the relative timer |
 | `org.timer.insert` | Org: Insert the timer's value |
 | `org.timer.item` | Org: Insert a list item with the timer's value |

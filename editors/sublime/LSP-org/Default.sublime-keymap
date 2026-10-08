@@ -1979,6 +1979,29 @@
     "keys": [
       "ctrl+c",
       "ctrl+x",
+      "ctrl+c"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "ctrl+x",
       "0"
     ],
     "command": "org_lsp_run",

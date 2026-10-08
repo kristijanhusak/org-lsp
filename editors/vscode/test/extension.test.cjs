@@ -663,6 +663,36 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('shows column view over the headlines', async function () {
+    this.timeout(90000);
+    // Through the server's Emacs.
+    if (!require('node:child_process').spawnSync('emacs', ['--version']).stdout) {
+      this.skip();
+    }
+    const file = vscode.Uri.file(path.join(workspace, 'columns.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('#+COLUMNS: %25ITEM %TODO\n* Project\n** Task\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    moveTo(0);
+    await vscode.commands.executeCommand('org.columns');
+    await until('column view', () => api.columnsShown(editor).length === 2, 60000);
+    assert.deepEqual(api.columnsShown(editor)[1], [2, '** Task                   |      |']);
+    assert.equal(api.columns(), '$(table) [ITEM] | TODO');
+    // Right picks the TODO column; `n` its next state.
+    moveTo(2);
+    await vscode.commands.executeCommand('org-lsp.columns.right');
+    assert.equal(api.columns(), '$(table) ITEM | [TODO]');
+    await vscode.commands.executeCommand('org.columns.next');
+    await until('the next state', () => editor.document.lineAt(2).text === '** TODO Task', 60000);
+    await until('the view following', () => api.columnsShown(editor)[1]?.[1] === '** Task                   | TODO |', 60000);
+    await vscode.commands.executeCommand('org.columns.quit');
+    await until('column view off', () => api.columnsShown(editor).length === 0);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('sorts the children of an entry by the key picked', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'sorting.org'));
     await vscode.workspace.fs.writeFile(file, Buffer.from('* Parent\n** b\n** C\ntext\n** a\n'));

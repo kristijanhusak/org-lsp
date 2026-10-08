@@ -110,6 +110,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>obi` | `org.babel.lob.ingest` | Add the file's named code blocks to the Library of Babel |
 | `<Leader>o'` | `org.edit.special` | Edit the block in a file of its own |
 | `<Leader>o`` | `org.table.edit.field` | Edit the table field in a file of its own |
+| `<Leader>oxc` | `org.columns` | Column view |
 | `<Leader>ox0` | `org.timer.start` | Start the relative timer |
 | `<Leader>ox.` | `org.timer.insert` | Insert the timer's value |
 | `<Leader>ox-` | `org.timer.item` | Insert a list item with the timer's value |
@@ -230,6 +231,27 @@ The other options are in [configuration.md](configuration.md).
 | `i` | `org.calendar.type` | Date prompt: type the date |
 | `t` | `org.calendar.time` | Date prompt: pick the time, or go back to the day |
 | `q`, `<Esc>` | `org.calendar.cancel` | Date prompt: cancel |
+
+### In column view
+
+| Keys | Command | What it does |
+| --- | --- | --- |
+| `q` | `org.columns.quit` | Column view: quit |
+| `r` | `org.columns.redo` | Column view: recompute |
+| `e` | `org.columns.edit` | Column view: edit the value |
+| `n`, `<S-Right>` | `org.columns.next` | Column view: the next allowed value |
+| `p`, `<S-Left>` | `org.columns.previous` | Column view: the previous allowed value |
+| `v` | `org.columns.show` | Column view: show the value |
+| `a` | `org.columns.allowed` | Column view: edit the allowed values |
+| `t` | `org.columns.todo` | Column view: change the TODO state |
+| `<CR>` | `org.columns.toggle` | Column view: toggle a checkbox, or quit |
+| `<M-Left>` | `org.columns.move.left` | Column view: move the column left |
+| `<M-Right>` | `org.columns.move.right` | Column view: move the column right |
+| `<M-S-Left>` | `org.columns.delete` | Column view: delete the column |
+| `<` | `org.columns.narrow` | Column view: make the column narrower |
+| `>` | `org.columns.widen` | Column view: make the column wider |
+| `<M-Up>` | `org.columns.row.up` | Column view: move the entry up |
+| `<M-Down>` | `org.columns.row.down` | Column view: move the entry down |
 
 ### Without a default key
 

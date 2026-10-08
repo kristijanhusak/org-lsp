@@ -994,6 +994,125 @@
     }
   },
   {
+    "caption": "Org: Column view",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns"
+    }
+  },
+  {
+    "caption": "Org: Column view: quit",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.quit"
+    }
+  },
+  {
+    "caption": "Org: Column view: recompute",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.redo"
+    }
+  },
+  {
+    "caption": "Org: Column view: edit the value",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.edit"
+    }
+  },
+  {
+    "caption": "Org: Column view: the next allowed value",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.next"
+    }
+  },
+  {
+    "caption": "Org: Column view: the previous allowed value",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.previous"
+    }
+  },
+  {
+    "caption": "Org: Column view: show the value",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.show"
+    }
+  },
+  {
+    "caption": "Org: Column view: edit the allowed values",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.allowed"
+    }
+  },
+  {
+    "caption": "Org: Column view: change the TODO state",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.todo"
+    }
+  },
+  {
+    "caption": "Org: Column view: toggle a checkbox, or quit",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.toggle"
+    }
+  },
+  {
+    "caption": "Org: Column view: move the column left",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.move.left"
+    }
+  },
+  {
+    "caption": "Org: Column view: move the column right",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.move.right"
+    }
+  },
+  {
+    "caption": "Org: Column view: delete the column",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.delete"
+    }
+  },
+  {
+    "caption": "Org: Column view: make the column narrower",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.narrow"
+    }
+  },
+  {
+    "caption": "Org: Column view: make the column wider",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.widen"
+    }
+  },
+  {
+    "caption": "Org: Column view: move the entry up",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.row.up"
+    }
+  },
+  {
+    "caption": "Org: Column view: move the entry down",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.columns.row.down"
+    }
+  },
+  {
     "caption": "Org: Start the relative timer",
     "command": "org_lsp_run",
     "args": {
