@@ -126,6 +126,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X _` | `org.timer.stop` | Stop the timer |
 | `Ctrl+C Ctrl+X ;` | `org.timer.set` | Set a countdown timer |
 | `Ctrl+C Ctrl+E` | `org.export.dispatch` | Export the file through Emacs |
+| `Ctrl+C Tab` | `org.table.toggle.column.width` | Shrink or expand the table column |
 | `Ctrl+C Shift+8` | `org.table.recalculate.line` | Recalculate the table's current line |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
 | `Ctrl+C l` | `org.link.store` | Store a link to the place at the cursor |
@@ -483,6 +484,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "x", "_"], "commands": ["org.timer.stop"] },
   { "before": ["<leader>", "o", "x", ";"], "commands": ["org.timer.set"] },
   { "before": ["<leader>", "o", "e"], "commands": ["org.export.dispatch"] },
+  { "before": ["<leader>", "o", "<Tab>"], "commands": ["org.table.toggle.column.width"] },
   { "before": ["<leader>", "o", "*"], "commands": ["org.table.recalculate"] },
   { "before": ["<leader>", "o", "o"], "commands": ["org.open"] },
   { "before": ["<leader>", "o", "l", "s"], "commands": ["org.link.store"] },
@@ -671,6 +673,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.timer.stop` | Org: Stop the timer |
 | `org.timer.set` | Org: Set a countdown timer |
 | `org.export.dispatch` | Org: Export the file through Emacs |
+| `org.table.toggle.column.width` | Org: Shrink or expand the table column |
 | `org.table.recalculate` | Org: Recalculate the table |
 | `org.table.recalculate.line` | Org: Recalculate the table's current line |
 | `org.table.iterate` | Org: Recalculate the table until it does not change |

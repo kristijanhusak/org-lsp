@@ -2230,6 +2230,28 @@
   {
     "keys": [
       "ctrl+c",
+      "tab"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.toggle.column.width"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
       "*"
     ],
     "command": "org_lsp_run",

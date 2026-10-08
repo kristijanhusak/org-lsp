@@ -1741,6 +1741,61 @@ fn apply_text_edits(text: &str, edits: &[TextEdit]) -> String {
     out
 }
 
+/// Shrunk table columns (`org-table-toggle-column-width`, `#+STARTUP:
+/// shrink`): each field's text beyond the column's width cookie hidden in
+/// the tokens, and `…` an inlay hint in its place, as Org's overlays show.
+#[test]
+fn shrinks_table_columns() {
+    let mut client = Client::start(
+        json!({ "textDocument": { "inlayHint": {} }, "general": { "positionEncodings": ["utf-8"] } }),
+        json!({}),
+    );
+    let text = "#+STARTUP: shrink\n| <3>    | b |\n| abcdef | x |\n";
+    client.open(&uri(), text);
+    let hints = |client: &mut Client| -> Vec<(u32, u32, String)> {
+        let params = json!({ "textDocument": { "uri": uri().as_str() }, "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 3, "character": 0 } } });
+        let result = client.raw_request("textDocument/inlayHint", params).response_result.unwrap();
+        result
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|hint| {
+                (
+                    hint["position"]["line"].as_u64().unwrap() as u32,
+                    hint["position"]["character"].as_u64().unwrap() as u32,
+                    hint["label"].as_str().unwrap().to_string(),
+                )
+            })
+            .collect()
+    };
+    // Shrunk when the file opens: `abc…`, as Emacs shows it.
+    assert_eq!(hints(&mut client), [(1, 1, " ".into()), (1, 5, "…".into()), (2, 1, " ".into()), (2, 5, "…".into())]);
+    let toggle = |client: &mut Client, line: u32, character: u32, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        for (key, value) in extra.as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.table.toggle.column.width", "arguments": [context] }))
+            .response_result
+            .unwrap()
+    };
+    // `C-c TAB` in the first column: shown whole.
+    toggle(&mut client, 2, 3, json!({}));
+    assert_eq!(hints(&mut client), []);
+    // In the second, without a cookie: `…` alone.
+    toggle(&mut client, 2, 11, json!({}));
+    assert_eq!(hints(&mut client), [(1, 10, "…".into()), (2, 10, "…".into())]);
+    // Before the first column, the columns asked for.
+    let asked = toggle(&mut client, 2, 0, json!({}));
+    assert_eq!(asked["input"]["prompt"], "Column ranges (e.g. 2-4 6-): ");
+    toggle(&mut client, 2, 0, json!({ "input": "1-" }));
+    assert_eq!(hints(&mut client), [(1, 1, " ".into()), (1, 5, "…".into()), (2, 1, " ".into()), (2, 5, "…".into())]);
+    // `C-u C-u`: everything shown.
+    toggle(&mut client, 2, 3, json!({ "count": 16 }));
+    assert_eq!(hints(&mut client), []);
+}
+
 /// The relative timer and the countdown, for the editor's status line as
 /// Emacs's mode line shows them (`org-lsp/timer`).
 #[test]

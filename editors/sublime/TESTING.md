@@ -208,6 +208,9 @@ here and why.
 
 ## Tables
 
+**Partly:** A shrunk column shows its whole text and `…`: Sublime Text cannot hide text in a view.
+
+- [ ] `C-c TAB` in a column with a `<5>` cookie shows five characters of each field and `…`; again, the whole column; a file with `#+STARTUP: shrink` opens so: `Ctrl+C Tab`
 - [ ] Formatting the file aligns the tables: *LSP: Format File*
 - [ ] Moving to the next and previous field; past the last field a row is made: *Org: Go to the next table field, making a row after the last*, *Org: Go to the previous table field*
 - [ ] Moving a column left and right, a row up and down: `Alt+Left`, `Alt+Right`, `Alt+Up`, `Alt+Down`

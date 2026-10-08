@@ -1183,6 +1183,13 @@
     }
   },
   {
+    "caption": "Org: Shrink or expand the table column",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.toggle.column.width"
+    }
+  },
+  {
     "caption": "Org: Recalculate the table",
     "command": "org_lsp_run",
     "args": {

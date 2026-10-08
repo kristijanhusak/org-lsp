@@ -207,6 +207,9 @@ pub struct Options {
     /// keep one of them visible when it is folded.
     #[serde(rename = "org_cycle_separator_lines")]
     pub cycle_separator_lines: Option<i64>,
+    /// `org-startup-shrink-all-tables`
+    #[serde(rename = "org_startup_shrink_all_tables")]
+    pub startup_shrink_all_tables: Option<bool>,
     /// `org-startup-folded`
     #[serde(rename = "org_startup_folded")]
     pub startup_folded: Option<String>,
@@ -1277,6 +1280,7 @@ const OLD_NAMES: &[(&str, &str)] = &[
     ("autoSave", "auto_save"),
     ("cycleSeparatorLines", "org_cycle_separator_lines"),
     ("startupFolded", "org_startup_folded"),
+    ("startupShrinkAllTables", "org_startup_shrink_all_tables"),
     ("cycleHideBlockStartup", "org_cycle_hide_block_startup"),
     ("cycleHideDrawerStartup", "org_cycle_hide_drawer_startup"),
     ("cycleOpenArchivedTrees", "org_cycle_open_archived_trees"),

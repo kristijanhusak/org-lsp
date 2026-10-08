@@ -36,6 +36,7 @@ pub mod properties;
 pub mod radio;
 pub mod read_date;
 pub mod refile;
+pub mod shrink;
 pub mod rename;
 pub mod sort;
 pub mod sparse;

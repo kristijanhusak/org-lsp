@@ -784,6 +784,11 @@ struct Server {
     startup: folding::Startup,
     /// The documents column view shows on, by URI.
     columns: HashMap<String, ColumnsOn>,
+    /// The shrunk columns of each table of a document (from 1), by URI,
+    /// the tables in the order of the text.
+    shrunk: HashMap<String, Vec<std::collections::BTreeSet<usize>>>,
+    /// `org-startup-shrink-all-tables`
+    startup_shrink: bool,
     /// Whether Emacs encrypts entries before a file is saved
     /// (`org-crypt-use-before-save-magic`), once it said.
     crypt_before_save: Option<bool>,
@@ -1081,6 +1086,8 @@ pub fn run(connection: Connection) -> Result<()> {
         separator_lines: options.separator_lines(),
         startup: options.startup(),
         columns: HashMap::new(),
+        shrunk: HashMap::new(),
+        startup_shrink: options.startup_shrink_all_tables.unwrap_or(false),
         crypt_before_save: None,
         indent: options.indent_settings(),
         display: options.display(),
@@ -1983,6 +1990,7 @@ impl Server {
                     return;
                 }
                 let key = document.uri.as_str().to_string();
+                self.shrink_at_startup(&key, &document.text);
                 self.documents.insert(key.clone(), Document::new(document.text, document.version, &self.todo));
                 self.sync_clock(&key);
                 self.publish_virtual_indent(&key);
@@ -2012,6 +2020,12 @@ impl Server {
                     return;
                 }
                 let key = params.text_document.uri.as_str();
+                let shrunk_before = self
+                    .shrunk
+                    .contains_key(key)
+                    .then(|| self.documents.get(key).map(|document| document.text.clone()))
+                    .flatten();
+                let changed_lines = changed_lines(&params.content_changes);
                 if let Some(document) = self.documents.get_mut(key) {
                     document.apply(
                         params.content_changes,
@@ -2019,6 +2033,9 @@ impl Server {
                         self.client.encoding,
                         &self.todo,
                     );
+                }
+                if let Some(old) = shrunk_before {
+                    self.shrunk_after_change(key, &old, changed_lines);
                 }
                 self.sync_clock(key);
                 // Column view follows the text.
@@ -2093,14 +2110,15 @@ impl Server {
             org_core::radio::links(&document.text, &document.parse).iter().map(|link| (link.start, link.end)).collect();
         let tokens = highlight::with_radio_links(tokens, &radio);
         // `org-pretty-entities`: an entity hidden, its character an inlay
-        // hint in its place.
-        let tokens = if self.pretty_entities {
-            let hidden: Vec<(usize, usize)> =
-                org_core::pretty::entities(&document.text).into_iter().map(|(start, end, _)| (start, end)).collect();
-            highlight::with_hidden(tokens, &hidden)
+        // hint in its place; so are the shrunk fields of tables.
+        let mut hidden: Vec<(usize, usize)> = if self.pretty_entities {
+            org_core::pretty::entities(&document.text).into_iter().map(|(start, end, _)| (start, end)).collect()
         } else {
-            tokens
+            Vec::new()
         };
+        hidden.extend(self.shrunk_overlays(uri.as_str(), &document.text).into_iter().map(|overlay| (overlay.start, overlay.end)));
+        hidden.sort_unstable();
+        let tokens = if hidden.is_empty() { tokens } else { highlight::with_hidden(tokens, &hidden) };
         let only = range.map(|range| document.index.text_range(&document.text, range, encoding));
         let data = highlight::encode(&tokens, &document.text, &document.index, encoding, only);
         Some(SemanticTokens { result_id: None, data })
@@ -2198,6 +2216,13 @@ impl Server {
                 if (first..=last).contains(&(at.line as usize)) {
                     hints.push(hint(at.line, at.character, utf8.to_string()));
                 }
+            }
+        }
+        // Shrunk table fields: what Org's overlays show in their place.
+        for overlay in self.shrunk_overlays(params.text_document.uri.as_str(), text) {
+            let at = document.index.position(text, overlay.start, self.client.encoding);
+            if (first..=last).contains(&(at.line as usize)) && !overlay.display.is_empty() {
+                hints.push(hint(at.line, at.character, overlay.display));
             }
         }
         // `org-clock-display`: the time after each headline, its line
@@ -4105,6 +4130,9 @@ impl Server {
             id if id.starts_with("org.agenda.filter") => self.agenda_filter(id, context.as_ref()),
             commands::AGENDA_WRITE => self.agenda_write(context.as_ref()),
             commands::AGENDA_APPT => self.agenda_to_appt(context.as_ref()),
+            commands::TABLE_TOGGLE_COLUMN_WIDTH => {
+                self.toggle_column_width(&context.ok_or("This command needs the cursor position")?)
+            }
             commands::COLUMNS => self.columns(&context.ok_or("This command needs the cursor position")?),
             id if id.starts_with("org.columns.") => {
                 self.columns_command(id, &context.ok_or("This command needs the cursor position")?)
@@ -8058,6 +8086,120 @@ impl Server {
         }
     }
 
+    /// `org-startup-shrink-all-tables` (`#+STARTUP: shrink`): the columns
+    /// with a width cookie shrunk when a file opens.
+    fn shrink_at_startup(&mut self, key: &str, text: &str) {
+        let mut shrink = self.startup_shrink;
+        for line in text.lines() {
+            let line = line.trim_start();
+            if !line.get(..10).is_some_and(|start| start.eq_ignore_ascii_case("#+startup:")) {
+                continue;
+            }
+            for word in line[10..].split_whitespace() {
+                match word.to_ascii_lowercase().as_str() {
+                    "shrink" => shrink = true,
+                    "noshrink" => shrink = false,
+                    _ => {}
+                }
+            }
+        }
+        if !shrink {
+            return;
+        }
+        let tables = org_core::shrink::tables(text);
+        let sets = tables.iter().map(|table| org_core::shrink::cookie_columns(text, table)).collect();
+        self.shrunk.insert(key.to_string(), sets);
+    }
+
+    /// What the shrunk columns of `key`'s tables show (see
+    /// [`org_core::shrink`]).
+    fn shrunk_overlays(&self, key: &str, text: &str) -> Vec<org_core::shrink::Overlay> {
+        let Some(sets) = self.shrunk.get(key) else { return Vec::new() };
+        let tables = org_core::shrink::tables(text);
+        let mut out: Vec<org_core::shrink::Overlay> = tables
+            .iter()
+            .zip(sets)
+            .flat_map(|(table, columns)| org_core::shrink::overlays(text, table, columns))
+            .collect();
+        out.sort_by_key(|overlay| overlay.start);
+        out
+    }
+
+    /// After a change of `key` (whose text was `old`, the lines changed
+    /// those of `changed`): a table changed shows its columns again, as
+    /// Emacs takes its overlays away when the text under them changes; the
+    /// others keep theirs.
+    fn shrunk_after_change(&mut self, key: &str, old: &str, changed: Option<(usize, usize)>) {
+        let Some(sets) = self.shrunk.remove(key) else { return };
+        let Some(text) = self.documents.get(key).map(|document| document.text.clone()) else { return };
+        let Some((first, last)) = changed else { return };
+        let before = org_core::shrink::tables(old);
+        let after = org_core::shrink::tables(&text);
+        let mut kept: Vec<std::collections::BTreeSet<usize>> = vec![Default::default(); after.len()];
+        let shift = after.len() as isize - before.len() as isize;
+        for (index, table) in before.iter().enumerate() {
+            let (start, end) = table.line_range(old);
+            let set = sets.get(index).cloned().unwrap_or_default();
+            if end < first {
+                if let Some(slot) = kept.get_mut(index) {
+                    *slot = set;
+                }
+            } else if start > last {
+                let moved = index as isize + shift;
+                if let Some(slot) = usize::try_from(moved).ok().and_then(|moved| kept.get_mut(moved)) {
+                    *slot = set;
+                }
+            }
+        }
+        if kept.iter().any(|set| !set.is_empty()) {
+            self.shrunk.insert(key.to_string(), kept);
+        }
+    }
+
+    /// `org-table-toggle-column-width` (`C-c TAB`): see the command.
+    fn toggle_column_width(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let key = context.text_document.uri.as_str().to_string();
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, self.client.encoding);
+        let tables = org_core::shrink::tables(&text);
+        let index = tables
+            .iter()
+            .position(|table| table.lines.iter().any(|(start, end)| (*start..=*end).contains(&offset)))
+            .ok_or("Not in a table")?;
+        let table = &tables[index];
+        let mut sets = self.shrunk.remove(&key).unwrap_or_default();
+        sets.resize(tables.len(), Default::default());
+        let shrunk = sets[index].clone();
+        let line = table.lines.iter().find(|(start, end)| (*start..=*end).contains(&offset)).copied().unwrap_or_default();
+        let before_cursor = &text[line.0..offset];
+        let columns = before_cursor.matches('|').count() + before_cursor.matches('+').count();
+        let fields = text[line.0..line.1].matches('|').count().max(1) - 1;
+        let new = match context.count {
+            Some(16) => Default::default(),
+            Some(count) if count > 1 => org_core::shrink::cookie_columns(&text, table),
+            _ if columns == 0 || columns > fields => {
+                // Before the first column or past the last: which ones.
+                let Some(input) = context.input.clone() else {
+                    self.shrunk.insert(key, sets);
+                    return Ok(json!({ "input": { "kind": "text", "prompt": "Column ranges (e.g. 2-4 6-): ", "value": "" } }));
+                };
+                let asked = column_ranges(&input, fields);
+                shrunk.symmetric_difference(&asked).copied().collect()
+            }
+            _ => shrunk.symmetric_difference(&[columns].into_iter().collect()).copied().collect(),
+        };
+        sets[index] = new;
+        if sets.iter().any(|set| !set.is_empty()) {
+            self.shrunk.insert(key, sets);
+        }
+        if self.client.tokens_refresh {
+            self.send_raw_request("workspace/semanticTokens/refresh", Value::Null, None);
+        }
+        self.refresh_inlay_hints();
+        Ok(Value::Null)
+    }
+
     /// `org-columns` (`C-c C-x C-c`), through Emacs: column view, on the
     /// whole file with `C-u` or before the first headline, else on the
     /// subtree Org takes (the first one above with `COLUMNS`, or the top
@@ -11126,4 +11268,33 @@ fn drawer_names(text: &str) -> Vec<String> {
             .then(|| name.to_string())
         })
         .collect()
+}
+
+/// The lines a change touches, in the text before it (the first and the
+/// last, from 0); none when the whole text is replaced.
+fn changed_lines(changes: &[lsp_types::TextDocumentContentChangeEvent]) -> Option<(usize, usize)> {
+    let mut lines: Option<(usize, usize)> = None;
+    for change in changes {
+        let range = change.range?;
+        let (first, last) = (range.start.line as usize, range.end.line as usize);
+        lines = Some(lines.map_or((first, last), |(a, b)| (a.min(first), b.max(last))));
+    }
+    lines
+}
+
+/// `org-table--read-column-selection`: the columns of `2-4 6-` (from 1),
+/// in a table of `count` columns.
+fn column_ranges(input: &str, count: usize) -> std::collections::BTreeSet<usize> {
+    let mut out = std::collections::BTreeSet::new();
+    for part in input.split_whitespace() {
+        let (from, to) = match part.split_once('-') {
+            Some((from, to)) => (from.parse().unwrap_or(1), to.parse().unwrap_or(count)),
+            None => match part.parse() {
+                Ok(column) => (column, column),
+                Err(_) => continue,
+            },
+        };
+        out.extend(from.max(1)..=to.min(count));
+    }
+    out
 }

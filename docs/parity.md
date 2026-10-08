@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 93%**
+**All of Org: 94%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -26,7 +26,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Refile and archive](#refile-and-archive) | 100% | 11 of 11 |
 | [Links](#links) | 100% | 11 of 11 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
-| [Tables](#tables) | 88% | 15 of 17 |
+| [Tables](#tables) | 94% | 16 of 17 |
 | [Table formulas](#table-formulas) | 92% | 11 of 12 |
 | [Code blocks (Babel)](#code-blocks-babel) | 91% | 10 of 11 |
 | [Export and publishing](#export-and-publishing) | 89% | 8 of 9 |
@@ -334,7 +334,7 @@ Where editors fall short:
 
 ## Tables
 
-88% (15 of 17)
+94% (16 of 17)
 
 - ✅ Aligning (`C-c C-c`, formatting)
 - ✅ Moving between fields (`TAB`, `S-TAB`), a row made past the last
@@ -346,7 +346,7 @@ Where editors fall short:
 - ✅ Rectangles: cutting, copying and pasting the cells of a selection (through Emacs)
 - ✅ Copying down (`S-RET`, through Emacs)
 - ✅ Editing a field in a file of its own (`C-c \``, through Emacs): put back, the table realigned, each time it is saved
-- ❌ Shrunk columns (`<5>`)
+- ✅ Shrunk columns (`<5>`): `C-c TAB`, `org-startup-shrink-all-tables` and `#+STARTUP: shrink`; the hidden text concealed where the editor can hide it, `…` an inlay hint
 - ✅ Creating an empty table (`C-c |`, through Emacs)
 - ✅ Making a table from a region (`C-c |` on a selection, through Emacs)
 - ✅ Summing (`C-c +`) and field information (`C-c ?`), through Emacs
@@ -356,8 +356,10 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table.
-- Helix ❓: Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them. The other edits are code actions in a table.
+- Vim ❓: A shrunk column shows its whole text and `…`: Vim cannot hide text that has text properties.
+- Sublime Text ❓: A shrunk column shows its whole text and `…`: Sublime Text cannot hide text in a view.
+- Zed ❓: Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and `…`: Zed lets no server hide text.
+- Helix ❓: Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and `…`: Helix lets no server hide text.
 
 ## Table formulas
 
