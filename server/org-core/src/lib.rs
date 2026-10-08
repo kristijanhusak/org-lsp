@@ -23,6 +23,7 @@ pub mod lint;
 mod lint_tables;
 pub mod list;
 pub mod meta_return;
+pub mod motion;
 pub mod newline;
 pub mod open;
 pub mod outline;

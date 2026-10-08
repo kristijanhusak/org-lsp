@@ -82,6 +82,14 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>obb` | `org.babel.execute.buffer` | Evaluate the file's code blocks through Emacs |
 | `<Leader>obs` | `org.babel.execute.subtree` | Evaluate the subtree's code blocks through Emacs |
 | `<Leader>obk` | `org.babel.remove_result` | Remove the results of the code block at the cursor |
+| `}` | `org.heading.next` | Move to the next heading |
+| `{` | `org.heading.previous` | Move to the previous heading |
+| `]]` | `org.heading.forward` | Move to the next heading of the same level |
+| `[[` | `org.heading.backward` | Move to the previous heading of the same level |
+| `g{` | `org.heading.up` | Move to the parent heading |
+| `]l` | `org.link.next` | Move to the next link |
+| `[l` | `org.link.previous` | Move to the previous link |
+| `<Leader>oj` | `org.goto` | Go to a heading of the file |
 | `<Leader>oe` | `org.export.dispatch` | Export the file through Emacs |
 | `<Leader>o*` | `org.table.recalculate` | Recalculate the table |
 | `<Leader>oo` | `org.open` | Open the link or thing at the cursor |

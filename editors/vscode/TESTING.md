@@ -47,6 +47,10 @@ here and why.
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: `Ctrl+C Ctrl+X Ctrl+W`, `Ctrl+C Ctrl+X Ctrl+Y`
 - [ ] Copying a subtree and pasting it: `Ctrl+C Ctrl+X Alt+W`, `Ctrl+C Ctrl+X Ctrl+Y`
 - [ ] Sorting the children of a heading alphabetically, then by TODO state: `Ctrl+C ^`
+- [ ] Moving to the next and previous heading; with a count, that many: `Ctrl+C Ctrl+N`, `Ctrl+C Ctrl+P`
+- [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: `Ctrl+C Ctrl+F`, `Ctrl+C Ctrl+B`
+- [ ] Moving to the parent heading; on a top heading Org says it is at the top level: `Ctrl+C Ctrl+U`
+- [ ] Going to a heading picked by its outline path (`A/B/`): `Ctrl+C Ctrl+J`
 - [ ] The outline lists the headings nested: the Outline view
 
 ## Lists and checkboxes
@@ -171,6 +175,7 @@ here and why.
 - [ ] Storing a link to a headline and inserting it elsewhere with a description: `Ctrl+C l`, `Ctrl+C Ctrl+L`
 - [ ] Inserting a link on an existing link edits it: `Ctrl+C Ctrl+L`
 - [ ] Creating an ID for the entry: *Org: Create an ID for the entry*
+- [ ] Moving to the next and previous link; after the last, again from the start of the file: `Ctrl+C Ctrl+X Ctrl+N`, `Ctrl+C Ctrl+X Ctrl+P`
 - [ ] In `[[`, file names, headlines and custom IDs are completed
 - [ ] Hovering a link shows where it leads
 - [ ] References on a headline list the links to it, in every file

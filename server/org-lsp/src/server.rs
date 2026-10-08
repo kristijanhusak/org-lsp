@@ -692,6 +692,10 @@ struct Server {
     /// answered yet. A command from the old line is meant for the new one.
     moving: Option<(u32, u32)>,
     last: Option<Last>,
+    /// The last link search found nothing (`org-link--search-failed`).
+    link_search_failed: bool,
+    /// `org_goto_max_level`
+    goto_max_level: usize,
     /// `org-last-set-property`: the name `org-set-property` offers by
     /// default.
     last_property: Option<String>,
@@ -883,6 +887,8 @@ pub fn run(connection: Connection) -> Result<()> {
         follow: None,
         moving: None,
         last: None,
+        link_search_failed: false,
+        goto_max_level: options.goto_max_level.unwrap_or(5),
         last_property: None,
     };
     // A problem with the options is worth a message where the user looks.
@@ -3581,6 +3587,16 @@ impl Server {
             ),
             commands::TANGLE => self.tangle(&context.ok_or("This command needs the cursor position")?),
             commands::EXPORT => self.export(&context.ok_or("This command needs the cursor position")?),
+            commands::HEADING_NEXT
+            | commands::HEADING_PREVIOUS
+            | commands::HEADING_FORWARD
+            | commands::HEADING_BACKWARD
+            | commands::HEADING_UP
+            | commands::LINK_NEXT
+            | commands::LINK_PREVIOUS => {
+                self.motion(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
+            commands::GOTO => self.goto(&context.ok_or("This command needs the cursor position")?),
             commands::BABEL_EXECUTE => {
                 self.emacs_run("org-babel-execute-maybe", &context.ok_or("This command needs the cursor position")?)
             }
@@ -6648,6 +6664,70 @@ impl Server {
                 (None, _) => {}
             },
         }
+    }
+
+    /// Org's motion commands (`org-next-visible-heading` and the rest):
+    /// the result carries the cursor, as `org.return`'s does, and says what
+    /// Org says. A link search that found nothing makes the same command
+    /// right after start from the other end.
+    fn motion(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::motion::{self, Motion};
+        let uri = &context.text_document.uri;
+        let encoding = self.client.encoding;
+        let document = self.document(uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, encoding);
+        let which = match id {
+            commands::HEADING_NEXT => Motion::NextHeading,
+            commands::HEADING_PREVIOUS => Motion::PreviousHeading,
+            commands::HEADING_FORWARD => Motion::ForwardSameLevel,
+            commands::HEADING_BACKWARD => Motion::BackwardSameLevel,
+            commands::HEADING_UP => Motion::Up,
+            commands::LINK_NEXT => Motion::NextLink,
+            _ => Motion::PreviousLink,
+        };
+        let key = uri.as_str().to_string();
+        let repeated = self.last.as_ref().is_some_and(|last| last.command == id && last.file == key);
+        let failed_before = repeated && self.link_search_failed;
+        let count = context.count.filter(|count| *count != 0).unwrap_or(1);
+        let moved = motion::run(&document.text, &document.parse, offset, which, count, failed_before)
+            .map_err(Refusal::Failed)?;
+        let cursor = document.index.position(&document.text, moved.offset, encoding);
+        self.link_search_failed = moved.failed;
+        self.last = Some(Last { command: id.to_string(), file: key, heading: None });
+        self.message = moved.message;
+        Ok(json!({ "edits": [], "cursor": cursor }))
+    }
+
+    /// `org-goto` (`C-c C-j`), as with `org-goto-interface` set to
+    /// `outline-path-completion`: the file's headings to
+    /// `org_goto_max_level`, named by their outline path; the answer moves
+    /// the cursor to the heading picked.
+    fn goto(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::refile::{self, OutlinePath, Select};
+        let uri = &context.text_document.uri;
+        let encoding = self.client.encoding;
+        let document = self.document(uri).ok_or("This file is not open")?;
+        let path = uri::to_path(uri).map(|path| path.to_string_lossy().into_owned()).unwrap_or_default();
+        let name = path.rsplit(['/', '\\']).next().unwrap_or_default().to_string();
+        let title = refile::file_title(&document.parse);
+        let keywords = document.parse.todo_keywords();
+        let file = refile::File { text: &document.text, keywords, name: &name, path: &path, title: title.as_deref() };
+        let targets = refile::targets(&file, &Select::MaxLevel(self.goto_max_level), OutlinePath::Yes, true);
+        let Some(answer) = &context.input else {
+            if targets.is_empty() {
+                return Err("No headings to go to".into());
+            }
+            let choices: Vec<Value> =
+                targets.iter().map(|target| json!({ "key": target.name, "label": target.name })).collect();
+            return Ok(json!({ "input": { "kind": "choice", "prompt": "Goto", "value": "", "choices": choices } }));
+        };
+        let offset = targets
+            .iter()
+            .find(|target| &target.name == answer)
+            .and_then(|target| target.offset)
+            .ok_or_else(|| format!("No heading {answer}"))?;
+        let cursor = document.index.position(&document.text, offset, encoding);
+        Ok(json!({ "edits": [], "cursor": cursor }))
     }
 
     /// Run the Emacs command `command` (Babel's) on the document of

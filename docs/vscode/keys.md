@@ -86,6 +86,14 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+V b`, `Ctrl+C Ctrl+V Ctrl+B` | `org.babel.execute.buffer` | Evaluate the file's code blocks through Emacs |
 | `Ctrl+C Ctrl+V s`, `Ctrl+C Ctrl+V Ctrl+S` | `org.babel.execute.subtree` | Evaluate the subtree's code blocks through Emacs |
 | `Ctrl+C Ctrl+V k` | `org.babel.remove_result` | Remove the results of the code block at the cursor |
+| `Ctrl+C Ctrl+N` | `org.heading.next` | Move to the next heading |
+| `Ctrl+C Ctrl+P` | `org.heading.previous` | Move to the previous heading |
+| `Ctrl+C Ctrl+F` | `org.heading.forward` | Move to the next heading of the same level |
+| `Ctrl+C Ctrl+B` | `org.heading.backward` | Move to the previous heading of the same level |
+| `Ctrl+C Ctrl+U` | `org.heading.up` | Move to the parent heading |
+| `Ctrl+C Ctrl+X Ctrl+N` | `org.link.next` | Move to the next link |
+| `Ctrl+C Ctrl+X Ctrl+P` | `org.link.previous` | Move to the previous link |
+| `Ctrl+C Ctrl+J` | `org.goto` | Go to a heading of the file |
 | `Ctrl+C Ctrl+E` | `org.export.dispatch` | Export the file through Emacs |
 | `Ctrl+C Shift+8` | `org.table.recalculate.line` | Recalculate the table's current line |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
@@ -372,6 +380,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "b", "b"], "commands": ["org.babel.execute.buffer"] },
   { "before": ["<leader>", "o", "b", "s"], "commands": ["org.babel.execute.subtree"] },
   { "before": ["<leader>", "o", "b", "k"], "commands": ["org.babel.remove_result"] },
+  { "before": ["<leader>", "o", "j"], "commands": ["org.goto"] },
   { "before": ["<leader>", "o", "e"], "commands": ["org.export.dispatch"] },
   { "before": ["<leader>", "o", "*"], "commands": ["org.table.recalculate"] },
   { "before": ["<leader>", "o", "o"], "commands": ["org.open"] },
@@ -491,6 +500,14 @@ every file; outside Org files the commands say they do not apply):
 | `org.babel.execute.buffer` | Org: Evaluate the file's code blocks through Emacs |
 | `org.babel.execute.subtree` | Org: Evaluate the subtree's code blocks through Emacs |
 | `org.babel.remove_result` | Org: Remove the results of the code block at the cursor |
+| `org.heading.next` | Org: Move to the next heading |
+| `org.heading.previous` | Org: Move to the previous heading |
+| `org.heading.forward` | Org: Move to the next heading of the same level |
+| `org.heading.backward` | Org: Move to the previous heading of the same level |
+| `org.heading.up` | Org: Move to the parent heading |
+| `org.link.next` | Org: Move to the next link |
+| `org.link.previous` | Org: Move to the previous link |
+| `org.goto` | Org: Go to a heading of the file |
 | `org.export.dispatch` | Org: Export the file through Emacs |
 | `org.table.recalculate` | Org: Recalculate the table |
 | `org.table.recalculate.line` | Org: Recalculate the table's current line |

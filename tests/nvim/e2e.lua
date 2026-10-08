@@ -1223,6 +1223,18 @@ wait('the floating calendar to close', function()
 end)
 require('org-lsp').config.calendar_win_mode = 'bottom'
 
+-- Moving about: the result carries the cursor (the Org keys are off since
+-- 17, the command runs as `:Org heading next`).
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+vim.cmd('Org heading next')
+wait('the cursor on the first heading', function()
+  return vim.api.nvim_win_get_cursor(0)[1] == 2
+end)
+vim.cmd('Org heading forward')
+wait('the cursor on the next heading of the same level', function()
+  return vim.api.nvim_win_get_cursor(0)[1] == 6
+end)
+
 -- Keys of a key input show as Emacs names them: the export menu's options
 -- are control keys.
 eq(

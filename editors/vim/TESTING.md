@@ -47,6 +47,10 @@ here and why.
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: `<Leader>osd`, `<Leader>osp`
 - [ ] Copying a subtree and pasting it: `<Leader>osy`, `<Leader>osp`
 - [ ] Sorting the children of a heading alphabetically, then by TODO state: `<Leader>o^`
+- [ ] Moving to the next and previous heading; with a count, that many: `}`, `{`
+- [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: `]]`, `[[`
+- [ ] Moving to the parent heading; on a top heading Org says it is at the top level: `g{`
+- [ ] Going to a heading picked by its outline path (`A/B/`): `<Leader>oj`
 - [ ] The outline lists the headings nested: the client's document symbols
 
 ## Lists and checkboxes
@@ -169,6 +173,7 @@ here and why.
 - [ ] Storing a link to a headline and inserting it elsewhere with a description: `<Leader>ols`, `<Leader>oli`
 - [ ] Inserting a link on an existing link edits it: `<Leader>oli`
 - [ ] Creating an ID for the entry: `:Org id create`
+- [ ] Moving to the next and previous link; after the last, again from the start of the file: `]l`, `[l`
 - [ ] In `[[`, file names, headlines and custom IDs are completed
 - [ ] Hovering a link shows where it leads
 - [ ] References on a headline list the links to it, in every file

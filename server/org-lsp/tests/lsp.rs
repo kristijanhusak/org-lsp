@@ -1616,3 +1616,49 @@ fn evaluates_code_through_emacs() {
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+fn moves_about_as_org_does() {
+    let mut client = Client::start(json!({}), Value::Null);
+    let text = "Intro [[x]]\n* A\n** B\ntext\n** C\n* D :tag:\n";
+    client.open(&uri(), text);
+    let mut run = |command: &str, line: u32, character: u32, extra: Value| {
+        let mut argument =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        for (key, value) in extra.as_object().unwrap() {
+            argument[key] = value.clone();
+        }
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }))
+            .response_result
+    };
+    let cursor = |result: &Result<Value, lsp_server::ResponseError>| {
+        let value = result.as_ref().expect("a result");
+        (value["cursor"]["line"].as_u64().unwrap(), value["cursor"]["character"].as_u64().unwrap())
+    };
+    assert_eq!(cursor(&run("org.heading.next", 0, 0, json!({}))), (1, 0));
+    assert_eq!(cursor(&run("org.heading.next", 0, 0, json!({ "count": 3 }))), (4, 0));
+    assert_eq!(cursor(&run("org.heading.previous", 3, 2, json!({}))), (2, 0));
+    assert_eq!(cursor(&run("org.heading.forward", 2, 0, json!({}))), (4, 0));
+    assert_eq!(cursor(&run("org.heading.backward", 4, 0, json!({}))), (2, 0));
+    assert_eq!(cursor(&run("org.heading.up", 3, 1, json!({}))), (1, 0));
+    let top = run("org.heading.up", 1, 0, json!({}));
+    assert_eq!(top.unwrap_err().message, "Already at top level of the outline");
+    // The link search: nothing after the last link, then from the start.
+    let none = run("org.link.next", 1, 0, json!({}));
+    assert_eq!(none.as_ref().unwrap()["message"], "No further link found");
+    let wrapped = run("org.link.next", 1, 0, json!({}));
+    assert_eq!(cursor(&wrapped), (0, 6));
+    assert_eq!(wrapped.as_ref().unwrap()["message"], "Link search wrapped back to beginning of buffer");
+    // `org-goto`: the headings by their outline path, then the one picked.
+    let asked = run("org.goto", 0, 0, json!({}));
+    let labels: Vec<String> = asked.as_ref().unwrap()["input"]["choices"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|choice| choice["label"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(labels, ["A/", "A/B/", "A/C/", "D/"]);
+    assert_eq!(cursor(&run("org.goto", 0, 0, json!({ "input": "A/C/" }))), (4, 0));
+    client.shutdown();
+}

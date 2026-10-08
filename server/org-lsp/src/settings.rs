@@ -555,6 +555,13 @@ pub const SETTINGS: &[Setting] = &[
          `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
     ),
     setting(
+        "org_goto_max_level",
+        "number",
+        "5",
+        "org-goto-max-level",
+        "The deepest headings `org.goto` (`C-c C-j`) offers.",
+    ),
+    setting(
         "calendar_months",
         "1 | 3",
         "3",
@@ -1199,6 +1206,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_link_descriptive", BOOLEAN),
     ("org_hide_emphasis_markers", BOOLEAN),
     ("return_uses_meta_return", BOOLEAN),
+    ("org_goto_max_level", INTEGER),
     ("calendar_months", r#"{ "enum": [1, 3] }"#),
     ("emacs", STRING),
     ("emacs_config_file", STRING),

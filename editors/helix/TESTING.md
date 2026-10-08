@@ -24,7 +24,7 @@ here and why.
 
 ## Headings and structure
 
-**Partly:** New headings (`M-RET` and its relatives) are left out: they carry the cursor for the editor to move after the edit, which Helix's code actions cannot do.
+**Partly:** New headings (`M-RET` and its relatives), moving between headings and `org-goto` are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do.
 
 - [ ] Promoting and demoting a heading; its tags stay aligned: the code action *Promote the heading; outdent the item; move the table column left*, the code action *Demote the heading; indent the item, the drawer or the block; move the table column right*
 - [ ] Promoting and demoting a subtree: the code action *Promote the subtree; outdent the item with its children; delete the table column*, the code action *Demote the subtree; indent the item with its children; insert a table column*
@@ -116,7 +116,7 @@ here and why.
 
 ## Links
 
-**Partly:** Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf. Following works through go to definition.
+**Partly:** Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition.
 
 - [ ] Following a link to a headline, a custom ID and a `<<target>>`: the code action *Open the link or thing at the cursor*
 - [ ] Following a `file:` link with a search (`file:notes.org::*Heading`) and an `id:` link: the code action *Open the link or thing at the cursor*

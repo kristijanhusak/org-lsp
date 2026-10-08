@@ -214,6 +214,14 @@ pub const OPEN: &str = "org.open";
 pub const ADD_NOTE: &str = "org.add.note";
 pub const TANGLE: &str = "org.babel.tangle";
 pub const EXPORT: &str = "org.export.dispatch";
+pub const HEADING_NEXT: &str = "org.heading.next";
+pub const HEADING_PREVIOUS: &str = "org.heading.previous";
+pub const HEADING_FORWARD: &str = "org.heading.forward";
+pub const HEADING_BACKWARD: &str = "org.heading.backward";
+pub const HEADING_UP: &str = "org.heading.up";
+pub const LINK_NEXT: &str = "org.link.next";
+pub const LINK_PREVIOUS: &str = "org.link.previous";
+pub const GOTO: &str = "org.goto";
 pub const BABEL_EXECUTE: &str = "org.babel.execute";
 pub const BABEL_EXECUTE_BUFFER: &str = "org.babel.execute.buffer";
 pub const BABEL_EXECUTE_SUBTREE: &str = "org.babel.execute.subtree";
@@ -708,6 +716,54 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c C-v k")],
         vim: &[key(Org, "<Leader>obk")],
         ..command(BABEL_REMOVE_RESULT, "Remove the results of the code block at the cursor")
+    },
+    // Moving about: `org-next-visible-heading` and its relatives, by
+    // headings as Org finds them (`^\*+ `); the count repeats them. The
+    // result carries the cursor, as `org.return`'s does.
+    Command {
+        emacs: &[key(Org, "C-c C-n")],
+        vim: &[key(Org, "}")],
+        ..command(HEADING_NEXT, "Move to the next heading")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-p")],
+        vim: &[key(Org, "{")],
+        ..command(HEADING_PREVIOUS, "Move to the previous heading")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-f")],
+        vim: &[key(Org, "]]")],
+        ..command(HEADING_FORWARD, "Move to the next heading of the same level")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-b")],
+        vim: &[key(Org, "[[")],
+        ..command(HEADING_BACKWARD, "Move to the previous heading of the same level")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-u")],
+        vim: &[key(Org, "g{")],
+        ..command(HEADING_UP, "Move to the parent heading")
+    },
+    // `org-next-link` and `org-previous-link`: after a search that found
+    // nothing, the same command again starts from the other end.
+    Command {
+        emacs: &[key(Org, "C-c C-x C-n")],
+        vim: &[key(Org, "]l")],
+        ..command(LINK_NEXT, "Move to the next link")
+    },
+    Command {
+        emacs: &[key(Org, "C-c C-x C-p")],
+        vim: &[key(Org, "[l")],
+        ..command(LINK_PREVIOUS, "Move to the previous link")
+    },
+    // `org-goto` with its `outline-path-completion` interface: the file's
+    // headings by their outline path, to `org_goto_max_level`.
+    Command {
+        emacs: &[key(Org, "C-c C-j")],
+        vim: &[key(Org, "<Leader>oj")],
+        input: Some(Input { kind: "choice", prompt: "Goto" }),
+        ..command(GOTO, "Go to a heading of the file")
     },
     // `org-export-dispatch`: Org's export menu, from the backends Emacs
     // has, run by Emacs itself (`emacs`); the file or buffer it makes is

@@ -119,7 +119,7 @@ the view at hand. To bind one yourself:
 | --- | --- | --- | --- |
 | [Highlighting](../../docs/parity.md#highlighting) | 83% | ❓ | Links and emphasis markers are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's `semantic_highlighting` on. |
 | [Folding and visibility](../../docs/parity.md#folding-and-visibility) | 67% | ✅ |  |
-| [Headings and structure](../../docs/parity.md#headings-and-structure) | 55% | ✅ |  |
+| [Headings and structure](../../docs/parity.md#headings-and-structure) | 73% | ✅ |  |
 | [Lists and checkboxes](../../docs/parity.md#lists-and-checkboxes) | 73% | ✅ |  |
 | [TODO keywords](../../docs/parity.md#todo-keywords) | 83% | ✅ |  |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
@@ -130,7 +130,7 @@ the view at hand. To bind one yourself:
 | [Clocking](../../docs/parity.md#clocking) | 88% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 50% | ✅ |  |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 55% | ✅ |  |
-| [Links](../../docs/parity.md#links) | 56% | ✅ |  |
+| [Links](../../docs/parity.md#links) | 67% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 50% | ✅ |  |
 | [Tables](../../docs/parity.md#tables) | 44% | ✅ |  |
 | [Table formulas](../../docs/parity.md#table-formulas) | 50% | ✅ |  |
@@ -145,7 +145,7 @@ the view at hand. To bind one yourself:
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **60%** |  |  |
+| **All of Org** | **61%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.
