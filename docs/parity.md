@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 81%**
+**All of Org: 82%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -18,7 +18,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [TODO keywords](#todo-keywords) | 100% | 8 of 8 |
 | [Priorities](#priorities) | 100% | 3 of 3 |
 | [Tags](#tags) | 100% | 6 of 6 |
-| [Properties and column view](#properties-and-column-view) | 67% | 4 of 6 |
+| [Properties and column view](#properties-and-column-view) | 83% | 5 of 6 |
 | [Dates and times](#dates-and-times) | 100% | 8 of 8 |
 | [Agenda](#agenda) | 90% | 19 of 21 |
 | [Clocking](#clocking) | 100% | 8 of 8 |
@@ -26,7 +26,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Refile and archive](#refile-and-archive) | 100% | 11 of 11 |
 | [Links](#links) | 100% | 11 of 11 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
-| [Tables](#tables) | 76% | 13 of 17 |
+| [Tables](#tables) | 82% | 14 of 17 |
 | [Table formulas](#table-formulas) | 83% | 10 of 12 |
 | [Code blocks (Babel)](#code-blocks-babel) | 82% | 9 of 11 |
 | [Export and publishing](#export-and-publishing) | 67% | 6 of 9 |
@@ -170,14 +170,14 @@ Where editors fall short:
 
 ## Properties and column view
 
-67% (4 of 6)
+83% (5 of 6)
 
 - ✅ Setting and deleting properties, also from the agenda
 - ✅ Allowed values (`NAME_ALL`) cycled with `S-<left>` and `S-<right>`
 - ✅ Effort (`C-c C-x e`) and `ORDERED`
 - ✅ Inheritance, special properties and property searches
 - ❌ Column view (`C-c C-x C-c`)
-- ❌ Column view dynamic blocks and summaries
+- ✅ Column view dynamic blocks and summaries (`C-c C-x x`, filled in by Emacs)
 
 Where editors fall short:
 
@@ -332,7 +332,7 @@ Where editors fall short:
 
 ## Tables
 
-76% (13 of 17)
+82% (14 of 17)
 
 - ✅ Aligning (`C-c C-c`, formatting)
 - ✅ Moving between fields (`TAB`, `S-TAB`), a row made past the last
@@ -349,7 +349,7 @@ Where editors fall short:
 - ✅ Making a table from a region (`C-c |` on a selection, through Emacs)
 - ✅ Summing (`C-c +`) and field information (`C-c ?`), through Emacs
 - ✅ Moving the field with the shifted cursor keys (through Emacs)
-- ❌ Importing and exporting tables
+- ✅ Importing and exporting tables (`org-table-import`, `org-table-export`, through Emacs)
 - ❌ Plotting (`org-plot`)
 
 Where editors fall short:

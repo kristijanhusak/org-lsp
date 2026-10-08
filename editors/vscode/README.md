@@ -24,7 +24,7 @@ hand.
 | [TODO keywords](../../docs/parity.md#todo-keywords) | 100% | ✅ |  |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
-| [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ✅ |  |
+| [Properties and column view](../../docs/parity.md#properties-and-column-view) | 83% | ✅ |  |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ✅ |  |
 | [Agenda](../../docs/parity.md#agenda) | 90% | ❓ | Tags are at column 80, not at the window's edge (`org_agenda_tags_column` `"auto"`): VS Code does not tell an extension how many columns an editor shows. |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
@@ -32,7 +32,7 @@ hand.
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 100% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 100% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
-| [Tables](../../docs/parity.md#tables) | 76% | ✅ |  |
+| [Tables](../../docs/parity.md#tables) | 82% | ✅ |  |
 | [Table formulas](../../docs/parity.md#table-formulas) | 83% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 82% | ✅ |  |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 67% | ✅ |  |
@@ -45,7 +45,7 @@ hand.
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **81%** |  |  |
+| **All of Org** | **82%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

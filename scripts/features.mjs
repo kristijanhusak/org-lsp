@@ -296,7 +296,7 @@ export const AREAS = [
       ['Effort (`C-c C-x e`) and `ORDERED`', true],
       ['Inheritance, special properties and property searches', true],
       ['Column view (`C-c C-x C-c`)', false],
-      ['Column view dynamic blocks and summaries', false],
+      ['Column view dynamic blocks and summaries (`C-c C-x x`, filled in by Emacs)', true],
     ],
     editors: {
       zed: ['part', `Setting a property or the effort is left out: they are typed, and ${ZED_TEXT}.`],
@@ -568,7 +568,7 @@ export const AREAS = [
       ['Making a table from a region (`C-c |` on a selection, through Emacs)', true],
       ['Summing (`C-c +`) and field information (`C-c ?`), through Emacs', true],
       ['Moving the field with the shifted cursor keys (through Emacs)', true],
-      ['Importing and exporting tables', false],
+      ['Importing and exporting tables (`org-table-import`, `org-table-export`, through Emacs)', true],
       ['Plotting (`org-plot`)', false],
     ],
     editors: {

@@ -482,6 +482,18 @@ fn beginning_of_block(text: &str, at: usize) -> Option<usize> {
     (end.end() > at).then_some(begin)
 }
 
+/// The name of the dynamic block `at` is in (`clocktable`, `columnview`).
+pub fn block_name(text: &str, at: usize) -> Option<String> {
+    let begin = beginning_of_block(text, at)?;
+    START.captures_at(text, begin).map(|found| found[1].to_string())
+}
+
+/// Whether the text has a dynamic block that is not a clock table, which
+/// org-lsp leaves to Emacs.
+pub fn has_other_blocks(text: &str) -> bool {
+    START.captures_iter(text).any(|found| !found[1].eq_ignore_ascii_case("clocktable"))
+}
+
 /// Whether `at` is on the `#+BEGIN:` or `#+END:` line of a dynamic block,
 /// where `C-c C-c` updates it.
 pub fn at_block_line(text: &str, at: usize) -> bool {

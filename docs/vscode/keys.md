@@ -50,6 +50,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X Ctrl+D` | `org.clock.display` | Show the time clocked under each headline |
 | `Ctrl+C Ctrl+X Ctrl+R` | `org.clock.report` | Insert or update a clock table |
 | `Ctrl+C Ctrl+X Ctrl+U` | `org.dblock.update` | Update the dynamic block |
+| `Ctrl+C Ctrl+X x` | `org.dblock.insert` | Insert a dynamic block |
 | `Ctrl+C Ctrl+T` | `org.todo` | Change the TODO state |
 | `Ctrl+C ,` | `org.priority` | Set the priority |
 | `Ctrl+C Ctrl+X p` | `org.property.set` | Set a property of the entry |
@@ -376,6 +377,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "x", "d"], "commands": ["org.clock.display"] },
   { "before": ["<leader>", "o", "x", "r"], "commands": ["org.clock.report"] },
   { "before": ["<leader>", "o", "x", "u"], "commands": ["org.dblock.update"] },
+  { "before": ["<leader>", "o", "i", "x"], "commands": ["org.dblock.insert"] },
   { "before": ["<leader>", "o", ","], "commands": ["org.priority"] },
   { "before": ["<leader>", "o", "x", "p"], "commands": ["org.property.set"] },
   { "before": ["<leader>", "o", "x", "e"], "commands": ["org.effort.set"] },
@@ -502,6 +504,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.clock.display` | Org: Show the time clocked under each headline |
 | `org.clock.report` | Org: Insert or update a clock table |
 | `org.dblock.update` | Org: Update the dynamic block |
+| `org.dblock.insert` | Org: Insert a dynamic block |
 | `org.todo` | Org: Change the TODO state |
 | `org.todo.next` | Org: Cycle TODO state forward |
 | `org.todo.previous` | Org: Cycle TODO state backward |
@@ -575,6 +578,8 @@ every file; outside Org files the commands say they do not apply):
 | `org.table.sum` | Org: Sum the numbers of the table column |
 | `org.table.field.info` | Org: Show the references of the table field |
 | `org.table.create` | Org: Insert an empty table |
+| `org.table.import` | Org: Import a file as a table |
+| `org.table.export` | Org: Export the table to a file |
 | `org.babel.next` | Org: Move to the next code block |
 | `org.babel.previous` | Org: Move to the previous code block |
 | `org.babel.goto` | Org: Go to a named code block |
