@@ -40,6 +40,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>oxd` | `org.clock.display` | Show the time clocked under each headline |
 | `<Leader>oxr` | `org.clock.report` | Insert or update a clock table |
 | `<Leader>oxu` | `org.dblock.update` | Update the dynamic block |
+| `<Leader>oix` | `org.dblock.insert` | Insert a dynamic block |
 | `cit` | `org.todo` | Change the TODO state |
 | `ciT` | `org.todo.previous` | Cycle TODO state backward |
 | `ciR` | `org.priority.up` | Raise the priority |
@@ -245,6 +246,8 @@ The other options are in [configuration.md](configuration.md).
 | `org.refile.goto.last` | Go to where the last refile put its entry |
 | `org.toggle.item` | Turn the line into an item, or the item into a line |
 | `org.toggle.heading` | Turn the line into a heading, or the heading into a line |
+| `org.table.import` | Import a file as a table |
+| `org.table.export` | Export the table to a file |
 | `org.block.next` | Move to the next block |
 | `org.block.previous` | Move to the previous block |
 | `org.table.recalculate.line` | Recalculate the table's current line |

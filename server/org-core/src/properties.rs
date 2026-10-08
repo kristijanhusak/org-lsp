@@ -302,6 +302,14 @@ pub fn local_value(text: &str, offset: usize, context: &Context) -> impl Fn(&str
     move |name: &str| outline.entry_property(entry, name, false)
 }
 
+/// `org-entry-get` with inheritance: the value of `name` in the entry at
+/// `offset`, or the nearest one above it that has it, or the file's.
+pub fn inherited(text: &str, offset: usize, name: &str, context: &Context) -> Option<String> {
+    let outline = context.outline(text);
+    let entry = heading_at(text, offset).and_then(|heading| outline.entry_at(heading));
+    outline.entry_property(entry, name, true)
+}
+
 /// `org-entry-get` without inheritance, `TODO`, `PRIORITY`, `ITEM` and
 /// `CATEGORY` as `org-entry-properties` has them: the headline's keyword,
 /// its priority or else the default one, its title, the category.

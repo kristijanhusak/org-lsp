@@ -238,7 +238,8 @@ was to be opened, or the text of an export to a buffer."
     org-metadown org-shiftmetaleft org-shiftmetaright org-toggle-checkbox
     org-table-create-or-convert-from-region org-table-cut-region
     org-table-copy-region org-table-paste-rectangle org-lsp-bridge-timer-offset
-    org-lsp-bridge-timer-shift)
+    org-lsp-bridge-timer-shift org-table-import org-table-export org-dblock-update
+    org-update-all-dblocks org-lsp-bridge-columns-insert-dblock)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--message nil
@@ -291,6 +292,17 @@ wants one), else interactively."
 (defun org-lsp-bridge-timer-shift (delta)
   "`C-u C-u C-c C-x 0': the timer values of the region shifted by DELTA."
   (org-timer-change-times-in-region (region-beginning) (region-end) delta))
+
+(defun org-lsp-bridge-columns-insert-dblock (id)
+  "`org-columns-insert-dblock', the columns of ID: `global', `local' (or
+empty) or an entry's ID."
+  (org-create-dblock
+   (list :name "columnview"
+         :hlines 1
+         :id (cond ((string= id "global") 'global)
+                   ((member id '("" "local")) 'local)
+                   (id))))
+  (org-update-dblock))
 
 (defun org-lsp-bridge-table-sum ()
   "`org-table-sum', saying the sum as it does when called by a key."

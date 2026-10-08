@@ -364,6 +364,13 @@
     }
   },
   {
+    "caption": "Org: Insert a dynamic block",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.dblock.insert"
+    }
+  },
+  {
     "caption": "Org: Change the TODO state",
     "command": "org_lsp_run",
     "args": {
@@ -872,6 +879,20 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.table.create"
+    }
+  },
+  {
+    "caption": "Org: Import a file as a table",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.import"
+    }
+  },
+  {
+    "caption": "Org: Export the table to a file",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.export"
     }
   },
   {

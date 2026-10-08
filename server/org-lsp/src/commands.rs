@@ -164,6 +164,7 @@ pub const CLOCK_GOTO: &str = "org.clock.goto";
 pub const CLOCK_DISPLAY: &str = "org.clock.display";
 pub const CLOCK_REPORT: &str = "org.clock.report";
 pub const DBLOCK_UPDATE: &str = "org.dblock.update";
+pub const DBLOCK_INSERT: &str = "org.dblock.insert";
 pub const TODO: &str = "org.todo";
 pub const SET_TAGS: &str = "org.tags.set";
 pub const SET_PROPERTY: &str = "org.property.set";
@@ -240,6 +241,8 @@ pub const TABLE_COPY_DOWN: &str = "org.table.copy.down";
 pub const TABLE_SUM: &str = "org.table.sum";
 pub const TABLE_FIELD_INFO: &str = "org.table.field.info";
 pub const TABLE_CREATE: &str = "org.table.create";
+pub const TABLE_IMPORT: &str = "org.table.import";
+pub const TABLE_EXPORT: &str = "org.table.export";
 pub const BABEL_NEXT: &str = "org.babel.next";
 pub const BABEL_PREVIOUS: &str = "org.babel.previous";
 pub const BABEL_GOTO: &str = "org.babel.goto";
@@ -481,6 +484,14 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c C-x C-u")],
         vim: &[key(Org, "<Leader>oxu")],
         ..edit(DBLOCK_UPDATE, "Update the dynamic block")
+    },
+    // `org-dynamic-block-insert-dblock`: a clock table, or a column view
+    // (`org-columns-insert-dblock`, in Emacs).
+    Command {
+        emacs: &[key(Org, "C-c C-x x")],
+        vim: &[key(Org, "<Leader>oix")],
+        input: Some(Input { kind: "choice", prompt: "Dynamic block" }),
+        ..edit(DBLOCK_INSERT, "Insert a dynamic block")
     },
     // `org-todo`: the state picked by key when the keywords have keys,
     // and else the next one.
@@ -887,6 +898,17 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>oi<Bar>")],
         input: Some(Input { kind: "text", prompt: "Table size Columns x Rows" }),
         ..command(TABLE_CREATE, "Insert an empty table")
+    },
+    // `org-table-import` and `org-table-export`, in Emacs: a file of
+    // tab- or comma-separated values made a table at the cursor, and the
+    // table written to a file in a format of `orgtbl-to-…`.
+    Command {
+        input: Some(Input { kind: "text", prompt: "Import file" }),
+        ..edit(TABLE_IMPORT, "Import a file as a table")
+    },
+    Command {
+        input: Some(Input { kind: "text", prompt: "Export table to" }),
+        ..command(TABLE_EXPORT, "Export the table to a file")
     },
     // Moving between blocks, by Org in Emacs: source blocks
     // (`org-babel-next-src-block`, `-previous-`, `org-babel-goto-named-src-block`)

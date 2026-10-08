@@ -316,6 +316,11 @@
         "category": "Org"
       },
       {
+        "command": "org.dblock.insert",
+        "title": "Insert a dynamic block",
+        "category": "Org"
+      },
+      {
         "command": "org.todo",
         "title": "Change the TODO state",
         "category": "Org"
@@ -678,6 +683,16 @@
       {
         "command": "org.table.create",
         "title": "Insert an empty table",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.import",
+        "title": "Import a file as a table",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.export",
+        "title": "Export the table to a file",
         "category": "Org"
       },
       {
@@ -3816,6 +3831,11 @@
       {
         "command": "org.dblock.update",
         "key": "ctrl+c ctrl+x ctrl+u",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.dblock.insert",
+        "key": "ctrl+c ctrl+x x",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

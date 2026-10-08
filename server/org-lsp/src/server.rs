@@ -3903,6 +3903,8 @@ impl Server {
             | commands::TABLE_SUM
             | commands::TABLE_FIELD_INFO
             | commands::TABLE_CREATE
+            | commands::TABLE_IMPORT
+            | commands::TABLE_EXPORT
             | commands::BABEL_NEXT
             | commands::BABEL_PREVIOUS
             | commands::BABEL_GOTO
@@ -4019,6 +4021,7 @@ impl Server {
                 self.refresh_inlay_hints();
                 Ok(json!({ "message": "Temporary highlights/overlays removed from current buffer" }))
             }
+            commands::DBLOCK_INSERT => self.dblock_insert(&context.ok_or("This command needs the cursor position")?),
             id @ (commands::CLOCK_REPORT | commands::DBLOCK_UPDATE) => {
                 self.clocktable(id, &context.ok_or("This command needs the cursor position")?)
             }
@@ -8016,6 +8019,14 @@ impl Server {
                 };
                 self.emacs_run_with("org-insert-drawer", vec![Value::Null, json!(answer.trim())], context)
             }
+            commands::TABLE_IMPORT => {
+                let Some(answer) = answer else {
+                    return Ok(json!({ "input": { "kind": "text", "prompt": "Import file", "value": "" } }));
+                };
+                // The separator found as Org finds it: tabs, commas, spaces.
+                self.emacs_run_with("org-table-import", vec![json!(answer.trim()), Value::Null], context)
+            }
+            commands::TABLE_EXPORT => self.table_export(context),
             _ => {
                 // `org-clone-subtree-with-time-shift`: how many, then the
                 // shift (`+1w`, empty to copy unchanged).
@@ -8044,6 +8055,90 @@ impl Server {
                 )
             }
         }
+    }
+
+    /// `org-table-export`: the file (`TABLE_EXPORT_FILE`, else asked for,
+    /// an existing one only once overwriting it is confirmed), then the
+    /// format (`TABLE_EXPORT_FORMAT`, else asked for among Org's, the one
+    /// for the file's extension by default); Emacs writes it.
+    fn table_export(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        const FORMATS: [&str; 8] = [
+            "orgtbl-to-tsv",
+            "orgtbl-to-csv",
+            "orgtbl-to-latex",
+            "orgtbl-to-html",
+            "orgtbl-to-generic",
+            "orgtbl-to-texinfo",
+            "orgtbl-to-orgtbl",
+            "orgtbl-to-unicode",
+        ];
+        let uri = context.text_document.uri.clone();
+        let encoding = self.client.encoding;
+        let (edit_settings, category) = (self.edit_settings.clone(), uri::file_stem(&uri));
+        let (property_file, property_format) = self
+            .with_source(&uri, |text, index, parse, _, _| {
+                let offset = index.offset(text, context.position, encoding);
+                let properties = edit::property_context(parse, &edit_settings, &category);
+                (
+                    org_core::properties::inherited(text, offset, "TABLE_EXPORT_FILE", &properties),
+                    org_core::properties::inherited(text, offset, "TABLE_EXPORT_FORMAT", &properties),
+                )
+            })
+            .ok_or("This file is not open")?;
+        // What was answered so far: the file, then the format.
+        let mut answers: Vec<String> =
+            context.answers.as_deref().and_then(|answers| serde_json::from_str(answers).ok()).unwrap_or_default();
+        let step = context.step.as_deref().unwrap_or("");
+        if let Some(input) = &context.input {
+            match step {
+                "overwrite" if !matches!(input.as_str(), "y" | "Y" | " ") => {
+                    return Err("File not written".into());
+                }
+                "overwrite" => {}
+                _ => answers.push(input.trim().to_string()),
+            }
+        }
+        let ask = |kind: &str, prompt: String, step: &str, answers: &[String], choices: Option<Value>| {
+            let mut input = json!({ "kind": kind, "prompt": prompt, "value": "",
+                "context": { "step": step, "answers": serde_json::to_string(answers).unwrap_or_default() } });
+            if let Some(choices) = choices {
+                input["choices"] = choices;
+            }
+            json!({ "input": input })
+        };
+        let file = match property_file {
+            Some(file) => file,
+            None => {
+                let Some(file) = answers.first().cloned() else {
+                    return Ok(ask("text", "Export table to".to_string(), "file", &answers, None));
+                };
+                let directory = uri::to_path(&uri).and_then(|path| path.parent().map(Path::to_path_buf));
+                let full = directory.map_or_else(|| PathBuf::from(&file), |directory| directory.join(&file));
+                if full.exists() && step == "file" {
+                    let choices = json!([{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }]);
+                    let prompt = format!("Overwrite file {file}? ");
+                    return Ok(ask("key", prompt, "overwrite", &answers, Some(choices)));
+                }
+                file
+            }
+        };
+        let format = match property_format {
+            Some(format) => format,
+            // The format, just answered.
+            None if step == "format" => answers.last().cloned().unwrap_or_default(),
+            None => {
+                let extension = Path::new(&file).extension().map(|ext| ext.to_string_lossy().to_string());
+                let default = extension
+                    .and_then(|ext| FORMATS.iter().find(|format| format.ends_with(&ext)))
+                    .unwrap_or(&"orgtbl-to-tsv");
+                let choices: Vec<Value> = std::iter::once(*default)
+                    .chain(FORMATS.iter().copied().filter(|format| format != default))
+                    .map(|format| json!({ "key": format, "label": format }))
+                    .collect();
+                return Ok(ask("choice", "Format".to_string(), "format", &answers, Some(json!(choices))));
+            }
+        };
+        self.emacs_run_with("org-table-export", vec![json!(file), json!(format)], context)
     }
 
     /// Run the Emacs command `command` (Babel's) on the document of
@@ -9330,6 +9425,21 @@ impl Server {
         };
         let table = clocktable::Context { path: path.as_deref(), settings: &settings, files: &files };
         let count = context.count.filter(|count| *count > 0);
+        // Dynamic blocks other than clock tables (`columnview`, those of
+        // the user's) are Emacs's to fill in.
+        let others = match id {
+            commands::DBLOCK_UPDATE if count.is_some() => clocktable::has_other_blocks(&text),
+            commands::DBLOCK_UPDATE | commands::CHECKBOX_TOGGLE => {
+                clocktable::block_name(&text, offset).is_some_and(|name| !name.eq_ignore_ascii_case("clocktable"))
+            }
+            _ => false,
+        };
+        if others {
+            return match count {
+                Some(_) if id == commands::DBLOCK_UPDATE => self.emacs_run("org-update-all-dblocks", context),
+                _ => self.emacs_run("org-dblock-update", context),
+            };
+        }
         let done = match id {
             commands::CLOCK_REPORT => clocktable::report(&text, offset, count.is_some(), &table),
             commands::DBLOCK_UPDATE => clocktable::update(&text, offset, count.is_some(), &table),
@@ -9347,6 +9457,53 @@ impl Server {
             self.message = Some(message);
         }
         self.carried(context, org_core::newline::Outcome { text: done.text, cursor: done.cursor })
+    }
+
+    /// `org-dynamic-block-insert-dblock` (`C-c C-x x`): which block, then a
+    /// clock table as `org-clock-report` makes it, or a column view of the
+    /// scope asked for (`org-columns-insert-dblock`), by Emacs.
+    fn dblock_insert(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        match (context.step.as_deref(), context.input.as_deref()) {
+            (None, None) => Ok(json!({ "input": {
+                "kind": "choice",
+                "prompt": "Dynamic block",
+                "value": "",
+                "choices": [
+                    { "key": "clocktable", "label": "clocktable" },
+                    { "key": "columnview", "label": "columnview" },
+                ],
+            } })),
+            (None, Some("clocktable")) => self.clocktable(commands::CLOCK_REPORT, context),
+            (None, Some("columnview")) => {
+                // The IDs of the file's entries, as `org-property-values`.
+                let ids: Vec<String> = self
+                    .document(&context.text_document.uri)
+                    .map(|document| {
+                        document
+                            .text
+                            .lines()
+                            .filter_map(|line| line.trim_start().strip_prefix(":ID:"))
+                            .map(|id| id.trim().to_string())
+                            .filter(|id| !id.is_empty())
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let completions: Vec<String> =
+                    ["global".to_string(), "local".to_string()].into_iter().chain(ids).collect();
+                Ok(json!({ "input": {
+                    "kind": "text",
+                    "prompt": "Capture columns (local, global, entry with :ID: property) [local]",
+                    "value": "",
+                    "completions": completions,
+                    "context": { "step": "columnview" },
+                } }))
+            }
+            (Some("columnview"), Some(id)) => {
+                self.emacs_run_with("org-lsp-bridge-columns-insert-dblock", vec![json!(id.trim())], context)
+            }
+            (_, Some(other)) => Err(format!("No such dynamic block: {other}").into()),
+            (Some(_), None) => Ok(Value::Null),
+        }
     }
 
     /// The files a clock table may read: the agenda files, the files

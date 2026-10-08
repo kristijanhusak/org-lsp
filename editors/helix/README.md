@@ -29,7 +29,7 @@ its behalf.
 | [TODO keywords](../../docs/parity.md#todo-keywords) | 100% | ❓ | A note for a state change (`@`) cannot be typed: Helix cannot ask for text on a server's behalf. |
 | [Priorities](../../docs/parity.md#priorities) | 100% | ✅ |  |
 | [Tags](../../docs/parity.md#tags) | 100% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work. |
-| [Properties and column view](../../docs/parity.md#properties-and-column-view) | 67% | ❓ | Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. |
+| [Properties and column view](../../docs/parity.md#properties-and-column-view) | 83% | ❓ | Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works. |
 | [Agenda](../../docs/parity.md#agenda) | 90% | ❌ | Helix cannot open a document on a server's request. `org-lsp agenda FILE...` prints the agenda in a terminal. |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ❓ | No clock in the status line: Helix has no place there for a server's text. |
@@ -37,7 +37,7 @@ its behalf.
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 100% | ❓ | Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions. |
 | [Links](../../docs/parity.md#links) | 100% | ❓ | Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition. |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ❓ | Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works. |
-| [Tables](../../docs/parity.md#tables) | 76% | ❓ | Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them. The other edits are code actions in a table. |
+| [Tables](../../docs/parity.md#tables) | 82% | ❓ | Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, `Space a`), and those are not among them. The other edits are code actions in a table. |
 | [Table formulas](../../docs/parity.md#table-formulas) | 83% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 82% | ❓ | Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Helix cannot give a server. |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 67% | ❌ | Not offered as a code action yet. |
@@ -50,7 +50,7 @@ its behalf.
 | [Attachments](../../docs/parity.md#attachments) | 0% | — |  |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **81%** |  |  |
+| **All of Org** | **82%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

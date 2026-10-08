@@ -2077,6 +2077,59 @@ fn edits_through_emacs() {
     assert_eq!(text, "|   | b |\n|   | d |\n");
     run(&mut client, &mut text, &mut version, "org.paste.subtree", (0, 6), json!({}));
     assert_eq!(text, "|   | a |\n|   | c |\n");
+    // A file of comma-separated values imported as a table, and the
+    // table exported to another, asked for with its format.
+    std::fs::write(directory.join("data.csv"), "a,b\nc,d\n").unwrap();
+    replace(&mut client, &mut text, &mut version, "\n".to_string());
+    run(&mut client, &mut text, &mut version, "org.table.import", (0, 0), json!({ "input": "data.csv" }));
+    assert_eq!(text, "| a | b |\n| c | d |\n\n");
+    let export = |client: &mut Client, extra: Value| -> Value {
+        let mut argument =
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 2 } });
+        for (key, value) in extra.as_object().unwrap() {
+            argument[key] = value.clone();
+        }
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.table.export", "arguments": [argument] }))
+            .response_result
+            .expect("a result")
+    };
+    let asked = export(&mut client, json!({}));
+    assert_eq!(asked["input"]["prompt"], "Export table to", "{asked}");
+    let asked = export(&mut client, json!({ "input": "out.csv", "step": "file", "answers": "[]" }));
+    assert_eq!(asked["input"]["prompt"], "Format", "{asked}");
+    assert_eq!(asked["input"]["choices"][0]["key"], "orgtbl-to-csv", "{asked}");
+    let context = asked["input"]["context"].clone();
+    export(&mut client, json!({ "input": "orgtbl-to-csv", "step": "format", "answers": context["answers"] }));
+    let written = directory.join("out.csv");
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    while !written.exists() && std::time::Instant::now() < deadline {
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    assert_eq!(std::fs::read_to_string(&written).unwrap(), "a,b\nc,d\n");
+    // A column view inserted (`C-c C-x x`), then filled in again by
+    // `C-c C-c` on its `#+BEGIN:` line, both by Emacs.
+    replace(&mut client, &mut text, &mut version, "* TODO A\n* B\n\n".to_string());
+    let (asked, _) = run(&mut client, &mut text, &mut version, "org.dblock.insert", (2, 0), json!({}));
+    assert_eq!(asked["input"]["choices"][1]["key"], "columnview", "{asked}");
+    let (asked, _) =
+        run(&mut client, &mut text, &mut version, "org.dblock.insert", (2, 0), json!({ "input": "columnview" }));
+    assert_eq!(asked["input"]["context"]["step"], "columnview", "{asked}");
+    run(
+        &mut client,
+        &mut text,
+        &mut version,
+        "org.dblock.insert",
+        (2, 0),
+        json!({ "input": "global", "step": "columnview" }),
+    );
+    assert!(text.contains("#+BEGIN: columnview :hlines 1 :id global\n"), "{text}");
+    assert!(text.contains("| A    | TODO |"), "{text}");
+    let begin = text.lines().position(|line| line.starts_with("#+BEGIN:")).unwrap() as u32;
+    let changed = text.replacen("* TODO A", "* DONE A", 1);
+    replace(&mut client, &mut text, &mut version, changed);
+    run(&mut client, &mut text, &mut version, "org.checkbox.toggle", (begin, 0), json!({}));
+    assert!(text.contains("| A    | DONE |"), "{text}");
     // `#` in the export menu: the options template of a backend.
     replace(&mut client, &mut text, &mut version, "* Head\n".to_string());
     let (asked, _) = run(&mut client, &mut text, &mut version, "org.export.dispatch", (0, 0), json!({ "input": "#" }));
