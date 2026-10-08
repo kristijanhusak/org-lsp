@@ -31,7 +31,7 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Tables](../../docs/parity.md#tables) | 94% | ❓ | A shrunk column shows its whole text and `…`: Vim cannot hide text that has text properties. |
 | [Table formulas](../../docs/parity.md#table-formulas) | 100% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 100% | ✅ |  |
-| [Export and publishing](../../docs/parity.md#export-and-publishing) | 89% | ✅ |  |
+| [Export and publishing](../../docs/parity.md#export-and-publishing) | 100% | ✅ |  |
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |
 | [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | New lines are not indented by the server (no `indentexpr`), and wrapped lines are not. |

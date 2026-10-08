@@ -181,12 +181,22 @@ was to be opened, or the text of an export to a buffer."
          (subtree (and (member "subtree" options) t))
          (body (and (member "body" options) t))
          (force (and (member "force" options) t))
+         (visible (and (member "visible" options) t))
          (action (unless (eq first ?P) (org-lsp-bridge--action first second)))
          (org-agenda-files (or (append (alist-get 'agenda_files params) nil) org-agenda-files)))
     (setq org-lsp-bridge--opened nil)
     (unless (or action (eq first ?P))
       (error "No export command under %s %s" (string first) (if second (string second) "")))
     (org-lsp-bridge--in-document params
+      ;; Visible only: what the editor has folded, folded here too.
+      (when visible
+        (dolist (fold (append (alist-get 'folded params) nil))
+          (save-excursion
+            (goto-char (point-min))
+            (forward-line (aref fold 0))
+            (let ((start (line-end-position)))
+              (forward-line (- (aref fold 1) (aref fold 0)))
+              (org-fold-region start (line-end-position) t 'outline)))))
       (let ((result
              (if (eq first ?P)
                  (pcase second
@@ -196,7 +206,7 @@ was to be opened, or the text of an export to a buffer."
                        'published)
                    (?a (org-publish-all force) 'published)
                    (_ (error "No publishing command under %s" (string second))))
-               (funcall action nil subtree nil body))))
+               (funcall action nil subtree visible body))))
         (cond
          (org-lsp-bridge--opened
           `((file . ,org-lsp-bridge--opened) (open . t)))

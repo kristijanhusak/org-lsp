@@ -485,6 +485,19 @@ def starter_path() -> str:
     return os.path.join(sublime.cache_path(), PACKAGE, 'Starting.org-agenda')
 
 
+def reads_folds(session, command: str) -> bool:
+    """Whether the server's manifest says `command` reads the closed folds."""
+    get = getattr(session, 'get_capability', None)
+    commands = (get('experimental.org.commands') if get else None) or []
+    return any(isinstance(entry, dict) and entry.get('command') == command and entry.get('folds')
+               for entry in commands)
+
+
+def closed_folds(view) -> list:
+    """The folds of `view`, as their first and last lines, from 0."""
+    return [[view.rowcol(region.begin())[0], view.rowcol(region.end())[0]] for region in view.folded_regions()]
+
+
 def reads_clipboard(session, command: str) -> bool:
     """Whether the server's manifest says `command` reads the clipboard."""
     get = getattr(session, 'get_capability', None)
@@ -536,6 +549,9 @@ class OrgLspRunCommand(LspWindowCommand):
             # What the command reads as Emacs's latest kill: the clipboard.
             if reads_clipboard(session, command):
                 context['clipboard'] = sublime.get_clipboard()
+            # The closed folds, for what is visible.
+            if reads_folds(session, command):
+                context['folded'] = closed_folds(view)
         else:
             context = {}
         self.execute(session, view, command, context, fallback)

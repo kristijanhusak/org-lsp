@@ -1474,6 +1474,11 @@ pub fn input(id: &str) -> Option<&'static Input> {
 }
 
 /// The table as JSON: a list of
+/// The commands that read the editor's closed folds: their context has
+/// them in `folded`, as the first and last line of each. Exporting the
+/// visible part only (`C-v`) leaves them out.
+pub const FOLDS: &[&str] = &[EXPORT];
+
 /// The commands that work on a selection, Emacs's active region, when
 /// they are run on one: editors with a visual mode give them their keys
 /// there too.
@@ -1516,7 +1521,8 @@ pub const REGION: &[&str] = &[
 /// `"native": true` as well. A command that asks for something has
 /// `"input": { "kind", "prompt" }`; one that reads the clipboard,
 /// `"clipboard": true`; one that works on a selection, `"region": true`
-/// (see [`REGION`]).
+/// (see [`REGION`]); one that reads the editor's closed folds,
+/// `"folds": true` (see [`FOLDS`]).
 pub fn manifest() -> Value {
     let commands: Vec<Value> = COMMANDS
         .iter()
@@ -1574,6 +1580,9 @@ pub fn manifest() -> Value {
             }
             if REGION.contains(&command.id) {
                 entry["region"] = json!(true);
+            }
+            if FOLDS.contains(&command.id) {
+                entry["folds"] = json!(true);
             }
             entry
         })

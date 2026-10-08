@@ -961,6 +961,7 @@ vim.cmd('silent! write')
 -- 23h. `<Leader>oR` (`org-reveal`) shows the cursor's context: the folds
 -- around it opened, the others left as they are.
 vim.cmd('normal! zM')
+eq(plugin.closed_folds(), { { 0, 1 }, { 2, 5 }, { 6, 7 } }, 'the closed folds, for exporting what is visible')
 vim.api.nvim_win_set_cursor(0, { 6, 0 })
 press('<Leader>oR')
 wait('the context of the cursor shown', function()
