@@ -347,6 +347,21 @@ in it becomes `%![Error: …]')."
           ((stringp result) result)
           (t (error "Capture template sexp `%s' must evaluate to string or nil" sexp)))))
 
+;;; Links
+
+(defun org-lsp-bridge-expand-abbrev (params)
+  "`org-link-expand-abbrev' of the `link' of PARAMS, with the
+`abbreviations' of PARAMS in force (each [NAME REPLACEMENT], the file's
+first). Where Org would warn and leave the link as it is, the warning is
+the error."
+  (let ((org-link-abbrev-alist-local
+         (mapcar (lambda (pair) (cons (aref pair 0) (aref pair 1)))
+                 (alist-get 'abbreviations params)))
+        (org-link-abbrev-alist nil))
+    (cl-letf (((symbol-function 'org-display-warning)
+               (lambda (message) (error "%s" message))))
+      (org-link-expand-abbrev (alist-get 'link params)))))
+
 ;;; What the server asks about
 
 (defun org-lsp-bridge-src-block-names (params)

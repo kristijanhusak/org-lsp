@@ -3409,6 +3409,46 @@ fn captures_with_lisp_files_and_the_clipboard() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// A link abbreviation that calls a function (`%(…)`): Emacs expands it,
+/// when the function is marked safe; else Org's warning says why not.
+#[test]
+fn follows_links_whose_abbreviation_calls_a_function() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("follows_links_whose_abbreviation_calls_a_function: no Emacs, skipped");
+        return;
+    }
+    let mut options = clock();
+    let mut config = "(defun my-up (tag) (upcase tag)) (put 'my-up 'org-link-abbrev-safe t) \
+                      (defun my-raw (tag) tag)"
+        .to_string();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        config = format!("(add-to-list 'load-path {dir:?}) {config}");
+    }
+    options["emacs_config"] = json!(config);
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/links.org";
+    client.open(
+        uri,
+        "#+LINK: up https://example.org/%(my-up)\n#+LINK: raw https://example.org/%(my-raw)\n[[up:hello]] [[raw:x]]\n",
+    );
+    let open = |client: &mut Client, character: u32| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 2, "character": character } });
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }));
+        client.settle();
+        result
+    };
+    assert_eq!(open(&mut client, 3), Ok(Value::Null));
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["uri"], "https://example.org/HELLO");
+    let refused = open(&mut client, 16).unwrap_err();
+    assert!(refused.contains("Disabling unsafe link abbrev"), "{refused}");
+    client.shutdown();
+}
+
 /// Capturing from where there is no document (no file open): the
 /// template and the answers come without a cursor.
 #[test]

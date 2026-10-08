@@ -2459,7 +2459,9 @@ impl Server {
         let document = self.document(uri)?;
         let text = document.text.clone();
         let offset = document.index.offset(&text, position.position, self.client.encoding);
-        let opened = open::at_point(&text, &document.parse, offset, None, &self.link_abbreviations).ok()?;
+        let call = |link: &str, list: &[(String, String)]| self.expand_abbreviation(link, list);
+        let opened =
+            open::at_point_calling(&text, &document.parse, offset, None, &self.link_abbreviations, Some(&call)).ok()?;
         // A citation: the entries of its keys.
         if let Open::Citation(keys) = &opened {
             let files = self.bibliography(uri, &text);
@@ -2892,7 +2894,8 @@ impl Server {
         };
         let parse = org_syntax::parse(&text, &self.todo);
         let answer = context.input.as_deref().and_then(|input| input.chars().next());
-        let opened = open::at_point(&text, &parse, offset, answer, &self.link_abbreviations)?;
+        let call = |link: &str, list: &[(String, String)]| self.expand_abbreviation(link, list);
+        let opened = open::at_point_calling(&text, &parse, offset, answer, &self.link_abbreviations, Some(&call))?;
         match &opened {
             Open::External(url) => {
                 let target = url.parse::<Uri>().map_err(|_| format!("Cannot open {url}"))?;
@@ -3030,6 +3033,18 @@ impl Server {
             }
             _ => Ok(None),
         }
+    }
+
+    /// `org-link-expand-abbrev` of a link whose abbreviation calls a
+    /// function (`%(…)`), by Emacs, which knows the function.
+    fn expand_abbreviation(
+        &self,
+        link: &str,
+        abbreviations: &[(String, String)],
+    ) -> std::result::Result<String, String> {
+        let params = json!({ "link": link, "abbreviations": abbreviations });
+        let expanded = self.emacs.call("expand-abbrev", params, std::time::Duration::from_secs(30))?;
+        expanded.as_str().map(str::to_string).ok_or_else(|| format!("Cannot expand the link {link}"))
     }
 
     /// The files whose IDs Org knows: those open in the editor, then the

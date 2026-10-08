@@ -30,7 +30,7 @@ hand.
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 73% | ✅ |  |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 73% | ✅ |  |
-| [Links](../../docs/parity.md#links) | 82% | ✅ |  |
+| [Links](../../docs/parity.md#links) | 91% | ✅ |  |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ✅ |  |
 | [Tables](../../docs/parity.md#tables) | 65% | ✅ |  |
 | [Table formulas](../../docs/parity.md#table-formulas) | 83% | ✅ |  |
