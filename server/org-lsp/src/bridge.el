@@ -241,7 +241,8 @@ was to be opened, or the text of an export to a buffer."
     org-lsp-bridge-timer-shift org-table-import org-table-export org-dblock-update
     org-update-all-dblocks org-lsp-bridge-columns-insert-dblock org-lsp-bridge-attach
     org-lsp-bridge-edit-special-save org-lsp-bridge-formulas-save
-    org-lsp-bridge-field-save)
+    org-lsp-bridge-field-save org-encrypt-entry org-decrypt-entry org-encrypt-entries
+    org-decrypt-entries)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--extra nil
@@ -712,6 +713,20 @@ edits then, in `org-lsp-bridge--extra'."
                                     (end . ,(marker-position end))))
       (set-marker begin nil)
       (set-marker end nil))))
+
+;;; Encryption
+
+(defun org-lsp-bridge-crypt-before-save (params)
+  "Whether Org files encrypt their entries before they are saved
+(`org-crypt-use-before-save-magic'), and if so the document of PARAMS
+with its entries tagged `crypt' encrypted, as the hook does."
+  (org-lsp-bridge--in-document params
+    (if (not (memq 'org-encrypt-entries before-save-hook))
+        '((magic . :json-false))
+      (let ((inhibit-message t))
+        (org-encrypt-entries))
+      `((magic . t)
+        (text . ,(buffer-substring-no-properties (point-min) (point-max)))))))
 
 ;;; Appointments
 

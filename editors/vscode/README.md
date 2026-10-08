@@ -43,9 +43,9 @@ hand.
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ✅ |  |
 | [Timers](../../docs/parity.md#timers) | 80% | ✅ |  |
 | [Attachments](../../docs/parity.md#attachments) | 100% | ✅ |  |
-| [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
+| [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **87%** |  |  |
+| **All of Org** | **91%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

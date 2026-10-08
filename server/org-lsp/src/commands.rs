@@ -251,6 +251,10 @@ pub const BABEL_NEXT: &str = "org.babel.next";
 pub const BABEL_PREVIOUS: &str = "org.babel.previous";
 pub const BABEL_GOTO: &str = "org.babel.goto";
 pub const BABEL_LOB_INGEST: &str = "org.babel.lob.ingest";
+pub const CRYPT_ENCRYPT: &str = "org.crypt.encrypt";
+pub const CRYPT_DECRYPT: &str = "org.crypt.decrypt";
+pub const CRYPT_ENCRYPT_ALL: &str = "org.crypt.encrypt.all";
+pub const CRYPT_DECRYPT_ALL: &str = "org.crypt.decrypt.all";
 pub const BLOCK_NEXT: &str = "org.block.next";
 pub const BLOCK_PREVIOUS: &str = "org.block.previous";
 pub const TIMER_START: &str = "org.timer.start";
@@ -972,6 +976,14 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>o`")],
         ..command(TABLE_EDIT_FIELD, "Edit the table field in a file of its own")
     },
+    // `org-crypt`, through Emacs and its GnuPG: an entry's text encrypted
+    // for `org-crypt-key` (or its `CRYPTKEY` property), or with a
+    // passphrase, which GnuPG's own pinentry asks for; the entries tagged
+    // `crypt` at once. Emacs binds no keys to them.
+    edit(CRYPT_ENCRYPT, "Encrypt the entry"),
+    edit(CRYPT_DECRYPT, "Decrypt the entry"),
+    edit(CRYPT_ENCRYPT_ALL, "Encrypt the entries tagged crypt"),
+    edit(CRYPT_DECRYPT_ALL, "Decrypt the encrypted entries"),
     // Timers, kept by Org in Emacs (`org-timer.el`): the relative timer
     // (`org-timer-start`, `org-timer`, `org-timer-item`), pausing and
     // stopping it, and the countdown (`org-timer-set-timer`), whose end the

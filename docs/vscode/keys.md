@@ -596,6 +596,10 @@ every file; outside Org files the commands say they do not apply):
 | `org.block.previous` | Org: Move to the previous block |
 | `org.edit.special` | Org: Edit the block in a file of its own |
 | `org.table.edit.field` | Org: Edit the table field in a file of its own |
+| `org.crypt.encrypt` | Org: Encrypt the entry |
+| `org.crypt.decrypt` | Org: Decrypt the entry |
+| `org.crypt.encrypt.all` | Org: Encrypt the entries tagged crypt |
+| `org.crypt.decrypt.all` | Org: Decrypt the encrypted entries |
 | `org.timer.start` | Org: Start the relative timer |
 | `org.timer.insert` | Org: Insert the timer's value |
 | `org.timer.item` | Org: Insert a list item with the timer's value |

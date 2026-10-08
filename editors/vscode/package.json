@@ -746,6 +746,26 @@
         "category": "Org"
       },
       {
+        "command": "org.crypt.encrypt",
+        "title": "Encrypt the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.crypt.decrypt",
+        "title": "Decrypt the entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.crypt.encrypt.all",
+        "title": "Encrypt the entries tagged crypt",
+        "category": "Org"
+      },
+      {
+        "command": "org.crypt.decrypt.all",
+        "title": "Decrypt the encrypted entries",
+        "category": "Org"
+      },
+      {
         "command": "org.timer.start",
         "title": "Start the relative timer",
         "category": "Org"
