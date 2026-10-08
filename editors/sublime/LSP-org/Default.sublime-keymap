@@ -2023,6 +2023,29 @@
   },
   {
     "keys": [
+      "ctrl+x",
+      "n",
+      "w"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.narrow.widen"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
       "ctrl+c",
       "ctrl+x",
       "b"

@@ -435,7 +435,8 @@ vim.api.nvim_win_set_cursor(0, { find('  home:       Sched. 2x:  TODO Water plan
 vim.ui.input = input
 
 -- 6c. TAB shows the entry in another window: a new one when the agenda
--- is alone, then the one that shows the file, or an empty one.
+-- is alone, then the one that shows the file, an empty one, or the
+-- window last left, as Emacs's `display-buffer` uses some window.
 local agenda_win = vim.api.nvim_get_current_win()
 vim.cmd('only')
 local function tab_to_entry(message)
@@ -456,9 +457,8 @@ vim.cmd('enew')
 eq(tab_to_entry('the file in the empty window'), entry_win, 'the empty window')
 eq(#vim.api.nvim_tabpage_list_wins(0), 2, 'no window more')
 vim.cmd('edit ' .. vim.fn.fnameescape(vim.fn.tempname() .. '.txt'))
-check(tab_to_entry('the file in a new window beside another file') ~= entry_win, 'a new window')
-eq(#vim.api.nvim_tabpage_list_wins(0), 3, 'the other file keeps its window')
-vim.api.nvim_win_close(entry_win, true)
+eq(tab_to_entry('the file in the window last left, which shows another file'), entry_win, 'that window')
+eq(#vim.api.nvim_tabpage_list_wins(0), 2, 'not a new one')
 vim.api.nvim_set_current_win(agenda_win)
 
 -- 6d. F (follow mode): the entry of the cursor's line shows in another
@@ -488,6 +488,21 @@ wait('the entry of the next line with one', function()
   return shown_line() == 3
 end)
 eq(vim.api.nvim_get_current_win(), agenda_win, 'still in the agenda')
+-- An entry of another file shows in that same window: no window more.
+local back = vim.api.nvim_win_get_cursor(agenda_win)
+vim.api.nvim_win_set_cursor(agenda_win, { find('  home:       Sched. 2x:  TODO Water plants'), 0 })
+vim.api.nvim_exec_autocmds('CursorMoved', { buffer = agenda_buf })
+wait('the other file in the same window', function()
+  local wins = vim.api.nvim_tabpage_list_wins(0)
+  return #wins == 2 and vim.iter(wins):any(function(win)
+    return vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(win)):match('home%.org$') ~= nil
+  end)
+end)
+vim.api.nvim_win_set_cursor(agenda_win, back)
+vim.api.nvim_exec_autocmds('CursorMoved', { buffer = agenda_buf })
+wait('back to the first file, in that window', function()
+  return shown_line() == 3 and #vim.api.nvim_tabpage_list_wins(0) == 2
+end)
 press('F')
 moved('kk')
 vim.wait(200)

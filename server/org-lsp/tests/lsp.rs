@@ -734,6 +734,49 @@ fn shows_entities_as_their_characters() {
     client.shutdown();
 }
 
+/// A client that shows what stands in for hidden text itself
+/// (`orgDisplay`, Neovim) gets it as `org-lsp/display` after every change
+/// (entities, sub- and superscripts, shrunk fields), and once more when
+/// there is none; neither inlay hints nor hidden tokens for it.
+#[test]
+fn sends_what_stands_in_for_hidden_text() {
+    let capabilities = json!({ "experimental": { "orgDisplay": true } });
+    let mut client = Client::start(capabilities, json!({ "org_pretty_entities": true }));
+    client.open(&uri(), "An \\alpha{} and x^2.\n");
+    let sent = client.notification("org-lsp/display");
+    assert_eq!(sent["uri"], uri().as_str());
+    assert_eq!(sent["version"], 1);
+    assert_eq!(sent["items"], json!([[0, 3, 0, 11, "α"], [0, 17, 0, 19, "²"]]));
+    let hints = client
+        .request::<lsp_types::request::InlayHintRequest>(lsp_types::InlayHintParams {
+            text_document: identifier(),
+            range: Range::new(Position::new(0, 0), Position::new(1, 0)),
+            work_done_progress_params: Default::default(),
+        })
+        .unwrap();
+    assert!(hints.is_empty(), "{hints:?}");
+    let tokens = client
+        .request::<lsp_types::request::SemanticTokensFullRequest>(lsp_types::SemanticTokensParams {
+            text_document: identifier(),
+            work_done_progress_params: Default::default(),
+            partial_result_params: Default::default(),
+        })
+        .unwrap();
+    let lsp_types::SemanticTokensResult::Tokens(tokens) = tokens else { panic!("tokens") };
+    assert!(tokens.data.iter().all(|token| token.token_modifiers_bitset & (1 << 23) == 0), "{tokens:?}");
+    client.notify::<lsp_types::notification::DidChangeTextDocument>(lsp_types::DidChangeTextDocumentParams {
+        text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri(), version: 2 },
+        content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+            range: None,
+            range_length: None,
+            text: "An alpha.\n".to_string(),
+        }],
+    });
+    let sent = client.notification("org-lsp/display");
+    assert_eq!((sent["version"].clone(), sent["items"].clone()), (json!(2), json!([])));
+    client.shutdown();
+}
+
 /// `#+STARTUP:` decides for its file: `entitiespretty` shows entities as
 /// their characters with the setting off, `literallinks` leaves links as
 /// they are with `org_link_descriptive` on; `entitiesplain` and

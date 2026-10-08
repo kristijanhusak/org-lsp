@@ -40,6 +40,7 @@ its sections says what it should look like.
 - [ ] A subtree with `:VISIBILITY: children` opens with its children folded, one with `all` open
 - [ ] Two blank lines after a subtree stay visible below it when it is folded
 - [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: `Ctrl+X n s`
+- [ ] Widening in the narrowed file writes it back and closes it (`C-c '` there does the same): `Ctrl+X n w`
 - [ ] Opening the parent of an `:ARCHIVE:` subtree leaves that subtree folded
 - [ ] A sparse tree of the TODO entries folds everything else and highlights them: `Ctrl+C /`
 - [ ] With everything folded, showing the context of a line deep in a subtree opens the headlines above it and leaves the other subtrees folded: `Ctrl+C Ctrl+R`
@@ -63,7 +64,7 @@ its sections says what it should look like.
 - [ ] Toggling `COMMENT` on the heading (needs Emacs): `Ctrl+C ;`
 - [ ] Cloning the subtree twice a week apart (`+1w`): the copies follow it with their dates moved (needs Emacs): `Ctrl+C Ctrl+X c`
 - [ ] On a selection of whole lines: two headlines demoted together; lines turned into headings (needs Emacs): `Alt+Right`, `Ctrl+C *`
-- [ ] The outline lists the headings nested: *Goto Symbol*
+- [ ] The outline lists the headings nested, also in pickers that filter symbols by kind: *Goto Symbol*
 
 ## Lists and checkboxes
 
@@ -75,7 +76,7 @@ its sections says what it should look like.
 - [ ] Toggling a checkbox: its parent box and the `[1/3]` cookie follow: `Ctrl+C Ctrl+C`
 - [ ] On a list numbered 1, 3, 2, the same command renumbers and repairs it: `Ctrl+C Ctrl+C`
 - [ ] Sorting a list's items alphabetically: `Ctrl+C ^`
-- [ ] Off a table, turning lines into items and back (needs Emacs): `Ctrl+C -`
+- [ ] Off a table, turning lines into items and back (needs Emacs); in a table the same key inserts a rule below the row: `Ctrl+C -`
 
 ## TODO keywords
 

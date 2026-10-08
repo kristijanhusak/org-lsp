@@ -37,7 +37,7 @@ its sections says what it should look like.
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: the code action *Cut the subtree*, the code action *Paste the subtree*
 - [ ] Copying a subtree and pasting it: the code action *Copy the subtree*, the code action *Paste the subtree*
 - [ ] Sorting the children of a heading alphabetically, then by TODO state: the code action *Sort the entries, the items or the table rows*
-- [ ] The outline lists the headings nested: `Space s`
+- [ ] The outline lists the headings nested, also in pickers that filter symbols by kind: `Space s`
 
 ## Lists and checkboxes
 

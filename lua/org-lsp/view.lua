@@ -13,7 +13,7 @@ local notify = require('org-lsp.notify')
 --- its date prompt.
 M.capabilities = {
   workspace = { textDocumentContent = { dynamicRegistration = false } },
-  experimental = { orgDatePrompt = true, orgVirtualIndent = true, orgLineHighlights = true },
+  experimental = { orgDatePrompt = true, orgVirtualIndent = true, orgLineHighlights = true, orgDisplay = true },
 }
 
 --- The manifest's sections for the documents the server owns, and the
@@ -101,8 +101,9 @@ local function is_empty(win)
 end
 
 --- The window an entry's file opens in from the agenda's window `from`
---- with TAB (`org-agenda-goto`): one that shows the file, else an empty
---- one, else a new one beside the window the agenda was opened from.
+--- with TAB (`org-agenda-goto`) and in follow mode: one that shows the
+--- file, else an empty one, else the previous or another window; a new
+--- one only when the agenda's is the only window.
 ---@param from integer
 ---@param bufnr integer
 ---@return integer
@@ -120,10 +121,19 @@ local function other_window(from, bufnr)
       return win
     end
   end
-  -- Split the previous window, or the agenda's when it is the only one:
-  -- side by side when it is wide, as Emacs's `split-window-sensibly`.
+  -- Another window there is: the previous one, else the first, as
+  -- Emacs's `display-buffer` uses some window rather than split again (or
+  -- follow mode would split once for each entry).
   local previous = vim.fn.win_getid(vim.fn.winnr('#'))
-  local base = vim.tbl_contains(wins, previous) and previous or wins[1] or from
+  if vim.tbl_contains(wins, previous) then
+    return previous
+  end
+  if wins[1] then
+    return wins[1]
+  end
+  -- The agenda's window is the only one: split it, side by side when it
+  -- is wide, as Emacs's `split-window-sensibly`.
+  local base = from
   local new
   vim.api.nvim_win_call(base, function()
     vim.cmd(vim.api.nvim_win_get_width(base) >= 160 and 'belowright vsplit' or 'belowright split')
@@ -601,6 +611,15 @@ M.handlers = {
     end
   end,
 
+  --- What stands in for hidden text: entities, sub- and superscripts,
+  --- shrunk table fields.
+  ['org-lsp/display'] = function(_, params, ctx)
+    local client = vim.lsp.get_client_by_id(ctx.client_id)
+    if client then
+      require('org-lsp.display').show(client, params)
+    end
+  end,
+
   --- Lines of the agenda highlighted from edge to edge, as Emacs's
   --- overlays cover them: the entry the clock runs on.
   ['org-lsp/lineHighlights'] = function(_, params)
@@ -720,14 +739,22 @@ function M.setup(manifest)
       end
     end,
   })
-  -- Windows that open, close or change size, once their sizes are set.
-  vim.api.nvim_create_autocmd({ 'BufWinEnter', 'WinNew', 'WinClosed', 'WinResized', 'VimResized' }, {
+  -- Windows that open, close or change size, once their sizes are set;
+  -- and their columns before the text (line numbers, signs, folds), which
+  -- a configuration may turn on once the window is there.
+  local function retell()
+    vim.schedule(function()
+      tell_width(manifest.agenda.languageId)
+    end)
+  end
+  vim.api.nvim_create_autocmd({ 'BufWinEnter', 'BufEnter', 'WinEnter', 'WinNew', 'WinClosed', 'WinResized', 'VimResized' }, {
     group = 'org_lsp_view',
-    callback = function()
-      vim.schedule(function()
-        tell_width(manifest.agenda.languageId)
-      end)
-    end,
+    callback = retell,
+  })
+  vim.api.nvim_create_autocmd('OptionSet', {
+    group = 'org_lsp_view',
+    pattern = { 'number', 'relativenumber', 'numberwidth', 'signcolumn', 'foldcolumn', 'statuscolumn' },
+    callback = retell,
   })
 end
 

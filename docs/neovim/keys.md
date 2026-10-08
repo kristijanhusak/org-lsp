@@ -113,6 +113,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>o'` | `org.edit.special` | Edit the block in a file of its own |
 | `<Leader>ons` | `org.narrow.subtree` | Narrow to the subtree: it in a file of its own |
 | `<Leader>onb` | `org.narrow.block` | Narrow to the block: it in a file of its own |
+| `<Leader>onw` | `org.narrow.widen` | Widen: the narrowed file written back and closed |
 | `<Leader>oxb` | `org.tree.indirect` | Show the subtree in a file of its own |
 | `<Leader>o`` | `org.table.edit.field` | Edit the table field in a file of its own |
 | `<Leader>oxc` | `org.columns` | Column view |

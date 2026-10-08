@@ -41,6 +41,7 @@ its sections says what it should look like.
 - [ ] A subtree with `:VISIBILITY: children` opens with its children folded, one with `all` open
 - [ ] Two blank lines after a subtree stay visible below it when it is folded
 - [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: `<Leader>ons`
+- [ ] Widening in the narrowed file writes it back and closes it (`C-c '` there does the same): `<Leader>onw`
 - [ ] Opening the parent of an `:ARCHIVE:` subtree leaves that subtree folded
 - [ ] A sparse tree of the TODO entries folds everything else and highlights them: `<Leader>o/`
 - [ ] With everything folded, showing the context of a line deep in a subtree opens the headlines above it and leaves the other subtrees folded: `<Leader>oR`
@@ -64,7 +65,7 @@ its sections says what it should look like.
 - [ ] Toggling `COMMENT` on the heading (needs Emacs): `<Leader>o;`
 - [ ] Cloning the subtree twice a week apart (`+1w`): the copies follow it with their dates moved (needs Emacs): `<Leader>osc`
 - [ ] On a selection of whole lines: two headlines demoted together; lines turned into headings (needs Emacs): `>>`, `:Org table recalculate line`
-- [ ] The outline lists the headings nested: the client's document symbols
+- [ ] The outline lists the headings nested, also in pickers that filter symbols by kind: the client's document symbols
 
 ## Lists and checkboxes
 
@@ -77,7 +78,7 @@ its sections says what it should look like.
 - [ ] Toggling a checkbox: its parent box and the `[1/3]` cookie follow: `<C-Space>`
 - [ ] On a list numbered 1, 3, 2, the same command renumbers and repairs it: `<C-Space>`
 - [ ] Sorting a list's items alphabetically: `<Leader>o^`
-- [ ] Off a table, turning lines into items and back (needs Emacs): `<Leader>o-`
+- [ ] Off a table, turning lines into items and back (needs Emacs); in a table the same key inserts a rule below the row: `<Leader>o-`
 
 ## TODO keywords
 
@@ -103,6 +104,7 @@ its sections says what it should look like.
 - [ ] Setting tags from `#+TAGS: work(w) home(h)` by key; each key turns its tag on and off: `<Leader>ot`
 - [ ] An exclusive group (`{ @office(o) @home(m) }`) turns the other tag off: `<Leader>ot`
 - [ ] Typing tags when none have keys; they are sorted and aligned to `org_tags_column`: `<Leader>ot`
+- [ ] While typing tags, the file's tags are completed, after each `:` too: `<Leader>ot`
 - [ ] Tags are completed after `:` at the end of a headline
 - [ ] Renaming a tag renames it in every headline and `#+FILETAGS:`: the client's rename on the tag
 

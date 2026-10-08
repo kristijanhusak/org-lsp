@@ -38,6 +38,7 @@ its sections says what it should look like.
 - [ ] On a headline, cycling goes folded → children → subtree
 - [ ] Cycling the whole file goes overview → contents → everything
 - [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: the code action *Narrow to the subtree: it in a file of its own*
+- [ ] Widening in the narrowed file writes it back and closes it (`C-c '` there does the same): the code action *Widen: the narrowed file written back and closed*
 - [ ] Zed's own folds open and close on headlines, drawers and blocks
 
 ## Headings and structure
@@ -53,7 +54,7 @@ its sections says what it should look like.
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: the code action *Cut the subtree*, the code action *Paste the subtree*
 - [ ] Copying a subtree and pasting it: the code action *Copy the subtree*, the code action *Paste the subtree*
 - [ ] Sorting the children of a heading alphabetically, then by TODO state: the code action *Sort the entries, the items or the table rows*
-- [ ] The outline lists the headings nested: the outline panel
+- [ ] The outline lists the headings nested, also in pickers that filter symbols by kind: the outline panel
 
 ## Lists and checkboxes
 

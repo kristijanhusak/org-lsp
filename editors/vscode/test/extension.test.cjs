@@ -357,6 +357,27 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('shows an entity as its character, and as it is on the line being edited', async () => {
+    const fs = require('node:fs');
+    const file = path.join(workspace, 'entities.org');
+    fs.writeFileSync(file, '#+STARTUP: entitiespretty\n* Entities\nAn \\alpha here\n');
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    editor.selection = new vscode.Selection(0, 0, 0, 0);
+    await until('the entity shown as its character', () =>
+      JSON.stringify(api.standIns(editor)) === JSON.stringify(['α']) && api.concealed(editor).includes('\\alpha'),
+    );
+    // On its line, the entity as it is, without its character.
+    editor.selection = new vscode.Selection(2, 0, 2, 0);
+    await until('the entity as it is', () => api.standIns(editor).length === 0 && api.concealed(editor).length === 0);
+    // Gone with the entity.
+    editor.selection = new vscode.Selection(0, 0, 0, 0);
+    await editor.edit((edit) => edit.replace(new vscode.Range(2, 3, 2, 9), 'alpha'));
+    await until('nothing in its place', () => api.standIns(editor).length === 0 && api.concealed(editor).length === 0);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.window.showTextDocument(document);
+  });
+
   it('clocks in and out, and shows the clock in the status bar', async () => {
     const fs = require('node:fs');
     const file = path.join(workspace, 'clock.org');

@@ -1008,6 +1008,13 @@
     }
   },
   {
+    "caption": "Org: Widen: the narrowed file written back and closed",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.narrow.widen"
+    }
+  },
+  {
     "caption": "Org: Show the subtree in a file of its own",
     "command": "org_lsp_run",
     "args": {

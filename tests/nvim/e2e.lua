@@ -121,7 +121,9 @@ eq(vim.fn.foldclosed(2), 2, 'S-TAB folds the whole file')
 press('<S-Tab>')
 eq(vim.fn.foldclosed(2), -1, 'S-TAB again unfolds it')
 -- A file opens as its `#+STARTUP:` says: with `content` the headlines
--- show, those without children folded, and drawers folded.
+-- show, those without children folded, and drawers folded; the plugin's
+-- `startup_folded` gives way to it.
+require('org-lsp').config.startup_folded = 'overview'
 local startup = vim.fn.tempname() .. '.org'
 vim.fn.writefile({ '#+STARTUP: content', '* A', ':PROPERTIES:', ':ID: 1', ':END:', 'text', '** B', 'b text', '* C', 'c text' }, startup)
 vim.cmd.edit(startup)
@@ -129,6 +131,7 @@ wait('the folds it opens with', function()
   return vim.fn.foldclosed(10) == 9
 end)
 eq({ vim.fn.foldclosed(3), vim.fn.foldclosed(6), vim.fn.foldclosed(8) }, { 3, -1, 7 }, 'startup folds: drawer and childless headlines')
+require('org-lsp').config.startup_folded = nil
 vim.cmd.buffer(bufnr)
 
 -- 5. TODO cycling through the default key, from inside the entry's body.
@@ -624,6 +627,35 @@ wait('the lines indented', function()
 end)
 eq(prefixes(), { { 2, 2 }, { 3, 1 }, { 3, 'star', 0 } }, 'the text below A at 2, B after 1 column, one star hidden')
 eq(line(3), 'text', 'the file is not changed')
+
+-- An entity shows as its character off the cursor's line, as links do:
+-- its text concealed, its last character replaced. Gone with the entity.
+local pretty = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '#+STARTUP: entitiespretty', '* A', 'x \\alpha y' }, pretty)
+vim.cmd.edit(pretty)
+local display_ns = vim.api.nvim_create_namespace('org_lsp_display')
+local function displayed()
+  local found = {}
+  for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(0, display_ns, 0, -1, { details = true })) do
+    table.insert(found, { mark[2], mark[3], mark[4].end_col, mark[4].conceal })
+  end
+  return found
+end
+wait('the entity shown as its character', function()
+  return #displayed() > 0
+end)
+eq(displayed(), {
+  { 2, 2, 3, '' },
+  { 2, 3, 4, '' },
+  { 2, 4, 5, '' },
+  { 2, 5, 6, '' },
+  { 2, 6, 7, '' },
+  { 2, 7, 8, 'α' },
+}, '\\alpha hidden but its last character, shown as α')
+vim.api.nvim_buf_set_lines(0, 2, 3, false, { 'x alpha y' })
+wait('nothing shown once the entity is gone', function()
+  return #displayed() == 0
+end)
 
 -- 22. `g?` lists the keys of the buffer, the user's own among them, in a
 -- window that `q` closes.
