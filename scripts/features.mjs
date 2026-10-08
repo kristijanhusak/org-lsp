@@ -236,6 +236,8 @@ export const AREAS = [
     emacs: [
       ['Cycling states, and fast selection by key (`TODO(t)`)', true],
       ['Sequences and types from `#+TODO:` and `org_todo_keywords`', true],
+      ['Several sequences: cycling stays in the entry\'s sequence, and `C-S-<right>`, `C-S-<left>` switch sets', true],
+      ['Faces of particular keywords and priorities (`org-todo-keyword-faces`, `org-priority-faces`)', true],
       ['Logging: `CLOSED:`, the time or a note on a state change (`!`, `@`), `LOG_INTO_DRAWER`', true],
       ['Repeating entries moving to their next date', true],
       ['The parent\'s statistics cookies recounted', true],
@@ -244,8 +246,9 @@ export const AREAS = [
       ['Hiding blocked tasks in the agenda (`org-agenda-dim-blocked-tasks` `invisible`)', true],
     ],
     editors: {
-      zed: ['part', `A note for a state change (\`@\`) cannot be typed: ${ZED_TEXT}. States are picked with buttons.`],
-      helix: ['part', `A note for a state change (\`@\`) cannot be typed: ${HELIX_TEXT}.`],
+      sublime: ['part', 'Faces of particular keywords and priorities are not shown: Sublime Text colors text by its color scheme only.'],
+      zed: ['part', `A note for a state change (\`@\`) cannot be typed: ${ZED_TEXT}. States are picked with buttons. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.`],
+      helix: ['part', `A note for a state change (\`@\`) cannot be typed: ${HELIX_TEXT}. Faces of particular keywords and priorities are not shown.`],
     },
     checks: [
       { text: 'With `org_enforce_todo_dependencies`, a parent with a child not done cannot be done: the change is refused with `blocked (by "TODO Child")`; with `org_enforce_todo_checkbox_dependencies`, an entry with an unchecked box cannot either', cmd: 'org.todo' },
@@ -258,6 +261,9 @@ export const AREAS = [
       { text: 'Done on a repeating entry (`<2026-01-01 Thu +1w>`) moves its date a week on and keeps it TODO', cmd: 'org.todo' },
       { text: 'The parent\'s `[1/2]` cookie is recounted', cmd: 'org.todo' },
       { text: 'A `#+TODO: A B | C` line in the file is used instead of the settings', cmd: 'org.todo' },
+      { text: 'With `#+TODO: TODO | DONE` and `#+TODO: REPORT BUG | FIXED`, changing the state without keys goes `BUG`, `FIXED`, none, then back to `REPORT`', cmd: 'org.todo' },
+      { text: 'Switching to the next and previous keyword set says `Keyword-Set 2/2: REPORT BUG FIXED`', cmd: ['org.todo.nextset', 'org.todo.previousset'] },
+      { text: 'With `org_todo_keyword_faces = { WAIT = ":foreground orange :weight bold" }`, `WAIT` shows in bold orange, in the file and in the agenda', only: ['neovim', 'vim', 'vscode'] },
     ],
   },
   {

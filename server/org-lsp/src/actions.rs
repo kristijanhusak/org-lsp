@@ -41,6 +41,8 @@ pub fn command(id: &str) -> Option<Command> {
     Some(match id {
         TODO_NEXT => Command::Todo(Target::Next),
         TODO_PREVIOUS => Command::Todo(Target::Previous),
+        commands::TODO_NEXT_SET => Command::Todo(Target::NextSet { head: None }),
+        commands::TODO_PREVIOUS_SET => Command::Todo(Target::PreviousSet { head: None }),
         PRIORITY_UP => Command::Priority(Priority::Up),
         PRIORITY_DOWN => Command::Priority(Priority::Down),
         TIMESTAMP_UP => Command::Timestamp { forward: true },

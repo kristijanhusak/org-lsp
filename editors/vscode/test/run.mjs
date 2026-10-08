@@ -41,6 +41,8 @@ writeFileSync(
     'org-lsp.server.path': server,
     'org-lsp.settings': {
       clock: { today: '2026-05-18', now: '10:30' },
+      org_todo_keyword_faces: { TODO: ':foreground #ff8800 :weight bold' },
+      org_priority_faces: { A: 'red' },
       org_capture_templates: [{ key: 't', description: 'Task', target: ['file', captured], template: '* TODO %?' }],
     },
   }),

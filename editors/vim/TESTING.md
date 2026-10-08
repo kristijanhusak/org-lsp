@@ -92,6 +92,9 @@ its sections says what it should look like.
 - [ ] Done on a repeating entry (`<2026-01-01 Thu +1w>`) moves its date a week on and keeps it TODO: `cit`
 - [ ] The parent's `[1/2]` cookie is recounted: `cit`
 - [ ] A `#+TODO: A B | C` line in the file is used instead of the settings: `cit`
+- [ ] With `#+TODO: TODO | DONE` and `#+TODO: REPORT BUG | FIXED`, changing the state without keys goes `BUG`, `FIXED`, none, then back to `REPORT`: `cit`
+- [ ] Switching to the next and previous keyword set says `Keyword-Set 2/2: REPORT BUG FIXED`: `:Org todo nextset`, `:Org todo previousset`
+- [ ] With `org_todo_keyword_faces = { WAIT = ":foreground orange :weight bold" }`, `WAIT` shows in bold orange, in the file and in the agenda
 
 ## Priorities
 

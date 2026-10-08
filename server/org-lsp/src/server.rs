@@ -52,7 +52,7 @@ use crate::prompt::{self, DatePrompt, Target, TimeField};
 mod bulk;
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
-use crate::{actions, cli, commands, completion, custom, folding, highlight, manifest, port, symbols, uri};
+use crate::{actions, cli, commands, completion, custom, faces, folding, highlight, manifest, port, symbols, uri};
 
 type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -493,6 +493,12 @@ pub const SAVE: &str = "org-lsp/save";
 pub const AGENDA_WIDTH: &str = "org-lsp/agendaWidth";
 /// The entry of an agenda line with its highlighting, for a popup.
 pub const PREVIEW: &str = "org-lsp/preview";
+/// The faces of particular TODO keywords and priorities
+/// (`org_todo_keyword_faces`, `org_priority_faces`), for the editor to
+/// apply over the highlighting: `{ "todo": { KEYWORD: face }, "priority":
+/// { LETTER: face } }`, each face `{ "foreground", "background", "bold",
+/// "italic", "underline", "strikethrough" }` as set.
+pub const FACES: &str = "org-lsp/faces";
 /// What column view shows on a document, for the editor to draw over its
 /// headlines: `{ "uri", "version", "header", "columns": [{ "key", "title",
 /// "width" }], "lines": [[line, text, [value…]]] }`, each line one of a
@@ -948,6 +954,12 @@ struct Server {
     /// answered yet. A command from the old line is meant for the new one.
     moving: Option<(u32, u32)>,
     last: Option<Last>,
+    /// The sequence an entry was in when its keyword was cleared, by file
+    /// and headline offset: where cycling starts again (the
+    /// `org-todo-head` text property Emacs puts on the line).
+    todo_heads: HashMap<String, HashMap<usize, String>>,
+    /// See [`FACES`].
+    faces: Value,
     /// The last link search found nothing (`org-link--search-failed`).
     link_search_failed: bool,
     /// `org_goto_max_level`
@@ -1023,6 +1035,7 @@ pub fn run(connection: Connection) -> Result<()> {
         Client { date_prompt: client.date_prompt && client.virtual_documents && client.show_document, ..client };
 
     let todo = options.todo_keywords();
+    let faces = faces::faces(&options.todo_keyword_faces, &options.priority_faces);
 
     #[allow(deprecated)]
     let folders: Vec<PathBuf> = match &params.workspace_folders {
@@ -1033,7 +1046,7 @@ pub fn run(connection: Connection) -> Result<()> {
     let view_directory = agenda_directory(&client, &folders).unwrap_or_else(|| server_directory("view"));
 
     let result = InitializeResult {
-        capabilities: capabilities(client.encoding, true, client.command_actions),
+        capabilities: capabilities(client.encoding, true, client.command_actions, &faces),
         server_info: Some(ServerInfo {
             name: "org-lsp".to_string(),
             version: Some(env!("CARGO_PKG_VERSION").to_string()),
@@ -1202,6 +1215,8 @@ pub fn run(connection: Connection) -> Result<()> {
         follow: None,
         moving: None,
         last: None,
+        todo_heads: HashMap::new(),
+        faces,
         link_search_failed: false,
         goto_max_level: options.goto_max_level.unwrap_or(5),
         last_property: None,
@@ -1465,6 +1480,13 @@ fn with_message(result: Value, message: Option<String>) -> Value {
 /// entry is out of sight, its TODO state. A state asked for (`requested`)
 /// that the entry already had is worth a word as well; not one the entry
 /// comes back to, as a repeating entry marked done does.
+/// The TODO keyword of the headline at byte `heading` of `text`.
+fn headline_keyword(text: &str, heading: usize, keywords: &TodoKeywords) -> Option<String> {
+    let line = text.get(heading..)?.lines().next()?;
+    let word = line.trim_start_matches('*').split_whitespace().next()?;
+    (line.starts_with('*') && keywords.contains(word)).then(|| word.to_string())
+}
+
 fn headline_message(
     old: &str,
     new: &str,
@@ -1590,7 +1612,7 @@ fn set_writable(file: &Path) -> std::io::Result<()> {
 /// `cursor`: ask for document highlights, which a client asks for as the
 /// cursor moves, so that the server knows where it is in the agenda
 /// (`command_actions`).
-fn capabilities(encoding: Encoding, inlay_hints: bool, cursor: bool) -> ServerCapabilities {
+fn capabilities(encoding: Encoding, inlay_hints: bool, cursor: bool, faces: &Value) -> ServerCapabilities {
     ServerCapabilities {
         position_encoding: Some(encoding.kind()),
         text_document_sync: Some(TextDocumentSyncCapability::Options(TextDocumentSyncOptions {
@@ -1641,7 +1663,9 @@ fn capabilities(encoding: Encoding, inlay_hints: bool, cursor: bool) -> ServerCa
         document_formatting_provider: Some(OneOf::Left(true)),
         inlay_hint_provider: inlay_hints.then_some(OneOf::Left(true)),
         document_highlight_provider: cursor.then_some(OneOf::Left(true)),
-        experimental: Some(json!({ "org": manifest::manifest() })),
+        // `orgFaces`: the faces of particular keywords and priorities
+        // (see `org-lsp/faces`).
+        experimental: Some(json!({ "org": manifest::manifest(), "orgFaces": faces })),
         ..Default::default()
     }
 }
@@ -1990,6 +2014,7 @@ impl Server {
                         Ok((id, params)) => respond(id, self.startup_folds(&params.text_document)),
                         Err(response) => response,
                     },
+                    FACES => Response::new_ok(request.id, self.faces.clone()),
                     PREVIEW => match parameters::<Value>(request) {
                         Ok((id, params)) => respond(id, self.preview(&params)),
                         Err(response) => response,
@@ -7497,9 +7522,12 @@ impl Server {
                     EditCommand::AgendaDate { forward, unit }
                 }
                 _ if given.is_some() => given.clone().expect("given"),
-                commands::TODO_NEXT | commands::TODO_PREVIOUS | commands::PRIORITY_UP | commands::PRIORITY_DOWN => {
-                    actions::command(id).ok_or("Unknown command")?
-                }
+                commands::TODO_NEXT
+                | commands::TODO_PREVIOUS
+                | commands::TODO_NEXT_SET
+                | commands::TODO_PREVIOUS_SET
+                | commands::PRIORITY_UP
+                | commands::PRIORITY_DOWN => actions::command(id).ok_or("Unknown command")?,
                 _ => return Err(Refusal::NotHere("This command works in Org files".to_string())),
             };
             (reference.uri.clone(), Some(reference), command)
@@ -7512,6 +7540,7 @@ impl Server {
         let key = file.as_str().to_string();
         let previous = self.last.take();
         let count = context.count;
+        let heads = self.todo_heads.get(&key).cloned().unwrap_or_default();
         let found = self.with_source(&file, |text, index, parse, outline, version| {
             // The place the command acts on, and the headline of its entry.
             let (offset, heading) = match &reference {
@@ -7544,9 +7573,29 @@ impl Server {
                 }
                 None => command.clone(),
             };
+            let repeated = previous.as_ref() == Some(&last);
+            // Cycling and switching sets start, on an entry without a
+            // keyword, from the sequence it was last in.
+            let keywords = parse.todo_keywords();
+            let old_keyword = heading.and_then(|heading| headline_keyword(text, heading, keywords));
+            let remembered = heading.and_then(|heading| heads.get(&heading).cloned());
+            let command = match command {
+                EditCommand::Todo(TodoTarget::Cycle { .. }) => {
+                    EditCommand::Todo(TodoTarget::Cycle { head: remembered.clone(), repeated })
+                }
+                EditCommand::Todo(TodoTarget::NextSet { .. }) => {
+                    EditCommand::Todo(TodoTarget::NextSet { head: remembered.clone() })
+                }
+                EditCommand::Todo(TodoTarget::PreviousSet { .. }) => {
+                    EditCommand::Todo(TodoTarget::PreviousSet { head: remembered.clone() })
+                }
+                command => command,
+            };
+            let switching_sets =
+                matches!(command, EditCommand::Todo(TodoTarget::NextSet { .. } | TodoTarget::PreviousSet { .. }));
             let call = Call {
                 count,
-                repeated: previous.as_ref() == Some(&last),
+                repeated,
                 now,
                 note: extra.note.clone(),
                 skip_note: extra.skip_note,
@@ -7564,7 +7613,21 @@ impl Server {
                     .into_iter()
                     .map(|edit| TextEdit { range: index.range(text, edit.range, encoding), new_text: edit.new_text })
                     .collect();
-                let message = outcome.message.clone().or_else(|| {
+                // The sequence to come back to when the keyword is gone.
+                let forget = heading.map(|heading| {
+                    let keyword = headline_keyword(&outcome.text, heading, keywords);
+                    let head = old_keyword.as_deref().and_then(|old| keywords.head(old)).map(str::to_string);
+                    (heading, keyword.is_none().then(|| head.or(remembered.clone())).flatten())
+                });
+                // `Keyword-Set 2/3: REPORT BUG | FIXED`, as Emacs says it.
+                let set_message = switching_sets
+                    .then(|| heading.and_then(|heading| headline_keyword(&outcome.text, heading, keywords)))
+                    .flatten()
+                    .and_then(|head| {
+                        let (number, total) = keywords.set_number(&head)?;
+                        Some(format!("Keyword-Set {number}/{total}: {}", keywords.sequence(&head).join(" ")))
+                    });
+                let message = set_message.or_else(|| outcome.message.clone()).or_else(|| {
                     heading.and_then(|heading| {
                         headline_message(
                             text,
@@ -7576,7 +7639,7 @@ impl Server {
                         )
                     })
                 });
-                (edits, version, outcome.text, outcome.note, message)
+                (edits, version, outcome.text, outcome.note, message, forget)
             });
             Ok::<_, Refusal>((last, Some(outcome)))
         });
@@ -7585,7 +7648,14 @@ impl Server {
         let heading = last.heading;
         self.last = Some(last);
         let Some(outcome) = outcome else { return Ok(Value::Null) };
-        let (edits, version, new_text, wanted, message) = outcome?;
+        let (edits, version, new_text, wanted, message, forget) = outcome?;
+        if let Some((heading, head)) = forget {
+            let heads = self.todo_heads.entry(file.as_str().to_string()).or_default();
+            match head {
+                Some(head) => heads.insert(heading, head),
+                None => heads.remove(&heading),
+            };
+        }
         // The change wants a note: ask for its text, and make the change
         // once it comes, with the state it is about. An editor of this
         // project shows a note buffer, as Emacs does (`*Org Note*`).
@@ -7613,7 +7683,14 @@ impl Server {
         // of the key reaches the same entry.
         self.follow = match (&line, heading) {
             (Some((number, line)), Some(heading))
-                if !matches!(id, commands::TODO | commands::TODO_NEXT | commands::TODO_PREVIOUS) =>
+                if !matches!(
+                    id,
+                    commands::TODO
+                        | commands::TODO_NEXT
+                        | commands::TODO_PREVIOUS
+                        | commands::TODO_NEXT_SET
+                        | commands::TODO_PREVIOUS_SET
+                ) =>
             {
                 self.followed(&file, &new_text, heading, (Position::new(*number, position.character), line))
             }
@@ -8056,7 +8133,8 @@ impl Server {
         }
         let keys = self.fast_keys(&context)?;
         if keys.is_empty() {
-            return self.edit_with(&context, id, Some(EditCommand::Todo(TodoTarget::Next)), &Extra::default());
+            let cycle = TodoTarget::Cycle { head: None, repeated: false };
+            return self.edit_with(&context, id, Some(EditCommand::Todo(cycle)), &Extra::default());
         }
         let Some(answer) = &context.input else {
             let choices: Vec<Value> = keys

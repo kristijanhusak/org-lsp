@@ -18,10 +18,18 @@ use std::path::PathBuf;
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Options {
-    /// The default TODO sequence, written like Org's `#+TODO:` line:
-    /// `["TODO", "NEXT", "|", "DONE"]`. Documents can override it.
+    /// The default TODO sequences: one written like Org's `#+TODO:` line,
+    /// `["TODO", "NEXT", "|", "DONE"]`, or a list of them, each perhaps
+    /// starting with `sequence` or `type`. Documents can override them.
     #[serde(rename = "org_todo_keywords")]
-    pub todo_keywords: Option<Vec<String>>,
+    pub todo_keywords: Option<TodoKeywordsOption>,
+    /// `org-todo-keyword-faces`: a face for a keyword, a color or a
+    /// property list (`:foreground blue :weight bold`).
+    #[serde(rename = "org_todo_keyword_faces")]
+    pub todo_keyword_faces: std::collections::BTreeMap<String, String>,
+    /// `org-priority-faces`: a face for a priority, by its letter.
+    #[serde(rename = "org_priority_faces")]
+    pub priority_faces: std::collections::BTreeMap<String, String>,
     /// Files, directories and glob patterns the agenda is built from.
     #[serde(rename = "org_agenda_files")]
     pub agenda_files: Vec<String>,
@@ -635,6 +643,33 @@ impl PriorityOption {
     }
 }
 
+/// `org_todo_keywords`: one sequence, or several, as `org-todo-keywords`
+/// has them: `[["TODO", "|", "DONE"], ["type", "Fred", "Sara", "|", "DONE"]]`.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum TodoKeywordsOption {
+    One(Vec<String>),
+    Several(Vec<Vec<String>>),
+}
+
+impl TodoKeywordsOption {
+    pub fn keywords(&self) -> TodoKeywords {
+        use org_syntax::Interpretation;
+        // `sequence` or `type` first, as in `(sequence "TODO" "|" "DONE")`.
+        let read = |words: &[String]| match words.first().map(String::as_str) {
+            Some("type") => (Interpretation::Type, words[1..].to_vec()),
+            Some("sequence") => (Interpretation::Sequence, words[1..].to_vec()),
+            _ => (Interpretation::Sequence, words.to_vec()),
+        };
+        match self {
+            TodoKeywordsOption::One(words) => TodoKeywords::from_sequences([read(words)]),
+            TodoKeywordsOption::Several(sequences) => {
+                TodoKeywords::from_sequences(sequences.iter().map(|words| read(words)))
+            }
+        }
+    }
+}
+
 impl Options {
     /// The options in `value`. One that is malformed is left out, not
     /// the rest with it; its dotted name is returned with the options.
@@ -662,8 +697,8 @@ impl Options {
 
     pub fn todo_keywords(&self) -> TodoKeywords {
         self.todo_keywords
-            .clone()
-            .map(TodoKeywords::from_sequence)
+            .as_ref()
+            .map(TodoKeywordsOption::keywords)
             .filter(|keywords| !keywords.is_empty())
             .unwrap_or_default()
     }

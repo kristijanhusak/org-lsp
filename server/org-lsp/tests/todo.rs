@@ -43,7 +43,7 @@ fn todo_changes_match_emacs() {
         let text = marked.replacen('¦', "", 1);
         let options: Options =
             serde_json::from_value(case.get("options").cloned().unwrap_or_else(|| serde_json::json!({}))).unwrap();
-        let default = options.todo_keywords.clone().map(TodoKeywords::from_sequence).unwrap_or_default();
+        let default = options.todo_keywords();
         let keywords = TodoKeywords::from_document(&text).unwrap_or(default);
         // `org-toggle-checkbox`, on an item or a headline.
         if case["command"] == "checkbox" {
@@ -75,6 +75,10 @@ fn todo_changes_match_emacs() {
         let target = match &case["command"] {
             Value::String(name) if name == "next" => Some(Target::Next),
             Value::String(name) if name == "previous" => Some(Target::Previous),
+            // `org-todo` with no fast selection keys, and switching sets.
+            Value::String(name) if name == "cycle" => Some(Target::Cycle { head: None, repeated: false }),
+            Value::String(name) if name == "nextset" => Some(Target::NextSet { head: None }),
+            Value::String(name) if name == "previousset" => Some(Target::PreviousSet { head: None }),
             // Fast selection: `QUIT` when the key selects nothing.
             other if other.get("key").is_some() => {
                 match fast_selection(&text, &keywords, offset, other["key"].as_str().unwrap()) {

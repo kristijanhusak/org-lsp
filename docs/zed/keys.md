@@ -134,6 +134,8 @@ keeps its motions.
 | `shift-o` | `org.clock.out` | Clock out |
 | `shift-x` | `org.clock.cancel` | Cancel the clock |
 | `t` | `org.todo` | Change the TODO state |
+| `ctrl-shift-right` | `org.todo.nextset` | Switch to the next TODO keyword set |
+| `ctrl-shift-left` | `org.todo.previousset` | Switch to the previous TODO keyword set |
 | `+`, `shift-up` | `org.priority.up` | Raise the priority |
 | `-`, `shift-down` | `org.priority.down` | Lower the priority |
 | `,` | `org.priority` | Set the priority |
@@ -172,6 +174,8 @@ keeps its motions.
 | `ctrl-c ctrl-x x` | `org.dblock.insert` | Insert a dynamic block |
 | `ctrl-c ctrl-a` | `org.attach` | Attachments of the entry |
 | `ctrl-c ctrl-t` | `org.todo` | Change the TODO state |
+| `ctrl-shift-right` | `org.todo.nextset` | Switch to the next TODO keyword set |
+| `ctrl-shift-left` | `org.todo.previousset` | Switch to the previous TODO keyword set |
 | `ctrl-c ,` | `org.priority` | Set the priority |
 | `ctrl-c ctrl-x p` | `org.property.set` | Set a property of the entry |
 | `ctrl-c ctrl-x e` | `org.effort.set` | Set the effort of the entry |

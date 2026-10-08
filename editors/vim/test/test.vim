@@ -60,6 +60,14 @@ function! s:starts() abort
 endfunction
 call s:test('starts the server and highlights with its tokens', function('s:starts'))
 
+" A keyword with a face of its own (`org_todo_keyword_faces`) shows in it.
+function! s:keyword_faces() abort
+  call s:until('the face on TODO', {-> index(s:types(2), 'org_lsp_face_todo_TODO') >= 0})
+  call assert_equal('#ff8800', synIDattr(hlID('OrgLspTodoFace_TODO'), 'fg#', 'gui'))
+  call assert_equal('1', synIDattr(hlID('OrgLspTodoFace_TODO'), 'bold', 'gui'))
+endfunction
+call s:test('gives keywords their faces', function('s:keyword_faces'))
+
 function! s:folds() abort
   call s:until('folds', {-> !empty(get(b:, 'org_lsp_folds', []))})
   call cursor(2, 1)

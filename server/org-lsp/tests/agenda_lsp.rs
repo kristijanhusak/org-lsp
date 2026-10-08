@@ -6117,3 +6117,48 @@ fn agenda_column_view_goes_to_emacs() {
     assert_eq!(shown(&mut client)["lines"], Value::Null);
     client.shutdown();
 }
+
+/// Several TODO sequences: `org.todo` cycles within the entry's sequence
+/// and, from no keyword, back into the one it was last in; `C-S-<right>`
+/// switches to the next sequence and says which it is.
+#[test]
+fn cycles_within_todo_sequences_and_switches_sets() {
+    let mut options = clock();
+    options["org_todo_keywords"] = json!([["TODO", "|", "DONE"], ["REPORT", "BUG", "|", "FIXED"]]);
+    let capabilities = json!({
+        "workspace": { "workspaceEdit": { "documentChanges": true } },
+        "general": { "positionEncodings": ["utf-8"] }
+    });
+    let mut client = Client::start(capabilities, options, None);
+    const URI: &str = "file:///org/sets.org";
+    let mut text = "* BUG Crash\n".to_string();
+    client.open(URI, &text);
+    let state = |client: &mut Client, command: &str, text: &mut String| {
+        client.edit(command, URI, (0, 0), json!({}), text);
+        text.lines().next().unwrap().to_string()
+    };
+    assert_eq!(state(&mut client, "org.todo", &mut text), "* FIXED Crash");
+    assert_eq!(state(&mut client, "org.todo", &mut text), "* Crash", "the last state of the sequence clears it");
+    assert_eq!(state(&mut client, "org.todo", &mut text), "* REPORT Crash", "back into the sequence it was in");
+    // Shift-right walks all keywords, across sequences.
+    assert_eq!(state(&mut client, "org.todo.previous", &mut text), "* DONE Crash");
+    // Emacs says which set it is, with the command's result.
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } });
+    let result = client
+        .request("workspace/executeCommand", json!({ "command": "org.todo.nextset", "arguments": [context] }))
+        .unwrap();
+    assert_eq!(result["message"], "Keyword-Set 2/2: REPORT BUG FIXED");
+    client.settle();
+    let request = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    text = apply(&text, &edits_of(request).1);
+    assert_eq!(text, "* REPORT Crash\n");
+    client.file_version += 1;
+    let change =
+        json!({ "textDocument": { "uri": URI, "version": client.file_version }, "contentChanges": [{ "text": text }] });
+    client.notify("textDocument/didChange", change);
+    client.settle();
+    assert_eq!(state(&mut client, "org.todo.nextset", &mut text), "* TODO Crash", "round to the first");
+    assert_eq!(state(&mut client, "org.todo.previousset", &mut text), "* REPORT Crash");
+    client.shutdown();
+}

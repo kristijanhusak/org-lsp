@@ -76,9 +76,26 @@ every editor at once; `initialization_options` goes on top of it.
         // the states that count as done; without it the last keyword is the
         // only done state. `TODO(t)` gives a keyword a key for fast
         // selection, and `WAIT(w@/!)` makes it log a note (`@`) or the time
-        // (`!`) on entering and leaving it. A file's own `#+TODO:` lines take
-        // precedence. (org-todo-keywords)
+        // (`!`) on entering and leaving it. Several sequences go in a list of
+        // lists, `[["TODO", "|", "DONE"], ["REPORT", "|", "FIXED"]]`; cycling
+        // stays in the sequence of the entry, and `C-S-<right>` switches to
+        // the next. A list that starts with `type` is a type sequence
+        // (`#+TYP_TODO:`): each of its keywords goes straight to done. A
+        // file's own `#+TODO:` lines take precedence. (org-todo-keywords)
         "org_todo_keywords": ["TODO", "|", "DONE"],
+
+        // Faces for particular TODO keywords: a color, `{ "WAIT": "orange"
+        // }`, or attributes written as Org writes them, `{ "CANCELLED":
+        // ":foreground gray :slant italic :strike-through t" }`
+        // (`:foreground`, `:background`, `:weight bold`, `:slant italic`,
+        // `:underline t`, `:strike-through t`). Shown in Org files and in the
+        // agenda by Neovim, Vim and VS Code. (org-todo-keyword-faces)
+        "org_todo_keyword_faces": {  },
+
+        // Faces for particular priorities, by their letter, written as in
+        // `org_todo_keyword_faces`: `{ "A": ":foreground red :weight bold"
+        // }`. (org-priority-faces)
+        "org_priority_faces": {  },
 
         // Write `CLOSED:` with the time when an entry is done, and with
         // `note` ask for a note too. A file's `#+STARTUP:` words `logdone`,

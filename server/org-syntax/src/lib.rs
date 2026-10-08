@@ -24,7 +24,7 @@ mod kind;
 mod objects;
 mod parser;
 
-pub use config::{Logging, TodoKeywords};
+pub use config::{Interpretation, Logging, TodoKeywords};
 
 /// The names of the entities Org knows (`org-entities`), sorted.
 /// The link types Org knows (`org-link-types`): `https`, `file`, `id`…

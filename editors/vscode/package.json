@@ -351,6 +351,16 @@
         "category": "Org"
       },
       {
+        "command": "org.todo.nextset",
+        "title": "Switch to the next TODO keyword set",
+        "category": "Org"
+      },
+      {
+        "command": "org.todo.previousset",
+        "title": "Switch to the previous TODO keyword set",
+        "category": "Org"
+      },
+      {
         "command": "org.priority.up",
         "title": "Raise the priority",
         "category": "Org"
@@ -1340,16 +1350,45 @@
               "default": []
             },
             "org_todo_keywords": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array",
-              "markdownDescription": "The TODO sequence, written like Org's `#+TODO:` line. `|` separates the states that count as done; without it the last keyword is the only done state. `TODO(t)` gives a keyword a key for fast selection, and `WAIT(w@/!)` makes it log a note (`@`) or the time (`!`) on entering and leaving it. A file's own `#+TODO:` lines take precedence. (`org-todo-keywords`)",
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "items": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "type": "array"
+                }
+              ],
+              "markdownDescription": "The TODO sequence, written like Org's `#+TODO:` line. `|` separates the states that count as done; without it the last keyword is the only done state. `TODO(t)` gives a keyword a key for fast selection, and `WAIT(w@/!)` makes it log a note (`@`) or the time (`!`) on entering and leaving it. Several sequences go in a list of lists, `[[\"TODO\", \"|\", \"DONE\"], [\"REPORT\", \"|\", \"FIXED\"]]`; cycling stays in the sequence of the entry, and `C-S-<right>` switches to the next. A list that starts with `type` is a type sequence (`#+TYP_TODO:`): each of its keywords goes straight to done. A file's own `#+TODO:` lines take precedence. (`org-todo-keywords`)",
               "default": [
                 "TODO",
                 "|",
                 "DONE"
               ]
+            },
+            "org_todo_keyword_faces": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object",
+              "markdownDescription": "Faces for particular TODO keywords: a color, `{ \"WAIT\": \"orange\" }`, or attributes written as Org writes them, `{ \"CANCELLED\": \":foreground gray :slant italic :strike-through t\" }` (`:foreground`, `:background`, `:weight bold`, `:slant italic`, `:underline t`, `:strike-through t`). Shown in Org files and in the agenda by Neovim, Vim and VS Code. (`org-todo-keyword-faces`)",
+              "default": {}
+            },
+            "org_priority_faces": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object",
+              "markdownDescription": "Faces for particular priorities, by their letter, written as in `org_todo_keyword_faces`: `{ \"A\": \":foreground red :weight bold\" }`. (`org-priority-faces`)",
+              "default": {}
             },
             "org_log_done": {
               "enum": [
@@ -4094,6 +4133,16 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
+        "command": "org.todo.nextset",
+        "key": "ctrl+shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.todo.previousset",
+        "key": "ctrl+shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
         "command": "org.priority",
         "key": "ctrl+c ,",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
@@ -5339,6 +5388,26 @@
       {
         "command": "org.todo",
         "key": "t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.todo.nextset",
+        "key": "ctrl+shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.todo.nextset",
+        "key": "ctrl+shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.todo.previousset",
+        "key": "ctrl+shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.todo.previousset",
+        "key": "ctrl+shift+left",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {

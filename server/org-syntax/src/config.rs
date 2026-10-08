@@ -10,6 +10,18 @@ pub enum Logging {
     Note,
 }
 
+/// How the keywords of a sequence are used (the first word of an entry of
+/// `org-todo-keywords`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Interpretation {
+    /// `sequence` (`#+TODO:`, `#+SEQ_TODO:`): states the entry goes through.
+    #[default]
+    Sequence,
+    /// `type` (`#+TYP_TODO:`): who or what the entry is for; cycling goes
+    /// from any of them straight to the done state.
+    Type,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Keyword {
     name: String,
@@ -18,6 +30,7 @@ struct Keyword {
     done: bool,
     /// Index of the first keyword of the sequence this one belongs to.
     head: usize,
+    interpretation: Interpretation,
     on_entering: Option<Logging>,
     on_leaving: Option<Logging>,
 }
@@ -75,11 +88,25 @@ impl TodoKeywords {
         S: AsRef<str>,
     {
         let mut out = TodoKeywords { keywords: Vec::new() };
-        out.push_sequence(words);
+        out.push_sequence(Interpretation::Sequence, words);
         out
     }
 
-    fn push_sequence<I, S>(&mut self, words: I)
+    /// Build from several sequences, as `org-todo-keywords` lists them.
+    pub fn from_sequences<I, W, S>(sequences: I) -> Self
+    where
+        I: IntoIterator<Item = (Interpretation, W)>,
+        W: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let mut out = TodoKeywords { keywords: Vec::new() };
+        for (interpretation, words) in sequences {
+            out.push_sequence(interpretation, words);
+        }
+        out
+    }
+
+    fn push_sequence<I, S>(&mut self, interpretation: Interpretation, words: I)
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -103,6 +130,7 @@ impl TodoKeywords {
                 key: *key,
                 done: index >= first_done,
                 head,
+                interpretation,
                 on_entering: *on_entering,
                 on_leaving: *on_leaving,
             });
@@ -129,7 +157,9 @@ impl TodoKeywords {
                 continue;
             }
             found = true;
-            out.push_sequence(words);
+            let interpretation =
+                if key.eq_ignore_ascii_case("TYP_TODO") { Interpretation::Type } else { Interpretation::Sequence };
+            out.push_sequence(interpretation, words);
         }
         found.then_some(out)
     }
@@ -193,6 +223,97 @@ impl TodoKeywords {
             Some(0) => None,
             Some(index) => self.keywords.get(index - 1).map(|keyword| keyword.name.as_str()),
         }
+    }
+
+    /// The keywords of the sequence that starts with `head`, in order.
+    pub fn sequence(&self, head: &str) -> Vec<&str> {
+        let Some(index) = self.position(head) else { return Vec::new() };
+        let head = self.keywords[index].head;
+        self.keywords.iter().filter(|keyword| keyword.head == head).map(|keyword| keyword.name.as_str()).collect()
+    }
+
+    /// The first keyword of each sequence (`org-todo-heads`).
+    pub fn heads(&self) -> Vec<&str> {
+        self.keywords
+            .iter()
+            .enumerate()
+            .filter(|(index, keyword)| keyword.head == *index)
+            .map(|(_, keyword)| keyword.name.as_str())
+            .collect()
+    }
+
+    /// The head of the sequence of `current` (`org-get-todo-sequence-head`):
+    /// with no keyword, `remembered`, the sequence the entry was last in
+    /// (the `org-todo-head` text property), or else the first keyword.
+    fn sequence_head<'a>(&'a self, current: Option<&str>, remembered: Option<&str>) -> Option<&'a str> {
+        let word = match current {
+            Some(word) => Some(word),
+            None => remembered.filter(|head| self.contains(head)),
+        };
+        match word.and_then(|word| self.head(word)) {
+            Some(head) => Some(head),
+            None => self.keywords.first().map(|keyword| keyword.name.as_str()),
+        }
+    }
+
+    /// The state `org-todo` cycles to from `current` without fast
+    /// selection, within the sequence: after its last done state no
+    /// keyword, and from no keyword the head of the sequence the entry was
+    /// last in (`remembered`), or the first keyword. A keyword of a `type`
+    /// sequence goes to the sequence's first done state, unless the command
+    /// is repeated (`repeated`), which steps on to the next one.
+    pub fn cycle(&self, current: Option<&str>, remembered: Option<&str>, repeated: bool) -> Option<&str> {
+        let Some(index) = current.and_then(|word| self.position(word)) else {
+            return self.sequence_head(None, remembered);
+        };
+        let keyword = &self.keywords[index];
+        let sequence: Vec<&Keyword> = self.keywords.iter().filter(|other| other.head == keyword.head).collect();
+        if sequence.last().is_some_and(|last| last.name == keyword.name) {
+            return None;
+        }
+        let next = self.keywords.get(index + 1).map(|keyword| keyword.name.as_str());
+        if keyword.interpretation == Interpretation::Type && !repeated {
+            let done = sequence.iter().find(|keyword| keyword.done).map(|keyword| keyword.name.as_str());
+            return done
+                .or_else(|| self.keywords.iter().find(|keyword| keyword.done).map(|keyword| keyword.name.as_str()));
+        }
+        next
+    }
+
+    /// The head of the next sequence after the one of `current` (or of
+    /// `remembered`), back to the first after the last
+    /// (`org-todo` with `nextset`).
+    pub fn next_set(&self, current: Option<&str>, remembered: Option<&str>) -> Option<&str> {
+        let heads = self.heads();
+        let index = self.set_of(current, remembered).and_then(|head| heads.iter().position(|other| *other == head));
+        index.and_then(|index| heads.get(index + 1)).or(heads.first()).copied()
+    }
+
+    /// The head of the sequence of `current`, or `remembered`; none for
+    /// an entry with neither (`member` of `nil` in `org-todo-heads`).
+    fn set_of<'a>(&'a self, current: Option<&str>, remembered: Option<&str>) -> Option<&'a str> {
+        match current {
+            Some(word) => self.head(word),
+            None => remembered.and_then(|head| self.head(head)),
+        }
+    }
+
+    /// The head of the sequence before the one of `current` (or of
+    /// `remembered`), round to the last (`org-todo` with `previousset`).
+    pub fn previous_set(&self, current: Option<&str>, remembered: Option<&str>) -> Option<&str> {
+        let heads = self.heads();
+        let index = self.set_of(current, remembered).and_then(|head| heads.iter().position(|other| *other == head));
+        match index {
+            Some(index) if index > 0 => Some(heads[index - 1]),
+            _ => heads.last().copied(),
+        }
+    }
+
+    /// Where `head`'s sequence is among them, from 1, and how many there
+    /// are, for `Keyword-Set 2/3: …`.
+    pub fn set_number(&self, head: &str) -> Option<(usize, usize)> {
+        let heads = self.heads();
+        heads.iter().position(|other| *other == head).map(|index| (index + 1, heads.len()))
     }
 
     /// The keys of fast TODO selection (`org-todo-key-alist`), in
@@ -297,6 +418,45 @@ mod tests {
         assert_eq!(kw.head("B"), Some("A"));
         assert_eq!(kw.head("nope"), None);
         assert!(kw.logs_any() && !TodoKeywords::default().logs_any());
+    }
+
+    #[test]
+    fn cycles_within_a_sequence() {
+        let text = "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n#+TYP_TODO: Fred Sara | FINISHED\n";
+        let kw = TodoKeywords::from_document(text).unwrap();
+        assert_eq!(kw.heads(), ["TODO", "REPORT", "Fred"]);
+        assert_eq!(kw.cycle(Some("NEXT"), None, false), Some("DONE"));
+        assert_eq!(kw.cycle(Some("DONE"), None, false), Some("CANCELLED"));
+        assert_eq!(kw.cycle(Some("CANCELLED"), None, false), None, "the last state of the sequence clears it");
+        assert_eq!(kw.cycle(None, Some("REPORT"), false), Some("REPORT"), "back to the sequence it was in");
+        assert_eq!(kw.cycle(None, None, false), Some("TODO"));
+        assert_eq!(kw.cycle(Some("BUG"), None, false), Some("FIXED"));
+        assert_eq!(kw.cycle(Some("FIXED"), None, false), None);
+        // A type goes to done at once, and on to the next when repeated.
+        assert_eq!(kw.cycle(Some("Fred"), None, false), Some("FINISHED"));
+        assert_eq!(kw.cycle(Some("Fred"), None, true), Some("Sara"));
+        assert_eq!(kw.cycle(Some("FINISHED"), None, false), None);
+        // Shift-right still walks all keywords.
+        assert_eq!(kw.next(Some("CANCELLED")), Some("REPORT"));
+    }
+
+    #[test]
+    fn switches_sets() {
+        let text = "#+TODO: TODO | DONE\n#+TODO: REPORT | FIXED\n#+TODO: A | B\n";
+        let kw = TodoKeywords::from_document(text).unwrap();
+        assert_eq!(kw.next_set(Some("DONE"), None), Some("REPORT"));
+        assert_eq!(kw.next_set(Some("B"), None), Some("TODO"), "round to the first");
+        assert_eq!(kw.next_set(None, Some("REPORT")), Some("A"));
+        assert_eq!(kw.next_set(None, None), Some("TODO"), "none remembered: the first");
+        assert_eq!(kw.previous_set(Some("TODO"), None), Some("A"));
+        assert_eq!(kw.previous_set(Some("FIXED"), None), Some("TODO"));
+        assert_eq!(kw.set_number("REPORT"), Some((2, 3)));
+        assert_eq!(kw.sequence("REPORT"), ["REPORT", "FIXED"]);
+        let kw = TodoKeywords::from_sequences([
+            (Interpretation::Sequence, vec!["TODO", "|", "DONE"]),
+            (Interpretation::Type, vec!["Me", "You", "|", "OK"]),
+        ]);
+        assert_eq!(kw.cycle(Some("You"), None, false), Some("OK"));
     }
 
     #[test]

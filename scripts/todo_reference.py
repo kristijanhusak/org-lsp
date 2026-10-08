@@ -78,6 +78,11 @@ DRIVER = r"""
                  (let ((org-lsp-note-text (or note "")))
                    (cond ((eq arg 'checkbox) (org-toggle-checkbox))
                          ((eq arg 'note) (org-add-note))
+                         ;; Cycling, pressed once: a `type' keyword goes
+                         ;; to done (`this-command' is not `last-command').
+                         ((eq arg 'cycle)
+                          (let ((this-command 'org-todo) (last-command 'ignore))
+                            (org-todo nil)))
                          (t (org-todo arg)))
                    (org-lsp-finish-notes)))
                (buffer-string))
@@ -137,7 +142,14 @@ def bindings(options):
         elif key == "org_adapt_indentation":
             out["org-adapt-indentation"] = "'headline-data" if value == "headline-data" else lisp_value(value)
         elif key == "org_todo_keywords":
-            out["org-todo-keywords"] = "'((sequence " + " ".join(lisp_string(word) for word in value) + "))"
+            # One sequence, or several, each perhaps starting with
+            # `sequence` or `type`.
+            sequences = value if value and isinstance(value[0], list) else [value]
+            def sequence(words):
+                kind = words[0] if words and words[0] in ("sequence", "type") else None
+                words = words[1:] if kind else words
+                return "(" + (kind or "sequence") + " " + " ".join(lisp_string(word) for word in words) + ")"
+            out["org-todo-keywords"] = "'(" + " ".join(sequence(words) for words in sequences) + ")"
         else:
             raise ValueError(f"no Emacs setting for option {key}")
     return " ".join(f"({name} {value})" for name, value in out.items())
@@ -148,6 +160,10 @@ def command_argument(command):
         return "'checkbox"
     if command == "note":
         return "'note"
+    if command == "cycle":
+        return "'cycle"
+    if command in ("nextset", "previousset"):
+        return "'" + command
     if command == "next":
         return "'right"
     if command == "previous":

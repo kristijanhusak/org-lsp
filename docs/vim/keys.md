@@ -202,6 +202,8 @@ The other options are in [configuration.md](configuration.md).
 | `O`, `<Leader>oxo` | `org.clock.out` | Clock out |
 | `X`, `<Leader>oxq` | `org.clock.cancel` | Cancel the clock |
 | `t` | `org.todo` | Change the TODO state |
+| `<C-S-Right>` | `org.todo.nextset` | Switch to the next TODO keyword set |
+| `<C-S-Left>` | `org.todo.previousset` | Switch to the previous TODO keyword set |
 | `+`, `<S-Up>` | `org.priority.up` | Raise the priority |
 | `-`, `<S-Down>` | `org.priority.down` | Lower the priority |
 | `,`, `<Leader>o,` | `org.priority` | Set the priority |

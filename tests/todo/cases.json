@@ -2652,5 +2652,278 @@
   },
   "expected": "* Parent\n** TODO Child\n",
   "blocked": "TODO state change from nil to DONE blocked (by \"TODO Child\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* CANCELLED Entry¦\n",
+  "command": "cycle",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* DONE Entry¦\n",
+  "command": "cycle",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* CANCELLED Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* NEXT Entry¦\n",
+  "command": "cycle",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* DONE Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* BUG Entry¦\n",
+  "command": "cycle",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* FIXED Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* FIXED Entry¦\n",
+  "command": "cycle",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* Entry¦\n",
+  "command": "cycle",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* TODO Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* CANCELLED Entry¦\n",
+  "command": "next",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* REPORT Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* REPORT Entry¦\n",
+  "command": "previous",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* CANCELLED Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* TODO Entry¦\n",
+  "command": "nextset",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* REPORT Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* BUG Entry¦\n",
+  "command": "nextset",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* TODO Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* FIXED Entry¦\n",
+  "command": "nextset",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* TODO Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* Entry¦\n",
+  "command": "nextset",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* TODO Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* TODO Entry¦\n",
+  "command": "previousset",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* REPORT Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* REPORT Entry¦\n",
+  "command": "previousset",
+  "expected": "#+TODO: TODO NEXT | DONE CANCELLED\n#+TODO: REPORT BUG | FIXED\n* TODO Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TYP_TODO: Fred Sara | FINISHED\n#+TODO: TODO | DONE\n* Fred Entry¦\n",
+  "command": "cycle",
+  "expected": "#+TYP_TODO: Fred Sara | FINISHED\n#+TODO: TODO | DONE\n* FINISHED Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TYP_TODO: Fred Sara | FINISHED\n#+TODO: TODO | DONE\n* Sara Entry¦\n",
+  "command": "cycle",
+  "expected": "#+TYP_TODO: Fred Sara | FINISHED\n#+TODO: TODO | DONE\n* FINISHED Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TYP_TODO: Fred Sara | FINISHED\n#+TODO: TODO | DONE\n* FINISHED Entry¦\n",
+  "command": "cycle",
+  "expected": "#+TYP_TODO: Fred Sara | FINISHED\n#+TODO: TODO | DONE\n* Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TYP_TODO: Fred Sara | FINISHED\n#+TODO: TODO | DONE\n* Fred Entry¦\n",
+  "command": "next",
+  "expected": "#+TYP_TODO: Fred Sara | FINISHED\n#+TODO: TODO | DONE\n* Sara Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TYP_TODO: Fred Sara | FINISHED\n#+TODO: TODO | DONE\n* Fred Entry¦\n",
+  "command": "nextset",
+  "expected": "#+TYP_TODO: Fred Sara | FINISHED\n#+TODO: TODO | DONE\n* TODO Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+TYP_TODO: Fred Sara | FINISHED\n#+TODO: TODO | DONE\n* TODO Entry¦\n",
+  "command": "previousset",
+  "expected": "#+TYP_TODO: Fred Sara | FINISHED\n#+TODO: TODO | DONE\n* Fred Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE Entry¦\n",
+  "command": "cycle",
+  "options": {
+   "org_todo_keywords": [
+    [
+     "TODO",
+     "NEXT",
+     "|",
+     "DONE"
+    ],
+    [
+     "type",
+     "Me",
+     "You",
+     "|",
+     "OK"
+    ]
+   ]
+  },
+  "expected": "* Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Me Entry¦\n",
+  "command": "cycle",
+  "options": {
+   "org_todo_keywords": [
+    [
+     "TODO",
+     "NEXT",
+     "|",
+     "DONE"
+    ],
+    [
+     "type",
+     "Me",
+     "You",
+     "|",
+     "OK"
+    ]
+   ]
+  },
+  "expected": "* OK Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* You Entry¦\n",
+  "command": "cycle",
+  "options": {
+   "org_todo_keywords": [
+    [
+     "TODO",
+     "NEXT",
+     "|",
+     "DONE"
+    ],
+    [
+     "type",
+     "Me",
+     "You",
+     "|",
+     "OK"
+    ]
+   ]
+  },
+  "expected": "* OK Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* NEXT Entry¦\n",
+  "command": "nextset",
+  "options": {
+   "org_todo_keywords": [
+    [
+     "TODO",
+     "NEXT",
+     "|",
+     "DONE"
+    ],
+    [
+     "type",
+     "Me",
+     "You",
+     "|",
+     "OK"
+    ]
+   ]
+  },
+  "expected": "* Me Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* OK Entry¦\n",
+  "command": "nextset",
+  "options": {
+   "org_todo_keywords": [
+    [
+     "TODO",
+     "NEXT",
+     "|",
+     "DONE"
+    ],
+    [
+     "type",
+     "Me",
+     "You",
+     "|",
+     "OK"
+    ]
+   ]
+  },
+  "expected": "* TODO Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Entry¦\n",
+  "command": "cycle",
+  "options": {
+   "org_todo_keywords": [
+    [
+     "TODO",
+     "NEXT",
+     "|",
+     "DONE"
+    ],
+    [
+     "type",
+     "Me",
+     "You",
+     "|",
+     "OK"
+    ]
+   ]
+  },
+  "expected": "* TODO Entry\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* DONE Entry¦\n",
+  "command": "cycle",
+  "options": {
+   "org_todo_keywords": [
+    "sequence",
+    "TODO",
+    "WAIT",
+    "|",
+    "DONE"
+   ]
+  },
+  "expected": "* Entry\n"
  }
 ]

@@ -529,6 +529,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     client.onNotification('org-lsp/display', (params: Display) => showDisplay(params));
     // Lines of the agenda highlighted from edge to edge: the clocked entry.
     client.onNotification('org-lsp/lineHighlights', (params: LineHighlights) => showLineHighlights(params));
+    // Faces of particular keywords and priorities.
+    setFaces(client.initializeResult?.capabilities.experimental?.orgFaces);
   } catch (error) {
     client = undefined;
     const message = error instanceof Error ? error.message : String(error);
@@ -543,6 +545,110 @@ async function stopClient(): Promise<void> {
   const running = client;
   client = undefined;
   await running?.stop();
+}
+
+// ----- keyword faces
+
+/** A face of `org_todo_keyword_faces` or `org_priority_faces`, as the server announces it. */
+interface Face {
+  foreground?: string;
+  background?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
+}
+
+/** The faces of particular TODO keywords and priorities. */
+interface Faces {
+  todo?: Record<string, Face>;
+  priority?: Record<string, Face>;
+}
+
+const faceDecorations = new Map<string, vscode.TextEditorDecorationType>();
+/** For tests: the keywords and priorities painted in each editor, `[line, text]`. */
+const facesShown = new WeakMap<vscode.TextEditor, [number, string][]>();
+const faceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function setFaces(faces: Faces | undefined): void {
+  for (const decoration of faceDecorations.values()) {
+    decoration.dispose();
+  }
+  faceDecorations.clear();
+  for (const [kind, list] of Object.entries(faces ?? {}) as [string, Record<string, Face>][]) {
+    for (const [name, face] of Object.entries(list ?? {})) {
+      const lines = [face.underline && 'underline', face.strikethrough && 'line-through'].filter(Boolean).join(' ');
+      faceDecorations.set(
+        `${kind}:${name}`,
+        vscode.window.createTextEditorDecorationType({
+          color: face.foreground,
+          backgroundColor: face.background,
+          fontWeight: face.bold ? 'bold' : undefined,
+          fontStyle: face.italic ? 'italic' : undefined,
+          textDecoration: lines || undefined,
+        }),
+      );
+    }
+  }
+  vscode.window.visibleTextEditors.forEach((editor) => void paintFaces(editor));
+}
+
+/** Give the keywords and priorities of `editor` that have a face of their own that face. */
+async function paintFaces(editor: vscode.TextEditor): Promise<void> {
+  const running = client;
+  const document = editor.document;
+  if (!running || faceDecorations.size === 0 || !['org', 'org-agenda'].includes(document.languageId)) {
+    return;
+  }
+  const legend = running.initializeResult?.capabilities.semanticTokensProvider?.legend;
+  const version = document.version;
+  const tokens = (await running
+    .sendRequest('textDocument/semanticTokens/full', { textDocument: { uri: document.uri.toString() } })
+    .catch(() => undefined)) as { data?: number[] } | undefined;
+  if (!legend || !tokens?.data || document.version !== version) {
+    return;
+  }
+  const ranges = new Map<string, vscode.Range[]>();
+  const shown: [number, string][] = [];
+  const data = tokens.data;
+  let line = 0;
+  let character = 0;
+  for (let i = 0; i + 4 < data.length; i += 5) {
+    line += data[i];
+    character = data[i] === 0 ? character + data[i + 1] : data[i + 1];
+    const type = legend.tokenTypes[data[i + 3]];
+    const kind = type === 'todoKeyword' ? 'todo' : type === 'priority' ? 'priority' : undefined;
+    if (!kind || line >= document.lineCount) {
+      continue;
+    }
+    const range = new vscode.Range(line, character, line, character + data[i + 2]);
+    let name = document.getText(range);
+    if (kind === 'priority') {
+      name = /^\[#(.*)\]$/.exec(name)?.[1] ?? name;
+    }
+    const key = `${kind}:${name}`;
+    if (faceDecorations.has(key)) {
+      ranges.set(key, [...(ranges.get(key) ?? []), range]);
+      shown.push([line, document.getText(range)]);
+    }
+  }
+  for (const [key, decoration] of faceDecorations) {
+    editor.setDecorations(decoration, ranges.get(key) ?? []);
+  }
+  facesShown.set(editor, shown);
+}
+
+/** Paint again a while after the document changed. */
+function facesChanged(event: vscode.TextDocumentChangeEvent): void {
+  const key = event.document.uri.toString();
+  clearTimeout(faceTimers.get(key));
+  faceTimers.set(
+    key,
+    setTimeout(() => {
+      faceTimers.delete(key);
+      vscode.window.visibleTextEditors.filter((editor) => editor.document === event.document).forEach((editor) => void paintFaces(editor));
+    }, 300),
+  );
 }
 
 // ----- column view
@@ -1371,6 +1477,8 @@ export interface Api {
   virtualIndent(editor: vscode.TextEditor): number[][];
   /** The lines of `editor` highlighted from edge to edge: `[line, highlight]`. */
   lineHighlights(editor: vscode.TextEditor): [number, string][];
+  /** The keywords and priorities shown in a face of their own, `[line, text]`. */
+  faces(editor: vscode.TextEditor): [number, string][];
   /** The text of the matches of the sparse tree `editor` shows. */
   sparse(editor: vscode.TextEditor): string[];
   /** What `org-lsp.help` lists for `editor`: `[key, title]`. */
@@ -1430,6 +1538,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     sparseDecoration,
     vscode.workspace.onDidChangeTextDocument(clearSparse),
     vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(highlightLines)),
+    vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach((editor) => void paintFaces(editor))),
+    vscode.workspace.onDidChangeTextDocument(facesChanged),
+    { dispose: () => faceDecorations.forEach((decoration) => decoration.dispose()) },
   );
   return {
     concealed: (editor) => concealedText.get(editor) ?? [],
@@ -1440,6 +1551,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     standIns: (editor) => standInsShown.get(editor) ?? [],
     virtualIndent: (editor) => virtualIndentShown.get(editor) ?? [],
     lineHighlights: (editor) => lineHighlightsShown.get(editor) ?? [],
+    faces: (editor) => facesShown.get(editor) ?? [],
     sparse: (editor) => (sparseShown.get(editor.document.uri.toString()) ?? []).map((range) => editor.document.getText(range)),
     help: (editor) => helpItems(context.extension.packageJSON, editor).map((item) => [item.key, item.title]),
   };

@@ -64,13 +64,34 @@ pub const SETTINGS: &[Setting] = &[
     ),
     setting(
         "org_todo_keywords",
-        "string[]",
+        "string[] | string[][]",
         r#"["TODO", "|", "DONE"]"#,
         "org-todo-keywords",
         "The TODO sequence, written like Org's `#+TODO:` line. `|` separates the states that count as done; \
          without it the last keyword is the only done state. `TODO(t)` gives a keyword a key for fast \
          selection, and `WAIT(w@/!)` makes it log a note (`@`) or the time (`!`) on entering and leaving it. \
-         A file's own `#+TODO:` lines take precedence.",
+         Several sequences go in a list of lists, `[[\"TODO\", \"|\", \"DONE\"], [\"REPORT\", \"|\", \"FIXED\"]]`; \
+         cycling stays in the sequence of the entry, and `C-S-<right>` switches to the next. A list that starts \
+         with `type` is a type sequence (`#+TYP_TODO:`): each of its keywords goes straight to done. A file's \
+         own `#+TODO:` lines take precedence.",
+    ),
+    setting(
+        "org_todo_keyword_faces",
+        "{ [keyword]: string }",
+        "{}",
+        "org-todo-keyword-faces",
+        "Faces for particular TODO keywords: a color, `{ \"WAIT\": \"orange\" }`, or attributes written as Org \
+         writes them, `{ \"CANCELLED\": \":foreground gray :slant italic :strike-through t\" }` (`:foreground`, \
+         `:background`, `:weight bold`, `:slant italic`, `:underline t`, `:strike-through t`). Shown in Org files \
+         and in the agenda by Neovim, Vim and VS Code.",
+    ),
+    setting(
+        "org_priority_faces",
+        "{ [priority]: string }",
+        "{}",
+        "org-priority-faces",
+        "Faces for particular priorities, by their letter, written as in `org_todo_keyword_faces`: \
+         `{ \"A\": \":foreground red :weight bold\" }`.",
     ),
     setting(
         "org_log_done",
@@ -1364,7 +1385,15 @@ pub const SETTINGS: &[Setting] = &[
 const SCHEMAS: &[(&str, &str)] = &[
     ("config_file", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
     ("org_agenda_files", r#"{ "type": "array", "items": { "type": "string" } }"#),
-    ("org_todo_keywords", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    (
+        "org_todo_keywords",
+        r#"{ "anyOf": [
+            { "type": "array", "items": { "type": "string" } },
+            { "type": "array", "items": { "type": "array", "items": { "type": "string" } } }
+        ] }"#,
+    ),
+    ("org_todo_keyword_faces", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
+    ("org_priority_faces", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_log_done", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_repeat", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_agenda_dim_blocked_tasks", r#"{ "enum": [true, false, "invisible"] }"#),

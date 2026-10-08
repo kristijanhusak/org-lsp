@@ -51,7 +51,7 @@ its sections says what it should look like.
 
 ## TODO keywords
 
-**Partly:** A note for a state change (`@`) cannot be typed: Helix cannot ask for text on a server's behalf.
+**Partly:** A note for a state change (`@`) cannot be typed: Helix cannot ask for text on a server's behalf. Faces of particular keywords and priorities are not shown.
 
 - [ ] With `org_enforce_todo_dependencies`, a parent with a child not done cannot be done: the change is refused with `blocked (by "TODO Child")`; with `org_enforce_todo_checkbox_dependencies`, an entry with an unchecked box cannot either: the code action *Change the TODO state*
 - [ ] Those tasks are dimmed in the agenda and the TODO list
@@ -60,6 +60,8 @@ its sections says what it should look like.
 - [ ] Done on a repeating entry (`<2026-01-01 Thu +1w>`) moves its date a week on and keeps it TODO: the code action *Change the TODO state*
 - [ ] The parent's `[1/2]` cookie is recounted: the code action *Change the TODO state*
 - [ ] A `#+TODO: A B | C` line in the file is used instead of the settings: the code action *Change the TODO state*
+- [ ] With `#+TODO: TODO | DONE` and `#+TODO: REPORT BUG | FIXED`, changing the state without keys goes `BUG`, `FIXED`, none, then back to `REPORT`: the code action *Change the TODO state*
+- [ ] Switching to the next and previous keyword set says `Keyword-Set 2/2: REPORT BUG FIXED`: the code action *Switch to the next TODO keyword set*, the code action *Switch to the previous TODO keyword set*
 
 ## Priorities
 
