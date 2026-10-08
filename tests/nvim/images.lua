@@ -130,5 +130,5 @@ wait('no picture', function()
   return #previews.list(bufnr) == 0 and images() == 0
 end)
 
-print(('ok: %d image checks passed'):format(checks))
+print(('ok: %d checks passed'):format(checks))
 vim.cmd('qall!')
