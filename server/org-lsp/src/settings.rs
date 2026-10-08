@@ -292,7 +292,7 @@ pub const SETTINGS: &[Setting] = &[
         "boolean",
         "true",
         "org-lint",
-        "Org's linter checks the documents and reports what it finds as diagnostics: misplaced headings and planning lines, links to nowhere, duplicate names, footnotes without definitions… A checker Org trusts little reports information, the others warnings.",
+        "Org's linter checks the documents and reports what it finds as diagnostics: misplaced headings and planning lines, links to nowhere, duplicate names, footnotes without definitions… What it finds is information, a hint for a checker Org trusts little: an Org file is text, nothing in it is an error or a warning.",
     ),
     setting(
         "org_lint_ignore",

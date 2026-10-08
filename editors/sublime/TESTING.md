@@ -285,7 +285,7 @@ its sections says what it should look like.
 ## Diagnostics (org-lint)
 
 - [ ] A heading in a paragraph (`text ** heading`), a link to nowhere and a block left open are reported
-- [ ] An unknown header argument (`:foo 1`) on a source block is reported, as information
+- [ ] An unknown header argument (`:foo 1`) on a source block is reported, as information: nothing is ever an error or a warning, only information (or a hint, where org-lint trusts its finding less)
 - [ ] `org_lint_ignore = ["link-to-local-file"]` silences that checker
 
 ## Indentation and formatting
