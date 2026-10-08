@@ -171,6 +171,11 @@
         "category": "Org"
       },
       {
+        "command": "org.agenda.appt",
+        "title": "Add today's appointments from the agenda files",
+        "category": "Org"
+      },
+      {
         "command": "org.agenda.clockreport",
         "title": "Agenda: the clock report",
         "category": "Org"

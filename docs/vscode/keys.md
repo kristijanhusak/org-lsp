@@ -477,6 +477,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.agenda.log` | Org: Agenda: log mode, what was closed and clocked |
 | `org.agenda.habits` | Org: Agenda: show or hide habits |
 | `org.agenda.write` | Org: Agenda: write it to a file |
+| `org.agenda.appt` | Org: Add today's appointments from the agenda files |
 | `org.agenda.clockreport` | Org: Agenda: the clock report |
 | `org.agenda.entry.text` | Org: Agenda: entry text mode, some text of each entry under its line |
 | `org.agenda.follow` | Org: Agenda: follow mode, the cursor's entry in another window |

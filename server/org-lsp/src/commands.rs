@@ -133,6 +133,7 @@ pub const AGENDA_QUERY_SUBTRACT_REGEXP: &str = "org.agenda.query.subtract.regexp
 pub const AGENDA_LOG: &str = "org.agenda.log";
 pub const AGENDA_HABITS: &str = "org.agenda.habits";
 pub const AGENDA_WRITE: &str = "org.agenda.write";
+pub const AGENDA_APPT: &str = "org.agenda.appt";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
 pub const AGENDA_ENTRY_TEXT: &str = "org.agenda.entry.text";
 pub const AGENDA_FOLLOW: &str = "org.agenda.follow";
@@ -371,6 +372,10 @@ pub const COMMANDS: &[Command] = &[
     Command { emacs: &[key(Agenda, "K")], ..command(AGENDA_HABITS, "Agenda: show or hide habits") },
     // `org-agenda-write`
     Command { emacs: &[key(Agenda, "C-x C-w")], ..command(AGENDA_WRITE, "Agenda: write it to a file") },
+    // `org-agenda-to-appt`: today's entries with a time, from the agenda
+    // files, become appointments of Emacs's `appt.el`, which the server
+    // checks each minute; with `C-u`, the list starts over.
+    command(AGENDA_APPT, "Add today's appointments from the agenda files"),
     Command {
         emacs: &[key(Agenda, "R"), key(Agenda, "v R")],
         ..command(AGENDA_CLOCKREPORT, "Agenda: the clock report")

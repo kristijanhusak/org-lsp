@@ -646,6 +646,11 @@ struct Server {
     /// When the countdown Org runs in Emacs (`org-timer-set-timer`) ends:
     /// Emacs in batch runs no timers, so the server says it.
     countdown: Option<std::time::Instant>,
+    /// When `appt.el` in Emacs checks the appointments next, while it has
+    /// some: each minute, as its timer would.
+    appt_check: Option<std::time::Instant>,
+    /// A minute of those checks; shorter in the tests.
+    appt_minute: std::time::Duration,
     /// When the clock passes the effort of its entry
     /// (`org-clock-notify-once-if-expired`), and what Org says then. Once
     /// for each clock.
@@ -941,6 +946,10 @@ pub fn run(connection: Connection) -> Result<()> {
         export_menu: None,
         structure_templates: None,
         countdown: None,
+        appt_check: None,
+        appt_minute: std::time::Duration::from_secs_f64(
+            options.clock.as_ref().and_then(|clock| clock.minute).unwrap_or(60.0),
+        ),
         overrun: None,
         overrun_said: None,
         capture_lisp: HashMap::new(),
@@ -1031,6 +1040,7 @@ pub fn run(connection: Connection) -> Result<()> {
     let emacs_events = server.emacs.events().clone();
     loop {
         let alarm = server.countdown.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
+        let appt = server.appt_check.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
         let overrun =
             server.overrun.as_ref().map_or_else(crossbeam_channel::never, |(at, _)| crossbeam_channel::at(*at));
         crossbeam_channel::select! {
@@ -1058,6 +1068,7 @@ pub fn run(connection: Connection) -> Result<()> {
             }
             recv(alarm) -> _ => server.countdown_done(),
             recv(overrun) -> _ => server.overrun_done(),
+            recv(appt) -> _ => server.appt_check(),
         }
     }
     server.remove_view_file();
@@ -3897,6 +3908,7 @@ impl Server {
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             id if id.starts_with("org.agenda.filter") => self.agenda_filter(id, context.as_ref()),
             commands::AGENDA_WRITE => self.agenda_write(context.as_ref()),
+            commands::AGENDA_APPT => self.agenda_to_appt(context.as_ref()),
             commands::AGENDA_BULK_ACTION => self.agenda_bulk_action(context.as_ref()),
             id if id.starts_with("org.agenda.bulk.") => self.agenda_bulk_mark(id, context.as_ref()),
             commands::PRIORITY => self.ask_priority(&context.ok_or("This command needs the cursor position")?),
@@ -7776,6 +7788,65 @@ impl Server {
             self.overrun_said = self.running.as_ref().map(|running| running.start);
             self.show_message(MessageType::INFO, message);
         }
+    }
+
+    /// `org-agenda-to-appt`: Emacs's `appt.el` adds today's entries with
+    /// a time from the agenda files, those open as the editor has them;
+    /// with `C-u`, the appointments it had are dropped first.
+    fn agenda_to_appt(&mut self, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
+        let refresh = context.and_then(|context| context.count).is_some_and(|count| count > 1);
+        let mut files = Vec::new();
+        let mut texts = Vec::new();
+        for (uri, held) in self.agenda_files() {
+            let Some(path) = uri::to_path(&uri) else { continue };
+            let path = path.to_string_lossy().into_owned();
+            if let Held::Open(_) = held {
+                if let Some(document) = self.document(&uri) {
+                    texts.push(json!([path, document.text]));
+                }
+            }
+            files.push(path);
+        }
+        let params = json!({ "files": files, "texts": texts, "refresh": refresh });
+        let result = self.emacs.call("appt", params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
+        self.message = result.get("message").and_then(Value::as_str).map(str::to_string);
+        self.appt_said(&result);
+        Ok(Value::Null)
+    }
+
+    /// Each minute while there are appointments, `appt-check`: what its
+    /// window shows, or with `appt-display-format` `echo` what it says.
+    fn appt_check(&mut self) {
+        match self.emacs.call("appt-check", json!({}), std::time::Duration::from_secs(10)) {
+            Ok(result) => {
+                if let Some(message) = result.get("message").and_then(Value::as_str) {
+                    self.show_message(MessageType::INFO, message);
+                }
+                self.appt_said(&result);
+            }
+            Err(error) => {
+                self.appt_check = None;
+                self.show_message(MessageType::ERROR, error);
+            }
+        }
+    }
+
+    /// What `appt.el` showed in its window, and the next check while it
+    /// has appointments.
+    fn appt_said(&mut self, result: &Value) {
+        for shown in result.get("shown").and_then(Value::as_array).into_iter().flatten() {
+            if let Some(shown) = shown.as_str() {
+                self.show_message(MessageType::INFO, shown);
+            }
+        }
+        let left = result.get("appointments").and_then(Value::as_u64).unwrap_or(0);
+        let minute = self.appt_minute;
+        self.appt_check = (left > 0).then(|| match self.appt_check {
+            // Each minute from the first, as Emacs's timer runs.
+            Some(at) if at > std::time::Instant::now() => at,
+            Some(at) => at + minute,
+            None => std::time::Instant::now() + minute,
+        });
     }
 
     /// The countdown is over: Emacs ends it as its timer would, and what

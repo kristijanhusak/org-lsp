@@ -2070,6 +2070,66 @@ fn diary_sexps_go_to_emacs() {
     client.shutdown();
 }
 
+/// `org-agenda-to-appt`: Emacs's `appt.el` takes today's entries with a
+/// time, those done aside, from the files as the editor has them, and the
+/// server checks them each minute as its timer would, saying what the
+/// appointment window shows.
+#[test]
+fn appointments_go_to_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("appointments_go_to_emacs: no Emacs, skipped");
+        return;
+    }
+    let now = chrono::Local::now();
+    // In five minutes, within the twelve `appt-message-warning-time`
+    // warns ahead.
+    let soon = now + chrono::Duration::minutes(5);
+    if soon.date_naive() != now.date_naive() {
+        eprintln!("appointments_go_to_emacs: too close to midnight, skipped");
+        return;
+    }
+    let today = now.format("%Y-%m-%d %a").to_string();
+    let time = soon.format("%H:%M").to_string();
+    let mut options = json!({ "clock": { "today": now.format("%Y-%m-%d").to_string(), "minute": 0.5 } });
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    // On disk, nothing yet: the editor's text is what counts.
+    let file = workspace("appt").join("appt.org");
+    std::fs::write(&file, "* Undated\n").unwrap();
+    let uri = format!("file://{}", file.display());
+    let mut client = Client::editor(options, None);
+    client.open(
+        &uri,
+        &format!(
+            "* Meeting\n<{today} {time}>\n* DONE Finished\n<{today} {time}>\n* Undated\n"
+        ),
+    );
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 } });
+    let result =
+        client.request("workspace/executeCommand", json!({ "command": "org.agenda.appt", "arguments": [context] }));
+    assert_eq!(result.unwrap()["message"], json!("Added 1 event for today"));
+    // The first check, half a second on.
+    let shown = |client: &Client| {
+        client
+            .notifications
+            .iter()
+            .filter(|notification| notification.method == "window/showMessage")
+            .filter_map(|notification| notification.params["message"].as_str().map(str::to_string))
+            .find(|message| message.starts_with("Appointment"))
+    };
+    let start = std::time::Instant::now();
+    while shown(&client).is_none() && start.elapsed() < std::time::Duration::from_secs(10) {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        client.settle();
+    }
+    let message = shown(&client).expect("an appointment is shown");
+    assert!(message.starts_with("Appointment in ") && message.ends_with(&format!(" minutes: {time} Meeting")), "{message}");
+    client.shutdown();
+}
+
 /// `file+function` and `function` targets: Emacs runs the function, and
 /// the capture goes where it leaves the point, under the headline there.
 #[test]

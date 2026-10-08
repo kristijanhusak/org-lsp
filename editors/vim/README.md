@@ -22,7 +22,7 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Tags](../../docs/parity.md#tags) | 100% | ✅ |  |
 | [Properties and column view](../../docs/parity.md#properties-and-column-view) | 83% | ✅ |  |
 | [Dates and times](../../docs/parity.md#dates-and-times) | 100% | ❓ | Dates are typed, without the calendar: the Vim plugin asks with an input line. |
-| [Agenda](../../docs/parity.md#agenda) | 90% | ✅ |  |
+| [Agenda](../../docs/parity.md#agenda) | 95% | ✅ |  |
 | [Clocking](../../docs/parity.md#clocking) | 100% | ✅ |  |
 | [Capture](../../docs/parity.md#capture) | 100% | ✅ |  |
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 100% | ✅ |  |

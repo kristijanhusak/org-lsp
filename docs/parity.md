@@ -20,7 +20,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Tags](#tags) | 100% | 6 of 6 |
 | [Properties and column view](#properties-and-column-view) | 83% | 5 of 6 |
 | [Dates and times](#dates-and-times) | 100% | 8 of 8 |
-| [Agenda](#agenda) | 90% | 19 of 21 |
+| [Agenda](#agenda) | 95% | 20 of 21 |
 | [Clocking](#clocking) | 100% | 8 of 8 |
 | [Capture](#capture) | 100% | 11 of 11 |
 | [Refile and archive](#refile-and-archive) | 100% | 11 of 11 |
@@ -207,7 +207,7 @@ Where editors fall short:
 
 ## Agenda
 
-90% (19 of 21)
+95% (20 of 21)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
@@ -229,7 +229,7 @@ Where editors fall short:
 - ✅ Diary sexps calling other Lisp, evaluated by Emacs (`org-diary-sexp-entry`) for each day of the view
 - ❌ Column view in the agenda
 - ✅ Writing the agenda to a file (`C-x C-w`): `.org` and plain text
-- ❌ Appointment reminders (`org-agenda-to-appt`)
+- ✅ Appointment reminders (`org-agenda-to-appt`, through Emacs's `appt.el`): today's entries with a time, checked each minute, the reminders shown as messages
 
 Where editors fall short:
 
