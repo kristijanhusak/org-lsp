@@ -109,6 +109,7 @@ The other options are in [configuration.md](configuration.md).
 | `<Leader>obg` | `org.babel.goto` | Go to a named code block |
 | `<Leader>obi` | `org.babel.lob.ingest` | Add the file's named code blocks to the Library of Babel |
 | `<Leader>o'` | `org.edit.special` | Edit the block in a file of its own |
+| `<Leader>o`` | `org.table.edit.field` | Edit the table field in a file of its own |
 | `<Leader>ox0` | `org.timer.start` | Start the relative timer |
 | `<Leader>ox.` | `org.timer.insert` | Insert the timer's value |
 | `<Leader>ox-` | `org.timer.item` | Insert a list item with the timer's value |

@@ -138,8 +138,8 @@ those dates in the file itself, where completion helps.
 | [Refile and archive](../../docs/parity.md#refile-and-archive) | 100% | ✅ |  |
 | [Links](../../docs/parity.md#links) | 100% | ❓ | Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition, for links inside Org files and to files. |
 | [Footnotes](../../docs/parity.md#footnotes) | 100% | ❓ | Making footnotes and their menu are left out: they are not among Zed's code actions. Following them works. |
-| [Tables](../../docs/parity.md#tables) | 82% | ❓ | Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table. |
-| [Table formulas](../../docs/parity.md#table-formulas) | 83% | ✅ |  |
+| [Tables](../../docs/parity.md#tables) | 88% | ❓ | Moving between fields with `TAB`, copying down, summing, field information and creating a table are left out: Zed cannot bind a key to a server's command (the commands are code actions), and those are not among them. The other edits are code actions in a table. |
+| [Table formulas](../../docs/parity.md#table-formulas) | 92% | ✅ |  |
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 91% | ❓ | Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server. |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 67% | ❌ | Not offered as a code action yet; its menu would come as buttons. |
 | [Citations](../../docs/parity.md#citations) | 100% | ❓ | Inserting citations is not offered as a code action yet. Completion, hover and following work. |
@@ -151,7 +151,7 @@ those dates in the file itself, where completion helps.
 | [Attachments](../../docs/parity.md#attachments) | 100% | ❓ | `attachment:` links open; the dispatcher (`C-c C-a`) is left out: Zed cannot bind a key to a server's command (the commands are code actions), and it is not among them. |
 | [Encryption](../../docs/parity.md#encryption) | 0% | — |  |
 | [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **86%** |  |  |
+| **All of Org** | **87%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

@@ -135,6 +135,7 @@ pub const AGENDA_HABITS: &str = "org.agenda.habits";
 pub const AGENDA_WRITE: &str = "org.agenda.write";
 pub const AGENDA_APPT: &str = "org.agenda.appt";
 pub const EDIT_SPECIAL: &str = "org.edit.special";
+pub const TABLE_EDIT_FIELD: &str = "org.table.edit.field";
 pub const AGENDA_CLOCKREPORT: &str = "org.agenda.clockreport";
 pub const AGENDA_ENTRY_TEXT: &str = "org.agenda.entry.text";
 pub const AGENDA_FOLLOW: &str = "org.agenda.follow";
@@ -956,12 +957,20 @@ pub const COMMANDS: &[Command] = &[
     // `org-edit-special`: what Org edits in a buffer of its own (a code
     // block, an example or export block, a footnote's definition, LaTeX…)
     // in a file of its own, written back each time it is saved
-    // (`org-edit-src-save`); at `#+INCLUDE:` the file included, at a date
+    // (`org-edit-src-save`); at a table its formulas, installed each time
+    // (`org-table-fedit-finish`); at `#+INCLUDE:` the file included, at a date
     // or a link what `C-c .`, `C-c C-d`, `C-c C-s` or `C-c C-o` do there.
     Command {
         emacs: &[key(Org, "C-c '")],
         vim: &[key(Org, "<Leader>o'")],
         ..command(EDIT_SPECIAL, "Edit the block in a file of its own")
+    },
+    // `org-table-edit-field`: the field at the cursor in a file of its own,
+    // put back in the table, realigned, each time it is saved.
+    Command {
+        emacs: &[key(Org, "C-c `")],
+        vim: &[key(Org, "<Leader>o`")],
+        ..command(TABLE_EDIT_FIELD, "Edit the table field in a file of its own")
     },
     // Timers, kept by Org in Emacs (`org-timer.el`): the relative timer
     // (`org-timer-start`, `org-timer`, `org-timer-item`), pausing and
