@@ -19,6 +19,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, schemaProperties } from './settings-schema.mjs';
+import { AREAS, EDITORS, overall, parity, support } from './features.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -454,6 +455,190 @@ function configSchema() {
   return JSON.stringify(schema, null, 2) + '\n';
 }
 
+
+// ----- features, parity and the manual tests (scripts/features.mjs)
+
+const MARK = { yes: '✅', part: '❓', no: '❌', none: '—' };
+const LEGEND =
+  '✅ all that org-lsp does works there, ❓ some does not (the editor\'s\n' +
+  'README says what and why), ❌ none does, — nothing to support yet.\n' +
+  'Parity is the share of what Emacs Org does in that area that org-lsp\n' +
+  'does; [docs/parity.md](PARITY) lists both.';
+
+/** The anchor GitHub gives a heading. */
+const slug = (text) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9 -]/g, '')
+    .replaceAll(' ', '-');
+
+const commandsById = Object.fromEntries(manifest.commands.map((command) => [command.command, command]));
+
+/** An Emacs key (`C-c C-x M-w`, `S-<up>`) as VS Code and Sublime Text write it. */
+function emacsKeyName(key) {
+  const modifiers = { C: 'Ctrl', M: 'Alt', S: 'Shift' };
+  const bases = { RET: 'Enter', TAB: 'Tab', SPC: 'Space', '<up>': 'Up', '<down>': 'Down', '<left>': 'Left', '<right>': 'Right' };
+  return key
+    .split(' ')
+    .map((stroke) => {
+      const parts = [];
+      let rest = stroke;
+      while (/^[CMS]-./.test(rest)) {
+        parts.push(modifiers[rest[0]]);
+        rest = rest.slice(2);
+      }
+      const base = bases[rest] ?? (parts.length > 0 && rest.length === 1 ? rest.toUpperCase() : rest);
+      return [...parts, base].join('+');
+    })
+    .join(' ');
+}
+
+/** Code in running text, outside a table. */
+const inline = (text) => '`' + text + '`';
+
+/** How a command is run in `editor`, from where `scope` says. */
+function commandKey(editor, id, scope = 'org') {
+  const command = commandsById[id];
+  if (!command) throw new Error(`scripts/features.mjs names an unknown command: ${id}`);
+  const keys = (preset) =>
+    command.keys.filter((key) => key.preset === preset && (key.in === scope || key.in === 'global')).map((key) => key.key);
+  switch (editor) {
+    case 'neovim':
+    case 'vim': {
+      const found = keys('vim');
+      return found.length > 0 ? found.map(inline).join(' or ') : inline(':Org ' + id.replace(/^org\./, '').replaceAll('.', ' '));
+    }
+    case 'vscode':
+    case 'sublime': {
+      const found = keys('emacs');
+      return found.length > 0 ? found.map((key) => inline(emacsKeyName(key))).join(' or ') : `*Org: ${command.title}*`;
+    }
+    default:
+      return `the code action *${command.title}*`;
+  }
+}
+
+/** Whether `check` applies to `editor`. */
+const applies = (check, editor) => (!check.only || check.only.includes(editor)) && !check.not?.includes(editor);
+
+/** The keys of a check in `editor`, or nothing. */
+function checkKeys(check, editor) {
+  if (check.keys) return check.keys[editor] ?? '';
+  if (!check.cmd) return '';
+  const ids = Array.isArray(check.cmd) ? check.cmd : [check.cmd];
+  return ids.map((id) => commandKey(editor, id, check.in)).join(', ');
+}
+
+function featureTable(parityLink) {
+  const header = ['Feature', 'Parity', EDITORS.map((editor) => editor.name).join(' / ')];
+  const rows = AREAS.map((area) => [
+    `[${area.name}](${parityLink}#${slug(area.name)})`,
+    `${parity(area).percent}%`,
+    EDITORS.map((editor) => MARK[support(area, editor.id)[0]]).join(' / '),
+  ]);
+  rows.push(['**All of Org**', `**${overall()}%**`, '']);
+  return table(header, rows) + '\n\n' + LEGEND.replace('PARITY', parityLink);
+}
+
+function editorFeatureTable(id) {
+  const editor = EDITORS.find((one) => one.id === id);
+  const link = '../../docs/parity.md';
+  const rows = AREAS.map((area) => {
+    const [status, why] = support(area, id);
+    return [`[${area.name}](${link}#${slug(area.name)})`, `${parity(area).percent}%`, MARK[status], cell(why)];
+  });
+  rows.push(['**All of Org**', `**${overall()}%**`, '', '']);
+  return (
+    table(['Feature', 'Parity', editor.name, 'What does not work, and why'], rows) +
+    '\n\n' +
+    LEGEND.replace('PARITY', link).replace("the editor's\nREADME says what and why", 'the last column says what\nand why') +
+    '\n\n[TESTING.md](TESTING.md) lists what to try by hand.'
+  );
+}
+
+function parityPage() {
+  const lines = [
+    '# Parity with Emacs Org',
+    '',
+    '<!-- Written by scripts/generate-docs.mjs from scripts/features.mjs. -->',
+    '',
+    'What Emacs Org (9.8.10) does, area by area, and what org-lsp does of it.',
+    'An area\'s parity is the share of its features done; all of Org is the',
+    'mean of the areas. Every feature done is checked against Emacs where Org',
+    'decides the outcome (see "How the work is checked" in PLAN.md).',
+    '',
+    `**All of Org: ${overall()}%**`,
+    '',
+    table(
+      ['Feature', 'Parity', 'Done'],
+      AREAS.map((area) => {
+        const { done, total, percent } = parity(area);
+        return [`[${area.name}](#${slug(area.name)})`, `${percent}%`, `${done} of ${total}`];
+      }),
+    ),
+  ];
+  for (const area of AREAS) {
+    const { done, total, percent } = parity(area);
+    lines.push('', `## ${area.name}`, '', `${percent}% (${done} of ${total})`, '');
+    for (const [text, state, of] of area.emacs) {
+      const mark = typeof state === 'number' ? (state === of ? '✅' : '❓') : state ? '✅' : '❌';
+      lines.push(`- ${mark} ${text}${typeof state === 'number' ? ` (${state} of ${of})` : ''}`);
+    }
+    const short = EDITORS.map((editor) => [editor, ...support(area, editor.id)]).filter(([, status]) => status === 'part' || status === 'no');
+    if (short.length > 0) {
+      lines.push('', 'Where editors fall short:', '');
+      for (const [editor, status, why] of short) lines.push(`- ${editor.name} ${MARK[status]}: ${why}`);
+    }
+  }
+  return lines.join('\n') + '\n';
+}
+
+/** The manual tests of `id`, with the boxes ticked in `before` kept. */
+function testingPage(id, before) {
+  const editor = EDITORS.find((one) => one.id === id);
+  const ticked = new Set(
+    before
+      .split('\n')
+      .filter((line) => /^- \[[xX]\] /.test(line))
+      .map((line) => line.slice(6)),
+  );
+  const box = (text) => `- [${ticked.has(text) ? 'x' : ' '}] ${text}`;
+  const lines = [
+    `# Testing org-lsp in ${editor.name} by hand`,
+    '',
+    '<!-- Written by scripts/generate-docs.mjs from scripts/features.mjs.',
+    '     Ticked boxes are kept when it is written again. -->',
+    '',
+    `What to try in ${editor.name} to know that everything org-lsp does works`,
+    'there. The keys are the defaults. Tick a box once it works; a check that',
+    'fails is a bug to report. The [README](README.md) says what is left out',
+    'here and why.',
+    '',
+    '## Setup',
+    '',
+    ...editor.setup.map(box),
+  ];
+  for (const area of AREAS) {
+    const [status, why] = support(area, id);
+    if (status === 'none') continue;
+    lines.push('', `## ${area.name}`, '');
+    if (status === 'no') {
+      lines.push(`**Not in ${editor.name}:** ${why}`);
+      continue;
+    }
+    if (status === 'part') lines.push(`**Partly:** ${why}`, '');
+    const checks = (area.checks ?? []).filter((check) => applies(check, id));
+    for (const check of checks) {
+      const keys = checkKeys(check, id);
+      lines.push(box(keys ? `${check.text}: ${keys}` : check.text));
+    }
+  }
+  return lines.join('\n') + '\n';
+}
+
+/** `text` with every box unticked, to compare what is generated. */
+const unticked = (text) => text.replace(/^- \[[xX]\] /gm, '- [ ] ');
+
 // ----- the pages
 
 const PAGES = {
@@ -464,6 +649,8 @@ const PAGES = {
   'docs/helix/configuration.md': { options: helixOptions },
   'docs/protocol.md': { options: protocolOptions },
   'docs/configuration.md': { options: fileOptions, 'options-json': fileOptionsJson },
+  'README.md': { features: () => featureTable('docs/parity.md') },
+  ...Object.fromEntries(EDITORS.map((editor) => [`${editor.dir}/README.md`, { features: () => editorFeatureTable(editor.id) }])),
 };
 
 const END = '<!-- END generated -->';
@@ -471,7 +658,10 @@ const END = '<!-- END generated -->';
 const FILES = {
   'lua/org-lsp/types.lua': luaTypes,
   'docs/config.schema.json': configSchema,
+  'docs/parity.md': parityPage,
 };
+/** Files written whole that keep what a person ticked. */
+const TESTS = Object.fromEntries(EDITORS.map((editor) => [`${editor.dir}/TESTING.md`, editor.id]));
 
 let stale = false;
 for (const [file, render] of Object.entries(FILES)) {
@@ -479,6 +669,19 @@ for (const [file, render] of Object.entries(FILES)) {
   const before = existsSync(path) ? readFileSync(path, 'utf8') : '';
   const after = render();
   if (after === before) continue;
+  if (check) {
+    console.error(`${file} is out of date with the server. Run: node scripts/generate-docs.mjs`);
+    stale = true;
+  } else {
+    writeFileSync(path, after);
+    console.log(`wrote ${file}`);
+  }
+}
+for (const [file, id] of Object.entries(TESTS)) {
+  const path = join(root, file);
+  const before = existsSync(path) ? readFileSync(path, 'utf8') : '';
+  const after = testingPage(id, before);
+  if (unticked(after) === unticked(before)) continue;
   if (check) {
     console.error(`${file} is out of date with the server. Run: node scripts/generate-docs.mjs`);
     stale = true;

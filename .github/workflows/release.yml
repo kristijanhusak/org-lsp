@@ -86,7 +86,7 @@ jobs:
           npm ci
           npm run build
           npm run bundle-server -- "../../$EXE"
-          npx vsce package --no-dependencies --target "${{ matrix.vscode }}" --out "../../org-lsp-${{ matrix.vscode }}.vsix"
+          npx vsce package --no-dependencies --baseContentUrl https://github.com/kristijanhusak/org-lsp/blob/HEAD/editors/vscode --baseImagesUrl https://github.com/kristijanhusak/org-lsp/raw/HEAD/editors/vscode --target "${{ matrix.vscode }}" --out "../../org-lsp-${{ matrix.vscode }}.vsix"
 
       - uses: actions/upload-artifact@v4
         with:
