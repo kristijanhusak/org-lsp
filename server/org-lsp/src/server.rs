@@ -86,6 +86,11 @@ struct Client {
     /// sends (`org-lsp/virtualIndent`); it says so with
     /// `experimental.orgVirtualIndent`.
     virtual_indent: bool,
+    /// Shows what stands in for hidden text (entities, sub- and
+    /// superscripts, shrunk fields), which the server sends
+    /// (`org-lsp/display`), rather than as inlay hints; it says so with
+    /// `experimental.orgDisplay`.
+    display: bool,
     /// Highlights lines of the agenda from edge to edge as the server
     /// says (`org-lsp/lineHighlights`): `experimental.orgLineHighlights`,
     /// or the option `line_highlights`.
@@ -820,6 +825,8 @@ struct Server {
     display: org_core::indent::Display,
     /// The documents the client was last told to show with prefixes.
     virtually_indented: HashSet<String>,
+    /// The documents last sent with something in `org-lsp/display`.
+    displayed: HashSet<String>,
     /// `org-cite-global-bibliography`
     cite_global: Vec<String>,
     /// `org-link-abbrev-alist`.
@@ -987,6 +994,7 @@ pub fn run(connection: Connection) -> Result<()> {
         virtual_indent: raw_params.pointer("/capabilities/experimental/orgVirtualIndent").and_then(Value::as_bool)
             == Some(true)
             || options.virtual_indent == Some(true),
+        display: raw_params.pointer("/capabilities/experimental/orgDisplay").and_then(Value::as_bool) == Some(true),
         line_highlights: raw_params.pointer("/capabilities/experimental/orgLineHighlights").and_then(Value::as_bool)
             == Some(true)
             || options.line_highlights == Some(true),
@@ -1124,6 +1132,7 @@ pub fn run(connection: Connection) -> Result<()> {
         indent: options.indent_settings(),
         display: options.display(),
         virtually_indented: HashSet::new(),
+        displayed: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
         dim_blocked: match &options.agenda_dim_blocked_tasks {
             Some(LogOption::Flag(false)) => DimBlocked::No,
@@ -2069,6 +2078,7 @@ impl Server {
                 self.documents.insert(key.clone(), Document::new(document.text, document.version, &self.todo));
                 self.sync_clock(&key);
                 self.publish_virtual_indent(&key);
+                self.publish_display(&key);
                 self.publish_diagnostics(&key);
             }
             DidChangeTextDocument::METHOD => {
@@ -2120,6 +2130,7 @@ impl Server {
                     }
                 }
                 self.publish_virtual_indent(key);
+                self.publish_display(key);
                 self.publish_diagnostics(key);
                 // The clock's times go with the next change, as Emacs's
                 // overlays do (`org-remove-highlights-with-change`).
@@ -2151,6 +2162,7 @@ impl Server {
                 }
                 self.documents.remove(params.text_document.uri.as_str());
                 self.virtually_indented.remove(params.text_document.uri.as_str());
+                self.displayed.remove(params.text_document.uri.as_str());
                 if let Some(path) = uri::to_path(&params.text_document.uri) {
                     if let Some(index) = self.widened.iter().position(|widened| *widened == path) {
                         let _ = std::fs::remove_file(self.widened.remove(index));
@@ -2185,33 +2197,81 @@ impl Server {
             return Some(SemanticTokens { result_id: None, data });
         }
         let document = self.document(uri)?;
-        let (conceal, pretty, scripts) = self.display_of(&document.text);
+        let (conceal, _, _) = self.display_of(&document.text);
         let tokens = highlight::tokens(&document.syntax(), document.parse.todo_keywords(), conceal);
         let radio: Vec<(usize, usize)> =
             org_core::radio::links(&document.text, &document.parse).iter().map(|link| (link.start, link.end)).collect();
         let tokens = highlight::with_radio_links(tokens, &radio);
         // `org-pretty-entities`: an entity hidden, its character an inlay
-        // hint in its place; so are the shrunk fields of tables.
-        let mut hidden: Vec<(usize, usize)> = if pretty {
-            org_core::pretty::entities(&document.text).into_iter().map(|(start, end, _)| (start, end)).collect()
-        } else {
+        // hint in its place; so are the shrunk fields of tables. A client
+        // that shows them itself (`org-lsp/display`) hides them itself.
+        let mut hidden: Vec<(usize, usize)> = if self.client.display {
             Vec::new()
+        } else {
+            self.stand_ins(uri.as_str(), &document.text, &document.syntax())
+                .into_iter()
+                .map(|(start, end, _)| (start, end))
+                .collect()
         };
-        if let Some(braces) = scripts {
-            hidden.extend(
-                org_core::pretty::scripts(&document.syntax(), &document.text, braces)
-                    .into_iter()
-                    .map(|(start, end, _)| (start, end)),
-            );
-        }
-        hidden.extend(
-            self.shrunk_overlays(uri.as_str(), &document.text).into_iter().map(|overlay| (overlay.start, overlay.end)),
-        );
         hidden.sort_unstable();
         let tokens = if hidden.is_empty() { tokens } else { highlight::with_hidden(tokens, &hidden) };
         let only = range.map(|range| document.index.text_range(&document.text, range, encoding));
         let data = highlight::encode(&tokens, &document.text, &document.index, encoding, only);
         Some(SemanticTokens { result_id: None, data })
+    }
+
+    /// What stands in for hidden text of the document `key`, as
+    /// `(start, end, shown)`, in order: each entity's character
+    /// (`org-pretty-entities`), sub- and superscripts in Unicode, and what
+    /// shrunk table fields show.
+    fn stand_ins(&self, key: &str, text: &str, root: &org_syntax::SyntaxNode) -> Vec<(usize, usize, String)> {
+        let (_, pretty, scripts) = self.display_of(text);
+        let mut out: Vec<(usize, usize, String)> = Vec::new();
+        if pretty {
+            out.extend(
+                org_core::pretty::entities(text).into_iter().map(|(start, end, utf8)| (start, end, utf8.to_string())),
+            );
+        }
+        if let Some(braces) = scripts {
+            out.extend(org_core::pretty::scripts(root, text, braces));
+        }
+        out.extend(
+            self.shrunk_overlays(key, text).into_iter().map(|overlay| (overlay.start, overlay.end, overlay.display)),
+        );
+        out.sort_by_key(|(start, end, _)| (*start, *end));
+        out
+    }
+
+    /// What stands in for hidden text of the document `key` (see
+    /// [`Self::stand_ins`]), for a client that shows it itself, as
+    /// `org-lsp/display` `{ uri, version, items }`, each item `[line,
+    /// character, end line, end character, shown]`. Sent after every
+    /// change while there is some, and once more when there is none.
+    fn publish_display(&mut self, key: &str) {
+        if !self.client.display {
+            return;
+        }
+        let Some(document) = self.documents.get(key) else { return };
+        let text = &document.text;
+        let encoding = self.client.encoding;
+        let items: Vec<Value> = self
+            .stand_ins(key, text, &document.syntax())
+            .into_iter()
+            .map(|(start, end, shown)| {
+                let (from, to) =
+                    (document.index.position(text, start, encoding), document.index.position(text, end, encoding));
+                json!([from.line, from.character, to.line, to.character, shown])
+            })
+            .collect();
+        if items.is_empty() && !self.displayed.remove(key) {
+            return;
+        }
+        if !items.is_empty() {
+            self.displayed.insert(key.to_string());
+        }
+        let params = json!({ "uri": key, "version": document.version, "items": items });
+        let notification = lsp_server::Notification::new("org-lsp/display".to_string(), params);
+        let _ = self.sender.send(Message::Notification(notification));
     }
 
     /// How a file shows: what is concealed, whether entities show as their
@@ -2320,30 +2380,14 @@ impl Server {
             );
         }
         // `org-pretty-entities`: the character of each entity, whose text
-        // the tokens hide.
-        let (_, pretty, scripts) = self.display_of(text);
-        if pretty {
-            for (start, _, utf8) in org_core::pretty::entities(text) {
+        // the tokens hide; so with sub- and superscripts, in Unicode where
+        // they can be, and shrunk table fields, what Org's overlays show.
+        if !self.client.display {
+            for (start, _, shown) in self.stand_ins(params.text_document.uri.as_str(), text, &document.syntax()) {
                 let at = document.index.position(text, start, self.client.encoding);
-                if (first..=last).contains(&(at.line as usize)) {
-                    hints.push(hint(at.line, at.character, utf8.to_string()));
-                }
-            }
-        }
-        // Sub- and superscripts, in Unicode where they can be.
-        if let Some(braces) = scripts {
-            for (start, _, shown) in org_core::pretty::scripts(&document.syntax(), text, braces) {
-                let at = document.index.position(text, start, self.client.encoding);
-                if (first..=last).contains(&(at.line as usize)) {
+                if (first..=last).contains(&(at.line as usize)) && !shown.is_empty() {
                     hints.push(hint(at.line, at.character, shown));
                 }
-            }
-        }
-        // Shrunk table fields: what Org's overlays show in their place.
-        for overlay in self.shrunk_overlays(params.text_document.uri.as_str(), text) {
-            let at = document.index.position(text, overlay.start, self.client.encoding);
-            if (first..=last).contains(&(at.line as usize)) && !overlay.display.is_empty() {
-                hints.push(hint(at.line, at.character, overlay.display));
             }
         }
         // `org-clock-display`: the time after each headline, its line
@@ -8445,6 +8489,7 @@ impl Server {
             self.send_raw_request("workspace/semanticTokens/refresh", Value::Null, None);
         }
         self.refresh_inlay_hints();
+        self.publish_display(context.text_document.uri.as_str());
         Ok(Value::Null)
     }
 

@@ -482,6 +482,7 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         ...(capabilities.experimental ?? {}),
         orgDatePrompt: true,
         orgVirtualIndent: true,
+        orgDisplay: true,
         orgLineHighlights: true,
       };
     },
@@ -524,6 +525,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     client.onNotification('org-lsp/timer', (params: TimerReport | null) => showTimer(params));
     // How far the lines of a file with `org-indent-mode` show indented.
     client.onNotification('org-lsp/virtualIndent', (params: VirtualIndent) => showVirtualIndent(params));
+    // What stands in for hidden text: entities, sub- and superscripts.
+    client.onNotification('org-lsp/display', (params: Display) => showDisplay(params));
     // Lines of the agenda highlighted from edge to edge: the clocked entry.
     client.onNotification('org-lsp/lineHighlights', (params: LineHighlights) => showLineHighlights(params));
   } catch (error) {
@@ -751,6 +754,37 @@ const hiddenRanges = new Map<string, { version: number; ranges: vscode.Range[] }
 /** What each editor hides now, as text; for the tests. */
 const concealedText = new Map<vscode.TextEditor, string[]>();
 
+/**
+ * `org-lsp/display`: what stands in for hidden text (an entity's
+ * character, a sub- or superscript in Unicode, a shrunk table field), as
+ * `[line, character, end line, end character, shown]`, for a version of
+ * the document. Hidden with the rest, it shows before the hidden text, and
+ * on a line being edited neither does: the text shows as it is.
+ */
+interface Display {
+  uri: string;
+  version: number;
+  items: [number, number, number, number, string][];
+}
+
+const displays = new Map<string, Display>();
+const standInDecoration = vscode.window.createTextEditorDecorationType({});
+/** The text each editor hides for what stands in for it. */
+const hiddenStandIns = new Map<vscode.TextEditor, vscode.Range[]>();
+
+/** What stands in for hidden text in each editor now; for the tests. */
+const standInsShown = new Map<vscode.TextEditor, string[]>();
+
+function showDisplay(params: Display): void {
+  const key = vscode.Uri.parse(params.uri).toString();
+  displays.set(key, params);
+  for (const editor of vscode.window.visibleTextEditors) {
+    if (editor.document.uri.toString() === key) {
+      void conceal(editor);
+    }
+  }
+}
+
 async function hiddenIn(document: vscode.TextDocument): Promise<vscode.Range[]> {
   const key = document.uri.toString();
   const known = hiddenRanges.get(key);
@@ -796,6 +830,25 @@ async function conceal(editor: vscode.TextEditor): Promise<void> {
   const editing = (range: vscode.Range) =>
     editor.selections.some((selection) => selection.start.line <= range.end.line && range.start.line <= selection.end.line);
   const shown = ranges.filter((range) => !editing(range));
+  // What stands in for hidden text, for this version of the text; for
+  // another, it waits for the server's.
+  const display = displays.get(editor.document.uri.toString());
+  if (!display || display.version === editor.document.version) {
+    const standIns: vscode.DecorationOptions[] = [];
+    for (const [line, character, endLine, endCharacter, contentText] of enabled ? (display?.items ?? []) : []) {
+      const range = new vscode.Range(line, character, endLine, endCharacter);
+      if (!editing(range)) {
+        shown.push(range);
+        const at = new vscode.Range(range.start, range.start);
+        standIns.push({ range: at, renderOptions: { before: { contentText } } });
+      }
+    }
+    editor.setDecorations(standInDecoration, standIns);
+    standInsShown.set(editor, standIns.map((standIn) => standIn.renderOptions?.before?.contentText ?? ''));
+  } else {
+    shown.push(...(hiddenStandIns.get(editor) ?? []).filter((range) => !editing(range)));
+  }
+  hiddenStandIns.set(editor, shown.filter((range) => !ranges.includes(range)));
   editor.setDecorations(hiddenDecoration, shown);
   concealedText.set(editor, shown.map((range) => editor.document.getText(range)));
 }
@@ -811,6 +864,7 @@ function watchConcealing(context: vscode.ExtensionContext): void {
   let pending: NodeJS.Timeout | undefined;
   context.subscriptions.push(
     hiddenDecoration,
+    standInDecoration,
     vscode.window.onDidChangeVisibleTextEditors(concealVisible),
     vscode.window.onDidChangeTextEditorSelection((event) => void conceal(event.textEditor)),
     vscode.workspace.onDidChangeTextDocument((event) => {
@@ -1311,6 +1365,8 @@ export interface Api {
   columnsShown(editor: vscode.TextEditor): [number, string][];
   /** What the status bar shows for the relative timer or the countdown: empty when none is on. */
   timer(): string;
+  /** What stands in for hidden text in `editor` (entities' characters). */
+  standIns(editor: vscode.TextEditor): string[];
   /** The lines of `editor` shown indented: `[line, prefix, hidden stars]`. */
   virtualIndent(editor: vscode.TextEditor): number[][];
   /** The lines of `editor` highlighted from edge to edge: `[line, highlight]`. */
@@ -1381,6 +1437,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     columns: () => columnsItem?.text ?? '',
     columnsShown: (editor) => (columnsShown.get(editor.document.uri.toString())?.lines ?? []).map(([line, text]) => [line, text]),
     timer: timerText,
+    standIns: (editor) => standInsShown.get(editor) ?? [],
     virtualIndent: (editor) => virtualIndentShown.get(editor) ?? [],
     lineHighlights: (editor) => lineHighlightsShown.get(editor) ?? [],
     sparse: (editor) => (sparseShown.get(editor.document.uri.toString()) ?? []).map((range) => editor.document.getText(range)),

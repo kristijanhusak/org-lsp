@@ -120,6 +120,7 @@ export const AREAS = [
       { text: 'A link shows its description alone; its brackets and target show when the cursor is on its line', not: ['vim', 'sublime', 'zed'] },
       { text: 'With `org_hide_emphasis_markers = true`, the markers of `*bold*` are hidden', not: ['vim', 'sublime', 'zed'] },
       { text: 'With `org_pretty_entities = true`, `\\alpha` shows as `α`', not: ['vim', 'sublime', 'zed'] },
+      { text: 'On the cursor\'s line `\\alpha` shows as typed, without `α` beside it; typing or deleting one leaves nothing behind', only: ['neovim', 'vscode'] },
       { text: 'With `org_pretty_entities = true`, `x^2` shows as `x²` and `H_{2}O` as `H₂O`', not: ['vim', 'sublime', 'zed'] },
       { text: 'Timestamps, `SCHEDULED:`/`DEADLINE:`, `CLOCK:` lines, drawers, `#+` keywords and `#` comments are colored' },
       { text: 'A `#+begin_src python` block shows its code in Python\'s colors' },

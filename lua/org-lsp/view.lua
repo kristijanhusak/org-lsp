@@ -13,7 +13,7 @@ local notify = require('org-lsp.notify')
 --- its date prompt.
 M.capabilities = {
   workspace = { textDocumentContent = { dynamicRegistration = false } },
-  experimental = { orgDatePrompt = true, orgVirtualIndent = true, orgLineHighlights = true },
+  experimental = { orgDatePrompt = true, orgVirtualIndent = true, orgLineHighlights = true, orgDisplay = true },
 }
 
 --- The manifest's sections for the documents the server owns, and the
@@ -608,6 +608,15 @@ M.handlers = {
   ['org-lsp/virtualIndent'] = function(_, params)
     if require('org-lsp').config.virtual_indent then
       require('org-lsp.indent').virtual(params)
+    end
+  end,
+
+  --- What stands in for hidden text: entities, sub- and superscripts,
+  --- shrunk table fields.
+  ['org-lsp/display'] = function(_, params, ctx)
+    local client = vim.lsp.get_client_by_id(ctx.client_id)
+    if client then
+      require('org-lsp.display').show(client, params)
     end
   end,
 
