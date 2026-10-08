@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 98%**
+**All of Org: 99%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Timers](#timers) | 100% | 5 of 5 |
 | [Attachments](#attachments) | 100% | 2 of 2 |
 | [Encryption](#encryption) | 100% | 2 of 2 |
-| [Inline images and LaTeX previews](#inline-images-and-latex-previews) | 67% | 2 of 3 |
+| [Inline images and LaTeX previews](#inline-images-and-latex-previews) | 100% | 3 of 3 |
 
 ## Highlighting
 
@@ -456,7 +456,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Vim ❓: New lines are not indented by the server (no `indentexpr`), and wrapped lines are not.
+- Vim ❓: The lines a long line wraps into are not indented.
 - Sublime Text ❓: Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed.
 - Zed ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed.
 - Helix ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed.
@@ -525,11 +525,11 @@ Where editors fall short:
 
 ## Inline images and LaTeX previews
 
-67% (2 of 3)
+100% (3 of 3)
 
 - ✅ Previews of links to images (`org-link-preview`, `C-c C-x C-v`): the link at the cursor, the section, the file, with links with a description (counts 1, 11), cleared (4, 64); `#+STARTUP: inlineimages`
 - ✅ LaTeX previews (`org-latex-preview`, `C-c C-x C-l`), made by Emacs as Org makes them (`latex`, `dvipng`, into `ltximg/`)
-- ❌ Previews of `attachment:` links
+- ✅ Previews of `attachment:` links (the file found through Emacs, `org-attach-expand`)
 
 Where editors fall short:
 

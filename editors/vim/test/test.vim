@@ -728,6 +728,27 @@ function! s:virtual_indent() abort
 endfunction
 call s:test('org-indent-mode shows the file indented, unchanged', function('s:virtual_indent'))
 
+" Indentation by the server: a line opened below a list item starts at
+" the item's text, as Org's RET has it, and `==` re-indents a line as
+" `org-indent-region` does.
+function! s:indent() abort
+  let file = s:work . '/notes/indent.org'
+  call writefile(['* Head', '- item', '     stray'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call assert_equal('org_lsp#indent_expr()', &l:indentexpr)
+  " coc.nvim follows a buffer's changes a moment after it opens.
+  sleep 300m
+  call cursor(2, 1)
+  call feedkeys("obody\<Esc>", 'xt')
+  call assert_equal('  body', getline(3), 'a new line in a list item starts at its text')
+  call cursor(4, 1)
+  call feedkeys('==', 'xt')
+  call s:until('the stray line re-indented', {-> getline(4) ==# '  stray'})
+  silent write
+endfunction
+call s:test('indents new lines and = as Org does', function('s:indent'))
+
 " Column view (`org-columns`, through Emacs): the headlines covered by
 " their columns, the header in the status line; `l` picks the next column,
 " `n` its next allowed value; `q` takes the view away.

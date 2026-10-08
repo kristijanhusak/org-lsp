@@ -58,7 +58,6 @@ highlighted as Org files are; moving the cursor closes it. `:Org agenda`,
   the window's status line rather than above the text.
 - Nothing is concealed: Vim cannot hide text that text properties mark,
   so link brackets and emphasis markers show.
-- New lines are not indented by the server.
 - With coc.nvim, the documents the server asks to show open where
   coc.nvim opens them (`coc.preferences.jumpCommand`), not as
   `win_split_mode` and `win_split_size` say; and since coc.nvim passes on only an error's
