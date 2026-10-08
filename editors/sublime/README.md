@@ -100,7 +100,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [Code blocks (Babel)](../../docs/parity.md#code-blocks-babel) | 100% | ✅ |  |
 | [Export and publishing](../../docs/parity.md#export-and-publishing) | 100% | ✅ |  |
 | [Citations](../../docs/parity.md#citations) | 100% | ✅ |  |
-| [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 97% | ✅ |  |
+| [Diagnostics (org-lint)](../../docs/parity.md#diagnostics-org-lint) | 100% | ✅ |  |
 | [Indentation and formatting](../../docs/parity.md#indentation-and-formatting) | 83% | ❓ | Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. |
 | [Notes and logging](../../docs/parity.md#notes-and-logging) | 100% | ✅ |  |
 | [Completion and editing helpers](../../docs/parity.md#completion-and-editing-helpers) | 100% | ✅ |  |

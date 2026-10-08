@@ -31,7 +31,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Code blocks (Babel)](#code-blocks-babel) | 100% | 11 of 11 |
 | [Export and publishing](#export-and-publishing) | 100% | 9 of 9 |
 | [Citations](#citations) | 100% | 5 of 5 |
-| [Diagnostics (org-lint)](#diagnostics-org-lint) | 97% | 59 of 61 |
+| [Diagnostics (org-lint)](#diagnostics-org-lint) | 100% | 61 of 61 |
 | [Indentation and formatting](#indentation-and-formatting) | 83% | 5 of 6 |
 | [Notes and logging](#notes-and-logging) | 100% | 4 of 4 |
 | [Completion and editing helpers](#completion-and-editing-helpers) | 100% | 4 of 4 |
@@ -439,9 +439,9 @@ Where editors fall short:
 
 ## Diagnostics (org-lint)
 
-97% (59 of 61)
+100% (61 of 61)
 
-- ❓ org-lint's checkers (59 of 61)
+- ✅ org-lint's checkers (61 of 61)
 
 ## Indentation and formatting
 

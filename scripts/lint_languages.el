@@ -1,0 +1,18 @@
+;;; The languages org-lint knows, for server/org-core/src/lint_languages.rs:
+;;;   emacs --batch -Q -L $ORG_LISP_DIR -l scripts/lint_languages.el  (writes langs.txt)
+(require 'org)
+(require 'org-src)
+(dolist (f (directory-files (file-name-directory (locate-library "org")) nil "\\`ob-.*\\.el\\'"))
+  (require (intern (file-name-base f)) nil t))
+(let (langs)
+  (mapatoms
+   (lambda (sym)
+     (let ((name (symbol-name sym)))
+       (when (fboundp sym)
+         (cond ((string-match "\\`org-babel-execute:\\(.+\\)\\'" name) (push (match-string 1 name) langs))
+               ((string-match "\\`\\(.+\\)-mode\\'" name) (push (match-string 1 name) langs)))))))
+  (dolist (pair org-src-lang-modes)
+    (when (fboundp (intern (concat (symbol-name (cdr pair)) "-mode")))
+      (push (car pair) langs)))
+  (setq langs (sort (delete-dups langs) #'string<))
+  (with-temp-file "langs.txt" (dolist (l langs) (insert l "\n"))))
