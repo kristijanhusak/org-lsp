@@ -941,6 +941,11 @@
         "category": "Org"
       },
       {
+        "command": "org.table.formula.debugger",
+        "title": "Turn the formula debugger on or off",
+        "category": "Org"
+      },
+      {
         "command": "org.open",
         "title": "Open the link or thing at the cursor",
         "category": "Org"
@@ -4597,6 +4602,11 @@
       {
         "command": "org.table.recalculate.line",
         "key": "ctrl+c shift+8",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.formula.debugger",
+        "key": "ctrl+c shift+[",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

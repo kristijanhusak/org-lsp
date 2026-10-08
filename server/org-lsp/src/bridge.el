@@ -226,6 +226,7 @@ was to be opened, or the text of an export to a buffer."
     org-insert-structure-template org-insert-drawer
     org-clone-subtree-with-time-shift org-lsp-bridge-footnote-renumber-and-sort
     org-table-recalculate org-table-iterate org-table-calc-current-TBLFM
+    org-lsp-bridge-debug-formulas
     org-babel-tangle org-lsp-bridge-detangle org-table-copy-down org-lsp-bridge-table-sum org-table-field-info
     org-lsp-bridge-table-create org-babel-next-src-block
     org-babel-previous-src-block org-babel-goto-named-src-block
@@ -313,6 +314,36 @@ files it leads to are left as they are."
         (unless (or (memq buffer before) (eq buffer document))
           (with-current-buffer buffer (set-buffer-modified-p nil))
           (kill-buffer buffer))))))
+
+(defun org-lsp-bridge-debug-formulas (command &rest args)
+  "COMMAND, one org-lsp runs, called with ARGS with the formula debugger
+on (`org-table-formula-debug'): after each formula the editor is asked
+whether to go on, the formula's substitution history with the question.
+Answered no, what was computed so far stays, as in Emacs."
+  (let ((command (intern command))
+        (ask (symbol-function 'y-or-n-p))
+        (org-table-formula-debug t))
+    (unless (memq command org-lsp-bridge--commands)
+      (error "org-lsp does not run %s" command))
+    (condition-case err
+        (cl-letf (((symbol-function 'y-or-n-p)
+                   (lambda (prompt &rest _)
+                     (funcall ask (concat (org-lsp-bridge--history) "\n\n" prompt))))
+                  ((symbol-function 'org-fit-window-to-buffer) #'ignore)
+                  ((symbol-function 'delete-window) #'ignore)
+                  ((symbol-function 'set-window-configuration) #'ignore))
+          (apply command args))
+      (user-error (setq org-lsp-bridge--message (error-message-string err))))
+    ;; A history shown without a question: what is said last.
+    (when-let* ((history (org-lsp-bridge--history)))
+      (setq org-lsp-bridge--message history))))
+
+(defun org-lsp-bridge--history ()
+  "What the formula debugger showed last (`*Substitution History*'), and
+none after that."
+  (when-let* ((buffer (get-buffer "*Substitution History*")))
+    (prog1 (with-current-buffer buffer (string-trim (buffer-string)))
+      (kill-buffer buffer))))
 
 (defun org-lsp-bridge-footnote-renumber-and-sort ()
   "`S' in `org-footnote-action''s menu."

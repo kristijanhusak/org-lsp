@@ -129,6 +129,7 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+E` | `org.export.dispatch` | Export the file through Emacs |
 | `Ctrl+C Tab` | `org.table.toggle.column.width` | Shrink or expand the table column |
 | `Ctrl+C Shift+8` | `org.table.recalculate.line` | Recalculate the table's current line |
+| `Ctrl+C Shift+[` | `org.table.formula.debugger` | Turn the formula debugger on or off |
 | `Ctrl+C Ctrl+O` | `org.open` | Open the link or thing at the cursor |
 | `Ctrl+C l` | `org.link.store` | Store a link to the place at the cursor |
 | `Ctrl+C Ctrl+L` | `org.link.insert` | Insert a link, or edit the one at the cursor |
@@ -489,6 +490,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "e"], "commands": ["org.export.dispatch"] },
   { "before": ["<leader>", "o", "<Tab>"], "commands": ["org.table.toggle.column.width"] },
   { "before": ["<leader>", "o", "*"], "commands": ["org.table.recalculate"] },
+  { "before": ["<leader>", "o", "{"], "commands": ["org.table.formula.debugger"] },
   { "before": ["<leader>", "o", "o"], "commands": ["org.open"] },
   { "before": ["<leader>", "o", "l", "s"], "commands": ["org.link.store"] },
   { "before": ["<leader>", "o", "l", "i"], "commands": ["org.link.insert"] },
@@ -684,6 +686,7 @@ every file; outside Org files the commands say they do not apply):
 | `org.table.recalculate` | Org: Recalculate the table |
 | `org.table.recalculate.line` | Org: Recalculate the table's current line |
 | `org.table.iterate` | Org: Recalculate the table until it does not change |
+| `org.table.formula.debugger` | Org: Turn the formula debugger on or off |
 | `org.open` | Org: Open the link or thing at the cursor |
 | `org.link.store` | Org: Store a link to the place at the cursor |
 | `org.link.insert` | Org: Insert a link, or edit the one at the cursor |

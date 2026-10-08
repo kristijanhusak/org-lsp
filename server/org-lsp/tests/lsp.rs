@@ -2186,6 +2186,69 @@ fn detangles_through_emacs() {
     let _ = std::fs::remove_dir_all(&directory);
 }
 
+/// The formula debugger (`C-c {`): while it is on, recalculating goes
+/// through Emacs, which asks after each formula whether to go on, its
+/// substitution history with the question.
+#[test]
+fn debugs_formulas_through_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("debugs_formulas_through_emacs: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-debugger-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    let text = "| 1 | 2 |   |\n| 3 | 4 |   |\n#+TBLFM: $3=$1+$2\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    client.open(&uri, text);
+    let argument = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 2 } });
+    let run = |client: &mut Client, command: &str| -> Value {
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument.clone()] }))
+            .response_result
+            .expect("a result")
+    };
+    assert_eq!(run(&mut client, "org.table.formula.debugger")["message"], "Formula debugging has been turned on");
+    assert_eq!(run(&mut client, "org.table.recalculate"), Value::Null);
+    let mut histories = Vec::new();
+    let edit = loop {
+        let message = next_from_server(&client, |message| {
+            matches!(message, Message::Request(request)
+                if request.method == "window/showMessageRequest" || request.method == "workspace/applyEdit")
+                || matches!(message, Message::Notification(note) if note.method == "window/showMessage")
+        });
+        match message {
+            Message::Request(request) if request.method == "window/showMessageRequest" => {
+                histories.push(request.params["message"].as_str().unwrap().to_string());
+                client
+                    .connection
+                    .sender
+                    .send(Message::Response(Response::new_ok(request.id, json!({ "title": "Yes" }))))
+                    .unwrap();
+            }
+            Message::Request(request) => break request,
+            other => panic!("Emacs said {other:?}"),
+        }
+    };
+    assert_eq!(histories.len(), 2, "{histories:?}");
+    assert!(
+        histories[0].contains("$1->    (1)+(2)") && histories[0].ends_with("Debugging Formula.  Continue to next?")
+    );
+    assert!(histories[1].contains("Final:  7"), "{}", histories[1]);
+    let edits: Vec<TextEdit> = serde_json::from_value(edit.params["edit"]["changes"][uri.as_str()].clone()).unwrap();
+    assert_eq!(apply_text_edits(text, &edits), "| 1 | 2 | 3 |\n| 3 | 4 | 7 |\n#+TBLFM: $3=$1+$2\n");
+    client.connection.sender.send(Message::Response(Response::new_ok(edit.id, json!({ "applied": true })))).unwrap();
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&directory);
+}
+
 #[test]
 fn edits_through_emacs() {
     let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());

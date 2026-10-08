@@ -27,7 +27,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Links](#links) | 100% | 11 of 11 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
 | [Tables](#tables) | 94% | 16 of 17 |
-| [Table formulas](#table-formulas) | 92% | 11 of 12 |
+| [Table formulas](#table-formulas) | 100% | 12 of 12 |
 | [Code blocks (Babel)](#code-blocks-babel) | 100% | 11 of 11 |
 | [Export and publishing](#export-and-publishing) | 89% | 8 of 9 |
 | [Citations](#citations) | 100% | 5 of 5 |
@@ -363,7 +363,7 @@ Where editors fall short:
 
 ## Table formulas
 
-92% (11 of 12)
+100% (12 of 12)
 
 - ✅ Column, field and range formulas
 - ✅ References by row, column, hline and name
@@ -376,7 +376,7 @@ Where editors fall short:
 - ✅ Units (through Emacs)
 - ✅ Calc's fractions, symbolic mode and engineering notation (through Emacs)
 - ✅ The formula editor (`C-c '`, through Emacs): the table's formulas in a file of their own, installed each time it is saved
-- ❌ The formula debugger
+- ✅ The formula debugger (`C-c {`, through Emacs): while it is on, recalculating asks after each formula whether to go on, its substitution history with the question; answered no, what was computed so far stays
 
 ## Code blocks (Babel)
 

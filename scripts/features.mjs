@@ -618,7 +618,7 @@ export const AREAS = [
       ['Units (through Emacs)', true],
       ['Calc\'s fractions, symbolic mode and engineering notation (through Emacs)', true],
       ['The formula editor (`C-c \'`, through Emacs): the table\'s formulas in a file of their own, installed each time it is saved', true],
-      ['The formula debugger', false],
+      ['The formula debugger (`C-c {`, through Emacs): while it is on, recalculating asks after each formula whether to go on, its substitution history with the question; answered no, what was computed so far stays', true],
     ],
     checks: [
       { text: '`#+TBLFM: $3=$1*$2` fills the third column', cmd: 'org.table.recalculate' },
@@ -628,6 +628,7 @@ export const AREAS = [
       { text: 'Date arithmetic (`$2=$1+7`) on timestamps' },
       { text: 'Iterating until the table is stable', cmd: 'org.table.iterate' },
       { text: 'An Emacs Lisp formula `$3=\'(+ $1 $2);N` and a remote reference `remote(name,@1$1)` are computed by Emacs (needs Emacs)', cmd: 'org.table.recalculate' },
+      { text: 'With the formula debugger on, recalculating shows each formula\'s substitution history and asks whether to go on (needs Emacs)', cmd: 'org.table.formula.debugger' },
       { text: 'Editing the formulas in a file of their own: saving it writes them to the `#+TBLFM:` line (needs Emacs)', cmd: 'org.edit.special', not: ['zed', 'helix'] },
       { text: 'Editing a field in a file of its own: saving it puts the text back on one line and realigns the table (needs Emacs)', cmd: 'org.table.edit.field', not: ['zed', 'helix'] },
     ],
