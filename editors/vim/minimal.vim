@@ -1,18 +1,17 @@
-" A minimal vimrc for trying the Vim plugin, everything in a temporary
-" folder: vim-plug, yegappan/lsp, this repository (the server built with
-" cargo on the first start), and an Org file to try it on.
+" A minimal vimrc for trying the Vim plugin from a checkout of this
+" repository, with vim-plug and yegappan/lsp in a temporary folder:
 "
-"   curl -fLo /tmp/minimal.vim https://raw.githubusercontent.com/kristijanhusak/org-lsp/main/editors/vim/minimal.vim
-"   vim -N -u /tmp/minimal.vim
+"   cargo build --release -p org-lsp
+"   vim -N -u editors/vim/minimal.vim ~/org/todo.org
 "
-" The first start clones and builds, which takes a few minutes; later ones
-" start at once. Remove the folder (`/tmp/org-lsp-vim`) to start over.
+" It sets no Org options: the server reads your own configuration
+" (`~/.config/org-lsp/config.toml`).
 set nocompatible
 
-let s:root = (empty($TMPDIR) ? '/tmp' : substitute($TMPDIR, '/$', '', '')) . '/org-lsp-vim'
-let s:org_files = s:root . '/org'
+let s:root = '/tmp/org-lsp-vim'
+let s:org_lsp = expand('~/github/org-lsp')   " the checkout
 
-" vim-plug, fetched once.
+" vim-plug, fetched once into the temporary folder.
 if !filereadable(s:root . '/autoload/plug.vim')
   call system('curl -fsSLo ' . shellescape(s:root . '/autoload/plug.vim') . ' --create-dirs '
         \ . 'https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim')
@@ -21,33 +20,15 @@ let &runtimepath = s:root . ',' . &runtimepath
 
 call plug#begin(s:root . '/plugged')
 Plug 'yegappan/lsp'
-Plug 'kristijanhusak/org-lsp', {'rtp': 'editors/vim', 'do': 'cargo build --release -p org-lsp'}
+Plug s:org_lsp, {'rtp': 'editors/vim'}
 call plug#end()
 
-" Installed before the plugins load, which comes after this file.
-if !isdirectory(s:root . '/plugged/lsp') || !isdirectory(s:root . '/plugged/org-lsp')
+" Install the client on the first start, before the plugins load.
+if !isdirectory(s:root . '/plugged/lsp')
   PlugInstall --sync | close
 endif
 
-let g:org_lsp = {
-      \ 'cmd': [s:root . '/plugged/org-lsp/target/release/org-lsp'],
-      \ 'settings': {'org_agenda_files': [s:org_files]},
-      \ }
-
-" An Org file to try it on.
-if !isdirectory(s:org_files)
-  call mkdir(s:org_files, 'p')
-  call writefile([
-        \ '* TODO Write the report',
-        \ '  SCHEDULED: ' . strftime('<%Y-%m-%d %a>'),
-        \ '* TODO Call the client',
-        \ '  DEADLINE: ' . strftime('<%Y-%m-%d %a>', localtime() + 3 * 86400),
-        \ '  - [ ] Prepare the questions',
-        \ ], s:org_files . '/todo.org')
-endif
-if argc() == 0
-  execute 'autocmd VimEnter * ++once edit ' . fnameescape(s:org_files . '/todo.org')
-endif
+let g:org_lsp = {'cmd': [s:org_lsp . '/target/release/org-lsp']}
 
 set hidden
 set mouse=a

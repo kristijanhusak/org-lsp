@@ -27,12 +27,12 @@ PATH, or where `cmd` says.
 
 To try it without touching your own configuration,
 [editors/vim/minimal.vim](../../editors/vim/minimal.vim) is a vimrc that
-puts everything in a temporary folder with vim-plug: yegappan/lsp, the
-plugin, the server built on the first start, and an Org file to try:
+puts vim-plug and yegappan/lsp in a temporary folder and loads the plugin
+from a checkout (`~/github/org-lsp`; change `s:org_lsp` for another):
 
 ```sh
-curl -fLo /tmp/minimal.vim https://raw.githubusercontent.com/kristijanhusak/org-lsp/main/editors/vim/minimal.vim
-vim -N -u /tmp/minimal.vim
+cargo build --release -p org-lsp
+vim -N -u editors/vim/minimal.vim ~/org/todo.org
 ```
 
 Leave the client's own semantic highlighting and folding off for Org files
