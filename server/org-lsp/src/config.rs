@@ -203,6 +203,10 @@ pub struct Options {
     #[serde(rename = "org_src_preserve_indentation")]
     pub src_preserve_indentation: Option<bool>,
     /// `org-startup-indented`: show files with `org-indent-mode`.
+    /// `org-startup-with-link-previews`: show the previews of the links to
+    /// images when a file opens.
+    #[serde(rename = "org_startup_with_link_previews")]
+    pub startup_with_link_previews: Option<bool>,
     #[serde(rename = "org_startup_indented")]
     pub startup_indented: Option<bool>,
     /// `org-hide-leading-stars`

@@ -44,8 +44,8 @@ yegappan/lsp, vim-lsp, coc.nvim or ALE. It needs Vim 9.1.
 | [Timers](../../docs/parity.md#timers) | 100% | ✅ |  |
 | [Attachments](../../docs/parity.md#attachments) | 100% | ✅ |  |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
-| [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 0% | — |  |
-| **All of Org** | **96%** |  |  |
+| [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 67% | ❌ | Vim cannot show images. |
+| **All of Org** | **98%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
 and why), ❌ none does, — nothing to support yet.

@@ -620,6 +620,11 @@ M.handlers = {
     end
   end,
 
+  --- Images in place of LaTeX fragments, made by Emacs.
+  ['org-lsp/images'] = function(_, params)
+    require('org-lsp.images').apply(params)
+  end,
+
   --- Lines of the agenda highlighted from edge to edge, as Emacs's
   --- overlays cover them: the entry the clock runs on.
   ['org-lsp/lineHighlights'] = function(_, params)

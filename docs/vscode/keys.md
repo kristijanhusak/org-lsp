@@ -123,6 +123,8 @@ The other options are in [configuration.md](configuration.md).
 | `Ctrl+C Ctrl+X b` | `org.tree.indirect` | Show the subtree in a file of its own |
 | `Ctrl+C `` | `org.table.edit.field` | Edit the table field in a file of its own |
 | `Ctrl+C Ctrl+X Ctrl+C` | `org.columns` | Column view |
+| `Ctrl+C Ctrl+X Ctrl+V` | `org.link.preview` | Preview the images of links |
+| `Ctrl+C Ctrl+X Ctrl+L` | `org.latex.preview` | Preview LaTeX fragments |
 | `Ctrl+C Ctrl+X 0` | `org.timer.start` | Start the relative timer |
 | `Ctrl+C Ctrl+X .` | `org.timer.insert` | Insert the timer's value |
 | `Ctrl+C Ctrl+X -` | `org.timer.item` | Insert a list item with the timer's value |
@@ -491,6 +493,8 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "x", "b"], "commands": ["org.tree.indirect"] },
   { "before": ["<leader>", "o", "`"], "commands": ["org.table.edit.field"] },
   { "before": ["<leader>", "o", "x", "c"], "commands": ["org.columns"] },
+  { "before": ["<leader>", "o", "x", "v"], "commands": ["org.link.preview"] },
+  { "before": ["<leader>", "o", "x", "l"], "commands": ["org.latex.preview"] },
   { "before": ["<leader>", "o", "x", "0"], "commands": ["org.timer.start"] },
   { "before": ["<leader>", "o", "x", "."], "commands": ["org.timer.insert"] },
   { "before": ["<leader>", "o", "x", "-"], "commands": ["org.timer.item"] },
@@ -673,6 +677,8 @@ every file; outside Org files the commands say they do not apply):
 | `org.crypt.encrypt.all` | Org: Encrypt the entries tagged crypt |
 | `org.crypt.decrypt.all` | Org: Decrypt the encrypted entries |
 | `org.columns` | Org: Column view |
+| `org.link.preview` | Org: Preview the images of links |
+| `org.latex.preview` | Org: Preview LaTeX fragments |
 | `org.columns.quit` | Org: Column view: quit |
 | `org.columns.redo` | Org: Column view: recompute |
 | `org.columns.edit` | Org: Column view: edit the value |

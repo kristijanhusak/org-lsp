@@ -949,6 +949,32 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org: Preview the images of links",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.link.preview",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Preview LaTeX fragments",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.latex.preview",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org: Start the relative timer",
     "command": "$HOME/.local/state/org-lsp/agenda-command file:org.timer.start",
     "tags": [

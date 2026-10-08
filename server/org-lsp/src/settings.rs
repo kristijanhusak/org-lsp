@@ -820,6 +820,16 @@ pub const SETTINGS: &[Setting] = &[
          re-indenting (range formatting) and to what commands write.",
     ),
     setting(
+        "org_startup_with_link_previews",
+        "boolean",
+        "false",
+        "org-startup-with-link-previews",
+        "Show the images of links to image files in place when a file opens, as `C-c C-x C-v` \
+         (`org.link.preview`) shows them. `#+STARTUP: inlineimages` (or `linkpreviews`) and `noinlineimages` \
+         decide for a file. Editors that can show images: Neovim from 0.13 (`vim.ui.img`), in a terminal with \
+         the Kitty graphics protocol.",
+    ),
+    setting(
         "org_startup_indented",
         "boolean",
         "false",
@@ -1529,6 +1539,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_cycle_hide_drawer_startup", BOOLEAN),
     ("org_cycle_open_archived_trees", BOOLEAN),
     ("org_adapt_indentation", r#"{ "enum": [true, false, "headline-data"] }"#),
+    ("org_startup_with_link_previews", BOOLEAN),
     ("org_startup_indented", BOOLEAN),
     ("org_hide_leading_stars", BOOLEAN),
     ("org_src_preserve_indentation", BOOLEAN),

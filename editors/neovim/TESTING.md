@@ -347,3 +347,13 @@ its sections says what it should look like.
 - [ ] With `org-crypt-key` set in the Emacs configuration, encrypting an entry replaces its text with a PGP message; decrypting brings it back (needs Emacs and GnuPG): `:Org crypt encrypt`, `:Org crypt decrypt`
 - [ ] Encrypting and decrypting every entry tagged `crypt` (needs Emacs and GnuPG): `:Org crypt encrypt all`, `:Org crypt decrypt all`
 - [ ] With `(org-crypt-use-before-save-magic)` in the Emacs configuration, saving a file encrypts its entries tagged `crypt` (needs Emacs and GnuPG)
+
+## Inline images and LaTeX previews
+
+**Partly:** From Neovim 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick.
+
+- [ ] On a line with `[[file:pic.png]]`, the key shows the picture below the line, and takes it away again: `<Leader>oxv`
+- [ ] Away from a link, the pictures of the section; with a count of 16 those of the whole file; 64 takes them all away: `<Leader>oxv`
+- [ ] A file with `#+STARTUP: inlineimages` opens with its pictures
+- [ ] Scrolling moves the pictures with their lines; editing a link takes its picture away
+- [ ] `$e^{i\pi} = -1$` shows as its image (needs Emacs, `latex` and `dvipng`): `<Leader>oxl`

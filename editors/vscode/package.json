@@ -826,6 +826,16 @@
         "category": "Org"
       },
       {
+        "command": "org.link.preview",
+        "title": "Preview the images of links",
+        "category": "Org"
+      },
+      {
+        "command": "org.latex.preview",
+        "title": "Preview LaTeX fragments",
+        "category": "Org"
+      },
+      {
         "command": "org.columns.quit",
         "title": "Column view: quit",
         "category": "Org"
@@ -2268,6 +2278,11 @@
                 "headline-data"
               ],
               "markdownDescription": "Indent the lines of an entry past its headline's stars: `true` for all of them, `\"headline-data\"` for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (`org-adapt-indentation`)",
+              "default": false
+            },
+            "org_startup_with_link_previews": {
+              "type": "boolean",
+              "markdownDescription": "Show the images of links to image files in place when a file opens, as `C-c C-x C-v` (`org.link.preview`) shows them. `#+STARTUP: inlineimages` (or `linkpreviews`) and `noinlineimages` decide for a file. Editors that can show images: Neovim from 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol. (`org-startup-with-link-previews`)",
               "default": false
             },
             "org_startup_indented": {
@@ -4621,6 +4636,16 @@
       {
         "command": "org.columns",
         "key": "ctrl+c ctrl+x ctrl+c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.link.preview",
+        "key": "ctrl+c ctrl+x ctrl+v",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.latex.preview",
+        "key": "ctrl+c ctrl+x ctrl+l",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

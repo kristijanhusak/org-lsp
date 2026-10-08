@@ -232,6 +232,8 @@ keeps its motions.
 | `ctrl-c ctrl-x b` | `org.tree.indirect` | Show the subtree in a file of its own |
 | `ctrl-c `` | `org.table.edit.field` | Edit the table field in a file of its own |
 | `ctrl-c ctrl-x ctrl-c` | `org.columns` | Column view |
+| `ctrl-c ctrl-x ctrl-v` | `org.link.preview` | Preview the images of links |
+| `ctrl-c ctrl-x ctrl-l` | `org.latex.preview` | Preview LaTeX fragments |
 | `ctrl-c ctrl-x 0` | `org.timer.start` | Start the relative timer |
 | `ctrl-c ctrl-x .` | `org.timer.insert` | Insert the timer's value |
 | `ctrl-c ctrl-x -` | `org.timer.item` | Insert a list item with the timer's value |

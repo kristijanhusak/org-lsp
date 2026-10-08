@@ -7,7 +7,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in PLAN.md).
 
-**All of Org: 96%**
+**All of Org: 98%**
 
 | Feature | Parity | Done |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Timers](#timers) | 100% | 5 of 5 |
 | [Attachments](#attachments) | 100% | 2 of 2 |
 | [Encryption](#encryption) | 100% | 2 of 2 |
-| [Inline images and LaTeX previews](#inline-images-and-latex-previews) | 0% | 0 of 2 |
+| [Inline images and LaTeX previews](#inline-images-and-latex-previews) | 67% | 2 of 3 |
 
 ## Highlighting
 
@@ -527,7 +527,17 @@ Where editors fall short:
 
 ## Inline images and LaTeX previews
 
-0% (0 of 2)
+67% (2 of 3)
 
-- ❌ Inline images (`C-c C-x C-v`)
-- ❌ LaTeX previews (`C-c C-x C-l`)
+- ✅ Previews of links to images (`org-link-preview`, `C-c C-x C-v`): the link at the cursor, the section, the file, with links with a description (counts 1, 11), cleared (4, 64); `#+STARTUP: inlineimages`
+- ✅ LaTeX previews (`org-latex-preview`, `C-c C-x C-l`), made by Emacs as Org makes them (`latex`, `dvipng`, into `ltximg/`)
+- ❌ Previews of `attachment:` links
+
+Where editors fall short:
+
+- Neovim ❓: From Neovim 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick.
+- Vim ❌: Vim cannot show images.
+- VS Code ❌: Not shown yet.
+- Sublime Text ❌: Not shown yet.
+- Zed ❌: Zed lets no extension show images in a file.
+- Helix ❌: Helix cannot show images.

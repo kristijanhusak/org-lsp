@@ -117,6 +117,11 @@ require('org-lsp').setup({
   -- The border of a floating calendar.
   calendar_border = 'rounded',
 
+  -- Previews of links to images and of LaTeX (`<Leader>oxv`, `<Leader>oxl`),
+  -- drawn with `vim.ui.img` (Neovim 0.13): the most cells an image takes,
+  -- or false for none. See below.
+  images = { max_width = 80, max_height = 20 },
+
   -- Keys by scope; see keys.md. `false` sets no keys at all.
   mappings = {
     global = {
@@ -771,6 +776,14 @@ require('org-lsp').setup({
     -- (range formatting) and to what commands write. (org-adapt-indentation)
     org_adapt_indentation = false,
 
+    -- Show the images of links to image files in place when a file opens, as
+    -- `C-c C-x C-v` (`org.link.preview`) shows them. `#+STARTUP:
+    -- inlineimages` (or `linkpreviews`) and `noinlineimages` decide for a
+    -- file. Editors that can show images: Neovim from 0.13 (`vim.ui.img`), in
+    -- a terminal with the Kitty graphics protocol.
+    -- (org-startup-with-link-previews)
+    org_startup_with_link_previews = false,
+
     -- Show files indented by level without changing them (`org-indent-mode`):
     -- the text under a headline lines up with its title, and leading stars
     -- are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It
@@ -1109,3 +1122,26 @@ Like any group, they can be set in your configuration:
 vim.api.nvim_set_hl(0, '@lsp.type.todoKeyword.org', { fg = '#ff6c6b', bold = true })
 vim.api.nvim_set_hl(0, '@lsp.typemod.todoKeyword.done.org', { fg = '#98be65', bold = true })
 ```
+
+## Images and LaTeX
+
+Neovim 0.13 draws images in the terminal (`vim.ui.img`, with the Kitty
+graphics protocol: Kitty, Ghostty, WezTerm). There the previews of Org
+show, as Emacs shows them:
+
+- `<Leader>oxv` (`org-link-preview`, `C-c C-x C-v`) shows the images of
+  the links to image files in the current section, or toggles the one of
+  the link at the cursor. With a count of 1 links with a description
+  count too; 4 takes them away; 16 (or 11) shows those of the whole file,
+  64 takes them all away. A file with `#+STARTUP: inlineimages` (or
+  `org_startup_with_link_previews`) opens with them.
+- `<Leader>oxl` (`org-latex-preview`, `C-c C-x C-l`) shows the LaTeX
+  fragments as images, made by Emacs (`latex` and `dvipng`, as Org makes
+  them, into `ltximg/` beside the file), with the same counts.
+
+An image shows below the line of its link or fragment, in lines kept free
+for it, and follows it as the window scrolls; it goes when its text does.
+PNG images show as they are; others are made PNG with ImageMagick
+(`magick` or `convert`) when it is installed. Older versions of Neovim say
+that they cannot show images.
+

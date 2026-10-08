@@ -20,6 +20,7 @@ pub mod edit;
 pub mod format;
 pub mod indent;
 pub mod link;
+pub mod link_preview;
 pub mod lint;
 mod lint_tables;
 pub mod list;

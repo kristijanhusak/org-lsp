@@ -345,3 +345,7 @@ its sections says what it should look like.
 - [ ] With `org-crypt-key` set in the Emacs configuration, encrypting an entry replaces its text with a PGP message; decrypting brings it back (needs Emacs and GnuPG): *Org: Encrypt the entry*, *Org: Decrypt the entry*
 - [ ] Encrypting and decrypting every entry tagged `crypt` (needs Emacs and GnuPG): *Org: Encrypt the entries tagged crypt*, *Org: Decrypt the encrypted entries*
 - [ ] With `(org-crypt-use-before-save-magic)` in the Emacs configuration, saving a file encrypts its entries tagged `crypt` (needs Emacs and GnuPG)
+
+## Inline images and LaTeX previews
+
+**Not in VS Code:** Not shown yet.

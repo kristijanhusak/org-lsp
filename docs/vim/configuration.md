@@ -492,6 +492,13 @@ let g:org_lsp = {
       "\   re-indenting (range formatting) and to what commands write.
       "\   (org-adapt-indentation)
       \   'org_adapt_indentation': v:false,
+      "\   Show the images of links to image files in place when a file opens,
+      "\   as `C-c C-x C-v` (`org.link.preview`) shows them. `#+STARTUP:
+      "\   inlineimages` (or `linkpreviews`) and `noinlineimages` decide for a
+      "\   file. Editors that can show images: Neovim from 0.13
+      "\   (`vim.ui.img`), in a terminal with the Kitty graphics protocol.
+      "\   (org-startup-with-link-previews)
+      \   'org_startup_with_link_previews': v:false,
       "\   Show files indented by level without changing them
       "\   (`org-indent-mode`): the text under a headline lines up with its
       "\   title, and leading stars are hidden. `#+STARTUP: indent` and

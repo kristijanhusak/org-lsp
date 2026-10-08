@@ -95,6 +95,9 @@ struct Client {
     /// says (`org-lsp/lineHighlights`): `experimental.orgLineHighlights`,
     /// or the option `line_highlights`.
     line_highlights: bool,
+    /// Shows images in place of text (`org.link.preview`,
+    /// `org.latex.preview`): `experimental.orgImages`.
+    images: bool,
     /// The client rereads semantic tokens when asked.
     tokens_refresh: bool,
     /// The client asks for inlay hints again when told to.
@@ -147,6 +150,9 @@ enum EmacsJob {
     /// The text of the file `file` (`content`) written back into the part
     /// of `uri` it edits (see [`SpecialEdit`]), run on `text`, its `version`.
     WriteBack { file: PathBuf, uri: Uri, version: i32, text: String, content: String },
+    /// The images of the LaTeX fragments of `uri` at its `version`, for
+    /// the preview `preview` (`org-lsp/images`) without its items.
+    LatexPreview { uri: Uri, version: i32, text: String, preview: Value },
 }
 
 /// The files sent to Emacs for a command in the agenda: each its URI, its
@@ -499,6 +505,11 @@ pub const PREVIEW: &str = "org-lsp/preview";
 /// { LETTER: face } }`, each face `{ "foreground", "background", "bold",
 /// "italic", "underline", "strikethrough" }` as set.
 pub const FACES: &str = "org-lsp/faces";
+/// Images to show in place of text, or to take away: what
+/// `org.latex.preview` made, once Emacs has made it. `{ "kind": "latex",
+/// "uri", "scope", "range", "remove", "items": [{ "range", "path" }] }`, as
+/// the preview commands answer (see [`Server::preview_command`]).
+pub const PREVIEW_IMAGES: &str = "org-lsp/images";
 /// What column view shows on a document, for the editor to draw over its
 /// headlines: `{ "uri", "version", "header", "columns": [{ "key", "title",
 /// "width" }], "lines": [[line, text, [value…]]] }`, each line one of a
@@ -726,6 +737,8 @@ struct Server {
     conceal: highlight::Conceal,
     /// `org-pretty-entities`
     pretty_entities: bool,
+    /// `org-startup-with-link-previews`.
+    startup_link_previews: bool,
     /// `org-table-formula-debug`: recalculating goes through Emacs, which
     /// asks after each formula.
     formula_debug: bool,
@@ -1012,6 +1025,7 @@ pub fn run(connection: Connection) -> Result<()> {
             == Some(true)
             || options.virtual_indent == Some(true),
         display: raw_params.pointer("/capabilities/experimental/orgDisplay").and_then(Value::as_bool) == Some(true),
+        images: raw_params.pointer("/capabilities/experimental/orgImages").and_then(Value::as_bool) == Some(true),
         line_highlights: raw_params.pointer("/capabilities/experimental/orgLineHighlights").and_then(Value::as_bool)
             == Some(true)
             || options.line_highlights == Some(true),
@@ -1092,6 +1106,7 @@ pub fn run(connection: Connection) -> Result<()> {
         calendar_months: options.calendar_months.unwrap_or(3),
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         pretty_entities: options.pretty_entities.unwrap_or(false),
+        startup_link_previews: options.startup_with_link_previews.unwrap_or(false),
         formula_debug: false,
         pretty_scripts: match (
             options.pretty_entities_include_sub_superscripts.unwrap_or(true),
@@ -1480,6 +1495,37 @@ fn with_message(result: Value, message: Option<String>) -> Value {
 /// entry is out of sight, its TODO state. A state asked for (`requested`)
 /// that the entry already had is worth a word as well; not one the entry
 /// comes back to, as a repeating entry marked done does.
+/// The current section of the cursor at byte `offset`, as Org takes it
+/// for previews: from its headline (or the start, before the first) to
+/// the next headline of any level (`org-entry-end-position`).
+fn section_bounds(text: &str, offset: usize) -> (usize, usize) {
+    let is_heading = |line: &str| {
+        let stars = line.bytes().take_while(|byte| *byte == b'*').count();
+        stars > 0 && line[stars..].starts_with([' ', '\t'])
+    };
+    let mut start = 0;
+    let mut at = 0;
+    for line in text.split_inclusive('\n') {
+        if at > offset {
+            break;
+        }
+        if is_heading(line) {
+            start = at;
+        }
+        at += line.len();
+    }
+    let mut end = text.len();
+    let mut at = start;
+    for (index, line) in text[start..].split_inclusive('\n').enumerate() {
+        if index > 0 && is_heading(line) {
+            end = at;
+            break;
+        }
+        at += line.len();
+    }
+    (start, end)
+}
+
 /// The TODO keyword of the headline at byte `heading` of `text`.
 fn headline_keyword(text: &str, heading: usize, keywords: &TodoKeywords) -> Option<String> {
     let line = text.get(heading..)?.lines().next()?;
@@ -4421,6 +4467,16 @@ impl Server {
         if params.command == commands::CAPTURE {
             let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
             return self.capture(&context);
+        }
+        if params.command == commands::LINK_PREVIEW || params.command == commands::LATEX_PREVIEW {
+            let field = |name: &str| argument.as_ref().and_then(|value| value.get(name)).cloned();
+            let startup = field("startup").and_then(|value| value.as_bool()) == Some(true);
+            let color = |name: &str| field(name).and_then(|value| value.as_str().map(str::to_string));
+            let colors = (color("foreground"), color("background"));
+            let context: Context = argument
+                .and_then(|value| serde_json::from_value(value).ok())
+                .ok_or("This command needs the cursor position")?;
+            return self.preview_command(&params.command, &context, startup, colors);
         }
         if matches!(
             params.command.as_str(),
@@ -8491,6 +8547,10 @@ impl Server {
                 }
                 (Some(EmacsJob::Export(label)), Ok(result)) => self.exported(&label, &result),
                 (Some(EmacsJob::Edit { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
+                (Some(EmacsJob::LatexPreview { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
+                (Some(EmacsJob::LatexPreview { uri, version, text, preview }), Ok(result)) => {
+                    self.latex_previewed(&uri, version, &text, preview, &result);
+                }
                 (Some(EmacsJob::Edit { uri, version, text, point }), Ok(result)) => {
                     // Every command says how long the countdown has left,
                     // and how the timer shows.
@@ -9839,6 +9899,166 @@ impl Server {
     /// Run the Emacs command `command` (Babel's) on the document of
     /// `context`, at its cursor; the text it leaves comes back as an edit
     /// (see [`Server::emacs_edited`]).
+    /// `org-link-preview` (`C-c C-x C-v`) and `org-latex-preview` (`C-c C-x
+    /// C-l`) at `context`, for a client that shows images: the part of the
+    /// file and whether its previews show or go, as Emacs decides from the
+    /// prefix (`count`: 4 clears, 16 or 11 the whole file, 64 clears it, 1
+    /// and 11 take links with a description too), the region and the
+    /// cursor (on a link or a fragment it toggles that one). The images of
+    /// links come with the answer, `{ "preview": … }`; those of LaTeX from
+    /// Emacs, in `org-lsp/images`. `colors` are the
+    /// foreground and the background LaTeX is drawn in. With `startup`, the whole file's links
+    /// when it opens with previews (`org_startup_with_link_previews`,
+    /// `#+STARTUP: inlineimages`), else nothing.
+    fn preview_command(
+        &mut self,
+        id: &str,
+        context: &Context,
+        startup: bool,
+        colors: (Option<String>, Option<String>),
+    ) -> std::result::Result<Value, Refusal> {
+        if !self.client.images {
+            return Ok(json!({ "message": "This editor cannot show images" }));
+        }
+        let latex = id == commands::LATEX_PREVIEW;
+        let uri = context.text_document.uri.clone();
+        let encoding = self.client.encoding;
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let (text, version, index) = (document.text.clone(), document.version, document.index.clone());
+        let parse = document.parse.clone();
+        if startup {
+            let mut on = self.startup_link_previews;
+            for word in startup_words(&text) {
+                match word.as_str() {
+                    "inlineimages" | "linkpreviews" => on = true,
+                    "noinlineimages" | "nolinkpreviews" => on = false,
+                    _ => {}
+                }
+            }
+            if latex || !on {
+                return Ok(Value::Null);
+            }
+        }
+        let offset = index.offset(&text, context.position, encoding);
+        let region = context.range.filter(|range| range.start != range.end).map(|range| {
+            let (a, b) = (index.offset(&text, range.start, encoding), index.offset(&text, range.end, encoding));
+            (a.min(b), a.max(b))
+        });
+        // The link or the fragment the cursor is on.
+        let at = if latex {
+            parse
+                .syntax()
+                .token_at_offset(org_syntax::TextSize::from(offset as u32))
+                .right_biased()
+                .and_then(|token| {
+                    token.parent_ancestors().find(|node| {
+                        matches!(
+                            node.kind(),
+                            org_syntax::SyntaxKind::LATEX_FRAGMENT | org_syntax::SyntaxKind::LATEX_ENVIRONMENT
+                        )
+                    })
+                })
+                .map(|node| (usize::from(node.text_range().start()), usize::from(node.text_range().end())))
+        } else {
+            open::link_at(&text, &parse, offset, &self.link_abbreviations).map(|link| (link.start, link.end))
+        };
+        let whole = (0, text.len());
+        let section = section_bounds(&text, offset);
+        let point = if latex { "fragment at point" } else { "image at point" };
+        let (scope, (from, to), remove) = match context.count {
+            _ if startup => ("buffer", whole, Some(false)),
+            Some(64) => ("buffer", whole, Some(true)),
+            Some(16 | 11) => ("buffer", whole, Some(false)),
+            Some(4) => match (region, at) {
+                (Some(range), _) => ("region", range, Some(true)),
+                (None, Some(range)) => ("preview at point", range, Some(true)),
+                (None, None) => ("current section", section, Some(true)),
+            },
+            _ => match (region, at) {
+                (Some(range), _) => ("region", range, Some(false)),
+                (None, Some(range)) => (point, range, None),
+                (None, None) => ("current section", section, Some(false)),
+            },
+        };
+        let include_linked = !latex && matches!(context.count, Some(1 | 11));
+        let range = |start: usize, end: usize| {
+            index.range(&text, org_syntax::TextRange::new((start as u32).into(), (end as u32).into()), encoding)
+        };
+        let mut preview = json!({
+            "kind": if latex { "latex" } else { "link" },
+            "uri": uri,
+            "scope": scope,
+            "range": range(from, to),
+            "remove": remove,
+            "includeLinked": include_linked,
+            "items": [],
+        });
+        if remove == Some(true) {
+            return Ok(json!({ "preview": preview }));
+        }
+        if latex {
+            // Emacs makes the images; they come in `org-lsp/preview`.
+            let path = uri::to_path(&uri).ok_or("Only a file on disk has LaTeX previews")?;
+            let chars = |at: usize| text[..at].chars().count() + 1;
+            let params = json!({
+                "file": path.to_string_lossy(),
+                "text": text,
+                "point": chars(offset),
+                "from": chars(from),
+                "to": chars(to),
+                "foreground": colors.0,
+                "background": colors.1,
+            });
+            self.next_export += 1;
+            let tag = self.next_export;
+            self.emacs_jobs.insert(tag, EmacsJob::LatexPreview { uri, version, text, preview });
+            self.emacs.start(tag, "latex-preview", params);
+            return Ok(json!({ "message": "Creating LaTeX previews..." }));
+        }
+        let items: Vec<Value> =
+            org_core::link_preview::previews(&text, &parse, &self.link_abbreviations, include_linked, from, to)
+                .into_iter()
+                .filter(|found| !found.attachment)
+                .filter_map(|found| {
+                    // `a/./b.png` as `a/b.png`.
+                    let path: PathBuf = self.link_path(&uri, &found.path)?.components().collect();
+                    let path = Some(path).filter(|path| path.is_file())?;
+                    Some(json!({ "range": range(found.start, found.end), "path": path.to_string_lossy() }))
+                })
+                .collect();
+        preview["items"] = json!(items);
+        Ok(json!({ "preview": preview }))
+    }
+
+    /// The images Emacs made for the LaTeX fragments of `uri`, sent in
+    /// `org-lsp/images` while the document is as it was.
+    fn latex_previewed(&mut self, uri: &Uri, version: i32, text: &str, mut preview: Value, result: &Value) {
+        if self.document(uri).map(|document| document.version) != Some(version) {
+            return;
+        }
+        let encoding = self.client.encoding;
+        let index = LineIndex::new(text);
+        // Characters from 1, as Emacs counts them, as bytes.
+        let starts: Vec<usize> = text.char_indices().map(|(at, _)| at).chain([text.len()]).collect();
+        let byte = |at: u64| starts.get((at as usize).saturating_sub(1)).copied().unwrap_or(text.len());
+        let items: Vec<Value> = result
+            .get("previews")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(|found| {
+                let (start, end) = (byte(found.get("start")?.as_u64()?), byte(found.get("end")?.as_u64()?));
+                let range = org_syntax::TextRange::new((start as u32).into(), (end as u32).into());
+                Some(json!({ "range": index.range(text, range, encoding), "path": found.get("file")?.as_str()? }))
+            })
+            .collect();
+        let said = if items.is_empty() { "No LaTeX fragments to preview" } else { "Creating LaTeX previews... done." };
+        preview["items"] = json!(items);
+        let notification = lsp_server::Notification::new(PREVIEW_IMAGES.to_string(), preview);
+        let _ = self.sender.send(Message::Notification(notification));
+        self.show_message(MessageType::INFO, said);
+    }
+
     fn emacs_run(&mut self, command: &str, context: &Context) -> std::result::Result<Value, Refusal> {
         self.emacs_run_with(command, Vec::new(), context)
     }
