@@ -1,0 +1,10 @@
+{
+  "today": "2026-05-18",
+  "now": "08:20",
+  "runs": [
+    { "view": "agenda", "span": "week" },
+    { "view": "agenda", "span": "day", "start": "2026-05-29" },
+    { "view": "agenda", "span": "week", "start": "2027-03-01" },
+    { "view": "agenda", "span": "month" }
+  ]
+}

@@ -1,0 +1,22 @@
+#+CATEGORY: cal
+* Anniversaries                                                         :fam:
+%%(diary-anniversary 5 18 1990) Ann is %d years old
+%%(org-anniversary 1980 5 19) Bob's %d%s birthday
+%%(diary-anniversary 2 29 2000) Leap day, %d years
+&%%(diary-date t 20 t) Monthly bill
+* Recurring
+** Weekly sync
+%%(diary-float t 1 3) Third Monday of the month
+%%(and (= 1 (calendar-day-of-week date)) (diary-block 5 1 2026 5 31 2026)) Mondays in May
+%%(diary-cyclic 14 5 4 2026) Every other Monday, the %d%s time 10:00
+%%(org-class 2026 5 1 2026 6 30 3 22) Class on Wednesdays 14:00
+%%(diary-block 5 17 2026 5 19 2026) Trip
+%%(diary-float '(5 6) 5 -1) Last Friday of May or June
+%%(org-cyclic 7 2026 5 18) Weekly from today
+%%(org-date 2026 5 21) One day
+%%(org-block 2026 5 23 2026 5 24) Weekend
+* TODO Garbage <%%(diary-float t 4 2)>
+* Payday
+  <%%(diary-date t 22 t) 09:30>
+* COMMENT Hidden
+%%(diary-date t t t) Never shown

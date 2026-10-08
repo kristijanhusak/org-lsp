@@ -8,6 +8,7 @@
 //! enough structure for an editor to highlight it and to find the entry
 //! behind each line.
 
+pub mod diary;
 mod display;
 pub mod entry_text;
 pub mod filter;
@@ -495,13 +496,30 @@ impl Builder<'_> {
         extra: &str,
         dotime: Dotime<'_>,
     ) -> Item {
+        let head = self.files[file].entries[entry_index].head.clone();
+        self.line_item(file, entry_index, &head, kind, face, extra, dotime)
+    }
+
+    /// An item of `head` (the headline, or what a diary sexp gives) for the
+    /// entry `entry_index`.
+    #[allow(clippy::too_many_arguments)]
+    fn line_item(
+        &self,
+        file: usize,
+        entry_index: usize,
+        head: &str,
+        kind: ItemKind,
+        face: Face,
+        extra: &str,
+        dotime: Dotime<'_>,
+    ) -> Item {
         let outline = self.files[file];
         let entry = &outline.entries[entry_index];
         let breadcrumbs = self.breadcrumbs(file, entry_index);
         let formatted = format_item(&FormatInput {
             format: &self.format,
             extra,
-            head: &entry.head,
+            head,
             category: &entry.category,
             tags: &entry.tags,
             dotime,
@@ -531,6 +549,36 @@ impl Builder<'_> {
             keyword_done,
             habit: None,
             graph: None,
+        }
+    }
+
+    /// `org-agenda-get-sexps`: the lines the diary sexps of the file give
+    /// on `current`, each a line of its own.
+    fn sexps(&self, file: usize, current: Day, out: &mut Vec<Item>) {
+        let outline = self.files[file];
+        for line in &outline.sexps {
+            let Some(results) = diary::entries(&line.sexp, &line.text, current) else { continue };
+            // Org has no entry for one before the first headline, and stops.
+            let Some(entry) = line.entry else {
+                let error = format!("Before first headline at position {}", line.offset + 1);
+                self.error.borrow_mut().get_or_insert(error);
+                continue;
+            };
+            if outline.entries[entry].skipped(self.config.archives) {
+                continue;
+            }
+            for result in results {
+                let text = if result.chars().any(|c| !c.is_whitespace()) {
+                    result
+                } else {
+                    "SEXP entry returned empty string".to_string()
+                };
+                let mut item =
+                    self.line_item(file, entry, &text, ItemKind::Sexp, Face::CalendarSexp, "", Dotime::Headline);
+                item.marker = Some(line.offset);
+                item.priority = 0;
+                out.push(item);
+            }
         }
     }
 
@@ -734,6 +782,29 @@ impl Builder<'_> {
             if stamp.offset < scanned_to {
                 continue;
             }
+            // `<%%(…)>`: shown on the days its sexp applies to.
+            if stamp.date.is_none() && stamp.repeat_end.is_none() {
+                let Some((sexp, shown)) = &stamp.diary else { continue };
+                scanned_to = stamp.offset + shown.text.len();
+                let entry = &outline.entries[shown.entry];
+                if entry.skipped(self.config.archives)
+                    || (entry.done && self.config.skip_timestamp_if_done)
+                    || diary::entries(sexp, "", current).is_none()
+                {
+                    continue;
+                }
+                let mut item = self.item(
+                    file,
+                    shown.entry,
+                    ItemKind::Timestamp,
+                    Face::CalendarEvent,
+                    "",
+                    Dotime::Text(&shown.text),
+                );
+                item.marker = Some(stamp.offset);
+                out.push(item);
+                continue;
+            }
             let (shown, repeats) = if stamp.date == Some(current_date) {
                 scanned_to = stamp.offset + 11;
                 (&stamp.on_date, false)
@@ -849,6 +920,7 @@ impl Builder<'_> {
         self.scheduled(file, current, out);
         self.blocks(file, current, out);
         self.timestamps(file, current, out);
+        self.sexps(file, current, out);
     }
 
     /// `org-agenda-add-time-grid-maybe`

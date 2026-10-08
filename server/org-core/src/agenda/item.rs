@@ -32,6 +32,8 @@ pub enum Face {
     Done,
     TimeGrid,
     CurrentTime,
+    /// What a diary sexp gives (`org-agenda-calendar-sexp`).
+    CalendarSexp,
     /// A line of the TODO list.
     Default,
 }
@@ -47,6 +49,8 @@ pub enum ItemKind {
     Grid,
     /// A line of log mode: closed, clocked, or a state change.
     Log,
+    /// What a diary sexp line gives (`org-agenda-get-sexps`).
+    Sexp,
 }
 
 /// Where an agenda line comes from.
