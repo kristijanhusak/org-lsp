@@ -736,6 +736,11 @@
         "category": "Org"
       },
       {
+        "command": "org.edit.special",
+        "title": "Edit the block in a file of its own",
+        "category": "Org"
+      },
+      {
         "command": "org.timer.start",
         "title": "Start the relative timer",
         "category": "Org"
@@ -4302,6 +4307,11 @@
       {
         "command": "org.block.previous",
         "key": "ctrl+c alt+b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.edit.special",
+        "key": "ctrl+c '",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

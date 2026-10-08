@@ -136,6 +136,7 @@ here and why.
 - [ ] Hovering a line shows its entry: the mouse
 - [ ] Rebuilding the agenda, saving the changed files, quitting: `r`, `s` or `Ctrl+X Ctrl+S`
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt
+- [ ] Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): *Org: Add today's appointments from the agenda files*
 
 ## Clocking
 
@@ -239,6 +240,8 @@ here and why.
 - [ ] Moving to the next and previous code block, and to any block (needs Emacs): `Ctrl+C Ctrl+V n` or `Ctrl+C Ctrl+V Ctrl+N`, `Ctrl+C Ctrl+V p` or `Ctrl+C Ctrl+V Ctrl+P`, `Ctrl+C Alt+F`, `Ctrl+C Alt+B`
 - [ ] Going to a named code block, picked from the names (needs Emacs): `Ctrl+C Ctrl+V g`
 - [ ] Typing in the file while a slow block runs: the results are dropped with a warning
+- [ ] Editing a code block in a file of its own: the file has the language's extension, its lines unindented and `,*` unescaped; saving it writes the block back and saves the Org file; the same block again shows the same file (needs Emacs): `Ctrl+C '`
+- [ ] The same at a footnote reference (its definition, the label kept), a LaTeX fragment and an export block; at `#+INCLUDE:` the file included is shown (needs Emacs): `Ctrl+C '`
 
 ## Export and publishing
 

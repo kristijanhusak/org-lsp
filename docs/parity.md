@@ -14,7 +14,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Highlighting](#highlighting) | 92% | 12 of 13 |
 | [Folding and visibility](#folding-and-visibility) | 67% | 6 of 9 |
 | [Headings and structure](#headings-and-structure) | 100% | 12 of 12 |
-| [Lists and checkboxes](#lists-and-checkboxes) | 91% | 10 of 11 |
+| [Lists and checkboxes](#lists-and-checkboxes) | 100% | 10 of 10 |
 | [TODO keywords](#todo-keywords) | 100% | 8 of 8 |
 | [Priorities](#priorities) | 100% | 3 of 3 |
 | [Tags](#tags) | 100% | 6 of 6 |
@@ -28,7 +28,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
 | [Tables](#tables) | 82% | 14 of 17 |
 | [Table formulas](#table-formulas) | 83% | 10 of 12 |
-| [Code blocks (Babel)](#code-blocks-babel) | 82% | 9 of 11 |
+| [Code blocks (Babel)](#code-blocks-babel) | 91% | 10 of 11 |
 | [Export and publishing](#export-and-publishing) | 67% | 6 of 9 |
 | [Citations](#citations) | 100% | 5 of 5 |
 | [Diagnostics (org-lint)](#diagnostics-org-lint) | 97% | 59 of 61 |
@@ -108,7 +108,7 @@ Where editors fall short:
 
 ## Lists and checkboxes
 
-91% (10 of 11)
+100% (10 of 10)
 
 - ✅ New items, numbered and with checkboxes (`M-RET`, `M-S-RET`)
 - ✅ `RET` in an item (`org-return`)
@@ -119,7 +119,6 @@ Where editors fall short:
 - ✅ Sorting items
 - ✅ Moving to the next and previous item
 - ✅ Turning lines into items and back (`C-c -`, through Emacs)
-- ❌ Radio lists
 - ✅ Circular motion between items (`org-list-use-circular-motion`)
 
 Where editors fall short:
@@ -377,7 +376,7 @@ Where editors fall short:
 
 ## Code blocks (Babel)
 
-82% (9 of 11)
+91% (10 of 11)
 
 - ✅ Tangling, with Noweb references, comments and header arguments from properties
 - ✅ Evaluating a block, a `#+CALL:` line and inline code (through Emacs)
@@ -385,7 +384,7 @@ Where editors fall short:
 - ✅ Removing results
 - ✅ Sessions
 - ✅ Asking before evaluating (`org-confirm-babel-evaluate`)
-- ❌ Editing a block in its own buffer (`C-c '`)
+- ✅ Editing a block in a file of its own (`C-c '`, through Emacs): code, example, export and comment blocks, footnote definitions, LaTeX, inline code; each save of the file writes it back and saves the Org file
 - ✅ Tangling's Emacs Lisp (evaluated header arguments, `<<block()>>`; through Emacs)
 - ❌ Detangling
 - ✅ Moving between blocks (`C-c C-v n`, `C-c C-v p`, `C-c C-v g`, `C-c M-f`, `C-c M-b`; through Emacs)
@@ -393,8 +392,8 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server.
-- Helix ❓: Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Helix cannot give a server.
+- Zed ❓: Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server.
+- Helix ❓: Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Helix cannot give a server.
 
 ## Export and publishing
 

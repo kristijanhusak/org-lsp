@@ -2248,6 +2248,78 @@ fn follows_attachment_links() {
     client.shutdown();
 }
 
+/// `org-edit-special` (`C-c '`): a code block in a file of its own, its
+/// text as Org's edit buffer has it; each save of the file writes it back
+/// as Org does (`org-edit-src-save`), and the Org file is saved. At
+/// `#+INCLUDE:`, the file included is shown.
+#[test]
+fn edits_blocks_in_files_of_their_own() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("edits_blocks_in_files_of_their_own: no Emacs, skipped");
+        return;
+    }
+    let directory = workspace("edit-special");
+    let file = directory.join("notes.org");
+    let mut text =
+        "* Code\n  #+begin_src python\n    x = 1\n    ,* not a heading\n  #+end_src\n#+INCLUDE: \"work.org\"\n"
+            .to_string();
+    std::fs::write(&file, &text).unwrap();
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, &text);
+    let run = |client: &mut Client, line: u32| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": 4 } });
+        client.received.clear();
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.edit.special", "arguments": [context] }))
+            .unwrap();
+        client.settle();
+        let shown =
+            client.received.iter().find(|request| request.method == "window/showDocument").expect("a file shown");
+        shown.params["uri"].as_str().unwrap().to_string()
+    };
+    let edited = PathBuf::from(run(&mut client, 2).strip_prefix("file://").unwrap());
+    assert!(edited.ends_with("notes-edit.py"), "{}", edited.display());
+    assert_eq!(std::fs::read_to_string(&edited).unwrap(), "x = 1\n* not a heading\n");
+    // Saved: written back, indented and escaped as Org writes it.
+    let save = |client: &mut Client, text: &mut String, content: &str| {
+        client.received.clear();
+        client.notifications.clear();
+        std::fs::write(&edited, content).unwrap();
+        let start = std::time::Instant::now();
+        while !client.received.iter().any(|request| request.method == "workspace/applyEdit")
+            && start.elapsed() < std::time::Duration::from_secs(10)
+        {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            client.settle();
+        }
+        apply_received(client, &uri, text);
+        let saved = client
+            .notifications
+            .iter()
+            .any(|notification| notification.method == "org-lsp/save" && notification.params["uris"][0] == json!(uri));
+        assert!(saved, "{:?}", client.notifications);
+    };
+    save(&mut client, &mut text, "x = 2\n* still not a heading\n");
+    assert_eq!(
+        text,
+        "* Code\n  #+begin_src python\n    x = 2\n    ,* still not a heading\n  #+end_src\n#+INCLUDE: \"work.org\"\n"
+    );
+    // Again: the block as it is now.
+    save(&mut client, &mut text, "y = 3\n");
+    assert_eq!(text, "* Code\n  #+begin_src python\n    y = 3\n  #+end_src\n#+INCLUDE: \"work.org\"\n");
+    // The same block again: the same file.
+    assert_eq!(run(&mut client, 2), format!("file://{}", edited.display()));
+    assert_eq!(run(&mut client, 4), format!("file://{}", directory.join("work.org").display()));
+    client.shutdown();
+}
+
 fn workspace(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("org-lsp-agenda-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

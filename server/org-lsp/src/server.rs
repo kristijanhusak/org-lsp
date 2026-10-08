@@ -130,6 +130,32 @@ enum EmacsJob {
     /// `version`: the text Emacs leaves becomes an edit, unless the
     /// document changed meanwhile.
     Edit { uri: Uri, version: i32, text: String, point: usize },
+    /// The text of the file `file` (`content`) written back into the part
+    /// of `uri` it edits (see [`SpecialEdit`]), run on `text`, its `version`.
+    WriteBack { file: PathBuf, uri: Uri, version: i32, text: String, content: String },
+}
+
+/// A part of an Org file edited in a file of its own (`org-edit-special`):
+/// what the file says goes back each time the editor saves it, as Org
+/// writes its edit buffer back (`org-edit-src-save`), and the Org file is
+/// saved.
+struct SpecialEdit {
+    /// The file the part is edited in.
+    file: PathBuf,
+    /// When it was last changed, as the server last saw.
+    modified: Option<std::time::SystemTime>,
+    /// What it said when it was last written back, or made.
+    content: String,
+    /// The Org file.
+    uri: Uri,
+    /// Where `org-edit-special` edits the part again (a character, from 1).
+    point: usize,
+    /// The part (characters, from 1), and its text.
+    begin: usize,
+    end: usize,
+    region: String,
+    /// Emacs is writing it back.
+    busy: bool,
 }
 
 /// Text that goes in place of `start..end`.
@@ -646,6 +672,13 @@ struct Server {
     /// When the countdown Org runs in Emacs (`org-timer-set-timer`) ends:
     /// Emacs in batch runs no timers, so the server says it.
     countdown: Option<std::time::Instant>,
+    /// The parts of Org files edited in files of their own, and where
+    /// those files are.
+    special_edits: Vec<SpecialEdit>,
+    special_directory: PathBuf,
+    /// Twice a second, while there are some: whether their files were
+    /// saved.
+    special_tick: crossbeam_channel::Receiver<std::time::Instant>,
     /// When `appt.el` in Emacs checks the appointments next, while it has
     /// some: each minute, as its timer would.
     appt_check: Option<std::time::Instant>,
@@ -947,6 +980,9 @@ pub fn run(connection: Connection) -> Result<()> {
         structure_templates: None,
         countdown: None,
         appt_check: None,
+        special_edits: Vec::new(),
+        special_directory: server_directory("edit"),
+        special_tick: crossbeam_channel::tick(std::time::Duration::from_millis(500)),
         appt_minute: std::time::Duration::from_secs_f64(
             options.clock.as_ref().and_then(|clock| clock.minute).unwrap_or(60.0),
         ),
@@ -1041,6 +1077,8 @@ pub fn run(connection: Connection) -> Result<()> {
     loop {
         let alarm = server.countdown.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
         let appt = server.appt_check.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
+        let special =
+            if server.special_edits.is_empty() { crossbeam_channel::never() } else { server.special_tick.clone() };
         let overrun =
             server.overrun.as_ref().map_or_else(crossbeam_channel::never, |(at, _)| crossbeam_channel::at(*at));
         crossbeam_channel::select! {
@@ -1069,6 +1107,7 @@ pub fn run(connection: Connection) -> Result<()> {
             recv(alarm) -> _ => server.countdown_done(),
             recv(overrun) -> _ => server.overrun_done(),
             recv(appt) -> _ => server.appt_check(),
+            recv(special) -> _ => server.check_special_edits(),
         }
     }
     server.remove_view_file();
@@ -1076,6 +1115,9 @@ pub fn run(connection: Connection) -> Result<()> {
         let _ = std::fs::remove_dir_all(&server.capture_directory);
     }
     let _ = std::fs::remove_dir_all(&server.export_directory);
+    if !server.special_edits.is_empty() {
+        let _ = std::fs::remove_dir_all(&server.special_directory);
+    }
     Ok(())
 }
 
@@ -2340,6 +2382,7 @@ impl Server {
         for (id, offered) in [
             (commands::TANGLE, in_code),
             (commands::BABEL_EXECUTE, in_code),
+            (commands::EDIT_SPECIAL, in_code),
             (commands::CLOCK_IN, in_entry),
             (commands::CLOCK_OUT, running),
             (commands::CLOCK_CANCEL, running),
@@ -3870,6 +3913,9 @@ impl Server {
         if params.command == commands::CAPTURE {
             let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
             return self.capture(&context);
+        }
+        if params.command == commands::EDIT_SPECIAL {
+            return self.edit_special(argument);
         }
         let context: Option<Context> = argument.and_then(|value| serde_json::from_value(value).ok());
         // Off a table, `C-c -` and `C-c *` turn lines into items and
@@ -7749,6 +7795,9 @@ impl Server {
                         self.send_request::<ShowDocument>(params, None);
                     }
                 }
+                (Some(EmacsJob::WriteBack { file, uri, version, text, content }), result) => {
+                    self.written_back(&file, &uri, version, &text, content, result);
+                }
                 (None, _) => {}
             },
         }
@@ -7788,6 +7837,222 @@ impl Server {
             self.overrun_said = self.running.as_ref().map(|running| running.start);
             self.show_message(MessageType::INFO, message);
         }
+    }
+
+    /// `org-edit-special` (`C-c '`), through Emacs. What Org edits in a
+    /// buffer of its own goes in a file of its own, shown, its text as Org
+    /// puts it there (indentation and commas taken away); at `#+INCLUDE:`
+    /// and the like, the file is shown; at a date, a planning line or a
+    /// link, the command Org runs there runs.
+    fn edit_special(&mut self, argument: Option<Value>) -> std::result::Result<Value, Refusal> {
+        let context: Context = argument
+            .clone()
+            .and_then(|value| serde_json::from_value(value).ok())
+            .ok_or("This command needs the cursor position")?;
+        let uri = context.text_document.uri.clone();
+        let path = uri::to_path(&uri).ok_or("Only a file on disk can be edited through Emacs")?;
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+        let point = document.text[..offset].chars().count() + 1;
+        let params = json!({ "file": path.to_string_lossy(), "text": document.text, "point": point });
+        let result =
+            self.emacs.call("edit-special", params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
+        if let Some(file) = result.get("visit").and_then(Value::as_str) {
+            let target = uri::from_path(Path::new(file)).ok_or("This file cannot be shown")?;
+            let params = ShowDocumentParams { uri: target, external: None, take_focus: Some(true), selection: None };
+            self.send_request::<ShowDocument>(params, None);
+            return Ok(Value::Null);
+        }
+        if let Some(other) = result.get("other").and_then(Value::as_str) {
+            let command = match other {
+                "table" => return Err(Refusal::Failed("The formula editor is not supported".to_string())),
+                "deadline" => commands::DEADLINE,
+                "schedule" => commands::SCHEDULE,
+                "timestamp-inactive" => commands::TIMESTAMP_INSERT_INACTIVE,
+                "link" => commands::OPEN,
+                _ => commands::TIMESTAMP_INSERT,
+            };
+            let params = ExecuteCommandParams {
+                command: command.to_string(),
+                arguments: argument.into_iter().collect(),
+                work_done_progress_params: Default::default(),
+            };
+            return self.execute_command(params);
+        }
+        let edit = result.get("edit").ok_or("No special environment to edit here")?;
+        let field = |key: &str| edit.get(key).and_then(Value::as_str).unwrap_or_default().to_string();
+        let number = |key: &str| edit.get(key).and_then(Value::as_u64).unwrap_or(1) as usize;
+        let (begin, end, region) = (number("begin"), number("end"), field("region"));
+        // The part edited already: its file again.
+        if let Some(open) = self
+            .special_edits
+            .iter()
+            .find(|open| open.uri == uri && open.begin == begin && open.region == region && open.file.exists())
+        {
+            let target = uri::from_path(&open.file).ok_or("This file cannot be shown")?;
+            let params = ShowDocumentParams { uri: target, external: None, take_focus: Some(true), selection: None };
+            self.send_request::<ShowDocument>(params, None);
+            return Ok(Value::Null);
+        }
+        let content = field("text");
+        let stem = path.file_stem().map(|stem| stem.to_string_lossy().into_owned()).unwrap_or_default();
+        let directory = self.special_directory.join(self.special_edits.len().to_string());
+        let file = directory.join(format!("{stem}-edit.{}", field("extension")));
+        std::fs::create_dir_all(&directory)
+            .and_then(|()| std::fs::write(&file, &content))
+            .map_err(|error| Refusal::Failed(format!("Cannot write {}: {error}", file.display())))?;
+        let target = uri::from_path(&file).ok_or("This file cannot be shown")?;
+        self.special_edits.push(SpecialEdit {
+            modified: std::fs::metadata(&file).and_then(|metadata| metadata.modified()).ok(),
+            file,
+            content,
+            uri,
+            // In the part, Org edits it again from its start; at a footnote
+            // reference, from there.
+            point: if (begin..=end).contains(&point) { begin } else { point },
+            begin,
+            end,
+            region,
+            busy: false,
+        });
+        let params = ShowDocumentParams { uri: target, external: None, take_focus: Some(true), selection: None };
+        self.send_request::<ShowDocument>(params, None);
+        self.message = Some(format!("{}: saving the file writes it back", field("name")));
+        Ok(Value::Null)
+    }
+
+    /// Whether the files of [`Server::edit_special`] were saved: each that
+    /// says something new is written back.
+    fn check_special_edits(&mut self) {
+        for index in 0..self.special_edits.len() {
+            let edit = &mut self.special_edits[index];
+            if edit.busy {
+                continue;
+            }
+            let Ok(modified) = std::fs::metadata(&edit.file).and_then(|metadata| metadata.modified()) else {
+                continue;
+            };
+            if edit.modified == Some(modified) {
+                continue;
+            }
+            edit.modified = Some(modified);
+            match std::fs::read_to_string(&edit.file) {
+                Ok(content) if content != edit.content => self.write_back(index, content),
+                _ => {}
+            }
+        }
+    }
+
+    /// `org-edit-src-save`: Emacs writes `content` back into the part
+    /// `index` edits, unless that part changed in the Org file since.
+    fn write_back(&mut self, index: usize, content: String) {
+        let edit = &self.special_edits[index];
+        let name = edit.file.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+        let Some(path) = uri::to_path(&edit.uri) else { return };
+        let Some(document) = self.document(&edit.uri) else {
+            let message = format!("{name}: {} is not open, so nothing was written back", path.display());
+            self.show_message(MessageType::ERROR, message);
+            return;
+        };
+        let text = document.text.clone();
+        let version = document.version;
+        let byte = |at: usize| text.char_indices().nth(at.saturating_sub(1)).map_or(text.len(), |(byte, _)| byte);
+        let mut point = edit.point;
+        if text.get(byte(edit.begin)..byte(edit.end)) != Some(edit.region.as_str()) {
+            // Moved, by changes before it: found again when it is the only
+            // such text, and edited from its start.
+            let found: Vec<usize> = text.match_indices(&edit.region).map(|(at, _)| at).collect();
+            match found[..] {
+                [at] if edit.point == edit.begin && !edit.region.is_empty() => {
+                    point = text[..at].chars().count() + 1;
+                }
+                _ => {
+                    let message = format!(
+                        "{name}: what it edits in {} changed; nothing was written back. Edit it again with C-c '.",
+                        path.display()
+                    );
+                    self.show_message(MessageType::ERROR, message);
+                    return;
+                }
+            }
+        }
+        let params = json!({
+            "file": path.to_string_lossy(),
+            "text": text,
+            "point": point,
+            "command": "org-lsp-bridge-edit-special-save",
+            "args": [content],
+        });
+        let edit = &mut self.special_edits[index];
+        edit.busy = true;
+        let job = EmacsJob::WriteBack { file: edit.file.clone(), uri: edit.uri.clone(), version, text, content };
+        self.next_export += 1;
+        let tag = self.next_export;
+        self.emacs_jobs.insert(tag, job);
+        self.emacs.start(tag, "run", params);
+    }
+
+    /// What Emacs wrote back (see [`Server::write_back`]) becomes an edit
+    /// of the Org file, which the editor then saves.
+    fn written_back(
+        &mut self,
+        file: &Path,
+        uri: &Uri,
+        version: i32,
+        old: &str,
+        content: String,
+        result: std::result::Result<Value, String>,
+    ) {
+        let Some(index) = self.special_edits.iter().position(|edit| edit.file == file) else { return };
+        self.special_edits[index].busy = false;
+        let result = match result {
+            Ok(result) => result,
+            Err(error) => {
+                self.show_message(MessageType::ERROR, error);
+                return;
+            }
+        };
+        if self.document(uri).map(|document| document.version) != Some(version) {
+            self.show_message(
+                MessageType::WARNING,
+                "The Org file changed while Emacs wrote the edit back; nothing was changed. Save again.",
+            );
+            return;
+        }
+        let new = result.get("text").and_then(Value::as_str).unwrap_or(old).to_string();
+        let number = |key: &str| result.get("extra").and_then(|extra| extra.get(key)).and_then(Value::as_u64);
+        let edit = &mut self.special_edits[index];
+        if let (Some(begin), Some(end)) = (number("begin"), number("end")) {
+            let (begin, end) = (begin as usize, end as usize);
+            let chars: Vec<char> = new.chars().collect();
+            let (old_begin, old_end) = (edit.begin, edit.end);
+            edit.point = if edit.point == old_begin {
+                begin
+            } else if edit.point > old_end {
+                (edit.point + end).saturating_sub(old_end)
+            } else {
+                edit.point
+            };
+            edit.region =
+                chars.get(begin.saturating_sub(1)..end.saturating_sub(1)).unwrap_or_default().iter().collect();
+            edit.begin = begin;
+            edit.end = end;
+        }
+        edit.content = content;
+        if new == old {
+            return;
+        }
+        // Org saves the file it writes back to.
+        let edits = self.text_edits(old, &new);
+        let edit = self.workspace_edit(uri, Some(version), edits);
+        let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
+        let request = self.new_request(
+            ApplyWorkspaceEdit::METHOD,
+            serde_json::to_value(params).unwrap_or(Value::Null),
+            Some(Pending::Edit),
+        );
+        self.saving.insert(request.id.clone(), vec![uri.clone()]);
+        let _ = self.sender.send(Message::Request(request));
     }
 
     /// `org-agenda-to-appt`: Emacs's `appt.el` adds today's entries with

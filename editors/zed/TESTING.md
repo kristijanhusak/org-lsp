@@ -118,6 +118,7 @@ here and why.
 - [ ] Hovering a line shows its entry: the mouse
 - [ ] Rebuilding the agenda, saving the changed files, quitting: the code action *Agenda: rebuild*, the code action *Save all Org files*
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt
+- [ ] Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): the code action *Add today's appointments from the agenda files*
 
 ## Clocking
 
@@ -201,13 +202,14 @@ here and why.
 
 ## Code blocks (Babel)
 
-**Partly:** Only tangling and the block at the cursor are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server.
+**Partly:** Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server.
 
 - [ ] Tangling writes each block to its `:tangle` file, `:mkdirp` and `:shebang` applied: the code action *Tangle the file's code blocks*
 - [ ] A `:tangle (concat "out" ".el")` block is tangled by Emacs to `out.el` (needs Emacs): the code action *Tangle the file's code blocks*
 - [ ] Evaluating an `emacs-lisp` block asks first (yes or no), then puts `#+RESULTS:` below it (needs Emacs): the code action *Evaluate the code block or call at the cursor through Emacs*
 - [ ] `src_emacs-lisp{(* 6 7)}` gets `{{{results(=42=)}}}`; a `#+CALL:` line its results: the code action *Evaluate the code block or call at the cursor through Emacs*
 - [ ] Typing in the file while a slow block runs: the results are dropped with a warning
+- [ ] Editing a code block in a file of its own: the file has the language's extension, its lines unindented and `,*` unescaped; saving it writes the block back and saves the Org file; the same block again shows the same file (needs Emacs): the code action *Edit the block in a file of its own*
 
 ## Export and publishing
 
