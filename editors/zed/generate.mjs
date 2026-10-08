@@ -70,6 +70,7 @@ const looks = {
   'agendaDeadline.imminent': ['keyword'],
   'agendaDeadline.distant': ['comment'],
   agendaDone: ['comment'],
+  agendaDimmed: ['comment'],
   agendaTimeGrid: ['comment'],
   'agendaTimeGrid.current': ['emphasis.strong'],
   agendaClocking: ['emphasis.strong'],

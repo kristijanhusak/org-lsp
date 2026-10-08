@@ -61,6 +61,7 @@ token_types! {
     AgendaDone => "agendaDone",
     AgendaTimeGrid => "agendaTimeGrid",
     AgendaClocking => "agendaClocking",
+    AgendaDimmed => "agendaDimmed",
     CalendarHeader => "calendarHeader",
     CalendarWeekday => "calendarWeekday",
     CalendarSelected => "calendarSelected",

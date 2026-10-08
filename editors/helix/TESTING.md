@@ -49,6 +49,7 @@ here and why.
 **Partly:** A note for a state change (`@`) cannot be typed: Helix cannot ask for text on a server's behalf.
 
 - [ ] With `org_enforce_todo_dependencies`, a parent with a child not done cannot be done: the change is refused with `blocked (by "TODO Child")`; with `org_enforce_todo_checkbox_dependencies`, an entry with an unchecked box cannot either: the code action *Change the TODO state*
+- [ ] Those tasks are dimmed in the agenda and the TODO list
 - [ ] Changing the TODO state of a headline (with `org_todo_keywords` keys, picked by key): the code action *Change the TODO state*
 - [ ] Done with `org_log_done = "time"` writes `CLOSED: [...]` below the headline: the code action *Change the TODO state*
 - [ ] Done on a repeating entry (`<2026-01-01 Thu +1w>`) moves its date a week on and keeps it TODO: the code action *Change the TODO state*

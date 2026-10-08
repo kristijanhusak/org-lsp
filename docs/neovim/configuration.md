@@ -293,6 +293,12 @@ require('org-lsp').setup({
     -- refused with what blocks it. (org-enforce-todo-dependencies)
     org_enforce_todo_dependencies = false,
 
+    -- Dim the tasks of the agenda and the TODO list that their dependencies
+    -- keep from being done (with `org_enforce_todo_dependencies` or
+    -- `org_enforce_todo_checkbox_dependencies`).
+    -- (org-agenda-dim-blocked-tasks)
+    org_agenda_dim_blocked_tasks = true,
+
     -- An entry cannot be done while it has an unchecked box.
     -- (org-enforce-todo-checkbox-dependencies)
     org_enforce_todo_checkbox_dependencies = false,

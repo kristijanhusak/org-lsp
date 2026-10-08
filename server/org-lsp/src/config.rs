@@ -33,6 +33,9 @@ pub struct Options {
     /// `org-log-repeat`: `false`, `"time"` or `"note"`.
     #[serde(rename = "org_log_repeat")]
     pub log_repeat: Option<LogOption>,
+    /// `org-agenda-dim-blocked-tasks`
+    #[serde(rename = "org_agenda_dim_blocked_tasks")]
+    pub agenda_dim_blocked_tasks: Option<bool>,
     /// `org-enforce-todo-dependencies`
     #[serde(rename = "org_enforce_todo_dependencies")]
     pub enforce_todo_dependencies: Option<bool>,

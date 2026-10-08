@@ -99,6 +99,14 @@ pub const SETTINGS: &[Setting] = &[
          an earlier sibling is not: the change is refused with what blocks it.",
     ),
     setting(
+        "org_agenda_dim_blocked_tasks",
+        "boolean",
+        "true",
+        "org-agenda-dim-blocked-tasks",
+        "Dim the tasks of the agenda and the TODO list that their dependencies keep from being done (with \
+         `org_enforce_todo_dependencies` or `org_enforce_todo_checkbox_dependencies`).",
+    ),
+    setting(
         "org_enforce_todo_checkbox_dependencies",
         "boolean",
         "false",
@@ -1153,6 +1161,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_todo_keywords", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_log_done", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_repeat", r#"{ "enum": [false, "time", "note"] }"#),
+    ("org_agenda_dim_blocked_tasks", BOOLEAN),
     ("org_enforce_todo_dependencies", BOOLEAN),
     ("org_enforce_todo_checkbox_dependencies", BOOLEAN),
     ("org_log_refile", r#"{ "enum": [false, "time", "note"] }"#),
