@@ -3017,9 +3017,9 @@ impl Server {
         }
     }
 
-    /// `org-id-find`: the file and the headline of the entry with this
-    /// `ID`, in the files open in the editor, then in the agenda files.
-    fn find_id(&mut self, id: &str) -> Option<(Uri, usize)> {
+    /// The files whose IDs Org knows: those open in the editor, then the
+    /// agenda files.
+    fn id_paths(&mut self) -> Vec<PathBuf> {
         let mut paths: Vec<PathBuf> =
             self.documents.keys().filter_map(|key| uri::to_path(&key.parse().ok()?)).collect();
         paths.sort();
@@ -3028,7 +3028,13 @@ impl Server {
                 paths.push(path);
             }
         }
-        for path in paths {
+        paths
+    }
+
+    /// `org-id-find`: the file and the headline of the entry with this
+    /// `ID`, in the files open in the editor, then in the agenda files.
+    fn find_id(&mut self, id: &str) -> Option<(Uri, usize)> {
+        for path in self.id_paths() {
             let Some((target, text)) = self.file_text(&path) else { continue };
             if let Some(offset) = open::find_id(&org_syntax::parse(&text, &self.todo), id) {
                 return Some((target, offset));
@@ -5900,6 +5906,8 @@ impl Server {
         let offset = document.index.offset(&text, context.position, encoding);
         let (path, home) = Self::link_file(&uri).ok_or("This file has no name")?;
         let file = link::File { path: &path, home: home.as_deref() };
+        // The other file an `id:` link's entry got its ID in.
+        let mut elsewhere: Option<(Uri, Option<i32>, String, String)> = None;
         let inserted = if id == commands::LINK_INSERT {
             let prefix = match context.count {
                 Some(4) => 1,
@@ -5915,8 +5923,98 @@ impl Server {
                     None => return Ok(Value::Null),
                 }
             }
-            let step = link::insert(&text, offset, &file, &self.stored_links, prefix, &answers, &self.link_settings)
-                .map_err(Refusal::Failed)?;
+            let abbreviations = open::abbreviations(&text, &self.link_abbreviations);
+            // What `id:` links complete to and are described by: this file,
+            // and the files with IDs (`org-id-files`), read only when an
+            // `id:` link is being inserted.
+            let wants_ids = answers.iter().any(|answer| answer == "id" || answer.starts_with("id:"))
+                || self.stored_links.first().is_some_and(|(link, _)| link.starts_with("id:"));
+            let mut others: Vec<(Uri, Option<i32>, String, org_syntax::Parse)> = Vec::new();
+            if wants_ids {
+                let own = uri::to_path(&uri);
+                for path in self.id_paths() {
+                    if Some(&path) == own.as_ref() {
+                        continue;
+                    }
+                    let Some((other, text)) = self.file_text(&path) else { continue };
+                    if link::has_ids(&text) {
+                        let version = self.document(&other).map(|document| document.version);
+                        let parse = org_syntax::parse(&text, &self.todo);
+                        others.push((other, version, text, parse));
+                    }
+                }
+            }
+            let parse = org_syntax::parse(&text, &self.todo);
+            let keywords = parse.todo_keywords().clone();
+            let names: Vec<String> =
+                std::iter::once(&uri).chain(others.iter().map(|(other, ..)| other)).map(uri::file_name).collect();
+            let paths: Vec<String> = std::iter::once(&uri)
+                .chain(others.iter().map(|(other, ..)| other))
+                .map(|file| {
+                    uri::to_path(file).map_or_else(|| file.as_str().to_string(), |path| path.display().to_string())
+                })
+                .collect();
+            let other_keywords: Vec<_> = others.iter().map(|(.., parse)| parse.todo_keywords().clone()).collect();
+            let refile_files: Vec<refile::File> = (0..names.len())
+                .map(|index| refile::File {
+                    text: if index == 0 { &text } else { &others[index - 1].2 },
+                    keywords: if index == 0 { &keywords } else { &other_keywords[index - 1] },
+                    name: &names[index],
+                    path: &paths[index],
+                    title: None,
+                })
+                .collect();
+            let targets = if wants_ids { link::id_targets(&refile_files) } else { Vec::new() };
+            let entries = refile::names(&targets);
+            let (edit_settings, category) = (self.edit_settings.clone(), uri::file_stem(&uri));
+            let context = edit::property_context(&parse, &edit_settings, &category);
+            let mut made_there = None;
+            let mut id_entry = |answer: &str| {
+                let (index, target) = refile::find(&targets, answer)?;
+                let offset = target.offset?;
+                if *index == 0 {
+                    return Some(link::IdEntry::Here(offset));
+                }
+                let (other, version, other_text, other_parse) = &others[index - 1];
+                let other_context = edit::property_context(other_parse, &edit_settings, &uri::file_stem(other));
+                let (edited, id) = link::id_get_create(other_text, offset, &other_context, &mut link::new_uuid).ok()?;
+                made_there = edited.map(|(edited, _)| (other.clone(), *version, other_text.clone(), edited));
+                let heading = link::entry_heading(other_text, offset, &other_keywords[index - 1]);
+                Some(link::IdEntry::There { id, heading })
+            };
+            // `org-id-find`, in this file and the files with IDs.
+            let mut id_heading = |id: &str| {
+                std::iter::once((&parse, text.as_str(), &keywords))
+                    .chain(
+                        others
+                            .iter()
+                            .zip(&other_keywords)
+                            .map(|((_, _, text, parse), keywords)| (parse, text.as_str(), keywords)),
+                    )
+                    .find_map(|(parse, text, keywords)| {
+                        open::find_id(parse, id).map(|offset| link::entry_heading(text, offset, keywords))
+                    })
+            };
+            let mut outside = link::Outside {
+                abbreviations: &abbreviations,
+                id_entries: &entries,
+                id_entry: &mut id_entry,
+                id_heading: &mut id_heading,
+                context: &context,
+                new_id: &mut link::new_uuid,
+            };
+            let step = link::insert(
+                &text,
+                offset,
+                &file,
+                &self.stored_links,
+                prefix,
+                &answers,
+                &self.link_settings,
+                &mut outside,
+            )
+            .map_err(Refusal::Failed)?;
+            elsewhere = made_there;
             match step {
                 link::Step::Ask(question) => {
                     return Ok(json!({ "input": {
@@ -5947,8 +6045,12 @@ impl Server {
             }
         };
         self.stored_links = inserted.stored;
-        let edits = self.text_edits(&text, &inserted.text);
-        let edit = self.workspace_edit(&uri, Some(version), edits);
+        let mut documents = vec![(uri.clone(), Some(version), self.text_edits(&text, &inserted.text))];
+        if let Some((other, other_version, before, after)) = elsewhere {
+            self.edited.insert(other.as_str().to_string());
+            documents.push((other, other_version, self.text_edits(&before, &after)));
+        }
+        let edit = self.workspace_edits(documents);
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
         let position = LineIndex::new(&inserted.text).position(&inserted.text, inserted.cursor, encoding);
         self.apply_edit(params, Pending::EditAndMove { uri, position });

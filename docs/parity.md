@@ -24,7 +24,7 @@ decides the outcome (see "How the work is checked" in PLAN.md).
 | [Clocking](#clocking) | 100% | 8 of 8 |
 | [Capture](#capture) | 73% | 8 of 11 |
 | [Refile and archive](#refile-and-archive) | 73% | 8 of 11 |
-| [Links](#links) | 70% | 7 of 10 |
+| [Links](#links) | 82% | 9 of 11 |
 | [Footnotes](#footnotes) | 100% | 4 of 4 |
 | [Tables](#tables) | 65% | 11 of 17 |
 | [Table formulas](#table-formulas) | 83% | 10 of 12 |
@@ -294,7 +294,7 @@ Where editors fall short:
 
 ## Links
 
-70% (7 of 10)
+82% (9 of 11)
 
 - ✅ Following links: headlines, targets, custom IDs, files with searches, IDs, URLs, timestamps, tags
 - ✅ Storing and inserting links, with descriptions, editing the link at the cursor
@@ -304,7 +304,8 @@ Where editors fall short:
 - ✅ Link abbreviations (`#+LINK:`, `org-link-abbrev-alist`)
 - ❌ Link abbreviations that call a function (`%(…)`)
 - ❌ A region as the search of a stored link
-- ❌ Completing `id:` and `help:` links
+- ✅ Completing `id:` links to entries, which get an ID (`org-id-complete`; Org completes no `help:` links)
+- ✅ Default descriptions from the link type: an `id:` link's headline, an `info:` link's command
 - ✅ Moving to the next and previous link (`C-c C-x C-n`, `C-c C-x C-p`)
 
 Where editors fall short:

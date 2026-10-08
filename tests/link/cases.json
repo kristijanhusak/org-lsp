@@ -2787,5 +2787,302 @@
       "org_id_link_to_org_use_id": "create-if-interactive"
     },
     "expected": "{\"files\":{\"main.org\":\"** Child entry\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n¦\"},\"stored\":[[\"id:id-1\",\"Child entry\"]],\"returned\":[\"[[id:id-1][Child entry]]\"]}"
+  },
+  {
+    "text": "* Alpha\n** Beta\ntext¦\n* Gamma :tag:\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:",
+        "Alpha/Beta/",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Alpha\\n** Beta\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\ntext[[id:id-1][Beta]]¦\\n* Gamma :tag:\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Alpha\n** Beta\ntext¦\n* Gamma :tag:\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "id",
+        "Gamma/",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Alpha\\n** Beta\\ntext[[id:id-1][Gamma]]¦\\n* Gamma :tag:\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Alpha\n** Beta\ntext¦\n* Gamma :tag:\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:",
+        "Alpha",
+        "Mine"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Alpha\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n** Beta\\ntext[[id:id-1][Mine]]¦\\n* Gamma :tag:\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* TODO [#A] COMMENT See [[https://x.org][site]] and [[https://y.org]] :t:\nbody¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:",
+        "See site and https:\\/\\/y.org/",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* TODO [#A] COMMENT See [[https://x.org][site]] and [[https://y.org]] :t:\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\nbody[[id:id-1][See site and https://y.org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n:PROPERTIES:\n:ID: abc\n:END:\n* B\nx¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:",
+        "A/",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* A\\n:PROPERTIES:\\n:ID: abc\\n:END:\\n* B\\nx[[id:abc][A]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n:PROPERTIES:\n:ID: abc\n:END:\n* B\nx [[id:abc]]¦ y\n",
+    "steps": [
+      [
+        "goto",
+        "id:abc"
+      ],
+      [
+        "insert",
+        "",
+        "id:abc",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* A\\n:PROPERTIES:\\n:ID: abc\\n:END:\\n* B\\nx [[id:abc][A]]¦ y\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* A\n* B\nx¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:",
+        "Nowhere/",
+        "id:typed",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* A\\n* B\\nx[[id:typed]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "no headings ¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:",
+        "id:zzz",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"no headings [[id:zzz]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Here\nx¦\n",
+    "files": [
+      [
+        "other.org",
+        "* Far\n:PROPERTIES:\n:ID: far-id\n:END:\n** Child\n"
+      ]
+    ],
+    "id_files": [
+      "other.org"
+    ],
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:",
+        "Far/Child/ (other.org)",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Here\\nx[[id:id-1][Child]]¦\\n\",\"other.org\":\"* Far\\n:PROPERTIES:\\n:ID: far-id\\n:END:\\n** Child\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Here\nx¦\n",
+    "files": [
+      [
+        "other.org",
+        "* Far\n:PROPERTIES:\n:ID: far-id\n:END:\n** Child\n"
+      ]
+    ],
+    "id_files": [
+      "other.org"
+    ],
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:",
+        "Far/ (other.org)",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Here\\nx[[id:far-id][Far]]¦\\n\",\"other.org\":\"* Far\\n:PROPERTIES:\\n:ID: far-id\\n:END:\\n** Child\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Here\n:PROPERTIES:\n:ID: here-id\n:END:\nx¦\n",
+    "files": [
+      [
+        "other.org",
+        "* Far\n"
+      ]
+    ],
+    "id_files": [
+      "other.org"
+    ],
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:",
+        "Far/ (other.org)",
+        null,
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Here\\n:PROPERTIES:\\n:ID: here-id\\n:END:\\nx[[id:]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* Here\nx¦\n",
+    "files": [
+      [
+        "other.org",
+        "* Far\n:PROPERTIES:\n:ID: far-id\n:END:\n"
+      ]
+    ],
+    "id_files": [
+      "other.org"
+    ],
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:far-id",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* Here\\nx[[id:far-id][Far]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* TODO [#A] COMMENT\n* [#B] COMMENT  Spaced :t:\n* COMMENTED\nx¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:",
+        "Spaced/",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* TODO [#A] COMMENT\\n* [#B] COMMENT  Spaced :t:\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\n* COMMENTED\\nx[[id:id-1][Spaced]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "* TODO [#A] COMMENT\n* [#B] COMMENT  Spaced :t:\n* COMMENTED\nx¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "id:",
+        "COMMENTED/",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"* TODO [#A] COMMENT\\n* [#B] COMMENT  Spaced :t:\\n* COMMENTED\\n:PROPERTIES:\\n:ID:       id-1\\n:END:\\nx[[id:id-1][COMMENTED]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "x¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "info:",
+        "info:elisp#Non-ASCII in Strings",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"x[[info:elisp#Non-ASCII in Strings][info \\\"(elisp) Non-ASCII in Strings\\\"]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "x¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "info:emacs",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"x[[info:emacs][info emacs]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "x¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "info:dir",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"x[[info:dir][info \\\"(dir)\\\"]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "x¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "info: :Top",
+        "Given"
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"x[[info: :Top][Given]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "#+LINK: gh https://github.com/%s\n* A\nx¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "gh:",
+        "gh:org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"#+LINK: gh https://github.com/%s\\n* A\\nx[[gh:org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
+  },
+  {
+    "text": "#+LINK: gh https://github.com/%s\n* A\nx¦\n",
+    "steps": [
+      [
+        "insert",
+        "",
+        "gh",
+        "gh:org",
+        null
+      ]
+    ],
+    "expected": "{\"files\":{\"main.org\":\"#+LINK: gh https://github.com/%s\\n* A\\nx[[gh:org]]¦\\n\"},\"stored\":[],\"returned\":[]}"
   }
 ]

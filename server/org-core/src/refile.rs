@@ -271,11 +271,10 @@ fn path_part(text: &str, offset: usize, file: &File) -> String {
     let Some((from, to)) = complex_heading_title(line, level, file.keywords) else { return String::new() };
     let title = link_display_format(&COOKIE.replace_all(&line[from..to], ""));
     let title = title.trim_matches([' ', '\t', '\n', '\r']);
-    let commented = line[level..].trim_start_matches(' ').starts_with("COMMENT")
-        && line[level..].trim_start_matches(' ')["COMMENT".len()..]
-            .chars()
-            .next()
-            .is_none_or(|c| c == ' ' || c == '\t');
+    // `:commentedp`: the title, after any keyword and priority, starts
+    // with `COMMENT` and a space or the end of the line.
+    let commented = line[from..].strip_prefix("COMMENT").is_some_and(|rest| rest.is_empty() || rest.starts_with(' '))
+        || line[from..to] == *"COMMENT";
     if commented {
         COMMENT.replace(title, "").into_owned()
     } else {
@@ -285,7 +284,7 @@ fn path_part(text: &str, offset: usize, file: &File) -> String {
 
 /// `org-link-display-format`: links replaced by their description, or by
 /// their target when they have none.
-fn link_display_format(text: &str) -> String {
+pub(crate) fn link_display_format(text: &str) -> String {
     LINK.replace_all(text, |captures: &regex::Captures| {
         captures.get(2).or(captures.get(1)).map_or(String::new(), |found| found.as_str().to_string())
     })
