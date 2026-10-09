@@ -1290,6 +1290,16 @@
           "default": true,
           "markdownDescription": "Hide what Org hides: link brackets and targets (`linkDescriptive`), and emphasis markers with `hideEmphasisMarkers`. It shows on the lines with a cursor."
         },
+        "org-lsp.images": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show images in place of links to image files and of LaTeX fragments (`C-c C-x C-v`, `C-c C-x C-l`; `#+STARTUP: inlineimages`, `latexpreview`). VS Code cannot leave lines free for an image: an image takes the height of a line, and shows whole on hover. LaTeX previews need Emacs, `latex` and `dvipng`."
+        },
+        "org-lsp.latexForeground": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The color LaTeX previews are drawn in, such as `#d4d4d4`. When empty, black on a light theme and light gray on a dark one."
+        },
         "org-lsp.messages": {
           "type": "string",
           "enum": [

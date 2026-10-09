@@ -823,7 +823,18 @@ the tables above:
 ```
 
 The first two have no `when`, so they work anywhere, as Emacs's
-`C-c a` and `C-c c` do. With `"org-lsp.keys": "custom"` these are the only
+`C-c a` and `C-c c` do.
+
+`"args": { "count": N }` passes Emacs's prefix argument: `C-u` is 4,
+`C-u C-u` 16, `C-u C-u C-u` 64. For example, the images of the whole
+file, and none:
+
+```json
+[
+  { "key": "ctrl+c ctrl+x v", "command": "org.link.preview", "args": { "count": 16 }, "when": "editorTextFocus && editorLangId == 'org'" },
+  { "key": "ctrl+c ctrl+x shift+v", "command": "org.link.preview", "args": { "count": 64 }, "when": "editorTextFocus && editorLangId == 'org'" }
+]
+``` With `"org-lsp.keys": "custom"` these are the only
 keys there are.
 
 To **remove** a default key, add the same key and command with a `-` in

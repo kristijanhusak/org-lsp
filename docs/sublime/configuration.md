@@ -12,6 +12,7 @@ defaults beside your own `Packages/User/LSP-org.sublime-settings`.
 | `command` | The server command; by default the package finds or downloads it (see [editors/sublime/README.md](../../editors/sublime/README.md)). |
 | `initializationOptions` | The server's options; see below. The shared `~/.config/org-lsp/config.toml` is read too. |
 | `org_keys` | The keys: `emacs` (the default), `vim` (for Vintage and NeoVintageous, in command mode) or `custom` (none); see [keys.md](keys.md). |
+| `org_images` | Whether images show below the lines of links to image files and of LaTeX fragments (`C-c C-x C-v`, `C-c C-x C-l`, `#+STARTUP: inlineimages`, `latexpreview`): `true` (the default) or `false`. PNG, JPEG and GIF images; LaTeX previews need Emacs, `latex` and `dvipng`. |
 | `org_messages` | How Org's messages show: `popup` (the default), at the cursor for a few seconds and in the status bar, or `status`, in the status bar only. |
 | `semantic_tokens` | The scopes of the server's tokens; generated. |
 

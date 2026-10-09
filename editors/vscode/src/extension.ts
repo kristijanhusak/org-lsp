@@ -392,7 +392,13 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           // A key keeps its own meaning without a server (Enter types).
           return key ? fallBack(key.fallback) : undefined;
         }
-        const params = { command: name, arguments: args.length > 0 && !key ? args : cursor(running) };
+        // Emacs's prefix argument, from a key's arguments (`{ "count": 16 }`): with the cursor.
+        const count = !key && args.length === 1 ? (args[0] as { count?: unknown; textDocument?: unknown } | null) : null;
+        const counted = typeof count?.count === 'number' && count.textDocument === undefined;
+        const params = { command: name, arguments: args.length > 0 && !key && !counted ? args : cursor(running) };
+        if (counted && params.arguments[0]) {
+          params.arguments[0] = { ...(params.arguments[0] as object), count: count?.count };
+        }
         // In column view, the column picked.
         if (name.startsWith('org.columns.') && params.arguments[0]) {
           const editor = vscode.window.activeTextEditor;
@@ -401,6 +407,10 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         // What the command reads as Emacs's latest kill: the clipboard.
         if (clipboardCommands.includes(name) && params.arguments[0]) {
           params.arguments[0] = { ...(params.arguments[0] as object), clipboard: await vscode.env.clipboard.readText() };
+        }
+        // LaTeX is drawn in the colors of the text.
+        if (name === 'org.latex.preview' && params.arguments[0]) {
+          params.arguments[0] = { ...latexColors(), ...(params.arguments[0] as object) };
         }
         // What a result carries: an edit, text for the clipboard, documents
         // to close or save, a message.
@@ -415,6 +425,11 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           closeAsked(result);
           await saveAsked(result);
           sayAsked(result);
+          // Images of links, shown or taken away.
+          const preview = (result as { preview?: Preview } | null)?.preview;
+          if (preview) {
+            await applyPreview(preview);
+          }
         };
         try {
           let result = await running.sendRequest('workspace/executeCommand', params);
@@ -484,6 +499,7 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         orgVirtualIndent: true,
         orgDisplay: true,
         orgLineHighlights: true,
+        orgImages: imagesEnabled(),
       };
     },
     initialize() {},
@@ -531,6 +547,11 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     client.onNotification('org-lsp/lineHighlights', (params: LineHighlights) => showLineHighlights(params));
     // Faces of particular keywords and priorities.
     setFaces(client.initializeResult?.capabilities.experimental?.orgFaces);
+    // Images in place of LaTeX fragments, made by Emacs.
+    client.onNotification('org-lsp/images', (params: Preview) => applyPreview(params));
+    // The previews of the files open.
+    const started = client;
+    vscode.workspace.textDocuments.forEach((document) => void startupPreviews(started, document));
   } catch (error) {
     client = undefined;
     const message = error instanceof Error ? error.message : String(error);
@@ -1097,6 +1118,349 @@ function highlightLines(editor: vscode.TextEditor): void {
   lineHighlightsShown.set(editor, shown);
 }
 
+// ----- images
+
+/**
+ * What a preview command (`org.link.preview`, `org.latex.preview`) or
+ * `org-lsp/images` says: `remove` true takes away the previews of `kind`
+ * in `range`; false shows `items` there, anew; null (a link or a fragment
+ * at the cursor) toggles them.
+ */
+interface Preview {
+  kind: 'link' | 'latex';
+  uri: string;
+  scope: string;
+  range: { start: { line: number; character: number }; end: { line: number; character: number } };
+  remove: boolean | null;
+  includeLinked?: boolean;
+  items?: { range: Preview['range']; path: string }[];
+  startup?: boolean;
+}
+
+/** An image file: as a `data:` URI, its type and its size in pixels. */
+interface ImageFile {
+  data: string;
+  width: number;
+  height: number;
+}
+
+/**
+ * A preview shown, as Emacs keeps its overlays: where its text is (as
+ * offsets, which follow the edits around it), that text, and its image.
+ */
+interface ImageShown {
+  kind: Preview['kind'];
+  path: string;
+  start: number;
+  end: number;
+  text: string;
+  file: ImageFile;
+  /** The image as the editor draws it: an SVG of the size it takes in the line. */
+  icon: vscode.Uri;
+  width: number;
+  height: number;
+}
+
+/** The previews of each document, by URI. */
+const imagesShown = new Map<string, ImageShown[]>();
+/**
+ * An image in place of its link or fragment. VS Code cannot leave lines
+ * free for an image, as Emacs and Neovim do: it takes the height of a
+ * line, and shows whole on hover. On a line being edited the text shows,
+ * the image after it.
+ */
+const imageDecoration = vscode.window.createTextEditorDecorationType({});
+const imageHiddenText = vscode.window.createTextEditorDecorationType({ textDecoration: 'none; display: none;' });
+
+/** The width and height of an image in pixels, from its header, and its type. */
+function imageSize(bytes: Buffer, file: string): { type: string; width: number; height: number } | undefined {
+  const ascii = (at: number, length: number) => bytes.toString('latin1', at, at + length);
+  if (bytes.length >= 24 && ascii(1, 3) === 'PNG') {
+    return { type: 'image/png', width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+  }
+  if (bytes.length >= 10 && ascii(0, 4) === 'GIF8') {
+    return { type: 'image/gif', width: bytes.readUInt16LE(6), height: bytes.readUInt16LE(8) };
+  }
+  if (bytes.length >= 26 && ascii(0, 2) === 'BM') {
+    return { type: 'image/bmp', width: bytes.readInt32LE(18), height: Math.abs(bytes.readInt32LE(22)) };
+  }
+  if (bytes.length >= 30 && ascii(0, 4) === 'RIFF' && ascii(8, 4) === 'WEBP') {
+    const chunk = ascii(12, 4);
+    if (chunk === 'VP8 ') {
+      return { type: 'image/webp', width: bytes.readUInt16LE(26) & 0x3fff, height: bytes.readUInt16LE(28) & 0x3fff };
+    }
+    if (chunk === 'VP8L') {
+      const bits = bytes.readUInt32LE(21);
+      return { type: 'image/webp', width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1 };
+    }
+    if (chunk === 'VP8X') {
+      return { type: 'image/webp', width: bytes.readUIntLE(24, 3) + 1, height: bytes.readUIntLE(27, 3) + 1 };
+    }
+  }
+  if (bytes.length >= 4 && bytes[0] === 0xff && bytes[1] === 0xd8) {
+    // The frame's header, among the segments.
+    let at = 2;
+    while (at + 9 < bytes.length && bytes[at] === 0xff) {
+      const marker = bytes[at + 1];
+      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+        return { type: 'image/jpeg', width: bytes.readUInt16BE(at + 7), height: bytes.readUInt16BE(at + 5) };
+      }
+      at += 2 + bytes.readUInt16BE(at + 2);
+    }
+    return undefined;
+  }
+  if (/\.svgz?$/i.test(file) || /^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*<svg/i.test(ascii(0, 512))) {
+    const svg = bytes.toString('utf8');
+    const tag = /<svg\b[^>]*>/i.exec(svg)?.[0] ?? '';
+    const attribute = (name: string) => new RegExp(`\\s${name}\\s*=\\s*["']\\s*([\\d.]+)(px)?\\s*["']`, 'i').exec(tag)?.[1];
+    const box = /\sviewBox\s*=\s*["']\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)/i.exec(tag);
+    const width = Number(attribute('width') ?? box?.[1] ?? 0);
+    const height = Number(attribute('height') ?? box?.[2] ?? 0);
+    return width > 0 && height > 0 ? { type: 'image/svg+xml', width, height } : undefined;
+  }
+  return undefined;
+}
+
+/** The image file `file`, for as long as it stays as it is; none where VS Code cannot show it. */
+const imageFiles = new Map<string, { modified: number; file: ImageFile | undefined }>();
+
+async function imageFile(file: string): Promise<ImageFile | undefined> {
+  try {
+    const modified = (await fs.promises.stat(file)).mtimeMs;
+    const known = imageFiles.get(file);
+    if (known && known.modified === modified) {
+      return known.file;
+    }
+    const bytes = await fs.promises.readFile(file);
+    const size = imageSize(bytes, file);
+    const found = size && size.width > 0 && size.height > 0
+      ? { data: `data:${size.type};base64,${bytes.toString('base64')}`, width: size.width, height: size.height }
+      : undefined;
+    imageFiles.set(file, { modified, file: found });
+    return found;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The height of a line of the editor, in pixels (`editor.lineHeight`). */
+function editorLineHeight(): number {
+  const editor = vscode.workspace.getConfiguration('editor');
+  const fontSize = editor.get<number>('fontSize', 14);
+  const lineHeight = editor.get<number>('lineHeight', 0);
+  if (lineHeight <= 0) {
+    return Math.round(fontSize * (process.platform === 'darwin' ? 1.5 : 1.35));
+  }
+  return Math.round(lineHeight < 8 ? fontSize * lineHeight : lineHeight);
+}
+
+/**
+ * The size image `file` takes in a line: the line's height, or less for a
+ * smaller one, its width as its proportions say; and the image at that
+ * size, an SVG around it.
+ */
+function lineImage(file: ImageFile): { icon: vscode.Uri; width: number; height: number } {
+  const height = Math.max(1, Math.min(file.height, editorLineHeight() - 2));
+  const width = Math.max(1, Math.round((file.width * height) / file.height));
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}">` +
+    `<image width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet" href="${file.data}" xlink:href="${file.data}"/></svg>`;
+  return { icon: vscode.Uri.parse(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`), width, height };
+}
+
+function previewDocument(uri: string): vscode.TextDocument | undefined {
+  return vscode.workspace.textDocuments.find((document) => sameUri(document.uri.toString(), uri));
+}
+
+/** Apply what the server says of previews (see `Preview`), and say what Emacs says, unless `quiet`. */
+async function applyPreview(preview: Preview, quiet = false): Promise<void> {
+  const document = previewDocument(preview.uri);
+  if (!document) {
+    return;
+  }
+  const key = document.uri.toString();
+  const version = document.version;
+  const offset = (position: { line: number; character: number }) =>
+    document.offsetAt(new vscode.Position(position.line, position.character));
+  const tell = (message: string) => !quiet && say(message);
+  const loaded = await Promise.all((preview.items ?? []).map((item) => imageFile(item.path)));
+  // The text changed while the images were read: the previews are for
+  // text that is no more.
+  if (document.version !== version) {
+    return;
+  }
+  const from = offset(preview.range.start);
+  const to = offset(preview.range.end);
+  const list = imagesShown.get(key) ?? [];
+  const overlapping = (entry: ImageShown) =>
+    entry.kind === preview.kind && !(entry.end < from || (entry.end === from && entry.start < from)) && !(entry.start >= to);
+  const old = list.filter(overlapping);
+  const kept = list.filter((entry) => !overlapping(entry));
+  const link = preview.kind === 'link';
+  if (preview.remove === true || (preview.remove === null && old.length > 0)) {
+    imagesShown.set(key, kept);
+    if (link) {
+      tell(`[${preview.scope}] Inline link previews turned off (removed ${old.length} images)`);
+    } else if (preview.scope === 'buffer') {
+      tell('LaTeX previews removed from buffer');
+    } else if (old.length > 0 && preview.remove === null) {
+      tell('LaTeX preview removed');
+    }
+  } else {
+    let count = 0;
+    (preview.items ?? []).forEach((item, index) => {
+      const file = loaded[index];
+      if (!file) {
+        return;
+      }
+      const start = offset(item.range.start);
+      const end = offset(item.range.end);
+      const text = document.getText(new vscode.Range(document.positionAt(start), document.positionAt(end)));
+      kept.push({ kind: preview.kind, path: item.path, start, end, text, file, ...lineImage(file) });
+      count += 1;
+    });
+    kept.sort((a, b) => a.start - b.start);
+    imagesShown.set(key, kept);
+    if (link) {
+      if (count > 0) {
+        tell(`[${preview.scope}] Displaying ${count} images inline ${preview.includeLinked ? '(including images with description)' : ''}`.trimEnd());
+      } else if (preview.scope === 'buffer') {
+        tell(`[${preview.scope}] No images to display inline`);
+      } else {
+        tell(`[${preview.scope}] No images to display inline.  Use \`C-u C-u' or 11 argument to preview the whole buffer`);
+      }
+    }
+  }
+  for (const editor of vscode.window.visibleTextEditors) {
+    if (editor.document === document) {
+      drawImages(editor);
+    }
+  }
+}
+
+function drawImages(editor: vscode.TextEditor): void {
+  const document = editor.document;
+  const list = imagesShown.get(document.uri.toString()) ?? [];
+  const images: vscode.DecorationOptions[] = [];
+  const hidden: vscode.Range[] = [];
+  for (const entry of list) {
+    const range = new vscode.Range(document.positionAt(entry.start), document.positionAt(entry.end));
+    const editing = editor.selections.some(
+      (selection) => selection.start.line <= range.end.line && range.start.line <= selection.end.line,
+    );
+    if (!editing) {
+      hidden.push(range);
+    }
+    const at = editing ? range.end : range.start;
+    images.push({
+      range: new vscode.Range(at, at),
+      renderOptions: {
+        [editing ? 'after' : 'before']: {
+          contentIconPath: entry.icon,
+          width: `${entry.width}px`,
+          height: `${entry.height}px`,
+          margin: editing ? '0 0 0 0.3em' : undefined,
+          textDecoration: 'none; vertical-align: middle;',
+        },
+      },
+    });
+  }
+  editor.setDecorations(imageHiddenText, hidden);
+  editor.setDecorations(imageDecoration, images);
+}
+
+/**
+ * The previews of a document follow its text as it is edited, and one
+ * whose own text changes goes, as Emacs takes away an overlay then.
+ */
+function imagesChanged(event: vscode.TextDocumentChangeEvent): void {
+  const key = event.document.uri.toString();
+  const list = imagesShown.get(key);
+  if (!list || event.contentChanges.length === 0) {
+    return;
+  }
+  // The changes are all of the text before them: the last one first.
+  const changes = [...event.contentChanges].sort((a, b) => b.rangeOffset - a.rangeOffset);
+  let kept = list;
+  for (const change of changes) {
+    const end = change.rangeOffset + change.rangeLength;
+    const delta = change.text.length - change.rangeLength;
+    kept = kept.flatMap((entry) => {
+      // Text typed just before or after it is not its own.
+      if (entry.end <= change.rangeOffset) {
+        return [entry];
+      }
+      if (entry.start >= end) {
+        return [{ ...entry, start: entry.start + delta, end: entry.end + delta }];
+      }
+      return [];
+    });
+  }
+  // What is left still reads as it did.
+  kept = kept.filter(
+    (entry) =>
+      event.document.getText(new vscode.Range(event.document.positionAt(entry.start), event.document.positionAt(entry.end))) === entry.text,
+  );
+  imagesShown.set(key, kept);
+  for (const editor of vscode.window.visibleTextEditors) {
+    if (editor.document === event.document) {
+      drawImages(editor);
+    }
+  }
+}
+
+/** The image of a preview, whole, on hover over it. */
+const imageHover: vscode.HoverProvider = {
+  provideHover(document, position) {
+    const at = document.offsetAt(position);
+    const entry = (imagesShown.get(document.uri.toString()) ?? []).find((shown) => shown.start <= at && at <= shown.end);
+    if (!entry) {
+      return undefined;
+    }
+    const width = Math.min(entry.file.width, 600);
+    const markdown = new vscode.MarkdownString(`<img src="${entry.file.data}" width="${width}">`);
+    markdown.supportHtml = true;
+    return new vscode.Hover(markdown, new vscode.Range(document.positionAt(entry.start), document.positionAt(entry.end)));
+  },
+};
+
+/** The colors LaTeX is drawn in: the theme's text, on no background. */
+function latexColors(): { foreground: string; background: string } {
+  const kind = vscode.window.activeColorTheme.kind;
+  const dark = kind === vscode.ColorThemeKind.Dark || kind === vscode.ColorThemeKind.HighContrast;
+  const configured = vscode.workspace.getConfiguration('org-lsp').get<string>('latexForeground', '').trim();
+  return { foreground: configured || (dark ? '#d4d4d4' : '#000000'), background: 'Transparent' };
+}
+
+/**
+ * The previews a file opens with: `#+STARTUP: inlineimages` (or
+ * `org_startup_with_link_previews`), `latexpreview`. Those of LaTeX
+ * come in `org-lsp/images` once Emacs has made them.
+ */
+async function startupPreviews(running: LanguageClient, document: vscode.TextDocument): Promise<void> {
+  if (document.languageId !== 'org' || document.uri.scheme !== 'file' || !imagesEnabled()) {
+    return;
+  }
+  const context = {
+    textDocument: { uri: document.uri.toString() },
+    position: { line: 0, character: 0 },
+    startup: true,
+  };
+  const links = (await running
+    .sendRequest('workspace/executeCommand', { command: 'org.link.preview', arguments: [context] })
+    .catch(() => undefined)) as { preview?: Preview } | null | undefined;
+  if (links?.preview) {
+    await applyPreview(links.preview, true);
+  }
+  await running
+    .sendRequest('workspace/executeCommand', { command: 'org.latex.preview', arguments: [{ ...context, ...latexColors() }] })
+    .catch(() => undefined);
+}
+
+function imagesEnabled(): boolean {
+  return vscode.workspace.getConfiguration('org-lsp').get<boolean>('images', true);
+}
+
 // ----- sparse trees
 
 const sparseDecoration = vscode.window.createTextEditorDecorationType({
@@ -1483,6 +1847,8 @@ export interface Api {
   sparse(editor: vscode.TextEditor): string[];
   /** What `org-lsp.help` lists for `editor`: `[key, title]`. */
   help(editor: vscode.TextEditor): string[][];
+  /** The previews of `editor`: `[kind, line, file name, width, height]` each. */
+  images(editor: vscode.TextEditor): [string, number, string, number, number][];
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
@@ -1493,7 +1859,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     }),
     // The server reads its settings once, at start.
     vscode.workspace.onDidChangeConfiguration(async (event) => {
-      if (event.affectsConfiguration('org-lsp.settings') || event.affectsConfiguration('org-lsp.server')) {
+      if (
+        event.affectsConfiguration('org-lsp.settings') ||
+        event.affectsConfiguration('org-lsp.server') ||
+        event.affectsConfiguration('org-lsp.images')
+      ) {
         await stopClient();
         await startClient(context);
       }
@@ -1541,6 +1911,29 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach((editor) => void paintFaces(editor))),
     vscode.workspace.onDidChangeTextDocument(facesChanged),
     { dispose: () => faceDecorations.forEach((decoration) => decoration.dispose()) },
+    imageDecoration,
+    imageHiddenText,
+    vscode.workspace.onDidChangeTextDocument(imagesChanged),
+    vscode.window.onDidChangeTextEditorSelection((event) => drawImages(event.textEditor)),
+    vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(drawImages)),
+    vscode.workspace.onDidCloseTextDocument((document) => imagesShown.delete(document.uri.toString())),
+    vscode.languages.registerHoverProvider({ language: 'org' }, imageHover),
+    vscode.workspace.onDidOpenTextDocument((document) => {
+      // After the client has told the server of it.
+      const running = client;
+      if (running) {
+        setTimeout(() => void startupPreviews(running, document), 50);
+      }
+    }),
+    // Images as high as a line.
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('editor.lineHeight') || event.affectsConfiguration('editor.fontSize')) {
+        for (const list of imagesShown.values()) {
+          list.forEach((entry) => Object.assign(entry, lineImage(entry.file)));
+        }
+        vscode.window.visibleTextEditors.forEach(drawImages);
+      }
+    }),
   );
   return {
     concealed: (editor) => concealedText.get(editor) ?? [],
@@ -1554,6 +1947,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     faces: (editor) => facesShown.get(editor) ?? [],
     sparse: (editor) => (sparseShown.get(editor.document.uri.toString()) ?? []).map((range) => editor.document.getText(range)),
     help: (editor) => helpItems(context.extension.packageJSON, editor).map((item) => [item.key, item.title]),
+    images: (editor) =>
+      (imagesShown.get(editor.document.uri.toString()) ?? []).map((entry) => [
+        entry.kind,
+        editor.document.positionAt(entry.start).line,
+        path.basename(entry.path),
+        entry.width,
+        entry.height,
+      ]),
   };
 }
 

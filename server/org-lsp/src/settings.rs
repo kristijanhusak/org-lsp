@@ -1353,6 +1353,18 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "images",
+            "boolean",
+            "false",
+            "",
+            "Whether the client shows images in place of links to image files and of LaTeX fragments \
+             (`org.link.preview`, `org.latex.preview`, `org-lsp/images`). As a client announcing \
+             `experimental.orgImages` does: for the Sublime Text package.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "view_changed",
             "boolean",
             "false",
@@ -1684,6 +1696,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("show_document", BOOLEAN),
     ("message_prompts", BOOLEAN),
     ("line_highlights", BOOLEAN),
+    ("images", BOOLEAN),
     ("view_changed", BOOLEAN),
     ("date_prompt", BOOLEAN),
     ("virtual_indent", BOOLEAN),

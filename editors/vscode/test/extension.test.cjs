@@ -439,6 +439,47 @@ describe('Org files', () => {
     await vscode.workspace.fs.delete(file);
   });
 
+  it('shows images in place of links to them, and the image whole on hover', async () => {
+    // A red picture four pixels wide and two high.
+    const png = 'iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAIAAADwyuo0AAAAEElEQVR4nGP4z8AARwzIHABvqgf5gNwAKAAAAABJRU5ErkJggg==';
+    await vscode.workspace.fs.writeFile(vscode.Uri.file(path.join(workspace, 'red.png')), Buffer.from(png, 'base64'));
+    const file = vscode.Uri.file(path.join(workspace, 'images.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* Pictures\nA [[file:red.png]] here.\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    moveTo(1, 5);
+    await vscode.commands.executeCommand('org.link.preview');
+    // As high as it is: smaller than a line.
+    await until('the image shown', () => JSON.stringify(api.images(editor)) === JSON.stringify([['link', 1, 'red.png', 4, 2]]));
+    const hovers = await vscode.commands.executeCommand('vscode.executeHoverProvider', file, new vscode.Position(1, 5));
+    const shown = hovers.flatMap((hover) => hover.contents.map((content) => content.value ?? String(content)));
+    assert.ok(shown.some((text) => text.includes('<img src="data:image/png;base64,')), 'the image on hover');
+    // Again at the link: taken away.
+    await vscode.commands.executeCommand('org.link.preview');
+    await until('the image taken away', () => api.images(editor).length === 0);
+    // Shown again, it follows the text before it, and goes with its own text.
+    await vscode.commands.executeCommand('org.link.preview');
+    await until('the image shown again', () => api.images(editor).length === 1);
+    await editor.edit((edit) => edit.insert(new vscode.Position(0, 0), 'Intro\n'));
+    assert.deepEqual(api.images(editor), [['link', 2, 'red.png', 4, 2]]);
+    // Counts from a key's arguments: C-u C-u C-u takes every image away, C-u C-u shows the file's.
+    await vscode.commands.executeCommand('org.link.preview', { count: 64 });
+    await until('every image taken away', () => api.images(editor).length === 0);
+    await vscode.commands.executeCommand('org.link.preview', { count: 16 });
+    await until('the images of the file', () => JSON.stringify(api.images(editor)) === JSON.stringify([['link', 2, 'red.png', 4, 2]]));
+    await editor.edit((edit) => edit.insert(new vscode.Position(2, 10), 'x'));
+    assert.deepEqual(api.images(editor), []);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    // A file that opens with its images.
+    const startup = vscode.Uri.file(path.join(workspace, 'startup-images.org'));
+    await vscode.workspace.fs.writeFile(startup, Buffer.from('#+STARTUP: inlineimages\n[[file:red.png]]\n'));
+    const opened = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(startup));
+    await until('the image it opens with', () => JSON.stringify(api.images(opened)) === JSON.stringify([['link', 1, 'red.png', 4, 2]]));
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    await vscode.workspace.fs.delete(startup);
+  });
+
   it('opens a file as its startup says', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'startup.org'));
     const lines = ['#+STARTUP: content', '* A', ':PROPERTIES:', ':ID: 1', ':END:', 'text', '** B', 'b text', '* C', 'c text', ''];

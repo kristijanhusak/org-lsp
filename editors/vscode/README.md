@@ -44,7 +44,7 @@ hand.
 | [Timers](../../docs/parity.md#timers) | 100% | ✅ |  |
 | [Attachments](../../docs/parity.md#attachments) | 100% | ✅ |  |
 | [Encryption](../../docs/parity.md#encryption) | 100% | ✅ |  |
-| [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 100% | ❌ | Not shown yet. |
+| [Inline images and LaTeX previews](../../docs/parity.md#inline-images-and-latex-previews) | 100% | ❓ | VS Code cannot leave lines free for an image: an image takes the place of its link only as high as a line, and shows whole on hover. Counts through a key's `args`. |
 | **All of Org** | **99%** |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what
@@ -130,6 +130,7 @@ command, and how to add, change and remove keys.
 | `org-lsp.settings` | The server's options, for example `{ "org_agenda_files": ["~/org"], "org_log_done": "time" }`. [docs/vscode/configuration.md](https://github.com/kristijanhusak/org-lsp/blob/main/docs/vscode/configuration.md) lists them with their defaults. |
 | `org-lsp.server.path` | Path to the server binary; see below. |
 | `org-lsp.conceal` | Hide link brackets and targets, and emphasis markers with `org_hide_emphasis_markers`, except on the line with the cursor (default on). |
+| `org-lsp.images` | Show images in place of links to image files and of LaTeX fragments (`C-c C-x C-v`, `C-c C-x C-l`), as high as a line, whole on hover (default on). |
 | `org-lsp.keys` | Which keys are bound: `emacs` (the default), `vim` (for VSCodeVim) or `custom` (none). |
 | `org-lsp.winSplitMode` | Where the agenda and capture buffers open: `split` (below, the default), `vsplit` (beside), `float` (a window of its own) or `current`. |
 
