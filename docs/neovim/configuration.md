@@ -1145,3 +1145,12 @@ PNG images show as they are; others are made PNG with ImageMagick
 (`magick` or `convert`) when it is installed. Older versions of Neovim say
 that they cannot show images.
 
+An image keeps its proportions by the size of the terminal's cells in
+pixels, which the terminal tells (Kitty, Ghostty and WezTerm do). Where it
+does not (some multiplexers), cells are taken as 10 by 20 pixels; set
+their size if images look stretched:
+
+```lua
+images = { cell = { width = 9, height = 19 } },
+```
+

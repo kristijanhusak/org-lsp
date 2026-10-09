@@ -52,7 +52,8 @@ local function images()
   return vim.tbl_count(drawn)
 end
 
-vim.g.org_lsp = { cmd = { server }, images = { max_width = 40, max_height = 10 } }
+-- Cells of 10 by 20 pixels, whatever terminal runs the test.
+vim.g.org_lsp = { cmd = { server }, images = { max_width = 40, max_height = 10, cell = { width = 10, height = 20 } } }
 vim.opt.runtimepath:prepend(root)
 vim.cmd('filetype plugin on')
 vim.cmd('runtime plugin/org-lsp.lua')

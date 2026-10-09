@@ -20,9 +20,69 @@ local shown = {}
 ---@type table<string, { data: string, width: integer, height: integer }|false>
 local files = {}
 
---- The size of a cell of the terminal in pixels, for the size of images:
---- most terminal fonts are about twice as high as wide.
-local cell = { width = 10, height = 20 }
+--- The size of a cell of the terminal in pixels, for the size of images,
+--- unless the terminal says it (`cell_size()`): most terminal fonts are
+--- about twice as high as wide.
+local guess = { width = 10, height = 20 }
+
+--- The terminal's size in pixels and in cells (`TIOCGWINSZ`), through the
+--- terminal Neovim runs in: the size of a cell, so that images keep their
+--- proportions. None where the terminal does not say (zero pixels) or
+--- cannot be asked.
+---@return { width: number, height: number }?
+local function measured_cell()
+  local ok, ffi = pcall(require, 'ffi')
+  if not ok or ffi.os == 'Windows' then
+    return nil
+  end
+  pcall(
+    ffi.cdef,
+    [[
+      struct org_lsp_winsize { unsigned short rows, cols, xpixel, ypixel; };
+      int open(const char *path, int flags, ...);
+      int close(int fd);
+      int ioctl(int fd, unsigned long request, ...);
+    ]]
+  )
+  local TIOCGWINSZ = ffi.os == 'OSX' and 0x40087468 or 0x5413
+  -- O_RDONLY, O_NOCTTY: asking, not taking the terminal.
+  local fd = ffi.C.open('/dev/tty', ffi.os == 'OSX' and 0x20000 or 0x100)
+  if fd < 0 then
+    return nil
+  end
+  local size = ffi.new('struct org_lsp_winsize')
+  local got = ffi.C.ioctl(fd, TIOCGWINSZ, size)
+  ffi.C.close(fd)
+  if got ~= 0 or size.cols == 0 or size.rows == 0 or size.xpixel == 0 or size.ypixel == 0 then
+    return nil
+  end
+  return { width = size.xpixel / size.cols, height = size.ypixel / size.rows }
+end
+
+--- The size of a cell in pixels: `images.cell` if set, else as the
+--- terminal says, else a guess. Asked again when the editor's size changes.
+local cell
+-- A font of another size, as the editor's size in cells changes with it.
+vim.api.nvim_create_autocmd('VimResized', {
+  group = vim.api.nvim_create_augroup('org_lsp_images_cell', { clear = true }),
+  callback = function()
+    cell = nil
+  end,
+})
+local function cell_size()
+  local images = require('org-lsp').config.images
+  local set = type(images) == 'table' and images.cell
+  if type(set) == 'table' and tonumber(set.width) and tonumber(set.height) then
+    return { width = tonumber(set.width), height = tonumber(set.height) }
+  end
+  if not cell then
+    cell = measured_cell() or guess
+  end
+  return cell
+end
+
+--- The size of a cell in pixels that images are made for.
+M.cell_size = cell_size
 
 function M.supported()
   return vim.ui ~= nil and vim.ui.img ~= nil and require('org-lsp').config.images ~= false
@@ -83,6 +143,7 @@ end
 --- How many cells an image of `file` takes in a window `available`
 --- columns wide.
 local function cells(file, available)
+  local cell = cell_size()
   local width = math.max(1, math.ceil(file.width / cell.width))
   width = math.min(width, config().max_width or 80, math.max(1, available))
   local height = math.max(1, math.ceil(width * cell.width * file.height / file.width / cell.height))
