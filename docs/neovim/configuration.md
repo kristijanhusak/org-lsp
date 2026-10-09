@@ -1137,7 +1137,9 @@ show, as Emacs shows them:
   `org_startup_with_link_previews`) opens with them.
 - `<Leader>oxl` (`org-latex-preview`, `C-c C-x C-l`) shows the LaTeX
   fragments as images, made by Emacs (`latex` and `dvipng`, as Org makes
-  them, into `ltximg/` beside the file), with the same counts.
+  them, into `ltximg/` beside the file), with the same counts. A file with
+  `#+STARTUP: latexpreview` (or `org_startup_with_latex_preview`) opens
+  with them.
 
 An image shows below the line of its link or fragment, in lines kept free
 for it, from where the line's text starts (after the virtual indentation

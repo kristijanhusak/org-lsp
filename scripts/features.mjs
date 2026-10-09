@@ -863,7 +863,7 @@ export const AREAS = [
     name: 'Inline images and LaTeX previews',
     emacs: [
       ['Previews of links to images (`org-link-preview`, `C-c C-x C-v`): the link at the cursor, the section, the file, with links with a description (counts 1, 11), cleared (4, 64); `#+STARTUP: inlineimages`', true],
-      ['LaTeX previews (`org-latex-preview`, `C-c C-x C-l`), made by Emacs as Org makes them (`latex`, `dvipng`, into `ltximg/`)', true],
+      ['LaTeX previews (`org-latex-preview`, `C-c C-x C-l`), made by Emacs as Org makes them (`latex`, `dvipng`, into `ltximg/`); `#+STARTUP: latexpreview`', true],
       ['Previews of `attachment:` links (the file found through Emacs, `org-attach-expand`)', true],
     ],
     editors: {
@@ -880,6 +880,7 @@ export const AREAS = [
       { text: 'A file with `#+STARTUP: inlineimages` opens with its pictures', only: ['neovim'] },
       { text: 'Scrolling moves the pictures with their lines; editing a link takes its picture away', only: ['neovim'] },
       { text: '`$e^{i\\pi} = -1$` shows as its image (needs Emacs, `latex` and `dvipng`)', cmd: 'org.latex.preview', only: ['neovim'] },
+      { text: 'A file with `#+STARTUP: latexpreview` opens with its fragments as images (needs Emacs, `latex` and `dvipng`)', only: ['neovim'] },
     ],
   },
 ];
