@@ -1087,6 +1087,10 @@ where each fragment is and the file of its image, what Emacs shows over it."
                    ;; ("Window system frame should be used" before Org 9.8):
                    ;; the DPI Org takes for other uses.
                    ((symbol-function 'org--get-display-dpi) (lambda () 140))
+                   ;; Nor an image cache to clear, which an Emacs with image
+                   ;; support looks for on the display, and fails.
+                   ((symbol-function 'clear-image-cache) #'ignore)
+                   ((symbol-function 'image-flush) #'ignore)
                    ;; A frame of a terminal rounds `#rrggbb' to one of its few
                    ;; colors: the editor's colors as they are.
                    (color-values (symbol-function 'color-values))
