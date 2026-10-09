@@ -1,0 +1,6 @@
+#+title: Org in VS Code
+
+The VS Code extension.
+
+[[file:../../docs/vscode.org][docs/vscode.org]] says how to install and set it up, and what works.
+[[file:TESTING.org][TESTING.org]] lists what to try by hand.

@@ -35,7 +35,7 @@ fn main() -> ExitCode {
         };
     }
     if arguments.first().is_some_and(|argument| argument == "manifest") {
-        // What editor integrations are built from; see `docs/protocol.md`.
+        // What editor integrations are built from; see `docs/protocol.org`.
         print(&format!("{:#}\n", org_lsp::manifest::manifest()));
         return ExitCode::SUCCESS;
     }

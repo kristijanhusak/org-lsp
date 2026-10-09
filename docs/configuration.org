@@ -1,0 +1,2332 @@
+#+title: Configuring org-lsp
+#+options: ^:{} toc:2
+
+Everything that can be set, in one place: the server's options, which are
+the same in every editor, and each editor's own settings. The page of each
+editor ([[file:neovim.org][Neovim]], [[file:vim.org][Vim]], [[file:vscode.org][VS Code]], [[file:sublime.org][Sublime Text]], [[file:zed.org][Zed]], [[file:helix.org][Helix]]) shows a
+short example in its own syntax and points here for the rest.
+
+Nothing has to be set. Without configuration the agenda is built from the
+Org files of the workspace (or the ones that are open), and every option
+is Org's default.
+
+* The server's options
+:PROPERTIES:
+:CUSTOM_ID: the-servers-options
+:END:
+
+The server's options are Org's variables: TODO keywords, agenda files,
+capture templates, logging and the rest. They come from three places, each
+over the one before:
+
+1. Org's defaults;
+2. the [[#the-shared-configuration-file][shared configuration file]], which the server reads itself;
+3. the options the editor passes when it starts the server (Neovim's
+   ~settings~, VS Code's ~org-lsp.settings~, Helix's ~config~ …).
+
+So the options can be set once, in the shared file, for every editor, and
+an editor can still change any of them for itself. A file's own ~#+TODO:~
+and ~#+PRIORITIES:~ lines apply to that file, over all three.
+
+** Names
+
+An option is named after the Org variable it stands for, with =_= for =-=:
+~org-agenda-files~ is ~org_agenda_files~, ~org-log-done~ is ~org_log_done~.
+Org's own spelling, ~org-agenda-files~, works as well (TOML and JSON allow
+it; in Lua it needs ~['org-agenda-files']~). The values are Org's, written
+as JSON: ='time= is ~"time"~, ~nil~ is ~false~, a list is a list.
+
+Options the server has and Org does not have plain names without ~org_~
+(~auto_save~, ~config_file~, ~emacs_config~). The keys inside an option
+are the keywords Org uses there, as a refile target's ~maxlevel~ and a
+capture template's ~empty_lines~ (~:empty-lines~).
+
+The names options had before (~agendaFiles~, ~agenda.span~ …) still work;
+the server says which to use instead.
+
+** The shared configuration file
+:PROPERTIES:
+:CUSTOM_ID: the-shared-configuration-file
+:END:
+
+The server reads the first of these that is there:
+
+1. the file the editor names with the ~config_file~ option (see
+   [[#leaving-the-file-out-or-using-another][below]]);
+2. the file named by =$ORG_LSP_CONFIG=;
+3. ~config.toml~ or ~config.json~ in =$XDG_CONFIG_HOME/org-lsp=;
+4. ~config.toml~ or ~config.json~ in =~/.config/org-lsp= (on Windows,
+   =%APPDATA%\org-lsp=).
+
+Write it in [[https://toml.io][TOML]] or in JSON, whichever you prefer. With both there, the
+server reads ~config.toml~ and says that it leaves ~config.json~ out. A file
+named by ~config_file~ or =$ORG_LSP_CONFIG= is JSON if its name ends in
+~.json~, and TOML otherwise.
+
+In TOML:
+
+#+begin_src toml
+org_agenda_files = ["~/org"]
+org_todo_keywords = ["TODO(t)", "NEXT(n)", "WAIT(w@/!)", "|", "DONE(d!)", "CANCELLED(c@)"]
+org_log_done = "time"
+org_log_into_drawer = true
+org_refile_targets = [{ files = "agenda", maxlevel = 2 }]
+org_agenda_span = "day"
+org_agenda_start_on_weekday = 0
+
+[[org_capture_templates]]
+key = "t"
+description = "Task"
+target = ["file+headline", "~/org/inbox.org", "Tasks"]
+template = "* TODO %?\n  %U"
+
+[[org_capture_templates]]
+key = "n"
+description = "Note"
+target = ["file", "~/org/notes.org"]
+template = ["* %^{Title}", "%U", "", "%?"]
+#+end_src
+
+The same in JSON, which may have comments and trailing commas, as VS
+Code's ~settings.json~ does, so that options can be copied from there as
+they are:
+
+#+begin_src json
+{
+  "org_agenda_files": ["~/org"],
+  "org_todo_keywords": ["TODO(t)", "NEXT(n)", "WAIT(w@/!)", "|", "DONE(d!)", "CANCELLED(c@)"],
+  "org_log_done": "time",
+  "org_log_into_drawer": true,
+  "org_refile_targets": [{ "files": "agenda", "maxlevel": 2 }],
+  "org_agenda_span": "day",
+  "org_agenda_start_on_weekday": 0,
+  "org_capture_templates": [
+    { "key": "t", "description": "Task", "target": ["file+headline", "~/org/inbox.org", "Tasks"], "template": "* TODO %?\n  %U" },
+    // Notes, in a file of their own.
+    { "key": "n", "description": "Note", "target": ["file", "~/org/notes.org"], "template": ["* %^{Title}", "%U", "", "%?"] },
+  ],
+}
+#+end_src
+
+TOML is easier to write by hand: templates can go over several lines, and
+there are no braces to balance. JSON is easier to copy settings into from
+VS Code. [[#every-option-at-its-default][The end of this page]] has every option at its default, in
+both.
+
+~org-lsp config~ shows which file the server reads, anything wrong with
+it, and the options it comes to; with ~--options~, it puts an editor's
+options on top, as the server would
+(~org-lsp config --options '{"org_agenda_span": "day"}'~):
+
+#+begin_example
+$ org-lsp config
+Configuration file: /home/me/.config/org-lsp/config.toml
+Options:
+{
+  "org_agenda_files": [
+    "~/org"
+  ],
+  "org_log_done": "time"
+}
+#+end_example
+
+*** Completion and checking
+
+[[file:config.schema.json][config.schema.json]] is the JSON Schema of the file, written from the
+server's own table of options. An editor that knows JSON Schema completes
+and checks the options with it, and flags a misspelt name. In JSON, name
+it with ~$schema~:
+
+#+begin_src json
+{
+  "$schema": "https://raw.githubusercontent.com/kristijanhusak/org-lsp/main/docs/config.schema.json",
+  "org_log_done": "time"
+}
+#+end_src
+
+In TOML, editors that use [[https://taplo.tamasfe.dev][Taplo]] (VS Code's Even Better TOML, Helix,
+Neovim's ~taplo~ server) read a ~#:schema~ comment at the top of the file:
+
+#+begin_src toml
+#:schema https://raw.githubusercontent.com/kristijanhusak/org-lsp/main/docs/config.schema.json
+org_log_done = "time"
+#+end_src
+
+The editors check the options they pass too: the Neovim plugin's options
+have types for lua-language-server, and VS Code completes and checks
+~org-lsp.settings~ (see their sections below).
+
+** An editor's options on top
+
+An editor's options go on top of the file's:
+
+- an option the editor sets replaces the file's;
+- an object, such as ~org_agenda_prefix_format~, is merged key by key;
+- a list, such as ~org_capture_templates~ or ~org_agenda_files~, is
+  replaced whole.
+
+With the file above, this Neovim configuration shows a week in the agenda,
+and keeps everything else from the file:
+
+#+begin_src lua
+require('org-lsp').setup({ settings = { org_agenda_span = 'week' } })
+#+end_src
+
+A list replaces the default list whole too: with ~org_capture_templates~
+set, its templates are the only ones, and Org's default one is gone.
+
+** Leaving the file out, or using another
+:PROPERTIES:
+:CUSTOM_ID: leaving-the-file-out-or-using-another
+:END:
+
+~config_file~ is an option only an editor gives. It says which file to
+read:
+
+- ~false~: none; the editor's options alone count;
+- a path: that file instead (=~/= is the home directory). It must exist:
+  the server says so when it cannot read it.
+
+#+begin_src lua
+-- Neovim: no shared file.
+require('org-lsp').setup({ settings = { config_file = false } })
+#+end_src
+
+#+begin_src json
+// VS Code: the work configuration.
+{ "org-lsp.settings": { "config_file": "~/work/org-lsp.toml" } }
+#+end_src
+
+** Custom agenda commands
+:PROPERTIES:
+:CUSTOM_ID: custom-agenda-commands
+:END:
+
+~org_agenda_custom_commands~ is Emacs's ~org-agenda-custom-commands~: views
+of your own in the agenda menu (~C-c a~, ~<Leader>oa~), next to ~a~ (the
+agenda), ~t~ (the TODO list) and ~m~ or ~M~ (a tags search, asked for). A
+command is one view, or a block agenda: several views one after the other,
+with a line of ~=~ between them.
+
+#+begin_src toml
+[[org_agenda_custom_commands]]
+key = "n"
+description = "Next actions"
+type = "todo"
+match = "NEXT|WAIT"
+
+[[org_agenda_custom_commands]]
+key = "w"
+description = "Work, open"
+type = "tags-todo"
+match = "work-email"
+
+# A prefix key: the menu then offers the commands under it.
+[[org_agenda_custom_commands]]
+key = "d"
+description = "Daily"
+
+[[org_agenda_custom_commands]]
+key = "dd"
+description = "Today, then what is waiting"
+blocks = [
+  { type = "agenda", settings = { org_agenda_span = "day" } },
+  { type = "tags-todo", match = "PRIORITY=\"A\"", header = "Urgent" },
+  { type = "todo", match = "WAIT", header = "Waiting for" },
+]
+#+end_src
+
+The views:
+
+| ~type~      | Shows                            | ~match~     |
+|-------------+----------------------------------+-------------|
+| ~agenda~    | the day or week agenda           |             |
+| ~alltodo~   | every open TODO entry            |             |
+| ~todo~      | entries with these keywords      | ~NEXT¦WAIT~ |
+| ~tags~      | entries the match string matches | ~work-home~ |
+| ~tags-todo~ | the same, open TODO entries only | ~work-home~ |
+
+(In the table, =¦= stands for =|=, which an Org table cannot hold.)
+
+A match string is Org's: tags joined with ~+~ (and), ~-~ (not) and =|=
+(or), as in =work+urgent-home|@phone=; a regexp in braces, ~{^proj}~;
+properties, as in ~OWNER="alice"~, ~EFFORT>2~, ~PRIORITY="A"~, ~LEVEL>1~,
+~TODO="NEXT"~, ~SCHEDULED<"<today>"~ (a ~*~ after the operator, as in
+~EFFORT<*3~, also requires the property); and, after a slash, keywords:
+=work/NEXT|WAIT=, or ~work/!~ for any open one.
+
+~header~ replaces a view's header, and an empty one leaves it out.
+~settings~ holds agenda options for a command or a block, as Org's
+settings list does: ~org_agenda_span~, ~org_agenda_start_day~ (~-1d~,
+~2026-10-01~), ~org_deadline_warning_days~, ~org_agenda_use_time_grid~ and
+the others. A block's settings go over its command's, which go over the
+options'.
+
+In a block agenda, ~f~, ~b~, ~.~, ~j~ and the span keys move the agenda
+block the cursor is in, as in Emacs.
+
+** Export, Babel and other work in Emacs
+:PROPERTIES:
+:CUSTOM_ID: export-babel-and-other-work-in-emacs
+:END:
+
+What only Emacs can do, the server has Emacs do, when Emacs (with Org 9.6
+or newer) is installed: export (~C-c C-e~, ~<Leader>oe~ in Vim and Neovim),
+evaluating code blocks (~C-c C-c~ on a block, ~C-c C-v b~ for the file's),
+LaTeX previews, encryption and a few others. The server starts Emacs the
+first time and keeps it running.
+
+Emacs's own settings for these go in a file Emacs loads before Org, or
+inline:
+
+#+begin_src toml
+# ~/.config/org-lsp/config.toml
+emacs_config_file = "~/.config/org-lsp/export.el"
+emacs_config = '''
+(setq org-export-backends '(ascii html icalendar latex md odt))
+(setq org-html-validation-link nil)
+(org-babel-do-load-languages 'org-babel-load-languages '((emacs-lisp . t) (python . t)))
+'''
+#+end_src
+
+Emacs asks before it evaluates code, and the editor shows the question.
+
+** When something is wrong
+
+The server never refuses to start because of its options:
+
+- a file that is not valid TOML or JSON is left out whole, and the server
+  shows a message naming the file and the line;
+- an option with a value of the wrong type is left out on its own, with a
+  message; the other options apply;
+- an option the server does not know is named in a message, which catches
+  a misspelt name.
+
+The messages also go to the editor's LSP log (~:checkhealth vim.lsp~ in
+Neovim shows where it is; the *Output* panel's *Org Language Server* in VS
+Code; ~:log-open~ in Helix).
+
+The server reads its options when it starts. After changing them, restart
+it: ~:lsp restart~ in Neovim 0.12, *Org: Restart Language Server* in VS
+Code (which restarts it by itself when ~org-lsp.settings~ changes),
+~:lsp-restart~ in Helix, *LSP: Restart Servers* in Sublime Text.
+
+* Each editor's own settings
+
+Besides passing the server's options, each editor has settings of its own:
+where the server comes from, the keys, how windows open, what is shown.
+
+** Neovim
+:PROPERTIES:
+:CUSTOM_ID: neovim
+:END:
+
+Set ~vim.g.org_lsp~ before the plugin loads, which suits lazy.nvim's
+~init~, or call ~require('org-lsp').setup()~ at any time; calling it more
+than once merges each call into what was there. What you set is merged
+into the defaults, so you only write what you want to change. These are
+the defaults:
+
+#+begin_src lua
+require('org-lsp').setup({
+  -- The server command. Unset, the plugin uses the server it built
+  -- (target/release/org-lsp in the plugin's directory), `org-lsp` from
+  -- PATH, or the one it downloaded.
+  cmd = nil,
+
+  -- When no server is found, download the build of `release` for this
+  -- platform into stdpath('data')/org-lsp (needs curl and tar), then
+  -- start it. `:OrgLspDownload` downloads it again, to update it.
+  download = true,
+
+  -- The release to download: 'nightly' (built from the latest main), or
+  -- a version tag such as 'v0.2.0'.
+  release = 'nightly',
+
+  -- The server's options, passed to it as they are.
+  settings = {},
+
+  -- How a newly opened file is folded: 'showeverything' (everything
+  -- open) or 'overview' (every fold closed). Unset, the server's
+  -- `org_startup_folded`, the file's `#+STARTUP:` and its `VISIBILITY`
+  -- properties decide, as in Emacs.
+  startup_folded = nil,
+
+  -- Fold with the server's folding ranges.
+  folding = true,
+
+  -- Turn off Vim's regex syntax for Org once the server's highlighting
+  -- arrives.
+  replace_syntax = true,
+
+  -- Highlight the code of source and export blocks (`#+begin_src python`,
+  -- `#+begin_export html`) and of inline source blocks (`src_python{…}`)
+  -- with the tree-sitter parser of its language and its highlight query,
+  -- as Emacs's `org-src-fontify-natively` does; a language without a
+  -- parser (Emacs Lisp) with its Vim syntax file. A language with neither
+  -- stays as it is.
+  src_highlight = true,
+
+  -- Conceal what the server marks hidden: link brackets and targets
+  -- (`org_link_descriptive`), emphasis markers (`org_hide_emphasis_markers`).
+  -- Sets 'conceallevel' 2 in Org windows; the cursor line shows everything.
+  conceal = true,
+
+  -- Indent as Org does, with the server: new lines through 'indentexpr'
+  -- (`org-indent-line`, as on RET), and `=` re-indents the lines it moves
+  -- over (`org-indent-region`). `gq` still wraps text. How far text goes
+  -- follows `org_adapt_indentation`.
+  indent = true,
+
+  -- Show files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP:
+  -- indent`) indented by level, without changing them, and hide leading
+  -- stars (`org_hide_leading_stars`, `#+STARTUP: hidestars`; needs
+  -- `conceal`). Lines that wrap are not indented by level: Neovim cannot
+  -- repeat the prefix there.
+  virtual_indent = true,
+
+  -- How the agenda and capture buffers open, and how big; see below.
+  win_split_mode = 'split',
+  win_split_size = nil,
+
+  -- Where the date prompt's calendar opens: 'bottom', 'float', 'cursor';
+  -- see below. And the border of a floating calendar.
+  calendar_win_mode = 'bottom',
+  calendar_border = 'rounded',
+
+  -- Previews of links to images and of LaTeX (`<Leader>oxv`, `<Leader>oxl`),
+  -- drawn with `vim.ui.img` (Neovim 0.13): the most cells an image takes,
+  -- or false for none. See below.
+  images = { max_width = 80, max_height = 20 },
+
+  -- Keys by scope; see docs/keys/neovim.org. `false` sets no keys at all.
+  mappings = {
+    global = {
+      ['org.agenda.dispatch'] = '<Leader>oa',
+      ['org.capture'] = '<Leader>oc',
+      ['org.clock.goto'] = '<Leader>oxj',
+    },
+    org = { cycle = '<Tab>', global_cycle = '<S-Tab>' },
+    agenda = { quit = 'q', hover = 'K' },
+  },
+})
+#+end_src
+
+~mappings~ lists only the keys the plugin needs before the server has
+started. The other keys come from the server; [[file:keys/neovim.org][keys/neovim.org]] lists them
+all and shows how to change them.
+
+The plugin's options and the server's have types for lua-language-server
+(~org_lsp.Config~, ~org_lsp.Settings~, written from the server's own table
+of options into ~lua/org-lsp/types.lua~), so with the plugin in its library
+they are completed and checked. ~setup()~ is annotated already; annotate
+~vim.g.org_lsp~ yourself:
+
+#+begin_src lua
+---@type org_lsp.Config
+vim.g.org_lsp = {
+  settings = { org_log_done = 'time', org_agenda_span = 'day' },
+}
+#+end_src
+
+~:checkhealth org-lsp~ shows which server the plugin found, where it came
+from, and the agenda files.
+
+*** Where the agenda and capture buffers open
+
+~win_split_mode~ says how a window is opened for the agenda and for a
+capture buffer. One that is already shown is used again.
+
+| Value              | Opens it                                                                        |
+|--------------------+---------------------------------------------------------------------------------|
+| ~'split'~          | in a horizontal split (the default)                                             |
+| ~'vsplit'~         | in a vertical split                                                             |
+| ~'float'~          | in a floating window in the middle of the editor                                |
+| ~'current'~        | in the current window                                                           |
+| another Ex command | with that command, such as ~'botright split'~, ~'topleft vsplit'~ or ~'tabnew'~ |
+| a function         | with the function, which is given the buffer and returns the window it opened   |
+
+#+begin_src lua
+require('org-lsp').setup({ win_split_mode = 'float' })
+
+-- A float of your own size.
+require('org-lsp').setup({
+  win_split_mode = function(bufnr)
+    return vim.api.nvim_open_win(bufnr, true, {
+      relative = 'editor', row = 2, col = 4, width = vim.o.columns - 8, height = vim.o.lines - 6, border = 'single',
+    })
+  end,
+})
+#+end_src
+
+~win_split_size~ says how big that window is: lines for a split, columns
+for a vertical one (~'vsplit'~, or a command with ~vsplit~, ~vnew~ or
+~vertical~), or, below 1, that part of the editor. A float takes the part
+for both its sides (~0.8~ unset), or the lines for its height. Unset, a
+split takes half of the window it splits. A function opens its own size.
+
+#+begin_src lua
+-- The agenda below, 15 lines high.
+require('org-lsp').setup({ win_split_mode = 'botright split', win_split_size = 15 })
+-- Beside, a third of the editor wide.
+require('org-lsp').setup({ win_split_mode = 'vsplit', win_split_size = 0.33 })
+#+end_src
+
+Closing the agenda (~q~) or finishing a capture closes the window that was
+opened for it; with ~'current'~, the window goes back to the buffer it
+showed before. Going to an entry from the agenda opens the entry's file in
+the agenda's window, or, from a floating window, in the window under it.
+The window the agenda or a capture buffer was opened from starts with the
+same line again when they close, as in Emacs.
+
+*** Where the calendar opens
+
+Commands that ask for a date (~org.deadline~, ~org.schedule~, ~cid~ …) show
+the calendar Emacs shows with the prompt. ~calendar_win_mode~ says where.
+
+| Value              | Opens it                                                                                                                                         |
+|--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------|
+| ~'bottom'~         | in a split along the bottom, as high as the calendar, as Emacs does (the default); from a floating window, in a floating window along the bottom |
+| ~'float'~          | in a floating window in the middle of the editor                                                                                                 |
+| ~'cursor'~         | in a floating window below the cursor, or above it when there is no room below                                                                   |
+| another Ex command | with that command, such as ~'topleft split'~                                                                                                     |
+| a function         | with the function, which is given the buffer and returns the window it opened                                                                    |
+
+~calendar_border~ is the border of the floating window (~'float'~,
+~'cursor'~), as ~nvim_open_win()~ takes it: ~'rounded'~ unset, ~'none'~ for
+none.
+
+The calendar shows three months, as Emacs's does; the server's
+~calendar_months~ option set to ~1~ shows the month of the selected day
+alone, which suits a floating window:
+
+#+begin_src lua
+require('org-lsp').setup({
+  calendar_win_mode = 'cursor',
+  calendar_border = 'single',
+  settings = { calendar_months = 1 },
+})
+#+end_src
+
+Once the calendar closes, the window it was asked from shows what it
+showed before: the same first line and the cursor on the same text, moved
+down with it when the date went in above, as in Emacs, whatever
+'scrolloff' and 'splitkeep' are.
+
+*** The clock and the timer in the statusline
+
+While a clock runs, ~require('org-lsp').clock_status()~ returns what
+Emacs's mode line shows: the time clocked on the entry, its effort, and its
+headline, as in ~[0:25/1:00] (Write the report)~. While the relative timer
+or a countdown is on, its value follows (~<0:05:23>~). With neither it
+returns an empty string. The plugin redraws the statusline every minute
+while a clock runs, every second while a timer runs, and fires the
+~User OrgLspClock~ autocommand when the clock starts or stops.
+
+#+begin_src lua
+vim.o.statusline = '%f %h%m%r%=%{v:lua.require("org-lsp").clock_status()}  %l,%c'
+
+-- lualine
+require('lualine').setup({
+  sections = { lualine_x = { function() return require('org-lsp').clock_status() end } },
+})
+#+end_src
+
+*** Highlighting
+
+The server's highlighting arrives as semantic tokens, which Neovim shows
+with the groups ~@lsp.type.<token>.org~ and
+~@lsp.typemod.<token>.<modifier>.org~; [[file:protocol.org::#semantic-tokens][protocol.org]] lists the tokens
+and modifiers. The plugin links them to nvim-orgmode's ~@org.*~ groups by
+default, so a colorscheme that styles those applies here too. Like any
+group, they can be set in your configuration:
+
+#+begin_src lua
+vim.api.nvim_set_hl(0, '@lsp.type.todoKeyword.org', { fg = '#ff6c6b', bold = true })
+vim.api.nvim_set_hl(0, '@lsp.typemod.todoKeyword.done.org', { fg = '#98be65', bold = true })
+#+end_src
+
+*** Images and LaTeX
+
+Neovim 0.13 draws images in the terminal (~vim.ui.img~, with the Kitty
+graphics protocol: Kitty, Ghostty, WezTerm). There the previews of Org
+show, as Emacs shows them:
+
+- ~<Leader>oxv~ (~org-link-preview~, ~C-c C-x C-v~) shows the images of the
+  links to image files in the current section, or toggles the one of the
+  link at the cursor. With a count of 1 links with a description count
+  too; 4 takes them away; 16 (or 11) shows those of the whole file, 64
+  takes them all away. A file with ~#+STARTUP: inlineimages~ (or
+  ~org_startup_with_link_previews~) opens with them.
+- ~<Leader>oxl~ (~org-latex-preview~, ~C-c C-x C-l~) shows the LaTeX
+  fragments as images, made by Emacs (~latex~ and ~dvipng~, as Org makes
+  them, into ~ltximg/~ beside the file), with the same counts. A file with
+  ~#+STARTUP: latexpreview~ (or ~org_startup_with_latex_preview~) opens
+  with them.
+
+An image shows below the line of its link or fragment, in lines kept free
+for it, from where the line's text starts, and follows it as the window
+scrolls; it goes when its text does. PNG images show as they are; others
+are made PNG with ImageMagick (~magick~ or ~convert~) when it is
+installed. Older versions of Neovim say that they cannot show images.
+
+An image keeps its proportions: it shows at its own size, and one larger
+than ~max_width~ or ~max_height~ (in cells) allows is given only the width
+or the height it may take, the terminal working out the other. The lines
+kept free below it are those it takes, by the size of the terminal's cells
+in pixels, which the terminal tells (Kitty, Ghostty and WezTerm do). Where
+it does not (some multiplexers), cells are taken as 10 by 20 pixels; set
+their size if images overlap the text below them or leave a gap:
+
+#+begin_src lua
+require('org-lsp').setup({ images = { cell = { width = 9, height = 19 } } })
+#+end_src
+
+** Vim
+:PROPERTIES:
+:CUSTOM_ID: vim
+:END:
+
+Set ~g:org_lsp~ before the plugin loads; every key may be left out, and
+what you set is merged into the defaults.
+
+| Option              | Default            | Meaning                                                                                                                                                                                                                                             |
+|---------------------+--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ~cmd~               | found              | The server command, as a list. Unset: the build in the checkout (~target/release~), or ~org-lsp~ on PATH.                                                                                                                                           |
+| ~settings~          | ~{}~               | The server's options, passed to it as they are.                                                                                                                                                                                                     |
+| ~client~            | ~'auto'~           | The LSP client: ~'lsp'~ (yegappan/lsp), ~'vim-lsp'~, ~'coc'~ or ~'ale'~. ~'auto'~ takes the first of these that is installed.                                                                                                                       |
+| ~folding~           | ~1~                | Fold with the server's folding ranges, and cycle with ~<Tab>~ and ~<S-Tab>~.                                                                                                                                                                        |
+| ~startup_folded~    | ~''~               | ~'overview'~ opens files with every fold closed, ~'showeverything'~ with every fold open. Empty: the server's ~org_startup_folded~, the file's ~#+STARTUP:~ and its ~VISIBILITY~ properties decide, as in Emacs.                                    |
+| ~highlight~         | ~1~                | Highlight with the server's tokens.                                                                                                                                                                                                                 |
+| ~indent~            | ~1~                | Indent as Org does, with the server: new lines through 'indentexpr' (~org-indent-line~), and ~=~ (~org-indent-region~), following ~org_adapt_indentation~.                                                                                          |
+| ~virtual_indent~    | ~1~                | Show files with ~org-indent-mode~ (~org_startup_indented~, ~#+STARTUP: indent~) indented by level without changing them, and their hidden leading stars in the color of the background, as Org's ~org-hide~ face does. Needs Vim 9.0.0067 or later. |
+| ~src_highlight~     | ~1~                | Highlight the code of source and export blocks and of inline source blocks (to the first ~}~) with the syntax file of its language, as Emacs's ~org-src-fontify-natively~ does.                                                                     |
+| ~win_split_mode~    | ~'split'~          | How the agenda and capture buffers open: ~'split'~, ~'vsplit'~, ~'current'~, or an Ex command that opens a window (~'botright split'~, ~'tabnew'~).                                                                                                 |
+| ~win_split_size~    | ~0~                | How big that window is: lines for a split, columns for a vertical one (~vsplit~, ~vnew~, ~vertical~), or below 1 that part of the editor. ~0~ leaves it as the command makes it.                                                                    |
+| ~calendar~          | ~1~                | Pick dates in Org's calendar, as Emacs shows it while it asks for a date; ~i~ there types the date. ~0~ asks for the date as text only.                                                                                                             |
+| ~calendar_win_mode~ | ~'botright split'~ | The Ex command that opens the calendar's window (~'topleft split'~, ~'botright vsplit'~). A split is as high as the calendar.                                                                                                                       |
+| ~mappings~          | the server's       | Keys by scope (~global~, ~org~, ~agenda~, ~capture~, ~calendar~, ~columns~); see [[file:keys/vim.org][keys/vim.org]].                                                                                                                                                      |
+
+For the clock in the statusline, and the relative timer or the countdown
+while one is on (~[0:25] (Write the report) <0:05:23>~):
+
+#+begin_src vim
+set statusline=%f\ %=%{org_lsp#clock_status()}
+#+end_src
+
+~User OrgLspClock~ fires when the clock starts or stops.
+
+Leave the LSP client's own semantic highlighting and folding off for Org
+files (they are off by default in all four clients): the plugin does both.
+
+** VS Code
+:PROPERTIES:
+:CUSTOM_ID: vs-code
+:END:
+
+The settings go in ~settings.json~ (*Preferences: Open User Settings
+(JSON)*), or in a workspace's ~.vscode/settings.json~ for that folder only.
+The *Settings* UI shows them under *Extensions › Org (org-lsp)*. In
+~settings.json~ the server's options under ~org-lsp.settings~ are
+completed, described on hover and checked, as the extension knows them all
+with their types and defaults.
+
+| Setting                   | Default          | Meaning                                                                                                                                                                                                                                                       |
+|---------------------------+------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ~org-lsp.settings~        | ~{}~             | The server's options, passed to it as they are.                                                                                                                                                                                                               |
+| ~org-lsp.server.path~     | ~""~             | The server binary. Empty: the one bundled with the extension, or else ~org-lsp~ from PATH.                                                                                                                                                                    |
+| ~org-lsp.keys~            | ~"emacs"~        | Which keys are bound: ~"emacs"~, ~"vim"~ (the Neovim plugin's, for VSCodeVim) or ~"custom"~ (none); see [[file:keys/vscode.org][keys/vscode.org]].                                                                                                                                      |
+| ~org-lsp.conceal~         | ~true~           | Hide what Org hides: link brackets and targets (~org_link_descriptive~), emphasis markers (~org_hide_emphasis_markers~). The line with the cursor shows everything.                                                                                           |
+| ~org-lsp.images~          | ~true~           | Show images in place of links to image files and of LaTeX fragments (~C-c C-x C-v~, ~C-c C-x C-l~, ~#+STARTUP: inlineimages~, ~latexpreview~). VS Code cannot leave lines free for an image, so an image is as high as a line; hover over it to see it whole. |
+| ~org-lsp.latexForeground~ | ~""~             | The color LaTeX previews are drawn in, such as ~"#d4d4d4"~. Empty: black on a light theme, light gray on a dark one.                                                                                                                                          |
+| ~org-lsp.winSplitMode~    | ~"split"~        | Where the agenda and capture buffers open: ~"split"~ in an editor group below the current one, ~"vsplit"~ beside it, ~"float"~ in a window of its own, ~"current"~ in the current group. A group that already has it is used again.                           |
+| ~org-lsp.messages~        | ~"notification"~ | How Org's messages show (~Priority of current item set to A~): ~"notification"~ in the corner of the window, ~"statusBar"~ in the status bar for a few seconds. Errors always show as notifications.                                                          |
+
+When ~org-lsp.settings~ or ~org-lsp.server.path~ changes, the extension
+restarts the server, so the change applies at once. While a clock runs,
+the status bar shows it as Emacs's mode line does, such as
+~[0:25/1:00] (Write the report)~; clicking it goes to the entry.
+
+The extension also sets editor defaults for Org files, the agenda and the
+date prompt. Org files get semantic highlighting, and the light bulb and
+bracket pair colours are off. The agenda and the date prompt also lose
+line numbers, wrapping, folding and indentation guides. Any of these can be
+set back for the language as usual:
+
+#+begin_src json
+{
+  "[org]": { "editor.lightbulb.enabled": "on" },
+  "[org-agenda]": { "editor.lineNumbers": "on" }
+}
+#+end_src
+
+** Sublime Text
+:PROPERTIES:
+:CUSTOM_ID: sublime-text
+:END:
+
+The package's settings are under *Preferences › Package Settings › LSP ›
+Servers › LSP-org*, or *Preferences: LSP-org Settings* in the Command
+Palette, which opens the defaults beside your own
+~Packages/User/LSP-org.sublime-settings~.
+
+| Setting                 | Meaning                                                                                                                                                                                                                |
+|-------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ~command~               | The server command. By default the package finds the server or downloads it; see [[file:sublime.org][sublime.org]].                                                                                                                          |
+| ~initializationOptions~ | The server's options, passed to it as they are.                                                                                                                                                                        |
+| ~org_keys~              | The keys: ~"emacs"~ (the default), ~"vim"~ (for Vintage and NeoVintageous, in command mode) or ~"custom"~ (none); see [[file:keys/sublime.org][keys/sublime.org]].                                                                                |
+| ~org_images~            | Whether images show below the lines of links to image files and of LaTeX fragments (~C-c C-x C-v~, ~C-c C-x C-l~, ~#+STARTUP: inlineimages~, ~latexpreview~): ~true~ (the default) or ~false~. PNG, JPEG and GIF only. |
+| ~org_messages~          | How Org's messages show: ~"popup"~ (the default), at the cursor for a few seconds and in the status bar, or ~"status"~, in the status bar only.                                                                        |
+| ~semantic_tokens~       | The scopes of the server's tokens; written from the server.                                                                                                                                                            |
+
+LSP draws the server's colors with ~"semantic_highlighting": true~ in its
+own settings (*Preferences › Package Settings › LSP › Settings*), and the
+time clocked and the ~…~ of shrunk columns with ~"show_inlay_hints": true~.
+
+** Zed
+:PROPERTIES:
+:CUSTOM_ID: zed
+:END:
+
+The settings go in Zed's settings (*zed: open settings*):
+
+#+begin_src json
+{
+  "languages": {
+    "Org": { "semantic_tokens": "combined", "inlay_hints": { "enabled": true } }
+  },
+  "lsp": {
+    "org-lsp": {
+      "binary": { "path": "/path/to/org-lsp" },
+      "initialization_options": { "org_agenda_files": ["~/org"] }
+    }
+  }
+}
+#+end_src
+
+- ~semantic_tokens~: Zed asks a language server for semantic tokens only
+  when a language's ~semantic_tokens~ says so. ~combined~ colors Org files
+  with the tree-sitter grammar and the server's tokens on top; ~full~ uses
+  the server's tokens alone. Source and export blocks show their code in
+  its language's colors through the grammar's injections, with ~combined~
+  only. The grammar has no node for inline source blocks
+  (~src_python{…}~), so their code is not colored.
+- ~inlay_hints~: files with ~org-indent-mode~ (~org_startup_indented~,
+  ~#+STARTUP: indent~) show indented by level, without being changed,
+  through inlay hints of blanks before their lines. The leading stars still
+  show; Zed cannot hide them. Pretty entities (~\alpha~ as ~α~) and the
+  clock's times are inlay hints too.
+- ~lsp.org-lsp.binary.path~: a server binary of your own. Without it, the
+  extension starts ~org-lsp~ from PATH, or else downloads the nightly build
+  for your platform once.
+- ~lsp.org-lsp.initialization_options~: the server's options, passed to it
+  as they are.
+
+** Helix
+:PROPERTIES:
+:CUSTOM_ID: helix
+:END:
+
+Helix passes the ~config~ table under the server in ~languages.toml~ to it
+as it is, as the server's options. Inlay hints show the indentation of
+~org-indent-mode~, the time clocked and the ~…~ of shrunk columns:
+
+#+begin_src toml
+[editor.lsp]
+display-inlay-hints = true
+#+end_src
+
+* Every option, at its default
+:PROPERTIES:
+:CUSTOM_ID: every-option-at-its-default
+:END:
+
+Every option of the server with its default, and what it means; an option
+that is unset is a comment. You would never write them all out: set only
+what you want different. The names and values are the same in every
+editor; only the syntax changes ([[#the-shared-configuration-file][above]], and on each editor's page).
+
+# The blocks below are written by scripts/generate-docs.mjs from
+# `org-lsp settings`. Edit server/org-lsp/src/settings.rs, not the blocks.
+
+** In TOML
+
+# BEGIN generated: options
+
+#+begin_src toml
+# Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built
+# from. `~/` is the home directory, and a directory stands for the Org files
+# directly in it. When empty, the agenda is built from the Org files under the
+# workspace folders (hidden directories, `node_modules` and `target` left
+# out), or else from the Org files that are open. (org-agenda-files)
+org_agenda_files = []
+
+# The TODO sequence, written like Org's `#+TODO:` line. `|` separates the
+# states that count as done; without it the last keyword is the only done
+# state. `TODO(t)` gives a keyword a key for fast selection, and `WAIT(w@/!)`
+# makes it log a note (`@`) or the time (`!`) on entering and leaving it.
+# Several sequences go in a list of lists, `[["TODO", "|", "DONE"], ["REPORT",
+# "|", "FIXED"]]`; cycling stays in the sequence of the entry, and
+# `C-S-<right>` switches to the next. A list that starts with `type` is a type
+# sequence (`#+TYP_TODO:`): each of its keywords goes straight to done. A
+# file's own `#+TODO:` lines take precedence. (org-todo-keywords)
+org_todo_keywords = ["TODO", "|", "DONE"]
+
+# Faces for particular TODO keywords: a color, `{ "WAIT": "orange" }`, or
+# attributes written as Org writes them, `{ "CANCELLED": ":foreground gray
+# :slant italic :strike-through t" }` (`:foreground`, `:background`, `:weight
+# bold`, `:slant italic`, `:underline t`, `:strike-through t`). Shown in Org
+# files and in the agenda by Neovim, Vim and VS Code. (org-todo-keyword-faces)
+org_todo_keyword_faces = {  }
+
+# Faces for particular priorities, by their letter, written as in
+# `org_todo_keyword_faces`: `{ "A": ":foreground red :weight bold" }`.
+# (org-priority-faces)
+org_priority_faces = {  }
+
+# Write `CLOSED:` with the time when an entry is done, and with `note` ask for
+# a note too. A file's `#+STARTUP:` words `logdone`, `lognotedone` and
+# `nologdone` change it there; an entry's `LOGGING` property (inherited) says
+# what its state changes log instead: those words, `logrepeat` and its
+# relatives, and keywords with what they log (`WAIT(@/!)`), or `nil` for
+# nothing. (org-log-done)
+org_log_done = false
+
+# Record when a repeating entry is done and moves to its next date.
+# `#+STARTUP:` `logrepeat`, `lognoterepeat` and `nologrepeat` change it in a
+# file, and the `LOGGING` property in an entry. (org-log-repeat)
+org_log_repeat = "time"
+
+# Moving to the next item from the last goes to the first, and back; moving
+# the last item down puts it first, the first up puts it last.
+# (org-list-use-circular-motion)
+org_list_use_circular_motion = false
+
+# An entry cannot be done while a child is not, or, under a parent with the
+# `ORDERED` property, while an earlier sibling is not: the change is refused
+# with what blocks it. (org-enforce-todo-dependencies)
+org_enforce_todo_dependencies = false
+
+# Dim the tasks of the agenda and the TODO list that their dependencies keep
+# from being done (with `org_enforce_todo_dependencies` or
+# `org_enforce_todo_checkbox_dependencies`); `invisible` leaves them out
+# instead, except those blocked by checkboxes, which stay dimmed.
+# (org-agenda-dim-blocked-tasks)
+org_agenda_dim_blocked_tasks = true
+
+# An entry cannot be done while it has an unchecked box.
+# (org-enforce-todo-checkbox-dependencies)
+org_enforce_todo_checkbox_dependencies = false
+
+# Record when an entry is refiled (`Refiled on [2026-05-18 Mon 10:30]`), with
+# `note` asking for a note too. `#+STARTUP:` `logrefile`, `lognoterefile` and
+# `nologrefile` change it in the file refiled to. (org-log-refile)
+org_log_refile = false
+
+# Record when a scheduled date changes or is removed (`Rescheduled from
+# "[2026-05-18 Mon]" on …`), with `note` asking for a note too. `#+STARTUP:`
+# `logreschedule`, `lognotereschedule` and `nologreschedule` change it in a
+# file. (org-log-reschedule)
+org_log_reschedule = false
+
+# Record when a deadline changes or is removed (`New deadline from …`), with
+# `note` asking for a note too. `#+STARTUP:` `logredeadline`,
+# `lognoteredeadline` and `nologredeadline` change it in a file.
+# (org-log-redeadline)
+org_log_redeadline = false
+
+# Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name
+# of a drawer. `#+STARTUP:` `logdrawer` and `nologdrawer` change it in a file;
+# an entry's `LOG_INTO_DRAWER` property (inherited) says which drawer for it
+# (`t` for `LOGBOOK`, `nil` for none). (org-log-into-drawer)
+org_log_into_drawer = false
+
+# Where tags are aligned after a change to a headline. Negative: they end at
+# that column. (org-tags-column)
+org_tags_column = -77
+
+# Which tags entries inherit from their parents and from `#+FILETAGS:`: `true`
+# for all, `false` for none, a list of tags, or a regexp (Emacs syntax) tags
+# must match. Inherited tags count in tag searches and show in the agenda.
+# (org-use-tag-inheritance)
+org_use_tag_inheritance = true
+
+# Tags never inherited, when `org_use_tag_inheritance` is `true` or a regexp.
+# (org-tags-exclude-from-inheritance)
+org_tags_exclude_from_inheritance = []
+
+# Which properties an entry without them takes from its parents, the file's
+# property drawer and `#+PROPERTY:` lines, in property searches
+# (`OWNER="alice"`): `true` for all, `false` for none, a list of names, or a
+# regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited.
+# (org-use-property-inheritance)
+org_use_property_inheritance = false
+
+# Properties every entry inherits, after those of `#+PROPERTY:` lines: chiefly
+# the allowed values of a property, which setting it offers and `S-<right>`
+# and `S-<left>` go through on its line (`{ "Effort_ALL": "0:10 0:30 1:00
+# 2:00" }`; `:ETC` allows others too). (org-global-properties)
+org_global_properties = {  }
+
+# Where `CLOCK:` lines go: `true` for the drawer of `org_log_into_drawer`
+# (`LOGBOOK` when that is not a name), the name of a drawer, or `false` for
+# the entry itself. (org-clock-into-drawer)
+org_clock_into_drawer = true
+
+# Clocking out after less than a minute removes the `CLOCK:` line.
+# (org-clock-out-remove-zero-time-clocks)
+org_clock_out_remove_zero_time_clocks = false
+
+# Marking the clocked entry done stops the clock. (org-clock-out-when-done)
+org_clock_out_when_done = true
+
+# The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up.
+# (org-clock-display-default-range)
+org_clock_display_default_range = "thisyear"
+
+# After how many minutes without a message from the editor a clock that runs
+# asks what to do with the idle time: keep it, subtract it (and clock out), or
+# cancel the clock. (org-clock-idle-time)
+# org_clock_idle_time = …  (unset: none)
+
+# How many entries clocked into the clock history keeps, for `org.clock.in`
+# with a count and `org.clock.in.last`. (org-clock-history-length)
+org_clock_history_length = 5
+
+# The parameters a new clock table gets on its `#+BEGIN:` line from
+# `org.clock.report` (`C-c C-x C-r`), after `:scope`, as Emacs Lisp reads them
+# (`:maxlevel 3 :link t`). (org-clock-clocktable-default-properties)
+org_clock_clocktable_default_properties = ":maxlevel 2"
+
+# How a clock table writes its total time and the words before it; `%s` is the
+# text. (org-clock-total-time-cell-format)
+org_clock_total_time_cell_format = "*%s*"
+
+# How a clock table over several files writes the words before a file's time;
+# `%s` is the text. (org-clock-file-time-cell-format)
+org_clock_file_time_cell_format = "*%s*"
+
+# The TODO state an entry is put in when the clock starts on it (`NEXT`),
+# unless it has it already. (org-clock-in-switch-to-state)
+# org_clock_in_switch_to_state = …  (unset: none)
+
+# The TODO state an entry is put in when the clock stops on it.
+# (org-clock-out-switch-to-state)
+# org_clock_out_switch_to_state = …  (unset: none)
+
+# Org's linter checks the documents and reports what it finds as diagnostics:
+# misplaced headings and planning lines, links to nowhere, duplicate names,
+# footnotes without definitions… What it finds is information, a hint for a
+# checker Org trusts little: an Org file is text, nothing in it is an error or
+# a warning. (org-lint)
+org_lint = true
+
+# The `org-lint` checkers to leave out, by name, as a diagnostic's code shows
+# it (`"misplaced-heading"`). (org-lint)
+org_lint_ignore = []
+
+# Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true` makes
+# one when the entry has none, `"create-if-interactive"` only from the command
+# (not for capture's `%a`), `"create-if-interactive-and-no-custom-id"`
+# likewise unless the entry has a `CUSTOM_ID`, `"use-existing"` only when it
+# has one already. Off, the link searches for the headline.
+# (org-id-link-to-org-use-id)
+org_id_link_to_org_use_id = false
+
+# Links to a place in a file search for it (`file:notes.org::*Heading`); `C-u`
+# turns it around for one link. (org-link-context-for-files)
+org_link_context_for_files = true
+
+# ID links to a place below the entry's headline search for it as well
+# (`id:…::name`). (org-id-link-use-context)
+org_id_link_use_context = true
+
+# An ID link may use the ID of a parent entry, with a search for the place.
+# (org-id-link-consider-parent-id)
+org_id_link_consider_parent_id = false
+
+# How links to files write the path: `"adaptive"` relative below the file's
+# directory and absolute elsewhere, `"absolute"` (with `~`), `"noabbrev"`
+# (without), `"relative"`. (org-link-file-path-type)
+org_link_file_path_type = "adaptive"
+
+# Stored links stay stored once inserted.
+# (org-link-keep-stored-after-insertion)
+org_link_keep_stored_after_insertion = false
+
+# Completing a tag offers the tags of every agenda file, after those of the
+# file. Off, only the file's own. Setting tags offers them too.
+# (org-complete-tags-always-offer-all-agenda-tags)
+org_complete_tags_always_offer_all_agenda_tags = false
+
+# Bibliography files for the citations of every document (`[cite:@key]`),
+# after those its `#+BIBLIOGRAPHY:` lines name: BibTeX (`.bib`, `.bibtex`) or
+# CSL-JSON (`.json`). Their entries are completed after `@`, shown over a key,
+# and where following a key goes; a key none has is marked.
+# (org-cite-global-bibliography)
+org_cite_global_bibliography = []
+
+# Link abbreviations: `[[gh:org-lsp]]` with `{ "gh": "https://github.com/%s"
+# }` follows `https://github.com/org-lsp`. `%s` stands for what follows the
+# colon, `%h` for it URL-encoded; without either it goes at the end. A file's
+# `#+LINK:` lines come first. A function (`%(…)`) is not supported.
+# (org-link-abbrev-alist)
+org_link_abbrev_alist = {  }
+
+# The tags offered when setting tags in a file without a `#+TAGS:` line,
+# written like one: `"work(w) home(h) { @office(o) @home(m) } [ GTD : Control
+# Persp ]"` gives `work` the key `w`, makes `@office` and `@home` exclusive,
+# and groups `Control` and `Persp` under `GTD`; `\n` starts a new line. A list
+# of these words does as well. Unset, the tags used in the file are offered.
+# (org-tag-alist)
+org_tag_alist = ""
+
+# Tags offered in every file, before those of `#+TAGS:` or `org_tag_alist`,
+# written the same way. (org-tag-persistent-alist)
+org_tag_persistent_alist = ""
+
+# A group tag (`[ GTD : Control Persp ]`, `{ Context : @home @office }` in
+# `#+TAGS:` or `org_tag_alist`) in the match string of a tags view stands for
+# itself and the tags of its group. (org-group-tags)
+org_group_tags = true
+
+# Pick tags by key, each key turning its tag on or off until RET: `auto` when
+# some tag has a key, `true` always (keys are given to the tags without one),
+# `false` never: the tags are typed instead. (org-use-fast-tag-selection)
+org_use_fast_tag_selection = "auto"
+
+# In fast tag selection, the first key that changes the tags also ends it.
+# (org-fast-tag-selection-single-key)
+org_fast_tag_selection_single_key = false
+
+# Sort the tags of a headline when they are set: alphabetically, or the other
+# way. (org-tags-sort-function)
+# org_tags_sort_function = …  (unset: the order they were picked in)
+
+# Align the tags of a headline to `org_tags_column` when they are set.
+# (org-auto-align-tags)
+org_auto_align_tags = true
+
+# The state a repeating entry returns to when it is done: a keyword, or `true`
+# for the state it had. (org-todo-repeat-to-state)
+# org_todo_repeat_to_state = …  (unset: the first keyword of the sequence)
+
+# The highest priority. (org-priority-highest)
+org_priority_highest = "A"
+
+# The lowest priority. (org-priority-lowest)
+org_priority_lowest = "C"
+
+# The priority of an entry without a cookie. A file's `#+PRIORITIES:` line
+# takes precedence over the three priority options. (org-priority-default)
+org_priority_default = "B"
+
+# Raising or lowering the priority of an entry that has none starts at the
+# default. (org-priority-start-cycle-with-default)
+org_priority_start_cycle_with_default = true
+
+# The step in which the minutes of a timestamp change (the second number of
+# Org's option). (org-time-stamp-rounding-minutes)
+org_time_stamp_rounding_minutes = 5
+
+# A date typed without a year or month is the next one to come. With `time`, a
+# time that has passed today is tomorrow's. (org-read-date-prefer-future)
+org_read_date_prefer_future = true
+
+# A typed year is kept within 1970 to 2037.
+# (org-read-date-force-compatible-dates)
+org_read_date_force_compatible_dates = true
+
+# Where entries can be refiled to. Each entry has `files`: `current` (the
+# entry's own file), `agenda`, a path or a list of paths; and one of `level`,
+# `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or
+# `all` (true), which says which headlines there are targets.
+# (org-refile-targets)
+org_refile_targets = [{ files = "current", level = 1 }]
+
+# Name targets by their outline path (`Projects/Alpha/`). The three names
+# start the path with the file, and offer the file itself, for its top level.
+# (org-refile-use-outline-path)
+org_refile_use_outline_path = false
+
+# A target that is not there yet can be named after an existing one,
+# `Projects/New`: it is made, as the last child of `Projects`, and the entry
+# goes under it. `confirm` asks first.
+# (org-refile-allow-creating-parent-nodes)
+org_refile_allow_creating_parent_nodes = false
+
+# The name of an Emacs Lisp function that decides which headlines are refile
+# targets: the server's Emacs calls it at the start of each, and keeps those
+# it says yes to. Where it leaves the point, the search goes on: a function
+# can skip a subtree. (org-refile-target-verify-function)
+# org_refile_target_verify_function = …  (unset: none)
+
+# A refiled entry goes first under its target, not last.
+# (org-reverse-note-order)
+org_reverse_note_order = false
+
+# Where archived subtrees go: a file, `::`, and a headline under which they go
+# (they go to the end of the file without one). `%s` is the name of the file
+# the subtree is in; an empty file part is that file. `datetree/` as the
+# headline files them under year, month and day, by when they were closed. An
+# `ARCHIVE` property of the entry or a parent, or a `#+ARCHIVE:` line, says
+# otherwise. (org-archive-location)
+org_archive_location = "%s_archive::"
+
+# An archived subtree goes first under its archive headline, not last.
+# (org-archive-reversed-order)
+org_archive_reversed_order = false
+
+# Mark archived entries done: `true` for the first done keyword, or the
+# keyword to use. (org-archive-mark-done)
+org_archive_mark_done = false
+
+# Give an archived subtree the tags it inherited: always, never, or when it
+# stays in its file. (org-archive-subtree-add-inherited-tags)
+org_archive_subtree_add_inherited_tags = "infile"
+
+# What an archived entry keeps as `ARCHIVE_…` properties: `time`, `file`,
+# `olpath` (its outline path), `category`, `todo`, `itags` (inherited tags),
+# `ltags` (its own tags) and `olid` (its parent's ID).
+# (org-archive-save-context-info)
+org_archive_save_context_info = ["time", "file", "olpath", "category", "todo", "itags"]
+
+# The headline of the sibling `org.archive.sibling` archives under.
+# (org-archive-sibling-heading)
+org_archive_sibling_heading = "Archive"
+
+# What a new archive file starts with; `%s` is the path of the file the
+# subtree came from. (org-archive-file-header-format)
+org_archive_file_header_format = "\nArchived entries from file %s\n\n"
+
+# What `org.archive.default` does: archive the subtree, archive it under its
+# sibling, or tag it. (org-archive-default-command)
+org_archive_default_command = "subtree"
+
+# Where templates are offered. Each has the `key` of a template, `contexts`,
+# rules such as `{ "in_file": "work" }` (`in_file`, `in_mode`, `in_buffer`,
+# `not_in_file`, `not_in_mode` or `not_in_buffer`, each with a regexp of the
+# `regex` crate's syntax, matched ignoring case), and maybe `use`, the key of
+# the template it stands for there. A template with contexts is offered only
+# where one of their rules holds. The mode is `org-mode` in an Org file and
+# `org-agenda-mode` in the agenda, where there is no file; the buffer's name
+# is the file's. (org-capture-templates-contexts)
+org_capture_templates_contexts = []
+
+# Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the
+# default, `plain`, `item`, `checkitem` or `table-line`), a `target` and a
+# `template` (text, or a list of lines), and may have `prepend`,
+# `empty_lines`, `empty_lines_before`, `empty_lines_after`,
+# `immediate_finish`, `tree_type`, `time_prompt`, `table_line_pos`,
+# `clock_in`, `clock_keep`, `clock_resume` and `jump_to_captured`. The target
+# is a list: `file` and a path; `file+headline`, a path and a headline;
+# `file+olp`, a path and the headlines of an outline path; `file+regexp`, a
+# path and a regular expression; `file+olp+datetree`, a path and the headlines
+# of an outline path, maybe none, for a date tree under them; `id` and an ID;
+# `clock`, the entry clocked now; `file+function`, a path and the name of an
+# Emacs Lisp function that moves the point there, or `function` and the name
+# of one that visits the file too (run by the server's Emacs). An empty path
+# is `org_default_notes_file`, and without a target the entry goes at the end
+# of `org_default_notes_file`. A template with only a key and a description
+# groups the templates whose keys start with its key. (org-capture-templates)
+org_capture_templates = [{ key = "t", description = "Task", target = ["file+headline", "", "Tasks"], template = "* TODO %?\n  %u\n  %a" }]
+
+# Where the relative paths of capture targets are. (org-directory)
+org_directory = "~/org"
+
+# The target of a capture template whose file is empty.
+# (org-default-notes-file)
+org_default_notes_file = "~/.notes"
+
+# Show a link as its description (or its target, when it has none) and hide
+# the rest: the brackets, and the target of a link with a description. The
+# text is marked `hidden` in the highlighting, and editors that can conceal
+# text conceal it. (org-link-descriptive)
+org_link_descriptive = true
+
+# Hide the markers around `*bold*`, `/italic/`, `_underline_`,
+# `+strike-through+`, `=verbatim=` and `~code~`, as for links.
+# (org-hide-emphasis-markers)
+org_hide_emphasis_markers = false
+
+# Show entities (`\alpha`, `\to`) as their character (`α`, `→`): the entity is
+# hidden as link brackets are, and its character is an inlay hint in its
+# place. (org-pretty-entities)
+org_pretty_entities = false
+
+# With `org_pretty_entities`, show sub- and superscripts (`x^2`, `H_{2}O`,
+# `a_{n}`) raised and lowered: in Unicode (`x²`, `H₂O`, `aₙ`) where every
+# character has a raised or lowered form, as an inlay hint in place of the
+# hidden text; the others are left as they are.
+# (org-pretty-entities-include-sub-superscripts)
+org_pretty_entities_include_sub_superscripts = true
+
+# Which sub- and superscripts `org_pretty_entities` shows: all, only those in
+# braces (`a_{b}`, `"{}"`), or none. (org-use-sub-superscripts)
+org_use_sub_superscripts = true
+
+# RET on the first line of a list item makes the next item, numbered and with
+# a checkbox as M-RET (`org-meta-return`) makes it, the items after it
+# renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET
+# is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter,
+# with the vim keys) always does it.
+return_uses_meta_return = false
+
+# The deepest headings `org.goto` (`C-c C-j`) offers. (org-goto-max-level)
+org_goto_max_level = 5
+
+# How many months the calendar of the date prompt shows: 3 side by side, as
+# Emacs's calendar shows them, the one with the selected day in the middle; or
+# 1, that month alone, for a narrow window.
+calendar_months = 3
+
+# The Emacs program, for what only Org itself does: export
+# (`org.export.dispatch`). The server starts it (`emacs --batch -Q`) when that
+# is first asked for and keeps it running, so that Org loads once. Without
+# Emacs, everything else works as before.
+emacs = "emacs"
+
+# A file of Emacs Lisp that Emacs loads before Org, for the variables export
+# reads (`org-export-backends`, `org-html-…`, `org-latex-…`,
+# `org-publish-project-alist`): a file of its own, or your init file. `~/` is
+# the home directory.
+# emacs_config_file = …  (unset: none)
+
+# Emacs Lisp that Emacs evaluates after `emacs_config_file` and before loading
+# Org, for a few settings without a file: `(setq org-export-with-toc nil)`, or
+# `(add-to-list 'load-path "~/src/org-mode/lisp")` for another Org. A
+# yes-or-no question Emacs asks while it works (`org-confirm-babel-evaluate`)
+# is asked in the editor.
+# emacs_config = …  (unset: none)
+
+# Save the files a command changes other than the one it was run in: an
+# entry's file changed from the agenda, the target of a capture or of a
+# refile. The editor saves them once it has made the change. Off, they are
+# left with unsaved changes, as Emacs leaves them.
+auto_save = true
+
+# With at least this many blank lines after a subtree, the last one stays
+# outside its fold. Negative: all of them stay outside. `0`: none does.
+# (org-cycle-separator-lines)
+org_cycle_separator_lines = 2
+
+# How files show when opened: `"overview"` (or `"fold"`) only the top
+# headlines, `"content"` all the headlines, `"show2levels"` to `"show5levels"`
+# the headlines down to that level, `"showeverything"` (or `"nofold"`,
+# `"showall"`) everything. `#+STARTUP:` decides for a file. Unless everything
+# shows, a subtree's `VISIBILITY` property (`folded`, `children`, `content`,
+# `all`) decides for it, archived subtrees are folded, and drawers too. Folds
+# hide whole subtrees, so where Org shows a headline's children but not its
+# text, the text shows. (org-startup-folded)
+org_startup_folded = "showeverything"
+
+# Shrink the columns of every table that have a width cookie (`<10>`) when a
+# file opens. `#+STARTUP: shrink` decides for a file. Shrunk fields show their
+# first characters and `…`, in editors that can hide text.
+# (org-startup-shrink-all-tables)
+org_startup_shrink_all_tables = false
+
+# Fold blocks when a file opens folded (`org_startup_folded`). `#+STARTUP:
+# hideblocks` and `nohideblocks` decide for a file.
+# (org-cycle-hide-block-startup)
+org_cycle_hide_block_startup = false
+
+# Fold drawers when a file opens folded (`org_startup_folded`).
+# (org-cycle-hide-drawer-startup)
+org_cycle_hide_drawer_startup = true
+
+# Leave archived subtrees open when a file opens folded
+# (`org_startup_folded`). (org-cycle-open-archived-trees)
+org_cycle_open_archived_trees = false
+
+# Indent the lines of an entry past its headline's stars: `true` for all of
+# them, `"headline-data"` for the planning line, drawers and clock lines right
+# below the headline. Applies to new lines, to re-indenting (range formatting)
+# and to what commands write. (org-adapt-indentation)
+org_adapt_indentation = false
+
+# Show the images of links to image files in place when a file opens, as `C-c
+# C-x C-v` (`org.link.preview`) shows them. `#+STARTUP: inlineimages` (or
+# `linkpreviews`) and `noinlineimages` decide for a file. Editors that can
+# show images: Neovim from 0.13 (`vim.ui.img`), in a terminal with the Kitty
+# graphics protocol. (org-startup-with-link-previews)
+org_startup_with_link_previews = false
+
+# Show the LaTeX fragments as images when a file opens, as `C-c C-x C-l`
+# (`org.latex.preview`) shows them, made by Emacs. `#+STARTUP: latexpreview`
+# and `nolatexpreview` decide for a file. (org-startup-with-latex-preview)
+org_startup_with_latex_preview = false
+
+# Show files indented by level without changing them (`org-indent-mode`): the
+# text under a headline lines up with its title, and leading stars are hidden.
+# `#+STARTUP: indent` and `noindent` decide for a file. It turns
+# `org_adapt_indentation` off in such files, unless that is `"headline-data"`.
+# Editors that can show it: Neovim, and VS Code (not on wrapped lines).
+# (org-startup-indented)
+org_startup_indented = false
+
+# Hide all the stars of a headline but the last; they keep their place.
+# `#+STARTUP: hidestars` and `showstars` decide for a file.
+# (org-hide-leading-stars)
+org_hide_leading_stars = false
+
+# Leave the code of source blocks as it is indented when re-indenting.
+# (org-src-preserve-indentation)
+org_src_preserve_indentation = false
+
+# How far code is indented past its source block when re-indenting.
+# (org-edit-src-content-indentation)
+org_edit_src_content_indentation = 2
+
+# How much time the agenda shows. (org-agenda-span)
+org_agenda_span = "week"
+
+# The day a week or fortnight starts on; `false` starts it today.
+# (org-agenda-start-on-weekday)
+org_agenda_start_on_weekday = 1
+
+# How many days before a deadline it shows up. (org-deadline-warning-days)
+org_deadline_warning_days = 14
+
+# How many days after its date a scheduled entry shows up.
+# (org-scheduled-delay-days)
+org_scheduled_delay_days = 0
+
+# How many days a scheduled entry that is not done keeps showing up.
+# (org-scheduled-past-days)
+org_scheduled_past_days = 10000
+
+# Org modules to load. `org-habit` turns habits on: entries with the `STYLE`
+# property `habit` and a scheduled date with a repeater (`.+2d`, `.+2d/4d` for
+# a deadline too) show in the agenda with a graph of the days they were done.
+# Others are ignored. (org-modules)
+org_modules = []
+
+# The column the consistency graph of a habit starts at in the agenda.
+# (org-habit-graph-column)
+org_habit_graph_column = 40
+
+# How many days before today a habit's graph shows. (org-habit-preceding-days)
+org_habit_preceding_days = 21
+
+# How many days after today a habit's graph shows. (org-habit-following-days)
+org_habit_following_days = 7
+
+# Show habits in the agenda. (org-habit-show-habits)
+org_habit_show_habits = true
+
+# Show habits only on today's date, not on future days of the agenda.
+# (org-habit-show-habits-only-for-today)
+org_habit_show_habits_only_for_today = true
+
+# Show every habit today, even those not scheduled for today.
+# (org-habit-show-all-today)
+org_habit_show_all_today = false
+
+# The mark of today in a habit's graph. (org-habit-today-glyph)
+org_habit_today_glyph = "!"
+
+# The mark of a day a habit was done in its graph. (org-habit-completed-glyph)
+org_habit_completed_glyph = "*"
+
+# A day a habit was done is green in its graph even when it was done late.
+# (org-habit-show-done-always-green)
+org_habit_show_done_always_green = false
+
+# How many days a habit that is not done keeps showing up.
+# (org-habit-scheduled-past-days)
+# org_habit_scheduled_past_days = …  (unset: `org_scheduled_past_days`)
+
+# How many days a missed deadline keeps showing up. (org-deadline-past-days)
+org_deadline_past_days = 10000
+
+# Leave out scheduled entries that are done.
+# (org-agenda-skip-scheduled-if-done)
+org_agenda_skip_scheduled_if_done = false
+
+# Leave out deadlines of entries that are done.
+# (org-agenda-skip-deadline-if-done)
+org_agenda_skip_deadline_if_done = false
+
+# Leave out timestamps of entries that are done.
+# (org-agenda-skip-timestamp-if-done)
+org_agenda_skip_timestamp_if_done = false
+
+# Show the future dates of repeating entries: all of them, none, or only the
+# next. (org-agenda-show-future-repeats)
+org_agenda_show_future_repeats = true
+
+# Show days without entries. (org-agenda-show-all-dates)
+org_agenda_show_all_dates = true
+
+# Where tags are aligned in the agenda: a column (negative: where they end),
+# or `auto` for the right edge of the window. With `auto`, the editors that
+# tell the server how wide the agenda's window is (Neovim, Vim, Sublime Text)
+# have the tags there, and the agenda follows the window as it is resized; the
+# others (VS Code, Zed) have them end at column 80. (org-agenda-tags-column)
+org_agenda_tags_column = "auto"
+
+# Draw the time grid. (org-agenda-use-time-grid)
+org_agenda_use_time_grid = true
+
+# The time grid, as Org writes it: the days that have it (`daily`: a one-day
+# agenda; `weekly`: every day of a longer one; `today`: today;
+# `require-timed`: only days with an entry that has a time; `remove-match`: no
+# grid line at a time an entry already has), the times of its lines (`800` for
+# 8:00), what follows a time that has no end time, and the text of a grid
+# line. (org-agenda-time-grid)
+org_agenda_time_grid = [["daily", "today", "require-timed"], [800, 1000, 1200, 1400, 1600, 1800, 2000], "......", "----------------"]
+
+# The text of the line for the current time. (org-agenda-current-time-string)
+org_agenda_current_time_string = "now - - - - - - - - - - - - - - - - - - - - - - - - -"
+
+# Show the current time in the grid. (org-agenda-show-current-time-in-grid)
+org_agenda_show_current_time_in_grid = true
+
+# The days drawn as the weekend (0 is Sunday). (org-agenda-weekend-days)
+org_agenda_weekend_days = [6, 0]
+
+# Start the agenda in log mode, which shows what was closed and clocked each
+# day (`l` toggles it). (org-agenda-start-with-log-mode)
+org_agenda_start_with_log_mode = false
+
+# Start the agenda with the clock report under it (`R` toggles it).
+# (org-agenda-start-with-clockreport-mode)
+org_agenda_start_with_clockreport_mode = false
+
+# Start the agenda with entries in archived trees (`trees`; `v a` toggles it),
+# or those and the files the agenda files archive to (`files`; `v A`).
+# (org-agenda-start-with-archives-mode)
+org_agenda_start_with_archives_mode = false
+
+# What log mode shows: `closed` entries, `clock` lines and `state` changes.
+# (org-agenda-log-mode-items)
+org_agenda_log_mode_items = ["closed", "clock"]
+
+# Keep the marks of a bulk action (`B`) after it (`p` in its menu toggles this
+# for one action). (org-agenda-persistent-marks)
+org_agenda_persistent_marks = false
+
+# Start the agenda in follow mode, which shows the entry of the cursor's line
+# in another window as the cursor moves (`F` toggles it).
+# (org-agenda-start-with-follow-mode)
+org_agenda_start_with_follow_mode = false
+
+# Start the agenda with some text of each entry under its line (`E` toggles
+# it). (org-agenda-start-with-entry-text-mode)
+org_agenda_start_with_entry_text_mode = false
+
+# The most lines of an entry's text `E` shows.
+# (org-agenda-entry-text-maxlines)
+org_agenda_entry_text_maxlines = 5
+
+# What each line of an entry's text starts with in the agenda.
+# (org-agenda-entry-text-leaders)
+org_agenda_entry_text_leaders = "    > "
+
+# Emacs regexps whose matches are left out of the entry text `E` shows.
+# (org-agenda-entry-text-exclude-regexps)
+org_agenda_entry_text_exclude_regexps = []
+
+# What goes between the blocks of a block agenda: one character repeated
+# across 79 columns, a longer text as it is, or `false` for nothing. In a
+# block's `settings`, the separator above that block.
+# (org-agenda-block-separator)
+org_agenda_block_separator = "="
+
+# Leave out the separators between blocks and the header over agenda blocks.
+# (org-agenda-compact-blocks)
+org_agenda_compact_blocks = false
+
+# Leave out the blocks of a block agenda that show no entries. Not in Org.
+agenda_hide_empty_blocks = false
+
+# Read every search string of the search view (`s`) as words that must
+# (`+word`, `word`) or must not (`-word`) occur, regexps in braces
+# (`{regexp}`) and `"quoted phrases"`. Off, it is a phrase whose spaces match
+# any whitespace, unless its first word starts with `+`, `-` or `{`.
+# (org-agenda-search-view-always-boolean)
+org_agenda_search_view_always_boolean = false
+
+# The words of a Boolean search match whole words only, as a search string
+# starting with `:` asks. (org-agenda-search-view-force-full-words)
+org_agenda_search_view_force_full_words = false
+
+# The search view shows headlines down to this level, a match below one
+# counting for the headline above: 0 for every level.
+# (org-agenda-search-view-max-outline-level)
+org_agenda_search_view_max_outline_level = 0
+
+# Files the search view (`s`) searches besides the agenda files, after them,
+# as `org_agenda_files` names them. `agenda-archives` first adds the files the
+# agenda files archive to. A file listed twice is searched at its last place.
+# (org-agenda-text-search-extra-files)
+org_agenda_text_search_extra_files = []
+
+# What comes before the headline on a line of the agenda (`agenda`), the TODO
+# list (`todo`), tags searches (`tags`) and text searches (`search`): `%c` the
+# category, `%t` the time, `%s` the leader (`Scheduled: `), `%e` the effort,
+# `%l` a blank per level, `%T` the last tag, `%b` the headlines above
+# (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right,
+# `%12c` on the left), `.N` cuts, `%?` leaves out an empty field, and a
+# character before the letter follows a value that is not empty (`%-12:c`).
+# `%(…)` (Emacs Lisp) is left empty. (org-agenda-prefix-format)
+org_agenda_prefix_format = { agenda = " %i %-12:c%?-12t% s", search = " %i %-12:c", tags = " %i %-12:c", todo = " %i %-12:c" }
+
+# How a TODO keyword is written in the agenda: `%-4s` pads it to four columns,
+# so that the titles line up; an empty format leaves keywords out.
+# (org-agenda-todo-keyword-format)
+org_agenda_todo_keyword_format = "%-1s"
+
+# The leader of a scheduled entry on its day, and on today when its day has
+# passed (`%d`: the days since). (org-agenda-scheduled-leaders)
+org_agenda_scheduled_leaders = ["Scheduled: ", "Sched.%2dx: "]
+
+# The leader of a deadline on its day, on today before it (`%d`: the days
+# left), and on today after it (`%d`: the days since).
+# (org-agenda-deadline-leaders)
+org_agenda_deadline_leaders = ["Deadline:  ", "In %3d d.: ", "%2d d. ago: "]
+
+# The leader of a time range within a day, and of a range over days (`%d`:
+# which day of it, `%d`: how many days). (org-agenda-timerange-leaders)
+org_agenda_timerange_leaders = ["", "(%d/%d): "]
+
+# Leave the tags out of the agenda's lines; `prefix` only when the prefix
+# shows a tag (`%T`). (org-agenda-remove-tags)
+org_agenda_remove_tags = false
+
+# What the stuck projects view (`#`) lists: the projects the match string
+# finds whose subtree has no entry with one of the TODO keywords (`*` for any
+# not done) or tags (`*` for any), and no match of the regexp.
+# (org-stuck-projects)
+org_stuck_projects = ["+LEVEL=2/-DONE", ["TODO", "NEXT", "NEXTACTION"], [], ""]
+
+# What goes between the headlines of `%b`. (org-agenda-breadcrumbs-separator)
+org_agenda_breadcrumbs_separator = "->"
+
+# How the agenda writes a day, as `format-time-string` does: `%A %d %B %Y`,
+# `%a %Y-%m-%d`. (org-agenda-format-date)
+# org_agenda_format_date = …  (unset: as `Wednesday   7 October 2026`, the week's number added on Mondays)
+
+# The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`,
+# `2026-10-01`. (org-agenda-start-day)
+# org_agenda_start_day = …  (unset: today)
+
+# Where the commands of `org_agenda_custom_commands` are offered, as for
+# `org_capture_templates_contexts`. (org-agenda-custom-commands-contexts)
+org_agenda_custom_commands_contexts = []
+
+# Commands of the agenda menu. Each has a `key` and a `description`, and
+# either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a
+# `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as
+# `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views
+# shown one after the other. `header` replaces a view's header (empty: none),
+# and `settings` holds agenda options for the command or a block
+# (`org_agenda_span`, `org_agenda_start_day` …). A command with only a key and
+# a description groups the commands whose keys start with its key.
+# (org-agenda-custom-commands)
+org_agenda_custom_commands = []
+#+end_src
+
+# END generated
+
+** In JSON
+
+# BEGIN generated: options-json
+
+#+begin_src json
+{
+  // Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built
+  // from. `~/` is the home directory, and a directory stands for the Org
+  // files directly in it. When empty, the agenda is built from the Org files
+  // under the workspace folders (hidden directories, `node_modules` and
+  // `target` left out), or else from the Org files that are open.
+  // (org-agenda-files)
+  "org_agenda_files": [],
+
+  // The TODO sequence, written like Org's `#+TODO:` line. `|` separates the
+  // states that count as done; without it the last keyword is the only done
+  // state. `TODO(t)` gives a keyword a key for fast selection, and
+  // `WAIT(w@/!)` makes it log a note (`@`) or the time (`!`) on entering and
+  // leaving it. Several sequences go in a list of lists, `[["TODO", "|",
+  // "DONE"], ["REPORT", "|", "FIXED"]]`; cycling stays in the sequence of the
+  // entry, and `C-S-<right>` switches to the next. A list that starts with
+  // `type` is a type sequence (`#+TYP_TODO:`): each of its keywords goes
+  // straight to done. A file's own `#+TODO:` lines take precedence.
+  // (org-todo-keywords)
+  "org_todo_keywords": ["TODO", "|", "DONE"],
+
+  // Faces for particular TODO keywords: a color, `{ "WAIT": "orange" }`, or
+  // attributes written as Org writes them, `{ "CANCELLED": ":foreground gray
+  // :slant italic :strike-through t" }` (`:foreground`, `:background`,
+  // `:weight bold`, `:slant italic`, `:underline t`, `:strike-through t`).
+  // Shown in Org files and in the agenda by Neovim, Vim and VS Code.
+  // (org-todo-keyword-faces)
+  "org_todo_keyword_faces": {  },
+
+  // Faces for particular priorities, by their letter, written as in
+  // `org_todo_keyword_faces`: `{ "A": ":foreground red :weight bold" }`.
+  // (org-priority-faces)
+  "org_priority_faces": {  },
+
+  // Write `CLOSED:` with the time when an entry is done, and with `note` ask
+  // for a note too. A file's `#+STARTUP:` words `logdone`, `lognotedone` and
+  // `nologdone` change it there; an entry's `LOGGING` property (inherited)
+  // says what its state changes log instead: those words, `logrepeat` and its
+  // relatives, and keywords with what they log (`WAIT(@/!)`), or `nil` for
+  // nothing. (org-log-done)
+  "org_log_done": false,
+
+  // Record when a repeating entry is done and moves to its next date.
+  // `#+STARTUP:` `logrepeat`, `lognoterepeat` and `nologrepeat` change it in
+  // a file, and the `LOGGING` property in an entry. (org-log-repeat)
+  "org_log_repeat": "time",
+
+  // Moving to the next item from the last goes to the first, and back; moving
+  // the last item down puts it first, the first up puts it last.
+  // (org-list-use-circular-motion)
+  "org_list_use_circular_motion": false,
+
+  // An entry cannot be done while a child is not, or, under a parent with the
+  // `ORDERED` property, while an earlier sibling is not: the change is
+  // refused with what blocks it. (org-enforce-todo-dependencies)
+  "org_enforce_todo_dependencies": false,
+
+  // Dim the tasks of the agenda and the TODO list that their dependencies
+  // keep from being done (with `org_enforce_todo_dependencies` or
+  // `org_enforce_todo_checkbox_dependencies`); `invisible` leaves them out
+  // instead, except those blocked by checkboxes, which stay dimmed.
+  // (org-agenda-dim-blocked-tasks)
+  "org_agenda_dim_blocked_tasks": true,
+
+  // An entry cannot be done while it has an unchecked box.
+  // (org-enforce-todo-checkbox-dependencies)
+  "org_enforce_todo_checkbox_dependencies": false,
+
+  // Record when an entry is refiled (`Refiled on [2026-05-18 Mon 10:30]`),
+  // with `note` asking for a note too. `#+STARTUP:` `logrefile`,
+  // `lognoterefile` and `nologrefile` change it in the file refiled to.
+  // (org-log-refile)
+  "org_log_refile": false,
+
+  // Record when a scheduled date changes or is removed (`Rescheduled from
+  // "[2026-05-18 Mon]" on …`), with `note` asking for a note too.
+  // `#+STARTUP:` `logreschedule`, `lognotereschedule` and `nologreschedule`
+  // change it in a file. (org-log-reschedule)
+  "org_log_reschedule": false,
+
+  // Record when a deadline changes or is removed (`New deadline from …`),
+  // with `note` asking for a note too. `#+STARTUP:` `logredeadline`,
+  // `lognoteredeadline` and `nologredeadline` change it in a file.
+  // (org-log-redeadline)
+  "org_log_redeadline": false,
+
+  // Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the
+  // name of a drawer. `#+STARTUP:` `logdrawer` and `nologdrawer` change it in
+  // a file; an entry's `LOG_INTO_DRAWER` property (inherited) says which
+  // drawer for it (`t` for `LOGBOOK`, `nil` for none). (org-log-into-drawer)
+  "org_log_into_drawer": false,
+
+  // Where tags are aligned after a change to a headline. Negative: they end
+  // at that column. (org-tags-column)
+  "org_tags_column": -77,
+
+  // Which tags entries inherit from their parents and from `#+FILETAGS:`:
+  // `true` for all, `false` for none, a list of tags, or a regexp (Emacs
+  // syntax) tags must match. Inherited tags count in tag searches and show in
+  // the agenda. (org-use-tag-inheritance)
+  "org_use_tag_inheritance": true,
+
+  // Tags never inherited, when `org_use_tag_inheritance` is `true` or a
+  // regexp. (org-tags-exclude-from-inheritance)
+  "org_tags_exclude_from_inheritance": [],
+
+  // Which properties an entry without them takes from its parents, the file's
+  // property drawer and `#+PROPERTY:` lines, in property searches
+  // (`OWNER="alice"`): `true` for all, `false` for none, a list of names, or
+  // a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited.
+  // (org-use-property-inheritance)
+  "org_use_property_inheritance": false,
+
+  // Properties every entry inherits, after those of `#+PROPERTY:` lines:
+  // chiefly the allowed values of a property, which setting it offers and
+  // `S-<right>` and `S-<left>` go through on its line (`{ "Effort_ALL": "0:10
+  // 0:30 1:00 2:00" }`; `:ETC` allows others too). (org-global-properties)
+  "org_global_properties": {  },
+
+  // Where `CLOCK:` lines go: `true` for the drawer of `org_log_into_drawer`
+  // (`LOGBOOK` when that is not a name), the name of a drawer, or `false` for
+  // the entry itself. (org-clock-into-drawer)
+  "org_clock_into_drawer": true,
+
+  // Clocking out after less than a minute removes the `CLOCK:` line.
+  // (org-clock-out-remove-zero-time-clocks)
+  "org_clock_out_remove_zero_time_clocks": false,
+
+  // Marking the clocked entry done stops the clock. (org-clock-out-when-done)
+  "org_clock_out_when_done": true,
+
+  // The span whose clocks `org.clock.display` (`C-c C-x C-d`) adds up.
+  // (org-clock-display-default-range)
+  "org_clock_display_default_range": "thisyear",
+
+  // After how many minutes without a message from the editor a clock that
+  // runs asks what to do with the idle time: keep it, subtract it (and clock
+  // out), or cancel the clock. (org-clock-idle-time)
+  // "org_clock_idle_time": unset: none
+
+  // How many entries clocked into the clock history keeps, for `org.clock.in`
+  // with a count and `org.clock.in.last`. (org-clock-history-length)
+  "org_clock_history_length": 5,
+
+  // The parameters a new clock table gets on its `#+BEGIN:` line from
+  // `org.clock.report` (`C-c C-x C-r`), after `:scope`, as Emacs Lisp reads
+  // them (`:maxlevel 3 :link t`). (org-clock-clocktable-default-properties)
+  "org_clock_clocktable_default_properties": ":maxlevel 2",
+
+  // How a clock table writes its total time and the words before it; `%s` is
+  // the text. (org-clock-total-time-cell-format)
+  "org_clock_total_time_cell_format": "*%s*",
+
+  // How a clock table over several files writes the words before a file's
+  // time; `%s` is the text. (org-clock-file-time-cell-format)
+  "org_clock_file_time_cell_format": "*%s*",
+
+  // The TODO state an entry is put in when the clock starts on it (`NEXT`),
+  // unless it has it already. (org-clock-in-switch-to-state)
+  // "org_clock_in_switch_to_state": unset: none
+
+  // The TODO state an entry is put in when the clock stops on it.
+  // (org-clock-out-switch-to-state)
+  // "org_clock_out_switch_to_state": unset: none
+
+  // Org's linter checks the documents and reports what it finds as
+  // diagnostics: misplaced headings and planning lines, links to nowhere,
+  // duplicate names, footnotes without definitions… What it finds is
+  // information, a hint for a checker Org trusts little: an Org file is text,
+  // nothing in it is an error or a warning. (org-lint)
+  "org_lint": true,
+
+  // The `org-lint` checkers to leave out, by name, as a diagnostic's code
+  // shows it (`"misplaced-heading"`). (org-lint)
+  "org_lint_ignore": [],
+
+  // Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true`
+  // makes one when the entry has none, `"create-if-interactive"` only from
+  // the command (not for capture's `%a`),
+  // `"create-if-interactive-and-no-custom-id"` likewise unless the entry has
+  // a `CUSTOM_ID`, `"use-existing"` only when it has one already. Off, the
+  // link searches for the headline. (org-id-link-to-org-use-id)
+  "org_id_link_to_org_use_id": false,
+
+  // Links to a place in a file search for it (`file:notes.org::*Heading`);
+  // `C-u` turns it around for one link. (org-link-context-for-files)
+  "org_link_context_for_files": true,
+
+  // ID links to a place below the entry's headline search for it as well
+  // (`id:…::name`). (org-id-link-use-context)
+  "org_id_link_use_context": true,
+
+  // An ID link may use the ID of a parent entry, with a search for the place.
+  // (org-id-link-consider-parent-id)
+  "org_id_link_consider_parent_id": false,
+
+  // How links to files write the path: `"adaptive"` relative below the file's
+  // directory and absolute elsewhere, `"absolute"` (with `~`), `"noabbrev"`
+  // (without), `"relative"`. (org-link-file-path-type)
+  "org_link_file_path_type": "adaptive",
+
+  // Stored links stay stored once inserted.
+  // (org-link-keep-stored-after-insertion)
+  "org_link_keep_stored_after_insertion": false,
+
+  // Completing a tag offers the tags of every agenda file, after those of the
+  // file. Off, only the file's own. Setting tags offers them too.
+  // (org-complete-tags-always-offer-all-agenda-tags)
+  "org_complete_tags_always_offer_all_agenda_tags": false,
+
+  // Bibliography files for the citations of every document (`[cite:@key]`),
+  // after those its `#+BIBLIOGRAPHY:` lines name: BibTeX (`.bib`, `.bibtex`)
+  // or CSL-JSON (`.json`). Their entries are completed after `@`, shown over
+  // a key, and where following a key goes; a key none has is marked.
+  // (org-cite-global-bibliography)
+  "org_cite_global_bibliography": [],
+
+  // Link abbreviations: `[[gh:org-lsp]]` with `{ "gh":
+  // "https://github.com/%s" }` follows `https://github.com/org-lsp`. `%s`
+  // stands for what follows the colon, `%h` for it URL-encoded; without
+  // either it goes at the end. A file's `#+LINK:` lines come first. A
+  // function (`%(…)`) is not supported. (org-link-abbrev-alist)
+  "org_link_abbrev_alist": {  },
+
+  // The tags offered when setting tags in a file without a `#+TAGS:` line,
+  // written like one: `"work(w) home(h) { @office(o) @home(m) } [ GTD :
+  // Control Persp ]"` gives `work` the key `w`, makes `@office` and `@home`
+  // exclusive, and groups `Control` and `Persp` under `GTD`; `\n` starts a
+  // new line. A list of these words does as well. Unset, the tags used in the
+  // file are offered. (org-tag-alist)
+  "org_tag_alist": "",
+
+  // Tags offered in every file, before those of `#+TAGS:` or `org_tag_alist`,
+  // written the same way. (org-tag-persistent-alist)
+  "org_tag_persistent_alist": "",
+
+  // A group tag (`[ GTD : Control Persp ]`, `{ Context : @home @office }` in
+  // `#+TAGS:` or `org_tag_alist`) in the match string of a tags view stands
+  // for itself and the tags of its group. (org-group-tags)
+  "org_group_tags": true,
+
+  // Pick tags by key, each key turning its tag on or off until RET: `auto`
+  // when some tag has a key, `true` always (keys are given to the tags
+  // without one), `false` never: the tags are typed instead.
+  // (org-use-fast-tag-selection)
+  "org_use_fast_tag_selection": "auto",
+
+  // In fast tag selection, the first key that changes the tags also ends it.
+  // (org-fast-tag-selection-single-key)
+  "org_fast_tag_selection_single_key": false,
+
+  // Sort the tags of a headline when they are set: alphabetically, or the
+  // other way. (org-tags-sort-function)
+  // "org_tags_sort_function": unset: the order they were picked in
+
+  // Align the tags of a headline to `org_tags_column` when they are set.
+  // (org-auto-align-tags)
+  "org_auto_align_tags": true,
+
+  // The state a repeating entry returns to when it is done: a keyword, or
+  // `true` for the state it had. (org-todo-repeat-to-state)
+  // "org_todo_repeat_to_state": unset: the first keyword of the sequence
+
+  // The highest priority. (org-priority-highest)
+  "org_priority_highest": "A",
+
+  // The lowest priority. (org-priority-lowest)
+  "org_priority_lowest": "C",
+
+  // The priority of an entry without a cookie. A file's `#+PRIORITIES:` line
+  // takes precedence over the three priority options. (org-priority-default)
+  "org_priority_default": "B",
+
+  // Raising or lowering the priority of an entry that has none starts at the
+  // default. (org-priority-start-cycle-with-default)
+  "org_priority_start_cycle_with_default": true,
+
+  // The step in which the minutes of a timestamp change (the second number of
+  // Org's option). (org-time-stamp-rounding-minutes)
+  "org_time_stamp_rounding_minutes": 5,
+
+  // A date typed without a year or month is the next one to come. With
+  // `time`, a time that has passed today is tomorrow's.
+  // (org-read-date-prefer-future)
+  "org_read_date_prefer_future": true,
+
+  // A typed year is kept within 1970 to 2037.
+  // (org-read-date-force-compatible-dates)
+  "org_read_date_force_compatible_dates": true,
+
+  // Where entries can be refiled to. Each entry has `files`: `current` (the
+  // entry's own file), `agenda`, a path or a list of paths; and one of
+  // `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's
+  // syntax) or `all` (true), which says which headlines there are targets.
+  // (org-refile-targets)
+  "org_refile_targets": [{ "files": "current", "level": 1 }],
+
+  // Name targets by their outline path (`Projects/Alpha/`). The three names
+  // start the path with the file, and offer the file itself, for its top
+  // level. (org-refile-use-outline-path)
+  "org_refile_use_outline_path": false,
+
+  // A target that is not there yet can be named after an existing one,
+  // `Projects/New`: it is made, as the last child of `Projects`, and the
+  // entry goes under it. `confirm` asks first.
+  // (org-refile-allow-creating-parent-nodes)
+  "org_refile_allow_creating_parent_nodes": false,
+
+  // The name of an Emacs Lisp function that decides which headlines are
+  // refile targets: the server's Emacs calls it at the start of each, and
+  // keeps those it says yes to. Where it leaves the point, the search goes
+  // on: a function can skip a subtree. (org-refile-target-verify-function)
+  // "org_refile_target_verify_function": unset: none
+
+  // A refiled entry goes first under its target, not last.
+  // (org-reverse-note-order)
+  "org_reverse_note_order": false,
+
+  // Where archived subtrees go: a file, `::`, and a headline under which they
+  // go (they go to the end of the file without one). `%s` is the name of the
+  // file the subtree is in; an empty file part is that file. `datetree/` as
+  // the headline files them under year, month and day, by when they were
+  // closed. An `ARCHIVE` property of the entry or a parent, or a `#+ARCHIVE:`
+  // line, says otherwise. (org-archive-location)
+  "org_archive_location": "%s_archive::",
+
+  // An archived subtree goes first under its archive headline, not last.
+  // (org-archive-reversed-order)
+  "org_archive_reversed_order": false,
+
+  // Mark archived entries done: `true` for the first done keyword, or the
+  // keyword to use. (org-archive-mark-done)
+  "org_archive_mark_done": false,
+
+  // Give an archived subtree the tags it inherited: always, never, or when it
+  // stays in its file. (org-archive-subtree-add-inherited-tags)
+  "org_archive_subtree_add_inherited_tags": "infile",
+
+  // What an archived entry keeps as `ARCHIVE_…` properties: `time`, `file`,
+  // `olpath` (its outline path), `category`, `todo`, `itags` (inherited
+  // tags), `ltags` (its own tags) and `olid` (its parent's ID).
+  // (org-archive-save-context-info)
+  "org_archive_save_context_info": ["time", "file", "olpath", "category", "todo", "itags"],
+
+  // The headline of the sibling `org.archive.sibling` archives under.
+  // (org-archive-sibling-heading)
+  "org_archive_sibling_heading": "Archive",
+
+  // What a new archive file starts with; `%s` is the path of the file the
+  // subtree came from. (org-archive-file-header-format)
+  "org_archive_file_header_format": "\nArchived entries from file %s\n\n",
+
+  // What `org.archive.default` does: archive the subtree, archive it under
+  // its sibling, or tag it. (org-archive-default-command)
+  "org_archive_default_command": "subtree",
+
+  // Where templates are offered. Each has the `key` of a template,
+  // `contexts`, rules such as `{ "in_file": "work" }` (`in_file`, `in_mode`,
+  // `in_buffer`, `not_in_file`, `not_in_mode` or `not_in_buffer`, each with a
+  // regexp of the `regex` crate's syntax, matched ignoring case), and maybe
+  // `use`, the key of the template it stands for there. A template with
+  // contexts is offered only where one of their rules holds. The mode is
+  // `org-mode` in an Org file and `org-agenda-mode` in the agenda, where
+  // there is no file; the buffer's name is the file's.
+  // (org-capture-templates-contexts)
+  "org_capture_templates_contexts": [],
+
+  // Capture templates. Each has a `key`, a `description`, a `type` (`entry`,
+  // the default, `plain`, `item`, `checkitem` or `table-line`), a `target`
+  // and a `template` (text, or a list of lines), and may have `prepend`,
+  // `empty_lines`, `empty_lines_before`, `empty_lines_after`,
+  // `immediate_finish`, `tree_type`, `time_prompt`, `table_line_pos`,
+  // `clock_in`, `clock_keep`, `clock_resume` and `jump_to_captured`. The
+  // target is a list: `file` and a path; `file+headline`, a path and a
+  // headline; `file+olp`, a path and the headlines of an outline path;
+  // `file+regexp`, a path and a regular expression; `file+olp+datetree`, a
+  // path and the headlines of an outline path, maybe none, for a date tree
+  // under them; `id` and an ID; `clock`, the entry clocked now;
+  // `file+function`, a path and the name of an Emacs Lisp function that moves
+  // the point there, or `function` and the name of one that visits the file
+  // too (run by the server's Emacs). An empty path is
+  // `org_default_notes_file`, and without a target the entry goes at the end
+  // of `org_default_notes_file`. A template with only a key and a description
+  // groups the templates whose keys start with its key.
+  // (org-capture-templates)
+  "org_capture_templates": [{ "key": "t", "description": "Task", "target": ["file+headline", "", "Tasks"], "template": "* TODO %?\n  %u\n  %a" }],
+
+  // Where the relative paths of capture targets are. (org-directory)
+  "org_directory": "~/org",
+
+  // The target of a capture template whose file is empty.
+  // (org-default-notes-file)
+  "org_default_notes_file": "~/.notes",
+
+  // Show a link as its description (or its target, when it has none) and hide
+  // the rest: the brackets, and the target of a link with a description. The
+  // text is marked `hidden` in the highlighting, and editors that can conceal
+  // text conceal it. (org-link-descriptive)
+  "org_link_descriptive": true,
+
+  // Hide the markers around `*bold*`, `/italic/`, `_underline_`,
+  // `+strike-through+`, `=verbatim=` and `~code~`, as for links.
+  // (org-hide-emphasis-markers)
+  "org_hide_emphasis_markers": false,
+
+  // Show entities (`\alpha`, `\to`) as their character (`α`, `→`): the entity
+  // is hidden as link brackets are, and its character is an inlay hint in its
+  // place. (org-pretty-entities)
+  "org_pretty_entities": false,
+
+  // With `org_pretty_entities`, show sub- and superscripts (`x^2`, `H_{2}O`,
+  // `a_{n}`) raised and lowered: in Unicode (`x²`, `H₂O`, `aₙ`) where every
+  // character has a raised or lowered form, as an inlay hint in place of the
+  // hidden text; the others are left as they are.
+  // (org-pretty-entities-include-sub-superscripts)
+  "org_pretty_entities_include_sub_superscripts": true,
+
+  // Which sub- and superscripts `org_pretty_entities` shows: all, only those
+  // in braces (`a_{b}`, `"{}"`), or none. (org-use-sub-superscripts)
+  "org_use_sub_superscripts": true,
+
+  // RET on the first line of a list item makes the next item, numbered and
+  // with a checkbox as M-RET (`org-meta-return`) makes it, the items after it
+  // renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off,
+  // RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`,
+  // Shift+Enter, with the vim keys) always does it.
+  "return_uses_meta_return": false,
+
+  // The deepest headings `org.goto` (`C-c C-j`) offers. (org-goto-max-level)
+  "org_goto_max_level": 5,
+
+  // How many months the calendar of the date prompt shows: 3 side by side, as
+  // Emacs's calendar shows them, the one with the selected day in the middle;
+  // or 1, that month alone, for a narrow window.
+  "calendar_months": 3,
+
+  // The Emacs program, for what only Org itself does: export
+  // (`org.export.dispatch`). The server starts it (`emacs --batch -Q`) when
+  // that is first asked for and keeps it running, so that Org loads once.
+  // Without Emacs, everything else works as before.
+  "emacs": "emacs",
+
+  // A file of Emacs Lisp that Emacs loads before Org, for the variables
+  // export reads (`org-export-backends`, `org-html-…`, `org-latex-…`,
+  // `org-publish-project-alist`): a file of its own, or your init file. `~/`
+  // is the home directory.
+  // "emacs_config_file": unset: none
+
+  // Emacs Lisp that Emacs evaluates after `emacs_config_file` and before
+  // loading Org, for a few settings without a file: `(setq
+  // org-export-with-toc nil)`, or `(add-to-list 'load-path
+  // "~/src/org-mode/lisp")` for another Org. A yes-or-no question Emacs asks
+  // while it works (`org-confirm-babel-evaluate`) is asked in the editor.
+  // "emacs_config": unset: none
+
+  // Save the files a command changes other than the one it was run in: an
+  // entry's file changed from the agenda, the target of a capture or of a
+  // refile. The editor saves them once it has made the change. Off, they are
+  // left with unsaved changes, as Emacs leaves them.
+  "auto_save": true,
+
+  // With at least this many blank lines after a subtree, the last one stays
+  // outside its fold. Negative: all of them stay outside. `0`: none does.
+  // (org-cycle-separator-lines)
+  "org_cycle_separator_lines": 2,
+
+  // How files show when opened: `"overview"` (or `"fold"`) only the top
+  // headlines, `"content"` all the headlines, `"show2levels"` to
+  // `"show5levels"` the headlines down to that level, `"showeverything"` (or
+  // `"nofold"`, `"showall"`) everything. `#+STARTUP:` decides for a file.
+  // Unless everything shows, a subtree's `VISIBILITY` property (`folded`,
+  // `children`, `content`, `all`) decides for it, archived subtrees are
+  // folded, and drawers too. Folds hide whole subtrees, so where Org shows a
+  // headline's children but not its text, the text shows.
+  // (org-startup-folded)
+  "org_startup_folded": "showeverything",
+
+  // Shrink the columns of every table that have a width cookie (`<10>`) when
+  // a file opens. `#+STARTUP: shrink` decides for a file. Shrunk fields show
+  // their first characters and `…`, in editors that can hide text.
+  // (org-startup-shrink-all-tables)
+  "org_startup_shrink_all_tables": false,
+
+  // Fold blocks when a file opens folded (`org_startup_folded`). `#+STARTUP:
+  // hideblocks` and `nohideblocks` decide for a file.
+  // (org-cycle-hide-block-startup)
+  "org_cycle_hide_block_startup": false,
+
+  // Fold drawers when a file opens folded (`org_startup_folded`).
+  // (org-cycle-hide-drawer-startup)
+  "org_cycle_hide_drawer_startup": true,
+
+  // Leave archived subtrees open when a file opens folded
+  // (`org_startup_folded`). (org-cycle-open-archived-trees)
+  "org_cycle_open_archived_trees": false,
+
+  // Indent the lines of an entry past its headline's stars: `true` for all of
+  // them, `"headline-data"` for the planning line, drawers and clock lines
+  // right below the headline. Applies to new lines, to re-indenting (range
+  // formatting) and to what commands write. (org-adapt-indentation)
+  "org_adapt_indentation": false,
+
+  // Show the images of links to image files in place when a file opens, as
+  // `C-c C-x C-v` (`org.link.preview`) shows them. `#+STARTUP: inlineimages`
+  // (or `linkpreviews`) and `noinlineimages` decide for a file. Editors that
+  // can show images: Neovim from 0.13 (`vim.ui.img`), in a terminal with the
+  // Kitty graphics protocol. (org-startup-with-link-previews)
+  "org_startup_with_link_previews": false,
+
+  // Show the LaTeX fragments as images when a file opens, as `C-c C-x C-l`
+  // (`org.latex.preview`) shows them, made by Emacs. `#+STARTUP:
+  // latexpreview` and `nolatexpreview` decide for a file.
+  // (org-startup-with-latex-preview)
+  "org_startup_with_latex_preview": false,
+
+  // Show files indented by level without changing them (`org-indent-mode`):
+  // the text under a headline lines up with its title, and leading stars are
+  // hidden. `#+STARTUP: indent` and `noindent` decide for a file. It turns
+  // `org_adapt_indentation` off in such files, unless that is
+  // `"headline-data"`. Editors that can show it: Neovim, and VS Code (not on
+  // wrapped lines). (org-startup-indented)
+  "org_startup_indented": false,
+
+  // Hide all the stars of a headline but the last; they keep their place.
+  // `#+STARTUP: hidestars` and `showstars` decide for a file.
+  // (org-hide-leading-stars)
+  "org_hide_leading_stars": false,
+
+  // Leave the code of source blocks as it is indented when re-indenting.
+  // (org-src-preserve-indentation)
+  "org_src_preserve_indentation": false,
+
+  // How far code is indented past its source block when re-indenting.
+  // (org-edit-src-content-indentation)
+  "org_edit_src_content_indentation": 2,
+
+  // How much time the agenda shows. (org-agenda-span)
+  "org_agenda_span": "week",
+
+  // The day a week or fortnight starts on; `false` starts it today.
+  // (org-agenda-start-on-weekday)
+  "org_agenda_start_on_weekday": 1,
+
+  // How many days before a deadline it shows up. (org-deadline-warning-days)
+  "org_deadline_warning_days": 14,
+
+  // How many days after its date a scheduled entry shows up.
+  // (org-scheduled-delay-days)
+  "org_scheduled_delay_days": 0,
+
+  // How many days a scheduled entry that is not done keeps showing up.
+  // (org-scheduled-past-days)
+  "org_scheduled_past_days": 10000,
+
+  // Org modules to load. `org-habit` turns habits on: entries with the
+  // `STYLE` property `habit` and a scheduled date with a repeater (`.+2d`,
+  // `.+2d/4d` for a deadline too) show in the agenda with a graph of the days
+  // they were done. Others are ignored. (org-modules)
+  "org_modules": [],
+
+  // The column the consistency graph of a habit starts at in the agenda.
+  // (org-habit-graph-column)
+  "org_habit_graph_column": 40,
+
+  // How many days before today a habit's graph shows.
+  // (org-habit-preceding-days)
+  "org_habit_preceding_days": 21,
+
+  // How many days after today a habit's graph shows.
+  // (org-habit-following-days)
+  "org_habit_following_days": 7,
+
+  // Show habits in the agenda. (org-habit-show-habits)
+  "org_habit_show_habits": true,
+
+  // Show habits only on today's date, not on future days of the agenda.
+  // (org-habit-show-habits-only-for-today)
+  "org_habit_show_habits_only_for_today": true,
+
+  // Show every habit today, even those not scheduled for today.
+  // (org-habit-show-all-today)
+  "org_habit_show_all_today": false,
+
+  // The mark of today in a habit's graph. (org-habit-today-glyph)
+  "org_habit_today_glyph": "!",
+
+  // The mark of a day a habit was done in its graph.
+  // (org-habit-completed-glyph)
+  "org_habit_completed_glyph": "*",
+
+  // A day a habit was done is green in its graph even when it was done late.
+  // (org-habit-show-done-always-green)
+  "org_habit_show_done_always_green": false,
+
+  // How many days a habit that is not done keeps showing up.
+  // (org-habit-scheduled-past-days)
+  // "org_habit_scheduled_past_days": unset: `org_scheduled_past_days`
+
+  // How many days a missed deadline keeps showing up.
+  // (org-deadline-past-days)
+  "org_deadline_past_days": 10000,
+
+  // Leave out scheduled entries that are done.
+  // (org-agenda-skip-scheduled-if-done)
+  "org_agenda_skip_scheduled_if_done": false,
+
+  // Leave out deadlines of entries that are done.
+  // (org-agenda-skip-deadline-if-done)
+  "org_agenda_skip_deadline_if_done": false,
+
+  // Leave out timestamps of entries that are done.
+  // (org-agenda-skip-timestamp-if-done)
+  "org_agenda_skip_timestamp_if_done": false,
+
+  // Show the future dates of repeating entries: all of them, none, or only
+  // the next. (org-agenda-show-future-repeats)
+  "org_agenda_show_future_repeats": true,
+
+  // Show days without entries. (org-agenda-show-all-dates)
+  "org_agenda_show_all_dates": true,
+
+  // Where tags are aligned in the agenda: a column (negative: where they
+  // end), or `auto` for the right edge of the window. With `auto`, the
+  // editors that tell the server how wide the agenda's window is (Neovim,
+  // Vim, Sublime Text) have the tags there, and the agenda follows the window
+  // as it is resized; the others (VS Code, Zed) have them end at column 80.
+  // (org-agenda-tags-column)
+  "org_agenda_tags_column": "auto",
+
+  // Draw the time grid. (org-agenda-use-time-grid)
+  "org_agenda_use_time_grid": true,
+
+  // The time grid, as Org writes it: the days that have it (`daily`: a
+  // one-day agenda; `weekly`: every day of a longer one; `today`: today;
+  // `require-timed`: only days with an entry that has a time; `remove-match`:
+  // no grid line at a time an entry already has), the times of its lines
+  // (`800` for 8:00), what follows a time that has no end time, and the text
+  // of a grid line. (org-agenda-time-grid)
+  "org_agenda_time_grid": [["daily", "today", "require-timed"], [800, 1000, 1200, 1400, 1600, 1800, 2000], "......", "----------------"],
+
+  // The text of the line for the current time.
+  // (org-agenda-current-time-string)
+  "org_agenda_current_time_string": "now - - - - - - - - - - - - - - - - - - - - - - - - -",
+
+  // Show the current time in the grid. (org-agenda-show-current-time-in-grid)
+  "org_agenda_show_current_time_in_grid": true,
+
+  // The days drawn as the weekend (0 is Sunday). (org-agenda-weekend-days)
+  "org_agenda_weekend_days": [6, 0],
+
+  // Start the agenda in log mode, which shows what was closed and clocked
+  // each day (`l` toggles it). (org-agenda-start-with-log-mode)
+  "org_agenda_start_with_log_mode": false,
+
+  // Start the agenda with the clock report under it (`R` toggles it).
+  // (org-agenda-start-with-clockreport-mode)
+  "org_agenda_start_with_clockreport_mode": false,
+
+  // Start the agenda with entries in archived trees (`trees`; `v a` toggles
+  // it), or those and the files the agenda files archive to (`files`; `v A`).
+  // (org-agenda-start-with-archives-mode)
+  "org_agenda_start_with_archives_mode": false,
+
+  // What log mode shows: `closed` entries, `clock` lines and `state` changes.
+  // (org-agenda-log-mode-items)
+  "org_agenda_log_mode_items": ["closed", "clock"],
+
+  // Keep the marks of a bulk action (`B`) after it (`p` in its menu toggles
+  // this for one action). (org-agenda-persistent-marks)
+  "org_agenda_persistent_marks": false,
+
+  // Start the agenda in follow mode, which shows the entry of the cursor's
+  // line in another window as the cursor moves (`F` toggles it).
+  // (org-agenda-start-with-follow-mode)
+  "org_agenda_start_with_follow_mode": false,
+
+  // Start the agenda with some text of each entry under its line (`E` toggles
+  // it). (org-agenda-start-with-entry-text-mode)
+  "org_agenda_start_with_entry_text_mode": false,
+
+  // The most lines of an entry's text `E` shows.
+  // (org-agenda-entry-text-maxlines)
+  "org_agenda_entry_text_maxlines": 5,
+
+  // What each line of an entry's text starts with in the agenda.
+  // (org-agenda-entry-text-leaders)
+  "org_agenda_entry_text_leaders": "    > ",
+
+  // Emacs regexps whose matches are left out of the entry text `E` shows.
+  // (org-agenda-entry-text-exclude-regexps)
+  "org_agenda_entry_text_exclude_regexps": [],
+
+  // What goes between the blocks of a block agenda: one character repeated
+  // across 79 columns, a longer text as it is, or `false` for nothing. In a
+  // block's `settings`, the separator above that block.
+  // (org-agenda-block-separator)
+  "org_agenda_block_separator": "=",
+
+  // Leave out the separators between blocks and the header over agenda
+  // blocks. (org-agenda-compact-blocks)
+  "org_agenda_compact_blocks": false,
+
+  // Leave out the blocks of a block agenda that show no entries. Not in Org.
+  "agenda_hide_empty_blocks": false,
+
+  // Read every search string of the search view (`s`) as words that must
+  // (`+word`, `word`) or must not (`-word`) occur, regexps in braces
+  // (`{regexp}`) and `"quoted phrases"`. Off, it is a phrase whose spaces
+  // match any whitespace, unless its first word starts with `+`, `-` or `{`.
+  // (org-agenda-search-view-always-boolean)
+  "org_agenda_search_view_always_boolean": false,
+
+  // The words of a Boolean search match whole words only, as a search string
+  // starting with `:` asks. (org-agenda-search-view-force-full-words)
+  "org_agenda_search_view_force_full_words": false,
+
+  // The search view shows headlines down to this level, a match below one
+  // counting for the headline above: 0 for every level.
+  // (org-agenda-search-view-max-outline-level)
+  "org_agenda_search_view_max_outline_level": 0,
+
+  // Files the search view (`s`) searches besides the agenda files, after
+  // them, as `org_agenda_files` names them. `agenda-archives` first adds the
+  // files the agenda files archive to. A file listed twice is searched at its
+  // last place. (org-agenda-text-search-extra-files)
+  "org_agenda_text_search_extra_files": [],
+
+  // What comes before the headline on a line of the agenda (`agenda`), the
+  // TODO list (`todo`), tags searches (`tags`) and text searches (`search`):
+  // `%c` the category, `%t` the time, `%s` the leader (`Scheduled: `), `%e`
+  // the effort, `%l` a blank per level, `%T` the last tag, `%b` the headlines
+  // above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the
+  // right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty field,
+  // and a character before the letter follows a value that is not empty
+  // (`%-12:c`). `%(…)` (Emacs Lisp) is left empty. (org-agenda-prefix-format)
+  "org_agenda_prefix_format": { "agenda": " %i %-12:c%?-12t% s", "search": " %i %-12:c", "tags": " %i %-12:c", "todo": " %i %-12:c" },
+
+  // How a TODO keyword is written in the agenda: `%-4s` pads it to four
+  // columns, so that the titles line up; an empty format leaves keywords out.
+  // (org-agenda-todo-keyword-format)
+  "org_agenda_todo_keyword_format": "%-1s",
+
+  // The leader of a scheduled entry on its day, and on today when its day has
+  // passed (`%d`: the days since). (org-agenda-scheduled-leaders)
+  "org_agenda_scheduled_leaders": ["Scheduled: ", "Sched.%2dx: "],
+
+  // The leader of a deadline on its day, on today before it (`%d`: the days
+  // left), and on today after it (`%d`: the days since).
+  // (org-agenda-deadline-leaders)
+  "org_agenda_deadline_leaders": ["Deadline:  ", "In %3d d.: ", "%2d d. ago: "],
+
+  // The leader of a time range within a day, and of a range over days (`%d`:
+  // which day of it, `%d`: how many days). (org-agenda-timerange-leaders)
+  "org_agenda_timerange_leaders": ["", "(%d/%d): "],
+
+  // Leave the tags out of the agenda's lines; `prefix` only when the prefix
+  // shows a tag (`%T`). (org-agenda-remove-tags)
+  "org_agenda_remove_tags": false,
+
+  // What the stuck projects view (`#`) lists: the projects the match string
+  // finds whose subtree has no entry with one of the TODO keywords (`*` for
+  // any not done) or tags (`*` for any), and no match of the regexp.
+  // (org-stuck-projects)
+  "org_stuck_projects": ["+LEVEL=2/-DONE", ["TODO", "NEXT", "NEXTACTION"], [], ""],
+
+  // What goes between the headlines of `%b`.
+  // (org-agenda-breadcrumbs-separator)
+  "org_agenda_breadcrumbs_separator": "->",
+
+  // How the agenda writes a day, as `format-time-string` does: `%A %d %B %Y`,
+  // `%a %Y-%m-%d`. (org-agenda-format-date)
+  // "org_agenda_format_date": unset: as `Wednesday   7 October 2026`, the week's number added on Mondays
+
+  // The day the agenda starts from, as the date prompt reads it: `-1d`,
+  // `+2d`, `2026-10-01`. (org-agenda-start-day)
+  // "org_agenda_start_day": unset: today
+
+  // Where the commands of `org_agenda_custom_commands` are offered, as for
+  // `org_capture_templates_contexts`. (org-agenda-custom-commands-contexts)
+  "org_agenda_custom_commands_contexts": [],
+
+  // Commands of the agenda menu. Each has a `key` and a `description`, and
+  // either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with
+  // a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such
+  // as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such
+  // views shown one after the other. `header` replaces a view's header
+  // (empty: none), and `settings` holds agenda options for the command or a
+  // block (`org_agenda_span`, `org_agenda_start_day` …). A command with only
+  // a key and a description groups the commands whose keys start with its
+  // key. (org-agenda-custom-commands)
+  "org_agenda_custom_commands": []
+}
+#+end_src
+
+# END generated

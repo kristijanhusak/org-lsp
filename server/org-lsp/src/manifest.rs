@@ -4,7 +4,7 @@
 //!
 //! The server sends this as `capabilities.experimental.org` in the
 //! `initialize` result, and `org-lsp manifest` prints it for integrations
-//! that are generated ahead of time. `docs/protocol.md` describes it.
+//! that are generated ahead of time. `docs/protocol.org` describes it.
 
 use serde_json::{json, Value};
 

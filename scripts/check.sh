@@ -17,6 +17,6 @@ server=target/debug/org-lsp
 node scripts/generate-docs.mjs "$server" --check
 node editors/sublime/generate.mjs "$server" --check
 node editors/zed/generate.mjs "$server" --check
-(cd editors/vscode && npm run -s generate -- --check && npm run -s check)
+(cd editors/vscode && npm run -s generate -- "../../$server" --check && npm run -s check)
 python3 editors/sublime/test/test_plugin.py
 echo "all checks passed"

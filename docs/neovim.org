@@ -1,0 +1,140 @@
+#+title: Org in Neovim
+#+options: ^:{} toc:nil
+
+The Neovim plugin is the repository itself (~plugin/~, ~lua/~), for Neovim
+0.11 or newer. It sets its keys in Org buffers, so it is meant to be used
+instead of nvim-orgmode for them, not next to it.
+
+* Installing
+
+Install ~kristijanhusak/org-lsp~ with your plugin manager. With
+[[https://github.com/folke/lazy.nvim][lazy.nvim]]:
+
+#+begin_src lua
+{
+  'kristijanhusak/org-lsp',
+  build = ':OrgLspDownload',
+  init = function()
+    vim.g.org_lsp = { settings = { org_agenda_files = { '~/org' } } }
+  end,
+}
+#+end_src
+
+Opening an Org file the first time downloads the server for your platform
+from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] (with ~curl~ and ~tar~) and starts it;
+~:OrgLspDownload~ downloads it again, to update it, and the ~build~ above
+does that on each update of the plugin. ~release = 'v0.2.0'~ picks a
+release instead of the nightly build, and ~download = false~ turns the
+download off.
+
+To build the server instead (with [[https://rustup.rs][cargo]]), set
+~build = 'cargo build --release -p org-lsp'~, or run ~:OrgLspBuild~. A
+build in the plugin's directory and ~org-lsp~ on PATH come before the
+download.
+
+~:checkhealth org-lsp~ reports the server the plugin found, where it came
+from, and the agenda files.
+
+* Setting it up
+
+Set ~vim.g.org_lsp~ before the plugin loads (lazy.nvim's ~init~, as above),
+or call ~setup()~ at any time. The server's options go in ~settings~, the
+plugin's own beside it:
+
+#+begin_src lua
+require('org-lsp').setup({
+  -- The server's options: Org's variables, named with `_`.
+  settings = {
+    org_agenda_files = { '~/org', '~/notes/**/*.org' },
+    org_todo_keywords = { 'TODO(t)', 'NEXT(n)', 'WAIT(w@/!)', '|', 'DONE(d!)', 'CANCELLED(c@)' },
+    org_log_done = 'time',
+    org_capture_templates = {
+      { key = 't', description = 'Task', target = { 'file+headline', '~/org/inbox.org', 'Tasks' }, template = '* TODO %?\n  %U' },
+    },
+    org_agenda_custom_commands = {
+      {
+        key = 'd',
+        description = 'Today, then what is waiting',
+        blocks = {
+          { type = 'agenda', settings = { org_agenda_span = 'day' } },
+          { type = 'todo', match = 'WAIT', header = 'Waiting for' },
+        },
+      },
+    },
+  },
+  -- The plugin's own.
+  win_split_mode = 'vsplit',
+  calendar_win_mode = 'cursor',
+})
+#+end_src
+
+The server also reads [[file:configuration.org::#the-shared-configuration-file][the shared configuration file]],
+=~/.config/org-lsp/config.toml=, which every editor shares; ~settings~ goes
+on top of it. [[file:configuration.org][configuration.org]] has everything else: [[file:configuration.org::#neovim][the plugin's options]]
+(windows, the calendar, the statusline, highlighting, images) and [[file:configuration.org::#every-option-at-its-default][every
+option of the server]] with its default.
+
+* Keys
+
+The plugin binds nvim-orgmode's default keys: ~cit~ changes the TODO
+state, ~ciR~ and ~cir~ the priority, ~<C-a>~ and ~<C-x>~ the part of the
+timestamp under the cursor, ~<Leader>ois~ schedules, ~<Leader>or~ refiles,
+~<Leader>oc~ captures, ~<Tab>~ and ~<S-Tab>~ cycle folds, and ~<Leader>oa~
+opens the agenda from anywhere. ~g?~ shows the keys of the buffer at hand.
+
+The agenda has the keys it has in every editor: Emacs's (~f~ and ~b~, ~t~,
+~+~ and ~-~, ~<CR>~, ~<C-c><C-s>~), with ~J~ for a date and the views under
+~v~ (~vd~, ~vw~), so that no motion is taken; ~q~ closes it. Counts work,
+and the editing keys repeat with ~.~. Dates are asked for with Emacs's
+calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
+
+[[file:keys/neovim.org][keys/neovim.org]] lists every key and how to change it.
+
+* What works
+
+# BEGIN generated: features
+
+| Feature | Parity | Neovim | What does not work, and why |
+|---+---+---+---|
+| [[file:parity.org::#highlighting][Highlighting]] | 100% | ✅ |  |
+| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 100% | ✅ |  |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 100% | ✅ |  |
+| [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
+| [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
+| [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
+| [[file:parity.org::#tags][Tags]] | 100% | ✅ |  |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ✅ |  |
+| [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
+| [[file:parity.org::#agenda][Agenda]] | 100% | ✅ |  |
+| [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
+| [[file:parity.org::#capture][Capture]] | 100% | ✅ |  |
+| [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
+| [[file:parity.org::#links][Links]] | 100% | ✅ |  |
+| [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
+| [[file:parity.org::#tables][Tables]] | 94% | ✅ |  |
+| [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
+| [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
+| [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |
+| [[file:parity.org::#citations][Citations]] | 100% | ✅ |  |
+| [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 83% | ✅ |  |
+| [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ |  |
+| [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ | Completion needs an LSP completion plugin (or ~vim.lsp.completion~). |
+| [[file:parity.org::#timers][Timers]] | 100% | ✅ |  |
+| [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
+| [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
+| [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ | From Neovim 0.13 (~vim.ui.img~), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick. |
+| *All of Org* | *99%* |  |  |
+
+✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
+❌ none does, — nothing to support yet. Parity is the share of what
+Emacs Org does in that area that org-lsp does; [[file:parity.org][parity.org]] lists both.
+
+[[file:../editors/neovim/TESTING.org][TESTING.org]] lists what to try by hand.
+
+# END generated
+
+* Developing
+
+~scripts/test-nvim.sh~ runs the plugin's tests headless against a fresh
+debug build of the server (~NVIM~ names the Neovim to use).

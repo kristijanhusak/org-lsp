@@ -219,7 +219,7 @@ const settings = {
   // any other out (no tokens, no edits), and shows the agenda in a new tab
   // each time the server asks, not knowing the one it has.
   schemes: ['file', manifest.agenda.scheme],
-  // The server's options, such as org_agenda_files; see docs/configuration.md.
+  // The server's options, such as org_agenda_files; see docs/configuration.org.
   initializationOptions: {},
   // The keys: "emacs" (the default), "vim" (for Vintage and NeoVintageous)
   // or "custom" (none; bind the commands yourself).

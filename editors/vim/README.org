@@ -1,0 +1,6 @@
+#+title: Org in Vim
+
+The Vim plugin, on top of yegappan/lsp, vim-lsp, coc.nvim or ALE.
+
+[[file:../../docs/vim.org][docs/vim.org]] says how to install and set it up, and what works.
+[[file:TESTING.org][TESTING.org]] lists what to try by hand.

@@ -3,7 +3,7 @@
 //! Tokens never overlap. Nested markup is flattened: emphasis becomes
 //! modifiers on the text it covers, so `*bold /both/*` yields tokens that
 //! carry `bold` and `bold + italic`. Editors map token types and modifiers
-//! to their own highlight groups; see `docs/protocol.md` for the legend.
+//! to their own highlight groups; see `docs/protocol.org` for the legend.
 
 use lsp_types::{SemanticToken, SemanticTokenModifier, SemanticTokenType, SemanticTokensLegend};
 use org_syntax::{SyntaxElement, SyntaxKind, SyntaxKind::*, SyntaxNode, TextRange, TextSize, TodoKeywords};

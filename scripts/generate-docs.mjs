@@ -1,19 +1,21 @@
-// Write the generated parts of the documentation from what the server says
-// about itself, so that it lists the keys the editors really bind and the
-// options and defaults the server really has:
+// Write the generated parts of the documentation, in Org, from what the
+// server says about itself, so that it lists the keys the editors really
+// bind and the options and defaults the server really has:
 //
-//   docs/<editor>/keys.md            the key tables (Sublime Text's from its
+//   docs/keys/<editor>.org           the key tables (Sublime Text's from its
 //                                    keymap, Zed's from keymap.json and
 //                                    tasks.json, which their own generators
 //                                    write from the server's manifest)
-//   docs/<editor>/configuration.md   the default options, in the editor's syntax
-//   docs/configuration.md            the shared configuration file, at its defaults
-//   docs/protocol.md                 the table of options
+//   docs/configuration.org           every option at its default
+//   docs/protocol.org                the table of options
+//   docs/<editor>.org, README.org    what works, from scripts/features.mjs
+//   docs/parity.org                  the same area by area (whole)
+//   editors/<editor>/TESTING.org     what to try by hand (whole)
 //   docs/config.schema.json          the JSON Schema of the shared file
 //   lua/org-lsp/types.lua            the options' types, for lua-language-server
 //
-// Only the text between `<!-- BEGIN generated: NAME -->` and
-// `<!-- END generated -->` is rewritten; the rest is written by hand.
+// In a page written by hand, only the lines between `# BEGIN generated:
+// NAME` and `# END generated` are rewritten.
 //
 //   node scripts/generate-docs.mjs [path/to/org-lsp]   rewrite the pages
 //   node scripts/generate-docs.mjs --check             fail if out of date
@@ -49,16 +51,71 @@ const SCOPES = [
   ['columns', 'In column view'],
 ];
 
-const code = (text) => '`' + text.replaceAll('|', '\\|') + '`';
-const cell = (text) => text.replaceAll('|', '\\|');
+// ----- Org
 
-function table(header, rows) {
-  return [
-    `| ${header.join(' | ')} |`,
-    `| ${header.map(() => '---').join(' | ')} |`,
-    ...rows.map((row) => `| ${row.join(' | ')} |`),
-  ].join('\n');
+// Where Org lets emphasis start and end (`org-emphasis-regexp-components`).
+const PRE = /[\s\-('"{\u200b]/;
+const POST = /[\s\-.,:!?;'")}\[\u200b]/;
+
+/** `text` as Org code: `~text~`, or `=text=` where a `~` at its edge or
+ * in it would end it early. */
+const code = (text) => {
+  const bad = (marker) =>
+    text.startsWith(marker) ||
+    text.endsWith(marker) ||
+    text.split(marker).slice(1).some((after) => after === '' || POST.test(after[0]));
+  const marker = bad('~') && !bad('=') ? '=' : '~';
+  return marker + text + marker;
+};
+
+/**
+ * Text of the server's descriptions and of scripts/features.mjs, whose
+ * code is in backticks and whose names of menu items and buttons are in
+ * `*stars*`, as Org: `~code~` and `/italic/`. A zero-width space goes
+ * where the characters around would keep Org from seeing them.
+ */
+function org(text) {
+  const parts = text.split(/(`[^`]+`)/);
+  return parts
+    .map((part, index) => {
+      if (index % 2 === 1) {
+        const before = index > 0 ? parts[index - 1].slice(-1) : '';
+        const after = parts[index + 1]?.[0] ?? '';
+        const open = before === '' || PRE.test(before) ? '' : '\u200b';
+        const close = after === '' || POST.test(after) ? '' : '\u200b';
+        return open + code(part.slice(1, -1)) + close;
+      }
+      return part.replace(/(^|[\s(])\*([^*\s][^*]*[^*\s]|[^*\s])\*(?=$|[\s.,:;)])/g, '$1/$2/');
+    })
+    .join('');
 }
+
+/** A table cell: Org has no `|` in a cell; `¦` stands in for it. */
+const cell = (text) => text.replaceAll('|', '¦');
+
+/** An Org table, its first row the header; with a note under it when a
+ * cell had a `|`. */
+function table(header, rows) {
+  const lines = [
+    `| ${header.join(' | ')} |`,
+    `|${header.map(() => '---').join('+')}|`,
+    ...rows.map((row) => `| ${row.map(cell).join(' | ')} |`),
+  ];
+  const piped = rows.some((row) => row.some((text) => text.includes('|')));
+  return lines.join('\n') + (piped ? '\n\n=¦= stands for =|=, which an Org table cannot hold.' : '');
+}
+
+/** A heading of `level`. */
+const heading = (level, text) => `${'*'.repeat(level)} ${text}`;
+
+/** A source block, its lines escaped as Org wants them. */
+function block(language, lines) {
+  const escaped = lines.map((line) => line.replace(/^(\s*)(\*|#\+|,\*|,#\+)/, '$1,$2'));
+  return [`#+begin_src ${language}`, ...escaped, '#+end_src'].join('\n');
+}
+
+/** An Org link. */
+const link = (target, text) => `[[${target}][${text}]]`;
 
 // ----- keys
 
@@ -70,16 +127,16 @@ const OWN_KEYS = { org: ['<Tab>', '<S-Tab>', 'g?'], agenda: ['q', 'K', 'g?'], co
  * scopes the plugin has (all of them for Neovim). */
 function neovimKeys(scopes = SCOPES.map(([scope]) => scope)) {
   const sections = [];
-  for (const [scope, heading] of SCOPES.filter(([scope]) => scopes.includes(scope))) {
+  for (const [scope, title] of SCOPES.filter(([scope]) => scopes.includes(scope))) {
     const rows = manifest.commands.flatMap((command) => {
       const keys = command.keys.filter(
         (key) => key.preset === 'vim' && key.in === scope && !(OWN_KEYS[scope] ?? []).includes(key.key),
       );
       if (keys.length === 0) return [];
-      const shown = keys.map((key) => code(key.key) + (key.native ? '¹' : '') + (key.mode === 'insert' ? ' (insert mode)' : '')).join(', ');
-      return [[shown, code(command.command), cell(command.title)]];
+      const shown = keys.map((key) => code(key.key) + (key.native ? ' ¹' : '') + (key.mode === 'insert' ? ' (insert mode)' : '')).join(', ');
+      return [[shown, code(command.command), org(command.title)]];
     });
-    if (rows.length > 0) sections.push(`### ${heading}\n\n` + table(['Keys', 'Command', 'What it does'], rows));
+    if (rows.length > 0) sections.push(heading(2, title) + '\n\n' + table(['Keys', 'Command', 'What it does'], rows));
   }
   const keyless = manifest.commands
     .filter(
@@ -88,12 +145,12 @@ function neovimKeys(scopes = SCOPES.map(([scope]) => scope)) {
           (key) => key.preset === 'vim' && scopes.includes(key.in) && !(OWN_KEYS[key.in] ?? []).includes(key.key),
         ),
     )
-    .map((command) => [code(command.command), cell(command.title)]);
-  sections.push('### Without a default key\n\n' + table(['Command', 'What it does'], keyless));
+    .map((command) => [code(command.command), org(command.title)]);
+  sections.push(heading(2, 'Without a default key') + '\n\n' + table(['Command', 'What it does'], keyless));
   sections.push(
     '¹ Where the command does not apply, the key does what it does in any\n' +
-      'buffer: `<C-a>` off a timestamp still increments the number under the\n' +
-      'cursor, and `<CR>` in a source block\'s code is Vim\'s own.',
+      'buffer: ~<C-a>~ off a timestamp still increments the number under the\n' +
+      'cursor, and ~<CR>~ in a source block\'s code is Vim\'s own.',
   );
   return sections.join('\n\n');
 }
@@ -137,28 +194,28 @@ function vscodeKeys() {
           : 'org';
   const titles = Object.fromEntries(vscode.contributes.commands.map((command) => [command.command, command.title]));
   const presets = [
-    ['emacs', 'Emacs (`"org-lsp.keys": "emacs"`, the default)'],
-    ['vim', 'Vim (`"org-lsp.keys": "vim"`)'],
+    ['emacs', 'Emacs (~"org-lsp.keys": "emacs"~, the default)'],
+    ['vim', 'Vim (~"org-lsp.keys": "vim"~)'],
   ];
   const sections = [];
   for (const [preset, presetHeading] of presets) {
-    sections.push(`### ${presetHeading}`);
-    for (const [scope, heading] of SCOPES) {
+    sections.push(heading(2, presetHeading));
+    for (const [scope, title] of SCOPES) {
       const byCommand = new Map();
       for (const binding of vscode.contributes.keybindings) {
         if (!binding.when.includes(`keys == '${preset}'`) || where(binding.when) !== scope) continue;
         if (!byCommand.has(binding.command)) byCommand.set(binding.command, []);
-        byCommand.get(binding.command).push(code(vscodeKey(binding.key)) + (binding.args?.fallback ? '¹' : ''));
+        byCommand.get(binding.command).push(code(vscodeKey(binding.key)) + (binding.args?.fallback ? ' ¹' : ''));
       }
       if (byCommand.size === 0) continue;
-      const rows = [...byCommand].map(([command, keys]) => [keys.join(', '), code(command), cell(titles[command] ?? '')]);
-      sections.push(`#### ${heading}\n\n` + table(['Keys', 'Command', 'What it does'], rows));
+      const rows = [...byCommand].map(([command, keys]) => [keys.join(', '), code(command), org(titles[command] ?? '')]);
+      sections.push(heading(3, title) + '\n\n' + table(['Keys', 'Command', 'What it does'], rows));
     }
   }
   sections.push(
     '¹ Where the command does not apply, the key does what it does without\n' +
-      'the extension: `Shift+Up` off a timestamp or headline selects, `Tab` off\n' +
-      'a headline, block or drawer indents, `Enter` in a source block\'s code\n' +
+      'the extension: ~Shift+Up~ off a timestamp or headline selects, ~Tab~ off\n' +
+      'a headline, block or drawer indents, ~Enter~ in a source block\'s code\n' +
       'is VS Code\'s own.',
   );
   // VSCodeVim's own key bindings, for the keys VS Code cannot bind: those
@@ -171,23 +228,25 @@ function vscodeKeys() {
   );
   const unique = [...new Map(leader.map((entry) => [entry.before.join(''), entry])).values()];
   sections.push(
-    '#### The leader keys, for VSCodeVim\n\n' +
+    heading(3, 'The leader keys, for VSCodeVim') +
+      '\n\n' +
       'VS Code cannot bind keys that start with the leader without taking\n' +
       "them from Vim. Add them to VSCodeVim's settings instead (they apply in\n" +
       'every file; outside Org files the commands say they do not apply):\n\n' +
-      '```json\n"vim.normalModeKeyBindingsNonRecursive": [\n' +
-      unique
-        .map((entry) => {
+      block('json', [
+        '"vim.normalModeKeyBindingsNonRecursive": [',
+        ...unique.map((entry, index) => {
           const list = (items) => items.map((item) => JSON.stringify(item)).join(', ');
-          return `  { "before": [${list(entry.before)}], "commands": [${list(entry.commands)}] }`;
-        })
-        .join(',\n') +
-      '\n]\n```',
+          const comma = index < unique.length - 1 ? ',' : '';
+          return `  { "before": [${list(entry.before)}], "commands": [${list(entry.commands)}] }${comma}`;
+        }),
+        ']',
+      ]),
   );
   const every = [...manifest.commands, ...vscode.contributes.commands.filter((command) => ['org-lsp.cycle', 'org-lsp.cycleGlobal', 'org-lsp.help'].includes(command.command))].map(
-    (command) => [code(command.command), cell(`Org: ${command.title}`)],
+    (command) => [code(command.command), org(`Org: ${command.title}`)],
   );
-  sections.push('### Every command\n\n' + table(['Command', 'In the Command Palette'], every));
+  sections.push(heading(2, 'Every command') + '\n\n' + table(['Command', 'In the Command Palette'], every));
   return sections.join('\n\n');
 }
 
@@ -229,37 +288,37 @@ function sublimeKeys() {
         ? 'capture'
         : 'org';
   const presets = [
-    ['emacs', 'Emacs (`"org_keys": "emacs"`, the default)'],
-    ['vim', 'Vim (`"org_keys": "vim"`, in command mode unless it says otherwise)'],
+    ['emacs', 'Emacs (~"org_keys": "emacs"~, the default)'],
+    ['vim', 'Vim (~"org_keys": "vim"~, in command mode unless it says otherwise)'],
   ];
   const sections = [];
   for (const [preset, presetHeading] of presets) {
-    sections.push(`### ${presetHeading}`);
-    for (const [scope, heading] of SCOPES) {
+    sections.push(heading(2, presetHeading));
+    for (const [scope, title] of SCOPES) {
       const byCommand = new Map();
       for (const binding of keymap) {
         if (context(binding, 'org_lsp.keys') !== preset || where(binding) !== scope) continue;
         const command = name(binding);
         if (!byCommand.has(command)) byCommand.set(command, []);
         const insert = context(binding, 'setting.command_mode') === false ? ' (insert mode)' : '';
-        byCommand.get(command).push(code(sublimeKey(binding.keys)) + (binding.args?.fallback ? '¹' : '') + insert);
+        byCommand.get(command).push(code(sublimeKey(binding.keys)) + (binding.args?.fallback ? ' ¹' : '') + insert);
       }
       if (byCommand.size === 0) continue;
-      const rows = [...byCommand].map(([command, keys]) => [keys.join(', '), code(command), cell(titles[command] ?? '')]);
-      sections.push(`#### ${heading}\n\n` + table(['Keys', 'Command', 'What it does'], rows));
+      const rows = [...byCommand].map(([command, keys]) => [keys.join(', '), code(command), org(titles[command] ?? '')]);
+      sections.push(heading(3, title) + '\n\n' + table(['Keys', 'Command', 'What it does'], rows));
     }
   }
   sections.push(
     '¹ Where the command does not apply, the key does what it does without\n' +
-      'the package: `Shift+Up` off a timestamp or headline selects, `Tab` off\n' +
-      'a headline, block or drawer indents or completes, `Enter` makes a new\n' +
+      'the package: ~Shift+Up~ off a timestamp or headline selects, ~Tab~ off\n' +
+      'a headline, block or drawer indents or completes, ~Enter~ makes a new\n' +
       'line.',
   );
   const bound = new Set(keymap.map(name));
   const keyless = manifest.commands
     .filter((command) => !bound.has(command.command))
-    .map((command) => [code(command.command), cell(`Org: ${command.title}`)]);
-  sections.push('### Without a key\n\n' + table(['Command', 'In the Command Palette'], keyless));
+    .map((command) => [code(command.command), org(`Org: ${command.title}`)]);
+  sections.push(heading(2, 'Without a key') + '\n\n' + table(['Command', 'In the Command Palette'], keyless));
   return sections.join('\n\n');
 }
 
@@ -293,18 +352,18 @@ function zedKeys() {
   };
   const headings = { 'extension == org-agenda': 'In the agenda', 'extension == org': 'In Org files' };
   return keymap
-    .map((block) => {
-      const heading = Object.entries(headings).find(([context]) => block.context.endsWith(context))?.[1] ?? block.context;
+    .map((bindings) => {
+      const title = Object.entries(headings).find(([context]) => bindings.context.endsWith(context))?.[1] ?? bindings.context;
       const byAction = new Map();
-      for (const [key, action] of Object.entries(block.bindings)) {
+      for (const [key, action] of Object.entries(bindings.bindings)) {
         const [command, title] = Array.isArray(action)
           ? [commandOf[action[1].task_name], titles[commandOf[action[1].task_name]]]
           : [action, zedActions[action]];
         if (!byAction.has(command)) byAction.set(command, { keys: [], title });
         byAction.get(command).keys.push(code(key));
       }
-      const rows = [...byAction].map(([command, { keys, title }]) => [keys.join(', '), code(command), cell(title ?? '')]);
-      return `### ${heading}\n\n` + table(['Keys', 'Command or Zed action', 'What it does'], rows);
+      const rows = [...byAction].map(([command, { keys, title: what }]) => [keys.join(', '), code(command), org(what ?? '')]);
+      return heading(2, title) + '\n\n' + table(['Keys', 'Command or Zed action', 'What it does'], rows);
     })
     .join('\n\n');
 }
@@ -365,34 +424,12 @@ const entries = (object) =>
     return rank(a) - rank(b) || a.localeCompare(b);
   });
 
-function lua(value) {
-  if (Array.isArray(value)) return value.length === 0 ? '{}' : `{ ${value.map(lua).join(', ')} }`;
-  if (value && typeof value === 'object') {
-    return `{ ${entries(value).map(([key, item]) => `${key} = ${lua(item)}`).join(', ')} }`;
-  }
-  if (typeof value === 'string') return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'").replaceAll('\n', '\\n')}'`;
-  return String(value);
-}
-
 function json(value) {
   if (Array.isArray(value)) return value.length === 0 ? '[]' : `[${value.map(json).join(', ')}]`;
   if (value && typeof value === 'object') {
     return `{ ${entries(value).map(([key, item]) => `${JSON.stringify(key)}: ${json(item)}`).join(', ')} }`;
   }
   return JSON.stringify(value);
-}
-
-/** `value` as a Vim script expression. */
-function vimValue(value) {
-  if (Array.isArray(value)) return `[${value.map(vimValue).join(', ')}]`;
-  if (value && typeof value === 'object') {
-    return `{${entries(value).map(([key, item]) => `${vimValue(key)}: ${vimValue(item)}`).join(', ')}}`;
-  }
-  // A string with a line break in double quotes, whose escapes are JSON's.
-  if (typeof value === 'string') return /[\n\t]/.test(value) ? JSON.stringify(value) : `'${value.replaceAll("'", "''")}'`;
-  if (typeof value === 'boolean') return value ? 'v:true' : 'v:false';
-  if (value === null) return 'v:null';
-  return String(value);
 }
 
 function toml(value) {
@@ -403,27 +440,7 @@ function toml(value) {
   return JSON.stringify(value);
 }
 
-/** The options with their defaults, as Lua for `settings = { … }`. */
-function luaOptions(node, indent) {
-  const lines = [];
-  for (const [index, child] of node.children.entries()) {
-    if (index > 0) lines.push('');
-    if (child.setting) {
-      const setting = child.setting;
-      lines.push(...comment(about(setting), indent, '--'));
-      lines.push(
-        setting.default === undefined
-          ? `${indent}-- ${child.name} = nil, -- unset: ${setting.unset}`
-          : `${indent}${child.name} = ${lua(setting.default)},`,
-      );
-    } else {
-      lines.push(`${indent}${child.name} = {`, ...luaOptions(child, indent + '  '), `${indent}},`);
-    }
-  }
-  return lines;
-}
-
-/** The same in JSON with comments, as VS Code's settings.json takes it. */
+/** The options with their defaults in JSON with comments, for a `config.json`. */
 function jsonOptions(node, indent) {
   const lines = [];
   const children = node.children;
@@ -445,30 +462,7 @@ function jsonOptions(node, indent) {
   return lines;
 }
 
-/** The same as a Vim script dictionary, its lines continued with `\`
- * and its comments `"\ `, as `g:org_lsp`'s `settings` takes it. */
-function vimDict(node, indent) {
-  const lines = [];
-  // No blank lines between the options: a comment line is `"\ ` with its
-  // space, and a line of `"\` alone would end the dictionary.
-  for (const child of node.children) {
-    if (child.setting) {
-      const setting = child.setting;
-      // Each comment line is `      "\ ` and the indentation.
-      lines.push(...comment(about(setting), '      "\\', ` ${indent.slice(0, -1)}`));
-      lines.push(
-        setting.default === undefined
-          ? `      "\\ ${indent}'${child.name}': unset: ${setting.unset}`
-          : `      \\ ${indent}'${child.name}': ${vimValue(setting.default)},`,
-      );
-    } else {
-      lines.push(`      \\ ${indent}'${child.name}': {`, ...vimDict(child, indent + '  '), `      \\ ${indent}},`);
-    }
-  }
-  return lines;
-}
-
-/** The same in TOML, as Helix's languages.toml and the shared file take it. */
+/** The same in TOML, as the shared file takes it. */
 function tomlOptions(node, table) {
   const lines = table ? [`[${table}]`] : [];
   const tables = [];
@@ -490,67 +484,28 @@ function tomlOptions(node, table) {
   return lines;
 }
 
-function neovimOptions() {
-  return ['```lua', "require('org-lsp').setup({", '  settings = {', ...luaOptions(optionTree(), '    '), '  },', '})', '```'].join(
-    '\n',
-  );
-}
-
-function vimOptions() {
-  return ['```vim', 'let g:org_lsp = {', "      \\ 'settings': {", ...vimDict(optionTree(), '  '), '      \\ },', '      \\ }', '```'].join('\n');
-}
-
-function sublimeOptions() {
-  return ['```jsonc', '{', '  "initializationOptions": {', ...jsonOptions(optionTree(), '    '), '  }', '}', '```'].join('\n');
-}
-
-function zedOptions() {
-  return [
-    '```jsonc',
-    '{',
-    '  "lsp": {',
-    '    "org-lsp": {',
-    '      "initialization_options": {',
-    ...jsonOptions(optionTree(), '        '),
-    '      }',
-    '    }',
-    '  }',
-    '}',
-    '```',
-  ].join('\n');
-}
-
-function vscodeOptions() {
-  return ['```jsonc', '{', '  "org-lsp.settings": {', ...jsonOptions(optionTree(), '    '), '  }', '}', '```'].join('\n');
-}
-
-function helixOptions() {
-  const lines = tomlOptions(optionTree(), 'language-server.org-lsp.config');
-  while (lines[lines.length - 1] === '') lines.pop();
-  return ['```toml', ...lines, '```'].join('\n');
-}
-
 /** The shared configuration file with every option at its default. */
 function fileOptions() {
   const lines = tomlOptions(optionTree({ editor: false }), '');
   while (lines[lines.length - 1] === '') lines.pop();
-  return ['```toml', ...lines, '```'].join('\n');
+  return block('toml', lines);
 }
 
 /** The same as JSON with comments, for a `config.json`. */
 function fileOptionsJson() {
-  return ['```jsonc', '{', ...jsonOptions(optionTree({ editor: false }), '  '), '}', '```'].join('\n');
+  return block('json', ['{', ...jsonOptions(optionTree({ editor: false }), '  '), '}']);
 }
 
-/** The table of options in docs/protocol.md. */
+/** The options in docs/protocol.org: a description list, each option with
+ * its type, its default and what it means. */
 function protocolOptions() {
-  const rows = settings.map((setting) => [
-    code(setting.name),
-    cell(setting.type),
-    setting.default === undefined ? cell(setting.unset) : code(json(setting.default)),
-    cell(setting.doc) + (setting.org ? ` (\`${setting.org}\`)` : ''),
-  ]);
-  return table(['Option', 'Type', 'Default', 'Meaning'], rows);
+  return settings
+    .map((setting) => {
+      const fallback = setting.default === undefined ? org(setting.unset) : code(json(setting.default));
+      const meaning = org(setting.doc) + (setting.org ? ` (${code(setting.org)})` : '');
+      return `- ${code(setting.name)} :: ${setting.type}, ${fallback}. ${meaning}`;
+    })
+    .join('\n');
 }
 
 // ----- types
@@ -609,7 +564,7 @@ function luaTypes() {
     blocks.push(lines.join('\n'));
     for (const [child, childName] of nested) group(child, childName, `The options under \`${child.name}\`.`);
   };
-  group(optionTree(), 'org_lsp.Settings', "The server's options, as `settings` passes them; see docs/configuration.md.");
+  group(optionTree(), 'org_lsp.Settings', "The server's options, as `settings` passes them; see docs/configuration.org.");
   for (const [name, schema] of classes) {
     const required = new Set(schema.required ?? []);
     const lines = [`---@class ${name}`];
@@ -636,7 +591,7 @@ function configSchema() {
     $schema: 'http://json-schema.org/draft-07/schema#',
     $id: 'https://raw.githubusercontent.com/kristijanhusak/org-lsp/main/docs/config.schema.json',
     title: 'org-lsp configuration',
-    description: "The options of the org-lsp server, in its shared configuration file. See docs/configuration.md.",
+    description: "The options of the org-lsp server, in its shared configuration file. See docs/configuration.org.",
     type: 'object',
     properties: { $schema: { type: 'string' }, ...schemaProperties(settings, { editor: false }) },
     additionalProperties: false,
@@ -658,13 +613,14 @@ function configSchema() {
 // ----- features, parity and the manual tests (scripts/features.mjs)
 
 const MARK = { yes: '✅', part: '❓', no: '❌', none: '—' };
-const LEGEND =
-  '✅ all that org-lsp does works there, ❓ some does not (the editor\'s\n' +
-  'README says what and why), ❌ none does, — nothing to support yet.\n' +
-  'Parity is the share of what Emacs Org does in that area that org-lsp\n' +
-  'does; [docs/parity.md](PARITY) lists both.';
+/** What the marks of a feature table mean; `parity` is the link to docs/parity.org. */
+const legend = (parity, why = "the editor's page says what and why") =>
+  `✅ all that org-lsp does works there, ❓ some does not (${why}),\n` +
+  '❌ none does, — nothing to support yet. Parity is the share of what\n' +
+  `Emacs Org does in that area that org-lsp does; ${link(parity, 'parity.org')} lists both.`;
 
-/** The anchor GitHub gives a heading. */
+/** The anchor GitHub gives a heading, and the CUSTOM_ID it has in
+ * docs/parity.org, so that a link finds it in Emacs and on GitHub. */
 const slug = (text) =>
   text
     .toLowerCase()
@@ -692,8 +648,8 @@ function emacsKeyName(key) {
     .join(' ');
 }
 
-/** Code in running text, outside a table. */
-const inline = (text) => '`' + text + '`';
+/** Code in running text. */
+const inline = code;
 
 /** How a command is run in `editor`, from where `scope` says. */
 function commandKey(editor, id, scope = 'org') {
@@ -710,10 +666,10 @@ function commandKey(editor, id, scope = 'org') {
     case 'vscode':
     case 'sublime': {
       const found = keys('emacs');
-      return found.length > 0 ? found.map((key) => inline(emacsKeyName(key))).join(' or ') : `*Org: ${command.title}*`;
+      return found.length > 0 ? found.map((key) => inline(emacsKeyName(key))).join(' or ') : `/Org: ${org(command.title)}/`;
     }
     default:
-      return `the code action *${command.title}*`;
+      return `the code action /${org(command.title)}/`;
   }
 }
 
@@ -722,71 +678,76 @@ const applies = (check, editor) => (!check.only || check.only.includes(editor)) 
 
 /** The keys of a check in `editor`, or nothing. */
 function checkKeys(check, editor) {
-  if (check.keys) return check.keys[editor] ?? '';
+  if (check.keys) return org(check.keys[editor] ?? '');
   if (!check.cmd) return '';
   const ids = Array.isArray(check.cmd) ? check.cmd : [check.cmd];
   return ids.map((id) => commandKey(editor, id, check.in)).join(', ');
 }
 
-function featureTable(parityLink) {
+/** Every area and every editor: README.org's table. */
+function featureTable() {
+  const parityFile = 'file:docs/parity.org';
   const header = ['Feature', 'Parity', EDITORS.map((editor) => editor.name).join(' / ')];
   const rows = AREAS.map((area) => [
-    `[${area.name}](${parityLink}#${slug(area.name)})`,
+    link(`${parityFile}::#${slug(area.name)}`, area.name),
     `${parity(area).percent}%`,
     EDITORS.map((editor) => MARK[support(area, editor.id)[0]]).join(' / '),
   ]);
-  rows.push(['**All of Org**', `**${overall()}%**`, '']);
-  return table(header, rows) + '\n\n' + LEGEND.replace('PARITY', parityLink);
+  rows.push(['*All of Org*', `*${overall()}%*`, '']);
+  return table(header, rows) + '\n\n' + legend(parityFile);
 }
 
+/** Every area in one editor, with what does not work there: docs/<editor>.org's table. */
 function editorFeatureTable(id) {
   const editor = EDITORS.find((one) => one.id === id);
-  const link = '../../docs/parity.md';
   const rows = AREAS.map((area) => {
     const [status, why] = support(area, id);
-    return [`[${area.name}](${link}#${slug(area.name)})`, `${parity(area).percent}%`, MARK[status], cell(why)];
+    return [link(`file:parity.org::#${slug(area.name)}`, area.name), `${parity(area).percent}%`, MARK[status], org(why)];
   });
-  rows.push(['**All of Org**', `**${overall()}%**`, '', '']);
+  rows.push(['*All of Org*', `*${overall()}%*`, '', '']);
   return (
     table(['Feature', 'Parity', editor.name, 'What does not work, and why'], rows) +
     '\n\n' +
-    LEGEND.replace('PARITY', link).replace("the editor's\nREADME says what and why", 'the last column says what\nand why') +
-    '\n\n[TESTING.md](TESTING.md) lists what to try by hand.'
+    legend('file:parity.org', 'the last column says what and why') +
+    '\n\n' +
+    `${link(`file:../${editor.dir}/TESTING.org`, 'TESTING.org')} lists what to try by hand.`
   );
 }
 
 function parityPage() {
   const lines = [
-    '# Parity with Emacs Org',
+    '#+title: Parity with Emacs Org',
+    '#+options: ^:{}',
     '',
-    '<!-- Written by scripts/generate-docs.mjs from scripts/features.mjs. -->',
+    '# Written by scripts/generate-docs.mjs from scripts/features.mjs.',
     '',
     'What Emacs Org (9.8.10) does, area by area, and what org-lsp does of it.',
     'An area\'s parity is the share of its features done; all of Org is the',
     'mean of the areas. Every feature done is checked against Emacs where Org',
-    'decides the outcome (see "How the work is checked" in PLAN.md).',
+    `decides the outcome (see "How the work is checked" in ${link('file:../PLAN.org', 'PLAN.org')}).`,
     '',
-    `**All of Org: ${overall()}%**`,
+    `*All of Org: ${overall()}%*`,
     '',
     table(
       ['Feature', 'Parity', 'Done'],
       AREAS.map((area) => {
         const { done, total, percent } = parity(area);
-        return [`[${area.name}](#${slug(area.name)})`, `${percent}%`, `${done} of ${total}`];
+        return [link(`#${slug(area.name)}`, area.name), `${percent}%`, `${done} of ${total}`];
       }),
     ),
   ];
   for (const area of AREAS) {
     const { done, total, percent } = parity(area);
-    lines.push('', `## ${area.name}`, '', `${percent}% (${done} of ${total})`, '');
+    lines.push('', heading(1, area.name), ':PROPERTIES:', `:CUSTOM_ID: ${slug(area.name)}`, ':END:', '');
+    lines.push(`${percent}% (${done} of ${total})`, '');
     for (const [text, state, of] of area.emacs) {
       const mark = typeof state === 'number' ? (state === of ? '✅' : '❓') : state ? '✅' : '❌';
-      lines.push(`- ${mark} ${text}${typeof state === 'number' ? ` (${state} of ${of})` : ''}`);
+      lines.push(`- ${mark} ${org(text)}${typeof state === 'number' ? ` (${state} of ${of})` : ''}`);
     }
     const short = EDITORS.map((editor) => [editor, ...support(area, editor.id)]).filter(([, status]) => status === 'part' || status === 'no');
     if (short.length > 0) {
       lines.push('', 'Where editors fall short:', '');
-      for (const [editor, status, why] of short) lines.push(`- ${editor.name} ${MARK[status]}: ${why}`);
+      for (const [editor, status, why] of short) lines.push(`- ${editor.name} ${MARK[status]}: ${org(why)}`);
     }
   }
   return lines.join('\n') + '\n';
@@ -801,40 +762,41 @@ function testingPage(id, before) {
       .filter((line) => /^- \[[xX]\] /.test(line))
       .map((line) => line.slice(6)),
   );
-  const box = (text) => `- [${ticked.has(text) ? 'x' : ' '}] ${text}`;
+  const box = (text) => `- [${ticked.has(text) ? 'X' : ' '}] ${text}`;
   const lines = [
-    `# Testing org-lsp in ${editor.name} by hand`,
+    `#+title: Testing org-lsp in ${editor.name} by hand`,
+    '#+options: ^:{}',
     '',
-    '<!-- Written by scripts/generate-docs.mjs from scripts/features.mjs.',
-    '     Ticked boxes are kept when it is written again. -->',
+    '# Written by scripts/generate-docs.mjs from scripts/features.mjs.',
+    '# Ticked boxes are kept when it is written again.',
     '',
     `What to try in ${editor.name} to know that everything org-lsp does works`,
     'there. The keys are the defaults. Tick a box once it works; a check that',
-    'fails is a bug to report. The [README](README.md) says what is left out',
+    `fails is a bug to report. ${link(`file:../../docs/${id}.org`, `docs/${id}.org`)} says what is left out`,
     'here and why.',
     '',
     'To look at most of what a file shows at once (highlighting, concealing,',
     'entities, folding when it opens, indentation, shrunk columns,',
-    'diagnostics), open [tests/visual.org](../../tests/visual.org): each of',
+    `diagnostics), open ${link('file:../../tests/visual.org', 'tests/visual.org')}: each of`,
     'its sections says what it should look like.',
     '',
-    '## Setup',
+    heading(1, 'Setup'),
     '',
-    ...editor.setup.map(box),
+    ...editor.setup.map((text) => box(org(text))),
   ];
   for (const area of AREAS) {
     const [status, why] = support(area, id);
     if (status === 'none') continue;
-    lines.push('', `## ${area.name}`, '');
+    lines.push('', heading(1, area.name), '');
     if (status === 'no') {
-      lines.push(`**Not in ${editor.name}:** ${why}`);
+      lines.push(`*Not in ${editor.name}:* ${org(why)}`);
       continue;
     }
-    if (status === 'part') lines.push(`**Partly:** ${why}`, '');
+    if (status === 'part') lines.push(`*Partly:* ${org(why)}`, '');
     const checks = (area.checks ?? []).filter((check) => applies(check, id));
     for (const check of checks) {
       const keys = checkKeys(check, id);
-      lines.push(box(keys ? `${check.text}: ${keys}` : check.text));
+      lines.push(box(keys ? `${org(check.text)}: ${keys}` : org(check.text)));
     }
   }
   return lines.join('\n') + '\n';
@@ -846,32 +808,26 @@ const unticked = (text) => text.replace(/^- \[[xX]\] /gm, '- [ ] ');
 // ----- the pages
 
 const PAGES = {
-  'docs/neovim/keys.md': { keys: () => neovimKeys() },
-  'docs/vim/keys.md': { keys: vimKeys },
-  'docs/vscode/keys.md': { keys: vscodeKeys },
-  'docs/sublime/keys.md': { keys: sublimeKeys },
-  'docs/zed/keys.md': { keys: zedKeys },
-  'docs/neovim/configuration.md': { options: neovimOptions },
-  'docs/vim/configuration.md': { options: vimOptions },
-  'docs/vscode/configuration.md': { options: vscodeOptions },
-  'docs/sublime/configuration.md': { options: sublimeOptions },
-  'docs/zed/configuration.md': { options: zedOptions },
-  'docs/helix/configuration.md': { options: helixOptions },
-  'docs/protocol.md': { options: protocolOptions },
-  'docs/configuration.md': { options: fileOptions, 'options-json': fileOptionsJson },
-  'README.md': { features: () => featureTable('docs/parity.md') },
-  ...Object.fromEntries(EDITORS.map((editor) => [`${editor.dir}/README.md`, { features: () => editorFeatureTable(editor.id) }])),
+  'docs/keys/neovim.org': { keys: () => neovimKeys() },
+  'docs/keys/vim.org': { keys: vimKeys },
+  'docs/keys/vscode.org': { keys: vscodeKeys },
+  'docs/keys/sublime.org': { keys: sublimeKeys },
+  'docs/keys/zed.org': { keys: zedKeys },
+  'docs/protocol.org': { options: protocolOptions },
+  'docs/configuration.org': { options: fileOptions, 'options-json': fileOptionsJson },
+  'README.org': { features: featureTable },
+  ...Object.fromEntries(EDITORS.map((editor) => [`docs/${editor.id}.org`, { features: () => editorFeatureTable(editor.id) }])),
 };
 
-const END = '<!-- END generated -->';
+const END = '# END generated';
 /** Files written whole. */
 const FILES = {
   'lua/org-lsp/types.lua': luaTypes,
   'docs/config.schema.json': configSchema,
-  'docs/parity.md': parityPage,
+  'docs/parity.org': parityPage,
 };
 /** Files written whole that keep what a person ticked. */
-const TESTS = Object.fromEntries(EDITORS.map((editor) => [`${editor.dir}/TESTING.md`, editor.id]));
+const TESTS = Object.fromEntries(EDITORS.map((editor) => [`${editor.dir}/TESTING.org`, editor.id]));
 
 let stale = false;
 for (const [file, render] of Object.entries(FILES)) {
@@ -905,7 +861,7 @@ for (const [page, sections] of Object.entries(PAGES)) {
   const before = readFileSync(path, 'utf8');
   let after = before;
   for (const [name, render] of Object.entries(sections)) {
-    const begin = `<!-- BEGIN generated: ${name} -->`;
+    const begin = `# BEGIN generated: ${name}`;
     const start = after.indexOf(begin);
     const end = after.indexOf(END, start);
     if (start < 0 || end < 0) {

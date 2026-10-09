@@ -1,0 +1,6 @@
+#+title: Org in Zed
+
+The Zed extension.
+
+[[file:../../docs/zed.org][docs/zed.org]] says how to install and set it up, and what works.
+[[file:TESTING.org][TESTING.org]] lists what to try by hand.

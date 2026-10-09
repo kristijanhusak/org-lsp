@@ -1,8 +1,8 @@
 # org-lsp
 
 Org mode in any editor through one language server, as close to Emacs Org
-mode as it can get. [PLAN.md](PLAN.md) has the goal and rules, where things
-stand and how the work is checked; [docs/protocol.md](docs/protocol.md) is
+mode as it can get. [PLAN.org](PLAN.org) has the goal and rules, where things
+stand and how the work is checked; [docs/protocol.org](docs/protocol.org) is
 what an editor integration has to do. Read both before larger work.
 
 ## Layout
@@ -47,8 +47,8 @@ they are out of date.
 | `editors/vscode/package.json`: commands, keys, tokens, `org-lsp.settings` | `commands.rs`, `legend.rs`, `settings.rs` |
 | `editors/sublime/LSP-org/*` keymap, commands, `semantic_tokens` | the same |
 | `editors/zed/languages/org/*.json`, `keymap.json`, `tasks.json` | the same |
-| Between `<!-- BEGIN generated -->` and `<!-- END generated -->` in `docs/`; `docs/config.schema.json`; `lua/org-lsp/types.lua` | `settings.rs` and the manifest |
-| Parity tables (`docs/parity.md`, the READMEs), `editors/*/TESTING.md` | `scripts/features.mjs` |
+| Between `# BEGIN generated: NAME` and `# END generated` in the Org docs (key tables, option lists); `docs/config.schema.json`; `lua/org-lsp/types.lua` | `settings.rs` and the manifest |
+| What works (`README.org`, `docs/<editor>.org`), `docs/parity.org`, `editors/*/TESTING.org` | `scripts/features.mjs` |
 
 Written by hand: the `configuration` section of `package.json` (the
 extension's own settings such as `org-lsp.images`), the user-facing values
@@ -72,7 +72,16 @@ kept by the generator), and every doc outside the generated blocks.
 - **Write like the code around you.** Comments say what the code is for,
   in plain sentences, with Emacs's names in backticks (`org-link-preview`).
 - **One pull request per change**, merged by squashing; the docs, parity
-  table and `TESTING.md` checks change in the same PR as the feature.
+  table and `TESTING.org` checks change in the same PR as the feature.
+- **The docs are Org**, written as Org (not Markdown in Org's clothes):
+  `~code~`, `/italic/`, `[[file:x.org::#id][text]]` links, description lists
+  for references, `#+begin_src` blocks. Each editor has `docs/<editor>.org`
+  (install, setup, a short example, what works) and `docs/keys/<editor>.org`;
+  every option and setting is in `docs/configuration.org`; `editors/*/README.org`
+  only points to the editor's page. A link to a heading in another file
+  uses a `CUSTOM_ID` equal to GitHub's anchor of the heading, so it works in
+  Emacs and on GitHub. CLAUDE.md and the skills stay Markdown: Claude Code
+  reads them.
 
 ## Pitfalls
 

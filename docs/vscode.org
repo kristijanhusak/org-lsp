@@ -1,0 +1,164 @@
+#+title: Org in VS Code
+#+options: ^:{} toc:nil
+
+The VS Code extension (~editors/vscode~) runs Org through the server. It is
+a thin client: it starts the server and tells it where the cursor is when a
+command runs. Its commands, keys and token colors are written into
+~package.json~ from the server's own description of itself, so nothing
+about Org is listed there by hand. It works in VS Code's relatives too
+(VSCodium, Cursor).
+
+* Installing
+
+From a checkout of this repository:
+
+#+begin_src sh
+scripts/install-vscode.sh            # the nightly build for this machine
+scripts/install-vscode.sh v0.2.0     # a release
+scripts/install-vscode.sh --source   # built from this checkout (cargo, npm)
+#+end_src
+
+The script downloads the package for your platform from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]]
+(or the release named), or builds it, and installs it with
+~code --install-extension~. Run it again to update, then reload the window.
+~CODE=codium~ (or ~code-insiders~, ~cursor~) installs into another editor.
+On Windows without a shell, download ~org-lsp-win32-x64.vsix~ from the
+release and run *Extensions: Install from VSIX…*.
+
+The package has the server inside. The extension looks for the server in
+this order: the ~org-lsp.server.path~ setting, the one inside the
+extension, ~org-lsp~ on PATH.
+
+* Setting it up
+
+The settings go in ~settings.json~ (*Preferences: Open User Settings
+(JSON)*). The server's options go in ~org-lsp.settings~, where they are
+completed, described on hover and checked; the extension's own settings
+beside it:
+
+#+begin_src json
+{
+  "org-lsp.settings": {
+    "org_agenda_files": ["~/org"],
+    "org_todo_keywords": ["TODO(t)", "NEXT(n)", "|", "DONE(d!)"],
+    "org_log_done": "time",
+    "org_capture_templates": [
+      { "key": "t", "description": "Task", "target": ["file+headline", "~/org/inbox.org", "Tasks"], "template": "* TODO %?\n  %U" }
+    ],
+    "org_agenda_custom_commands": [
+      {
+        "key": "d",
+        "description": "Today, then what is waiting",
+        "blocks": [
+          { "type": "agenda", "settings": { "org_agenda_span": "day" } },
+          { "type": "todo", "match": "WAIT", "header": "Waiting for" }
+        ]
+      }
+    ]
+  },
+  "org-lsp.keys": "vim",
+  "org-lsp.winSplitMode": "vsplit"
+}
+#+end_src
+
+Without ~org_agenda_files~, the agenda is built from the Org files in the
+workspace folders. When ~org-lsp.settings~ changes, the extension restarts
+the server, so the change applies at once.
+
+The server also reads [[file:configuration.org::#the-shared-configuration-file][the shared configuration file]],
+=~/.config/org-lsp/config.toml=, which every editor shares;
+~org-lsp.settings~ goes on top of it. [[file:configuration.org][configuration.org]] has everything else:
+[[file:configuration.org::#vs-code][the extension's settings]] and [[file:configuration.org::#every-option-at-its-default][every option of the server]] with its default.
+
+* Using it
+
+The commands are in the Command Palette under *Org*, and the changes that
+apply at the cursor under *Quick Fix…* (~Ctrl+.~). *Org: Show the keys*
+lists the keys of the editor at hand; picking one runs it.
+
+Emacs's keys are bound in Org files (~Ctrl+C Ctrl+T~, ~Ctrl+C Ctrl+S~,
+~Shift~ and the arrows, ~Tab~ and ~Shift+Tab~ to cycle folds …), in capture
+buffers (~Ctrl+C Ctrl+C~) and in the date prompt. In Org files ~Ctrl+C~
+waits for a second key instead of copying (~Ctrl+Insert~ still copies). The
+agenda has the keys it has in every editor: Emacs's agenda keys (~f~, ~b~,
+~t~, ~+~, ~Enter~, ~Ctrl+C Ctrl+S~ …), with ~Shift+J~ for a date and the views
+under ~v~ (~v d~, ~v w~), so that VSCodeVim keeps its motions; ~q~ closes it.
+~org-lsp.keys~ picks other keys: ~"vim"~ binds the Neovim plugin's keys for
+VSCodeVim, ~"custom"~ none. [[file:keys/vscode.org][keys/vscode.org]] lists every key and command,
+and how to add, change and remove keys.
+
+A date is typed as at Org's prompt: ~fri 10:00~, ~+2d~, ~2/15~, ~++1w~,
+~10:00-11:30~. Under the input box the extension shows the timestamp the
+answer makes, as you type. As in Emacs, a date command shows a calendar
+first, beside the file, with the answer and what it means on its last line.
+Emacs's keys work there: ~Shift~ and the arrows by day and week,
+~Alt+Shift+Left~ and ~Alt+Shift+Right~ by month, ~Alt+Shift+Up~ and
+~Alt+Shift+Down~ by year, ~<~ and ~>~ for other months, ~.~ for today, ~Enter~
+to take the day under the cursor, ~i~ to type the answer, ~q~ or ~Ctrl+G~ to
+give up.
+
+A change made from the agenda edits the entry's file and saves it
+(~auto_save~; off, it is left unsaved, as in Emacs); the agenda follows at
+once, and after a change of priority or date the cursor goes with the
+entry to its new line.
+
+* What works
+
+# BEGIN generated: features
+
+| Feature | Parity | VS Code | What does not work, and why |
+|---+---+---+---|
+| [[file:parity.org::#highlighting][Highlighting]] | 100% | ✅ |  |
+| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 100% | ✅ |  |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 100% | ✅ |  |
+| [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
+| [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
+| [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
+| [[file:parity.org::#tags][Tags]] | 100% | ✅ |  |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Column view's header is in the status bar, with the column picked in brackets. |
+| [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
+| [[file:parity.org::#agenda][Agenda]] | 100% | ❓ | Tags are at column 80, not at the window's edge (~org_agenda_tags_column~ ~"auto"~): VS Code does not tell an extension how many columns an editor shows. |
+| [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
+| [[file:parity.org::#capture][Capture]] | 100% | ✅ |  |
+| [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
+| [[file:parity.org::#links][Links]] | 100% | ✅ |  |
+| [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
+| [[file:parity.org::#tables][Tables]] | 94% | ✅ |  |
+| [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
+| [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
+| [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ❓ | VS Code does not tell an extension which folds are closed: with ~C-v~ everything is exported. |
+| [[file:parity.org::#citations][Citations]] | 100% | ✅ |  |
+| [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 83% | ✅ |  |
+| [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ |  |
+| [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ |  |
+| [[file:parity.org::#timers][Timers]] | 100% | ✅ |  |
+| [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
+| [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
+| [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ | VS Code cannot leave lines free for an image: an image takes the place of its link only as high as a line, and shows whole on hover. Counts through a key's ~args~. |
+| *All of Org* | *99%* |  |  |
+
+✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
+❌ none does, — nothing to support yet. Parity is the share of what
+Emacs Org does in that area that org-lsp does; [[file:parity.org][parity.org]] lists both.
+
+[[file:../editors/vscode/TESTING.org][TESTING.org]] lists what to try by hand.
+
+# END generated
+
+* Developing
+
+~scripts/install-vscode.sh --source~ (in the repository root) builds the
+extension and installs it. By hand, in ~editors/vscode~:
+
+#+begin_src sh
+cargo build --release -p org-lsp   # in the repository root
+npm install
+npm run generate                   # package.json from the server's manifest
+npm run bundle-server              # copies the binary into server/
+npm run package                    # writes org-lsp-<version>.vsix
+#+end_src
+
+~npm test~ runs the extension inside VS Code against the server
+(~xvfb-run -a npm test~ on a machine without a display; ~VSCODE_EXECUTABLE~
+names a VS Code or VSCodium to use instead of downloading one).

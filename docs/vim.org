@@ -1,0 +1,149 @@
+#+title: Org in Vim
+#+options: ^:{} toc:nil
+
+The Vim plugin (~editors/vim~) runs Org through the server on top of an
+LSP client: [[https://github.com/yegappan/lsp][yegappan/lsp]], [[https://github.com/prabirshrestha/vim-lsp][vim-lsp]], [[https://github.com/neoclide/coc.nvim][coc.nvim]] or [[https://github.com/dense-analysis/ale][ALE]]. It needs Vim
+9.1.
+
+The client starts the server and keeps it up to date with the buffers; the
+plugin does the rest the same way for all four: it runs the server's
+commands with the cursor position and asks what they ask for, shows the
+agenda and capture buffers, highlights with the server's tokens (as text
+properties), folds with its folding ranges, and shows the clock.
+
+* Installing
+
+With [[https://github.com/junegunn/vim-plug][vim-plug]]:
+
+#+begin_src vim
+Plug 'yegappan/lsp'   " or vim-lsp, coc.nvim, ALE
+Plug 'kristijanhusak/org-lsp', { 'rtp': 'editors/vim', 'do': 'cargo build --release -p org-lsp' }
+#+end_src
+
+With Vim's own packages, clone the repository and add ~editors/vim~ to
+'runtimepath'. The plugin finds the server in the checkout
+(~target/release~), on PATH, or where ~cmd~ says; a binary from the
+[[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] on PATH does as well.
+
+The plugin finds the client that is installed and registers the server
+with it. Leave the client's own semantic highlighting and folding off for
+Org files (they are off by default in all four): the plugin does both.
+
+To try it without touching your own configuration,
+[[file:../editors/vim/minimal.vim][editors/vim/minimal.vim]] is a vimrc that puts vim-plug and yegappan/lsp in
+a temporary folder and loads the plugin from a checkout (=~/github/org-lsp=;
+change both places it is named for another):
+
+#+begin_src sh
+cargo build --release -p org-lsp
+vim -N -u editors/vim/minimal.vim ~/org/todo.org
+#+end_src
+
+* Setting it up
+
+Set ~g:org_lsp~ before the plugin loads. The server's options go in
+~settings~, the plugin's own beside it; every key may be left out:
+
+#+begin_src vim
+let g:org_lsp = {
+      \ 'settings': {
+      \   'org_agenda_files': ['~/org'],
+      \   'org_todo_keywords': ['TODO(t)', 'NEXT(n)', '|', 'DONE(d!)'],
+      \   'org_capture_templates': [
+      \     {'key': 't', 'description': 'Task', 'target': ['file', '~/org/inbox.org'], 'template': "* TODO %?\n  %U"},
+      \   ],
+      \   'org_agenda_custom_commands': [
+      \     {'key': 'n', 'description': 'Next actions', 'type': 'todo', 'match': 'NEXT'},
+      \   ],
+      \ },
+      \ 'client': 'lsp',
+      \ 'win_split_mode': 'vsplit',
+      \ 'mappings': {'org': {'org.todo.next': '<Leader>t'}},
+      \ }
+#+end_src
+
+The server also reads [[file:configuration.org::#the-shared-configuration-file][the shared configuration file]],
+=~/.config/org-lsp/config.toml=, which every editor shares; ~settings~ goes
+on top of it. [[file:configuration.org][configuration.org]] has everything else: [[file:configuration.org::#vim][the plugin's options]]
+(the client, windows, the calendar, the statusline) and [[file:configuration.org::#every-option-at-its-default][every option of the
+server]] with its default.
+
+* Keys
+
+The keys are the Neovim plugin's (~cit~, ~<C-a>~, ~<Leader>oa~, ~<Tab>~ …),
+and the agenda's are the ones it has in every editor. ~g?~ lists the keys
+of the buffer at hand, ~K~ in the agenda shows the entry of the line in a
+popup, and ~:Org agenda~, ~:Org capture~, ~:Org todo next~ … run any
+command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change it.
+
+* What differs from Neovim
+
+- The agenda and the date prompt's calendar are files the server writes
+  (~Agenda.org-agenda~, ~Date.org-date~ in a temporary directory), read again
+  when it says they changed.
+- Column view covers each headline with a popup, and puts its header in
+  the window's status line rather than above the text.
+- Nothing is concealed: Vim cannot hide text that text properties mark, so
+  link brackets and emphasis markers show.
+- With coc.nvim, the documents the server asks to show open where coc.nvim
+  opens them (~coc.preferences.jumpCommand~), not as ~win_split_mode~ and
+  ~win_split_size~ say; and since coc.nvim passes on only an error's message,
+  a key that keeps its own meaning (~<C-a>~ off a timestamp) falls back to
+  it whenever the server refuses.
+- With ALE, one server serves the session, started for the directory of
+  the first Org file.
+
+* What works
+
+# BEGIN generated: features
+
+| Feature | Parity | Vim | What does not work, and why |
+|---+---+---+---|
+| [[file:parity.org::#highlighting][Highlighting]] | 100% | ❓ | Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties. |
+| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 100% | ✅ |  |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 100% | ✅ |  |
+| [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
+| [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
+| [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
+| [[file:parity.org::#tags][Tags]] | 100% | ✅ |  |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Column view's header is in the window's status line, shown when the window has one (~laststatus~). |
+| [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
+| [[file:parity.org::#agenda][Agenda]] | 100% | ✅ |  |
+| [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
+| [[file:parity.org::#capture][Capture]] | 100% | ✅ |  |
+| [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
+| [[file:parity.org::#links][Links]] | 100% | ✅ |  |
+| [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
+| [[file:parity.org::#tables][Tables]] | 94% | ❓ | A shrunk column shows its whole text and ~…~: Vim cannot hide text that has text properties. |
+| [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
+| [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
+| [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |
+| [[file:parity.org::#citations][Citations]] | 100% | ✅ |  |
+| [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 83% | ❓ | The lines a long line wraps into are not indented. |
+| [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ |  |
+| [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ |  |
+| [[file:parity.org::#timers][Timers]] | 100% | ✅ |  |
+| [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
+| [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
+| [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❌ | Vim cannot show images. |
+| *All of Org* | *99%* |  |  |
+
+✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
+❌ none does, — nothing to support yet. Parity is the share of what
+Emacs Org does in that area that org-lsp does; [[file:parity.org][parity.org]] lists both.
+
+[[file:../editors/vim/TESTING.org][TESTING.org]] lists what to try by hand.
+
+# END generated
+
+* Developing
+
+~editors/vim/test/run.sh~ runs the plugin against the real server once per
+client, in Vim inside tmux. ~CLIENTS~ is a directory with the clients
+checked out (~lsp~, ~vim-lsp~, ~coc.nvim~ from its ~release~ branch, ~ale~):
+
+#+begin_src sh
+CLIENTS=~/vim-clients editors/vim/test/run.sh           # all four
+CLIENTS=~/vim-clients editors/vim/test/run.sh vim_lsp   # one
+#+end_src

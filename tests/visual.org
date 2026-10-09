@@ -7,7 +7,7 @@
 Open this file in an editor and look: each section says what it should
 show, in lines starting with →. It sets what it can itself (the
 =#+STARTUP:= line above); what it cannot is said where it matters. The
-editor's notes in its TESTING.md say what it leaves out.
+editor's notes in its TESTING.org say what it leaves out.
 
 → The text of each section is indented under its headline (=indent=),
   without a space in the file: the file is unchanged. Of each headline's
