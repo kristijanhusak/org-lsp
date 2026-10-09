@@ -1140,7 +1140,9 @@ show, as Emacs shows them:
   them, into `ltximg/` beside the file), with the same counts.
 
 An image shows below the line of its link or fragment, in lines kept free
-for it, and follows it as the window scrolls; it goes when its text does.
+for it, from where the line's text starts (after the virtual indentation
+of `org-indent-mode` and the line's own blanks, as long as it fits), and
+follows it as the window scrolls; it goes when its text does.
 PNG images show as they are; others are made PNG with ImageMagick
 (`magick` or `convert`) when it is installed. Older versions of Neovim say
 that they cannot show images.
