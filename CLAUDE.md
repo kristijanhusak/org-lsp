@@ -49,6 +49,7 @@ they are out of date.
 | `editors/zed/languages/org/*.json`, `keymap.json`, `tasks.json` | the same |
 | Between `# BEGIN generated: NAME` and `# END generated` in the Org docs (key tables, option lists); `docs/config.schema.json`; `lua/org-lsp/types.lua` | `settings.rs` and the manifest |
 | What works (`README.org`, `docs/<editor>.org`), `docs/parity.org`, `editors/*/TESTING.org` | `scripts/features.mjs` |
+| `editors/vscode/README.md` (written when the extension is packaged, not kept) | `docs/vscode.org`, by `editors/vscode/scripts/readme.mjs` |
 
 Written by hand: the `configuration` section of `package.json` (the
 extension's own settings such as `org-lsp.images`), the user-facing values

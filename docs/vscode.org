@@ -159,6 +159,10 @@ npm run bundle-server              # copies the binary into server/
 npm run package                    # writes org-lsp-<version>.vsix
 #+end_src
 
+Packaging writes ~README.md~, which VS Code shows on the extension's page and
+reads only as Markdown, from this page (~scripts/readme.mjs~, run by vsce as
+~vscode:prepublish~); it is not kept in the repository.
+
 ~npm test~ runs the extension inside VS Code against the server
 (~xvfb-run -a npm test~ on a machine without a display; ~VSCODE_EXECUTABLE~
 names a VS Code or VSCodium to use instead of downloading one).

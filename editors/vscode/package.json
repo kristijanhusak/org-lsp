@@ -6169,6 +6169,7 @@
     "build": "node scripts/build.mjs",
     "bundle-server": "node scripts/bundle-server.mjs",
     "smoke": "node scripts/smoke.mjs",
+    "vscode:prepublish": "node scripts/readme.mjs",
     "package": "npm run build && vsce package --no-dependencies --baseContentUrl https://github.com/kristijanhusak/org-lsp/blob/HEAD/editors/vscode --baseImagesUrl https://github.com/kristijanhusak/org-lsp/raw/HEAD/editors/vscode",
     "generate": "node scripts/generate.mjs",
     "test": "node test/run.mjs"
