@@ -595,6 +595,12 @@ every editor at once; `initialization_options` goes on top of it.
         // (org-startup-with-link-previews)
         "org_startup_with_link_previews": false,
 
+        // Show the LaTeX fragments as images when a file opens, as `C-c C-x
+        // C-l` (`org.latex.preview`) shows them, made by Emacs. `#+STARTUP:
+        // latexpreview` and `nolatexpreview` decide for a file.
+        // (org-startup-with-latex-preview)
+        "org_startup_with_latex_preview": false,
+
         // Show files indented by level without changing them
         // (`org-indent-mode`): the text under a headline lines up with its
         // title, and leading stars are hidden. `#+STARTUP: indent` and

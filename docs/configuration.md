@@ -761,6 +761,11 @@ org_adapt_indentation = false
 # graphics protocol. (org-startup-with-link-previews)
 org_startup_with_link_previews = false
 
+# Show the LaTeX fragments as images when a file opens, as `C-c C-x C-l`
+# (`org.latex.preview`) shows them, made by Emacs. `#+STARTUP: latexpreview`
+# and `nolatexpreview` decide for a file. (org-startup-with-latex-preview)
+org_startup_with_latex_preview = false
+
 # Show files indented by level without changing them (`org-indent-mode`): the
 # text under a headline lines up with its title, and leading stars are hidden.
 # `#+STARTUP: indent` and `noindent` decide for a file. It turns
@@ -1548,6 +1553,12 @@ org_agenda_custom_commands = []
   // can show images: Neovim from 0.13 (`vim.ui.img`), in a terminal with the
   // Kitty graphics protocol. (org-startup-with-link-previews)
   "org_startup_with_link_previews": false,
+
+  // Show the LaTeX fragments as images when a file opens, as `C-c C-x C-l`
+  // (`org.latex.preview`) shows them, made by Emacs. `#+STARTUP:
+  // latexpreview` and `nolatexpreview` decide for a file.
+  // (org-startup-with-latex-preview)
+  "org_startup_with_latex_preview": false,
 
   // Show files indented by level without changing them (`org-indent-mode`):
   // the text under a headline lines up with its title, and leading stars are
