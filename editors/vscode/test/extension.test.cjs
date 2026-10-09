@@ -453,7 +453,8 @@ describe('Org files', () => {
     await until('the image shown', () => JSON.stringify(api.images(editor)) === JSON.stringify([['link', 1, 'red.png', 4, 2]]));
     const hovers = await vscode.commands.executeCommand('vscode.executeHoverProvider', file, new vscode.Position(1, 5));
     const shown = hovers.flatMap((hover) => hover.contents.map((content) => content.value ?? String(content)));
-    assert.ok(shown.some((text) => text.includes('<img src="data:image/png;base64,')), 'the image on hover');
+    const red = vscode.Uri.file(path.join(workspace, 'red.png')).toString();
+    assert.ok(shown.includes(`![](${red}|width=4)`), `the image on hover: ${shown}`);
     // Again at the link: taken away.
     await vscode.commands.executeCommand('org.link.preview');
     await until('the image taken away', () => api.images(editor).length === 0);

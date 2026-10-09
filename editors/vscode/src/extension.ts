@@ -1418,8 +1418,9 @@ const imageHover: vscode.HoverProvider = {
       return undefined;
     }
     const width = Math.min(entry.file.width, 600);
-    const markdown = new vscode.MarkdownString(`<img src="${entry.file.data}" width="${width}">`);
-    markdown.supportHtml = true;
+    // The file itself, not its data: VS Code cuts a hover's text short
+    // past 100,000 characters.
+    const markdown = new vscode.MarkdownString(`![](${vscode.Uri.file(entry.path).toString()}|width=${width})`);
     return new vscode.Hover(markdown, new vscode.Range(document.positionAt(entry.start), document.positionAt(entry.end)));
   },
 };
