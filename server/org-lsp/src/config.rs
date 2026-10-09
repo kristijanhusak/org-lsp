@@ -207,6 +207,10 @@ pub struct Options {
     /// images when a file opens.
     #[serde(rename = "org_startup_with_link_previews")]
     pub startup_with_link_previews: Option<bool>,
+    /// `org-startup-with-latex-preview`: show the LaTeX fragments as images
+    /// when a file opens.
+    #[serde(rename = "org_startup_with_latex_preview")]
+    pub startup_with_latex_preview: Option<bool>,
     #[serde(rename = "org_startup_indented")]
     pub startup_indented: Option<bool>,
     /// `org-hide-leading-stars`

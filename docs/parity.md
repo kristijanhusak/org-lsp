@@ -528,7 +528,7 @@ Where editors fall short:
 100% (3 of 3)
 
 - ✅ Previews of links to images (`org-link-preview`, `C-c C-x C-v`): the link at the cursor, the section, the file, with links with a description (counts 1, 11), cleared (4, 64); `#+STARTUP: inlineimages`
-- ✅ LaTeX previews (`org-latex-preview`, `C-c C-x C-l`), made by Emacs as Org makes them (`latex`, `dvipng`, into `ltximg/`)
+- ✅ LaTeX previews (`org-latex-preview`, `C-c C-x C-l`), made by Emacs as Org makes them (`latex`, `dvipng`, into `ltximg/`); `#+STARTUP: latexpreview`
 - ✅ Previews of `attachment:` links (the file found through Emacs, `org-attach-expand`)
 
 Where editors fall short:

@@ -784,6 +784,12 @@ require('org-lsp').setup({
     -- (org-startup-with-link-previews)
     org_startup_with_link_previews = false,
 
+    -- Show the LaTeX fragments as images when a file opens, as `C-c C-x C-l`
+    -- (`org.latex.preview`) shows them, made by Emacs. `#+STARTUP:
+    -- latexpreview` and `nolatexpreview` decide for a file.
+    -- (org-startup-with-latex-preview)
+    org_startup_with_latex_preview = false,
+
     -- Show files indented by level without changing them (`org-indent-mode`):
     -- the text under a headline lines up with its title, and leading stars
     -- are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It
@@ -1137,7 +1143,9 @@ show, as Emacs shows them:
   `org_startup_with_link_previews`) opens with them.
 - `<Leader>oxl` (`org-latex-preview`, `C-c C-x C-l`) shows the LaTeX
   fragments as images, made by Emacs (`latex` and `dvipng`, as Org makes
-  them, into `ltximg/` beside the file), with the same counts.
+  them, into `ltximg/` beside the file), with the same counts. A file with
+  `#+STARTUP: latexpreview` (or `org_startup_with_latex_preview`) opens
+  with them.
 
 An image shows below the line of its link or fragment, in lines kept free
 for it, from where the line's text starts (after the virtual indentation

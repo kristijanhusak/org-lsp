@@ -830,6 +830,14 @@ pub const SETTINGS: &[Setting] = &[
          the Kitty graphics protocol.",
     ),
     setting(
+        "org_startup_with_latex_preview",
+        "boolean",
+        "false",
+        "org-startup-with-latex-preview",
+        "Show the LaTeX fragments as images when a file opens, as `C-c C-x C-l` (`org.latex.preview`) shows \
+         them, made by Emacs. `#+STARTUP: latexpreview` and `nolatexpreview` decide for a file.",
+    ),
+    setting(
         "org_startup_indented",
         "boolean",
         "false",
@@ -1564,6 +1572,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_cycle_open_archived_trees", BOOLEAN),
     ("org_adapt_indentation", r#"{ "enum": [true, false, "headline-data"] }"#),
     ("org_startup_with_link_previews", BOOLEAN),
+    ("org_startup_with_latex_preview", BOOLEAN),
     ("org_startup_indented", BOOLEAN),
     ("org_hide_leading_stars", BOOLEAN),
     ("org_src_preserve_indentation", BOOLEAN),

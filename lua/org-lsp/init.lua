@@ -1047,7 +1047,7 @@ local function on_attach(client, bufnr)
   if preview then
     return
   end
-  -- The previews of links a file opens with (`#+STARTUP: inlineimages`).
+  -- The previews a file opens with (`#+STARTUP: inlineimages`).
   if require('org-lsp.images').supported() then
     local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
     params.textDocument = { uri = vim.uri_from_bufnr(bufnr) }
@@ -1058,6 +1058,13 @@ local function on_attach(client, bufnr)
         require('org-lsp.images').apply(result.preview, true)
       end
     end, bufnr)
+    -- And of LaTeX (`#+STARTUP: latexpreview`), in the colors of the text:
+    -- they come in `org-lsp/images` once Emacs has made them.
+    local latex = vim.deepcopy(params)
+    local normal = vim.api.nvim_get_hl(0, { name = 'Normal', link = false })
+    latex.foreground = normal.fg and ('#%06x'):format(normal.fg) or nil
+    latex.background = 'Transparent'
+    client:request('workspace/executeCommand', { command = 'org.latex.preview', arguments = { latex } }, function() end, bufnr)
   end
   if M.config.indent and client:supports_method('textDocument/onTypeFormatting') then
     require('org-lsp.indent').attach(bufnr)

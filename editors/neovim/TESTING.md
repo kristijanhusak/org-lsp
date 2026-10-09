@@ -357,3 +357,4 @@ its sections says what it should look like.
 - [ ] A file with `#+STARTUP: inlineimages` opens with its pictures
 - [ ] Scrolling moves the pictures with their lines; editing a link takes its picture away
 - [ ] `$e^{i\pi} = -1$` shows as its image (needs Emacs, `latex` and `dvipng`): `<Leader>oxl`
+- [ ] A file with `#+STARTUP: latexpreview` opens with its fragments as images (needs Emacs, `latex` and `dvipng`)

@@ -745,6 +745,8 @@ struct Server {
     pretty_entities: bool,
     /// `org-startup-with-link-previews`.
     startup_link_previews: bool,
+    /// `org-startup-with-latex-preview`
+    startup_latex_preview: bool,
     /// `org-table-formula-debug`: recalculating goes through Emacs, which
     /// asks after each formula.
     formula_debug: bool,
@@ -1127,6 +1129,7 @@ pub fn run(connection: Connection) -> Result<()> {
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         pretty_entities: options.pretty_entities.unwrap_or(false),
         startup_link_previews: options.startup_with_link_previews.unwrap_or(false),
+        startup_latex_preview: options.startup_with_latex_preview.unwrap_or(false),
         formula_debug: false,
         pretty_scripts: match (
             options.pretty_entities_include_sub_superscripts.unwrap_or(true),
@@ -10023,15 +10026,24 @@ impl Server {
         let (text, version, index) = (document.text.clone(), document.version, document.index.clone());
         let parse = document.parse.clone();
         if startup {
-            let mut on = self.startup_link_previews;
+            let mut on = if latex { self.startup_latex_preview } else { self.startup_link_previews };
             for word in startup_words(&text) {
-                match word.as_str() {
-                    "inlineimages" | "linkpreviews" => on = true,
-                    "noinlineimages" | "nolinkpreviews" => on = false,
+                match (latex, word.as_str()) {
+                    (false, "inlineimages" | "linkpreviews") | (true, "latexpreview") => on = true,
+                    (false, "noinlineimages" | "nolinkpreviews") | (true, "nolatexpreview") => on = false,
                     _ => {}
                 }
             }
-            if latex || !on {
+            // Emacs is not started for a file without fragments.
+            let fragments = || {
+                parse.syntax().descendants().any(|node| {
+                    matches!(
+                        node.kind(),
+                        org_syntax::SyntaxKind::LATEX_FRAGMENT | org_syntax::SyntaxKind::LATEX_ENVIRONMENT
+                    )
+                })
+            };
+            if !on || (latex && !fragments()) {
                 return Ok(Value::Null);
             }
         }
@@ -10089,6 +10101,9 @@ impl Server {
             "includeLinked": include_linked,
             "items": [],
         });
+        if startup {
+            preview["startup"] = json!(true);
+        }
         if remove == Some(true) {
             return Ok(json!({ "preview": preview }));
         }
@@ -10165,10 +10180,14 @@ impl Server {
             })
             .collect();
         let said = if items.is_empty() { "No LaTeX fragments to preview" } else { "Creating LaTeX previews... done." };
+        let startup = preview.get("startup") == Some(&json!(true));
+        let quiet = startup && items.is_empty();
         preview["items"] = json!(items);
         let notification = lsp_server::Notification::new(PREVIEW_IMAGES.to_string(), preview);
         let _ = self.sender.send(Message::Notification(notification));
-        self.show_message(MessageType::INFO, said);
+        if !quiet {
+            self.show_message(MessageType::INFO, said);
+        }
     }
 
     fn emacs_run(&mut self, command: &str, context: &Context) -> std::result::Result<Value, Refusal> {
