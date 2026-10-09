@@ -36,6 +36,7 @@ export const EDITORS = [
     dir: 'editors/vim',
     setup: [
       'Installed with one client (yegappan/lsp, vim-lsp, coc.nvim or ALE): the server starts on an Org file. Go through the list once with each client you use',
+      'Installed with vim-plug (`\'do\': \':OrgLspDownload\'`), no server around: opening an Org file downloads the server and starts it',
       '`g?` in an Org file and in the agenda lists the keys; `<Leader>oa` works in any buffer',
       'Options from `~/.config/org-lsp/config.toml` apply, and `g:org_lsp`\'s `settings` go on top',
       'Inlay hints are on in the client (yegappan/lsp\'s `showInlayHints`, vim-lsp\'s `g:lsp_inlay_hints_enabled`; coc.nvim shows them as it is, ALE has none): the time clocked and the `…` of shrunk columns come as inlay hints',
@@ -46,7 +47,7 @@ export const EDITORS = [
     name: 'VS Code',
     dir: 'editors/vscode',
     setup: [
-      'Installed with `scripts/install-vscode.sh` (or a `.vsix` from the release): the server starts on an Org file',
+      'Installed with `install.sh vscode` (or a `.vsix` from the release): the server starts on an Org file',
       'The `Org:` commands are in the Command Palette',
       '`"org-lsp.keys": "vim"` (with VSCodeVim) switches to the Vim keys',
       '`org-lsp.` settings and `~/.config/org-lsp/config.toml` reach the server',
@@ -57,7 +58,7 @@ export const EDITORS = [
     name: 'Sublime Text',
     dir: 'editors/sublime',
     setup: [
-      'Installed with `scripts/install-sublime.sh`: LSP comes with it, and the server is found or downloaded',
+      'Installed with `install.sh sublime`: LSP comes with it, and the server in `~/.local/bin` starts on an Org file',
       'LSP\'s `semantic_highlighting` is on',
       'LSP\'s `show_inlay_hints` is on: the time clocked and the `…` of shrunk columns come as inlay hints',
       'The `Org:` commands are in the Command Palette; *Org: Download the latest server* replaces the downloaded server',
@@ -68,7 +69,7 @@ export const EDITORS = [
     name: 'Zed',
     dir: 'editors/zed',
     setup: [
-      'Installed as a dev extension: `org-lsp` is found on PATH or downloaded',
+      'Installed with `install.sh zed`: after a restart the extension starts the server put beside it, and Org\'s keys run the agenda (`ctrl-c a`)',
       '`"semantic_tokens": "combined"` and inlay hints on for Org in the settings',
       'Code actions (`ctrl-.`) list the Org commands where they apply',
       'The keymap and tasks from docs/keys/zed.org run the agenda\'s commands by key',
@@ -79,7 +80,7 @@ export const EDITORS = [
     name: 'Helix',
     dir: 'editors/helix',
     setup: [
-      '`editors/helix/languages.toml` added to `~/.config/helix/languages.toml`, `org-lsp` on PATH: `:lsp-restart` starts it',
+      'Installed with `install.sh helix`: Org is in `~/.config/helix/languages.toml`, and an Org file starts the server',
       'Code actions (`Space a`) list the Org commands where they apply',
       'Inlay hints show with `display-inlay-hints = true`',
     ],

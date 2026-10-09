@@ -9,15 +9,24 @@ behalf.
 
 * Installing
 
-Put the ~org-lsp~ binary from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] on your PATH, or build it
-in a checkout:
-
 #+begin_src sh
-cargo install --path server/org-lsp
+curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- helix
 #+end_src
 
-Then add [[file:../editors/helix/languages.toml][editors/helix/languages.toml]] to =~/.config/helix/languages.toml=
-(or a project's ~.helix/languages.toml~):
+or, in a checkout of this repository, ~scripts/install.sh helix~
+(~--release v0.2.0~ for a release, ~--source~ for the server built from
+the checkout). The script puts the server from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] in
+=~/.local/bin= (~ORG_LSP_BIN_DIR~ names another directory) and adds Org to
+=~/.config/helix/languages.toml=, with the server's whole path, between two
+~# BEGIN org-lsp~ and ~# END org-lsp~ comments that it replaces when run
+again; a file that sets up Org already is left as it is. Run it again to
+update. While the repository is private, its files need a GitHub login:
+the script downloads them with the GitHub CLI (~gh~) when it is installed
+and logged in, and the ~curl~ line above does not work.
+
+By hand: put ~org-lsp~ on your PATH (~cargo install --path server/org-lsp~
+in a checkout), and add [[file:../editors/helix/languages.toml][editors/helix/languages.toml]] to
+=~/.config/helix/languages.toml= (or a project's ~.helix/languages.toml~):
 
 #+begin_src toml
 [language-server.org-lsp]

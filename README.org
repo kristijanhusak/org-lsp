@@ -32,8 +32,18 @@ describes the options, the commands and what an integration has to do.
 
 The server is a single binary, ~org-lsp~. CI builds it for Linux (x86_64,
 arm64), macOS (arm64, x86_64) and Windows (x86_64): the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] has
-the binaries (~org-lsp-<platform>.tar.gz~) and a VS Code package for each
-platform with the server inside. Version tags make releases of their own.
+the binaries (~org-lsp-<platform>.tar.gz~), a VS Code package for each
+platform with the server inside, the Sublime Text package and the Zed
+extension. Version tags make releases of their own. Nobody has to fetch
+these by hand: the Neovim and Vim plugins download the server the first
+time an Org file opens, and for the other editors one script,
+~install.sh~, installs the server and the editor's part with it (its
+tasks and keys too, in Zed):
+
+#+begin_src sh
+curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- vscode   # or sublime, zed, helix, server
+#+end_src
+
 Each editor's page also says how to build it with [[https://rustup.rs][cargo]].
 
 * Configuration

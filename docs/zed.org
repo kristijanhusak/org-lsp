@@ -8,16 +8,33 @@ keys go through Zed's tasks.
 
 * Installing
 
-1. Install Rust with [[https://rustup.rs][rustup]]: Zed builds dev extensions with it.
-2. In Zed, run *zed: install dev extension* and pick ~editors/zed~ of a
-   checkout. Zed builds the extension and installs it.
+#+begin_src sh
+curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- zed
+#+end_src
 
-The extension starts ~org-lsp~ from your PATH
-(~cargo install --path server/org-lsp~ in a checkout puts it in
-=~/.cargo/bin=), or else downloads the nightly build for your platform
-once. The download needs the repository to be public (GitHub answers 404
-to Zed for a private one); ~lsp.org-lsp.binary.path~ names a server binary
-of your own.
+or, in a checkout of this repository, ~scripts/install.sh zed~
+(~--release v0.2.0~ for a release, ~--source~ for the server built from
+the checkout). The script puts in place what Zed's extension registry
+would, from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]]:
+
+- the extension, built, in Zed's ~extensions/installed/org-lsp~;
+- the server beside it, in ~extensions/work/org-lsp~, where the extension
+  looks first;
+- the tasks and keys of [[file:keys/zed.org::#keys-through-tasks][keys through tasks]], added to the start of your
+  ~tasks.json~ and ~keymap.json~ between two ~// BEGIN org-lsp~ and
+  ~// END org-lsp~ comments, which it replaces when run again. Your own
+  keys come after them, and win.
+
+Restart Zed afterwards; run the script again to update. While the
+repository is private, its files need a GitHub login: the script downloads
+them with the GitHub CLI (~gh~) when it is installed and logged in, and
+the ~curl~ line above does not work.
+
+Without the script, the extension starts ~org-lsp~ from your PATH, or else
+downloads the nightly build for your platform once (which needs the
+repository to be public); ~lsp.org-lsp.binary.path~ names a server binary
+of your own. To work on the extension, run *zed: install dev extension*
+and pick ~editors/zed~ of a checkout (Zed builds it with Rust).
 
 * Setting it up
 

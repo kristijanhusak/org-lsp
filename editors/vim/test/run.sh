@@ -7,6 +7,8 @@
 # (yegappan/lsp), vim-lsp, coc.nvim (its release branch) and ale. VIM is
 # the Vim to use (9.1 or newer); ORG_LSP_BIN the server (default: the debug
 # build). Vim runs in a tmux session, as it needs a terminal.
+# ORG_LSP_TEST_FILE, ORG_LSP_TEST_PLUGIN and ORG_LSP_TEST_RELEASES are
+# passed on (download.sh sets them).
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$here/../../.." && pwd)"
@@ -20,7 +22,7 @@ for client in "$@"; do
   result="$work/result.txt"
   session="org-lsp-vim-$client-$$"
   tmux new-session -d -s "$session" -x 200 -y 50 \
-    "ORG_LSP_TEST_CLIENT=$client ORG_LSP_TEST_WORK=$work ORG_LSP_TEST_CLIENTS=$clients ORG_LSP_TEST_RESULT=$result ORG_LSP_BIN=$server ORG_LSP_CONFIG=/nonexistent/config.toml HOME=$work $vim -N -u $here/vimrc -i NONE; sleep 1"
+    "ORG_LSP_TEST_FILE=${ORG_LSP_TEST_FILE:-} ORG_LSP_TEST_PLUGIN=${ORG_LSP_TEST_PLUGIN:-} ORG_LSP_TEST_RELEASES=${ORG_LSP_TEST_RELEASES:-} ORG_LSP_TEST_CLIENT=$client ORG_LSP_TEST_WORK=$work ORG_LSP_TEST_CLIENTS=$clients ORG_LSP_TEST_RESULT=$result ORG_LSP_BIN=$server ORG_LSP_CONFIG=/nonexistent/config.toml HOME=$work $vim -N -u $here/vimrc -i NONE; sleep 1"
   for _ in $(seq 1 1200); do
     [ -f "$result" ] && break
     sleep 0.1

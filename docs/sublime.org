@@ -6,17 +6,25 @@ runs Org through the server.
 
 * Installing
 
-From a checkout of this repository:
+#+begin_src sh
+curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- sublime
+#+end_src
+
+or, in a checkout of this repository:
 
 #+begin_src sh
-scripts/install-sublime.sh          # links editors/sublime/LSP-org into Packages
-scripts/install-sublime.sh --copy   # or copies it there
+scripts/install.sh sublime            # the nightly build
+scripts/install.sh --source sublime   # links editors/sublime/LSP-org, and builds the server (cargo)
 #+end_src
 
 The script finds Sublime Text's ~Packages~ folder (set ~SUBLIME_PACKAGES~
-when it cannot), puts the package there as ~LSP-org~, and adds LSP to
-Package Control's packages, so that it is installed when Sublime Text
-starts. Then restart Sublime Text and open an ~.org~ file.
+when it cannot), puts the package there as ~LSP-org~, adds LSP to Package
+Control's packages, so that it is installed when Sublime Text starts, and
+puts the server in =~/.local/bin= (~ORG_LSP_BIN_DIR~ names another
+directory). Then restart Sublime Text and open an ~.org~ file. Run it
+again to update. While the repository is private, its files need a GitHub
+login: the script downloads them with the GitHub CLI (~gh~) when it is
+installed and logged in, and the ~curl~ line above does not work.
 
 By hand: install LSP with Package Control, and copy or link
 ~editors/sublime/LSP-org~ into the ~Packages~ folder (*Preferences › Browse

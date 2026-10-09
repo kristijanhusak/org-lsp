@@ -594,11 +594,18 @@ Differences from Emacs in 4c, deliberate or forced by LSP:
   code actions; it cannot open documents on the server's request, so it
   has no agenda), Zed.
 - Prebuilt server binaries and a release workflow: done
-  (~.github/workflows/release.yml~, a ~nightly~ prerelease from ~main~,
-  ~scripts/install-vscode.sh~), the Neovim plugin downloading the server
-  when none is found (~download~, ~release~, ~:OrgLspDownload~;
-  ~tests/nvim/download.lua~). Left: publishing the extension to the
-  Marketplace and Open VSX.
+  (~.github/workflows/release.yml~, a ~nightly~ prerelease from ~main~, with
+  the VS Code packages, the Sublime Text package, the Zed extension built
+  by Zed's ~zed-extension~ tool, and ~SHA256SUMS~). The Neovim and Vim
+  plugins download the server when none is found (~download~, ~release~,
+  ~:OrgLspDownload~; ~tests/nvim/download.lua~,
+  ~editors/vim/test/download.sh~), through ~gh~ when the repository is
+  private. ~scripts/install.sh~ installs the rest from a release: the VS
+  Code package, the Sublime Text package with LSP and the server, the Zed
+  extension with the server beside it and its tasks and keys merged into
+  Zed's, the server and ~languages.toml~ for Helix. Left: the
+  Marketplace, Open VSX, Package Control and Zed's registry, which need
+  the repository public.
 - An options schema in the manifest, so editors can offer settings:
   done (~settings~ in the manifest, ~docs/config.schema.json~).
 

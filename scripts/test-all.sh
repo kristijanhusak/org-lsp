@@ -18,6 +18,7 @@ scripts/check.sh
 scripts/test-nvim.sh
 if [ -n "${CLIENTS:-}" ]; then
   editors/vim/test/run.sh
+  editors/vim/test/download.sh
 else
   echo "== vim: skipped (set CLIENTS)"
 fi

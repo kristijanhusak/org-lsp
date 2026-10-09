@@ -17,13 +17,26 @@ With [[https://github.com/junegunn/vim-plug][vim-plug]]:
 
 #+begin_src vim
 Plug 'yegappan/lsp'   " or vim-lsp, coc.nvim, ALE
-Plug 'kristijanhusak/org-lsp', { 'rtp': 'editors/vim', 'do': 'cargo build --release -p org-lsp' }
+Plug 'kristijanhusak/org-lsp', { 'rtp': 'editors/vim', 'do': ':OrgLspDownload' }
 #+end_src
 
 With Vim's own packages, clone the repository and add ~editors/vim~ to
-'runtimepath'. The plugin finds the server in the checkout
-(~target/release~), on PATH, or where ~cmd~ says; a binary from the
-[[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] on PATH does as well.
+'runtimepath'.
+
+Opening an Org file the first time downloads the server for your platform
+from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] (with ~curl~ and ~tar~), into
+=~/.local/share/vim/org-lsp=, and starts it. ~:OrgLspDownload~ downloads it
+again, to update it, and the ~do~ above does that on each update of the
+plugin; a server that runs already is replaced when Vim starts again.
+~'release': 'v0.2.0'~ in ~g:org_lsp~ picks a release instead of the nightly
+build, and ~'download': 0~ turns the download off. A release that needs a
+GitHub login, as one of a private repository, is downloaded with the GitHub
+CLI (~gh~) when it is installed and logged in.
+
+To build the server instead (with [[https://rustup.rs][cargo]]), set
+~'do': 'cargo build --release -p org-lsp'~. The plugin takes the server
+~cmd~ names, else a build in its checkout (~target/release~), ~org-lsp~ on
+PATH, or the downloaded one.
 
 The plugin finds the client that is installed and registers the server
 with it. Leave the client's own semantic highlighting and folding off for
