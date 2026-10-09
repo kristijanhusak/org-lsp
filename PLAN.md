@@ -662,6 +662,10 @@ Emacs in `tests/tblfm/cases.json`.
 
 ## How the work is checked
 
+- All at once: `scripts/check.sh` (the fast checks) and
+  `scripts/test-all.sh` (those, then each editor end to end);
+  `scripts/regen.sh` writes the generated files again. `CLAUDE.md` lists
+  the environment they read.
 - Rust: `cargo test --workspace`, `cargo clippy --workspace --all-targets
   -- -D warnings`, `cargo fmt --all`. CI's toolchain is newer than what
   was used locally and has more clippy lints; CI prints them as
