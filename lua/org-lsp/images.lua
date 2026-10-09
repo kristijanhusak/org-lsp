@@ -196,6 +196,30 @@ end
 --- Put the images of buffer `bufnr` where their lines are in each window
 --- that shows it, and take away those whose lines are out of sight.
 ---@param bufnr integer
+local indent_namespace = vim.api.nvim_create_namespace('org_lsp_virtual_indent')
+
+--- Where the text of line `row` starts on the screen, from the window's
+--- text: after its virtual indentation (`org-indent-mode`, the prefix the
+--- server says) and its own leading blanks. An image goes below its line
+--- from there, as the line's text does.
+---@param bufnr integer
+---@param row integer from 0
+---@return integer
+local function indentation(bufnr, row)
+  local width = 0
+  local marks = vim.api.nvim_buf_get_extmarks(bufnr, indent_namespace, { row, 0 }, { row, 0 }, { details = true })
+  for _, mark in ipairs(marks) do
+    local details = mark[4]
+    if details.virt_text and details.virt_text_pos == 'inline' then
+      for _, chunk in ipairs(details.virt_text) do
+        width = width + vim.fn.strdisplaywidth(chunk[1])
+      end
+    end
+  end
+  local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1] or ''
+  return width + vim.fn.strdisplaywidth(line:match('^%s*'))
+end
+
 function M.render(bufnr)
   local marks = shown[bufnr]
   if not marks or not vim.api.nvim_buf_is_valid(bufnr) then
@@ -239,7 +263,10 @@ function M.render(bufnr)
           or 0
         local fits = visible and top + entry.height - 1 <= info.winrow + info.height - 1
         if fits then
-          local opts = vim.tbl_extend('force', { row = top, col = info.wincol + info.textoff }, entry.scale)
+          -- As far in as the line's text, as long as the image fits.
+          local text_width = info.width - info.textoff
+          local offset = math.max(0, math.min(indentation(bufnr, row), text_width - entry.width))
+          local opts = vim.tbl_extend('force', { row = top, col = info.wincol + info.textoff + offset }, entry.scale)
           if entry.ids[win] then
             local now = vim.ui.img.get(entry.ids[win])
             if not now or now.row ~= opts.row or now.col ~= opts.col then
@@ -353,7 +380,9 @@ local function add(bufnr, kind, range, path)
   end
   local win = vim.fn.bufwinid(bufnr)
   local info = win ~= -1 and vim.fn.getwininfo(win)[1] or { width = vim.o.columns, textoff = 0 }
-  local width, height, scale = cells(file, info.width - info.textoff - 1)
+  local start = math.min(range.start.line, vim.api.nvim_buf_line_count(bufnr) - 1)
+  local available = info.width - info.textoff - 1
+  local width, height, scale = cells(file, math.max(available - indentation(bufnr, start), math.floor(available / 2)))
   local lines = {}
   for _ = 1, height do
     table.insert(lines, { { '' } })

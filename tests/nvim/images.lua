@@ -162,7 +162,29 @@ wait('no picture again', function()
   return #previews.list(bufnr) == 0
 end)
 
--- 7. An `attachment:` link: the file in the entry's attachment directory,
+-- 7. Below its line where the line's text starts: after the virtual
+-- indentation of `org-indent-mode` and the line's own blanks.
+vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { '* Indented', '   [[file:pic.png]]' })
+local last = vim.api.nvim_buf_line_count(bufnr) - 1
+vim.api.nvim_buf_set_extmark(bufnr, vim.api.nvim_create_namespace('org_lsp_virtual_indent'), last, 0, {
+  virt_text = { { '  ' } },
+  virt_text_pos = 'inline',
+})
+vim.api.nvim_win_set_cursor(0, { last + 1, 5 })
+vim.cmd('normal! zt')
+require('org-lsp').run('org.link.preview')
+local info = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1]
+wait('the indented picture', function()
+  return vim.iter(vim.tbl_values(drawn)):any(function(opts)
+    return opts.col == info.wincol + info.textoff + 5
+  end)
+end)
+require('org-lsp').run('org.link.preview', { count = 64 })
+wait('no picture once more', function()
+  return #previews.list(bufnr) == 0
+end)
+
+-- 8. An `attachment:` link: the file in the entry's attachment directory,
 -- as Emacs finds it (`org-attach-expand`).
 if vim.fn.executable('emacs') == 1 then
   local attached = directory .. '/data'
