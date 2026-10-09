@@ -1,0 +1,6 @@
+#+title: Org in Neovim
+
+The Neovim plugin is the repository itself (~plugin/~, ~lua/~); this folder has its manual checklist.
+
+[[file:../../docs/neovim.org][docs/neovim.org]] says how to install and set it up, and what works.
+[[file:TESTING.org][TESTING.org]] lists what to try by hand.

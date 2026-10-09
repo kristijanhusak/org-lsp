@@ -1,0 +1,120 @@
+#+title: Org in Zed
+#+options: ^:{} toc:nil
+
+~editors/zed~ is a Zed extension that runs Org through the server. Zed lets
+an extension do less than the other editors do, so the commands come as
+code actions, what they ask for is asked with buttons, and the agenda's
+keys go through Zed's tasks.
+
+* Installing
+
+1. Install Rust with [[https://rustup.rs][rustup]]: Zed builds dev extensions with it.
+2. In Zed, run *zed: install dev extension* and pick ~editors/zed~ of a
+   checkout. Zed builds the extension and installs it.
+
+The extension starts ~org-lsp~ from your PATH
+(~cargo install --path server/org-lsp~ in a checkout puts it in
+=~/.cargo/bin=), or else downloads the nightly build for your platform
+once. The download needs the repository to be public (GitHub answers 404
+to Zed for a private one); ~lsp.org-lsp.binary.path~ names a server binary
+of your own.
+
+* Setting it up
+
+The settings go in Zed's settings (*zed: open settings*). Zed asks the
+server for its colors only with ~semantic_tokens~, and shows indentation,
+pretty entities and the clock's times as inlay hints. The server's options
+go in ~initialization_options~:
+
+#+begin_src json
+{
+  "languages": {
+    "Org": { "semantic_tokens": "combined", "inlay_hints": { "enabled": true } }
+  },
+  "lsp": {
+    "org-lsp": {
+      "initialization_options": {
+        "org_agenda_files": ["~/org"],
+        "org_todo_keywords": ["TODO(t)", "NEXT(n)", "|", "DONE(d!)"],
+        "org_capture_templates": [
+          { "key": "t", "description": "Task", "target": ["file+headline", "~/org/inbox.org", "Tasks"], "template": "* TODO %?\n  %U" }
+        ],
+        "org_agenda_custom_commands": [
+          { "key": "n", "description": "Next actions", "type": "todo", "match": "NEXT" }
+        ]
+      }
+    }
+  }
+}
+#+end_src
+
+The server also reads [[file:configuration.org::#the-shared-configuration-file][the shared configuration file]],
+=~/.config/org-lsp/config.toml=, which every editor shares;
+~initialization_options~ goes on top of it. [[file:configuration.org][configuration.org]] has everything
+else: [[file:configuration.org::#zed][Zed's settings for Org]] and [[file:configuration.org::#every-option-at-its-default][every option of the server]] with its
+default.
+
+* Using it
+
+In Org files the commands are in the code actions (*editor: toggle code
+actions*, ~ctrl-.~ or ~cmd-.~), which list what applies where the cursor is.
+What a command asks for is asked with buttons: a TODO state, a priority, a
+refile target, a capture template, yes or no. Zed cannot ask for typed
+text, so the commands that want a date or text say so and do nothing.
+
+Org's keys, and the agenda's, run the commands once two files of the
+extension are pasted into your tasks and keymap. The agenda, the TODO
+list, the agenda menu and capture then need no Org file open: run them
+from the task picker (*task: spawn*; type ~Org:~). [[file:keys/zed.org][keys/zed.org]] says how,
+and lists the keys.
+
+* What works
+
+# BEGIN generated: features
+
+| Feature | Parity | Zed | What does not work, and why |
+|---+---+---+---|
+| [[file:parity.org::#highlighting][Highlighting]] | 100% | ❓ | Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Zed lets no server hide text. The colors need ~"semantic_tokens": "combined"~; code blocks take their language's colors, inline code does not. |
+| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 100% | ❓ | Zed folds with its own folding: Org's cycling and sparse trees need folds an extension can set, which Zed does not offer. |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 100% | ❓ | Cloning is left out: it asks for text, and Zed cannot ask for text on a server's behalf. A command on a selection acts on the cursor's line: Zed tells a server no selection. The rest goes through the keys of keymap.json (Zed's tasks). |
+| [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ❓ | ~RET~ stays Zed's own, and so do Shift and Alt with the arrows, which cycle bullets and move items in Org. |
+| [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ❓ | A note for a state change (~@~) cannot be typed: Zed cannot ask for text on a server's behalf. States are picked with buttons. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only. |
+| [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
+| [[file:parity.org::#tags][Tags]] | 100% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Zed cannot ask for text on a server's behalf. Completion and renaming work. |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Setting a property or the effort is left out: they are typed, and Zed cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines. |
+| [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Zed cannot ask for text on a server's behalf. Changing a timestamp works. |
+| [[file:parity.org::#agenda][Agenda]] | 100% | ❓ | The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension). Column view in the agenda is left out: it draws over the lines. |
+| [[file:parity.org::#clocking][Clocking]] | 100% | ❓ | No clock in the status line: Zed has no place there for an extension's text. |
+| [[file:parity.org::#capture][Capture]] | 100% | ❓ | Templates with prompts are left out: Zed cannot ask for text on a server's behalf. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab. |
+| [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
+| [[file:parity.org::#links][Links]] | 100% | ❓ | Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition, for links inside Org files and to files. |
+| [[file:parity.org::#footnotes][Footnotes]] | 100% | ❓ | Making footnotes and their menu are left out: they are not among Zed's code actions. Following them works. |
+| [[file:parity.org::#tables][Tables]] | 94% | ❓ | Moving between fields with ~TAB~ and copying down (~S-RET~) are left out: those keys stay Zed's own. Creating a table is left out: it asks for its size, and Zed cannot ask for text on a server's behalf. A shrunk column shows its whole text and ~…~: Zed lets no server hide text. |
+| [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
+| [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ❓ | Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server. |
+| [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ❌ | Not offered as a code action yet; its menu would come as buttons. |
+| [[file:parity.org::#citations][Citations]] | 100% | ❓ | Inserting citations is not offered as a code action yet. Completion, hover and following work. |
+| [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 83% | ❓ | Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. |
+| [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ❌ | A note is typed text: Zed cannot ask for text on a server's behalf. |
+| [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ❓ | Structure templates, emphasis and drawers are not among Zed's code actions. |
+| [[file:parity.org::#timers][Timers]] | 100% | ❓ | A countdown that asks for its length is left out: Zed cannot ask for text on a server's behalf. No timer in the status line: Zed has no place there for an extension's text. |
+| [[file:parity.org::#attachments][Attachments]] | 100% | ❓ | ~attachment:~ links open; attaching a file is left out: it asks for the file, and Zed cannot ask for text on a server's behalf. |
+| [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
+| [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❌ | Zed lets no extension show images in a file. |
+| *All of Org* | *99%* |  |  |
+
+✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
+❌ none does, — nothing to support yet. Parity is the share of what
+Emacs Org does in that area that org-lsp does; [[file:parity.org][parity.org]] lists both.
+
+[[file:../editors/zed/TESTING.org][TESTING.org]] lists what to try by hand.
+
+# END generated
+
+* Developing
+
+~node editors/zed/generate.mjs~ writes the semantic token rules
+(~languages/org/semantic_token_rules.json~), ~tasks.json~ and ~keymap.json~
+from the server's manifest; ~--check~ fails if they are out of date.
+~cargo build --target wasm32-wasip2~ in ~editors/zed~ builds the extension.

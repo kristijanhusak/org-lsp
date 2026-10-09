@@ -2,7 +2,7 @@
 //!
 //! Each action has a stable kind (`org.todo.next`, …), which is also the
 //! name of the command that does the same through
-//! `workspace/executeCommand`. The kinds are listed in `docs/protocol.md`.
+//! `workspace/executeCommand`. The kinds are listed in `docs/protocol.org`.
 
 use lsp_types::{CodeAction, CodeActionKind};
 use org_core::date::DateTime;

@@ -2,7 +2,7 @@
 //!
 //! This table is the single source for the documentation of the options:
 //! `org-lsp settings` prints it, and the configuration pages of each
-//! editor and the options in `docs/protocol.md` are written from it. A test checks
+//! editor and the options in `docs/protocol.org` are written from it. A test checks
 //! that the defaults written here are the ones `config` applies.
 
 use serde_json::{json, Value};
@@ -1164,7 +1164,7 @@ pub const SETTINGS: &[Setting] = &[
         "false",
         "org-agenda-search-view-always-boolean",
         "Read every search string of the search view (`s`) as words that must (`+word`, `word`) or must not \
-         (`-word`) occur, `{regexp}`s and `\"quoted phrases\"`. Off, it is a phrase whose spaces match any \
+         (`-word`) occur, regexps in braces (`{regexp}`) and `\"quoted phrases\"`. Off, it is a phrase whose spaces match any \
          whitespace, unless its first word starts with `+`, `-` or `{`.",
     ),
     setting(
@@ -1296,7 +1296,7 @@ pub const SETTINGS: &[Setting] = &[
          `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, \
          a match string such as `work-home` or `PRIORITY=\"A\"` for `tags`), or `blocks`, a list of such \
          views shown one after the other. `header` replaces a view's header (empty: none), and `settings` \
-         holds agenda options for the command or a block (`org_agenda_span`, `org_agenda_start_day`…). A command with only a key \
+         holds agenda options for the command or a block (`org_agenda_span`, `org_agenda_start_day` …). A command with only a key \
          and a description groups the commands whose keys start with its key.",
     ),
     Setting {

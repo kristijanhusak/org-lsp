@@ -3,7 +3,7 @@
 -- scripts/generate-docs.mjs from `org-lsp settings`; edit
 -- server/org-lsp/src/settings.rs, not this file.
 
---- The server's options, as `settings` passes them; see docs/configuration.md.
+--- The server's options, as `settings` passes them; see docs/configuration.org.
 ---@class org_lsp.Settings
 ---@field config_file? false|string The shared configuration file, whose options this editor's go on top of: `false` for none, or the path of another file (JSON if it ends in `.json`, else TOML). Unset, it is `$ORG_LSP_CONFIG`, else `config.toml` or `config.json` in `$XDG_CONFIG_HOME/org-lsp` (`~/.config/org-lsp`; `%APPDATA%\org-lsp` on Windows).
 ---@field org_agenda_files? string[] Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home directory, and a directory stands for the Org files directly in it. When empty, the agenda is built from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left out), or else from the Org files that are open. (`org-agenda-files`)
@@ -145,7 +145,7 @@
 ---@field org_agenda_block_separator? string|false What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block. (`org-agenda-block-separator`)
 ---@field org_agenda_compact_blocks? boolean Leave out the separators between blocks and the header over agenda blocks. (`org-agenda-compact-blocks`)
 ---@field agenda_hide_empty_blocks? boolean Leave out the blocks of a block agenda that show no entries. Not in Org.
----@field org_agenda_search_view_always_boolean? boolean Read every search string of the search view (`s`) as words that must (`+word`, `word`) or must not (`-word`) occur, `{regexp}`s and `"quoted phrases"`. Off, it is a phrase whose spaces match any whitespace, unless its first word starts with `+`, `-` or `{`. (`org-agenda-search-view-always-boolean`)
+---@field org_agenda_search_view_always_boolean? boolean Read every search string of the search view (`s`) as words that must (`+word`, `word`) or must not (`-word`) occur, regexps in braces (`{regexp}`) and `"quoted phrases"`. Off, it is a phrase whose spaces match any whitespace, unless its first word starts with `+`, `-` or `{`. (`org-agenda-search-view-always-boolean`)
 ---@field org_agenda_search_view_force_full_words? boolean The words of a Boolean search match whole words only, as a search string starting with `:` asks. (`org-agenda-search-view-force-full-words`)
 ---@field org_agenda_search_view_max_outline_level? integer The search view shows headlines down to this level, a match below one counting for the headline above: 0 for every level. (`org-agenda-search-view-max-outline-level`)
 ---@field org_agenda_text_search_extra_files? string[] Files the search view (`s`) searches besides the agenda files, after them, as `org_agenda_files` names them. `agenda-archives` first adds the files the agenda files archive to. A file listed twice is searched at its last place. (`org-agenda-text-search-extra-files`)
@@ -160,7 +160,7 @@
 ---@field org_agenda_format_date? string How the agenda writes a day, as `format-time-string` does: `%A %d %B %Y`, `%a %Y-%m-%d`. (`org-agenda-format-date`)
 ---@field org_agenda_start_day? string The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)
 ---@field org_agenda_custom_commands_contexts? table[] Where the commands of `org_agenda_custom_commands` are offered, as for `org_capture_templates_contexts`. (`org-agenda-custom-commands-contexts`)
----@field org_agenda_custom_commands? org_lsp.AgendaCommand[] Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`org_agenda_span`, `org_agenda_start_day`…). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)
+---@field org_agenda_custom_commands? org_lsp.AgendaCommand[] Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`org_agenda_span`, `org_agenda_start_day` …). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)
 
 ---@class org_lsp.RefileTarget
 ---@field all? boolean Every headline

@@ -1,0 +1,111 @@
+#+title: Org in Helix
+#+options: ^:{} toc:nil
+
+Helix knows the ~org~ language already; it only needs to be told to use the
+server. Helix has no plugins, so what org-lsp does comes as standard LSP:
+the commands are code actions (~Space a~), and Helix can neither open the
+server's documents (the agenda, a capture buffer) nor ask for text on its
+behalf.
+
+* Installing
+
+Put the ~org-lsp~ binary from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] on your PATH, or build it
+in a checkout:
+
+#+begin_src sh
+cargo install --path server/org-lsp
+#+end_src
+
+Then add [[file:../editors/helix/languages.toml][editors/helix/languages.toml]] to =~/.config/helix/languages.toml=
+(or a project's ~.helix/languages.toml~):
+
+#+begin_src toml
+[language-server.org-lsp]
+command = "org-lsp"
+
+[[language]]
+name = "org"
+language-servers = ["org-lsp"]
+#+end_src
+
+* Setting it up
+
+The server's options go in a ~config~ table under the server, which Helix
+passes to it as it is. Inlay hints show the indentation of files with
+~org-indent-mode~, the time clocked and the ~…~ of shrunk columns:
+
+#+begin_src toml
+[editor.lsp]
+display-inlay-hints = true
+
+[language-server.org-lsp]
+command = "org-lsp"
+
+[language-server.org-lsp.config]
+org_todo_keywords = ["TODO(t)", "NEXT(n)", "WAIT(w@/!)", "|", "DONE(d!)", "CANCELLED(c@)"]
+org_log_done = "time"
+org_log_into_drawer = true
+
+[[language-server.org-lsp.config.org_capture_templates]]
+key = "t"
+description = "Task"
+target = ["file+headline", "~/org/inbox.org", "Tasks"]
+template = "* TODO %?\n  %U"
+#+end_src
+
+The server also reads [[file:configuration.org::#the-shared-configuration-file][the shared configuration file]],
+=~/.config/org-lsp/config.toml=, which every editor shares; ~config~ goes on
+top of it. [[file:configuration.org][configuration.org]] has [[file:configuration.org::#every-option-at-its-default][every option of the server]] with its
+default. The server reads its options when it starts: run ~:lsp-restart~
+after a change.
+
+* Using it
+
+~Space a~ (~code_action~) in an Org file lists the changes that apply at the
+cursor: the TODO state, the priority, the timestamp under the cursor,
+clocking in and out. [[file:keys/helix.org][keys/helix.org]] lists them, and says how to put the
+menu on another key.
+
+* What works
+
+# BEGIN generated: features
+
+| Feature | Parity | Helix | What does not work, and why |
+|---+---+---+---|
+| [[file:parity.org::#highlighting][Highlighting]] | 100% | ❌ | Helix does not use semantic tokens: it colors Org with its own tree-sitter grammar. |
+| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 100% | ❌ | Helix has no folding. |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 100% | ❓ | New headings (~M-RET~ and its relatives), moving between headings and ~org-goto~ are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions. |
+| [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ❓ | ~RET~ stays Helix's own, new items, cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. |
+| [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ❓ | A note for a state change (~@~) cannot be typed: Helix cannot ask for text on a server's behalf. Faces of particular keywords and priorities are not shown. |
+| [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
+| [[file:parity.org::#tags][Tags]] | 100% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work. |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines. |
+| [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works. |
+| [[file:parity.org::#agenda][Agenda]] | 100% | ❌ | Helix cannot open a document on a server's request. ~org-lsp agenda FILE...~ prints the agenda in a terminal. |
+| [[file:parity.org::#clocking][Clocking]] | 100% | ❓ | No clock in the status line: Helix has no place there for a server's text. |
+| [[file:parity.org::#capture][Capture]] | 100% | ❌ | Helix cannot open the capture buffer, and Helix cannot ask for text on a server's behalf. |
+| [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ❓ | Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions. |
+| [[file:parity.org::#links][Links]] | 100% | ❓ | Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition. |
+| [[file:parity.org::#footnotes][Footnotes]] | 100% | ❓ | Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works. |
+| [[file:parity.org::#tables][Tables]] | 94% | ❓ | Moving between fields with ~TAB~, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text. |
+| [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
+| [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ❓ | Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Helix cannot give a server. |
+| [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ❌ | Not offered as a code action yet. |
+| [[file:parity.org::#citations][Citations]] | 100% | ❓ | Inserting citations is not offered as a code action yet. Completion, hover and following work. |
+| [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 83% | ❓ | Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. |
+| [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ❌ | A note is typed text: Helix cannot ask for text on a server's behalf. |
+| [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ❓ | Structure templates, emphasis and drawers are not among Helix's code actions. |
+| [[file:parity.org::#timers][Timers]] | 100% | ❌ | Timers are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and they are not among them. |
+| [[file:parity.org::#attachments][Attachments]] | 100% | ❓ | ~attachment:~ links open; the dispatcher (~C-c C-a~) is left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and it is not among them. |
+| [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
+| [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❌ | Helix cannot show images. |
+| *All of Org* | *99%* |  |  |
+
+✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
+❌ none does, — nothing to support yet. Parity is the share of what
+Emacs Org does in that area that org-lsp does; [[file:parity.org][parity.org]] lists both.
+
+[[file:../editors/helix/TESTING.org][TESTING.org]] lists what to try by hand.
+
+# END generated

@@ -20,7 +20,7 @@ date prompt). Keep it glue: the server decides, the editor shows.
    either.
 2. **What travels.** A command's answer for what follows from the command
    (`{ "preview": … }`), a notification `org-lsp/NAME` for what comes later
-   or from elsewhere. Describe both in `docs/protocol.md`.
+   or from elsewhere. Describe both in `docs/protocol.org`.
 3. Without the capability the server says why (`This editor cannot show
    images`) or falls back (inlay hints instead of virtual indentation).
 
@@ -45,9 +45,10 @@ write the limit down.
 
 - `scripts/features.mjs`: each editor's support (`yes`, `part` with what is
   missing and why, `no` with why) and the manual checks (`only:` the
-  editors they apply to). It writes `docs/parity.md`, the README tables and
-  `editors/*/TESTING.md`.
-- Each editor's `docs/<editor>/configuration.md` for new settings; VS Code's
+  editors they apply to). It writes `docs/parity.org`, the tables of what
+  works in `README.org` and `docs/<editor>.org`, and `editors/*/TESTING.org`.
+- New settings in the editor's section of `docs/configuration.org`, and in
+  its short example in `docs/<editor>.org` if they matter there; VS Code's
   own settings go in the hand-written `configuration` section of
   `editors/vscode/package.json` too, and new Sublime settings in
   `editors/sublime/generate.mjs` (the list of user values it keeps).

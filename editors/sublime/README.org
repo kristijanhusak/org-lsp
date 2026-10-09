@@ -1,0 +1,6 @@
+#+title: Org in Sublime Text
+
+~LSP-org~, the Sublime Text package for sublimelsp/LSP.
+
+[[file:../../docs/sublime.org][docs/sublime.org]] says how to install and set it up, and what works.
+[[file:TESTING.org][TESTING.org]] lists what to try by hand.

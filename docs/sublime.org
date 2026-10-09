@@ -1,0 +1,153 @@
+#+title: Org in Sublime Text
+#+options: ^:{} toc:nil
+
+~LSP-org~ (~editors/sublime/LSP-org~) is a package for [[https://github.com/sublimelsp/LSP][sublimelsp/LSP]] that
+runs Org through the server.
+
+* Installing
+
+From a checkout of this repository:
+
+#+begin_src sh
+scripts/install-sublime.sh          # links editors/sublime/LSP-org into Packages
+scripts/install-sublime.sh --copy   # or copies it there
+#+end_src
+
+The script finds Sublime Text's ~Packages~ folder (set ~SUBLIME_PACKAGES~
+when it cannot), puts the package there as ~LSP-org~, and adds LSP to
+Package Control's packages, so that it is installed when Sublime Text
+starts. Then restart Sublime Text and open an ~.org~ file.
+
+By hand: install LSP with Package Control, and copy or link
+~editors/sublime/LSP-org~ into the ~Packages~ folder (*Preferences › Browse
+Packages…*), keeping the name ~LSP-org~.
+
+The server needs nothing more. The package starts the first of:
+
+1. the ~command~ in its settings, when it is not the default ~["org-lsp"]~;
+2. ~org-lsp~ on PATH, or in =~/.cargo/bin=, =~/.local/bin=, ~/usr/local/bin~ or
+   ~/opt/homebrew/bin~ (Sublime Text started from a desktop launcher often
+   has a shorter PATH than a terminal);
+3. the build in the checkout the package is linked from
+   (~target/release/org-lsp~, then ~target/debug/org-lsp~);
+4. the nightly build for your platform, downloaded once into Sublime
+   Text's ~Package Storage/LSP-org~.
+
+/Org: Download the latest server/ fetches the nightly build again and
+restarts the server.
+
+* Setting it up
+
+The settings are under *Preferences › Package Settings › LSP › Servers ›
+LSP-org*. The server's options go in ~initializationOptions~, the package's
+own beside them:
+
+#+begin_src json
+{
+  "initializationOptions": {
+    "org_agenda_files": ["~/org"],
+    "org_todo_keywords": ["TODO(t)", "NEXT(n)", "|", "DONE(d!)"],
+    "org_capture_templates": [
+      { "key": "t", "description": "Task", "target": ["file+headline", "~/org/inbox.org", "Tasks"], "template": "* TODO %?\n  %U" }
+    ],
+    "org_agenda_custom_commands": [
+      { "key": "n", "description": "Next actions", "type": "todo", "match": "NEXT" }
+    ]
+  },
+  "org_keys": "vim"
+}
+#+end_src
+
+The server's colors need LSP's ~"semantic_highlighting": true~ (in
+*Preferences › Package Settings › LSP › Settings*) and a color scheme that
+allows them: Sublime Text's own schemes do, and another needs the rule that
+[[https://lsp.sublimetext.io/features/#semantic-highlighting][LSP's docs]] give, added with *UI: Customize Color Scheme*:
+
+#+begin_src json
+{ "rules": [{ "scope": "meta.semantic-token", "background": "#00000101" }] }
+#+end_src
+
+The time clocked and the ~…~ of shrunk columns come as inlay hints, with
+LSP's ~"show_inlay_hints": true~.
+
+The server also reads [[file:configuration.org::#the-shared-configuration-file][the shared configuration file]],
+=~/.config/org-lsp/config.toml=, which every editor shares;
+~initializationOptions~ goes on top of it. [[file:configuration.org][configuration.org]] has everything
+else: [[file:configuration.org::#sublime-text][the package's settings]] and [[file:configuration.org::#every-option-at-its-default][every option of the server]] with its
+default.
+
+* Using it
+
+The package binds Emacs's keys in Org files (~Ctrl+C Ctrl+T~, ~Tab~ …) and
+the agenda's keys in the agenda; ~org_keys~ picks ~"vim"~ (for Vintage and
+NeoVintageous) or ~"custom"~ instead. The commands are in the Command
+Palette under /Org:/. [[file:keys/sublime.org][keys/sublime.org]] lists every key of both presets,
+and how to bind your own.
+
+Its syntaxes color Org files and the agenda by their patterns: headlines by
+level, TODO keywords, priorities, tags, planning lines and timestamps,
+drawers, lists and checkboxes, links, emphasis, tables, blocks and
+comments, and the code of source and export blocks and of inline source
+blocks in its language's syntax, for the languages Sublime Text ships. The
+server's colors go further: the TODO keywords of your files, the agenda's
+today, weekends and overdue items, the clocked entry.
+
+Files with ~org-indent-mode~ (~org_startup_indented~, ~#+STARTUP: indent~)
+show indented by level, without being changed: blanks before the lines, as
+phantoms. The leading stars still show, and the lines a long line wraps
+into are not indented.
+
+The agenda and capture need no Org file open: from the Command Palette
+(/Org: Agenda commands/, /Org: Capture/ …) in any view, the package starts the
+server first, with a tab that says so and closes when the agenda opens.
+
+* What works
+
+# BEGIN generated: features
+
+| Feature | Parity | Sublime Text | What does not work, and why |
+|---+---+---+---|
+| [[file:parity.org::#highlighting][Highlighting]] | 100% | ❓ | Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on. |
+| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 100% | ✅ |  |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 100% | ✅ |  |
+| [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
+| [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ❓ | Faces of particular keywords and priorities are not shown: Sublime Text colors text by its color scheme only. |
+| [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
+| [[file:parity.org::#tags][Tags]] | 100% | ✅ |  |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Column view is left out: it draws over the headlines, which Sublime Text cannot. |
+| [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ❓ | Dates are typed, without the calendar: the package asks with an input panel. |
+| [[file:parity.org::#agenda][Agenda]] | 100% | ❓ | Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. |
+| [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
+| [[file:parity.org::#capture][Capture]] | 100% | ✅ |  |
+| [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
+| [[file:parity.org::#links][Links]] | 100% | ✅ |  |
+| [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
+| [[file:parity.org::#tables][Tables]] | 94% | ❓ | A shrunk column shows its whole text and ~…~: Sublime Text cannot hide text in a view. |
+| [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
+| [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
+| [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |
+| [[file:parity.org::#citations][Citations]] | 100% | ✅ |  |
+| [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 83% | ❓ | Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. |
+| [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ |  |
+| [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ |  |
+| [[file:parity.org::#timers][Timers]] | 100% | ✅ |  |
+| [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
+| [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
+| [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ | An image shows below its line (a phantom), not over the link; PNG, JPEG and GIF only. Counts through a key's ~args~. |
+| *All of Org* | *99%* |  |  |
+
+✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
+❌ none does, — nothing to support yet. Parity is the share of what
+Emacs Org does in that area that org-lsp does; [[file:parity.org][parity.org]] lists both.
+
+[[file:../editors/sublime/TESTING.org][TESTING.org]] lists what to try by hand.
+
+# END generated
+
+* Developing
+
+~node editors/sublime/generate.mjs~ writes the package's keymap, commands
+and token scopes from the server's manifest (~--check~ fails if they are
+out of date), and ~python3 editors/sublime/test/test_plugin.py~ runs the
+plugin against stand-ins for Sublime Text and LSP.

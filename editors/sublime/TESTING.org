@@ -1,0 +1,351 @@
+#+title: Testing org-lsp in Sublime Text by hand
+#+options: ^:{}
+
+# Written by scripts/generate-docs.mjs from scripts/features.mjs.
+# Ticked boxes are kept when it is written again.
+
+What to try in Sublime Text to know that everything org-lsp does works
+there. The keys are the defaults. Tick a box once it works; a check that
+fails is a bug to report. [[file:../../docs/sublime.org][docs/sublime.org]] says what is left out
+here and why.
+
+To look at most of what a file shows at once (highlighting, concealing,
+entities, folding when it opens, indentation, shrunk columns,
+diagnostics), open [[file:../../tests/visual.org][tests/visual.org]]: each of
+its sections says what it should look like.
+
+* Setup
+
+- [ ] Installed with ~scripts/install-sublime.sh~: LSP comes with it, and the server is found or downloaded
+- [ ] LSP's ~semantic_highlighting~ is on
+- [ ] LSP's ~show_inlay_hints~ is on: the time clocked and the ~…~ of shrunk columns come as inlay hints
+- [ ] The ~Org:~ commands are in the Command Palette; /Org: Download the latest server/ replaces the downloaded server
+
+* Highlighting
+
+*Partly:* Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on.
+
+- [ ] Headlines are colored by level; TODO and DONE keywords, priorities (~[#A]~) and tags have colors of their own
+- [ ] ~*bold*~, ~/italic/~, ~_underline_~, ~+strike+~, ~=verbatim=~ and =~code~= are colored
+- [ ] Timestamps, ~SCHEDULED:~ and ~DEADLINE:~, ~CLOCK:~ lines, drawers, ~#+~ keywords and ~#~ comments are colored
+- [ ] A ~#+begin_src python~ block shows its code in Python's colors
+- [ ] Inline code (~src_python{x = 1}~) is in Python's colors
+- [ ] Table rules and bars, footnotes (~[fn:1]~), ~<<targets>>~, macros (~{{{x}}}~) and entities (~\alpha~) are colored
+- [ ] A subtree tagged ~:ARCHIVE:~ is shaded
+
+* Folding and visibility
+
+- [ ] On a headline, cycling goes folded → children → subtree: ~Tab~
+- [ ] Cycling the whole file goes overview → contents → everything: ~Shift+Tab~
+- [ ] A file with ~#+STARTUP: overview~ opens folded; with ~content~ its headlines show, those without children folded, and its drawers folded
+- [ ] A subtree with ~:VISIBILITY: children~ opens with its children folded, one with ~all~ open
+- [ ] Two blank lines after a subtree stay visible below it when it is folded
+- [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: ~Ctrl+X n s~
+- [ ] Widening in the narrowed file writes it back and closes it (~C-c '~ there does the same): ~Ctrl+X n w~
+- [ ] Opening the parent of an ~:ARCHIVE:~ subtree leaves that subtree folded
+- [ ] A sparse tree of the TODO entries folds everything else and highlights them: ~Ctrl+C /~
+- [ ] With everything folded, showing the context of a line deep in a subtree opens the headlines above it and leaves the other subtrees folded: ~Ctrl+C Ctrl+R~
+
+* Headings and structure
+
+- [ ] On a headline, a new heading of the same level goes below: ~Alt+Enter~
+- [ ] A new TODO heading: ~Alt+Shift+Enter~
+- [ ] A new heading after the subtree, and a TODO one: ~Ctrl+Enter~, ~Ctrl+Shift+Enter~
+- [ ] Promoting and demoting a heading; its tags stay aligned: ~Alt+Left~, ~Alt+Right~
+- [ ] Promoting and demoting a subtree: ~Alt+Shift+Left~, ~Alt+Shift+Right~
+- [ ] Moving a subtree up and down past its siblings: ~Alt+Up~, ~Alt+Down~
+- [ ] Cutting a subtree and pasting it under another heading: its level fits there: ~Ctrl+C Ctrl+X Ctrl+W~, ~Ctrl+C Ctrl+X Ctrl+Y~
+- [ ] Copying a subtree and pasting it: ~Ctrl+C Ctrl+X Alt+W~, ~Ctrl+C Ctrl+X Ctrl+Y~
+- [ ] Sorting the children of a heading alphabetically, then by TODO state: ~Ctrl+C ^~
+- [ ] Moving to the next and previous heading; with a count, that many: ~Ctrl+C Ctrl+N~, ~Ctrl+C Ctrl+P~
+- [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: ~Ctrl+C Ctrl+F~, ~Ctrl+C Ctrl+B~
+- [ ] Moving to the parent heading; on a top heading Org says it is at the top level: ~Ctrl+C Ctrl+U~
+- [ ] Going to a heading picked by its outline path (~A/B/~): ~Ctrl+C Ctrl+J~
+- [ ] Off a table, turning a line into a heading and back (needs Emacs): ~Ctrl+C *~
+- [ ] Toggling ~COMMENT~ on the heading (needs Emacs): ~Ctrl+C ;~
+- [ ] Cloning the subtree twice a week apart (~+1w~): the copies follow it with their dates moved (needs Emacs): ~Ctrl+C Ctrl+X c~
+- [ ] On a selection of whole lines: two headlines demoted together; lines turned into headings (needs Emacs): ~Alt+Right~, ~Ctrl+C *~
+- [ ] The outline lists the headings nested, also in pickers that filter symbols by kind: /Goto Symbol/
+
+* Lists and checkboxes
+
+- [ ] On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has ~[ ]~: ~Alt+Enter~
+- [ ] ~RET~ in the middle of an item's line keeps the rest of the line in the item: ~Enter~
+- [ ] Indenting and outdenting an item; and with its children: ~Alt+Right~, ~Alt+Left~, ~Alt+Shift+Right~, ~Alt+Shift+Left~
+- [ ] Moving an item up and down: ~Alt+Up~, ~Alt+Down~
+- [ ] Cycling the bullet ~-~ → ~+~ → ~1.~ → ~1)~ on an item: ~Shift+Right~, ~Shift+Left~
+- [ ] Toggling a checkbox: its parent box and the ~[1/3]~ cookie follow: ~Ctrl+C Ctrl+C~
+- [ ] On a list numbered 1, 3, 2, the same command renumbers and repairs it: ~Ctrl+C Ctrl+C~
+- [ ] Sorting a list's items alphabetically: ~Ctrl+C ^~
+- [ ] Off a table, turning lines into items and back (needs Emacs); in a table the same key inserts a rule below the row: ~Ctrl+C -~
+
+* TODO keywords
+
+*Partly:* Faces of particular keywords and priorities are not shown: Sublime Text colors text by its color scheme only.
+
+- [ ] With ~org_enforce_todo_dependencies~, a parent with a child not done cannot be done: the change is refused with ~blocked (by "TODO Child")~; with ~org_enforce_todo_checkbox_dependencies~, an entry with an unchecked box cannot either: ~Ctrl+C Ctrl+T~
+- [ ] Those tasks are dimmed in the agenda and the TODO list
+- [ ] Changing the TODO state of a headline (with ~org_todo_keywords~ keys, picked by key): ~Ctrl+C Ctrl+T~
+- [ ] Cycling to the next and previous state: /Org: Cycle TODO state forward/, /Org: Cycle TODO state backward/
+- [ ] Done with ~org_log_done = "time"~ writes ~CLOSED: [...]~ below the headline: ~Ctrl+C Ctrl+T~
+- [ ] A state with ~@~ (~WAIT(w@)~) asks for a note, written below the headline: ~Ctrl+C Ctrl+T~
+- [ ] Done on a repeating entry (~<2026-01-01 Thu +1w>~) moves its date a week on and keeps it TODO: ~Ctrl+C Ctrl+T~
+- [ ] The parent's ~[1/2]~ cookie is recounted: ~Ctrl+C Ctrl+T~
+- [ ] A ~#+TODO: A B | C~ line in the file is used instead of the settings: ~Ctrl+C Ctrl+T~
+- [ ] With ~#+TODO: TODO | DONE~ and ~#+TODO: REPORT BUG | FIXED~, changing the state without keys goes ~BUG~, ~FIXED~, none, then back to ~REPORT~: ~Ctrl+C Ctrl+T~
+- [ ] Switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: ~Ctrl+Shift+Right~, ~Ctrl+Shift+Left~
+
+* Priorities
+
+- [ ] Raising and lowering the priority of a headline: /Org: Raise the priority/, /Org: Lower the priority/
+- [ ] Setting it by key; ~SPC~ removes it: ~Ctrl+C ,~
+- [ ] ~#+PRIORITIES: 1 5 3~ makes the priorities numbers: /Org: Raise the priority/
+
+* Tags
+
+- [ ] Setting tags from ~#+TAGS: work(w) home(h)~ by key; each key turns its tag on and off: ~Ctrl+C Ctrl+Q~
+- [ ] An exclusive group (~{ @office(o) @home(m) }~) turns the other tag off: ~Ctrl+C Ctrl+Q~
+- [ ] Typing tags when none have keys; they are sorted and aligned to ~org_tags_column~: ~Ctrl+C Ctrl+Q~
+- [ ] Tags are completed after ~:~ at the end of a headline
+- [ ] Renaming a tag renames it in every headline and ~#+FILETAGS:~: /LSP: Rename/ on the tag
+
+* Properties and column view
+
+*Partly:* Column view is left out: it draws over the headlines, which Sublime Text cannot.
+
+- [ ] Setting a property: the name and the value are completed, ~NAME_ALL~'s values offered: ~Ctrl+C Ctrl+X p~
+- [ ] On a property line with ~NAME_ALL~, cycling through its values: ~Shift+Right~, ~Shift+Left~
+- [ ] Deleting a property from the entry, and from the whole file: /Org: Delete a property of the entry/, /Org: Delete a property from every entry of the file/
+- [ ] ~C-c C-c~ in a property drawer asks what to do with the property: ~Ctrl+C Ctrl+C~
+- [ ] Setting the effort: ~Ctrl+C Ctrl+X e~
+- [ ] Toggling ~ORDERED~: ~Ctrl+C Ctrl+X o~
+- [ ] Property names are completed in a drawer
+
+* Dates and times
+
+*Partly:* Dates are typed, without the calendar: the package asks with an input panel.
+
+- [ ] Scheduling with ~+2d~: ~SCHEDULED: <…>~ goes below the headline: ~Ctrl+C Ctrl+S~
+- [ ] A deadline on ~fri 10:00~: ~Ctrl+C Ctrl+D~
+- [ ] Removing the scheduled date and the deadline: /Org: Remove the scheduled date of the entry/, /Org: Remove the deadline of the entry/
+- [ ] Delaying the scheduled date to a day (~-3d~) and setting the deadline's warning period: /Org: Delay the scheduled date until a day/, /Org: Warn of the deadline from a day/
+- [ ] Inserting an active and an inactive timestamp; a second one right after makes a range: ~Ctrl+C .~, ~Ctrl+C !~
+- [ ] On a timestamp, changing the day, month, year, hour and minute under the cursor; with a count: /Org: Increase the part of the timestamp at the cursor/, /Org: Decrease the part of the timestamp at the cursor/
+- [ ] Moving a timestamp by days: /Org: Move the date one day later/, /Org: Move the date one day earlier/
+- [ ] Changing the timestamp at the cursor with the date prompt: /Org: Change the timestamp at the cursor/
+- [ ] A repeater (~+1w~) and a warning (~-2d~) are kept as the date changes
+
+* Agenda
+
+*Partly:* Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.
+
+- [ ] The agenda menu lists the views and the custom commands: ~Ctrl+C a~
+- [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: /Org: Agenda for the current week or day/
+- [ ] Later, earlier, today; day, week, month views; going to a date: ~f~, ~b~, ~.~, ~v d~, ~v w~, ~v m~, ~J~
+- [ ] Tags at the right edge of the window, following it as it is resized
+- [ ] The TODO list, a tag search (~work+urgent~), a word search: ~Ctrl+C a~
+- [ ] Going to the line's entry in another window, and where the agenda is: ~Tab~, ~Enter~
+- [ ] Changing the line's TODO state and priority; the line follows: ~t~, ~+~ or ~Shift+Up~
+- [ ] Scheduling the line's entry and setting its deadline: ~Ctrl+C Ctrl+S~, ~Ctrl+C Ctrl+D~
+- [ ] Setting the line's tags, adding a note, refiling, archiving: /Org: Set the tags of the headline/, ~z~, ~Ctrl+C Ctrl+W~, ~Ctrl+C Ctrl+X Ctrl+A~
+- [ ] Filters by tag, category and effort, and removing them: ~\~, ~<~, ~_~, ~|~
+- [ ] Marking lines and a bulk action on them: ~m~, ~B~
+- [ ] Follow mode shows the cursor's entry as the cursor moves: ~F~
+- [ ] Entry text, log mode, the clock report, archives mode: ~E~ or ~v E~, ~v l~, ~R~ or ~v R~, ~v a~
+- [ ] Hovering a line shows its entry: the mouse
+- [ ] Rebuilding the agenda, saving the changed files, quitting: ~r~, ~s~ or ~Ctrl+X Ctrl+S~
+- [ ] An entry changed in its file shows in the agenda when it is rebuilt
+- [ ] Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): /Org: Add today's appointments from the agenda files/
+
+* Clocking
+
+- [ ] Clocking into an entry whose effort its time passes shows ~Task ‘…’ should be finished by now. (0:30)~, once: ~Ctrl+C Ctrl+X Ctrl+I~
+- [ ] Clocking in: ~:LOGBOOK:~ gets a ~CLOCK:~ line and the clock shows (~[0:01] (Task)~): ~Ctrl+C Ctrl+X Ctrl+I~
+- [ ] Clocking out writes the end and the duration: ~Ctrl+C Ctrl+X Ctrl+O~
+- [ ] Cancelling the clock takes its line out: ~Ctrl+C Ctrl+X Ctrl+Q~
+- [ ] Going to the clocked entry from another file: /Org: Go to the clocked entry/
+- [ ] Clocking in the last entry again: ~Ctrl+C Ctrl+X Ctrl+X~
+- [ ] The time clocked under each headline shows next to it: ~Ctrl+C Ctrl+X Ctrl+D~
+- [ ] A clock table: inserted, then updated; shifting its ~:block~ on the ~#+BEGIN:~ line: ~Ctrl+C Ctrl+X Ctrl+R~, ~Ctrl+C Ctrl+X Ctrl+U~
+- [ ] A clock left running when the editor closed is offered for resolving on the next start: /Org: Resolve a dangling clock/
+- [ ] In the agenda, clocking in and out; the clocked line is highlighted from edge to edge: ~I~, ~O~
+- [ ] The clock in the status bar
+
+* Capture
+
+- [ ] The menu lists the templates by key: ~Ctrl+C c~
+- [ ] An entry template opens the capture buffer with the cursor at ~%?~: ~Ctrl+C c~
+- [ ] A ~%^{Name}~ prompt asks for text: ~Ctrl+C c~
+- [ ] Finishing puts the entry under its target: ~Ctrl+C Ctrl+C~
+- [ ] Aborting leaves the target unchanged: ~Ctrl+C Ctrl+K~
+- [ ] Refiling from the capture buffer: ~Ctrl+C Ctrl+W~
+- [ ] A date tree target files under year, month and day: ~Ctrl+C c~
+- [ ] ~%a~ links back to where the capture started: ~Ctrl+C c~
+- [ ] ~%c~ puts in what was copied last (in Neovim and Vim, the register the key was typed with): ~Ctrl+C c~
+- [ ] ~%[snippet.txt]~ puts in the file's text, relative to the file captured from: ~Ctrl+C c~
+- [ ] ~%(upcase "abc")~ puts in ~ABC~, what Emacs makes of it (needs Emacs): ~Ctrl+C c~
+
+* Refile and archive
+
+- [ ] Copying an entry to a target keeps it where it was; going to a target and to the entry refiled last moves the cursor there: ~Ctrl+C Alt+W~, /Org: Go to a refile target/, /Org: Go to where the last refile put its entry/
+- [ ] With ~org_log_refile~ ~"time"~, the refiled entry gets ~Refiled on […]~; with ~"note"~ a note buffer opens for it: ~Ctrl+C Ctrl+W~
+- [ ] Refiling a subtree under a heading of the same file, and of another file: ~Ctrl+C Ctrl+W~
+- [ ] Archiving a subtree: it goes to ~FILE_archive~ with its ~ARCHIVE_…~ properties: ~Ctrl+C Ctrl+X Ctrl+S~ or ~Ctrl+C $~
+- [ ] Archiving to the archive sibling: ~Ctrl+C Ctrl+X A~
+- [ ] Toggling the ~ARCHIVE~ tag: ~Ctrl+C Ctrl+X a~
+- [ ] Archiving every done subtree after confirming each: /Org: Archive the subtrees without open TODO items/
+- [ ] In the agenda: archiving the line's entry; archives mode shows archived entries: ~Ctrl+C Ctrl+X Ctrl+A~, ~v a~
+
+* Links
+
+- [ ] A ~#+LINK: gh https://github.com/%s~ line makes ~[[gh:org-lsp]]~ follow ~https://github.com/org-lsp~; ~org_link_abbrev_alist~ does the same from the settings: ~Ctrl+C Ctrl+O~
+- [ ] Following a link to a headline, a custom ID and a ~<<target>>~: ~Ctrl+C Ctrl+O~
+- [ ] Following a ~file:~ link with a search (~file:notes.org::*Heading~) and an ~id:~ link: ~Ctrl+C Ctrl+O~
+- [ ] Following a URL opens the browser; a timestamp opens its day's agenda: ~Ctrl+C Ctrl+O~
+- [ ] Go to definition on a link does the same: /LSP: Goto Definition/
+- [ ] Storing a link to a headline and inserting it elsewhere with a description: ~Ctrl+C l~, ~Ctrl+C Ctrl+L~
+- [ ] Inserting a link on an existing link edits it: ~Ctrl+C Ctrl+L~
+- [ ] Creating an ID for the entry: /Org: Create an ID for the entry/
+- [ ] Moving to the next and previous link; after the last, again from the start of the file: ~Ctrl+C Ctrl+X Ctrl+N~, ~Ctrl+C Ctrl+X Ctrl+P~
+- [ ] In ~[[~, file names, headlines and custom IDs are completed
+- [ ] Hovering a link shows where it leads
+- [ ] References on a headline list the links to it, in every file
+- [ ] Renaming a headline updates the links that search for it
+- [ ] Workspace symbols find headlines of every file
+
+* Footnotes
+
+- [ ] Following ~[fn:1]~ goes to its definition, and from the definition back to the reference: ~Ctrl+C Ctrl+O~
+- [ ] A reference without a definition is reported
+- [ ] A new footnote (needs Emacs): ~[fn:1]~ at the cursor, its definition in the ~Footnotes~ section, the cursor there: ~Ctrl+C Ctrl+X f~
+- [ ] On a reference without a definition, Emacs asks whether to make one, in the editor: ~Ctrl+C Ctrl+X f~
+- [ ] The footnote menu: sorting, renumbering ~fn:N~, normalizing, deleting: /Org: Sort, renumber, normalize or delete footnotes/
+
+* Tables
+
+*Partly:* A shrunk column shows its whole text and ~…~: Sublime Text cannot hide text in a view.
+
+- [ ] Shrinking a column with a ~<5>~ cookie puts ~…~ after each of its fields, their text left whole; again, the ~…~ go; a file with ~#+STARTUP: shrink~ opens with them: ~Ctrl+C Tab~
+- [ ] Formatting the file aligns the tables: /LSP: Format File/
+- [ ] Moving to the next and previous field; past the last field a row is made: /Org: Go to the next table field, making a row after the last/, /Org: Go to the previous table field/
+- [ ] Moving a column left and right, a row up and down: ~Alt+Left~, ~Alt+Right~, ~Alt+Up~, ~Alt+Down~
+- [ ] Inserting and deleting a column and a row: ~Alt+Shift+Right~, ~Alt+Shift+Left~, ~Alt+Shift+Down~, ~Alt+Shift+Up~
+- [ ] A rule below the row; a rule and a move to the row below: ~Ctrl+C -~, ~Ctrl+C Enter~
+- [ ] Blanking the field: /Org: Blank the table field/
+- [ ] The shifted cursor keys move the field up, down, left and right (needs Emacs); on a timestamp in a field they change it: ~Shift+Up~, ~Shift+Down~, ~Shift+Left~, ~Shift+Right~
+- [ ] Copying the field down to the next row, a number incremented (needs Emacs); off a table the key keeps its own meaning: ~Shift+Enter~
+- [ ] The sum of the column and the field's references are shown as messages (needs Emacs): ~Ctrl+C +~, ~Ctrl+C ?~
+- [ ] Creating a table asks for its size (~3x2~; empty for Org's default) (needs Emacs): ~Ctrl+C |~
+- [ ] Sorting the rows by the cursor's column: ~Ctrl+C ^~
+- [ ] The ~#+TBLFM:~ line follows a moved column
+
+* Table formulas
+
+- [ ] ~#+TBLFM: $3=$1*$2~ fills the third column: /Org: Recalculate the table/
+- [ ] Recalculating the cursor's line only: ~Ctrl+C *~
+- [ ] ~C-c C-c~ on the ~#+TBLFM:~ line applies it: ~Ctrl+C Ctrl+C~
+- [ ] A range sum ~@>$2=vsum(@2..@-1)~ and a format ~;%.2f~
+- [ ] Date arithmetic (~$2=$1+7~) on timestamps
+- [ ] Iterating until the table is stable: /Org: Recalculate the table until it does not change/
+- [ ] An Emacs Lisp formula ~$3='(+ $1 $2);N~ and a remote reference ~remote(name,@1$1)~ are computed by Emacs (needs Emacs): /Org: Recalculate the table/
+- [ ] With the formula debugger on, recalculating shows each formula's substitution history and asks whether to go on (needs Emacs): ~Ctrl+C {~
+- [ ] Editing the formulas in a file of their own: saving it writes them to the ~#+TBLFM:~ line (needs Emacs): ~Ctrl+C '~
+- [ ] Editing a field in a file of its own: saving it puts the text back on one line and realigns the table (needs Emacs): ~Ctrl+C `~
+
+* Code blocks (Babel)
+
+- [ ] Adding the file's named blocks to the Library of Babel; a ~#+CALL:~ in another file runs one (needs Emacs): ~Ctrl+C Ctrl+V i~
+- [ ] Tangling writes each block to its ~:tangle~ file, ~:mkdirp~ and ~:shebang~ applied: ~Ctrl+C Ctrl+V t~ or ~Ctrl+C Ctrl+V Ctrl+T~
+- [ ] A ~:tangle (concat "out" ".el")~ block is tangled by Emacs to ~out.el~ (needs Emacs): ~Ctrl+C Ctrl+V t~ or ~Ctrl+C Ctrl+V Ctrl+T~
+- [ ] After tangling a block with ~:comments link~ and changing its code in the tangled file, detangling puts the new code back into the block (needs Emacs): /Org: Put the code of a tangled file back into its blocks/
+- [ ] Evaluating an ~emacs-lisp~ block asks first (yes or no), then puts ~#+RESULTS:~ below it (needs Emacs): ~Ctrl+C Ctrl+V e~ or ~Ctrl+C Ctrl+V Ctrl+E~
+- [ ] ~C-c C-c~ in the block does the same: ~Ctrl+C Ctrl+C~
+- [ ] ~src_emacs-lisp{(* 6 7)}~ gets ~{{{results(=42=)}}}~; a ~#+CALL:~ line its results: ~Ctrl+C Ctrl+V e~ or ~Ctrl+C Ctrl+V Ctrl+E~
+- [ ] Evaluating the file's and the subtree's blocks: ~Ctrl+C Ctrl+V b~ or ~Ctrl+C Ctrl+V Ctrl+B~, ~Ctrl+C Ctrl+V s~ or ~Ctrl+C Ctrl+V Ctrl+S~
+- [ ] Removing a block's results: ~Ctrl+C Ctrl+V k~
+- [ ] Moving to the next and previous code block, and to any block (needs Emacs): ~Ctrl+C Ctrl+V n~ or ~Ctrl+C Ctrl+V Ctrl+N~, ~Ctrl+C Ctrl+V p~ or ~Ctrl+C Ctrl+V Ctrl+P~, ~Ctrl+C Alt+F~, ~Ctrl+C Alt+B~
+- [ ] Going to a named code block, picked from the names (needs Emacs): ~Ctrl+C Ctrl+V g~
+- [ ] Typing in the file while a slow block runs: the results are dropped with a warning
+- [ ] Editing a code block in a file of its own: the file has the language's extension, its lines unindented and ~,*~ unescaped; saving it writes the block back and saves the Org file; the same block again shows the same file (needs Emacs): ~Ctrl+C '~
+- [ ] The same at a footnote reference (its definition, the label kept), a LaTeX fragment and an export block; at ~#+INCLUDE:~ the file included is shown (needs Emacs): ~Ctrl+C '~
+
+* Export and publishing
+
+- [ ] With a subtree folded, ~C-v~ then an export to a buffer leaves the subtree's text out (needs Emacs): ~Ctrl+C Ctrl+E~
+- [ ] ~#~ in the export menu inserts the options template of the backend picked (~default~ for all): ~Ctrl+C Ctrl+E~
+- [ ] The menu shows Emacs's backends, ~C-b~, ~C-s~ and ~C-f~ toggle the options (needs Emacs): ~Ctrl+C Ctrl+E~
+- [ ] To an HTML file: the file is written next to the Org file and announced: ~Ctrl+C Ctrl+E~
+- [ ] To an HTML file and opened: the browser opens it: ~Ctrl+C Ctrl+E~
+- [ ] The subtree at the cursor as UTF-8 text in a buffer: a file of it is shown: ~Ctrl+C Ctrl+E~
+- [ ] Unsaved changes are in the export: ~Ctrl+C Ctrl+E~
+- [ ] ~&~ in the export menu lists what the exports made, the last first; picking one shows it again: ~Ctrl+C Ctrl+E~
+- [ ] ~emacs_config~ adds Markdown (~org-export-backends~): it is in the menu after a restart
+
+* Citations
+
+- [ ] Keys are completed after ~[cite:@~
+- [ ] Hovering a key shows its entry; following it opens the bibliography there
+- [ ] An unknown key is reported, with close keys to put instead
+- [ ] Inserting a citation, picking keys; on a citation, adding a key; with the prefix, deleting one: ~Ctrl+C Ctrl+X @~, /Org: Delete the citation or reference at the cursor, or insert one with a style/
+
+* Diagnostics (org-lint)
+
+- [ ] A heading in a paragraph (~text ** heading~), a link to nowhere and a block left open are reported
+- [ ] An unknown header argument (~:foo 1~) on a source block is reported, as information: nothing is ever an error or a warning, only information (or a hint, where org-lint trusts its finding less)
+- [ ] ~org_lint_ignore = ["link-to-local-file"]~ silences that checker
+
+* Indentation and formatting
+
+*Partly:* Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed.
+
+- [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
+- [ ] Re-indenting a selection indents it as Org does: /LSP: Format Selection/
+- [ ] Formatting the file aligns tables and puts tags in their column
+
+* Notes and logging
+
+- [ ] Adding a note: a note buffer opens, and finishing writes it in the entry's log: ~Ctrl+C Ctrl+Z~
+- [ ] With ~LOG_INTO_DRAWER~, the note goes in ~:LOGBOOK:~: ~Ctrl+C Ctrl+Z~
+- [ ] Adding a note from the agenda: ~z~
+- [ ] With ~org_log_reschedule~ ~"time"~ (or ~#+STARTUP: logreschedule~), rescheduling logs ~Rescheduled from "[…]" on […]~; with ~"note"~ a note buffer opens for it: ~Ctrl+C Ctrl+S~
+
+* Completion and editing helpers
+
+- [ ] At the start of a headline, TODO keywords are completed
+- [ ] ~#+~ keywords, and the values after ~#+STARTUP:~
+- [ ] Block names after ~#+begin_~, drawer names after ~:~
+- [ ] Entities after ~\~ (~\alp~ → ~\alpha~)
+- [ ] A block from the structure templates (~s~ for a source block) (needs Emacs): ~Ctrl+C Ctrl+,~
+- [ ] Emphasis markers around the cursor, ~*~ for bold (needs Emacs): ~Ctrl+C Ctrl+X Ctrl+F~
+- [ ] A drawer, its name completed from the file's (needs Emacs): ~Ctrl+C Ctrl+X d~
+
+* Timers
+
+- [ ] Starting the timer says when it started (needs Emacs): ~Ctrl+C Ctrl+X 0~
+- [ ] Inserting the timer's value (~0:00:12~) and a timer item (~- 0:00:15 ::~): ~Ctrl+C Ctrl+X .~, ~Ctrl+C Ctrl+X -~
+- [ ] Pausing and continuing; stopping: ~Ctrl+C Ctrl+X ,~, ~Ctrl+C Ctrl+X _~
+- [ ] A countdown asks for its length (~1~ for a minute); when it ends, ~Heading: time out~ is shown: ~Ctrl+C Ctrl+X ;~
+- [ ] On an entry with an effort the countdown takes it, without asking: ~Ctrl+C Ctrl+X ;~
+- [ ] While the timer or a countdown is on, the status line shows its value, counting each second; paused, it stays; stopped, it goes
+
+* Attachments
+
+- [ ] Attaching a file by copying it: the entry gets an ID and the ~ATTACH~ tag, the file goes in its directory (needs Emacs): ~Ctrl+C Ctrl+A~
+- [ ] An ~attachment:~ link opens the attached file (needs Emacs): ~Ctrl+C Ctrl+O~
+
+* Encryption
+
+- [ ] With ~org-crypt-key~ set in the Emacs configuration, encrypting an entry replaces its text with a PGP message; decrypting brings it back (needs Emacs and GnuPG): /Org: Encrypt the entry/, /Org: Decrypt the entry/
+- [ ] Encrypting and decrypting every entry tagged ~crypt~ (needs Emacs and GnuPG): /Org: Encrypt the entries tagged crypt/, /Org: Decrypt the encrypted entries/
+- [ ] With ~(org-crypt-use-before-save-magic)~ in the Emacs configuration, saving a file encrypts its entries tagged ~crypt~ (needs Emacs and GnuPG)
+
+* Inline images and LaTeX previews
+
+*Partly:* An image shows below its line (a phantom), not over the link; PNG, JPEG and GIF only. Counts through a key's ~args~.
+
+- [ ] On a line with ~[[file:pic.png]]~, the key shows the picture below the line, and takes it away again: ~Ctrl+C Ctrl+X Ctrl+V~
+- [ ] Away from a link, the pictures of the section; with a count of 16 those of the whole file; 64 takes them all away: ~Ctrl+C Ctrl+X Ctrl+V~
+- [ ] A file with ~#+STARTUP: inlineimages~ opens with its pictures
+- [ ] Scrolling moves the pictures with their lines; editing a link takes its picture away
+- [ ] ~$e^{i\pi} = -1$~ shows as its image (needs Emacs, ~latex~ and ~dvipng~): ~Ctrl+C Ctrl+X Ctrl+L~
+- [ ] A file with ~#+STARTUP: latexpreview~ opens with its fragments as images (needs Emacs, ~latex~ and ~dvipng~)

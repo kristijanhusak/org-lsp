@@ -4,7 +4,7 @@
 //! highlighting (semantic tokens), folding, the outline, TODO state changes
 //! and the agenda. What an editor integration still has to know (commands,
 //! default keys, default looks) the server announces itself; see
-//! `manifest` and `docs/protocol.md` in the repository.
+//! `manifest` and `docs/protocol.org` in the repository.
 
 pub mod actions;
 pub mod cli;

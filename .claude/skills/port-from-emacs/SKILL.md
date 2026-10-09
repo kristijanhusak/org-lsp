@@ -45,11 +45,11 @@ complete example to copy:
    (`scripts/fuzz-NAME.py --count 2000 --seed N`, several seeds). Turn
    each real difference found into a hand-picked case before fixing it.
    A difference kept on purpose is written down in the code and in
-   `docs/parity.md` (`scripts/features.mjs`).
+   `docs/parity.org` (`scripts/features.mjs`).
 7. **Wire it into the server** (`server/org-lsp`): the command in
    `commands.rs` with its Emacs key, options in `settings.rs`, the
    handler in `server.rs`; an LSP test in `server/org-lsp/tests/`.
-8. **Record it** in the table of `PLAN.md` ("How the work is checked"), in
+8. **Record it** in the table of `PLAN.org` ("How the work is checked"), in
    `scripts/features.mjs` (Emacs feature, editors' support, manual checks),
    then `scripts/regen.sh`. If editors need code for it, continue with the
    `editor-feature` skill.

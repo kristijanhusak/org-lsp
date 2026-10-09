@@ -25,7 +25,7 @@ local SERVER = 'org_lsp'
 ---@field cmd? string[] Server command. Found automatically when unset: a build in the plugin's directory, `org-lsp` on PATH, or the one `download` fetched.
 ---@field download? boolean Whether a server is downloaded when none is found: the build of `release` for this platform, into `stdpath('data')/org-lsp` (needs `curl` and `tar`). `:OrgLspDownload` downloads it again, to update it.
 ---@field release? string The release `download` and `:OrgLspDownload` fetch the server from: 'nightly' (built from the latest `main`), or a version tag such as 'v0.2.0'.
----@field settings? org_lsp.Settings The server's options, such as `org_agenda_files` and `org_todo_keywords`; see docs/neovim/configuration.md.
+---@field settings? org_lsp.Settings The server's options, such as `org_agenda_files` and `org_todo_keywords`; see docs/configuration.org.
 ---@field startup_folded? 'showeverything'|'overview' How a newly opened file shows when neither the settings' `org_startup_folded` nor its `#+STARTUP:` say: everything open or every subtree folded. The file's `#+STARTUP:` and `VISIBILITY` properties always decide for it.
 ---@field folding? boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
@@ -38,7 +38,7 @@ local SERVER = 'org_lsp'
 ---@field calendar_win_mode? 'bottom'|'float'|'cursor'|string|fun(bufnr: integer): integer? Where the date prompt's calendar opens: 'bottom' in a split along the bottom, as Emacs shows it; 'float' in a floating window in the middle; 'cursor' in a floating window below the cursor (above it when there is no room); another Ex command that opens a window ('topleft split'); or a function that opens a window for the buffer and returns it.
 ---@field calendar_border? string|string[] The border of the calendar's floating window ('float', 'cursor'), as `nvim_open_win()` takes it; 'rounded' when unset, 'none' for none.
 ---@field images? { max_width?: integer, max_height?: integer, cell?: { width: number, height: number } }|false Previews of links to images and of LaTeX fragments (`<Leader>oxv`, `<Leader>oxl`), drawn with `vim.ui.img` (Neovim 0.13 and later, in a terminal with the Kitty graphics protocol): the most columns and lines an image takes (80 and 20), the size of a cell in pixels where the terminal does not say it (for the lines an image takes; 10 by 20 then), or `false` for no previews.
----@field mappings? org_lsp.Mappings|false Keys by scope; `false` sets no keys at all. See docs/neovim/keys.md.
+---@field mappings? org_lsp.Mappings|false Keys by scope; `false` sets no keys at all. See docs/keys/neovim.org.
 
 --- Keys by scope. In a scope, a command (`org.todo`, or one of the plugin's
 --- own: `cycle`, `global_cycle`, `quit`, `help`, `hover`) maps to a key, a list of keys, or

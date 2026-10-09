@@ -1,0 +1,6 @@
+#+title: Org in Helix
+
+The Helix configuration: [[file:languages.toml][languages.toml]] attaches the server to Helix's ~org~ language.
+
+[[file:../../docs/helix.org][docs/helix.org]] says how to install and set it up, and what works.
+[[file:TESTING.org][TESTING.org]] lists what to try by hand.

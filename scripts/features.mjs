@@ -1,8 +1,9 @@
 // What org-lsp does of Emacs Org, area by area, and how far each editor
-// goes with it: the single source of the feature tables in README.md and
-// the editors' READMEs, of docs/parity.md, and of the editors' manual test
-// lists (editors/<editor>/TESTING.md). scripts/generate-docs.mjs writes
-// them.
+// goes with it: the single source of the feature tables in README.org and
+// the editors' pages (docs/<editor>.org), of docs/parity.org, and of the
+// editors' manual test lists (editors/<editor>/TESTING.org). Its texts mark
+// code with backticks and the names of menus and buttons with `*stars*`;
+// scripts/generate-docs.mjs writes all of it, in Org.
 //
 // An area has:
 //
@@ -70,7 +71,7 @@ export const EDITORS = [
       'Installed as a dev extension: `org-lsp` is found on PATH or downloaded',
       '`"semantic_tokens": "combined"` and inlay hints on for Org in the settings',
       'Code actions (`ctrl-.`) list the Org commands where they apply',
-      'The keymap and tasks from the README run the agenda\'s commands by key',
+      'The keymap and tasks from docs/keys/zed.org run the agenda\'s commands by key',
     ],
   },
   {
@@ -121,7 +122,7 @@ export const AREAS = [
       { text: 'With `org_pretty_entities = true`, `\\alpha` shows as `α`', not: ['vim', 'sublime', 'zed'] },
       { text: 'On the cursor\'s line `\\alpha` shows as typed, without `α` beside it; typing or deleting one leaves nothing behind', only: ['neovim', 'vscode'] },
       { text: 'With `org_pretty_entities = true`, `x^2` shows as `x²` and `H_{2}O` as `H₂O`', not: ['vim', 'sublime', 'zed'] },
-      { text: 'Timestamps, `SCHEDULED:`/`DEADLINE:`, `CLOCK:` lines, drawers, `#+` keywords and `#` comments are colored' },
+      { text: 'Timestamps, `SCHEDULED:` and `DEADLINE:`, `CLOCK:` lines, drawers, `#+` keywords and `#` comments are colored' },
       { text: 'A `#+begin_src python` block shows its code in Python\'s colors' },
       { text: 'Inline code (`src_python{x = 1}`) is in Python\'s colors', not: ['zed'] },
       { text: 'Table rules and bars, footnotes (`[fn:1]`), `<<targets>>`, macros (`{{{x}}}`) and entities (`\\alpha`) are colored' },
@@ -134,7 +135,7 @@ export const AREAS = [
     emacs: [
       ['Cycling a subtree (`TAB`): folded, children, subtree', true],
       ['Cycling the file (`S-TAB`): overview, contents, everything', true],
-      ['Startup visibility (`org_startup_folded`, `#+STARTUP:` `overview`, `content`, `show2levels`…, `showall`, `showeverything`), the `VISIBILITY` property, archived subtrees and drawers folded, `hideblocks`; where Org shows a headline\'s children but not its text, the text shows', true],
+      ['Startup visibility (`org_startup_folded`, `#+STARTUP:` `overview`, `content`, `show2levels` …, `showall`, `showeverything`), the `VISIBILITY` property, archived subtrees and drawers folded, `hideblocks`; where Org shows a headline\'s children but not its text, the text shows', true],
       ['Blank lines after a subtree kept outside its fold (`org-cycle-separator-lines`)', true],
       ['Archived subtrees left folded (`org-cycle-hide-archived-subtrees`)', true],
       ['Sparse trees (`C-c /`)', true],
@@ -337,7 +338,7 @@ export const AREAS = [
     emacs: [
       ['Inserting active and inactive timestamps (`C-c .`, `C-c !`)', true],
       ['Scheduling and deadlines (`C-c C-s`, `C-c C-d`)', true],
-      ['Org\'s date prompt: `+2d`, `fri`, `2/15`, `10:00-11:30`…', true],
+      ['Org\'s date prompt: `+2d`, `fri`, `2/15`, `10:00-11:30` …', true],
       ['The calendar with the prompt', true],
       ['Changing the part at the cursor (`S-<up>`, `S-<down>`), with ranges, repeaters and warnings', true],
       ['Moving a date by days (`S-<left>`, `S-<right>`)', true],
@@ -386,7 +387,7 @@ export const AREAS = [
       ['Lines formatted as Org formats them (`org-agenda-prefix-format` and the rest)', true],
       ['The time grid', true],
       ['Habits (`org-habit`): the consistency graph, `K`', true],
-      ['Diary sexps (`%%(diary-…)` lines, `<%%(…)>` timestamps): the date functions of `diary-lib` and Org (`diary-anniversary`, `-block`, `-cyclic`, `-date`, `-float`, `org-class`…) with `and`, `or`, `not` and comparisons', true],
+      ['Diary sexps (`%%(diary-…)` lines, `<%%(…)>` timestamps): the date functions of `diary-lib` and Org (`diary-anniversary`, `-block`, `-cyclic`, `-date`, `-float`, `org-class` …) with `and`, `or`, `not` and comparisons', true],
       ['Diary sexps calling other Lisp, evaluated by Emacs (`org-diary-sexp-entry`) for each day of the view', true],
       ['Column view in the agenda (`C-c C-x C-c`, through Emacs): each entry\'s line covered by its columns, the summaries on the date lines and the blocks\' headers; editing, cycling and showing the values of the entries, changed in their files', true],
       ['Writing the agenda to a file (`C-x C-w`): `.org` and plain text', true],
@@ -463,9 +464,9 @@ export const AREAS = [
     emacs: [
       ['Templates of every type: entries, items, checkboxes, table lines, plain text', true],
       ['Targets: files, headlines, outline paths, regexps, date trees, IDs, the clock', true],
-      ['Prompts and `%`-escapes (`%^{…}`, `%t`, `%a`, `%i`, `%?`…)', true],
+      ['Prompts and `%`-escapes (`%^{…}`, `%t`, `%a`, `%i`, `%?` …)', true],
       ['The capture buffer: finishing, aborting, refiling', true],
-      ['Clock options (`:clock-in`, `:clock-resume`…)', true],
+      ['Clock options (`:clock-in`, `:clock-resume` …)', true],
       ['`function` and `file+function` targets (the function run by Emacs)', true],
       ['`%(…)` (Emacs Lisp, through Emacs)', true],
       ['`%[file]`', true],
@@ -588,7 +589,7 @@ export const AREAS = [
       ['The `#+TBLFM:` line following moved columns and rows', true],
       ['Rectangles: cutting, copying and pasting the cells of a selection (through Emacs)', true],
       ['Copying down (`S-RET`, through Emacs)', true],
-      ['Editing a field in a file of its own (`C-c \\``, through Emacs): put back, the table realigned, each time it is saved', true],
+      ['Editing a field in a file of its own (`org-table-edit-field`, through Emacs): put back, the table realigned, each time it is saved', true],
       ['Shrunk columns (`<5>`): `C-c TAB`, `org-startup-shrink-all-tables` and `#+STARTUP: shrink`; the hidden text concealed where the editor can hide it, `…` an inlay hint', true],
       ['Creating an empty table (`C-c |`, through Emacs)', true],
       ['Making a table from a region (`C-c |` on a selection, through Emacs)', true],
@@ -825,7 +826,7 @@ export const AREAS = [
     },
     checks: [
       { text: 'Starting the timer says when it started (needs Emacs)', cmd: 'org.timer.start', not: ['helix'] },
-      { text: 'Inserting the timer\'s value (`0:00:12 `) and a timer item (`- 0:00:15 :: `)', cmd: ['org.timer.insert', 'org.timer.item'], not: ['helix'] },
+      { text: 'Inserting the timer\'s value (`0:00:12`) and a timer item (`- 0:00:15 ::`)', cmd: ['org.timer.insert', 'org.timer.item'], not: ['helix'] },
       { text: 'Pausing and continuing; stopping', cmd: ['org.timer.pause', 'org.timer.stop'], not: ['helix'] },
       { text: 'A countdown asks for its length (`1` for a minute); when it ends, `Heading: time out` is shown', cmd: 'org.timer.set', not: ['zed', 'helix'] },
       { text: 'On an entry with an effort the countdown takes it, without asking', cmd: 'org.timer.set', not: ['zed', 'helix'] },
