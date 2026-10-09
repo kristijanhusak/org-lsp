@@ -2,6 +2,8 @@
 node_modules
 /editors/vscode/dist
 /editors/vscode/server
+# Written from docs/vscode.org when the extension is packaged.
+/editors/vscode/README.md
 *.vsix
 __pycache__/
 /editors/vscode/.vscode-test
