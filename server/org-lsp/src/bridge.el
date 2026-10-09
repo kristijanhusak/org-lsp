@@ -1072,10 +1072,32 @@ where each fragment is and the file of its image, what Emacs shows over it."
               org-format-latex-options
               (list :foreground (or (alist-get 'foreground params) "Black")
                     :background (or (alist-get 'background params) "Transparent")))))
-        (cl-letf (((symbol-function 'org-place-formula-image)
-                   (lambda (_link _block-type beg end _value _overlays file _type)
-                     (push `((start . ,beg) (end . ,end) (file . ,file)) found)
-                     (goto-char end))))
+        (cl-letf* ((place (lambda (beg end file)
+                            (push `((start . ,beg) (end . ,end) (file . ,file)) found)))
+                   ((symbol-function 'org-place-formula-image)
+                    (lambda (_link _block-type beg end _value _overlays file _type)
+                      (funcall place beg end file)
+                      (goto-char end)))
+                   ;; Before Org 9.7, `org-format-latex' makes the overlay
+                   ;; itself.
+                   ((symbol-function 'org--make-preview-overlay)
+                    (lambda (beg end image &optional _imagetype)
+                      (funcall place beg end image)))
+                   ;; Without a window system there is no display to measure
+                   ;; ("Window system frame should be used" before Org 9.8):
+                   ;; the DPI Org takes for other uses.
+                   ((symbol-function 'org--get-display-dpi) (lambda () 140))
+                   ;; A frame of a terminal rounds `#rrggbb' to one of its few
+                   ;; colors: the editor's colors as they are.
+                   (color-values (symbol-function 'color-values))
+                   ((symbol-function 'color-values)
+                    (lambda (color &optional frame)
+                      (if (and (stringp color)
+                               (string-match "\\`#\\([0-9a-fA-F]\\{6\\}\\)\\'" color))
+                          (let ((hex (match-string 1 color)))
+                            (mapcar (lambda (at) (* 257 (string-to-number (substring hex at (+ at 2)) 16)))
+                                    '(0 2 4)))
+                        (funcall color-values color frame)))))
           (org--latex-preview-region (alist-get 'from params) (alist-get 'to params)))))
     `((previews . ,(vconcat (nreverse found))))))
 
