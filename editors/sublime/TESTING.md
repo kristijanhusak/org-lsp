@@ -340,4 +340,11 @@ its sections says what it should look like.
 
 ## Inline images and LaTeX previews
 
-**Not in Sublime Text:** Not shown yet.
+**Partly:** An image shows below its line (a phantom), not over the link; PNG, JPEG and GIF only. Counts through a key's `args`.
+
+- [ ] On a line with `[[file:pic.png]]`, the key shows the picture below the line, and takes it away again: `Ctrl+C Ctrl+X Ctrl+V`
+- [ ] Away from a link, the pictures of the section; with a count of 16 those of the whole file; 64 takes them all away: `Ctrl+C Ctrl+X Ctrl+V`
+- [ ] A file with `#+STARTUP: inlineimages` opens with its pictures
+- [ ] Scrolling moves the pictures with their lines; editing a link takes its picture away
+- [ ] `$e^{i\pi} = -1$` shows as its image (needs Emacs, `latex` and `dvipng`): `Ctrl+C Ctrl+X Ctrl+L`
+- [ ] A file with `#+STARTUP: latexpreview` opens with its fragments as images (needs Emacs, `latex` and `dvipng`)

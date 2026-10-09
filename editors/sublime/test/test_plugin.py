@@ -121,6 +121,12 @@ class View:
     def erase_regions(self, key):
         getattr(self, 'regions', {}).pop(key, None)
 
+    def get_regions(self, key):
+        return getattr(self, 'regions', {}).get(key, ([], '', 0))[0]
+
+    def style(self):
+        return {'foreground': '#d8dee9ff'}
+
     def run_command(self, name, args=None):
         self.commands.append((name, args))
 
@@ -200,6 +206,8 @@ def load_plugin():
     sublime.set_timeout = lambda f, delay=0: f()
     sublime.set_timeout_async = lambda f, delay=0: f()
     sublime.LAYOUT_INLINE = 0
+    sublime.LAYOUT_BELOW = 1
+    sublime.HIDDEN = 128
     sublime.HIDE_ON_MOUSE_MOVE_AWAY = 2
     sublime.DRAW_NO_OUTLINE = 256
     sublime.clipboard = ''
@@ -430,6 +438,42 @@ class Tests(unittest.TestCase):
         self.assertEqual(self.sublime.PhantomSet.made[-1].phantoms, [])
         self.assertEqual(len(self.sublime.PhantomSet.made), 1)
 
+    def test_shows_images_below_the_lines_of_their_links(self):
+        self.sublime.windows = lambda: [self.window]
+        folder = tempfile.mkdtemp()
+        picture = os.path.join(folder, 'red.png')
+        with open(picture, 'wb') as out:
+            out.write(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR' + (1200).to_bytes(4, 'big') + (300).to_bytes(4, 'big'))
+        self.view.text = '* A\nSee [[file:red.png]] here.\nend'
+        link = {'start': {'line': 1, 'character': 4}, 'end': {'line': 1, 'character': 21}}
+        preview = {'kind': 'link', 'uri': 'file:///notes/work.org', 'scope': 'image at point', 'range': link,
+                   'remove': None, 'includeLinked': False, 'items': [{'range': link, 'path': picture}]}
+        self.view.cursor = self.view.text_point(1, 6)
+        self.run_command([('result', {'preview': preview})], command='org.link.preview')
+        phantoms = self.sublime.PhantomSet.made[-1].phantoms
+        self.assertEqual(len(phantoms), 1)
+        self.assertEqual(phantoms[0].layout, self.sublime.LAYOUT_BELOW)
+        self.assertEqual(phantoms[0].region.a, self.view.text_point(1, 21))
+        # As wide as it may be, its proportions kept.
+        self.assertIn('src="file://{}" width="800" height="200"'.format(picture), phantoms[0].html)
+        self.assertIn('[image at point] Displaying 1 images inline', self.sublime.messages)
+        # Again at the link: taken away.
+        self.run_command([('result', {'preview': preview})], command='org.link.preview')
+        self.assertEqual(self.sublime.PhantomSet.made[-1].phantoms, [])
+        self.assertIn('[image at point] Inline link previews turned off (removed 1 images)', self.sublime.messages)
+        # Shown again, it goes when its text changes.
+        self.run_command([('result', {'preview': preview})], command='org.link.preview')
+        self.assertEqual(len(self.sublime.PhantomSet.made[-1].phantoms), 1)
+        self.view.text = self.view.text.replace('red.png', 'blue.png')
+        self.plugin.OrgLspListener().on_modified(self.view)
+        self.assertEqual(self.sublime.PhantomSet.made[-1].phantoms, [])
+
+    def test_draws_latex_in_the_colors_of_the_text(self):
+        self.view.cursor = self.view.text_point(1, 1)
+        session = self.run_command([('result', {'message': 'Creating LaTeX previews...'})], command='org.latex.preview')
+        context = session.sent[0][1]['arguments'][0]
+        self.assertEqual((context['foreground'], context['background']), ('#d8dee9', 'Transparent'))
+
     def test_highlights_lines_from_edge_to_edge(self):
         self.sublime.windows = lambda: [self.window]
         self.plugin.show_line_highlights({'uri': 'file:///notes/work.org',
@@ -485,16 +529,22 @@ class Tests(unittest.TestCase):
         self.assertEqual(self.folded_rows(), [])
 
     def test_a_file_opens_with_the_folds_the_server_says_closed(self):
-        session = Session([('result', {'folds': [{'startLine': 2, 'endLine': 3}, {'startLine': 0, 'endLine': 5}]})])
+        session = Session([('result', {'folds': [{'startLine': 2, 'endLine': 3}, {'startLine': 0, 'endLine': 5}]}),
+                           ('result', None), ('result', None)])
         session.window = self.window
         plugin = self.plugin.OrgLsp(lambda: session)
         opened = types.SimpleNamespace(method='textDocument/didOpen', params={'textDocument': {'uri': 'file:///notes/work.org'}})
         plugin.on_pre_send_notification_async(opened)
-        self.assertEqual(session.sent, [('org-lsp/startupFolds', {'textDocument': {'uri': 'file:///notes/work.org'}})])
+        self.assertEqual(session.sent[0], ('org-lsp/startupFolds', {'textDocument': {'uri': 'file:///notes/work.org'}}))
         self.assertEqual(self.folded_rows(), [0, 2])
+        # And the previews it opens with (`#+STARTUP: inlineimages`, `latexpreview`).
+        self.assertEqual([(method, params['command'], params['arguments'][0].get('startup'))
+                          for method, params in session.sent[1:]],
+                         [('workspace/executeCommand', 'org.link.preview', True),
+                          ('workspace/executeCommand', 'org.latex.preview', True)])
         # Other notifications and other files ask nothing.
         plugin.on_pre_send_notification_async(types.SimpleNamespace(method='textDocument/didChange', params={}))
-        self.assertEqual(len(session.sent), 1)
+        self.assertEqual(len(session.sent), 3)
 
     def test_shows_the_timer_in_the_status_bar(self):
         later = []

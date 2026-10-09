@@ -227,12 +227,14 @@ const settings = {
   // How Org's messages show: "popup" (at the cursor, for a few seconds)
   // or "status" (in the status bar only).
   org_messages: 'popup',
+  // Images below the lines of links and LaTeX fragments (phantoms).
+  org_images: true,
   semantic_tokens: semanticTokens,
 };
 if (existsSync(settingsPath)) {
   // The user-facing values stay as they are; only the tokens are generated.
   const before = JSON.parse(readFileSync(settingsPath, 'utf8'));
-  for (const key of ['command', 'selector', 'initializationOptions', 'org_keys', 'org_messages']) {
+  for (const key of ['command', 'selector', 'initializationOptions', 'org_keys', 'org_messages', 'org_images']) {
     if (key in before) settings[key] = before[key];
   }
 }

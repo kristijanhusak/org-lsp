@@ -10,7 +10,9 @@ from __future__ import annotations
 import html
 import io
 import os
+import re
 import shutil
+import struct
 import tarfile
 import threading
 import time
@@ -218,6 +220,9 @@ class OrgLsp(AbstractPlugin):
         # Lines of the agenda highlighted from edge to edge, as regions
         # (`org-lsp/lineHighlights`).
         options.set('line_highlights', True)
+        # Images in place of links and of LaTeX fragments, as phantoms
+        # below their lines (`org.link.preview`, `org-lsp/images`).
+        options.set('images', settings().get('org_images', True) is not False)
         return None
 
     # A file opens: the folds the server says it opens with closed
@@ -232,6 +237,7 @@ class OrgLsp(AbstractPlugin):
         session = self.weaksession()
         if session:
             sublime.set_timeout_async(lambda: ask_startup_folds(session, uri))
+            sublime.set_timeout(lambda: ask_startup_previews(session, uri))
 
     # The server changed files from elsewhere (the agenda, a capture, a
     # refile), and `auto_save` is on: save them.
@@ -254,6 +260,10 @@ class OrgLsp(AbstractPlugin):
     # The lines of the agenda highlighted from edge to edge: the clocked entry.
     def m_org_lsp_lineHighlights(self, params) -> None:
         sublime.set_timeout(lambda: show_line_highlights(params))
+
+    # Images in place of LaTeX fragments, made by Emacs.
+    def m_org_lsp_images(self, params) -> None:
+        sublime.set_timeout(lambda: apply_preview(params))
 
     # TAB in the agenda (`org-agenda-goto`): the entry's file in another
     # group (`orgOtherWindow`). LSP shows any other document as it does.
@@ -396,6 +406,166 @@ def show_virtual_indent(params) -> None:
     phantom_set.update(phantoms)
 
 
+# ----- images
+
+# The most an image takes, in pixels; a larger one is shown smaller.
+IMAGE_MAX_WIDTH = 800
+IMAGE_MAX_HEIGHT = 400
+
+# The previews each view shows, by view id, as Emacs keeps its overlays:
+# `{key, kind, path, text, width, height}`, where `key` names a region
+# that follows the edits around its text.
+image_previews = {}
+image_phantoms = {}
+image_keys = [0]
+
+
+def image_size(path: str):
+    """The width and height of the PNG, GIF or JPEG image at `path`, which
+    Sublime Text's HTML can show, from its header; None for others."""
+    try:
+        with open(path, 'rb') as image:
+            data = image.read()
+    except OSError:
+        return None
+    if data[:8] == b'\x89PNG\r\n\x1a\n' and len(data) >= 24:
+        return struct.unpack('>II', data[16:24])
+    if data[:4] == b'GIF8' and len(data) >= 10:
+        return struct.unpack('<HH', data[6:10])
+    if data[:2] == b'\xff\xd8':
+        # The frame's header, among the segments.
+        at = 2
+        while at + 9 < len(data) and data[at] == 0xff:
+            marker = data[at + 1]
+            if 0xc0 <= marker <= 0xcf and marker not in (0xc4, 0xc8, 0xcc):
+                height, width = struct.unpack('>HH', data[at + 5:at + 9])
+                return width, height
+            at += 2 + struct.unpack('>H', data[at + 2:at + 4])[0]
+    return None
+
+
+def file_url(path: str) -> str:
+    return 'file://' + urllib.request.pathname2url(path)
+
+
+def latex_colors(view) -> dict:
+    """The colors LaTeX is drawn in: the color scheme's text, on no background."""
+    style = view.style() if view and hasattr(view, 'style') else {}
+    foreground = (style or {}).get('foreground')
+    colors = {'background': 'Transparent'}
+    if isinstance(foreground, str) and re.match(r'^#[0-9a-fA-F]{6}', foreground):
+        colors['foreground'] = foreground[:7]
+    return colors
+
+
+def ask_startup_previews(session, uri: str) -> None:
+    """The previews a file opens with: `#+STARTUP: inlineimages` (or
+    `org_startup_with_link_previews`), `latexpreview`. Those of LaTeX come
+    in `org-lsp/images` once Emacs has made them."""
+    if settings().get('org_images', True) is False:
+        return
+    context = {'textDocument': {'uri': uri}, 'position': {'line': 0, 'character': 0}, 'startup': True}
+
+    def shown(result) -> None:
+        if isinstance(result, dict) and isinstance(result.get('preview'), dict):
+            sublime.set_timeout(lambda: apply_preview(result['preview'], quiet=True))
+    session.send_request(Request('workspace/executeCommand', {'command': 'org.link.preview', 'arguments': [context]}),
+                         shown, lambda error: None)
+    latex = dict(context)
+    latex.update(latex_colors(view_for(uri)))
+    session.send_request(Request('workspace/executeCommand', {'command': 'org.latex.preview', 'arguments': [latex]}),
+                         lambda result: None, lambda error: None)
+
+
+def apply_preview(preview, quiet=False) -> None:
+    """What a preview command or `org-lsp/images` says: `{kind, uri, scope,
+    range, remove, includeLinked, items: [{range, path}]}`. `remove` true
+    takes away the previews of `kind` in `range`; false shows `items`
+    there, anew; null (a link or a fragment at the cursor) toggles them.
+    Says what Emacs says, unless `quiet`."""
+    view = view_for((preview or {}).get('uri', ''))
+    if not view:
+        return
+    start = position_to_offset(preview['range']['start'], view)
+    end = position_to_offset(preview['range']['end'], view)
+    entries = image_previews.setdefault(view.id(), [])
+
+    def overlapping(entry) -> bool:
+        regions = view.get_regions(entry['key'])
+        if entry['kind'] != preview.get('kind') or not regions:
+            return False
+        region = regions[0]
+        before = region.end() < start or (region.end() == start and region.begin() < start)
+        return not before and not region.begin() >= end
+
+    def tell(message: str) -> None:
+        if not quiet:
+            say(message, view)
+    old = [entry for entry in entries if overlapping(entry)]
+    for entry in old:
+        view.erase_regions(entry['key'])
+        entries.remove(entry)
+    remove = preview.get('remove')
+    link = preview.get('kind') == 'link'
+    scope = preview.get('scope', '')
+    if remove is True or (remove is None and old):
+        if link:
+            tell('[{}] Inline link previews turned off (removed {} images)'.format(scope, len(old)))
+        elif scope == 'buffer':
+            tell('LaTeX previews removed from buffer')
+        elif old and remove is None:
+            tell('LaTeX preview removed')
+    else:
+        count = 0
+        for item in preview.get('items') or []:
+            size = image_size(item['path'])
+            if not size or not size[0] or not size[1]:
+                continue
+            region = sublime.Region(position_to_offset(item['range']['start'], view),
+                                    position_to_offset(item['range']['end'], view))
+            image_keys[0] += 1
+            key = 'org-lsp-image-{}'.format(image_keys[0])
+            view.add_regions(key, [region], '', '', sublime.HIDDEN)
+            entries.append({'key': key, 'kind': preview['kind'], 'path': item['path'], 'text': view.substr(region),
+                            'width': size[0], 'height': size[1]})
+            count += 1
+        if link:
+            if count:
+                with_description = ' (including images with description)' if preview.get('includeLinked') else ''
+                tell('[{}] Displaying {} images inline{}'.format(scope, count, with_description))
+            elif scope == 'buffer':
+                tell('[{}] No images to display inline'.format(scope))
+            else:
+                tell("[{}] No images to display inline.  Use `C-u C-u' or 11 argument to preview the whole "
+                     'buffer'.format(scope))
+    draw_images(view)
+
+
+def draw_images(view) -> None:
+    """Show the previews of `view` as phantoms below the lines of their text;
+    one whose text changed goes, as Emacs takes away an overlay then."""
+    entries = image_previews.get(view.id(), [])
+    # No wider than the view.
+    shown = view.viewport_extent()[0] if hasattr(view, 'viewport_extent') else 0
+    most = min(IMAGE_MAX_WIDTH, max(100, int(shown) - 40)) if shown else IMAGE_MAX_WIDTH
+    phantoms = []
+    for entry in list(entries):
+        regions = view.get_regions(entry['key'])
+        if not regions or view.substr(regions[0]) != entry['text']:
+            view.erase_regions(entry['key'])
+            entries.remove(entry)
+            continue
+        scale = min(1.0, most / entry['width'], IMAGE_MAX_HEIGHT / entry['height'])
+        width, height = max(1, round(entry['width'] * scale)), max(1, round(entry['height'] * scale))
+        content = '<body style="margin: 0.2rem 0; padding: 0"><img src="{}" width="{}" height="{}"></body>'.format(
+            html.escape(file_url(entry['path'])), width, height)
+        phantoms.append(sublime.Phantom(sublime.Region(regions[0].end()), content, sublime.LAYOUT_BELOW))
+    phantom_set = image_phantoms.get(view.id())
+    if phantom_set is None:
+        phantom_set = image_phantoms[view.id()] = sublime.PhantomSet(view, 'org-lsp-images')
+    phantom_set.update(phantoms)
+
+
 # The scope of each kind of line highlight: a region colour the colour
 # scheme has, and the scope of the server's token of the same name.
 LINE_HIGHLIGHT_SCOPES = {
@@ -524,7 +694,7 @@ class OrgLspRunCommand(LspWindowCommand):
     # file open; it closes once the command is done.
     starter = None
 
-    def run(self, command: str, fallback=None) -> None:
+    def run(self, command: str, fallback=None, count=None) -> None:
         session = self.session_by_name(SESSION)
         view = self.window.active_view()
         if not session:
@@ -552,6 +722,12 @@ class OrgLspRunCommand(LspWindowCommand):
             # The closed folds, for what is visible.
             if reads_folds(session, command):
                 context['folded'] = closed_folds(view)
+            # LaTeX is drawn in the colors of the text.
+            if command == 'org.latex.preview':
+                context.update(latex_colors(view))
+            # Emacs's prefix argument, from the key's arguments.
+            if isinstance(count, int):
+                context['count'] = count
         else:
             context = {}
         self.execute(session, view, command, context, fallback)
@@ -628,6 +804,9 @@ class OrgLspRunCommand(LspWindowCommand):
             save(result['save'])
         if isinstance(result.get('message'), str):
             say(result['message'], view)
+        # Images of links, shown or taken away.
+        if isinstance(result.get('preview'), dict):
+            apply_preview(result['preview'])
         if isinstance(result.get('close'), str):
             close(result['close'])
         request = result.get('input')
@@ -961,9 +1140,16 @@ class OrgLspListener(sublime_plugin.EventListener):
             return value != operand
         return None
 
-    # Org takes the highlighting of a sparse tree away at the next change.
+    # Org takes the highlighting of a sparse tree away at the next change,
+    # and a preview whose text changes.
     def on_modified(self, view) -> None:
         view.erase_regions(SPARSE_KEY)
+        if image_previews.get(view.id()):
+            draw_images(view)
+
+    def on_close(self, view) -> None:
+        image_previews.pop(view.id(), None)
+        image_phantoms.pop(view.id(), None)
 
     def on_load(self, view) -> None:
         # The agenda is a file the server writes, to read, not to edit.

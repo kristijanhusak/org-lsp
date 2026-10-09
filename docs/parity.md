@@ -535,7 +535,7 @@ Where editors fall short:
 
 - Neovim ❓: From Neovim 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick.
 - Vim ❌: Vim cannot show images.
-- VS Code ❌: Not shown yet.
-- Sublime Text ❌: Not shown yet.
+- VS Code ❓: VS Code cannot leave lines free for an image: an image takes the place of its link only as high as a line, and shows whole on hover. Counts through a key's `args`.
+- Sublime Text ❓: An image shows below its line (a phantom), not over the link; PNG, JPEG and GIF only. Counts through a key's `args`.
 - Zed ❌: Zed lets no extension show images in a file.
 - Helix ❌: Helix cannot show images.

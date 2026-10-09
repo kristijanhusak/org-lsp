@@ -271,6 +271,9 @@ pub struct Options {
     /// The client shows `org-lsp/lineHighlights`, as one announcing
     /// `experimental.orgLineHighlights` does.
     pub line_highlights: Option<bool>,
+    /// The client shows images in place of text (`org.link.preview`,
+    /// `org.latex.preview`), as one announcing `experimental.orgImages` does.
+    pub images: Option<bool>,
     /// The client reads the agenda's file again when told
     /// (`org-lsp/viewChanged`).
     pub view_changed: Option<bool>,

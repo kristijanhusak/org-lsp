@@ -20,6 +20,8 @@ defaults.
 | `org-lsp.settings` | `{}` | The server's options, passed to it as they are. See below. |
 | `org-lsp.server.path` | `""` | The server binary. Empty: the one bundled with the extension, or else `org-lsp` from `PATH`. |
 | `org-lsp.conceal` | `true` | Hide what Org hides: link brackets and targets (`org_link_descriptive`), emphasis markers (`org_hide_emphasis_markers`). The line with the cursor shows everything. |
+| `org-lsp.images` | `true` | Show images in place of links to image files and of LaTeX fragments (`C-c C-x C-v`, `C-c C-x C-l`, `#+STARTUP: inlineimages`, `latexpreview`). VS Code cannot leave lines free for an image, so an image is only as high as a line; hover over it to see it whole. LaTeX previews need Emacs, `latex` and `dvipng`. |
+| `org-lsp.latexForeground` | `""` | The color LaTeX previews are drawn in, such as `"#d4d4d4"`. Empty: black on a light theme, light gray on a dark one. |
 | `org-lsp.winSplitMode` | `"split"` | Where the agenda and capture buffers open: `"split"` in an editor group below the current one, `"vsplit"` beside it, `"float"` in a window of its own, `"current"` in the current group. A group that already has it is used again. |
 | `org-lsp.messages` | `"notification"` | How Org's messages show (`Priority of current item set to A`): `"notification"` in the corner of the window, `"statusBar"` in the status bar for a few seconds. Errors always show as notifications. |
 

@@ -430,5 +430,15 @@ Bindings*) with `org_lsp_run`, which tells the server where the cursor is:
   "context": [{"key": "selector", "operand": "text.org"}] }
 ```
 
+`count` passes Emacs's prefix argument: `C-u` is 4, `C-u C-u` 16,
+`C-u C-u C-u` 64. For example, the images of the whole file, and none:
+
+```json
+{ "keys": ["ctrl+c", "ctrl+x", "v"], "command": "org_lsp_run", "args": {"command": "org.link.preview", "count": 16},
+  "context": [{"key": "selector", "operand": "text.org"}] },
+{ "keys": ["ctrl+c", "ctrl+x", "shift+v"], "command": "org_lsp_run", "args": {"command": "org.link.preview", "count": 64},
+  "context": [{"key": "selector", "operand": "text.org"}] }
+```
+
 With `"org_keys": "custom"` the package binds none, and yours are the
 only ones.

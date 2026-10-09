@@ -99,7 +99,8 @@ struct Client {
     /// the option `view_changed`.
     view_changed: bool,
     /// Shows images in place of text (`org.link.preview`,
-    /// `org.latex.preview`): `experimental.orgImages`.
+    /// `org.latex.preview`): `experimental.orgImages`, or the option
+    /// `images`.
     images: bool,
     /// The client rereads semantic tokens when asked.
     tokens_refresh: bool,
@@ -1041,7 +1042,8 @@ pub fn run(connection: Connection) -> Result<()> {
             == Some(true)
             || options.virtual_indent == Some(true),
         display: raw_params.pointer("/capabilities/experimental/orgDisplay").and_then(Value::as_bool) == Some(true),
-        images: raw_params.pointer("/capabilities/experimental/orgImages").and_then(Value::as_bool) == Some(true),
+        images: raw_params.pointer("/capabilities/experimental/orgImages").and_then(Value::as_bool) == Some(true)
+            || options.images == Some(true),
         view_changed: options.view_changed == Some(true),
         line_highlights: raw_params.pointer("/capabilities/experimental/orgLineHighlights").and_then(Value::as_bool)
             == Some(true)
