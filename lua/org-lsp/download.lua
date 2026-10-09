@@ -1,7 +1,9 @@
 --- Downloading the server: the build of a GitHub release for this
 --- platform, unpacked into Neovim's data directory
 --- (`stdpath('data')/org-lsp/org-lsp`). It needs `curl` and `tar` (Windows
---- 10 and newer have both).
+--- 10 and newer have both). A release curl cannot fetch, as one of a
+--- private repository, is fetched with the GitHub CLI (`gh`) when it is
+--- installed and logged in.
 local M = {}
 local notify = require('org-lsp.notify')
 
@@ -10,6 +12,8 @@ M.running = false
 
 --- Where the release files are: `<base_url>/<release>/org-lsp-<platform>.tar.gz`.
 M.base_url = 'https://github.com/kristijanhusak/org-lsp/releases/download'
+
+local REPOSITORY = 'kristijanhusak/org-lsp'
 
 --- The release's name for each system and machine `uv.os_uname()` reports.
 local PLATFORMS = {
@@ -89,7 +93,8 @@ function M.download(release, callback)
   vim.fn.delete(staging, 'rf')
   vim.fn.mkdir(staging, 'p')
   local file = vim.fs.joinpath(staging, archive)
-  run({ 'curl', '--fail', '--silent', '--show-error', '--location', '--retry', '2', '--output', file, url }, function(err)
+  local gh = vim.startswith(url, 'https://github.com/') and vim.fn.executable('gh') == 1
+  local function fetched(err)
     if err then
       return done(('could not download %s: %s'):format(url, err))
     end
@@ -119,6 +124,15 @@ function M.download(release, callback)
         callback(nil, target)
       end)
     end)
+  end
+  run({ 'curl', '--fail', '--silent', '--show-error', '--location', '--retry', '2', '--output', file, url }, function(err)
+    -- A private repository's files need GitHub's login, which `gh` has.
+    if err and gh then
+      return run({ 'gh', 'release', 'download', release, '--repo', REPOSITORY, '--pattern', archive, '--dir', staging, '--clobber' }, function(gh_err)
+        fetched(gh_err and err .. '; ' .. gh_err)
+      end)
+    end
+    fetched(err)
   end)
 end
 

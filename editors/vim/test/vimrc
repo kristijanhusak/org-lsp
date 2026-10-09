@@ -5,7 +5,8 @@ let s:here = expand('<sfile>:p:h')
 let s:clients = $ORG_LSP_TEST_CLIENTS
 let s:client = $ORG_LSP_TEST_CLIENT
 let s:dirs = {'lsp': 'lsp', 'vim_lsp': 'vim-lsp', 'coc': 'coc.nvim', 'ale': 'ale'}
-let &runtimepath = s:here . '/..,' . s:clients . '/' . s:dirs[s:client] . ',' . &runtimepath
+let s:plugin = empty($ORG_LSP_TEST_PLUGIN) ? s:here . '/..' : $ORG_LSP_TEST_PLUGIN
+let &runtimepath = s:plugin . ',' . s:clients . '/' . s:dirs[s:client] . ',' . &runtimepath
 let g:coc_data_home = $ORG_LSP_TEST_WORK . '/coc'
 let g:coc_config_home = $ORG_LSP_TEST_WORK . '/coc'
 let g:ale_lint_on_text_changed = 'never'
@@ -19,6 +20,11 @@ let g:org_lsp = {
       \   'org_capture_templates': [{'key': 't', 'description': 'Task', 'target': ['file', $ORG_LSP_TEST_WORK . '/notes/inbox.org'], 'template': '* TODO %?'}],
       \ },
       \ }
+" download.sh: no server, but a release to download it from.
+if !empty($ORG_LSP_TEST_RELEASES)
+  call remove(g:org_lsp, 'cmd')
+  let g:org_lsp#download#base_url = 'file://' . $ORG_LSP_TEST_RELEASES
+endif
 set hidden
 filetype plugin indent on
 syntax on

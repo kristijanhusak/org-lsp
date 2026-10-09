@@ -16,7 +16,7 @@ its sections says what it should look like.
 
 * Setup
 
-- [ ] Installed as a dev extension: ~org-lsp~ is found on PATH or downloaded
+- [ ] Installed with ~install.sh zed~: after a restart the extension starts the server put beside it, and Org's keys run the agenda (~ctrl-c a~)
 - [ ] ~"semantic_tokens": "combined"~ and inlay hints on for Org in the settings
 - [ ] Code actions (~ctrl-.~) list the Org commands where they apply
 - [ ] The keymap and tasks from docs/keys/zed.org run the agenda's commands by key

@@ -1,5 +1,7 @@
-# Builds the server for each platform, and a VS Code package per platform
-# with the server inside, and puts them on a GitHub release:
+# Builds the server for each platform, a VS Code package per platform with
+# the server inside, the Sublime Text package and the Zed extension, and
+# puts them on a GitHub release with scripts/install.sh, which installs
+# them, and their checksums (SHA256SUMS):
 #
 # - running it by hand on main (Actions > Release > Run workflow) updates
 #   the `nightly` prerelease, whose files keep the same links:
@@ -8,7 +10,6 @@
 #
 # Pushes to main and pull requests do not run it, to save Actions minutes;
 # put `branches: [main]` under `push` back to build each push to main.
-# scripts/install-vscode.sh installs the VS Code package from a release.
 name: Release
 
 on:
@@ -96,8 +97,41 @@ jobs:
             org-lsp-${{ matrix.vscode }}.vsix
           if-no-files-found: error
 
+  zed:
+    runs-on: ubuntu-latest
+    env:
+      # The `zed-extension` tool zed-industries/extensions packages the
+      # extensions of Zed's registry with (its ZED_EXTENSION_CLI_SHA): it
+      # builds the extension and its grammar, and packs them as Zed
+      # installs them.
+      ZED_EXTENSION_CLI_SHA: 9ee3c503a4bbbc6b4a0f8a789acca4871d773223
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal --target wasm32-wasip2
+          rustup default stable
+      - name: Package the Zed extension
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/zed-extension" "https://zed-extension-cli.nyc3.digitaloceanspaces.com/$ZED_EXTENSION_CLI_SHA/x86_64-unknown-linux-gnu/zed-extension"
+          chmod +x "$RUNNER_TEMP/zed-extension"
+          "$RUNNER_TEMP/zed-extension" --source-dir editors/zed --scratch-dir "$RUNNER_TEMP/zed-scratch" --output-dir "$RUNNER_TEMP/zed-out"
+          mv "$RUNNER_TEMP/zed-out/archive.tar.gz" org-lsp-zed.tar.gz
+          tar -tzf org-lsp-zed.tar.gz
+          for file in extension.toml extension.wasm grammars/org.wasm languages/org/config.toml; do
+            tar -tzf org-lsp-zed.tar.gz | grep -qx "./$file" || { echo "org-lsp-zed.tar.gz has no $file"; exit 1; }
+          done
+          # Its tasks and keys, which scripts/install.sh adds to Zed's.
+          cp editors/zed/tasks.json org-lsp-zed-tasks.json
+          cp editors/zed/keymap.json org-lsp-zed-keymap.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: org-lsp-zed
+          path: org-lsp-zed*
+          if-no-files-found: error
+
   publish:
-    needs: build
+    needs: [build, zed]
     # The platforms that built, also when one failed.
     if: ${{ !cancelled() && (github.event_name == 'push' || github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
@@ -107,6 +141,11 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+      - name: Package the Sublime Text package and the install script
+        run: |
+          (cd editors/sublime && zip -qr "$GITHUB_WORKSPACE/dist/org-lsp-sublime.zip" LSP-org -x '*__pycache__*')
+          cp scripts/install.sh dist/install.sh
+          (cd dist && sha256sum -- * > SHA256SUMS)
       - name: Publish
         shell: bash
         env:
@@ -120,7 +159,7 @@ jobs:
           # nightly: the tag moves to this commit, the files are replaced.
           git tag -f nightly "$GITHUB_SHA"
           git push -f origin refs/tags/nightly
-          notes="Built from $GITHUB_SHA on $(date -u '+%Y-%m-%d %H:%M UTC'). Install the VS Code extension with scripts/install-vscode.sh."
+          notes="Built from $GITHUB_SHA on $(date -u '+%Y-%m-%d %H:%M UTC'). Neovim and Vim download the server themselves; install.sh installs it for VS Code, Sublime Text, Zed and Helix."
           if gh release view nightly > /dev/null 2>&1; then
             gh release edit nightly --prerelease --title "Nightly" --notes "$notes"
           else

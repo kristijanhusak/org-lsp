@@ -6,6 +6,7 @@ endif
 let g:loaded_org_lsp = 1
 
 command! -nargs=* -complete=customlist,org_lsp#complete Org call org_lsp#user_command(<f-args>)
+command! OrgLspDownload call org_lsp#download()
 
 augroup org_lsp
   autocmd!

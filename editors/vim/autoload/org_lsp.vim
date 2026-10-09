@@ -14,6 +14,8 @@ let s:root = fnamemodify(expand('<sfile>:p'), ':h:h:h:h')
 
 let s:defaults = {
       \ 'cmd': [],
+      \ 'download': 1,
+      \ 'release': 'nightly',
       \ 'settings': {},
       \ 'client': 'auto',
       \ 'folding': 1,
@@ -57,7 +59,8 @@ function! org_lsp#config() abort
 endfunction
 
 " The server command: the configured one, a build inside the plugin's
-" checkout, or `org-lsp` on PATH; empty when there is none.
+" checkout, `org-lsp` on PATH, or the downloaded one; empty when there is
+" none.
 function! org_lsp#server_command() abort
   let cmd = org_lsp#config().cmd
   if !empty(cmd)
@@ -70,7 +73,11 @@ function! org_lsp#server_command() abort
       return [built]
     endif
   endfor
-  return executable('org-lsp') ? ['org-lsp'] : []
+  if executable('org-lsp')
+    return ['org-lsp']
+  endif
+  let downloaded = org_lsp#download#path()
+  return executable(downloaded) ? [downloaded] : []
 endfunction
 
 " What the server says about itself; empty without a server.
@@ -136,19 +143,49 @@ function! s:call(name, ...) abort
   return call('org_lsp#adapter#' . org_lsp#adapter() . '#' . a:name, a:000)
 endfunction
 
-" Register the server with the client. Called once, after the plugins load.
+" Register the server with the client. Called once, after the plugins
+" load, or once the server is downloaded.
 function! org_lsp#register() abort
-  if empty(org_lsp#adapter())
+  if empty(org_lsp#adapter()) || get(s:, 'registered', 0)
     return
   endif
   let cmd = org_lsp#server_command()
   if empty(cmd)
     return
   endif
+  let s:registered = 1
   let manifest = org_lsp#manifest()
   let filetypes = ['org', get(get(manifest, 'agenda', {}), 'languageId', 'org-agenda'),
         \ get(get(manifest, 'datePrompt', {}), 'languageId', 'org-date')]
   call s:call('register', cmd, org_lsp#init_options(), filetypes)
+endfunction
+
+" `:OrgLspDownload`, and the first Org file without a server: download the
+" server of the `release` option. The server is registered with the
+" client, and starts for the Org buffers open, when there was none before;
+" a server that runs already is replaced the next time Vim starts.
+function! org_lsp#download() abort
+  call org_lsp#download#run(org_lsp#config().release, {path -> s:downloaded()})
+endfunction
+
+function! s:downloaded() abort
+  if get(s:, 'registered', 0)
+    echomsg 'org-lsp: the new server runs the next time Vim starts'
+    return
+  endif
+  unlet! s:manifest
+  call org_lsp#register()
+  call org_lsp#set_keys('global')
+  " The FileType event again, for the client to start the server for them
+  " and for this plugin to attach.
+  let manifest = org_lsp#manifest()
+  let filetypes = ['org', get(get(manifest, 'agenda', {}), 'languageId', 'org-agenda')]
+  for info in getbufinfo({'bufloaded': 1})
+    let filetype = getbufvar(info.bufnr, '&filetype')
+    if index(filetypes, filetype) >= 0
+      call setbufvar(info.bufnr, '&filetype', filetype)
+    endif
+  endfor
 endfunction
 
 " How the client counts characters in positions: 'utf-16', 'utf-8' or
@@ -2262,7 +2299,13 @@ endfunction
 
 " Set up an Org buffer, the agenda, or a capture buffer.
 function! org_lsp#attach() abort
-  if empty(org_lsp#manifest()) || exists('b:org_lsp_attached')
+  if empty(org_lsp#manifest())
+    if org_lsp#config().download && empty(org_lsp#server_command()) && !org_lsp#download#running()
+      call org_lsp#download()
+    endif
+    return
+  endif
+  if exists('b:org_lsp_attached')
     return
   endif
   let b:org_lsp_attached = 1

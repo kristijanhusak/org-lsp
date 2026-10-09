@@ -1,7 +1,8 @@
 //! Zed extension for the org-lsp language server.
 //!
-//! Starts `org-lsp` for Org files: the one on PATH, or the nightly build,
-//! downloaded once. The server's options come from Zed's `lsp.org-lsp`
+//! Starts `org-lsp` for Org files: the one `scripts/install.sh` put beside
+//! the extension, the one on PATH, or else the nightly build, downloaded
+//! once. The server's options come from Zed's `lsp.org-lsp`
 //! settings. Zed cannot run a server's command from a key, so the commands
 //! are in its code actions (the agenda and capture among them), and what
 //! they ask for is asked with buttons; questions that want typed text (a
@@ -78,6 +79,15 @@ impl zed::Extension for OrgLsp {
         if let Some(path) = configured.as_ref().and_then(|binary| binary.path.clone()) {
             let args = configured.and_then(|binary| binary.arguments).unwrap_or_default();
             return Ok(zed::Command { command: path, args, env: Default::default() });
+        }
+        // scripts/install.sh puts the server in the extension's directory,
+        // which relative paths are in.
+        let installed = match zed::current_platform().0 {
+            zed::Os::Windows => "org-lsp.exe",
+            _ => "org-lsp",
+        };
+        if fs::metadata(installed).is_ok_and(|stat| stat.is_file()) {
+            return Ok(zed::Command { command: installed.to_string(), args: Vec::new(), env: Default::default() });
         }
         let command = match worktree.which("org-lsp") {
             Some(path) => path,

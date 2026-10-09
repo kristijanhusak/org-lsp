@@ -16,7 +16,7 @@ its sections says what it should look like.
 
 * Setup
 
-- [ ] ~editors/helix/languages.toml~ added to =~/.config/helix/languages.toml=, ~org-lsp~ on PATH: ~:lsp-restart~ starts it
+- [ ] Installed with ~install.sh helix~: Org is in =~/.config/helix/languages.toml=, and an Org file starts the server
 - [ ] Code actions (~Space a~) list the Org commands where they apply
 - [ ] Inlay hints show with ~display-inlay-hints = true~
 

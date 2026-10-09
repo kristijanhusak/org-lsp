@@ -25,7 +25,9 @@ from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][night
 ~:OrgLspDownload~ downloads it again, to update it, and the ~build~ above
 does that on each update of the plugin. ~release = 'v0.2.0'~ picks a
 release instead of the nightly build, and ~download = false~ turns the
-download off.
+download off. A release that needs a GitHub login, as one of a private
+repository, is downloaded with the GitHub CLI (~gh~) when it is installed
+and logged in.
 
 To build the server instead (with [[https://rustup.rs][cargo]]), set
 ~build = 'cargo build --release -p org-lsp'~, or run ~:OrgLspBuild~. A
