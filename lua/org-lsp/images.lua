@@ -25,10 +25,29 @@ local files = {}
 --- about twice as high as wide.
 local guess = { width = 10, height = 20 }
 
---- The terminal's size in pixels and in cells (`TIOCGWINSZ`), through the
---- terminal Neovim runs in: the size of a cell, so that images keep their
---- proportions. None where the terminal does not say (zero pixels) or
---- cannot be asked.
+--- The terminals Neovim may run in: its own, and with a UI (`nvim` in a
+--- terminal runs the editor in a child process, which has none) the one
+--- of the UI, its parent.
+---@return string[]
+local function terminals()
+  local paths = { '/dev/tty' }
+  local parent = vim.uv.os_getppid()
+  local linked = vim.uv.fs_readlink('/proc/' .. parent .. '/fd/0')
+  if linked and linked:match('^/dev/') then
+    table.insert(paths, linked)
+  elseif vim.fn.executable('ps') == 1 then
+    local found = vim.system({ 'ps', '-o', 'tty=', '-p', tostring(parent) }, { text = true }):wait()
+    local name = vim.trim(found.stdout or '')
+    if found.code == 0 and name ~= '' and name ~= '?' and name ~= '??' then
+      table.insert(paths, '/dev/' .. name)
+    end
+  end
+  return paths
+end
+
+--- The terminal's size in pixels and in cells (`TIOCGWINSZ`): the size of a
+--- cell, so that images take the cells they show in. None where the
+--- terminal does not say (zero pixels) or cannot be asked.
 ---@return { width: number, height: number }?
 local function measured_cell()
   local ok, ffi = pcall(require, 'ffi')
@@ -46,17 +65,19 @@ local function measured_cell()
   )
   local TIOCGWINSZ = ffi.os == 'OSX' and 0x40087468 or 0x5413
   -- O_RDONLY, O_NOCTTY: asking, not taking the terminal.
-  local fd = ffi.C.open('/dev/tty', ffi.os == 'OSX' and 0x20000 or 0x100)
-  if fd < 0 then
-    return nil
+  local flags = ffi.os == 'OSX' and 0x20000 or 0x100
+  for _, path in ipairs(terminals()) do
+    local fd = ffi.C.open(path, flags)
+    if fd >= 0 then
+      local size = ffi.new('struct org_lsp_winsize')
+      local got = ffi.C.ioctl(fd, TIOCGWINSZ, size)
+      ffi.C.close(fd)
+      if got == 0 and size.cols > 0 and size.rows > 0 and size.xpixel > 0 and size.ypixel > 0 then
+        return { width = size.xpixel / size.cols, height = size.ypixel / size.rows }
+      end
+    end
   end
-  local size = ffi.new('struct org_lsp_winsize')
-  local got = ffi.C.ioctl(fd, TIOCGWINSZ, size)
-  ffi.C.close(fd)
-  if got ~= 0 or size.cols == 0 or size.rows == 0 or size.xpixel == 0 or size.ypixel == 0 then
-    return nil
-  end
-  return { width = size.xpixel / size.cols, height = size.ypixel / size.rows }
+  return nil
 end
 
 --- The size of a cell in pixels: `images.cell` if set, else as the
@@ -140,19 +161,27 @@ local function load(path)
   return files[key] or nil
 end
 
---- How many cells an image of `file` takes in a window `available`
---- columns wide.
+--- How an image of `file` shows in a window `available` columns wide:
+--- the cells it takes, and the one side the terminal is told to scale it
+--- to (`{ width = n }` or `{ height = n }`), when it is larger than
+--- `max_width` and `max_height` allow. An image is never given both: the
+--- terminal keeps its proportions, at its own size in pixels where it fits,
+--- rather than stretching it over whole cells.
+---@return integer width, integer height, table scale
 local function cells(file, available)
   local cell = cell_size()
-  local width = math.max(1, math.ceil(file.width / cell.width))
-  width = math.min(width, config().max_width or 80, math.max(1, available))
-  local height = math.max(1, math.ceil(width * cell.width * file.height / file.width / cell.height))
-  local most = config().max_height or 20
-  if height > most then
-    width = math.max(1, math.floor(width * most / height))
-    height = most
+  local columns, rows = file.width / cell.width, file.height / cell.height
+  local most_columns = math.max(1, math.min(config().max_width or 80, available))
+  local most_rows = config().max_height or 20
+  if columns <= most_columns and rows <= most_rows then
+    return math.max(1, math.ceil(columns)), math.max(1, math.ceil(rows)), {}
   end
-  return width, height
+  if most_columns / columns <= most_rows / rows then
+    local width = math.max(1, math.floor(most_columns))
+    return width, math.max(1, math.ceil(rows * width / columns)), { width = width }
+  end
+  local height = math.max(1, math.floor(most_rows))
+  return math.max(1, math.ceil(columns * height / rows)), height, { height = height }
 end
 
 local function hide(entry, win)
@@ -210,7 +239,7 @@ function M.render(bufnr)
           or 0
         local fits = visible and top + entry.height - 1 <= info.winrow + info.height - 1
         if fits then
-          local opts = { row = top, col = info.wincol + info.textoff, width = entry.width, height = entry.height }
+          local opts = vim.tbl_extend('force', { row = top, col = info.wincol + info.textoff }, entry.scale)
           if entry.ids[win] then
             local now = vim.ui.img.get(entry.ids[win])
             if not now or now.row ~= opts.row or now.col ~= opts.col then
@@ -324,7 +353,7 @@ local function add(bufnr, kind, range, path)
   end
   local win = vim.fn.bufwinid(bufnr)
   local info = win ~= -1 and vim.fn.getwininfo(win)[1] or { width = vim.o.columns, textoff = 0 }
-  local width, height = cells(file, info.width - info.textoff - 1)
+  local width, height, scale = cells(file, info.width - info.textoff - 1)
   local lines = {}
   for _ = 1, height do
     table.insert(lines, { { '' } })
@@ -343,7 +372,7 @@ local function add(bufnr, kind, range, path)
   local mark = vim.api.nvim_buf_get_extmark_by_id(bufnr, namespace, id, { details = true })
   local text = table.concat(vim.api.nvim_buf_get_text(bufnr, mark[1], mark[2], mark[3].end_row, mark[3].end_col, {}), '\n')
   shown[bufnr] = shown[bufnr] or {}
-  shown[bufnr][id] = { kind = kind, path = path, width = width, height = height, ids = {}, text = text }
+  shown[bufnr][id] = { kind = kind, path = path, width = width, height = height, scale = scale, ids = {}, text = text }
   return true
 end
 

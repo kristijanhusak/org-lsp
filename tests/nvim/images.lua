@@ -79,11 +79,12 @@ local list = previews.list(bufnr)
 eq(#list, 1, 'one preview')
 eq({ list[1].kind, list[1].path, list[1].line }, { 'link', png, 2 }, 'the link of line 3')
 local image = drawn[next_id]
-eq({ image.width, image.height }, { 20, 5 }, 'a size that keeps its proportions, in cells')
+eq({ list[1].width, list[1].height }, { 20, 5 }, 'the cells of its size in pixels')
+eq({ image.width, image.height }, { nil, nil }, 'drawn at its own size, its proportions kept')
 local link_row = vim.fn.screenpos(0, 3, 1).row
 eq(image.row, link_row + 1, 'on the line below the link')
 -- Lines are kept free for it: the next line of text shows below it.
-eq(vim.fn.screenpos(0, 4, 1).row, link_row + 1 + image.height, 'the text goes on below the picture')
+eq(vim.fn.screenpos(0, 4, 1).row, link_row + 1 + list[1].height, 'the text goes on below the picture')
 
 -- 2. On the link, the key takes the picture away, and shows it again.
 vim.api.nvim_win_set_cursor(0, { 3, 2 })
@@ -131,7 +132,37 @@ wait('no picture', function()
   return #previews.list(bufnr) == 0 and images() == 0
 end)
 
--- 6. An `attachment:` link: the file in the entry's attachment directory,
+-- 6. Wider than `max_width`: only its width is given, the terminal keeps
+-- its proportions, and the lines below are those it then takes.
+local wide = directory .. '/wide.png'
+check(vim.system({ 'convert', '-size', '800x100', 'xc:blue', wide }):wait().code == 0, 'a wide picture')
+vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { '* Wide', '[[file:wide.png]]' })
+vim.api.nvim_win_set_cursor(0, { vim.api.nvim_buf_line_count(bufnr), 3 })
+require('org-lsp').run('org.link.preview')
+wait('the wide picture', function()
+  return vim.iter(previews.list(bufnr)):any(function(entry)
+    return entry.path == wide
+  end)
+end)
+local scaled = vim.iter(previews.list(bufnr)):find(function(entry)
+  return entry.path == wide
+end)
+eq({ scaled.width, scaled.height }, { 40, 3 }, 'as wide as it may be, as high as that makes it')
+wait('the wide picture drawn', function()
+  return vim.iter(vim.tbl_values(drawn)):any(function(opts)
+    return opts.width == 40
+  end)
+end)
+local opts = vim.iter(vim.tbl_values(drawn)):find(function(opts)
+  return opts.width == 40
+end)
+eq(opts.height, nil, 'its height left to the terminal')
+require('org-lsp').run('org.link.preview', { count = 64 })
+wait('no picture again', function()
+  return #previews.list(bufnr) == 0
+end)
+
+-- 7. An `attachment:` link: the file in the entry's attachment directory,
 -- as Emacs finds it (`org-attach-expand`).
 if vim.fn.executable('emacs') == 1 then
   local attached = directory .. '/data'
