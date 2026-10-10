@@ -1,0 +1,54 @@
+{
+  "today": "2026-10-10",
+  "now": "11:00",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "todo"
+    }
+  ],
+  "options": {
+    "org_modules": [
+      "org-habit"
+    ],
+    "org_super_agenda_mode": true,
+    "org_super_agenda_groups": [
+      {
+        "effort<": "0:30"
+      },
+      {
+        "effort>": "1:00"
+      },
+      {
+        "children": "todo"
+      },
+      {
+        "children": [
+          "WAIT"
+        ]
+      },
+      {
+        "children": true
+      },
+      {
+        "name": "Owned",
+        "property": "OWNER"
+      },
+      {
+        "property": [
+          "OWNER",
+          "bob"
+        ]
+      },
+      {
+        "category": "money"
+      },
+      {
+        "habit": true
+      }
+    ]
+  }
+}

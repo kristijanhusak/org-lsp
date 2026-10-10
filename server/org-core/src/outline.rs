@@ -111,6 +111,9 @@ pub struct Entry {
     /// Whether the syntax tree has a done keyword. The two views differ
     /// when tabs surround the keyword.
     pub element_done: bool,
+    /// The keyword of the syntax tree (`:todo-keyword`), which deadlines
+    /// and scheduled items take their `todo-state` from.
+    pub element_todo: Option<String>,
     /// File tags, then tags of parents, then the entry's own. A tag that
     /// appears more than once is kept at its most local position.
     pub tags: Vec<Tag>,
@@ -444,7 +447,8 @@ impl Outline {
             })
             .map(str::to_string);
         let done = todo.as_deref().is_some_and(|word| self.todo.is_done(word));
-        let element_done = headline.todo_keyword().is_some_and(|token| self.todo.is_done(token.text()));
+        let element_todo = headline.todo_keyword().map(|token| token.text().to_string());
+        let element_done = element_todo.as_deref().is_some_and(|word| self.todo.is_done(word));
 
         let own_tags = headline.tags();
         let archived = own_tags.iter().any(|tag| tag == ARCHIVE_TAG);
@@ -490,6 +494,7 @@ impl Outline {
             todo,
             done,
             element_done,
+            element_todo,
             tags: deduped,
             category: shown_category(&category),
             commented,
@@ -702,9 +707,19 @@ fn token_text(node: &SyntaxNode, kind: SyntaxKind) -> Option<String> {
 /// it (its fourth group), as a byte range of `line`.
 ///
 /// Org's commands use this expression rather than the parser. It wants
-/// spaces, not tabs, before the keyword and the priority, takes any single
-/// character as a priority, and only sees a cookie right after the keyword.
+/// spaces, not tabs, before the keyword and the priority, takes a cookie
+/// of `org-priority-value-regexp` matched with case (a capital letter or a
+/// number up to 64), and only sees a cookie right after the keyword.
 pub(crate) fn complex_heading_title(line: &str, level: usize, todo: &TodoKeywords) -> Option<(usize, usize)> {
+    complex_heading_parts(line, level, todo).1
+}
+
+/// A part of a line, as a byte range.
+type Span = Option<(usize, usize)>;
+
+/// The priority cookie (the third group, `[#A]`) and the title (the
+/// fourth) of `org-complex-heading-regexp`, as byte ranges of `line`.
+pub(crate) fn complex_heading_parts(line: &str, level: usize, todo: &TodoKeywords) -> (Span, Span) {
     // What may end the line after any of the parts: blanks, with tags or without.
     let is_tail = |rest: &str| {
         let trimmed = rest.trim_end_matches([' ', '\t']);
@@ -719,23 +734,34 @@ pub(crate) fn complex_heading_title(line: &str, level: usize, todo: &TodoKeyword
         pos = word + keyword.len();
     }
     let cookie = pos + spaces(pos);
+    let mut priority = None;
     if cookie > pos {
+        // `org-priority-value-regexp`: `[A-Z]`, `[0-9]`, `[1-5][0-9]`
+        // or `6[0-4]`, matched with case.
         if let Some(rest) = line[cookie..].strip_prefix("[#") {
-            let mut chars = rest.chars();
-            if chars.next().is_some() && chars.next() == Some(']') && follows(chars.as_str()) {
-                pos = line.len() - chars.as_str().len();
+            let bytes = rest.as_bytes();
+            let value = match (bytes.first(), bytes.get(1)) {
+                (Some(b'A'..=b'Z' | b'0'..=b'9'), Some(b']')) => 1,
+                (Some(b'1'..=b'5'), Some(b'0'..=b'9')) | (Some(b'6'), Some(b'0'..=b'4')) => 2,
+                _ => 0,
+            };
+            if let Some(after) = rest.get(value..).filter(|_| value > 0).and_then(|rest| rest.strip_prefix(']')) {
+                if follows(after) {
+                    pos = line.len() - after.len();
+                    priority = Some((cookie, pos));
+                }
             }
         }
     }
     if is_tail(&line[pos..]) {
-        return None;
+        return (priority, None);
     }
     let start = pos + spaces(pos);
     let end = match crate::text::tag_group(&line[start..]) {
         Some((blanks, _)) => start + blanks,
         None => line.trim_end_matches([' ', '\t']).len(),
     };
-    (end > start).then_some((start, end))
+    (priority, (end > start).then_some((start, end)))
 }
 
 /// The properties of a drawer, keys without colons and in upper case.

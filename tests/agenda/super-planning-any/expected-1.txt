@@ -1,0 +1,20 @@
+Global list of TODO items of type: ALL
+
+ Deadline items
+  money:      TODO [#A] Pay bills                                  :home::bills:
+  tasks:      WAIT Get quote                                       :home:house::
+  tasks:      TODO [#C] Read book                                        :home::
+
+ Unscheduled items 
+  tasks:      PROJECT Renovate kitchen                             :home::house:
+  tasks:      PROJECT Garden                                             :home::
+  tasks:      PROJECT Shed                                               :home::
+
+ Other items
+  tasks:      TODO Buy tiles                                       :home:house::
+  tasks:      NEXT [#B] Call plumber                               :home:house::
+  tasks:      NEXT Write report                                     :home::work:
+  tasks:      TODO Exercise                                              :home::
+  tasks:      TODO Errand at the store                    :home::shopping:@town:
+  tasks:      TODO Paint shed                                            :home::
+  trip:       TODO [#B] Plan trip                                       :travel:

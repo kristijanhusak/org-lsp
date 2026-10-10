@@ -1,0 +1,3 @@
+* TODO [#B] Plan trip :travel:
+SCHEDULED: <2026-10-11 Sun>
+* WAIT Answer from Ann

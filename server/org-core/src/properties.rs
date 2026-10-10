@@ -603,7 +603,7 @@ pub fn allowed(text: &str, offset: usize, name: &str, context: &Context) -> Resu
 }
 
 /// `org-priority-to-string`
-fn priority_string(value: i64) -> String {
+pub(crate) fn priority_string(value: i64) -> String {
     if value < 65 {
         value.to_string()
     } else {

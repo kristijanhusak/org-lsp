@@ -1,0 +1,32 @@
+Global list of TODO items of type: ALL
+
+ Priority: A
+  money:      TODO [#A] Pay bills                                  :home::bills:
+
+ Priority: B
+  tasks:      NEXT [#B] Call plumber                               :home:house::
+  trip:       TODO [#B] Plan trip                                       :travel:
+
+ Priority: C
+  tasks:      TODO [#C] Read book                                        :home::
+
+ Call plumber
+  tasks:      WAIT Get quote                                       :home:house::
+
+ Garden
+  tasks:      PROJECT Shed                                               :home::
+
+ Habits
+  tasks:      TODO Exercise                                              :home::
+
+ Renovate kitchen
+  tasks:      TODO Buy tiles                                       :home:house::
+
+ Shed
+  tasks:      TODO Paint shed                                            :home::
+
+ Top-level headings
+  tasks:      PROJECT Renovate kitchen                             :home::house:
+  tasks:      NEXT Write report                                     :home::work:
+  tasks:      TODO Errand at the store                    :home::shopping:@town:
+  tasks:      PROJECT Garden                                             :home::

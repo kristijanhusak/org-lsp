@@ -1,0 +1,24 @@
+Day-agenda (W41):
+Saturday   10 October 2026
+
+ Last 1 Scheduled today
+  tasks:      TODO Exercise                                  !           :home::
+
+ A
+  tasks:      14:00-15:00 Meeting with team                 :home::work:meeting:
+  tasks:      Sched. 1x:  NEXT Write report                         :home::work:
+
+ B
+  tasks:      In   4 d.:  WAIT Get quote                           :home:house::
+
+ Other items
+               8:00...... ----------------
+              10:00...... ----------------
+              11:00...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  money:       2 d. ago:  TODO [#A] Pay bills                      :home::bills:
+  tasks:      In  10 d.:  TODO [#C] Read book                            :home::

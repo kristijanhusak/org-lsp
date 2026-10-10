@@ -1,0 +1,8 @@
+Headlines with TAGS match: work|bills
+
+ Work
+  tasks:      NEXT Write report                                     :home::work:
+  tasks:      Meeting with team                             :home::work:meeting:
+
+ To-do: TODO
+  money:      TODO [#A] Pay bills                                  :home::bills:

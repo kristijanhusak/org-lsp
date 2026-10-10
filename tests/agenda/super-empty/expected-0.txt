@@ -1,0 +1,4 @@
+Global list of TODO items of type: ALL
+
+ Work
+  tasks:      NEXT Write report                                     :home::work:

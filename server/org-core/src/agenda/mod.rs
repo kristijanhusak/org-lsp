@@ -17,6 +17,7 @@ mod item;
 pub mod matcher;
 pub mod report;
 pub mod search;
+pub mod super_agenda;
 
 pub use search::SearchSettings;
 
@@ -208,6 +209,11 @@ pub struct Config {
     /// The width of the window the agenda is shown in, in columns, when
     /// the editor says: where `TagsColumn::Auto` aligns tags.
     pub window_width: Option<usize>,
+    /// org-super-agenda, when `org-super-agenda-mode` is on.
+    pub super_agenda: Option<super_agenda::Settings>,
+    /// The paths of the files a view is made from, by their index, for
+    /// what looks at them (org-super-agenda's `:file-path`).
+    pub file_paths: Vec<String>,
     /// `org-agenda-use-time-grid`
     pub use_time_grid: bool,
     /// `org-agenda-time-grid` and `org-agenda-current-time-string`
@@ -374,6 +380,8 @@ impl Default for Config {
             show_all_dates: true,
             tags_column: TagsColumn::Auto,
             window_width: None,
+            super_agenda: None,
+            file_paths: Vec::new(),
             use_time_grid: true,
             time_grid: TimeGrid::default(),
             show_current_time_in_grid: true,
@@ -552,6 +560,8 @@ impl Builder<'_> {
             keyword_done,
             habit: None,
             graph: None,
+            ts_date: None,
+            log: None,
         }
     }
 
@@ -630,6 +640,7 @@ impl Builder<'_> {
             let time = planning_time(raw, current != deadline && current != repeat);
             let mut item = self.item(file, index, ItemKind::Deadline, face, &extra, time.as_dotime());
             item.marker = Some(planning.offset);
+            item.ts_date = Some(deadline);
             // Overdue deadlines sort first, then the most imminent ones.
             item.priority += if is_today { -diff } else { 0 };
             out.push(item);
@@ -732,6 +743,7 @@ impl Builder<'_> {
             let time = planning_time(raw, !is_habit && current != schedule && current != repeat);
             let mut item = self.item(file, index, ItemKind::Scheduled, face, &extra, time.as_dotime());
             item.marker = Some(planning.offset);
+            item.ts_date = Some(schedule);
             match is_habit.then(|| self.habit(file, index, Some(raw))).flatten() {
                 Some(habit) => {
                     item.priority = habit.urgency(self.today);
@@ -807,6 +819,7 @@ impl Builder<'_> {
                     Dotime::Text(&shown.text),
                 );
                 item.marker = Some(stamp.offset);
+                item.ts_date = Some(current);
                 out.push(item);
                 continue;
             }
@@ -839,6 +852,11 @@ impl Builder<'_> {
             let mut item =
                 self.item(file, shown.entry, ItemKind::Timestamp, Face::CalendarEvent, "", Dotime::Text(&shown.text));
             item.marker = Some(stamp.offset);
+            // A repeater's own day (`org-agenda--timestamp-to-absolute`, a
+            // time past 24:00 counting for the next day), or else the day
+            // shown.
+            let own = if repeats { time_string_to_day(&shown.text) } else { None };
+            item.ts_date = Some(own.unwrap_or(current));
             // A habit's urgency (`org-habit-get-urgency`).
             if self.is_habit(file, shown.entry) {
                 let scheduled = outline.entries[shown.entry].scheduled.as_ref().map(|planning| planning.raw.as_str());
@@ -912,6 +930,12 @@ impl Builder<'_> {
                 keyword_done,
                 habit: None,
                 graph: None,
+                ts_date: None,
+                log: Some(match log.kind {
+                    LogKind::Closed => "closed",
+                    LogKind::Clock(_) => "clock",
+                    LogKind::State(_) => "state",
+                }),
             });
         }
     }
@@ -965,6 +989,8 @@ impl Builder<'_> {
                 keyword_done: false,
                 habit: None,
                 graph: None,
+                ts_date: None,
+                log: None,
             }
         };
         // Org builds this list back to front, and the order decides ties.
@@ -1034,15 +1060,46 @@ fn planning_time(raw: &str, reminder: bool) -> PlanningTime {
 /// last (`habit-down`), then by time (lines without one last); then by
 /// urgency, highest first.
 fn sort(items: &mut [Item], by_time: bool) {
-    items.sort_by(|a, b| {
-        let time = |item: &Item| item.time_of_day.unwrap_or(9901);
-        let by_time = if by_time {
-            a.habit.is_some().cmp(&b.habit.is_some()).then(time(a).cmp(&time(b)))
-        } else {
-            std::cmp::Ordering::Equal
-        };
-        by_time.then(b.priority.cmp(&a.priority))
-    });
+    items.sort_by(|a, b| compare(a, b, by_time));
+}
+
+/// `org-entries-lessp`, as [`sort`] uses it.
+fn compare(a: &Item, b: &Item, by_time: bool) -> std::cmp::Ordering {
+    let time = |item: &Item| item.time_of_day.unwrap_or(9901);
+    let by_time = if by_time {
+        a.habit.is_some().cmp(&b.habit.is_some()).then(time(a).cmp(&time(b)))
+    } else {
+        std::cmp::Ordering::Equal
+    };
+    by_time.then(b.priority.cmp(&a.priority))
+}
+
+/// `org-agenda-finalize-entries`: the lines of sorted `items`, in the
+/// groups of org-super-agenda when it is on.
+/// `today` is the day the groups compare dates with, `graph_today` the one
+/// habits' graphs are drawn for.
+fn finalize(
+    items: Vec<Item>,
+    files: &[&Outline],
+    config: &Config,
+    (today, graph_today): (Day, Day),
+    sorting: Option<bool>,
+) -> Result<Vec<Line>, String> {
+    let line = |item: Item| item_line(item, config, graph_today);
+    let Some(settings) = &config.super_agenda else {
+        return Ok(items.into_iter().map(line).collect());
+    };
+    let grouper = super_agenda::Grouper::new(files, config, settings, today, sorting);
+    let mut lines: Vec<Line> = Vec::new();
+    for grouped in grouper.group(items)? {
+        match grouped {
+            super_agenda::Grouped::Item(item) => lines.push(line(item)),
+            super_agenda::Grouped::Header { text, faced } => {
+                lines.push(Line { text, kind: LineKind::Group { faced }, item: None })
+            }
+        }
+    }
+    Ok(lines)
 }
 
 /// The entries shown for `current`, sorted, without the time grid.
@@ -1094,6 +1151,9 @@ pub enum LineKind {
     Table,
     /// Text of the entry of the item line above it (`E`).
     EntryText,
+    /// A line of the header of a group of org-super-agenda, in the
+    /// header's face from `faced` on.
+    Group { faced: usize },
 }
 
 /// One line of a rendered view.
@@ -1257,24 +1317,49 @@ pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, co
         });
         builder.add_time_grid(&mut items, ndays, is_today, now.minute);
         sort(&mut items, true);
-        lines.extend(items.into_iter().map(|item| item_line(item, config, now.today)));
+        match finalize(items, files, config, (now.today, now.today), Some(true)) {
+            Ok(finalized) => lines.extend(finalized),
+            Err(error) => {
+                builder.error.borrow_mut().get_or_insert(error);
+            }
+        }
     }
-    // A habit Org cannot read stops the agenda, with why.
+    // A habit Org cannot read stops the agenda, with why; so does a group
+    // org-super-agenda cannot make.
     if let Some(error) = builder.error.take() {
         lines = vec![Line { text: error, kind: LineKind::Header, item: None }];
     }
     View { lines, start, end: last + 1 }
 }
 
+/// The lines of a view that is no agenda: `lines` (its header), then those
+/// of its sorted `items`; or only what stops it, a group org-super-agenda
+/// cannot make.
+fn listed(
+    mut lines: Vec<Line>,
+    items: Vec<Item>,
+    files: &[&Outline],
+    config: &Config,
+    (today, sorting): (Day, Option<bool>),
+) -> Vec<Line> {
+    match finalize(items, files, config, (today, 0), sorting) {
+        Ok(finalized) => {
+            lines.extend(finalized);
+            lines
+        }
+        Err(error) => vec![Line { text: error, kind: LineKind::Header, item: None }],
+    }
+}
+
 /// `org-todo-list`: the global list of open TODO entries, or of the
 /// entries with one of the keywords of `keywords` (`NEXT|WAIT`).
-pub fn todo_view(files: &[&Outline], keywords: Option<&str>, config: &Config) -> View {
+pub fn todo_view(files: &[&Outline], keywords: Option<&str>, now: Now, config: &Config) -> View {
     let wanted: Option<Vec<String>> =
         keywords.filter(|text| !text.trim().is_empty()).map(|text| text.split('|').map(str::to_string).collect());
     let shown = wanted.as_ref().map_or("ALL".to_string(), |keywords| keywords.join("|"));
     let header = format!("Global list of TODO items of type: {shown}");
-    let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    lines.extend(todo_items(files, wanted.as_deref(), config).into_iter().map(|item| item_line(item, config, 0)));
+    let lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
+    let lines = listed(lines, todo_items(files, wanted.as_deref(), config), files, config, (now.today, Some(false)));
     View { lines, start: 0, end: 0 }
 }
 
@@ -1295,8 +1380,8 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
     }
     sort(&mut items, false);
     let header = format!("Headlines with TAGS match: {}", matcher.text);
-    let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    lines.extend(items.into_iter().map(|item| item_line(item, config, 0)));
+    let lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
+    let lines = listed(lines, items, files, config, (now.today, Some(false)));
     View { lines, start: 0, end: 0 }
 }
 
@@ -1373,8 +1458,8 @@ pub fn stuck_view(files: &[&Outline], now: Now, config: &Config) -> Result<View,
         }
     }
     sort(&mut items, false);
-    let mut lines = vec![Line { text: "List of stuck projects: ".to_string(), kind: LineKind::Header, item: None }];
-    lines.extend(items.into_iter().map(|item| item_line(item, config, 0)));
+    let lines = vec![Line { text: "List of stuck projects: ".to_string(), kind: LineKind::Header, item: None }];
+    let lines = listed(lines, items, files, config, (now.today, Some(false)));
     Ok(View { lines, start: 0, end: 0 })
 }
 
@@ -1424,7 +1509,7 @@ pub fn search_view(
                 && (!search.todo_only || todo.is_match(seen))
                 && search.plus.iter().all(|pattern| pattern.is_match(seen));
             let resume = if wanted {
-                items.push(builder.item(file, entry, ItemKind::Todo, Face::Default, "", Dotime::Headline));
+                items.push(builder.item(file, entry, ItemKind::Search, Face::Default, "", Dotime::Headline));
                 before_end.max(last_end)
             } else {
                 before_end
@@ -1439,8 +1524,8 @@ pub fn search_view(
     // Every line has the same priority (1000), and `category-keep` keeps
     // the order: as found.
     let header = format!("Search words: {string}");
-    let mut lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    lines.extend(items.into_iter().map(|item| item_line(item, config, 0)));
+    let lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
+    let lines = listed(lines, items, files, config, (now.today, None));
     Ok(View { lines, start: 0, end: 0 })
 }
 
@@ -1484,7 +1569,7 @@ pub fn block_separator(config: &Config) -> Vec<Line> {
 }
 
 /// `%e`: the entry's effort (`org-effort-property`).
-fn effort(entry: &Entry) -> Option<&str> {
+pub(crate) fn effort(entry: &Entry) -> Option<&str> {
     entry.properties.iter().find(|(name, _)| name == "EFFORT").map(|(_, value)| value.as_str())
 }
 

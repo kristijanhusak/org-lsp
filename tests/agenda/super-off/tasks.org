@@ -1,0 +1,54 @@
+#+TODO: TODO NEXT WAIT PROJECT | DONE CANCELLED
+#+FILETAGS: :home:
+* PROJECT Renovate kitchen :house:
+:PROPERTIES:
+:agenda-group: Home
+:OWNER: alice
+:END:
+** TODO Buy tiles
+SCHEDULED: <2026-10-10 Sat>
+:PROPERTIES:
+:Effort: 0:30
+:END:
+** NEXT [#B] Call plumber
+SCHEDULED: <2026-10-10 Sat 09:00>
+*** WAIT Get quote
+DEADLINE: <2026-10-14 Wed>
+Notes from <2026-10-03 Sat> and [2026-10-06 Tue 18:00].
+* TODO [#A] Pay bills :bills:
+DEADLINE: <2026-10-08 Thu>
+:PROPERTIES:
+:Effort: 0:10
+:CATEGORY: money
+:END:
+* NEXT Write report :work:
+SCHEDULED: <2026-10-09 Fri>
+:PROPERTIES:
+:Effort: 2:00
+:OWNER: bob
+:END:
+Talk about the moon landing.
+:LOGBOOK:
+CLOCK: [2026-10-10 Sat 07:00]--[2026-10-10 Sat 07:45] =>  0:45
+:END:
+* DONE Old task
+CLOSED: [2026-10-10 Sat 08:00] SCHEDULED: <2026-10-10 Sat>
+- State "DONE"       from "TODO"       [2026-10-10 Sat 08:00]
+* Meeting with team :work:meeting:
+<2026-10-10 Sat 14:00-15:00>
+* TODO [#C] Read book
+DEADLINE: <2026-10-20 Tue> SCHEDULED: <2026-10-12 Mon>
+* Habits
+** TODO Exercise
+SCHEDULED: <2026-10-10 Sat .+1d>
+:PROPERTIES:
+:STYLE: habit
+:END:
+* Notes on the trip
+<2026-10-11 Sun> and <2026-10-13 Tue 08:30>
+* TODO Errand at the store :shopping:@town:
+SCHEDULED: <2026-10-10 Sat>
+* PROJECT Garden
+** PROJECT Shed
+*** TODO Paint shed
+SCHEDULED: <2026-10-10 Sat>

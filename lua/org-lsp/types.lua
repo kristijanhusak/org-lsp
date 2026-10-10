@@ -145,6 +145,18 @@
 ---@field org_agenda_block_separator? string|false What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block. (`org-agenda-block-separator`)
 ---@field org_agenda_compact_blocks? boolean Leave out the separators between blocks and the header over agenda blocks. (`org-agenda-compact-blocks`)
 ---@field agenda_hide_empty_blocks? boolean Leave out the blocks of a block agenda that show no entries. Not in Org.
+---@field org_super_agenda_mode? boolean org-super-agenda: show the lines of the agenda's views in the groups of `org_super_agenda_groups`, each under a header. Off, the groups are not used. (`org-super-agenda-mode`)
+---@field org_super_agenda_groups? (table|any[])[] org-super-agenda's groups, in turn taking the lines they select: each an object of selectors and their arguments in Emacs's order, `{ name = "Today", time-grid = true }`, or a list of them in turn; `true` is `t`, `false` is `nil` (and for `name`, `none`: no header). The lines no group takes come last, under `org_super_agenda_unmatched_name`. In a custom command's `settings`, the groups of that command or block. (`org-super-agenda-groups`)
+---@field org_super_agenda_unmatched_name? string The header of the lines no group takes. (`org-super-agenda-unmatched-name`)
+---@field org_super_agenda_unmatched_order? integer Where the lines no group takes come among the groups: groups show lowest `order` first. (`org-super-agenda-unmatched-order`)
+---@field org_super_agenda_header_separator? string What goes before each header: text, or one character repeated across the window, then a newline. (`org-super-agenda-header-separator`)
+---@field org_super_agenda_header_prefix? string What each header starts with. (`org-super-agenda-header-prefix`)
+---@field org_super_agenda_final_group_separator? string What goes after the last group: text put at the end of its last line, or one character repeated across the window on a line of its own. (`org-super-agenda-final-group-separator`)
+---@field org_super_agenda_date_format? string The headers of the groups of `auto-planning` and `auto-ts`, as `format-time-string` writes dates. (`org-super-agenda-date-format`)
+---@field org_super_agenda_hide_empty_groups? boolean Leave out the headers of groups whose lines the agenda's filters all hide. (`org-super-agenda-hide-empty-groups`)
+---@field org_super_agenda_keep_order? boolean Sort the lines of each group again, as the view sorts its lines: a group of several selectors puts the lines of its first selector first. (`org-super-agenda-keep-order`)
+---@field org_super_agenda_group_property_name? string The property `auto-group` groups lines by. (`org-super-agenda-group-property-name`)
+---@field org_super_agenda_properties_inherit? boolean Look for the properties of `property`, `auto-property` and `auto-group` in the entries above too. (`org-super-agenda-properties-inherit`)
 ---@field org_agenda_search_view_always_boolean? boolean Read every search string of the search view (`s`) as words that must (`+word`, `word`) or must not (`-word`) occur, regexps in braces (`{regexp}`) and `"quoted phrases"`. Off, it is a phrase whose spaces match any whitespace, unless its first word starts with `+`, `-` or `{`. (`org-agenda-search-view-always-boolean`)
 ---@field org_agenda_search_view_force_full_words? boolean The words of a Boolean search match whole words only, as a search string starting with `:` asks. (`org-agenda-search-view-force-full-words`)
 ---@field org_agenda_search_view_max_outline_level? integer The search view shows headlines down to this level, a match below one counting for the headline above: 0 for every level. (`org-agenda-search-view-max-outline-level`)
@@ -163,44 +175,44 @@
 ---@field org_agenda_custom_commands? org_lsp.AgendaCommand[] Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`org_agenda_span`, `org_agenda_start_day` …). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)
 
 ---@class org_lsp.RefileTarget
----@field all? boolean Every headline
 ---@field files? 'current'|'agenda'|string|string[] `current` (the entry's own file), `agenda`, a path or a list of paths
 ---@field level? integer The headlines of this level
 ---@field maxlevel? integer The headlines up to this level
----@field regexp? string The headlines that match this regular expression
 ---@field tag? string The headlines with this tag
 ---@field todo? string The headlines with this TODO keyword
+---@field regexp? string The headlines that match this regular expression
+---@field all? boolean Every headline
 
 ---@class org_lsp.CaptureTemplate
+---@field key string The keys that pick the template
+---@field description string What the menu shows
+---@field type? 'entry'|'plain'|'item'|'checkitem'|'table-line' An Org entry (the default), plain text, a list item, a checkbox item or a table line
+---@field target? string[] `file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and maybe an outline path; `id` and an ID; `clock`; `file+function`, a path and an Emacs Lisp function; or `function` and an Emacs Lisp function that visits the file
+---@field template? string|string[] The template, or its lines
+---@field prepend? boolean First under the target, not last
+---@field empty_lines? integer Blank lines before and after
+---@field empty_lines_before? integer Blank lines before
+---@field empty_lines_after? integer Blank lines after
+---@field immediate_finish? boolean Capture without a capture buffer
+---@field tree_type? 'day'|'week'|'month'|('year'|'quarter'|'month'|'week'|'day')[] The levels of a date tree
+---@field time_prompt? boolean Ask for the date of the date tree entry
+---@field table_line_pos? string Where a table line goes: `II-1` is above the second rule
 ---@field clock_in? boolean Clock the captured entry while the capture goes on
 ---@field clock_keep? boolean Keep the clock running when the capture is filed
 ---@field clock_resume? boolean Start the clock the capture stopped again
----@field description string What the menu shows
----@field empty_lines? integer Blank lines before and after
----@field empty_lines_after? integer Blank lines after
----@field empty_lines_before? integer Blank lines before
----@field immediate_finish? boolean Capture without a capture buffer
 ---@field jump_to_captured? boolean Show the captured entry in its file
----@field key string The keys that pick the template
----@field prepend? boolean First under the target, not last
----@field table_line_pos? string Where a table line goes: `II-1` is above the second rule
----@field target? string[] `file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and maybe an outline path; `id` and an ID; `clock`; `file+function`, a path and an Emacs Lisp function; or `function` and an Emacs Lisp function that visits the file
----@field template? string|string[] The template, or its lines
----@field time_prompt? boolean Ask for the date of the date tree entry
----@field tree_type? 'day'|'week'|'month'|('year'|'quarter'|'month'|'week'|'day')[] The levels of a date tree
----@field type? 'entry'|'plain'|'item'|'checkitem'|'table-line' An Org entry (the default), plain text, a list item, a checkbox item or a table line
 
 ---@class org_lsp.AgendaCommand
----@field blocks? org_lsp.AgendaBlock[] Views shown one after the other
----@field description string What the menu shows
----@field header? string Replaces the view's header; empty for none
 ---@field key string The keys that pick the command in the agenda menu
----@field match? string For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY="A")
----@field settings? table Agenda options for this command: org_agenda_span, org_agenda_start_day…
+---@field description string What the menu shows
 ---@field type? 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo'|'search' The view
+---@field match? string For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY="A")
+---@field header? string Replaces the view's header; empty for none
+---@field settings? table Agenda options for this command: org_agenda_span, org_agenda_start_day…
+---@field blocks? org_lsp.AgendaBlock[] Views shown one after the other
 
 ---@class org_lsp.AgendaBlock
----@field header? string Replaces the view's header; empty for none
----@field match? string For todo, keywords; for tags, a match string
----@field settings? table Agenda options for this block: org_agenda_span, org_agenda_start_day…
 ---@field type 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo'|'search' The view
+---@field match? string For todo, keywords; for tags, a match string
+---@field header? string Replaces the view's header; empty for none
+---@field settings? table Agenda options for this block: org_agenda_span, org_agenda_start_day…

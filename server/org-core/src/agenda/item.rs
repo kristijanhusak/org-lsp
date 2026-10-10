@@ -51,6 +51,8 @@ pub enum ItemKind {
     Log,
     /// What a diary sexp line gives (`org-agenda-get-sexps`).
     Sexp,
+    /// A line of the search view, which has no `todo-state` in Org.
+    Search,
 }
 
 /// Where an agenda line comes from.
@@ -86,6 +88,12 @@ pub struct Item {
     /// Where the line's consistency graph starts, and the face of each of
     /// its days.
     pub graph: Option<(usize, Vec<super::habit::Face>)>,
+    /// The day of the timestamp the line stands for (Org's `ts-date`): a
+    /// deadline's, a scheduled date's, a timestamp's own date.
+    pub ts_date: Option<crate::date::Day>,
+    /// What a line of log mode logs (Org's `type`): `closed`, `clock` or
+    /// `state`.
+    pub log: Option<&'static str>,
 }
 
 /// What a specifier of `org-agenda-prefix-format` stands for.
@@ -574,9 +582,17 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
         RemoveTags::Yes => true,
         RemoveTags::Prefix => input.format.has_tag,
     };
-    if remove_tags {
-        if let Some((blanks, _)) = tag_group(&txt) {
+    if let Some((blanks, tags)) = tag_group(&txt) {
+        if remove_tags {
             txt.truncate(blanks);
+        } else {
+            // The tags at column 50 of the headline at least one blank
+            // after it, where they stay when nothing aligns them.
+            let padding = 50usize.saturating_sub(txt.chars().count()).max(1);
+            let group = txt[tags..].trim_end_matches([' ', '\t']).to_string();
+            txt.truncate(blanks);
+            txt.push_str(&" ".repeat(padding));
+            txt.push_str(&group);
         }
     }
 
@@ -779,12 +795,15 @@ mod tests {
     fn prefix_formats() {
         let plain =
             |format: &str| formatted(format, "Scheduled: ", "Task", &[tag("a", false), tag("z", false)], Dotime::No);
-        assert_eq!(plain(" %i %-12:c"), "  work:       Task :a:z:");
-        assert_eq!(plain("%l%c|%e|%T|%b"), "  work|1:30|z|Top->Sub->Task :a:z:");
-        assert_eq!(plain("%?-12t%s"), "Scheduled: Task :a:z:");
-        assert_eq!(plain("%-6.3:c|"), "wo:   |Task :a:z:");
-        assert_eq!(plain("%8c %(org-entry-get nil \"X\") 100%%"), "    work  100%Task :a:z:");
-        assert_eq!(plain("%x %c"), "%x workTask :a:z:");
+        assert_eq!(plain(" %i %-12:c"), "  work:       Task                                        :a:z:");
+        assert_eq!(plain("%l%c|%e|%T|%b"), "  work|1:30|z|Top->Sub->Task                                        :a:z:");
+        assert_eq!(plain("%?-12t%s"), "Scheduled: Task                                        :a:z:");
+        assert_eq!(plain("%-6.3:c|"), "wo:   |Task                                        :a:z:");
+        assert_eq!(
+            plain("%8c %(org-entry-get nil \"X\") 100%%"),
+            "    work  100%Task                                        :a:z:"
+        );
+        assert_eq!(plain("%x %c"), "%x workTask                                        :a:z:");
     }
 
     #[test]
@@ -836,7 +855,7 @@ mod tests {
                 &[tag("m", false)],
                 Dotime::Text("<2026-10-06 Tue 14:00-15:30>")
             ),
-            "  work:       14:00-15:30 Meeting :m:"
+            "  work:       14:00-15:30 Meeting                                       :m:"
         );
         assert_eq!(agenda("", "Call at 3pm today", &[], Dotime::Headline), "  work:       15:00...... Call at today");
         assert_eq!(agenda("", "Late 25:30", &[], Dotime::Headline), "  work:       +1:30...... Late ");

@@ -9,29 +9,29 @@
       "type": "string"
     },
     "org_agenda_files": {
+      "type": "array",
       "items": {
         "type": "string"
       },
-      "type": "array",
       "description": "Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home directory, and a directory stands for the Org files directly in it. When empty, the agenda is built from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left out), or else from the Org files that are open. (`org-agenda-files`)",
       "default": []
     },
     "org_todo_keywords": {
       "anyOf": [
         {
+          "type": "array",
           "items": {
             "type": "string"
-          },
-          "type": "array"
+          }
         },
         {
+          "type": "array",
           "items": {
+            "type": "array",
             "items": {
               "type": "string"
-            },
-            "type": "array"
-          },
-          "type": "array"
+            }
+          }
         }
       ],
       "description": "The TODO sequence, written like Org's `#+TODO:` line. `|` separates the states that count as done; without it the last keyword is the only done state. `TODO(t)` gives a keyword a key for fast selection, and `WAIT(w@/!)` makes it log a note (`@`) or the time (`!`) on entering and leaving it. Several sequences go in a list of lists, `[[\"TODO\", \"|\", \"DONE\"], [\"REPORT\", \"|\", \"FIXED\"]]`; cycling stays in the sequence of the entry, and `C-S-<right>` switches to the next. A list that starts with `type` is a type sequence (`#+TYP_TODO:`): each of its keywords goes straight to done. A file's own `#+TODO:` lines take precedence. (`org-todo-keywords`)",
@@ -42,18 +42,18 @@
       ]
     },
     "org_todo_keyword_faces": {
+      "type": "object",
       "additionalProperties": {
         "type": "string"
       },
-      "type": "object",
       "description": "Faces for particular TODO keywords: a color, `{ \"WAIT\": \"orange\" }`, or attributes written as Org writes them, `{ \"CANCELLED\": \":foreground gray :slant italic :strike-through t\" }` (`:foreground`, `:background`, `:weight bold`, `:slant italic`, `:underline t`, `:strike-through t`). Shown in Org files and in the agenda by Neovim, Vim and VS Code. (`org-todo-keyword-faces`)",
       "default": {}
     },
     "org_priority_faces": {
+      "type": "object",
       "additionalProperties": {
         "type": "string"
       },
-      "type": "object",
       "description": "Faces for particular priorities, by their letter, written as in `org_todo_keyword_faces`: `{ \"A\": \":foreground red :weight bold\" }`. (`org-priority-faces`)",
       "default": {}
     },
@@ -140,42 +140,42 @@
       "default": -77
     },
     "org_use_tag_inheritance": {
-      "items": {
-        "type": "string"
-      },
       "type": [
         "boolean",
         "array",
         "string"
       ],
+      "items": {
+        "type": "string"
+      },
       "description": "Which tags entries inherit from their parents and from `#+FILETAGS:`: `true` for all, `false` for none, a list of tags, or a regexp (Emacs syntax) tags must match. Inherited tags count in tag searches and show in the agenda. (`org-use-tag-inheritance`)",
       "default": true
     },
     "org_tags_exclude_from_inheritance": {
+      "type": "array",
       "items": {
         "type": "string"
       },
-      "type": "array",
       "description": "Tags never inherited, when `org_use_tag_inheritance` is `true` or a regexp. (`org-tags-exclude-from-inheritance`)",
       "default": []
     },
     "org_use_property_inheritance": {
-      "items": {
-        "type": "string"
-      },
       "type": [
         "boolean",
         "array",
         "string"
       ],
+      "items": {
+        "type": "string"
+      },
       "description": "Which properties an entry without them takes from its parents, the file's property drawer and `#+PROPERTY:` lines, in property searches (`OWNER=\"alice\"`): `true` for all, `false` for none, a list of names, or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited. (`org-use-property-inheritance`)",
       "default": false
     },
     "org_global_properties": {
+      "type": "object",
       "additionalProperties": {
         "type": "string"
       },
-      "type": "object",
       "description": "Properties every entry inherits, after those of `#+PROPERTY:` lines: chiefly the allowed values of a property, which setting it offers and `S-<right>` and `S-<left>` go through on its line (`{ \"Effort_ALL\": \"0:10 0:30 1:00 2:00\" }`; `:ETC` allows others too). (`org-global-properties`)",
       "default": {}
     },
@@ -213,13 +213,13 @@
       "default": "thisyear"
     },
     "org_clock_idle_time": {
-      "minimum": 1,
       "type": "integer",
+      "minimum": 1,
       "description": "After how many minutes without a message from the editor a clock that runs asks what to do with the idle time: keep it, subtract it (and clock out), or cancel the clock. (`org-clock-idle-time`)"
     },
     "org_clock_history_length": {
-      "minimum": 1,
       "type": "integer",
+      "minimum": 1,
       "description": "How many entries clocked into the clock history keeps, for `org.clock.in` with a count and `org.clock.in.last`. (`org-clock-history-length`)",
       "default": 5
     },
@@ -252,10 +252,10 @@
       "default": true
     },
     "org_lint_ignore": {
+      "type": "array",
       "items": {
         "type": "string"
       },
-      "type": "array",
       "description": "The `org-lint` checkers to leave out, by name, as a diagnostic's code shows it (`\"misplaced-heading\"`). (`org-lint`)",
       "default": []
     },
@@ -306,40 +306,40 @@
       "default": false
     },
     "org_cite_global_bibliography": {
+      "type": "array",
       "items": {
         "type": "string"
       },
-      "type": "array",
       "description": "Bibliography files for the citations of every document (`[cite:@key]`), after those its `#+BIBLIOGRAPHY:` lines name: BibTeX (`.bib`, `.bibtex`) or CSL-JSON (`.json`). Their entries are completed after `@`, shown over a key, and where following a key goes; a key none has is marked. (`org-cite-global-bibliography`)",
       "default": []
     },
     "org_link_abbrev_alist": {
+      "type": "object",
       "additionalProperties": {
         "type": "string"
       },
-      "type": "object",
       "description": "Link abbreviations: `[[gh:org-lsp]]` with `{ \"gh\": \"https://github.com/%s\" }` follows `https://github.com/org-lsp`. `%s` stands for what follows the colon, `%h` for it URL-encoded; without either it goes at the end. A file's `#+LINK:` lines come first. A function (`%(…)`) is not supported. (`org-link-abbrev-alist`)",
       "default": {}
     },
     "org_tag_alist": {
-      "items": {
-        "type": "string"
-      },
       "type": [
         "string",
         "array"
       ],
+      "items": {
+        "type": "string"
+      },
       "description": "The tags offered when setting tags in a file without a `#+TAGS:` line, written like one: `\"work(w) home(h) { @office(o) @home(m) } [ GTD : Control Persp ]\"` gives `work` the key `w`, makes `@office` and `@home` exclusive, and groups `Control` and `Persp` under `GTD`; `\\n` starts a new line. A list of these words does as well. Unset, the tags used in the file are offered. (`org-tag-alist`)",
       "default": ""
     },
     "org_tag_persistent_alist": {
-      "items": {
-        "type": "string"
-      },
       "type": [
         "string",
         "array"
       ],
+      "items": {
+        "type": "string"
+      },
       "description": "Tags offered in every file, before those of `#+TAGS:` or `org_tag_alist`, written the same way. (`org-tag-persistent-alist`)",
       "default": ""
     },
@@ -388,13 +388,13 @@
     "org_priority_highest": {
       "anyOf": [
         {
-          "pattern": "^[A-Za-z]$",
-          "type": "string"
+          "type": "string",
+          "pattern": "^[A-Za-z]$"
         },
         {
-          "maximum": 64,
+          "type": "integer",
           "minimum": 0,
-          "type": "integer"
+          "maximum": 64
         }
       ],
       "description": "The highest priority. (`org-priority-highest`)",
@@ -403,13 +403,13 @@
     "org_priority_lowest": {
       "anyOf": [
         {
-          "pattern": "^[A-Za-z]$",
-          "type": "string"
+          "type": "string",
+          "pattern": "^[A-Za-z]$"
         },
         {
-          "maximum": 64,
+          "type": "integer",
           "minimum": 0,
-          "type": "integer"
+          "maximum": 64
         }
       ],
       "description": "The lowest priority. (`org-priority-lowest`)",
@@ -418,13 +418,13 @@
     "org_priority_default": {
       "anyOf": [
         {
-          "pattern": "^[A-Za-z]$",
-          "type": "string"
+          "type": "string",
+          "pattern": "^[A-Za-z]$"
         },
         {
-          "maximum": 64,
+          "type": "integer",
           "minimum": 0,
-          "type": "integer"
+          "maximum": 64
         }
       ],
       "description": "The priority of an entry without a cookie. A file's `#+PRIORITIES:` line takes precedence over the three priority options. (`org-priority-default`)",
@@ -436,8 +436,8 @@
       "default": true
     },
     "org_time_stamp_rounding_minutes": {
-      "minimum": 0,
       "type": "integer",
+      "minimum": 0,
       "description": "The step in which the minutes of a timestamp change (the second number of Org's option). (`org-time-stamp-rounding-minutes`)",
       "default": 5
     },
@@ -456,13 +456,11 @@
       "default": true
     },
     "org_refile_targets": {
+      "type": "array",
       "items": {
+        "type": "object",
         "additionalProperties": false,
         "properties": {
-          "all": {
-            "description": "Every headline",
-            "type": "boolean"
-          },
           "files": {
             "anyOf": [
               {
@@ -475,40 +473,42 @@
                 "type": "string"
               },
               {
+                "type": "array",
                 "items": {
                   "type": "string"
-                },
-                "type": "array"
+                }
               }
             ],
             "description": "`current` (the entry's own file), `agenda`, a path or a list of paths"
           },
           "level": {
-            "description": "The headlines of this level",
+            "type": "integer",
             "minimum": 1,
-            "type": "integer"
+            "description": "The headlines of this level"
           },
           "maxlevel": {
-            "description": "The headlines up to this level",
+            "type": "integer",
             "minimum": 1,
-            "type": "integer"
-          },
-          "regexp": {
-            "description": "The headlines that match this regular expression",
-            "type": "string"
+            "description": "The headlines up to this level"
           },
           "tag": {
-            "description": "The headlines with this tag",
-            "type": "string"
+            "type": "string",
+            "description": "The headlines with this tag"
           },
           "todo": {
-            "description": "The headlines with this TODO keyword",
-            "type": "string"
+            "type": "string",
+            "description": "The headlines with this TODO keyword"
+          },
+          "regexp": {
+            "type": "string",
+            "description": "The headlines that match this regular expression"
+          },
+          "all": {
+            "type": "boolean",
+            "description": "Every headline"
           }
-        },
-        "type": "object"
+        }
       },
-      "type": "array",
       "description": "Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says which headlines there are targets. (`org-refile-targets`)",
       "default": [
         {
@@ -574,6 +574,7 @@
       "default": "infile"
     },
     "org_archive_save_context_info": {
+      "type": "array",
       "items": {
         "enum": [
           "time",
@@ -586,7 +587,6 @@
           "olid"
         ]
       },
-      "type": "array",
       "description": "What an archived entry keeps as `ARCHIVE_…` properties: `time`, `file`, `olpath` (its outline path), `category`, `todo`, `itags` (inherited tags), `ltags` (its own tags) and `olid` (its parent's ID). (`org-archive-save-context-info`)",
       "default": [
         "time",
@@ -624,26 +624,38 @@
       "default": "subtree"
     },
     "org_capture_templates_contexts": {
+      "type": "array",
       "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "contexts"
+        ],
         "additionalProperties": false,
         "properties": {
+          "key": {
+            "type": "string",
+            "description": "The keys the context is about"
+          },
+          "use": {
+            "type": "string",
+            "description": "The keys whose template or command these keys stand for where the context holds"
+          },
           "contexts": {
-            "description": "Rules, each a regexp on the file, the mode or the buffer's name; the context holds where one of them does",
+            "type": "array",
             "items": {
-              "additionalProperties": false,
-              "maxProperties": 1,
+              "type": "object",
               "minProperties": 1,
+              "maxProperties": 1,
+              "additionalProperties": false,
               "properties": {
-                "in_buffer": {
-                  "type": "string"
-                },
                 "in_file": {
                   "type": "string"
                 },
                 "in_mode": {
                   "type": "string"
                 },
-                "not_in_buffer": {
+                "in_buffer": {
                   "type": "string"
                 },
                 "not_in_file": {
@@ -651,92 +663,53 @@
                 },
                 "not_in_mode": {
                   "type": "string"
+                },
+                "not_in_buffer": {
+                  "type": "string"
                 }
-              },
-              "type": "object"
+              }
             },
-            "type": "array"
-          },
-          "key": {
-            "description": "The keys the context is about",
-            "type": "string"
-          },
-          "use": {
-            "description": "The keys whose template or command these keys stand for where the context holds",
-            "type": "string"
+            "description": "Rules, each a regexp on the file, the mode or the buffer's name; the context holds where one of them does"
           }
-        },
-        "required": [
-          "key",
-          "contexts"
-        ],
-        "type": "object"
+        }
       },
-      "type": "array",
       "description": "Where templates are offered. Each has the `key` of a template, `contexts`, rules such as `{ \"in_file\": \"work\" }` (`in_file`, `in_mode`, `in_buffer`, `not_in_file`, `not_in_mode` or `not_in_buffer`, each with a regexp of the `regex` crate's syntax, matched ignoring case), and maybe `use`, the key of the template it stands for there. A template with contexts is offered only where one of their rules holds. The mode is `org-mode` in an Org file and `org-agenda-mode` in the agenda, where there is no file; the buffer's name is the file's. (`org-capture-templates-contexts`)",
       "default": []
     },
     "org_capture_templates": {
+      "type": "array",
       "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "description"
+        ],
         "additionalProperties": false,
         "properties": {
-          "clock_in": {
-            "description": "Clock the captured entry while the capture goes on",
-            "type": "boolean"
-          },
-          "clock_keep": {
-            "description": "Keep the clock running when the capture is filed",
-            "type": "boolean"
-          },
-          "clock_resume": {
-            "description": "Start the clock the capture stopped again",
-            "type": "boolean"
+          "key": {
+            "type": "string",
+            "description": "The keys that pick the template"
           },
           "description": {
-            "description": "What the menu shows",
-            "type": "string"
+            "type": "string",
+            "description": "What the menu shows"
           },
-          "empty_lines": {
-            "description": "Blank lines before and after",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "empty_lines_after": {
-            "description": "Blank lines after",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "empty_lines_before": {
-            "description": "Blank lines before",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "immediate_finish": {
-            "description": "Capture without a capture buffer",
-            "type": "boolean"
-          },
-          "jump_to_captured": {
-            "description": "Show the captured entry in its file",
-            "type": "boolean"
-          },
-          "key": {
-            "description": "The keys that pick the template",
-            "type": "string"
-          },
-          "prepend": {
-            "description": "First under the target, not last",
-            "type": "boolean"
-          },
-          "table_line_pos": {
-            "description": "Where a table line goes: `II-1` is above the second rule",
-            "type": "string"
+          "type": {
+            "enum": [
+              "entry",
+              "plain",
+              "item",
+              "checkitem",
+              "table-line"
+            ],
+            "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line"
           },
           "target": {
-            "description": "`file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and maybe an outline path; `id` and an ID; `clock`; `file+function`, a path and an Emacs Lisp function; or `function` and an Emacs Lisp function that visits the file",
+            "type": "array",
             "items": {
               "type": "string"
             },
-            "type": "array"
+            "description": "`file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and maybe an outline path; `id` and an ID; `clock`; `file+function`, a path and an Emacs Lisp function; or `function` and an Emacs Lisp function that visits the file"
           },
           "template": {
             "anyOf": [
@@ -744,17 +717,36 @@
                 "type": "string"
               },
               {
+                "type": "array",
                 "items": {
                   "type": "string"
-                },
-                "type": "array"
+                }
               }
             ],
             "description": "The template, or its lines"
           },
-          "time_prompt": {
-            "description": "Ask for the date of the date tree entry",
-            "type": "boolean"
+          "prepend": {
+            "type": "boolean",
+            "description": "First under the target, not last"
+          },
+          "empty_lines": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Blank lines before and after"
+          },
+          "empty_lines_before": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Blank lines before"
+          },
+          "empty_lines_after": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Blank lines after"
+          },
+          "immediate_finish": {
+            "type": "boolean",
+            "description": "Capture without a capture buffer"
           },
           "tree_type": {
             "anyOf": [
@@ -766,6 +758,7 @@
                 ]
               },
               {
+                "type": "array",
                 "items": {
                   "enum": [
                     "year",
@@ -774,35 +767,42 @@
                     "week",
                     "day"
                   ]
-                },
-                "type": "array"
+                }
               }
             ],
             "description": "The levels of a date tree"
           },
-          "type": {
-            "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line",
-            "enum": [
-              "entry",
-              "plain",
-              "item",
-              "checkitem",
-              "table-line"
-            ]
+          "time_prompt": {
+            "type": "boolean",
+            "description": "Ask for the date of the date tree entry"
+          },
+          "table_line_pos": {
+            "type": "string",
+            "description": "Where a table line goes: `II-1` is above the second rule"
+          },
+          "clock_in": {
+            "type": "boolean",
+            "description": "Clock the captured entry while the capture goes on"
+          },
+          "clock_keep": {
+            "type": "boolean",
+            "description": "Keep the clock running when the capture is filed"
+          },
+          "clock_resume": {
+            "type": "boolean",
+            "description": "Start the clock the capture stopped again"
+          },
+          "jump_to_captured": {
+            "type": "boolean",
+            "description": "Show the captured entry in its file"
           }
-        },
-        "required": [
-          "key",
-          "description"
-        ],
-        "type": "object"
+        }
       },
-      "type": "array",
       "description": "Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, `plain`, `item`, `checkitem` or `table-line`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after`, `immediate_finish`, `tree_type`, `time_prompt`, `table_line_pos`, `clock_in`, `clock_keep`, `clock_resume` and `jump_to_captured`. The target is a list: `file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and the headlines of an outline path, maybe none, for a date tree under them; `id` and an ID; `clock`, the entry clocked now; `file+function`, a path and the name of an Emacs Lisp function that moves the point there, or `function` and the name of one that visits the file too (run by the server's Emacs). An empty path is `org_default_notes_file`, and without a target the entry goes at the end of `org_default_notes_file`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)",
       "default": [
         {
-          "description": "Task",
           "key": "t",
+          "description": "Task",
           "target": [
             "file+headline",
             "",
@@ -963,8 +963,8 @@
       "default": false
     },
     "org_edit_src_content_indentation": {
-      "minimum": 0,
       "type": "integer",
+      "minimum": 0,
       "description": "How far code is indented past its source block when re-indenting. (`org-edit-src-content-indentation`)",
       "default": 2
     },
@@ -980,8 +980,8 @@
           ]
         },
         {
-          "minimum": 1,
-          "type": "integer"
+          "type": "integer",
+          "minimum": 1
         }
       ],
       "description": "How much time the agenda shows. (`org-agenda-span`)",
@@ -990,9 +990,9 @@
     "org_agenda_start_on_weekday": {
       "anyOf": [
         {
-          "maximum": 6,
+          "type": "integer",
           "minimum": 0,
-          "type": "integer"
+          "maximum": 6
         },
         {
           "const": false
@@ -1017,28 +1017,28 @@
       "default": 10000
     },
     "org_modules": {
+      "type": "array",
       "items": {
         "type": "string"
       },
-      "type": "array",
       "description": "Org modules to load. `org-habit` turns habits on: entries with the `STYLE` property `habit` and a scheduled date with a repeater (`.+2d`, `.+2d/4d` for a deadline too) show in the agenda with a graph of the days they were done. Others are ignored. (`org-modules`)",
       "default": []
     },
     "org_habit_graph_column": {
-      "minimum": 0,
       "type": "integer",
+      "minimum": 0,
       "description": "The column the consistency graph of a habit starts at in the agenda. (`org-habit-graph-column`)",
       "default": 40
     },
     "org_habit_preceding_days": {
-      "minimum": 0,
       "type": "integer",
+      "minimum": 0,
       "description": "How many days before today a habit's graph shows. (`org-habit-preceding-days`)",
       "default": 21
     },
     "org_habit_following_days": {
-      "minimum": 0,
       "type": "integer",
+      "minimum": 0,
       "description": "How many days after today a habit's graph shows. (`org-habit-following-days`)",
       "default": 7
     },
@@ -1128,8 +1128,12 @@
       "default": true
     },
     "org_agenda_time_grid": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
       "items": [
         {
+          "type": "array",
           "items": {
             "enum": [
               "daily",
@@ -1138,16 +1142,15 @@
               "require-timed",
               "remove-match"
             ]
-          },
-          "type": "array"
+          }
         },
         {
+          "type": "array",
           "items": {
-            "maximum": 2400,
+            "type": "integer",
             "minimum": 0,
-            "type": "integer"
-          },
-          "type": "array"
+            "maximum": 2400
+          }
         },
         {
           "type": "string"
@@ -1156,9 +1159,6 @@
           "type": "string"
         }
       ],
-      "maxItems": 4,
-      "minItems": 2,
-      "type": "array",
       "description": "The time grid, as Org writes it: the days that have it (`daily`: a one-day agenda; `weekly`: every day of a longer one; `today`: today; `require-timed`: only days with an entry that has a time; `remove-match`: no grid line at a time an entry already has), the times of its lines (`800` for 8:00), what follows a time that has no end time, and the text of a grid line. (`org-agenda-time-grid`)",
       "default": [
         [
@@ -1190,12 +1190,12 @@
       "default": true
     },
     "org_agenda_weekend_days": {
-      "items": {
-        "maximum": 6,
-        "minimum": 0,
-        "type": "integer"
-      },
       "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 6
+      },
       "description": "The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`)",
       "default": [
         6,
@@ -1222,6 +1222,7 @@
       "default": false
     },
     "org_agenda_log_mode_items": {
+      "type": "array",
       "items": {
         "enum": [
           "closed",
@@ -1229,7 +1230,6 @@
           "state"
         ]
       },
-      "type": "array",
       "description": "What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`)",
       "default": [
         "closed",
@@ -1252,8 +1252,8 @@
       "default": false
     },
     "org_agenda_entry_text_maxlines": {
-      "minimum": 1,
       "type": "integer",
+      "minimum": 1,
       "description": "The most lines of an entry's text `E` shows. (`org-agenda-entry-text-maxlines`)",
       "default": 5
     },
@@ -1263,10 +1263,10 @@
       "default": "    > "
     },
     "org_agenda_entry_text_exclude_regexps": {
+      "type": "array",
       "items": {
         "type": "string"
       },
-      "type": "array",
       "description": "Emacs regexps whose matches are left out of the entry text `E` shows. (`org-agenda-entry-text-exclude-regexps`)",
       "default": []
     },
@@ -1292,6 +1292,76 @@
       "description": "Leave out the blocks of a block agenda that show no entries. Not in Org.",
       "default": false
     },
+    "org_super_agenda_mode": {
+      "type": "boolean",
+      "description": "org-super-agenda: show the lines of the agenda's views in the groups of `org_super_agenda_groups`, each under a header. Off, the groups are not used. (`org-super-agenda-mode`)",
+      "default": false
+    },
+    "org_super_agenda_groups": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object"
+          },
+          {
+            "type": "array"
+          }
+        ]
+      },
+      "description": "org-super-agenda's groups, in turn taking the lines they select: each an object of selectors and their arguments in Emacs's order, `{ name = \"Today\", time-grid = true }`, or a list of them in turn; `true` is `t`, `false` is `nil` (and for `name`, `none`: no header). The lines no group takes come last, under `org_super_agenda_unmatched_name`. In a custom command's `settings`, the groups of that command or block. (`org-super-agenda-groups`)",
+      "default": []
+    },
+    "org_super_agenda_unmatched_name": {
+      "type": "string",
+      "description": "The header of the lines no group takes. (`org-super-agenda-unmatched-name`)",
+      "default": "Other items"
+    },
+    "org_super_agenda_unmatched_order": {
+      "type": "integer",
+      "description": "Where the lines no group takes come among the groups: groups show lowest `order` first. (`org-super-agenda-unmatched-order`)",
+      "default": 99
+    },
+    "org_super_agenda_header_separator": {
+      "type": "string",
+      "description": "What goes before each header: text, or one character repeated across the window, then a newline. (`org-super-agenda-header-separator`)",
+      "default": "\n"
+    },
+    "org_super_agenda_header_prefix": {
+      "type": "string",
+      "description": "What each header starts with. (`org-super-agenda-header-prefix`)",
+      "default": " "
+    },
+    "org_super_agenda_final_group_separator": {
+      "type": "string",
+      "description": "What goes after the last group: text put at the end of its last line, or one character repeated across the window on a line of its own. (`org-super-agenda-final-group-separator`)",
+      "default": ""
+    },
+    "org_super_agenda_date_format": {
+      "type": "string",
+      "description": "The headers of the groups of `auto-planning` and `auto-ts`, as `format-time-string` writes dates. (`org-super-agenda-date-format`)",
+      "default": "%e %B %Y"
+    },
+    "org_super_agenda_hide_empty_groups": {
+      "type": "boolean",
+      "description": "Leave out the headers of groups whose lines the agenda's filters all hide. (`org-super-agenda-hide-empty-groups`)",
+      "default": false
+    },
+    "org_super_agenda_keep_order": {
+      "type": "boolean",
+      "description": "Sort the lines of each group again, as the view sorts its lines: a group of several selectors puts the lines of its first selector first. (`org-super-agenda-keep-order`)",
+      "default": false
+    },
+    "org_super_agenda_group_property_name": {
+      "type": "string",
+      "description": "The property `auto-group` groups lines by. (`org-super-agenda-group-property-name`)",
+      "default": "agenda-group"
+    },
+    "org_super_agenda_properties_inherit": {
+      "type": "boolean",
+      "description": "Look for the properties of `property`, `auto-property` and `auto-group` in the entries above too. (`org-super-agenda-properties-inherit`)",
+      "default": true
+    },
     "org_agenda_search_view_always_boolean": {
       "type": "boolean",
       "description": "Read every search string of the search view (`s`) as words that must (`+word`, `word`) or must not (`-word`) occur, regexps in braces (`{regexp}`) and `\"quoted phrases\"`. Off, it is a phrase whose spaces match any whitespace, unless its first word starts with `+`, `-` or `{`. (`org-agenda-search-view-always-boolean`)",
@@ -1303,42 +1373,42 @@
       "default": false
     },
     "org_agenda_search_view_max_outline_level": {
-      "minimum": 0,
       "type": "integer",
+      "minimum": 0,
       "description": "The search view shows headlines down to this level, a match below one counting for the headline above: 0 for every level. (`org-agenda-search-view-max-outline-level`)",
       "default": 0
     },
     "org_agenda_text_search_extra_files": {
+      "type": "array",
       "items": {
         "type": "string"
       },
-      "type": "array",
       "description": "Files the search view (`s`) searches besides the agenda files, after them, as `org_agenda_files` names them. `agenda-archives` first adds the files the agenda files archive to. A file listed twice is searched at its last place. (`org-agenda-text-search-extra-files`)",
       "default": []
     },
     "org_agenda_prefix_format": {
+      "type": "object",
       "additionalProperties": false,
       "properties": {
         "agenda": {
           "type": "string"
         },
-        "search": {
+        "todo": {
           "type": "string"
         },
         "tags": {
           "type": "string"
         },
-        "todo": {
+        "search": {
           "type": "string"
         }
       },
-      "type": "object",
       "description": "What comes before the headline on a line of the agenda (`agenda`), the TODO list (`todo`), tags searches (`tags`) and text searches (`search`): `%c` the category, `%t` the time, `%s` the leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty. (`org-agenda-prefix-format`)",
       "default": {
         "agenda": " %i %-12:c%?-12t% s",
-        "search": " %i %-12:c",
+        "todo": " %i %-12:c",
         "tags": " %i %-12:c",
-        "todo": " %i %-12:c"
+        "search": " %i %-12:c"
       }
     },
     "org_agenda_todo_keyword_format": {
@@ -1347,12 +1417,12 @@
       "default": "%-1s"
     },
     "org_agenda_scheduled_leaders": {
+      "type": "array",
       "items": {
         "type": "string"
       },
-      "maxItems": 2,
       "minItems": 2,
-      "type": "array",
+      "maxItems": 2,
       "description": "The leader of a scheduled entry on its day, and on today when its day has passed (`%d`: the days since). (`org-agenda-scheduled-leaders`)",
       "default": [
         "Scheduled: ",
@@ -1360,12 +1430,12 @@
       ]
     },
     "org_agenda_deadline_leaders": {
+      "type": "array",
       "items": {
         "type": "string"
       },
-      "maxItems": 3,
       "minItems": 3,
-      "type": "array",
+      "maxItems": 3,
       "description": "The leader of a deadline on its day, on today before it (`%d`: the days left), and on today after it (`%d`: the days since). (`org-agenda-deadline-leaders`)",
       "default": [
         "Deadline:  ",
@@ -1374,12 +1444,12 @@
       ]
     },
     "org_agenda_timerange_leaders": {
+      "type": "array",
       "items": {
         "type": "string"
       },
-      "maxItems": 2,
       "minItems": 2,
-      "type": "array",
+      "maxItems": 2,
       "description": "The leader of a time range within a day, and of a range over days (`%d`: which day of it, `%d`: how many days). (`org-agenda-timerange-leaders`)",
       "default": [
         "",
@@ -1396,29 +1466,29 @@
       "default": false
     },
     "org_stuck_projects": {
-      "maxItems": 4,
-      "minItems": 4,
+      "type": "array",
       "prefixItems": [
         {
           "type": "string"
         },
         {
+          "type": "array",
           "items": {
             "type": "string"
-          },
-          "type": "array"
+          }
         },
         {
+          "type": "array",
           "items": {
             "type": "string"
-          },
-          "type": "array"
+          }
         },
         {
           "type": "string"
         }
       ],
-      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
       "description": "What the stuck projects view (`#`) lists: the projects the match string finds whose subtree has no entry with one of the TODO keywords (`*` for any not done) or tags (`*` for any), and no match of the regexp. (`org-stuck-projects`)",
       "default": [
         "+LEVEL=2/-DONE",
@@ -1445,26 +1515,38 @@
       "description": "The day the agenda starts from, as the date prompt reads it: `-1d`, `+2d`, `2026-10-01`. (`org-agenda-start-day`)"
     },
     "org_agenda_custom_commands_contexts": {
+      "type": "array",
       "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "contexts"
+        ],
         "additionalProperties": false,
         "properties": {
+          "key": {
+            "type": "string",
+            "description": "The keys the context is about"
+          },
+          "use": {
+            "type": "string",
+            "description": "The keys whose template or command these keys stand for where the context holds"
+          },
           "contexts": {
-            "description": "Rules, each a regexp on the file, the mode or the buffer's name; the context holds where one of them does",
+            "type": "array",
             "items": {
-              "additionalProperties": false,
-              "maxProperties": 1,
+              "type": "object",
               "minProperties": 1,
+              "maxProperties": 1,
+              "additionalProperties": false,
               "properties": {
-                "in_buffer": {
-                  "type": "string"
-                },
                 "in_file": {
                   "type": "string"
                 },
                 "in_mode": {
                   "type": "string"
                 },
-                "not_in_buffer": {
+                "in_buffer": {
                   "type": "string"
                 },
                 "not_in_file": {
@@ -1472,93 +1554,38 @@
                 },
                 "not_in_mode": {
                   "type": "string"
+                },
+                "not_in_buffer": {
+                  "type": "string"
                 }
-              },
-              "type": "object"
+              }
             },
-            "type": "array"
-          },
-          "key": {
-            "description": "The keys the context is about",
-            "type": "string"
-          },
-          "use": {
-            "description": "The keys whose template or command these keys stand for where the context holds",
-            "type": "string"
+            "description": "Rules, each a regexp on the file, the mode or the buffer's name; the context holds where one of them does"
           }
-        },
-        "required": [
-          "key",
-          "contexts"
-        ],
-        "type": "object"
+        }
       },
-      "type": "array",
       "description": "Where the commands of `org_agenda_custom_commands` are offered, as for `org_capture_templates_contexts`. (`org-agenda-custom-commands-contexts`)",
       "default": []
     },
     "org_agenda_custom_commands": {
+      "type": "array",
       "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "description"
+        ],
         "additionalProperties": false,
         "properties": {
-          "blocks": {
-            "description": "Views shown one after the other",
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "header": {
-                  "description": "Replaces the view's header; empty for none",
-                  "type": "string"
-                },
-                "match": {
-                  "description": "For todo, keywords; for tags, a match string",
-                  "type": "string"
-                },
-                "settings": {
-                  "description": "Agenda options for this block: org_agenda_span, org_agenda_start_day…",
-                  "type": "object"
-                },
-                "type": {
-                  "description": "The view",
-                  "enum": [
-                    "agenda",
-                    "alltodo",
-                    "todo",
-                    "tags",
-                    "tags-todo",
-                    "search"
-                  ]
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "type": "object"
-            },
-            "type": "array"
+          "key": {
+            "type": "string",
+            "description": "The keys that pick the command in the agenda menu"
           },
           "description": {
-            "description": "What the menu shows",
-            "type": "string"
-          },
-          "header": {
-            "description": "Replaces the view's header; empty for none",
-            "type": "string"
-          },
-          "key": {
-            "description": "The keys that pick the command in the agenda menu",
-            "type": "string"
-          },
-          "match": {
-            "description": "For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY=\"A\")",
-            "type": "string"
-          },
-          "settings": {
-            "description": "Agenda options for this command: org_agenda_span, org_agenda_start_day…",
-            "type": "object"
+            "type": "string",
+            "description": "What the menu shows"
           },
           "type": {
-            "description": "The view",
             "enum": [
               "agenda",
               "alltodo",
@@ -1566,16 +1593,59 @@
               "tags",
               "tags-todo",
               "search"
-            ]
+            ],
+            "description": "The view"
+          },
+          "match": {
+            "type": "string",
+            "description": "For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY=\"A\")"
+          },
+          "header": {
+            "type": "string",
+            "description": "Replaces the view's header; empty for none"
+          },
+          "settings": {
+            "type": "object",
+            "description": "Agenda options for this command: org_agenda_span, org_agenda_start_day…"
+          },
+          "blocks": {
+            "type": "array",
+            "description": "Views shown one after the other",
+            "items": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "enum": [
+                    "agenda",
+                    "alltodo",
+                    "todo",
+                    "tags",
+                    "tags-todo",
+                    "search"
+                  ],
+                  "description": "The view"
+                },
+                "match": {
+                  "type": "string",
+                  "description": "For todo, keywords; for tags, a match string"
+                },
+                "header": {
+                  "type": "string",
+                  "description": "Replaces the view's header; empty for none"
+                },
+                "settings": {
+                  "type": "object",
+                  "description": "Agenda options for this block: org_agenda_span, org_agenda_start_day…"
+                }
+              }
+            }
           }
-        },
-        "required": [
-          "key",
-          "description"
-        ],
-        "type": "object"
+        }
       },
-      "type": "array",
       "description": "Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY=\"A\"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`org_agenda_span`, `org_agenda_start_day` …). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)",
       "default": []
     }

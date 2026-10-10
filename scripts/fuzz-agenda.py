@@ -5,7 +5,11 @@ Generates random agenda files, has Emacs print the agenda for them under a
 fixed clock, and runs the agenda test over the same cases. Cases the two
 disagree on stay in the output directory.
 
-    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR]
+    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR] [--super]
+
+With --super, each case also turns org-super-agenda on with random groups;
+ORG_LSP_EMACS_PACKAGES must then name the directory of its packages (see
+agenda_reference.py).
 
 Requires Emacs, faketime and cargo.
 """
@@ -28,6 +32,55 @@ TAGS = [":a:", ":work:home:", ":ARCHIVE:", ":x_y:@z:", ":a::b:", ":日本:", ":1
 REPEATERS = ["+1d", "+2d", "+1w", "+2w", "+1m", "+3m", "+1y", "++1w", ".+3d", "+5h", "+30h", "+0d", ".+1m", "++2y"]
 WARNINGS = ["-3d", "-0d", "-2w", "--2d", "-1m", "-10d", "--1w"]
 DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+
+def super_groups(rng):
+    """Random `org-super-agenda-groups`: selectors with simple arguments,
+    some negated, combined or grouped automatically."""
+    simple = [
+        lambda: {"time-grid": True},
+        lambda: {"date": rng.choice([True, False, "today"])},
+        lambda: {"deadline": rng.choice([True, "past", "today", "future", False])},
+        lambda: {"scheduled": rng.choice([True, "past", "today", "future", False])},
+        lambda: {"todo": rng.choice([True, False, "TODO", ["NEXT", "WAIT"]])},
+        lambda: {"priority": rng.choice(["A", ["A", "B"]])},
+        lambda: {rng.choice(["priority>", "priority<", "priority>=", "priority<="]): rng.choice(["A", "B", "C"])},
+        lambda: {"tag": rng.choice(["a", "work", ["home", "x_y"], "file"])},
+        lambda: {"category": rng.choice(["work", "home", "a", "notes", "prop"])},
+        lambda: {"regexp": rng.choice(["review", "alpha|beta", "[0-9]+"])},
+        lambda: {"heading-regexp": rng.choice(["^Call", "report", "x"])},
+        lambda: {"effort<": rng.choice(["0:30", "1:00", "2h"])},
+        lambda: {"effort>": rng.choice(["0:10", "1:00"])},
+        lambda: {"property": rng.choice(["WHEN", ["agenda-group", "one"]])},
+        lambda: {"children": rng.choice([True, False, "todo", "TODO"])},
+        lambda: {"file-path": rng.choice(["a.org", "notes"])},
+        lambda: {"anything": True},
+    ]
+    automatic = [
+        {"auto-category": True}, {"auto-todo": True}, {"auto-priority": True}, {"auto-tags": True},
+        {"auto-planning": True}, {"auto-ts": rng.choice([True, "reverse"])}, {"auto-group": True},
+        {"auto-property": "agenda-group"}, {"auto-parent": True}, {"auto-outline-path": True},
+        {"auto-dir-name": True},
+    ]
+    groups = []
+    for _ in range(rng.randint(1, 4)):
+        roll = rng.random()
+        if roll < 0.15:
+            group = dict(rng.choice(automatic))
+        else:
+            group = {}
+            for _ in range(rng.choice([1, 1, 1, 2])):
+                group.update(rng.choice(simple)())
+            if rng.random() < 0.1:
+                group = {"not": group} if rng.random() < 0.5 else {"and": group}
+            if rng.random() < 0.6:
+                group = {"name": rng.choice(["Group", "Today", "Later", False]), **group}
+        if rng.random() < 0.3:
+            group["order"] = rng.randint(-2, 5)
+        if rng.random() < 0.1:
+            group = {"discard": group}
+        groups.append(group)
+    return groups
 
 
 def search_string(rng):
@@ -200,6 +253,10 @@ class Generator:
                                   + self.pick(["prop", "nil", "cat2", ""]))
                 if self.chance(0.5):
                     drawer.append(":WHEN: " + self.stamp(active=self.chance(0.8)))
+                if self.chance(0.3):
+                    drawer.append(":agenda-group: " + self.pick(["one", "two", "One"]))
+                if self.chance(0.3):
+                    drawer.append(":Effort: " + self.pick(["0:15", "1:00", "2:30", "1h", "junk"]))
                 drawer.append(":END:")
                 lines.extend(drawer)
             for _ in range(self.pick([0, 0, 0, 1, 1, 2, 3])):
@@ -214,6 +271,7 @@ def main():
     parser.add_argument("--count", type=int, default=200)
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--out", default=None)
+    parser.add_argument("--super", action="store_true", help="group the views with org-super-agenda")
     args = parser.parse_args()
 
     out = args.out or tempfile.mkdtemp(prefix="org-agenda-fuzz-")
@@ -245,6 +303,12 @@ def main():
                 {"view": "todo", "entry_text": rng.choice([1, 2, 5, 9])},
             ],
         }
+        if args.super:
+            case["options"] = {"org_super_agenda_mode": True, "org_super_agenda_groups": super_groups(rng)}
+            if rng.random() < 0.3:
+                case["options"]["org_super_agenda_hide_empty_groups"] = True
+            if rng.random() < 0.3:
+                case["options"]["org_super_agenda_keep_order"] = True
         with open(os.path.join(directory, "case.json"), "w", encoding="utf-8") as handle:
             json.dump(case, handle)
         directories.append(directory)

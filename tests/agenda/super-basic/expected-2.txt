@@ -1,0 +1,51 @@
+Week-agenda (W41):
+Monday      5 October 2026 W41
+Tuesday     6 October 2026
+Wednesday   7 October 2026
+Thursday    8 October 2026
+--------------------------------------------------------------------------------
+ Important
+  money:      Deadline:   TODO [#A] Pay bills                      :home::bills:
+================================================================================
+Friday      9 October 2026
+--------------------------------------------------------------------------------
+ Tags: work
+  tasks:      Scheduled:  NEXT Write report                         :home::work:
+================================================================================
+Saturday   10 October 2026
+--------------------------------------------------------------------------------
+ Today
+               8:00...... ----------------
+  tasks:       9:00...... Scheduled:  NEXT [#B] Call plumber       :home:house::
+              10:00...... ----------------
+              11:00...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+  tasks:      14:00-15:00 Meeting with team                 :home::work:meeting:
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+--------------------------------------------------------------------------------
+ Important
+  money:       2 d. ago:  TODO [#A] Pay bills                      :home::bills:
+--------------------------------------------------------------------------------
+ Tags: work
+  tasks:      Sched. 1x:  NEXT Write report                         :home::work:
+--------------------------------------------------------------------------------
+ WAIT items
+  tasks:      In   4 d.:  WAIT Get quote                           :home:house::
+--------------------------------------------------------------------------------
+ Other items
+  tasks:      Scheduled:  TODO Buy tiles                           :home:house::
+  tasks:      Scheduled:  DONE Old task                                  :home::
+  tasks:      Scheduled:  TODO Errand at the store        :home::shopping:@town:
+  tasks:      Scheduled:  TODO Paint shed                                :home::
+  tasks:      In  10 d.:  TODO [#C] Read book                            :home::
+  tasks:      TODO Exercise                                  !           :home::
+================================================================================
+Sunday     11 October 2026
+--------------------------------------------------------------------------------
+ Other items
+  trip:       Scheduled:  TODO [#B] Plan trip                           :travel:
+  tasks:      Notes on the trip                                          :home::
+================================================================================

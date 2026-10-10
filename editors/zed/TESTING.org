@@ -128,6 +128,7 @@ its sections says what it should look like.
 - [ ] The agenda menu lists the views and the custom commands: the code action /Agenda commands/
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: the code action /Agenda for the current week or day/
 - [ ] Later, earlier, today; day, week, month views; going to a date: the code action /Agenda: go forward in time/, the code action /Agenda: go backward in time/, the code action /Agenda: go to today/, the code action /Agenda: day view/, the code action /Agenda: week view/, the code action /Agenda: month view/, the code action /Agenda: go to a date/
+- [ ] With ~org_super_agenda_mode~ on and ~org_super_agenda_groups~ set (~[{ name = "Today", time-grid = true }, { auto-category = true }]~), each day of the agenda is in groups under their headers, and the TODO list too: the code action /Agenda for the current week or day/
 - [ ] Going to the line's entry in another window, and where the agenda is: the code action /Agenda: go to the entry in another window/, the code action /Agenda: go to the entry/
 - [ ] Changing the line's TODO state and priority; the line follows: the code action /Change the TODO state/, the code action /Raise the priority/
 - [ ] Marking lines and a bulk action on them: the code action /Agenda: mark the entry for a bulk action/, the code action /Agenda: an action on the marked entries/

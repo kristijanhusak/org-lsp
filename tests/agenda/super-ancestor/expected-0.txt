@@ -1,0 +1,27 @@
+Day-agenda (W41):
+Saturday   10 October 2026
+
+ Ancestor PROJECT: Garden
+  tasks:      Scheduled:  TODO Paint shed                                :home::
+
+ Ancestor PROJECT: Renovate kitchen
+  tasks:       9:00...... Scheduled:  NEXT [#B] Call plumber       :home:house::
+  tasks:      Scheduled:  TODO Buy tiles                           :home:house::
+  tasks:      In   4 d.:  WAIT Get quote                           :home:house::
+
+ Other items
+               8:00...... ----------------
+              10:00...... ----------------
+              11:00...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+  tasks:      14:00-15:00 Meeting with team                 :home::work:meeting:
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  money:       2 d. ago:  TODO [#A] Pay bills                      :home::bills:
+  tasks:      Sched. 1x:  NEXT Write report                         :home::work:
+  tasks:      Scheduled:  DONE Old task                                  :home::
+  tasks:      Scheduled:  TODO Errand at the store        :home::shopping:@town:
+  tasks:      In  10 d.:  TODO [#C] Read book                            :home::
+  tasks:      TODO Exercise                                  !           :home::

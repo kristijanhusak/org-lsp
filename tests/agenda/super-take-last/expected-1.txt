@@ -1,0 +1,18 @@
+Global list of TODO items of type: ALL
+
+ Last 1 Scheduled today
+  tasks:      TODO Paint shed                                            :home::
+
+ A
+  tasks:      NEXT Write report                                     :home::work:
+
+ B
+  tasks:      WAIT Get quote                                       :home:house::
+
+ Other items
+  money:      TODO [#A] Pay bills                                  :home::bills:
+  tasks:      PROJECT Renovate kitchen                             :home::house:
+  tasks:      PROJECT Garden                                             :home::
+  tasks:      PROJECT Shed                                               :home::
+  trip:       TODO [#B] Plan trip                                       :travel:
+  tasks:      TODO [#C] Read book                                        :home::

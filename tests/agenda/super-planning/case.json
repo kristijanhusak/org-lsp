@@ -1,0 +1,59 @@
+{
+  "today": "2026-10-10",
+  "now": "11:00",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "agenda",
+      "span": "week"
+    }
+  ],
+  "options": {
+    "org_modules": [
+      "org-habit"
+    ],
+    "org_super_agenda_mode": true,
+    "org_super_agenda_groups": [
+      {
+        "name": "Overdue",
+        "deadline": "past"
+      },
+      {
+        "deadline": "today"
+      },
+      {
+        "deadline": "future"
+      },
+      {
+        "scheduled": "past"
+      },
+      {
+        "scheduled": "today"
+      },
+      {
+        "scheduled": [
+          "before",
+          "2026-10-12"
+        ]
+      },
+      {
+        "scheduled": [
+          "on",
+          "2026-10-12"
+        ]
+      },
+      {
+        "deadline": [
+          "after",
+          "2026-10-15"
+        ]
+      }
+    ]
+  }
+}

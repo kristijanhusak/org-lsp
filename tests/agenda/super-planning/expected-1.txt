@@ -1,0 +1,26 @@
+Global list of TODO items of type: ALL
+
+ Overdue
+  money:      TODO [#A] Pay bills                                  :home::bills:
+
+ Due soon
+  tasks:      WAIT Get quote                                       :home:house::
+  tasks:      TODO [#C] Read book                                        :home::
+
+ Past scheduled
+  tasks:      NEXT Write report                                     :home::work:
+
+ Scheduled today
+  tasks:      TODO Buy tiles                                       :home:house::
+  tasks:      NEXT [#B] Call plumber                               :home:house::
+  tasks:      TODO Exercise                                              :home::
+  tasks:      TODO Errand at the store                    :home::shopping:@town:
+  tasks:      TODO Paint shed                                            :home::
+
+ Scheduled before 2026-10-12
+  trip:       TODO [#B] Plan trip                                       :travel:
+
+ Other items
+  tasks:      PROJECT Renovate kitchen                             :home::house:
+  tasks:      PROJECT Garden                                             :home::
+  tasks:      PROJECT Shed                                               :home::

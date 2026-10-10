@@ -1,0 +1,23 @@
+Headlines with TAGS match: +home
+
+ Work
+  tasks:      NEXT Write report                                     :home::work:
+
+ WAIT items
+  tasks:      WAIT Get quote                                       :home:house::
+
+ To-do: NEXT
+  tasks:      NEXT [#B] Call plumber                               :home:house::
+
+ To-do: PROJECT
+  tasks:      PROJECT Renovate kitchen                             :home::house:
+  tasks:      PROJECT Garden                                             :home::
+  tasks:      PROJECT Shed                                               :home::
+
+ To-do: TODO
+  money:      TODO [#A] Pay bills                                  :home::bills:
+  tasks:      TODO Buy tiles                                       :home:house::
+  tasks:      TODO Exercise                                              :home::
+  tasks:      TODO Errand at the store                    :home::shopping:@town:
+  tasks:      TODO Paint shed                                            :home::
+  tasks:      TODO [#C] Read book                                        :home::

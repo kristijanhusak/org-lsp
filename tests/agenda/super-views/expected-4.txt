@@ -1,0 +1,35 @@
+Day-agenda (W41):
+Saturday   10 October 2026
+
+ Work
+  tasks:       7:00-7:45  Clocked:   (0:45) NEXT Write report       :home::work:
+  tasks:      14:00-15:00 Meeting with team                 :home::work:meeting:
+  tasks:      Sched. 1x:  NEXT Write report                         :home::work:
+
+ WAIT items
+  tasks:      In   4 d.:  WAIT Get quote                           :home:house::
+
+ To-do: DONE
+  tasks:      Scheduled:  DONE Old task                                  :home::
+
+ To-do: NEXT
+  tasks:       9:00...... Scheduled:  NEXT [#B] Call plumber       :home:house::
+
+ To-do: TODO
+  money:       2 d. ago:  TODO [#A] Pay bills                      :home::bills:
+  tasks:      Scheduled:  TODO Buy tiles                           :home:house::
+  tasks:      Scheduled:  TODO Errand at the store        :home::shopping:@town:
+  tasks:      Scheduled:  TODO Paint shed                                :home::
+  tasks:      In  10 d.:  TODO [#C] Read book                            :home::
+  tasks:      TODO Exercise                                  !           :home::
+
+ Other items
+  tasks:       8:00...... Closed:     DONE Old task                      :home::
+               8:00...... ----------------
+              10:00...... ----------------
+              11:00...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------

@@ -1,0 +1,35 @@
+{
+  "today": "2026-10-10",
+  "now": "11:00",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "todo"
+    }
+  ],
+  "options": {
+    "org_modules": [
+      "org-habit"
+    ],
+    "org_super_agenda_mode": true,
+    "org_super_agenda_groups": [
+      {
+        "name": "Work",
+        "tag": "work",
+        "time-grid": true
+      },
+      {
+        "todo": "WAIT"
+      }
+    ],
+    "org_super_agenda_unmatched_name": "Rest",
+    "org_super_agenda_unmatched_order": -1,
+    "org_super_agenda_header_separator": "##\n",
+    "org_super_agenda_header_prefix": ">> ",
+    "org_super_agenda_final_group_separator": " (end)",
+    "org_super_agenda_keep_order": true
+  }
+}

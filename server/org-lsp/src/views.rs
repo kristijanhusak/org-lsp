@@ -246,7 +246,8 @@ pub fn render(
                 }
             }
             LineKind::Header | LineKind::Separator | LineKind::Table => day = None,
-            LineKind::Item | LineKind::EntryText => {}
+            // A group of org-super-agenda stays in its day.
+            LineKind::Item | LineKind::EntryText | LineKind::Group { .. } => {}
         }
         let entry = line.item.as_ref().and_then(|item| Some((item, item.source?))).map(|(item, source)| {
             let entry = agenda::entry(&outlines, source);
@@ -416,11 +417,13 @@ fn block_lines(
     let searched: Vec<&Outline> = order.iter().map(|index| all[*index]).collect();
     let mut rendered: Vec<(usize, agenda::Line)> = Vec::new();
     let mut starts = Vec::new();
+    let paths: Vec<String> = files.iter().map(|(_, path, _)| path.clone()).collect();
     for (number, block) in blocks.iter().enumerate() {
-        let config = &block.config;
+        // The files' paths, for what looks at them (org-super-agenda).
+        let config = &agenda::Config { file_paths: paths.clone(), ..block.config.clone() };
         let mut view = match &block.kind {
             BlockKind::Agenda { start, span } => agenda::view(outlines, now, *start, *span, config),
-            BlockKind::Todo { keywords } => agenda::todo_view(outlines, keywords.as_deref(), config),
+            BlockKind::Todo { keywords } => agenda::todo_view(outlines, keywords.as_deref(), now, config),
             BlockKind::Tags { matcher, todo_only } => agenda::tags_view(outlines, matcher, *todo_only, now, config),
             // A setting Org cannot use leaves the view with what it says.
             BlockKind::Stuck => agenda::stuck_view(outlines, now, config).unwrap_or_else(|error| agenda::View {
@@ -430,30 +433,39 @@ fn block_lines(
             }),
             // A search string Org cannot read leaves the view empty; the
             // command that asked for it says why.
-            BlockKind::Search { string, todo_only } => agenda::search_view(&searched, string, *todo_only, now, config)
-                .map(|mut view| {
-                    // Back to the files of the whole view.
-                    for line in &mut view.lines {
-                        if let Some(source) = line.item.as_mut().and_then(|item| item.source.as_mut()) {
-                            source.file = order[source.file];
+            BlockKind::Search { string, todo_only } => {
+                let config = &agenda::Config {
+                    file_paths: order.iter().map(|index| paths[*index].clone()).collect(),
+                    ..config.clone()
+                };
+                agenda::search_view(&searched, string, *todo_only, now, config)
+                    .map(|mut view| {
+                        // Back to the files of the whole view.
+                        for line in &mut view.lines {
+                            if let Some(source) = line.item.as_mut().and_then(|item| item.source.as_mut()) {
+                                source.file = order[source.file];
+                            }
                         }
-                    }
-                    view
-                })
-                .unwrap_or_else(|_| agenda::View {
-                    lines: vec![agenda::Line {
-                        text: format!("Search words: {string}"),
-                        kind: agenda::LineKind::Header,
-                        item: None,
-                    }],
-                    start: 0,
-                    end: 0,
-                }),
+                        view
+                    })
+                    .unwrap_or_else(|_| agenda::View {
+                        lines: vec![agenda::Line {
+                            text: format!("Search words: {string}"),
+                            kind: agenda::LineKind::Header,
+                            item: None,
+                        }],
+                        start: 0,
+                        end: 0,
+                    })
+            }
         };
         // The lines the filters keep out (`org-agenda-filter-apply`).
         if let Some(filters) = filters.filter(|filters| !filters.is_empty()) {
             let groups = if config.group_tags { agenda::tag_groups(outlines, config) } else { Vec::new() };
             agenda::filter::apply(&mut view, &all, filters, &groups);
+            if config.super_agenda.as_ref().is_some_and(|settings| settings.hide_empty_groups) {
+                agenda::super_agenda::hide_empty_groups(&mut view.lines);
+            }
         }
         // `org-agenda-entry-text-mode`: the text of each entry under its
         // line.

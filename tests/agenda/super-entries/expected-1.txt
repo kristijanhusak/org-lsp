@@ -1,0 +1,26 @@
+Global list of TODO items of type: ALL
+
+ Effort < 0:30 items
+  money:      TODO [#A] Pay bills                                  :home::bills:
+  tasks:      TODO Buy tiles                                       :home:house::
+
+ Effort > 1:00 items
+  tasks:      NEXT Write report                                     :home::work:
+
+ Items with child to-dos
+  tasks:      PROJECT Renovate kitchen                             :home::house:
+  tasks:      NEXT [#B] Call plumber                               :home:house::
+  tasks:      PROJECT Garden                                             :home::
+  tasks:      PROJECT Shed                                               :home::
+
+ Owned
+  tasks:      WAIT Get quote                                       :home:house::
+
+ Habits
+  tasks:      TODO Exercise                                              :home::
+
+ Other items
+  tasks:      TODO Errand at the store                    :home::shopping:@town:
+  tasks:      TODO Paint shed                                            :home::
+  trip:       TODO [#B] Plan trip                                       :travel:
+  tasks:      TODO [#C] Read book                                        :home::

@@ -75,6 +75,17 @@ pub fn display(line: &Line) -> Displayed {
     let raw = line.text.as_str();
     let item = match (&line.kind, &line.item) {
         (LineKind::Header | LineKind::Separator, _) => return whole(raw, Style::Structure),
+        // org-super-agenda's header face inherits `org-agenda-structure`.
+        (LineKind::Group { faced }, _) => {
+            let faced = (*faced).min(raw.len());
+            let mut shown = whole(&raw[faced..], Style::Structure);
+            shown.text = raw.to_string();
+            for segment in &mut shown.segments {
+                segment.start += faced;
+                segment.end += faced;
+            }
+            return shown;
+        }
         (LineKind::Table, _) => return table(raw),
         (LineKind::Date { today, weekend, .. }, _) => {
             return whole(raw, Style::Date { today: *today, weekend: *weekend })
@@ -245,6 +256,8 @@ mod tests {
                 keyword_done: false,
                 habit: None,
                 graph: None,
+                ts_date: None,
+                log: None,
             }),
         }
     }

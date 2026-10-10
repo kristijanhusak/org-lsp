@@ -1,0 +1,57 @@
+{
+  "today": "2026-10-10",
+  "now": "11:00",
+  "runs": [
+    {
+      "view": "custom",
+      "key": "x"
+    }
+  ],
+  "options": {
+    "org_modules": [
+      "org-habit"
+    ],
+    "org_super_agenda_mode": true,
+    "org_super_agenda_groups": [
+      {
+        "name": "Default",
+        "priority": "A"
+      }
+    ],
+    "org_agenda_custom_commands": [
+      {
+        "key": "x",
+        "description": "Block",
+        "blocks": [
+          {
+            "type": "agenda",
+            "settings": {
+              "org_agenda_span": "day",
+              "org_super_agenda_groups": [
+                {
+                  "name": "Today",
+                  "time-grid": true
+                }
+              ]
+            }
+          },
+          {
+            "type": "alltodo",
+            "settings": {
+              "org_super_agenda_groups": [
+                {
+                  "auto-todo": true
+                }
+              ]
+            }
+          },
+          {
+            "type": "tags",
+            "match": "work"
+          }
+        ]
+      }
+    ]
+  },
+  "emacs": "(setq org-agenda-custom-commands\n  '((\"x\" \"Block\"\n     ((agenda \"\" ((org-agenda-span 'day) (org-super-agenda-groups '((:name \"Today\" :time-grid t)))))\n      (alltodo \"\" ((org-super-agenda-groups '((:auto-todo t)))))\n      (tags \"work\")))))"
+}

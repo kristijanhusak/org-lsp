@@ -1783,11 +1783,11 @@ fn line_edits(text: &str, index: &LineIndex, encoding: Encoding, new: &str) -> V
 }
 
 /// Parse the parameters of `request`, or produce the error response.
-fn parameters<P: DeserializeOwned>(request: Request) -> std::result::Result<(RequestId, P), Response> {
+fn parameters<P: DeserializeOwned>(request: Request) -> std::result::Result<(RequestId, P), Box<Response>> {
     let id = request.id.clone();
     match serde_json::from_value(request.params) {
         Ok(params) => Ok((id, params)),
-        Err(error) => Err(Response::new_err(id, ErrorCode::InvalidParams as i32, error.to_string())),
+        Err(error) => Err(Box::new(Response::new_err(id, ErrorCode::InvalidParams as i32, error.to_string()))),
     }
 }
 
@@ -2063,7 +2063,7 @@ impl Server {
                 match request.method.as_str() {
                     $(<$request>::METHOD => match parameters(request) {
                         Ok((id, params)) => respond(id, self.$handler(params)),
-                        Err(response) => response,
+                        Err(response) => *response,
                     },)*
                     ExecuteCommand::METHOD => match parameters::<ExecuteCommandParams>(request) {
                         Ok((id, params)) => {
@@ -2078,7 +2078,7 @@ impl Server {
                                 Err(refusal) => refused(id, refusal),
                             }
                         }
-                        Err(response) => response,
+                        Err(response) => *response,
                     },
                     // A request too, for clients that send no notifications
                     // of their own (Vim's).
@@ -2087,27 +2087,27 @@ impl Server {
                             self.agenda_width(&params);
                             Response::new_ok(id, Value::Null)
                         }
-                        Err(response) => response,
+                        Err(response) => *response,
                     },
                     AGENDA_CURSOR => match parameters::<Value>(request) {
                         Ok((id, params)) => {
                             self.agenda_cursor(params);
                             Response::new_ok(id, Value::Null)
                         }
-                        Err(response) => response,
+                        Err(response) => *response,
                     },
                     STARTUP_FOLDS => match parameters::<FoldingRangeParams>(request) {
                         Ok((id, params)) => respond(id, self.startup_folds(&params.text_document)),
-                        Err(response) => response,
+                        Err(response) => *response,
                     },
                     FACES => Response::new_ok(request.id, self.faces.clone()),
                     PREVIEW => match parameters::<Value>(request) {
                         Ok((id, params)) => respond(id, self.preview(&params)),
-                        Err(response) => response,
+                        Err(response) => *response,
                     },
                     TEXT_DOCUMENT_CONTENT => match parameters::<Value>(request) {
                         Ok((id, params)) => respond(id, self.text_document_content(&params)),
-                        Err(response) => response,
+                        Err(response) => *response,
                     },
                     method => {
                         let message = format!("org-lsp does not handle `{method}`");
