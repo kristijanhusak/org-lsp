@@ -1611,7 +1611,7 @@ do
   end)
   check(date_prompt() == nil, 'the calendar closed')
   eq(line(1):match('^Search results for "carried" between '), 'Search results for "carried" between ', 'the title')
-  eq(line(3), ('[[file:%s::2][%s]]\t** TODO carried'):format(today, os.date('%A, %m/%d/%y')), 'the result')
+  eq(line(3), ('[[file:%s::2][%s]]  ** TODO carried'):format(today, os.date('%A, %m/%d/%y')), 'the result')
 end
 
 print(('ok: %d checks passed'):format(checks))

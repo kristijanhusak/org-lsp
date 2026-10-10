@@ -6839,7 +6839,7 @@ fn writes_journal_entries() {
         std::fs::read_to_string(&results).unwrap(),
         format!(
             "Search results for \"bob\" between Thursday, 04/30/26 and Sunday, 05/31/26: \n\n\
-             [[file:{}::2][Monday, 05/18/26]]\t** TODO call Bob\n",
+             [[file:{}::2][Monday, 05/18/26]]  ** TODO call Bob\n",
             directory.join("20260518").display()
         )
     );
