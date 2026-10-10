@@ -1485,6 +1485,15 @@ do
   end)
   local written = vim.fn.glob(roam_dir .. '/*-fresh_idea.org')
   eq(vim.fn.readfile(written), { ':PROPERTIES:', ':ID:       ' .. id, ':END:', '#+title: Fresh idea', 'Body.' }, 'the new file')
+  -- An alias of the node at the cursor, asked for, goes into its drawer.
+  vim.cmd.edit(roam_dir .. '/note.org')
+  vim.api.nvim_win_set_cursor(0, { 6, 0 })
+  answer = 'Other name'
+  require('org-lsp').run('org.roam.alias.add')
+  wait('the alias', function()
+    return line(3) == ':ROAM_ALIASES: "Other name"'
+  end)
+  eq(asked.prompt, 'Alias: ', 'asked as Emacs asks')
   vim.ui.input = input
 end
 

@@ -36,6 +36,8 @@ pub enum Open {
     Citation(Vec<String>),
     /// Nothing to open; what Emacs says then.
     Nothing(String),
+    /// A `roam:` link: the title or alias of an org-roam node.
+    Roam(String),
     /// An `attachment:` link: a file of the entry's attachment directory,
     /// which Emacs knows (`org-attach-expand`), and a search after `::`.
     Attachment(String),
@@ -362,6 +364,10 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
         _ if bracket => expand_abbreviation(&raw, list)?,
         _ => raw,
     };
+    // org-roam's link type, which the server knows only with org-roam on.
+    if let Some(title) = raw.strip_prefix("roam:").filter(|_| bracket) {
+        return Ok(Open::Roam(title.to_string()));
+    }
     // Only bracket links can be files without a type, or internal.
     if bracket && (raw.starts_with('/') || raw.starts_with('~') || raw.starts_with("./") || raw.starts_with("../")) {
         return Ok(file(&raw, None));

@@ -301,3 +301,124 @@ fn roam_capture_matches_emacs() {
     }
     assert!(failures.is_empty(), "{} differences from Emacs:\n{}", failures.len(), failures.join("\n"));
 }
+
+/// The node lookup of `org-roam-node-from-title-or-alias`, over `db`.
+fn lookup(db: &Db, name: &str) -> Result<Option<String>, String> {
+    let mut ids: Vec<&str> =
+        db.nodes.iter().filter(|(_, node)| node.title == name).map(|(_, node)| node.id.as_str()).collect();
+    ids.extend(db.aliases.iter().filter(|(_, alias)| alias == name).map(|(id, _)| id.as_str()));
+    ids.sort();
+    ids.dedup();
+    match ids.as_slice() {
+        [] => Ok(None),
+        [id] => Ok(Some(id.to_string())),
+        _ => Err(format!("Multiple nodes exist with title or alias \"{name}\"")),
+    }
+}
+
+/// What an editing case leaves: the file's text, and the message or the
+/// error.
+fn run_edit(case: &Value) -> Value {
+    use org_core::roam::edit;
+    const CURSOR: char = '¦';
+    let files = case["files"].as_object().expect("files");
+    let (name, text, at) = files
+        .iter()
+        .find_map(|(name, text)| {
+            let text = text.as_str()?;
+            text.find(CURSOR).map(|at| (name.clone(), text.replace(CURSOR, ""), at))
+        })
+        .expect("a cursor");
+    let mut db = Db::default();
+    let mut names: Vec<String> = files.keys().cloned().collect();
+    roam::sync_order(&mut names);
+    for file in &names {
+        let body =
+            if *file == name { text.clone() } else { files[file.as_str()].as_str().unwrap_or_default().to_string() };
+        let todo = org_syntax::TodoKeywords::from_document(&body).unwrap_or_default();
+        let parse = org_syntax::parse(&body, &todo);
+        let outline = Outline::new(&parse, &body, "x");
+        db.add(file, roam::scan(&body, &parse, &outline, file));
+    }
+    let todo = org_syntax::TodoKeywords::from_document(&text).unwrap_or_default();
+    let parse = org_syntax::parse(&text, &todo);
+    let stem = name.rsplit('/').next().unwrap_or(&name).trim_end_matches(".org").to_string();
+    let outline = Outline::new(&parse, &text, &stem);
+    let context =
+        org_core::properties::Context { keywords: todo.clone(), category: stem.clone(), ..Default::default() };
+    let settings = org_core::tags::Settings { auto_align: true, tags_column: -77, ..Default::default() };
+    let arg = &case["arg"];
+    let text_arg = arg.as_str().unwrap_or_default();
+    let list_arg = strings(arg);
+    let done = |result: Result<(String, Option<String>), String>| match result {
+        Ok((text, said)) => json!({ "text": text, "message": said }),
+        Err(error) => json!({ "text": text, "error": error }),
+    };
+    let command = case["command"].as_str().unwrap_or_default();
+    if command == "replace-links" {
+        let (edited, error) = edit::replace_links(&text, &parse, &|name| lookup(&db, name));
+        return match error {
+            Some(error) => json!({ "text": edited, "error": error }),
+            None => json!({ "text": edited, "message": null }),
+        };
+    }
+    let point = match edit::node_at(&text, at, &context) {
+        // Where the database has the node: a position of its file, which
+        // Emacs takes in this one when the node is in another.
+        Ok(found) => match db.nodes.iter().find(|(_, node)| node.id == found.id) {
+            Some((file, node)) if *file == name => node.offset,
+            Some((file, node)) => {
+                let chars = files[file.as_str()].as_str().unwrap_or_default()[..node.offset].chars().count();
+                text.char_indices().nth(chars).map_or(text.len(), |(at, _)| at)
+            }
+            None => found.point,
+        },
+        Err(refusal) => return done(Err(refusal.message().to_string())),
+    };
+    // A deliberate difference: when the database does not have the node
+    // (its file cannot be read, or has changed since), Emacs's
+    // `org-set-tags` changes the line the cursor is on as if it were the
+    // headline; org-lsp changes the headline.
+    let heading = org_core::properties::heading_at(&text, point);
+    if command.starts_with("tag") && heading.is_some_and(|heading| heading != point) {
+        return json!("not compared");
+    }
+    let property = |name: &str, remove: bool| {
+        if remove {
+            edit::property_remove(&text, point, name, text_arg, &context)
+        } else {
+            edit::property_add(&text, point, name, text_arg, &context).map(|text| (text, None))
+        }
+    };
+    done(match command {
+        "alias-add" => property("ROAM_ALIASES", false),
+        "alias-remove" => property("ROAM_ALIASES", true),
+        "ref-add" => property("ROAM_REFS", false),
+        "ref-remove" => property("ROAM_REFS", true),
+        "tag-add" => Ok((edit::tag_add(&text, &outline, point, &list_arg, &settings), None)),
+        "tag-remove" => edit::tag_remove(&text, &outline, point, &list_arg, &settings)
+            .map(|text| (text, None))
+            .map_err(|refusal| refusal.message().to_string()),
+        other => Err(format!("unknown command {other}")),
+    })
+}
+
+#[test]
+fn roam_edits_match_emacs() {
+    let path = match std::env::var_os("ORG_ROAM_EDIT_CASES") {
+        Some(path) => path.into(),
+        None => Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/roam/edit.json"),
+    };
+    let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    let mut failures = Vec::new();
+    for (index, case) in cases.iter().enumerate() {
+        let actual = run_edit(case);
+        if actual != case["expected"] && actual != "not compared" {
+            failures.push(format!(
+                "case {index} ({} {}):\n  emacs:   {}\n  org-lsp: {actual}",
+                case["command"], case["arg"], case["expected"]
+            ));
+        }
+    }
+    assert!(failures.is_empty(), "{} differences from Emacs:\n{}", failures.len(), failures.join("\n"));
+}

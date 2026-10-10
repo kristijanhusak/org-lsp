@@ -318,6 +318,12 @@ pub const ROAM_NODE_FIND: &str = "org.roam.node.find";
 pub const ROAM_NODE_INSERT: &str = "org.roam.node.insert";
 pub const ROAM_NODE_RANDOM: &str = "org.roam.node.random";
 pub const ROAM_CAPTURE: &str = "org.roam.capture";
+pub const ROAM_ALIAS_ADD: &str = "org.roam.alias.add";
+pub const ROAM_ALIAS_REMOVE: &str = "org.roam.alias.remove";
+pub const ROAM_TAG_ADD: &str = "org.roam.tag.add";
+pub const ROAM_TAG_REMOVE: &str = "org.roam.tag.remove";
+pub const ROAM_REF_ADD: &str = "org.roam.ref.add";
+pub const ROAM_REF_REMOVE: &str = "org.roam.ref.remove";
 pub const CAPTURE_ABORT: &str = "org.capture.abort";
 pub const CAPTURE_REFILE: &str = "org.capture.refile";
 pub const TIMESTAMP_UP: &str = "org.timestamp.up";
@@ -1357,6 +1363,18 @@ pub const COMMANDS: &[Command] = &[
         ..command(ROAM_CAPTURE, "Roam: capture to a node")
     },
     command(ROAM_NODE_RANDOM, "Roam: visit a random node"),
+    Command { input: Some(Input { kind: "text", prompt: "Alias" }), ..edit(ROAM_ALIAS_ADD, "Roam: add an alias") },
+    Command {
+        input: Some(Input { kind: "text", prompt: "Remove" }),
+        ..edit(ROAM_ALIAS_REMOVE, "Roam: remove an alias")
+    },
+    Command { input: Some(Input { kind: "text", prompt: "Tag" }), ..edit(ROAM_TAG_ADD, "Roam: add tags") },
+    Command { input: Some(Input { kind: "text", prompt: "Tag" }), ..edit(ROAM_TAG_REMOVE, "Roam: remove tags") },
+    Command { input: Some(Input { kind: "text", prompt: "Ref" }), ..edit(ROAM_REF_ADD, "Roam: add a reference") },
+    Command {
+        input: Some(Input { kind: "text", prompt: "Remove" }),
+        ..edit(ROAM_REF_REMOVE, "Roam: remove a reference")
+    },
     Command {
         emacs: &[key(Capture, "C-c C-k")],
         vim: &[key(Capture, "<Leader>ok")],

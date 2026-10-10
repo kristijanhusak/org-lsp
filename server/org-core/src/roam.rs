@@ -18,6 +18,7 @@ use regex::Regex;
 use crate::outline::{complex_heading_parts, Outline};
 
 pub mod capture;
+pub mod edit;
 
 /// Which files are org-roam's.
 #[derive(Debug, Clone, PartialEq, Eq)]

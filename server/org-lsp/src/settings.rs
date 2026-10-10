@@ -1291,6 +1291,22 @@ pub const SETTINGS: &[Setting] = &[
          window's 79 columns.",
     ),
     setting(
+        "org_roam_link_auto_replace",
+        "boolean",
+        "true",
+        "org-roam-link-auto-replace",
+        "Turn the `roam:` links of org-roam's files into `id:` links to their nodes as the files are saved, \
+         and as a link is followed.",
+    ),
+    setting(
+        "org_roam_completion_everywhere",
+        "boolean",
+        "false",
+        "org-roam-completion-everywhere",
+        "In org-roam's files, offer the titles of the nodes for the word at the cursor, not only in a link; \
+         the one picked becomes a link to its node.",
+    ),
+    setting(
         "org_roam_capture_templates",
         "object[]",
         r##"[{ "key": "d", "description": "default", "type": "plain", "template": "%?", "target": ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"], "unnarrowed": true }]"##,
@@ -1819,6 +1835,8 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] }"#,
     ),
     ("org_roam_node_display_template", STRING),
+    ("org_roam_link_auto_replace", BOOLEAN),
+    ("org_roam_completion_everywhere", BOOLEAN),
     (
         "org_roam_capture_templates",
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RoamCaptureTemplate", "required": ["key", "description"], "additionalProperties": false, "properties": {

@@ -404,6 +404,12 @@ line.
 | ~org.archive.done~ | Org: Archive the subtrees without open TODO items |
 | ~org.archive.tag.done~ | Org: Tag the subtrees without open TODO items as archived |
 | ~org.roam.node.random~ | Org: Roam: visit a random node |
+| ~org.roam.alias.add~ | Org: Roam: add an alias |
+| ~org.roam.alias.remove~ | Org: Roam: remove an alias |
+| ~org.roam.tag.add~ | Org: Roam: add tags |
+| ~org.roam.tag.remove~ | Org: Roam: remove tags |
+| ~org.roam.ref.add~ | Org: Roam: add a reference |
+| ~org.roam.ref.remove~ | Org: Roam: remove a reference |
 | ~org.date.later.hours~ | Org: Agenda: move the time one hour later |
 | ~org.date.earlier.hours~ | Org: Agenda: move the time one hour earlier |
 | ~org.date.later.minutes~ | Org: Agenda: move the time later by the rounding minutes |

@@ -362,6 +362,12 @@ pub struct Options {
     /// `org-roam-node-display-template`
     #[serde(rename = "org_roam_node_display_template")]
     pub roam_node_display_template: Option<String>,
+    /// `org-roam-link-auto-replace`
+    #[serde(rename = "org_roam_link_auto_replace")]
+    pub roam_link_auto_replace: Option<bool>,
+    /// `org-roam-completion-everywhere`
+    #[serde(rename = "org_roam_completion_everywhere")]
+    pub roam_completion_everywhere: Option<bool>,
     /// `org-roam-capture-templates`, written as `org_capture_templates`.
     #[serde(rename = "org_roam_capture_templates")]
     pub roam_capture_templates: Option<Vec<CaptureTemplateOption>>,
@@ -449,6 +455,10 @@ pub struct RoamSettings {
     pub files: org_core::roam::Settings,
     pub display_template: String,
     pub templates: Vec<CaptureTemplateOption>,
+    /// `org-roam-link-auto-replace`
+    pub link_auto_replace: bool,
+    /// `org-roam-completion-everywhere`
+    pub completion_everywhere: bool,
 }
 
 /// An entry of `org-capture-templates`. One with only a key and a
@@ -875,6 +885,8 @@ impl Options {
                 },
             },
             display_template: self.roam_node_display_template.clone().unwrap_or_else(|| "${title}".to_string()),
+            link_auto_replace: self.roam_link_auto_replace.unwrap_or(true),
+            completion_everywhere: self.roam_completion_everywhere.unwrap_or(false),
             templates: self.roam_capture_templates.clone().unwrap_or_else(|| {
                 vec![CaptureTemplateOption {
                     key: "d".to_string(),

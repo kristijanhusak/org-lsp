@@ -205,6 +205,10 @@ its sections says what it should look like.
 - [ ] Inserting a node puts ~[[id:…][title]]~ at the cursor; on a selection, the selection is typed first and the link takes its place: ~<Leader>ni~
 - [ ] A title no node has opens a capture buffer with the new file's ~ID~ and ~#+title:~; finishing writes the file and, from insert, puts the link in: ~<Leader>ni~
 - [ ] A random node is visited: ~:Org roam node random~
+- [ ] Adding an alias puts it in the node's ~ROAM_ALIASES~; removing it offers the aliases and takes the one picked out: ~:Org roam alias add~, ~:Org roam alias remove~
+- [ ] Adding tags to a file's node writes ~#+filetags:~; on a headline's node, its tags: ~:Org roam tag add~
+- [ ] Following ~[[roam:Title]]~ visits the node and turns the link into ~[[id:…][Title]]~; saving does it for the others: ~<Leader>oo~
+- [ ] Typing ~[[roam:~ offers the titles of the nodes; the one picked becomes an ~id:~ link
 
 * Refile and archive
 
