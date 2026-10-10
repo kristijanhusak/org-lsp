@@ -1526,6 +1526,48 @@
     }
   },
   {
+    "caption": "Org: Journal: search between two dates",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.search"
+    }
+  },
+  {
+    "caption": "Org: Journal: search every entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.search.forever"
+    }
+  },
+  {
+    "caption": "Org: Journal: search the entries to come",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.search.future"
+    }
+  },
+  {
+    "caption": "Org: Journal: the TODO entries to come",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.search.future.scheduled"
+    }
+  },
+  {
+    "caption": "Org: Journal: the entries to come with a date",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.schedule.view"
+    }
+  },
+  {
+    "caption": "Org: Journal: move the entry to come to another day",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.reschedule"
+    }
+  },
+  {
     "caption": "Org: Capture: abort",
     "command": "org_lsp_run",
     "args": {

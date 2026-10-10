@@ -5139,7 +5139,10 @@ impl Server {
             None => self.date_target(id, context)?,
         };
         self.apply_date(id, &target, &answer)?;
-        Ok(if pending.is_some() { json!({ "close": self.prompt_uri.as_str() }) } else { Value::Null })
+        // A command that asks for another date (a journal search's last
+        // day) has the calendar open again.
+        let asked_again = self.date_prompt.is_some();
+        Ok(if pending.is_some() && !asked_again { json!({ "close": self.prompt_uri.as_str() }) } else { Value::Null })
     }
 
     /// Run the command `id` that asked for a date, at `target`, with
@@ -5299,6 +5302,10 @@ impl Server {
 
     /// Show `open` as the date prompt, replacing one that was open.
     fn open_date_prompt(&mut self, mut open: DatePrompt) {
+        let journal = self.journal_days();
+        if !journal.is_empty() {
+            open.mark_journal(journal, self.date_time(), &self.read_date);
+        }
         let cursor = open.cursor();
         if self.prompt_copy.is_some() {
             // The client has the document: it shows it again and fetches
@@ -5478,15 +5485,22 @@ impl Server {
 
     /// Run the command the date prompt answers, and close the prompt.
     fn finish_date_prompt(&mut self, answer: &str) -> std::result::Result<Value, Refusal> {
-        let open = self.date_prompt.as_ref().ok_or("No date prompt is open")?;
+        let open = self.date_prompt.take().ok_or("No date prompt is open")?;
         let (id, target) = (open.id.clone(), open.target.clone());
         // The command was run in the file, not in the calendar: the file
         // stays unsaved, as Emacs leaves it (`auto_save` is for the others).
         if let Target::Place { uri, .. } = &target {
             self.origin = Some(uri.as_str().to_string());
         }
-        self.apply_date(&id, &target, answer)?;
-        self.date_prompt = None;
+        if let Err(refusal) = self.apply_date(&id, &target, answer) {
+            self.date_prompt.get_or_insert(open);
+            return Err(refusal);
+        }
+        // A command that asks for another date (a journal search's last
+        // day) has the calendar open again.
+        if self.date_prompt.is_some() {
+            return Ok(Value::Null);
+        }
         Ok(json!({ "close": self.prompt_uri.as_str() }))
     }
 

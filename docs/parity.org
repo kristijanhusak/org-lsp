@@ -8,7 +8,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in [[file:../PLAN.org][PLAN.org]]).
 
-*All of Org: 98%*
+*All of Org: 99%*
 
 | Feature | Parity | Done |
 |---+---+---|
@@ -25,7 +25,7 @@ decides the outcome (see "How the work is checked" in [[file:../PLAN.org][PLAN.o
 | [[#clocking][Clocking]] | 100% | 8 of 8 |
 | [[#capture][Capture]] | 100% | 11 of 11 |
 | [[#notes-org-roam][Notes (org-roam)]] | 100% | 8 of 8 |
-| [[#a-journal-org-journal][A journal (org-journal)]] | 67% | 6 of 9 |
+| [[#a-journal-org-journal][A journal (org-journal)]] | 83% | 10 of 12 |
 | [[#refile-and-archive][Refile and archive]] | 100% | 11 of 11 |
 | [[#links][Links]] | 100% | 11 of 11 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
@@ -346,7 +346,7 @@ Where editors fall short:
 :CUSTOM_ID: a-journal-org-journal
 :END:
 
-67% (6 of 9)
+83% (10 of 12)
 
 - ✅ A file a day, week, month or year in ~org_journal_dir~, an entry for each day and one for each time (~org-journal-new-entry~), today's entry only with ~C-u~
 - ✅ An entry for a date asked for, and a TODO entry for a day to come with its timestamp (~org-journal-new-date-entry~, ~org-journal-new-scheduled-entry~)
@@ -354,13 +354,16 @@ Where editors fall short:
 - ✅ Carrying the items ~org_journal_carryover_items~ matches over to the new day, with the headlines above them; deleting the entry or file left empty
 - ✅ The other entries folded (~org_journal_hide_entries_p~)
 - ✅ The journal's files from yesterday on in the agenda (~org_journal_enable_agenda_integration~)
-- ❌ Searching the journal (~org-journal-search~), the schedule view, the calendar's marks and keys
-- ❌ Rescheduling an entry for a day to come (~org-journal-reschedule-scheduled-entry~)
+- ✅ Searching the journal between two days, every day, from today on, and its TODO entries to come (~org-journal-search~ …), each result linking to its line
+- ✅ The entries to come with a timestamp, in a schedule of their own (~org-journal-schedule-view~)
+- ✅ Moving an entry to come to another day (~org-journal-reschedule-scheduled-entry~)
+- ✅ The days with an entry marked in the date prompt's calendar (~org-journal-mark-entries~)
+- ❌ The keys org-journal adds to ~M-x calendar~ (~j r~, ~[~, ~]~ …)
 - ❌ Files encrypted whole (~org-journal-encrypt-journal~)
 
 Where editors fall short:
 
-- Zed ❓: The date commands are left out: Zed cannot ask for text on a server's behalf. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
+- Zed ❓: The date commands, the searches and rescheduling are left out: Zed cannot ask for text on a server's behalf. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
 - Helix ❌: Helix cannot open the journal file on a server's request, and Helix cannot ask for text on a server's behalf.
 
 * Refile and archive

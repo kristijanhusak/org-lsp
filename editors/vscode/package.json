@@ -1146,6 +1146,36 @@
         "category": "Org"
       },
       {
+        "command": "org.journal.search",
+        "title": "Journal: search between two dates",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.search.forever",
+        "title": "Journal: search every entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.search.future",
+        "title": "Journal: search the entries to come",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.search.future.scheduled",
+        "title": "Journal: the TODO entries to come",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.schedule.view",
+        "title": "Journal: the entries to come with a date",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.reschedule",
+        "title": "Journal: move the entry to come to another day",
+        "category": "Org"
+      },
+      {
         "command": "org.capture.abort",
         "title": "Capture: abort",
         "category": "Org"
@@ -3087,6 +3117,19 @@
               "markdownDescription": "Add the journal's files of today and the days to come to the agenda's files. (`org-journal-enable-agenda-integration`)",
               "default": false
             },
+            "org_journal_search_result_date_format": {
+              "type": "string",
+              "markdownDescription": "The date of each result of a search of the journal, as `format-time-string` writes it. (`org-journal-search-result-date-format`)",
+              "default": "%A, %x"
+            },
+            "org_journal_search_results_order_by": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "markdownDescription": "The order of the results of a search of the journal: `asc`, the first day first, or `desc`, the last. (`org-journal-search-results-order-by`)",
+              "default": "asc"
+            },
             "org_extend_today_until": {
               "type": "integer",
               "minimum": 0,
@@ -3559,6 +3602,10 @@
       {
         "id": "calendarPrompt",
         "description": "Date prompt: the prompt before the answer"
+      },
+      {
+        "id": "calendarJournal",
+        "description": "Date prompt: a day with an entry of org-journal; to come with `future`"
       }
     ],
     "semanticTokenModifiers": [
@@ -3967,6 +4014,14 @@
           "calendarPrompt": [
             "keyword.other.prompt.calendar.org",
             "keyword"
+          ],
+          "calendarJournal": [
+            "markup.italic.journal.calendar.org",
+            "markup.italic"
+          ],
+          "calendarJournal.future": [
+            "markup.italic.scheduled.journal.calendar.org",
+            "markup.italic"
           ]
         }
       },
@@ -4253,6 +4308,14 @@
           "calendarPrompt": [
             "keyword.other.prompt.calendar.org",
             "keyword"
+          ],
+          "calendarJournal": [
+            "markup.italic.journal.calendar.org",
+            "markup.italic"
+          ],
+          "calendarJournal.future": [
+            "markup.italic.scheduled.journal.calendar.org",
+            "markup.italic"
           ]
         }
       },
@@ -4539,6 +4602,14 @@
           "calendarPrompt": [
             "keyword.other.prompt.calendar.org",
             "keyword"
+          ],
+          "calendarJournal": [
+            "markup.italic.journal.calendar.org",
+            "markup.italic"
+          ],
+          "calendarJournal.future": [
+            "markup.italic.scheduled.journal.calendar.org",
+            "markup.italic"
           ]
         }
       }
@@ -5225,6 +5296,11 @@
       {
         "command": "org.journal.previous.entry",
         "key": "ctrl+c j b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.journal.search",
+        "key": "ctrl+c j s",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

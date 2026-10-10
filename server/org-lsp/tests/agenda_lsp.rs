@@ -6814,6 +6814,60 @@ fn writes_journal_entries() {
     assert!(lines[0].contains("Notes"), "{view}");
     assert!(lines[1].starts_with("  20260520:"), "{view}");
     assert!(lines[2].contains("call Bob"), "{view}");
+
+    // A search: the string, then the first and the last day, each answer
+    // carried in the context of the next question.
+    let asked = run(&mut client, "org.journal.search", json!({})).unwrap();
+    assert_eq!(asked["input"]["kind"], "text");
+    assert_eq!(asked["input"]["prompt"], "Enter a string to search for");
+    let mut context = asked["input"]["context"].clone();
+    context["input"] = json!("bob");
+    let asked = run(&mut client, "org.journal.search", context).unwrap();
+    assert_eq!(asked["input"]["kind"], "date");
+    assert_eq!(asked["input"]["prompt"], "Enter the search start");
+    let mut context = asked["input"]["context"].clone();
+    context["input"] = json!("2026-05-01");
+    let asked = run(&mut client, "org.journal.search", context).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Enter the search end");
+    let mut context = asked["input"]["context"].clone();
+    context["input"] = json!("2026-05-31");
+    run(&mut client, "org.journal.search", context).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the results");
+    let results = show.params["uri"].as_str().unwrap().trim_start_matches("file://").to_string();
+    assert!(results.ends_with("/org-journal-search.org"), "{results}");
+    assert_eq!(
+        std::fs::read_to_string(&results).unwrap(),
+        format!(
+            "Search results for \"bob\" between Thursday, 04/30/26 and Sunday, 05/31/26: \n\n\
+             [[file:{}::2][Monday, 05/18/26]]\t** TODO call Bob\n",
+            directory.join("20260518").display()
+        )
+    );
+    // With `C-u`, every day, without asking for them.
+    run(&mut client, "org.journal.search", json!({ "input": "nothing like it", "count": 4 })).unwrap_err();
+
+    // The entries to come with a date, and one of them moved to another day.
+    run(&mut client, "org.journal.schedule.view", json!({})).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the schedule");
+    let schedule = show.params["uri"].as_str().unwrap().trim_start_matches("file://").to_string();
+    assert_eq!(
+        std::fs::read_to_string(&schedule).unwrap(),
+        "#+TITLE: Org-Journal Schedule\n\n* Wednesday, 05/20/26\n** TODO \n<2026-05-20 Wed>\n"
+    );
+    let wednesday_uri = format!("file://{}", directory.join("20260520").display());
+    let at_wednesday = json!({ "textDocument": { "uri": wednesday_uri }, "position": { "line": 1, "character": 0 } });
+    let asked = run(&mut client, "org.journal.reschedule", at_wednesday.clone()).unwrap();
+    assert_eq!(asked["input"]["kind"], "date");
+    let mut context = at_wednesday;
+    context["input"] = json!("2026-05-22");
+    run(&mut client, "org.journal.reschedule", context).unwrap();
+    assert_eq!(std::fs::read_to_string(directory.join("20260520")).unwrap(), "* Wednesday, 05/20/26\n");
+    assert_eq!(
+        std::fs::read_to_string(directory.join("20260522")).unwrap(),
+        "* Friday, 05/22/26\n** TODO \n<2026-05-22 Fri>"
+    );
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the new day");
+    assert!(show.params["uri"].as_str().unwrap().ends_with("/20260522"), "{}", show.params);
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }

@@ -425,6 +425,15 @@ pub fn agenda_files(names: &[String], now: DateTime, settings: &Settings) -> Res
     files_between(&names, start, end, settings)
 }
 
+/// `org-journal--list-dates`: the days of the entries in `files` (relative
+/// to the directory), which `org-journal-mark-entries` marks in the
+/// calendar; none when a file cannot be read.
+pub fn entry_days(files: &BTreeMap<String, String>, settings: &Settings) -> Vec<crate::date::Day> {
+    let request = Request { files, now: DateTime { day: 0, minute: 0 }, from: None, answers: &[] };
+    let mut emacs = Emacs::new(settings, &request);
+    emacs.list_dates().map(|dates| dates.iter().map(|date| date.time().day).collect()).unwrap_or_default()
+}
+
 /// `org-journal--entry-date->calendar-date` for the entry at `at`.
 fn entry_date(settings: &Settings, buffer: &Buffer, at: usize) -> Result<CalendarDate, String> {
     let pattern = Pattern::new(&settings.created_property_timestamp_format);

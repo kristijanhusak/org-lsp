@@ -67,6 +67,7 @@ token_types! {
     CalendarWeekday => "calendarWeekday",
     CalendarSelected => "calendarSelected",
     CalendarPrompt => "calendarPrompt",
+    CalendarJournal => "calendarJournal",
 }
 
 /// Token modifiers, in legend order; each is one bit.

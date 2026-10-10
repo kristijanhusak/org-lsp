@@ -146,6 +146,7 @@ to install and set up the package.
 | ~Ctrl+C n i~ | ~org.roam.node.insert~ | Roam: insert a link to a node |
 | ~Ctrl+C j f~ | ~org.journal.next.entry~ | Journal: next entry |
 | ~Ctrl+C j b~ | ~org.journal.previous.entry~ | Journal: previous entry |
+| ~Ctrl+C j s~ | ~org.journal.search~ | Journal: search between two dates |
 | ~Shift+Up~ ¹ | ~org.shift.up~ | Increase the timestamp part, raise the priority, or go to the previous item |
 | ~Shift+Down~ ¹ | ~org.shift.down~ | Decrease the timestamp part, lower the priority, or go to the next item |
 | ~Shift+Left~ ¹ | ~org.shift.left~ | Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
@@ -421,6 +422,11 @@ line.
 | ~org.journal.new.date.entry~ | Org: Journal: new entry for a date |
 | ~org.journal.new.scheduled.entry~ | Org: Journal: new entry for a day to come |
 | ~org.journal.open.current~ | Org: Journal: open the current file |
+| ~org.journal.search.forever~ | Org: Journal: search every entry |
+| ~org.journal.search.future~ | Org: Journal: search the entries to come |
+| ~org.journal.search.future.scheduled~ | Org: Journal: the TODO entries to come |
+| ~org.journal.schedule.view~ | Org: Journal: the entries to come with a date |
+| ~org.journal.reschedule~ | Org: Journal: move the entry to come to another day |
 | ~org.date.later.hours~ | Org: Agenda: move the time one hour later |
 | ~org.date.earlier.hours~ | Org: Agenda: move the time one hour earlier |
 | ~org.date.later.minutes~ | Org: Agenda: move the time later by the rounding minutes |

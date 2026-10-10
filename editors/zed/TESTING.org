@@ -177,12 +177,14 @@ its sections says what it should look like.
 
 * A journal (org-journal)
 
-*Partly:* The date commands are left out: Zed cannot ask for text on a server's behalf. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
+*Partly:* The date commands, the searches and rescheduling are left out: Zed cannot ask for text on a server's behalf. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
 
 - [ ] With ~org_journal_enabled~ on, a new entry makes today's file in ~org_journal_dir~ (a file without an extension, opened as Org) with today's date and an entry with the time, the cursor after it: the code action /Journal: new entry/
 - [ ] With a journal file of yesterday holding a TODO entry, the first new entry of today moves it to today's file: the code action /Journal: new entry/
 - [ ] In a journal file, the previous entry goes to the day before; on the first, it says /No journal entry before this one/: the code action /Journal: previous entry/
 - [ ] With ~org_journal_enable_agenda_integration~, the TODO entries of today's journal file are in the week view: the code action /Agenda for the current week or day/
+- [ ] Searching the TODO entries to come lists those of the days after today: the code action /Journal: the TODO entries to come/
+- [ ] The schedule lists the entries to come with a timestamp, under their days: the code action /Journal: the entries to come with a date/
 
 * Refile and archive
 

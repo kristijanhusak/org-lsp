@@ -128,7 +128,7 @@ impl Server {
             _ => None,
         };
         let Some(search) = context.search.clone().or_else(|| answer(None)).or_else(|| answer(Some("search"))) else {
-            let prompt = "Enter a string to search for: ";
+            let prompt = "Enter a string to search for";
             return Ok(Some(ask_input("text", prompt, json!({ "step": "search", "count": context.count }))));
         };
         if id != commands::JOURNAL_SEARCH || context.count.is_some_and(|count| count > 1) {
@@ -168,7 +168,19 @@ impl Server {
         let lsp_context: super::Context =
             serde_json::from_value(json!({ "textDocument": { "uri": from.as_str() }, "position": position }))
                 .map_err(|error| error.to_string())?;
-        self.ask_date(id, &lsp_context)
+        let asked = self.ask_date(id, &lsp_context)?;
+        // The calendar's prompt is the search's: `Enter the search start
+        // Date+time [2026-10-10]: `.
+        if let Some(prompt) = prompt {
+            let (now, settings) = (self.date_time(), self.read_date);
+            if let Some(open) = self.date_prompt.as_mut().filter(|open| open.id == id) {
+                open.label = format!("{prompt} {}", open.label);
+                let typed = open.typed.clone();
+                open.set_typed(typed, now, &settings);
+                self.publish_date_prompt();
+            }
+        }
+        Ok(asked)
     }
 
     /// The answer of the date prompt of `id`, asked from `from`.
@@ -264,12 +276,18 @@ impl Server {
                 }
             }
         }
-        let from_offset = from.as_ref().and_then(|(uri, relative)| {
-            let document = self.document(uri)?;
-            let offset =
-                document.index.offset(&document.text, context.position.unwrap_or_default(), self.client.encoding);
-            files.insert(relative.clone(), document.text.clone());
-            Some((relative.clone(), offset))
+        let position = context.position.unwrap_or_default();
+        let from_offset = from.as_ref().and_then(|(uri, relative)| match self.document(uri) {
+            Some(document) => {
+                let offset = document.index.offset(&document.text, position, self.client.encoding);
+                files.insert(relative.clone(), document.text.clone());
+                Some((relative.clone(), offset))
+            }
+            // A file the editor names without having it open, as on disk.
+            None => {
+                let text = files.get(relative)?;
+                Some((relative.clone(), LineIndex::new(text).offset(text, position, self.client.encoding)))
+            }
         });
         let mut answered = context.answers.clone().unwrap_or_default();
         if context.step.as_deref() == Some("question") {
@@ -293,6 +311,21 @@ impl Server {
             }
             Err(Stop::Error(message)) => Err(message.into()),
         }
+    }
+
+    /// The days of the journal's entries, which the calendar marks
+    /// (`org-journal-mark-entries`, on `calendar-today-visible-hook`).
+    pub(super) fn journal_days(&self) -> Vec<org_core::date::Day> {
+        let Some(journal) = self.journal.as_ref() else { return Vec::new() };
+        let directory = expand(&journal.directory);
+        let mut names = Vec::new();
+        list_files(&directory, "", 0, &mut names);
+        let files: BTreeMap<String, String> = names
+            .into_iter()
+            .filter(|name| journal::is_journal_file(name, &journal.core))
+            .filter_map(|name| Some((name.clone(), self.journal_read(&directory.join(&name))?)))
+            .collect();
+        journal::entry_days(&files, &journal.core)
     }
 
     /// A file as the editor has it, or as it is on disk.

@@ -408,6 +408,8 @@ Each option with its type, its default and what it means:
 - ~org_journal_scheduled_string~ :: string, ~""~. What comes before the timestamp of an entry for a day to come (~org.journal.new.scheduled.entry~). (~org-journal-scheduled-string~)
 - ~org_journal_enable_encryption~ :: boolean, ~false~. Tag the date of a new entry with ~crypt~, for ~org-crypt~ to encrypt (~org.crypt.encrypt.all~, or as the file is saved with ~org-crypt-use-before-save-magic~ in the Emacs configuration). (~org-journal-enable-encryption~)
 - ~org_journal_enable_agenda_integration~ :: boolean, ~false~. Add the journal's files of today and the days to come to the agenda's files. (~org-journal-enable-agenda-integration~)
+- ~org_journal_search_result_date_format~ :: string, ~"%A, %x"~. The date of each result of a search of the journal, as ~format-time-string~ writes it. (~org-journal-search-result-date-format~)
+- ~org_journal_search_results_order_by~ :: string, ~"asc"~. The order of the results of a search of the journal: ~asc~, the first day first, or ~desc~, the last. (~org-journal-search-results-order-by~)
 - ~org_extend_today_until~ :: number, ~0~. The hour before which it is still yesterday, for org-journal's new entries. (~org-extend-today-until~)
 - ~org_agenda_search_view_always_boolean~ :: boolean, ~false~. Read every search string of the search view (~s~) as words that must (~+word~, ~word~) or must not (~-word~) occur, regexps in braces (~{regexp}~) and ~"quoted phrases"~. Off, it is a phrase whose spaces match any whitespace, unless its first word starts with ~+~, ~-~ or ~{~. (~org-agenda-search-view-always-boolean~)
 - ~org_agenda_search_view_force_full_words~ :: boolean, ~false~. The words of a Boolean search match whole words only, as a search string starting with ~:~ asks. (~org-agenda-search-view-force-full-words~)
@@ -980,10 +982,12 @@ increments a number.
   server's.
 - ~org.journal.new.entry~, ~org.journal.new.date.entry~,
   ~org.journal.new.scheduled.entry~, ~org.journal.next.entry~,
-  ~org.journal.previous.entry~, ~org.journal.open.current~ :: org-journal's
-  ~org-journal-new-entry~, ~org-journal-new-date-entry~,
-  ~org-journal-new-scheduled-entry~, ~org-journal-next-entry~,
-  ~org-journal-previous-entry~ and ~org-journal-open-current-journal-file~,
+  ~org.journal.previous.entry~, ~org.journal.open.current~,
+  ~org.journal.reschedule~ :: org-journal's ~org-journal-new-entry~,
+  ~org-journal-new-date-entry~, ~org-journal-new-scheduled-entry~,
+  ~org-journal-next-entry~, ~org-journal-previous-entry~,
+  ~org-journal-open-current-journal-file~ and
+  ~org-journal-reschedule-scheduled-entry~,
   with ~org_journal_enabled~ (see [[file:plugins.org::#a-journal-org-journal][A journal (org-journal)]]); without
   it they fail with why. Next and previous need the document and position
   of a journal file; the others need none, and a ~count~ above 1 is
@@ -998,6 +1002,21 @@ increments a number.
   disk when not; the file of the entry is then shown with
   ~window/showDocument~, the cursor where org-journal leaves it, and its
   folds come in ~org-lsp/folds~.
+- ~org.journal.search~, ~org.journal.search.forever~,
+  ~org.journal.search.future~, ~org.journal.search.future.scheduled~,
+  ~org.journal.schedule.view~ :: ~org-journal-search~ and the like, and
+  ~org-journal-schedule-view~. The searches ask for the string (kind
+  ~text~, ~context~ ~{ "step": "search" }~); ~org.journal.search~ then for
+  its first and last day (kind ~date~, prompts ~Enter the search start~ and
+  ~Enter the search end~, ~context~ carrying ~search~, ~start~ and ~step~),
+  unless with a ~count~ above 1; a client that shows the date prompt gets
+  it for each, its prompt line starting with those words, and the prompt
+  stays open from the first to the second. The results and the schedule
+  are Org files of the server's (~org-journal-search.org~,
+  ~org-journal-schedule.org~), shown with ~window/showDocument~; each
+  result's date is a ~file:…::LINE~ link to the line found. When the
+  journal is on, the date prompt's calendar marks the days with an entry
+  with the token ~calendarJournal~, ~future~ for those after today.
 - ~org.refile~ :: ~org-refile~ (~org-agenda-refile~ on an agenda line):
   offers the targets (an input of kind ~choice~), named as Emacs names them
   (~Projects~, ~Home (other.org)~, ~Projects/Alpha/~), and moves the subtree

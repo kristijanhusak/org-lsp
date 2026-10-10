@@ -95,6 +95,9 @@ pub struct DatePrompt {
     /// The part of the time the keys change, while they change the time
     /// instead of the day.
     pub time_field: Option<TimeField>,
+    /// The days of org-journal's entries, which the calendar marks
+    /// (`org-journal-mark-entries`).
+    pub journal: Vec<Day>,
 }
 
 /// The part of a picked time the keys change.
@@ -135,9 +138,18 @@ impl DatePrompt {
             moving_cursor: false,
             time: None,
             time_field: None,
+            journal: Vec::new(),
         };
         prompt.render(now, settings);
         prompt
+    }
+
+    /// Mark the days of org-journal's entries: before now
+    /// (`org-journal-calendar-entry-face`) or to come
+    /// (`org-journal-calendar-scheduled-face`).
+    pub fn mark_journal(&mut self, days: Vec<Day>, now: DateTime, settings: &Settings) {
+        self.journal = days;
+        self.render(now, settings);
     }
 
     /// The answer: what was typed, and the selected day once it moved,
@@ -293,9 +305,23 @@ impl DatePrompt {
             text.push_str(line);
             text.push('\n');
         }
+        // The selected day, and the days with a journal entry around it.
+        let mut days: Vec<(usize, TokenType, u32)> = Vec::new();
+        let at = |cell: org_core::calendar::Cell, lines: &[String]| -> usize {
+            lines[..cell.line].iter().map(|line| line.len() + 1).sum::<usize>() + cell.column
+        };
         if let Some(cell) = self.calendar.cell(self.selected) {
-            let start: usize = self.calendar.lines[..cell.line].iter().map(|line| line.len() + 1).sum();
-            token(start + cell.column, 2, TokenType::CalendarSelected, 0);
+            days.push((at(cell, &self.calendar.lines), TokenType::CalendarSelected, 0));
+        }
+        for day in self.journal.iter().filter(|day| **day != self.selected) {
+            if let Some(cell) = self.calendar.cell(*day) {
+                let future = if *day > now.day { modifier::FUTURE } else { 0 };
+                days.push((at(cell, &self.calendar.lines), TokenType::CalendarJournal, future));
+            }
+        }
+        days.sort_by_key(|(start, _, _)| *start);
+        for (start, ty, modifiers) in days {
+            token(start, 2, ty, modifiers);
         }
         // The picked time, with the part the keys change marked.
         if let Some((hour, minute)) = self.time {
@@ -381,6 +407,25 @@ mod tests {
         assert_eq!(prompt.cursor(), Position::new(3, 40));
         assert_eq!(&lines[3][39..41], " 7");
         assert!(prompt.tokens.iter().any(|token| token.ty == TokenType::CalendarSelected));
+    }
+
+    #[test]
+    fn marks_the_days_of_the_journal() {
+        let mut prompt = prompt();
+        let day = |month, day| Date::new(2026, month, day).to_day();
+        // Before now, to come, the selected day, and a day not shown.
+        let days = vec![day(10, 2), day(10, 6), day(10, 7), day(12, 25)];
+        prompt.mark_journal(days, now(), &Settings::default());
+        let marked: Vec<(String, u32)> = prompt
+            .tokens
+            .iter()
+            .filter(|token| token.ty == TokenType::CalendarJournal)
+            .map(|token| (prompt.text[token.range].to_string(), token.modifiers))
+            .collect();
+        assert_eq!(marked, [(" 2".to_string(), 0), (" 6".to_string(), modifier::FUTURE)]);
+        // In the order of the text, with the selected day.
+        let starts: Vec<u32> = prompt.tokens.iter().map(|token| token.range.start().into()).collect();
+        assert!(starts.windows(2).all(|pair| pair[0] <= pair[1]), "{starts:?}");
     }
 
     #[test]

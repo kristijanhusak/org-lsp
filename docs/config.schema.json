@@ -1639,6 +1639,19 @@
       "description": "Add the journal's files of today and the days to come to the agenda's files. (`org-journal-enable-agenda-integration`)",
       "default": false
     },
+    "org_journal_search_result_date_format": {
+      "type": "string",
+      "description": "The date of each result of a search of the journal, as `format-time-string` writes it. (`org-journal-search-result-date-format`)",
+      "default": "%A, %x"
+    },
+    "org_journal_search_results_order_by": {
+      "enum": [
+        "asc",
+        "desc"
+      ],
+      "description": "The order of the results of a search of the journal: `asc`, the first day first, or `desc`, the last. (`org-journal-search-results-order-by`)",
+      "default": "asc"
+    },
     "org_extend_today_until": {
       "type": "integer",
       "minimum": 0,

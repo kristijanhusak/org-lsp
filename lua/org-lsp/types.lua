@@ -186,6 +186,8 @@
 ---@field org_journal_scheduled_string? string What comes before the timestamp of an entry for a day to come (`org.journal.new.scheduled.entry`). (`org-journal-scheduled-string`)
 ---@field org_journal_enable_encryption? boolean Tag the date of a new entry with `crypt`, for `org-crypt` to encrypt (`org.crypt.encrypt.all`, or as the file is saved with `org-crypt-use-before-save-magic` in the Emacs configuration). (`org-journal-enable-encryption`)
 ---@field org_journal_enable_agenda_integration? boolean Add the journal's files of today and the days to come to the agenda's files. (`org-journal-enable-agenda-integration`)
+---@field org_journal_search_result_date_format? string The date of each result of a search of the journal, as `format-time-string` writes it. (`org-journal-search-result-date-format`)
+---@field org_journal_search_results_order_by? 'asc'|'desc' The order of the results of a search of the journal: `asc`, the first day first, or `desc`, the last. (`org-journal-search-results-order-by`)
 ---@field org_extend_today_until? integer The hour before which it is still yesterday, for org-journal's new entries. (`org-extend-today-until`)
 ---@field org_agenda_search_view_always_boolean? boolean Read every search string of the search view (`s`) as words that must (`+word`, `word`) or must not (`-word`) occur, regexps in braces (`{regexp}`) and `"quoted phrases"`. Off, it is a phrase whose spaces match any whitespace, unless its first word starts with `+`, `-` or `{`. (`org-agenda-search-view-always-boolean`)
 ---@field org_agenda_search_view_force_full_words? boolean The words of a Boolean search match whole words only, as a search string starting with `:` asks. (`org-agenda-search-view-force-full-words`)

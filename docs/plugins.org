@@ -337,6 +337,34 @@ The commands are org-journal's:
   whatever file it is.
 - ~org.journal.open.current~ :: ~org-journal-open-current-journal-file~:
   the file of today.
+- ~org.journal.reschedule~ :: ~org-journal-reschedule-scheduled-entry~, on
+  an entry to come: it moves to the day asked for (/Date/), its time and
+  timestamp changed for that day's.
+
+The journal is searched, as ~search-forward~ searches, without regard to
+case:
+
+- ~org.journal.search~ :: ~org-journal-search~ (~C-c j s~, ~<Leader>js~):
+  asks for the string (/Enter a string to search for/), then the first and
+  the last day (/Enter the search start/, /Enter the search end/); with a
+  count, every day.
+- ~org.journal.search.forever~, ~org.journal.search.future~ ::
+  ~org-journal-search-forever~ and ~org-journal-search-future~: every day,
+  or from today on.
+- ~org.journal.search.future.scheduled~ ::
+  ~org-journal-search-future-scheduled~: the TODO entries from today on.
+
+The results are a file of their own, ~org-journal-search.org~: each line
+is the day of an entry, which links to the line it was found on
+(~org.open~ follows it), and the line itself, in the order of
+~org_journal_search_results_order_by~ and with the dates of
+~org_journal_search_result_date_format~. The entries to come with a
+timestamp from now on are another one, ~org-journal-schedule.org~:
+
+- ~org.journal.schedule.view~ :: ~org-journal-schedule-view~.
+
+The date prompt's calendar marks the days with an entry, as
+~org-journal-mark-entries~ does: before now, and to come.
 
 Each shows the entry it is about, in its file, and with
 ~org_journal_hide_entries_p~ (on by default) the other entries folded, as
@@ -375,5 +403,11 @@ before all the others goes first in its file). What differs:
   Zed and Helix the file shows as it does.
 - ~org-journal-encrypt-journal~ (files encrypted whole, ~.gpg~) is not
   there: ~org_journal_enable_encryption~, with ~org-crypt~, is.
-- ~org-journal-search~, its calendar keys and the schedule view are still
-  to come; ~org-journal-reschedule-scheduled-entry~ is not there.
+- The search results are an Org file whose dates are links, where Emacs
+  has a buffer of buttons (~n~, ~p~, ~TAB~ move between them, and the first
+  result shows beside them); its matches are not highlighted. An empty
+  string finds every entry with a time, which Emacs means to do but hangs
+  on.
+- The keys org-journal adds to ~M-x calendar~ (~j r~, ~j d~, ~[~, ~]~,
+  ~j s~ …) are not there: org-lsp has no calendar of its own, only the
+  date prompt's, where Emacs has them neither.

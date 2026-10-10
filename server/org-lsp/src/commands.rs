@@ -1430,15 +1430,15 @@ pub const COMMANDS: &[Command] = &[
     Command {
         emacs: &[key(Org, "C-c j s")],
         vim: &[key(Org, "<Leader>js")],
-        input: Some(Input { kind: "text", prompt: "Enter a string to search for: " }),
+        input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
         ..command(JOURNAL_SEARCH, "Journal: search between two dates")
     },
     Command {
-        input: Some(Input { kind: "text", prompt: "Enter a string to search for: " }),
+        input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
         ..command(JOURNAL_SEARCH_FOREVER, "Journal: search every entry")
     },
     Command {
-        input: Some(Input { kind: "text", prompt: "Enter a string to search for: " }),
+        input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
         ..command(JOURNAL_SEARCH_FUTURE, "Journal: search the entries to come")
     },
     command(JOURNAL_SEARCH_FUTURE_SCHEDULED, "Journal: the TODO entries to come"),

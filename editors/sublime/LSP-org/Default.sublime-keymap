@@ -2721,6 +2721,29 @@
   },
   {
     "keys": [
+      "ctrl+c",
+      "j",
+      "s"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.search"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
       "ctrl+a"
     ],
     "command": "org_lsp_run",
