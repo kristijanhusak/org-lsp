@@ -36,6 +36,9 @@ pub fn manifest() -> Value {
         // A capture buffer is an Org file whose name starts with this. Its
         // keys are the commands' keys `in` the `capture` scope.
         "capture": { "prefix": crate::server::CAPTURE_PREFIX },
+        // The org-roam buffer is an Org file whose name starts with this,
+        // which editors show beside the file it is for.
+        "roamBuffer": { "prefix": crate::server::ROAM_BUFFER_PREFIX },
     });
     if let (Some(manifest), Value::Object(legend)) = (manifest.as_object_mut(), legend::manifest()) {
         manifest.extend(legend);

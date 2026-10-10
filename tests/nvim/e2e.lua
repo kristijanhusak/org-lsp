@@ -1453,7 +1453,7 @@ do
   vim.fn.mkdir(roam_dir, 'p')
   vim.fn.writefile({ ':PROPERTIES:', ':ID:       roam-a', ':END:', '#+title: Roam note', '', 'Text.' }, roam_dir .. '/note.org')
   local index = roam_dir .. '/index.org'
-  vim.fn.writefile({ '#+title: Index', '' }, index)
+  vim.fn.writefile({ ':PROPERTIES:', ':ID:       index-id', ':END:', '#+title: Index', '' }, index)
   vim.cmd.edit(index)
   local asked, answer
   local input = vim.ui.input
@@ -1468,9 +1468,9 @@ do
     return vim.api.nvim_buf_get_name(0) == vim.fs.normalize(roam_dir .. '/note.org')
   end)
   eq(asked.prompt, 'Node: ', 'the prompt, as Emacs asks')
-  eq(require('org-lsp').completions, { 'Roam note' }, 'the nodes offered')
+  eq(require('org-lsp').completions, { 'Index', 'Roam note' }, 'the nodes offered')
   vim.cmd.edit(index)
-  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  vim.api.nvim_win_set_cursor(0, { 5, 0 })
   answer = 'Fresh idea'
   require('org-lsp').run('org.roam.node.insert')
   wait('the capture buffer', function()
@@ -1481,7 +1481,7 @@ do
   vim.api.nvim_buf_set_lines(0, 4, 5, false, { 'Body.' })
   require('org-lsp').run('org.capture.finish')
   wait('the link to the new node', function()
-    return vim.api.nvim_buf_get_name(0) == vim.fs.normalize(index) and line(2) == ('[[id:%s][Fresh idea]]'):format(id)
+    return vim.api.nvim_buf_get_name(0) == vim.fs.normalize(index) and line(5) == ('[[id:%s][Fresh idea]]'):format(id)
   end)
   local written = vim.fn.glob(roam_dir .. '/*-fresh_idea.org')
   eq(vim.fn.readfile(written), { ':PROPERTIES:', ':ID:       ' .. id, ':END:', '#+title: Fresh idea', 'Body.' }, 'the new file')
@@ -1494,6 +1494,27 @@ do
     return line(3) == ':ROAM_ALIASES: "Other name"'
   end)
   eq(asked.prompt, 'Alias: ', 'asked as Emacs asks')
+  -- The org-roam buffer beside the new node's file, the cursor staying
+  -- there: its backlink from the index; the command again hides it.
+  vim.cmd.edit(written)
+  local here = vim.api.nvim_get_current_win()
+  require('org-lsp').run('org.roam.buffer.toggle')
+  local roam_win
+  wait('the org-roam buffer', function()
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(win)):find('org%-roam%-buffer%.org$') then
+        roam_win = win
+        return true
+      end
+    end
+  end)
+  eq(vim.api.nvim_get_current_win(), here, 'the cursor stays in the file')
+  local shown = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(roam_win), 0, -1, false)
+  eq({ shown[1], shown[3] }, { '#+title: Fresh idea', '* Backlinks (1)' }, 'its backlinks')
+  require('org-lsp').run('org.roam.buffer.toggle')
+  wait('the org-roam buffer to go', function()
+    return not vim.api.nvim_win_is_valid(roam_win)
+  end)
   vim.ui.input = input
 end
 

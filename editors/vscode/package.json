@@ -1071,6 +1071,21 @@
         "category": "Org"
       },
       {
+        "command": "org.roam.buffer.toggle",
+        "title": "Roam: show or hide the org-roam buffer",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.buffer.dedicated",
+        "title": "Roam: show the org-roam buffer of a node",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.buffer.refresh",
+        "title": "Roam: refresh the org-roam buffer",
+        "category": "Org"
+      },
+      {
         "command": "org.roam.alias.add",
         "title": "Roam: add an alias",
         "category": "Org"
@@ -2820,6 +2835,21 @@
               "type": "boolean",
               "markdownDescription": "In org-roam's files, offer the titles of the nodes for the word at the cursor, not only in a link; the one picked becomes a link to its node. (`org-roam-completion-everywhere`)",
               "default": false
+            },
+            "org_roam_mode_sections": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "backlinks",
+                  "reflinks",
+                  "unlinked-references"
+                ]
+              },
+              "markdownDescription": "The sections of the org-roam buffer, in turn: `backlinks` (the nodes that link to the node), `reflinks` (those that link to or cite its references) and `unlinked-references` (the places that name it without a link, found by the server itself). (`org-roam-mode-sections`)",
+              "default": [
+                "backlinks",
+                "reflinks"
+              ]
             },
             "org_roam_capture_templates": {
               "type": "array",
@@ -5222,6 +5252,16 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
+        "command": "org.roam.buffer.toggle",
+        "key": "ctrl+c n l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.buffer.toggle",
+        "key": "ctrl+c n l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
         "command": "org.capture.finish",
         "key": "ctrl+c ctrl+c",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
@@ -6480,6 +6520,7 @@
   "orgLsp": {
     "agendaScheme": "org-agenda",
     "capturePrefix": "CAPTURE-",
+    "roamBufferPrefix": "org-roam-buffer",
     "datePromptUri": "org-agenda:/Org%20Date",
     "languages": [
       "org",

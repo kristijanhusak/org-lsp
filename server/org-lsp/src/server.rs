@@ -539,9 +539,16 @@ pub const AGENDA_CURSOR: &str = "org-lsp/agendaCursor";
 /// Moves the fixed clock of a server started with one (the `clock`
 /// option), for tests: `{ "today": "2026-05-18", "now": "10:30" }`.
 pub const SET_CLOCK: &str = "org-lsp/setClock";
+/// From the client: the cursor moved to another line of an Org file, `{
+/// "textDocument", "position" }`, while the org-roam buffer shows: it
+/// follows the node there.
+pub const CURSOR: &str = "org-lsp/cursor";
 
 /// The name of a capture buffer starts with this, as Emacs names it.
 pub const CAPTURE_PREFIX: &str = "CAPTURE-";
+
+/// The name of a file of the org-roam buffer starts with this.
+pub const ROAM_BUFFER_PREFIX: &str = roam::buffer::FILE_PREFIX;
 
 /// Where a capture template goes, before the server finds it.
 enum TargetSpec {
@@ -2115,6 +2122,13 @@ impl Server {
                         }
                         Err(response) => *response,
                     },
+                    CURSOR => match parameters::<Value>(request) {
+                        Ok((id, params)) => {
+                            self.roam_cursor(params);
+                            Response::new_ok(id, Value::Null)
+                        }
+                        Err(response) => *response,
+                    },
                     AGENDA_CURSOR => match parameters::<Value>(request) {
                         Ok((id, params)) => {
                             self.agenda_cursor(params);
@@ -2214,6 +2228,7 @@ impl Server {
         match notification.method.as_str() {
             AGENDA_WIDTH => self.agenda_width(&notification.params),
             AGENDA_CURSOR => self.agenda_cursor(notification.params),
+            CURSOR => self.roam_cursor(notification.params),
             DidOpenTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidOpenTextDocumentParams>(notification) else { return };
                 let document = params.text_document;
@@ -11411,7 +11426,7 @@ impl Server {
         parse: &org_syntax::Parse,
         ids: Option<&HashSet<String>>,
     ) -> Vec<lsp_types::Diagnostic> {
-        if !self.lint || uri::file_name(uri).starts_with(CAPTURE_PREFIX) {
+        if !self.lint || uri::file_name(uri).starts_with(CAPTURE_PREFIX) || self.is_roam_buffer(uri) {
             return Vec::new();
         }
         let Some(document) = self.documents.get(uri.as_str()) else { return Vec::new() };

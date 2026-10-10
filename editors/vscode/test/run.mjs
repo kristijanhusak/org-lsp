@@ -32,6 +32,11 @@ writeFileSync(
   join(workspace, 'home.org'),
   ['* TODO Water plants', 'SCHEDULED: <2026-05-16 Sat +1w>', '* DONE Buy milk', ''].join('\n'),
 );
+// org-roam's notes, two linked to one another.
+const roam = join(workspace, 'roam');
+mkdirSync(roam);
+writeFileSync(join(roam, 'a.org'), ':PROPERTIES:\n:ID:       a-id\n:END:\n#+title: A note\n\nText.\n');
+writeFileSync(join(roam, 'b.org'), ':PROPERTIES:\n:ID:       b-id\n:END:\n#+title: B note\n\nSee [[id:a-id][A]].\n');
 // Captures go to a file outside the workspace, so that the agenda does not see them.
 const captured = join(mkdtempSync(join(tmpdir(), 'org-lsp-vscode-capture-')), 'inbox.org');
 mkdirSync(join(workspace, '.vscode'));
@@ -44,6 +49,8 @@ writeFileSync(
       org_todo_keyword_faces: { TODO: ':foreground #ff8800 :weight bold' },
       org_priority_faces: { A: 'red' },
       org_capture_templates: [{ key: 't', description: 'Task', target: ['file', captured], template: '* TODO %?' }],
+      org_roam_enabled: true,
+      org_roam_directory: roam,
     },
   }),
 );

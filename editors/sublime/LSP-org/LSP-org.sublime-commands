@@ -1421,6 +1421,27 @@
     }
   },
   {
+    "caption": "Org: Roam: show or hide the org-roam buffer",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.buffer.toggle"
+    }
+  },
+  {
+    "caption": "Org: Roam: show the org-roam buffer of a node",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.buffer.dedicated"
+    }
+  },
+  {
+    "caption": "Org: Roam: refresh the org-roam buffer",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.buffer.refresh"
+    }
+  },
+  {
     "caption": "Org: Roam: add an alias",
     "command": "org_lsp_run",
     "args": {

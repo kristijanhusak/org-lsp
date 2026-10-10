@@ -373,6 +373,7 @@ contributes.configuration.properties['org-lsp.settings'].properties = schemaProp
 pkg.orgLsp = {
   agendaScheme: manifest.agenda.scheme,
   capturePrefix: manifest.capture.prefix,
+  roamBufferPrefix: manifest.roamBuffer.prefix,
   datePromptUri: manifest.datePrompt.uri,
   languages: [ORG, AGENDA, DATE],
   // The commands that read the clipboard (`"clipboard": true`).

@@ -77,7 +77,7 @@ does not work there and why.
 | [[file:docs/parity.org::#agenda][Agenda]] | 100% | ✅ / ✅ / ❓ / ❓ / ❓ / ❌ |
 | [[file:docs/parity.org::#clocking][Clocking]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#capture][Capture]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
-| [[file:docs/parity.org::#notes-org-roam][Notes (org-roam)]] | 88% | ✅ / ✅ / ✅ / ✅ / ❌ / ❌ |
+| [[file:docs/parity.org::#notes-org-roam][Notes (org-roam)]] | 100% | ✅ / ✅ / ✅ / ✅ / ❌ / ❌ |
 | [[file:docs/parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
 | [[file:docs/parity.org::#links][Links]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#footnotes][Footnotes]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |

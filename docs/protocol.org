@@ -104,7 +104,9 @@ The server sends these requests to the client:
   agenda was. With ~"orgOtherWindow": true~ (not LSP's;
   ~org.agenda.goto.other~, TAB in the agenda) the editors of this project
   show the file in another window: one that shows it, else an empty one,
-  else a new one.
+  else a new one. The org-roam buffer (a file whose name starts with the
+  manifest's ~roamBuffer.prefix~) comes with ~takeFocus: false~: the
+  editors show it beside the file it is for, the cursor staying there.
 - ~workspace/textDocumentContent/refresh~ :: The agenda has new text.
 
 And these notifications:
@@ -176,6 +178,11 @@ clients that send none of their own):
   (~org.agenda.follow~) the server answers with ~window/showDocument~ for
   the entry of that line, ~takeFocus: false~ and ~orgOtherWindow: true~: the
   client shows it in another window and keeps the cursor in the agenda.
+- ~org-lsp/cursor~ :: ~{ "textDocument", "position" }~: the line of an Org
+  file the cursor is on, each time it changes, while the editor shows the
+  persistent org-roam buffer. When the cursor is in another node of
+  org-roam's files, the server writes the buffer for it
+  (~org-roam-buffer-persistent-redisplay~).
 - ~org-lsp/setClock~ :: ~{ "today", "now" }~: for tests, moves the fixed
   clock of a server started with the ~clock~ option; ignored otherwise.
 - ~org-lsp/agendaWidth~ :: ~{ "width": N }~: how many columns of text the
@@ -369,6 +376,7 @@ Each option with its type, its default and what it means:
 - ~org_roam_node_display_template~ :: string, ~"${title}"~. How a node is offered: ~${field}~ for its ~title~, ~tags~, ~todo~, ~file~, ~olp~, ~aliases~ and the other fields of ~org-roam-node~, ~${field:N}~ in N columns, ~${field:*}~ in what is left of the window's 79 columns. (~org-roam-node-display-template~)
 - ~org_roam_link_auto_replace~ :: boolean, ~true~. Turn the ~roam:~ links of org-roam's files into ~id:~ links to their nodes as the files are saved, and as a link is followed. (~org-roam-link-auto-replace~)
 - ~org_roam_completion_everywhere~ :: boolean, ~false~. In org-roam's files, offer the titles of the nodes for the word at the cursor, not only in a link; the one picked becomes a link to its node. (~org-roam-completion-everywhere~)
+- ~org_roam_mode_sections~ :: string[], ~["backlinks", "reflinks"]~. The sections of the org-roam buffer, in turn: ~backlinks~ (the nodes that link to the node), ~reflinks~ (those that link to or cite its references) and ~unlinked-references~ (the places that name it without a link, found by the server itself). (~org-roam-mode-sections~)
 - ~org_roam_capture_templates~ :: object[], ~[{ "key": "d", "description": "default", "type": "plain", "target": ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"], "template": "%?", "unnarrowed": true }]~. The templates of new nodes, as ~org_capture_templates~ writes them, with org-roam's targets: ~file~ and a path, ~file+head~, a path and the text a new file starts with, ~file+olp~, a path and the headlines of an outline path, ~file+head+olp~, both, and ~node~ and the title, alias or ~ID~ of a node. The path, relative to ~org_roam_directory~, and the texts may have ~${title}~, ~${slug}~, ~${id}~ and ~${name}~, which asks for ~name~ (~${name=default}~ starts the answer with ~default~), besides the escapes of ~org_capture_templates~. ~unnarrowed~ shows the whole file in the capture buffer. (~org-roam-capture-templates~)
 - ~org_agenda_search_view_always_boolean~ :: boolean, ~false~. Read every search string of the search view (~s~) as words that must (~+word~, ~word~) or must not (~-word~) occur, regexps in braces (~{regexp}~) and ~"quoted phrases"~. Off, it is a phrase whose spaces match any whitespace, unless its first word starts with ~+~, ~-~ or ~{~. (~org-agenda-search-view-always-boolean~)
 - ~org_agenda_search_view_force_full_words~ :: boolean, ~false~. The words of a Boolean search match whole words only, as a search string starting with ~:~ asks. (~org-agenda-search-view-force-full-words~)
@@ -919,6 +927,22 @@ increments a number.
   edits that turn their ~roam:~ links into ~id:~ links, and completion in a
   link offers node titles, each with a ~textEdit~ for the link and an
   ~additionalTextEdits~ taking out its ~roam:~.
+- ~org.roam.buffer.toggle~, ~org.roam.buffer.dedicated~,
+  ~org.roam.buffer.refresh~ :: ~org-roam-buffer-toggle~,
+  ~org-roam-buffer-display-dedicated~ and ~org-roam-buffer-refresh~. The
+  buffer is an Org file of the server's (~org-roam-buffer.org~, or
+  ~org-roam-buffer-SLUG.org~ for a dedicated one, in the server's directory
+  ~roam~), shown with ~window/showDocument~ and ~takeFocus: false~. Its
+  sections, as ~org_roam_mode_sections~ lists them, are headings whose items
+  link to the line they come from. The toggle reads ~"visible"~ in its
+  context, whether the editor shows the persistent buffer (else whether the
+  editor has it open), and then answers ~{ "close": uri }~ for the editor to
+  close it. The dedicated buffer asks for a node (input kind ~text~,
+  prompt ~Node~, ~context~ ~{ "step": "node" }~), or with a ~count~ takes
+  the node at the cursor. When the buffer's text changes and the editor
+  has it open, the server sends the edit with ~workspace/applyEdit~ and
+  then ~org-lsp/save~ for it, whatever ~auto_save~ says: the file is the
+  server's.
 - ~org.refile~ :: ~org-refile~ (~org-agenda-refile~ on an agenda line):
   offers the targets (an input of kind ~choice~), named as Emacs names them
   (~Projects~, ~Home (other.org)~, ~Projects/Alpha/~), and moves the subtree
@@ -1419,6 +1443,7 @@ time.
     "languageId": "org-date"
   },
   "capture": { "prefix": "CAPTURE-" },
+  "roamBuffer": { "prefix": "org-roam-buffer" },
   "tokenTypes": [{ "id": "headline", "description": "The title text of a headline", "standard": false }],
   "tokenModifiers": [{ "id": "level1", "description": "Headline level 1" }],
   "highlights": [
@@ -1441,6 +1466,8 @@ time.
   the command put the cursor.
 - ~agenda~, ~datePrompt~ :: How the agenda and date prompt documents are
   named; see below.
+- ~capture~, ~roamBuffer~ :: How the files of capture buffers and of the
+  org-roam buffer are named: their names start with ~prefix~.
 - ~tokenTypes~, ~tokenModifiers~ :: The semantic token legend with
   descriptions. ~standard~ types are LSP's own.
 - ~highlights~ :: How tokens should look by default. ~token~ is a type, a

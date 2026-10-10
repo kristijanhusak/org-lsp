@@ -368,6 +368,10 @@ pub struct Options {
     /// `org-roam-completion-everywhere`
     #[serde(rename = "org_roam_completion_everywhere")]
     pub roam_completion_everywhere: Option<bool>,
+    /// `org-roam-mode-sections`: `backlinks`, `reflinks`,
+    /// `unlinked-references`.
+    #[serde(rename = "org_roam_mode_sections")]
+    pub roam_mode_sections: Option<Vec<String>>,
     /// `org-roam-capture-templates`, written as `org_capture_templates`.
     #[serde(rename = "org_roam_capture_templates")]
     pub roam_capture_templates: Option<Vec<CaptureTemplateOption>>,
@@ -459,6 +463,8 @@ pub struct RoamSettings {
     pub link_auto_replace: bool,
     /// `org-roam-completion-everywhere`
     pub completion_everywhere: bool,
+    /// `org-roam-mode-sections`
+    pub sections: Vec<org_core::roam::buffer::Kind>,
 }
 
 /// An entry of `org-capture-templates`. One with only a key and a
@@ -887,6 +893,18 @@ impl Options {
             display_template: self.roam_node_display_template.clone().unwrap_or_else(|| "${title}".to_string()),
             link_auto_replace: self.roam_link_auto_replace.unwrap_or(true),
             completion_everywhere: self.roam_completion_everywhere.unwrap_or(false),
+            sections: self
+                .roam_mode_sections
+                .clone()
+                .unwrap_or_else(|| vec!["backlinks".to_string(), "reflinks".to_string()])
+                .iter()
+                .filter_map(|name| match name.as_str() {
+                    "backlinks" => Some(org_core::roam::buffer::Kind::Backlinks),
+                    "reflinks" => Some(org_core::roam::buffer::Kind::Reflinks),
+                    "unlinked-references" => Some(org_core::roam::buffer::Kind::UnlinkedReferences),
+                    _ => None,
+                })
+                .collect(),
             templates: self.roam_capture_templates.clone().unwrap_or_else(|| {
                 vec![CaptureTemplateOption {
                     key: "d".to_string(),

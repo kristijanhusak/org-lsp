@@ -21,6 +21,7 @@ augroup org_lsp
   " `"auto"`), once windows that open, close or change size are set.
   autocmd BufWinEnter,WinNew,WinClosed,WinResized,VimResized * call timer_start(0, {-> org_lsp#tell_agenda_width()})
   autocmd CursorMoved * if &filetype ==# 'org-agenda' | call org_lsp#tell_agenda_cursor() | endif
+  autocmd CursorMoved * if &filetype ==# 'org' | call org_lsp#tell_roam_cursor() | endif
 augroup END
 
 function! s:start() abort

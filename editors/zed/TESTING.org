@@ -173,7 +173,7 @@ its sections says what it should look like.
 
 * Notes (org-roam)
 
-*Not in Zed:* Zed cannot ask for text on a server's behalf, and the commands ask for a node.
+*Not in Zed:* Zed cannot ask for text on a server's behalf, and the commands ask for a node; nor would the org-roam buffer follow the cursor: Zed reports no cursor moves to an extension.
 
 * Refile and archive
 

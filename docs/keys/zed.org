@@ -180,6 +180,7 @@ its motions.
 | ~ctrl-c c~ | ~org.capture~ | Capture |
 | ~ctrl-c n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~ctrl-c n c~ | ~org.roam.capture~ | Roam: capture to a node |
+| ~ctrl-c n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 
 =¦= stands for =|=, which an Org table cannot hold.
 
@@ -289,6 +290,7 @@ its motions.
 | ~ctrl-c c~ | ~org.capture~ | Capture |
 | ~ctrl-c n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~ctrl-c n c~ | ~org.roam.capture~ | Roam: capture to a node |
+| ~ctrl-c n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 
 =¦= stands for =|=, which an Org table cannot hold.
 

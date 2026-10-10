@@ -20,6 +20,7 @@ use org_core::{capture, edit, link, refile, Refusal};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
+pub mod buffer;
 mod node_edit;
 
 use super::{template_choices, template_text, Capturing, Pending, Server};
@@ -40,6 +41,10 @@ pub(super) struct Roam {
     /// `org_roam_directory`, with `~/` expanded.
     directory: PathBuf,
     files: HashMap<PathBuf, Scanned>,
+    /// Where the org-roam buffer's files go.
+    buffer_directory: PathBuf,
+    /// The node the persistent buffer shows.
+    buffer_node: Option<String>,
 }
 
 /// A file as org-roam last read it.
@@ -59,7 +64,8 @@ enum Stamp {
 impl Roam {
     pub fn new(settings: RoamSettings) -> Roam {
         let directory = expand(&settings.directory);
-        Roam { settings, directory, files: HashMap::new() }
+        let buffer_directory = super::server_directory("roam");
+        Roam { settings, directory, files: HashMap::new(), buffer_directory, buffer_node: None }
     }
 }
 
@@ -117,6 +123,10 @@ pub(super) struct RoamContext {
     answers: Option<Vec<String>>,
     /// What the editor would paste (`%c`, `%x`).
     clipboard: Option<String>,
+    /// For `org.roam.buffer.toggle`: whether the editor shows the buffer.
+    visible: Option<bool>,
+    /// The count typed before the key (`C-u` is 4).
+    count: Option<i64>,
 }
 
 /// A capture of org-roam's: the node's `ID`, and what is done once it is
@@ -141,6 +151,10 @@ impl Server {
     pub(super) fn roam_command(&mut self, id: &str, context: &RoamContext) -> Result<Value, Refusal> {
         if self.roam.is_none() {
             return Err(OFF.into());
+        }
+        if matches!(id, commands::ROAM_BUFFER_TOGGLE | commands::ROAM_BUFFER_DEDICATED | commands::ROAM_BUFFER_REFRESH)
+        {
+            return self.roam_buffer_command(id, context);
         }
         if matches!(
             id,

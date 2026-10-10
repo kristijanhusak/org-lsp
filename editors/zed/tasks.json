@@ -78,6 +78,19 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org: Roam: show or hide the org-roam buffer",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.roam.buffer.toggle",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org: Clock in",
     "command": "$HOME/.local/state/org-lsp/agenda-command file:org.clock.in",
     "tags": [

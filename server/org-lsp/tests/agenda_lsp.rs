@@ -6609,3 +6609,79 @@ fn edits_roam_nodes_and_links() {
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }
+
+/// The org-roam buffer: shown for the node at the cursor, following the
+/// cursor to another node while it shows, hidden again; a dedicated one
+/// for a node read.
+#[test]
+fn shows_the_org_roam_buffer() {
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-buffer-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let a = ":PROPERTIES:\n:ID:       a-id\n:END:\n#+title: A note\n\nText.\n";
+    let b = "#+title: B\n* Heading\n:PROPERTIES:\n:ID:       b-id\n:END:\nSee [[id:a-id][A]] here.\n# hidden\nMore.\n";
+    std::fs::write(root.join("a.org"), a).unwrap();
+    std::fs::write(root.join("b.org"), b).unwrap();
+    let a_uri = format!("file://{}", root.join("a.org").display());
+    let b_uri = format!("file://{}", root.join("b.org").display());
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    let mut client = Client::editor(options, None);
+    client.open(&a_uri, a);
+    client.open(&b_uri, b);
+    let run = |client: &mut Client, command: &str, context: &Value| {
+        client.received.clear();
+        client.notifications.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let at =
+        |uri: &str, line: u32| json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": 0 } });
+
+    run(&mut client, "org.roam.buffer.toggle", &at(&a_uri, 5)).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the buffer");
+    assert_eq!(show.params["takeFocus"], false);
+    let buffer = show.params["uri"].as_str().unwrap().to_string();
+    assert!(buffer.ends_with("/org-roam-buffer.org"), "{buffer}");
+    let text = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
+    let b_path = root.join("b.org").display().to_string();
+    assert_eq!(
+        text,
+        format!("#+title: A note\n\n* Backlinks (1)\n** [[file:{b_path}::6][Heading]] (Heading)\nSee [[id:a-id][A]] here.\nMore.\n")
+    );
+    client.open(&buffer, &text);
+
+    // The cursor in another node: the buffer follows it, and is saved.
+    client.received.clear();
+    client.notifications.clear();
+    client.notify("org-lsp/cursor", at(&b_uri, 6));
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the new text");
+    assert_eq!(edits_of(edit).0, buffer);
+    assert_eq!(apply(&text, &edits_of(edit).1), "#+title: Heading\n");
+    assert!(
+        client.notifications.iter().any(|notification| notification.method == "org-lsp/save"),
+        "{:?}",
+        methods(&client.received)
+    );
+
+    // Shown, the command hides it.
+    let mut shown = at(&a_uri, 5);
+    shown["visible"] = json!(true);
+    let closed = run(&mut client, "org.roam.buffer.toggle", &shown).unwrap();
+    assert_eq!(closed, json!({ "close": buffer }));
+
+    // A dedicated buffer, for a node read.
+    let asked = run(&mut client, "org.roam.buffer.dedicated", &at(&b_uri, 0)).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Node");
+    let mut answer = at(&b_uri, 0);
+    answer["step"] = json!("node");
+    answer["input"] = json!("A note");
+    run(&mut client, "org.roam.buffer.dedicated", &answer).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the buffer");
+    assert!(show.params["uri"].as_str().unwrap().ends_with("/org-roam-buffer-a_note.org"), "{}", show.params["uri"]);
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}

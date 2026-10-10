@@ -177,6 +177,22 @@ async function showApart(params: { uri: string; takeFocus?: boolean; selection?:
 }
 
 /**
+ * Show the org-roam buffer in the group beside the current one, or in the
+ * group that has it, the cursor staying where it is when the server asks.
+ */
+async function showBeside(params: { uri: string; takeFocus?: boolean }): Promise<void> {
+  const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(params.uri));
+  const group = vscode.window.tabGroups.all.find((candidate) =>
+    candidate.tabs.some((tab) => tab.input instanceof vscode.TabInputText && sameUri(tab.input.uri.toString(), params.uri)),
+  );
+  await vscode.window.showTextDocument(document, {
+    viewColumn: group?.viewColumn ?? vscode.ViewColumn.Beside,
+    preserveFocus: params.takeFocus === false,
+    preview: false,
+  });
+}
+
+/**
  * Show an entry's file from the agenda with TAB (`org-agenda-goto`): in a
  * group that has it, else in an empty group, else in a new group beside
  * the agenda. The agenda keeps its group.
@@ -404,14 +420,23 @@ async function preview(
 async function startClient(context: vscode.ExtensionContext): Promise<void> {
   const command = serverCommand(context);
   const serverOptions: ServerOptions = { command, args: [] };
-  const { languages, agendaScheme, capturePrefix, datePromptUri, clipboardCommands } = context.extension.packageJSON
-    .orgLsp as {
+  const { languages, agendaScheme, capturePrefix, roamBufferPrefix, datePromptUri, clipboardCommands } = context.extension
+    .packageJSON.orgLsp as {
     languages: string[];
     agendaScheme: string;
     capturePrefix: string;
+    roamBufferPrefix: string;
     datePromptUri: string;
     clipboardCommands: string[];
   };
+  // A file of the org-roam buffer; the persistent one, which follows the
+  // cursor, has the prefix for its name.
+  const isRoamBuffer = (uri: vscode.Uri): boolean =>
+    uri.scheme === 'file' && path.basename(uri.fsPath).startsWith(roamBufferPrefix);
+  const roamBufferShown = (): boolean =>
+    vscode.window.visibleTextEditors.some(
+      (editor) => editor.document.uri.scheme === 'file' && path.basename(editor.document.uri.fsPath) === `${roamBufferPrefix}.org`,
+    );
   // The agenda and capture buffers open apart from the file at hand.
   const apart = (uri: string): boolean => {
     const parsed = vscode.Uri.parse(uri);
@@ -449,6 +474,10 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         // What the command reads as Emacs's latest kill: the clipboard.
         if (clipboardCommands.includes(name) && params.arguments[0]) {
           params.arguments[0] = { ...(params.arguments[0] as object), clipboard: await vscode.env.clipboard.readText() };
+        }
+        // Whether the org-roam buffer shows, which the command hides then.
+        if (name === 'org.roam.buffer.toggle' && params.arguments[0]) {
+          params.arguments[0] = { ...(params.arguments[0] as object), visible: roamBufferShown() };
         }
         // LaTeX is drawn in the colors of the text.
         if (name === 'org.latex.preview' && params.arguments[0]) {
@@ -516,6 +545,12 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
             await showApart(params);
             return { success: true };
           }
+          // The org-roam buffer beside the file, as Emacs shows it in a
+          // window of its own.
+          if (isRoamBuffer(vscode.Uri.parse(params.uri))) {
+            await showBeside(params);
+            return { success: true };
+          }
           if ((params as { orgOtherWindow?: boolean }).orgOtherWindow) {
             await showInOtherGroup(params);
             return { success: true };
@@ -550,6 +585,26 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     },
     clear() {},
   });
+  // The line of an Org file the cursor is on, while the org-roam buffer
+  // shows: the buffer follows the node it is in.
+  const orgLines = new Map<string, number>();
+  context.subscriptions.push(
+    vscode.window.onDidChangeTextEditorSelection((event) => {
+      const document = event.textEditor.document;
+      if (document.languageId !== 'org' || isRoamBuffer(document.uri) || !client || !roamBufferShown()) {
+        return;
+      }
+      const line = event.selections[0]?.active.line ?? 0;
+      if (orgLines.get(document.uri.toString()) === line) {
+        return;
+      }
+      orgLines.set(document.uri.toString(), line);
+      void client.sendNotification('org-lsp/cursor', {
+        textDocument: { uri: document.uri.toString() },
+        position: { line, character: 0 },
+      });
+    }),
+  );
   // The line of the agenda the cursor is on, each time it changes, for
   // follow mode (`F`), which the server keeps.
   const agendaLines = new Map<string, number>();

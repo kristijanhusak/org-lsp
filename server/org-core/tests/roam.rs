@@ -422,3 +422,76 @@ fn roam_edits_match_emacs() {
     }
     assert!(failures.is_empty(), "{} differences from Emacs:\n{}", failures.len(), failures.join("\n"));
 }
+
+/// What org-roam's buffer shows for the node at the cursor: its title and
+/// text, as Emacs shows them.
+fn run_buffer(case: &Value) -> Value {
+    use org_core::roam::{buffer, edit};
+    const CURSOR: char = '¦';
+    let given = case["files"].as_object().expect("files");
+    let mut files: HashMap<String, String> = HashMap::new();
+    let mut cursor = None;
+    for (name, text) in given {
+        let text = text.as_str().unwrap_or_default();
+        if let Some(at) = text.find(CURSOR) {
+            cursor = Some((name.clone(), at));
+        }
+        files.insert(name.clone(), text.replace(CURSOR, ""));
+    }
+    let (name, at) = cursor.expect("a cursor");
+    let mut names: Vec<String> = files.keys().cloned().collect();
+    roam::sync_order(&mut names);
+    let settings = roam::Settings::default();
+    let mut db = Db::default();
+    for file in names.iter().filter(|name| roam::is_roam_file(name, &settings)) {
+        let text = &files[file];
+        let todo = org_syntax::TodoKeywords::from_document(text).unwrap_or_default();
+        let parse = org_syntax::parse(text, &todo);
+        let outline = Outline::new(&parse, text, "x");
+        db.add(file, roam::scan(text, &parse, &outline, file));
+    }
+    let text = &files[&name];
+    let context = org_core::properties::Context {
+        keywords: org_syntax::TodoKeywords::from_document(text).unwrap_or_default(),
+        ..Default::default()
+    };
+    // `org-roam-node-at-point` without ASSERT.
+    let Ok(found) = edit::node_at(text, at, &context) else { return Value::Null };
+    let kinds: Vec<buffer::Kind> = strings(&case["sections"])
+        .iter()
+        .map(|name| match name.as_str() {
+            "reflinks" => buffer::Kind::Reflinks,
+            "unlinked-references" => buffer::Kind::UnlinkedReferences,
+            _ => buffer::Kind::Backlinks,
+        })
+        .collect();
+    let kinds = if kinds.is_empty() { vec![buffer::Kind::Backlinks, buffer::Kind::Reflinks] } else { kinds };
+    // What ripgrep searches: every Org file of the directory.
+    let mut all: Vec<String> = files
+        .keys()
+        .filter(|name| [".org", ".org.gpg", ".org.age"].iter().any(|ext| name.ends_with(ext)))
+        .cloned()
+        .collect();
+    all.sort();
+    let read = |file: &str| files.get(file).cloned();
+    let sections = buffer::sections(&db, &found.id, &kinds, &read, &all);
+    let title = db.nodes.iter().find(|(_, node)| node.id == found.id).map(|(_, node)| node.title.clone());
+    json!({ "title": title, "text": buffer::plain(&sections) })
+}
+
+#[test]
+fn roam_buffer_matches_emacs() {
+    let path = match std::env::var_os("ORG_ROAM_BUFFER_CASES") {
+        Some(path) => path.into(),
+        None => Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/roam/buffer.json"),
+    };
+    let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    let mut failures = Vec::new();
+    for (index, case) in cases.iter().enumerate() {
+        let actual = run_buffer(case);
+        if actual != case["expected"] {
+            failures.push(format!("case {index}:\n  emacs:   {}\n  org-lsp: {actual}", case["expected"]));
+        }
+    }
+    assert!(failures.is_empty(), "{} differences from Emacs:\n{}", failures.len(), failures.join("\n"));
+}

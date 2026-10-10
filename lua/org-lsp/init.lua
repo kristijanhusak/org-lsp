@@ -242,6 +242,10 @@ function M.run(name, opts)
       context.foreground = normal.fg and ('#%06x'):format(normal.fg) or nil
       context.background = 'Transparent'
     end
+    -- Whether the org-roam buffer shows, which the command hides then.
+    if name == 'org.roam.buffer.toggle' then
+      context.visible = require('org-lsp.view').roam_buffer_shown()
+    end
     if opts.append then
       -- Below the cursor's line, as nvim-orgmode's `<Leader><CR>` puts it:
       -- never above it, and nothing split.
