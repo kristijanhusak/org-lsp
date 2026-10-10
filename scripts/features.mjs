@@ -522,7 +522,7 @@ export const AREAS = [
       { text: 'Adding an alias puts it in the node\'s `ROAM_ALIASES`; removing it offers the aliases and takes the one picked out', cmd: ['org.roam.alias.add', 'org.roam.alias.remove'] },
       { text: 'Adding tags to a file\'s node writes `#+filetags:`; on a headline\'s node, its tags', cmd: 'org.roam.tag.add' },
       { text: 'Following `[[roam:Title]]` visits the node and turns the link into `[[id:…][Title]]`; saving does it for the others', cmd: 'org.open' },
-      { text: 'Typing `[[roam:` offers the titles of the nodes; the one picked becomes an `id:` link' },
+      { text: 'Typing `[[roam:` or `[[id:` offers the titles of the nodes; the one picked becomes an `id:` link' },
       { text: 'Toggling the org-roam buffer in a node another links to shows it beside, the cursor staying in the note, with *Backlinks (1)* and the linking node\'s heading and text; toggling again hides it', cmd: 'org.roam.buffer.toggle' },
       { text: 'While the org-roam buffer shows, moving the cursor into another node shows that node\'s links', cmd: 'org.roam.buffer.toggle' },
       { text: 'Following an item of the buffer visits the line of the link', cmd: 'org.open' },

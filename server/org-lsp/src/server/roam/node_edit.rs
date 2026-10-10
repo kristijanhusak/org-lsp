@@ -213,8 +213,8 @@ impl Server {
     }
 
     /// The titles of the nodes, for a link being typed in one of
-    /// org-roam's files, `[[title]]` or `[[roam:title]]`, which completing
-    /// turns into `[[id:ID][title]]`; with
+    /// org-roam's files, `[[title]]` or `[[roam:title]]`, and `[[id:title`
+    /// too, which completing turns into `[[id:ID][title]]`; with
     /// `org_roam_completion_everywhere`, for the word at the cursor too,
     /// which becomes such a link.
     pub(in crate::server) fn roam_completion(&mut self, uri: &Uri, offset: usize) -> Vec<lsp_types::CompletionItem> {
@@ -230,13 +230,16 @@ impl Server {
         let in_src = org_core::roam::edit::in_src_block(&document.parse, offset);
         let everywhere = self.roam.as_ref().is_some_and(|roam| roam.settings.completion_everywhere);
         // `org-roam-bracket-completion-re` around the cursor: `[[`, maybe
-        // `roam:`, the title, `]]`.
+        // `roam:` (or `id:`, which org-roam leaves to Org), the title, `]]`.
         let link = {
             let before = &text[line_start..offset];
             before.rfind("[[").and_then(|open| {
                 let open = line_start + open;
                 let uri_start = open + 2;
-                let title_start = if text[uri_start..].starts_with("roam:") { uri_start + 5 } else { uri_start };
+                let title_start = ["roam:", "id:"]
+                    .iter()
+                    .find(|prefix| text[uri_start..].starts_with(*prefix))
+                    .map_or(uri_start, |prefix| uri_start + prefix.len());
                 let rest = &text[title_start..line_end];
                 let close = rest.find("]]").map(|at| title_start + at);
                 let title_end = close.unwrap_or(offset);

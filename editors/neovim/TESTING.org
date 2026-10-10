@@ -210,7 +210,7 @@ its sections says what it should look like.
 - [ ] Adding an alias puts it in the node's ~ROAM_ALIASES~; removing it offers the aliases and takes the one picked out: ~:Org roam alias add~, ~:Org roam alias remove~
 - [ ] Adding tags to a file's node writes ~#+filetags:~; on a headline's node, its tags: ~:Org roam tag add~
 - [ ] Following ~[[roam:Title]]~ visits the node and turns the link into ~[[id:…][Title]]~; saving does it for the others: ~<Leader>oo~
-- [ ] Typing ~[[roam:~ offers the titles of the nodes; the one picked becomes an ~id:~ link
+- [ ] Typing ~[[roam:~ or ~[[id:~ offers the titles of the nodes; the one picked becomes an ~id:~ link
 - [ ] Toggling the org-roam buffer in a node another links to shows it beside, the cursor staying in the note, with /Backlinks (1)/ and the linking node's heading and text; toggling again hides it: ~<Leader>nl~
 - [ ] While the org-roam buffer shows, moving the cursor into another node shows that node's links: ~<Leader>nl~
 - [ ] Following an item of the buffer visits the line of the link: ~<Leader>oo~

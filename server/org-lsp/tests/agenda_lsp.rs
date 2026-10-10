@@ -6590,6 +6590,23 @@ fn edits_roam_nodes_and_links() {
     let note = items.iter().find(|item| item["label"] == "B note").expect("a title");
     assert_eq!(note["textEdit"]["newText"], "[[id:b-id][B note]]");
     assert_eq!(note["textEdit"]["range"]["start"], json!({ "line": 5, "character": 0 }));
+    // An `id:` link, by the title too.
+    let typed = "#+title: C\n\nSee [[id:Be\n";
+    let c_uri = format!("file://{}", root.join("c.org").display());
+    client.open(&c_uri, typed);
+    let completed = client
+        .request(
+            "textDocument/completion",
+            json!({ "textDocument": { "uri": c_uri }, "position": { "line": 2, "character": 11 } }),
+        )
+        .unwrap();
+    let items = completed.as_array().unwrap();
+    let bee = items.iter().find(|item| item["label"] == "Bee").expect("the alias");
+    assert_eq!(bee["textEdit"]["newText"], "id:b-id][Bee]]");
+    assert_eq!(bee["textEdit"]["range"]["start"], json!({ "line": 2, "character": 9 }));
+    assert_eq!(bee["textEdit"]["range"]["end"], json!({ "line": 2, "character": 11 }));
+    assert_eq!(bee["additionalTextEdits"][0]["range"]["start"], json!({ "line": 2, "character": 6 }));
+    assert_eq!(bee["additionalTextEdits"][0]["range"]["end"], json!({ "line": 2, "character": 9 }));
 
     // Saving turns the `roam:` links to nodes into `id:` links.
     let edits = client
