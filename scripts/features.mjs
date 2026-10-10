@@ -497,6 +497,29 @@ export const AREAS = [
     ],
   },
   {
+    name: 'Notes (org-roam)',
+    emacs: [
+      ['The nodes of `org_roam_directory`, files and entries with an `ID`, as `org-roam-db-sync` finds them (`org_roam_file_extensions`, `org_roam_file_exclude_regexp`), read again as they change', true],
+      ['Finding a node by its title or an alias (`org-roam-node-find`), offered as `org_roam_node_display_template` shows it, the files changed last first; a random node', true],
+      ['Inserting a link to a node (`org-roam-node-insert`), on a selection too', true],
+      ['New nodes from `org_roam_capture_templates`: `${title}`, `${slug}`, `${…}` asked for; `file`, `file+head`, `file+olp`, `file+head+olp` and `node` targets; capturing to a node (`org-roam-capture`)', true],
+      ['`roam:` links: following them, completing them, replacing them with `id:` links', false],
+      ['Aliases, tags and references added and removed (`org-roam-alias-add` …)', false],
+      ['The org-roam buffer: backlinks, references and unlinked references', false],
+      ['Completing node titles as they are typed (`org-roam-completion-everywhere`)', false],
+    ],
+    editors: {
+      zed: ['no', `${ZED_TEXT}, and the commands ask for a node.`],
+      helix: ['no', `${HELIX_TEXT}, and the commands ask for a node.`],
+    },
+    checks: [
+      { text: 'With `org_roam_enabled` on and `org_roam_directory` set, finding a node offers the titles and aliases of its files and visits the one picked', cmd: 'org.roam.node.find' },
+      { text: 'Inserting a node puts `[[id:…][title]]` at the cursor; on a selection, the selection is typed first and the link takes its place', cmd: 'org.roam.node.insert' },
+      { text: 'A title no node has opens a capture buffer with the new file\'s `ID` and `#+title:`; finishing writes the file and, from insert, puts the link in', cmd: 'org.roam.node.insert' },
+      { text: 'A random node is visited', cmd: 'org.roam.node.random' },
+    ],
+  },
+  {
     name: 'Refile and archive',
     emacs: [
       ['Refiling to a heading, between files too (`org-refile-targets`)', true],

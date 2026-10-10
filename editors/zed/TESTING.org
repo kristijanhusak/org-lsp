@@ -171,6 +171,10 @@ its sections says what it should look like.
 - [ ] ~%[snippet.txt]~ puts in the file's text, relative to the file captured from: the code action /Capture/
 - [ ] ~%(upcase "abc")~ puts in ~ABC~, what Emacs makes of it (needs Emacs): the code action /Capture/
 
+* Notes (org-roam)
+
+*Not in Zed:* Zed cannot ask for text on a server's behalf, and the commands ask for a node.
+
 * Refile and archive
 
 - [ ] Refiling a subtree under a heading of the same file, and of another file: the code action /Refile the entry/

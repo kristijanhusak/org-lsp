@@ -6368,3 +6368,129 @@ fn previews_latex_through_emacs() {
     client.shutdown();
     let _ = std::fs::remove_dir_all(&directory);
 }
+
+/// org-roam, switched on: the nodes of its directory are offered by their
+/// titles and aliases, visited, linked to, and a title no node has makes
+/// a node in a new file, linked to where the capture started.
+#[test]
+fn finds_links_and_captures_roam_nodes() {
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("sub")).unwrap();
+    std::fs::create_dir_all(root.join("data")).unwrap();
+    let a = ":PROPERTIES:\n:ID:       a-id\n:ROAM_ALIASES: Alpha\n:END:\n#+title: A note\n\nText.\n";
+    std::fs::write(root.join("a.org"), a).unwrap();
+    std::fs::write(root.join("sub/b.org"), "#+title: B\n* Heading B\n:PROPERTIES:\n:ID:       b-id\n:END:\n").unwrap();
+    // An attachment is no note.
+    std::fs::write(root.join("data/x.org"), ":PROPERTIES:\n:ID:       x-id\n:END:\n#+title: X\n").unwrap();
+    let a_uri = format!("file://{}", root.join("a.org").display());
+    let run = |client: &mut Client, command: &str, context: &Value| {
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let at = |line: u32| json!({ "textDocument": { "uri": a_uri }, "position": { "line": line, "character": 0 } });
+
+    // Off, the commands say so.
+    let mut client = Client::editor(clock(), None);
+    let off = run(&mut client, "org.roam.node.find", &at(0));
+    assert_eq!(off, Err("org-roam is off: set org_roam_enabled to use it".to_string()));
+    client.shutdown();
+
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    let mut client = Client::editor(options, None);
+    client.open(&a_uri, a);
+    let asked = run(&mut client, "org.roam.node.find", &at(0)).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Node");
+    let mut offered: Vec<&str> =
+        asked["input"]["completions"].as_array().unwrap().iter().map(|line| line.as_str().unwrap()).collect();
+    offered.sort();
+    assert_eq!(offered, ["A note", "Alpha", "Heading B"]);
+    // An answer that names a node visits it.
+    let mut answer = at(0);
+    answer["step"] = json!("node");
+    answer["input"] = json!("Heading B");
+    run(&mut client, "org.roam.node.find", &answer).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the node");
+    assert_eq!(show.params["uri"], format!("file://{}", root.join("sub/b.org").display()));
+    assert_eq!(show.params["selection"]["start"], json!({ "line": 1, "character": 0 }));
+
+    // A link to a node, by its alias.
+    let mut answer = at(6);
+    answer["step"] = json!("node");
+    answer["input"] = json!("Alpha");
+    run(&mut client, "org.roam.node.insert", &answer).unwrap();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    assert_eq!(apply(a, &edits_of(edit).1), a.replace("Text.", "[[id:a-id][Alpha]]Text."));
+
+    // A new node: the default template, a file of its own, and the link
+    // once the capture is filed.
+    answer["input"] = json!("New idea");
+    run(&mut client, "org.roam.node.insert", &answer).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the buffer");
+    let buffer = show.params["uri"].as_str().unwrap().to_string();
+    assert!(buffer.ends_with("/CAPTURE-20260518103000-new_idea.org"), "{buffer}");
+    let shown = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
+    let id = shown.lines().nth(1).unwrap().strip_prefix(":ID:       ").unwrap().to_string();
+    // The whole file, the cursor on the line after the head.
+    assert_eq!(shown, format!(":PROPERTIES:\n:ID:       {id}\n:END:\n#+title: New idea\n\n"));
+    assert_eq!(show.params["selection"]["start"], json!({ "line": 4, "character": 0 }));
+    client.open(&buffer, &format!(":PROPERTIES:\n:ID:       {id}\n:END:\n#+title: New idea\nBody.\n"));
+    let done = run(
+        &mut client,
+        "org.capture.finish",
+        &json!({ "textDocument": { "uri": buffer }, "position": { "line": 4, "character": 0 } }),
+    );
+    assert_eq!(done, Ok(json!({ "close": buffer })));
+    let written = std::fs::read_to_string(root.join("20260518103000-new_idea.org")).unwrap();
+    assert_eq!(written, format!(":PROPERTIES:\n:ID:       {id}\n:END:\n#+title: New idea\nBody.\n"));
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the link");
+    assert_eq!(edits_of(edit).0, a_uri);
+    assert_eq!(apply(a, &edits_of(edit).1), a.replace("Text.", &format!("[[id:{id}][New idea]]Text.")));
+    // The new node is offered from now on.
+    let asked = run(&mut client, "org.roam.node.find", &at(0)).unwrap();
+    assert_eq!(asked["input"]["completions"][0], "New idea");
+    client.shutdown();
+
+    // Templates picked by key, and asking what `${source}` is.
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    options["org_roam_capture_templates"] = json!([
+        { "key": "d", "description": "default", "type": "plain", "template": "%?",
+          "target": ["file+head", "${slug}.org", "#+title: ${title}\n"] },
+        { "key": "r", "description": "reference", "template": "* %?",
+          "target": ["file+head", "refs/${slug}.org", "#+title: ${title}\n#+source: ${source}\n"] },
+    ]);
+    let mut client = Client::editor(options, None);
+    let mut answer = at(0);
+    answer["step"] = json!("node");
+    answer["input"] = json!("A paper");
+    let asked = run(&mut client, "org.roam.capture", &answer).unwrap();
+    assert_eq!(asked["input"]["kind"], "key");
+    assert_eq!(
+        asked["input"]["choices"],
+        json!([{ "key": "d", "label": "default" }, { "key": "r", "label": "reference" }])
+    );
+    for (key, value) in asked["input"]["context"].as_object().unwrap() {
+        answer[key] = value.clone();
+    }
+    answer["input"] = json!("r");
+    let asked = run(&mut client, "org.roam.capture", &answer).unwrap();
+    assert_eq!(asked["input"]["prompt"], "source");
+    for (key, value) in asked["input"]["context"].as_object().unwrap() {
+        answer[key] = value.clone();
+    }
+    answer["input"] = json!("the web");
+    run(&mut client, "org.roam.capture", &answer).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the buffer");
+    let buffer = show.params["uri"].as_str().unwrap().to_string();
+    assert!(buffer.ends_with("/CAPTURE-a_paper.org"), "{buffer}");
+    let shown = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
+    assert_eq!(shown, "* \n");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}

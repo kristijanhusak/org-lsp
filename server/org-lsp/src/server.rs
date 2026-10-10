@@ -50,6 +50,7 @@ use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target, TimeField};
 
 mod bulk;
+mod roam;
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
 use crate::{actions, cli, commands, completion, custom, faces, folding, highlight, manifest, port, symbols, uri};
@@ -423,6 +424,10 @@ struct Capturing {
     clock: Option<CaptureClock>,
     /// `:jump-to-captured`: the target shows the entry when it is filed.
     jump: bool,
+    /// `:unnarrowed`: the buffer shows the whole target file.
+    unnarrowed: bool,
+    /// A capture of org-roam's, and what it does once filed.
+    roam: Option<roam::Captured>,
 }
 
 /// `:clock-in`: the captured entry is clocked from the start of the
@@ -590,6 +595,24 @@ fn capture_spec(template: &CaptureTemplateOption) -> std::result::Result<(captur
         None => TargetSpec::File(capture::Target::File),
     };
     Ok((kind, target))
+}
+
+/// The templates and groups of templates one key further than `keys`, as
+/// the choices of `org-mks`.
+fn template_choices(templates: &[CaptureTemplateOption], keys: &str) -> Vec<Value> {
+    templates
+        .iter()
+        .filter(|template| template.key.starts_with(keys) && template.key.chars().count() == keys.chars().count() + 1)
+        .map(|template| {
+            let key = template.key.chars().last().map(String::from).unwrap_or_default();
+            let label = if !template.is_group() {
+                template.description.clone()
+            } else {
+                format!("{}...", template.description)
+            };
+            json!({ "key": key, "label": label })
+        })
+        .collect()
 }
 
 /// The template of a capture template, or the default of its type when
@@ -951,6 +974,8 @@ struct Server {
     agenda_persistent_marks: bool,
     /// While a bulk action runs: the files as its commands left them.
     staging: Option<bulk::Staging>,
+    /// org-roam, when it is on.
+    roam: Option<roam::Roam>,
     /// `org-clock-display`: by document, the lines of headlines and the
     /// minutes clocked under them, shown as inlay hints until the
     /// document changes.
@@ -1239,6 +1264,7 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_marks: Vec::new(),
         agenda_persistent_marks: options.agenda.persistent_marks.unwrap_or(false),
         staging: None,
+        roam: options.roam().map(roam::Roam::new),
         clock_display: HashMap::new(),
         clock_display_range: options.clock_display_default_range.clone().unwrap_or_else(|| "thisyear".to_string()),
         refile_current: None,
@@ -4546,6 +4572,10 @@ impl Server {
             let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
             return self.capture(&context);
         }
+        if params.command.starts_with("org.roam.") {
+            let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
+            return self.roam_command(&params.command, &context);
+        }
         if params.command == commands::LINK_PREVIEW || params.command == commands::LATEX_PREVIEW {
             let field = |name: &str| argument.as_ref().and_then(|value| value.get(name)).cloned();
             let startup = field("startup").and_then(|value| value.as_bool()) == Some(true);
@@ -6708,22 +6738,7 @@ impl Server {
         }
         let chosen = templates.iter().find(|template| template.key == keys && !template.is_group());
         let Some(template) = chosen.cloned() else {
-            // The templates and groups one key further.
-            let next: Vec<Value> = templates
-                .iter()
-                .filter(|template| {
-                    template.key.starts_with(&keys) && template.key.chars().count() == keys.chars().count() + 1
-                })
-                .map(|template| {
-                    let key = template.key.chars().last().map(String::from).unwrap_or_default();
-                    let label = if !template.is_group() {
-                        template.description.clone()
-                    } else {
-                        format!("{}...", template.description)
-                    };
-                    json!({ "key": key, "label": label })
-                })
-                .collect();
+            let next = template_choices(&templates, &keys);
             if next.is_empty() {
                 return Err(
                     if keys.is_empty() { "No capture templates" } else { "No capture template for this key" }.into()
@@ -6743,35 +6758,6 @@ impl Server {
         }
         // Where the capture started, for `%f`, `%F` and `%a`.
         let from = context.text_document.as_ref().map(|document| &document.uri).filter(|uri| !self.is_view(uri));
-        let file = from.map(|uri| {
-            (uri::file_name(uri), uri::to_path(uri).map(|path| path.display().to_string()).unwrap_or_default())
-        });
-        let (annotation, link_props) = match (from, context.position) {
-            (Some(uri), Some(position)) => self.link_with_props(uri, position),
-            // From an agenda line: a link to its entry.
-            (None, Some(position)) => {
-                let entry = context
-                    .text_document
-                    .as_ref()
-                    .and_then(|document| self.view_line(&document.uri, position.line))
-                    .and_then(|(_, line)| line.entry.clone());
-                let encoding = self.client.encoding;
-                let found = entry.and_then(|reference| {
-                    let at = self
-                        .with_source(&reference.uri, |text, index, _, outline, _| {
-                            views::resolve(&reference, outline)
-                                .map(|entry| index.position(text, outline.entries[entry].offset, encoding))
-                        })
-                        .flatten()?;
-                    Some((reference.uri, at))
-                });
-                match found {
-                    Some((uri, at)) => self.link_with_props(&uri, at),
-                    None => (String::new(), Vec::new()),
-                }
-            }
-            _ => (String::new(), Vec::new()),
-        };
         // `:time-prompt`: the date of the tree entry is asked first, and
         // stands for the time of the capture.
         let now = self.date_time();
@@ -6798,33 +6784,9 @@ impl Server {
             default_time = DateTime::new(read.date, hour, minute);
             asked = rest;
         }
-        // `%k` and `%K`: the entry clocked now.
-        let (mut clock_heading, mut clock_link) = (String::new(), String::new());
-        if let Some(running) = self.running.clone() {
-            if let Some(heading) =
-                self.clock_line(&running).and_then(|(text, _, line)| Self::heading_above(&text, line))
-            {
-                clock_heading = self.entry_title(&running.uri, heading).unwrap_or_default();
-                let encoding = self.client.encoding;
-                let position =
-                    self.with_source(&running.uri, |text, index, _, _, _| index.position(text, heading, encoding));
-                if let Some(position) = position {
-                    clock_link = self.link_to(&running.uri, position);
-                }
-            }
-        }
-        let fill_context = capture::Context {
-            now: default_time,
-            file,
-            initial: String::new(),
-            annotation,
-            link_props,
-            user_name: String::new(),
-            clock_heading,
-            clock_link,
-            tags_column: self.edit_settings.todo.tags_column,
-            clipboard: context.clipboard.clone().unwrap_or_default(),
-        };
+        let document = context.text_document.as_ref().map(|document| document.uri.clone());
+        let clipboard = context.clipboard.clone().unwrap_or_default();
+        let fill_context = self.capture_fill_context(document.as_ref(), context.position, default_time, clipboard);
         let text = template_text(&template);
         // `%[file]`: relative to the directory of the file captured from.
         let directory = from.and_then(uri::to_path).and_then(|path| path.parent().map(Path::to_path_buf));
@@ -6993,22 +6955,43 @@ impl Server {
             table_line_pos: template.table_line_pos.clone(),
         };
         let levels = refile::Settings { adapt: self.adapt_in(&snapshot), ..self.refile.2 };
-        let placed = capture::place(&snapshot, &keywords, &target, kind, &filled, &properties, &levels)?;
+        let mut placed = capture::place(&snapshot, &keywords, &target, kind, &filled, &properties, &levels)?;
         let jump = template.jump_to_captured == Some(true);
         if template.immediate_finish == Some(true) {
             let done = placed.finalize(placed.shown(), &keywords, &self.edit_settings.todo, self.date_time());
-            let start = placed.start;
+            let start = placed.begin;
             return self.file_capture(&target_uri, version, &before, done, start, &keywords, clock.as_ref(), jump);
         }
-        // The capture buffer: a file named after the target, in a
-        // directory of the server's own, one for each capture, so that an
-        // editor that still has the last one open does not mix them up.
+        let unnarrowed = template.unnarrowed == Some(true);
+        if unnarrowed {
+            placed.unnarrow();
+        }
+        let uri = self.show_capture(&target_uri, &placed)?;
+        self.capture = Some(Capturing {
+            uri,
+            target: target_uri,
+            snapshot,
+            placed,
+            spec: (target, kind, properties),
+            clock,
+            jump,
+            unnarrowed,
+            roam: None,
+        });
+        Ok(Value::Null)
+    }
+
+    /// The capture buffer: a file named after the target, in a directory
+    /// of the server's own, one for each capture, so that an editor that
+    /// still has the last one open does not mix them up. It shows what
+    /// the capture places in its target, with the cursor where `%?` was.
+    fn show_capture(&mut self, target_uri: &Uri, placed: &capture::Placed) -> std::result::Result<Uri, Refusal> {
         self.captures += 1;
         let directory = self.capture_directory.join(self.captures.to_string());
         std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
         // It is an Org buffer whatever the target is called (Org's default
         // notes file is `~/.notes`), and editors tell that by the name.
-        let mut name = format!("{}{}", CAPTURE_PREFIX, uri::file_name(&target_uri));
+        let mut name = format!("{}{}", CAPTURE_PREFIX, uri::file_name(target_uri));
         if !name.ends_with(".org") {
             name.push_str(".org");
         }
@@ -7017,23 +7000,81 @@ impl Server {
         let buffer_uri = uri::from_path(&buffer).ok_or("Cannot name the capture buffer")?;
         let shown = placed.shown();
         let cursor = LineIndex::new(shown).position(shown, placed.cursor - placed.start, self.client.encoding);
-        self.capture = Some(Capturing {
-            uri: buffer_uri.clone(),
-            target: target_uri,
-            snapshot,
-            placed,
-            spec: (target, kind, properties),
-            clock,
-            jump,
-        });
         let params = ShowDocumentParams {
-            uri: buffer_uri,
+            uri: buffer_uri.clone(),
             external: None,
             take_focus: Some(true),
             selection: Some(Range::new(cursor, cursor)),
         };
         self.send_request::<ShowDocument>(params, None);
-        Ok(Value::Null)
+        Ok(buffer_uri)
+    }
+
+    /// What `org-capture-fill-template` fills in for a capture started
+    /// at `position` of `document` (a file, or an agenda line): `%f`, `%F`,
+    /// `%a` and the link's properties, `%k` and `%K`.
+    fn capture_fill_context(
+        &mut self,
+        document: Option<&Uri>,
+        position: Option<Position>,
+        now: DateTime,
+        clipboard: String,
+    ) -> capture::Context {
+        let from = document.filter(|uri| !self.is_view(uri));
+        let file = from.map(|uri| {
+            (uri::file_name(uri), uri::to_path(uri).map(|path| path.display().to_string()).unwrap_or_default())
+        });
+        let (annotation, link_props) = match (from, position) {
+            (Some(uri), Some(position)) => self.link_with_props(uri, position),
+            // From an agenda line: a link to its entry.
+            (None, Some(position)) => {
+                let entry = document
+                    .and_then(|uri| self.view_line(uri, position.line))
+                    .and_then(|(_, line)| line.entry.clone());
+                let encoding = self.client.encoding;
+                let found = entry.and_then(|reference| {
+                    let at = self
+                        .with_source(&reference.uri, |text, index, _, outline, _| {
+                            views::resolve(&reference, outline)
+                                .map(|entry| index.position(text, outline.entries[entry].offset, encoding))
+                        })
+                        .flatten()?;
+                    Some((reference.uri, at))
+                });
+                match found {
+                    Some((uri, at)) => self.link_with_props(&uri, at),
+                    None => (String::new(), Vec::new()),
+                }
+            }
+            _ => (String::new(), Vec::new()),
+        };
+        // `%k` and `%K`: the entry clocked now.
+        let (mut clock_heading, mut clock_link) = (String::new(), String::new());
+        if let Some(running) = self.running.clone() {
+            if let Some(heading) =
+                self.clock_line(&running).and_then(|(text, _, line)| Self::heading_above(&text, line))
+            {
+                clock_heading = self.entry_title(&running.uri, heading).unwrap_or_default();
+                let encoding = self.client.encoding;
+                let position =
+                    self.with_source(&running.uri, |text, index, _, _, _| index.position(text, heading, encoding));
+                if let Some(position) = position {
+                    clock_link = self.link_to(&running.uri, position);
+                }
+            }
+        }
+        capture::Context {
+            now,
+            file,
+            initial: String::new(),
+            annotation,
+            link_props,
+            user_name: String::new(),
+            clock_heading,
+            clock_link,
+            tags_column: self.edit_settings.todo.tags_column,
+            clipboard,
+        }
     }
 
     /// `org-add-log-note`: a buffer of its own for the note a TODO state
@@ -7398,8 +7439,12 @@ impl Server {
             })
             .unwrap_or_else(|| (String::new(), None, self.todo.clone()));
         let (todo, time) = (&self.edit_settings.todo, self.date_time());
-        let done = if now == capture.snapshot {
+        // A buffer that shows the whole file stands for all of it.
+        let done = if now == capture.snapshot || (capture.unnarrowed && capture.roam.is_none()) {
             capture.placed.finalize(&edited, &keywords, todo, time)
+        } else if capture.roam.is_some() {
+            // org-roam's target has the node's `ID` and head besides.
+            return Err("The target file has changed since the capture began".into());
         } else {
             let (target, kind, properties) = &capture.spec;
             let levels = refile::Settings { adapt: self.adapt_in(&now), ..self.refile.2 };
@@ -7439,9 +7484,16 @@ impl Server {
     /// the user to save.
     fn finish_capture(&mut self, text: Option<String>) -> std::result::Result<Value, Refusal> {
         let capture = self.capture.take().ok_or("No capture is going on")?;
-        let (now, version, done) = self.captured(&capture, text)?;
+        let (now, version, done) = match self.captured(&capture, text) {
+            Ok(captured) => captured,
+            Err(refusal) => {
+                self.capture = Some(capture);
+                return Err(refusal);
+            }
+        };
         let keywords = org_syntax::parse(&done, &self.todo).todo_keywords().clone();
-        let start = capture.placed.start;
+        let start = capture.placed.begin;
+        let filed = capture.roam.is_some().then(|| done.clone());
         self.file_capture(
             &capture.target,
             version,
@@ -7452,6 +7504,9 @@ impl Server {
             capture.clock.as_ref(),
             capture.jump,
         )?;
+        if let (Some(roam), Some(done)) = (&capture.roam, filed) {
+            self.roam_finalize(roam, &capture.target, &done);
+        }
         Ok(json!({ "close": capture.uri }))
     }
 
@@ -7567,10 +7622,16 @@ impl Server {
             self.capture = Some(capture);
             return Err("Refiling from a capture buffer makes only sense for `entry'-type templates".into());
         }
-        let (_, _, done) = self.captured(&capture, text)?;
-        // The entry starts where the buffer's text does, after any blank lines.
-        let start = capture.placed.start + done[capture.placed.start..].len()
-            - done[capture.placed.start..].trim_start_matches(['\n', ' ', '\t']).len();
+        let (_, _, done) = match self.captured(&capture, text) {
+            Ok(captured) => captured,
+            Err(refusal) => {
+                self.capture = Some(capture);
+                return Err(refusal);
+            }
+        };
+        // The entry starts where the template went in, after any blank lines.
+        let begin = capture.placed.begin.min(done.len());
+        let start = begin + done[begin..].len() - done[begin..].trim_start_matches(['\n', ' ', '\t']).len();
         let uri = capture.uri.clone();
         let target = capture.target.clone();
         let result = self.refile_from(target, start, None, Some(done), false, answer, RefileMode::Move);

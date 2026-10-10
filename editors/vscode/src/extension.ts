@@ -270,6 +270,8 @@ interface Input {
   completions?: string[];
   /** What separates several answers (the `:` between tags): what follows the last is completed. */
   separator?: string;
+  /** Whether a completion picked with nothing typed is the answer, not the prompt's default. */
+  select?: boolean;
   /** What to send back with the answer, besides it. */
   context?: Record<string, unknown>;
 }
@@ -361,7 +363,8 @@ function typeOrPick(input: Input, completions: string[]): Promise<string | undef
     let answered = false;
     pick.onDidAccept(() => {
       answered = true;
-      resolve(pick.value === '' ? '' : (pick.selectedItems[0]?.label ?? pick.value));
+      const empty = pick.value === '' && !input.select;
+      resolve(empty ? '' : (pick.selectedItems[0]?.label ?? pick.value));
       pick.hide();
     });
     pick.onDidHide(() => {

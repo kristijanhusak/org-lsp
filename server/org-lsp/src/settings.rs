@@ -624,8 +624,8 @@ pub const SETTINGS: &[Setting] = &[
         "Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, `plain`, \
          `item`, `checkitem` or `table-line`), a `target` and a `template` (text, or a list of lines), and may \
          have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after`, `immediate_finish`, \
-         `tree_type`, `time_prompt`, `table_line_pos`, `clock_in`, `clock_keep`, `clock_resume` and \
-         `jump_to_captured`. The target is a list: `file` and a path; \
+         `tree_type`, `time_prompt`, `table_line_pos`, `clock_in`, `clock_keep`, `clock_resume`, \
+         `jump_to_captured` and `unnarrowed`. The target is a list: `file` and a path; \
          `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; \
          `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and the headlines of an \
          outline path, maybe none, for a date tree under them; `id` and an ID; `clock`, the entry clocked \
@@ -1250,6 +1250,59 @@ pub const SETTINGS: &[Setting] = &[
         "Look for the properties of `property`, `auto-property` and `auto-group` in the entries above too.",
     ),
     setting(
+        "org_roam_enabled",
+        "boolean",
+        "false",
+        "",
+        "org-roam: the files of `org_roam_directory` are a network of notes, whose nodes (files and entries \
+         with an `ID`) are found, linked to and made with the `org.roam.*` commands. Off, those commands only \
+         say so.",
+    ),
+    setting(
+        "org_roam_directory",
+        "string",
+        r#""~/org-roam/""#,
+        "org-roam-directory",
+        "The directory of org-roam's files, in all its subdirectories. `~/` is the home directory.",
+    ),
+    setting(
+        "org_roam_file_extensions",
+        "string[]",
+        r#"["org"]"#,
+        "org-roam-file-extensions",
+        "The extensions of org-roam's files; each may be followed by `.gpg` or `.age`, which the server \
+         cannot read.",
+    ),
+    setting(
+        "org_roam_file_exclude_regexp",
+        "string or string[]",
+        r#"["data/"]"#,
+        "org-roam-file-exclude-regexp",
+        "Emacs regexps for the files that are not org-roam's, matched against their names relative to \
+         `org_roam_directory`; the default leaves out attachments.",
+    ),
+    setting(
+        "org_roam_node_display_template",
+        "string",
+        r#""${title}""#,
+        "org-roam-node-display-template",
+        "How a node is offered: `${field}` for its `title`, `tags`, `todo`, `file`, `olp`, `aliases` and \
+         the other fields of `org-roam-node`, `${field:N}` in N columns, `${field:*}` in what is left of the \
+         window's 79 columns.",
+    ),
+    setting(
+        "org_roam_capture_templates",
+        "object[]",
+        r##"[{ "key": "d", "description": "default", "type": "plain", "template": "%?", "target": ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"], "unnarrowed": true }]"##,
+        "org-roam-capture-templates",
+        "The templates of new nodes, as `org_capture_templates` writes them, with org-roam's targets: \
+         `file` and a path, `file+head`, a path and the text a new file starts with, `file+olp`, a path and the \
+         headlines of an outline path, `file+head+olp`, both, and `node` and the title, alias or `ID` of a node. \
+         The path, relative to `org_roam_directory`, and the texts may have `${title}`, `${slug}`, `${id}` and \
+         `${name}`, which asks for `name` (`${name=default}` starts the answer with `default`), besides the \
+         escapes of `org_capture_templates`. `unnarrowed` shows the whole file in the capture buffer.",
+    ),
+    setting(
         "org_agenda_search_view_always_boolean",
         "boolean",
         "false",
@@ -1647,7 +1700,8 @@ const SCHEMAS: &[(&str, &str)] = &[
             "clock_in": { "type": "boolean", "description": "Clock the captured entry while the capture goes on" },
             "clock_keep": { "type": "boolean", "description": "Keep the clock running when the capture is filed" },
             "clock_resume": { "type": "boolean", "description": "Start the clock the capture stopped again" },
-            "jump_to_captured": { "type": "boolean", "description": "Show the captured entry in its file" }
+            "jump_to_captured": { "type": "boolean", "description": "Show the captured entry in its file" },
+            "unnarrowed": { "type": "boolean", "description": "Show the whole target file in the capture buffer" }
         } } }"#,
     ),
     ("org_directory", STRING),
@@ -1757,6 +1811,30 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_super_agenda_keep_order", BOOLEAN),
     ("org_super_agenda_group_property_name", STRING),
     ("org_super_agenda_properties_inherit", BOOLEAN),
+    ("org_roam_enabled", BOOLEAN),
+    ("org_roam_directory", STRING),
+    ("org_roam_file_extensions", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    (
+        "org_roam_file_exclude_regexp",
+        r#"{ "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] }"#,
+    ),
+    ("org_roam_node_display_template", STRING),
+    (
+        "org_roam_capture_templates",
+        r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RoamCaptureTemplate", "required": ["key", "description"], "additionalProperties": false, "properties": {
+            "key": { "type": "string", "description": "The keys that pick the template" },
+            "description": { "type": "string", "description": "What the menu shows" },
+            "type": { "enum": ["entry", "plain", "item", "checkitem", "table-line"], "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line" },
+            "target": { "type": "array", "items": { "type": "string" },
+                "description": "`file` and a path; `file+head`, a path and the head of a new file; `file+olp`, a path and an outline path; `file+head+olp`, a path, a head and an outline path; or `node` and a node's title, alias or ID" },
+            "template": { "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "The template, or its lines" },
+            "prepend": { "type": "boolean", "description": "First under the target, not last" },
+            "empty_lines": { "type": "integer", "minimum": 0, "description": "Blank lines before and after" },
+            "empty_lines_before": { "type": "integer", "minimum": 0, "description": "Blank lines before" },
+            "empty_lines_after": { "type": "integer", "minimum": 0, "description": "Blank lines after" },
+            "unnarrowed": { "type": "boolean", "description": "Show the whole file in the capture buffer" }
+        } } }"#,
+    ),
     ("org_agenda_search_view_always_boolean", BOOLEAN),
     ("org_agenda_search_view_force_full_words", BOOLEAN),
     ("org_agenda_search_view_max_outline_level", r#"{ "type": "integer", "minimum": 0 }"#),
@@ -1901,7 +1979,7 @@ mod tests {
                 options.capture_templates(),
                 options.org_directory(),
                 options.default_notes_file(),
-                options.separator_lines(),
+                (options.separator_lines(), options.roam()),
             )
         )
     }
@@ -1911,6 +1989,16 @@ mod tests {
         let none: Options = serde_json::from_str("{}").unwrap();
         let written: Options = serde_json::from_value(defaults()).unwrap();
         assert_eq!(resolved(&written), resolved(&none));
+    }
+
+    #[test]
+    fn the_defaults_of_org_roam_are_the_ones_that_apply() {
+        let on = |mut value: Value| {
+            value["org_roam_enabled"] = json!(true);
+            let options: Options = serde_json::from_value(value).unwrap();
+            format!("{:?}", options.roam())
+        };
+        assert_eq!(on(defaults()), on(json!({})));
     }
 
     /// The names of every option `Options` reads.

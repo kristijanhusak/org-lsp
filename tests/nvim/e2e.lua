@@ -41,9 +41,15 @@ end
 
 -- Load the plugin the way a plugin manager would: the repo root on the
 -- runtime path, then its plugin/ file.
+-- The directory of org-roam's notes.
+local roam_dir = vim.fn.tempname()
 vim.g.org_lsp = {
   cmd = { server },
-  settings = { org_todo_keyword_faces = { TODO = ':foreground #ff8800 :weight bold' } },
+  settings = {
+    org_todo_keyword_faces = { TODO = ':foreground #ff8800 :weight bold' },
+    org_roam_enabled = true,
+    org_roam_directory = roam_dir,
+  },
 }
 vim.opt.runtimepath:prepend(root)
 vim.cmd('filetype plugin on')
@@ -1438,6 +1444,48 @@ if vim.fn.executable('emacs') == 1 then
     return not columns.on(agenda)
   end)
   eq(vim.fn.maparg('q', 'n', false, true).desc, quit, 'the agenda keys again')
+end
+
+-- org-roam: `org.roam.node.find` asks for a node by its title and visits
+-- it; `org.roam.node.insert` with a title no node has captures a new node
+-- into a file of its own, and links to it once the capture is finished.
+do
+  vim.fn.mkdir(roam_dir, 'p')
+  vim.fn.writefile({ ':PROPERTIES:', ':ID:       roam-a', ':END:', '#+title: Roam note', '', 'Text.' }, roam_dir .. '/note.org')
+  local index = roam_dir .. '/index.org'
+  vim.fn.writefile({ '#+title: Index', '' }, index)
+  vim.cmd.edit(index)
+  local asked, answer
+  local input = vim.ui.input
+  vim.ui.input = function(opts, on_confirm)
+    asked = opts
+    on_confirm(answer)
+  end
+  answer = 'Roam note'
+  -- The keys of Org files are off since 17.
+  require('org-lsp').run('org.roam.node.find')
+  wait('the node visited', function()
+    return vim.api.nvim_buf_get_name(0) == vim.fs.normalize(roam_dir .. '/note.org')
+  end)
+  eq(asked.prompt, 'Node: ', 'the prompt, as Emacs asks')
+  eq(require('org-lsp').completions, { 'Roam note' }, 'the nodes offered')
+  vim.cmd.edit(index)
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  answer = 'Fresh idea'
+  require('org-lsp').run('org.roam.node.insert')
+  wait('the capture buffer', function()
+    return vim.api.nvim_buf_get_name(0):find('CAPTURE%-%d+%-fresh_idea%.org$') ~= nil
+  end)
+  local id = vim.api.nvim_buf_get_lines(0, 1, 2, false)[1]:match('^:ID:%s+(%S+)$')
+  check(id ~= nil, 'the new node has an ID')
+  vim.api.nvim_buf_set_lines(0, 4, 5, false, { 'Body.' })
+  require('org-lsp').run('org.capture.finish')
+  wait('the link to the new node', function()
+    return vim.api.nvim_buf_get_name(0) == vim.fs.normalize(index) and line(2) == ('[[id:%s][Fresh idea]]'):format(id)
+  end)
+  local written = vim.fn.glob(roam_dir .. '/*-fresh_idea.org')
+  eq(vim.fn.readfile(written), { ':PROPERTIES:', ':ID:       ' .. id, ':END:', '#+title: Fresh idea', 'Body.' }, 'the new file')
+  vim.ui.input = input
 end
 
 print(('ok: %d checks passed'):format(checks))

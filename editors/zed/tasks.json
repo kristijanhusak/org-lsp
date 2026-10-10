@@ -52,6 +52,32 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org: Roam: find a node",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.roam.node.find",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Roam: capture to a node",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.roam.capture",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org: Clock in",
     "command": "$HOME/.local/state/org-lsp/agenda-command file:org.clock.in",
     "tags": [
@@ -1211,6 +1237,19 @@
   {
     "label": "Org: Archive with the default command",
     "command": "$HOME/.local/state/org-lsp/agenda-command file:org.archive.default",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Roam: insert a link to a node",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.roam.node.insert",
     "tags": [
       "org"
     ],

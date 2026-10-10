@@ -333,8 +333,21 @@ pub fn fill_with(
     context: &Context,
     answers: &[String],
     settings: &ReadDateSettings,
-    mut outside: Option<Outside>,
+    outside: Option<Outside>,
 ) -> Result<Filled, Refusal> {
+    fill_counting(template, context, answers, settings, outside).map(|(filled, _)| filled)
+}
+
+/// [`fill_with`], with how many of `answers` the template took: for a
+/// template expanded after others that take their answers from the same
+/// list (org-roam's targets).
+pub fn fill_counting(
+    template: &str,
+    context: &Context,
+    answers: &[String],
+    settings: &ReadDateSettings,
+    mut outside: Option<Outside>,
+) -> Result<(Filled, usize), Refusal> {
     let template = match &outside {
         Some(outside) => mark_sexps(&insert_files(template, outside.insert_file)),
         None => template.to_string(),
@@ -502,7 +515,7 @@ pub fn fill_with(
         }
     })?;
     if let Some(question) = question {
-        return Ok(Filled::Ask(question));
+        return Ok((Filled::Ask(question), asked));
     }
     // Tags put on a headline are aligned (`org-align-tags`).
     let mut text = text;
@@ -538,7 +551,7 @@ pub fn fill_with(
         let list = if captures.get(1).is_some() { &strings_all } else { &strings };
         Ok(Some(list.get(index.wrapping_sub(1)).cloned().unwrap_or_default()))
     })?;
-    Ok(Filled::Text(tidy(&text)))
+    Ok((Filled::Text(tidy(&text)), asked))
 }
 
 /// Where line `n` (from 0) of `text` starts.
@@ -686,9 +699,18 @@ pub struct Placed {
     pub cursor: usize,
     /// A table line: the table is aligned when the capture finishes.
     pub align_table: bool,
+    /// Where the template went in: `start`, unless the buffer shows more
+    /// ([`Placed::unnarrow`]).
+    pub begin: usize,
 }
 
 impl Placed {
+    /// `:unnarrowed`: the capture buffer shows the whole file.
+    pub fn unnarrow(&mut self) {
+        self.start = 0;
+        self.end = self.text.len();
+    }
+
     /// What the capture buffer shows.
     pub fn shown(&self) -> &str {
         &self.text[self.start..self.end]
@@ -701,7 +723,7 @@ impl Placed {
         let mut text = format!("{}{edited}{}", &self.text[..self.start], &self.text[self.end..]);
         // A table line: the table aligned, when the capture is a table line.
         if self.align_table {
-            let start = self.text[..self.start].rfind('\n').map_or(0, |at| at + 1);
+            let start = self.text[..self.begin].rfind('\n').map_or(0, |at| at + 1);
             let is_table = |line: &str| line.trim_start_matches([' ', '\t']).starts_with('|');
             if is_table(line_of(&text, start)) {
                 let mut first = start;
@@ -754,12 +776,12 @@ impl Placed {
         now: DateTime,
     ) -> String {
         let text = self.finish(edited);
-        let Some(heading) = heading_at(&text, self.start.min(text.len())) else { return text };
+        let Some(heading) = heading_at(&text, self.begin.min(text.len())) else { return text };
         let mut editor = crate::todo::Editor::new(&text, keywords, settings, now);
         editor.heading = heading;
         editor.update_parent_statistics();
         let text = editor.text;
-        let heading = heading_at(&text, self.start.min(text.len())).unwrap_or(heading);
+        let heading = heading_at(&text, self.begin.min(text.len())).unwrap_or(heading);
         crate::checkbox::update_counts(&text, keywords, heading, settings.tags_column)
     }
 }
@@ -1221,7 +1243,7 @@ pub fn place(
         cursor = start + at;
         end -= 2;
     }
-    Ok(Placed { text: buffer.text, start, end, cursor, align_table: kind == Kind::TableLine })
+    Ok(Placed { text: buffer.text, start, end, cursor, align_table: kind == Kind::TableLine, begin: start })
 }
 /// `org-capture-place-entry`
 fn place_entry(
@@ -1568,7 +1590,7 @@ fn place_table_line(
 
 /// `org-end-of-meta-data`: past the planning line and the property
 /// drawer, and with `full` clock lines, other drawers and blank lines.
-fn end_of_meta_data(text: &str, heading: usize, full: bool) -> usize {
+pub(crate) fn end_of_meta_data(text: &str, heading: usize, full: bool) -> usize {
     static PLANNING: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[ \t]*(?:CLOSED|DEADLINE|SCHEDULED):").unwrap());
     static DRAWER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[ \t]*:((?:\w|[-_])+):[ \t]*$").unwrap());
     static END: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[ \t]*:END:[ \t]*$").unwrap());

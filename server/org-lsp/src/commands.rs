@@ -314,6 +314,10 @@ pub const ARCHIVE_DONE: &str = "org.archive.done";
 pub const ARCHIVE_TAG_DONE: &str = "org.archive.tag.done";
 pub const CAPTURE: &str = "org.capture";
 pub const CAPTURE_FINISH: &str = "org.capture.finish";
+pub const ROAM_NODE_FIND: &str = "org.roam.node.find";
+pub const ROAM_NODE_INSERT: &str = "org.roam.node.insert";
+pub const ROAM_NODE_RANDOM: &str = "org.roam.node.random";
+pub const ROAM_CAPTURE: &str = "org.roam.capture";
 pub const CAPTURE_ABORT: &str = "org.capture.abort";
 pub const CAPTURE_REFILE: &str = "org.capture.refile";
 pub const TIMESTAMP_UP: &str = "org.timestamp.up";
@@ -1333,6 +1337,27 @@ pub const COMMANDS: &[Command] = &[
         ..command(CAPTURE_FINISH, "Capture: finish")
     },
     Command {
+        emacs: &[key(Global, "C-c n f")],
+        vim: &[key(Org, "<Leader>nf")],
+        input: Some(Input { kind: "text", prompt: "Node" }),
+        ..command(ROAM_NODE_FIND, "Roam: find a node")
+    },
+    Command {
+        emacs: &[key(Org, "C-c n i")],
+        vim: &[key(Org, "<Leader>ni")],
+        input: Some(Input { kind: "text", prompt: "Node" }),
+        clipboard: true,
+        ..edit(ROAM_NODE_INSERT, "Roam: insert a link to a node")
+    },
+    Command {
+        emacs: &[key(Global, "C-c n c")],
+        vim: &[key(Org, "<Leader>nc")],
+        input: Some(Input { kind: "text", prompt: "Node" }),
+        clipboard: true,
+        ..command(ROAM_CAPTURE, "Roam: capture to a node")
+    },
+    command(ROAM_NODE_RANDOM, "Roam: visit a random node"),
+    Command {
         emacs: &[key(Capture, "C-c C-k")],
         vim: &[key(Capture, "<Leader>ok")],
         ..command(CAPTURE_ABORT, "Capture: abort")
@@ -1546,6 +1571,7 @@ pub const REGION: &[&str] = &[
     LINK_STORE,
     // Its text the link's description, the link in its place.
     LINK_INSERT,
+    ROAM_NODE_INSERT,
     // The subtrees in it refiled together.
     REFILE,
     REFILE_COPY,

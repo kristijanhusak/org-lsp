@@ -178,6 +178,8 @@ its motions.
 | ~ctrl-c ctrl-d~ | ~org.deadline~ | Set the deadline of the entry |
 | ~ctrl-c a~ | ~org.agenda.dispatch~ | Agenda commands |
 | ~ctrl-c c~ | ~org.capture~ | Capture |
+| ~ctrl-c n f~ | ~org.roam.node.find~ | Roam: find a node |
+| ~ctrl-c n c~ | ~org.roam.capture~ | Roam: capture to a node |
 
 =¦= stands for =|=, which an Org table cannot hold.
 
@@ -277,6 +279,7 @@ its motions.
 | ~ctrl-c ctrl-x shift-a~ | ~org.archive.sibling~ | Archive the subtree under its Archive sibling |
 | ~ctrl-c ctrl-x a~ | ~org.archive.tag~ | Toggle the ARCHIVE tag |
 | ~ctrl-c ctrl-x ctrl-a~ | ~org.archive.default~ | Archive with the default command |
+| ~ctrl-c n i~ | ~org.roam.node.insert~ | Roam: insert a link to a node |
 | ~ctrl-c ctrl-k~ | ~org.capture.abort~ | Capture: abort |
 | ~ctrl-c ctrl-s~ | ~org.schedule~ | Schedule the entry |
 | ~ctrl-c ctrl-d~ | ~org.deadline~ | Set the deadline of the entry |
@@ -284,6 +287,8 @@ its motions.
 | ~ctrl-c !~ | ~org.timestamp.insert.inactive~ | Insert or change an inactive timestamp |
 | ~ctrl-c a~ | ~org.agenda.dispatch~ | Agenda commands |
 | ~ctrl-c c~ | ~org.capture~ | Capture |
+| ~ctrl-c n f~ | ~org.roam.node.find~ | Roam: find a node |
+| ~ctrl-c n c~ | ~org.roam.capture~ | Roam: capture to a node |
 
 =¦= stands for =|=, which an Org table cannot hold.
 

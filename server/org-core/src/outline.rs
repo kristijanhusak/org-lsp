@@ -711,15 +711,26 @@ fn token_text(node: &SyntaxNode, kind: SyntaxKind) -> Option<String> {
 /// of `org-priority-value-regexp` matched with case (a capital letter or a
 /// number up to 64), and only sees a cookie right after the keyword.
 pub(crate) fn complex_heading_title(line: &str, level: usize, todo: &TodoKeywords) -> Option<(usize, usize)> {
-    complex_heading_parts(line, level, todo).1
+    complex_heading_parts(line, level, todo).title
 }
 
 /// A part of a line, as a byte range.
 type Span = Option<(usize, usize)>;
 
-/// The priority cookie (the third group, `[#A]`) and the title (the
-/// fourth) of `org-complex-heading-regexp`, as byte ranges of `line`.
-pub(crate) fn complex_heading_parts(line: &str, level: usize, todo: &TodoKeywords) -> (Span, Span) {
+/// The groups of `org-complex-heading-regexp`, as byte ranges of a line.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct HeadingParts {
+    /// The TODO keyword (the second group).
+    pub keyword: Span,
+    /// The priority cookie, `[#A]` (the third).
+    pub priority: Span,
+    /// The title (the fourth).
+    pub title: Span,
+}
+
+/// The keyword, priority cookie and title of a headline line as
+/// `org-complex-heading-regexp` reads them.
+pub(crate) fn complex_heading_parts(line: &str, level: usize, todo: &TodoKeywords) -> HeadingParts {
     // What may end the line after any of the parts: blanks, with tags or without.
     let is_tail = |rest: &str| {
         let trimmed = rest.trim_end_matches([' ', '\t']);
@@ -730,8 +741,10 @@ pub(crate) fn complex_heading_parts(line: &str, level: usize, todo: &TodoKeyword
 
     let mut pos = level;
     let word = pos + spaces(pos);
-    if let Some(keyword) = todo.names().find(|name| line[word..].strip_prefix(name).is_some_and(follows)) {
-        pos = word + keyword.len();
+    let mut keyword = None;
+    if let Some(name) = todo.names().find(|name| line[word..].strip_prefix(name).is_some_and(follows)) {
+        pos = word + name.len();
+        keyword = Some((word, pos));
     }
     let cookie = pos + spaces(pos);
     let mut priority = None;
@@ -754,14 +767,14 @@ pub(crate) fn complex_heading_parts(line: &str, level: usize, todo: &TodoKeyword
         }
     }
     if is_tail(&line[pos..]) {
-        return (priority, None);
+        return HeadingParts { keyword, priority, title: None };
     }
     let start = pos + spaces(pos);
     let end = match crate::text::tag_group(&line[start..]) {
         Some((blanks, _)) => start + blanks,
         None => line.trim_end_matches([' ', '\t']).len(),
     };
-    (priority, (end > start).then_some((start, end)))
+    HeadingParts { keyword, priority, title: (end > start).then_some((start, end)) }
 }
 
 /// The properties of a drawer, keys without colons and in upper case.

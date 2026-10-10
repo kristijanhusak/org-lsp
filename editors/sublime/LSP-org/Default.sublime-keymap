@@ -2652,6 +2652,29 @@
   },
   {
     "keys": [
+      "ctrl+c",
+      "n",
+      "i"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.node.insert"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
       "ctrl+a"
     ],
     "command": "org_lsp_run",
@@ -3283,6 +3306,98 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.capture"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "f"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.node.find"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "f"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.node.find"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "c"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.capture"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "c"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.capture"
     },
     "context": [
       {
