@@ -522,8 +522,8 @@ against Emacs by recorded cases and differential fuzzing. What differs:
 - Encrypted files (~.gpg~, ~.age~) are not read.
 - The node lines are made for a window 79 columns wide, as Emacs's are in
   a frame of 80; ~${field:*}~ fills the rest of those.
-- A ~file+datetree~ target is refused: daily notes are to come with
-  org-journal.
+- A ~file+datetree~ target is refused: daily notes are org-journal's (see
+  [[#a-journal-org-journal][A journal (org-journal)]]).
 - Aborting the capture of a new file (~org.capture.abort~) asks nothing:
   the file was never written.
 - A capture whose target file changes in the editor before it is filed is
@@ -771,6 +771,7 @@ require('org-lsp').setup({
       ['org.agenda.dispatch'] = '<Leader>oa',
       ['org.capture'] = '<Leader>oc',
       ['org.clock.goto'] = '<Leader>oxj',
+      ['org.journal.new.entry'] = '<Leader>jj',
     },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>' },
     agenda = { quit = 'q', hover = 'K' },

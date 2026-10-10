@@ -161,7 +161,12 @@ for _, command in ipairs(org_lsp.manifest.commands) do
 end
 eq(
   announced,
-  { ['org.agenda.dispatch'] = '<Leader>oa', ['org.capture'] = '<Leader>oc', ['org.clock.goto'] = '<Leader>oxj' },
+  {
+    ['org.agenda.dispatch'] = '<Leader>oa',
+    ['org.capture'] = '<Leader>oc',
+    ['org.clock.goto'] = '<Leader>oxj',
+    ['org.journal.new.entry'] = '<Leader>jj',
+  },
   'the built-in global keys are the ones the server names'
 )
 eq(vim.fn.maparg('f', 'n', false, true).desc, 'Agenda: go forward in time', 'agenda keys carry the server\'s titles')

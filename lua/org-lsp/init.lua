@@ -74,6 +74,7 @@ local defaults = {
       ['org.agenda.dispatch'] = '<Leader>oa',
       ['org.capture'] = '<Leader>oc',
       ['org.clock.goto'] = '<Leader>oxj',
+      ['org.journal.new.entry'] = '<Leader>jj',
     },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>', help = 'g?' },
     agenda = { quit = 'q', help = 'g?', hover = 'K' },
