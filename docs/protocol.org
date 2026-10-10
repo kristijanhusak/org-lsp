@@ -926,8 +926,9 @@ increments a number.
   ~title~ and ~step~ in their ~context~. With org-roam on, the server
   answers ~textDocument/willSaveWaitUntil~ for org-roam's files with the
   edits that turn their ~roam:~ links into ~id:~ links, and completion in a
-  link offers node titles, each with a ~textEdit~ for the link and an
-  ~additionalTextEdits~ taking out its ~roam:~.
+  link (~[[~, ~[[roam:~, ~[[id:~) offers node titles, each with a
+  ~textEdit~ for the link and an ~additionalTextEdits~ taking out its
+  ~roam:~ or ~id:~.
 - ~org.roam.buffer.toggle~, ~org.roam.buffer.dedicated~,
   ~org.roam.buffer.refresh~ :: ~org-roam-buffer-toggle~,
   ~org-roam-buffer-display-dedicated~ and ~org-roam-buffer-refresh~. The

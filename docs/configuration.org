@@ -484,8 +484,8 @@ Following it (~org.open~) visits the node, the link first turned into an
 ~id:~ link to it; a title no node has makes a node, as finding one does.
 With ~org_roam_link_auto_replace~ (on by default), saving one of org-roam's
 files turns its ~roam:~ links to nodes into ~id:~ links. In those files,
-completion in a link, ~[[~ or ~[[roam:~, offers the titles and aliases of
-the nodes, and the one picked becomes ~[[id:…][title]]~; with
+completion in a link, ~[[~, ~[[roam:~ or ~[[id:~, offers the titles and
+aliases of the nodes, and the one picked becomes ~[[id:…][title]]~; with
 ~org_roam_completion_everywhere~, the word at the cursor is completed so
 too.
 
@@ -533,7 +533,8 @@ against Emacs by recorded cases and differential fuzzing. What differs:
   then puts them on the line of the cursor.
 - A link being typed is completed before its closing ~]]~ is typed too,
   and its completions come with the usual ones of a link; Emacs completes
-  only between ~[[~ and ~]]~, and only node titles there. A title of
+  only between ~[[~ and ~]]~, and only node titles there. After ~[[id:~
+  the titles are offered too, which org-roam leaves to Org. A title of
   several nodes is not offered (Emacs fails on it).
 - The org-roam buffer is an Org file: its items are headings linking to
   the place they come from, which ~org.open~ visits, and their previews
