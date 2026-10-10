@@ -1,7 +1,8 @@
 //! The calendar Org's date prompt shows, drawn as Emacs's
 //! `calendar-generate` draws it: three months side by side, the one with
-//! the selected day in the middle, weeks starting on Sunday. It can show
-//! that month alone too, drawn the same way.
+//! the selected day in the middle, weeks starting on Sunday, or on the
+//! day `calendar-week-start-day` says. It can show that month alone too,
+//! drawn the same way.
 //!
 //! The layout follows Emacs's defaults: a left margin of five columns,
 //! three columns for each day, four between months
@@ -37,6 +38,8 @@ pub struct Calendar {
     pub month: i64,
     /// How many months it shows: 3, or 1 for the middle one alone.
     pub months: usize,
+    /// The day a week starts on, 0 for Sunday (`calendar-week-start-day`).
+    pub week_start: usize,
     pub lines: Vec<String>,
     pub cells: Vec<Cell>,
 }
@@ -50,13 +53,15 @@ fn add_months(year: i64, month: i64, by: i64) -> (i64, i64) {
 impl Calendar {
     /// The calendar around `month` of `year` (`calendar-generate`).
     pub fn new(year: i64, month: i64) -> Calendar {
-        Calendar::with_months(year, month, 3)
+        Calendar::with_months(year, month, 3, 0)
     }
 
     /// The calendar of `months` months around `month` of `year`: 3, or 1
-    /// for that month alone.
-    pub fn with_months(year: i64, month: i64, months: usize) -> Calendar {
+    /// for that month alone; its weeks start on `week_start`, 0 for
+    /// Sunday.
+    pub fn with_months(year: i64, month: i64, months: usize, week_start: usize) -> Calendar {
         let months = if months == 1 { 1 } else { 3 };
+        let week_start = week_start % 7;
         let width = LEFT_MARGIN + months * MONTH_WIDTH;
         let mut grid: Vec<Vec<char>> = Vec::new();
         let mut cells = Vec::new();
@@ -74,11 +79,13 @@ impl Calendar {
             let header = format!("{} {year}", MONTH_NAMES[month as usize - 1]);
             let spare = MONTH_DIGIT_WIDTH.saturating_sub(header.chars().count());
             put(&mut grid, 0, indent + spare / 2, &header);
-            for (day, name) in WEEKDAY_ABBREVIATIONS.iter().enumerate() {
-                put(&mut grid, 1, indent + day * COLUMN_WIDTH, &name[..2]);
+            for column in 0..7 {
+                let name = WEEKDAY_ABBREVIATIONS[(column + week_start) % 7];
+                put(&mut grid, 1, indent + column * COLUMN_WIDTH, &name[..2]);
             }
             let first = Date::new(year, month, 1).to_day();
-            let blank = weekday(first);
+            // `calendar-generate-month`: the blank days before the first.
+            let blank = (weekday(first) + 7 - week_start) % 7;
             for number in 1..=days_in_month(year, month) {
                 let slot = blank + number as usize - 1;
                 let (line, column) = (HEADER_LINES + slot / 7, indent + slot % 7 * COLUMN_WIDTH);
@@ -87,14 +94,14 @@ impl Calendar {
             }
         }
         let lines = grid.into_iter().map(|line| line.into_iter().collect::<String>().trim_end().to_string()).collect();
-        Calendar { year, month, months, lines, cells }
+        Calendar { year, month, months, week_start, lines, cells }
     }
 
     /// The calendar of `months` months that shows `day`, centred on its
     /// month.
-    pub fn around(day: Day, months: usize) -> Calendar {
+    pub fn around(day: Day, months: usize, week_start: usize) -> Calendar {
         let date = Date::from_day(day);
-        Calendar::with_months(date.year, date.month, months)
+        Calendar::with_months(date.year, date.month, months, week_start)
     }
 
     /// Whether `day` is one of the days shown.
@@ -118,7 +125,7 @@ impl Calendar {
     /// The same calendar `by` months later (`calendar-scroll-left`).
     pub fn scrolled(&self, by: i64) -> Calendar {
         let (year, month) = add_months(self.year, self.month, by);
-        Calendar::with_months(year, month, self.months)
+        Calendar::with_months(year, month, self.months, self.week_start)
     }
 }
 
@@ -126,19 +133,32 @@ impl Calendar {
 mod tests {
     use super::*;
 
-    #[test]
-    fn draws_what_emacs_draws() {
-        let reference = include_str!("../../../tests/calendar/emacs.txt");
+    /// What Emacs draws, with weeks starting on `week_start`.
+    fn check_against(reference: &str, week_start: usize) {
         let mut blocks = 0;
         for block in reference.split("== ").filter(|block| !block.is_empty()) {
             let (title, body) = block.split_once('\n').unwrap();
             let (month, year) = title.split_once(' ').unwrap();
-            let calendar = Calendar::new(year.trim().parse().unwrap(), month.parse().unwrap());
+            let calendar = Calendar::with_months(year.trim().parse().unwrap(), month.parse().unwrap(), 3, week_start);
             let expected: Vec<&str> = body.trim_end_matches('\n').lines().collect();
             assert_eq!(calendar.lines, expected, "around {month}/{year}");
             blocks += 1;
         }
         assert_eq!(blocks, 7);
+    }
+
+    #[test]
+    fn draws_what_emacs_draws() {
+        check_against(include_str!("../../../tests/calendar/emacs.txt"), 0);
+    }
+
+    #[test]
+    fn starts_weeks_on_monday_as_emacs_does() {
+        check_against(include_str!("../../../tests/calendar/emacs-monday.txt"), 1);
+        let calendar = Calendar::with_months(2026, 10, 1, 1);
+        let day = Date::new(2026, 10, 5).to_day();
+        assert_eq!(calendar.cell(day).map(|cell| (cell.line, cell.column)), Some((3, 5)));
+        assert_eq!(calendar.scrolled(1).week_start, 1);
     }
 
     #[test]
@@ -159,7 +179,7 @@ mod tests {
     #[test]
     fn draws_one_month_alone() {
         let three = Calendar::new(2026, 10);
-        let one = Calendar::with_months(2026, 10, 1);
+        let one = Calendar::with_months(2026, 10, 1, 0);
         // The middle month of the three, moved to the left margin.
         let middle: Vec<String> = three
             .lines
@@ -174,6 +194,6 @@ mod tests {
         assert!(!one.shows(Date::new(2026, 9, 30).to_day()));
         let next = one.scrolled(1);
         assert_eq!((next.year, next.month, next.months), (2026, 11, 1));
-        assert_eq!(Calendar::around(day, 1).months, 1);
+        assert_eq!(Calendar::around(day, 1, 0).months, 1);
     }
 }

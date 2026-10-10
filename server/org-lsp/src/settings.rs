@@ -716,6 +716,13 @@ pub const SETTINGS: &[Setting] = &[
          the one with the selected day in the middle; or 1, that month alone, for a narrow window.",
     ),
     setting(
+        "calendar_week_start_day",
+        "0 to 6 (0 is Sunday)",
+        "0",
+        "calendar-week-start-day",
+        "The day the weeks of the date prompt's calendar start on: 1 starts them on Monday.",
+    ),
+    setting(
         "emacs",
         "string",
         r#""emacs""#,
@@ -1739,6 +1746,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("return_uses_meta_return", BOOLEAN),
     ("org_goto_max_level", INTEGER),
     ("calendar_months", r#"{ "enum": [1, 3] }"#),
+    ("calendar_week_start_day", r#"{ "type": "integer", "minimum": 0, "maximum": 6 }"#),
     ("emacs", STRING),
     ("emacs_config_file", STRING),
     ("emacs_config", STRING),

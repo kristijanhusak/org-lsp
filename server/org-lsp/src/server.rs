@@ -769,6 +769,8 @@ struct Server {
     return_uses_meta_return: bool,
     /// How many months the date prompt's calendar shows (`calendar_months`).
     calendar_months: usize,
+    /// The day the calendar's weeks start on (`calendar_week_start_day`).
+    calendar_week_start: usize,
     auto_save: bool,
     /// What the highlighting marks as hidden.
     conceal: highlight::Conceal,
@@ -1160,6 +1162,7 @@ pub fn run(connection: Connection) -> Result<()> {
         auto_save: options.auto_save.unwrap_or(true),
         return_uses_meta_return: options.return_uses_meta_return.unwrap_or(false),
         calendar_months: options.calendar_months.unwrap_or(3),
+        calendar_week_start: options.calendar_week_start_day.unwrap_or(0) % 7,
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         pretty_entities: options.pretty_entities.unwrap_or(false),
         startup_link_previews: options.startup_with_link_previews.unwrap_or(false),
@@ -5008,8 +5011,8 @@ impl Server {
             // answer is typed there once asked for (`org.calendar.type`).
             if self.client.date_prompt {
                 let now = self.date_time();
-                let (value, months) = (prompt.value.clone(), self.calendar_months);
-                let open = DatePrompt::new(id, command, target, prompt.default, value, now, &self.read_date, months);
+                let (value, layout) = (prompt.value.clone(), (self.calendar_months, self.calendar_week_start));
+                let open = DatePrompt::new(id, command, target, prompt.default, value, now, &self.read_date, layout);
                 self.open_date_prompt(open);
                 return Ok(Value::Null);
             }

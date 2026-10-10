@@ -209,7 +209,8 @@ show one. In four pull requests:
 - /4c, done:/ the calendar Emacs shows with the date prompt. A second
   server-owned document, ~org-agenda:/Org%20Date~ (language ~org-date~):
   three months drawn as ~calendar-generate~ draws them (checked against
-  Emacs's output, ~tests/calendar/emacs.txt~), and the minibuffer line
+  Emacs's output, ~tests/calendar/emacs.txt~, and ~emacs-monday.txt~ for
+  weeks from Monday), and the minibuffer line
   (~SCHEDULED Date+time [2026-05-20]: 10:00    => <…>~, with ~(=>F)~).
   Keys in the ~calendar~ scope are ~org-read-date-minibuffer-local-map~'s
   (~S-<arrows>~, ~M-S-<arrows>~, ~<~, ~>~, ~.~) and the calendar's ~RET~;
@@ -696,7 +697,7 @@ Emacs in ~tests/tblfm/cases.json~.
   | Folding subtrees                                                                                                                  | ~tests/folding/cases.json~        | ~scripts/update-fold-fixtures.py~                                                  | ~scripts/fuzz-fold.py~          |
   | Date prompt                                                                                                                       | ~tests/read-date/cases.json~      | ~scripts/update-read-date-fixtures.py~                                             | ~scripts/fuzz-read-date.py~     |
   | Commands that ask for a date                                                                                                      | ~tests/planning/cases.json~       | ~scripts/update-planning-fixtures.py~                                              | ~scripts/fuzz-planning.py~      |
-  | Calendar of the date prompt                                                                                                       | ~tests/calendar/emacs.txt~        | ~scripts/update-calendar-fixtures.sh~                                              |                                 |
+  | Calendar of the date prompt                                                                                                       | ~tests/calendar/emacs*.txt~       | ~scripts/update-calendar-fixtures.sh~                                              |                                 |
   | Indentation                                                                                                                       | ~tests/indent/cases.json~         | ~scripts/update-indent-fixtures.py~                                                | ~scripts/fuzz-indent.py~        |
   | Formatting (tables, tags)                                                                                                         | ~tests/format/cases.json~         | ~scripts/update-format-fixtures.py~                                                | ~scripts/fuzz-format.py~        |
   | RET (~org-return~)                                                                                                                | ~tests/return/cases.json~         | ~scripts/update-return-fixtures.py~                                                | ~scripts/fuzz-return.py~        |

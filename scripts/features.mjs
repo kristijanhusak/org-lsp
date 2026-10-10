@@ -361,6 +361,8 @@ export const AREAS = [
       { text: 'While typing the date, the answer shows what it means (`=> <2026-10-09 Fri>`)', only: ['neovim', 'vscode'] },
       { text: 'In the calendar: moving by day, week and month, scrolling months, today, picking a day', in: 'calendar', cmd: ['org.calendar.day.later', 'org.calendar.week.later', 'org.calendar.month.later', 'org.calendar.scroll.later', 'org.calendar.today', 'org.calendar.select'], only: ['neovim', 'vim', 'vscode'] },
       { text: 'In the calendar: picking a time with the keys, typing the answer instead, cancelling', in: 'calendar', cmd: ['org.calendar.time', 'org.calendar.type', 'org.calendar.cancel'], only: ['neovim', 'vim', 'vscode'] },
+      { text: 'Picking a time from 12:44, the minutes go up to 12:45, then 12:50; down to 12:40', in: 'calendar', cmd: 'org.calendar.time', only: ['neovim', 'vim', 'vscode'] },
+      { text: 'With `calendar_week_start_day` `1`, the calendar\'s weeks start on Monday', only: ['neovim', 'vim', 'vscode'] },
       { text: 'Switching to a month of six weeks keeps the whole calendar in view, the cursor on the selected day', only: ['neovim', 'vim', 'vscode'] },
       { text: 'After the date goes in, the cursor is on the same text and the window shows the same lines, with `scrolloff` set too', only: ['neovim'] },
       { text: '`calendar_win_mode` `float` and `cursor` open the calendar in a floating window; `settings = { calendar_months = 1 }` shows one month', only: ['neovim'] },

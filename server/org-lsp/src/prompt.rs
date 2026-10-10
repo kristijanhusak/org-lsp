@@ -101,6 +101,8 @@ pub enum TimeField {
 }
 
 impl DatePrompt {
+    /// The prompt, its calendar showing `months` months whose weeks start
+    /// on `week_start`.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: &str,
@@ -110,7 +112,7 @@ impl DatePrompt {
         typed: String,
         now: DateTime,
         settings: &Settings,
-        months: usize,
+        (months, week_start): (usize, usize),
     ) -> DatePrompt {
         let selected = default.unwrap_or(now).day;
         let mut prompt = DatePrompt {
@@ -122,7 +124,7 @@ impl DatePrompt {
             typed,
             selected,
             moved: false,
-            calendar: Calendar::around(selected, months),
+            calendar: Calendar::around(selected, months, week_start),
             text: String::new(),
             tokens: Vec::new(),
             reveal: true,
@@ -188,12 +190,20 @@ impl DatePrompt {
     }
 
     /// Change the part of the time being picked: an hour, or `step`
-    /// minutes, up or down, round the clock.
+    /// minutes, up or down, round the clock. Minutes off the step go to
+    /// the next multiple of it first, as `org-timestamp-change` moves
+    /// them: 12:44 goes up to 12:45, down to 12:40.
     pub fn change_time(&mut self, up: bool, step: i64, now: DateTime, settings: &Settings) {
-        let (Some((hour, minute)), Some(field)) = (self.time, self.time_field) else { return };
+        let (Some((hour, mut minute)), Some(field)) = (self.time, self.time_field) else { return };
         let by = match field {
             TimeField::Hour => 60,
-            TimeField::Minute => step,
+            TimeField::Minute => {
+                let rem = minute % step;
+                if rem != 0 {
+                    minute += if up { -rem } else { step - rem };
+                }
+                step
+            }
         };
         let total = (hour * 60 + minute + if up { by } else { -by }).rem_euclid(1440);
         self.time = Some((total / 60, total % 60));
@@ -205,7 +215,7 @@ impl DatePrompt {
         self.selected = day;
         self.moved = true;
         if !self.calendar.shows(day) {
-            self.calendar = Calendar::around(day, self.calendar.months);
+            self.calendar = Calendar::around(day, self.calendar.months, self.calendar.week_start);
         }
         self.render(now, settings);
         self.reveal = true;
@@ -270,7 +280,7 @@ impl DatePrompt {
                     for (index, at) in
                         line.match_indices(|c: char| c.is_ascii_alphabetic()).step_by(2).map(|(at, _)| at).enumerate()
                     {
-                        let weekend = matches!(index % 7, 0 | 6);
+                        let weekend = matches!((index + self.calendar.week_start) % 7, 0 | 6);
                         token(start + at, 2, TokenType::CalendarWeekday, if weekend { modifier::WEEKEND } else { 0 });
                     }
                 }
@@ -352,7 +362,7 @@ mod tests {
             "10:00".to_string(),
             now(),
             &Settings::default(),
-            3,
+            (3, 0),
         )
     }
 
@@ -434,6 +444,59 @@ mod tests {
         let now = DateTime::new(Date::new(2026, 10, 5), 10, 33);
         untimed.toggle_time(5, now, &settings);
         assert_eq!(untimed.time, Some((10, 35)));
+    }
+
+    #[test]
+    fn rounds_minutes_off_the_step_first() {
+        let settings = Settings::default();
+        let minutes = |typed: &str, up: bool, times: usize| {
+            let mut picking = prompt();
+            picking.set_typed(typed.to_string(), now(), &settings);
+            picking.toggle_time(5, now(), &settings);
+            picking.time_field_to(TimeField::Minute, now(), &settings);
+            (0..times)
+                .map(|_| {
+                    picking.change_time(up, 5, now(), &settings);
+                    picking.time.unwrap()
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(minutes("12:44", true, 3), [(12, 45), (12, 50), (12, 55)]);
+        assert_eq!(minutes("12:44", false, 2), [(12, 40), (12, 35)]);
+        assert_eq!(minutes("12:58", true, 2), [(13, 0), (13, 5)]);
+        assert_eq!(minutes("0:02", false, 1), [(0, 0)]);
+        // The hours keep the minutes.
+        let mut picking = prompt();
+        picking.set_typed("12:44".to_string(), now(), &settings);
+        picking.toggle_time(5, now(), &settings);
+        picking.change_time(true, 5, now(), &settings);
+        assert_eq!(picking.time, Some((13, 44)));
+    }
+
+    #[test]
+    fn starts_weeks_on_the_day_asked_for() {
+        let file: Uri = "file:///org/notes.org".parse().unwrap();
+        let target = Target::Place { uri: file, position: Position::new(0, 0) };
+        let prompt = DatePrompt::new(
+            "org.schedule",
+            Command::Schedule,
+            target,
+            None,
+            String::new(),
+            now(),
+            &Settings::default(),
+            (1, 1),
+        );
+        let lines: Vec<&str> = prompt.text.lines().collect();
+        assert_eq!(lines[1], "     Mo Tu We Th Fr Sa Su");
+        // Saturday and Sunday are the weekend, in the last two columns.
+        let weekend: Vec<usize> = prompt
+            .tokens
+            .iter()
+            .filter(|token| token.ty == TokenType::CalendarWeekday && token.modifiers & modifier::WEEKEND != 0)
+            .map(|token| usize::from(token.range.start()) - lines[0].len() - 1)
+            .collect();
+        assert_eq!(weekend, [20, 23]);
     }
 
     #[test]
