@@ -143,6 +143,7 @@ extension.
 | ~Ctrl+C Ctrl+X Shift+A~ | ~org.archive.sibling~ | Archive the subtree under its Archive sibling |
 | ~Ctrl+C Ctrl+X a~ | ~org.archive.tag~ | Toggle the ARCHIVE tag |
 | ~Ctrl+C Ctrl+X Ctrl+A~ | ~org.archive.default~ | Archive with the default command |
+| ~Ctrl+C n i~ | ~org.roam.node.insert~ | Roam: insert a link to a node |
 | ~Shift+Up~ ¹ | ~org.shift.up~ | Increase the timestamp part, raise the priority, or go to the previous item |
 | ~Shift+Down~ ¹ | ~org.shift.down~ | Decrease the timestamp part, lower the priority, or go to the next item |
 | ~Shift+Left~ ¹ | ~org.shift.left~ | Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
@@ -155,6 +156,8 @@ extension.
 | ~Shift+Tab~ | ~org-lsp.cycleGlobal~ | Cycle the visibility of the whole file |
 | ~Ctrl+C a~ | ~org.agenda.dispatch~ | Agenda commands |
 | ~Ctrl+C c~ | ~org.capture~ | Capture |
+| ~Ctrl+C n f~ | ~org.roam.node.find~ | Roam: find a node |
+| ~Ctrl+C n c~ | ~org.roam.capture~ | Roam: capture to a node |
 
 *** In a capture buffer
 
@@ -170,6 +173,8 @@ extension.
 |---+---+---|
 | ~Ctrl+C a~ | ~org.agenda.dispatch~ | Agenda commands |
 | ~Ctrl+C c~ | ~org.capture~ | Capture |
+| ~Ctrl+C n f~ | ~org.roam.node.find~ | Roam: find a node |
+| ~Ctrl+C n c~ | ~org.roam.capture~ | Roam: capture to a node |
 | ~f~ | ~org.agenda.later~ | Agenda: go forward in time |
 | ~b~ | ~org.agenda.earlier~ | Agenda: go backward in time |
 | ~.~ | ~org.agenda.today~ | Agenda: go to today |
@@ -511,6 +516,9 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "x", "A"], "commands": ["org.archive.sibling"] },
   { "before": ["<leader>", "o", "A"], "commands": ["org.archive.tag"] },
   { "before": ["<leader>", "o", "c"], "commands": ["org.capture"] },
+  { "before": ["<leader>", "n", "f"], "commands": ["org.roam.node.find"] },
+  { "before": ["<leader>", "n", "i"], "commands": ["org.roam.node.insert"] },
+  { "before": ["<leader>", "n", "c"], "commands": ["org.roam.capture"] },
   { "before": ["<leader>", "o", "i", "s"], "commands": ["org.schedule"] },
   { "before": ["<leader>", "o", "i", "d"], "commands": ["org.deadline"] },
   { "before": ["<leader>", "o", "i", "."], "commands": ["org.timestamp.insert"] },
@@ -721,6 +729,10 @@ every file; outside Org files the commands say they do not apply):
 | ~org.archive.tag.done~ | Org: Tag the subtrees without open TODO items as archived |
 | ~org.capture~ | Org: Capture |
 | ~org.capture.finish~ | Org: Capture: finish |
+| ~org.roam.node.find~ | Org: Roam: find a node |
+| ~org.roam.node.insert~ | Org: Roam: insert a link to a node |
+| ~org.roam.capture~ | Org: Roam: capture to a node |
+| ~org.roam.node.random~ | Org: Roam: visit a random node |
 | ~org.capture.abort~ | Org: Capture: abort |
 | ~org.capture.refile~ | Org: Capture: refile the entry |
 | ~org.timestamp.up~ | Org: Increase the part of the timestamp at the cursor |

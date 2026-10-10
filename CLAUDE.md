@@ -34,8 +34,9 @@ instead of skipping when Emacs is missing. `test-all.sh` also reads `NVIM`,
 `CLIENTS` (Vim's LSP clients, see `editors/vim/test/run.sh`) and
 `VSCODE_EXECUTABLE` (VSCodium works); the VS Code tests run under
 `xvfb-run`. Recording the org-super-agenda cases (`tests/agenda/super-*`)
-needs `ORG_LSP_EMACS_PACKAGES`: a directory holding org-super-agenda and
-what it requires (`scripts/agenda_reference.py` lists them).
+and the org-roam ones (`tests/roam/`) needs `ORG_LSP_EMACS_PACKAGES`: a
+directory holding those packages and what they require
+(`scripts/agenda_reference.py` and `scripts/roam_reference.py` list them).
 
 ## Generated files: edit the source
 

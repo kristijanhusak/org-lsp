@@ -1100,7 +1100,8 @@ fn remove_tabs(text: &str) -> String {
 /// `org-get-heading` without tags and keyword: the priority and the title.
 fn heading(outline: &Outline, entry: &Entry) -> String {
     let line = &outline.text[entry.offset..entry.line_end];
-    let (priority, title) = complex_heading_parts(line, entry.level, &outline.todo);
+    let parts = complex_heading_parts(line, entry.level, &outline.todo);
+    let (priority, title) = (parts.priority, parts.title);
     let title = title.map_or("", |(start, end)| &line[start..end]);
     match priority {
         Some((start, end)) => format!("{} {title}", &line[start..end]),

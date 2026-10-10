@@ -347,6 +347,24 @@ pub struct Options {
     /// `org-capture-templates-contexts`: where templates are offered.
     #[serde(rename = "org_capture_templates_contexts")]
     pub capture_templates_contexts: Option<Vec<ContextOption>>,
+    /// org-roam: off unless switched on.
+    #[serde(rename = "org_roam_enabled")]
+    pub roam_enabled: Option<bool>,
+    /// `org-roam-directory`
+    #[serde(rename = "org_roam_directory")]
+    pub roam_directory: Option<String>,
+    /// `org-roam-file-extensions`
+    #[serde(rename = "org_roam_file_extensions")]
+    pub roam_file_extensions: Option<Vec<String>>,
+    /// `org-roam-file-exclude-regexp`: a regexp or a list of them.
+    #[serde(rename = "org_roam_file_exclude_regexp")]
+    pub roam_file_exclude_regexp: Option<RegexpsOption>,
+    /// `org-roam-node-display-template`
+    #[serde(rename = "org_roam_node_display_template")]
+    pub roam_node_display_template: Option<String>,
+    /// `org-roam-capture-templates`, written as `org_capture_templates`.
+    #[serde(rename = "org_roam_capture_templates")]
+    pub roam_capture_templates: Option<Vec<CaptureTemplateOption>>,
     /// `org-directory`: where relative capture targets are. `~/org`.
     pub org_directory: Option<String>,
     /// `org-default-notes-file`: the target of a template whose file is
@@ -423,6 +441,16 @@ pub struct RefileTarget {
     pub select: Select,
 }
 
+/// org-roam's settings (`org_roam_*`).
+#[derive(Debug, Clone)]
+pub struct RoamSettings {
+    /// `org-roam-directory`, as written.
+    pub directory: String,
+    pub files: org_core::roam::Settings,
+    pub display_template: String,
+    pub templates: Vec<CaptureTemplateOption>,
+}
+
 /// An entry of `org-capture-templates`. One with only a key and a
 /// description groups the templates whose keys start with it.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -461,6 +489,16 @@ pub struct CaptureTemplateOption {
     pub clock_resume: Option<bool>,
     /// `:jump-to-captured`: the target shows the entry when it is filed.
     pub jump_to_captured: Option<bool>,
+    /// `:unnarrowed`: the capture buffer shows the whole target file.
+    pub unnarrowed: Option<bool>,
+}
+
+/// A regexp, or a list of them.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum RegexpsOption {
+    One(String),
+    Many(Vec<String>),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -816,6 +854,42 @@ impl Options {
                 template: Some(TemplateText::Text("* TODO %?\n  %u\n  %a".to_string())),
                 ..CaptureTemplateOption::default()
             }]
+        })
+    }
+
+    /// org-roam's settings, when it is on: its directory, which files
+    /// are its own, how nodes are offered, and the templates of new ones.
+    pub fn roam(&self) -> Option<RoamSettings> {
+        if self.roam_enabled != Some(true) {
+            return None;
+        }
+        let defaults = org_core::roam::Settings::default();
+        Some(RoamSettings {
+            directory: self.roam_directory.clone().unwrap_or_else(|| "~/org-roam/".to_string()),
+            files: org_core::roam::Settings {
+                extensions: self.roam_file_extensions.clone().unwrap_or(defaults.extensions),
+                exclude: match &self.roam_file_exclude_regexp {
+                    None => defaults.exclude,
+                    Some(RegexpsOption::One(regexp)) => vec![regexp.clone()],
+                    Some(RegexpsOption::Many(regexps)) => regexps.clone(),
+                },
+            },
+            display_template: self.roam_node_display_template.clone().unwrap_or_else(|| "${title}".to_string()),
+            templates: self.roam_capture_templates.clone().unwrap_or_else(|| {
+                vec![CaptureTemplateOption {
+                    key: "d".to_string(),
+                    description: "default".to_string(),
+                    kind: Some("plain".to_string()),
+                    target: vec![
+                        "file+head".to_string(),
+                        "%<%Y%m%d%H%M%S>-${slug}.org".to_string(),
+                        "#+title: ${title}\n".to_string(),
+                    ],
+                    template: Some(TemplateText::Text("%?".to_string())),
+                    unnarrowed: Some(true),
+                    ..CaptureTemplateOption::default()
+                }]
+            }),
         })
     }
 
@@ -1431,7 +1505,7 @@ pub fn current_names(value: serde_json::Value, renamed: &mut Vec<String>) -> ser
             None => key,
         };
         match name.as_str() {
-            "org_capture_templates" | "org_refile_targets" => {
+            "org_capture_templates" | "org_roam_capture_templates" | "org_refile_targets" => {
                 for item in field.as_array_mut().into_iter().flatten() {
                     underscored(item);
                     if let Some(fields) = item.as_object_mut() {
@@ -1782,8 +1856,6 @@ pub struct AgendaOptions {
     /// prompt reads it (`-1d`, `2026-10-01`).
     #[serde(rename = "org_agenda_start_day")]
     pub start_day: Option<String>,
-    /// `org-agenda-block-separator`: a character to repeat, a text, or
-    /// `false`.
     #[serde(rename = "org_super_agenda_mode")]
     pub super_agenda_mode: Option<bool>,
     #[serde(rename = "org_super_agenda_groups")]
@@ -1808,6 +1880,8 @@ pub struct AgendaOptions {
     pub super_agenda_group_property_name: Option<String>,
     #[serde(rename = "org_super_agenda_properties_inherit")]
     pub super_agenda_properties_inherit: Option<bool>,
+    /// `org-agenda-block-separator`: a character to repeat, a text, or
+    /// `false`.
     #[serde(rename = "org_agenda_block_separator")]
     pub block_separator: Option<serde_json::Value>,
     /// `org-agenda-compact-blocks`

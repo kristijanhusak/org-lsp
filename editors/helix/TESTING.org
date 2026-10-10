@@ -117,6 +117,10 @@ its sections says what it should look like.
 
 *Not in Helix:* Helix cannot open the capture buffer, and Helix cannot ask for text on a server's behalf.
 
+* Notes (org-roam)
+
+*Not in Helix:* Helix cannot ask for text on a server's behalf, and the commands ask for a node.
+
 * Refile and archive
 
 *Partly:* Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions.

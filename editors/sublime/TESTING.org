@@ -187,6 +187,13 @@ its sections says what it should look like.
 - [ ] ~%[snippet.txt]~ puts in the file's text, relative to the file captured from: ~Ctrl+C c~
 - [ ] ~%(upcase "abc")~ puts in ~ABC~, what Emacs makes of it (needs Emacs): ~Ctrl+C c~
 
+* Notes (org-roam)
+
+- [ ] With ~org_roam_enabled~ on and ~org_roam_directory~ set, finding a node offers the titles and aliases of its files and visits the one picked: ~Ctrl+C n f~
+- [ ] Inserting a node puts ~[[id:…][title]]~ at the cursor; on a selection, the selection is typed first and the link takes its place: ~Ctrl+C n i~
+- [ ] A title no node has opens a capture buffer with the new file's ~ID~ and ~#+title:~; finishing writes the file and, from insert, puts the link in: ~Ctrl+C n i~
+- [ ] A random node is visited: /Org: Roam: visit a random node/
+
 * Refile and archive
 
 - [ ] Copying an entry to a target keeps it where it was; going to a target and to the entry refiled last moves the cursor there: ~Ctrl+C Alt+W~, /Org: Go to a refile target/, /Org: Go to where the last refile put its entry/

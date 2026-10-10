@@ -795,10 +795,14 @@
           "jump_to_captured": {
             "type": "boolean",
             "description": "Show the captured entry in its file"
+          },
+          "unnarrowed": {
+            "type": "boolean",
+            "description": "Show the whole target file in the capture buffer"
           }
         }
       },
-      "description": "Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, `plain`, `item`, `checkitem` or `table-line`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after`, `immediate_finish`, `tree_type`, `time_prompt`, `table_line_pos`, `clock_in`, `clock_keep`, `clock_resume` and `jump_to_captured`. The target is a list: `file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and the headlines of an outline path, maybe none, for a date tree under them; `id` and an ID; `clock`, the entry clocked now; `file+function`, a path and the name of an Emacs Lisp function that moves the point there, or `function` and the name of one that visits the file too (run by the server's Emacs). An empty path is `org_default_notes_file`, and without a target the entry goes at the end of `org_default_notes_file`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)",
+      "description": "Capture templates. Each has a `key`, a `description`, a `type` (`entry`, the default, `plain`, `item`, `checkitem` or `table-line`), a `target` and a `template` (text, or a list of lines), and may have `prepend`, `empty_lines`, `empty_lines_before`, `empty_lines_after`, `immediate_finish`, `tree_type`, `time_prompt`, `table_line_pos`, `clock_in`, `clock_keep`, `clock_resume`, `jump_to_captured` and `unnarrowed`. The target is a list: `file` and a path; `file+headline`, a path and a headline; `file+olp`, a path and the headlines of an outline path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a path and the headlines of an outline path, maybe none, for a date tree under them; `id` and an ID; `clock`, the entry clocked now; `file+function`, a path and the name of an Emacs Lisp function that moves the point there, or `function` and the name of one that visits the file too (run by the server's Emacs). An empty path is `org_default_notes_file`, and without a target the entry goes at the end of `org_default_notes_file`. A template with only a key and a description groups the templates whose keys start with its key. (`org-capture-templates`)",
       "default": [
         {
           "key": "t",
@@ -1361,6 +1365,138 @@
       "type": "boolean",
       "description": "Look for the properties of `property`, `auto-property` and `auto-group` in the entries above too. (`org-super-agenda-properties-inherit`)",
       "default": true
+    },
+    "org_roam_enabled": {
+      "type": "boolean",
+      "description": "org-roam: the files of `org_roam_directory` are a network of notes, whose nodes (files and entries with an `ID`) are found, linked to and made with the `org.roam.*` commands. Off, those commands only say so.",
+      "default": false
+    },
+    "org_roam_directory": {
+      "type": "string",
+      "description": "The directory of org-roam's files, in all its subdirectories. `~/` is the home directory. (`org-roam-directory`)",
+      "default": "~/org-roam/"
+    },
+    "org_roam_file_extensions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The extensions of org-roam's files; each may be followed by `.gpg` or `.age`, which the server cannot read. (`org-roam-file-extensions`)",
+      "default": [
+        "org"
+      ]
+    },
+    "org_roam_file_exclude_regexp": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "description": "Emacs regexps for the files that are not org-roam's, matched against their names relative to `org_roam_directory`; the default leaves out attachments. (`org-roam-file-exclude-regexp`)",
+      "default": [
+        "data/"
+      ]
+    },
+    "org_roam_node_display_template": {
+      "type": "string",
+      "description": "How a node is offered: `${field}` for its `title`, `tags`, `todo`, `file`, `olp`, `aliases` and the other fields of `org-roam-node`, `${field:N}` in N columns, `${field:*}` in what is left of the window's 79 columns. (`org-roam-node-display-template`)",
+      "default": "${title}"
+    },
+    "org_roam_capture_templates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "description"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The keys that pick the template"
+          },
+          "description": {
+            "type": "string",
+            "description": "What the menu shows"
+          },
+          "type": {
+            "enum": [
+              "entry",
+              "plain",
+              "item",
+              "checkitem",
+              "table-line"
+            ],
+            "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line"
+          },
+          "target": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "`file` and a path; `file+head`, a path and the head of a new file; `file+olp`, a path and an outline path; `file+head+olp`, a path, a head and an outline path; or `node` and a node's title, alias or ID"
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "The template, or its lines"
+          },
+          "prepend": {
+            "type": "boolean",
+            "description": "First under the target, not last"
+          },
+          "empty_lines": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Blank lines before and after"
+          },
+          "empty_lines_before": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Blank lines before"
+          },
+          "empty_lines_after": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Blank lines after"
+          },
+          "unnarrowed": {
+            "type": "boolean",
+            "description": "Show the whole file in the capture buffer"
+          }
+        }
+      },
+      "description": "The templates of new nodes, as `org_capture_templates` writes them, with org-roam's targets: `file` and a path, `file+head`, a path and the text a new file starts with, `file+olp`, a path and the headlines of an outline path, `file+head+olp`, both, and `node` and the title, alias or `ID` of a node. The path, relative to `org_roam_directory`, and the texts may have `${title}`, `${slug}`, `${id}` and `${name}`, which asks for `name` (`${name=default}` starts the answer with `default`), besides the escapes of `org_capture_templates`. `unnarrowed` shows the whole file in the capture buffer. (`org-roam-capture-templates`)",
+      "default": [
+        {
+          "key": "d",
+          "description": "default",
+          "type": "plain",
+          "template": "%?",
+          "target": [
+            "file+head",
+            "%<%Y%m%d%H%M%S>-${slug}.org",
+            "#+title: ${title}\n"
+          ],
+          "unnarrowed": true
+        }
+      ]
     },
     "org_agenda_search_view_always_boolean": {
       "type": "boolean",

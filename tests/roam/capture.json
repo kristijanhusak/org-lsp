@@ -1,0 +1,244 @@
+[
+ {
+  "title": "Hello, World!",
+  "body": "Some text",
+  "expected": {
+   "files": {
+    "20260518103000-hello_world.org": ":PROPERTIES:\n:ID:       00000000-0000-4000-8000-000000000001\n:END:\n#+title: Hello, World!\nSome text\n"
+   },
+   "prompts": []
+  }
+ },
+ {
+  "title": "Ünïcödé note",
+  "body": "",
+  "expected": {
+   "files": {
+    "20260518103000-unicode_note.org": ":PROPERTIES:\n:ID:       00000000-0000-4000-8000-000000000001\n:END:\n#+title: Ünïcödé note\n\n"
+   },
+   "prompts": []
+  }
+ },
+ {
+  "title": "Inserted",
+  "body": "x",
+  "finalize": "insert-link",
+  "files": {
+   "a.org": "#+title: A\n\nSee ¦ here.\n"
+  },
+  "expected": {
+   "files": {
+    "20260518103000-inserted.org": ":PROPERTIES:\n:ID:       00000000-0000-4000-8000-000000000001\n:END:\n#+title: Inserted\nx\n",
+    "a.org": "#+title: A\n\nSee [[id:00000000-0000-4000-8000-000000000001][Inserted]] here.\n"
+   },
+   "prompts": []
+  }
+ },
+ {
+  "title": "Prompted",
+  "templates": [
+   {
+    "key": "p",
+    "description": "prompt",
+    "type": "plain",
+    "template": "${body}\n%?",
+    "target": [
+     "file+head",
+     "${dir}/${slug}.org",
+     "#+title: ${title}\n#+filetags: :${tag}:\n"
+    ],
+    "unnarrowed": true
+   }
+  ],
+  "answers": [
+   "notes",
+   "work",
+   "the body"
+  ],
+  "body": "typed",
+  "expected": {
+   "files": {
+    "notes/prompted.org": ":PROPERTIES:\n:ID:       00000000-0000-4000-8000-000000000001\n:END:\n#+title: Prompted\n#+filetags: :work:\nthe body\ntyped\n"
+   },
+   "prompts": [
+    "dir: ",
+    "tag: ",
+    "body: "
+   ]
+  },
+  "files": {
+   "notes/old.org": "#+title: Old\n"
+  }
+ },
+ {
+  "title": "Two templates",
+  "templates": [
+   {
+    "key": "a",
+    "description": "A",
+    "type": "plain",
+    "template": "%?",
+    "target": [
+     "file+head",
+     "a-${slug}.org",
+     "#+title: ${title}"
+    ]
+   },
+   {
+    "key": "b",
+    "description": "B",
+    "type": "entry",
+    "template": "* ${title}\n%?",
+    "target": [
+     "file",
+     "inbox.org"
+    ]
+   }
+  ],
+  "keys": "b",
+  "body": "entry text",
+  "files": {
+   "inbox.org": "#+title: Inbox\n* Old\n"
+  },
+  "expected": {
+   "files": {
+    "inbox.org": ":PROPERTIES:\n:ID:       00000000-0000-4000-8000-000000000001\n:END:\n#+title: Inbox\n* Old\n* Two templates\nentry text\n"
+   },
+   "prompts": []
+  }
+ },
+ {
+  "title": "Olp",
+  "templates": [
+   {
+    "key": "o",
+    "description": "olp",
+    "type": "entry",
+    "template": "* ${title}\n%?",
+    "target": [
+     "file+head+olp",
+     "daily.org",
+     "#+title: Daily\n",
+     "Top",
+     "Sub"
+    ]
+   }
+  ],
+  "body": "under",
+  "expected": {
+   "files": {
+    "daily.org": ":PROPERTIES:\n:ID:       00000000-0000-4000-8000-000000000001\n:END:\n#+title: Daily\n* Top\n** Sub\n*** Olp\nunder\n"
+   },
+   "prompts": []
+  }
+ },
+ {
+  "title": "Existing olp",
+  "templates": [
+   {
+    "key": "o",
+    "description": "olp",
+    "type": "entry",
+    "template": "* ${title}\n%?",
+    "target": [
+     "file+olp",
+     "j.org",
+     "Top"
+    ]
+   }
+  ],
+  "body": "b",
+  "files": {
+   "j.org": "* Top\n** Old\n* Other\n"
+  },
+  "expected": {
+   "files": {
+    "j.org": "* Top\n:PROPERTIES:\n:ID:       00000000-0000-4000-8000-000000000001\n:END:\n** Old\n** Existing olp\nb\n* Other\n"
+   },
+   "prompts": []
+  }
+ },
+ {
+  "title": "Plain file",
+  "templates": [
+   {
+    "key": "f",
+    "description": "file",
+    "type": "plain",
+    "template": "- %<%H:%M> ${title} %?",
+    "target": [
+     "file",
+     "log.org"
+    ]
+   }
+  ],
+  "body": "noted",
+  "files": {
+   "log.org": "#+title: Log\n\n- 09:00 first\n"
+  },
+  "expected": {
+   "files": {
+    "log.org": ":PROPERTIES:\n:ID:       00000000-0000-4000-8000-000000000001\n:END:\n#+title: Log\n\n- 09:00 first\n- 10:30 Plain file noted\n"
+   },
+   "prompts": []
+  }
+ },
+ {
+  "title": "Default",
+  "templates": [
+   {
+    "key": "d",
+    "description": "d",
+    "type": "plain",
+    "template": "%?",
+    "target": [
+     "file+head",
+     "${foo=bar}-${slug}.org",
+     "#+title: ${title}\n"
+    ],
+    "unnarrowed": true
+   }
+  ],
+  "answers": [
+   ""
+  ],
+  "body": "z",
+  "expected": {
+   "files": {
+    "-default.org": ":PROPERTIES:\n:ID:       00000000-0000-4000-8000-000000000001\n:END:\n#+title: Default\nz\n"
+   },
+   "prompts": [
+    "foo: "
+   ]
+  }
+ },
+ {
+  "title": "Asks",
+  "templates": [
+   {
+    "key": "d",
+    "description": "d",
+    "type": "plain",
+    "template": "%^{Question} %?",
+    "target": [
+     "file+head",
+     "${slug}.org",
+     "#+title: ${title}\n"
+    ],
+    "unnarrowed": true
+   }
+  ],
+  "answers": [
+   "answered"
+  ],
+  "body": "!",
+  "expected": {
+   "files": {
+    "asks.org": ":PROPERTIES:\n:ID:       00000000-0000-4000-8000-000000000001\n:END:\n#+title: Asks\nanswered !\n"
+   },
+   "prompts": [
+    "Question: "
+   ]
+  }
+ }
+]

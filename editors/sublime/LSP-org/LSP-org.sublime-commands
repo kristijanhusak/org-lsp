@@ -1393,6 +1393,34 @@
     }
   },
   {
+    "caption": "Org: Roam: find a node",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.node.find"
+    }
+  },
+  {
+    "caption": "Org: Roam: insert a link to a node",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.node.insert"
+    }
+  },
+  {
+    "caption": "Org: Roam: capture to a node",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.capture"
+    }
+  },
+  {
+    "caption": "Org: Roam: visit a random node",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.node.random"
+    }
+  },
+  {
     "caption": "Org: Capture: abort",
     "command": "org_lsp_run",
     "args": {

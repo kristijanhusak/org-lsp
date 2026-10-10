@@ -436,6 +436,18 @@
         {
           "task_name": "Org: Capture"
         }
+      ],
+      "ctrl-c n f": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: find a node"
+        }
+      ],
+      "ctrl-c n c": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: capture to a node"
+        }
       ]
     }
   },
@@ -1036,6 +1048,12 @@
           "task_name": "Org: Archive with the default command"
         }
       ],
+      "ctrl-c n i": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: insert a link to a node"
+        }
+      ],
       "ctrl-c ctrl-k": [
         "task::Spawn",
         {
@@ -1076,6 +1094,18 @@
         "task::Spawn",
         {
           "task_name": "Org: Capture"
+        }
+      ],
+      "ctrl-c n f": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: find a node"
+        }
+      ],
+      "ctrl-c n c": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: capture to a node"
         }
       ]
     }

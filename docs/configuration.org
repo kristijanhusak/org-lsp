@@ -407,6 +407,86 @@ Emacs loads ~org-habit~ when it loads org-super-agenda, which then draws
 habits' consistency graphs; org-lsp draws them only with ~org-habit~ in
 ~org_modules~. The ~habit~ selector works either way.
 
+** Notes (org-roam)
+:PROPERTIES:
+:CUSTOM_ID: notes-org-roam
+:END:
+
+A directory of notes can be worked on as [[https://www.orgroam.com][org-roam]] does: each file, and
+each entry with an ~ID~ property, is a /node/; nodes are found by their
+titles and aliases (~ROAM_ALIASES~), linked to with ~id:~ links, and made
+with capture templates of their own. It is off until ~org_roam_enabled~ is
+~true~, in the configuration file or in an editor's settings, as the other
+options are:
+
+#+begin_src toml
+org_roam_enabled = true
+org_roam_directory = "~/notes"
+#+end_src
+
+#+begin_src lua
+require('org-lsp').setup({
+  settings = { org_roam_enabled = true, org_roam_directory = '~/notes' },
+})
+#+end_src
+
+The commands are org-roam's:
+
+- ~org.roam.node.find~ :: ~org-roam-node-find~: asks for a node (/Node/,
+  completed from the titles and aliases, those of the files changed last
+  first, as ~org_roam_node_display_template~ shows them) and visits it; a
+  title no node has makes a new node, with a capture.
+- ~org.roam.node.insert~ :: ~org-roam-node-insert~: the same question, then
+  a link to the node, ~[[id:…][title]]~, at the cursor. On a selection, the
+  selection is what is typed first and the link's description, and the link
+  takes its place. A new node is linked to once its capture is filed.
+- ~org.roam.capture~ :: ~org-roam-capture~: the same question, then a
+  capture to the node: to its file for a node that exists.
+- ~org.roam.node.random~ :: ~org-roam-node-random~: visits a node picked at
+  random.
+
+A new node is captured with ~org_roam_capture_templates~, whose default is
+org-roam's: a file of its own named after the time and the title's slug,
+which starts with the title:
+
+#+begin_src toml
+[[org_roam_capture_templates]]
+key = "d"
+description = "default"
+type = "plain"
+template = "%?"
+target = ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"]
+unnarrowed = true
+#+end_src
+
+They are written as ~org_capture_templates~, with org-roam's targets
+(~file~, ~file+head~, ~file+olp~, ~file+head+olp~ and ~node~); a path is
+relative to ~org_roam_directory~. Besides the escapes of capture templates,
+their texts and paths may have ~${title}~, ~${slug}~ and ~${id}~ of the new
+node, and ~${name}~ for any other name, which is asked for once (/name/);
+~${name=default}~ starts the answer with ~default~. With one template it is
+used at once; with more, its key is asked for. The capture buffer shows
+what goes into the target: with ~unnarrowed~, the whole file, its ~ID~ and
+head too. The node's file is written when the capture is filed
+(~org.capture.finish~), and the link of ~org.roam.node.insert~ goes in then.
+
+The server keeps no database: it reads the files of the directory when a
+command needs them, again when they have changed, in the editor or on
+disk, and they are what ~org-roam-db-sync~ would make of them, checked
+against Emacs by recorded cases and differential fuzzing. What differs:
+
+- Encrypted files (~.gpg~, ~.age~) are not read.
+- The node lines are made for a window 79 columns wide, as Emacs's are in
+  a frame of 80; ~${field:*}~ fills the rest of those.
+- A ~file+datetree~ target is refused: daily notes are to come with
+  org-journal.
+- Aborting the capture of a new file (~org.capture.abort~) asks nothing:
+  the file was never written.
+- A capture whose target file changes in the editor before it is filed is
+  refused; abort it and capture again.
+- ~roam:~ links, the org-roam buffer (backlinks), and adding and removing
+  aliases, tags and references are not there yet.
+
 ** Export, Babel and other work in Emacs
 :PROPERTIES:
 :CUSTOM_ID: export-babel-and-other-work-in-emacs
@@ -1262,17 +1342,18 @@ org_capture_templates_contexts = []
 # `template` (text, or a list of lines), and may have `prepend`,
 # `empty_lines`, `empty_lines_before`, `empty_lines_after`,
 # `immediate_finish`, `tree_type`, `time_prompt`, `table_line_pos`,
-# `clock_in`, `clock_keep`, `clock_resume` and `jump_to_captured`. The target
-# is a list: `file` and a path; `file+headline`, a path and a headline;
-# `file+olp`, a path and the headlines of an outline path; `file+regexp`, a
-# path and a regular expression; `file+olp+datetree`, a path and the headlines
-# of an outline path, maybe none, for a date tree under them; `id` and an ID;
-# `clock`, the entry clocked now; `file+function`, a path and the name of an
-# Emacs Lisp function that moves the point there, or `function` and the name
-# of one that visits the file too (run by the server's Emacs). An empty path
-# is `org_default_notes_file`, and without a target the entry goes at the end
-# of `org_default_notes_file`. A template with only a key and a description
-# groups the templates whose keys start with its key. (org-capture-templates)
+# `clock_in`, `clock_keep`, `clock_resume`, `jump_to_captured` and
+# `unnarrowed`. The target is a list: `file` and a path; `file+headline`, a
+# path and a headline; `file+olp`, a path and the headlines of an outline
+# path; `file+regexp`, a path and a regular expression; `file+olp+datetree`, a
+# path and the headlines of an outline path, maybe none, for a date tree under
+# them; `id` and an ID; `clock`, the entry clocked now; `file+function`, a
+# path and the name of an Emacs Lisp function that moves the point there, or
+# `function` and the name of one that visits the file too (run by the server's
+# Emacs). An empty path is `org_default_notes_file`, and without a target the
+# entry goes at the end of `org_default_notes_file`. A template with only a
+# key and a description groups the templates whose keys start with its key.
+# (org-capture-templates)
 org_capture_templates = [{ key = "t", description = "Task", target = ["file+headline", "", "Tasks"], template = "* TODO %?\n  %u\n  %a" }]
 
 # Where the relative paths of capture targets are. (org-directory)
@@ -1637,6 +1718,41 @@ org_super_agenda_group_property_name = "agenda-group"
 # Look for the properties of `property`, `auto-property` and `auto-group` in
 # the entries above too. (org-super-agenda-properties-inherit)
 org_super_agenda_properties_inherit = true
+
+# org-roam: the files of `org_roam_directory` are a network of notes, whose
+# nodes (files and entries with an `ID`) are found, linked to and made with
+# the `org.roam.*` commands. Off, those commands only say so.
+org_roam_enabled = false
+
+# The directory of org-roam's files, in all its subdirectories. `~/` is the
+# home directory. (org-roam-directory)
+org_roam_directory = "~/org-roam/"
+
+# The extensions of org-roam's files; each may be followed by `.gpg` or
+# `.age`, which the server cannot read. (org-roam-file-extensions)
+org_roam_file_extensions = ["org"]
+
+# Emacs regexps for the files that are not org-roam's, matched against their
+# names relative to `org_roam_directory`; the default leaves out attachments.
+# (org-roam-file-exclude-regexp)
+org_roam_file_exclude_regexp = ["data/"]
+
+# How a node is offered: `${field}` for its `title`, `tags`, `todo`, `file`,
+# `olp`, `aliases` and the other fields of `org-roam-node`, `${field:N}` in N
+# columns, `${field:*}` in what is left of the window's 79 columns.
+# (org-roam-node-display-template)
+org_roam_node_display_template = "${title}"
+
+# The templates of new nodes, as `org_capture_templates` writes them, with
+# org-roam's targets: `file` and a path, `file+head`, a path and the text a
+# new file starts with, `file+olp`, a path and the headlines of an outline
+# path, `file+head+olp`, both, and `node` and the title, alias or `ID` of a
+# node. The path, relative to `org_roam_directory`, and the texts may have
+# `${title}`, `${slug}`, `${id}` and `${name}`, which asks for `name`
+# (`${name=default}` starts the answer with `default`), besides the escapes of
+# `org_capture_templates`. `unnarrowed` shows the whole file in the capture
+# buffer. (org-roam-capture-templates)
+org_roam_capture_templates = [{ key = "d", description = "default", type = "plain", target = ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"], template = "%?", unnarrowed = true }]
 
 # Read every search string of the search view (`s`) as words that must
 # (`+word`, `word`) or must not (`-word`) occur, regexps in braces
@@ -2104,15 +2220,15 @@ org_agenda_custom_commands = []
   // and a `template` (text, or a list of lines), and may have `prepend`,
   // `empty_lines`, `empty_lines_before`, `empty_lines_after`,
   // `immediate_finish`, `tree_type`, `time_prompt`, `table_line_pos`,
-  // `clock_in`, `clock_keep`, `clock_resume` and `jump_to_captured`. The
-  // target is a list: `file` and a path; `file+headline`, a path and a
-  // headline; `file+olp`, a path and the headlines of an outline path;
-  // `file+regexp`, a path and a regular expression; `file+olp+datetree`, a
-  // path and the headlines of an outline path, maybe none, for a date tree
-  // under them; `id` and an ID; `clock`, the entry clocked now;
-  // `file+function`, a path and the name of an Emacs Lisp function that moves
-  // the point there, or `function` and the name of one that visits the file
-  // too (run by the server's Emacs). An empty path is
+  // `clock_in`, `clock_keep`, `clock_resume`, `jump_to_captured` and
+  // `unnarrowed`. The target is a list: `file` and a path; `file+headline`, a
+  // path and a headline; `file+olp`, a path and the headlines of an outline
+  // path; `file+regexp`, a path and a regular expression;
+  // `file+olp+datetree`, a path and the headlines of an outline path, maybe
+  // none, for a date tree under them; `id` and an ID; `clock`, the entry
+  // clocked now; `file+function`, a path and the name of an Emacs Lisp
+  // function that moves the point there, or `function` and the name of one
+  // that visits the file too (run by the server's Emacs). An empty path is
   // `org_default_notes_file`, and without a target the entry goes at the end
   // of `org_default_notes_file`. A template with only a key and a description
   // groups the templates whose keys start with its key.
@@ -2490,6 +2606,41 @@ org_agenda_custom_commands = []
   // Look for the properties of `property`, `auto-property` and `auto-group`
   // in the entries above too. (org-super-agenda-properties-inherit)
   "org_super_agenda_properties_inherit": true,
+
+  // org-roam: the files of `org_roam_directory` are a network of notes, whose
+  // nodes (files and entries with an `ID`) are found, linked to and made with
+  // the `org.roam.*` commands. Off, those commands only say so.
+  "org_roam_enabled": false,
+
+  // The directory of org-roam's files, in all its subdirectories. `~/` is the
+  // home directory. (org-roam-directory)
+  "org_roam_directory": "~/org-roam/",
+
+  // The extensions of org-roam's files; each may be followed by `.gpg` or
+  // `.age`, which the server cannot read. (org-roam-file-extensions)
+  "org_roam_file_extensions": ["org"],
+
+  // Emacs regexps for the files that are not org-roam's, matched against
+  // their names relative to `org_roam_directory`; the default leaves out
+  // attachments. (org-roam-file-exclude-regexp)
+  "org_roam_file_exclude_regexp": ["data/"],
+
+  // How a node is offered: `${field}` for its `title`, `tags`, `todo`,
+  // `file`, `olp`, `aliases` and the other fields of `org-roam-node`,
+  // `${field:N}` in N columns, `${field:*}` in what is left of the window's
+  // 79 columns. (org-roam-node-display-template)
+  "org_roam_node_display_template": "${title}",
+
+  // The templates of new nodes, as `org_capture_templates` writes them, with
+  // org-roam's targets: `file` and a path, `file+head`, a path and the text a
+  // new file starts with, `file+olp`, a path and the headlines of an outline
+  // path, `file+head+olp`, both, and `node` and the title, alias or `ID` of a
+  // node. The path, relative to `org_roam_directory`, and the texts may have
+  // `${title}`, `${slug}`, `${id}` and `${name}`, which asks for `name`
+  // (`${name=default}` starts the answer with `default`), besides the escapes
+  // of `org_capture_templates`. `unnarrowed` shows the whole file in the
+  // capture buffer. (org-roam-capture-templates)
+  "org_roam_capture_templates": [{ "key": "d", "description": "default", "type": "plain", "target": ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"], "template": "%?", "unnarrowed": true }],
 
   // Read every search string of the search view (`s`) as words that must
   // (`+word`, `word`) or must not (`-word`) occur, regexps in braces

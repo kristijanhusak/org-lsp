@@ -291,7 +291,7 @@ fn path_part(text: &str, offset: usize, file: &File) -> String {
 
 /// `org-link-display-format`: links replaced by their description, or by
 /// their target when they have none.
-pub(crate) fn link_display_format(text: &str) -> String {
+pub fn link_display_format(text: &str) -> String {
     LINK.replace_all(text, |captures: &regex::Captures| {
         captures.get(2).or(captures.get(1)).map_or(String::new(), |found| found.as_str().to_string())
     })

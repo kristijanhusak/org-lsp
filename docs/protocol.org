@@ -281,7 +281,7 @@ Each option with its type, its default and what it means:
 - ~org_archive_file_header_format~ :: string, false, ~"\nArchived entries from file %s\n\n"~. What a new archive file starts with; ~%s~ is the path of the file the subtree came from. (~org-archive-file-header-format~)
 - ~org_archive_default_command~ :: "subtree", "sibling", "tag", ~"subtree"~. What ~org.archive.default~ does: archive the subtree, archive it under its sibling, or tag it. (~org-archive-default-command~)
 - ~org_capture_templates_contexts~ :: object[], ~[]~. Where templates are offered. Each has the ~key~ of a template, ~contexts~, rules such as ~{ "in_file": "work" }~ (~in_file~, ~in_mode~, ~in_buffer~, ~not_in_file~, ~not_in_mode~ or ~not_in_buffer~, each with a regexp of the ~regex~ crate's syntax, matched ignoring case), and maybe ~use~, the key of the template it stands for there. A template with contexts is offered only where one of their rules holds. The mode is ~org-mode~ in an Org file and ~org-agenda-mode~ in the agenda, where there is no file; the buffer's name is the file's. (~org-capture-templates-contexts~)
-- ~org_capture_templates~ :: object[], ~[{ "key": "t", "description": "Task", "target": ["file+headline", "", "Tasks"], "template": "* TODO %?\n  %u\n  %a" }]~. Capture templates. Each has a ~key~, a ~description~, a ~type~ (~entry~, the default, ~plain~, ~item~, ~checkitem~ or ~table-line~), a ~target~ and a ~template~ (text, or a list of lines), and may have ~prepend~, ~empty_lines~, ~empty_lines_before~, ~empty_lines_after~, ~immediate_finish~, ~tree_type~, ~time_prompt~, ~table_line_pos~, ~clock_in~, ~clock_keep~, ~clock_resume~ and ~jump_to_captured~. The target is a list: ~file~ and a path; ~file+headline~, a path and a headline; ~file+olp~, a path and the headlines of an outline path; ~file+regexp~, a path and a regular expression; ~file+olp+datetree~, a path and the headlines of an outline path, maybe none, for a date tree under them; ~id~ and an ID; ~clock~, the entry clocked now; ~file+function~, a path and the name of an Emacs Lisp function that moves the point there, or ~function~ and the name of one that visits the file too (run by the server's Emacs). An empty path is ~org_default_notes_file~, and without a target the entry goes at the end of ~org_default_notes_file~. A template with only a key and a description groups the templates whose keys start with its key. (~org-capture-templates~)
+- ~org_capture_templates~ :: object[], ~[{ "key": "t", "description": "Task", "target": ["file+headline", "", "Tasks"], "template": "* TODO %?\n  %u\n  %a" }]~. Capture templates. Each has a ~key~, a ~description~, a ~type~ (~entry~, the default, ~plain~, ~item~, ~checkitem~ or ~table-line~), a ~target~ and a ~template~ (text, or a list of lines), and may have ~prepend~, ~empty_lines~, ~empty_lines_before~, ~empty_lines_after~, ~immediate_finish~, ~tree_type~, ~time_prompt~, ~table_line_pos~, ~clock_in~, ~clock_keep~, ~clock_resume~, ~jump_to_captured~ and ~unnarrowed~. The target is a list: ~file~ and a path; ~file+headline~, a path and a headline; ~file+olp~, a path and the headlines of an outline path; ~file+regexp~, a path and a regular expression; ~file+olp+datetree~, a path and the headlines of an outline path, maybe none, for a date tree under them; ~id~ and an ID; ~clock~, the entry clocked now; ~file+function~, a path and the name of an Emacs Lisp function that moves the point there, or ~function~ and the name of one that visits the file too (run by the server's Emacs). An empty path is ~org_default_notes_file~, and without a target the entry goes at the end of ~org_default_notes_file~. A template with only a key and a description groups the templates whose keys start with its key. (~org-capture-templates~)
 - ~org_directory~ :: string, ~"~/org"~. Where the relative paths of capture targets are. (~org-directory~)
 - ~org_default_notes_file~ :: string, ~"~/.notes"~. The target of a capture template whose file is empty. (~org-default-notes-file~)
 - ~org_link_descriptive~ :: boolean, ~true~. Show a link as its description (or its target, when it has none) and hide the rest: the brackets, and the target of a link with a description. The text is marked ~hidden~ in the highlighting, and editors that can conceal text conceal it. (~org-link-descriptive~)
@@ -362,6 +362,12 @@ Each option with its type, its default and what it means:
 - ~org_super_agenda_keep_order~ :: boolean, ~false~. Sort the lines of each group again, as the view sorts its lines: a group of several selectors puts the lines of its first selector first. (~org-super-agenda-keep-order~)
 - ~org_super_agenda_group_property_name~ :: string, ~"agenda-group"~. The property ~auto-group~ groups lines by. (~org-super-agenda-group-property-name~)
 - ~org_super_agenda_properties_inherit~ :: boolean, ~true~. Look for the properties of ~property~, ~auto-property~ and ~auto-group~ in the entries above too. (~org-super-agenda-properties-inherit~)
+- ~org_roam_enabled~ :: boolean, ~false~. org-roam: the files of ~org_roam_directory~ are a network of notes, whose nodes (files and entries with an ~ID~) are found, linked to and made with the ~org.roam.*~ commands. Off, those commands only say so.
+- ~org_roam_directory~ :: string, ~"~/org-roam/"~. The directory of org-roam's files, in all its subdirectories. =~/= is the home directory. (~org-roam-directory~)
+- ~org_roam_file_extensions~ :: string[], ~["org"]~. The extensions of org-roam's files; each may be followed by ~.gpg~ or ~.age~, which the server cannot read. (~org-roam-file-extensions~)
+- ~org_roam_file_exclude_regexp~ :: string or string[], ~["data/"]~. Emacs regexps for the files that are not org-roam's, matched against their names relative to ~org_roam_directory~; the default leaves out attachments. (~org-roam-file-exclude-regexp~)
+- ~org_roam_node_display_template~ :: string, ~"${title}"~. How a node is offered: ~${field}~ for its ~title~, ~tags~, ~todo~, ~file~, ~olp~, ~aliases~ and the other fields of ~org-roam-node~, ~${field:N}~ in N columns, ~${field:*}~ in what is left of the window's 79 columns. (~org-roam-node-display-template~)
+- ~org_roam_capture_templates~ :: object[], ~[{ "key": "d", "description": "default", "type": "plain", "target": ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"], "template": "%?", "unnarrowed": true }]~. The templates of new nodes, as ~org_capture_templates~ writes them, with org-roam's targets: ~file~ and a path, ~file+head~, a path and the text a new file starts with, ~file+olp~, a path and the headlines of an outline path, ~file+head+olp~, both, and ~node~ and the title, alias or ~ID~ of a node. The path, relative to ~org_roam_directory~, and the texts may have ~${title}~, ~${slug}~, ~${id}~ and ~${name}~, which asks for ~name~ (~${name=default}~ starts the answer with ~default~), besides the escapes of ~org_capture_templates~. ~unnarrowed~ shows the whole file in the capture buffer. (~org-roam-capture-templates~)
 - ~org_agenda_search_view_always_boolean~ :: boolean, ~false~. Read every search string of the search view (~s~) as words that must (~+word~, ~word~) or must not (~-word~) occur, regexps in braces (~{regexp}~) and ~"quoted phrases"~. Off, it is a phrase whose spaces match any whitespace, unless its first word starts with ~+~, ~-~ or ~{~. (~org-agenda-search-view-always-boolean~)
 - ~org_agenda_search_view_force_full_words~ :: boolean, ~false~. The words of a Boolean search match whole words only, as a search string starting with ~:~ asks. (~org-agenda-search-view-force-full-words~)
 - ~org_agenda_search_view_max_outline_level~ :: number, ~0~. The search view shows headlines down to this level, a match below one counting for the headline above: 0 for every level. (~org-agenda-search-view-max-outline-level~)
@@ -865,8 +871,8 @@ increments a number.
   ~:annotation~ and ~:initial~ are ~%a~ and ~%i~, and an ~id:~ link
   (~org_id_link_to_org_use_id~) has ~:link~, ~:description~ and ~:type~;
   other keywords are empty, as Emacs leaves them for a link to an Org file.
-  It then writes the filled template, as it will stand in its target, to a
-  capture buffer (a file named ~CAPTURE-<target>~ in a directory of the
+  It then writes the filled template, as it will stand in its target (the
+  whole target with ~unnarrowed~), to a capture buffer (a file named ~CAPTURE-<target>~ in a directory of the
   server's own) and shows it with the cursor where ~%?~ was.
 - ~org.capture.finish~ :: ~org-capture-finalize~ (~C-c C-c~ in the capture
   buffer): the buffer's text goes into the target file, and the result
@@ -881,6 +887,23 @@ increments a number.
 - ~org.capture.refile~ :: ~org-capture-refile~ (~C-c C-w~): the entry goes
   to its target and from there under a refile target picked as for
   ~org.refile~.
+- ~org.roam.node.find~, ~org.roam.node.insert~, ~org.roam.capture~,
+  ~org.roam.node.random~ :: org-roam's ~org-roam-node-find~,
+  ~org-roam-node-insert~, ~org-roam-capture~ and ~org-roam-node-random~,
+  with ~org_roam_enabled~ (see [[file:configuration.org::#notes-org-roam][Notes (org-roam)]]); without it they
+  fail with why. They need no document but ~org.roam.node.insert~, which
+  inserts at the cursor or in place of the selection (~range~). They ask for
+  the node (input kind ~text~, prompt ~Node~, the selection as ~value~,
+  every title and alias of the nodes as ~completions~, as
+  ~org_roam_node_display_template~ writes them, and ~"select": true~;
+  ~context~ ~{ "step": "node" }~). A node is visited with ~window/showDocument~; a link goes in with
+  ~workspace/applyEdit~, the cursor after it. A title no node has, and
+  ~org.roam.capture~, go on with a capture of the node: the template's key
+  when there is more than one (kind ~key~), its questions (kind ~text~), the
+  ~context~ carrying the title, keys and answers so far; then a capture
+  buffer as ~org.capture~ shows one, filed by ~org.capture.finish~, which
+  writes a new file, and for ~org.roam.node.insert~ inserts the link where
+  the command ran.
 - ~org.refile~ :: ~org-refile~ (~org-agenda-refile~ on an agenda line):
   offers the targets (an input of kind ~choice~), named as Emacs names them
   (~Projects~, ~Home (other.org)~, ~Projects/Alpha/~), and moves the subtree
@@ -1247,7 +1270,9 @@ An input may say more:
 - ~"completions": ["Owner", …]~ with kind ~text~: what may be typed, offered
   as it is typed (Emacs's ~completing-read~); anything else may be typed
   too. An empty answer stands for the default the prompt shows in brackets
-  (/Property [Owner]/).
+  (/Property [Owner]/); with ~"select": true~ there is none, and a
+  completion picked with nothing typed is the answer, as completion
+  frameworks take it.
 - ~"context": { … }~: fields to send back with the answer. A TODO state
   change that records a note (~@~, or ~org-log-done~ set to ~note~) is not
   made until the note's text comes: it asks with kind ~note~ (/Note for state
