@@ -253,54 +253,143 @@ fn eval_sexps(text: &str, mut outside: Option<&mut Outside>) -> Result<String, R
     Ok(out)
 }
 
-/// `format-time-string` for the directives a capture template is likely
-/// to use. Others stay as they are.
+/// `format-time-string` in the C locale, in UTC: the directives of
+/// gnulib's `nstrftime`, with its flags (`-` no padding, `_` blanks, `0`
+/// zeros, `^` upper case, `#` the other case) and a width. Seconds are
+/// always 0. Unknown directives stay as they are.
 pub(crate) fn format_time(format: &str, time: DateTime) -> String {
     let date = time.date();
+    let day = time.day;
     let (hour, minute) = (time.minute / 60, time.minute % 60);
     let mut out = String::new();
-    let mut chars = format.chars();
+    let mut chars = format.chars().peekable();
     while let Some(c) = chars.next() {
         if c != '%' {
             out.push(c);
             continue;
         }
-        let Some(directive) = chars.next() else {
-            out.push('%');
+        let mut directive = String::from("%");
+        let mut pad: Option<char> = None;
+        let (mut upcase, mut swap) = (false, false);
+        while let Some(&flag) = chars.peek() {
+            match flag {
+                '-' | '_' | '0' => pad = Some(flag),
+                '^' => upcase = true,
+                '#' => swap = true,
+                _ => break,
+            }
+            directive.push(flag);
+            chars.next();
+        }
+        let mut width: Option<usize> = None;
+        while let Some(&digit) = chars.peek().filter(|c| c.is_ascii_digit()) {
+            width = Some(width.unwrap_or(0) * 10 + digit.to_digit(10).unwrap_or(0) as usize);
+            directive.push(digit);
+            chars.next();
+        }
+        if let Some(&modifier) = chars.peek().filter(|c| matches!(c, 'E' | 'O')) {
+            directive.push(modifier);
+            chars.next();
+        }
+        let Some(conversion) = chars.next() else {
+            out.push_str(&directive);
             break;
         };
-        let day = time.day;
-        match directive {
-            'Y' => out.push_str(&date.year.to_string()),
-            'y' => out.push_str(&format!("{:02}", date.year.rem_euclid(100))),
-            'm' => out.push_str(&format!("{:02}", date.month)),
-            'd' => out.push_str(&format!("{:02}", date.day)),
-            'e' => out.push_str(&format!("{:2}", date.day)),
-            'H' => out.push_str(&format!("{hour:02}")),
-            'I' => out.push_str(&format!("{:02}", if hour % 12 == 0 { 12 } else { hour % 12 })),
-            'M' => out.push_str(&format!("{minute:02}")),
-            'S' => out.push_str("00"),
-            'p' => out.push_str(if hour < 12 { "AM" } else { "PM" }),
-            'a' => out.push_str(WEEKDAY_ABBREVIATIONS[weekday(day)]),
-            'A' => out.push_str(WEEKDAY_NAMES[weekday(day)]),
-            'b' | 'h' => out.push_str(&MONTH_NAMES[(date.month - 1) as usize][..3]),
-            'B' => out.push_str(MONTH_NAMES[(date.month - 1) as usize]),
-            'u' => out.push_str(&(if weekday(day) == 0 { 7 } else { weekday(day) }).to_string()),
-            'w' => out.push_str(&weekday(day).to_string()),
-            'V' => out.push_str(&format!("{:02}", iso_week(day).0)),
-            'j' => {
-                let first = crate::date::Date::new(date.year, 1, 1).to_day();
-                out.push_str(&format!("{:03}", day - first + 1));
+        // A number padded to `digits` with `fill` unless the flags say
+        // otherwise.
+        let number = |value: i64, digits: usize, fill: char| {
+            let text = value.abs().to_string();
+            let sign = if value < 0 { "-" } else { "" };
+            let width = width.unwrap_or(digits).saturating_sub(sign.len());
+            let fill = match pad {
+                Some('-') => return format!("{sign}{text}"),
+                Some('_') => ' ',
+                Some('0') => '0',
+                _ => fill,
+            };
+            let padding: String = std::iter::repeat_n(fill, width.saturating_sub(text.len())).collect();
+            if fill == '0' {
+                format!("{sign}{padding}{text}")
+            } else {
+                format!("{padding}{sign}{text}")
             }
-            'F' => out.push_str(&date.to_string()),
-            'R' => out.push_str(&format!("{hour:02}:{minute:02}")),
-            'T' => out.push_str(&format!("{hour:02}:{minute:02}:00")),
-            '%' => out.push('%'),
+        };
+        // A word: `^` upper case; `#` upper case, or lower case for
+        // `%p`, `%Z`.
+        let word = |text: &str, lower_on_swap: bool| {
+            let text = if swap {
+                if lower_on_swap {
+                    text.to_lowercase()
+                } else {
+                    text.to_uppercase()
+                }
+            } else if upcase {
+                text.to_uppercase()
+            } else {
+                text.to_string()
+            };
+            let width = width.unwrap_or(0);
+            let fill = if pad == Some('0') { '0' } else { ' ' };
+            let padding: String = std::iter::repeat_n(fill, width.saturating_sub(text.chars().count())).collect();
+            if pad == Some('-') {
+                text
+            } else {
+                format!("{padding}{text}")
+            }
+        };
+        let hour12 = if hour % 12 == 0 { 12 } else { hour % 12 };
+        let (week, week_year) = iso_week(day);
+        let year_day = day - crate::date::Date::new(date.year, 1, 1).to_day();
+        let wday = weekday(day) as i64;
+        let seconds = (day - crate::date::Date::new(1970, 1, 1).to_day()) * 86400 + time.minute * 60;
+        // A composite: its parts formatted, then padded as a word.
+        let composite = |inner: &str| word(&format_time(inner, time), false);
+        let text = match conversion {
+            'Y' => number(date.year, 1, '0'),
+            'C' => number(date.year.div_euclid(100), 2, '0'),
+            'y' => number(date.year.rem_euclid(100), 2, '0'),
+            'G' => number(week_year, 1, '0'),
+            'g' => number(week_year.rem_euclid(100), 2, '0'),
+            'm' => number(date.month, 2, '0'),
+            'd' => number(date.day, 2, '0'),
+            'e' => number(date.day, 2, ' '),
+            'j' => number(year_day + 1, 3, '0'),
+            'H' => number(hour, 2, '0'),
+            'k' => number(hour, 2, ' '),
+            'I' => number(hour12, 2, '0'),
+            'l' => number(hour12, 2, ' '),
+            'M' => number(minute, 2, '0'),
+            'S' => number(0, 2, '0'),
+            'N' => number(0, 9, '0'),
+            's' => number(seconds, 1, '0'),
+            'u' => number(if wday == 0 { 7 } else { wday }, 1, '0'),
+            'w' => number(wday, 1, '0'),
+            'V' => number(week, 2, '0'),
+            'U' => number((year_day + 7 - wday) / 7, 2, '0'),
+            'W' => number((year_day + 7 - (wday + 6) % 7) / 7, 2, '0'),
+            'a' => word(WEEKDAY_ABBREVIATIONS[weekday(day)], false),
+            'A' => word(WEEKDAY_NAMES[weekday(day)], false),
+            'b' | 'h' => word(&MONTH_NAMES[(date.month - 1) as usize][..3], false),
+            'B' => word(MONTH_NAMES[(date.month - 1) as usize], false),
+            'p' => word(if hour < 12 { "AM" } else { "PM" }, true),
+            'P' => word(if hour < 12 { "am" } else { "pm" }, false),
+            'Z' => word("UTC", true),
+            'z' => number(0, 4, '0').replacen("", "+", 1),
+            'F' => composite("%Y-%m-%d"),
+            'D' | 'x' => composite("%m/%d/%y"),
+            'R' => composite("%H:%M"),
+            'T' | 'X' => composite("%H:%M:%S"),
+            'r' => composite("%I:%M:%S %p"),
+            'c' => composite("%a %b %e %H:%M:%S %Y"),
+            'n' => "\n".to_string(),
+            't' => "\t".to_string(),
+            '%' => "%".to_string(),
             other => {
-                out.push('%');
-                out.push(other);
+                directive.push(other);
+                directive
             }
-        }
+        };
+        out.push_str(&text);
     }
     out
 }
