@@ -927,8 +927,11 @@ increments a number.
   answers ~textDocument/willSaveWaitUntil~ for org-roam's files with the
   edits that turn their ~roam:~ links into ~id:~ links, and completion in a
   link (~[[~, ~[[roam:~, ~[[id:~) offers node titles, each with a
-  ~textEdit~ for the link and an ~additionalTextEdits~ taking out its
-  ~roam:~ or ~id:~.
+  ~textEdit~ from after the ~[[~ to the cursor (to the end of the title
+  typed), whose text ends with ~]]~ only when the link has none yet: the
+  ~]]~ a closing pair typed stays, whatever the editor does with the text
+  after the cursor. ~filterText~ is the title after the ~roam:~ or ~id:~
+  typed.
 - ~org.roam.buffer.toggle~, ~org.roam.buffer.dedicated~,
   ~org.roam.buffer.refresh~ :: ~org-roam-buffer-toggle~,
   ~org-roam-buffer-display-dedicated~ and ~org-roam-buffer-refresh~. The

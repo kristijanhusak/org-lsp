@@ -835,7 +835,7 @@ export const AREAS = [
       ['Inserting a drawer (`C-c C-x d`, through Emacs)', true],
     ],
     editors: {
-      neovim: ['yes', 'Completion needs an LSP completion plugin (or `vim.lsp.completion`).'],
+      neovim: ['yes', 'Completion needs an LSP completion plugin (or `vim.lsp.completion`, which before Neovim 0.12 cuts what it inserts at the first space).'],
       zed: ['part', 'Structure templates, emphasis and drawers are not among Zed\'s code actions.'],
       helix: ['part', 'Structure templates, emphasis and drawers are not among Helix\'s code actions.'],
     },

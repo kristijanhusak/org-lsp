@@ -6574,11 +6574,13 @@ fn edits_roam_nodes_and_links() {
         )
         .unwrap();
     let items = completed.as_array().unwrap();
+    // The link's `]]` stays: the edit ends before it.
     let bee = items.iter().find(|item| item["label"] == "Bee").expect("the alias");
-    assert_eq!(bee["textEdit"]["newText"], "id:b-id][Bee]]");
-    assert_eq!(bee["textEdit"]["range"]["start"], json!({ "line": 5, "character": 11 }));
-    assert_eq!(bee["textEdit"]["range"]["end"], json!({ "line": 5, "character": 19 }));
-    assert_eq!(bee["additionalTextEdits"][0]["range"]["start"], json!({ "line": 5, "character": 6 }));
+    assert_eq!(bee["textEdit"]["newText"], "id:b-id][Bee");
+    assert_eq!(bee["textEdit"]["range"]["start"], json!({ "line": 5, "character": 6 }));
+    assert_eq!(bee["textEdit"]["range"]["end"], json!({ "line": 5, "character": 17 }));
+    assert_eq!(bee["filterText"], "roam:Bee");
+    assert!(bee.get("additionalTextEdits").is_none_or(Value::is_null));
     // Anywhere else, for the word at the cursor.
     let completed = client
         .request(
@@ -6603,10 +6605,26 @@ fn edits_roam_nodes_and_links() {
     let items = completed.as_array().unwrap();
     let bee = items.iter().find(|item| item["label"] == "Bee").expect("the alias");
     assert_eq!(bee["textEdit"]["newText"], "id:b-id][Bee]]");
-    assert_eq!(bee["textEdit"]["range"]["start"], json!({ "line": 2, "character": 9 }));
+    assert_eq!(bee["textEdit"]["range"]["start"], json!({ "line": 2, "character": 6 }));
     assert_eq!(bee["textEdit"]["range"]["end"], json!({ "line": 2, "character": 11 }));
-    assert_eq!(bee["additionalTextEdits"][0]["range"]["start"], json!({ "line": 2, "character": 6 }));
-    assert_eq!(bee["additionalTextEdits"][0]["range"]["end"], json!({ "line": 2, "character": 9 }));
+    assert_eq!(bee["filterText"], "id:Bee");
+    // Between the `[[` and `]]` a closing pair typed: the `]]` is kept.
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": c_uri, "version": 2 }, "contentChanges": [{ "text": "#+title: C\n\nSee [[]] too.\n" }] }),
+    );
+    let completed = client
+        .request(
+            "textDocument/completion",
+            json!({ "textDocument": { "uri": c_uri }, "position": { "line": 2, "character": 6 } }),
+        )
+        .unwrap();
+    let items = completed.as_array().unwrap();
+    let bee = items.iter().find(|item| item["label"] == "Bee").expect("the alias");
+    assert_eq!(bee["textEdit"]["newText"], "id:b-id][Bee");
+    assert_eq!(bee["textEdit"]["range"]["start"], json!({ "line": 2, "character": 6 }));
+    assert_eq!(bee["textEdit"]["range"]["end"], json!({ "line": 2, "character": 6 }));
+    assert_eq!(bee["filterText"], "Bee");
 
     // Saving turns the `roam:` links to nodes into `id:` links.
     let edits = client

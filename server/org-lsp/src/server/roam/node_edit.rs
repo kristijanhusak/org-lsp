@@ -263,40 +263,40 @@ impl Server {
                 offset + text[offset..line_end].chars().take_while(|c| is_word(*c)).map(char::len_utf8).sum::<usize>();
             (start < end).then_some((start, end))
         };
-        let (replace_start, filter_start, replace_end, wrap) = match link {
-            Some((uri_start, title_start, title_end, closed)) if !in_src => {
-                (uri_start, title_start, if closed { title_end + 2 } else { title_end }, false)
-            }
+        // What the edit replaces, from where the editor matches what is
+        // typed, up to the cursor: the editor keeps what follows it, such
+        // as the `]]` a closing pair typed, so the new text ends with `]]`
+        // only when the link has none yet.
+        let (start, end, wrap, closed) = match link {
+            Some((uri_start, _, title_end, closed)) if !in_src => (uri_start, title_end, false, closed),
             None if everywhere && !in_src && !org_core::roam::edit::in_link(&document.parse, offset) => match word() {
-                Some((start, end)) => (start, start, end, true),
+                Some((start, end)) => (start, end, true, false),
                 None => return Vec::new(),
             },
             _ => return Vec::new(),
         };
+        // `roam:` or `id:` as typed, matched with the title.
+        let typed_prefix = match link {
+            Some((uri_start, title_start, ..)) if !wrap => text[uri_start..title_start].to_string(),
+            _ => String::new(),
+        };
         let Ok((db, _)) = self.roam_db() else { return Vec::new() };
-        let position = |at: usize| index.position(&text, at, encoding);
+        let range = Range::new(index.position(&text, start, encoding), index.position(&text, end, encoding));
         titles(&db)
             .into_iter()
             .filter_map(|title| {
                 let id = node_named(&db, &title).ok().flatten()?;
-                let new_text = if wrap { format!("[[id:{id}][{title}]]") } else { format!("id:{id}][{title}]]") };
-                // The title is what is typed; the link's start goes too.
-                let additional = (replace_start < filter_start).then(|| {
-                    vec![TextEdit {
-                        range: Range::new(position(replace_start), position(filter_start)),
-                        new_text: String::new(),
-                    }]
-                });
+                let new_text = match (wrap, closed) {
+                    (true, _) => format!("[[id:{id}][{title}]]"),
+                    (false, true) => format!("id:{id}][{title}"),
+                    (false, false) => format!("id:{id}][{title}]]"),
+                };
                 Some(lsp_types::CompletionItem {
                     label: title.clone(),
                     kind: Some(lsp_types::CompletionItemKind::REFERENCE),
                     detail: Some("org-roam node".to_string()),
-                    filter_text: Some(title),
-                    text_edit: Some(lsp_types::CompletionTextEdit::Edit(TextEdit {
-                        range: Range::new(position(filter_start), position(replace_end)),
-                        new_text,
-                    })),
-                    additional_text_edits: additional,
+                    filter_text: Some(format!("{typed_prefix}{title}")),
+                    text_edit: Some(lsp_types::CompletionTextEdit::Edit(TextEdit { range, new_text })),
                     ..Default::default()
                 })
             })

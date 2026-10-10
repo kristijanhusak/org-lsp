@@ -1515,6 +1515,33 @@ do
   wait('the org-roam buffer to go', function()
     return not vim.api.nvim_win_is_valid(roam_win)
   end)
+  -- Completing a node in a link whose `]]` a closing pair typed, with
+  -- Neovim's own completion: the link has one `]]`, and one `id:`. A
+  -- title of one word: before 0.12 it cuts a completion at a space.
+  local links = roam_dir .. '/links.org'
+  vim.fn.writefile({ '#+title: Links', '', 'See [[]]', 'See [[id:]]' }, links)
+  vim.cmd.edit(links)
+  wait('the server', function()
+    return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) > 0
+  end)
+  vim.lsp.completion.enable(true, vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' })[1].id, 0)
+  _G.org_lsp_pick = function(label)
+    wait('the completions', function()
+      return vim.fn.pumvisible() == 1
+    end)
+    for index, item in ipairs(vim.fn.complete_info({ 'items' }).items) do
+      if item.word:find(label, 1, true) then
+        vim.api.nvim_select_popupmenu_item(index - 1, true, true, {})
+        return
+      end
+    end
+  end
+  for number, column in pairs({ [3] = 6, [4] = 9 }) do
+    vim.api.nvim_win_set_cursor(0, { number, column })
+    press("i<Cmd>lua vim.lsp.completion.get()<CR><Cmd>lua org_lsp_pick('][Index')<CR><Esc>")
+    eq(line(number), 'See [[id:index-id][Index]]', 'the link completed in line ' .. number)
+  end
+  _G.org_lsp_pick = nil
   vim.ui.input = input
 end
 
