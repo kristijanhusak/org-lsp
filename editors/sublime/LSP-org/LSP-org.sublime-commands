@@ -1484,6 +1484,48 @@
     }
   },
   {
+    "caption": "Org: Journal: new entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.new.entry"
+    }
+  },
+  {
+    "caption": "Org: Journal: new entry for a date",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.new.date.entry"
+    }
+  },
+  {
+    "caption": "Org: Journal: new entry for a day to come",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.new.scheduled.entry"
+    }
+  },
+  {
+    "caption": "Org: Journal: next entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.next.entry"
+    }
+  },
+  {
+    "caption": "Org: Journal: previous entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.previous.entry"
+    }
+  },
+  {
+    "caption": "Org: Journal: open the current file",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.open.current"
+    }
+  },
+  {
     "caption": "Org: Capture: abort",
     "command": "org_lsp_run",
     "args": {

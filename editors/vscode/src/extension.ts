@@ -646,6 +646,11 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     setFaces(client.initializeResult?.capabilities.experimental?.orgFaces);
     // Images in place of LaTeX fragments, made by Emacs.
     client.onNotification('org-lsp/images', (params: Preview) => applyPreview(params));
+    // org-journal's files, Org files whose name need not say so.
+    journalDirectory = client.initializeResult?.capabilities.experimental?.orgJournal?.directory;
+    vscode.workspace.textDocuments.forEach((document) => void asJournalFile(document));
+    // The headlines of a document org-journal showed, folded as it folds them.
+    client.onNotification('org-lsp/folds', (params: JournalFolds) => void journalFolds(params));
     // The previews of the files open.
     const started = client;
     vscode.workspace.textDocuments.forEach((document) => void startupPreviews(started, document));
@@ -1691,6 +1696,56 @@ async function closed(editor: vscode.TextEditor, line: number): Promise<boolean>
   return true;
 }
 
+/** org-journal's directory, when it is on (`orgJournal`). */
+let journalDirectory: string | undefined;
+
+/**
+ * A file of org-journal's directory without an extension is an Org file
+ * (`org-journal-is-journal`), whatever VS Code makes of its name.
+ */
+async function asJournalFile(document: vscode.TextDocument): Promise<void> {
+  const directory = journalDirectory;
+  if (!directory || document.uri.scheme !== 'file' || document.languageId === 'org') {
+    return;
+  }
+  const path = document.uri.fsPath;
+  if (path.startsWith(directory) && !path.slice(directory.length).includes('.')) {
+    await vscode.languages.setTextDocumentLanguage(document, 'org');
+  }
+}
+
+/** The headlines' folds to open and close (`org-lsp/folds`). */
+interface JournalFolds {
+  uri: string;
+  open?: { startLine: number }[];
+  close?: { startLine: number }[];
+}
+
+/**
+ * The headlines of a document org-journal showed, folded as it folds
+ * them, once the editor shows it as an Org file with its folds.
+ */
+async function journalFolds(params: JournalFolds): Promise<void> {
+  let editor: vscode.TextEditor | undefined;
+  for (let tries = 0; tries < 60; tries++) {
+    editor = vscode.window.activeTextEditor;
+    if (editor && sameUri(editor.document.uri.toString(), params.uri) && editor.document.languageId === 'org') {
+      break;
+    }
+    editor = undefined;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  if (!editor) {
+    return;
+  }
+  await foldingRanges(editor.document);
+  const open = (params.open ?? []).map((range) => range.startLine);
+  if (open.length > 0) {
+    await vscode.commands.executeCommand('editor.unfold', { levels: 1, selectionLines: open });
+  }
+  await fold((params.close ?? []).map((range) => range.startLine));
+}
+
 const fold = (lines: number[]) =>
   lines.length > 0
     ? vscode.commands.executeCommand('editor.fold', { levels: 1, direction: 'up', selectionLines: lines })
@@ -2018,6 +2073,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     vscode.workspace.onDidCloseTextDocument((document) => imagesShown.delete(document.uri.toString())),
     vscode.languages.registerHoverProvider({ language: 'org' }, imageHover),
     vscode.workspace.onDidOpenTextDocument((document) => {
+      void asJournalFile(document);
       // After the client has told the server of it.
       const running = client;
       if (running) {

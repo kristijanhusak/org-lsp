@@ -11,8 +11,8 @@ A case is a JSON object:
       },
       "command": "new-entry",                 new-entry, new-date-entry,
                                               new-scheduled-entry,
-                                              reschedule, next, previous,
-                                              open-current
+                                              next, previous, open-current,
+                                              agenda-files
       "prefix": 1,                            optional: how many C-u
       "from": "20261009", "point": 12,        optional: the file the
                                               command runs in, and where in
@@ -24,7 +24,8 @@ A case is a JSON object:
     }
 
 `reference(cases)` adds `expected`: `{"files", "buffer", "point",
-"hidden", "messages"}`: the files of the directory after the command
+"hidden", "messages"}`, and for `agenda-files` the files
+`org-journal--update-org-agenda-files` gives the agenda (`agenda`): the files of the directory after the command
 (each buffer saved), the file the command left the cursor in and where
 (characters from its start), the lines of that file its headlines' folds
 left hidden (1-based; drawers fold on their own), and the messages it
@@ -58,6 +59,9 @@ DRIVER = r"""
 (defvar org-lsp-messages nil)
 (defvar org-lsp-answers nil)
 (defvar org-lsp-date nil)
+(defvar org-lsp-agenda nil)
+;; The agenda files org-journal sets are kept, not saved.
+(advice-add 'org-store-new-agenda-file-list :override (lambda (list) (setq org-lsp-agenda list)))
 (advice-add 'message :around
             (lambda (orig format &rest args)
               (when (and format (not inhibit-message) (not (equal format "")))
@@ -88,7 +92,7 @@ DRIVER = r"""
     (when (buffer-file-name buffer)
       (with-current-buffer buffer (set-buffer-modified-p nil))
       (kill-buffer buffer)))
-  (setq org-lsp-messages nil org-lsp-answers answers org-lsp-date date
+  (setq org-lsp-messages nil org-lsp-answers answers org-lsp-date date org-lsp-agenda nil
         kill-ring nil kill-ring-yank-pointer nil)
   (switch-to-buffer "*scratch*")
   (delete-other-windows)
@@ -110,15 +114,22 @@ DRIVER = r"""
                     ("reschedule" (org-journal-reschedule-scheduled-entry))
                     ("next" (org-journal-next-entry))
                     ("previous" (org-journal-previous-entry))
-                    ("open-current" (org-journal-open-current-journal-file))))
+                    ("open-current" (org-journal-open-current-journal-file))
+                    ("agenda-files"
+                     (let ((org-journal-enable-agenda-integration t) (org-agenda-files nil))
+                       (org-journal--update-org-agenda-files)))))
                 (let* ((file (buffer-file-name))
                        (name (and file (file-relative-name file org-journal-dir)))
                        (where (1- (point)))
                        (hidden (if file (org-lsp-hidden) [])))
                   (save-some-buffers t)
-                  (list (cons 'buffer (or name :null))
-                        (cons 'point (if file where :null))
-                        (cons 'hidden hidden))))
+                  (append
+                   (list (cons 'buffer (or name :null))
+                         (cons 'point (if file where :null))
+                         (cons 'hidden hidden))
+                   (when (equal command "agenda-files")
+                     (list (cons 'agenda (vconcat (mapcar (lambda (file) (file-relative-name file org-journal-dir))
+                                                          org-lsp-agenda))))))))
             (error (format "ERROR: %s" (error-message-string err))))))
     (with-temp-file out
       (set-buffer-file-coding-system 'utf-8)

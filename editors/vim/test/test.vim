@@ -838,6 +838,26 @@ function! s:roam_buffer() abort
 endfunction
 call s:test('the org-roam buffer shows the backlinks of the node', function('s:roam_buffer'))
 
+" org-journal: today's entry in a file whose name has no extension, an Org
+" file all the same; the TODO of the day before comes along, its text
+" folded as org-journal folds it.
+function! s:journal() abort
+  let dir = s:work . '/journal'
+  call mkdir(dir, 'p')
+  call writefile(['* Sunday, 05/17/26', '** 09:00 standup', '** TODO carried', 'a note'], dir . '/20260517')
+  execute 'edit' fnameescape(s:work . '/notes/work.org')
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call s:until('the journal directory', {-> org_lsp#journal_dir() ==# dir . '/'})
+  call org_lsp#run('org.journal.new.entry')
+  call s:until("today's file", {-> fnamemodify(bufname(), ':p') ==# dir . '/20260518'})
+  call assert_equal('org', &filetype, 'an Org file')
+  call s:until('the server on it', {-> org_lsp#ready(bufnr())})
+  call assert_equal(['* Monday, 05/18/26', '** TODO carried', 'a note', '** 10:30 '], getline(1, '$'))
+  call s:until('the TODO folded', {-> foldclosed(2) == 2})
+  call assert_equal(-1, foldclosed(1), "the date's headline open")
+endfunction
+call s:test('org-journal makes an entry in a file without the extension', function('s:journal'))
+
 for error in v:errors
   call add(s:results, 'not ok - ' . error)
 endfor

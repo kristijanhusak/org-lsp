@@ -144,6 +144,8 @@ to install and set up the package.
 | ~Ctrl+C Ctrl+X a~ | ~org.archive.tag~ | Toggle the ARCHIVE tag |
 | ~Ctrl+C Ctrl+X Ctrl+A~ | ~org.archive.default~ | Archive with the default command |
 | ~Ctrl+C n i~ | ~org.roam.node.insert~ | Roam: insert a link to a node |
+| ~Ctrl+C j f~ | ~org.journal.next.entry~ | Journal: next entry |
+| ~Ctrl+C j b~ | ~org.journal.previous.entry~ | Journal: previous entry |
 | ~Shift+Up~ ¹ | ~org.shift.up~ | Increase the timestamp part, raise the priority, or go to the previous item |
 | ~Shift+Down~ ¹ | ~org.shift.down~ | Decrease the timestamp part, lower the priority, or go to the next item |
 | ~Shift+Left~ ¹ | ~org.shift.left~ | Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
@@ -159,6 +161,7 @@ to install and set up the package.
 | ~Ctrl+C n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~Ctrl+C n c~ | ~org.roam.capture~ | Roam: capture to a node |
 | ~Ctrl+C n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
+| ~Ctrl+C j j~ | ~org.journal.new.entry~ | Journal: new entry |
 
 =¦= stands for =|=, which an Org table cannot hold.
 
@@ -179,6 +182,7 @@ to install and set up the package.
 | ~Ctrl+C n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~Ctrl+C n c~ | ~org.roam.capture~ | Roam: capture to a node |
 | ~Ctrl+C n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
+| ~Ctrl+C j j~ | ~org.journal.new.entry~ | Journal: new entry |
 | ~f~ | ~org.agenda.later~ | Agenda: go forward in time |
 | ~b~ | ~org.agenda.earlier~ | Agenda: go backward in time |
 | ~.~ | ~org.agenda.today~ | Agenda: go to today |
@@ -414,6 +418,9 @@ line.
 | ~org.roam.tag.remove~ | Org: Roam: remove tags |
 | ~org.roam.ref.add~ | Org: Roam: add a reference |
 | ~org.roam.ref.remove~ | Org: Roam: remove a reference |
+| ~org.journal.new.date.entry~ | Org: Journal: new entry for a date |
+| ~org.journal.new.scheduled.entry~ | Org: Journal: new entry for a day to come |
+| ~org.journal.open.current~ | Org: Journal: open the current file |
 | ~org.date.later.hours~ | Org: Agenda: move the time one hour later |
 | ~org.date.earlier.hours~ | Org: Agenda: move the time one hour earlier |
 | ~org.date.later.minutes~ | Org: Agenda: move the time later by the rounding minutes |

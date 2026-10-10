@@ -70,7 +70,7 @@ impl Roam {
 }
 
 /// A path with `~/` standing for the home directory.
-fn expand(path: &str) -> PathBuf {
+pub(super) fn expand(path: &str) -> PathBuf {
     let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
     match (path.strip_prefix("~/").or(if path == "~" { Some("") } else { None }), home) {
         (Some(rest), Some(home)) => home.join(rest),
@@ -81,7 +81,7 @@ fn expand(path: &str) -> PathBuf {
 /// The files under `directory`, by their names relative to it with `/`
 /// between directories (`org-roam--directory-files-recursively`, which
 /// follows links to directories).
-fn list_files(directory: &Path, prefix: &str, depth: usize, out: &mut Vec<String>) {
+pub(super) fn list_files(directory: &Path, prefix: &str, depth: usize, out: &mut Vec<String>) {
     let Ok(entries) = std::fs::read_dir(directory) else { return };
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().to_string();

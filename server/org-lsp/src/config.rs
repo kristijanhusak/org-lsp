@@ -375,6 +375,51 @@ pub struct Options {
     /// `org-roam-capture-templates`, written as `org_capture_templates`.
     #[serde(rename = "org_roam_capture_templates")]
     pub roam_capture_templates: Option<Vec<CaptureTemplateOption>>,
+    /// org-journal: off unless switched on.
+    #[serde(rename = "org_journal_enabled")]
+    pub journal_enabled: Option<bool>,
+    #[serde(rename = "org_journal_dir")]
+    pub journal_dir: Option<String>,
+    /// `org-journal-file-type`: `daily`, `weekly`, `monthly`, `yearly`.
+    #[serde(rename = "org_journal_file_type")]
+    pub journal_file_type: Option<String>,
+    #[serde(rename = "org_journal_start_on_weekday")]
+    pub journal_start_on_weekday: Option<i64>,
+    #[serde(rename = "org_journal_file_format")]
+    pub journal_file_format: Option<String>,
+    #[serde(rename = "org_journal_date_format")]
+    pub journal_date_format: Option<String>,
+    #[serde(rename = "org_journal_date_prefix")]
+    pub journal_date_prefix: Option<String>,
+    #[serde(rename = "org_journal_time_format")]
+    pub journal_time_format: Option<String>,
+    #[serde(rename = "org_journal_time_format_post_midnight")]
+    pub journal_time_format_post_midnight: Option<String>,
+    #[serde(rename = "org_journal_time_prefix")]
+    pub journal_time_prefix: Option<String>,
+    #[serde(rename = "org_journal_hide_entries_p")]
+    pub journal_hide_entries: Option<bool>,
+    #[serde(rename = "org_journal_carryover_items")]
+    pub journal_carryover_items: Option<String>,
+    #[serde(rename = "org_journal_skip_carryover_drawers")]
+    pub journal_skip_carryover_drawers: Option<Vec<String>>,
+    /// `org-journal-carryover-delete-empty-journal`: `never`, `always`,
+    /// `ask`.
+    #[serde(rename = "org_journal_carryover_delete_empty_journal")]
+    pub journal_carryover_delete_empty_journal: Option<String>,
+    #[serde(rename = "org_journal_file_header")]
+    pub journal_file_header: Option<String>,
+    #[serde(rename = "org_journal_created_property_timestamp_format")]
+    pub journal_created_property_timestamp_format: Option<String>,
+    #[serde(rename = "org_journal_scheduled_string")]
+    pub journal_scheduled_string: Option<String>,
+    #[serde(rename = "org_journal_enable_encryption")]
+    pub journal_enable_encryption: Option<bool>,
+    #[serde(rename = "org_journal_enable_agenda_integration")]
+    pub journal_enable_agenda_integration: Option<bool>,
+    /// `org-extend-today-until`: the hour before which it is yesterday.
+    #[serde(rename = "org_extend_today_until")]
+    pub extend_today_until: Option<i64>,
     /// `org-directory`: where relative capture targets are. `~/org`.
     pub org_directory: Option<String>,
     /// `org-default-notes-file`: the target of a template whose file is
@@ -468,6 +513,16 @@ pub struct RoamSettings {
     pub completion_everywhere: bool,
     /// `org-roam-mode-sections`
     pub sections: Vec<org_core::roam::buffer::Kind>,
+}
+
+/// org-journal's settings (`org_journal_*`).
+#[derive(Debug, Clone)]
+pub struct JournalSettings {
+    /// `org-journal-dir`, as written.
+    pub directory: String,
+    /// `org-journal-enable-agenda-integration`
+    pub agenda_integration: bool,
+    pub core: org_core::journal::Settings,
 }
 
 /// An entry of `org-capture-templates`. One with only a key and a
@@ -878,6 +933,56 @@ impl Options {
 
     /// org-roam's settings, when it is on: its directory, which files
     /// are its own, how nodes are offered, and the templates of new ones.
+    /// org-journal's settings, when it is on.
+    pub fn journal(&self) -> Option<JournalSettings> {
+        if self.journal_enabled != Some(true) {
+            return None;
+        }
+        use org_core::journal::{DeleteEmpty, FileType, Settings};
+        let defaults = Settings::default();
+        let text = |value: &Option<String>, default: String| value.clone().unwrap_or(default);
+        let core = Settings {
+            file_type: match self.journal_file_type.as_deref() {
+                Some("weekly") => FileType::Weekly,
+                Some("monthly") => FileType::Monthly,
+                Some("yearly") => FileType::Yearly,
+                _ => FileType::Daily,
+            },
+            start_on_weekday: self.journal_start_on_weekday.unwrap_or(defaults.start_on_weekday),
+            file_format: text(&self.journal_file_format, defaults.file_format),
+            date_format: text(&self.journal_date_format, defaults.date_format),
+            date_prefix: text(&self.journal_date_prefix, defaults.date_prefix),
+            time_format: text(&self.journal_time_format, defaults.time_format),
+            time_format_post_midnight: text(
+                &self.journal_time_format_post_midnight,
+                defaults.time_format_post_midnight,
+            ),
+            time_prefix: text(&self.journal_time_prefix, defaults.time_prefix),
+            hide_entries: self.journal_hide_entries.unwrap_or(defaults.hide_entries),
+            carryover_items: text(&self.journal_carryover_items, defaults.carryover_items),
+            skip_carryover_drawers: self.journal_skip_carryover_drawers.clone().unwrap_or_default(),
+            carryover_delete_empty_journal: match self.journal_carryover_delete_empty_journal.as_deref() {
+                Some("always") => DeleteEmpty::Always,
+                Some("ask") => DeleteEmpty::Ask,
+                _ => DeleteEmpty::Never,
+            },
+            file_header: text(&self.journal_file_header, defaults.file_header),
+            created_property_timestamp_format: text(
+                &self.journal_created_property_timestamp_format,
+                defaults.created_property_timestamp_format,
+            ),
+            scheduled_string: text(&self.journal_scheduled_string, defaults.scheduled_string),
+            enable_encryption: self.journal_enable_encryption.unwrap_or(false),
+            extend_today_until: self.extend_today_until.unwrap_or(0),
+            ..defaults
+        };
+        Some(JournalSettings {
+            directory: self.journal_dir.clone().unwrap_or_else(|| "~/Documents/journal/".to_string()),
+            agenda_integration: self.journal_enable_agenda_integration.unwrap_or(false),
+            core,
+        })
+    }
+
     pub fn roam(&self) -> Option<RoamSettings> {
         if self.roam_enabled != Some(true) {
             return None;

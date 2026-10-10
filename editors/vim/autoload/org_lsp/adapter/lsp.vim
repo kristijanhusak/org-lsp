@@ -20,6 +20,7 @@ function! org_lsp#adapter#lsp#register(cmd, options, filetypes) abort
         \   'org-lsp/lineHighlights': function('s:notification'),
         \   'org-lsp/viewChanged': function('s:notification'),
         \   'org-lsp/columns': function('s:notification'),
+        \   'org-lsp/folds': function('s:notification'),
         \ },
         \ }])
 endfunction

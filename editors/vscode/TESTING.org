@@ -214,6 +214,16 @@ its sections says what it should look like.
 - [ ] A dedicated buffer for a node asked for opens in a file of its own and stays on that node: /Org: Roam: show the org-roam buffer of a node/
 - [ ] With ~"unlinked-references"~ in ~org_roam_mode_sections~, a line naming the node's title without a link is listed under /Unlinked References/: /Org: Roam: refresh the org-roam buffer/
 
+* A journal (org-journal)
+
+- [ ] With ~org_journal_enabled~ on, a new entry makes today's file in ~org_journal_dir~ (a file without an extension, opened as Org) with today's date and an entry with the time, the cursor after it: ~Ctrl+C j j~
+- [ ] With a journal file of yesterday holding a TODO entry, the first new entry of today moves it to today's file: ~Ctrl+C j j~
+- [ ] The other entries of the file are folded; the new one shows: ~Ctrl+C j j~
+- [ ] An entry for a date asked for goes into that date's file, without the time: /Org: Journal: new entry for a date/
+- [ ] A scheduled entry for tomorrow is a TODO with tomorrow's timestamp below it: /Org: Journal: new entry for a day to come/
+- [ ] In a journal file, the previous entry goes to the day before; on the first, it says /No journal entry before this one/: ~Ctrl+C j b~
+- [ ] With ~org_journal_enable_agenda_integration~, the TODO entries of today's journal file are in the week view: /Org: Agenda for the current week or day/
+
 * Refile and archive
 
 - [ ] Copying an entry to a target keeps it where it was; going to a target and to the entry refiled last moves the cursor there: ~Ctrl+C Alt+W~, /Org: Go to a refile target/, /Org: Go to where the last refile put its entry/

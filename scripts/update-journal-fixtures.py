@@ -129,6 +129,13 @@ CASES = [
     case("open-current", {"20261010": "* Saturday, 10/10/26\n** x\n"}),
     case("open-current", {}),
     case("open-current", {"20261005": WEEK}, options=WEEKLY),
+    # The files the agenda gets (`org-journal-enable-agenda-integration`).
+    case("agenda-files", {"20261009": FRIDAY, "20261010": "* x\n", "20261012": "* y\n", "notes.org": "* n\n"}),
+    case("agenda-files", {"20261008": "* x\n", "20261009": "* x\n", "20261010": "* y\n"},
+         clock="2026-10-10 02:05", options={"org_extend_today_until": 4}),
+    case("agenda-files", {"20260928": "* x\n", "20261005": "* x\n", "20261012": "* y\n"}, options=WEEKLY),
+    case("agenda-files", {"202609": "* x\n", "202610": "* x\n", "203101": "* y\n"},
+         options={"org_journal_file_type": "monthly", "org_journal_file_format": "%Y%m"}),
 ]
 
 if __name__ == "__main__":

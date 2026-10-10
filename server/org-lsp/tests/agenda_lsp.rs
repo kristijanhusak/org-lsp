@@ -6720,3 +6720,100 @@ fn shows_the_org_roam_buffer() {
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }
+
+/// org-journal: a new entry asks for the directory first; the TODO of the
+/// day before moves to today's file, which is written, while the file it
+/// leaves is open and gets an edit; today's file is shown at the new
+/// entry, its headlines folded as org-journal folds them. The commands
+/// move between entries, make one for a day picked, and give the agenda
+/// the files of today and the days to come.
+#[test]
+fn writes_journal_entries() {
+    let root = std::env::temp_dir().join(format!("org-lsp-journal-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let directory = root.join("journal");
+    let mut options = clock();
+    options["org_journal_enabled"] = json!(true);
+    options["org_journal_dir"] = json!(directory.display().to_string());
+    options["org_journal_enable_agenda_integration"] = json!(true);
+    options["org_agenda_files"] = json!([root.join("notes.org").display().to_string()]);
+    std::fs::write(root.join("notes.org"), "* TODO Notes\n").unwrap();
+    let mut client = Client::editor(options, None);
+    let run = |client: &mut Client, command: &str, argument: Value| {
+        client.received.clear();
+        client.notifications.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }));
+        client.settle();
+        result
+    };
+    // The directory is made once asked.
+    let asked = run(&mut client, "org.journal.new.entry", json!({})).unwrap();
+    let prompt = asked["input"]["prompt"].as_str().unwrap();
+    assert!(prompt.starts_with("Journal directory ") && prompt.ends_with("doesn't exists. Create it? "), "{prompt}");
+    assert_eq!(asked["input"]["context"], json!({ "step": "directory" }));
+    let refused = run(&mut client, "org.journal.new.entry", json!({ "step": "directory", "input": "n" }));
+    assert_eq!(refused, Err("A journal directory is necessary to use org-journal".to_string()));
+    assert!(!directory.exists());
+    std::fs::create_dir_all(&directory).unwrap();
+    let friday = "* Friday, 05/15/26\n** 09:00 standup\nnotes\n** TODO call Bob\n";
+    std::fs::write(directory.join("20260515"), friday).unwrap();
+    let friday_uri = format!("file://{}", directory.join("20260515").display());
+    client.open(&friday_uri, friday);
+    let today_uri = format!("file://{}", directory.join("20260518").display());
+
+    // Today's entry, with the TODO carried over.
+    run(&mut client, "org.journal.new.entry", json!({})).unwrap();
+    assert_eq!(
+        std::fs::read_to_string(directory.join("20260518")).unwrap(),
+        "* Monday, 05/18/26\n** TODO call Bob\n** 10:30 "
+    );
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (file, edits) = edits_of(edit);
+    assert_eq!(file, friday_uri);
+    assert_eq!(apply(friday, &edits), "* Friday, 05/15/26\n** 09:00 standup\nnotes\n");
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("today's file");
+    assert_eq!(show.params["uri"], today_uri);
+    assert_eq!(show.params["selection"]["start"], json!({ "line": 2, "character": 9 }));
+    let folds = client.notifications.iter().find(|notification| notification.method == "org-lsp/folds").expect("folds");
+    assert_eq!(folds.params["uri"], today_uri);
+    assert_eq!(folds.params["close"], json!([]));
+    assert_eq!(folds.params["open"].as_array().unwrap().len(), 1, "{}", folds.params);
+
+    // Back to Friday's entry, all of it showing (`outline-show-subtree`).
+    let today = std::fs::read_to_string(directory.join("20260518")).unwrap();
+    client.open(&today_uri, &today);
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": friday_uri, "version": 2 }, "contentChanges": [{ "text": apply(friday, &edits) }] }),
+    );
+    let at_today = json!({ "textDocument": { "uri": today_uri }, "position": { "line": 2, "character": 0 } });
+    run(&mut client, "org.journal.previous.entry", at_today.clone()).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("Friday");
+    assert_eq!(show.params["uri"], friday_uri);
+    assert_eq!(show.params["selection"]["start"], json!({ "line": 0, "character": 0 }));
+    let folds = client.notifications.iter().find(|notification| notification.method == "org-lsp/folds").expect("folds");
+    assert_eq!(folds.params["close"], json!([]));
+    assert_eq!(folds.params["open"].as_array().unwrap().len(), 2, "{}", folds.params);
+    let nothing = run(&mut client, "org.journal.next.entry", at_today).unwrap();
+    assert_eq!(nothing["message"], "No journal entry after this one");
+
+    // A day to come: a TODO for it, without a time.
+    run(&mut client, "org.journal.new.date.entry", json!({ "input": "2026-05-20" })).unwrap();
+    assert_eq!(
+        std::fs::read_to_string(directory.join("20260520")).unwrap(),
+        "* Wednesday, 05/20/26\n** TODO \n<2026-05-20 Wed>"
+    );
+
+    // The agenda's TODO list: the other files, then the journal's of
+    // today and after, the last first.
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.show_view();
+    let lines: Vec<&str> = view.lines().filter(|line| line.starts_with("  ")).collect();
+    assert_eq!(lines.len(), 3, "{view}");
+    assert!(lines[0].contains("Notes"), "{view}");
+    assert!(lines[1].starts_with("  20260520:"), "{view}");
+    assert!(lines[2].contains("call Bob"), "{view}");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}

@@ -103,6 +103,15 @@ fn run(case: &Value) -> Value {
         read_date(case["date"].as_str().unwrap_or(""), None, now, &ReadDateSettings::default())
             .expect("a date the prompt reads")
     };
+    if case["command"] == "agenda-files" {
+        let names: Vec<String> = files.keys().cloned().collect();
+        return match journal::agenda_files(&names, now, &settings) {
+            Ok(agenda) => json!({
+                "buffer": null, "point": null, "hidden": [], "agenda": agenda, "files": files, "messages": [],
+            }),
+            Err(message) => json!(format!("ERROR: {message}")),
+        };
+    }
     let command = match case["command"].as_str().unwrap() {
         "new-entry" => Command::NewEntry { prefix },
         "new-date-entry" => Command::NewDateEntry { prefix, date: date() },

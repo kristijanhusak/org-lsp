@@ -1785,6 +1785,8 @@ function! org_lsp#handle_notification(method, params) abort
     call s:line_highlights(a:params)
   elseif a:method ==# 'org-lsp/columns'
     call s:columns_show(a:params)
+  elseif a:method ==# 'org-lsp/folds'
+    call s:journal_folds(a:params)
   elseif a:method ==# 'org-lsp/viewChanged'
     " The agenda's file is new: read it again, outside the client's
     " callback.
@@ -1993,6 +1995,80 @@ function! s:got_folds(nr, error, result) abort
   for win in win_findbuf(a:nr)
     call win_execute(win, 'call org_lsp#refold()')
   endfor
+  " Folds org-journal asked for before the buffer had any.
+  let pending = getbufvar(a:nr, 'org_lsp_journal_folds', {})
+  if !empty(pending)
+    call setbufvar(a:nr, 'org_lsp_journal_folds', {})
+    call s:set_journal_folds(a:nr, pending)
+  endif
+endfunction
+
+" The headlines of a document org-journal showed, folded as it folds them
+" (`org-lsp/folds`): once the buffer has its folds.
+function! s:journal_folds(params) abort
+  let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
+  if nr < 0
+    return
+  endif
+  if empty(getbufvar(nr, 'org_lsp_folds', []))
+    call setbufvar(nr, 'org_lsp_journal_folds', a:params)
+  else
+    call s:set_journal_folds(nr, a:params)
+  endif
+endfunction
+
+function! s:set_journal_folds(nr, params) abort
+  for win in win_findbuf(a:nr)
+    for fold in get(a:params, 'open', [])
+      call win_execute(win, 'silent! ' . (fold.startLine + 1) . 'foldopen')
+    endfor
+    for fold in get(a:params, 'close', [])
+      call win_execute(win, 'silent! ' . (fold.startLine + 1) . 'foldclose')
+    endfor
+  endfor
+endfunction
+
+" org-journal's files need not have a name that says they are Org files
+" (`org-journal-is-journal`): those of its directory without an extension
+" are, as the server says (`org-lsp/journal`), here and in the buffers
+" already loaded.
+function! s:journal_directory(nr) abort
+  if exists('s:journal_asked')
+    return
+  endif
+  let s:journal_asked = 1
+  call org_lsp#request(a:nr, 'org-lsp/journal', v:null, function('s:got_journal'))
+endfunction
+
+function! s:got_journal(error, result) abort
+  if !empty(a:error) || type(a:result) != v:t_dict || type(get(a:result, 'directory', 0)) != v:t_string
+    return
+  endif
+  let s:journal_dir = a:result.directory
+  augroup org_lsp_journal
+    autocmd!
+    execute 'autocmd BufNewFile,BufRead ' . fnameescape(s:journal_dir) . '* call s:journal_file(expand("<afile>:p"))'
+  augroup END
+  for info in getbufinfo({'bufloaded': 1})
+    if empty(getbufvar(info.bufnr, '&filetype')) && s:is_journal_file(info.name)
+      call setbufvar(info.bufnr, '&filetype', 'org')
+    endif
+  endfor
+endfunction
+
+" The journal's directory, once the server has said it.
+function! org_lsp#journal_dir() abort
+  return get(s:, 'journal_dir', '')
+endfunction
+
+function! s:is_journal_file(path) abort
+  return exists('s:journal_dir') && stridx(a:path, s:journal_dir) == 0 && a:path[len(s:journal_dir):] !~# '\.'
+endfunction
+
+function! s:journal_file(path) abort
+  if empty(&filetype) && s:is_journal_file(a:path)
+    setfiletype org
+  endif
 endfunction
 
 " Fold the window again with the new levels; closed folds stay closed.
@@ -2367,6 +2443,9 @@ function! s:refresh(nr) abort
   endif
   if config.folding && getbufvar(a:nr, '&filetype') ==# 'org'
     call s:update_folds(a:nr)
+  endif
+  if getbufvar(a:nr, '&filetype') ==# 'org'
+    call s:journal_directory(a:nr)
   endif
 endfunction
 

@@ -91,6 +91,19 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org: Journal: new entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.journal.new.entry",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org: Clock in",
     "command": "$HOME/.local/state/org-lsp/agenda-command file:org.clock.in",
     "tags": [
@@ -1263,6 +1276,32 @@
   {
     "label": "Org: Roam: insert a link to a node",
     "command": "$HOME/.local/state/org-lsp/agenda-command file:org.roam.node.insert",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Journal: next entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.journal.next.entry",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Journal: previous entry",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.journal.previous.entry",
     "tags": [
       "org"
     ],

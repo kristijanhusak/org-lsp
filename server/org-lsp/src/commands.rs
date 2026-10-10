@@ -327,6 +327,12 @@ pub const ROAM_TAG_ADD: &str = "org.roam.tag.add";
 pub const ROAM_TAG_REMOVE: &str = "org.roam.tag.remove";
 pub const ROAM_REF_ADD: &str = "org.roam.ref.add";
 pub const ROAM_REF_REMOVE: &str = "org.roam.ref.remove";
+pub const JOURNAL_NEW_ENTRY: &str = "org.journal.new.entry";
+pub const JOURNAL_NEW_DATE_ENTRY: &str = "org.journal.new.date.entry";
+pub const JOURNAL_NEW_SCHEDULED_ENTRY: &str = "org.journal.new.scheduled.entry";
+pub const JOURNAL_NEXT_ENTRY: &str = "org.journal.next.entry";
+pub const JOURNAL_PREVIOUS_ENTRY: &str = "org.journal.previous.entry";
+pub const JOURNAL_OPEN_CURRENT: &str = "org.journal.open.current";
 pub const CAPTURE_ABORT: &str = "org.capture.abort";
 pub const CAPTURE_REFILE: &str = "org.capture.refile";
 pub const TIMESTAMP_UP: &str = "org.timestamp.up";
@@ -1388,6 +1394,32 @@ pub const COMMANDS: &[Command] = &[
         input: Some(Input { kind: "text", prompt: "Remove" }),
         ..edit(ROAM_REF_REMOVE, "Roam: remove a reference")
     },
+    // org-journal's keys, under the prefix its README suggests (`C-c j `)
+    // rather than its default (`C-c C-`), whose keys are Org's.
+    Command {
+        emacs: &[key(Global, "C-c j j")],
+        vim: &[key(Global, "<Leader>jj")],
+        ..command(JOURNAL_NEW_ENTRY, "Journal: new entry")
+    },
+    Command {
+        input: Some(Input { kind: "date", prompt: "Date" }),
+        ..command(JOURNAL_NEW_DATE_ENTRY, "Journal: new entry for a date")
+    },
+    Command {
+        input: Some(Input { kind: "date", prompt: "Date" }),
+        ..command(JOURNAL_NEW_SCHEDULED_ENTRY, "Journal: new entry for a day to come")
+    },
+    Command {
+        emacs: &[key(Org, "C-c j f")],
+        vim: &[key(Org, "<Leader>jf")],
+        ..command(JOURNAL_NEXT_ENTRY, "Journal: next entry")
+    },
+    Command {
+        emacs: &[key(Org, "C-c j b")],
+        vim: &[key(Org, "<Leader>jb")],
+        ..command(JOURNAL_PREVIOUS_ENTRY, "Journal: previous entry")
+    },
+    command(JOURNAL_OPEN_CURRENT, "Journal: open the current file"),
     Command {
         emacs: &[key(Capture, "C-c C-k")],
         vim: &[key(Capture, "<Leader>ok")],

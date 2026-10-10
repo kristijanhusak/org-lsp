@@ -366,6 +366,57 @@ impl<'s> Files<'s> {
     }
 }
 
+/// `org-journal-is-journal`: whether the file named `relative` to the
+/// directory is a journal file.
+pub fn is_journal_file(relative: &str, settings: &Settings) -> bool {
+    Files::new(settings).is_journal(relative)
+}
+
+/// `org-journal--search-build-file-list`: the journal files among `names`
+/// with days after `start` and before `end`, the last first.
+fn files_between(names: &[String], start: DateTime, end: DateTime, settings: &Settings) -> Result<Vec<String>, String> {
+    let files = Files::new(settings);
+    let mut found = Vec::new();
+    for name in names {
+        let time = files.date(name)?.time();
+        let date = time.date();
+        // The last day the file can hold.
+        let boundary = match settings.file_type {
+            FileType::Daily => time,
+            FileType::Weekly => DateTime { day: time.day + 6, minute: 0 },
+            FileType::Monthly => {
+                DateTime::new(Date::new(date.year, date.month, crate::date::days_in_month(date.year, date.month)), 0, 0)
+            }
+            FileType::Yearly => DateTime::new(Date::new(date.year, 12, 31), 0, 0),
+        };
+        if start < boundary && time < end {
+            found.push(name.clone());
+        }
+    }
+    found.reverse();
+    Ok(found)
+}
+
+/// `org-journal--update-org-agenda-files`
+/// (`org-journal-enable-agenda-integration`): the journal files among
+/// `names` (relative to the directory, in `org-journal--list-files`'s
+/// order) of today and the days to come, until 2030.
+pub fn agenda_files(names: &[String], now: DateTime, settings: &Settings) -> Result<Vec<String>, String> {
+    let files = Files::new(settings);
+    let encrypted = RegexBuilder::new(r".(?:gpg|age)$").case_insensitive(true).build().expect("valid");
+    let mut names: Vec<String> =
+        names.iter().filter(|name| files.is_journal(name) && !encrypted.is_match(name)).cloned().collect();
+    crate::roam::sync_order(&mut names);
+    // From yesterday, or the day before while it is still yesterday.
+    let mut start = now.day - 1;
+    if now.minute / 60 < settings.extend_today_until {
+        start -= 1;
+    }
+    let start = DateTime { day: start, minute: 0 };
+    let end = DateTime::new(Date::new(2030, 12, 31), 0, 0);
+    files_between(&names, start, end, settings)
+}
+
 /// `org-journal--entry-date->calendar-date` for the entry at `at`.
 fn entry_date(settings: &Settings, buffer: &Buffer, at: usize) -> Result<CalendarDate, String> {
     let pattern = Pattern::new(&settings.created_property_timestamp_format);

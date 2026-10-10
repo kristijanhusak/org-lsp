@@ -43,6 +43,8 @@ SETTINGS = 'LSP-org.sublime-settings'
 CLOCK_KEY = 'org-lsp-clock'
 # How long to wait for the server to start, in steps of 200 ms.
 STARTING_TRIES = 150
+# How long to wait for a journal file to load, in steps of 100 ms.
+JOURNAL_TRIES = 50
 REPOSITORY = 'kristijanhusak/org-lsp'
 RELEASE = 'nightly'
 # The release's name for each platform Sublime Text runs on.
@@ -233,9 +235,12 @@ class OrgLsp(AbstractPlugin):
         if notification.method != 'textDocument/didOpen':
             return
         uri = notification.params.get('textDocument', {}).get('uri', '')
-        if not uri.endswith('.org'):
-            return
         session = self.weaksession()
+        if session:
+            # The server is up: the journal files open before it as plain text.
+            sublime.set_timeout(lambda: show_journal_files(session))
+        if not uri.endswith('.org') and not is_journal_file(session, parse_uri(uri)[1]):
+            return
         if session:
             sublime.set_timeout_async(lambda: ask_startup_folds(session, uri))
             sublime.set_timeout(lambda: ask_startup_previews(session, uri))
@@ -265,6 +270,11 @@ class OrgLsp(AbstractPlugin):
     # Images in place of LaTeX fragments, made by Emacs.
     def m_org_lsp_images(self, params) -> None:
         sublime.set_timeout(lambda: apply_preview(params))
+
+    # The folds org-journal opens and closes in the entry it shows
+    # (`org-journal-hide-entries-p`).
+    def m_org_lsp_folds(self, params) -> None:
+        sublime.set_timeout(lambda: journal_folds(params or {}, JOURNAL_TRIES))
 
     # TAB in the agenda (`org-agenda-goto`): the entry's file in another
     # group (`orgOtherWindow`); the org-roam buffer beside the note, the
@@ -997,6 +1007,48 @@ class OrgLspHelpCommand(sublime_plugin.WindowCommand):
 
 # ----- visibility cycling
 
+def journal_directory(session) -> str:
+    """The directory of org-journal's files, as the server says
+    (`org_journal_dir`), or None when org-journal is off."""
+    get = getattr(session, 'get_capability', None) if session else None
+    return (get('experimental.orgJournal.directory') if get else None) or None
+
+
+def is_journal_file(session, path: str) -> bool:
+    """A file of org-journal's directory without an extension
+    (`org-journal-file-format` is `%Y%m%d` unless set), which is Org all
+    the same."""
+    directory = journal_directory(session)
+    if not directory or not path or not path.startswith(directory):
+        return False
+    return '.' not in path[len(directory):]
+
+
+def show_journal_files(session) -> None:
+    for window in sublime.windows():
+        for view in window.views():
+            show_journal_file(session, view)
+
+
+def show_journal_file(session, view) -> None:
+    if is_journal_file(session, view.file_name() or '') and not is_org(view):
+        view.assign_syntax('Packages/{}/Org.sublime-syntax'.format(PACKAGE))
+
+
+def journal_folds(params, tries: int) -> None:
+    """Open, then close, the folds of the journal file the server just
+    showed, once it has loaded."""
+    view = view_for(params.get('uri', ''))
+    if not view or view.is_loading():
+        if tries > 0:
+            sublime.set_timeout(lambda: journal_folds(params, tries - 1), 100)
+        return
+    for r in params.get('open', []):
+        view.unfold(fold_region(view, r))
+    for r in params.get('close', []):
+        view.fold(fold_region(view, r))
+
+
 # The last cycle: (view id, change count, line, state); the step after
 # CHILDREN depends on the last command having been the same cycle.
 last_cycle = None
@@ -1251,6 +1303,8 @@ class OrgLspListener(sublime_plugin.EventListener):
             view.set_read_only(True)
             view.set_scratch(True)
             tell_agenda_width(view.window())
+        elif OrgLsp.current:
+            show_journal_file(OrgLsp.current.weaksession(), view)
 
     def on_selection_modified_async(self, view) -> None:
         if (view.file_name() or '').endswith('.org-agenda'):

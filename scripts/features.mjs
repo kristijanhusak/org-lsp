@@ -531,6 +531,33 @@ export const AREAS = [
     ],
   },
   {
+    name: 'A journal (org-journal)',
+    emacs: [
+      ['A file a day, week, month or year in `org_journal_dir`, an entry for each day and one for each time (`org-journal-new-entry`), today\'s entry only with `C-u`', true],
+      ['An entry for a date asked for, and a TODO entry for a day to come with its timestamp (`org-journal-new-date-entry`, `org-journal-new-scheduled-entry`)', true],
+      ['The next and the previous entry, and the file of today (`org-journal-next-entry`, `org-journal-previous-entry`, `org-journal-open-current-journal-file`)', true],
+      ['Carrying the items `org_journal_carryover_items` matches over to the new day, with the headlines above them; deleting the entry or file left empty', true],
+      ['The other entries folded (`org_journal_hide_entries_p`)', true],
+      ['The journal\'s files from yesterday on in the agenda (`org_journal_enable_agenda_integration`)', true],
+      ['Searching the journal (`org-journal-search`), the schedule view, the calendar\'s marks and keys', false],
+      ['Rescheduling an entry for a day to come (`org-journal-reschedule-scheduled-entry`)', false],
+      ['Files encrypted whole (`org-journal-encrypt-journal`)', false],
+    ],
+    editors: {
+      zed: ['part', `The date commands are left out: ${ZED_TEXT}. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with \`file_types\` in Zed's settings.`],
+      helix: ['no', `Helix cannot open the journal file on a server's request, and ${HELIX_TEXT}.`],
+    },
+    checks: [
+      { text: 'With `org_journal_enabled` on, a new entry makes today\'s file in `org_journal_dir` (a file without an extension, opened as Org) with today\'s date and an entry with the time, the cursor after it', cmd: 'org.journal.new.entry', in: 'global' },
+      { text: 'With a journal file of yesterday holding a TODO entry, the first new entry of today moves it to today\'s file', cmd: 'org.journal.new.entry', in: 'global' },
+      { text: 'The other entries of the file are folded; the new one shows', cmd: 'org.journal.new.entry', in: 'global', not: ['zed'] },
+      { text: 'An entry for a date asked for goes into that date\'s file, without the time', cmd: 'org.journal.new.date.entry', not: ['zed'] },
+      { text: 'A scheduled entry for tomorrow is a TODO with tomorrow\'s timestamp below it', cmd: 'org.journal.new.scheduled.entry', not: ['zed'] },
+      { text: 'In a journal file, the previous entry goes to the day before; on the first, it says *No journal entry before this one*', cmd: 'org.journal.previous.entry' },
+      { text: 'With `org_journal_enable_agenda_integration`, the TODO entries of today\'s journal file are in the week view', cmd: 'org.agenda.list', in: 'global' },
+    ],
+  },
+  {
     name: 'Refile and archive',
     emacs: [
       ['Refiling to a heading, between files too (`org-refile-targets`)', true],

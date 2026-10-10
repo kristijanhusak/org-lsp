@@ -181,6 +181,7 @@ its motions.
 | ~ctrl-c n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~ctrl-c n c~ | ~org.roam.capture~ | Roam: capture to a node |
 | ~ctrl-c n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
+| ~ctrl-c j j~ | ~org.journal.new.entry~ | Journal: new entry |
 
 =¦= stands for =|=, which an Org table cannot hold.
 
@@ -281,6 +282,8 @@ its motions.
 | ~ctrl-c ctrl-x a~ | ~org.archive.tag~ | Toggle the ARCHIVE tag |
 | ~ctrl-c ctrl-x ctrl-a~ | ~org.archive.default~ | Archive with the default command |
 | ~ctrl-c n i~ | ~org.roam.node.insert~ | Roam: insert a link to a node |
+| ~ctrl-c j f~ | ~org.journal.next.entry~ | Journal: next entry |
+| ~ctrl-c j b~ | ~org.journal.previous.entry~ | Journal: previous entry |
 | ~ctrl-c ctrl-k~ | ~org.capture.abort~ | Capture: abort |
 | ~ctrl-c ctrl-s~ | ~org.schedule~ | Schedule the entry |
 | ~ctrl-c ctrl-d~ | ~org.deadline~ | Set the deadline of the entry |
@@ -291,6 +294,7 @@ its motions.
 | ~ctrl-c n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~ctrl-c n c~ | ~org.roam.capture~ | Roam: capture to a node |
 | ~ctrl-c n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
+| ~ctrl-c j j~ | ~org.journal.new.entry~ | Journal: new entry |
 
 =¦= stands for =|=, which an Org table cannot hold.
 

@@ -27,6 +27,7 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~<Leader>oa~ | ~org.agenda.dispatch~ | Agenda commands |
 | ~<Leader>oxj~ | ~org.clock.goto~ | Go to the clocked entry |
 | ~<Leader>oc~ | ~org.capture~ | Capture |
+| ~<Leader>jj~ | ~org.journal.new.entry~ | Journal: new entry |
 
 ** In Org files
 
@@ -139,6 +140,8 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~<Leader>ni~ | ~org.roam.node.insert~ | Roam: insert a link to a node |
 | ~<Leader>nc~ | ~org.roam.capture~ | Roam: capture to a node |
 | ~<Leader>nl~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
+| ~<Leader>jf~ | ~org.journal.next.entry~ | Journal: next entry |
+| ~<Leader>jb~ | ~org.journal.previous.entry~ | Journal: previous entry |
 | ~<C-a>~ ¹ | ~org.timestamp.up~ | Increase the part of the timestamp at the cursor |
 | ~<C-x>~ ¹ | ~org.timestamp.down~ | Decrease the part of the timestamp at the cursor |
 | ~<S-Up>~ ¹ | ~org.date.later~ | Move the date one day later |
@@ -317,6 +320,9 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~org.roam.tag.remove~ | Roam: remove tags |
 | ~org.roam.ref.add~ | Roam: add a reference |
 | ~org.roam.ref.remove~ | Roam: remove a reference |
+| ~org.journal.new.date.entry~ | Journal: new entry for a date |
+| ~org.journal.new.scheduled.entry~ | Journal: new entry for a day to come |
+| ~org.journal.open.current~ | Journal: open the current file |
 | ~org.date.later.hours~ | Agenda: move the time one hour later |
 | ~org.date.earlier.hours~ | Agenda: move the time one hour earlier |
 | ~org.date.later.minutes~ | Agenda: move the time later by the rounding minutes |

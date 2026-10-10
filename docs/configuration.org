@@ -546,6 +546,91 @@ against Emacs by recorded cases and differential fuzzing. What differs:
   them for org-roam (its PCRE pattern, word boundaries, any case), so no
   ~rg~ is needed; encrypted files are not searched.
 
+** A journal (org-journal)
+:PROPERTIES:
+:CUSTOM_ID: a-journal-org-journal
+:END:
+
+A journal can be kept as [[https://github.com/bastibe/org-journal][org-journal]] keeps it: a file a day in a
+directory (or a file a week, month or year, ~org_journal_file_type~), an
+entry for each day under a headline with its date, and under it one for
+each time something is written. It is off until ~org_journal_enabled~ is
+~true~:
+
+#+begin_src toml
+org_journal_enabled = true
+org_journal_dir = "~/journal"
+#+end_src
+
+#+begin_src lua
+require('org-lsp').setup({
+  settings = { org_journal_enabled = true, org_journal_dir = '~/journal' },
+})
+#+end_src
+
+The commands are org-journal's:
+
+- ~org.journal.new.entry~ :: ~org-journal-new-entry~ (~C-c j j~ in the
+  ~emacs~ preset, ~<Leader>jj~ in the ~vim~ one): today's file, today's
+  entry made if it is not there yet, and a new entry in it with the time
+  (~org_journal_time_format~). With a count (~C-u~), today's entry only.
+  The first entry of a day takes the items of the entry before it that
+  ~org_journal_carryover_items~ matches (TODO items unless set), with the
+  headlines above them, out of that entry.
+- ~org.journal.new.date.entry~ :: ~org-journal-new-date-entry~: the same
+  for a date asked for (/Date/, as Org's date prompt reads it).
+- ~org.journal.new.scheduled.entry~ :: ~org-journal-new-scheduled-entry~:
+  a TODO entry for a day to come (/Date/), with its timestamp after
+  ~org_journal_scheduled_string~. With a count, an entry that is not a
+  TODO.
+- ~org.journal.next.entry~, ~org.journal.previous.entry~ ::
+  ~org-journal-next-entry~ (~C-c j f~, ~<Leader>jf~) and
+  ~org-journal-previous-entry~ (~C-c j b~, ~<Leader>jb~), in a journal
+  file: the entry of the day after the one at the cursor, or before, in
+  whatever file it is.
+- ~org.journal.open.current~ :: ~org-journal-open-current-journal-file~:
+  the file of today.
+
+Each shows the entry it is about, in its file, and with
+~org_journal_hide_entries_p~ (on by default) the other entries folded, as
+org-journal leaves them. A journal file that is not open is written to
+disk; one that is open is changed in the editor, for it to save.
+~org_journal_enable_agenda_integration~ puts the files from yesterday on
+in ~org_agenda_files~, as ~org-journal-enable-agenda-integration~ does.
+
+org-journal's files have no extension unless ~org_journal_file_format~
+gives them one (~%Y%m%d.org~). Neovim, Vim, VS Code and Sublime Text open
+the files of ~org_journal_dir~ without an extension as Org files, as the
+server tells them where it is. Zed and Helix are told ahead of time which
+files are Org: add the directory there (here ~journal~), or give the
+files ~.org~:
+
+#+begin_src json
+{ "file_types": { "Org": ["**/journal/*"] } }
+#+end_src
+
+#+begin_src toml
+# ~/.config/helix/languages.toml, in the [[language]] of org
+file-types = ["org", { glob = "journal/*" }]
+#+end_src
+
+The commands are what org-journal does, checked against Emacs by recorded
+cases and differential fuzzing, its oddities too (an entry for a day
+before all the others goes first in its file). What differs:
+
+- The keys are under ~C-c j~, the prefix org-journal's README suggests,
+  rather than its default, ~C-c C-~, whose keys are Org's.
+- A file that is not open is written to disk; Emacs leaves the buffer it
+  changed unsaved.
+- Folds close and open by headlines: a headline whose children show but
+  whose text does not shows open.
+- Folds open and close only in Neovim, Vim, VS Code and Sublime Text; in
+  Zed and Helix the file shows as it does.
+- ~org-journal-encrypt-journal~ (files encrypted whole, ~.gpg~) is not
+  there: ~org_journal_enable_encryption~, with ~org-crypt~, is.
+- ~org-journal-search~, its calendar keys and the schedule view are still
+  to come; ~org-journal-reschedule-scheduled-entry~ is not there.
+
 ** Export, Babel and other work in Emacs
 :PROPERTIES:
 :CUSTOM_ID: export-babel-and-other-work-in-emacs
@@ -1839,6 +1924,94 @@ org_roam_mode_sections = ["backlinks", "reflinks"]
 # buffer. (org-roam-capture-templates)
 org_roam_capture_templates = [{ key = "d", description = "default", type = "plain", target = ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"], template = "%?", unnarrowed = true }]
 
+# org-journal: a journal in `org_journal_dir`, a file a day (or week, month,
+# year), written with the `org.journal.*` commands. Off, those commands only
+# say so.
+org_journal_enabled = false
+
+# The directory of the journal's files. `~/` is the home directory.
+# (org-journal-dir)
+org_journal_dir = "~/Documents/journal/"
+
+# A file a day (`daily`), week (`weekly`), month (`monthly`) or year
+# (`yearly`); but daily, each entry has its date in a `CREATED` property.
+# (org-journal-file-type)
+org_journal_file_type = "daily"
+
+# The day a weekly file starts on: 1 is Monday, 7 Sunday.
+# (org-journal-start-on-weekday)
+org_journal_start_on_weekday = 1
+
+# The names of the files, as `format-time-string` writes the date their
+# entries start on: with `%Y`, `%m` and `%d` (a yearly file needs only `%Y`, a
+# monthly one `%Y` and `%m`). A name without `.org` is an Org file to
+# org-journal, but not to most editors. (org-journal-file-format)
+org_journal_file_format = "%Y%m%d"
+
+# The date of an entry, after `org_journal_date_prefix`, as
+# `format-time-string` writes it, in the C locale: `%x` is `10/09/26`.
+# (org-journal-date-format)
+org_journal_date_format = "%A, %x"
+
+# What comes before the date of an entry: a headline, or `#+title: ` in a
+# daily file. (org-journal-date-prefix)
+org_journal_date_prefix = "* "
+
+# The time of a new entry of the day, as `format-time-string` writes it; empty
+# for none. (org-journal-time-format)
+org_journal_time_format = "%R "
+
+# The time of an entry made after midnight while it is still yesterday
+# (`org_extend_today_until`); empty for `org_journal_time_format`.
+# (org-journal-time-format-post-midnight)
+org_journal_time_format_post_midnight = ""
+
+# What comes before the time of an entry: its stars give its level.
+# (org-journal-time-prefix)
+org_journal_time_prefix = "** "
+
+# Fold all but the new entry. (org-journal-hide-entries-p)
+org_journal_hide_entries_p = true
+
+# The items of the entry before that move to today's, with the headlines above
+# them: a match of the tags view (`m`); empty for none.
+# (org-journal-carryover-items)
+org_journal_carryover_items = "TODO=\"TODO\""
+
+# Drawers left out of the items carried over.
+# (org-journal-skip-carryover-drawers)
+org_journal_skip_carryover_drawers = []
+
+# What happens to an entry or file left empty by the carryover: `never`
+# deleted, `always`, or `ask`. (org-journal-carryover-delete-empty-journal)
+org_journal_carryover_delete_empty_journal = "never"
+
+# What a new file starts with, as `format-time-string` writes it: `#+title:
+# Journal %Y`. (org-journal-file-header)
+org_journal_file_header = ""
+
+# The date in the `CREATED` property of an entry of a file that is not daily.
+# (org-journal-created-property-timestamp-format)
+org_journal_created_property_timestamp_format = "%Y%m%d"
+
+# What comes before the timestamp of an entry for a day to come
+# (`org.journal.new.scheduled.entry`). (org-journal-scheduled-string)
+org_journal_scheduled_string = ""
+
+# Tag the date of a new entry with `crypt`, for `org-crypt` to encrypt
+# (`org.crypt.encrypt.all`, or as the file is saved with
+# `org-crypt-use-before-save-magic` in the Emacs configuration).
+# (org-journal-enable-encryption)
+org_journal_enable_encryption = false
+
+# Add the journal's files of today and the days to come to the agenda's files.
+# (org-journal-enable-agenda-integration)
+org_journal_enable_agenda_integration = false
+
+# The hour before which it is still yesterday, for org-journal's new entries.
+# (org-extend-today-until)
+org_extend_today_until = 0
+
 # Read every search string of the search view (`s`) as words that must
 # (`+word`, `word`) or must not (`-word`) occur, regexps in braces
 # (`{regexp}`) and `"quoted phrases"`. Off, it is a phrase whose spaces match
@@ -2746,6 +2919,94 @@ org_agenda_custom_commands = []
   // of `org_capture_templates`. `unnarrowed` shows the whole file in the
   // capture buffer. (org-roam-capture-templates)
   "org_roam_capture_templates": [{ "key": "d", "description": "default", "type": "plain", "target": ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"], "template": "%?", "unnarrowed": true }],
+
+  // org-journal: a journal in `org_journal_dir`, a file a day (or week,
+  // month, year), written with the `org.journal.*` commands. Off, those
+  // commands only say so.
+  "org_journal_enabled": false,
+
+  // The directory of the journal's files. `~/` is the home directory.
+  // (org-journal-dir)
+  "org_journal_dir": "~/Documents/journal/",
+
+  // A file a day (`daily`), week (`weekly`), month (`monthly`) or year
+  // (`yearly`); but daily, each entry has its date in a `CREATED` property.
+  // (org-journal-file-type)
+  "org_journal_file_type": "daily",
+
+  // The day a weekly file starts on: 1 is Monday, 7 Sunday.
+  // (org-journal-start-on-weekday)
+  "org_journal_start_on_weekday": 1,
+
+  // The names of the files, as `format-time-string` writes the date their
+  // entries start on: with `%Y`, `%m` and `%d` (a yearly file needs only
+  // `%Y`, a monthly one `%Y` and `%m`). A name without `.org` is an Org file
+  // to org-journal, but not to most editors. (org-journal-file-format)
+  "org_journal_file_format": "%Y%m%d",
+
+  // The date of an entry, after `org_journal_date_prefix`, as
+  // `format-time-string` writes it, in the C locale: `%x` is `10/09/26`.
+  // (org-journal-date-format)
+  "org_journal_date_format": "%A, %x",
+
+  // What comes before the date of an entry: a headline, or `#+title: ` in a
+  // daily file. (org-journal-date-prefix)
+  "org_journal_date_prefix": "* ",
+
+  // The time of a new entry of the day, as `format-time-string` writes it;
+  // empty for none. (org-journal-time-format)
+  "org_journal_time_format": "%R ",
+
+  // The time of an entry made after midnight while it is still yesterday
+  // (`org_extend_today_until`); empty for `org_journal_time_format`.
+  // (org-journal-time-format-post-midnight)
+  "org_journal_time_format_post_midnight": "",
+
+  // What comes before the time of an entry: its stars give its level.
+  // (org-journal-time-prefix)
+  "org_journal_time_prefix": "** ",
+
+  // Fold all but the new entry. (org-journal-hide-entries-p)
+  "org_journal_hide_entries_p": true,
+
+  // The items of the entry before that move to today's, with the headlines
+  // above them: a match of the tags view (`m`); empty for none.
+  // (org-journal-carryover-items)
+  "org_journal_carryover_items": "TODO=\"TODO\"",
+
+  // Drawers left out of the items carried over.
+  // (org-journal-skip-carryover-drawers)
+  "org_journal_skip_carryover_drawers": [],
+
+  // What happens to an entry or file left empty by the carryover: `never`
+  // deleted, `always`, or `ask`. (org-journal-carryover-delete-empty-journal)
+  "org_journal_carryover_delete_empty_journal": "never",
+
+  // What a new file starts with, as `format-time-string` writes it: `#+title:
+  // Journal %Y`. (org-journal-file-header)
+  "org_journal_file_header": "",
+
+  // The date in the `CREATED` property of an entry of a file that is not
+  // daily. (org-journal-created-property-timestamp-format)
+  "org_journal_created_property_timestamp_format": "%Y%m%d",
+
+  // What comes before the timestamp of an entry for a day to come
+  // (`org.journal.new.scheduled.entry`). (org-journal-scheduled-string)
+  "org_journal_scheduled_string": "",
+
+  // Tag the date of a new entry with `crypt`, for `org-crypt` to encrypt
+  // (`org.crypt.encrypt.all`, or as the file is saved with
+  // `org-crypt-use-before-save-magic` in the Emacs configuration).
+  // (org-journal-enable-encryption)
+  "org_journal_enable_encryption": false,
+
+  // Add the journal's files of today and the days to come to the agenda's
+  // files. (org-journal-enable-agenda-integration)
+  "org_journal_enable_agenda_integration": false,
+
+  // The hour before which it is still yesterday, for org-journal's new
+  // entries. (org-extend-today-until)
+  "org_extend_today_until": 0,
 
   // Read every search string of the search view (`s`) as words that must
   // (`+word`, `word`) or must not (`-word`) occur, regexps in braces

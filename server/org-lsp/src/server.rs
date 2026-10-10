@@ -50,6 +50,7 @@ use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target, TimeField};
 
 mod bulk;
+mod journal;
 mod roam;
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
@@ -129,6 +130,11 @@ enum Pending {
     PromptCursor,
     /// A yes-or-no question of Emacs's, whose answer it waits for.
     EmacsQuestion(crossbeam_channel::Sender<bool>),
+    /// The document org-journal leaves the cursor in is shown: its
+    /// headlines are folded as org-journal folds them (`org-lsp/folds`).
+    Folds { uri: Uri, folds: Value },
+    /// An edit after which `uri` is shown at `position` and folded so.
+    EditAndShow { uri: Uri, position: Position, folds: Value },
     /// A question of `command`, run with `argument`, asked with
     /// `window/showMessageRequest` (`message_prompts`); the answer runs it
     /// again.
@@ -503,6 +509,8 @@ enum NoteLog {
 pub const TIMER: &str = "org-lsp/timer";
 /// The notification that asks the editor to save files, `{ "uris": [...] }`.
 pub const SAVE: &str = "org-lsp/save";
+/// The headlines' folds to open and close in a document org-journal shows.
+pub const FOLDS: &str = "org-lsp/folds";
 /// From the client: how many columns of text the window that shows the
 /// agenda has, `{ "width": N }`, for `org_agenda_tags_column` `"auto"`.
 pub const AGENDA_WIDTH: &str = "org-lsp/agendaWidth";
@@ -517,6 +525,9 @@ pub const VIEW_CHANGED: &str = "org-lsp/viewChanged";
 /// { LETTER: face } }`, each face `{ "foreground", "background", "bold",
 /// "italic", "underline", "strikethrough" }` as set.
 pub const FACES: &str = "org-lsp/faces";
+/// The journal's directory, as `capabilities.experimental.orgJournal` has
+/// it, for clients that cannot read the `initialize` result.
+pub const JOURNAL: &str = "org-lsp/journal";
 /// Images to show in place of text, or to take away: what
 /// `org.latex.preview` made, once Emacs has made it. `{ "kind": "latex",
 /// "uri", "scope", "range", "remove", "items": [{ "range", "path" }] }`, as
@@ -985,6 +996,8 @@ struct Server {
     staging: Option<bulk::Staging>,
     /// org-roam, when it is on.
     roam: Option<roam::Roam>,
+    /// org-journal, when it is on.
+    journal: Option<crate::config::JournalSettings>,
     /// `org-clock-display`: by document, the lines of headlines and the
     /// minutes clocked under them, shown as inlay hints until the
     /// document changes.
@@ -1118,7 +1131,7 @@ pub fn run(connection: Connection) -> Result<()> {
         prompt_file.as_deref().and_then(uri::from_path).unwrap_or_else(|| prompt::URI.parse().expect("valid URI"));
 
     let result = InitializeResult {
-        capabilities: capabilities(client.encoding, true, client.command_actions, &faces),
+        capabilities: capabilities(client.encoding, true, client.command_actions, &faces, options.journal().as_ref()),
         server_info: Some(ServerInfo {
             name: "org-lsp".to_string(),
             version: Some(env!("CARGO_PKG_VERSION").to_string()),
@@ -1275,6 +1288,7 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_persistent_marks: options.agenda.persistent_marks.unwrap_or(false),
         staging: None,
         roam: options.roam().map(roam::Roam::new),
+        journal: options.journal(),
         clock_display: HashMap::new(),
         clock_display_range: options.clock_display_default_range.clone().unwrap_or_else(|| "thisyear".to_string()),
         refile_current: None,
@@ -1734,7 +1748,27 @@ fn set_writable(file: &Path) -> std::io::Result<()> {
 /// `cursor`: ask for document highlights, which a client asks for as the
 /// cursor moves, so that the server knows where it is in the agenda
 /// (`command_actions`).
-fn capabilities(encoding: Encoding, inlay_hints: bool, cursor: bool, faces: &Value) -> ServerCapabilities {
+/// `{ "directory" }` of org-journal, when it is on.
+fn journal_directory(journal: Option<&crate::config::JournalSettings>) -> Value {
+    match journal {
+        Some(journal) => {
+            let directory = roam::expand(&journal.directory);
+            json!({ "directory": format!("{}/", directory.display()).replace("//", "/") })
+        }
+        None => Value::Null,
+    }
+}
+
+fn capabilities(
+    encoding: Encoding,
+    inlay_hints: bool,
+    cursor: bool,
+    faces: &Value,
+    journal: Option<&crate::config::JournalSettings>,
+) -> ServerCapabilities {
+    // `orgJournal`: the journal's directory, whose files are Org files
+    // without the name saying so (`org-journal-is-journal`).
+    let journal = journal_directory(journal);
     ServerCapabilities {
         position_encoding: Some(encoding.kind()),
         text_document_sync: Some(TextDocumentSyncCapability::Options(TextDocumentSyncOptions {
@@ -1787,7 +1821,7 @@ fn capabilities(encoding: Encoding, inlay_hints: bool, cursor: bool, faces: &Val
         document_highlight_provider: cursor.then_some(OneOf::Left(true)),
         // `orgFaces`: the faces of particular keywords and priorities
         // (see `org-lsp/faces`).
-        experimental: Some(json!({ "org": manifest::manifest(), "orgFaces": faces })),
+        experimental: Some(json!({ "org": manifest::manifest(), "orgFaces": faces, "orgJournal": journal })),
         ..Default::default()
     }
 }
@@ -1849,7 +1883,9 @@ fn refused(id: RequestId, refusal: Refusal) -> Response {
 /// shows it as `org-timestamp` does.
 fn date_command(id: &str) -> Option<PlanningCommand> {
     match id {
-        commands::AGENDA_GOTO_DATE => Some(PlanningCommand::Timestamp { inactive: false }),
+        commands::AGENDA_GOTO_DATE | commands::JOURNAL_NEW_DATE_ENTRY | commands::JOURNAL_NEW_SCHEDULED_ENTRY => {
+            Some(PlanningCommand::Timestamp { inactive: false })
+        }
         id => planning_command(id),
     }
 }
@@ -2067,6 +2103,22 @@ impl Server {
                     self.send_request::<ShowDocument>(params, None);
                 }
             }
+            Some(Pending::Folds { uri, folds }) => {
+                let mut params = folds;
+                params["uri"] = json!(uri.as_str());
+                let notification = Notification::new(FOLDS.to_string(), params);
+                let _ = self.sender.send(Message::Notification(notification));
+            }
+            Some(Pending::EditAndShow { uri, position, folds }) => {
+                self.refresh_view();
+                let applied = response.response_result.ok().and_then(|result| result.get("applied")?.as_bool());
+                if applied == Some(true) {
+                    let selection = Some(Range::new(position, position));
+                    let params =
+                        ShowDocumentParams { uri: uri.clone(), external: None, take_focus: Some(true), selection };
+                    self.send_request::<ShowDocument>(params, Some(Pending::Folds { uri, folds }));
+                }
+            }
             Some(Pending::Reveal) => self.moving = None,
             Some(Pending::PromptCursor) => {
                 if let Some(open) = self.date_prompt.as_mut() {
@@ -2144,6 +2196,7 @@ impl Server {
                         Err(response) => *response,
                     },
                     FACES => Response::new_ok(request.id, self.faces.clone()),
+                    JOURNAL => Response::new_ok(request.id, journal_directory(self.journal.as_ref())),
                     PREVIEW => match parameters::<Value>(request) {
                         Ok((id, params)) => respond(id, self.preview(&params)),
                         Err(response) => *response,
@@ -3903,7 +3956,7 @@ impl Server {
             // are open (not an entry shown in a popup, `org-preview:`).
             let mut keys: Vec<&String> = self.documents.keys().collect();
             keys.sort();
-            return keys
+            let files = keys
                 .into_iter()
                 .filter_map(|key| {
                     let uri: Uri = key.parse().ok()?;
@@ -3911,6 +3964,7 @@ impl Server {
                     Some((uri.clone(), open(&self.documents[key], &uri)))
                 })
                 .collect();
+            return self.with_journal_files(files);
         }
         // Open documents by path: the client may spell a URI differently.
         let by_path: HashMap<PathBuf, &String> =
@@ -3925,11 +3979,42 @@ impl Server {
                 files.push((uri, Held::Disk(source)));
             }
         }
+        let open: HashMap<PathBuf, String> = by_path.into_iter().map(|(path, key)| (path, key.clone())).collect();
+        files = self.with_journal_files(files);
         if self.agenda_archives == ArchivesMode::Files {
-            let open: HashMap<PathBuf, String> = by_path.into_iter().map(|(path, key)| (path, key.clone())).collect();
             files = self.with_archive_files(files, &open);
         }
         files
+    }
+
+    /// `org-journal-enable-agenda-integration`: the journal's files of
+    /// today and the days to come, after the other agenda files, as
+    /// `org-journal--update-org-agenda-files` leaves them.
+    fn with_journal_files(&mut self, files: Vec<(Uri, Held)>) -> Vec<(Uri, Held)> {
+        let Some(journal) = self.journal.clone().filter(|journal| journal.agenda_integration) else { return files };
+        let directory = roam::expand(&journal.directory);
+        let mut names = Vec::new();
+        roam::list_files(&directory, "", 0, &mut names);
+        let Ok(agenda) = org_core::journal::agenda_files(&names, self.date_time(), &journal.core) else {
+            return files;
+        };
+        let is_journal = |uri: &Uri| {
+            uri::to_path(uri).is_some_and(|path| {
+                path.strip_prefix(&directory).is_ok_and(|relative| {
+                    org_core::journal::is_journal_file(&relative.to_string_lossy().replace('\\', "/"), &journal.core)
+                })
+            })
+        };
+        let mut out: Vec<(Uri, Held)> = files.into_iter().filter(|(uri, _)| !is_journal(uri)).collect();
+        let open: HashMap<PathBuf, String> = self
+            .documents
+            .keys()
+            .filter_map(|key| Some((uri::to_path(&key.parse::<Uri>().ok()?)?, key.clone())))
+            .collect();
+        for name in agenda {
+            out.extend(self.held(&directory.join(name), &open));
+        }
+        out
     }
 
     /// `org-add-archive-files`: each agenda file followed by the files it
@@ -4608,6 +4693,9 @@ impl Server {
             let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
             return self.capture(&context);
         }
+        if params.command.starts_with("org.journal.") {
+            return self.journal_command(&params.command, &argument.unwrap_or_else(|| json!({})));
+        }
         // A capture for a `roam:` link to a new node goes on with its
         // questions, which come back to `org.open`.
         let roam_follow = params.command == commands::OPEN
@@ -4913,6 +5001,9 @@ impl Server {
     /// (`org-agenda-schedule`, `org-agenda-deadline`).
     fn date_target(&self, id: &str, context: &Context) -> std::result::Result<Target, Refusal> {
         let uri = &context.text_document.uri;
+        if matches!(id, commands::JOURNAL_NEW_DATE_ENTRY | commands::JOURNAL_NEW_SCHEDULED_ENTRY) {
+            return Ok(Target::Journal { from: uri.clone() });
+        }
         if id == commands::AGENDA_GOTO_DATE {
             let open = self.view.as_ref().filter(|open| open.uri == *uri);
             let open = open.ok_or_else(|| Refusal::NotHere("This command works in the agenda".to_string()))?;
@@ -4953,6 +5044,7 @@ impl Server {
                 })
             }
             Target::Agenda { .. } => Err("The agenda has no file to change".into()),
+            Target::Journal { .. } => Err("The journal's commands change their own files".into()),
             Target::Entry { row, .. } => {
                 let reference = row.entry.as_ref().ok_or("No entry on this line")?;
                 self.with_source(&reference.uri, |text, _, _, outline, version| {
@@ -4990,7 +5082,7 @@ impl Server {
 
     /// What the date prompt of `command` at `target` starts from.
     fn date_prompt_start(&mut self, command: PlanningCommand, target: &Target) -> std::result::Result<Prompt, Refusal> {
-        if let Target::Agenda { .. } = target {
+        if let Target::Agenda { .. } | Target::Journal { .. } = target {
             // `org-read-date` without a default: today, and nothing typed.
             return Ok(Prompt { default: None, value: String::new() });
         }
@@ -5040,6 +5132,9 @@ impl Server {
     fn apply_date(&mut self, id: &str, target: &Target, answer: &str) -> std::result::Result<(), Refusal> {
         if let Target::Agenda { line, .. } = target {
             return self.goto_date(answer, *line);
+        }
+        if let Target::Journal { from } = target {
+            return self.journal_date(id, from, answer);
         }
         let command = self.date_command_at(id, target)?;
         let source = self.date_source(target)?;
