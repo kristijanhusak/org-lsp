@@ -1298,6 +1298,11 @@ wait('the calendar with scrolloff', function()
   return date_prompt() ~= nil
 end)
 eq(vim.wo[date_prompt()].scrolloff, 0, 'no scrolloff in the calendar')
+-- The calendar's tokens have their looks: the month above a month.
+check(
+  next(vim.api.nvim_get_hl(0, { name = '@lsp.type.calendarHeader.org-date', link = true })) ~= nil,
+  "the calendar's tokens are linked to highlight groups"
+)
 vim.cmd('redraw')
 press('<CR>')
 wait('the calendar to close with scrolloff', function()

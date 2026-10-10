@@ -31,7 +31,12 @@ end
 --- colorscheme change.
 ---@param manifest table what the server announced
 function M.define(manifest)
-  for _, filetype in ipairs({ 'org', manifest.agenda.languageId }) do
+  -- Org files, the agenda, and the date prompt's calendar.
+  local filetypes = { 'org', manifest.agenda.languageId }
+  if manifest.datePrompt then
+    table.insert(filetypes, manifest.datePrompt.languageId)
+  end
+  for _, filetype in ipairs(filetypes) do
     for _, look in ipairs(manifest.highlights) do
       -- The first group that exists, or else the last one, the fallback.
       local target = look.vim[#look.vim]
