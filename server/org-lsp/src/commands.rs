@@ -333,6 +333,12 @@ pub const JOURNAL_NEW_SCHEDULED_ENTRY: &str = "org.journal.new.scheduled.entry";
 pub const JOURNAL_NEXT_ENTRY: &str = "org.journal.next.entry";
 pub const JOURNAL_PREVIOUS_ENTRY: &str = "org.journal.previous.entry";
 pub const JOURNAL_OPEN_CURRENT: &str = "org.journal.open.current";
+pub const JOURNAL_SEARCH: &str = "org.journal.search";
+pub const JOURNAL_SEARCH_FOREVER: &str = "org.journal.search.forever";
+pub const JOURNAL_SEARCH_FUTURE: &str = "org.journal.search.future";
+pub const JOURNAL_SEARCH_FUTURE_SCHEDULED: &str = "org.journal.search.future.scheduled";
+pub const JOURNAL_SCHEDULE_VIEW: &str = "org.journal.schedule.view";
+pub const JOURNAL_RESCHEDULE: &str = "org.journal.reschedule";
 pub const CAPTURE_ABORT: &str = "org.capture.abort";
 pub const CAPTURE_REFILE: &str = "org.capture.refile";
 pub const TIMESTAMP_UP: &str = "org.timestamp.up";
@@ -1420,6 +1426,27 @@ pub const COMMANDS: &[Command] = &[
         ..command(JOURNAL_PREVIOUS_ENTRY, "Journal: previous entry")
     },
     command(JOURNAL_OPEN_CURRENT, "Journal: open the current file"),
+    // The search asks for the days to search too, unless with `C-u`.
+    Command {
+        emacs: &[key(Org, "C-c j s")],
+        vim: &[key(Org, "<Leader>js")],
+        input: Some(Input { kind: "text", prompt: "Enter a string to search for: " }),
+        ..command(JOURNAL_SEARCH, "Journal: search between two dates")
+    },
+    Command {
+        input: Some(Input { kind: "text", prompt: "Enter a string to search for: " }),
+        ..command(JOURNAL_SEARCH_FOREVER, "Journal: search every entry")
+    },
+    Command {
+        input: Some(Input { kind: "text", prompt: "Enter a string to search for: " }),
+        ..command(JOURNAL_SEARCH_FUTURE, "Journal: search the entries to come")
+    },
+    command(JOURNAL_SEARCH_FUTURE_SCHEDULED, "Journal: the TODO entries to come"),
+    command(JOURNAL_SCHEDULE_VIEW, "Journal: the entries to come with a date"),
+    Command {
+        input: Some(Input { kind: "date", prompt: "Date" }),
+        ..command(JOURNAL_RESCHEDULE, "Journal: move the entry to come to another day")
+    },
     Command {
         emacs: &[key(Capture, "C-c C-k")],
         vim: &[key(Capture, "<Leader>ok")],

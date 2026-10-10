@@ -417,6 +417,11 @@ pub struct Options {
     pub journal_enable_encryption: Option<bool>,
     #[serde(rename = "org_journal_enable_agenda_integration")]
     pub journal_enable_agenda_integration: Option<bool>,
+    #[serde(rename = "org_journal_search_result_date_format")]
+    pub journal_search_result_date_format: Option<String>,
+    /// `org-journal-search-results-order-by`: `asc` or `desc`.
+    #[serde(rename = "org_journal_search_results_order_by")]
+    pub journal_search_results_order_by: Option<String>,
     /// `org-extend-today-until`: the hour before which it is yesterday.
     #[serde(rename = "org_extend_today_until")]
     pub extend_today_until: Option<i64>,
@@ -972,6 +977,11 @@ impl Options {
                 defaults.created_property_timestamp_format,
             ),
             scheduled_string: text(&self.journal_scheduled_string, defaults.scheduled_string),
+            search_result_date_format: text(
+                &self.journal_search_result_date_format,
+                defaults.search_result_date_format.clone(),
+            ),
+            search_results_descending: self.journal_search_results_order_by.as_deref() == Some("desc"),
             enable_encryption: self.journal_enable_encryption.unwrap_or(false),
             extend_today_until: self.extend_today_until.unwrap_or(0),
             ..defaults

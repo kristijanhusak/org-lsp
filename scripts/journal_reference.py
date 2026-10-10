@@ -10,22 +10,31 @@ A case is a JSON object:
         "org_journal_carryover_items": "TODO=\\"TODO\\""
       },
       "command": "new-entry",                 new-entry, new-date-entry,
-                                              new-scheduled-entry,
+                                              new-scheduled-entry, reschedule,
                                               next, previous, open-current,
-                                              agenda-files
+                                              agenda-files, search,
+                                              search-forever, search-future,
+                                              search-future-scheduled,
+                                              schedule-view
       "prefix": 1,                            optional: how many C-u
       "from": "20261009", "point": 12,        optional: the file the
                                               command runs in, and where in
                                               it (characters from its start)
       "date": "2026-10-12 10:00",             optional: what is typed at the
-                                              `Date:` prompt
+                                              `Date:` prompt; a list for
+                                              several prompts (the search's
+                                              start and end)
+      "search": "standup",                    optional: the string searched
       "answers": ["y"]                        optional: answers to the
                                               questions asked (y-or-n-p)
     }
 
 `reference(cases)` adds `expected`: `{"files", "buffer", "point",
 "hidden", "messages"}`, and for `agenda-files` the files
-`org-journal--update-org-agenda-files` gives the agenda (`agenda`): the files of the directory after the command
+`org-journal--update-org-agenda-files` gives the agenda (`agenda`), and for
+the search and the schedule view the text of their buffer and its buttons,
+each `[place, file, point]` (`view`), for `reschedule` the file the window
+shows and its point (`window`): the files of the directory after the command
 (each buffer saved), the file the command left the cursor in and where
 (characters from its start), the lines of that file its headlines' folds
 left hidden (1-based; drawers fold on their own), and the messages it
@@ -76,7 +85,8 @@ DRIVER = r"""
 ;; The `Date:' prompt reads what the case types.
 (advice-add 'org-read-date :filter-args
             (lambda (args)
-              (list (nth 0 args) (nth 1 args) (or org-lsp-date (error "No date"))
+              (list (nth 0 args) (nth 1 args)
+                    (or (if (consp org-lsp-date) (pop org-lsp-date) org-lsp-date) (error "No date"))
                     (nth 3 args) (nth 4 args) (nth 5 args) (nth 6 args))))
 (defun org-lsp-hidden ()
   (save-excursion
@@ -87,11 +97,30 @@ DRIVER = r"""
         (forward-line 1)
         (setq line (1+ line)))
       (vconcat (nreverse hidden)))))
-(defun org-lsp-journal-case (dir out command prefix from point date answers)
+(defun org-lsp-view (name)
+  "The text of the buffer NAME, and where its buttons lead."
+  (when (get-buffer name)
+    (with-current-buffer name
+      (let (links)
+        (let ((button (next-button (point-min))))
+          (while button
+            (let ((target (button-get button 'org-journal-link)))
+              (push (vector (1- (button-start button))
+                            (if (cdr target)
+                                (file-relative-name (org-journal--get-entry-path (cdr target)) org-journal-dir)
+                              :null)
+                            (1- (car target)))
+                    links))
+            (setq button (next-button (button-end button)))))
+        (list (cons 'text (buffer-substring-no-properties (point-min) (point-max)))
+              (cons 'links (vconcat (nreverse links))))))))
+(defun org-lsp-journal-case (dir out command prefix from point date answers search)
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer)
       (with-current-buffer buffer (set-buffer-modified-p nil))
       (kill-buffer buffer)))
+  (dolist (name '("*Org-journal search*" "*Org-journal schedule*"))
+    (when (get-buffer name) (kill-buffer name)))
   (setq org-lsp-messages nil org-lsp-answers answers org-lsp-date date org-lsp-agenda nil
         kill-ring nil kill-ring-yank-pointer nil)
   (switch-to-buffer "*scratch*")
@@ -115,6 +144,11 @@ DRIVER = r"""
                     ("next" (org-journal-next-entry))
                     ("previous" (org-journal-previous-entry))
                     ("open-current" (org-journal-open-current-journal-file))
+                    ("search" (org-journal-search search))
+                    ("search-forever" (org-journal-search-forever search))
+                    ("search-future" (org-journal-search-future search))
+                    ("search-future-scheduled" (org-journal-search-future-scheduled))
+                    ("schedule-view" (org-journal-schedule-view))
                     ("agenda-files"
                      (let ((org-journal-enable-agenda-integration t) (org-agenda-files nil))
                        (org-journal--update-org-agenda-files)))))
@@ -127,6 +161,17 @@ DRIVER = r"""
                    (list (cons 'buffer (or name :null))
                          (cons 'point (if file where :null))
                          (cons 'hidden hidden))
+                   (when (string-prefix-p "search" command)
+                     (list (cons 'view (org-lsp-view "*Org-journal search*"))))
+                   (when (equal command "reschedule")
+                     (let ((window (window-buffer (selected-window))))
+                       (list (cons 'window
+                                   (vector (if (buffer-file-name window)
+                                               (file-relative-name (buffer-file-name window) org-journal-dir)
+                                             :null)
+                                           (1- (window-point (selected-window))))))))
+                   (when (equal command "schedule-view")
+                     (list (cons 'view (org-lsp-view "*Org-journal schedule*"))))
                    (when (equal command "agenda-files")
                      (list (cons 'agenda (vconcat (mapcar (lambda (file) (file-relative-name file org-journal-dir))
                                                           org-lsp-agenda))))))))
@@ -167,6 +212,8 @@ OPTIONS = {
     "org_journal_enable_encryption": lambda v: "t" if v else "nil",
     "org_extend_today_until": str,
     "org_tags_column": str,
+    "org_journal_search_result_date_format": STRING,
+    "org_journal_search_results_order_by": lambda v: ":" + v,
     "org_todo_keywords": lambda v: "'((sequence " + " ".join(STRING(x) for x in v) + "))",
 }
 
@@ -207,13 +254,16 @@ def reference(cases):
                 target = os.path.join(directory, f"{number}-{index}", "out.json")
                 outputs.append((case, target))
                 answers = " ".join(lisp_string(answer) for answer in case.get("answers", []))
-                date = lisp_string(case["date"]) if "date" in case else "nil"
+                if isinstance(case.get("date"), list):
+                    date = "(list " + " ".join(lisp_string(d) for d in case["date"]) + ")"
+                else:
+                    date = lisp_string(case["date"]) if "date" in case else "nil"
                 source = lisp_string(case["from"]) if "from" in case else "nil"
                 forms.append(
                     f"(let ({bindings(case.get('options'))})"
                     f" (org-lsp-journal-case {lisp_string(folder)} {lisp_string(target)}"
                     f" {lisp_string(case['command'])} {case.get('prefix', 0)} {source} {case.get('point', 0)}"
-                    f" {date} (list {answers})))"
+                    f" {date} (list {answers}) {lisp_string(case.get('search', ''))}))"
                 )
             driver = os.path.join(directory, f"driver-{number}.el")
             with open(driver, "w", encoding="utf-8") as handle:

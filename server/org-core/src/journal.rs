@@ -17,6 +17,9 @@ use crate::read_date::ReadDate;
 
 mod buffer;
 mod carryover;
+mod search;
+
+pub use search::{Link, Period, View};
 
 use buffer::{search_regex, Buffer};
 
@@ -65,6 +68,9 @@ pub struct Settings {
     pub crypt_tag: String,
     /// `org-extend-today-until`
     pub extend_today_until: i64,
+    pub search_result_date_format: String,
+    /// `org-journal-search-results-order-by` `:desc`
+    pub search_results_descending: bool,
     /// How Org writes properties, and reads keywords.
     pub properties: crate::properties::Context,
     pub tags: crate::tags::Settings,
@@ -92,6 +98,8 @@ impl Default for Settings {
             enable_encryption: false,
             crypt_tag: "crypt".to_string(),
             extend_today_until: 0,
+            search_result_date_format: "%A, %x".to_string(),
+            search_results_descending: false,
             properties: crate::properties::Context::default(),
             tags: crate::tags::Settings::default(),
         }
@@ -497,6 +505,15 @@ pub enum Command {
     Previous,
     /// `org-journal-open-current-journal-file`
     OpenCurrent,
+    /// `org-journal-search` and the commands that search a period of
+    /// their own (`org-journal-search-forever` …); an empty string
+    /// finds every entry with a time.
+    Search { string: String, period: Period },
+    /// `org-journal-schedule-view`
+    ScheduleView,
+    /// `org-journal-reschedule-scheduled-entry`, at the point, to the
+    /// date read at its prompt.
+    Reschedule { date: ReadDate },
 }
 
 /// What a command runs on.
@@ -545,6 +562,12 @@ pub struct Outcome {
     pub changed: BTreeMap<String, Option<String>>,
     pub visit: Option<Visit>,
     pub messages: Vec<String>,
+    /// The buffer of its own a command shows: the search results, the
+    /// schedule.
+    pub view: Option<View>,
+    /// The file the window shows when it is not the current buffer, and
+    /// where: the new day of a rescheduled entry.
+    pub shown: Option<(String, usize)>,
 }
 
 /// Emacs as org-journal leaves it: its buffers, the current one, the
@@ -563,6 +586,8 @@ struct Emacs<'a> {
     /// `org-journal--dates`: the dates of each file as last read, which
     /// are read again only when a journal buffer is saved.
     dates: Option<BTreeMap<String, Vec<CalendarDate>>>,
+    view: Option<View>,
+    shown: Option<(String, usize)>,
 }
 
 impl<'a> Emacs<'a> {
@@ -578,6 +603,8 @@ impl<'a> Emacs<'a> {
             answered: 0,
             carryover_off: false,
             dates: None,
+            view: None,
+            shown: None,
         };
         if let Some((file, offset)) = request.from {
             let index = emacs.visit(file);
@@ -1070,6 +1097,17 @@ pub fn run(command: &Command, request: &Request, settings: &Settings) -> Result<
                 emacs.messages.push(format!("Journal file {}{file} not found", settings.directory));
             }
         }
+        Command::Search { string, period } => {
+            let view = emacs.search(string, *period)?;
+            emacs.view = Some(view);
+            emacs.current = None;
+        }
+        Command::ScheduleView => {
+            let view = emacs.schedule_view()?;
+            emacs.view = Some(view);
+            emacs.current = None;
+        }
+        Command::Reschedule { date } => emacs.reschedule(date)?,
     }
     Ok(emacs.outcome())
 }
@@ -1108,6 +1146,6 @@ impl Emacs<'_> {
             }
             Visit { file: buffer.file.clone(), offset: buffer.point, hidden, hidden_lines: buffer.hidden_lines() }
         });
-        Outcome { changed, visit, messages: self.messages }
+        Outcome { changed, visit, messages: self.messages, view: self.view, shown: self.shown }
     }
 }

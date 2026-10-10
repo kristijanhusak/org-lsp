@@ -964,7 +964,7 @@ fn first_stamp(text: &str, active: bool) -> Option<String> {
 /// `org-entry-get` of `TIMESTAMP` (`active`) or `TIMESTAMP_IA`: the first
 /// such timestamp in the headline, then in the section after the planning
 /// line, clocks and properties aside.
-fn entry_stamp(text: &str, outline: &Outline, index: usize, active: bool) -> Option<String> {
+pub(crate) fn entry_stamp(text: &str, outline: &Outline, index: usize, active: bool) -> Option<String> {
     static PLANNING: LazyLock<Regex> = LazyLock::new(|| {
         RegexBuilder::new(r"^[ \t]*(?:CLOSED|DEADLINE|SCHEDULED):")
             .case_insensitive(true)

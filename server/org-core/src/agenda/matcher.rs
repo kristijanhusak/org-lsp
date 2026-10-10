@@ -429,6 +429,8 @@ fn property_value(index: usize, outline: &Outline, name: &str) -> Option<String>
         "SCHEDULED" => stamp(&entry.scheduled),
         "DEADLINE" => stamp(&entry.deadline),
         "CLOSED" => stamp(&entry.closed),
+        "TIMESTAMP" => crate::clocktable::entry_stamp(&outline.text, outline, index, true),
+        "TIMESTAMP_IA" => crate::clocktable::entry_stamp(&outline.text, outline, index, false),
         "TAGS" => tag_string(entry.tags.iter().filter(|tag| !tag.inherited).map(|tag| tag.name.as_str()).collect()),
         "ALLTAGS" => tag_string(entry.tags.iter().map(|tag| tag.name.as_str()).collect()),
         "ITEM" => Some(item_title(entry)),

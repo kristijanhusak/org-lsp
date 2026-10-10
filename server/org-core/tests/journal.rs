@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use org_core::date::{Date, DateTime};
-use org_core::journal::{self, Command, DeleteEmpty, FileType, Request, Settings, Stop};
+use org_core::journal::{self, Command, DeleteEmpty, FileType, Period, Request, Settings, Stop};
 use org_core::read_date::{read_date, Settings as ReadDateSettings};
 use org_syntax::TodoKeywords;
 use serde_json::{json, Value};
@@ -43,7 +43,7 @@ fn settings(options: &Value) -> Settings {
     if let Some(day) = options["org_journal_start_on_weekday"].as_i64() {
         settings.start_on_weekday = day;
     }
-    let texts: [(&str, &mut String); 10] = [
+    let texts: [(&str, &mut String); 11] = [
         ("org_journal_file_format", &mut settings.file_format),
         ("org_journal_date_format", &mut settings.date_format),
         ("org_journal_date_prefix", &mut settings.date_prefix),
@@ -54,6 +54,7 @@ fn settings(options: &Value) -> Settings {
         ("org_journal_file_header", &mut settings.file_header),
         ("org_journal_created_property_timestamp_format", &mut settings.created_property_timestamp_format),
         ("org_journal_scheduled_string", &mut settings.scheduled_string),
+        ("org_journal_search_result_date_format", &mut settings.search_result_date_format),
     ];
     for (name, field) in texts {
         if let Some(value) = string(name) {
@@ -79,6 +80,9 @@ fn settings(options: &Value) -> Settings {
     if let Some(hour) = options["org_extend_today_until"].as_i64() {
         settings.extend_today_until = hour;
     }
+    if let Some(order) = string("org_journal_search_results_order_by") {
+        settings.search_results_descending = order == "desc";
+    }
     if let Some(column) = options["org_tags_column"].as_i64() {
         settings.tags.tags_column = column;
     }
@@ -99,9 +103,14 @@ fn run(case: &Value) -> Value {
         .map(|(name, text)| (name.clone(), text.as_str().unwrap().to_string()))
         .collect();
     let prefix = case["prefix"].as_u64().unwrap_or(0) > 0;
-    let date = || {
-        read_date(case["date"].as_str().unwrap_or(""), None, now, &ReadDateSettings::default())
-            .expect("a date the prompt reads")
+    let read = |text: &str| read_date(text, None, now, &ReadDateSettings::default()).expect("a date the prompt reads");
+    let date = || read(case["date"].as_str().unwrap_or(""));
+    let search = case["search"].as_str().unwrap_or("").to_string();
+    // `C-u` searches every date.
+    let between = || match case["date"].as_array() {
+        _ if prefix => Period::Forever,
+        Some(dates) => Period::Between(read(dates[0].as_str().unwrap()).date, read(dates[1].as_str().unwrap()).date),
+        None => Period::Forever,
     };
     if case["command"] == "agenda-files" {
         let names: Vec<String> = files.keys().cloned().collect();
@@ -119,6 +128,12 @@ fn run(case: &Value) -> Value {
         "next" => Command::Next,
         "previous" => Command::Previous,
         "open-current" => Command::OpenCurrent,
+        "reschedule" => Command::Reschedule { date: date() },
+        "search" => Command::Search { string: search, period: between() },
+        "search-forever" => Command::Search { string: search, period: Period::Forever },
+        "search-future" => Command::Search { string: search, period: Period::Future },
+        "search-future-scheduled" => Command::Search { string: "TODO".to_string(), period: Period::Future },
+        "schedule-view" => Command::ScheduleView,
         other => panic!("unknown command {other}"),
     };
     let from_file = case["from"].as_str();
@@ -151,13 +166,34 @@ fn run(case: &Value) -> Value {
                     }
                     None => (Value::Null, Value::Null, json!([])),
                 };
-                return json!({
+                let mut got = json!({
                     "buffer": buffer,
                     "point": point,
                     "hidden": hidden,
                     "files": after,
                     "messages": outcome.messages,
                 });
+                if let Some(view) = &outcome.view {
+                    let links: Vec<Value> = view
+                        .links
+                        .iter()
+                        .map(|link| {
+                            let target = files.get(&link.source).cloned().unwrap_or_default();
+                            json!([chars(&view.text, link.at), link.file, chars(&target, link.offset)])
+                        })
+                        .collect();
+                    got["view"] = json!({ "text": view.text, "links": links });
+                }
+                if case["command"] == "reschedule" {
+                    got["window"] = match &outcome.shown {
+                        Some((file, offset)) => {
+                            let text = after.get(file).cloned().unwrap_or_default();
+                            json!([file, chars(&text, *offset)])
+                        }
+                        None => json!([Value::Null, 0]),
+                    };
+                }
+                return got;
             }
             Err(Stop::Ask(question)) => match given.get(answers.len()) {
                 Some(answer) => answers.push(*answer),
@@ -175,7 +211,7 @@ fn runs_org_journal_as_emacs_does() {
     let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     let mut failures = Vec::new();
     for (index, case) in cases.iter().enumerate() {
-        let got = run(case);
+        let got = std::panic::catch_unwind(|| run(case)).unwrap_or_else(|_| json!("PANIC"));
         let expected = &case["expected"];
         if &got != expected {
             failures.push(format!(

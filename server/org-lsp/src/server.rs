@@ -998,6 +998,11 @@ struct Server {
     roam: Option<roam::Roam>,
     /// org-journal, when it is on.
     journal: Option<crate::config::JournalSettings>,
+    /// What a journal command that asked for a date in the calendar goes
+    /// on with: its id and its context so far.
+    journal_state: Option<(String, Value)>,
+    /// The directory of the journal's search results and schedule.
+    journal_views: PathBuf,
     /// `org-clock-display`: by document, the lines of headlines and the
     /// minutes clocked under them, shown as inlay hints until the
     /// document changes.
@@ -1289,6 +1294,8 @@ pub fn run(connection: Connection) -> Result<()> {
         staging: None,
         roam: options.roam().map(roam::Roam::new),
         journal: options.journal(),
+        journal_state: None,
+        journal_views: server_directory("journal"),
         clock_display: HashMap::new(),
         clock_display_range: options.clock_display_default_range.clone().unwrap_or_else(|| "thisyear".to_string()),
         refile_current: None,
@@ -1883,9 +1890,11 @@ fn refused(id: RequestId, refusal: Refusal) -> Response {
 /// shows it as `org-timestamp` does.
 fn date_command(id: &str) -> Option<PlanningCommand> {
     match id {
-        commands::AGENDA_GOTO_DATE | commands::JOURNAL_NEW_DATE_ENTRY | commands::JOURNAL_NEW_SCHEDULED_ENTRY => {
-            Some(PlanningCommand::Timestamp { inactive: false })
-        }
+        commands::AGENDA_GOTO_DATE
+        | commands::JOURNAL_NEW_DATE_ENTRY
+        | commands::JOURNAL_NEW_SCHEDULED_ENTRY
+        | commands::JOURNAL_RESCHEDULE
+        | commands::JOURNAL_SEARCH => Some(PlanningCommand::Timestamp { inactive: false }),
         id => planning_command(id),
     }
 }
@@ -5001,7 +5010,13 @@ impl Server {
     /// (`org-agenda-schedule`, `org-agenda-deadline`).
     fn date_target(&self, id: &str, context: &Context) -> std::result::Result<Target, Refusal> {
         let uri = &context.text_document.uri;
-        if matches!(id, commands::JOURNAL_NEW_DATE_ENTRY | commands::JOURNAL_NEW_SCHEDULED_ENTRY) {
+        if matches!(
+            id,
+            commands::JOURNAL_NEW_DATE_ENTRY
+                | commands::JOURNAL_NEW_SCHEDULED_ENTRY
+                | commands::JOURNAL_RESCHEDULE
+                | commands::JOURNAL_SEARCH
+        ) {
             return Ok(Target::Journal { from: uri.clone() });
         }
         if id == commands::AGENDA_GOTO_DATE {

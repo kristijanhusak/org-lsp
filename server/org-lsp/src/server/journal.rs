@@ -10,7 +10,7 @@ use std::path::Path;
 
 use lsp_types::request::ShowDocument;
 use lsp_types::{FoldingRange, Position, Range, ShowDocumentParams, TextDocumentIdentifier, Uri};
-use org_core::journal::{self, Command, Outcome, Request, Stop};
+use org_core::journal::{self, Command, Outcome, Period, Request, Stop, View};
 use org_core::Refusal;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -20,6 +20,10 @@ use super::{Pending, Server};
 use crate::config::JournalSettings;
 use crate::line_index::LineIndex;
 use crate::{commands, folding, uri};
+
+/// The files of the search results and of the schedule.
+const SEARCH_FILE: &str = "org-journal-search.org";
+const SCHEDULE_FILE: &str = "org-journal-schedule.org";
 
 /// What the commands say while org-journal is off.
 const OFF: &str = "org-journal is off: set org_journal_enabled to use it";
@@ -40,6 +44,15 @@ pub(super) struct JournalContext {
     answers: Option<String>,
     /// The date read for a command that asked for one.
     date: Option<String>,
+    /// The string a search looks for, and its first and last day.
+    search: Option<String>,
+    start: Option<String>,
+    end: Option<String>,
+}
+
+/// A question to type the answer of: `kind` `text` or `date`.
+fn ask_input(kind: &str, prompt: &str, context: Value) -> Value {
+    json!({ "input": { "kind": kind, "prompt": prompt, "value": "", "context": context } })
 }
 
 /// A yes-or-no question, answered with `input` and `context` sent back.
@@ -77,7 +90,13 @@ impl Server {
                 }
             }
         }
-        let dated = matches!(id, commands::JOURNAL_NEW_DATE_ENTRY | commands::JOURNAL_NEW_SCHEDULED_ENTRY);
+        if let Some(asked) = self.journal_search_input(id, &context)? {
+            return Ok(asked);
+        }
+        let dated = matches!(
+            id,
+            commands::JOURNAL_NEW_DATE_ENTRY | commands::JOURNAL_NEW_SCHEDULED_ENTRY | commands::JOURNAL_RESCHEDULE
+        );
         let date = match (&context.date, context.step.as_deref(), &context.input) {
             (Some(date), _, _) => Some(date.clone()),
             (None, None, Some(input)) if dated => Some(input.clone()),
@@ -90,18 +109,55 @@ impl Server {
         if dated && date.is_none() {
             // The date prompt, whose answer comes back through
             // `journal_date`.
-            let mut asked = argument.clone();
-            if let Some(fields) = asked.as_object_mut() {
-                fields.remove("step");
-            }
-            return self.journal_ask_date(id, &context, asked);
+            let state = json!({ "position": context.position, "count": context.count });
+            return self.journal_ask_date(id, &context, state, None);
         }
         self.journal_run(id, &journal, &directory, &context, date.as_deref())
     }
 
+    /// What a search still has to ask: the string, then the first and the
+    /// last day (`org-journal--read-period`), each answer carried in the
+    /// context of the next question.
+    fn journal_search_input(&mut self, id: &str, context: &JournalContext) -> Result<Option<Value>, Refusal> {
+        if !matches!(id, commands::JOURNAL_SEARCH | commands::JOURNAL_SEARCH_FOREVER | commands::JOURNAL_SEARCH_FUTURE)
+        {
+            return Ok(None);
+        }
+        let answer = |step: Option<&str>| match (context.step.as_deref(), &context.input) {
+            (found, Some(input)) if found == step => Some(input.clone()),
+            _ => None,
+        };
+        let Some(search) = context.search.clone().or_else(|| answer(None)).or_else(|| answer(Some("search"))) else {
+            let prompt = "Enter a string to search for: ";
+            return Ok(Some(ask_input("text", prompt, json!({ "step": "search", "count": context.count }))));
+        };
+        if id != commands::JOURNAL_SEARCH || context.count.is_some_and(|count| count > 1) {
+            return Ok(None);
+        }
+        let start = context.start.clone().or_else(|| answer(Some("start")));
+        let end = context.end.clone().or_else(|| answer(Some("end")));
+        let (step, prompt) = match (&start, &end) {
+            (None, _) => ("start", "Enter the search start"),
+            (Some(_), None) => ("end", "Enter the search end"),
+            _ => return Ok(None),
+        };
+        let state = json!({ "search": search, "start": start, "step": step, "position": context.position });
+        self.journal_ask_date(id, context, state, Some(prompt)).map(Some)
+    }
+
     /// Ask for the date of `id`: in the calendar when the editor shows it,
     /// else with its input.
-    fn journal_ask_date(&mut self, id: &str, context: &JournalContext, _argument: Value) -> Result<Value, Refusal> {
+    fn journal_ask_date(
+        &mut self,
+        id: &str,
+        context: &JournalContext,
+        state: Value,
+        prompt: Option<&str>,
+    ) -> Result<Value, Refusal> {
+        self.journal_state = Some((id.to_string(), state.clone()));
+        if let (Some(prompt), false) = (prompt, self.client.date_prompt) {
+            return Ok(ask_input("date", prompt, state));
+        }
         let from = context
             .text_document
             .as_ref()
@@ -117,7 +173,15 @@ impl Server {
 
     /// The answer of the date prompt of `id`, asked from `from`.
     pub(super) fn journal_date(&mut self, id: &str, from: &Uri, answer: &str) -> Result<(), Refusal> {
-        let argument = json!({ "textDocument": { "uri": from.as_str() }, "date": answer });
+        let state = self.journal_state.take().filter(|(pending, _)| pending == id).map(|(_, state)| state);
+        let mut argument = state.filter(Value::is_object).unwrap_or_else(|| json!({}));
+        argument["textDocument"] = json!({ "uri": from.as_str() });
+        // A search's day answers its step; the others' date is the date.
+        if argument.get("step").is_some_and(Value::is_string) {
+            argument["input"] = json!(answer);
+        } else {
+            argument["date"] = json!(answer);
+        }
         let value = self.journal_command(id, &argument)?;
         // A question that comes after the date: asked with a message, as
         // the prompt is gone.
@@ -153,6 +217,27 @@ impl Server {
             commands::JOURNAL_NEXT_ENTRY => Command::Next,
             commands::JOURNAL_PREVIOUS_ENTRY => Command::Previous,
             commands::JOURNAL_OPEN_CURRENT => Command::OpenCurrent,
+            commands::JOURNAL_RESCHEDULE => Command::Reschedule { date: read.clone().ok_or("No date was read")? },
+            commands::JOURNAL_SCHEDULE_VIEW => Command::ScheduleView,
+            commands::JOURNAL_SEARCH_FUTURE_SCHEDULED => {
+                Command::Search { string: "TODO".to_string(), period: Period::Future }
+            }
+            commands::JOURNAL_SEARCH | commands::JOURNAL_SEARCH_FOREVER | commands::JOURNAL_SEARCH_FUTURE => {
+                let string = context.search.clone().or_else(|| context.input.clone()).unwrap_or_default();
+                let day = |answer: &Option<String>| -> Result<org_core::date::Date, Refusal> {
+                    let answer = answer.as_deref().ok_or("No date was read")?;
+                    Ok(org_core::read_date::read_date(answer, None, now, &self.read_date)?.date)
+                };
+                let period = match id {
+                    commands::JOURNAL_SEARCH_FUTURE => Period::Future,
+                    commands::JOURNAL_SEARCH if !prefix => {
+                        let end = context.end.clone().or_else(|| context.input.clone());
+                        Period::Between(day(&context.start)?, day(&end)?)
+                    }
+                    _ => Period::Forever,
+                };
+                Command::Search { string, period }
+            }
             other => return Err(format!("org-lsp has no command `{other}`").into()),
         };
         let mut settings = journal.core.clone();
@@ -198,7 +283,7 @@ impl Server {
             answers: &answers,
         };
         match journal::run(&command, &request, &settings) {
-            Ok(outcome) => self.journal_apply(directory, &files, outcome, journal.core.hide_entries),
+            Ok(outcome) => self.journal_apply(id, directory, &files, outcome, journal.core.hide_entries),
             Err(Stop::Ask(question)) => {
                 let mut sent = json!({ "step": "question", "answers": answered });
                 if let Some(date) = date {
@@ -232,6 +317,7 @@ impl Server {
     /// What org-journal did, done in the editor and on disk.
     fn journal_apply(
         &mut self,
+        id: &str,
         directory: &Path,
         files: &BTreeMap<String, String>,
         outcome: Outcome,
@@ -269,7 +355,22 @@ impl Server {
         if let Some(message) = outcome.messages.last() {
             self.message = Some(message.clone());
         }
-        let Some(visit) = outcome.visit else {
+        if let Some(view) = &outcome.view {
+            self.journal_view(id, directory, files, view)?;
+            return Ok(Value::Null);
+        }
+        // Where the window is, when org-journal changed the buffer of
+        // another (a rescheduled entry's new day).
+        let visit = match &outcome.shown {
+            Some((file, offset)) => Some(journal::Visit {
+                file: file.clone(),
+                offset: *offset,
+                hidden: Vec::new(),
+                hidden_lines: Vec::new(),
+            }),
+            None => outcome.visit,
+        };
+        let Some(visit) = visit else {
             if !documents.is_empty() {
                 let edit = self.workspace_edits(documents);
                 self.apply_edit(lsp_types::ApplyWorkspaceEditParams { label: None, edit }, Pending::Edit);
@@ -295,6 +396,31 @@ impl Server {
             self.apply_edit(params, Pending::EditAndShow { uri, position, folds });
         }
         Ok(Value::Null)
+    }
+
+    /// The search results or the schedule, in a file of the server's
+    /// (`*Org-journal search*`, `*Org-journal schedule*`), shown. Each
+    /// result's date links to the line it was found on.
+    fn journal_view(
+        &mut self,
+        id: &str,
+        directory: &Path,
+        files: &BTreeMap<String, String>,
+        view: &View,
+    ) -> Result<(), Refusal> {
+        let mut text = view.text.clone();
+        for link in view.links.iter().rev() {
+            let source = files.get(&link.source).map(String::as_str).unwrap_or_default();
+            let line = source[..link.offset.min(source.len())].matches('\n').count() + 1;
+            let end = text[link.at..].find('\t').map_or(text.len(), |tab| link.at + tab);
+            let path = directory.join(&link.source);
+            let label = text[link.at..end].to_string();
+            text.replace_range(link.at..end, &format!("[[file:{}::{line}][{label}]]", path.display()));
+        }
+        let name = if id == commands::JOURNAL_SCHEDULE_VIEW { SCHEDULE_FILE } else { SEARCH_FILE };
+        let path = self.journal_views.join(name);
+        self.own_file_show(&path, &text, true, true)?;
+        Ok(())
     }
 
     /// The headlines' folds as org-journal leaves them: `close` those whose
