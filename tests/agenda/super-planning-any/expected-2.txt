@@ -1,0 +1,49 @@
+Week-agenda (W41):
+Monday      5 October 2026 W41
+Tuesday     6 October 2026
+Wednesday   7 October 2026
+Thursday    8 October 2026
+
+ Deadline items
+  money:      Deadline:   TODO [#A] Pay bills                      :home::bills:
+Friday      9 October 2026
+
+ Dated items
+  tasks:      Scheduled:  NEXT Write report                         :home::work:
+Saturday   10 October 2026
+
+ Deadline items
+  money:       2 d. ago:  TODO [#A] Pay bills                      :home::bills:
+  tasks:      In   4 d.:  WAIT Get quote                           :home:house::
+  tasks:      In  10 d.:  TODO [#C] Read book                            :home::
+
+ Unscheduled items 
+  tasks:      14:00-15:00 Meeting with team                 :home::work:meeting:
+
+ Dated items
+  tasks:       9:00...... Scheduled:  NEXT [#B] Call plumber       :home:house::
+  tasks:      Scheduled:  TODO Buy tiles                           :home:house::
+  tasks:      Scheduled:  DONE Old task                                  :home::
+  tasks:      Scheduled:  TODO Errand at the store        :home::shopping:@town:
+  tasks:      Scheduled:  TODO Paint shed                                :home::
+  tasks:      TODO Exercise                                  !           :home::
+
+ Dated items
+  tasks:      Sched. 1x:  NEXT Write report                         :home::work:
+
+ Other items
+               8:00...... ----------------
+              10:00...... ----------------
+              11:00...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+Sunday     11 October 2026
+
+ Unscheduled items 
+  tasks:      Notes on the trip                                          :home::
+
+ Dated items
+  trip:       Scheduled:  TODO [#B] Plan trip                           :travel:

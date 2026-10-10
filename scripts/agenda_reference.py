@@ -29,6 +29,11 @@ A case is a directory with Org files and a `case.json`:
                                       directory)
     }
 
+Options of org-super-agenda (`org_super_agenda_mode`, `…_groups` and the
+others) are given to Emacs as well, from `options`: set
+ORG_LSP_EMACS_PACKAGES to a directory with checkouts of org-super-agenda
+and what it needs (compat, dash, s, ht, ts).
+
 `reference(cases)` writes `expected-N.txt` next to each `case.json`, one
 per run. Emacs runs under faketime, so both programs see the same clock
 (starting at it: a frozen clock makes Emacs wait forever where it pauses).
@@ -46,6 +51,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PRELUDE = r"""
 (require 'org)
 (require 'org-agenda)
+(let ((packages (getenv "ORG_LSP_EMACS_PACKAGES")))
+  (when packages
+    (dolist (dir (directory-files packages t "^[^.]"))
+      (when (file-directory-p dir) (add-to-list 'load-path dir)))
+    (require 'org-super-agenda)
+    (setq org-super-agenda-show-message nil)))
 (setq org-agenda-tags-column -80)
 (defun org-lsp-run (out fn)
   (let ((text (condition-case err
@@ -99,6 +110,7 @@ DEFAULTS = r"""
       org-agenda-search-view-force-full-words nil
       org-agenda-search-view-max-outline-level 0
       org-agenda-custom-commands nil
+      org-agenda-log-mode-items '(closed clock)
       org-tag-alist nil
       org-group-tags t
       org-agenda-text-search-extra-files nil
@@ -128,7 +140,89 @@ DEFAULTS = r"""
       org-agenda-time-grid '((daily today require-timed)
                              (800 1000 1200 1400 1600 1800 2000)
                              "......" "----------------"))
+(when (featurep 'org-super-agenda)
+  (org-super-agenda-mode -1)
+  (setq org-super-agenda-groups nil
+        org-super-agenda-unmatched-name "Other items"
+        org-super-agenda-unmatched-order 99
+        org-super-agenda-header-separator "\n"
+        org-super-agenda-header-prefix " "
+        org-super-agenda-final-group-separator ""
+        org-super-agenda-date-format "%e %B %Y"
+        org-super-agenda-hide-empty-groups nil
+        org-super-agenda-keep-order nil
+        org-super-agenda-group-property-name "agenda-group"
+        org-super-agenda-properties-inherit t))
 """
+
+# The arguments of these selectors that are symbols in Emacs, not strings.
+SUPER_SYMBOLS = {
+    "date": {"today"},
+    "deadline": {"past", "today", "future", "before", "on", "after"},
+    "scheduled": {"past", "today", "future", "before", "on", "after"},
+    "children": {"todo"},
+    "log": {"close", "closed", "clock", "clocked", "changed", "state"},
+    "auto-ts": {"reverse"},
+}
+
+
+def super_value(key, value):
+    """A selector's argument as Emacs Lisp: `true` is `t`, `false` is `nil`,
+    and the words a selector takes as symbols are symbols."""
+    if value is True:
+        return "t"
+    if value is False or value is None:
+        return "nil"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, str):
+        return value if value in SUPER_SYMBOLS.get(key, ()) else lisp_string(value)
+    if isinstance(value, dict):
+        return "(" + " ".join(f":{name} {super_value(name, item)}" for name, item in value.items()) + ")"
+    return "(" + " ".join(super_value(key, item) for item in value) + ")"
+
+
+def super_group(group):
+    """A group of `org-super-agenda-groups` as Emacs Lisp: an object of
+    selectors, or a list of selectors and their arguments in turn."""
+    pairs = list(group.items()) if isinstance(group, dict) else list(zip(group[::2], group[1::2]))
+    out = []
+    for key, value in pairs:
+        key = key.lstrip(":")
+        if key == "name" and value is False:
+            text = "none"
+        elif key in ("and", "not", "discard"):
+            text = super_group(value)
+        elif key == "take":
+            text = f"({value[0]} {super_group(value[1])})"
+        elif key == "order-multi":
+            text = "(" + " ".join([str(value[0])] + [super_group(item) for item in value[1:]]) + ")"
+        else:
+            text = super_value(key, value)
+        out.append(f":{key} {text}")
+    return "(" + " ".join(out) + ")"
+
+
+def super_settings(options):
+    """The org-super-agenda options of a case's `options` as Emacs Lisp."""
+    forms = []
+    for name, value in options.items():
+        if not name.startswith("org_super_agenda_") or name == "org_super_agenda_mode":
+            continue
+        variable = name.replace("_", "-")
+        if name == "org_super_agenda_groups":
+            text = "'(" + " ".join(super_group(group) for group in value) + ")"
+        elif name.endswith("_separator") and isinstance(value, str) and len(value) == 1:
+            # One character is repeated across the window, as `?-` is.
+            text = "?" + value
+        elif isinstance(value, str):
+            text = lisp_string(value)
+        else:
+            text = super_value("", value)
+        forms.append(f"(setq {variable} {text})")
+    if options.get("org_super_agenda_mode"):
+        forms.append("(org-super-agenda-mode 1)")
+    return "\n".join(forms)
 
 
 def org_files(directory):
@@ -241,6 +335,7 @@ def reference(directories):
             forms.append("(org-lsp-reset)")
             forms.append(f"(setq org-agenda-files (list {files}))")
             # `{dir}` in the settings is the case's directory.
+            forms.append(super_settings(case.get("options", {})))
             forms.append(case.get("emacs", "").replace("{dir}", directory))
             # The group tags of the files, which Emacs reads when it builds
             # an agenda and a match string uses from the one built before.

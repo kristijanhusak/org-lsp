@@ -1,0 +1,20 @@
+Global list of TODO items of type: ALL
+
+ Ancestor PROJECT: Garden
+  tasks:      PROJECT Shed                                               :home::
+  tasks:      TODO Paint shed                                            :home::
+
+ Ancestor PROJECT: Renovate kitchen
+  tasks:      TODO Buy tiles                                       :home:house::
+  tasks:      NEXT [#B] Call plumber                               :home:house::
+  tasks:      WAIT Get quote                                       :home:house::
+
+ Other items
+  money:      TODO [#A] Pay bills                                  :home::bills:
+  tasks:      PROJECT Renovate kitchen                             :home::house:
+  tasks:      NEXT Write report                                     :home::work:
+  tasks:      TODO Exercise                                              :home::
+  tasks:      TODO Errand at the store                    :home::shopping:@town:
+  tasks:      PROJECT Garden                                             :home::
+  trip:       TODO [#B] Plan trip                                       :travel:
+  tasks:      TODO [#C] Read book                                        :home::

@@ -1,0 +1,20 @@
+Global list of TODO items of type: ALL
+
+ Shopping in town
+  tasks:      TODO Errand at the store                    :home::shopping:@town:
+
+ First 2 Any TODO keyword
+  tasks:      NEXT Write report                                     :home::work:
+
+ Not work
+  money:      TODO [#A] Pay bills                                  :home::bills:
+  tasks:      PROJECT Renovate kitchen                             :home::house:
+  tasks:      TODO Buy tiles                                       :home:house::
+  tasks:      NEXT [#B] Call plumber                               :home:house::
+  tasks:      WAIT Get quote                                       :home:house::
+  tasks:      TODO Exercise                                              :home::
+  tasks:      PROJECT Garden                                             :home::
+  tasks:      PROJECT Shed                                               :home::
+  tasks:      TODO Paint shed                                            :home::
+  trip:       TODO [#B] Plan trip                                       :travel:
+  tasks:      TODO [#C] Read book                                        :home::

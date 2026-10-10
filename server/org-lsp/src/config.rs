@@ -1784,6 +1784,30 @@ pub struct AgendaOptions {
     pub start_day: Option<String>,
     /// `org-agenda-block-separator`: a character to repeat, a text, or
     /// `false`.
+    #[serde(rename = "org_super_agenda_mode")]
+    pub super_agenda_mode: Option<bool>,
+    #[serde(rename = "org_super_agenda_groups")]
+    pub super_agenda_groups: Option<Vec<serde_json::Value>>,
+    #[serde(rename = "org_super_agenda_unmatched_name")]
+    pub super_agenda_unmatched_name: Option<String>,
+    #[serde(rename = "org_super_agenda_unmatched_order")]
+    pub super_agenda_unmatched_order: Option<i64>,
+    #[serde(rename = "org_super_agenda_header_separator")]
+    pub super_agenda_header_separator: Option<String>,
+    #[serde(rename = "org_super_agenda_header_prefix")]
+    pub super_agenda_header_prefix: Option<String>,
+    #[serde(rename = "org_super_agenda_final_group_separator")]
+    pub super_agenda_final_group_separator: Option<String>,
+    #[serde(rename = "org_super_agenda_date_format")]
+    pub super_agenda_date_format: Option<String>,
+    #[serde(rename = "org_super_agenda_hide_empty_groups")]
+    pub super_agenda_hide_empty_groups: Option<bool>,
+    #[serde(rename = "org_super_agenda_keep_order")]
+    pub super_agenda_keep_order: Option<bool>,
+    #[serde(rename = "org_super_agenda_group_property_name")]
+    pub super_agenda_group_property_name: Option<String>,
+    #[serde(rename = "org_super_agenda_properties_inherit")]
+    pub super_agenda_properties_inherit: Option<bool>,
     #[serde(rename = "org_agenda_block_separator")]
     pub block_separator: Option<serde_json::Value>,
     /// `org-agenda-compact-blocks`
@@ -1973,6 +1997,41 @@ impl AgendaOptions {
         }
         if let Some(level) = self.search_view_max_outline_level {
             config.search.max_level = level;
+        }
+        // org-super-agenda, when `org-super-agenda-mode` is on.
+        if self.super_agenda_mode == Some(true) {
+            use org_core::agenda::super_agenda::{Separator, Settings};
+            // One character is repeated across the window, as `?-` is.
+            let separator = |text: &str| {
+                let mut chars = text.chars();
+                match (chars.next(), chars.next()) {
+                    (Some(c), None) => Separator::Char(c),
+                    _ => Separator::Text(text.to_string()),
+                }
+            };
+            let defaults = Settings::default();
+            config.super_agenda = Some(Settings {
+                groups: self.super_agenda_groups.clone().unwrap_or_default(),
+                unmatched_name: self.super_agenda_unmatched_name.clone().unwrap_or(defaults.unmatched_name),
+                unmatched_order: self.super_agenda_unmatched_order.unwrap_or(defaults.unmatched_order),
+                header_separator: self
+                    .super_agenda_header_separator
+                    .as_deref()
+                    .map_or(defaults.header_separator, separator),
+                header_prefix: self.super_agenda_header_prefix.clone().unwrap_or(defaults.header_prefix),
+                final_group_separator: self
+                    .super_agenda_final_group_separator
+                    .as_deref()
+                    .map_or(defaults.final_group_separator, separator),
+                date_format: self.super_agenda_date_format.clone().unwrap_or(defaults.date_format),
+                hide_empty_groups: self.super_agenda_hide_empty_groups.unwrap_or(defaults.hide_empty_groups),
+                keep_order: self.super_agenda_keep_order.unwrap_or(defaults.keep_order),
+                group_property_name: self
+                    .super_agenda_group_property_name
+                    .clone()
+                    .unwrap_or(defaults.group_property_name),
+                properties_inherit: self.super_agenda_properties_inherit.unwrap_or(defaults.properties_inherit),
+            });
         }
         match &self.block_separator {
             Some(serde_json::Value::Bool(false)) => config.block_separator = None,
@@ -2194,7 +2253,7 @@ mod tests {
             "org_agenda_time_grid": [["daily"], ["900"]],
             "unknown": true
         }));
-        assert_eq!(dropped, ["org_agenda_files", "org_agenda_time_grid", "org_deadline_warning_days"]);
+        assert_eq!(dropped, ["org_agenda_files", "org_deadline_warning_days", "org_agenda_time_grid"]);
         assert_eq!(options.todo_settings().log_done, Some(Logging::Time));
         let config = options.agenda_config();
         assert_eq!((config.span, config.deadline_warning_days, config.time_grid.times.len()), (Span::Day, 14, 7));
@@ -2364,5 +2423,21 @@ mod tests {
         let off: AgendaOptions =
             serde_json::from_value(serde_json::json!({ "org_agenda_start_on_weekday": false })).unwrap();
         assert_eq!(off.to_config().start_on_weekday, None);
+    }
+
+    #[test]
+    fn super_agenda_only_when_turned_on() {
+        let text = "org_super_agenda_header_separator = \"=\"\n\n[[org_super_agenda_groups]]\nname = \"Today\"\ntime-grid = true\ntodo = \"NEXT\"\n";
+        let mut value = parse_config(std::path::Path::new("config.toml"), text).unwrap();
+        let options = |value: &serde_json::Value| serde_json::from_value::<AgendaOptions>(value.clone()).unwrap();
+        // Groups alone do nothing.
+        assert_eq!(options(&value).to_config().super_agenda, None);
+        value["org_super_agenda_mode"] = serde_json::json!(true);
+        let settings = options(&value).to_config().super_agenda.unwrap();
+        // The selectors keep their order, as a plist does.
+        let keys: Vec<&String> = settings.groups[0].as_object().unwrap().keys().collect();
+        assert_eq!(keys, ["name", "time-grid", "todo"]);
+        assert_eq!(settings.header_separator, org_core::agenda::super_agenda::Separator::Char('='));
+        assert_eq!(settings.unmatched_name, "Other items");
     }
 }

@@ -1,0 +1,56 @@
+Day-agenda (W41):
+Saturday   10 October 2026
+
+ Today
+               8:00...... ----------------
+  tasks:       9:00...... Scheduled:  NEXT [#B] Call plumber       :home:house::
+              10:00...... ----------------
+              11:00...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+  tasks:      14:00-15:00 Meeting with team                 :home::work:meeting:
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+
+ Other items
+  money:       2 d. ago:  TODO [#A] Pay bills                      :home::bills:
+  tasks:      Sched. 1x:  NEXT Write report                         :home::work:
+  tasks:      Scheduled:  TODO Buy tiles                           :home:house::
+  tasks:      Scheduled:  DONE Old task                                  :home::
+  tasks:      Scheduled:  TODO Errand at the store        :home::shopping:@town:
+  tasks:      Scheduled:  TODO Paint shed                                :home::
+  tasks:      In   4 d.:  WAIT Get quote                           :home:house::
+  tasks:      In  10 d.:  TODO [#C] Read book                            :home::
+  tasks:      TODO Exercise                                  !           :home::
+
+===============================================================================
+Global list of TODO items of type: ALL
+
+ To-do: NEXT
+  tasks:      NEXT [#B] Call plumber                               :home:house::
+  tasks:      NEXT Write report                                     :home::work:
+
+ To-do: PROJECT
+  tasks:      PROJECT Renovate kitchen                             :home::house:
+  tasks:      PROJECT Garden                                             :home::
+  tasks:      PROJECT Shed                                               :home::
+
+ To-do: TODO
+  money:      TODO [#A] Pay bills                                  :home::bills:
+  tasks:      TODO Buy tiles                                       :home:house::
+  tasks:      TODO Exercise                                              :home::
+  tasks:      TODO Errand at the store                    :home::shopping:@town:
+  tasks:      TODO Paint shed                                            :home::
+  trip:       TODO [#B] Plan trip                                       :travel:
+  tasks:      TODO [#C] Read book                                        :home::
+
+ To-do: WAIT
+  tasks:      WAIT Get quote                                       :home:house::
+
+===============================================================================
+Headlines with TAGS match: work
+
+ Other items
+  tasks:      NEXT Write report                                     :home::work:
+  tasks:      Meeting with team                             :home::work:meeting:

@@ -1,0 +1,43 @@
+{
+  "today": "2026-10-10",
+  "now": "11:00",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "agenda",
+      "span": "week"
+    }
+  ],
+  "options": {
+    "org_modules": [
+      "org-habit"
+    ],
+    "org_super_agenda_mode": true,
+    "org_super_agenda_groups": [
+      {
+        "name": "Today",
+        "time-grid": true
+      },
+      {
+        "name": "Important",
+        "priority": "A"
+      },
+      {
+        "todo": "WAIT",
+        "order": 8
+      },
+      {
+        "tag": "work",
+        "order": 1
+      }
+    ],
+    "org_super_agenda_header_separator": "-",
+    "org_super_agenda_final_group_separator": "="
+  }
+}

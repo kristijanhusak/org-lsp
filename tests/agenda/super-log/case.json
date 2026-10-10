@@ -1,0 +1,41 @@
+{
+  "today": "2026-10-10",
+  "now": "11:00",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day",
+      "log": true
+    }
+  ],
+  "options": {
+    "org_modules": [
+      "org-habit"
+    ],
+    "org_super_agenda_mode": true,
+    "org_super_agenda_groups": [
+      {
+        "log": "closed"
+      },
+      {
+        "log": "clock"
+      },
+      {
+        "log": "state"
+      },
+      {
+        "log": true
+      },
+      {
+        "name": "Rest",
+        "log": false
+      }
+    ],
+    "org_agenda_log_mode_items": [
+      "closed",
+      "clock",
+      "state"
+    ]
+  },
+  "emacs": "(setq org-agenda-log-mode-items '(closed clock state))"
+}

@@ -1,0 +1,29 @@
+{
+  "today": "2026-10-10",
+  "now": "11:00",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "todo"
+    }
+  ],
+  "options": {
+    "org_modules": [
+      "org-habit"
+    ],
+    "org_super_agenda_mode": true,
+    "org_super_agenda_groups": [
+      {
+        "ancestor-with-todo": [
+          "PROJECT",
+          {
+            "nearestp": true
+          }
+        ]
+      }
+    ]
+  }
+}

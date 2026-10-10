@@ -1,0 +1,34 @@
+{
+  "today": "2026-10-10",
+  "now": "11:00",
+  "runs": [
+    {
+      "view": "todo",
+      "filters": [
+        {
+          "type": "tag",
+          "filter": [
+            "+work"
+          ]
+        }
+      ]
+    }
+  ],
+  "options": {
+    "org_modules": [
+      "org-habit"
+    ],
+    "org_super_agenda_mode": true,
+    "org_super_agenda_groups": [
+      {
+        "name": "Work",
+        "tag": "work"
+      },
+      {
+        "name": "Bills",
+        "tag": "bills"
+      }
+    ],
+    "org_super_agenda_hide_empty_groups": true
+  }
+}

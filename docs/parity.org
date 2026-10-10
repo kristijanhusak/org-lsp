@@ -21,7 +21,7 @@ decides the outcome (see "How the work is checked" in [[file:../PLAN.org][PLAN.o
 | [[#tags][Tags]] | 100% | 6 of 6 |
 | [[#properties-and-column-view][Properties and column view]] | 100% | 6 of 6 |
 | [[#dates-and-times][Dates and times]] | 100% | 8 of 8 |
-| [[#agenda][Agenda]] | 100% | 21 of 21 |
+| [[#agenda][Agenda]] | 100% | 22 of 22 |
 | [[#clocking][Clocking]] | 100% | 8 of 8 |
 | [[#capture][Capture]] | 100% | 11 of 11 |
 | [[#refile-and-archive][Refile and archive]] | 100% | 11 of 11 |
@@ -241,7 +241,7 @@ Where editors fall short:
 :CUSTOM_ID: agenda
 :END:
 
-100% (21 of 21)
+100% (22 of 22)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
@@ -259,6 +259,7 @@ Where editors fall short:
 - ✅ Lines formatted as Org formats them (~org-agenda-prefix-format~ and the rest)
 - ✅ The time grid
 - ✅ Habits (~org-habit~): the consistency graph, ~K~
+- ✅ Groups of org-super-agenda (~org_super_agenda_mode~, ~org_super_agenda_groups~): its selectors, automatic groups and options, for each day and each view; not the selectors that run Lisp
 - ✅ Diary sexps (~%%(diary-…)~ lines, ~<%%(…)>~ timestamps): the date functions of ~diary-lib~ and Org (~diary-anniversary~, ~-block~, ~-cyclic~, ~-date~, ~-float~, ~org-class~ …) with ~and~, ~or~, ~not~ and comparisons
 - ✅ Diary sexps calling other Lisp, evaluated by Emacs (~org-diary-sexp-entry~) for each day of the view
 - ✅ Column view in the agenda (~C-c C-x C-c~, through Emacs): each entry's line covered by its columns, the summaries on the date lines and the blocks' headers; editing, cycling and showing the values of the entries, changed in their files

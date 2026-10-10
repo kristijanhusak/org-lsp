@@ -1,0 +1,28 @@
+Global list of TODO items of type: ALL
+
+ 2026-10-08 (Thu)
+  money:      TODO [#A] Pay bills                                  :home::bills:
+
+ 2026-10-09 (Fri)
+  tasks:      NEXT Write report                                     :home::work:
+
+ 2026-10-10 (Sat)
+  tasks:      TODO Buy tiles                                       :home:house::
+  tasks:      NEXT [#B] Call plumber                               :home:house::
+  tasks:      TODO Exercise                                              :home::
+  tasks:      TODO Errand at the store                    :home::shopping:@town:
+  tasks:      TODO Paint shed                                            :home::
+
+ 2026-10-11 (Sun)
+  trip:       TODO [#B] Plan trip                                       :travel:
+
+ 2026-10-12 (Mon)
+  tasks:      TODO [#C] Read book                                        :home::
+
+ 2026-10-14 (Wed)
+  tasks:      WAIT Get quote                                       :home:house::
+
+ Other items
+  tasks:      PROJECT Renovate kitchen                             :home::house:
+  tasks:      PROJECT Garden                                             :home::
+  tasks:      PROJECT Shed                                               :home::

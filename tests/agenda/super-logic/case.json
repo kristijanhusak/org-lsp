@@ -1,0 +1,78 @@
+{
+  "today": "2026-10-10",
+  "now": "11:00",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "agenda",
+      "span": "week"
+    }
+  ],
+  "options": {
+    "org_modules": [
+      "org-habit"
+    ],
+    "org_super_agenda_mode": true,
+    "org_super_agenda_groups": [
+      {
+        "name": "Shopping in town",
+        "and": [
+          "tag",
+          "shopping",
+          "tag",
+          "@town"
+        ]
+      },
+      {
+        "name": "Not work",
+        "not": {
+          "tag": [
+            "work",
+            "meeting"
+          ]
+        },
+        "order": 3
+      },
+      {
+        "take": [
+          2,
+          {
+            "todo": true
+          }
+        ]
+      },
+      {
+        "discard": {
+          "todo": "DONE"
+        }
+      },
+      {
+        "name": false,
+        "priority": "A"
+      },
+      {
+        "order-multi": [
+          2,
+          {
+            "name": "Zeta",
+            "tag": "travel"
+          },
+          {
+            "name": "Alpha",
+            "deadline": true
+          }
+        ]
+      },
+      {
+        "anything": true,
+        "order": 1
+      }
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+Search words: shed
+
+ Other items
+  tasks:      PROJECT Shed                                               :home::
+  tasks:      TODO Paint shed                                            :home::

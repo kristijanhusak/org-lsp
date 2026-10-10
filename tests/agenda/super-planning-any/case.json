@@ -1,0 +1,37 @@
+{
+  "today": "2026-10-10",
+  "now": "11:00",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "agenda",
+      "span": "week"
+    }
+  ],
+  "options": {
+    "org_modules": [
+      "org-habit"
+    ],
+    "org_super_agenda_mode": true,
+    "org_super_agenda_groups": [
+      {
+        "deadline": true
+      },
+      {
+        "scheduled": false
+      },
+      {
+        "date": "today"
+      },
+      {
+        "date": true
+      }
+    ]
+  }
+}

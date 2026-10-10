@@ -1890,6 +1890,44 @@ fn shows_habits_with_their_graph() {
     client.shutdown();
 }
 
+/// org-super-agenda: with its mode on, each day's lines are in groups,
+/// the headers in the agenda's structure face; with groups alone, not.
+#[test]
+fn groups_the_agenda_with_super_agenda() {
+    let mut options = clock();
+    options["org_super_agenda_groups"] = json!([{ "name": "Important", "priority": "A" }]);
+    let mut client = Client::editor(options.clone(), None);
+    client.open("file:///org/work.org", WORK);
+    client.command("org.agenda.list", "file:///org/work.org", 0);
+    assert!(!client.view_text(VIEW).contains(" Important"));
+    client.shutdown();
+
+    options["org_super_agenda_mode"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    client.command("org.agenda.list", "file:///org/work.org", 0);
+    let text = client.view_text(VIEW);
+    let lines: Vec<&str> = text.lines().collect();
+    let row = lines.iter().position(|line| *line == " Important").expect("the group") as u64;
+    assert!(lines[row as usize + 1].contains("Write report"), "{text}");
+    assert_eq!(lines[row as usize - 1], "", "{text}");
+    assert!(lines.contains(&" Other items"), "{text}");
+    let tokens =
+        client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": VIEW } })).unwrap();
+    let data: Vec<u64> = tokens["data"].as_array().unwrap().iter().map(|n| n.as_u64().unwrap()).collect();
+    let legend = &client.initialize["capabilities"]["semanticTokensProvider"]["legend"];
+    let mut line = 0;
+    let header: Vec<&Value> = data
+        .chunks(5)
+        .filter_map(|token| {
+            line += token[0];
+            (line == row).then(|| &legend["tokenTypes"][token[3] as usize])
+        })
+        .collect();
+    assert_eq!(header, [&json!("agendaStructure")], "{data:?}");
+    client.shutdown();
+}
+
 /// `org-agenda-write`: to an `.org` file the agenda's entries, each
 /// without its children and at the top level, as Emacs writes them; to
 /// any other the agenda's text. An existing file is overwritten once the

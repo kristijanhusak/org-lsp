@@ -1,0 +1,44 @@
+{
+  "today": "2026-10-10",
+  "now": "11:00",
+  "runs": [
+    {
+      "view": "tags",
+      "match": "work|bills"
+    },
+    {
+      "view": "tags-todo",
+      "match": "+home"
+    },
+    {
+      "view": "search",
+      "match": "shed"
+    },
+    {
+      "view": "stuck"
+    },
+    {
+      "view": "agenda",
+      "span": "day",
+      "log": true
+    }
+  ],
+  "options": {
+    "org_modules": [
+      "org-habit"
+    ],
+    "org_super_agenda_mode": true,
+    "org_super_agenda_groups": [
+      {
+        "name": "Work",
+        "tag": "work"
+      },
+      {
+        "todo": "WAIT"
+      },
+      {
+        "auto-todo": true
+      }
+    ]
+  }
+}

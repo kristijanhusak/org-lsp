@@ -117,6 +117,8 @@ fn agenda_matches_emacs() {
             let actual = org_lsp::cli::agenda(&arguments).unwrap_or_else(|error| format!("ERROR: {error}\n"));
             // The clock report links to the files: by where the case is.
             let actual = actual.replace(&format!("{}/", directory.display()), "{dir}/");
+            // The recordings end at their last line that is not empty.
+            let actual = format!("{}\n", actual.trim_end_matches('\n'));
             compared += 1;
             if actual != expected {
                 failed += 1;
