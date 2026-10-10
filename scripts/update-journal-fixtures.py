@@ -30,6 +30,15 @@ WEEK = (
     "* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
 )
 WEEKLY = {"org_journal_file_type": "weekly"}
+DAYS = {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n",
+}
+WEEK2 = (
+    "* Monday, 10/12/26\n:PROPERTIES:\n:CREATED:  20261012\n:END:\n** TODO plan\n<2026-10-12 Mon 10:00>\n"
+    "* Wednesday, 10/14/26\n:PROPERTIES:\n:CREATED:  20261014\n:END:\n** 10:00 review\nSCHEDULED: <2026-10-15 Thu>\n"
+)
 
 
 def case(command, files, clock=SAT, **extra):
@@ -136,6 +145,34 @@ CASES = [
     case("agenda-files", {"20260928": "* x\n", "20261005": "* x\n", "20261012": "* y\n"}, options=WEEKLY),
     case("agenda-files", {"202609": "* x\n", "202610": "* x\n", "203101": "* y\n"},
          options={"org_journal_file_type": "monthly", "org_journal_file_format": "%Y%m"}),
+    # Searching: between two dates, ever, from today; the matches of a file
+    # last first, their files in order.
+    case("search", DAYS, search="standup", date=["2026-10-09", "2026-10-10"]),
+    case("search", DAYS, search="standup", date=["2026-10-10", "2026-10-09"]),
+    case("search", DAYS, search="standup", date=["2026-10-12", "2026-10-12"]),
+    case("search", DAYS, search="standup", prefix=1),
+    case("search-forever", DAYS, search="STANDUP"),
+    case("search-forever", DAYS, search="nothing here"),
+    case("search-future", DAYS, search="plan"),
+    case("search-future-scheduled", DAYS),
+    case("search-forever", DAYS, search="standup",
+         options={"org_journal_search_results_order_by": "desc", "org_journal_search_result_date_format": "%F"}),
+    case("search-forever", DAYS, search="standup", **{"from": "20261009", "point": 3}),
+    case("search", {"20261005": WEEK.replace("** 09:00 a\n", "** 09:00 a standup\n")}, search="standup",
+         date=["2026-10-06", "2026-10-08"], options=WEEKLY),
+    case("search-forever", {"20261005": WEEK}, search="TODO", options=WEEKLY),
+    # The schedule: the entries to come with a timestamp from now on.
+    case("schedule-view", DAYS),
+    case("schedule-view", {**DAYS, "20261013": "* Tuesday, 10/13/26\n** a\n*** b <2026-10-14 Wed>\n** c\n"}),
+    case("schedule-view", {"20261012": WEEK2}, options=WEEKLY),
+    # Rescheduling an entry to come.
+    case("reschedule", DAYS, date="2026-10-14", **{"from": "20261012", "point": 25}),
+    case("reschedule", DAYS, date="2026-10-14 09:30", **{"from": "20261012", "point": 25}),
+    case("reschedule", DAYS, date="2026-10-13", **{"from": "20261012", "point": 50}),
+    case("reschedule", DAYS, date="2026-10-01", **{"from": "20261012", "point": 25}),
+    case("reschedule", {"20261012": "* Monday, 10/12/26\n** 10:00 call\nnotes\n"}, date="2026-10-14 11:00",
+         options={"org_journal_scheduled_string": "SCHEDULED:"}, **{"from": "20261012", "point": 25}),
+    case("reschedule", {"20261012": WEEK2}, date="2026-10-16", options=WEEKLY, **{"from": "20261012", "point": 70}),
 ]
 
 if __name__ == "__main__":

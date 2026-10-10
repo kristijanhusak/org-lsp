@@ -54,6 +54,7 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::CalendarWeekday => "Date prompt: the name of a weekday above its column",
         TokenType::CalendarSelected => "Date prompt: the selected day",
         TokenType::CalendarPrompt => "Date prompt: the prompt before the answer",
+        TokenType::CalendarJournal => "Date prompt: a day with an entry of org-journal; to come with `future`",
     }
 }
 
@@ -308,6 +309,18 @@ pub const LOOKS: &[Look] = &[
     look("calendarWeekday.weekend", &["Comment"], &["comment.weekend.calendar.org", "comment"]),
     look("calendarSelected", &["IncSearch"], &["markup.inverse.selected.calendar.org", "invalid.illegal"]),
     look("calendarPrompt", &["Question"], &["keyword.other.prompt.calendar.org", "keyword"]),
+    // `org-journal-calendar-entry-face` and
+    // `org-journal-calendar-scheduled-face`: red and italic.
+    look(
+        "calendarJournal",
+        &["@org.calendar.journal", "Special"],
+        &["markup.italic.journal.calendar.org", "markup.italic"],
+    ),
+    look(
+        "calendarJournal.future",
+        &["@org.calendar.journal.future", "Comment"],
+        &["markup.italic.scheduled.journal.calendar.org", "markup.italic"],
+    ),
 ];
 
 /// The legend with descriptions, and the default looks:

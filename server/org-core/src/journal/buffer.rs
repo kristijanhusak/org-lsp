@@ -289,9 +289,23 @@ impl Buffer {
     pub fn replace_text(&mut self, text: String) {
         self.modified |= text != self.text;
         let grown = text.len() as i64 - self.text.len() as i64;
-        let (prefix, _) = crate::text::common_ends(&self.text, &text);
-        if self.point > prefix {
-            self.point = (self.point as i64 + grown).max(prefix as i64) as usize;
+        let (mut prefix, suffix) = crate::text::common_ends(&self.text, &text);
+        // Text only inserted goes in as early as it can, as Org inserts a
+        // property drawer at the end of the headline's line: the point or a
+        // marker where the line ended goes after it.
+        if grown > 0 && prefix + suffix >= self.text.len() {
+            let (old, new) = (self.text.as_bytes(), text.as_bytes());
+            while prefix > 0 && old[prefix - 1] == new[prefix - 1 + grown as usize] {
+                prefix -= 1;
+            }
+            while !self.text.is_char_boundary(prefix) {
+                prefix += 1;
+            }
+        }
+        let shift = |at: usize| if at > prefix { (at as i64 + grown).max(prefix as i64) as usize } else { at };
+        self.point = shift(self.point);
+        for marker in &mut self.markers {
+            *marker = shift(*marker);
         }
         self.zv = (self.zv as i64 + grown) as usize;
         let mut hidden = vec![false; text.len()];

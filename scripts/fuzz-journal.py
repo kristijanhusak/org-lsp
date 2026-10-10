@@ -217,6 +217,40 @@ def make_case(rng):
         case["point"] = rng.randint(0, len(files[case["from"]]))
     else:
         case["command"] = "open-current"
+    # Searching, the schedule, rescheduling.
+    if rng.random() < 0.35:
+        roll = rng.random()
+        if rng.random() < 0.2:
+            options["org_journal_search_results_order_by"] = "desc"
+        if rng.random() < 0.15:
+            options["org_journal_search_result_date_format"] = rng.choice(["%F", "%a %-d %b"])
+        if roll < 0.45:
+            case["command"] = rng.choice(["search", "search", "search-forever", "search-future", "search-future-scheduled"])
+            case["search"] = rng.choice(["standup", "TODO", "x", "note", "日本", "call", "STANDUP", "<2026", "** "])
+            if case["command"] == "search":
+                first = today + datetime.timedelta(days=rng.randint(-14, 3))
+                last = first + datetime.timedelta(days=rng.randint(-2, 12))
+                case["date"] = [first.isoformat(), last.isoformat()]
+                case["prefix"] = 1 if rng.random() < 0.1 else 0
+            else:
+                case.pop("date", None)
+                case["prefix"] = 0
+            for key in ("from", "point"):
+                case.pop(key, None)
+            if journal and rng.random() < 0.3:
+                case["from"] = rng.choice(journal)
+                case["point"] = rng.randint(0, len(files[case["from"]]))
+        elif roll < 0.7:
+            case["command"] = "schedule-view"
+            for key in ("date", "prefix", "from", "point"):
+                case.pop(key, None)
+        elif journal:
+            case["command"] = "reschedule"
+            case["from"] = rng.choice(journal)
+            case["point"] = rng.randint(0, len(files[case["from"]]))
+            day = today + datetime.timedelta(days=rng.randint(-1, 8))
+            case["date"] = day.isoformat() + rng.choice(["", "", " 10:00", " 9:00-10:30"])
+            case.pop("prefix", None)
     if options.get("org_journal_carryover_delete_empty_journal") == "ask":
         case["answers"] = [rng.choice(["y", "n"])]
     if "/" in options.get("org_journal_file_format", ""):

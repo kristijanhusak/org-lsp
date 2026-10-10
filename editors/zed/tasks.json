@@ -1313,6 +1313,19 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org: Journal: search between two dates",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.journal.search",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org: Capture: abort",
     "command": "$HOME/.local/state/org-lsp/agenda-command file:org.capture.abort",
     "tags": [

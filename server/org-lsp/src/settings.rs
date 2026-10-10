@@ -1476,6 +1476,20 @@ pub const SETTINGS: &[Setting] = &[
         "Add the journal's files of today and the days to come to the agenda's files.",
     ),
     setting(
+        "org_journal_search_result_date_format",
+        "string",
+        r#""%A, %x""#,
+        "org-journal-search-result-date-format",
+        "The date of each result of a search of the journal, as `format-time-string` writes it.",
+    ),
+    setting(
+        "org_journal_search_results_order_by",
+        "string",
+        r#""asc""#,
+        "org-journal-search-results-order-by",
+        "The order of the results of a search of the journal: `asc`, the first day first, or `desc`, the last.",
+    ),
+    setting(
         "org_extend_today_until",
         "number",
         "0",
@@ -2021,6 +2035,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_journal_scheduled_string", STRING),
     ("org_journal_enable_encryption", BOOLEAN),
     ("org_journal_enable_agenda_integration", BOOLEAN),
+    ("org_journal_search_result_date_format", STRING),
+    ("org_journal_search_results_order_by", r#"{ "enum": ["asc", "desc"] }"#),
     ("org_extend_today_until", r#"{ "type": "integer", "minimum": 0, "maximum": 23 }"#),
     (
         "org_roam_mode_sections",

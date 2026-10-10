@@ -1078,6 +1078,12 @@
           "task_name": "Org: Journal: previous entry"
         }
       ],
+      "ctrl-c j s": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Journal: search between two dates"
+        }
+      ],
       "ctrl-c ctrl-k": [
         "task::Spawn",
         {

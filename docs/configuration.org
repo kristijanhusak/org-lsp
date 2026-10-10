@@ -1652,6 +1652,14 @@ org_journal_enable_encryption = false
 # (org-journal-enable-agenda-integration)
 org_journal_enable_agenda_integration = false
 
+# The date of each result of a search of the journal, as `format-time-string`
+# writes it. (org-journal-search-result-date-format)
+org_journal_search_result_date_format = "%A, %x"
+
+# The order of the results of a search of the journal: `asc`, the first day
+# first, or `desc`, the last. (org-journal-search-results-order-by)
+org_journal_search_results_order_by = "asc"
+
 # The hour before which it is still yesterday, for org-journal's new entries.
 # (org-extend-today-until)
 org_extend_today_until = 0
@@ -2647,6 +2655,14 @@ org_agenda_custom_commands = []
   // Add the journal's files of today and the days to come to the agenda's
   // files. (org-journal-enable-agenda-integration)
   "org_journal_enable_agenda_integration": false,
+
+  // The date of each result of a search of the journal, as
+  // `format-time-string` writes it. (org-journal-search-result-date-format)
+  "org_journal_search_result_date_format": "%A, %x",
+
+  // The order of the results of a search of the journal: `asc`, the first day
+  // first, or `desc`, the last. (org-journal-search-results-order-by)
+  "org_journal_search_results_order_by": "asc",
 
   // The hour before which it is still yesterday, for org-journal's new
   // entries. (org-extend-today-until)

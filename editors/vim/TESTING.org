@@ -221,6 +221,11 @@ its sections says what it should look like.
 - [ ] A scheduled entry for tomorrow is a TODO with tomorrow's timestamp below it: ~:Org journal new scheduled entry~
 - [ ] In a journal file, the previous entry goes to the day before; on the first, it says /No journal entry before this one/: ~<Leader>jb~
 - [ ] With ~org_journal_enable_agenda_integration~, the TODO entries of today's journal file are in the week view: ~:Org agenda list~
+- [ ] A search asks for the string, then the first and the last day; the results list each line found under its day, which links to the line: ~<Leader>js~
+- [ ] Searching the TODO entries to come lists those of the days after today: ~:Org journal search future scheduled~
+- [ ] The schedule lists the entries to come with a timestamp, under their days: ~:Org journal schedule view~
+- [ ] Rescheduling an entry to come moves it to the day asked for, with that day's timestamp: ~:Org journal reschedule~
+- [ ] The date prompt's calendar marks the days with a journal entry: ~:Org journal new date entry~
 
 * Refile and archive
 

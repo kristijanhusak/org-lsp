@@ -141,6 +141,7 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~<Leader>nl~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~<Leader>jf~ | ~org.journal.next.entry~ | Journal: next entry |
 | ~<Leader>jb~ | ~org.journal.previous.entry~ | Journal: previous entry |
+| ~<Leader>js~ | ~org.journal.search~ | Journal: search between two dates |
 | ~<C-a>~ ¹ | ~org.timestamp.up~ | Increase the part of the timestamp at the cursor |
 | ~<C-x>~ ¹ | ~org.timestamp.down~ | Decrease the part of the timestamp at the cursor |
 | ~<S-Up>~ ¹ | ~org.date.later~ | Move the date one day later |
@@ -322,6 +323,11 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~org.journal.new.date.entry~ | Journal: new entry for a date |
 | ~org.journal.new.scheduled.entry~ | Journal: new entry for a day to come |
 | ~org.journal.open.current~ | Journal: open the current file |
+| ~org.journal.search.forever~ | Journal: search every entry |
+| ~org.journal.search.future~ | Journal: search the entries to come |
+| ~org.journal.search.future.scheduled~ | Journal: the TODO entries to come |
+| ~org.journal.schedule.view~ | Journal: the entries to come with a date |
+| ~org.journal.reschedule~ | Journal: move the entry to come to another day |
 | ~org.date.later.hours~ | Agenda: move the time one hour later |
 | ~org.date.earlier.hours~ | Agenda: move the time one hour earlier |
 | ~org.date.later.minutes~ | Agenda: move the time later by the rounding minutes |

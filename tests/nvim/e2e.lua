@@ -1580,6 +1580,38 @@ do
     return vim.api.nvim_buf_get_name(0) == vim.fs.normalize(journal_dir .. '/' .. os.date('%Y%m%d', yesterday))
   end)
   eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { os.date('* %A, %m/%d/%y', yesterday), '** 09:00 standup' }, 'the TODO gone')
+
+  -- A search: the string, then the first and the last day in the
+  -- calendar, which stays open from one to the other; the results link
+  -- to their lines.
+  local input = vim.ui.input
+  vim.ui.input = function(_, on_confirm)
+    on_confirm('carried')
+  end
+  require('org-lsp').run('org.journal.search')
+  wait('the calendar for the first day', function()
+    vim.api.nvim_feedkeys('', 'x', false)
+    return date_prompt() ~= nil
+  end)
+  vim.ui.input = input
+  local function prompt_line()
+    local lines = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(date_prompt()), 0, -1, false)
+    return lines[#lines]
+  end
+  check(prompt_line():match('^Enter the search start Date%+time') ~= nil, 'the first question: ' .. prompt_line())
+  press('<CR>')
+  wait('the calendar for the last day', function()
+    vim.api.nvim_feedkeys('', 'x', false)
+    return date_prompt() ~= nil and prompt_line():match('^Enter the search end') ~= nil
+  end)
+  press('<CR>')
+  wait('the results', function()
+    vim.api.nvim_feedkeys('', 'x', false)
+    return vim.api.nvim_buf_get_name(0):match('org%-journal%-search%.org$') ~= nil
+  end)
+  check(date_prompt() == nil, 'the calendar closed')
+  eq(line(1):match('^Search results for "carried" between '), 'Search results for "carried" between ', 'the title')
+  eq(line(3), ('[[file:%s::2][%s]]\t** TODO carried'):format(today, os.date('%A, %m/%d/%y')), 'the result')
 end
 
 print(('ok: %d checks passed'):format(checks))

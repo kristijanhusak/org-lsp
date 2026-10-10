@@ -81,9 +81,16 @@ impl Server {
 
     /// Show `text` in the buffer's file `path`: written there, and given
     /// to the editor when it has the file open, then saved. With `show`,
-    /// the editor is asked to show it, the cursor staying where it is.
-    fn roam_buffer_show(&mut self, path: &Path, text: &str, show: bool) -> Result<Uri, Refusal> {
-        let uri = uri::from_path(path).ok_or("Cannot name the org-roam buffer")?;
+    /// the editor is asked to show it, the cursor staying where it is
+    /// unless with `focus`.
+    pub(in crate::server) fn own_file_show(
+        &mut self,
+        path: &Path,
+        text: &str,
+        show: bool,
+        focus: bool,
+    ) -> Result<Uri, Refusal> {
+        let uri = uri::from_path(path).ok_or("Cannot name the file")?;
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
         }
@@ -110,7 +117,7 @@ impl Server {
             let params = ShowDocumentParams {
                 uri: uri.clone(),
                 external: None,
-                take_focus: Some(false),
+                take_focus: Some(focus),
                 selection: Some(lsp_types::Range::new(start, start)),
             };
             self.send_request::<ShowDocument>(params, None);
@@ -142,7 +149,7 @@ impl Server {
                 if let Some(roam) = self.roam.as_mut() {
                     roam.buffer_node = node;
                 }
-                self.roam_buffer_show(&path, &text, true)?;
+                self.own_file_show(&path, &text, true, false)?;
                 Ok(Value::Null)
             }
             // `org-roam-buffer-display-dedicated`: for a node read, or with
@@ -188,7 +195,7 @@ impl Server {
                     .map_or(String::new(), |(_, node)| node.title.clone());
                 let path = self.roam_buffer_file(Some(&title)).ok_or(super::OFF)?;
                 let text = self.roam_buffer_text(&id)?;
-                self.roam_buffer_show(&path, &text, true)?;
+                self.own_file_show(&path, &text, true, false)?;
                 Ok(Value::Null)
             }
             // `org-roam-buffer-refresh`: the persistent buffer again, for its
@@ -198,7 +205,7 @@ impl Server {
                 let node = self.roam.as_ref().and_then(|roam| roam.buffer_node.clone());
                 let Some(node) = node else { return Ok(Value::Null) };
                 let text = self.roam_buffer_text(&node)?;
-                self.roam_buffer_show(&path, &text, false)?;
+                self.own_file_show(&path, &text, false, false)?;
                 Ok(Value::Null)
             }
         }
@@ -235,7 +242,7 @@ impl Server {
         if let Some(roam) = self.roam.as_mut() {
             roam.buffer_node = Some(node);
         }
-        if let Err(refusal) = self.roam_buffer_show(&path, &text, false) {
+        if let Err(refusal) = self.own_file_show(&path, &text, false, false) {
             self.show_message(lsp_types::MessageType::WARNING, refusal.message());
         }
     }

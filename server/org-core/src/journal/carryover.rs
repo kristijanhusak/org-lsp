@@ -14,7 +14,7 @@ use crate::outline::Outline;
 pub(super) struct Path {
     start: usize,
     end: usize,
-    text: String,
+    pub(super) text: String,
 }
 
 /// `replace-match` without FIXEDCASE: the case of `replacement` follows
@@ -83,16 +83,16 @@ impl Emacs<'_> {
         Ok(paths)
     }
 
-    /// `org-map-entries` with `org-journal-carryover-items` over the
-    /// accessible portion of the current buffer, each match's subtree
-    /// skipped once taken.
-    fn carryover_paths(&mut self) -> Result<Vec<Vec<Path>>, Stop> {
+    /// `org-map-entries` with `match` over the accessible portion of the
+    /// current buffer, each match's item with its parents, the subtree of
+    /// each skipped once taken.
+    pub(super) fn items_matching(&mut self, matching: &str) -> Result<Vec<Vec<Path>>, Stop> {
         let buffer = self.buffer().clone();
         let name = buffer.name();
         let name = name.rsplit_once('.').map_or(name.as_str(), |(stem, _)| stem).to_string();
         let parse = org_syntax::parse(&buffer.text, &self.settings.properties.keywords);
         let outline = Outline::new(&parse, &buffer.text, &name);
-        let matcher = Matcher::new(&self.settings.carryover_items);
+        let matcher = Matcher::new(matching);
         let clock = Clock { today: self.now().day, minute: self.now().minute };
         let mut found = Vec::new();
         let mut from = buffer.begv;
@@ -128,7 +128,8 @@ impl Emacs<'_> {
             if !self.settings.daily() {
                 self.buffer().org_narrow_to_subtree()?;
             }
-            paths = self.carryover_paths()?;
+            let matching = self.settings.carryover_items.clone();
+            paths = self.items_matching(&matching)?;
         }
         self.current = here;
         // `save-restriction` gives the buffer back its restriction; the
@@ -193,7 +194,9 @@ impl Emacs<'_> {
         let old = &mut self.buffers[previous];
         for entry in entries.iter().rev() {
             old.save_point();
-            old.goto(entry.end.saturating_sub(1));
+            // A character back from the end, which may be several bytes.
+            let back = old.text[..entry.end.min(old.text.len())].char_indices().next_back().map_or(0, |(at, _)| at);
+            old.goto(back);
             let has_child = old.org_goto_first_child();
             old.restore_point();
             if !has_child {
