@@ -138,6 +138,8 @@ its sections says what it should look like.
 - [ ] While typing the date, the answer shows what it means (~=> <2026-10-09 Fri>~)
 - [ ] In the calendar: moving by day, week and month, scrolling months, today, picking a day: ~Shift+Right~, ~Shift+Down~, ~Alt+Shift+Right~, ~>~, ~.~, ~Enter~
 - [ ] In the calendar: picking a time with the keys, typing the answer instead, cancelling: ~t~, ~i~, ~q~ or ~Ctrl+G~
+- [ ] Picking a time from 12:44, the minutes go up to 12:45, then 12:50; down to 12:40: ~t~
+- [ ] With ~calendar_week_start_day~ ~1~, the calendar's weeks start on Monday
 - [ ] Switching to a month of six weeks keeps the whole calendar in view, the cursor on the selected day
 - [ ] On a timestamp, changing the day, month, year, hour and minute under the cursor; with a count: /Org: Increase the part of the timestamp at the cursor/, /Org: Decrease the part of the timestamp at the cursor/
 - [ ] Moving a timestamp by days: /Org: Move the date one day later/, /Org: Move the date one day earlier/

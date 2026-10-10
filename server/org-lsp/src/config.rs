@@ -399,6 +399,9 @@ pub struct Options {
     pub goto_max_level: Option<usize>,
     /// How many months the date prompt's calendar shows: 3, or 1.
     pub calendar_months: Option<usize>,
+    /// The day the calendar's weeks start on, 0 for Sunday
+    /// (`calendar-week-start-day`).
+    pub calendar_week_start_day: Option<usize>,
     /// The Emacs program for what only Org itself does (export).
     pub emacs: Option<String>,
     /// A file of Emacs Lisp that Emacs loads before Org.

@@ -299,6 +299,7 @@ Each option with its type, its default and what it means:
 - ~return_uses_meta_return~ :: boolean, ~false~. RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (~org-meta-return~) makes it, the items after it renumbered, as nvim-orgmode's ~org_return_uses_meta_return~ does. Off, RET is Org's: a new line in the item. ~org.return.item~ (~<S-CR>~, Shift+Enter, with the vim keys) always does it.
 - ~org_goto_max_level~ :: number, ~5~. The deepest headings ~org.goto~ (~C-c C-j~) offers. (~org-goto-max-level~)
 - ~calendar_months~ :: 1 | 3, ~3~. How many months the calendar of the date prompt shows: 3 side by side, as Emacs's calendar shows them, the one with the selected day in the middle; or 1, that month alone, for a narrow window.
+- ~calendar_week_start_day~ :: 0 to 6 (0 is Sunday), ~0~. The day the weeks of the date prompt's calendar start on: 1 starts them on Monday. (~calendar-week-start-day~)
 - ~emacs~ :: string, ~"emacs"~. The Emacs program, for what only Org itself does: export (~org.export.dispatch~). The server starts it (~emacs --batch -Q~) when that is first asked for and keeps it running, so that Org loads once. Without Emacs, everything else works as before.
 - ~emacs_config_file~ :: string, none. A file of Emacs Lisp that Emacs loads before Org, for the variables export reads (~org-export-backends~, ~org-html-…~, ~org-latex-…~, ~org-publish-project-alist~): a file of its own, or your init file. =~/= is the home directory.
 - ~emacs_config~ :: string, none. Emacs Lisp that Emacs evaluates after ~emacs_config_file~ and before loading Org, for a few settings without a file: ~(setq org-export-with-toc nil)~, or ~(add-to-list 'load-path "~/src/org-mode/lisp")~ for another Org. A yes-or-no question Emacs asks while it works (~org-confirm-babel-evaluate~) is asked in the editor.
@@ -1551,7 +1552,8 @@ written anew with ~org-lsp/viewChanged~ after each change.
 SCHEDULED Date+time [2026-05-20]: 10:00    => <2026-05-20 Wed 10:00>
 #+end_example
 
-The three months are drawn as Emacs's calendar draws them; the last line is
+The three months are drawn as Emacs's calendar draws them, the weeks starting
+on the day ~calendar_week_start_day~ says (Sunday unless set); the last line is
 Emacs's minibuffer: the prompt, what was typed, and what that means. The
 selected day has the ~calendarSelected~ token, and the server puts the cursor
 on it.
@@ -1569,7 +1571,8 @@ on it.
    ~Time: 10:00~ line appears above the minibuffer, and until
    ~org.calendar.time~ again, the day commands choose the hour (earlier) or
    the minutes (later) and the week commands move it (earlier up, later
-   down; the minutes by ~org_time_stamp_rounding_minutes~). The time takes the
+   down; the minutes by ~org_time_stamp_rounding_minutes~, to a multiple of
+   it first, as ~org-timestamp-change~ moves them). The time takes the
    place of a typed one, and stays when the keys go back to days.
 3. Answered or picked, the command runs with the answer and the day moved
    to (if it moved), as Emacs reads its prompt; the result is

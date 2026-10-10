@@ -778,15 +778,21 @@ none.
 
 The calendar shows three months, as Emacs's does; the server's
 ~calendar_months~ option set to ~1~ shows the month of the selected day
-alone, which suits a floating window:
+alone, which suits a floating window. Its weeks start on Sunday;
+~calendar_week_start_day~ set to ~1~ starts them on Monday, as Emacs's
+~calendar-week-start-day~ does:
 
 #+begin_src lua
 require('org-lsp').setup({
   calendar_win_mode = 'cursor',
   calendar_border = 'single',
-  settings = { calendar_months = 1 },
+  settings = { calendar_months = 1, calendar_week_start_day = 1 },
 })
 #+end_src
+
+Picking a time, the minutes move by ~org_time_stamp_rounding_minutes~ (5),
+going first to a multiple of it, as ~S-<up>~ on a timestamp does: from
+12:44, up is 12:45, then 12:50; down is 12:40.
 
 Once the calendar closes, the window it was asked from shows what it
 showed before: the same first line and the cursor on the same text, moved
@@ -1462,6 +1468,10 @@ org_goto_max_level = 5
 # Emacs's calendar shows them, the one with the selected day in the middle; or
 # 1, that month alone, for a narrow window.
 calendar_months = 3
+
+# The day the weeks of the date prompt's calendar start on: 1 starts them on
+# Monday. (calendar-week-start-day)
+calendar_week_start_day = 0
 
 # The Emacs program, for what only Org itself does: export
 # (`org.export.dispatch`). The server starts it (`emacs --batch -Q`) when that
@@ -2357,6 +2367,10 @@ org_agenda_custom_commands = []
   // Emacs's calendar shows them, the one with the selected day in the middle;
   // or 1, that month alone, for a narrow window.
   "calendar_months": 3,
+
+  // The day the weeks of the date prompt's calendar start on: 1 starts them
+  // on Monday. (calendar-week-start-day)
+  "calendar_week_start_day": 0,
 
   // The Emacs program, for what only Org itself does: export
   // (`org.export.dispatch`). The server starts it (`emacs --batch -Q`) when

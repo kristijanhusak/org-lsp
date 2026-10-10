@@ -873,6 +873,13 @@
       "description": "How many months the calendar of the date prompt shows: 3 side by side, as Emacs's calendar shows them, the one with the selected day in the middle; or 1, that month alone, for a narrow window.",
       "default": 3
     },
+    "calendar_week_start_day": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 6,
+      "description": "The day the weeks of the date prompt's calendar start on: 1 starts them on Monday. (`calendar-week-start-day`)",
+      "default": 0
+    },
     "emacs": {
       "type": "string",
       "description": "The Emacs program, for what only Org itself does: export (`org.export.dispatch`). The server starts it (`emacs --batch -Q`) when that is first asked for and keeps it running, so that Org loads once. Without Emacs, everything else works as before.",
