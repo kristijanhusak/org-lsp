@@ -3644,6 +3644,26 @@ fn goes_to_a_date_in_the_agenda() {
     client.shutdown();
 }
 
+/// A keyword with a face of its own (`org_todo_keyword_faces`) is offered
+/// in that face when the server asks for a TODO state.
+#[test]
+fn offers_todo_states_in_their_faces() {
+    const URI: &str = "file:///org/faces.org";
+    let mut options = clock();
+    options["org_todo_keyword_faces"] = json!({ "WAIT": ":foreground orange :weight bold" });
+    let mut client = Client::editor(options, None);
+    client.open(URI, "#+TODO: TODO(t) WAIT(w) | DONE(d)\n* TODO Call them\n");
+    let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 1, "character": 3 } });
+    let asked =
+        client.request("workspace/executeCommand", json!({ "command": "org.todo", "arguments": [at] })).unwrap();
+    assert_eq!(
+        asked["input"]["choices"][1],
+        json!({ "key": "w", "label": "WAIT", "highlight": "todoKeyword", "face": { "foreground": "orange", "bold": true } })
+    );
+    assert!(asked["input"]["choices"][0].get("face").is_none(), "TODO has no face of its own");
+    client.shutdown();
+}
+
 /// `C-c C-t` (`org-todo`) with keys on the keywords: the server asks for
 /// a key, and a state that records a note (`@`) asks for its text before
 /// it is set. Without keys, the same command cycles.
@@ -3666,7 +3686,16 @@ fn selects_todo_states_by_key_and_asks_for_notes() {
     let asked = run(&mut client, json!({}));
     assert_eq!(asked["input"]["kind"], "key");
     assert_eq!(asked["input"]["prompt"], "Select a TODO state");
-    assert_eq!(asked["input"]["choices"][1], json!({ "key": "w", "label": "WAIT" }));
+    // Each keyword in its face, as `org-fast-todo-selection` shows it.
+    assert_eq!(
+        asked["input"]["choices"],
+        json!([
+            { "key": "t", "label": "TODO", "highlight": "todoKeyword" },
+            { "key": "w", "label": "WAIT", "highlight": "todoKeyword" },
+            { "key": "d", "label": "DONE", "highlight": "todoKeyword.done" },
+            { "key": " ", "label": "clear" },
+        ])
+    );
 
     // WAIT wants a note: nothing changes until its text comes.
     client.received.clear();

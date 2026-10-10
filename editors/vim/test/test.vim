@@ -68,6 +68,20 @@ function! s:keyword_faces() abort
 endfunction
 call s:test('gives keywords their faces', function('s:keyword_faces'))
 
+" The TODO keywords offered in their faces, as `org-fast-todo-selection`
+" shows them.
+function! s:choice_faces() abort
+  let line = org_lsp#choice_line({'key': 'w', 'label': 'WAIT', 'highlight': 'todoKeyword', 'face': {'foreground': '#00aa00'}})
+  call assert_equal('[w] WAIT', line.text)
+  call assert_equal([{'col': 5, 'length': 4, 'type': 'org_lsp_face_todo_WAIT'}], line.props)
+  call assert_equal('#00aa00', synIDattr(hlID('OrgLspTodoFace_WAIT'), 'fg#', 'gui'))
+  let done = org_lsp#choice_line({'key': 'd', 'label': 'DONE', 'highlight': 'todoKeyword.done'})
+  call assert_equal(1, len(done.props))
+  call assert_false(empty(prop_type_get(done.props[0].type).highlight), 'a highlight: ' . string(done.props))
+  call assert_equal([], org_lsp#choice_line({'key': ' ', 'label': 'clear'}).props)
+endfunction
+call s:test('offers TODO keywords in their faces', function('s:choice_faces'))
+
 function! s:folds() abort
   call s:until('folds', {-> !empty(get(b:, 'org_lsp_folds', []))})
   call cursor(2, 1)

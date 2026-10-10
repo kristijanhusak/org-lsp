@@ -469,7 +469,7 @@ end
 --- The window that lists the choices of `read_key`, as Emacs lists them
 --- in a window of its own at the bottom of the frame.
 ---@param prompt string
----@param choices { key: string, label: string }[]
+---@param choices { key: string, label: string, highlight?: string, face?: table }[]
 ---@return integer window
 local function show_choices(prompt, choices)
   local lines, width = {}, vim.fn.strdisplaywidth(prompt) + 2
@@ -482,7 +482,13 @@ local function show_choices(prompt, choices)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   local namespace = vim.api.nvim_create_namespace('org_lsp_choices')
   for row, line in ipairs(lines) do
-    vim.api.nvim_buf_set_extmark(buf, namespace, row - 1, 0, { end_col = line:find(']', 1, true), hl_group = 'Special' })
+    local key_end = line:find(']', 1, true)
+    vim.api.nvim_buf_set_extmark(buf, namespace, row - 1, 0, { end_col = key_end, hl_group = 'Special' })
+    -- A TODO keyword in its face, as `org-fast-todo-selection` shows it.
+    local group = require('org-lsp.highlights').choice_group(choices[row])
+    if group then
+      vim.api.nvim_buf_set_extmark(buf, namespace, row - 1, key_end + 1, { end_col = #line, hl_group = group })
+    end
   end
   vim.bo[buf].bufhidden = 'wipe'
   -- Above the command line and the status line, inside the borders.

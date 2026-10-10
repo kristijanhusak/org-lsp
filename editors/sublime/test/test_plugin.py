@@ -240,6 +240,11 @@ def load_plugin():
     package = os.path.join(HERE, '..', 'LSP-org')
     sublime.load_resource = lambda name: open(os.path.join(package, name.split('/')[-1]), encoding='utf-8').read()
     sublime.decode_value = json.loads
+    sublime.QuickPanelItem = lambda trigger, details='', annotation='', kind=None: (trigger, kind)
+    sublime.KIND_AMBIGUOUS = (0, '', '')
+    for number, name in enumerate(['REDISH', 'ORANGISH', 'YELLOWISH', 'GREENISH', 'CYANISH', 'BLUISH',
+                                   'PURPLISH', 'PINKISH', 'DARK', 'LIGHT']):
+        setattr(sublime, 'KIND_ID_COLOR_' + name, 9 + number)
     sublime_plugin = types.ModuleType('sublime_plugin')
     sublime_plugin.EventListener = object
     sublime_plugin.WindowCommand = object
@@ -405,6 +410,30 @@ class Tests(unittest.TestCase):
              ('result', None)],
             command='org.capture')
         self.assertEqual(self.window.panels[1], ('quick', ['[t] Task'], 'Template'))
+
+    def test_offers_todo_keywords_in_their_colors(self):
+        # As `org-fast-todo-selection` shows them: the kind of each item in
+        # the keyword's color, its own face or that of a TODO or done keyword.
+        self.window.pick = 0
+        choices = [
+            {'key': 't', 'label': 'TODO', 'highlight': 'todoKeyword'},
+            {'key': 'w', 'label': 'WAIT', 'highlight': 'todoKeyword', 'face': {'foreground': 'orange'}},
+            {'key': 'n', 'label': 'NEXT', 'highlight': 'todoKeyword', 'face': {'foreground': '#3366ff'}},
+            {'key': 'd', 'label': 'DONE', 'highlight': 'todoKeyword.done'},
+            {'key': ' ', 'label': 'clear'},
+        ]
+        self.run_command(
+            [('result', {'input': {'kind': 'key', 'prompt': 'Select a TODO state', 'choices': choices}}),
+             ('result', None)],
+            command='org.todo')
+        S = self.sublime
+        self.assertEqual(self.window.panels[0][1], [
+            ('[t] TODO', (S.KIND_ID_COLOR_REDISH, 't', '')),
+            ('[w] WAIT', (S.KIND_ID_COLOR_ORANGISH, 'w', '')),
+            ('[n] NEXT', (S.KIND_ID_COLOR_BLUISH, 'n', '')),
+            ('[d] DONE', (S.KIND_ID_COLOR_GREENISH, 'd', '')),
+            ('[SPC] clear', S.KIND_AMBIGUOUS),
+        ])
 
     def test_starts_the_server_for_the_agenda_when_no_org_file_is_open(self):
         self.view.name = '/notes/readme.txt'

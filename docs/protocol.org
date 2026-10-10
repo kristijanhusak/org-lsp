@@ -1228,7 +1228,10 @@ An input may say more:
   prompt is a title (/Select a TODO state/); the editor shows the choices, as
   Emacs shows them in a window of their own. It can list them and read a
   single key press (Neovim) or offer them as a list (VS Code). A space is
-  shown as ~SPC~.
+  shown as ~SPC~. A TODO keyword comes with its look, to be shown in it as
+  ~org-fast-todo-selection~ shows it: ~"highlight"~, the selector of its
+  token (~todoKeyword~, ~todoKeyword.done~), and ~"face"~ when
+  ~org_todo_keyword_faces~ gives it one, as in ~org-lsp/faces~.
 - ~"completions": ["Owner", …]~ with kind ~text~: what may be typed, offered
   as it is typed (Emacs's ~completing-read~); anything else may be typed
   too. An empty answer stands for the default the prompt shows in brackets

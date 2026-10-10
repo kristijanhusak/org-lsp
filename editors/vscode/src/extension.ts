@@ -265,13 +265,51 @@ interface Input {
   prompt: string;
   value: string;
   /** What to choose from: a key (kind `key`) or a name, and how it shows. */
-  choices?: { key: string; label: string }[];
+  choices?: Choice[];
   /** Text that may be typed, offered as it is typed (kind `text`). */
   completions?: string[];
   /** What separates several answers (the `:` between tags): what follows the last is completed. */
   separator?: string;
   /** What to send back with the answer, besides it. */
   context?: Record<string, unknown>;
+}
+
+/**
+ * A choice of an input: a TODO keyword comes with the selector of its
+ * token (`todoKeyword`, `todoKeyword.done`) and its face, if it has one.
+ */
+interface Choice {
+  key: string;
+  label: string;
+  highlight?: string;
+  face?: { foreground?: string };
+}
+
+/** Where the icons of choices are written. */
+let iconDirectory: vscode.Uri | undefined;
+
+/**
+ * The icon of a choice offered in a look of its own, as Org's
+ * `org-fast-todo-selection` shows each keyword in its face: a dot in the
+ * color of its face, or else in red or green for a TODO or a done keyword.
+ * A quick pick cannot color its text.
+ */
+function choiceIcon(choice: Choice): vscode.Uri | vscode.ThemeIcon | undefined {
+  const color = choice.face?.foreground;
+  if (color && /^#?\w+$/.test(color) && iconDirectory) {
+    const icon = vscode.Uri.joinPath(iconDirectory, `dot-${color.replace('#', '')}.svg`);
+    if (!fs.existsSync(icon.fsPath)) {
+      fs.mkdirSync(iconDirectory.fsPath, { recursive: true });
+      fs.writeFileSync(
+        icon.fsPath,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="8" cy="8" r="5" fill="${color}"/></svg>`,
+      );
+    }
+    return icon;
+  }
+  if (!choice.highlight) return undefined;
+  const done = choice.highlight.endsWith('.done');
+  return new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor(done ? 'charts.green' : 'charts.red'));
 }
 
 /**
@@ -284,6 +322,7 @@ async function ask(input: Input, typed: (text: string) => Promise<vscode.InputBo
     const items = input.choices.map((choice) => ({
       label: input.kind === 'key' ? `[${keyName(choice.key)}] ${choice.label}` : choice.label,
       key: choice.key,
+      iconPath: choiceIcon(choice),
     }));
     const picked = await vscode.window.showQuickPick(items, { placeHolder: input.prompt, ignoreFocusOut: true });
     return picked?.key;
@@ -1853,6 +1892,7 @@ export interface Api {
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
+  iconDirectory = vscode.Uri.joinPath(context.globalStorageUri, 'icons');
   context.subscriptions.push(
     vscode.commands.registerCommand('org-lsp.restartServer', async () => {
       await stopClient();

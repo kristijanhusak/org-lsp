@@ -158,7 +158,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Sublime Text ❓: Faces of particular keywords and priorities are not shown: Sublime Text colors text by its color scheme only.
+- Sublime Text ❓: Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item's kind, the nearest of those Sublime Text has.
 - Zed ❓: A note for a state change (~@~) cannot be typed: Zed cannot ask for text on a server's behalf. States are picked with buttons. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.
 - Helix ❓: A note for a state change (~@~) cannot be typed: Helix cannot ask for text on a server's behalf. Faces of particular keywords and priorities are not shown.
 

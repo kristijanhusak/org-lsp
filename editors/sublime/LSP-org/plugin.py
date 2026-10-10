@@ -7,6 +7,7 @@ with the cursor position, asks what they ask for, and cycles folds.
 """
 from __future__ import annotations
 
+import colorsys
 import html
 import io
 import os
@@ -830,6 +831,49 @@ class OrgLspRunCommand(LspWindowCommand):
         self.execute(session, view, command, context, fallback)
 
 
+# Colors that keyword faces are given by name most, as RGB.
+COLOR_NAMES = {
+    'red': (255, 0, 0), 'orange': (255, 165, 0), 'yellow': (255, 255, 0), 'gold': (255, 215, 0),
+    'green': (0, 128, 0), 'forestgreen': (34, 139, 34), 'cyan': (0, 255, 255), 'blue': (0, 0, 255),
+    'purple': (160, 32, 240), 'magenta': (255, 0, 255), 'violet': (238, 130, 238), 'pink': (255, 192, 203),
+    'brown': (165, 42, 42), 'gray': (190, 190, 190), 'grey': (190, 190, 190), 'white': (255, 255, 255),
+    'black': (0, 0, 0),
+}
+
+# The colored kinds of the quick panel, by the hue they start at.
+KIND_HUES = [(15, 'REDISH'), (45, 'ORANGISH'), (70, 'YELLOWISH'), (160, 'GREENISH'), (200, 'CYANISH'),
+             (250, 'BLUISH'), (290, 'PURPLISH'), (345, 'PINKISH'), (360, 'REDISH')]
+
+
+def color_kind(color):
+    """The name of the colored kind nearest `color` (`#rrggbb` or a name),
+    or None for a color it cannot read."""
+    color = (color or '').strip().lower().replace(' ', '')
+    if re.match(r'^#[0-9a-f]{6}$', color):
+        rgb = tuple(int(color[i:i + 2], 16) for i in (1, 3, 5))
+    elif re.match(r'^#[0-9a-f]{3}$', color):
+        rgb = tuple(int(c * 2, 16) for c in color[1:])
+    elif color in COLOR_NAMES:
+        rgb = COLOR_NAMES[color]
+    else:
+        return None
+    hue, lightness, saturation = colorsys.rgb_to_hls(*(c / 255 for c in rgb))
+    if saturation < 0.2:
+        return 'LIGHT' if lightness > 0.5 else 'DARK'
+    return next(name for start, name in KIND_HUES if hue * 360 < start)
+
+
+def choice_kind(choice):
+    """The kind of the quick panel item of `choice`: colored as its face, or
+    as a TODO (red) or done (green) keyword."""
+    name = color_kind((choice.get('face') or {}).get('foreground'))
+    if name is None and 'highlight' in choice:
+        name = 'GREENISH' if choice['highlight'].endswith('.done') else 'REDISH'
+    if name is None:
+        return getattr(sublime, 'KIND_AMBIGUOUS', (0, '', ''))
+    return (getattr(sublime, 'KIND_ID_COLOR_' + name), key_name(choice['key']), '')
+
+
 def ask(window, request, then, cancelled=None) -> None:
     """Ask what a command asks for: a key or one of a list in the quick
     panel, or text in the input panel. `cancelled` runs when it is given
@@ -840,6 +884,10 @@ def ask(window, request, then, cancelled=None) -> None:
             items = ['[{}] {}'.format(key_name(c['key']), c['label']) for c in choices]
         else:
             items = [c['label'] for c in choices]
+        # TODO keywords in their colors, as `org-fast-todo-selection` shows
+        # them: the quick panel colors only an item's kind, by its hue.
+        if hasattr(sublime, 'QuickPanelItem') and any('highlight' in c for c in choices):
+            items = [sublime.QuickPanelItem(item, kind=choice_kind(c)) for item, c in zip(items, choices)]
 
         def picked(index: int) -> None:
             if index >= 0:
