@@ -82,7 +82,9 @@ kept by the generator), and every doc outside the generated blocks.
   `~code~`, `/italic/`, `[[file:x.org::#id][text]]` links, description lists
   for references, `#+begin_src` blocks. Each editor has `docs/<editor>.org`
   (install, setup, a short example, what works) and `docs/keys/<editor>.org`;
-  every option and setting is in `docs/configuration.org`; `editors/*/README.org`
+  every option and setting is in `docs/configuration.org`, and the Emacs
+  packages ported (org-super-agenda, org-roam, org-journal) are described
+  in `docs/plugins.org`; `editors/*/README.org`
   only points to the editor's page. A link to a heading in another file
   uses a `CUSTOM_ID` equal to GitHub's anchor of the heading, so it works in
   Emacs and on GitHub. CLAUDE.md and the skills stay Markdown: Claude Code

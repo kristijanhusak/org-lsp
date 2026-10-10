@@ -931,7 +931,7 @@ increments a number.
 - ~org.roam.node.find~, ~org.roam.node.insert~, ~org.roam.capture~,
   ~org.roam.node.random~ :: org-roam's ~org-roam-node-find~,
   ~org-roam-node-insert~, ~org-roam-capture~ and ~org-roam-node-random~,
-  with ~org_roam_enabled~ (see [[file:configuration.org::#notes-org-roam][Notes (org-roam)]]); without it they
+  with ~org_roam_enabled~ (see [[file:plugins.org::#notes-org-roam][Notes (org-roam)]]); without it they
   fail with why. They need no document but ~org.roam.node.insert~, which
   inserts at the cursor or in place of the selection (~range~). They ask for
   the node (input kind ~text~, prompt ~Node~, the selection as ~value~,
@@ -984,7 +984,7 @@ increments a number.
   ~org-journal-new-entry~, ~org-journal-new-date-entry~,
   ~org-journal-new-scheduled-entry~, ~org-journal-next-entry~,
   ~org-journal-previous-entry~ and ~org-journal-open-current-journal-file~,
-  with ~org_journal_enabled~ (see [[file:configuration.org::#a-journal-org-journal][A journal (org-journal)]]); without
+  with ~org_journal_enabled~ (see [[file:plugins.org::#a-journal-org-journal][A journal (org-journal)]]); without
   it they fail with why. Next and previous need the document and position
   of a journal file; the others need none, and a ~count~ above 1 is
   Emacs's ~C-u~. The date commands ask for a date as the date prompt does
