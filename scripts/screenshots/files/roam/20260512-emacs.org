@@ -1,0 +1,6 @@
+:PROPERTIES:
+:ID:       3f8a1c22-emacs
+:END:
+#+title: Emacs
+
+The editor where [[id:0b1c6f7e-org-mode][Org mode]] was born, in 2003.

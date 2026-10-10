@@ -1,0 +1,14 @@
+#+title: Home
+
+* TODO Pay the electricity bill                                  :money:
+DEADLINE: <2026-05-18 Mon>
+* TODO Water the plants
+SCHEDULED: <2026-05-17 Sun .+2d>
+:PROPERTIES:
+:STYLE:    habit
+:END:
+* Groceries
+- [ ] Bread
+- [ ] Tomatoes
+* WAITING Package from the post office                            :errand:
+SCHEDULED: <2026-05-20 Wed>

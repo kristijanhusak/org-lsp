@@ -22,6 +22,8 @@ agenda, and each other view, is shown in groups, each under a header, in
 place of one list. It is off until ~org_super_agenda_mode~ is ~true~; groups
 alone do nothing, as in Emacs, where ~org-super-agenda-mode~ turns it on.
 
+[[file:images/super-agenda.png]]
+
 ~org_super_agenda_groups~ is ~org-super-agenda-groups~: a list of groups,
 each a set of selectors with their arguments. Emacs's
 
@@ -208,6 +210,8 @@ command list, or give them keys of your own.
 
 The org-roam buffer shows what links to a node:
 
+[[file:images/roam.png]]
+
 - ~org.roam.buffer.toggle~ :: ~org-roam-buffer-toggle~ (~C-c n l~ in the
   ~emacs~ preset, ~<Leader>nl~ in the ~vim~ one): shows the buffer beside
   the file, for the node at the cursor, or hides it. While it shows, it
@@ -365,6 +369,8 @@ timestamp from now on are another one, ~org-journal-schedule.org~:
 
 The date prompt's calendar marks the days with an entry, as
 ~org-journal-mark-entries~ does: before now, and to come.
+
+[[file:images/journal.gif]]
 
 Each shows the entry it is about, in its file, and with
 ~org_journal_hide_entries_p~ (on by default) the other entries folded, as

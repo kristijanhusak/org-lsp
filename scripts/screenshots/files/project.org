@@ -1,0 +1,33 @@
+#+title: Project notes
+#+filetags: :work:
+
+* TODO [#A] Write the release notes                              :writing:
+SCHEDULED: <2026-05-18 Mon 09:00>
+- [X] Collect the merged pull requests
+- [ ] Thank the contributors
+- [ ] Publish on the /website/
+* NEXT Review the *pull requests* for =org-syntax=
+DEADLINE: <2026-05-20 Wed>
+* TODO Call Anna about the conference talk                         :phone:
+<2026-05-19 Tue 14:00-14:30>
+* DONE Fix the week start of the calendar
+CLOSED: [2026-05-17 Sun 18:20]
+* Planning [1/3]
+** DONE Pick a date
+** TODO Book the room
+** TODO Send the invitations
+* Estimates
+| Task        | Hours | Done |
+|-------------+-------+------|
+| Parser      |    12 |  80% |
+| Agenda      |    20 |  45% |
+|-------------+-------+------|
+| Total       |    32 |      |
+#+TBLFM: @>$2=vsum(@2..@-1)
+* Snippets
+#+begin_src rust
+fn main() {
+    println!("Org mode in {} editors", 6);
+}
+#+end_src
+See [[https://orgmode.org][the Org manual]] and [[file:home.org::*Groceries][the groceries]].
