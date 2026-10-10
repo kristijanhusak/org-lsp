@@ -1,0 +1,1159 @@
+[
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "expected": {
+   "buffer": "20261010",
+   "point": 30,
+   "hidden": [],
+   "files": {
+    "20261010": "* Saturday, 10/10/26\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261010": "* Saturday, 10/10/26\n** 09:00 morning\ntext\n"
+  },
+  "command": "new-entry",
+  "expected": {
+   "buffer": "20261010",
+   "point": 52,
+   "hidden": [
+    3
+   ],
+   "files": {
+    "20261010": "* Saturday, 10/10/26\n** 09:00 morning\ntext\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261010": "* Saturday, 10/10/26\n** 09:00 morning\ntext"
+  },
+  "command": "new-entry",
+  "expected": {
+   "buffer": "20261010",
+   "point": 52,
+   "hidden": [
+    3
+   ],
+   "files": {
+    "20261010": "* Saturday, 10/10/26\n** 09:00 morning\ntext\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261010": "* Saturday, 10/10/26\n"
+  },
+  "command": "new-entry",
+  "prefix": 1,
+  "expected": {
+   "buffer": "20261010",
+   "point": 21,
+   "hidden": [],
+   "files": {
+    "20261010": "* Saturday, 10/10/26\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "prefix": 1,
+  "expected": {
+   "buffer": "20261010",
+   "point": 20,
+   "hidden": [],
+   "files": {
+    "20261010": "* Saturday, 10/10/26\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261010": "#+title: Day\n\n* Saturday, 10/10/26\n** 09:00 a\n*** sub\nbody\n** 10:00 b\n"
+  },
+  "command": "new-entry",
+  "expected": {
+   "buffer": "20261010",
+   "point": 79,
+   "hidden": [
+    5,
+    6
+   ],
+   "files": {
+    "20261010": "#+title: Day\n\n* Saturday, 10/10/26\n** 09:00 a\n*** sub\nbody\n** 10:00 b\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_date_format": "%Y-%m-%d %a",
+   "org_journal_time_format": "%H:%M -- "
+  },
+  "expected": {
+   "buffer": "20261010",
+   "point": 29,
+   "hidden": [],
+   "files": {
+    "20261010": "* 2026-10-10 Sat\n** 14:05 -- \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_date_prefix": "#+title: ",
+   "org_journal_time_prefix": "* "
+  },
+  "expected": {
+   "buffer": "20261010",
+   "point": 36,
+   "hidden": [],
+   "files": {
+    "20261010": "#+title: Saturday, 10/10/26\n* 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_time_prefix": "- ",
+   "org_journal_time_format": "%R: "
+  },
+  "expected": {
+   "buffer": "20261010",
+   "point": 30,
+   "hidden": [],
+   "files": {
+    "20261010": "* Saturday, 10/10/26\n- 14:05: \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_hide_entries_p": false
+  },
+  "expected": {
+   "buffer": "20261010",
+   "point": 30,
+   "hidden": [],
+   "files": {
+    "20261010": "* Saturday, 10/10/26\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_format": "%Y-%m-%d.org",
+   "org_journal_date_format": "%A %-d %B"
+  },
+  "expected": {
+   "buffer": "2026-10-10.org",
+   "point": 31,
+   "hidden": [],
+   "files": {
+    "2026-10-10.org": "* Saturday 10 October\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_format": "%Y/%m/%d.org"
+  },
+  "answers": [
+   "y"
+  ],
+  "expected": {
+   "buffer": "2026/10/10.org",
+   "point": 30,
+   "hidden": [],
+   "files": {
+    "2026/10/10.org": "* Saturday, 10/10/26\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_header": "#+title: Journal of %F\n#+startup: content\n"
+  },
+  "expected": {
+   "buffer": "20261010",
+   "point": 80,
+   "hidden": [],
+   "files": {
+    "20261010": "#+title: Journal of 2026-10-10\n#+startup: content\n* Saturday, 10/10/26\n** 14:05 \n"
+   },
+   "messages": [
+    "org-journal-mode restarted",
+    "Local setup has been refreshed"
+   ]
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_header": "Notes for %A"
+  },
+  "expected": {
+   "buffer": "20261010",
+   "point": 49,
+   "hidden": [],
+   "files": {
+    "20261010": "Notes for Saturday\n* Saturday, 10/10/26\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_date_format": ""
+  },
+  "expected": "ERROR: org-journal-date-format is empty, this won't work"
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_enable_encryption": true
+  },
+  "expected": {
+   "buffer": "20261010",
+   "point": 87,
+   "hidden": [],
+   "files": {
+    "20261010": "* Saturday, 10/10/26                                                  :crypt:\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 02:30",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "20261009",
+   "point": 28,
+   "hidden": [],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 02:30 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 02:30",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_extend_today_until": 4,
+   "org_journal_time_format_post_midnight": "%R (late) "
+  },
+  "expected": {
+   "buffer": "20261009",
+   "point": 35,
+   "hidden": [],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 02:30 (late) \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_type": "weekly"
+  },
+  "expected": {
+   "buffer": "20261005",
+   "point": 69,
+   "hidden": [
+    2,
+    3,
+    4
+   ],
+   "files": {
+    "20261005": "* Saturday, 10/10/26\n:PROPERTIES:\n:CREATED:  20261010\n:END:\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_type": "weekly"
+  },
+  "expected": {
+   "buffer": "20261005",
+   "point": 237,
+   "hidden": [
+    2,
+    3,
+    4,
+    8,
+    9,
+    10,
+    13,
+    14,
+    15
+   ],
+   "files": {
+    "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** 11:00 b\n* Saturday, 10/10/26\n:PROPERTIES:\n:CREATED:  20261010\n:END:\n** TODO carry me\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_type": "weekly",
+   "org_journal_carryover_items": ""
+  },
+  "expected": {
+   "buffer": "20261005",
+   "point": 237,
+   "hidden": [
+    2,
+    3,
+    4,
+    8,
+    9,
+    10,
+    14,
+    15,
+    16
+   ],
+   "files": {
+    "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n* Saturday, 10/10/26\n:PROPERTIES:\n:CREATED:  20261010\n:END:\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_type": "weekly",
+   "org_journal_start_on_weekday": 7
+  },
+  "expected": {
+   "buffer": "20261004",
+   "point": 69,
+   "hidden": [
+    2,
+    3,
+    4
+   ],
+   "files": {
+    "20261004": "* Saturday, 10/10/26\n:PROPERTIES:\n:CREATED:  20261010\n:END:\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_type": "monthly"
+  },
+  "expected": {
+   "buffer": "20261001",
+   "point": 69,
+   "hidden": [
+    2,
+    3,
+    4
+   ],
+   "files": {
+    "20261001": "* Saturday, 10/10/26\n:PROPERTIES:\n:CREATED:  20261010\n:END:\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_type": "yearly",
+   "org_journal_file_format": "%Y.org"
+  },
+  "expected": {
+   "buffer": "2026.org",
+   "point": 69,
+   "hidden": [
+    2,
+    3,
+    4
+   ],
+   "files": {
+    "2026.org": "* Saturday, 10/10/26\n:PROPERTIES:\n:CREATED:  20261010\n:END:\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "2026.org": "* Monday, 01/05/26\n:PROPERTIES:\n:CREATED:  20260105\n:END:\n** x\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_type": "yearly",
+   "org_journal_file_format": "%Y.org",
+   "org_journal_created_property_timestamp_format": "[%Y-%m-%d]"
+  },
+  "expected": "ERROR: Created property timestamp format \"[%Y-%m-%d]\" doesn't match CREATED property value (20260105) from entry at line: Line 3"
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "202610": "* Thursday, 10/01/26\n:PROPERTIES:\n:CREATED:  20261001\n:END:\n* Monday, 10/12/26\n:PROPERTIES:\n:CREATED:  20261012\n:END:\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_type": "monthly",
+   "org_journal_file_format": "%Y%m"
+  },
+  "expected": {
+   "buffer": "202610",
+   "point": 129,
+   "hidden": [
+    2,
+    3,
+    4,
+    6,
+    7,
+    8,
+    11,
+    12,
+    13
+   ],
+   "files": {
+    "202610": "* Thursday, 10/01/26\n:PROPERTIES:\n:CREATED:  20261001\n:END:\n* Saturday, 10/10/26\n:PROPERTIES:\n:CREATED:  20261010\n:END:\n** 14:05 \n* Monday, 10/12/26\n:PROPERTIES:\n:CREATED:  20261012\n:END:\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n** TODO call Bob\n:PROPERTIES:\n:X: 1\n:END:\n<2026-10-09 Fri>\n** 10:00 work\n*** TODO review\nSCHEDULED: <2026-10-11 Sun>\n*** DONE merged\n** DONE paid\n"
+  },
+  "command": "new-entry",
+  "expected": {
+   "buffer": "20261010",
+   "point": 147,
+   "hidden": [
+    3,
+    4,
+    5,
+    6,
+    8,
+    9
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n** 10:00 work\n*** DONE merged\n** DONE paid\n",
+    "20261010": "* Saturday, 10/10/26\n** TODO call Bob\n:PROPERTIES:\n:X: 1\n:END:\n<2026-10-10 Sat>\n** 10:00 work\n*** TODO review\nSCHEDULED: <2026-10-11 Sun>\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261008": "* Friday, 10/08/26\n** 09:00 standup\nnotes\n** TODO call Bob\n:PROPERTIES:\n:X: 1\n:END:\n<2026-10-09 Fri>\n** 10:00 work\n*** TODO review\nSCHEDULED: <2026-10-11 Sun>\n*** DONE merged\n** DONE paid\n"
+  },
+  "command": "new-entry",
+  "expected": {
+   "buffer": "20261010",
+   "point": 147,
+   "hidden": [
+    3,
+    4,
+    5,
+    6,
+    8,
+    9
+   ],
+   "files": {
+    "20261008": "* Friday, 10/08/26\n** 09:00 standup\nnotes\n** 10:00 work\n*** DONE merged\n** DONE paid\n",
+    "20261010": "* Saturday, 10/10/26\n** TODO call Bob\n:PROPERTIES:\n:X: 1\n:END:\n<2026-10-10 Sat>\n** 10:00 work\n*** TODO review\nSCHEDULED: <2026-10-11 Sun>\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n** TODO call Bob\n:PROPERTIES:\n:X: 1\n:END:\n<2026-10-09 Fri>\n** 10:00 work\n*** TODO review\nSCHEDULED: <2026-10-11 Sun>\n*** DONE merged\n** DONE paid\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_skip_carryover_drawers": [
+    "PROPERTIES"
+   ]
+  },
+  "expected": {
+   "buffer": "20261010",
+   "point": 122,
+   "hidden": [
+    3,
+    5,
+    6
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n** 10:00 work\n*** DONE merged\n** DONE paid\n",
+    "20261010": "* Saturday, 10/10/26\n** TODO call Bob\n<2026-10-10 Sat>\n** 10:00 work\n*** TODO review\nSCHEDULED: <2026-10-11 Sun>\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n** TODO call Bob\n:PROPERTIES:\n:X: 1\n:END:\n<2026-10-09 Fri>\n** 10:00 work\n*** TODO review\nSCHEDULED: <2026-10-11 Sun>\n*** DONE merged\n** DONE paid\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_carryover_items": "TODO=\"TODO\"|TODO=\"DONE\""
+  },
+  "expected": {
+   "buffer": "20261010",
+   "point": 176,
+   "hidden": [
+    3,
+    4,
+    5,
+    6,
+    8,
+    9,
+    10
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n",
+    "20261010": "* Saturday, 10/10/26\n** TODO call Bob\n:PROPERTIES:\n:X: 1\n:END:\n<2026-10-10 Sat>\n** 10:00 work\n*** TODO review\nSCHEDULED: <2026-10-11 Sun>\n*** DONE merged\n** DONE paid\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** TODO only\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_carryover_delete_empty_journal": "always"
+  },
+  "expected": {
+   "buffer": "20261010",
+   "point": 43,
+   "hidden": [],
+   "files": {
+    "20261010": "* Saturday, 10/10/26\n** TODO only\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** TODO only\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_carryover_delete_empty_journal": "ask"
+  },
+  "answers": [
+   "y"
+  ],
+  "expected": {
+   "buffer": "20261010",
+   "point": 43,
+   "hidden": [],
+   "files": {
+    "20261010": "* Saturday, 10/10/26\n** TODO only\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** TODO only\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_carryover_delete_empty_journal": "ask"
+  },
+  "answers": [
+   "n"
+  ],
+  "expected": {
+   "buffer": "20261010",
+   "point": 43,
+   "hidden": [],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n",
+    "20261010": "* Saturday, 10/10/26\n** TODO only\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_carryover_delete_empty_journal": "always"
+  },
+  "expected": {
+   "buffer": "20261010",
+   "point": 30,
+   "hidden": [],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n",
+    "20261010": "* Saturday, 10/10/26\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_type": "weekly",
+   "org_journal_carryover_delete_empty_journal": "always"
+  },
+  "expected": {
+   "buffer": "20261005",
+   "point": 227,
+   "hidden": [
+    2,
+    3,
+    4,
+    7,
+    8,
+    9,
+    12,
+    13,
+    14
+   ],
+   "files": {
+    "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** 11:00 b\n* Saturday, 10/10/26\n:PROPERTIES:\n:CREATED:  20261010\n:END:\n** TODO carry me\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n** TODO call Bob\n:PROPERTIES:\n:X: 1\n:END:\n<2026-10-09 Fri>\n** 10:00 work\n*** TODO review\nSCHEDULED: <2026-10-11 Sun>\n*** DONE merged\n** DONE paid\n"
+  },
+  "command": "new-entry",
+  "prefix": 1,
+  "expected": {
+   "buffer": "20261010",
+   "point": 138,
+   "hidden": [
+    3,
+    4,
+    5,
+    6,
+    8,
+    9
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n** 10:00 work\n*** DONE merged\n** DONE paid\n",
+    "20261010": "* Saturday, 10/10/26\n** TODO call Bob\n:PROPERTIES:\n:X: 1\n:END:\n<2026-10-10 Sat>\n** 10:00 work\n*** TODO review\nSCHEDULED: <2026-10-11 Sun>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-13 09:00",
+  "files": {
+   "20261012": "* Wednesday, 10/14/26\n:PROPERTIES:\n:CREATED:  20261014\n:END:\n** a\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_type": "weekly"
+  },
+  "expected": {
+   "buffer": "20261012",
+   "point": 68,
+   "hidden": [
+    2,
+    3,
+    4,
+    7,
+    8,
+    9
+   ],
+   "files": {
+    "20261012": "* Tuesday, 10/13/26\n:PROPERTIES:\n:CREATED:  20261013\n:END:\n** 09:00 \n* Wednesday, 10/14/26\n:PROPERTIES:\n:CREATED:  20261014\n:END:\n** a\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-07 01:05",
+  "files": {
+   "20260921": "* Friday, 09/25/26\n:PROPERTIES:\n:CREATED:  20260925\n:END:\n* Saturday, 09/26/26\n:PROPERTIES:\n:CREATED:  20260926\n:END:\n** TODO call Bob\n*** 12:30 x\n- [ ] item\n"
+  },
+  "command": "new-entry",
+  "options": {
+   "org_journal_file_type": "weekly",
+   "org_journal_carryover_delete_empty_journal": "always"
+  },
+  "expected": {
+   "buffer": "20261005",
+   "point": 110,
+   "hidden": [
+    2,
+    3,
+    4,
+    6,
+    7
+   ],
+   "files": {
+    "20261005": "* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO call Bob\n*** 12:30 x\n- [ ] item\n** 01:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-11 03:30",
+  "files": {
+   "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** NEXT lunch\n*** TODO standup\n"
+  },
+  "command": "new-entry",
+  "prefix": 1,
+  "options": {
+   "org_journal_file_type": "weekly",
+   "org_journal_time_format": ""
+  },
+  "expected": {
+   "buffer": "20261005",
+   "point": 148,
+   "hidden": [
+    2,
+    3,
+    4,
+    7,
+    8,
+    9,
+    11
+   ],
+   "files": {
+    "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n\n* Sunday, 10/11/26\n:PROPERTIES:\n:CREATED:  20261011\n:END:\n** NEXT lunch\n*** TODO standup\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-entry",
+  "options": {
+   "org_journal_date_prefix": "#+title: ",
+   "org_journal_enable_encryption": true
+  },
+  "expected": "ERROR: Before first headline at position 1 in buffer 20261010"
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-date-entry",
+  "date": "2026-10-02",
+  "expected": {
+   "buffer": "20261002",
+   "point": 22,
+   "hidden": [],
+   "files": {
+    "20261002": "* Friday, 10/02/26\n** \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-date-entry",
+  "date": "2026-10-10",
+  "expected": {
+   "buffer": "20261010",
+   "point": 30,
+   "hidden": [],
+   "files": {
+    "20261010": "* Saturday, 10/10/26\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-date-entry",
+  "date": "2026-10-12 10:00",
+  "expected": {
+   "buffer": "20261012",
+   "point": 27,
+   "hidden": [],
+   "files": {
+    "20261012": "* Monday, 10/12/26\n** TODO \n<2026-10-12 Mon>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-date-entry",
+  "date": "2026-10-10 16:00",
+  "expected": {
+   "buffer": "20261010",
+   "point": 30,
+   "hidden": [],
+   "files": {
+    "20261010": "* Saturday, 10/10/26\n** 14:05 \n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261002": "* Friday, 10/02/26\n** a\n"
+  },
+  "command": "new-date-entry",
+  "date": "2026-10-02",
+  "prefix": 1,
+  "expected": {
+   "buffer": "20261002",
+   "point": 24,
+   "hidden": [],
+   "files": {
+    "20261002": "* Friday, 10/02/26\n** a\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-scheduled-entry",
+  "date": "2026-10-12 10:00-11:00",
+  "expected": {
+   "buffer": "20261012",
+   "point": 33,
+   "hidden": [],
+   "files": {
+    "20261012": "* Monday, 10/12/26\n** TODO 10:00 \n<2026-10-12 Mon 10:00-11:00>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-scheduled-entry",
+  "date": "2026-10-12",
+  "prefix": 1,
+  "expected": {
+   "buffer": "20261012",
+   "point": 22,
+   "hidden": [],
+   "files": {
+    "20261012": "* Monday, 10/12/26\n** \n<2026-10-12 Mon>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-scheduled-entry",
+  "date": "2026-10-01",
+  "expected": "ERROR: Scheduled time needs to be in the future"
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "new-scheduled-entry",
+  "date": "2026-10-12",
+  "options": {
+   "org_journal_scheduled_string": "SCHEDULED:"
+  },
+  "expected": {
+   "buffer": "20261012",
+   "point": 27,
+   "hidden": [],
+   "files": {
+    "20261012": "* Monday, 10/12/26\n** TODO \nSCHEDULED: <2026-10-12 Mon>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n",
+   "20261012": "* Monday, 10/12/26\n** x\n"
+  },
+  "command": "next",
+  "from": "20261009",
+  "expected": {
+   "buffer": "20261012",
+   "point": 0,
+   "hidden": [],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n",
+    "20261012": "* Monday, 10/12/26\n** x\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n",
+   "20261012": "* Monday, 10/12/26\n** x\n"
+  },
+  "command": "previous",
+  "from": "20261012",
+  "expected": {
+   "buffer": "20261009",
+   "point": 0,
+   "hidden": [],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n",
+    "20261012": "* Monday, 10/12/26\n** x\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n"
+  },
+  "command": "previous",
+  "from": "20261009",
+  "expected": {
+   "buffer": "20261009",
+   "point": 0,
+   "hidden": [],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n"
+   },
+   "messages": [
+    "No journal entry before this one"
+   ]
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n",
+   "notes.org": "* x\n"
+  },
+  "command": "next",
+  "from": "notes.org",
+  "expected": "ERROR: org-journal-next-entry called outside calendar/org-journal mode"
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+  },
+  "command": "next",
+  "options": {
+   "org_journal_file_type": "weekly"
+  },
+  "from": "20261005",
+  "point": 60,
+  "expected": {
+   "buffer": "20261005",
+   "point": 79,
+   "hidden": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "files": {
+    "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+  },
+  "command": "previous",
+  "options": {
+   "org_journal_file_type": "weekly"
+  },
+  "from": "20261005",
+  "point": 140,
+  "expected": {
+   "buffer": "20261005",
+   "point": 0,
+   "hidden": [
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "files": {
+    "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n",
+   "20261011": "#+title: x\n* Sunday, 10/11/26\n** a\nb\n** c\n* other\n"
+  },
+  "command": "next",
+  "from": "20261009",
+  "expected": {
+   "buffer": "20261011",
+   "point": 11,
+   "hidden": [],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes\n",
+    "20261011": "#+title: x\n* Sunday, 10/11/26\n** a\nb\n** c\n* other\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261010": "* Saturday, 10/10/26\n** x\n"
+  },
+  "command": "open-current",
+  "expected": {
+   "buffer": "20261010",
+   "point": 0,
+   "hidden": [],
+   "files": {
+    "20261010": "* Saturday, 10/10/26\n** x\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "open-current",
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "files": {},
+   "messages": [
+    "Journal file /journal/20261010 not found"
+   ]
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+  },
+  "command": "open-current",
+  "options": {
+   "org_journal_file_type": "weekly"
+  },
+  "expected": {
+   "buffer": "20261005",
+   "point": 79,
+   "hidden": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "files": {
+    "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+   },
+   "messages": []
+  }
+ }
+]

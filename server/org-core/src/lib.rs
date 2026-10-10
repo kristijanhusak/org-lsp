@@ -19,6 +19,7 @@ pub mod date;
 pub mod edit;
 pub mod format;
 pub mod indent;
+pub mod journal;
 pub mod link;
 pub mod link_preview;
 pub mod lint;
