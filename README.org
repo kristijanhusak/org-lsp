@@ -55,6 +55,9 @@ once for every editor; an editor's own settings go on top, and
 ~org-lsp config~ shows what the server makes of them. [[file:docs/configuration.org][docs/configuration.org]]
 has everything that can be set, in every editor.
 
+org-super-agenda, org-roam and org-journal are there too, each off until
+turned on: [[file:docs/plugins.org][docs/plugins.org]] has them.
+
 * What works
 
 How much of what Emacs Org does org-lsp does, area by area, and how far
