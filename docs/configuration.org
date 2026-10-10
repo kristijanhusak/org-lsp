@@ -459,6 +459,26 @@ The commands are org-roam's:
 These commands have no keys, as in Emacs: run them from the editor's
 command list, or give them keys of your own.
 
+The org-roam buffer shows what links to a node:
+
+- ~org.roam.buffer.toggle~ :: ~org-roam-buffer-toggle~ (~C-c n l~ in the
+  ~emacs~ preset, ~<Leader>nl~ in the ~vim~ one): shows the buffer beside
+  the file, for the node at the cursor, or hides it. While it shows, it
+  follows the node the cursor is in, in org-roam's files.
+- ~org.roam.buffer.dedicated~ :: ~org-roam-buffer-display-dedicated~: a
+  buffer of its own for a node asked for (/Node/), which stays on that
+  node; with a count (~C-u~), the node at the cursor.
+- ~org.roam.buffer.refresh~ :: ~org-roam-buffer-refresh~: the buffer again,
+  with what the files say now.
+
+Its sections are those of ~org_roam_mode_sections~: /Backlinks/, the nodes
+whose ~id:~ links lead to the node, /Reflinks/, those that link to or cite
+one of its ~ROAM_REFS~, and /Unlinked References/, the lines of org-roam's
+files that name its title or an alias without a link. Each item is the
+node it comes from, its outline path, and the text around the link, as
+~org-roam-preview-default-function~ shows it; an unlinked reference is its
+file, line, column and the line itself.
+
 A ~roam:~ link names a node by its title or an alias, ~[[roam:A note]]~.
 Following it (~org.open~) visits the node, the link first turned into an
 ~id:~ link to it; a title no node has makes a node, as finding one does.
@@ -515,7 +535,15 @@ against Emacs by recorded cases and differential fuzzing. What differs:
   and its completions come with the usual ones of a link; Emacs completes
   only between ~[[~ and ~]]~, and only node titles there. A title of
   several nodes is not offered (Emacs fails on it).
-- The org-roam buffer (backlinks) is not there yet.
+- The org-roam buffer is an Org file: its items are headings linking to
+  the place they come from, which ~org.open~ visits, and their previews
+  are the text, not shown as Emacs shows it in a section of its own.
+- The persistent buffer follows the cursor only in editors that report its
+  moves (Neovim, Vim, VS Code, Sublime Text); in the others it changes
+  with ~org.roam.buffer.toggle~ or ~org.roam.buffer.refresh~.
+- Unlinked references are found by the server itself, as ripgrep finds
+  them for org-roam (its PCRE pattern, word boundaries, any case), so no
+  ~rg~ is needed; encrypted files are not searched.
 
 ** Export, Babel and other work in Emacs
 :PROPERTIES:
@@ -1783,6 +1811,12 @@ org_roam_link_auto_replace = true
 # (org-roam-completion-everywhere)
 org_roam_completion_everywhere = false
 
+# The sections of the org-roam buffer, in turn: `backlinks` (the nodes that
+# link to the node), `reflinks` (those that link to or cite its references)
+# and `unlinked-references` (the places that name it without a link, found by
+# the server itself). (org-roam-mode-sections)
+org_roam_mode_sections = ["backlinks", "reflinks"]
+
 # The templates of new nodes, as `org_capture_templates` writes them, with
 # org-roam's targets: `file` and a path, `file+head`, a path and the text a
 # new file starts with, `file+olp`, a path and the headlines of an outline
@@ -2680,6 +2714,12 @@ org_agenda_custom_commands = []
   // cursor, not only in a link; the one picked becomes a link to its node.
   // (org-roam-completion-everywhere)
   "org_roam_completion_everywhere": false,
+
+  // The sections of the org-roam buffer, in turn: `backlinks` (the nodes that
+  // link to the node), `reflinks` (those that link to or cite its references)
+  // and `unlinked-references` (the places that name it without a link, found
+  // by the server itself). (org-roam-mode-sections)
+  "org_roam_mode_sections": ["backlinks", "reflinks"],
 
   // The templates of new nodes, as `org_capture_templates` writes them, with
   // org-roam's targets: `file` and a path, `file+head`, a path and the text a

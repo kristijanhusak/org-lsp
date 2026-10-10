@@ -151,6 +151,9 @@ class View:
     def set_scratch(self, scratch):
         self.scratch = scratch
 
+    def is_dirty(self):
+        return False
+
     def close(self):
         self.closed = True
 
@@ -176,6 +179,12 @@ class Window:
 
     def views(self):
         return [self.view]
+
+    def num_groups(self):
+        return 1
+
+    def active_view_in_group(self, group):
+        return self.view
 
     def open_file(self, path):
         self.opened = View(open(path, encoding='utf-8').read(), path)
@@ -688,6 +697,52 @@ class Tests(unittest.TestCase):
         handler = self.plugin.OrgLsp(lambda: older)
         self.assertIsNone(handler.m_window_showDocument(agenda, 8))
         self.assertEqual(older.shown, (agenda, 8))
+
+    def test_shows_the_org_roam_buffer_beside_the_note_and_hides_it(self):
+        """The org-roam buffer opens in another group, the cursor staying in
+        the note; the toggle says whether it shows, for the server to hide
+        it."""
+        responses = []
+        session = types.SimpleNamespace(
+            window=self.window, get_capability=lambda path: None, send_response=responses.append)
+        shown = []
+        self.plugin.show_in_other_group = lambda window, params: shown.append(params)
+        handler = self.plugin.OrgLsp(lambda: session)
+        params = {'uri': 'file:///cache/roam/org-roam-buffer.org', 'takeFocus': False}
+        self.assertIsNone(handler.m_window_showDocument(params, 4))
+        self.assertEqual(shown, [params])
+        self.assertEqual((responses[0].request_id, responses[0].result), (4, {'success': True}))
+        session = self.run_command([('result', None)], command='org.roam.buffer.toggle')
+        self.assertIs(session.sent[0][1]['arguments'][0]['visible'], False)
+        buffer = View('#+title: A\n', '/cache/roam/org-roam-buffer.org')
+        self.window.view = buffer
+        self.sublime.windows = lambda: [self.window]
+        session = self.run_command([('result', {'close': 'file:///cache/roam/org-roam-buffer.org'})],
+                                   command='org.roam.buffer.toggle')
+        self.assertIs(session.sent[0][1]['arguments'][0]['visible'], True)
+        self.assertTrue(buffer.closed)
+
+    def test_tells_the_server_where_the_cursor_is_while_the_org_roam_buffer_shows(self):
+        sent = []
+        session = types.SimpleNamespace(send_notification=sent.append, get_capability=lambda path: None)
+        self.plugin.OrgLsp(lambda: session)
+        note = View(TEXT, '/roam/a.org')
+        buffer = View('', '/cache/roam/org-roam-buffer.org')
+        groups = {0: note, 1: None}
+        window = types.SimpleNamespace(num_groups=lambda: 2, active_view_in_group=groups.get)
+        note.window = buffer.window = lambda: window
+        # Hidden: nothing to follow.
+        note.cursor = note.text_point(2, 1)
+        self.plugin.tell_roam_cursor(note)
+        self.assertEqual(sent, [])
+        groups[1] = buffer
+        self.plugin.tell_roam_cursor(note)
+        # The same line again, and the buffer itself, say nothing.
+        note.cursor = note.text_point(2, 3)
+        self.plugin.tell_roam_cursor(note)
+        self.plugin.tell_roam_cursor(buffer)
+        self.assertEqual([(note.method, note.params) for note in sent], [('org-lsp/cursor', {
+            'textDocument': {'uri': 'file:///roam/a.org'}, 'position': {'line': 2, 'character': 1}})])
 
     def test_tells_the_server_how_wide_the_agenda_is(self):
         sent = []

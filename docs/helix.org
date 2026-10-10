@@ -93,7 +93,7 @@ menu on another key.
 | [[file:parity.org::#agenda][Agenda]] | 100% | ❌ | Helix cannot open a document on a server's request. ~org-lsp agenda FILE...~ prints the agenda in a terminal. |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ❓ | No clock in the status line: Helix has no place there for a server's text. |
 | [[file:parity.org::#capture][Capture]] | 100% | ❌ | Helix cannot open the capture buffer, and Helix cannot ask for text on a server's behalf. |
-| [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 88% | ❌ | Helix cannot ask for text on a server's behalf, and the commands ask for a node. |
+| [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 100% | ❌ | Helix cannot ask for text on a server's behalf, and the commands ask for a node; nor can Helix open the org-roam buffer on a server's request. |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ❓ | Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions. |
 | [[file:parity.org::#links][Links]] | 100% | ❓ | Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition. |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ❓ | Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works. |

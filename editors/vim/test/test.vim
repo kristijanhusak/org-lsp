@@ -807,6 +807,37 @@ if executable('emacs')
   call s:test('column view covers the headlines with their columns', function('s:columns'))
 endif
 
+" The org-roam buffer opens beside the file, the cursor staying there, with
+" the node's backlinks; it follows the cursor to another node; the command
+" again hides it.
+function! s:roam_buffer() abort
+  " coc.nvim opens documents where it opens them.
+  if $ORG_LSP_TEST_CLIENT ==# 'coc'
+    return
+  endif
+  let dir = s:work . '/roam'
+  call mkdir(dir, 'p')
+  call writefile([':PROPERTIES:', ':ID:       a-id', ':END:', '#+title: A note', '', 'Text.'], dir . '/a.org')
+  call writefile([':PROPERTIES:', ':ID:       b-id', ':END:', '#+title: B note', '', 'See [[id:a-id][A]].'], dir . '/b.org')
+  execute 'edit' fnameescape(dir . '/b.org')
+  execute 'edit' fnameescape(dir . '/a.org')
+  let here = win_getid()
+  call s:until('the server', {-> !empty(org_lsp#adapter()) && org_lsp#ready(bufnr())})
+  call org_lsp#run('org.roam.buffer.toggle')
+  call s:until('the org-roam buffer', {-> org_lsp#roam_buffer_shown()})
+  call assert_equal(here, win_getid(), 'the cursor stays in the file')
+  let roam = bufnr('org-roam-buffer.org')
+  call s:until('its backlinks', {-> index(getbufline(roam, 1, '$'), '* Backlinks (1)') >= 0})
+  " `CursorMoved` comes from the main loop, which a test does not run.
+  execute 'buffer' fnameescape(dir . '/b.org')
+  call cursor(6, 1)
+  call org_lsp#tell_roam_cursor()
+  call s:until('the other node', {-> getbufline(roam, 1)[0] ==# '#+title: B note'})
+  call org_lsp#run('org.roam.buffer.toggle')
+  call s:until('the buffer hidden', {-> !org_lsp#roam_buffer_shown()})
+endfunction
+call s:test('the org-roam buffer shows the backlinks of the node', function('s:roam_buffer'))
+
 for error in v:errors
   call add(s:results, 'not ok - ' . error)
 endfor

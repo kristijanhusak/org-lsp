@@ -1,0 +1,458 @@
+[
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID:       a-id\n:ROAM_REFS: https://example.com/a @key1\n:ROAM_ALIASES: Alpha\n:END:\n#+title: A note\n\nText about A.¦\n",
+   "b.org": "#+title: B\n* Heading one\n:PROPERTIES:\n:ID:       b-id\n:END:\nSee [[id:a-id][A]] here.\n# a comment\nSecond line.\n** Sub\nMore [[id:a-id]] and https://example.com/a\n\n* Other\n:PROPERTIES:\n:ID:       o-id\n:END:\ncite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\n"
+  },
+  "expected": {
+   "title": "A note",
+   "text": "Backlinks (2)\nHeading one (Heading one)\nSee [[id:a-id][A]] here.\nSecond line.\n\nHeading one (Heading one > Sub)\nMore [[id:a-id]] and https://example.com/a\n\n\nReflinks (2)\nHeading one (Heading one > Sub)\nMore [[id:a-id]] and https://example.com/a\n\nOther (Other)\ncite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\n\n\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID:       a-id\n:ROAM_REFS: https://example.com/a @key1\n:ROAM_ALIASES: Alpha\n:END:\n#+title: A note\n\nText about A.¦\n",
+   "b.org": "#+title: B\n* Heading one\n:PROPERTIES:\n:ID:       b-id\n:END:\nSee [[id:a-id][A]] here.\n# a comment\nSecond line.\n** Sub\nMore [[id:a-id]] and https://example.com/a\n\n* Other\n:PROPERTIES:\n:ID:       o-id\n:END:\ncite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\n",
+   "sub/c.org": ":PROPERTIES:\n:ID:       c-id\n:END:\n#+title: C note\n#+filetags: :x:\n\n# comment line\n[[id:a-id][first]] link in the file node.\n\n* Later\nAgain [[id:a-id]].\n"
+  },
+  "sections": [
+   "backlinks",
+   "reflinks",
+   "unlinked-references"
+  ],
+  "expected": {
+   "title": "A note",
+   "text": "Backlinks (4)\nC note (Top)\n[[id:a-id][first]] link in the file node.\n\nC note (Later)\nAgain [[id:a-id]].\n\nHeading one (Heading one)\nSee [[id:a-id][A]] here.\nSecond line.\n\nHeading one (Heading one > Sub)\nMore [[id:a-id]] and https://example.com/a\n\n\nReflinks (2)\nHeading one (Heading one > Sub)\nMore [[id:a-id]] and https://example.com/a\n\nOther (Other)\ncite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\n\n\nUnlinked References (4)\nb:16:24 cite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\nb:16:40 cite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\nb:16:72 cite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\nb:16:94 cite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\n\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID:       a-id\n:ROAM_REFS: https://example.com/a @key1\n:ROAM_ALIASES: Alpha\n:END:\n#+title: A note\n\nText about A.\n",
+   "b.org": "#+title: B\n* Heading one\n:PROPERTIES:\n:ID:       b-id\n:END:\nSee [[id:a-id][A]] here.\n# a comment\nSecond¦ line.\n** Sub\nMore [[id:a-id]] and https://example.com/a\n\n* Other\n:PROPERTIES:\n:ID:       o-id\n:END:\ncite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\n"
+  },
+  "expected": {
+   "title": "Heading one",
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "a.org": "* No node¦ here\n"
+  },
+  "expected": null
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID:       a-id\n:ROAM_REFS: https://example.com/a @key1\n:ROAM_ALIASES: Alpha\n:END:\n#+title: A note\n\nText about A.¦\n",
+   "z.org": ":PROPERTIES:\n:ID:       z-id\n:END:\n#+title: Aaa\n[[id:a-id]] in Aaa\n",
+   "sub/c.org": ":PROPERTIES:\n:ID:       c-id\n:END:\n#+title: C note\n#+filetags: :x:\n\n# comment line\n[[id:a-id][first]] link in the file node.\n\n* Later\nAgain [[id:a-id]].\n"
+  },
+  "expected": {
+   "title": "A note",
+   "text": "Backlinks (3)\nAaa (Top)\n[[id:a-id]] in Aaa\n\nC note (Top)\n[[id:a-id][first]] link in the file node.\n\nC note (Later)\nAgain [[id:a-id]].\n\n\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID:       a-id\n:ROAM_REFS: https://example.com/a @key1\n:ROAM_ALIASES: Alpha\n:END:\n#+title: A note\n\nText about A.¦\n",
+   "b.org": "#+title: B\n* Heading one\n:PROPERTIES:\n:ID:       b-id\n:END:\nSee [[id:a-id][A]] here.\n# a comment\nSecond line.\n** Sub\nMore [[id:a-id]] and https://example.com/a\n\n* Other\n:PROPERTIES:\n:ID:       o-id\n:END:\ncite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\n"
+  },
+  "sections": [
+   "unlinked-references"
+  ],
+  "expected": {
+   "title": "A note",
+   "text": "Unlinked References (4)\nb:16:24 cite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\nb:16:40 cite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\nb:16:72 cite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\nb:16:94 cite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\n\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID:       a-id\n:ROAM_ALIASES: Alpha\n:END:\n#+title: A note\n\nText about A.¦\n",
+   "b.org": "#+title: B\n* Heading one\n:PROPERTIES:\n:ID:       b-id\n:END:\nSee [[id:a-id][A]] here.\n# a comment\nSecond line.\n** Sub\nMore [[id:a-id]] and https://example.com/a\n\n* Other\n:PROPERTIES:\n:ID:       o-id\n:END:\ncite [cite:@key1] then a note mention: A note is great. [[A note]] and alpha, [x [Alpha] y] [A note\n"
+  },
+  "sections": [
+   "reflinks",
+   "backlinks"
+  ],
+  "expected": {
+   "title": "A note",
+   "text": "Backlinks (2)\nHeading one (Heading one)\nSee [[id:a-id][A]] here.\nSecond line.\n\nHeading one (Heading one > Sub)\nMore [[id:a-id]] and https://example.com/a\n\n\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID:       X257-1\n:END:\n#+TITLE: alpha 日本 日本 a.b\n#+Title: the note [[id:X257-1]]\n#+filetags: :@home:b:\n** DONE the note (c) Ça [2026-08-15 Tue 10:00]\n:PROPERTIES:\n:ID:       897-2\n:ROAM_REFS: [[https://ex.org/p][desc]] [[https://ex.org/p][desc]]\n:END:\n日本 100%\n\n** [[file:sub/deep.org::123][f]] :x_y:\nSCHEDULED: <2026-07-23>--<2026-07-23>\n:PROPERTIES:\n:ID:       X257-1\n:ROAM_REFS: https://example.com/r http://Host.COM/A [[https://ex.org/p][desc]]\n:END:\n*** [[*$5]]\nDEADLINE: [2026-05-15 Wed 9:30-10:00] SCHEDULED: [2026-05-25 25:00]\n:PROPERTIES:\n:ID:       X858-3\n:ROAM_ALIASES: Ça x\n:END:\n**** [[id:X858-3]] [[id:X257-1][100%]]\n:PROPERTIES:\n:ID:       id-154-4\n:ROAM_ALIASES: \"x two\" \"Ünï two\" \"with \\\"quote\\\"\"\n:CATEGORY: x y\n:END:\na.b alpha\n# [[id:897-2]]\n**** NEXT [cite/t:see @a_b; @smith2020;see @smith2020] (c) [[Beta]] :x_y:a:\nSCHEDULED: <2026-10-12 25:00> CLOSED: <2026-06-13>\n:PROPERTIES:\n:ID:       709-5\n:ROAM_ALIASES: $5 alpha \"(c) two\"\n:END:\n\n: [[id:id-154-4][Ünï]]\n*** [[roam:Ça]] Beta $5\n:PROPERTIES:\n:ID:       X449-6\n:ROAM_ALIASES: \"Beta two\" Ça\n:END:\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1¦:00\n",
+   "e.txt": ":PROPERTIES:\n:ID:       709-5\n:CATEGORY: nil\n:END:\n#+Title: [2026-09-11] [[file:sub/deep.org::123][f]] [2026-11-01 Tue 10:00] $5\n#+filetags: :a:\n# http://Ex.org/A?b=1#c\n"
+  },
+  "expected": {
+   "title": "roam:Ça Beta $5",
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "sub/c.org": "# [[roam:the note]]\n* DONE\t日本 it's Beta 日本   :日本:work:\nDEADLINE: <2026-11-10 Mon>--<2026-11-10> CLOSED: <2026-09-15>\n:PROPERTIES:\n:ID:       X510-1\n:LINKED: https://a.b\n:END:\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n* TODO Beta\n<2026-06-06 25:00>\n* [2026-02-08 25:00] [2026-06-05 Mon] a.b\n:PROPERTIES:\n:ID:       X760-2\n:END:\n* DONE x [cite:@doe:21 p. 3;@smith2020 p. 3] Ünï a.b   :b:\n:PROPERTIES:\n:ID:       X206-3\n:ROAM_REFS: [cite:@a;@b]\n:CATEGORY: nil\n:END:\n:LOGBOOK:\n- note <2026-12-20>\n:END:\n** TODO [[roam:Beta]] <2026-12-20 25:00> (c)\n*** (c) mailto:a@b.c [[id:missing-2::text][x]] http¦s://example.com/p\t:work:日本:\nCLOSED: <2026-06-27 25:00>--<2026-06-27> SCHEDULED: <2026-08-08>\n:PROPERTIES:\n:ID:       559-4\n:END:\n[[roam:Ça]]\n日本 a.b\n",
+   "b.org": "#+Title: x the note\n#+title: http://Ex.org/A?b=1#c a.b [cite/t:see @smith2020 p. 3;see @smith2020] the note\n#+TODO: TODO NEXT | DONE\n"
+  },
+  "sections": [
+   "backlinks"
+  ],
+  "expected": {
+   "title": "(c) mailto:a@b.c x https://example.com/p",
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "data/d.org": "#+Title: Ünï the note 100% [cite/t: @doe:21; @smith2020;@doe:21]\nit's a.b $5\n* alpha mailto:a@b.c Ünï\nCLOSED: [2026-03-26 25:00]\n:PROPERTIES:\n:ID:       594-1\n:ROAM_REFS: https://x.org/a%20b http://Host.COM/A\n:END:\nCLOCK: [2¦026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n** žć [[#cid]]   :x_y:\n: [[id:594-1][the note]]\n** DONE\t[#99] (c) Ça x\nÜnï <2026-07-08 Mon> [[*Ünï]]\n*** [#C] žć [[id:594-1][alpha]] <https://angle.org/x y> it's   :b:@home:\nx\n*** TODO\t[#a] it's\t:@home:\n:PROPERTIES:\n:ID:       id-967-2\n:CATEGORY: nil\n:LINKED: value\n:END:\n",
+   "a.org": "#+Title: Beta\n#+Title: the note x alpha Ünï\n\n"
+  },
+  "sections": [
+   "backlinks",
+   "unlinked-references"
+  ],
+  "expected": {
+   "title": null,
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "b.org": "\n¦",
+   "e.txt": "#+TITLE: [[id:missing-5::text][(c)]] 100%\n** [#12] x 100% (c)\nDEADLINE: [2026-06-25] SCHEDULED: <2026-01-14 Tue 10:00>\n# [[file:a.org::*H][f]]\n:LOGBOOK:\n- note [2026-06-17 Wed 9:30-10:00]\n:END:\n"
+  },
+  "sections": [
+   "reflinks",
+   "backlinks"
+  ],
+  "expected": null
+ },
+ {
+  "files": {
+   "b.org": "#+title: Ça Ünï [2026-09-12 Mon] a.b\n** DONE\t$5 [[the note]] Beta   :b:x_y:\n:PROPERTIES:\n:ID:       X801-1\n:ROAM_ALIASES: (c) the_note Beta\n:ROAM_REFS: https://example.com/r https://example.com/r http://Host.COM/A\n:CUSTOM+: more\n:END:\n| [[the note]] | Ünï |\n| [[id:X801-1]] | (c) |\n",
+   "data/d.org": ":PROPERTIES:\n:ID:       X865-2\n:END:\n#+Title: [[https://ex.com/a b]¦[spaced]] it's alpha (c)\n** Ünï [[file:sub/deep.org::123][f]] :@home:b:\n:PROPERTIES:\n:ID:       X483-3\n:ROAM_REFS: [cite:@doe2021] [cite:@doe2021]\n:END:\n** DONE\t[#99] [cite:@doe:21 p. 3] http://Ex.org/A?b=1#c Ünï\n:PROPERTIES:\n:ID:       X823-4\n:ROAM_REFS: [cite:@doe2021]\n:END:\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n*** \nDEADLINE: [2026-12-24 Mon]\n| <https://angle.org/x y> | it's |\n** NEXT žć [[file:x y.org][f]] [[id:X865-2]] it's :x_y:\n日本\n- 日本 it's $5 x\n*** NEXT [[./rel.org][rel]]\nCLOSED: [2026-06-05 Wed 9:30-10:00]\n:PROPERTIES:\n:ID:       id-352-5\n:ROAM_ALIASES: \"100% two\"\n:ROAM_REFS: [cite:@a;@b] https://example.com/r\n:END:\nÇa\n",
+   "a.org": ":PROPERTIES:\n:ID:       id-194-6\n:ROAM_REFS: http://Host.COM/A [cite:@doe2021]\n:END:\n#+TITLE: (c) a.b a.b\n#+title: [cite/n/b: @a_b; @a_b;see @k1 p. 3] Beta it's it's\n#+TODO: TODO NEXT | DONE\n: <https://angle.org/x y>\n** NEXT žć x\nCLOSED: <2026-04-26 Wed 9:30-10:00>--<2026-04-26> SCHEDULED: <2026-09-02 25:00>\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n\n",
+   "e.txt": ":PROPERTIES:\n:ID:       X564-7\n:ROAM_ALIASES: \"x two\" 100%\n:ROAM_REFS: [cite:@a;@b] id:abc\n:END:\n#+TITLE: the note [2026-12-15 Tue 10:00]\n#+filetags: :a:@home:\n#+transclude: [[id:X483-3::*Head]]\n"
+  },
+  "expected": {
+   "title": null,
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "b.org": "#+Title: $5 100% 日本 [[id:missing-3::text]]\n#+Title: [[id:missing-1::text][日本]]\n#+TODO: TODO NEXT | DONE\n* alpha Beta [[id:missing-3][x]] alpha :日本:\nCLOSED: [2026-11-07 Mon] SCHEDULED: <2026-02-12 25:00>\n:PROPERTIES:\n:ID:       838-1\n:END:\n* 日本 [cite/n/b: @a_b; @a_b;@smith2020]   :b:\nSCHEDULED: [2026-07-07 25:00]\n:PROPERTIES:\n:ID:       X447-2\n:ROAM_ALIASES: žć 日本 Ünï \"unclosed\n:ROAM_REFS: id:abc [cite:@a;@b]\n:CUSTOM: value\n:END:\n: [[id:X447-2::*Head]]\n* NEXT [#A] Ça\n:PROPERTIES:\n:ID:       837-3\n:END:\n* [#12] [cite:@doe:21;@k1;see @a_b p. 3]\n:PROPERTIES:\n:ID:       node-470-4\n:END:\n** a.b Ça Ça\t:a:\n:PROPERTIES:\n:ID:       node-596-5\n:Other: [[id:missing-4]]\n:END:\nalpha the note\n",
+   "a.org": "#+TITLE: http://Ex.org/A?b=1#c\n#+TODO: TODO NEXT | DONE\n* alpha\n:PROPERTIES:\n:ID:       node-331-6\n:CATEGORY: cat\n:LINKED: <2026-01-26 Mon>\n:CUSTOM+: more\n:END:\n100% Beta\n[[./rel.org][rel]] [cite: @k1;see @a_b]\n** a.b\n:PROPERTIES:\n:ID:       id-260-7\n:ROAM_ALIASES: 100%\n:ROAM_REFS: http://Host.COM/A [[https://ex.org/p][desc]] http://Host.COM/A\n:ROAM_EXCLUDE: nil\n:END:\nÇa žć it's it's\n*** https://example.com/p a.b\n:PROPERTIES:\n:ROAM_REFS: id:abc http://Host.COM/A\n:END:\n*** Ça\n: [[id:837-3::*Head]]\nhttps://a.b\n**** NEXT\t[[id:838-1][the note]] alpha\n:PROPERTIES:\n:ID:       705-8\n:END:\n- the note a.b [[roam:žć]] [cite:@a_b;@s¦mith2020 p. 3;see @smith2020]\n#+caption: [[id:705-8]]\n**** DONE\t[cite/t:see @a_b] a.b [[https://ex.com/a b][spaced]]\n:PROPERTIES:\n:ID:       node-699-9\n:END:\n# http://Ex.org/A?b=1#c\n",
+   "data/d.org": "#+Title: Beta [[roam:Ünï]]\n#+begin_src org\n[[*Beta]]\n#+end_src\n* TODO\t<2026-10-21> Ça a.b x\nDEADLINE: <2026-04-11 Mon>--<2026-04-11>\n:PROPERTIES:\n:ID:       id-205-10\n:ROAM_REFS: [cite:@a;@b] notalink \"https://q.org/a b\"\n:CATEGORY: x y\n:Other: value\n:CUSTOM+: more\n:END:\n[[id:id-260-7]] a.b\n** [2026-10-04 Mon] 日本 mailto:a@b.c\n* Ünï <2026-06-27 Wed 9:30-10:00>\n:PROPERTIES:\n:ID:       936-11\n:END:\n** NEXT [#C] http://Ex.org/A?b=1#c\t:work:a:\nSCHEDULED: [2026-12-07]\n:PROPERTIES:\n:ID:       341-12\n:CATEGORY: cat\n:END:\n[cite: @smith2020;@doe:21 p. 3] 100% http://Ex.org/A?b=1#c <2026-10-23 25:00>\n[[roam:Ça]] 100%\n",
+   "e.txt": ":PROPERTIES:\n:ID:       X596-13\n:CATEGORY: cat\n:END:\n# [[id:node-331-6]]\n"
+  },
+  "sections": [
+   "backlinks"
+  ],
+  "expected": {
+   "title": "NEXT\tthe note alpha",
+   "text": "Backlinks (1)\nNEXT\tthe note alpha (alpha > a.b > Ça > NEXT\tthe note alpha)\n- the note a.b [[roam:žć]] [cite:@a_b;@smith2020 p. 3;see @smith2020]\n#+caption: [[id:705-8]]\n\n\n"
+  }
+ },
+ {
+  "files": {
+   "b.org": ":PROPERTIES:\n:ID:       X507-1\n:Other: \n:END:\n#+TITLE: mailto:a@b.c $5\n#+filetags: :x_y:日本:\n** [cite/n/b:see @doe:21;see @smith2020 p. 3] [[roam:Ça]] <2026-06-09 Tue 10:00> :work:日本:\n:PROPERTIES:\n:ID:       node-838-2\n:ROAM_ALIASES: Ünï \"x two\"\n:END:\n| [[roam:Ça]] | Beta |\n",
+   "a.org": ":PROPERTIES:\n:ID:       node-223-3\n:ROAM_REFS: @smith2020 [cite:@doe2021] notalink\n:ROAM_EXCLUDE: nil\n:CUSTOM: value\n:END:\n#+title: https://example.com/p it's [[id:X507-1][(c)]]\n** TODO\t[[file:sub/deep.org::123][f]] it's it's\n:PROPERTIES:\n:ROAM_ALIASES: \"a.b two\" \"(c) two\" 100%\n:ROAM_REFS: id:abc https://x.org/a%20b [[https://ex.org/p][desc]]\n:END:\n*** 100%\nDEADLINE: <2026-09-10 25:00>\n:PROPERTIES:\n:ID:       node-247-4\n:END:\nx¦ [2026-07-06 Wed 9:30-10:00] Ça https://a.b\n",
+   "e.txt": "# a comment line\n:PROPERTIES:\n:ID:       X820-5\n:ROAM_ALIASES: \"日本 two\"\n:END:\n#+Title: (c)\n* a.b\n:PROPERTIES:\n:ID:       id-669-6\n:ROAM_ALIASES: alpha\n:ROAM_REFS: https://x.org/a%20b \"https://q.org/a b\" @smith2020\n:END:\n(c) it's\na.b <2026-12-28 Mon> [[./rel.org][rel]] https://a.b\n",
+   "data/d.org": ":PROPERTIES:\n:ID:       X979-7\n:ROAM_REFS: https://example.com/r @smith2020 [cite:@doe2021]\n:END:\n* [#12] the note Ünï\n* DONE $5 [2026-12-28 Tue 10:00] x [cite/n/b:see @k1; @smith2020 p. 3; @a_b]\nCLOSED: <2026-11-01> SCHEDULED: <2026-01-07 Mon>\n:PROPERTIES:\n:ID:       859-8\n:LINKED: \n:END:\n(c)\n[[id:node-247-4::#c]]\n"
+  },
+  "expected": {
+   "title": "100%",
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "sub/c.org": "#+TITLE: $5 x [[id:missing-7][x]] Beta\n** 日本 https://example.com/p\nDEADLINE: [2026-04-13 Tue 10:00] SCHEDULED: <2026-07-21 Wed 9:30-10:00>\n:PROPERTIES:\n:ID:       X782-1\n:ROAM_ALIASES: žć \"$5 two\"\n:CATEGORY: x y\n:END:\n\n:LOGBOOK:\n- ¦note <2026-10-14 Tue 10:00>\n:END:\n",
+   "b.org": ":PROPERTIES:\n:ID:       id-433-2\n:ROAM_REFS: cite:k9\n:CUSTOM+: more\n:END:\n#+TITLE: (c)\n#+filetags: :work:b:\n** (c) alpha it's\nCLOSED: <2026-06-02 25:00> SCHEDULED: <2026-11-27 Wed 9:30-10:00>\n:PROPERTIES:\n:ID:       454-3\n:ITEM: \n:END:\n[cite: @k1;see @doe:21] it's\n\n*** žć it's 日本\t:x_y:a:\n:PROPERTIES:\n:ID:       036-4\n:END:\n*** TODO Ünï [[id:missing-9::*Head]]\nDEADLINE: [2026-06-20 Wed 9:30-10:00]\n| [[./rel.org][rel]] | 100% |\n**** Ünï [[id:036-4]]   :@home:\n:PROPERTIES:\n:ROAM_ALIASES: \"Ça two\" \"(c) two\" \"unclosed\n:LINKED: \n:END:\n: [[*(c)]]\n*** DONE the note a.b\n:PROPERTIES:\n:ID:       X885-5\n:END:\n| [[id:036-4][日本]] | Ünï |\n**** x Ça Ça\nDEADLINE: [2026-03-16] CLOSED: <2026-01-04 Tue 10:00>\n:PROPERTIES:\n:ID:       X610-6\n:ROAM_REFS: [[https://ex.org/p][desc]] id:abc cite:k9\n:END:\n",
+   "a.org": "#+Title: the note\n** TODO\t$5\n:PROPERTIES:\n:ID:       X070-7\n:END:\n# mailto:a@b.c\n*** NEXT [cite/t:@k1 p. 3]\t:a:b:\n:PROPERTIES:\n:ID:       node-930-8\n:END:\n*** 日本\n:PROPERTIES:\n:ID:       node-637-9\n:CATEGORY: nil\n:END:\n| [[id:id-433-2][it's]] | $5 |\n*** TODO [[*Ça]] [[id:missing-2][a.b]] Beta   :日本:\n:PROPERTIES:\n:ID:       id-496-10\n:ROAM_ALIASES: x Ça \"alpha two\"\n:END:\n\n**** NEXT\t[[id:missing-9][Beta]]\n:PROPERTIES:\n:ID:       X782-1\n:END:\n- alpha a.b the note [cite: @k1 p. 3]\n",
+   "data/d.org": ":PROPERTIES:\n:ID:       node-133-11\n:END:\n#+Title: https://a.b žć\n#+filetags: :日本:a:\n<2026-08-15 Tue 10:00>--<2026-08-15> <2026-02-28 25:00> (c)\n** $5 [[id:node-930-8][x]] [cite/n/b:@k1;@smith2020 p. 3; @k1] Ünï\n:PROPERTIES:\n:ID:       X589-12\n:END:\n- [[id:node-637-9]]\n[[#cid]] [[id:X782-1][Ça]] a.b\n*** $5 Beta <2026-01-08 25:00> [[日本]]\n[[id:036-4::#c]]\n*** NEXT\t[#A] [[id:X885-5][x]]\t:a:work:\n:PROPERTIES:\n:ID:       id-247-13\n:ROAM_ALIASES: a.b \"the note two\"\n:ROAM_REFS: notalink notalink\n:END:\nit's\n- (c) [[id:454-3][x]] <2026-08-16 Tue 10:00> x\n**** \nSCHEDULED: [2026-11-01 Tue 10:00] CLOSED: <2026-02-19 Mon>\n:PROPERTIES:\n:ID:       id-319-14\n:ROAM_REFS: https://example.com/r https://x.org/a%20b \"https://q.org/a b\"\n:END:\n[[id:node-930-8]] žć\n日本 it's\n**** žć [[#cid]] [[id:id-319-14][the note]] :work:\n:PROPERTIES:\n:ID:       node-347-15\n:END:\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n- (c) alpha [[id:node-637-9][it's]] alpha\n"
+  },
+  "sections": [
+   "reflinks",
+   "backlinks"
+  ],
+  "expected": {
+   "title": "日本 https://example.com/p",
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "b.org": "#+Title: 100% alpha\n#+filetags: :日本:x_y:\n#+begin_src org\n[[roam:x]]\n#+end_src\n* žć 日本 it's\n:PROPERTIES:\n:ID:       X837-1\n:ROAM_REFS: [cite:@a;@b]\n:Other: \n:END:\n- 日本 https://example.com/p a.b\n[[file:a.org][f]]\n* [#a] 日本 日本\t:x_y:work:\n:PROPERTIES:\n:ID:       072-2\n:END:\n(c)\nx [[file:x y.org::123][f]] x Ça\n* žć the note a.b Ünï :@home:\n** DONE Beta žć 100% Beta :@home:日本:\n:PROPERTIES:\n:ID:       X455-3\n:CATEGORY: x y\n:END:\n:LOGBOOK:\n- note <2026-10-20 Tue 10:00>\n:END:\n** NEXT Ça 日本 :a:\n\n* [[id:X455-3::#c]] the note 100% [2026-04-25 25:00] :@home:\nDEADLINE: <2026-07-01 25:00>\n:PROPERTIES:\n:ID:       id-915-4\n:TODO: [[*Beta]]\n:CUSTOM+: more\n:END:\n[[roam:Ünï]] a.b <2026-05-23> <2026-06-04>\n[cite:@k1; @k1; @doe:21 p. 3] [[id:id-915-4]] [[id:missing-1::text][100%]] x\n",
+   "data/d.org": "#+title: [[id:X455-3]] Ünï [[roam:$5]]\n#+Title: a.b [[id:missing-0]] alpha [[*(c)]]\n* [#12] [cite/n/b:see @doe:21;see @doe:21 p. 3] [[id:X455-3][Ünï]]\t:a:日本:\n#+caption: [[$5]]\n- the note Ça alpha\n** [cite:¦@a_b p. 3;@k1] [[file:sub/deep.org][f]] (c) [[id:id-915-4][alpha]]\nSCHEDULED: <2026-11-06 Tue 10:00>--<2026-11-06> CLOSED: [2026-02-11 Wed 9:30-10:00]\n:PROPERTIES:\n:ID:       X714-5\n:ROAM_ALIASES: \"Ünï two\" $5 alpha \"unclosed\n:CATEGORY: x y\n:END:\n#+foo: [[*it's]]\n#+foo: [[./rel.org][rel]]\n",
+   "e.txt": "#+TITLE: x it's (c)\n#+transclude: [[./rel.org][rel]]\n** [#A] a.b\n:PROPERTIES:\n:ID:       X455-3\n:ROAM_ALIASES: the_note \"žć two\"\n:END:\n** [[roam:Beta]] Beta it's Beta\n:PROPERTIES:\n:ID:       X310-6\n:ROAM_ALIASES: the_note\n:END:\n* [#a] Ünï\n:PROPERTIES:\n:ID:       node-218-7\n:CATEGORY: cat\n:END:\n:LOGBOOK:\n- note [2026-08-05 25:00]\n:END:\n"
+  },
+  "expected": {
+   "title": null,
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "sub/c.org": ":PROPERTIES:\n:ID:       X312-1\n:ROAM_REFS: [[https://ex.org/p][desc]]\n:END:\n#+Title: [cite/t: @a_b;@doe:21 p. 3;see @k1]\n#+filetags: :b:日本:@home:\n\n** [cite: @smith2020 p. 3] [2026-06-16 25:00] [[roam:(c)]] it's\n:PROPERTIES:\n:ID:       X358-2\n:END:\nit's 日本 Ünï [[id:X312-1][a.b]]\n* DONE a.b\nCLOSED: [2026-06-07]\n\n* [cite: @a_b;@a_b;see @a_b p. 3] [[*the note]] Beta\nSCHEDULED: <2026-11-09> DEADLINE: <2026-12-24 Mon>\n:PROPERTIES:\n:CUSTOM: mailto:a@b.c\n:END:\n:LOGBOOK:\n- note [2026-04-15 Wed 9:30-10:00]\n:END:\n#+begin_src org\nmailto:a@b.c\n#+end_src\n* TODO alpha\n:PROPERTIES:\n:ID:       node-395-3\n:CUSTOM+: more\n:END:\nx it's https://a.b [[*100%]]\n",
+   "data/d.org": ":PROPERTIES:\n:ID:       id-842-4\n:END:\n#+Title: a.b\n#¦+TODO: TODO NEXT | DONE\n",
+   "a.org": "# a comment line\n#+filetags: :work:@home:\n#+TODO: TODO NEXT | DONE\n** TODO  :work:\n:PROPERTIES:\n:ID:       node-919-5\n:END:\n* NEXT <2026-05-09 Mon> [2026-04-28 Tue 10:00] 100%\nSCHEDULED: <2026-09-21 Mon> CLOSED: <2026-04-20 25:00>\n#+begin_src org\n[[id:missing-9][日本]]\n#+end_src\nÜnï [2026-07-13]\n* [#12] alpha [cite/n/b:see @k1;see @doe:21;see @k1] [[https://ex.com/a b][spaced]] <2026-03-09 Wed 9:30-10:00>   :@home:x_y:\nCLOSED: <2026-09-09 Tue 10:00>\n:PROPERTIES:\n:ID:       X358-2\n:ROAM_REFS: https://x.org/a%20b\n:CUSTOM+: more\n:END:\n#+begin_src org\nhttps://example.com/p\n#+end_src\n- Ça [[https://ex.com/a b][spaced]]\n* https://a.b <2026-07-25 Mon> x alpha\n:PROPERTIES:\n:ID:       id-842-4\n:ROAM_ALIASES: \"日本 two\"\n:END:\n$5\n** NEXT\t[[roam:alpha]] žć\n#+begin_src org\n[[id:X358-2::#c][Ünï]]\n#+end_src\n"
+  },
+  "sections": [
+   "backlinks"
+  ],
+  "expected": {
+   "title": "https://a.b <2026-07-25 Mon> x alpha",
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "e.txt": "** TODO žć\n:LOGBOOK:\n- note <2026-09-10 25:00>--<2026-09-10>\n:END:\n#+begin_src org\n[[roam:Beta]]\n#+end_src\n** NEXT\t :日本:\nDEADLINE: <2026-12-08 Mon> CLOSED: <2026-05-03 Mon>--<2026-05-03>\n:PROPERTIES:\n:ID:       node-537-1\n:ROAM_REFS: notalink\n:END:\n- žć (c) Ça Ünï\n",
+   "b.org": "#+Title: [cite/t:@a_b p. 3;@a_b] Ünï [2026-08-05 Wed 9:30-10:00] https://a.b\n#+filetags: :x_y:\n* (c)\n* TODO the note 日本 (c)   :@home:\n:PROPERTIES:\n:ID:       X545-2\n:ROAM_EXCLUDE: nil\n:CATEGORY: nil\n:END:\n:LOGBOOK:\n- note <2026-02-21 25:00>\n:END:\nthe note http://Ex.org/A?b=1#c alpha\n* https://a.b\nBeta\n* [2026-02-20 Wed 9:30-10:00] a.b [[roam:Ünï]] alpha\n:PROPERTIES:\n:ID:       node-568-3\n:ROAM_REFS: notalink [[https://ex.org/p][desc]] [[https://ex.org/p][desc]]¦\n:CATEGORY: x y\n:END:\n** $5 [[*alpha]]\n** DONE\t[#99] http://Ex.org/A?b=1#c [[$5]] Ça\n:PROPERTIES:\n:ID:       X306-4\n:ROAM_ALIASES: 日本\n:END:\n[2026-09-10 25:00] 日本 [cite: @doe:21 p. 3]\n"
+  },
+  "sections": [
+   "unlinked-references"
+  ],
+  "expected": {
+   "title": "[2026-02-20 Wed 9:30-10:00] a.b roam:Ünï alpha",
+   "text": "Unlinked References:\n\n"
+  }
+ },
+ {
+  "files": {
+   "sub/c.org": "#+TITLE: 日本\n#+title: žć [cite/t:@doe:21 p. 3; @doe:21 p. 3]\n* 日本 Beta   :@home:\n:PROPERTIES:\n:END:\n<https://angle.org/x y> it's Ça\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n** [[id:missing-0][the note]] 100% https://example.com/p\n:PROPERTIES:\n:ID:       id-987-1\n:ROAM_EXCLUDE: nil\n:TODO: \n:END:\n<2026-08-15 Mon> alpha\n: [[id:id-987-1][a.b]]\n*** DONE\tit's\n*** x [[./rel.org][rel]] [cite:see @k1]   :x_y:\nCLOSED: [2026-03-06 Tue 10:00] DEADLINE: <2026-10-26 25:00>\n:PROPERTIES:\n:ID:       X657-2\n:ROAM_REFS: https://example.com/r \"https://q.org/a b\" http://Host.COM/A\n:END:\nthe note https://a.b\n[cite:@a_b p. 3; @a_b p. 3] [[#cid]]\n** https://example.com/p the note alpha\nSCHEDULED: <2026-08-08 Tue 10:00> CLOSED: [2026-03-21 25:00]\n:PROPERTIES:\n:ID:       X981-3\n:ROAM_REFS: https://example.com/r http://Host.COM/A\n:ROAM_EXCLUDE: t\n:END:\nBeta\n: [[#cid]]\n",
+   "data/d.org": ":PROPERTIES:\n:ITEM: [[file:a.org::*H][¦f]]\n:END:\n#+title: <2026-04-15 Mon> žć\n#+Title: <2026-05-26 25:00> http://Ex.org/A?b=1#c $5 [[#cid]]\n* it's x https://a.b Ünï :x_y:@home:\nSCHEDULED: <2026-02-05 Mon>\n:PROPERTIES:\n:ID:       X552-4\n:ROAM_REFS: @smith2020\n:END:\n** TODO alpha [[file:a.org::123][f]] žć\n: https://example.com/p\n",
+   "b.org": ":PROPERTIES:\n:ID:       X925-5\n:ROAM_REFS: [cite:@doe2021] notalink https://example.com/r\n:LINKED: value\n:CUSTOM+: more\n:END:\n#+title: 日本 žć [[id:X657-2][Beta]]\n* DONE\t[#99] x   :日本:\n:PROPERTIES:\n:ID:       X903-6\n:ROAM_ALIASES: Ça 日本 it's\n:END:\n* NEXT [[*the note]] a.b x   :a:\n:PROPERTIES:\n:ID:       node-821-7\n:ITEM: value\n:END:\n$5 [2026-11-08 Wed 9:30-10:00]\n"
+  },
+  "expected": null
+ },
+ {
+  "files": {
+   "e.txt": "#+Title: <https://angle.org/x y> alpha\n#+Title: Ünï alpha 日本 <2026-11-03>--<2026-11-03>\n* NEXT [[roam:x]] the note [[file:x y.org][f]]\n:PROPERTIES:\n:END:\n* a.b\n:PROPERTIES:\n:ID:       node-977-1\n:ROAM_REFS: [[https://ex.org/p][desc]]\n:END:\nÜnï (c) Beta\n** TODO [[id:node-977-1][žć]] [[roam:a.b]] (c) alpha\n:PROPERTIES:\n:ID:       id-712-2\n:END:\n- a.b [cite/n/b:see @smith2020 p. 3;see @a_b p. 3] žć 日本\n| [[*日本]] | $5 |\n",
+   "data/d.org": ":PROPERTIES:\n:ID:       070-3\n:ROAM_ALIASES: a.b \"žć two\"\n:END:\n#+title: [2026-02-24 Wed 9:30-10:00] https://example.com/p\n#+Title: 日本 $5 <2026-08-14>\n** http://Ex.org/A¦?b=1#c Beta Ça Ünï\nDEADLINE: [2026-03-07 Tue 10:00] SCHEDULED: [2026-07-17 Mon]\n# [[#x]]\n* Ça žć\t:b:日本:\nDEADLINE: [2026-03-23 Tue 10:00] CLOSED: [2026-09-15]\n:PROPERTIES:\n:ID:       522-4\n:ROAM_ALIASES: the_note \"a.b two\"\n:ROAM_REFS: cite:k9 id:abc notalink\n:END:\n\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n",
+   "a.org": "#+TITLE: (c) it's 日本\n- https://a.b\n"
+  },
+  "sections": [
+   "backlinks",
+   "unlinked-references",
+   "reflinks"
+  ],
+  "expected": {
+   "title": null,
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+TITLE: the note [2026-03-15 Wed 9:30-10:00] x Beta\n** $5 [2026-03-08 Wed 9:30-10:00] [[id:missing-0][a.b]] Ça\nDEADLINE: [2026-04-23 Mon]\na.b (c) Ünï [[*Ça]]\n* x [cite: @smith2020 p. 3;see @k1 p. 3; @doe:21] alpha [[file:a.org::*H][f]]\n:PROPERTIES:\n:ID:       X748-1\n:ROAM_REFS: notalink notalink\n:ROAM_EXCLUDE: nil\n:END:\n* [#A] a.b Ünï alpha\n:PROPERTIES:\n:ID:       node-988-2\n:END:\n#+begin_src org\nhttps://example.com/p\n#+end_src\n",
+   "sub/c.org": "# a comment line\n#+Title: x\n* DONE žć (c)\nCLOSED: [2026-06-28] SCHEDULED: <2026-11-12 Tue 10:00>\n:PROPERTIES:\n:ID:       012-3\n:END:\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n$5\n* [#A] Beta\n:PROPERTIES:\n:ID:       node-335-4\n:ROAM_REFS: @smith2020 \"https://q.org/a b\"\n:END:\n\n* DONE\tit's\n** $5 $5 it's [cite/t: @a_b p. 3;see @smith2020]\t:work:\n:PROPERTIES:\n:ID:       X472-5\n:ROAM_REFS: cite:k9\n:LINKED: value\n:END:\n",
+   "data/d.org": ":PROPERTIES:\n:ID:       node-039-6\n:ROAM_REFS: http://Host.COM/A https://example.com/r [cite:@a;@b]\n:END:\n#+title: [2026-12-03] [[id:missing-7]] [[id:node-335-4]] a.b\n#+filetags: :a:b:\n#+TODO: TODO NEXT | DONE\n** [[$5]] it's it's $5\nSCHEDULED: <2026-03-08>\n:PROPERTIES:\n:ID:       869-7\n:ROAM_REFS: http://Host.COM/A\n:END:\n\n** Ünï [[*Ça]] 100%\n:PROPERTIES:\n:ID:       X013-8\n:END:\n- mailto:a@b.c [cite/t:see @smith2020]\n*** DONE\tthe note žć Beta\n:PROPERTIES:\n:ID:       X696-9\n:END:\nalpha Ça\n**** [[id:X696-9::text][žć]] x 日本\n:PROPERTIES:\n:ID:       X849-10\n:END:\n# [[file:x y.org::*H][f]]\n",
+   "b.org": "#+filetags: :work:日本:x_y:\n* the note [[*a.b]]\t:a:\nCLOSED: [2026-08-14]\n#+caption: http://Ex.org/A?b=1#c\n* TODO [[file:x y.org][f]] $5 it's [[roam:Ünï]]\n:PROPERTIES:\n:ID:       node-448-11\n:ROA¦M_ALIASES: \"the note two\" alpha\n:ITEM: \n:END:\n* [#12] 日本 100% <2026-07-28 Mon> $5\n#+begin_src org\n[[id:missing-4::#c][Ça]]\n#+end_src\n"
+  },
+  "sections": [
+   "reflinks"
+  ],
+  "expected": {
+   "title": "f $5 it's roam:Ünï",
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "e.txt": "#+Title: Ça\n** (c) [cite/t:@k1 p. 3;@a_b; @a_b]\nSCHEDULED: <2026-04-06>\n\n*** [#a] a.b it's alpha a.b\n#+begin_src org\n[[roam:it's]]\n#+end_src\nthe note [[https://ex.com/a b][spaced]] [[*$5]]\n**** 日本 :b:@home:\n**** NEXT\tÜnï [2026-02-18 Mon] Beta <2026-05-18 Mon>\t:x_y:@home:\n:PROPERTIES:\n:ID:       098-1\n:END:\n- [[*it's]] Ça\n",
+   "a.org": ":PROPERTIES:\n:ID:       id-674-2\n:ROAM_REFS: cite:k9 [cite:@a;@b]\n:END:\n#+filetags: :@home:b:\n#+TODO: TODO NEXT | DONE\n* DONE [[file:x y.org::123][f]] [cite/n/b:@a_b p. 3;see @smith2020 p. 3; @smith2020] 日本 [[id:id-674-2][the note]]\nSCHEDULED: <2026-07-14 Mon>\n:PROPERTIES:\n:ID:       X025-3\n:ROAM_EXCLUDE: nil\n:END:\n:LOGBOOK:\n- note [2026-11-01]\n:END:\n",
+   "data/d.org": "# a comment line\n#+title: the note [2026-12-23 Mon] a.b\n¦* TODO \t:x_y:\n:PROPERTIES:\n:ID:       id-653-4\n:ROAM_ALIASES: Ünï\n:END:\n100%\n<2026-03-10 Wed 9:30-10:00> x [[https://ex.com/a b][spaced]]\n** NEXT [#A] the note <2026-03-06 Tue 10:00>   :@home:\nSCHEDULED: <2026-12-05> CLOSED: [2026-04-15]\n:PROPERTIES:\n:ID:       id-632-5\n:END:\n*** alpha\n",
+   "b.org": ":PROPERTIES:\n:ID:       id-805-6\n:END:\n#+Title: [[id:id-674-2][x]] <2026-03-27 Tue 10:00>\n#+TODO: TODO NEXT | DONE\n** NEXT x a.b https://a.b\n:PROPERTIES:\n:ID:       972-7\n:END:\n[cite/t:@a_b p. 3]\n\n* NEXT [#C] [[x]]\n:PROPERTIES:\n:ID:       node-684-8\n:ROAM_ALIASES: \"Ça two\" \"(c) two\" \"a.b two\"\n:END:\n** TODO x   :日本:\n:PROPERTIES:\n:ROAM_ALIASES: \"(c) two\" 日本 žć\n:END:\n[[*the note]] [[https://ex.com/a b][spaced]] Beta x\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n*** x Ünï 100% [cite/n/b: @k1;@a_b; @k1 p. 3]\n:PROPERTIES:\n:ID:       node-583-9\n:CUSTOM+: more\n:END:\n- žć [[id:972-7][it's]] žć Ça\n\n**** DONE 100%\n:PROPERTIES:\n:ID:       id-520-10\n:END:\nBeta\n**** NEXT\thttp://Ex.org/A?b=1#c <2026-02-13 25:00> :@home:x_y:\n:PROPERTIES:\n:ID:       id-694-11\n:ROAM_ALIASES: Ça\n:ROAM_REFS: http://Host.COM/A\n:ITEM: value\n:END:\n\n# [[roam:Beta]]\n"
+  },
+  "expected": {
+   "title": null,
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "b.org": ":PROPERTIES:\n:ID:       id-511-1\n:END:\nx the note 100% Beta\n* [cite:see @k1 p. 3] žć 100%\n#+caption: [[it's]]\n* [[id:missing-8][Ünï]] 100% žć alpha\nSCHEDULED: [2026-11-10 25:00] DEADLINE: [2026-07-18 Wed 9:30-10:00]\n:PROPERTIES:\n:ID:       node-650-2\n:ROAM_REFS: @smith2020 [cite:@a;@b]\n:END:\n\n- [cite/n/b:see @doe:21 p. 3;see @smith2020; @k1]\n** alpha (c) :a:b:\n:PROPERTIES:\n:ID:       502-3\n:END:\n\n<https://angle.org/x y>\n",
+   "sub/c.org": ":PROPERTIES:\n:ID:       id-332-4\n:ROAM_REFS: https://example.com/r [[https://ex.org/p][desc]] cite:k9\n:E¦ND:\n#+title: mailto:a@b.c x\n* NEXT <2026-10-02 Tue 10:00>   :b:\n:PROPERTIES:\n:ID:       519-5\n:END:\n# [[id:node-650-2][a.b]]\n[[https://ex.com/a b][spaced]] [[roam:it's]] 100% alpha\n",
+   "data/d.org": ":PROPERTIES:\n:ID:       id-379-6\n:ROAM_REFS: notalink https://x.org/a%20b\n:END:\n- alpha\n** NEXT žć alpha   :@home:\n# [[roam:日本]]\n*** Ça a.b 日本\n:PROPERTIES:\n:ID:       node-414-7\n:CUSTOM+: more\n:END:\n| [[x]] | $5 |\n\n**** DONE a.b [[id:node-414-7]] the note :x_y:\n*** [2026-07-27 25:00] alpha Ça 日本\n:PROPERTIES:\n:ID:       X532-8\n:END:\nBeta [[alpha]] alpha [[roam:it's]]\n",
+   "e.txt": ":PROPERTIES:\n:ID:       388-9\n:END:\n#+title: it's [[žć]]\n- it's\n** alpha [[id:node-650-2::*Head]] žć\t:work:\nCLOSED: <2026-02-06 Tue 10:00>\n:PROPERTIES:\n:ID:       X756-10\n:ROAM_EXCLUDE: nil\n:END:\n* [#C] [[id:519-5::text][alpha]] [[id:X532-8]] [[*$5]] alpha\nDEADLINE: <2026-06-03> CLOSED: [2026-03-05 Mon]\n:PROPERTIES:\n:ID:       X426-11\n:END:\n* TODO x\t:x_y:work:\nDEADLINE: <2026-02-07 Tue 10:00>\n:PROPERTIES:\n:ID:       X858-12\n:ROAM_REFS: http://Host.COM/A https://x.org/a%20b https://example.com/r\n:Other: [[*alpha]]\n:END:\n* NEXT [#12] alpha\t:work:\n:PROPERTIES:\n:ID:       155-13\n:ROAM_EXCLUDE: t\n:END:\n\n"
+  },
+  "sections": [
+   "backlinks"
+  ],
+  "expected": {
+   "title": "mailto:a@b.c x",
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "sub/c.org": ":PROPERTIES:\n:ID:       X120-1\n:END:\n#+TITLE: 100% http://Ex.org/A?b=1#c [[*Ünï]]\n* [#a] [[¦id:X120-1::text][it's]] alpha 日本\n:PROPERTIES:\n:ROAM_ALIASES: Beta\n:END:\n# [[./rel.org][rel]]\n** TODO [cite/t:@k1]\n:PROPERTIES:\n:ID:       X137-2\n:END:\n[2026-11-15 Wed 9:30-10:00] <2026-06-10 25:00> <2026-07-05> a.b\n[[id:missing-3][Ça]]\n*** [#C] x (c)   :@home:x_y:\n\n*** NEXT [#99] \nCLOSED: <2026-07-09 Mon> DEADLINE: [2026-05-24 25:00]\n\n*** [cite: @a_b; @a_b;see @smith2020 p. 3]\n:PROPERTIES:\n:ID:       X078-3\n:ROAM_ALIASES: it's (c)\n:END:\nthe note Beta it's 100%\nit's it's\n*** NEXT <2026-03-13 Mon> <2026-08-09 Tue 10:00>--<2026-08-09>\n:PROPERTIES:\n:ID:       node-014-4\n:CATEGORY: x y\n:END:\n- 日本\n",
+   "data/d.org": "#+TITLE: alpha it's it's\n* [#C] [[id:node-014-4]] [2026-01-28 25:00] $5   :日本:\n:PROPERTIES:\n:ROAM_ALIASES: alpha \"it's two\" x\n:END:\n<2026-08-06 Wed 9:30-10:00> Ünï Beta\nit's $5\n* NEXT a.b [cite/t:@a_b;see @a_b]\n:PROPERTIES:\n:ID:       X211-5\n:ROAM_REFS: [cite:@a;@b] [[https://ex.org/p][desc]]\n:CUSTOM+: more\n:END:\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n** NEXT x\n:PROPERTIES:\n:CATEGORY: nil\n:END:\n\n| https://example.com/p | alpha |\n*** NEXT\t[#C] $5\n:PROPERTIES:\n:ID:       id-701-6\n:ROAM_ALIASES: \"日本 two\" \"žć two\" Beta\n:END:\n**** mailto:a@b.c the note\n:PROPERTIES:\n:ID:       id-220-7\n:END:\n*** the note Ça a.b [[id:id-220-7]]\n:PROPERTIES:\n:ID:       X483-8\n:ROAM_ALIASES: x a.b\n:END:\nÇa [[roam:$5]] Ça 日本\n",
+   "b.org": "#+Title: (c)\n#+TITLE: alpha the note Ünï\n#+begin_src org\nhttps://example.com/p\n#+end_src\n* [#C] [[https://ex.com/a b][spaced]] x <2026-05-04 Wed 9:30-10:00> Ça\nDEADLINE: <2026-11-25> CLOSED: <2026-09-26 Mon>\n:PROPERTIES:\n:ID:       node-822-9\n:CATEGORY: cat\n:END:\n[[file:x y.org::123][f]]\nBeta <2026-08-24 Wed 9:30-10:00>--<2026-08-24>\n* DONE [#a] [[*100%]] it's the note\nCLOSED: [2026-12-06 Mon]\n:PROPERTIES:\n:ID:       378-10\n:CATEGORY: nil\n:END:\na.b\n* \n:PROPERTIES:\n:END:\n[[*(c)]] the note Ça\n#+begin_src org\n[[id:X137-2]]\n#+end_src\n* [[https://ex.com/a b][spaced]] :日本:@home:\nSCHEDULED: [2026-09-15 Wed 9:30-10:00]\n<https://angle.org/x y> Ünï Ça [[id:X211-5][alpha]]\n"
+  },
+  "sections": [
+   "unlinked-references"
+  ],
+  "expected": {
+   "title": "100% http://Ex.org/A?b=1#c *Ünï",
+   "text": "Unlinked References:\n\n"
+  }
+ },
+ {
+  "files": {
+   "data/d.org": "#+filetags: :@home:a:work:\n* the note\n:PROPERTIES:\n:ID:       node-488-1\n:ROAM_ALIASES: \"a.b two\"\n:END:\na.b Ça 日本 a.b\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n* $5 [cite/t: @smith2020;see @doe:21]\nDEADLINE: [2026-12-14 Mon] CLOSED: [2026-10-21 Wed 9:30-10:00]\n:PROPERTIES:\n:ROAM_ALIASES: \"x two\" \"alpha t¦wo\" \"$5 two\"\n:END:\n",
+   "a.org": "#+Title: Ça the note [[file:sub/deep.org::*H][f]]\n#+filetags: :work:\n** DONE [cite/t:@doe:21; @k1;@smith2020] [[#cid]] <2026-11-12 Tue 10:00> Ünï :x_y:\n:PROPERTIES:\n:ID:       id-068-2\n:ROAM_ALIASES: \"Ünï two\" alpha \"100% two\"\n:TODO: value\n:END:\n** TODO [[file:x y.org::123][f]]   :b:\nSCHEDULED: [2026-08-07 Mon]\n:PROPERTIES:\n:ROAM_REFS: [cite:@doe2021]\n:END:\n\nhttps://a.b žć https://example.com/p Ça\n"
+  },
+  "sections": [
+   "reflinks",
+   "unlinked-references"
+  ],
+  "expected": null
+ },
+ {
+  "files": {
+   "b.org": "* [#12] $5 [2026-01-02 25:00] 日本\n:PROPERTIES:\n:ID:       X764-1\n:END:\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\na.b it's [2026-11-02 Mon]\n** 日本 Beta <https://angle.org/x y>   :x_y:@home:\nSCHEDULED:¦ [2026-07-02 Wed 9:30-10:00] CLOSED: <2026-07-11 Wed 9:30-10:00>\n: [[./rel.org][rel]]\n** NEXT a.b Ünï $5\n:PROPERTIES:\n:ID:       X683-2\n:END:\n<2026-11-27 Mon>--<2026-11-27>\n日本 <2026-03-08 Wed 9:30-10:00> [[id:missing-9]]\n* TODO [#a] Ça   :@home:b:\n:PROPERTIES:\n:ID:       node-343-3\n:ITEM: [[roam:it's]]\n:END:\n[cite/t:@a_b;@smith2020] <2026-07-28 Wed 9:30-10:00> 100% 日本\nÇa\n* alpha žć 日本\n",
+   "e.txt": ":PROPERTIES:\n:ID:       X737-4\n:ROAM_ALIASES: \"žć two\" it's \"unclosed\n:END:\n#+TITLE: [cite/t:see @a_b;@k1] it's x\n"
+  },
+  "expected": {
+   "title": "$5 [2026-01-02 25:00] 日本",
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+title: [2026-06-10 25:0¦0]\n#+filetags: :a:\n",
+   "sub/c.org": "#+title: $5 Ünï [[id:missing-9][x]]\n#+TITLE: [[id:missing-5][it's]]\n#+TODO: TODO NEXT | DONE\n* (c)\n:PROPERTIES:\n:ID:       X186-1\n:CUSTOM+: more\n:END:\n* NEXT [[file:a.org::*H][f]] Beta\t:a:\n[[it's]]\n** NEXT\t[#A] Beta žć\n:PROPERTIES:\n:ID:       X074-2\n:ROAM_ALIASES: \"žć two\" \"x two\" Ça \"unclosed\n:ROAM_REFS: id:abc\n:END:\n<2026-08-18 25:00> žć žć\n* TODO Ça it's https://example.com/p 日本   :日本:x_y:\n:PROPERTIES:\n:ID:       770-3\n:ROAM_ALIASES: alpha (c) a.b\n:ROAM_EXCLUDE: nil\n:END:\n** [[id:X074-2][alpha]] Ça [[roam:Beta]] :x_y:日本:\nSCHEDULED: [2026-04-25 Mon] CLOSED: <2026-05-09 Wed 9:30-10:00>\n:PROPERTIES:\n:ID:       076-4\n:ROAM_ALIASES: Ünï \"x two\" $5\n:END:\n[[./rel.org][rel]] [[*Beta]] [[./rel.org][rel]]\n# [[id:X186-1][žć]]\n* [#12] Ünï <2026-07-15>--<2026-07-15>\n:PROPERTIES:\n:ID:       node-191-5\n:ROAM_REFS: https://example.com/r [[https://ex.org/p][desc]]\n:END:\n"
+  },
+  "sections": [
+   "reflinks",
+   "unlinked-references"
+  ],
+  "expected": null
+ },
+ {
+  "files": {
+   "b.org": "#+Title: the note x\n#+title: [cite/t:@k1] žć\n#+TODO: TODO NEXT | DONE\n100% alpha [[alpha]]\n* NEXT mailto:a@b.c <2026-10-23 Wed 9:30-10:00>   :x_y:work:\nSCHEDULED: [2026-04-27 Mon]\n:PROPERTIES:\n:ID:       993-1\n:ROAM_ALIASES: žć it's 日本\n:CATEGORY: x y\n:END:\n<2026-08-08 Mon> Beta Beta\n* alpha\nCLOSED: <2026-07-26 Mon> DEADLINE: [2026-04-08 Mon]\n:PROPERTIES:\n:ID:       092-2\n:ROAM_ALIASES: \"a.b two\" Ünï it's\n:END:\n[[roam:日本]]\nÇa\n**¦ NEXT\t[cite/n/b: @doe:21;see @doe:21]\nSCHEDULED: <2026-01-10 Wed 9:30-10:00>\n:PROPERTIES:\n:ROAM_ALIASES: $5 \"alpha two\"\n:ROAM_REFS: \"https://q.org/a b\"\n:CATEGORY: nil\n:END:\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n*** [[roam:Beta]] 日本 a.b\n:PROPERTIES:\n:ID:       node-252-3\n:ROAM_REFS: http://Host.COM/A\n:TODO: [2026-04-18 Mon]\n:END:\n\n- <2026-10-01 Wed 9:30-10:00> it's 日本 alpha\n*** Ünï   :b:日本:\n:PROPERTIES:\n:ID:       id-153-4\n:END:\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n",
+   "a.org": ":PROPERTIES:\n:ID:       node-525-5\n:CUSTOM: https://a.b\n:END:\n#+TITLE: it's Ça\n#+Title: Ünï alpha [cite/t: @smith2020;see @a_b; @smith2020] $5\n* it's Ünï [cite:see @smith2020 p. 3; @smith2020] alpha\n:PROPERTIES:\n:ID:       node-252-3\n:END:\n- Ünï 日本\nÇa\n"
+  },
+  "expected": {
+   "title": "alpha",
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID:       506-1\n:END:\n#+TITLE: it's mailto:a@b.c\n** NEXT [2026-07-03 25:00] Ça :a:\nCLOSED: <2026-09-10 Mon> SCHEDULED: [2026-06-13 25:00]\n:PROPERTIES:\n:ID:       269-2\n:ROAM_REFS: https://x.org/a%20b http://Host.COM/A\n:ROAM_EXCLUDE: t\n:END:\n*** [#99] [[file:x y.org::123][f]] [cite/t: @k1 p. 3; @a_b] Ünï 100%\n:PROPERTIES:\n:ID:       547-3\n:ROAM_EXCLUDE: t\n:CATEGORY: nil\n:LINKED: value\n:END:\n: [[*日本]]\n[[https://ex.com/a b][spaced]] 日本 [[roam:(c)]] Ünï\n** [#a] [2026-12-19] a.b <2026-10-18 Wed 9:30-10:00> žć   :x_y:\nCLOSED: <2026-05-27 Mon> SCHEDULED: <2026-11-21 Tue 10:00>\n:PROPERTIES:\n:ID:       id-796-4\n:ROAM_ALIASES: the_note \"it's two\"\n:END:\nalpha the note [2026-11-07 Mon] žć\n- the note\n",
+   "data/d.org": ":PROPERTIES:\n:ID:       node-967-5\n:END:\n#+Title: it's a.b Ça žć\n#+filetags: :a:\n#+TODO: TODO NEXT | DONE\n* the note it's [[日本]] :x_y:\n:PROPERTIES:\n:ID:       X469-6\n:ROAM_ALIASES: žć \"žć two\" \"x two\"\n:ROAM_REFS: \"https://q.org/a b\" http:¦//Host.COM/A\n:END:\nžć [[žć]] the note [[id:id-796-4][Ünï]]\n100%\n",
+   "e.txt": ":PROPERTIES:\n:ID:       id-873-7\n:CATEGORY: cat\n:END:\n#+title: <2026-04-07> it's [[id:node-967-5]] it's\n#+filetags: :x_y:\n* NEXT [#12] $5 [cite/t: @a_b p. 3] a.b   :work:\n:PROPERTIES:\n:ID:       X244-8\n:ROAM_ALIASES: Ça \"Ünï two\"\n:Other: [[id:269-2]]\n:END:\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n* DONE\ta.b <https://angle.org/x y>   :a:\nSCHEDULED: <2026-10-27 Wed 9:30-10:00>\n:PROPERTIES:\n:ID:       479-9\n:ROAM_REFS: http://Host.COM/A notalink\n:END:\n\n100% [[id:missing-6]] a.b\n**    :b:a:\n\n*** NEXT [[file:a.org][f]] <2026-02-08>\n[cite/t: @doe:21;@smith2020; @doe:21] <2026-10-17 Mon> [[*(c)]]\n**** TODO [[roam:a.b]]\n:PROPERTIES:\n:ID:       node-472-10\n:ROAM_ALIASES: Ça\n:CATEGORY: x y\n:END:\n\n**** DONE\t[[*alpha]] [cite:see @smith2020; @doe:21] <https://angle.org/x y> [cite/t: @doe:21]\n: [[*x]]\n",
+   "b.org": "#+filetags: :b:a:\n* [#a] [cite:@smith2020 p. 3; @k1 p. 3;@a_b]\nCLOSED: <2026-05-21 25:00> SCHEDULED: <2026-02-16 Mon>\n:PROPERTIES:\n:ID:       019-11\n:ROAM_REFS: https://x.org/a%20b http://Host.COM/A id:abc\n:ITEM: [2026-12-19 Tue 10:00]\n:END:\n#+foo: [[id:X244-8][日本]]\n** NEXT 日本 the note http://Ex.org/A?b=1#c [[id:node-472-10][100%]]   :x_y:\n#+begin_src org\n[[id:id-873-7]]\n#+end_src\n- Beta\n** 100% Beta a.b\n:PROPERTIES:\n:ID:       530-12\n:CATEGORY: cat\n:END:\n\n** DONE \n# [[./rel.org][rel]]\n| mailto:a@b.c | Ünï |\n"
+  },
+  "sections": [
+   "backlinks"
+  ],
+  "expected": {
+   "title": null,
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+TITLE: mailto:a@b.c a.b [[id:missing-8]]\n* 日本 [[roam:Ça]] [[./rel.org][rel]]\n:PROPERTIES:\n:ID:       node-772-1\n:ROAM_ALIASES: 100% the_note alpha\n:END:\n| <https://angle.org/x y> | alpha |\n** alpha 100% http://Ex.org/A?b=1#c\t:日本:x_y:\n:PROPERTIES:\n:ID:       834-2\n:TODO: [[id:node-772-1][x]]\n:END:\n\n",
+   "e.txt": ":PROPERTIES:\n:ID:       id-048-3\n:END:\n#+title: [[id:missing-4][Ça]] žć Ünï\n#+TITLE: [[žć]] Ça\n#+TODO: TODO NEXT | DONE\n| [[file:a.org::*H][f]] | $5 |\n* Ça\n日本 [[id:missing-8][alpha]] it's\n** [#12] žć žć [[id:missing-6::#c]] 日本\n(c) (c) [[id:node-772-1]] [[file:sub/deep.org::*H][f]]\n",
+   "b.org": ":PROPERTIES:\n:ID:       376-4\n:ROAM_ALIASES: \"100% two\" Beta \"(c) two\"\n:CUSTOM: <https://angle.org/x y>\n:CUSTOM+: more\n:END:\n#+title: [[id:missing-9][100%]] [cite/t:@¦k1;@k1 p. 3]\n#+title: 日本\n$5 žć [cite/n/b: @smith2020;see @smith2020;@smith2020]\n* DONE\t[#99] x it's\n:PROPERTIES:\n:ID:       737-5\n:ROAM_ALIASES: \"Beta two\" \"it's two\" žć \"unclosed\n:CATEGORY: cat\n:END:\n<2026-07-08 Mon>\n\n* a.b (c) žć [[it's]]\n- Beta http://Ex.org/A?b=1#c it's\n[[*Beta]] (c)\n* DONE\tBeta\n:PROPERTIES:\n:ID:       626-6\n:ROAM_EXCLUDE: t\n:CUSTOM: [[roam:Beta]]\n:END:\n** DONE\t[#99] \nCLOSED: [2026-11-25]\nÇa\n** NEXT [#a] the note <2026-08-10 Tue 10:00> the note   :b:a:\nSCHEDULED: <2026-02-21 Tue 10:00> CLOSED: <2026-02-24>\n:PROPERTIES:\n:ID:       978-7\n:ROAM_ALIASES: \"Beta two\" Beta a.b\n:ROAM_REFS: cite:k9 id:abc\n:ROAM_EXCLUDE: nil\n:END:\n| [[roam:Beta]] | Beta |\n",
+   "sub/c.org": ":PROPERTIES:\n:ID:       X765-8\n:END:\n#+TITLE: žć\n#+filetags: :work:日本:x_y:\n"
+  },
+  "sections": [
+   "reflinks"
+  ],
+  "expected": {
+   "title": null,
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "e.txt": "** [[*Ünï]] [[id:missing-8::#c]] a.b\n* [#99] alpha Ça\nSCHEDULED: <2026-07-12 25:00>\n:PROPERTIES:\n:ID:       X767-1\n:CUSTOM: \n:END:\n** [2026-03-28 25:00]\n:PROPERTIES:\n:ID:       node-737-2\n:END:\nalpha alpha a.b 100%\n** [#A] \n\n",
+   "b.org": "¦\n"
+  },
+  "expected": null
+ },
+ {
+  "files": {
+   "b.org": ":PROPERTIES:\n:ID:       661-1\n:ROAM_ALIASES: (c)\n:ROAM_REFS: [cite:@a;@b] cite:k9\n:END:\n#+Title: (c) žć [[roam:Ça]] (c)\n#+filetags: :a:@home:\n** [#A] (c) $5 [[id:661-1][it's]] [2026-03-19 Tue 10:00]\nSCHEDULED: [2026-12-22 Wed 9:30-10:00] DEADLINE: <2026-03-09>\n:PROPERTIES:\n:ID:       X717-2\n:END:\n\n*** NEXT https://a.b Beta [[Ça]]\nCLOSED: <2026-04-17 Tue 10:00> ¦DEADLINE: <2026-06-04 Tue 10:00>\n:PROPERTIES:\n:ID:       id-837-3\n:END:\n*** 日本\nDEADLINE: <2026-11-09 Tue 10:00> SCHEDULED: [2026-10-21 Wed 9:30-10:00]\n:PROPERTIES:\n:ID:       id-084-4\n:ROAM_REFS: [[https://ex.org/p][desc]]\n:CUSTOM+: more\n:END:\n| [[id:id-084-4][it's]] | 日本 |\n*** (c) [[https://ex.com/a b][spaced]] a.b\nSCHEDULED: <2026-09-21 Wed 9:30-10:00>\n:PROPERTIES:\n:ID:       id-061-5\n:END:\n: [[id:id-061-5][(c)]]\n*** NEXT [[id:X717-2][alpha]] Ça the note [[roam:100%]]\nCLOSED: <2026-03-11>\nÜnï\n[cite: @a_b] it's the note\n",
+   "a.org": ":PROPERTIES:\n:ID:       X246-6\n:ROAM_ALIASES: žć \"Ünï two\"\n:TODO: [[file:sub/deep.org][f]]\n:CUSTOM+: more\n:END:\n#+Title: $5 alpha [[./rel.org][rel]] a.b\n#+filetags: :x_y:@home:\n** NEXT\t[#a] 100%\n:PROPERTIES:\n:ID:       X652-7\n:CATEGORY: nil\n:END:\n\n* DONE\talpha Ça Beta   :b:@home:\nDEADLINE: <2026-02-14 Tue 10:00> CLOSED: <2026-03-15 Tue 10:00>--<2026-03-15>\n:PROPERTIES:\n:ROAM_REFS: [cite:@doe2021] [[https://ex.org/p][desc]] \"https://q.org/a b\"\n:ROAM_EXCLUDE: nil\n:END:\n[[id:X717-2]]\n** alpha the note alpha\t:a:\nCLOSED: <2026-03-08 25:00> DEADLINE: <2026-01-15 Wed 9:30-10:00>\n:PROPERTIES:\n:ID:       X438-8\n:ROAM_REFS: notalink [cite:@doe2021]\n:END:\n[[id:missing-2][Beta]]\nžć 日本 alpha Ça\n*** 日本\n:PROPERTIES:\n:ID:       730-9\n:ROAM_ALIASES: \"$5 two\" \"Ünï two\" Beta\n:END:\n# http://Ex.org/A?b=1#c\n",
+   "e.txt": ":PROPERTIES:\n:ID:       id-701-10\n:CUSTOM: [[id:missing-0][alpha]]\n:END:\n#+filetags: :@home:work:a:\n* [#C] [[id:X717-2]]\n\n* the note\t:b:work:\n:PROPERTIES:\n:ID:       692-11\n:ROAM_ALIASES: \"alpha two\" \"žć two\"\n:CATEGORY: nil\n:TODO: [[./rel.org][rel]]\n:END:\n$5 [[./rel.org][rel]] a.b\n"
+  },
+  "sections": [
+   "backlinks"
+  ],
+  "expected": {
+   "title": "NEXT https://a.b Beta Ça",
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "data/d.org": "** [#a] [[https://ex.com/a b][spaced]] [cite/n/b:@a_b p. 3] [[id:missing-6::text][100%]]\n:PROPERTIES:\n:ID:       X624-1\n:CATEGORY: x y\n:END:\nmailto:a@b.c http://Ex.org/A?b=1#c x 日本\n| [[https://ex.com/a b][spaced]] | Ça |\n** (c) žć   :日本:\nCLOSED: [2026-01-13 Wed 9:30-10:00] DEADLINE: <2026-07-05 Tue 10:00>--<2026-07-05>\n[cite:@smith2020 p. 3; @smith2020;@smith2020] it's Beta\n** NEXT [[*žć]] [[id:X624-1::#c][Ünï]] [[roam:the note]] Ça\n:PROPERTIES:\n:ID:       X770-2\n:END:\n[[id:X624-1][alpha]] [[id:X624-1::#c][žć]] [cite/t: @a_b]\n**  :@home:x_y:\n:PROPERTIES:\n:ID:       node-812-3\n:END:\n* DONE\t[#A] [[#cid]] <https://angle.org/x y> Ça [[id:node-812-3]]\n:PROPERTIES:\n:ID:       X465-4\n:ROAM_ALIASES: \"Ünï two\"\n:CUSTOM+: more\n:END:\n\n",
+   "sub/c.org": ":PROPERTIES:\n:ID:       node-316-5\n:END:\n#+filetags: :work:@home:a:\n* TODO\t[#C] it's\n:PROPERTIES:\n:ID:       id-540-6\n:LINKED: value\n:END:¦\nhttps://a.b 100%\n** 100% x [[roam:x]] (c)\n:PROPERTIES:\n:ID:       X400-7\n:ROAM_ALIASES: Beta Beta\n:END:\nžć\n",
+   "a.org": ":PROPERTIES:\n:ID:       X363-8\n:ROAM_REFS: @smith2020 [cite:@a;@b]\n:CATEGORY: nil\n:END:\n#+Title: the note\n#+TITLE: 100% [[id:node-812-3][it's]]\n#+filetags: :a:work:日本:\n"
+  },
+  "sections": [
+   "backlinks",
+   "unlinked-references"
+  ],
+  "expected": {
+   "title": "TODO\t[#C] it's",
+   "text": "Unlinked References:\n\n"
+  }
+ },
+ {
+  "files": {
+   "sub/c.org": ":PROPERTIES:\n:ID:       id-206-1\n:CUSTOM: [[roam:(c)]]\n:END:\n#+title: Ça\n#+TODO: TODO NEXT | DONE\n",
+   "data/d.org": ":PROPERTIES:\n:ID:       node-181-2\n:END:\n#+Title: mailto:a@b.c [[roam:Ünï]] <2026-02-20 25:00>\n#+filetags: :b:x_y:a:\n#+TODO: TODO NEXT | DONE\n** DONE it's [cite: @k1 p. 3] Beta\n:PROPERTIES:\n:ID:       606-3\n:ROAM_REFS: [cite:@a;@b]\n:END:\n[[id:606-3]]\n* a.b\t:a:日本:\nDEADLINE: <2026-01-07 Wed 9:30-10:00>\n:PROPERTIES:\n:ID:       id-389-4\n:END:\nalpha žć [[id:node-181-2][Ça]] [[#x]]\n* Ünï Beta\t:x_y:\nCLOSED: [2026-01-01 25:00]\n:PROPERTIES:\n:ID:       node-551-5\n:CATEGORY: cat\n:END:\n: [[id:node-181-2::text]]\n* [cite:@a_b;@a_b] x [[roam:x]]\n:PROPERTIES:\n:ID:       653-6\n:END:\n: [[https://ex.com/¦a b][spaced]]\n| [[./rel.org][rel]] | Ünï |\n* [[file:sub/deep.org::*H][f]] a.b [[*Ça]] $5\nSCHEDULED: <2026-07-13 Wed 9:30-10:00>\n\n*    :b:\nDEADLINE: <2026-05-08> CLOSED: <2026-02-20 Tue 10:00>\n:PROPERTIES:\n:ID:       X586-7\n:END:\nÜnï 日本 žć\n"
+  },
+  "sections": [
+   "backlinks",
+   "unlinked-references"
+  ],
+  "expected": {
+   "title": null,
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "data/d.org": "#¦+title: <2026-11-19>--<2026-11-19>\n#+TODO: TODO NEXT | DONE\n* [cite/t:@a_b;@k1 p. 3;see @smith2020] [[roam:the note]]\n:LOGBOOK:\n- note [2026-05-22 Tue 10:00]\n:END:\n(c) žć\n* [#a] $5 alpha\n- [cite/n/b: @smith2020;see @k1] a.b a.b\n\n",
+   "sub/c.org": ":PROPERTIES:\n:ID:       id-984-1\n:ROAM_ALIASES: žć\n:END:\n#+TITLE: it's the note <https://angle.org/x y>\n\n"
+  },
+  "expected": null
+ },
+ {
+  "files": {
+   "e.txt": "# a comment line\n#+filetags: :@home:x_y:a:\n** [#A] alpha 100%\n:PROPERTIES:\n:ID:       673-1\n:ROAM_EXCLUDE: nil\n:CATEGORY: x y\n:END:\n** DONE Beta Ünï (c)\n:PROPERTIES:\n:ID:       713-2\n:ROAM_ALIASES: \"it's two\" \"100% two\" \"unclosed\n:ROAM_REFS: \"https://q.org/a b\" notalink notalink\n:CATEGORY: x y\n:END:\nCLOCK: [2026-01-01 Thu 09:00]--[2026-01-01 Thu 10:00] =>  1:00\n** [#99] Ça [[file:x y.org::123][f]] <2026-01-09 Tue 10:00>\nDEADLINE: [2026-04-18 Wed 9:30-10:00]\n:PROPERTIES:\n:ID:       id-573-3\n:ROAM_ALIASES: Ünï Ünï\n:Other: <2026-02-07 Mon>\n:END:\n#+begin_src org\n[[https://ex.com/a b][spaced]]\n#+end_src\n\n*** <2026-01-25 Wed 9:30-10:00> it's\nSCHEDULED: <2026-09-06 Mon> DEADLINE: [2026-01-09 25:00]\n:PROPERTIES:\n:ID:       id-031-4\n:END:\n[cite:see @a_b]\n",
+   "data/d.org": "# a comment line\n#+TITLE: 100% 100%\n#+Title: 100% žć mailto:a@b.c\n#+filetags: :@home:a:\n* mailto:a@b.c a.b <2026-01-04 25:00> <2026-02-10 Mon>\n:PROPERTIES:\n:ID:       node-209-5\n:ROAM_REFS: [cite:@a;@b]\n:CUSTOM+: more\n:END:\n[[id:713-2][100%]]\nžć [[id:node-209-5][100%]] žć alpha\n* [[*Ünï]] [[*$5]] (c)\n:PROPERTIES:\n:ID:       id-647-6\n:ROAM_ALIASES: a.b \"the note two\" $5\n:END:\n[cite/t:@a_b p. 3] a.b\n| [[roam:$5]] | (c) |\n** it's 100%\nCLOSED: <2026-01-12 Wed 9:30-10:00> SCHEDULED: <2026-07-17 Tue 10:00>--<2026-07-17>\n:PROPERTIES:\n:ID:       id-103-7\n:ROAM_REFS: http://Host.COM/A [[https://ex.org/p][desc]]\n:TODO: \n:END:\n[cite/t:see @k1 p. 3;see @smith2020 p. 3;see @smith2020 p. 3] it's\n** [#12] http://Ex.org/A?b=1#c Ünï\n:PROPERTIES:\n:ID:       id-380-8\n:END:\n# [[roam:Beta]]\n*** [#C] [[id:id-647-6][Ünï]] Beta [2026-01-23 Wed 9:30-10:00] <2026-09-06 Tue 10:00>\t:work:\nDEADLINE: <2026-11-08 25:00>\n:PROPERTIES:\n:ID:       383-9\n:ROAM_REFS: cite:k9 [cite:@a;@b]\n:CATEGORY: cat\n:END:\n:LOGBOOK:\n- note [2026-05-12 Mon]\n:END:\n** NEXT <2026-08-26 25:00> [[x]] [cite/t:@doe:21] žć   :日本:x_y:\n:PROPERTIES:\n:ID:       node-850-10\n:ROAM_ALIASES: 日本 $5\n:END:\n: [[roam:(c)]]\n: [[roam:100%]]\n",
+   "sub/c.org": "#+title: žć Ünï [cite/n/b:see @a_b;see @a_b; @smith2020] the note\n#+TODO: TODO NEXT | DONE\n日本 [[*the note]]\n* [#A] alpha a.b $5 <2026-08-02 Tue 10:00>--<2026-08-02>\n:PROPERTIES:\n:ID:       X894-11\n:ROAM_ALIASES: žć Ça 100%\n:ROAM_REFS: cite:k9 [cite:@a;@b] \"https://q.org/a b\"\n:END:\n:LOGBOOK:\n- note <2026-06-23 25:00>--<2026-06-23>\n:END:\n* [[id:id-380-8][x]]\n:PROPERTIES:\n:ID:       node-142-12\n:ROAM_REFS: id:abc notalink @smith2020\n:END:\n#+begin_src org\n[[id:id-573-3][(c)]]\n#+end_src\n** NEXT\t[cite:@smith2020;see @smith2020 p. 3; @smith2020 p. 3] (c)\t:x_y:b:\n:PROPERTIES:\n:CUSTOM: [[file:a.org::*H][f]]\n:END:\n100% the note (c)\nÜnï\n*** TODO\t<2026-02-01 Tue 10:00> Ünï [[id:673-1][the note]] the note\n:PROPERTIES:\n:CATEGORY: nil\n:CUSTOM: <2026-10-08 25:00>--<2026-10-08>\n:END:\n",
+   "b.org": ":PROPERTIES:\n:END:\n#+Title: 日本 a.b [[id:node-850-10][a.b]]\n** [[./rel.org][rel]] žć [[https://ex.com/a b][spaced]]\n:PROPERTIES:\n:ID:       id-448-13\n:END:\n#+transclude: [[id:missing-2][日本]]\n[[./rel.org][rel]] $5\n** [#a] [[id:id-573-3][it's]] [cite/n/b: @doe:21] žć   :x_y:\n:PROPERTIES:\n:ID:       id-252-14\n:END:\n\n** [#12] Ünï\nCLOSED: <2026-10-07>\n:PROPERTIES:\n:ID:       id-2¦40-15\n:END:\n[2026-05-21 25:00] [[id:id-240-15]]\n**    :a:\n[cite/t:@k1 p. 3] 日本\n*** DONE 100% 100% 100% $5\nCLOSED: [2026-05-15 Wed 9:30-10:00]\n:PROPERTIES:\n:ID:       id-932-16\n:ROAM_ALIASES: Beta \"unclosed\n:ROAM_REFS: id:abc\n:CATEGORY: cat\n:END:\n100% the note alpha (c)\n"
+  },
+  "sections": [
+   "reflinks",
+   "backlinks",
+   "unlinked-references"
+  ],
+  "expected": {
+   "title": null,
+   "text": ""
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID:       node-516-1\n:ROAM_ALIASES: \"it's two\" Ça \"Ünï two\"\n:END:\n#+Title: žć http://Ex.org/A?b=1#c [[x]]\n#+TITLE: 日本 [cite/t: @k1; @doe:21 p. 3; @doe:21] [2026-07-17 25:00]\n* NEXT alpha [[roam:$5]]\nCLOSED: [2026-03-18 Tue 10:00]\n[2026-01-18 Tue 10:00] Beta https://a.b https://a.b\n* TODO\t[[roam:x]] alpha\nSCHEDULED: [2026-03-26] CLOSED: <2026-03-21 Mon>--<2026-03-21>\n",
+   "sub/c.org": "#+Title: $5\n[2026-06-03]\n",
+   "e.txt": ":PROPERTIES:\n:ID:       id-239-2\n:ROAM_REFS: @smith2020 https://x.org/a%20b [cite:@a;@b]\n:END:\n#+TITLE: [[file:a.org::*H][f]] <2026-06-25 Tue 10:00>\n#+TITLE: it's\n** alpha alpha Beta 日本\nCLOSED: <2026-04-17 Mon>--<2026-04-17>\n:PROPERTIES:\n:ID:       id-516-3\n:ROAM_REFS: https://x.org/a%20b\n:Other: \n:END:\n\n",
+   "data/d.org": "*¦* TODO\t<https://angle.org/x y>\nSCHEDULED: [2026-05-20 Tue 10:00]\n:PROPERTIES:\n:ROAM_ALIASES: \"(c) two\" (c)\n:CUSTOM: <https://angle.org/x y>\n:END:\n*** TODO\t<2026-08-05> https://example.com/p [cite/t:@k1] :日本:\nDEADLINE: <2026-04-22>\n<2026-10-14 25:00> [[https://ex.com/a b][spaced]]\n| [[#x]] | a.b |\n** DONE\t[[a.b]] [2026-06-28 Mon] žć [[id:node-516-1][Ça]]   :work:日本:\n:PROPERTIES:\n:ID:       263-4\n:END:\n*** NEXT\tÇa x a.b alpha\nSCHEDULED: [2026-05-23 Wed 9:30-10:00]\n**** [[roam:it's]] Beta 日本 it's\nCLOSED: <2026-01-01 Wed 9:30-10:00>--<2026-01-01>\n"
+  },
+  "expected": null
+ }
+]

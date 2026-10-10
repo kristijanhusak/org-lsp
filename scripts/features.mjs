@@ -505,12 +505,12 @@ export const AREAS = [
       ['New nodes from `org_roam_capture_templates`: `${title}`, `${slug}`, `${…}` asked for; `file`, `file+head`, `file+olp`, `file+head+olp` and `node` targets; capturing to a node (`org-roam-capture`)', true],
       ['`roam:` links: following them, completing them, replacing them with `id:` links as files are saved', true],
       ['Aliases, tags and references added and removed (`org-roam-alias-add` …)', true],
-      ['The org-roam buffer: backlinks, references and unlinked references', false],
+      ['The org-roam buffer: backlinks, reflinks and unlinked references (`org_roam_mode_sections`), following the cursor, dedicated buffers', true],
       ['Completing node titles as they are typed (`org-roam-completion-everywhere`)', true],
     ],
     editors: {
-      zed: ['no', `${ZED_TEXT}, and the commands ask for a node.`],
-      helix: ['no', `${HELIX_TEXT}, and the commands ask for a node.`],
+      zed: ['no', `${ZED_TEXT}, and the commands ask for a node; nor would the org-roam buffer follow the cursor: Zed reports no cursor moves to an extension.`],
+      helix: ['no', `${HELIX_TEXT}, and the commands ask for a node; nor can Helix open the org-roam buffer on a server's request.`],
     },
     checks: [
       { text: 'With `org_roam_enabled` on and `org_roam_directory` set, finding a node offers the titles and aliases of its files and visits the one picked', cmd: 'org.roam.node.find' },
@@ -521,6 +521,11 @@ export const AREAS = [
       { text: 'Adding tags to a file\'s node writes `#+filetags:`; on a headline\'s node, its tags', cmd: 'org.roam.tag.add' },
       { text: 'Following `[[roam:Title]]` visits the node and turns the link into `[[id:…][Title]]`; saving does it for the others', cmd: 'org.open' },
       { text: 'Typing `[[roam:` offers the titles of the nodes; the one picked becomes an `id:` link' },
+      { text: 'Toggling the org-roam buffer in a node another links to shows it beside, the cursor staying in the note, with *Backlinks (1)* and the linking node\'s heading and text; toggling again hides it', cmd: 'org.roam.buffer.toggle' },
+      { text: 'While the org-roam buffer shows, moving the cursor into another node shows that node\'s links', cmd: 'org.roam.buffer.toggle' },
+      { text: 'Following an item of the buffer visits the line of the link', cmd: 'org.open' },
+      { text: 'A dedicated buffer for a node asked for opens in a file of its own and stays on that node', cmd: 'org.roam.buffer.dedicated' },
+      { text: 'With `"unlinked-references"` in `org_roam_mode_sections`, a line naming the node\'s title without a link is listed under *Unlinked References*', cmd: 'org.roam.buffer.refresh' },
     ],
   },
   {

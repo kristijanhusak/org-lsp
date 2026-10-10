@@ -318,6 +318,9 @@ pub const ROAM_NODE_FIND: &str = "org.roam.node.find";
 pub const ROAM_NODE_INSERT: &str = "org.roam.node.insert";
 pub const ROAM_NODE_RANDOM: &str = "org.roam.node.random";
 pub const ROAM_CAPTURE: &str = "org.roam.capture";
+pub const ROAM_BUFFER_TOGGLE: &str = "org.roam.buffer.toggle";
+pub const ROAM_BUFFER_DEDICATED: &str = "org.roam.buffer.dedicated";
+pub const ROAM_BUFFER_REFRESH: &str = "org.roam.buffer.refresh";
 pub const ROAM_ALIAS_ADD: &str = "org.roam.alias.add";
 pub const ROAM_ALIAS_REMOVE: &str = "org.roam.alias.remove";
 pub const ROAM_TAG_ADD: &str = "org.roam.tag.add";
@@ -1363,6 +1366,16 @@ pub const COMMANDS: &[Command] = &[
         ..command(ROAM_CAPTURE, "Roam: capture to a node")
     },
     command(ROAM_NODE_RANDOM, "Roam: visit a random node"),
+    Command {
+        emacs: &[key(Global, "C-c n l")],
+        vim: &[key(Org, "<Leader>nl")],
+        ..command(ROAM_BUFFER_TOGGLE, "Roam: show or hide the org-roam buffer")
+    },
+    Command {
+        input: Some(Input { kind: "text", prompt: "Node" }),
+        ..command(ROAM_BUFFER_DEDICATED, "Roam: show the org-roam buffer of a node")
+    },
+    command(ROAM_BUFFER_REFRESH, "Roam: refresh the org-roam buffer"),
     Command { input: Some(Input { kind: "text", prompt: "Alias" }), ..edit(ROAM_ALIAS_ADD, "Roam: add an alias") },
     Command {
         input: Some(Input { kind: "text", prompt: "Remove" }),

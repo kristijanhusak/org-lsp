@@ -119,7 +119,7 @@ its sections says what it should look like.
 
 * Notes (org-roam)
 
-*Not in Helix:* Helix cannot ask for text on a server's behalf, and the commands ask for a node.
+*Not in Helix:* Helix cannot ask for text on a server's behalf, and the commands ask for a node; nor can Helix open the org-roam buffer on a server's request.
 
 * Refile and archive
 

@@ -448,6 +448,12 @@
         {
           "task_name": "Org: Roam: capture to a node"
         }
+      ],
+      "ctrl-c n l": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: show or hide the org-roam buffer"
+        }
       ]
     }
   },
@@ -1106,6 +1112,12 @@
         "task::Spawn",
         {
           "task_name": "Org: Roam: capture to a node"
+        }
+      ],
+      "ctrl-c n l": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: show or hide the org-roam buffer"
         }
       ]
     }

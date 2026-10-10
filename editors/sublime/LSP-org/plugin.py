@@ -267,12 +267,14 @@ class OrgLsp(AbstractPlugin):
         sublime.set_timeout(lambda: apply_preview(params))
 
     # TAB in the agenda (`org-agenda-goto`): the entry's file in another
-    # group (`orgOtherWindow`). LSP shows any other document as it does.
+    # group (`orgOtherWindow`); the org-roam buffer beside the note, the
+    # cursor staying in the note. LSP shows any other document as it does.
     def m_window_showDocument(self, params, request_id):
         session = self.weaksession()
         if not session:
             return None
-        if not (params or {}).get('orgOtherWindow'):
+        roam = is_roam_buffer(session, parse_uri((params or {}).get('uri', ''))[1])
+        if not (params or {}).get('orgOtherWindow') and not roam:
             # LSP's own handler, with the request's id: the decorated
             # `on_window_show_document` of recent versions returns the
             # response for the session to send, the `m_window_showDocument`
@@ -344,6 +346,47 @@ def close(uri: str) -> None:
         view.run_command('save')
     view.set_scratch(True)
     view.close()
+
+
+def roam_buffer_prefix(session) -> str:
+    """How the files of the org-roam buffer are named, as the server's
+    manifest says."""
+    get = getattr(session, 'get_capability', None) if session else None
+    return (get('experimental.org.roamBuffer.prefix') if get else None) or 'org-roam-buffer'
+
+
+def is_roam_buffer(session, path: str) -> bool:
+    return os.path.basename(path or '').startswith(roam_buffer_prefix(session))
+
+
+def roam_buffer_shown(session, window) -> bool:
+    """Whether a group of `window` shows the persistent org-roam buffer."""
+    name = roam_buffer_prefix(session) + '.org'
+    for group in range(window.num_groups()):
+        view = window.active_view_in_group(group)
+        if view and os.path.basename(view.file_name() or '') == name:
+            return True
+    return False
+
+
+roam_lines = {}
+
+
+def tell_roam_cursor(view) -> None:
+    """Tell the server the line of an Org file the cursor is on, each time
+    it changes, while the org-roam buffer shows: the buffer follows the node
+    the cursor is in (`org-lsp/cursor`)."""
+    plugin = OrgLsp.current
+    session = plugin.weaksession() if plugin else None
+    window = view.window()
+    if not session or not window or len(view.sel()) == 0 or is_roam_buffer(session, view.file_name()):
+        return
+    point = view.sel()[0].b
+    line = view.rowcol(point)[0]
+    if roam_lines.get(view.id()) == line or not roam_buffer_shown(session, window):
+        return
+    roam_lines[view.id()] = line
+    session.send_notification(Notification('org-lsp/cursor', text_document_position_params(view, point)))
 
 
 def other_group(window, path: str) -> int:
@@ -731,6 +774,9 @@ class OrgLspRunCommand(LspWindowCommand):
                 context['count'] = count
         else:
             context = {}
+        # The org-roam buffer is hidden when it shows.
+        if command == 'org.roam.buffer.toggle':
+            context['visible'] = roam_buffer_shown(session, self.window)
         self.execute(session, view, command, context, fallback)
 
     def start(self, then) -> None:
@@ -1209,6 +1255,8 @@ class OrgLspListener(sublime_plugin.EventListener):
     def on_selection_modified_async(self, view) -> None:
         if (view.file_name() or '').endswith('.org-agenda'):
             tell_agenda_cursor(view)
+        elif (view.file_name() or '').endswith('.org'):
+            tell_roam_cursor(view)
 
     # The agenda's width: when it comes to the front, and when the layout
     # or the side bar changes.

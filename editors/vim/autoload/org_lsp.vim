@@ -400,6 +400,10 @@ function! org_lsp#run(name, ...) abort
   if index(['org.capture.finish', 'org.capture.refile'], a:name) >= 0
     let context.text = join(getline(1, '$'), "\n") . (&eol || &fixeol ? "\n" : '')
   endif
+  " Whether the org-roam buffer shows, which the command hides then.
+  if a:name ==# 'org.roam.buffer.toggle'
+    let context.visible = org_lsp#roam_buffer_shown() ? v:true : v:false
+  endif
   call s:execute(nr, a:name, context, opts)
 endfunction
 
@@ -1405,6 +1409,36 @@ function! org_lsp#tell_agenda_cursor() abort
   call org_lsp#request(bufnr(), 'org-lsp/agendaCursor', params, {_error, _result -> 0})
 endfunction
 
+" The cursor on another line of an Org file while the org-roam buffer
+" shows: the buffer follows the node it is in.
+function! org_lsp#tell_roam_cursor() abort
+  if s:is_roam_buffer(expand('%:p')) || get(b:, 'org_lsp_roam_line', 0) == line('.') || !org_lsp#roam_buffer_shown()
+    return
+  endif
+  let b:org_lsp_roam_line = line('.')
+  let params = {'textDocument': {'uri': org_lsp#uri(bufnr())},
+        \ 'position': {'line': line('.') - 1, 'character': 0}}
+  call org_lsp#request(bufnr(), 'org-lsp/cursor', params, {_error, _result -> 0})
+endfunction
+
+" Whether `path` is a file of the org-roam buffer.
+function! s:is_roam_buffer(path) abort
+  let prefix = get(get(org_lsp#manifest(), 'roamBuffer', {}), 'prefix', "\n")
+  return stridx(fnamemodify(a:path, ':t'), prefix) == 0
+endfunction
+
+" Whether a window shows the persistent org-roam buffer (not a dedicated
+" one).
+function! org_lsp#roam_buffer_shown() abort
+  let prefix = get(get(org_lsp#manifest(), 'roamBuffer', {}), 'prefix', "\n")
+  for win in range(1, winnr('$'))
+    if fnamemodify(bufname(winbufnr(win)), ':t') ==# prefix . '.org'
+      return 1
+    endif
+  endfor
+  return 0
+endfunction
+
 function! s:is_agenda(path) abort
   return fnamemodify(a:path, ':t') ==# get(get(org_lsp#manifest(), 'agenda', {}), 'fileName', "\n")
 endfunction
@@ -1524,6 +1558,20 @@ function! org_lsp#show_document(params) abort
   let keep_focus = get(a:params, 'takeFocus', v:true) is v:false && get(a:params, 'orgOtherWindow', v:false)
   if s:is_prompt(path)
     call s:open_prompt(path, win)
+  elseif s:is_roam_buffer(path)
+    " The org-roam buffer beside the file, as Emacs shows it in a window of
+    " its own; gone with its window, which tells the server.
+    if win == -1
+      botright vsplit
+      let w:org_lsp_opened = 1
+      let w:org_lsp_from = from
+      execute 'edit' fnameescape(path)
+      setlocal bufhidden=wipe
+    endif
+    if get(a:params, 'takeFocus', v:true) is v:false
+      call win_gotoid(from)
+      return {'success': v:true}
+    endif
   elseif s:is_agenda(path) || s:is_capture(path)
     if win != -1
       call win_gotoid(win)

@@ -158,6 +158,7 @@ to install and set up the package.
 | ~Ctrl+C c~ | ~org.capture~ | Capture |
 | ~Ctrl+C n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~Ctrl+C n c~ | ~org.roam.capture~ | Roam: capture to a node |
+| ~Ctrl+C n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 
 =¦= stands for =|=, which an Org table cannot hold.
 
@@ -177,6 +178,7 @@ to install and set up the package.
 | ~Ctrl+C c~ | ~org.capture~ | Capture |
 | ~Ctrl+C n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~Ctrl+C n c~ | ~org.roam.capture~ | Roam: capture to a node |
+| ~Ctrl+C n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~f~ | ~org.agenda.later~ | Agenda: go forward in time |
 | ~b~ | ~org.agenda.earlier~ | Agenda: go backward in time |
 | ~.~ | ~org.agenda.today~ | Agenda: go to today |
@@ -404,6 +406,8 @@ line.
 | ~org.archive.done~ | Org: Archive the subtrees without open TODO items |
 | ~org.archive.tag.done~ | Org: Tag the subtrees without open TODO items as archived |
 | ~org.roam.node.random~ | Org: Roam: visit a random node |
+| ~org.roam.buffer.dedicated~ | Org: Roam: show the org-roam buffer of a node |
+| ~org.roam.buffer.refresh~ | Org: Roam: refresh the org-roam buffer |
 | ~org.roam.alias.add~ | Org: Roam: add an alias |
 | ~org.roam.alias.remove~ | Org: Roam: remove an alias |
 | ~org.roam.tag.add~ | Org: Roam: add tags |

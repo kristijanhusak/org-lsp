@@ -1307,6 +1307,15 @@ pub const SETTINGS: &[Setting] = &[
          the one picked becomes a link to its node.",
     ),
     setting(
+        "org_roam_mode_sections",
+        "string[]",
+        r#"["backlinks", "reflinks"]"#,
+        "org-roam-mode-sections",
+        "The sections of the org-roam buffer, in turn: `backlinks` (the nodes that link to the node), \
+         `reflinks` (those that link to or cite its references) and `unlinked-references` (the places that \
+         name it without a link, found by the server itself).",
+    ),
+    setting(
         "org_roam_capture_templates",
         "object[]",
         r##"[{ "key": "d", "description": "default", "type": "plain", "template": "%?", "target": ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"], "unnarrowed": true }]"##,
@@ -1837,6 +1846,10 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_roam_node_display_template", STRING),
     ("org_roam_link_auto_replace", BOOLEAN),
     ("org_roam_completion_everywhere", BOOLEAN),
+    (
+        "org_roam_mode_sections",
+        r#"{ "type": "array", "items": { "enum": ["backlinks", "reflinks", "unlinked-references"] } }"#,
+    ),
     (
         "org_roam_capture_templates",
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RoamCaptureTemplate", "required": ["key", "description"], "additionalProperties": false, "properties": {

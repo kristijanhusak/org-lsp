@@ -1206,4 +1206,27 @@ describe('The agenda', () => {
       await settings.update('winSplitMode', undefined, vscode.ConfigurationTarget.Global);
     }
   });
+
+  it('the org-roam buffer opens beside the note and follows the cursor', async () => {
+    await oneGroup();
+    const roam = path.join(workspace, 'roam');
+    const roamShown = () =>
+      vscode.window.visibleTextEditors.find((editor) => path.basename(editor.document.uri.fsPath) === 'org-roam-buffer.org');
+    const a = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(path.join(roam, 'a.org')));
+    await vscode.commands.executeCommand('org.roam.buffer.toggle');
+    const shown = await until('the org-roam buffer', roamShown);
+    assert.equal(vscode.window.activeTextEditor?.document.uri.fsPath, a.document.uri.fsPath, 'the cursor stays in the note');
+    assert.equal(await layout().then((found) => found[0]), BESIDE);
+    await until('its backlinks', () => shown.document.getText().includes('* Backlinks (1)'));
+    // Another node: the buffer follows it.
+    await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(path.join(roam, 'b.org')), {
+      viewColumn: a.viewColumn,
+    });
+    moveTo(5);
+    await until('the other node', () => roamShown()?.document.getText().startsWith('#+title: B note'));
+    // The command again hides it.
+    await vscode.commands.executeCommand('org.roam.buffer.toggle');
+    await until('the buffer hidden', () => !roamShown());
+    await oneGroup();
+  });
 });

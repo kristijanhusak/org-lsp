@@ -205,6 +205,14 @@ fn line_at(text: &str, at: usize) -> &str {
 /// `drawers`: past its headline, planning line and property drawer, then
 /// blank and clock lines and drawers.
 fn end_of_meta_data(text: &str) -> usize {
+    end_of_meta_data_from(text, 0, false)
+}
+
+/// `org-roam-end-of-meta-data` from `at`, with FULL non-nil: from the
+/// headline whose entry holds `at` (or the start of the file), past it,
+/// its planning line and property drawer, blank and clock lines, drawers,
+/// and with `keywords` (FULL `t`) keyword lines too.
+pub(crate) fn end_of_meta_data_from(text: &str, at: usize, keywords: bool) -> usize {
     static PLANNING: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"^[ \t]*(SCHEDULED:|DEADLINE:|CLOSED:)").expect("a valid regex"));
     static PROPERTY_DRAWER: LazyLock<Regex> = LazyLock::new(|| {
@@ -216,8 +224,11 @@ fn end_of_meta_data(text: &str) -> usize {
     static DRAWER: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"^[ \t]*:(?:\w|[-_])+:[ \t]*$").expect("a valid regex"));
     static END: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?im)^[ \t]*:END:[ \t]*$").expect("a valid regex"));
+    static KEYWORD: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^[ \t]*#\+(\S+?):[ \t]*(.*)$").expect("a valid regex"));
     let is_heading = |at: usize| headline_level(line_at(text, at)).is_some();
-    let mut point = 0;
+    // `org-back-to-heading-or-point-min`
+    let mut point = properties::heading_at(text, at.min(text.len())).unwrap_or(0);
     if is_heading(point) {
         point = next_line(text, point);
     }
@@ -250,6 +261,8 @@ fn end_of_meta_data(text: &str) -> usize {
                 Some(end) => point = next_line(text, end.end()),
                 None => break,
             }
+        } else if keywords && KEYWORD.is_match(current) {
+            point = next_line(text, point);
         } else {
             break;
         }

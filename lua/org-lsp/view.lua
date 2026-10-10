@@ -224,6 +224,30 @@ local function is_capture(uri)
   return prefix ~= nil and vim.startswith(uri, 'file:') and vim.startswith(vim.fs.basename(vim.uri_to_fname(uri)), prefix)
 end
 
+--- Whether the document at `uri` is a file of the org-roam buffer.
+---@param uri string
+---@return boolean
+local function is_roam_buffer(uri)
+  local prefix = documents.roamBuffer and documents.roamBuffer.prefix
+  return prefix ~= nil and vim.startswith(uri, 'file:') and vim.startswith(vim.fs.basename(vim.uri_to_fname(uri)), prefix)
+end
+
+--- Whether a window shows the persistent org-roam buffer (not a
+--- dedicated one).
+---@return boolean
+function M.roam_buffer_shown()
+  local prefix = documents.roamBuffer and documents.roamBuffer.prefix
+  if not prefix then
+    return false
+  end
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.fs.basename(vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(win))) == prefix .. '.org' then
+      return true
+    end
+  end
+  return false
+end
+
 --- Whether the document at `uri` is one the plugin opens in a window of
 --- its own: the agenda or a capture buffer.
 ---@param uri string
@@ -545,8 +569,20 @@ M.handlers = {
     end
     local bufnr = vim.uri_to_bufnr(params.uri)
     local win
+    local from = vim.api.nvim_get_current_win()
     if documents.datePrompt and params.uri == documents.datePrompt.uri then
       win = prompt_window(bufnr)
+    elseif is_roam_buffer(params.uri) then
+      -- The org-roam buffer beside the file, as Emacs shows it in a window
+      -- of its own; gone with its window, which tells the server.
+      win = vim.fn.win_findbuf(bufnr)[1]
+      if not win then
+        vim.bo[bufnr].bufhidden = 'wipe'
+        win = open_window(bufnr, 'botright vsplit')
+      end
+      if params.takeFocus == false and vim.api.nvim_win_is_valid(from) then
+        vim.api.nvim_set_current_win(from)
+      end
     elseif opens_apart(params.uri) then
       -- The agenda and capture buffers open as `win_split_mode` says, or
       -- in the window that already shows them.
@@ -708,7 +744,12 @@ end
 --- the date prompt.
 ---@param manifest table the server's manifest
 function M.setup(manifest)
-  documents = { agenda = manifest.agenda, datePrompt = manifest.datePrompt, capture = manifest.capture }
+  documents = {
+    agenda = manifest.agenda,
+    datePrompt = manifest.datePrompt,
+    capture = manifest.capture,
+    roamBuffer = manifest.roamBuffer,
+  }
   vim.api.nvim_create_autocmd('BufReadCmd', {
     group = vim.api.nvim_create_augroup('org_lsp_view', { clear = true }),
     -- With a slash, the pattern is matched against the whole name.
@@ -741,6 +782,25 @@ function M.setup(manifest)
       local client = vim.lsp.get_clients({ name = 'org_lsp' })[1]
       if client then
         client:notify('org-lsp/agendaCursor', vim.lsp.util.make_position_params(0, client.offset_encoding))
+      end
+    end,
+  })
+  -- The cursor on another line of an Org file while the org-roam buffer
+  -- shows: the buffer follows the node it is in.
+  vim.api.nvim_create_autocmd('CursorMoved', {
+    group = 'org_lsp_view',
+    callback = function(args)
+      if vim.bo[args.buf].filetype ~= 'org' or is_roam_buffer(vim.uri_from_bufnr(args.buf)) then
+        return
+      end
+      local line = vim.api.nvim_win_get_cursor(0)[1]
+      if vim.b[args.buf].org_lsp_roam_line == line or not M.roam_buffer_shown() then
+        return
+      end
+      vim.b[args.buf].org_lsp_roam_line = line
+      local client = vim.lsp.get_clients({ bufnr = args.buf, name = 'org_lsp' })[1]
+      if client then
+        client:notify('org-lsp/cursor', vim.lsp.util.make_position_params(0, client.offset_encoding))
       end
     end,
   })
