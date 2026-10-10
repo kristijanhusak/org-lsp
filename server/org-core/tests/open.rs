@@ -94,6 +94,7 @@ fn opening_matches_emacs() {
             Ok(Open::Tags(tag)) => json!({ "tags": tag }),
             // Emacs's to find, in the entry's attachment directory.
             Ok(Open::Attachment(path)) => json!({ "attachment": path }),
+            Ok(Open::Roam(title)) => json!({ "roam": title }),
             Ok(Open::Nothing(_)) => goto(name, &text, offset),
             Ok(Open::Choose(_)) => json!({ "error": "asked twice" }),
             Ok(Open::Citation(keys)) => json!({ "citation": keys }),

@@ -444,6 +444,30 @@ The commands are org-roam's:
   capture to the node: to its file for a node that exists.
 - ~org.roam.node.random~ :: ~org-roam-node-random~: visits a node picked at
   random.
+- ~org.roam.alias.add~, ~org.roam.alias.remove~ :: ~org-roam-alias-add~ and
+  ~org-roam-alias-remove~: an alias of the node at the cursor (the entry
+  with an ~ID~ that holds it, or the file's) added to its ~ROAM_ALIASES~
+  (/Alias/), or one picked among them taken out (/Remove/).
+- ~org.roam.ref.add~, ~org.roam.ref.remove~ :: ~org-roam-ref-add~ and
+  ~org-roam-ref-remove~: the same for its ~ROAM_REFS~ (/Ref/, /Remove/).
+- ~org.roam.tag.add~, ~org.roam.tag.remove~ :: ~org-roam-tag-add~ and
+  ~org-roam-tag-remove~: tags, separated by colons, added to the node or
+  taken out (/Tag/): on its headline, or in ~#+filetags:~ for the file's
+  node. They are offered from the tags of the nodes and ~org_tag_alist~,
+  or from the node's own.
+
+These commands have no keys, as in Emacs: run them from the editor's
+command list, or give them keys of your own.
+
+A ~roam:~ link names a node by its title or an alias, ~[[roam:A note]]~.
+Following it (~org.open~) visits the node, the link first turned into an
+~id:~ link to it; a title no node has makes a node, as finding one does.
+With ~org_roam_link_auto_replace~ (on by default), saving one of org-roam's
+files turns its ~roam:~ links to nodes into ~id:~ links. In those files,
+completion in a link, ~[[~ or ~[[roam:~, offers the titles and aliases of
+the nodes, and the one picked becomes ~[[id:…][title]]~; with
+~org_roam_completion_everywhere~, the word at the cursor is completed so
+too.
 
 A new node is captured with ~org_roam_capture_templates~, whose default is
 org-roam's: a file of its own named after the time and the title's slug,
@@ -484,8 +508,14 @@ against Emacs by recorded cases and differential fuzzing. What differs:
   the file was never written.
 - A capture whose target file changes in the editor before it is filed is
   refused; abort it and capture again.
-- ~roam:~ links, the org-roam buffer (backlinks), and adding and removing
-  aliases, tags and references are not there yet.
+- Tags go on the node's headline even when the database does not have the
+  node yet (a node not saved, or in a file org-roam cannot read); Emacs
+  then puts them on the line of the cursor.
+- A link being typed is completed before its closing ~]]~ is typed too,
+  and its completions come with the usual ones of a link; Emacs completes
+  only between ~[[~ and ~]]~, and only node titles there. A title of
+  several nodes is not offered (Emacs fails on it).
+- The org-roam buffer (backlinks) is not there yet.
 
 ** Export, Babel and other work in Emacs
 :PROPERTIES:
@@ -1743,6 +1773,16 @@ org_roam_file_exclude_regexp = ["data/"]
 # (org-roam-node-display-template)
 org_roam_node_display_template = "${title}"
 
+# Turn the `roam:` links of org-roam's files into `id:` links to their nodes
+# as the files are saved, and as a link is followed.
+# (org-roam-link-auto-replace)
+org_roam_link_auto_replace = true
+
+# In org-roam's files, offer the titles of the nodes for the word at the
+# cursor, not only in a link; the one picked becomes a link to its node.
+# (org-roam-completion-everywhere)
+org_roam_completion_everywhere = false
+
 # The templates of new nodes, as `org_capture_templates` writes them, with
 # org-roam's targets: `file` and a path, `file+head`, a path and the text a
 # new file starts with, `file+olp`, a path and the headlines of an outline
@@ -2630,6 +2670,16 @@ org_agenda_custom_commands = []
   // `${field:N}` in N columns, `${field:*}` in what is left of the window's
   // 79 columns. (org-roam-node-display-template)
   "org_roam_node_display_template": "${title}",
+
+  // Turn the `roam:` links of org-roam's files into `id:` links to their
+  // nodes as the files are saved, and as a link is followed.
+  // (org-roam-link-auto-replace)
+  "org_roam_link_auto_replace": true,
+
+  // In org-roam's files, offer the titles of the nodes for the word at the
+  // cursor, not only in a link; the one picked becomes a link to its node.
+  // (org-roam-completion-everywhere)
+  "org_roam_completion_everywhere": false,
 
   // The templates of new nodes, as `org_capture_templates` writes them, with
   // org-roam's targets: `file` and a path, `file+head`, a path and the text a

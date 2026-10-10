@@ -20,6 +20,8 @@ use org_core::{capture, edit, link, refile, Refusal};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
+mod node_edit;
+
 use super::{template_choices, template_text, Capturing, Pending, Server};
 use crate::config::{CaptureTemplateOption, RoamSettings};
 use crate::line_index::LineIndex;
@@ -140,6 +142,17 @@ impl Server {
         if self.roam.is_none() {
             return Err(OFF.into());
         }
+        if matches!(
+            id,
+            commands::ROAM_ALIAS_ADD
+                | commands::ROAM_ALIAS_REMOVE
+                | commands::ROAM_TAG_ADD
+                | commands::ROAM_TAG_REMOVE
+                | commands::ROAM_REF_ADD
+                | commands::ROAM_REF_REMOVE
+        ) {
+            return self.roam_edit(id, context);
+        }
         let (db, candidates) = self.roam_nodes()?;
         if id == commands::ROAM_NODE_RANDOM {
             // `seq-random-elt` over the lines offered: a node with aliases
@@ -201,9 +214,17 @@ impl Server {
     /// org-roam's database as `org-roam-db-sync` would make it now, and
     /// the lines that offer its nodes (`org-roam-node-read--completions`).
     fn roam_nodes(&mut self) -> Result<(Db, Vec<Candidate>), Refusal> {
+        let template = self.roam.as_ref().ok_or(OFF)?.settings.display_template.clone();
+        let (db, mtimes) = self.roam_db()?;
+        let candidates = db.candidates(&template, WIDTH, &|file| mtimes.get(file).copied().unwrap_or(0))?;
+        Ok((db, candidates))
+    }
+
+    /// org-roam's database as `org-roam-db-sync` would make it now, and
+    /// when each file was modified.
+    fn roam_db(&mut self) -> Result<(Db, HashMap<String, u64>), Refusal> {
         let roam = self.roam.as_ref().ok_or(OFF)?;
-        let (directory, settings, template) =
-            (roam.directory.clone(), roam.settings.files.clone(), roam.settings.display_template.clone());
+        let (directory, settings) = (roam.directory.clone(), roam.settings.files.clone());
         let mut names = Vec::new();
         list_files(&directory, "", 0, &mut names);
         names.retain(|name| roam::is_roam_file(name, &settings));
@@ -259,8 +280,7 @@ impl Server {
         if let Some(roam) = self.roam.as_mut() {
             roam.files.retain(|path, _| seen.contains(path));
         }
-        let candidates = db.candidates(&template, WIDTH, &|file| mtimes.get(file).copied().unwrap_or(0))?;
-        Ok((db, candidates))
+        Ok((db, mtimes))
     }
 
     /// `org-roam-node-visit`: the node's file shown, at the node.

@@ -2484,17 +2484,28 @@ impl Server {
     /// Emacs's configuration, its entries tagged `crypt` encrypted
     /// (`org-encrypt-entries`). Emacs is asked only for a file with a
     /// `:crypt:` tag, until it says it has the magic.
+    /// Before that, in one of org-roam's files, `roam:` links become `id:`
+    /// links (`org-roam-link-replace-all`).
     fn will_save(&mut self, params: lsp_types::WillSaveTextDocumentParams) -> Option<Vec<TextEdit>> {
+        let uri = params.text_document.uri;
+        let old = self.document(&uri)?.text.clone();
+        let replaced = self.roam_before_save(&uri, &old);
+        let text = replaced.clone().unwrap_or_else(|| old.clone());
+        let encrypted = self.encrypt_before_save(&uri, &text);
+        let new = encrypted.or(replaced)?;
+        Some(self.text_edits(&old, &new))
+    }
+
+    /// The text of the file at `uri` with its `crypt` entries encrypted,
+    /// when Emacs encrypts before saving and that changes it.
+    fn encrypt_before_save(&mut self, uri: &Uri, old: &str) -> Option<String> {
         if self.crypt_before_save == Some(false) {
             return None;
         }
-        let uri = params.text_document.uri;
-        let path = uri::to_path(&uri)?;
-        let document = self.document(&uri)?;
-        if self.crypt_before_save.is_none() && !document.text.contains(":crypt:") {
+        let path = uri::to_path(uri)?;
+        if self.crypt_before_save.is_none() && !old.contains(":crypt:") {
             return None;
         }
-        let old = document.text.clone();
         let params = json!({ "file": path.to_string_lossy(), "text": old, "point": 1 });
         let result = match self.emacs.call("crypt-before-save", params, std::time::Duration::from_secs(10)) {
             Ok(result) => result,
@@ -2505,8 +2516,7 @@ impl Server {
         };
         let magic = result.get("magic").and_then(Value::as_bool).unwrap_or(false);
         self.crypt_before_save = Some(magic);
-        let new = result.get("text").and_then(Value::as_str).filter(|new| *new != old)?;
-        Some(self.text_edits(&old, new))
+        result.get("text").and_then(Value::as_str).filter(|new| *new != old).map(str::to_string)
     }
 
     /// The folds closed when a file opens (see [`STARTUP_FOLDS`]).
@@ -3080,9 +3090,16 @@ impl Server {
             read_file: &read_file,
             citation_keys: &citation_keys,
         };
-        let (start, items) = completion::complete(&document.text, offset, &context)?;
+        let found = completion::complete(&document.text, offset, &context);
+        // org-roam's titles in a link or, with
+        // `org_roam_completion_everywhere`, for a word, first.
+        let roam = self.roam_completion(&uri, offset);
+        let document = self.document(&uri)?;
+        let Some((start, items)) = found else {
+            return (!roam.is_empty()).then_some(lsp_types::CompletionResponse::Array(roam));
+        };
         let range = Range::new(document.index.position(&document.text, start, encoding), position.position);
-        let items = items
+        let items: Vec<lsp_types::CompletionItem> = items
             .into_iter()
             .enumerate()
             .map(|(rank, candidate)| lsp_types::CompletionItem {
@@ -3109,7 +3126,7 @@ impl Server {
                 ..Default::default()
             })
             .collect();
-        Some(lsp_types::CompletionResponse::Array(items))
+        Some(lsp_types::CompletionResponse::Array(roam.into_iter().chain(items).collect()))
     }
 
     /// The tags of every agenda file (`org-global-tags-completion-table`).
@@ -3625,6 +3642,7 @@ impl Server {
                 } }));
             }
             Open::Nothing(message) => self.message = Some(message.clone()),
+            Open::Roam(title) => return self.roam_follow(&uri, offset, title),
             Open::Attachment(_) => return Err("No attachment directory for this entry".into()),
             // `org-cite-basic-goto`: the entry of the key, picked among
             // the citation's when it has more than one.
@@ -4572,9 +4590,14 @@ impl Server {
             let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
             return self.capture(&context);
         }
-        if params.command.starts_with("org.roam.") {
+        // A capture for a `roam:` link to a new node goes on with its
+        // questions, which come back to `org.open`.
+        let roam_follow = params.command == commands::OPEN
+            && argument.as_ref().is_some_and(|value| value.get("title").is_some() && value.get("step").is_some());
+        if params.command.starts_with("org.roam.") || roam_follow {
+            let command = if roam_follow { commands::ROAM_NODE_FIND } else { params.command.as_str() };
             let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
-            return self.roam_command(&params.command, &context);
+            return self.roam_command(command, &context);
         }
         if params.command == commands::LINK_PREVIEW || params.command == commands::LATEX_PREVIEW {
             let field = |name: &str| argument.as_ref().and_then(|value| value.get(name)).cloned();

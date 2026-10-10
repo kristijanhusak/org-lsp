@@ -8,7 +8,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in [[file:../PLAN.org][PLAN.org]]).
 
-*All of Org: 97%*
+*All of Org: 99%*
 
 | Feature | Parity | Done |
 |---+---+---|
@@ -24,7 +24,7 @@ decides the outcome (see "How the work is checked" in [[file:../PLAN.org][PLAN.o
 | [[#agenda][Agenda]] | 100% | 22 of 22 |
 | [[#clocking][Clocking]] | 100% | 8 of 8 |
 | [[#capture][Capture]] | 100% | 11 of 11 |
-| [[#notes-org-roam][Notes (org-roam)]] | 50% | 4 of 8 |
+| [[#notes-org-roam][Notes (org-roam)]] | 88% | 7 of 8 |
 | [[#refile-and-archive][Refile and archive]] | 100% | 11 of 11 |
 | [[#links][Links]] | 100% | 11 of 11 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
@@ -324,16 +324,16 @@ Where editors fall short:
 :CUSTOM_ID: notes-org-roam
 :END:
 
-50% (4 of 8)
+88% (7 of 8)
 
 - ✅ The nodes of ~org_roam_directory~, files and entries with an ~ID~, as ~org-roam-db-sync~ finds them (~org_roam_file_extensions~, ~org_roam_file_exclude_regexp~), read again as they change
 - ✅ Finding a node by its title or an alias (~org-roam-node-find~), offered as ~org_roam_node_display_template~ shows it, the files changed last first; a random node
 - ✅ Inserting a link to a node (~org-roam-node-insert~), on a selection too
 - ✅ New nodes from ~org_roam_capture_templates~: ~${title}~, ~${slug}~, ~${…}~ asked for; ~file~, ~file+head~, ~file+olp~, ~file+head+olp~ and ~node~ targets; capturing to a node (~org-roam-capture~)
-- ❌ ~roam:~ links: following them, completing them, replacing them with ~id:~ links
-- ❌ Aliases, tags and references added and removed (~org-roam-alias-add~ …)
+- ✅ ~roam:~ links: following them, completing them, replacing them with ~id:~ links as files are saved
+- ✅ Aliases, tags and references added and removed (~org-roam-alias-add~ …)
 - ❌ The org-roam buffer: backlinks, references and unlinked references
-- ❌ Completing node titles as they are typed (~org-roam-completion-everywhere~)
+- ✅ Completing node titles as they are typed (~org-roam-completion-everywhere~)
 
 Where editors fall short:
 

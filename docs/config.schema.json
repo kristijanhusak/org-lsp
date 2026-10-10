@@ -1408,6 +1408,16 @@
       "description": "How a node is offered: `${field}` for its `title`, `tags`, `todo`, `file`, `olp`, `aliases` and the other fields of `org-roam-node`, `${field:N}` in N columns, `${field:*}` in what is left of the window's 79 columns. (`org-roam-node-display-template`)",
       "default": "${title}"
     },
+    "org_roam_link_auto_replace": {
+      "type": "boolean",
+      "description": "Turn the `roam:` links of org-roam's files into `id:` links to their nodes as the files are saved, and as a link is followed. (`org-roam-link-auto-replace`)",
+      "default": true
+    },
+    "org_roam_completion_everywhere": {
+      "type": "boolean",
+      "description": "In org-roam's files, offer the titles of the nodes for the word at the cursor, not only in a link; the one picked becomes a link to its node. (`org-roam-completion-everywhere`)",
+      "default": false
+    },
     "org_roam_capture_templates": {
       "type": "array",
       "items": {

@@ -308,6 +308,12 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~org.archive.done~ | Archive the subtrees without open TODO items |
 | ~org.archive.tag.done~ | Tag the subtrees without open TODO items as archived |
 | ~org.roam.node.random~ | Roam: visit a random node |
+| ~org.roam.alias.add~ | Roam: add an alias |
+| ~org.roam.alias.remove~ | Roam: remove an alias |
+| ~org.roam.tag.add~ | Roam: add tags |
+| ~org.roam.tag.remove~ | Roam: remove tags |
+| ~org.roam.ref.add~ | Roam: add a reference |
+| ~org.roam.ref.remove~ | Roam: remove a reference |
 | ~org.date.later.hours~ | Agenda: move the time one hour later |
 | ~org.date.earlier.hours~ | Agenda: move the time one hour earlier |
 | ~org.date.later.minutes~ | Agenda: move the time later by the rounding minutes |

@@ -103,7 +103,7 @@ and lists the keys.
 | [[file:parity.org::#agenda][Agenda]] | 100% | ❓ | The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension). Column view in the agenda is left out: it draws over the lines. |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ❓ | No clock in the status line: Zed has no place there for an extension's text. |
 | [[file:parity.org::#capture][Capture]] | 100% | ❓ | Templates with prompts are left out: Zed cannot ask for text on a server's behalf. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab. |
-| [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 50% | ❌ | Zed cannot ask for text on a server's behalf, and the commands ask for a node. |
+| [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 88% | ❌ | Zed cannot ask for text on a server's behalf, and the commands ask for a node. |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
 | [[file:parity.org::#links][Links]] | 100% | ❓ | Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition, for links inside Org files and to files. |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ❓ | Making footnotes and their menu are left out: they are not among Zed's code actions. Following them works. |
@@ -120,7 +120,7 @@ and lists the keys.
 | [[file:parity.org::#attachments][Attachments]] | 100% | ❓ | ~attachment:~ links open; attaching a file is left out: it asks for the file, and Zed cannot ask for text on a server's behalf. |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❌ | Zed lets no extension show images in a file. |
-| *All of Org* | *97%* |  |  |
+| *All of Org* | *99%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

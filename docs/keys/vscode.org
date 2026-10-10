@@ -733,6 +733,12 @@ every file; outside Org files the commands say they do not apply):
 | ~org.roam.node.insert~ | Org: Roam: insert a link to a node |
 | ~org.roam.capture~ | Org: Roam: capture to a node |
 | ~org.roam.node.random~ | Org: Roam: visit a random node |
+| ~org.roam.alias.add~ | Org: Roam: add an alias |
+| ~org.roam.alias.remove~ | Org: Roam: remove an alias |
+| ~org.roam.tag.add~ | Org: Roam: add tags |
+| ~org.roam.tag.remove~ | Org: Roam: remove tags |
+| ~org.roam.ref.add~ | Org: Roam: add a reference |
+| ~org.roam.ref.remove~ | Org: Roam: remove a reference |
 | ~org.capture.abort~ | Org: Capture: abort |
 | ~org.capture.refile~ | Org: Capture: refile the entry |
 | ~org.timestamp.up~ | Org: Increase the part of the timestamp at the cursor |

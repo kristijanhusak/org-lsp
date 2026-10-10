@@ -1421,6 +1421,48 @@
     }
   },
   {
+    "caption": "Org: Roam: add an alias",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.alias.add"
+    }
+  },
+  {
+    "caption": "Org: Roam: remove an alias",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.alias.remove"
+    }
+  },
+  {
+    "caption": "Org: Roam: add tags",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.tag.add"
+    }
+  },
+  {
+    "caption": "Org: Roam: remove tags",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.tag.remove"
+    }
+  },
+  {
+    "caption": "Org: Roam: add a reference",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.ref.add"
+    }
+  },
+  {
+    "caption": "Org: Roam: remove a reference",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.ref.remove"
+    }
+  },
+  {
     "caption": "Org: Capture: abort",
     "command": "org_lsp_run",
     "args": {

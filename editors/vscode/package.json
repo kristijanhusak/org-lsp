@@ -1071,6 +1071,36 @@
         "category": "Org"
       },
       {
+        "command": "org.roam.alias.add",
+        "title": "Roam: add an alias",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.alias.remove",
+        "title": "Roam: remove an alias",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.tag.add",
+        "title": "Roam: add tags",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.tag.remove",
+        "title": "Roam: remove tags",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.ref.add",
+        "title": "Roam: add a reference",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.ref.remove",
+        "title": "Roam: remove a reference",
+        "category": "Org"
+      },
+      {
         "command": "org.capture.abort",
         "title": "Capture: abort",
         "category": "Org"
@@ -2780,6 +2810,16 @@
               "type": "string",
               "markdownDescription": "How a node is offered: `${field}` for its `title`, `tags`, `todo`, `file`, `olp`, `aliases` and the other fields of `org-roam-node`, `${field:N}` in N columns, `${field:*}` in what is left of the window's 79 columns. (`org-roam-node-display-template`)",
               "default": "${title}"
+            },
+            "org_roam_link_auto_replace": {
+              "type": "boolean",
+              "markdownDescription": "Turn the `roam:` links of org-roam's files into `id:` links to their nodes as the files are saved, and as a link is followed. (`org-roam-link-auto-replace`)",
+              "default": true
+            },
+            "org_roam_completion_everywhere": {
+              "type": "boolean",
+              "markdownDescription": "In org-roam's files, offer the titles of the nodes for the word at the cursor, not only in a link; the one picked becomes a link to its node. (`org-roam-completion-everywhere`)",
+              "default": false
             },
             "org_roam_capture_templates": {
               "type": "array",

@@ -6494,3 +6494,118 @@ fn finds_links_and_captures_roam_nodes() {
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }
+
+/// org-roam's editing of the node at the cursor, and `roam:` links:
+/// followed, turned into `id:` links on saving, and completed.
+#[test]
+fn edits_roam_nodes_and_links() {
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-edit-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let a = ":PROPERTIES:\n:ID:       a-id\n:END:\n#+title: A note\n\nSee [[roam:B note]] and [[roam:Nobody]].\n";
+    let b = "* B note :work:\n:PROPERTIES:\n:ID:       b-id\n:ROAM_ALIASES: Bee\n:END:\nText.\n";
+    std::fs::write(root.join("a.org"), a).unwrap();
+    std::fs::write(root.join("b.org"), b).unwrap();
+    let a_uri = format!("file://{}", root.join("a.org").display());
+    let b_uri = format!("file://{}", root.join("b.org").display());
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    options["org_roam_completion_everywhere"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open(&a_uri, a);
+    client.open(&b_uri, b);
+    let run = |client: &mut Client, command: &str, context: &Value| {
+        client.received.clear();
+        client.notifications.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let at = |uri: &str, line: u32, character: u32| json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": character } });
+    let edited = |client: &Client, text: &str| {
+        let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+        apply(text, &edits_of(edit).1)
+    };
+
+    // An alias: asked for first, then put in the node's drawer.
+    let asked = run(&mut client, "org.roam.alias.add", &at(&b_uri, 5, 0)).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Alias");
+    let mut answer = at(&b_uri, 5, 0);
+    answer["step"] = json!("value");
+    answer["input"] = json!("Busy bee");
+    run(&mut client, "org.roam.alias.add", &answer).unwrap();
+    assert_eq!(edited(&client, b), b.replace(":ROAM_ALIASES: Bee", ":ROAM_ALIASES: \"Busy bee\" Bee"));
+
+    // Removing one: the aliases offered, then the one picked taken out,
+    // and the property with the last one.
+    let asked = run(&mut client, "org.roam.alias.remove", &at(&b_uri, 5, 0)).unwrap();
+    assert_eq!(asked["input"]["completions"], json!(["Bee"]));
+    let mut answer = at(&b_uri, 5, 0);
+    answer["step"] = json!("value");
+    answer["input"] = json!("Bee");
+    let said = run(&mut client, "org.roam.alias.remove", &answer).unwrap();
+    assert_eq!(said, json!({ "message": "Property \"ROAM_ALIASES\" deleted" }));
+    assert_eq!(edited(&client, b), b.replace(":ROAM_ALIASES: Bee\n", ""));
+
+    // Tags: of the file's node in `#+filetags:`, from those of the nodes.
+    let asked = run(&mut client, "org.roam.tag.add", &at(&a_uri, 5, 0)).unwrap();
+    assert_eq!(asked["input"]["completions"], json!(["work"]));
+    assert_eq!(asked["input"]["separator"], ":");
+    let mut answer = at(&a_uri, 5, 0);
+    answer["step"] = json!("value");
+    answer["input"] = json!("work:idea");
+    run(&mut client, "org.roam.tag.add", &answer).unwrap();
+    assert_eq!(edited(&client, a), a.replace("#+title: A note\n", "#+title: A note\n#+filetags: :work:idea:\n"));
+    let refused = run(&mut client, "org.roam.tag.remove", &at(&a_uri, 5, 0));
+    assert_eq!(refused, Err("No tag to remove".to_string()));
+    let outside = "* Plain\nNo node here.\n";
+    let plain_uri = format!("file://{}", root.join("plain.org").display());
+    client.open(&plain_uri, outside);
+    let refused = run(&mut client, "org.roam.alias.remove", &at(&plain_uri, 1, 0));
+    assert_eq!(refused, Err("No node at point".to_string()));
+
+    // Completing a `roam:` link: the titles and aliases, which become an
+    // `id:` link to their node.
+    let completed = client
+        .request(
+            "textDocument/completion",
+            json!({ "textDocument": { "uri": a_uri }, "position": { "line": 5, "character": 15 } }),
+        )
+        .unwrap();
+    let items = completed.as_array().unwrap();
+    let bee = items.iter().find(|item| item["label"] == "Bee").expect("the alias");
+    assert_eq!(bee["textEdit"]["newText"], "id:b-id][Bee]]");
+    assert_eq!(bee["textEdit"]["range"]["start"], json!({ "line": 5, "character": 11 }));
+    assert_eq!(bee["textEdit"]["range"]["end"], json!({ "line": 5, "character": 19 }));
+    assert_eq!(bee["additionalTextEdits"][0]["range"]["start"], json!({ "line": 5, "character": 6 }));
+    // Anywhere else, for the word at the cursor.
+    let completed = client
+        .request(
+            "textDocument/completion",
+            json!({ "textDocument": { "uri": a_uri }, "position": { "line": 5, "character": 2 } }),
+        )
+        .unwrap();
+    let items = completed.as_array().unwrap();
+    let note = items.iter().find(|item| item["label"] == "B note").expect("a title");
+    assert_eq!(note["textEdit"]["newText"], "[[id:b-id][B note]]");
+    assert_eq!(note["textEdit"]["range"]["start"], json!({ "line": 5, "character": 0 }));
+
+    // Saving turns the `roam:` links to nodes into `id:` links.
+    let edits = client
+        .request("textDocument/willSaveWaitUntil", json!({ "textDocument": { "uri": a_uri }, "reason": 1 }))
+        .unwrap();
+    assert_eq!(apply(a, edits.as_array().unwrap()), a.replace("[[roam:B note]]", "[[id:b-id][B note]]"));
+
+    // Following one visits its node, the link replaced first; one to no
+    // node makes the node.
+    run(&mut client, "org.open", &at(&a_uri, 5, 8)).unwrap();
+    assert_eq!(edited(&client, a), a.replace("[[roam:B note]]", "[[id:b-id][B note]]"));
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the node");
+    assert_eq!(show.params["uri"], b_uri);
+    run(&mut client, "org.open", &at(&a_uri, 5, 30)).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("a capture");
+    assert!(show.params["uri"].as_str().unwrap().ends_with("-nobody.org"), "{}", show.params["uri"]);
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
