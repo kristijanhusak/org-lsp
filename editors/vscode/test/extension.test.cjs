@@ -176,9 +176,11 @@ describe('Org files', () => {
     });
     const editor = await vscode.window.showTextDocument(keyed);
     const offered = [];
+    let icons;
     const showQuickPick = vscode.window.showQuickPick;
     vscode.window.showQuickPick = async (items) => {
       offered.push(...items.map((item) => item.label));
+      icons = items.map((item) => item.iconPath);
       return items.find((item) => item.key === 'w');
     };
     try {
@@ -197,6 +199,14 @@ describe('Org files', () => {
       assert.equal(keyed.lineAt(1).text, '* WAIT Call them');
       assert.match(keyed.lineAt(2).text, /^- State "WAIT" {7}from "TODO" {7}\[.*\] \\\\$/);
       assert.deepEqual(offered, ['[t] TODO', '[w] WAIT', '[d] DONE', '[SPC] clear']);
+      // Each keyword in its color, as `org-fast-todo-selection` shows it:
+      // TODO in its face (the tests give it one), the others as TODO and
+      // done keywords.
+      assert.match(require('node:fs').readFileSync(icons[0].fsPath, 'utf8'), /fill="#ff8800"/);
+      assert.deepEqual(
+        icons.slice(1).map((icon) => icon && icon.color.id),
+        ['charts.red', 'charts.green', undefined],
+      );
       await until('the note buffer to close', () =>
         vscode.window.tabGroups.all.flatMap((group) => group.tabs).every((tab) => tab.label !== 'CAPTURE-Note.org'),
       );

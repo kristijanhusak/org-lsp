@@ -544,6 +544,34 @@ eq(#vim.api.nvim_list_wins(), windows, 'the window of choices is closed')
 vim.api.nvim_feedkeys(vim.keycode('<Esc>'), 'n', false)
 eq(plugin.read_key('Select a TODO state', { { key = 't', label = 'TODO' } }), nil, '<Esc> gives up')
 
+-- The TODO keywords show in their faces, as `org-fast-todo-selection`
+-- shows them: a face of its own, or that of a TODO or done keyword.
+local colored
+vim.api.nvim_open_win = function(buf, enter, config)
+  local marks = vim.api.nvim_buf_get_extmarks(buf, -1, 0, -1, { details = true })
+  colored = vim.tbl_map(function(mark)
+    return { mark[2], mark[3], mark[4].hl_group }
+  end, marks)
+  return open_win(buf, enter, config)
+end
+vim.api.nvim_feedkeys(vim.keycode('<Esc>'), 'n', false)
+plugin.read_key('Select a TODO state', {
+  { key = 't', label = 'TODO', highlight = 'todoKeyword' },
+  { key = 'w', label = 'WAIT', highlight = 'todoKeyword', face = { foreground = '#ff8800' } },
+  { key = 'd', label = 'DONE', highlight = 'todoKeyword.done' },
+  { key = ' ', label = 'clear' },
+})
+vim.api.nvim_open_win = open_win
+eq(colored, {
+  { 0, 0, 'Special' },
+  { 0, 4, '@lsp.type.todoKeyword.org' },
+  { 1, 0, 'Special' },
+  { 1, 4, 'OrgLspTodoFace_WAIT' },
+  { 2, 0, 'Special' },
+  { 2, 4, '@lsp.typemod.todoKeyword.done.org' },
+  { 3, 0, 'Special' },
+}, 'the keywords in their faces')
+
 -- 18. What the server marks hidden is concealed: a link shows its
 -- description, as `org-link-descriptive` shows it.
 local linked = vim.fn.tempname() .. '.org'

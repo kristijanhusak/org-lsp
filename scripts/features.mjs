@@ -248,7 +248,7 @@ export const AREAS = [
       ['Hiding blocked tasks in the agenda (`org-agenda-dim-blocked-tasks` `invisible`)', true],
     ],
     editors: {
-      sublime: ['part', 'Faces of particular keywords and priorities are not shown: Sublime Text colors text by its color scheme only.'],
+      sublime: ['part', 'Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item\'s kind, the nearest of those Sublime Text has.'],
       zed: ['part', `A note for a state change (\`@\`) cannot be typed: ${ZED_TEXT}. States are picked with buttons. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.`],
       helix: ['part', `A note for a state change (\`@\`) cannot be typed: ${HELIX_TEXT}. Faces of particular keywords and priorities are not shown.`],
     },
@@ -256,6 +256,7 @@ export const AREAS = [
       { text: 'With `org_enforce_todo_dependencies`, a parent with a child not done cannot be done: the change is refused with `blocked (by "TODO Child")`; with `org_enforce_todo_checkbox_dependencies`, an entry with an unchecked box cannot either', cmd: 'org.todo' },
       { text: 'Those tasks are dimmed in the agenda and the TODO list', in: 'agenda' },
       { text: 'Changing the TODO state of a headline (with `org_todo_keywords` keys, picked by key)', cmd: 'org.todo' },
+      { text: 'The keywords offered show in their colors, as `org-fast-todo-selection` shows them: a face of their own, or that of a TODO or done keyword', cmd: 'org.todo', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'Cycling to the next and previous state', cmd: ['org.todo.next', 'org.todo.previous'], not: ['helix'] },
       { text: 'Repeating the change with `.`', only: ['neovim', 'vim'] },
       { text: 'Done with `org_log_done = "time"` writes `CLOSED: [...]` below the headline' , cmd: 'org.todo' },

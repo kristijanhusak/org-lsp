@@ -8294,9 +8294,23 @@ impl Server {
             return self.edit_with(&context, id, Some(EditCommand::Todo(cycle)), &Extra::default());
         }
         let Some(answer) = &context.input else {
+            // Each keyword in its face, as `org-fast-todo-selection` shows
+            // it (`org-get-todo-face`): its own face from
+            // `org_todo_keyword_faces`, or else that of a TODO or a done
+            // keyword, as the highlight of the token.
             let choices: Vec<Value> = keys
                 .iter()
-                .map(|(name, key)| json!({ "key": key.to_string(), "label": name }))
+                .map(|(name, key, done)| {
+                    let mut choice = json!({
+                        "key": key.to_string(),
+                        "label": name,
+                        "highlight": if *done { "todoKeyword.done" } else { "todoKeyword" },
+                    });
+                    if let Some(face) = self.faces["todo"].get(name) {
+                        choice["face"] = face.clone();
+                    }
+                    choice
+                })
                 .chain([json!({ "key": " ", "label": "clear" })])
                 .collect();
             return Ok(json!({ "input": {
@@ -10905,8 +10919,9 @@ impl Server {
     }
 
     /// The keys of fast TODO selection in the file of `context`: an Org
-    /// file, or the file of the entry of an agenda line.
-    fn fast_keys(&mut self, context: &Context) -> std::result::Result<Vec<(String, char)>, Refusal> {
+    /// file, or the file of the entry of an agenda line. Each keyword with
+    /// its key and whether it is a done state.
+    fn fast_keys(&mut self, context: &Context) -> std::result::Result<Vec<(String, char, bool)>, Refusal> {
         let uri = &context.text_document.uri;
         let file = if self.is_view(uri) {
             self.entry_at(Some(context)).ok_or("No entry on this line")?.uri
@@ -10914,7 +10929,12 @@ impl Server {
             uri.clone()
         };
         let keys = self.with_source(&file, |_, _, parse, _, _| {
-            parse.todo_keywords().fast_keys().into_iter().map(|(name, key)| (name.to_string(), key)).collect()
+            let keywords = parse.todo_keywords();
+            keywords
+                .fast_keys()
+                .into_iter()
+                .map(|(name, key)| (name.to_string(), key, keywords.is_done(name)))
+                .collect()
         });
         Ok(keys.ok_or("Cannot read the file of this entry")?)
     }

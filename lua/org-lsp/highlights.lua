@@ -61,6 +61,21 @@ local function face_group(kind, name)
   return ('OrgLsp%sFace_%s'):format(kind == 'todo' and 'Todo' or 'Priority', (name:gsub('[^%w_]', '_')))
 end
 
+--- Define highlight group `name` as `face` looks, unless it is defined.
+---@param name string
+---@param face table
+local function define_face(name, face)
+  pcall(vim.api.nvim_set_hl, 0, name, {
+    fg = face.foreground,
+    bg = face.background,
+    bold = face.bold,
+    italic = face.italic,
+    underline = face.underline,
+    strikethrough = face.strikethrough,
+    default = true,
+  })
+end
+
 --- (Re)define the groups of the faces; with `given`, those faces from now
 --- on. Runs when the server starts and after a colorscheme change.
 ---@param given? table
@@ -68,17 +83,23 @@ function M.define_faces(given)
   faces = given or faces
   for kind, list in pairs(faces) do
     for name, face in pairs(list) do
-      pcall(vim.api.nvim_set_hl, 0, face_group(kind, name), {
-        fg = face.foreground,
-        bg = face.background,
-        bold = face.bold,
-        italic = face.italic,
-        underline = face.underline,
-        strikethrough = face.strikethrough,
-        default = true,
-      })
+      define_face(face_group(kind, name), face)
     end
   end
+end
+
+--- The highlight group of a choice the server offers with its look: the
+--- face of its keyword (`face`), or else the group of the token it is
+--- highlighted as (`highlight`, a selector such as `todoKeyword.done`).
+---@param choice { label: string, highlight?: string, face?: table }
+---@return string?
+function M.choice_group(choice)
+  if choice.face then
+    local name = face_group('todo', choice.label)
+    define_face(name, choice.face)
+    return name
+  end
+  return choice.highlight and group(choice.highlight, 'org') or nil
 end
 
 --- Give the TODO keywords and priorities of buffer `bufnr` that have a

@@ -599,10 +599,27 @@ function! org_lsp#key_name(key) abort
   return code > 0 && code < 32 ? 'C-' .. nr2char(code + 96) : a:key
 endfunction
 
+" A line of the choices `read_key` shows: the key and the label, a TODO
+" keyword in its face as `org-fast-todo-selection` shows it (`face`, its
+" own; else `highlight`, the selector of its token).
+function! org_lsp#choice_line(choice) abort
+  let key = printf('[%s] ', org_lsp#key_name(a:choice.key))
+  let line = {'text': key . a:choice.label, 'props': []}
+  if empty(s:selectors)
+    call org_lsp#define_highlights()
+  endif
+  let type = has_key(a:choice, 'face') ? s:define_face('todo', a:choice.label, a:choice.face)
+        \ : get(s:selectors, get(a:choice, 'highlight', ''), '')
+  if !empty(type)
+    call add(line.props, {'col': len(key) + 1, 'length': len(a:choice.label), 'type': type})
+  endif
+  return line
+endfunction
+
 function! org_lsp#read_key(prompt, choices) abort
   let popup = 0
   if !empty(a:choices) && exists('*popup_create')
-    let lines = map(copy(a:choices), {_, c -> printf('[%s] %s', org_lsp#key_name(c.key), c.label)})
+    let lines = map(copy(a:choices), {_, c -> org_lsp#choice_line(c)})
     let popup = popup_create(lines, {
           \ 'line': &lines - &cmdheight - len(lines) - 1, 'col': 1,
           \ 'border': [], 'title': ' ' . a:prompt . ' ', 'zindex': 300,
@@ -2172,36 +2189,44 @@ endfunction
 function! s:define_faces() abort
   for [kind, list] in items(get(s:, 'faces', {}))
     for [name, face] in items(list)
-      let group = s:face_group(kind, name)
-      let attributes = filter(['bold', 'italic', 'underline', 'strikethrough'], {_, a -> get(face, a, v:false)})
-      let attr = empty(attributes) ? 'NONE' : join(attributes, ',')
-      let colors = ''
-      if has_key(face, 'foreground')
-        let colors .= ' guifg=' . face.foreground
-      endif
-      if has_key(face, 'background')
-        let colors .= ' guibg=' . face.background
-      endif
-      try
-        execute 'highlight default' group 'term=' . attr 'cterm=' . attr 'gui=' . attr colors
-      catch
-      endtry
-      " A color name the terminal knows, without 'termguicolors'.
-      for [key, value] in [['ctermfg', get(face, 'foreground', '')], ['ctermbg', get(face, 'background', '')]]
-        if value =~# '^\a\+$'
-          try
-            execute 'highlight' group key . '=' . value
-          catch
-          endtry
-        endif
-      endfor
-      let type = 'org_lsp_face_' . kind . '_' . substitute(name, '\W', '_', 'g')
-      if empty(prop_type_get(type))
-        call prop_type_add(type, {'highlight': group, 'combine': 1, 'priority': 110})
-      endif
-      let s:selectors['face:' . kind . ':' . name] = type
+      call s:define_face(kind, name, face)
     endfor
   endfor
+endfunction
+
+" The highlight group and text property type of the face of keyword or
+" priority `name`; returns the type.
+function! s:define_face(kind, name, face) abort
+  let [kind, name, face] = [a:kind, a:name, a:face]
+  let group = s:face_group(kind, name)
+  let attributes = filter(['bold', 'italic', 'underline', 'strikethrough'], {_, a -> get(face, a, v:false)})
+  let attr = empty(attributes) ? 'NONE' : join(attributes, ',')
+  let colors = ''
+  if has_key(face, 'foreground')
+    let colors .= ' guifg=' . face.foreground
+  endif
+  if has_key(face, 'background')
+    let colors .= ' guibg=' . face.background
+  endif
+  try
+    execute 'highlight default' group 'term=' . attr 'cterm=' . attr 'gui=' . attr colors
+  catch
+  endtry
+  " A color name the terminal knows, without 'termguicolors'.
+  for [key, value] in [['ctermfg', get(face, 'foreground', '')], ['ctermbg', get(face, 'background', '')]]
+    if value =~# '^\a\+$'
+      try
+        execute 'highlight' group key . '=' . value
+      catch
+      endtry
+    endif
+  endfor
+  let type = 'org_lsp_face_' . kind . '_' . substitute(name, '\W', '_', 'g')
+  if empty(prop_type_get(type))
+    call prop_type_add(type, {'highlight': group, 'combine': 1, 'priority': 110})
+  endif
+  let s:selectors['face:' . kind . ':' . name] = type
+  return type
 endfunction
 
 " The tokens each buffer was last painted with, as

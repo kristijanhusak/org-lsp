@@ -87,6 +87,7 @@ its sections says what it should look like.
 - [ ] With ~org_enforce_todo_dependencies~, a parent with a child not done cannot be done: the change is refused with ~blocked (by "TODO Child")~; with ~org_enforce_todo_checkbox_dependencies~, an entry with an unchecked box cannot either: ~Ctrl+C Ctrl+T~
 - [ ] Those tasks are dimmed in the agenda and the TODO list
 - [ ] Changing the TODO state of a headline (with ~org_todo_keywords~ keys, picked by key): ~Ctrl+C Ctrl+T~
+- [ ] The keywords offered show in their colors, as ~org-fast-todo-selection~ shows them: a face of their own, or that of a TODO or done keyword: ~Ctrl+C Ctrl+T~
 - [ ] Cycling to the next and previous state: /Org: Cycle TODO state forward/, /Org: Cycle TODO state backward/
 - [ ] Done with ~org_log_done = "time"~ writes ~CLOSED: [...]~ below the headline: ~Ctrl+C Ctrl+T~
 - [ ] A state with ~@~ (~WAIT(w@)~) asks for a note, written below the headline: ~Ctrl+C Ctrl+T~
