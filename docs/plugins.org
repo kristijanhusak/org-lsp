@@ -403,8 +403,9 @@ before all the others goes first in its file). What differs:
   Zed and Helix the file shows as it does.
 - ~org-journal-encrypt-journal~ (files encrypted whole, ~.gpg~) is not
   there: ~org_journal_enable_encryption~, with ~org-crypt~, is.
-- The search results are an Org file whose dates are links, where Emacs
-  has a buffer of buttons (~n~, ~p~, ~TAB~ move between them, and the first
+- The search results are an Org file whose dates are links, two blanks
+  before the line found where Emacs has a tab, in place of a buffer of
+  buttons (~n~, ~p~, ~TAB~ move between them, and the first
   result shows beside them); its matches are not highlighted. An empty
   string finds every entry with a time, which Emacs means to do but hangs
   on.

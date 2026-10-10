@@ -448,7 +448,11 @@ impl Server {
             let end = text[link.at..].find('\t').map_or(text.len(), |tab| link.at + tab);
             let path = directory.join(&link.source);
             let label = text[link.at..end].to_string();
-            text.replace_range(link.at..end, &format!("[[file:{}::{line}][{label}]]", path.display()));
+            // Two blanks after the link, where Emacs has a tab: an editor
+            // that hides the link's brackets widens a tab after them by as
+            // much, past the line found.
+            let after = if end < text.len() { end + 1 } else { end };
+            text.replace_range(link.at..after, &format!("[[file:{}::{line}][{label}]]  ", path.display()));
         }
         let name = if id == commands::JOURNAL_SCHEDULE_VIEW { SCHEDULE_FILE } else { SEARCH_FILE };
         let path = self.journal_views.join(name);
