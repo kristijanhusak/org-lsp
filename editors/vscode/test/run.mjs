@@ -37,6 +37,9 @@ const roam = join(workspace, 'roam');
 mkdirSync(roam);
 writeFileSync(join(roam, 'a.org'), ':PROPERTIES:\n:ID:       a-id\n:END:\n#+title: A note\n\nText.\n');
 writeFileSync(join(roam, 'b.org'), ':PROPERTIES:\n:ID:       b-id\n:END:\n#+title: B note\n\nSee [[id:a-id][A]].\n');
+// org-journal's files, outside the workspace too: yesterday's, with a TODO.
+const journal = mkdtempSync(join(tmpdir(), 'org-lsp-vscode-journal-'));
+writeFileSync(join(journal, '20260517'), '* Sunday, 05/17/26\n** 09:00 standup\n** TODO carried\na note\n');
 // Captures go to a file outside the workspace, so that the agenda does not see them.
 const captured = join(mkdtempSync(join(tmpdir(), 'org-lsp-vscode-capture-')), 'inbox.org');
 mkdirSync(join(workspace, '.vscode'));
@@ -51,6 +54,8 @@ writeFileSync(
       org_capture_templates: [{ key: 't', description: 'Task', target: ['file', captured], template: '* TODO %?' }],
       org_roam_enabled: true,
       org_roam_directory: roam,
+      org_journal_enabled: true,
+      org_journal_dir: journal,
     },
   }),
 );
@@ -64,6 +69,7 @@ try {
     extensionTestsEnv: {
       ORG_LSP_TEST_WORKSPACE: workspace,
       ORG_LSP_TEST_CAPTURED: captured,
+      ORG_LSP_TEST_JOURNAL: journal,
       ORG_LSP_CONFIG: '/nonexistent/org-lsp/config.toml',
     },
     launchArgs: [workspace, '--disable-extensions', '--disable-gpu', '--no-sandbox', '--disable-workspace-trust'],

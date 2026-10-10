@@ -74,6 +74,7 @@ local defaults = {
       ['org.agenda.dispatch'] = '<Leader>oa',
       ['org.capture'] = '<Leader>oc',
       ['org.clock.goto'] = '<Leader>oxj',
+      ['org.journal.new.entry'] = '<Leader>jj',
     },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>', help = 'g?' },
     agenda = { quit = 'q', help = 'g?', hover = 'K' },
@@ -890,6 +891,42 @@ end
 
 -- ----- attaching
 
+--- Open the folds starting at the lines of `open` and close those of
+--- `close` (0-based `startLine`s, innermost first) in window `win`, once
+--- it has the server's folds, which come a moment after the buffer.
+---@param win integer
+---@param open table[]
+---@param close table[]
+local function set_folds(win, open, close)
+  local bufnr = vim.api.nvim_win_get_buf(win)
+  local first = close[1] or open[1]
+  if not first then
+    return
+  end
+  local tries = 0
+  local function apply()
+    if not vim.api.nvim_win_is_valid(win) or vim.api.nvim_win_get_buf(win) ~= bufnr then
+      return
+    end
+    local ready = vim.api.nvim_win_call(win, function()
+      return vim.fn.foldlevel(first.startLine + 1) > 0
+    end)
+    if not ready and tries < 40 then
+      tries = tries + 1
+      return vim.defer_fn(apply, 50)
+    end
+    vim.api.nvim_win_call(win, function()
+      for _, fold in ipairs(open) do
+        vim.cmd(('silent! %dfoldopen'):format(fold.startLine + 1))
+      end
+      for _, fold in ipairs(close) do
+        vim.cmd(('silent! %dfoldclose'):format(fold.startLine + 1))
+      end
+    end)
+  end
+  apply()
+end
+
 --- The folds the server says a file opens with closed (`org_startup_folded`,
 --- `#+STARTUP:`, `VISIBILITY` properties), closed in window `win` once it
 --- has the server's folds, innermost first.
@@ -902,31 +939,38 @@ local function close_startup_folds(win)
   end
   local params = { textDocument = vim.lsp.util.make_text_document_params(bufnr) }
   client:request('org-lsp/startupFolds', params, function(err, result)
-    local folds = not err and result and result.folds or {}
-    if #folds == 0 then
-      return
-    end
-    local tries = 0
-    local function close()
-      if not vim.api.nvim_win_is_valid(win) or vim.api.nvim_win_get_buf(win) ~= bufnr then
-        return
-      end
-      -- The window's folds come from the server too, a moment later.
-      local ready = vim.api.nvim_win_call(win, function()
-        return vim.fn.foldlevel(folds[1].startLine + 1) > 0
-      end)
-      if not ready and tries < 40 then
-        tries = tries + 1
-        return vim.defer_fn(close, 50)
-      end
-      vim.api.nvim_win_call(win, function()
-        for _, fold in ipairs(folds) do
-          vim.cmd(('silent! %dfoldclose'):format(fold.startLine + 1))
-        end
-      end)
-    end
-    close()
+    set_folds(win, {}, not err and result and result.folds or {})
   end, bufnr)
+end
+
+--- The headlines' folds of a document as org-journal leaves them
+--- (`org-lsp/folds`), in the windows that show it.
+---@param params { uri: string, open: table[], close: table[] }
+function M.journal_folds(params)
+  local bufnr = vim.uri_to_bufnr(params.uri)
+  for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+    set_folds(win, params.open or {}, params.close or {})
+  end
+end
+
+--- org-journal's files need not have a name that says they are Org files
+--- (`org-journal-is-journal`): those of its directory without an extension
+--- are, here and in the buffers already loaded.
+---@param client vim.lsp.Client
+local function journal_files(client)
+  local journal = vim.tbl_get(client.server_capabilities, 'experimental', 'orgJournal')
+  local directory = type(journal) == 'table' and journal.directory
+  if type(directory) ~= 'string' then
+    return
+  end
+  local pattern = vim.pesc(vim.fs.normalize(directory)) .. '/[^.]+'
+  vim.filetype.add({ pattern = { [pattern] = 'org' } })
+  for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+    local name = vim.api.nvim_buf_get_name(bufnr)
+    if vim.bo[bufnr].filetype == '' and name:match('^' .. pattern .. '$') then
+      vim.bo[bufnr].filetype = 'org'
+    end
+  end
 end
 
 --- The server's folds in window `win`, for the buffer it shows: once per
@@ -1024,6 +1068,7 @@ local function on_attach(client, bufnr)
     return
   end
   require('org-lsp.highlights').attach_faces(bufnr)
+  journal_files(client)
   if vim.bo[bufnr].filetype == M.manifest.agenda.languageId then
     return set_keys('agenda', bufnr)
   end

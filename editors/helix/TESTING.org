@@ -121,6 +121,10 @@ its sections says what it should look like.
 
 *Not in Helix:* Helix cannot ask for text on a server's behalf, and the commands ask for a node; nor can Helix open the org-roam buffer on a server's request.
 
+* A journal (org-journal)
+
+*Not in Helix:* Helix cannot open the journal file on a server's request, and Helix cannot ask for text on a server's behalf.
+
 * Refile and archive
 
 *Partly:* Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions.

@@ -454,6 +454,12 @@
         {
           "task_name": "Org: Roam: show or hide the org-roam buffer"
         }
+      ],
+      "ctrl-c j j": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Journal: new entry"
+        }
       ]
     }
   },
@@ -1060,6 +1066,18 @@
           "task_name": "Org: Roam: insert a link to a node"
         }
       ],
+      "ctrl-c j f": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Journal: next entry"
+        }
+      ],
+      "ctrl-c j b": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Journal: previous entry"
+        }
+      ],
       "ctrl-c ctrl-k": [
         "task::Spawn",
         {
@@ -1118,6 +1136,12 @@
         "task::Spawn",
         {
           "task_name": "Org: Roam: show or hide the org-roam buffer"
+        }
+      ],
+      "ctrl-c j j": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Journal: new entry"
         }
       ]
     }

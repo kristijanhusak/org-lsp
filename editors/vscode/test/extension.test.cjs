@@ -1229,4 +1229,23 @@ describe('The agenda', () => {
     await until('the buffer hidden', () => !roamShown());
     await oneGroup();
   });
+
+  it('org-journal makes an entry in a file without the extension', async () => {
+    await oneGroup();
+    const journal = process.env.ORG_LSP_TEST_JOURNAL;
+    await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(path.join(workspace, 'work.org')));
+    await vscode.commands.executeCommand('org.journal.new.entry');
+    // An Org file, though its name does not say so.
+    const today = await until("today's file", () => {
+      const editor = vscode.window.activeTextEditor;
+      const shown = editor?.document.uri.fsPath === path.join(journal, '20260518');
+      return shown && editor.document.languageId === 'org' && editor;
+    });
+    assert.equal(today.document.getText(), '* Monday, 05/18/26\n** TODO carried\na note\n** 10:30 ');
+    assert.deepEqual([today.selection.active.line, today.selection.active.character], [3, 9]);
+    // The TODO carried over, its text folded as org-journal folds it.
+    await until('the TODO folded', () => !today.visibleRanges.some((range) => range.start.line <= 2 && 2 <= range.end.line));
+    assert.ok(today.visibleRanges.some((range) => range.start.line <= 1 && 1 <= range.end.line), 'its headline shows');
+    await oneGroup();
+  });
 });

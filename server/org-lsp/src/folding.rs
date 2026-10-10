@@ -20,6 +20,15 @@ pub fn folding_ranges(root: &SyntaxNode, text: &str, index: &LineIndex, separato
     folds(root, text, index, separator_lines).into_iter().map(|(_, range)| range).collect()
 }
 
+/// The folding ranges of the headlines' subtrees.
+pub fn headline_folds(root: &SyntaxNode, text: &str, index: &LineIndex, separator_lines: i64) -> Vec<FoldingRange> {
+    folds(root, text, index, separator_lines)
+        .into_iter()
+        .filter(|(node, _)| node.kind() == HEADLINE)
+        .map(|(_, range)| range)
+        .collect()
+}
+
 /// The folding ranges, each with the element it folds.
 fn folds(root: &SyntaxNode, text: &str, index: &LineIndex, separator_lines: i64) -> Vec<(SyntaxNode, FoldingRange)> {
     let mut ranges = Vec::new();

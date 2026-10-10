@@ -132,11 +132,18 @@ class View:
 
     def match_selector(self, point, selector):
         scope = 'text.org-agenda' if self.name.endswith('.org-agenda') else \
-            'text.org' if self.name.endswith('.org') else 'text.plain'
+            'text.org' if self.name.endswith('.org') or getattr(self, 'syntax', '').endswith('/Org.sublime-syntax') \
+            else 'text.plain'
         return scope in [part.strip() for part in selector.split('|')]
 
     def file_name(self):
         return self.name
+
+    def is_loading(self):
+        return getattr(self, 'loading', False)
+
+    def assign_syntax(self, syntax):
+        self.syntax = syntax
 
     def is_valid(self):
         return not getattr(self, 'closed', False)
@@ -583,6 +590,42 @@ class Tests(unittest.TestCase):
         # Other notifications and other files ask nothing.
         plugin.on_pre_send_notification_async(types.SimpleNamespace(method='textDocument/didChange', params={}))
         self.assertEqual(len(session.sent), 3)
+
+    def test_journal_files_are_org_and_fold_as_org_journal_says(self):
+        """A file of org-journal's directory without an extension opens as
+        Org, and once loaded, the folds the server names open and close."""
+        journal = View('* Monday, 05/18/26\n** TODO call Bob\nnote\n** 10:30 ', '/journal/20260518')
+        journal.loading = True
+        later = []
+        self.sublime.set_timeout = lambda f, delay=0: f() if delay == 0 else later.append(f)
+        self.window.view = journal
+        self.sublime.windows = lambda: [self.window]
+        session = Session([('result', {'folds': []}), ('result', None), ('result', None)])
+        session.window = self.window
+        session.capabilities['experimental.orgJournal.directory'] = '/journal/'
+        plugin = self.plugin.OrgLsp(lambda: session)
+        self.plugin.OrgLspListener().on_load(journal)
+        self.assertEqual(journal.syntax, 'Packages/LSP-org/Org.sublime-syntax')
+        # One opened before the server was up: when the server sees a file.
+        other = View('* Sunday, 05/17/26\n', '/journal/20260517')
+        self.window.views = lambda: [journal, other]
+        opened = types.SimpleNamespace(method='textDocument/didOpen', params={'textDocument': {'uri': 'file:///journal/20260518'}})
+        plugin.on_pre_send_notification_async(opened)
+        self.assertEqual(other.syntax, 'Packages/LSP-org/Org.sublime-syntax')
+        self.assertEqual(session.sent[0][0], 'org-lsp/startupFolds')
+        # Files with an extension, or elsewhere, are as they are.
+        for name in ('/journal/20260518.txt', '/notes/20260518'):
+            view = View('', name)
+            self.plugin.OrgLspListener().on_load(view)
+            self.assertFalse(hasattr(view, 'syntax'))
+        journal.folds = {Region(17, 34)}
+        plugin.m_org_lsp_folds({'uri': 'file:///journal/20260518',
+                                'open': [{'startLine': 0, 'endLine': 3}],
+                                'close': [{'startLine': 1, 'endLine': 2}]})
+        self.assertEqual(journal.folds, {Region(17, 34)})
+        journal.loading = False
+        later.pop()()
+        self.assertEqual([journal.rowcol(f.begin())[0] for f in journal.folds], [1])
 
     def test_shows_the_timer_in_the_status_bar(self):
         later = []

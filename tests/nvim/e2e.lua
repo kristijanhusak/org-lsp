@@ -43,12 +43,15 @@ end
 -- runtime path, then its plugin/ file.
 -- The directory of org-roam's notes.
 local roam_dir = vim.fn.tempname()
+local journal_dir = vim.fn.tempname()
 vim.g.org_lsp = {
   cmd = { server },
   settings = {
     org_todo_keyword_faces = { TODO = ':foreground #ff8800 :weight bold' },
     org_roam_enabled = true,
     org_roam_directory = roam_dir,
+    org_journal_enabled = true,
+    org_journal_dir = journal_dir,
   },
 }
 vim.opt.runtimepath:prepend(root)
@@ -1543,6 +1546,40 @@ do
   end
   _G.org_lsp_pick = nil
   vim.ui.input = input
+end
+
+-- org-journal: a new entry in today's file, whose name has no extension
+-- but which is an Org file all the same; yesterday's TODO comes along,
+-- its text folded as org-journal folds it.
+do
+  vim.fn.mkdir(journal_dir, 'p')
+  local yesterday = os.time() - 86400
+  vim.fn.writefile(
+    { os.date('* %A, %m/%d/%y', yesterday), '** 09:00 standup', '** TODO carried', 'a note' },
+    journal_dir .. '/' .. os.date('%Y%m%d', yesterday)
+  )
+  require('org-lsp').run('org.journal.new.entry')
+  local today = vim.fs.normalize(journal_dir .. '/' .. os.date('%Y%m%d'))
+  wait("today's journal file", function()
+    return vim.api.nvim_buf_get_name(0) == today
+  end)
+  eq(vim.bo.filetype, 'org', 'an Org file without the extension')
+  wait('the server on it', function()
+    return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) > 0
+  end)
+  eq(line(1), os.date('* %A, %m/%d/%y'), "today's date")
+  eq({ line(2), line(3) }, { '** TODO carried', 'a note' }, 'the TODO carried over')
+  check(line(4):match('^%*%* %d%d:%d%d $') ~= nil, 'the new entry: ' .. line(4))
+  eq(vim.api.nvim_win_get_cursor(0), { 4, 8 }, 'the cursor after the time')
+  wait('the carried TODO folded', function()
+    return vim.fn.foldclosed(2) == 2
+  end)
+  eq(vim.fn.foldclosed(1), -1, "the date's headline open")
+  require('org-lsp').run('org.journal.previous.entry')
+  wait("yesterday's file", function()
+    return vim.api.nvim_buf_get_name(0) == vim.fs.normalize(journal_dir .. '/' .. os.date('%Y%m%d', yesterday))
+  end)
+  eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { os.date('* %A, %m/%d/%y', yesterday), '** 09:00 standup' }, 'the TODO gone')
 end
 
 print(('ok: %d checks passed'):format(checks))

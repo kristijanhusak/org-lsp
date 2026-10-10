@@ -209,7 +209,9 @@ def make_case(rng):
         day = today + datetime.timedelta(days=rng.randint(-1, 5))
         case["date"] = day.isoformat() + rng.choice(["", " 10:00", " 9:00-10:30"])
         case["prefix"] = 1 if rng.random() < 0.3 else 0
-    elif roll < 0.92 and files:
+    elif roll < 0.8:
+        case["command"] = "agenda-files"
+    elif roll < 0.94 and files:
         case["command"] = rng.choice(["next", "previous"])
         case["from"] = rng.choice(journal or list(files))
         case["point"] = rng.randint(0, len(files[case["from"]]))

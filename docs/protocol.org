@@ -51,6 +51,11 @@ The requests the server answers:
   drawers (~org_cycle_hide_drawer_startup~). ~{ "folds": [FoldingRange…] }~,
   innermost first, each one of ~textDocument/foldingRange~'s. Params:
   ~{ "textDocument" }~. The editors close them when a file opens.
+- ~org-lsp/journal~ :: Where org-journal's files are, for an editor to
+  open those without an extension as Org files: ~{ "directory" }~, the
+  absolute path of ~org_journal_dir~ ending in ~/~, or null when
+  ~org_journal_enabled~ is off. Params: none. The ~initialize~ result has
+  the same as ~capabilities.experimental.orgJournal~.
 - ~org-lsp/preview~ :: The same text of an agenda line's entry with its
   semantic tokens, for an editor that shows it in a popup of its own:
   ~{ "text", "data" }~ (~data~ as in ~SemanticTokens~), or null. Params:
@@ -155,6 +160,11 @@ And these notifications:
   change (clocking in or out), with no lines when none is highlighted. The
   text of those lines also has the token type, for clients that show only
   tokens.
+- ~org-lsp/folds~ :: ~{ "uri", "open": [FoldingRange…], "close": [FoldingRange…] }~:
+  after a journal command has shown a file (~window/showDocument~), the
+  headlines' folds to open, then those to close (innermost first), as
+  org-journal leaves them (~org_journal_hide_entries_p~). Each is one of
+  ~textDocument/foldingRange~'s.
 - ~org-lsp/viewChanged~ :: With the option ~view_changed~: ~{ "uri" }~, the
   file of the agenda or of the date prompt has been written anew, for the
   client to read it again.
@@ -379,6 +389,26 @@ Each option with its type, its default and what it means:
 - ~org_roam_completion_everywhere~ :: boolean, ~false~. In org-roam's files, offer the titles of the nodes for the word at the cursor, not only in a link; the one picked becomes a link to its node. (~org-roam-completion-everywhere~)
 - ~org_roam_mode_sections~ :: string[], ~["backlinks", "reflinks"]~. The sections of the org-roam buffer, in turn: ~backlinks~ (the nodes that link to the node), ~reflinks~ (those that link to or cite its references) and ~unlinked-references~ (the places that name it without a link, found by the server itself). (~org-roam-mode-sections~)
 - ~org_roam_capture_templates~ :: object[], ~[{ "key": "d", "description": "default", "type": "plain", "target": ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"], "template": "%?", "unnarrowed": true }]~. The templates of new nodes, as ~org_capture_templates~ writes them, with org-roam's targets: ~file~ and a path, ~file+head~, a path and the text a new file starts with, ~file+olp~, a path and the headlines of an outline path, ~file+head+olp~, both, and ~node~ and the title, alias or ~ID~ of a node. The path, relative to ~org_roam_directory~, and the texts may have ~${title}~, ~${slug}~, ~${id}~ and ~${name}~, which asks for ~name~ (~${name=default}~ starts the answer with ~default~), besides the escapes of ~org_capture_templates~. ~unnarrowed~ shows the whole file in the capture buffer. (~org-roam-capture-templates~)
+- ~org_journal_enabled~ :: boolean, ~false~. org-journal: a journal in ~org_journal_dir~, a file a day (or week, month, year), written with the ~org.journal.*~ commands. Off, those commands only say so.
+- ~org_journal_dir~ :: string, ~"~/Documents/journal/"~. The directory of the journal's files. =~/= is the home directory. (~org-journal-dir~)
+- ~org_journal_file_type~ :: string, ~"daily"~. A file a day (~daily~), week (~weekly~), month (~monthly~) or year (~yearly~); but daily, each entry has its date in a ~CREATED~ property. (~org-journal-file-type~)
+- ~org_journal_start_on_weekday~ :: number, ~1~. The day a weekly file starts on: 1 is Monday, 7 Sunday. (~org-journal-start-on-weekday~)
+- ~org_journal_file_format~ :: string, ~"%Y%m%d"~. The names of the files, as ~format-time-string~ writes the date their entries start on: with ~%Y~, ~%m~ and ~%d~ (a yearly file needs only ~%Y~, a monthly one ~%Y~ and ~%m~). A name without ~.org~ is an Org file to org-journal, but not to most editors. (~org-journal-file-format~)
+- ~org_journal_date_format~ :: string, ~"%A, %x"~. The date of an entry, after ~org_journal_date_prefix~, as ~format-time-string~ writes it, in the C locale: ~%x~ is ~10/09/26~. (~org-journal-date-format~)
+- ~org_journal_date_prefix~ :: string, ~"* "~. What comes before the date of an entry: a headline, or ~#+title: ~ in a daily file. (~org-journal-date-prefix~)
+- ~org_journal_time_format~ :: string, ~"%R "~. The time of a new entry of the day, as ~format-time-string~ writes it; empty for none. (~org-journal-time-format~)
+- ~org_journal_time_format_post_midnight~ :: string, ~""~. The time of an entry made after midnight while it is still yesterday (~org_extend_today_until~); empty for ~org_journal_time_format~. (~org-journal-time-format-post-midnight~)
+- ~org_journal_time_prefix~ :: string, ~"** "~. What comes before the time of an entry: its stars give its level. (~org-journal-time-prefix~)
+- ~org_journal_hide_entries_p~ :: boolean, ~true~. Fold all but the new entry. (~org-journal-hide-entries-p~)
+- ~org_journal_carryover_items~ :: string, ~"TODO=\"TODO\""~. The items of the entry before that move to today's, with the headlines above them: a match of the tags view (~m~); empty for none. (~org-journal-carryover-items~)
+- ~org_journal_skip_carryover_drawers~ :: string[], ~[]~. Drawers left out of the items carried over. (~org-journal-skip-carryover-drawers~)
+- ~org_journal_carryover_delete_empty_journal~ :: string, ~"never"~. What happens to an entry or file left empty by the carryover: ~never~ deleted, ~always~, or ~ask~. (~org-journal-carryover-delete-empty-journal~)
+- ~org_journal_file_header~ :: string, ~""~. What a new file starts with, as ~format-time-string~ writes it: ~#+title: Journal %Y~. (~org-journal-file-header~)
+- ~org_journal_created_property_timestamp_format~ :: string, ~"%Y%m%d"~. The date in the ~CREATED~ property of an entry of a file that is not daily. (~org-journal-created-property-timestamp-format~)
+- ~org_journal_scheduled_string~ :: string, ~""~. What comes before the timestamp of an entry for a day to come (~org.journal.new.scheduled.entry~). (~org-journal-scheduled-string~)
+- ~org_journal_enable_encryption~ :: boolean, ~false~. Tag the date of a new entry with ~crypt~, for ~org-crypt~ to encrypt (~org.crypt.encrypt.all~, or as the file is saved with ~org-crypt-use-before-save-magic~ in the Emacs configuration). (~org-journal-enable-encryption~)
+- ~org_journal_enable_agenda_integration~ :: boolean, ~false~. Add the journal's files of today and the days to come to the agenda's files. (~org-journal-enable-agenda-integration~)
+- ~org_extend_today_until~ :: number, ~0~. The hour before which it is still yesterday, for org-journal's new entries. (~org-extend-today-until~)
 - ~org_agenda_search_view_always_boolean~ :: boolean, ~false~. Read every search string of the search view (~s~) as words that must (~+word~, ~word~) or must not (~-word~) occur, regexps in braces (~{regexp}~) and ~"quoted phrases"~. Off, it is a phrase whose spaces match any whitespace, unless its first word starts with ~+~, ~-~ or ~{~. (~org-agenda-search-view-always-boolean~)
 - ~org_agenda_search_view_force_full_words~ :: boolean, ~false~. The words of a Boolean search match whole words only, as a search string starting with ~:~ asks. (~org-agenda-search-view-force-full-words~)
 - ~org_agenda_search_view_max_outline_level~ :: number, ~0~. The search view shows headlines down to this level, a match below one counting for the headline above: 0 for every level. (~org-agenda-search-view-max-outline-level~)
@@ -948,6 +978,26 @@ increments a number.
   has it open, the server sends the edit with ~workspace/applyEdit~ and
   then ~org-lsp/save~ for it, whatever ~auto_save~ says: the file is the
   server's.
+- ~org.journal.new.entry~, ~org.journal.new.date.entry~,
+  ~org.journal.new.scheduled.entry~, ~org.journal.next.entry~,
+  ~org.journal.previous.entry~, ~org.journal.open.current~ :: org-journal's
+  ~org-journal-new-entry~, ~org-journal-new-date-entry~,
+  ~org-journal-new-scheduled-entry~, ~org-journal-next-entry~,
+  ~org-journal-previous-entry~ and ~org-journal-open-current-journal-file~,
+  with ~org_journal_enabled~ (see [[file:configuration.org::#a-journal-org-journal][A journal (org-journal)]]); without
+  it they fail with why. Next and previous need the document and position
+  of a journal file; the others need none, and a ~count~ above 1 is
+  Emacs's ~C-u~. The date commands ask for a date as the date prompt does
+  (input kind ~date~, prompt ~Date~), or take it as ~"date"~ in their
+  argument. A missing ~org_journal_dir~ is asked about first (kind ~key~,
+  ~Journal directory … doesn't exists. Create it? ~, ~context~
+  ~{ "step": "directory" }~), and org-journal's own questions, such as
+  ~Delete empty journal entry/file?~, the same way (~context~
+  ~{ "step": "question", "answers" }~, and ~date~). The files changed are
+  edited in the editor when open (~workspace/applyEdit~) and written to
+  disk when not; the file of the entry is then shown with
+  ~window/showDocument~, the cursor where org-journal leaves it, and its
+  folds come in ~org-lsp/folds~.
 - ~org.refile~ :: ~org-refile~ (~org-agenda-refile~ on an agenda line):
   offers the targets (an input of kind ~choice~), named as Emacs names them
   (~Projects~, ~Home (other.org)~, ~Projects/Alpha/~), and moves the subtree

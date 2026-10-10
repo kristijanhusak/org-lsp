@@ -640,6 +640,12 @@ M.handlers = {
     M.save(params and params.uris or {})
   end,
 
+  --- The headlines of a document org-journal showed, folded as it folds
+  --- them.
+  ['org-lsp/folds'] = function(_, params)
+    require('org-lsp').journal_folds(params)
+  end,
+
   --- How far the lines of a file with `org-indent-mode` are shown indented.
   ['org-lsp/virtualIndent'] = function(_, params)
     if require('org-lsp').config.virtual_indent then

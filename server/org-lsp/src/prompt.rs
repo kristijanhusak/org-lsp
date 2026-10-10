@@ -49,6 +49,9 @@ pub enum Target {
     /// The agenda `view` itself: the answer is the day to show
     /// (`org-agenda-goto-date`).
     Agenda { view: Uri, line: u32 },
+    /// The day of a journal entry (`org-journal-new-date-entry`), asked
+    /// from the document `from`.
+    Journal { from: Uri },
 }
 
 impl Target {
@@ -57,6 +60,7 @@ impl Target {
         match self {
             Target::Place { uri, .. } => uri,
             Target::Entry { view, .. } | Target::Agenda { view, .. } => view,
+            Target::Journal { from } => from,
         }
     }
 }
