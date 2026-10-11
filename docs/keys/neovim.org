@@ -223,7 +223,7 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~z~, ~<Leader>ona~ | ~org.add.note~ | Add a note to the entry |
 | ~<C-c><C-o>~, ~<Leader>oo~ | ~org.open~ | Open the link or thing at the cursor |
 | ~<C-c>l~, ~<Leader>ols~ | ~org.link.store~ | Store a link to the place at the cursor |
-| ~$~, ~<C-c><C-x><C-s>~, ~<C-c>$~, ~<Leader>o$~ | ~org.archive.subtree~ | Archive the subtree |
+| ~<C-c><C-x><C-s>~, ~<C-c>$~, ~<Leader>o$~ | ~org.archive.subtree~ | Archive the subtree |
 | ~<C-c><C-x>A~, ~<Leader>oxA~ | ~org.archive.sibling~ | Archive the subtree under its Archive sibling |
 | ~<C-c><C-x>a~, ~<Leader>oA~ | ~org.archive.tag~ | Toggle the ARCHIVE tag |
 | ~<C-c><C-x><C-a>~ | ~org.archive.default~ | Archive with the default command |

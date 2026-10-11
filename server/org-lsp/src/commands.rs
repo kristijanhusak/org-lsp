@@ -1680,6 +1680,10 @@ pub const REGION: &[&str] = &[
 /// `"clipboard": true`; one that works on a selection, `"region": true`
 /// (see [`REGION`]); one that reads the editor's closed folds,
 /// `"folds": true` (see [`FOLDS`]).
+/// The agenda's Emacs keys the vim preset leaves to Vim: `$` is the
+/// motion to the end of the line there, not `org-agenda-archive`.
+const VIM_AGENDA_MOTIONS: &[&str] = &["$"];
+
 pub fn manifest() -> Value {
     let commands: Vec<Value> = COMMANDS
         .iter()
@@ -1688,7 +1692,7 @@ pub fn manifest() -> Value {
             let agenda: Vec<(String, &Key)> = command
                 .emacs
                 .iter()
-                .filter(|key| key.scope == Scope::Agenda)
+                .filter(|key| key.scope == Scope::Agenda && !VIM_AGENDA_MOTIONS.contains(&key.key))
                 .map(|key| (vim_notation(key.key), key))
                 .collect();
             // With the vim preset, a command of the agenda's also has the
@@ -1864,11 +1868,12 @@ mod tests {
         };
         let emacs = keys("emacs");
         assert!(emacs.contains(&("org.agenda.later".to_string(), "f".to_string())));
-        // The same keys, and with the vim preset the leader keys of Org
-        // files besides.
+        // The same keys but those left to Vim's motions, and with the vim
+        // preset the leader keys of Org files besides.
         let vim: Vec<(String, String)> =
             keys("vim").into_iter().filter(|(_, key)| !key.starts_with("<Leader>")).collect();
-        assert_eq!(emacs.len(), vim.len());
+        assert_eq!(emacs.len() - VIM_AGENDA_MOTIONS.len(), vim.len());
+        assert!(!vim.iter().any(|(_, key)| key == "$"));
         assert!(keys("vim").contains(&("org.schedule".to_string(), "<Leader>ois".to_string())));
         assert!(COMMANDS.iter().all(|command| command.vim.iter().all(|key| key.scope != Scope::Agenda)));
     }
