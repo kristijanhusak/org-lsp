@@ -155,6 +155,15 @@ wait('the folds it opens with', function()
   return vim.fn.foldclosed(10) == 9
 end)
 eq({ vim.fn.foldclosed(3), vim.fn.foldclosed(6), vim.fn.foldclosed(8) }, { 3, -1, 7 }, 'startup folds: drawer and childless headlines')
+-- A window closed before the server's folds come back (a command that
+-- shows a file for a moment, as setting a deadline from the agenda does).
+local brief = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A', 'a text' }, brief)
+vim.v.errmsg = ''
+vim.cmd.split(brief)
+vim.cmd.close()
+vim.wait(500)
+eq(vim.v.errmsg, '', 'no error for a window closed before its folds came')
 require('org-lsp').config.startup_folded = nil
 vim.cmd.buffer(bufnr)
 

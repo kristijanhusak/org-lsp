@@ -892,13 +892,14 @@ end
 -- ----- attaching
 
 --- Open the folds starting at the lines of `open` and close those of
---- `close` (0-based `startLine`s, innermost first) in window `win`, once
---- it has the server's folds, which come a moment after the buffer.
+--- `close` (0-based `startLine`s, innermost first) in window `win` while
+--- it shows buffer `bufnr`, once it has the server's folds, which come a
+--- moment after the buffer.
 ---@param win integer
+---@param bufnr integer
 ---@param open table[]
 ---@param close table[]
-local function set_folds(win, open, close)
-  local bufnr = vim.api.nvim_win_get_buf(win)
+local function set_folds(win, bufnr, open, close)
   local first = close[1] or open[1]
   if not first then
     return
@@ -939,7 +940,7 @@ local function close_startup_folds(win)
   end
   local params = { textDocument = vim.lsp.util.make_text_document_params(bufnr) }
   client:request('org-lsp/startupFolds', params, function(err, result)
-    set_folds(win, {}, not err and result and result.folds or {})
+    set_folds(win, bufnr, {}, not err and result and result.folds or {})
   end, bufnr)
 end
 
@@ -949,7 +950,7 @@ end
 function M.journal_folds(params)
   local bufnr = vim.uri_to_bufnr(params.uri)
   for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
-    set_folds(win, params.open or {}, params.close or {})
+    set_folds(win, bufnr, params.open or {}, params.close or {})
   end
 end
 
