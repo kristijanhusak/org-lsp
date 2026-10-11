@@ -2033,16 +2033,28 @@ endfunction
 " (`org-journal-is-journal`): those of its directory without an extension
 " are, as the server says (`org-lsp/journal`), here and in the buffers
 " already loaded.
-function! s:journal_directory(nr) abort
-  if exists('s:journal_asked')
+function! s:journal_directory(nr, ...) abort
+  let tries = get(a:, 1, 0)
+  " Once the client runs: asked before, the request fails, and the
+  " directory stays unknown.
+  if exists('s:journal_asked') || !bufloaded(a:nr) || !s:call('ready', a:nr)
     return
   endif
   let s:journal_asked = 1
-  call org_lsp#request(a:nr, 'org-lsp/journal', v:null, function('s:got_journal'))
+  call org_lsp#request(a:nr, 'org-lsp/journal', v:null, function('s:got_journal', [a:nr, tries]))
 endfunction
 
-function! s:got_journal(error, result) abort
-  if !empty(a:error) || type(a:result) != v:t_dict || type(get(a:result, 'directory', 0)) != v:t_string
+function! s:got_journal(nr, tries, error, result) abort
+  " coc.nvim may refuse a request while it starts ("Plugin not ready"):
+  " asked again a moment later.
+  if !empty(a:error)
+    unlet! s:journal_asked
+    if a:tries < 20
+      call timer_start(300, {-> s:journal_directory(a:nr, a:tries + 1)})
+    endif
+    return
+  endif
+  if type(a:result) != v:t_dict || type(get(a:result, 'directory', 0)) != v:t_string
     return
   endif
   let s:journal_dir = a:result.directory
