@@ -24,6 +24,7 @@ what an editor integration has to do. Read both before larger work.
 scripts/regen.sh      # write every generated file again
 scripts/check.sh      # fmt, clippy, cargo test, generated files, VS Code types, Sublime tests
 scripts/test-all.sh   # check.sh, then Neovim, Vim, VS Code end to end
+scripts/screenshots.py  # docs/images: screenshots and animations of Neovim (NVIM)
 ```
 
 Set `ORG_LISP_DIR` to the `lisp` directory of an Org 9.8.10 checkout: the

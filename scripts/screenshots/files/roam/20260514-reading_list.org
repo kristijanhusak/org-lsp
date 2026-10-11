@@ -1,0 +1,7 @@
+:PROPERTIES:
+:ID:       9e4b7d10-reading
+:END:
+#+title: Reading list
+
+* TODO Read the Org manual's chapter on the agenda
+Everything about Org mode's views, and how org-lsp shows them.

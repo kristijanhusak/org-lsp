@@ -1,0 +1,13 @@
+:PROPERTIES:
+:ID:       0b1c6f7e-org-mode
+:ROAM_ALIASES: Org
+:END:
+#+title: Org mode
+#+filetags: :tools:
+
+A plain-text system for notes, plans and agendas, born in Emacs.
+Its files are read by [[id:7d2e9a40-org-lsp][org-lsp]] in any editor.
+
+* Ideas
+- Outlines that fold
+- Tables that compute

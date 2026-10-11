@@ -1,0 +1,8 @@
+:PROPERTIES:
+:ID:       7d2e9a40-org-lsp
+:END:
+#+title: org-lsp
+#+filetags: :tools:project:
+
+A language server that brings [[id:0b1c6f7e-org-mode][Org mode]] to Neovim, Vim, VS Code,
+Sublime Text, Zed and Helix.

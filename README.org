@@ -14,6 +14,20 @@ Emacs (Org 9.8.10) on a test corpus and on random documents, and matches it
 there. Export and Babel's evaluation are Emacs itself, run by the server
 when Emacs is installed.
 
+[[file:docs/images/org-file.png]]
+
+The agenda, built from the Org files as Emacs builds it:
+
+[[file:docs/images/agenda.png]]
+
+Editing as in Emacs: a TODO cycled to ~DONE~ (its parent's ~[2/3]~ counts
+it), then a date picked in Org's calendar:
+
+[[file:docs/images/editing.gif]]
+
+These are Neovim; [[file:scripts/screenshots.py][scripts/screenshots.py]] makes them from the server of the
+checkout. The other editors look as their themes make them.
+
 * Editors
 
 Each editor's page says how to install org-lsp there, how to set it up,
