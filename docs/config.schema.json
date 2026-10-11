@@ -1753,6 +1753,11 @@
         "(%d/%d): "
       ]
     },
+    "org_agenda_inactive_leader": {
+      "type": "string",
+      "description": "What goes before an inactive timestamp's line, when the agenda shows them (`[`, `v [`). (`org-agenda-inactive-leader`)",
+      "default": "["
+    },
     "org_agenda_remove_tags": {
       "enum": [
         true,

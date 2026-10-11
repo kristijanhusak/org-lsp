@@ -52,7 +52,7 @@ fn arguments(directory: &Path, case: &Value, run: &Value) -> Vec<String> {
             arguments.extend([flag.to_string(), text(value)]);
         }
     }
-    for flag in ["log", "clockreport"] {
+    for flag in ["log", "clockreport", "inactive"] {
         if run.get(flag).and_then(Value::as_bool) == Some(true) {
             arguments.push(format!("--{flag}"));
         }

@@ -1,0 +1,16 @@
+Day-agenda (W21):
+Monday     18 May 2026 W21
+  inactive:    8:00-9:00  [ Clocked
+               8:00...... ----------------
+  inactive:    9:00...... Meeting with an active stamp
+  inactive:    9:05...... [ Clocked
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+  inactive:   14:00...... [ TODO Call back
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  inactive:   [(2/4):  Inactive range
+  inactive:   [ Note taken [2026-05-18 Mon]

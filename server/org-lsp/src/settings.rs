@@ -1574,6 +1574,13 @@ pub const SETTINGS: &[Setting] = &[
          many days).",
     ),
     setting(
+        "org_agenda_inactive_leader",
+        "string",
+        r#""[""#,
+        "org-agenda-inactive-leader",
+        "What goes before an inactive timestamp's line, when the agenda shows them (`[`, `v [`).",
+    ),
+    setting(
         "org_agenda_remove_tags",
         r#"boolean, "prefix""#,
         "false",
@@ -2075,6 +2082,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         "org_agenda_timerange_leaders",
         r#"{ "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }"#,
     ),
+    ("org_agenda_inactive_leader", STRING),
     ("org_agenda_remove_tags", r#"{ "enum": [true, false, "prefix"] }"#),
     ("org_agenda_breadcrumbs_separator", STRING),
     (

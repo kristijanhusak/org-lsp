@@ -1714,6 +1714,10 @@ org_agenda_deadline_leaders = ["Deadline:  ", "In %3d d.: ", "%2d d. ago: "]
 # which day of it, `%d`: how many days). (org-agenda-timerange-leaders)
 org_agenda_timerange_leaders = ["", "(%d/%d): "]
 
+# What goes before an inactive timestamp's line, when the agenda shows them
+# (`[`, `v [`). (org-agenda-inactive-leader)
+org_agenda_inactive_leader = "["
+
 # Leave the tags out of the agenda's lines; `prefix` only when the prefix
 # shows a tag (`%T`). (org-agenda-remove-tags)
 org_agenda_remove_tags = false
@@ -2717,6 +2721,10 @@ org_agenda_custom_commands = []
   // The leader of a time range within a day, and of a range over days (`%d`:
   // which day of it, `%d`: how many days). (org-agenda-timerange-leaders)
   "org_agenda_timerange_leaders": ["", "(%d/%d): "],
+
+  // What goes before an inactive timestamp's line, when the agenda shows them
+  // (`[`, `v [`). (org-agenda-inactive-leader)
+  "org_agenda_inactive_leader": "[",
 
   // Leave the tags out of the agenda's lines; `prefix` only when the prefix
   // shows a tag (`%T`). (org-agenda-remove-tags)

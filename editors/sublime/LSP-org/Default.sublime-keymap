@@ -5552,6 +5552,50 @@
   {
     "keys": [
       "v",
+      "["
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.inactive"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
+      "["
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.inactive"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "vim"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "v",
       "shift+a"
     ],
     "command": "org_lsp_run",

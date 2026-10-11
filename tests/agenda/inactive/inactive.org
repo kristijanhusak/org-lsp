@@ -1,0 +1,47 @@
+#+TITLE: Inactive
+[2026-05-18 Mon] before the first headline
+
+* Note taken [2026-05-18 Mon]
+* TODO Call back
+  Promised on [2026-05-18 Mon 14:00] to call.
+* Meeting with an active stamp
+  <2026-05-18 Mon 09:00>
+* Created property
+  :PROPERTIES:
+  :CREATED:  [2026-05-19 Tue 08:15]
+  :END:
+* DONE Closed item
+  CLOSED: [2026-05-18 Mon 09:12]
+* Clocked
+  :LOGBOOK:
+  CLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:00] =>  1:00
+  - State "DONE"       from "TODO"       [2026-05-18 Mon 09:05]
+  :END:
+* Inactive range
+  [2026-05-17 Sun]--[2026-05-20 Wed]
+* Mixed range
+  [2026-05-19 Tue]--<2026-05-21 Thu>
+* Active range
+  <2026-05-20 Wed>--<2026-05-22 Fri>
+* Inactive repeater
+  [2026-05-11 Mon +1w]
+* Same day inactive range
+  [2026-05-21 Thu 10:00]--[2026-05-21 Thu 11:30]
+* In a comment
+  # [2026-05-18 Mon]
+* In a source block
+  #+begin_src emacs-lisp
+  "[2026-05-18 Mon]"
+  #+end_src
+* In an example block
+  #+begin_example
+  [2026-05-18 Mon]
+  #+end_example
+* COMMENT Commented [2026-05-18 Mon]
+* Archived                                                          :ARCHIVE:
+  [2026-05-18 Mon]
+* Day name missing [2026-05-19]
+* Two on a line
+  [2026-05-19 Tue] and [2026-05-19 Tue 16:00]
+* Item with a stamp
+  - [2026-05-20 Wed] a list item

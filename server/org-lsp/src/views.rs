@@ -76,6 +76,19 @@ pub enum BlockKind {
     Stuck,
 }
 
+impl BlockKind {
+    /// `org-agenda-type`: what Org's messages call the block.
+    pub fn agenda_type(&self) -> &'static str {
+        match self {
+            BlockKind::Agenda { .. } => "agenda",
+            BlockKind::Todo { .. } => "todo",
+            // The stuck projects are a tags view (`org-tags-view`).
+            BlockKind::Tags { .. } | BlockKind::Stuck => "tags",
+            BlockKind::Search { .. } => "search",
+        }
+    }
+}
+
 /// The entry behind a line, in a form that survives edits to its file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EntryRef {

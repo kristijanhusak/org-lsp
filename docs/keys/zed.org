@@ -116,10 +116,10 @@ its motions.
 | ~f~ | ~org.agenda.later~ | Agenda: go forward in time |
 | ~b~ | ~org.agenda.earlier~ | Agenda: go backward in time |
 | ~.~ | ~org.agenda.today~ | Agenda: go to today |
-| ~[~ | ~org.agenda.query.add~ | Agenda: search for another word |
-| ~]~ | ~org.agenda.query.subtract~ | Agenda: search without a word |
-| ~{~ | ~org.agenda.query.add.regexp~ | Agenda: search for another regexp |
-| ~}~ | ~org.agenda.query.subtract.regexp~ | Agenda: search without a regexp |
+| ~[~ | ~org.agenda.query.add~ | Agenda: search for another word, or show inactive timestamps |
+| ~]~ | ~org.agenda.query.subtract~ | Agenda: search without a word, or show inactive timestamps |
+| ~{~ | ~org.agenda.query.add.regexp~ | Agenda: search for another regexp, or show inactive timestamps |
+| ~}~ | ~org.agenda.query.subtract.regexp~ | Agenda: search without a regexp, or show inactive timestamps |
 | ~shift-j~ | ~org.agenda.goto.date~ | Agenda: go to a date |
 | ~v d~ | ~org.agenda.day~ | Agenda: day view |
 | ~v w~ | ~org.agenda.week~ | Agenda: week view |
@@ -151,6 +151,7 @@ its motions.
 | ~^~ | ~org.agenda.filter.top.headline~ | Agenda: filter by the line's top headline |
 | ~¦~ | ~org.agenda.filter.remove~ | Agenda: remove all filters |
 | ~v a~ | ~org.agenda.archives~ | Agenda: include archived trees |
+| ~v [~ | ~org.agenda.inactive~ | Agenda: show inactive timestamps once |
 | ~v shift-a~ | ~org.agenda.archives.files~ | Agenda: include archived trees and archive files |
 | ~shift-i~ | ~org.clock.in~ | Clock in |
 | ~shift-o~ | ~org.clock.out~ | Clock out |

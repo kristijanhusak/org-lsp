@@ -133,6 +133,7 @@ pub const AGENDA_QUERY_ADD: &str = "org.agenda.query.add";
 pub const AGENDA_QUERY_SUBTRACT: &str = "org.agenda.query.subtract";
 pub const AGENDA_QUERY_ADD_REGEXP: &str = "org.agenda.query.add.regexp";
 pub const AGENDA_QUERY_SUBTRACT_REGEXP: &str = "org.agenda.query.subtract.regexp";
+pub const AGENDA_INACTIVE: &str = "org.agenda.inactive";
 pub const AGENDA_LOG: &str = "org.agenda.log";
 pub const AGENDA_HABITS: &str = "org.agenda.habits";
 pub const AGENDA_WRITE: &str = "org.agenda.write";
@@ -410,11 +411,24 @@ pub const COMMANDS: &[Command] = &[
     Command { emacs: &[key(Agenda, "b")], ..command(AGENDA_EARLIER, "Agenda: go backward in time") },
     Command { emacs: &[key(Agenda, ".")], ..command(AGENDA_TODAY, "Agenda: go to today") },
     // `org-agenda-manipulate-query`: in a search view, the search string
-    // asked for again with a word or regexp to add or subtract started.
-    Command { emacs: &[key(Agenda, "[")], ..command(AGENDA_QUERY_ADD, "Agenda: search for another word") },
-    Command { emacs: &[key(Agenda, "]")], ..command(AGENDA_QUERY_SUBTRACT, "Agenda: search without a word") },
-    Command { emacs: &[key(Agenda, "{")], ..command(AGENDA_QUERY_ADD_REGEXP, "Agenda: search for another regexp") },
-    Command { emacs: &[key(Agenda, "}")], ..command(AGENDA_QUERY_SUBTRACT_REGEXP, "Agenda: search without a regexp") },
+    // asked for again with a word or regexp to add or subtract started;
+    // in an agenda view, the view once more with inactive timestamps.
+    Command {
+        emacs: &[key(Agenda, "[")],
+        ..command(AGENDA_QUERY_ADD, "Agenda: search for another word, or show inactive timestamps")
+    },
+    Command {
+        emacs: &[key(Agenda, "]")],
+        ..command(AGENDA_QUERY_SUBTRACT, "Agenda: search without a word, or show inactive timestamps")
+    },
+    Command {
+        emacs: &[key(Agenda, "{")],
+        ..command(AGENDA_QUERY_ADD_REGEXP, "Agenda: search for another regexp, or show inactive timestamps")
+    },
+    Command {
+        emacs: &[key(Agenda, "}")],
+        ..command(AGENDA_QUERY_SUBTRACT_REGEXP, "Agenda: search without a regexp, or show inactive timestamps")
+    },
     Command {
         emacs: &[key(Agenda, "J")],
         input: Some(Input { kind: "date", prompt: "Date" }),
@@ -507,6 +521,8 @@ pub const COMMANDS: &[Command] = &[
     // `org-agenda-archives-mode`: archived trees (`v a`), and the archive
     // files too (`v A`).
     Command { emacs: &[key(Agenda, "v a")], ..command(AGENDA_ARCHIVES, "Agenda: include archived trees") },
+    // `org-agenda-include-inactive-timestamps` for one rebuilding (`v [`).
+    Command { emacs: &[key(Agenda, "v [")], ..command(AGENDA_INACTIVE, "Agenda: show inactive timestamps once") },
     Command {
         emacs: &[key(Agenda, "v A")],
         ..command(AGENDA_ARCHIVES_FILES, "Agenda: include archived trees and archive files")

@@ -22,6 +22,8 @@ A case is a directory with Org files and a `case.json`:
                                                 most 5 lines an entry
         {"view": "todo", "archives": "trees"}   with archived trees
                                                 (`files`: archive files too)
+        {"view": "agenda", "inactive": true}    with inactive timestamps
+                                     (`org-agenda-include-inactive-timestamps`)
       ],
       "options": {...},               optional: settings for org-lsp
       "emacs": "(setq ...)"           optional: the same settings for Emacs
@@ -265,6 +267,8 @@ def run_form(run):
             steps += f" (org-agenda-entry-text-mode {run['entry_text']})"
         form = (f"(progn (let ((standard-output #'ignore)) {form}) (set-buffer org-agenda-buffer-name)"
                 f" {steps} (princ (org-lsp-visible-string)))")
+    if run.get("inactive"):
+        form = f"(let ((org-agenda-include-inactive-timestamps t)) {form})"
     archives = {"trees": "'trees", "files": "t"}.get(run.get("archives"))
     return f"(let ((org-agenda-start-with-archives-mode {archives})) {form})" if archives else form
 
@@ -377,7 +381,7 @@ def run_arguments(directory, case, run):
         arguments += ["--match", run["match"]]
     if "key" in run:
         arguments += ["--key", run["key"]]
-    for flag in ("log", "clockreport"):
+    for flag in ("log", "clockreport", "inactive"):
         if run.get(flag):
             arguments.append("--" + flag)
     if "archives" in run:

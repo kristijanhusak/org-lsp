@@ -154,6 +154,7 @@ its sections says what it should look like.
 - [ ] Marking lines and a bulk action on them: ~m~, ~B~
 - [ ] Follow mode shows the cursor's entry as the cursor moves: ~F~
 - [ ] Entry text, log mode, the clock report, archives mode: ~E~ or ~v E~, ~v l~, ~R~ or ~v R~, ~v a~
+- [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: ~[~, ~v [~, ~r~
 - [ ] Hovering a line shows its entry: the mouse
 - [ ] Rebuilding the agenda, saving the changed files, quitting: ~r~, ~s~ or ~Ctrl+X Ctrl+S~
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt

@@ -3,7 +3,7 @@
 //! ```text
 //! org-lsp agenda [--view agenda|todo|tags|tags-todo|custom] [--match M]
 //!                [--key KEYS] [--span day|week|N] [--start DATE]
-//!                [--log] [--clockreport] [--archives trees|files]
+//!                [--log] [--clockreport] [--inactive] [--archives trees|files]
 //!                [--entry-text N] [--filters JSON]
 //!                [--today DATE] [--now HH:MM] [--options JSON] FILE...
 //! ```
@@ -34,6 +34,7 @@ Options:
   --key KEYS           a command of the `org_agenda_custom_commands` agenda option
   --log                log mode: what was closed and clocked each day
   --clockreport        the clock report under the agenda
+  --inactive           inactive timestamps too, as `[` in the agenda shows them
   --entry-text N       entry text mode: at most N lines of each entry's
                        text under its line
   --archives WHAT      trees: entries in archived trees too; files: those
@@ -88,6 +89,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     let mut key = None;
     let mut log = false;
     let mut clockreport = false;
+    let mut inactive = false;
     let mut archives = None;
     let mut filters: Option<serde_json::Value> = None;
     let mut entry_text: Option<usize> = None;
@@ -108,6 +110,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             "--key" => key = Some(value("--key")?.clone()),
             "--log" => log = true,
             "--clockreport" => clockreport = true,
+            "--inactive" => inactive = true,
             "--archives" => archives = Some(value("--archives")?.clone()),
             "--entry-text" => {
                 let count = value("--entry-text")?;
@@ -147,6 +150,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     }
     config.show_log |= log;
     config.clockreport |= clockreport;
+    config.include_inactive |= inactive;
     if let Some(span) = span {
         config.span = SpanOption::Name(span.clone()).to_span().ok_or_else(|| format!("`{span}` is not a span"))?;
     }

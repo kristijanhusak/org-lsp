@@ -21,7 +21,7 @@ decides the outcome (see "How the work is checked" in [[file:../PLAN.org][PLAN.o
 | [[#tags][Tags]] | 100% | 6 of 6 |
 | [[#properties-and-column-view][Properties and column view]] | 100% | 6 of 6 |
 | [[#dates-and-times][Dates and times]] | 100% | 8 of 8 |
-| [[#agenda][Agenda]] | 100% | 22 of 22 |
+| [[#agenda][Agenda]] | 100% | 23 of 23 |
 | [[#clocking][Clocking]] | 100% | 8 of 8 |
 | [[#capture][Capture]] | 100% | 11 of 11 |
 | [[#notes-org-roam][Notes (org-roam)]] | 100% | 8 of 8 |
@@ -243,7 +243,7 @@ Where editors fall short:
 :CUSTOM_ID: agenda
 :END:
 
-100% (22 of 22)
+100% (23 of 23)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
@@ -257,6 +257,7 @@ Where editors fall short:
 - ✅ Follow mode and entry text
 - ✅ Log mode and the clock report
 - ✅ Archives mode
+- ✅ Inactive timestamps in the agenda once (~[~, ~v [~: ~org-agenda-include-inactive-timestamps~)
 - ✅ Changing an entry from the agenda: state, priority, tags, dates, notes, refile, archive, clock
 - ✅ Lines formatted as Org formats them (~org-agenda-prefix-format~ and the rest)
 - ✅ The time grid
