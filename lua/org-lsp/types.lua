@@ -198,6 +198,7 @@
 ---@field org_agenda_scheduled_leaders? string[] The leader of a scheduled entry on its day, and on today when its day has passed (`%d`: the days since). (`org-agenda-scheduled-leaders`)
 ---@field org_agenda_deadline_leaders? string[] The leader of a deadline on its day, on today before it (`%d`: the days left), and on today after it (`%d`: the days since). (`org-agenda-deadline-leaders`)
 ---@field org_agenda_timerange_leaders? string[] The leader of a time range within a day, and of a range over days (`%d`: which day of it, `%d`: how many days). (`org-agenda-timerange-leaders`)
+---@field org_agenda_inactive_leader? string What goes before an inactive timestamp's line, when the agenda shows them (`[`, `v [`). (`org-agenda-inactive-leader`)
 ---@field org_agenda_remove_tags? true|false|'prefix' Leave the tags out of the agenda's lines; `prefix` only when the prefix shows a tag (`%T`). (`org-agenda-remove-tags`)
 ---@field org_stuck_projects? any[] What the stuck projects view (`#`) lists: the projects the match string finds whose subtree has no entry with one of the TODO keywords (`*` for any not done) or tags (`*` for any), and no match of the regexp. (`org-stuck-projects`)
 ---@field org_agenda_breadcrumbs_separator? string What goes between the headlines of `%b`. (`org-agenda-breadcrumbs-separator`)

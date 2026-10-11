@@ -263,6 +263,12 @@ pub struct Config {
     /// `org-agenda-timerange-leaders`: a range within a day, and one over
     /// days (`%d` the day of the range, `%d` its length).
     pub timerange_leaders: [String; 2],
+    /// `org-agenda-inactive-leader`: before an inactive timestamp's or
+    /// range's line.
+    pub inactive_leader: String,
+    /// `org-agenda-include-inactive-timestamps`: inactive timestamps and
+    /// ranges show as well (`[` in an agenda view, `v [`).
+    pub include_inactive: bool,
     /// `org-agenda-remove-tags`
     pub remove_tags: RemoveTags,
     /// `org-agenda-breadcrumbs-separator`
@@ -402,6 +408,8 @@ impl Default for Config {
             scheduled_leaders: ["Scheduled: ".to_string(), "Sched.%2dx: ".to_string()],
             deadline_leaders: ["Deadline:  ".to_string(), "In %3d d.: ".to_string(), "%2d d. ago: ".to_string()],
             timerange_leaders: [String::new(), "(%d/%d): ".to_string()],
+            inactive_leader: "[".to_string(),
+            include_inactive: false,
             remove_tags: RemoveTags::No,
             breadcrumbs_separator: "->".to_string(),
             stuck_projects: StuckProjects::default(),
@@ -758,7 +766,8 @@ impl Builder<'_> {
     /// `org-agenda-get-blocks`
     fn blocks(&self, file: usize, current: Day, out: &mut Vec<Item>) {
         let outline = self.files[file];
-        for block in &outline.blocks {
+        let blocks = if self.config.include_inactive { &outline.blocks_with_inactive } else { &outline.blocks };
+        for block in blocks {
             let entry = &outline.entries[block.entry];
             let (Some(first), Some(last)) = (time_string_to_day(&block.first), time_string_to_day(&block.second))
             else {
@@ -772,7 +781,10 @@ impl Builder<'_> {
                 continue;
             }
             let leader = &self.config.timerange_leaders[usize::from(first != last)];
-            let extra = format_numbers(leader, &[1 + current - first, 1 + last - first]);
+            let mut extra = format_numbers(leader, &[1 + current - first, 1 + last - first]);
+            if block.inactive {
+                extra.insert_str(0, &self.config.inactive_leader);
+            }
             let face = if first == last { Face::CalendarEvent } else { Face::CalendarDateRange };
             // Times count on the first and on the last day.
             let dotime = match (first == current, last == current) {
@@ -796,7 +808,7 @@ impl Builder<'_> {
         // or a repeater stands; the next stop comes after the last one.
         let mut scanned_to = 0;
         for stamp in &outline.stamps {
-            if stamp.offset < scanned_to {
+            if stamp.offset < scanned_to || (stamp.inactive && !self.config.include_inactive) {
                 continue;
             }
             // `<%%(…)>`: shown on the days its sexp applies to.
@@ -849,8 +861,15 @@ impl Builder<'_> {
                     continue;
                 }
             }
-            let mut item =
-                self.item(file, shown.entry, ItemKind::Timestamp, Face::CalendarEvent, "", Dotime::Text(&shown.text));
+            let extra = if stamp.inactive { self.config.inactive_leader.as_str() } else { "" };
+            let mut item = self.item(
+                file,
+                shown.entry,
+                ItemKind::Timestamp,
+                Face::CalendarEvent,
+                extra,
+                Dotime::Text(&shown.text),
+            );
             item.marker = Some(stamp.offset);
             // A repeater's own day (`org-agenda--timestamp-to-absolute`, a
             // time past 24:00 counting for the next day), or else the day

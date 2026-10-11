@@ -1441,6 +1441,41 @@ fn includes_archives_when_asked() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// `[` in an agenda view, and `v [`: the view once with inactive
+/// timestamps (`org-agenda-include-inactive-timestamps`), which the next
+/// rebuilding leaves out again. Elsewhere `v [` is not allowed.
+#[test]
+fn shows_inactive_timestamps_once() {
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/notes.org", "* Met Ann [2026-05-18 Mon]\n* Lunch\n<2026-05-18 Mon 12:00>\n");
+    client.command("org.agenda.list", "file:///org/notes.org", 0);
+    let shows = |client: &mut Client| client.view_text(VIEW).contains("[ Met Ann");
+    assert!(!shows(&mut client));
+    let run = |client: &mut Client, command: &str| {
+        let at = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
+        client.settle();
+        result
+    };
+    for command in ["org.agenda.query.add", "org.agenda.inactive"] {
+        let result = run(&mut client, command).unwrap();
+        assert_eq!(result["message"], "Display now includes inactive timestamps as well");
+        assert!(shows(&mut client), "{}", client.view_text(VIEW));
+        run(&mut client, "org.agenda.redo").unwrap();
+        assert!(!shows(&mut client));
+    }
+    client.command("org.agenda.todos", VIEW, 0);
+    assert_eq!(
+        run(&mut client, "org.agenda.inactive"),
+        Err("Not allowed in 'todo'-type agenda buffer or component".to_string())
+    );
+    assert_eq!(
+        run(&mut client, "org.agenda.query.add"),
+        Err("Cannot manipulate query for todo-type agenda buffers".to_string())
+    );
+    client.shutdown();
+}
+
 /// Run `command` at `line` and `character` of `uri`, and return its result
 /// with the files the server then asked the editor to save.
 fn run_saving(client: &mut Client, command: &str, uri: &str, at: (u32, u32), extra: Value) -> (Value, Vec<Value>) {

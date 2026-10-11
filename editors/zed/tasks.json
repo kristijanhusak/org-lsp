@@ -1456,7 +1456,7 @@
     "use_new_terminal": false
   },
   {
-    "label": "Org agenda: search for another word",
+    "label": "Org agenda: search for another word, or show inactive timestamps",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.query.add",
     "tags": [
       "org-agenda"
@@ -1469,7 +1469,7 @@
     "use_new_terminal": false
   },
   {
-    "label": "Org agenda: search without a word",
+    "label": "Org agenda: search without a word, or show inactive timestamps",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.query.subtract",
     "tags": [
       "org-agenda"
@@ -1482,7 +1482,7 @@
     "use_new_terminal": false
   },
   {
-    "label": "Org agenda: search for another regexp",
+    "label": "Org agenda: search for another regexp, or show inactive timestamps",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.query.add.regexp",
     "tags": [
       "org-agenda"
@@ -1495,7 +1495,7 @@
     "use_new_terminal": false
   },
   {
-    "label": "Org agenda: search without a regexp",
+    "label": "Org agenda: search without a regexp, or show inactive timestamps",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.query.subtract.regexp",
     "tags": [
       "org-agenda"
@@ -1926,6 +1926,19 @@
   {
     "label": "Org agenda: include archived trees",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.archives",
+    "tags": [
+      "org-agenda"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org agenda: show inactive timestamps once",
+    "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.inactive",
     "tags": [
       "org-agenda"
     ],

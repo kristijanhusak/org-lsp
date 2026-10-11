@@ -26,25 +26,25 @@
       "[": [
         "task::Spawn",
         {
-          "task_name": "Org agenda: search for another word"
+          "task_name": "Org agenda: search for another word, or show inactive timestamps"
         }
       ],
       "]": [
         "task::Spawn",
         {
-          "task_name": "Org agenda: search without a word"
+          "task_name": "Org agenda: search without a word, or show inactive timestamps"
         }
       ],
       "{": [
         "task::Spawn",
         {
-          "task_name": "Org agenda: search for another regexp"
+          "task_name": "Org agenda: search for another regexp, or show inactive timestamps"
         }
       ],
       "}": [
         "task::Spawn",
         {
-          "task_name": "Org agenda: search without a regexp"
+          "task_name": "Org agenda: search without a regexp, or show inactive timestamps"
         }
       ],
       "shift-j": [
@@ -249,6 +249,12 @@
         "task::Spawn",
         {
           "task_name": "Org agenda: include archived trees"
+        }
+      ],
+      "v [": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: show inactive timestamps once"
         }
       ],
       "v shift-a": [

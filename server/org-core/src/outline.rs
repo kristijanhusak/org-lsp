@@ -168,6 +168,9 @@ pub struct Stamp {
     /// A diary timestamp, `<%%(…)>`: its sexp, and what shows on the days
     /// it applies to.
     pub diary: Option<(String, Shown)>,
+    /// `[…]`: the scan finds it only on its date, and only with
+    /// `org-agenda-include-inactive-timestamps`.
+    pub inactive: bool,
 }
 
 /// The entry a timestamp belongs to, and the timestamp as the agenda reads it.
@@ -200,6 +203,8 @@ pub struct Block {
     pub first: String,
     pub second: String,
     pub entry: usize,
+    /// It starts with `[`.
+    pub inactive: bool,
 }
 
 /// A line the agenda's log mode shows (`org-agenda-get-progress`): a
@@ -248,6 +253,10 @@ pub struct Outline {
     pub entries: Vec<Entry>,
     pub stamps: Vec<Stamp>,
     pub blocks: Vec<Block>,
+    /// The date ranges as the agenda finds them with
+    /// `org-agenda-include-inactive-timestamps`: active, inactive or with
+    /// one bracket of each.
+    pub blocks_with_inactive: Vec<Block>,
     /// The diary sexp lines, `%%(…)` or `&%%(…)` at the start of a line.
     pub sexps: Vec<SexpLine>,
     pub logs: Vec<Log>,
@@ -296,6 +305,7 @@ impl Outline {
             entries: Vec::new(),
             stamps: Vec::new(),
             blocks: Vec::new(),
+            blocks_with_inactive: Vec::new(),
             sexps: Vec::new(),
             logs: Vec::new(),
             clocks: Vec::new(),
@@ -314,7 +324,8 @@ impl Outline {
             outline.add_entry(&headline, text, None, &inherited);
         }
         outline.collect_stamps(&root, text);
-        outline.collect_blocks(&root, text);
+        outline.blocks = outline.collect_blocks(&root, text, false);
+        outline.blocks_with_inactive = outline.collect_blocks(&root, text, true);
         outline.collect_sexps(text);
         outline.collect_logs(text);
         outline
@@ -558,9 +569,27 @@ impl Outline {
     fn collect_stamps(&mut self, root: &SyntaxNode, text: &str) {
         let bytes = text.as_bytes();
         let mut from = 0;
-        while let Some(offset) = text[from..].find('<').map(|index| from + index) {
+        while let Some(offset) = text[from..].find(['<', '[']).map(|index| from + index) {
             from = offset + 1;
             let date = is_date_at(bytes, offset + 1).then(|| parse_date(&text[offset + 1..offset + 11]));
+            // `[DATE`, on its date only.
+            if bytes[offset] == b'[' {
+                let Some(date) = date else { continue };
+                let on_date = timestamp_end(text, offset).and_then(|end| {
+                    let entry = self.stamp_entry(root, text, offset + 11, offset + 11, end)?;
+                    Some(Shown { entry, text: text[offset..end].to_string() })
+                });
+                self.stamps.push(Stamp {
+                    offset,
+                    date: Some(date),
+                    on_date,
+                    repeat_end: None,
+                    on_repeat: None,
+                    diary: None,
+                    inactive: true,
+                });
+                continue;
+            }
             let repeat_end = repeater_form_end(text, offset);
             // `<%%(SEXP)REST>`: the sexp runs to the last `)` before `>`.
             if date.is_none() && text[offset..].starts_with("<%%(") {
@@ -581,6 +610,7 @@ impl Outline {
                     repeat_end: None,
                     on_repeat: None,
                     diary: shown,
+                    inactive: false,
                 });
                 from = end;
                 continue;
@@ -599,7 +629,7 @@ impl Outline {
                 let entry = self.stamp_entry(root, text, end, end - 1, end)?;
                 Some(Shown { entry, text: text[offset..end].to_string() })
             });
-            self.stamps.push(Stamp { offset, date, on_date, repeat_end, on_repeat, diary: None });
+            self.stamps.push(Stamp { offset, date, on_date, repeat_end, on_repeat, diary: None, inactive: false });
         }
     }
 
@@ -664,10 +694,12 @@ impl Outline {
 
     /// Date ranges, found the way `org-agenda-get-blocks` finds them: by
     /// scanning the text, wherever they are, except in comments, source
-    /// blocks and commented subtrees.
-    fn collect_blocks(&mut self, root: &SyntaxNode, text: &str) {
+    /// blocks and commented subtrees. With `inactive`, inactive ranges as
+    /// well (`org-tr-regexp-both`).
+    fn collect_blocks(&self, root: &SyntaxNode, text: &str, inactive: bool) -> Vec<Block> {
+        let mut blocks = Vec::new();
         let mut at = 0;
-        while let Some(range) = next_date_range(text, at) {
+        while let Some(range) = next_date_range(text, at, inactive) {
             at = range.end;
             let line_start = text[..range.end].rfind('\n').map_or(0, |index| index + 1);
             let line = text[line_start..].trim_start_matches([' ', '\t']);
@@ -678,13 +710,15 @@ impl Outline {
             if self.entries[entry].commented || in_source_block(root, range.end - 1) {
                 continue;
             }
-            self.blocks.push(Block {
+            blocks.push(Block {
                 offset: range.end,
                 first: text[range.first.0..range.first.1].to_string(),
                 second: text[range.second.0..range.second.1].to_string(),
                 entry,
+                inactive: text.as_bytes()[range.first.0 - 1] == b'[',
             });
         }
+        blocks
     }
 }
 
@@ -1009,11 +1043,13 @@ fn date_range_at(text: &str, start: usize, inactive: bool) -> Option<DateRange> 
     None
 }
 
-/// The next active date range that starts at or after `from`.
-fn next_date_range(text: &str, from: usize) -> Option<DateRange> {
+/// The next date range that starts at or after `from`: active, or with
+/// `inactive` of either kind.
+fn next_date_range(text: &str, from: usize, inactive: bool) -> Option<DateRange> {
     let mut at = from;
-    while let Some(open) = text[at..].find('<').map(|index| at + index) {
-        if let Some(range) = date_range_at(text, open, false) {
+    let opens: &[char] = if inactive { &['<', '['] } else { &['<'] };
+    while let Some(open) = text[at..].find(opens).map(|index| at + index) {
+        if let Some(range) = date_range_at(text, open, inactive) {
             return Some(range);
         }
         at = open + 1;
@@ -1348,23 +1384,25 @@ Body <2026-10-07 Wed +1w> and [2026-10-08 Thu] and <2026-10-09 Fri .+2d -1d>.
 #+end_example
 ";
         let outline = outline(text);
-        let stamps: Vec<(&str, usize, bool)> = outline
+        let stamps: Vec<(&str, usize, bool, bool)> = outline
             .stamps
             .iter()
-            .filter_map(|stamp| Some((stamp.on_date.as_ref()?, stamp.on_repeat.is_some())))
-            .map(|(shown, repeats)| (shown.text.as_str(), shown.entry, repeats))
+            .filter_map(|stamp| Some((stamp.on_date.as_ref()?, stamp.on_repeat.is_some(), stamp.inactive)))
+            .map(|(shown, repeats, inactive)| (shown.text.as_str(), shown.entry, repeats, inactive))
             .collect();
         assert_eq!(
             stamps,
             [
-                ("<2026-10-06 Tue 14:00-15:30>", 0, false),
-                ("<2026-10-10 Sat>", 0, false),
-                ("<2026-10-07 Wed +1w>", 0, true),
-                ("<2026-10-09 Fri .+2d -1d>", 0, false),
+                ("<2026-10-06 Tue 14:00-15:30>", 0, false, false),
+                ("<2026-10-10 Sat>", 0, false, false),
+                ("[2026-10-10 Sat]", 0, false, true),
+                ("<2026-10-07 Wed +1w>", 0, true, false),
+                ("[2026-10-08 Thu]", 0, false, true),
+                ("<2026-10-09 Fri .+2d -1d>", 0, false, false),
             ]
         );
         // The scan also stops at the others, and finds nothing to show.
-        assert_eq!(outline.stamps.len(), 14);
+        assert_eq!(outline.stamps.len(), 16);
         let blocks: Vec<(&str, &str, usize)> =
             outline.blocks.iter().map(|block| (block.first.as_str(), block.second.as_str(), block.entry)).collect();
         assert_eq!(

@@ -42,28 +42,28 @@
     }
   },
   {
-    "caption": "Org: Agenda: search for another word",
+    "caption": "Org: Agenda: search for another word, or show inactive timestamps",
     "command": "org_lsp_run",
     "args": {
       "command": "org.agenda.query.add"
     }
   },
   {
-    "caption": "Org: Agenda: search without a word",
+    "caption": "Org: Agenda: search without a word, or show inactive timestamps",
     "command": "org_lsp_run",
     "args": {
       "command": "org.agenda.query.subtract"
     }
   },
   {
-    "caption": "Org: Agenda: search for another regexp",
+    "caption": "Org: Agenda: search for another regexp, or show inactive timestamps",
     "command": "org_lsp_run",
     "args": {
       "command": "org.agenda.query.add.regexp"
     }
   },
   {
-    "caption": "Org: Agenda: search without a regexp",
+    "caption": "Org: Agenda: search without a regexp, or show inactive timestamps",
     "command": "org_lsp_run",
     "args": {
       "command": "org.agenda.query.subtract.regexp"
@@ -305,6 +305,13 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.agenda.archives"
+    }
+  },
+  {
+    "caption": "Org: Agenda: show inactive timestamps once",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.agenda.inactive"
     }
   },
   {

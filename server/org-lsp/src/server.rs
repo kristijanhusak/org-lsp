@@ -1019,6 +1019,9 @@ struct Server {
     refile_verify: Option<String>,
     /// What the agenda shows of archives (`v a`, `v A`).
     agenda_archives: ArchivesMode,
+    /// `org-agenda-include-inactive-timestamps`, bound while `[` or `v [`
+    /// builds the view again.
+    agenda_inactive: bool,
     /// The filters of the agenda (`/`, `\\`, `<`, `=`, `_`, `^`), which
     /// a new agenda command clears and rebuilding keeps.
     agenda_filters: org_core::agenda::filter::Filters,
@@ -1285,6 +1288,7 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_log: options.agenda.start_with_log_mode.unwrap_or(false),
         agenda_clockreport: options.agenda.start_with_clockreport_mode.unwrap_or(false),
         agenda_archives: options.agenda.archives_mode(),
+        agenda_inactive: false,
         agenda_entry_text: options.agenda_config().entry_text,
         agenda_follow: options.agenda.start_with_follow_mode.unwrap_or(false),
         date_unit: None,
@@ -4270,6 +4274,7 @@ impl Server {
             block.config.clockreport = self.agenda_clockreport;
             block.config.entry_text = self.agenda_entry_text;
             block.config.archives = self.agenda_archives != ArchivesMode::Off;
+            block.config.include_inactive = self.agenda_inactive;
         }
         Ok(blocks)
     }
@@ -4776,6 +4781,15 @@ impl Server {
             | commands::AGENDA_QUERY_SUBTRACT
             | commands::AGENDA_QUERY_ADD_REGEXP
             | commands::AGENDA_QUERY_SUBTRACT_REGEXP => self.manipulate_query(&params.command, context.as_ref()),
+            commands::AGENDA_INACTIVE => {
+                let line = self.view_cursor_line(context.as_ref());
+                match self.block_kind(line)? {
+                    views::BlockKind::Agenda { .. } => Ok(self.with_inactive()),
+                    kind => {
+                        Err(format!("Not allowed in '{}'-type agenda buffer or component", kind.agenda_type()).into())
+                    }
+                }
+            }
             id if id.starts_with("org.calendar.") => self.calendar_command(id, context.as_ref()),
             // `org-save-all-org-buffers`: the server cannot save; the
             // editor saves the files it names that have changes.
@@ -6236,18 +6250,12 @@ impl Server {
     /// (`input`) is searched for as the view was.
     fn manipulate_query(&mut self, command: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
         let line = self.view_cursor_line(context);
-        let open = self.view.as_ref().ok_or("No agenda is open")?;
-        let block = line.and_then(|line| open.on_screen().line(line)).map_or(0, |line| line.block);
-        let blocks = self.blocks(&open.view.query).map_err(Refusal::Failed)?;
-        let (string, todo_only) = match blocks.get(block).map(|block| &block.kind) {
-            Some(views::BlockKind::Search { string, todo_only }) => (string.clone(), *todo_only),
-            Some(views::BlockKind::Agenda { .. }) => {
-                return Err("Inactive timestamps in the agenda are not supported yet".into());
+        let (string, todo_only) = match self.block_kind(line)? {
+            views::BlockKind::Search { string, todo_only } => (string, todo_only),
+            views::BlockKind::Agenda { .. } => return Ok(self.with_inactive()),
+            kind => {
+                return Err(format!("Cannot manipulate query for {}-type agenda buffers", kind.agenda_type()).into())
             }
-            Some(views::BlockKind::Tags { .. }) => {
-                return Err("Cannot manipulate query for tags-type agenda buffers".into())
-            }
-            _ => return Err("Cannot manipulate query for todo-type agenda buffers".into()),
         };
         if let Some(input) = context.and_then(|context| context.input.clone()) {
             return self.search(input, todo_only);
@@ -6260,6 +6268,30 @@ impl Server {
         };
         let string = org_core::agenda::search::manipulate(&string, added, &self.agenda.search);
         Ok(self.search_input(if todo_only { "S" } else { "s" }, &string))
+    }
+
+    /// The kind of the block of the open view that `line` is in, the
+    /// first block's without a line.
+    fn block_kind(&self, line: Option<u32>) -> std::result::Result<views::BlockKind, Refusal> {
+        let open = self.view.as_ref().ok_or("No agenda is open")?;
+        let block = line.and_then(|line| open.on_screen().line(line)).map_or(0, |line| line.block);
+        let mut blocks = self.blocks(&open.view.query).map_err(Refusal::Failed)?;
+        Ok(if block < blocks.len() {
+            blocks.swap_remove(block).kind
+        } else {
+            views::BlockKind::Todo { keywords: None }
+        })
+    }
+
+    /// The open view built again with inactive timestamps, which the next
+    /// rebuilding leaves out again (`org-agenda-include-inactive-timestamps`
+    /// bound around `org-agenda-redo`).
+    fn with_inactive(&mut self) -> Value {
+        self.message = Some("Display now includes inactive timestamps as well".to_string());
+        self.agenda_inactive = true;
+        self.refresh_view();
+        self.agenda_inactive = false;
+        Value::Null
     }
 
     /// `org-search-view` for `string`, which Org must be able to read.

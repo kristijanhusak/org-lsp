@@ -133,6 +133,7 @@ its sections says what it should look like.
 - [ ] Changing the line's TODO state and priority; the line follows: the code action /Change the TODO state/, the code action /Raise the priority/
 - [ ] Marking lines and a bulk action on them: the code action /Agenda: mark the entry for a bulk action/, the code action /Agenda: an action on the marked entries/
 - [ ] Entry text, log mode, the clock report, archives mode: the code action /Agenda: entry text mode, some text of each entry under its line/, the code action /Agenda: log mode, what was closed and clocked/, the code action /Agenda: the clock report/, the code action /Agenda: include archived trees/
+- [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: the code action /Agenda: search for another word, or show inactive timestamps/, the code action /Agenda: show inactive timestamps once/, the code action /Agenda: rebuild/
 - [ ] Hovering a line shows its entry: the mouse
 - [ ] Rebuilding the agenda, saving the changed files, quitting: the code action /Agenda: rebuild/, the code action /Save all Org files/
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt

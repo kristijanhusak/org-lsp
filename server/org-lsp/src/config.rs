@@ -1612,6 +1612,7 @@ const OLD_AGENDA_NAMES: &[(&str, &str)] = &[
     ("scheduledLeaders", "org_agenda_scheduled_leaders"),
     ("deadlineLeaders", "org_agenda_deadline_leaders"),
     ("timerangeLeaders", "org_agenda_timerange_leaders"),
+    ("inactiveLeader", "org_agenda_inactive_leader"),
     ("removeTags", "org_agenda_remove_tags"),
     ("breadcrumbsSeparator", "org_agenda_breadcrumbs_separator"),
     ("formatDate", "org_agenda_format_date"),
@@ -2073,6 +2074,9 @@ pub struct AgendaOptions {
     /// `org-agenda-timerange-leaders`
     #[serde(rename = "org_agenda_timerange_leaders")]
     pub timerange_leaders: Option<Vec<String>>,
+    /// `org-agenda-inactive-leader`
+    #[serde(rename = "org_agenda_inactive_leader")]
+    pub inactive_leader: Option<String>,
     /// `org-agenda-remove-tags`: `true`, `false` or `"prefix"`.
     #[serde(rename = "org_agenda_remove_tags")]
     pub remove_tags: Option<serde_json::Value>,
@@ -2354,6 +2358,9 @@ impl AgendaOptions {
             Some(serde_json::Value::Bool(false)) => config.remove_tags = RemoveTags::No,
             Some(serde_json::Value::String(name)) if name == "prefix" => config.remove_tags = RemoveTags::Prefix,
             _ => {}
+        }
+        if let Some(leader) = &self.inactive_leader {
+            config.inactive_leader = leader.clone();
         }
         if let Some(separator) = &self.breadcrumbs_separator {
             config.breadcrumbs_separator = separator.clone();

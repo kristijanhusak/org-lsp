@@ -420,6 +420,7 @@ Each option with its type, its default and what it means:
 - ~org_agenda_scheduled_leaders~ :: string[], ~["Scheduled: ", "Sched.%2dx: "]~. The leader of a scheduled entry on its day, and on today when its day has passed (~%d~: the days since). (~org-agenda-scheduled-leaders~)
 - ~org_agenda_deadline_leaders~ :: string[], ~["Deadline:  ", "In %3d d.: ", "%2d d. ago: "]~. The leader of a deadline on its day, on today before it (~%d~: the days left), and on today after it (~%d~: the days since). (~org-agenda-deadline-leaders~)
 - ~org_agenda_timerange_leaders~ :: string[], ~["", "(%d/%d): "]~. The leader of a time range within a day, and of a range over days (~%d~: which day of it, ~%d~: how many days). (~org-agenda-timerange-leaders~)
+- ~org_agenda_inactive_leader~ :: string, ~"["~. What goes before an inactive timestamp's line, when the agenda shows them (~[~, ~v [~). (~org-agenda-inactive-leader~)
 - ~org_agenda_remove_tags~ :: boolean, "prefix", ~false~. Leave the tags out of the agenda's lines; ~prefix~ only when the prefix shows a tag (~%T~). (~org-agenda-remove-tags~)
 - ~org_stuck_projects~ :: [string, string[], string[], string], ~["+LEVEL=2/-DONE", ["TODO", "NEXT", "NEXTACTION"], [], ""]~. What the stuck projects view (~#~) lists: the projects the match string finds whose subtree has no entry with one of the TODO keywords (~*~ for any not done) or tags (~*~ for any), and no match of the regexp. (~org-stuck-projects~)
 - ~org_agenda_breadcrumbs_separator~ :: string, ~"->"~. What goes between the headlines of ~%b~. (~org-agenda-breadcrumbs-separator~)
@@ -659,8 +660,16 @@ increments a number.
   ~org-agenda-manipulate-query~ (~[~, ~]~, ~{~, ~}~) in a search view: asks
   for its search string again (input kind ~text~), with a space and ~+~, ~-~,
   ~+{}~ or ~-{}~ after it (only the space when it was not Boolean), and searches for the
-  answer. In an agenda (where Emacs would show inactive timestamps), a TODO
-  list or a tags view it refuses.
+  answer. In an agenda view it builds the view again once with inactive
+  timestamps, as ~org.agenda.inactive~ does. In a TODO list or a tags view
+  it refuses.
+- ~org.agenda.inactive~ :: ~v [~: builds the agenda view again with
+  ~org-agenda-include-inactive-timestamps~, which shows the inactive
+  timestamps and date ranges of the entries, their lines marked with
+  ~org_agenda_inactive_leader~ (~[~), and says "Display now includes
+  inactive timestamps as well". The next rebuilding leaves them out again,
+  whether ~org.agenda.redo~ or a change in the files makes it. Refuses in
+  other views.
 - ~org.agenda.goto.date~ :: Asks for a date and shows the agenda from that
   day, over as many days as its span (~org-agenda-goto-date~); a week or a
   fortnight still starts on the first day of the week.

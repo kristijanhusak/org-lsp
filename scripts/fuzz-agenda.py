@@ -140,8 +140,10 @@ class Generator:
         return open_ + body + close
 
     def range(self):
-        first = self.stamp()
-        return first + self.pick(["--", "--", "-", "---"]) + self.stamp()
+        # Inactive ranges, and those with a bracket of each kind, for
+        # `org-agenda-include-inactive-timestamps`.
+        first = self.stamp(active=self.chance(0.8))
+        return first + self.pick(["--", "--", "-", "---"]) + self.stamp(active=self.chance(0.8))
 
     def title(self):
         parts = []
@@ -204,7 +206,11 @@ class Generator:
         if roll < 0.65:
             return "| " + self.stamp() + " | " + self.pick(WORDS) + " |"
         if roll < 0.7:
-            return ":LOGBOOK:\n- note " + self.stamp(active=False) + " " + self.stamp() + "\n:END:"
+            return ":LOGBOOK:\n" + self.pick([
+                "- note " + self.stamp(active=False) + " " + self.stamp(),
+                "CLOCK: " + self.stamp(active=False) + "--" + self.stamp(active=False) + " =>  1:00",
+                '- State "DONE"       from "TODO"       ' + self.stamp(active=False),
+            ]) + "\n:END:"
         if roll < 0.74:
             return "#+KEY: " + self.stamp()
         if roll < 0.78:
@@ -301,6 +307,7 @@ def main():
                 {"view": "todo"},
                 {"view": rng.choice(["search", "search-todo"]), "match": search_string(rng)},
                 {"view": "todo", "entry_text": rng.choice([1, 2, 5, 9])},
+                {"view": "agenda", "span": rng.choice(["day", "week"]), "start": other, "inactive": True},
             ],
         }
         if args.super:

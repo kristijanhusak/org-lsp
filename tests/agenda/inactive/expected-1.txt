@@ -1,0 +1,36 @@
+Week-agenda (W21):
+Monday     18 May 2026 W21
+  inactive:    8:00-9:00  [ Clocked
+               8:00...... ----------------
+  inactive:    9:00...... Meeting with an active stamp
+  inactive:    9:05...... [ Clocked
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+  inactive:   14:00...... [ TODO Call back
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  inactive:   [(2/4):  Inactive range
+  inactive:   [ Note taken [2026-05-18 Mon]
+Tuesday    19 May 2026
+  inactive:    8:15...... [ Created property
+  inactive:   16:00...... [ Two on a line
+  inactive:   [(3/4):  Inactive range
+  inactive:   [(1/3):  Mixed range
+  inactive:   [ Day name missing [2026-05-19]
+  inactive:   [ Two on a line
+Wednesday  20 May 2026
+  inactive:   [(4/4):  Inactive range
+  inactive:   [(2/3):  Mixed range
+  inactive:   (1/3):  Active range
+  inactive:   [ Item with a stamp
+Thursday   21 May 2026
+  inactive:   10:00-11:30 [ Same day inactive range
+  inactive:   [(3/3):  Mixed range
+  inactive:   (2/3):  Active range
+Friday     22 May 2026
+  inactive:   (3/3):  Active range
+Saturday   23 May 2026
+Sunday     24 May 2026

@@ -87,22 +87,22 @@
       },
       {
         "command": "org.agenda.query.add",
-        "title": "Agenda: search for another word",
+        "title": "Agenda: search for another word, or show inactive timestamps",
         "category": "Org"
       },
       {
         "command": "org.agenda.query.subtract",
-        "title": "Agenda: search without a word",
+        "title": "Agenda: search without a word, or show inactive timestamps",
         "category": "Org"
       },
       {
         "command": "org.agenda.query.add.regexp",
-        "title": "Agenda: search for another regexp",
+        "title": "Agenda: search for another regexp, or show inactive timestamps",
         "category": "Org"
       },
       {
         "command": "org.agenda.query.subtract.regexp",
-        "title": "Agenda: search without a regexp",
+        "title": "Agenda: search without a regexp, or show inactive timestamps",
         "category": "Org"
       },
       {
@@ -273,6 +273,11 @@
       {
         "command": "org.agenda.archives",
         "title": "Agenda: include archived trees",
+        "category": "Org"
+      },
+      {
+        "command": "org.agenda.inactive",
+        "title": "Agenda: show inactive timestamps once",
         "category": "Org"
       },
       {
@@ -3231,6 +3236,11 @@
                 "(%d/%d): "
               ]
             },
+            "org_agenda_inactive_leader": {
+              "type": "string",
+              "markdownDescription": "What goes before an inactive timestamp's line, when the agenda shows them (`[`, `v [`). (`org-agenda-inactive-leader`)",
+              "default": "["
+            },
             "org_agenda_remove_tags": {
               "enum": [
                 true,
@@ -5958,6 +5968,16 @@
       {
         "command": "org.agenda.archives",
         "key": "v a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.inactive",
+        "key": "v [",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.inactive",
+        "key": "v [",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
