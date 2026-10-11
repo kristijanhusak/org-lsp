@@ -745,13 +745,14 @@ end), 'r is listed')
 press('<Esc>')
 eq(vim.api.nvim_get_current_win(), agenda_win, '<Esc> closes the help')
 
--- 14. `$` archives the entry of the line, into the archive file next to
--- its own, and the entry leaves the agenda.
+-- 14. `<Leader>o$` archives the entry of the line, into the archive file
+-- next to its own, and the entry leaves the agenda. `$` stays Vim's motion.
+eq(vim.fn.maparg('$', 'n'), '', '`$` is not mapped')
 local written = vim.iter(lines()):enumerate():find(function(_, text)
   return text:find('TODO Written elsewhere', 1, true) ~= nil
 end)
 vim.api.nvim_win_set_cursor(0, { written, 0 })
-press('$')
+press('<Leader>o$')
 wait('the entry archived', function()
   vim.api.nvim_feedkeys('', 'x', false)
   return not vim.iter(lines()):any(function(text)

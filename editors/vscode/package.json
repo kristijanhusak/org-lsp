@@ -6157,11 +6157,6 @@
       },
       {
         "command": "org.archive.subtree",
-        "key": "shift+4",
-        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
-      },
-      {
-        "command": "org.archive.subtree",
         "key": "ctrl+c ctrl+x ctrl+s",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
