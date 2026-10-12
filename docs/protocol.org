@@ -424,7 +424,7 @@ Each option with its type, its default and what it means:
 - ~org_agenda_search_view_force_full_words~ :: boolean, ~false~. The words of a Boolean search match whole words only, as a search string starting with ~:~ asks. (~org-agenda-search-view-force-full-words~)
 - ~org_agenda_search_view_max_outline_level~ :: number, ~0~. The search view shows headlines down to this level, a match below one counting for the headline above: 0 for every level. (~org-agenda-search-view-max-outline-level~)
 - ~org_agenda_text_search_extra_files~ :: string[], ~[]~. Files the search view (~s~) searches besides the agenda files, after them, as ~org_agenda_files~ names them. ~agenda-archives~ first adds the files the agenda files archive to. A file listed twice is searched at its last place. (~org-agenda-text-search-extra-files~)
-- ~org_agenda_prefix_format~ :: { agenda?, todo?, tags?, search? }, ~{ "agenda": " %i %-12:c%?-12t% s", "search": " %i %-12:c", "tags": " %i %-12:c", "todo": " %i %-12:c" }~. What comes before the headline on a line of the agenda (~agenda~), the TODO list (~todo~), tags searches (~tags~) and text searches (~search~): ~%c~ the category, ~%t~ the time, ~%s~ the leader (~Scheduled: ~), ~%e~ the effort, ~%l~ a blank per level, ~%T~ the last tag, ~%b~ the headlines above (breadcrumbs), ~%i~ the icon (none). A width pads (~%-12c~ on the right, ~%12c~ on the left), ~.N~ cuts, ~%?~ leaves out an empty field, and a character before the letter follows a value that is not empty (~%-12:c~). ~%(…)~ (Emacs Lisp) is left empty. (~org-agenda-prefix-format~)
+- ~org_agenda_prefix_format~ :: { agenda?, todo?, tags?, search? }, ~{ "agenda": " %i %-12:c%?-12t% s", "search": " %i %-12:c", "tags": " %i %-12:c", "todo": " %i %-12:c" }~. What comes before the headline on a line of the agenda (~agenda~), the TODO list (~todo~), tags searches (~tags~) and text searches (~search~): ~%c~ the category, ~%t~ the time, ~%s~ the leader (~Scheduled: ~), ~%e~ the effort, ~%l~ a blank per level, ~%T~ the last tag, ~%b~ the headlines above (breadcrumbs), ~%i~ the icon (none). A width pads (~%-12c~ on the right, ~%12c~ on the left), ~.N~ cuts, ~%?~ leaves out an empty field, and a character before the letter follows a value that is not empty (~%-12:c~). ~%(…)~ is Emacs Lisp, run by Emacs (the ~emacs~ option) on the entry's headline with ~category~, ~extra~, ~level~ … bound, as Org runs it: ~%(org-entry-get nil "X")~, or a function of ~emacs_config~. Without Emacs it is empty. (~org-agenda-prefix-format~)
 - ~org_agenda_todo_keyword_format~ :: string, ~"%-1s"~. How a TODO keyword is written in the agenda: ~%-4s~ pads it to four columns, so that the titles line up; an empty format leaves keywords out. (~org-agenda-todo-keyword-format~)
 - ~org_agenda_scheduled_leaders~ :: string[], ~["Scheduled: ", "Sched.%2dx: "]~. The leader of a scheduled entry on its day, and on today when its day has passed (~%d~: the days since). (~org-agenda-scheduled-leaders~)
 - ~org_agenda_deadline_leaders~ :: string[], ~["Deadline:  ", "In %3d d.: ", "%2d d. ago: "]~. The leader of a deadline on its day, on today before it (~%d~: the days left), and on today after it (~%d~: the days since). (~org-agenda-deadline-leaders~)
@@ -1493,6 +1493,17 @@ and engineering notation (~org.table.recalculate~ and its relatives), and
 tangling a file whose header arguments are Emacs Lisp or whose Noweb
 references call a block (~org.babel.tangle~). Emacs is optional; without it
 those commands fail with /Cannot start Emacs (…)/ and nothing else changes.
+
+The ~%(…)~ of ~org_agenda_prefix_format~ are Emacs's too. Once a view is
+built, the forms on its lines go to Emacs in one request, each run as
+~org-agenda-format-item~ runs it: in the entry's file as the editor has it,
+point at the start of the headline (Org leaves it where its search
+stopped, on that line or its timestamp), with ~category~, ~extra~, ~time~,
+~level~, ~tag~, ~effort~ and ~breadcrumbs~ bound to the line's; a line of
+the time grid is in no Org buffer. The view is then built again with what
+they gave. A form that signals an error stops Org's agenda; here the
+agenda shows, the field empty, and the error is said once. Without Emacs
+the fields are empty, and ~org-lsp agenda~ in a terminal leaves them so.
 
 The server starts one ~emacs --batch -Q~ the first time it is needed and
 keeps it running, so that Org loads once (a second or so) and each request

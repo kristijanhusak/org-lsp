@@ -115,9 +115,55 @@ enum Field {
     Effort,
     /// `%b`
     Breadcrumbs,
-    /// `%(...)`: Emacs Lisp, which there is no Emacs to run.
+    /// `%(...)`: Emacs Lisp, for the [`Evaluator`] to run.
     Eval,
 }
+
+/// A `%(…)` of `org-agenda-prefix-format` on one line, as
+/// `org-agenda-format-item` evaluates it: in the entry's buffer, point on
+/// its headline, the variables of the format bound.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Eval {
+    /// The form, as written.
+    pub form: String,
+    /// The entry's file (one of the agenda's `file_paths`) and the byte
+    /// offset of its headline; none for a line of the time grid.
+    pub entry: Option<(String, usize)>,
+    /// The variables `category`, `extra`, `time`, `level`, `tag`,
+    /// `effort` and `breadcrumbs`, as the line has them. `effort` is nil
+    /// without an effort, `breadcrumbs` when the format has no `%b`.
+    pub category: String,
+    pub extra: String,
+    pub time: String,
+    pub level: String,
+    pub tag: String,
+    pub effort: Option<String>,
+    pub breadcrumbs: Option<String>,
+}
+
+/// What evaluates the `%(…)` of the prefix formats (Emacs): an [`Eval`]
+/// to the string `format` makes of what the form returns. Without one,
+/// they are empty.
+#[derive(Clone, Default)]
+pub struct Evaluator(pub Option<std::sync::Arc<Evaluate>>);
+
+/// An [`Eval`] to what it shows.
+pub type Evaluate = dyn Fn(&Eval) -> String + Send + Sync;
+
+impl std::fmt::Debug for Evaluator {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str(if self.0.is_some() { "Evaluator(Some)" } else { "Evaluator(None)" })
+    }
+}
+
+/// The settings are equal whoever evaluates the forms.
+impl PartialEq for Evaluator {
+    fn eq(&self, _: &Evaluator) -> bool {
+        true
+    }
+}
+
+impl Eq for Evaluator {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Part {
@@ -132,6 +178,8 @@ enum Part {
         precision: Option<usize>,
         /// A character appended to a value that is not empty: `%-12:c`.
         suffix: Option<char>,
+        /// The Lisp of `%(…)`.
+        form: Option<String>,
     },
 }
 
@@ -181,6 +229,7 @@ impl PrefixFormat {
                         width: spec.width,
                         precision: spec.precision,
                         suffix: spec.suffix,
+                        form: spec.form,
                     });
                     at += 1 + length;
                 }
@@ -205,6 +254,37 @@ struct Specifier {
     width: usize,
     precision: Option<usize>,
     suffix: Option<char>,
+    form: Option<String>,
+}
+
+/// The length of the Lisp form `chars` starts with, at its `(`: up to
+/// its closing parenthesis, past strings and characters (`?\)`) that
+/// hold parentheses. None when it does not close.
+fn form_length(chars: &[char]) -> Option<usize> {
+    let mut depth = 0;
+    let mut at = 0;
+    while let Some(c) = chars.get(at) {
+        match c {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(at + 1);
+                }
+            }
+            '"' => {
+                at += 1;
+                while *chars.get(at)? != '"' {
+                    at += if chars[at] == '\\' { 2 } else { 1 };
+                }
+            }
+            '?' => at += if chars.get(at + 1) == Some(&'\\') { 2 } else { 1 },
+            '\\' => at += 1,
+            _ => {}
+        }
+        at += 1;
+    }
+    None
 }
 
 /// A specifier after its `%`:
@@ -228,21 +308,8 @@ fn parse_specifier(chars: &[char]) -> Option<(Specifier, usize)> {
     let field_at = |at: usize| -> Option<(Field, usize)> {
         let c = *chars.get(at)?;
         if c == '(' {
-            // A Lisp form, to its matching parenthesis.
-            let mut depth = 0;
-            for (index, c) in chars[at..].iter().enumerate() {
-                match c {
-                    '(' => depth += 1,
-                    ')' => {
-                        depth -= 1;
-                        if depth == 0 {
-                            return Some((Field::Eval, index + 1));
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            return None;
+            // A Lisp form, to its closing parenthesis.
+            return Some((Field::Eval, form_length(&chars[at..])?));
         }
         let field = match c {
             'c' => Field::Category,
@@ -273,8 +340,10 @@ fn parse_specifier(chars: &[char]) -> Option<(Specifier, usize)> {
     };
     // A format no line could fill is cut to the widest one could.
     let width = width.parse().unwrap_or(0).min(1000);
-    let total = at + usize::from(suffix.is_some()) + length;
-    Some((Specifier { field, optional, left, width, precision, suffix }, total))
+    let form_at = at + usize::from(suffix.is_some());
+    let total = form_at + length;
+    let form = (chars.get(form_at) == Some(&'(')).then(|| chars[form_at..total].iter().collect());
+    Some((Specifier { field, optional, left, width, precision, suffix, form }, total))
 }
 
 /// `format` with `%-W.Ps` or `%W.Ps`.
@@ -439,6 +508,11 @@ pub struct FormatInput<'a> {
     /// separator.
     pub breadcrumbs: &'a str,
     pub remove_tags: RemoveTags,
+    /// The entry's file and the byte offset of its headline, for `%(…)`;
+    /// none for a line of the time grid.
+    pub entry: Option<(&'a str, usize)>,
+    /// What evaluates `%(…)`.
+    pub evaluator: &'a Evaluator,
 }
 
 pub struct Formatted {
@@ -612,7 +686,26 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
     for part in &input.format.parts {
         match part {
             Part::Text(literal) => text.push_str(literal),
-            Part::Field { field, optional, left, width, precision, suffix } => {
+            // `org-compile-prefix-format` gives a form neither `%?` nor
+            // the character after the value: what it returns, formatted.
+            Part::Field { field: Field::Eval, left, width, precision, form, .. } => {
+                let value = match (form, &input.evaluator.0) {
+                    (Some(form), Some(evaluate)) => evaluate(&Eval {
+                        form: form.clone(),
+                        entry: input.entry.map(|(file, offset)| (file.to_string(), offset)),
+                        category: category.clone(),
+                        extra: input.extra.to_string(),
+                        time: time.clone(),
+                        level: level.clone(),
+                        tag: tag.to_string(),
+                        effort: input.effort.map(str::to_string),
+                        breadcrumbs: input.format.has_breadcrumbs.then(|| input.breadcrumbs.to_string()),
+                    }),
+                    _ => String::new(),
+                };
+                text.push_str(&format_string(&value, *left, *width, *precision));
+            }
+            Part::Field { field, optional, left, width, precision, suffix, .. } => {
                 let value = match field {
                     Field::Category => category.as_str(),
                     Field::Time => time.as_str(),
@@ -784,8 +877,63 @@ mod tests {
             effort: Some("1:30"),
             breadcrumbs: "Top->Sub->",
             remove_tags: RemoveTags::No,
+            entry: None,
+            evaluator: &Evaluator::default(),
         })
         .text
+    }
+
+    #[test]
+    fn evaluates_forms_as_org_compile_prefix_format_does() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let record = seen.clone();
+        let evaluator = Evaluator(Some(std::sync::Arc::new(move |eval: &Eval| {
+            record.lock().unwrap().push(eval.clone());
+            if eval.form == "(a)" {
+                "x".to_string()
+            } else {
+                String::new()
+            }
+        })));
+        let text = format_item(&FormatInput {
+            // A string or a character holding a parenthesis does not end
+            // the form; `%?` and the character after a value are not for
+            // forms.
+            format: &PrefixFormat::new("%-4(a)|%?-3(b \")\" ?\\))|%:(a)|%c "),
+            extra: "Scheduled: ",
+            head: "Task",
+            category: "work",
+            tags: &[tag("z", false)],
+            dotime: Dotime::No,
+            remove_stamps: false,
+            time_trailer: "......",
+            level: 2,
+            effort: Some("1:30"),
+            breadcrumbs: "Top->",
+            remove_tags: RemoveTags::No,
+            entry: Some(("/org/a.org", 42)),
+            evaluator: &evaluator,
+        })
+        .text;
+        assert_eq!(text, "x   |   |x|work Task                                          :z:");
+        let seen = seen.lock().unwrap();
+        assert_eq!(seen.iter().map(|eval| eval.form.as_str()).collect::<Vec<_>>(), ["(a)", "(b \")\" ?\\))", "(a)"]);
+        assert_eq!(
+            seen[0],
+            Eval {
+                form: "(a)".to_string(),
+                entry: Some(("/org/a.org".to_string(), 42)),
+                category: "work".to_string(),
+                extra: "Scheduled: ".to_string(),
+                time: String::new(),
+                level: "  ".to_string(),
+                tag: "z".to_string(),
+                effort: Some("1:30".to_string()),
+                breadcrumbs: None,
+            }
+        );
+        // Without an evaluator, a form is empty, its width kept.
+        assert_eq!(formatted("%-4(a)|%c", "", "Task", &[], Dotime::No), "    |workTask");
     }
 
     fn agenda(extra: &str, head: &str, tags: &[Tag], dotime: Dotime<'_>) -> String {

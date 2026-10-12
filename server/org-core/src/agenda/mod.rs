@@ -27,7 +27,7 @@ pub use item::{align_tags, display_column, hidden_ranges, Face, Item, ItemKind, 
 pub use matcher::Matcher;
 
 use item::{format_item, normalise_keyword, priority, Dotime, FormatInput};
-pub use item::{format_numbers, format_with, PrefixFormat, RemoveTags};
+pub use item::{format_numbers, format_with, Eval, Evaluator, PrefixFormat, RemoveTags};
 
 use crate::date::{days_in_month, is_leap_year, iso_week, weekday, Date, Day, MONTH_NAMES, WEEKDAY_NAMES};
 use crate::outline::{Entry, LogKind, Outline};
@@ -254,6 +254,8 @@ pub struct Config {
     pub habits: Option<habit::Settings>,
     /// Who evaluates the diary sexps the agenda cannot (Emacs).
     pub diary: diary::Outside,
+    /// Who evaluates the `%(…)` of `org-agenda-prefix-format` (Emacs).
+    pub prefix_evaluator: item::Evaluator,
     /// How the search view reads its search string.
     pub search: SearchSettings,
     /// `org-agenda-todo-keyword-format`
@@ -407,6 +409,7 @@ impl Default for Config {
             prefix_format: PrefixFormats::default(),
             habits: None,
             diary: diary::Outside::default(),
+            prefix_evaluator: item::Evaluator::default(),
             search: SearchSettings::default(),
             todo_keyword_format: "%-1s".to_string(),
             scheduled_leaders: ["Scheduled: ".to_string(), "Sched.%2dx: ".to_string()],
@@ -552,6 +555,8 @@ impl Builder<'_> {
             effort: effort(entry),
             breadcrumbs: &breadcrumbs,
             remove_tags: self.config.remove_tags,
+            entry: self.config.file_paths.get(file).map(|path| (path.as_str(), entry.offset)),
+            evaluator: &self.config.prefix_evaluator,
         });
         let mut text = formatted.text;
         let priority = priority(&text, outline.priorities.as_ref().unwrap_or(&self.config.priorities));
@@ -934,6 +939,8 @@ impl Builder<'_> {
                 effort: effort(entry),
                 breadcrumbs: &breadcrumbs,
                 remove_tags: self.config.remove_tags,
+                entry: self.config.file_paths.get(file).map(|path| (path.as_str(), entry.offset)),
+                evaluator: &self.config.prefix_evaluator,
             });
             let mut text = formatted.text;
             let keyword_len =
@@ -998,6 +1005,9 @@ impl Builder<'_> {
                 effort: None,
                 breadcrumbs: "",
                 remove_tags: self.config.remove_tags,
+                // Org formats grid lines in the agenda's buffer, no entry's.
+                entry: None,
+                evaluator: &self.config.prefix_evaluator,
             });
             Item {
                 text: formatted.text,

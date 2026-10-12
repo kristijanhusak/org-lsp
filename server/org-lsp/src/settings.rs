@@ -1539,7 +1539,9 @@ pub const SETTINGS: &[Setting] = &[
          leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the \
          headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on \
          the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a \
-         value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty.",
+         value that is not empty (`%-12:c`). `%(…)` is Emacs Lisp, run by Emacs (the `emacs` option) on the \
+         entry's headline with `category`, `extra`, `level` … bound, as Org runs it: \
+         `%(org-entry-get nil \"X\")`, or a function of `emacs_config`. Without Emacs it is empty.",
     ),
     setting(
         "org_agenda_todo_keyword_format",
