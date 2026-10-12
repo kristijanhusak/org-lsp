@@ -136,6 +136,41 @@ for _, extension in ipairs({ 'jpeg', 'jpg', 'gif', 'tiff', 'tif', 'xbm', 'xpm', 
   coders[extension] = true
 end
 
+--- The images read, by file and time of change, the last read last: at
+--- most `KEPT`, so that a session that shows many does not keep them all.
+local order, KEPT = {}, 64
+
+---@param key string
+---@param file table|false
+local function remember(key, file)
+  if files[key] == nil then
+    table.insert(order, key)
+    if #order > KEPT then
+      files[table.remove(order, 1)] = nil
+    end
+  end
+  files[key] = file
+end
+
+--- Remove the images ImageMagick made that no preview asked for in a
+--- month, once a session.
+local pruned = false
+---@param directory string
+local function prune(directory)
+  if pruned then
+    return
+  end
+  pruned = true
+  local old = os.time() - 30 * 24 * 60 * 60
+  for name, kind in vim.fs.dir(directory) do
+    local file = vim.fs.joinpath(directory, name)
+    local stat = kind == 'file' and name:match('%.png$') and vim.uv.fs_stat(file)
+    if stat and stat.atime.sec < old and stat.mtime.sec < old then
+      os.remove(file)
+    end
+  end
+end
+
 --- The image of `path` as PNG: as it is, or made a PNG with ImageMagick,
 --- which Neovim can show.
 ---@param path string
@@ -150,11 +185,12 @@ local function load(path)
   if not path:lower():match('%.png$') then
     local converter = vim.fn.executable('magick') == 1 and 'magick' or vim.fn.executable('convert') == 1 and 'convert'
     if not converter then
-      files[key] = false
+      remember(key, false)
       return nil
     end
     local directory = vim.fs.joinpath(vim.fn.stdpath('cache'), 'org-lsp', 'images')
     vim.fn.mkdir(directory, 'p')
+    prune(directory)
     png = vim.fs.joinpath(directory, vim.fn.sha256(key) .. '.png')
     if not vim.uv.fs_stat(png) then
       -- Read as what its extension says (`svg:pic.svg`), not as what
@@ -165,7 +201,9 @@ local function load(path)
       local limits = { '-limit', 'memory', '256MiB', '-limit', 'area', '128MP', '-limit', 'time', '10' }
       local made = vim.system(vim.list_extend({ converter, unpack(limits) }, { input, png }), { timeout = 10000 }):wait()
       if made.code ~= 0 then
+        -- Not kept as no image: the next preview tries again.
         os.remove(png)
+        return nil
       end
     end
   end
@@ -174,7 +212,7 @@ local function load(path)
   if ok then
     width, height = png_size(data)
   end
-  files[key] = width and { data = data, width = width, height = height } or false
+  remember(key, width and { data = data, width = width, height = height } or false)
   return files[key] or nil
 end
 
@@ -470,8 +508,8 @@ function M.apply(preview, quiet)
   if not M.supported() then
     return
   end
-  local bufnr = vim.uri_to_bufnr(preview.uri)
-  if not vim.api.nvim_buf_is_loaded(bufnr) then
+  local bufnr = require('org-lsp.buffers').of(preview.uri)
+  if not bufnr then
     return
   end
   local r = preview.range

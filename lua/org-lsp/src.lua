@@ -316,7 +316,7 @@ function M.highlight(bufnr)
   local now = {}
   for _, code in ipairs(code_of(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false))) do
     local key = key_of(code)
-    local kept = before[key] and table.remove(before[key])
+    local kept = before[key] and table.remove(before[key], 1)
     if kept and not in_place(bufnr, code, kept) then
       for _, id in ipairs(kept.marks) do
         vim.api.nvim_buf_del_extmark(bufnr, ns, id)

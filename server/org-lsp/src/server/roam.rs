@@ -82,6 +82,22 @@ pub(super) fn expand(path: &str) -> PathBuf {
 /// between directories (`org-roam--directory-files-recursively`, which
 /// follows links to directories).
 pub(super) fn list_files(directory: &Path, prefix: &str, depth: usize, out: &mut Vec<String>) {
+    let mut seen = std::collections::HashSet::new();
+    walk_files(directory, prefix, depth, out, &mut seen);
+}
+
+/// [`list_files`], each directory once: links that lead back to a
+/// directory above, or to one already listed, are not followed again.
+fn walk_files(
+    directory: &Path,
+    prefix: &str,
+    depth: usize,
+    out: &mut Vec<String>,
+    seen: &mut std::collections::HashSet<PathBuf>,
+) {
+    if !seen.insert(std::fs::canonicalize(directory).unwrap_or_else(|_| directory.to_path_buf())) {
+        return;
+    }
     let Ok(entries) = std::fs::read_dir(directory) else { return };
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().to_string();
@@ -89,7 +105,7 @@ pub(super) fn list_files(directory: &Path, prefix: &str, depth: usize, out: &mut
         let path = entry.path();
         if path.is_dir() {
             if depth < 64 {
-                list_files(&path, &format!("{relative}/"), depth + 1, out);
+                walk_files(&path, &format!("{relative}/"), depth + 1, out, seen);
             }
         } else {
             out.push(relative);
@@ -620,5 +636,25 @@ mod tests {
         assert_eq!(moved("abc def", "xx abc def", 4), 7);
         assert_eq!(moved("abc def", "abc def yy", 4), 4);
         assert_eq!(moved("abc def", "abc zzz", 5), 7);
+    }
+}
+
+#[cfg(all(test, unix))]
+mod listing_tests {
+    use super::*;
+
+    #[test]
+    fn lists_each_directory_once_through_links() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-roam-links-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(directory.join("sub")).unwrap();
+        std::fs::write(directory.join("sub").join("a.org"), "").unwrap();
+        // Two links back to the top: without a guard, 2^64 listings.
+        std::os::unix::fs::symlink(&directory, directory.join("sub").join("up")).unwrap();
+        std::os::unix::fs::symlink(&directory, directory.join("sub").join("again")).unwrap();
+        let mut names = Vec::new();
+        list_files(&directory, "", 0, &mut names);
+        assert_eq!(names, ["sub/a.org"]);
+        std::fs::remove_dir_all(directory).unwrap();
     }
 }
