@@ -496,6 +496,61 @@ the error."
           ((stringp result) (vector result))
           (t (vconcat (seq-filter #'stringp result))))))
 
+(defun org-lsp-bridge-agenda-prefix (params)
+  "The `%(…)' of `org-agenda-prefix-format' on the lines of an agenda,
+each of the `forms' of PARAMS evaluated as `org-agenda-format-item' does:
+in a buffer holding its `file' (one of the `files', each its `file' and
+`text' as the editor has them), point at its `point' (its headline, a
+character from 1), the variables of the format bound to its `category',
+`extra', `time', `level', `tag', `effort' and `breadcrumbs'. A line with
+no file, of the time grid, is evaluated in no Org buffer. What `format'
+makes of each, or the `error' it signals.
+
+As in Org's compiled format, `(org-eval FORM)', the form is evaluated
+before `org-eval' is called, which evaluates its value again: an error
+in the form is not caught there, and stops Org's agenda."
+  (require 'org-agenda)
+  (let (buffers)
+    (unwind-protect
+        (progn
+          (dolist (file (append (alist-get 'files params) nil))
+            (let* ((path (expand-file-name (alist-get 'file file)))
+                   (buffer (generate-new-buffer (file-name-nondirectory path))))
+              (with-current-buffer buffer
+                (insert (alist-get 'text file))
+                (setq buffer-file-name path
+                      buffer-file-truename (abbreviate-file-name (file-truename path))
+                      default-directory (file-name-directory path))
+                (set-buffer-modified-p nil)
+                (delay-mode-hooks (org-mode)))
+              (push (cons path buffer) buffers)))
+          (with-temp-buffer
+            (let ((outside (current-buffer)))
+              (vconcat
+               (mapcar
+                (lambda (form)
+                  (let ((file (alist-get 'file form)))
+                    (with-current-buffer (if file (cdr (assoc (expand-file-name file) buffers)) outside)
+                      (save-excursion
+                        (when-let* ((point (alist-get 'point form)))
+                          (goto-char point))
+                        ;; The variables `org-agenda-format-item' binds
+                        ;; around the format, dynamically.
+                        (cl-progv '(category category-icon extra time level tag effort breadcrumbs)
+                            (list (alist-get 'category form) ""
+                                  (alist-get 'extra form) (alist-get 'time form)
+                                  (alist-get 'level form) (alist-get 'tag form)
+                                  (alist-get 'effort form) (alist-get 'breadcrumbs form))
+                          (condition-case err
+                              (format "%s" (org-eval (eval (read (alist-get 'form form)) t)))
+                            (error `((error . ,(error-message-string err))))))))))
+                (alist-get 'forms params))))))
+      (dolist (buffer buffers)
+        (with-current-buffer (cdr buffer)
+          (set-buffer-modified-p nil)
+          (setq buffer-file-name nil))
+        (kill-buffer (cdr buffer))))))
+
 (defun org-lsp-bridge-capture-target (params)
   "Where the function of a `function' or `file+function' capture target
 leaves the point: the file and the point. For `file+function', in a

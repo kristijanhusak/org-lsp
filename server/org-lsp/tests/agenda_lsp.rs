@@ -2148,6 +2148,97 @@ fn diary_sexps_go_to_emacs() {
     client.shutdown();
 }
 
+/// The `%(…)` of `org-agenda-prefix-format` are Emacs's to evaluate, in
+/// the entry's file as the editor has it, with the format's variables
+/// bound. The lines are those of Emacs's `org-todo-list` with the same file
+/// and format. A form that fails, which stops Org's agenda, is said, and
+/// its field left empty.
+#[test]
+fn prefix_forms_go_to_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("prefix_forms_go_to_emacs: no Emacs, skipped");
+        return;
+    }
+    let mut options = clock();
+    let mut config = String::new();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        config.push_str(&format!("(add-to-list 'load-path {dir:?})"));
+    }
+    config.push_str(
+        r#"(defun my/x () (if (org-entry-get nil "FAIL") (error "No X here") (concat "<" (org-entry-get nil "X") ">")))"#,
+    );
+    options["emacs_config"] = json!(config);
+    options["org_agenda_prefix_format"] =
+        json!({ "todo": r#" %-8:c%-5(org-entry-get nil "X")|%(concat category "/" level)|%(my/x)| "# });
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/work.org";
+    let text = "* TODO Write report\n:PROPERTIES:\n:X: 7\n:END:\n** TODO Sub task\n";
+    client.open(uri, text);
+    client.command("org.agenda.todos", uri, 0);
+    expect![[r#"
+        Global list of TODO items of type: ALL
+         work:   7    |work/ |<7>| TODO Write report
+         work:   nil  |work/  |<>| TODO Sub task
+    "#]]
+    .assert_eq(&client.view_text(VIEW));
+
+    // An edit the editor has not saved: Emacs sees it, and the form that
+    // fails is said, once.
+    client.notify(
+        "textDocument/didChange",
+        json!({
+            "textDocument": { "uri": uri, "version": 2 },
+            "contentChanges": [{ "text": text.replace(":X: 7", ":X: 8\n:FAIL: t") }],
+        }),
+    );
+    client.command("org.agenda.todos", uri, 0);
+    client.command("org.agenda.todos", uri, 0);
+    expect![[r#"
+        Global list of TODO items of type: ALL
+         work:   8    |work/ || TODO Write report
+         work:   nil  |work/  |<>| TODO Sub task
+    "#]]
+    .assert_eq(&client.view_text(VIEW));
+    let said: Vec<&str> = client
+        .notifications
+        .iter()
+        .filter(|notification| notification.method == "window/showMessage")
+        .filter_map(|notification| notification.params["message"].as_str())
+        .collect();
+    assert_eq!(said, ["No X here"]);
+    client.shutdown();
+}
+
+/// Without Emacs, the `%(…)` of the prefix formats stay empty, their
+/// width kept, and the agenda says why once.
+#[test]
+fn prefix_forms_without_emacs_stay_empty() {
+    let mut options = clock();
+    options["emacs"] = json!("/nonexistent/emacs");
+    options["org_agenda_prefix_format"] = json!({ "todo": r#" %-8:c%-5(org-entry-get nil "X")|"# });
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/work.org";
+    client.open(uri, "* TODO Write report\n");
+    client.command("org.agenda.todos", uri, 0);
+    client.command("org.agenda.todos", uri, 0);
+    expect![[r#"
+        Global list of TODO items of type: ALL
+         work:        |TODO Write report
+    "#]]
+    .assert_eq(&client.view_text(VIEW));
+    let said: Vec<&str> = client
+        .notifications
+        .iter()
+        .filter(|notification| notification.method == "window/showMessage")
+        .filter_map(|notification| notification.params["message"].as_str())
+        .collect();
+    assert_eq!(said.len(), 1, "{said:?}");
+    assert!(said[0].starts_with("org-agenda-prefix-format: "), "{said:?}");
+    client.shutdown();
+}
+
 /// `org-agenda-to-appt`: Emacs's `appt.el` takes today's entries with a
 /// time, those done aside, from the files as the editor has them, and the
 /// server checks them each minute as its timer would, saying what the

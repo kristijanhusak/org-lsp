@@ -138,6 +138,7 @@ its sections says what it should look like.
 - [ ] Later, earlier, today; day, week, month views; going to a date: the code action /Agenda: go forward in time/, the code action /Agenda: go backward in time/, the code action /Agenda: go to today/, the code action /Agenda: day view/, the code action /Agenda: week view/, the code action /Agenda: month view/, the code action /Agenda: go to a date/
 - [ ] The TODO list, a tag search (~work+urgent~), a word search: the code action /Agenda commands/
 - [ ] With ~org_super_agenda_mode~ on and ~org_super_agenda_groups~ set (~[{ name = "Today", time-grid = true }, { auto-category = true }]~), each day of the agenda is in groups under their headers, and the TODO list too: the code action /Agenda for the current week or day/
+- [ ] With ~org_agenda_prefix_format~ ~{ todo = " %-12:c%-4(org-entry-get nil "EFFORT") " }~, the TODO list shows each entry's effort after its category, ~nil~ without one (needs Emacs): the code action /List of all TODO entries/
 - [ ] Going to the line's entry in another window, and where the agenda is: the code action /Agenda: go to the entry in another window/, the code action /Agenda: go to the entry/
 - [ ] Changing the line's TODO state and priority; the line follows: the code action /Change the TODO state/, the code action /Raise the priority/
 - [ ] Scheduling the line's entry and setting its deadline: the code action /Schedule the entry/, the code action /Set the deadline of the entry/

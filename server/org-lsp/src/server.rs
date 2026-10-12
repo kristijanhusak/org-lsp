@@ -204,6 +204,14 @@ enum EmacsJob {
 /// document's version when open, and its text.
 type SentFiles = Vec<(Uri, Option<i32>, String)>;
 
+/// The `%(…)` of `org-agenda-prefix-format` on the lines of the view being
+/// built: what Emacs made of them, and those it has yet to evaluate.
+#[derive(Default)]
+struct PrefixForms {
+    answers: HashMap<agenda::Eval, String>,
+    missed: HashSet<agenda::Eval>,
+}
+
 /// Column view (`org-columns`) on a document: where it was turned on (a
 /// character, from 1), and whether on the whole file.
 #[derive(Clone)]
@@ -880,6 +888,11 @@ struct Server {
     applying: HashMap<RequestId, Vec<String>>,
     todo: TodoKeywords,
     agenda: AgendaConfig,
+    /// The `%(…)` of the prefix formats, shared with `agenda`'s evaluator.
+    prefix_forms: std::sync::Arc<std::sync::Mutex<PrefixForms>>,
+    /// Why the last of them could not be evaluated, which was said once:
+    /// the agenda is built again as files change.
+    prefix_failed: Option<String>,
     /// The `agenda` options as given, for the custom commands' own.
     agenda_options: crate::config::AgendaOptions,
     edit_settings: EditSettings,
@@ -1272,6 +1285,19 @@ pub fn run(connection: Connection) -> Result<()> {
             result.as_array()?.iter().filter_map(|line| line.as_str().map(str::to_string)).collect();
         (!lines.is_empty()).then_some(lines)
     })));
+    // The `%(…)` of the prefix formats: those Emacs evaluated for this
+    // view, the others empty and noted, for Emacs to evaluate before the
+    // view is built again (see `Server::render_with`).
+    let prefix_forms = std::sync::Arc::new(std::sync::Mutex::new(PrefixForms::default()));
+    let noted = prefix_forms.clone();
+    agenda.prefix_evaluator = agenda::Evaluator(Some(std::sync::Arc::new(move |eval| {
+        let mut forms = noted.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some(answer) = forms.answers.get(eval) {
+            return answer.clone();
+        }
+        forms.missed.insert(eval.clone());
+        String::new()
+    })));
     let mut server = Server {
         client,
         sender: connection.sender.clone(),
@@ -1310,6 +1336,8 @@ pub fn run(connection: Connection) -> Result<()> {
         applying: HashMap::new(),
         todo,
         agenda,
+        prefix_forms,
+        prefix_failed: None,
         agenda_options: options.agenda.clone(),
         edit_settings: options.edit_settings(),
         read_date: options.read_date_settings(),
@@ -4519,9 +4547,13 @@ impl Server {
         self.render_with(query, None)
     }
 
-    /// Build the view with the outline of one file replaced: what the
-    /// agenda will show once that file has changed.
-    fn render_with(&mut self, query: Query, replaced: Option<(&Uri, Outline)>) -> View {
+    /// Build the view with the outline of one file replaced, and its text:
+    /// what the agenda will show once that file has changed.
+    ///
+    /// When the prefix formats have `%(…)`, the view is built twice: the
+    /// first time notes the forms on its lines, which Emacs evaluates all
+    /// at once, and the second shows what they gave.
+    fn render_with(&mut self, query: Query, replaced: Option<(&Uri, Outline, &str)>) -> View {
         let mut files = self.agenda_files();
         // A command that no longer reads shows nothing; opening it said why.
         let blocks = self.blocks(&query).unwrap_or_default();
@@ -4530,7 +4562,8 @@ impl Server {
         } else {
             None
         };
-        if let Some((uri, outline)) = replaced {
+        let replaced_text = replaced.as_ref().map(|(uri, _, text)| ((*uri).clone(), text.to_string()));
+        if let Some((uri, outline, _)) = replaced {
             if let Some(file) = files.iter_mut().find(|(file, _)| file == uri) {
                 file.1 = Held::Open(Box::new(outline));
             }
@@ -4546,20 +4579,129 @@ impl Server {
             })?;
             Some((uri, outline.entries[line.entry?].offset))
         });
-        let mut view = views::render(
-            query,
-            &blocks,
-            &outlines,
-            search.as_ref(),
-            self.now(),
-            clocked,
-            Some(&self.agenda_filters),
-            &self.agenda_marks,
-        );
+        let now = self.now();
+        let (mut view, prefixes) = self.with_prefix_forms(replaced_text.as_ref(), || {
+            views::render(
+                query.clone(),
+                &blocks,
+                &outlines,
+                search.as_ref(),
+                now,
+                clocked,
+                Some(&self.agenda_filters),
+                &self.agenda_marks,
+            )
+        });
         drop(outlines);
         drop(files);
+        self.say_prefix_failure(prefixes);
         self.dim_blocked(&mut view);
         view
+    }
+
+    /// `build` the view, and when its lines have `%(…)` of the prefix
+    /// formats, build it again with what Emacs made of them all, asked at
+    /// once (`replaced` is the text of a file whose change is foreseen).
+    /// None when there were none, else what failed, for
+    /// [`Server::say_prefix_failure`].
+    fn with_prefix_forms<T>(
+        &self,
+        replaced: Option<&(Uri, String)>,
+        build: impl Fn() -> T,
+    ) -> (T, Option<Option<(MessageType, String)>>) {
+        {
+            let mut forms = self.prefix_forms();
+            forms.answers.clear();
+            forms.missed.clear();
+        }
+        let built = build();
+        let missed: Vec<agenda::Eval> = self.prefix_forms().missed.drain().collect();
+        if missed.is_empty() {
+            return (built, None);
+        }
+        match self.evaluate_prefixes(&missed, replaced) {
+            Ok((answers, error)) => {
+                self.prefix_forms().answers = answers;
+                let built = build();
+                self.prefix_forms().answers.clear();
+                (built, Some(error.map(|error| (MessageType::ERROR, error))))
+            }
+            // Without Emacs, the forms stay empty.
+            Err(error) => (built, Some(Some((MessageType::WARNING, format!("org-agenda-prefix-format: {error}"))))),
+        }
+    }
+
+    /// What a `%(…)` signalled is said, as Org's agenda would, but once
+    /// until it changes: the agenda is built again as files change.
+    fn say_prefix_failure(&mut self, outcome: Option<Option<(MessageType, String)>>) {
+        let Some(failed) = outcome else { return };
+        let said = failed.as_ref().map(|(_, error)| error.clone());
+        if let Some((kind, error)) = failed.filter(|_| said != self.prefix_failed) {
+            self.show_message(kind, error);
+        }
+        self.prefix_failed = said;
+    }
+
+    fn prefix_forms(&self) -> std::sync::MutexGuard<'_, PrefixForms> {
+        self.prefix_forms.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// The `%(…)` of the prefix formats evaluated by Emacs, each in the
+    /// file of its entry as the editor has it (`replaced` for the file
+    /// whose change is foreseen), point on the headline; and the error of
+    /// the first that failed.
+    fn evaluate_prefixes(
+        &self,
+        forms: &[agenda::Eval],
+        replaced: Option<&(Uri, String)>,
+    ) -> std::result::Result<(HashMap<agenda::Eval, String>, Option<String>), String> {
+        let mut files: Vec<(String, String)> = Vec::new();
+        let mut sent = Vec::with_capacity(forms.len());
+        for form in forms {
+            let mut item = json!({
+                "form": form.form,
+                "category": form.category,
+                "extra": form.extra,
+                "time": form.time,
+                "level": form.level,
+                "tag": form.tag,
+                "effort": form.effort,
+                "breadcrumbs": form.breadcrumbs,
+            });
+            if let Some((path, offset)) = &form.entry {
+                if !files.iter().any(|(file, _)| file == path) {
+                    let text = match replaced
+                        .filter(|(uri, _)| uri::to_path(uri).is_some_and(|file| file == Path::new(path)))
+                    {
+                        Some((_, text)) => text.clone(),
+                        None => self.file_text(Path::new(path)).map(|(_, text)| text).unwrap_or_default(),
+                    };
+                    files.push((path.clone(), text));
+                }
+                let text = &files.iter().find(|(file, _)| file == path).expect("pushed above").1;
+                let offset = (*offset).min(text.len());
+                if text.is_char_boundary(offset) {
+                    item["file"] = json!(path);
+                    item["point"] = json!(text[..offset].chars().count() + 1);
+                }
+            }
+            sent.push(item);
+        }
+        let files: Vec<Value> = files.into_iter().map(|(file, text)| json!({ "file": file, "text": text })).collect();
+        let params = json!({ "files": files, "forms": sent });
+        let result = self.emacs.call("agenda-prefix", params, std::time::Duration::from_secs(10))?;
+        let shown = result.as_array().ok_or("Emacs gave no list")?;
+        // A form that fails stops Org's agenda with its error; here the
+        // agenda shows, the form empty, and the error is said.
+        let mut answers = HashMap::new();
+        let mut failed = None;
+        for (form, shown) in forms.iter().zip(shown) {
+            if let Some(error) = shown.get("error").and_then(Value::as_str) {
+                failed.get_or_insert_with(|| error.to_string());
+            }
+            answers.insert(form.clone(), shown.as_str().unwrap_or_default().to_string());
+        }
+        Ok((answers, failed))
     }
 
     /// `org-agenda-dim-blocked-tasks`: the lines of tasks their
@@ -6393,7 +6535,14 @@ impl Server {
                 (held.outline(), path, uri::file_name(uri))
             })
             .collect();
-        views::org_text(&blocks, &named, search.as_ref(), self.now(), Some(&self.agenda_filters))
+        let now = self.now();
+        let (text, prefixes) = self.with_prefix_forms(None, || {
+            views::org_text(&blocks, &named, search.as_ref(), now, Some(&self.agenda_filters))
+        });
+        drop(named);
+        drop(files);
+        self.say_prefix_failure(prefixes);
+        text
     }
 
     fn agenda_filter(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
@@ -13078,7 +13227,7 @@ impl Server {
         let query = self.view.as_ref()?.view.query.clone();
         let parse = org_syntax::parse(text, &self.todo);
         let outline = Outline::with_inheritance(&parse, text, &uri::file_stem(file), &self.workspace.inheritance);
-        let view = self.render_with(query, Some((file, outline)));
+        let view = self.render_with(query, Some((file, outline, text)));
         let (position, line) = from;
         let target = view.line_of(file, heading, (position.line, line))?;
         (target != position.line).then(|| Follow {
