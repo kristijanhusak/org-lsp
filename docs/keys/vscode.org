@@ -817,7 +817,7 @@ every file; outside Org files the commands say they do not apply):
 
 Questions are asked in VS Code's own way:
 
-- *A date* (scheduling, a deadline, ~j~ in the agenda) opens Emacs's
+- *A date* (scheduling, a deadline, ~Shift+J~ in the agenda) opens Emacs's
   calendar beside the file, with the keys under /In the date prompt/. ~i~
   there asks for the date in an input box, with the timestamp the answer
   makes shown as you type. ~t~ picks a time: a ~Time:~ line shows it,
@@ -898,8 +898,8 @@ of the command. To change one, remove it and add the new key:
 
 #+begin_src json
 [
-  { "key": "j", "command": "-org.agenda.goto.date" },
-  { "key": "shift+j", "command": "org.agenda.goto.date", "when": "editorTextFocus && editorLangId == 'org-agenda'" }
+  { "key": "shift+j", "command": "-org.agenda.goto.date" },
+  { "key": "ctrl+j", "command": "org.agenda.goto.date", "when": "editorTextFocus && editorLangId == 'org-agenda'" }
 ]
 #+end_src
 
