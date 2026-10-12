@@ -11,9 +11,10 @@
   --text-3: #6e7781;
   --border: #e3e6ea;
   --divider: #eceef1;
-  --brand: #2a7a64;
-  --brand-hover: #1f604e;
-  --brand-soft: rgba(42, 122, 100, 0.12);
+  /* The teal of Org mode's unicorn. */
+  --brand: #3e6869;
+  --brand-hover: #2c4c4d;
+  --brand-soft: rgba(62, 104, 105, 0.12);
   --mark: rgba(255, 196, 0, 0.35);
   --shadow: 0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.08);
   --tok-comment: #6e7781;
@@ -48,9 +49,9 @@
     --text-3: #8a919c;
     --border: #2e333c;
     --divider: #262a31;
-    --brand: #5fc4a6;
-    --brand-hover: #82d6bd;
-    --brand-soft: rgba(95, 196, 166, 0.14);
+    --brand: #86c3bf;
+    --brand-hover: #a9d6d3;
+    --brand-soft: rgba(134, 195, 191, 0.14);
     --mark: rgba(255, 196, 0, 0.3);
     --shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
     --tok-comment: #8a919c;
@@ -79,9 +80,9 @@
   --text-3: #8a919c;
   --border: #2e333c;
   --divider: #262a31;
-  --brand: #5fc4a6;
-  --brand-hover: #82d6bd;
-  --brand-soft: rgba(95, 196, 166, 0.14);
+  --brand: #86c3bf;
+  --brand-hover: #a9d6d3;
+  --brand-soft: rgba(134, 195, 191, 0.14);
   --mark: rgba(255, 196, 0, 0.3);
   --shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
   --tok-comment: #8a919c;
@@ -799,6 +800,12 @@ main {
 
 .edit {
   font-size: 14px;
+}
+
+.credit {
+  margin: 24px 0 0;
+  font-size: 12px;
+  color: var(--text-3);
 }
 
 .neighbours {
