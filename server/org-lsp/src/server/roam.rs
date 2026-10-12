@@ -42,7 +42,7 @@ pub(super) struct Roam {
     directory: PathBuf,
     files: HashMap<PathBuf, Scanned>,
     /// Where the org-roam buffer's files go.
-    pub(super) buffer_directory: PathBuf,
+    pub(super) buffer_directory: super::Private,
     /// The node the persistent buffer shows.
     buffer_node: Option<String>,
 }
@@ -64,7 +64,7 @@ enum Stamp {
 impl Roam {
     pub fn new(settings: RoamSettings) -> Roam {
         let directory = expand(&settings.directory);
-        let buffer_directory = super::server_directory("roam");
+        let buffer_directory = super::Private::new("roam");
         Roam { settings, directory, files: HashMap::new(), buffer_directory, buffer_node: None }
     }
 }

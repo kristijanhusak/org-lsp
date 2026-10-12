@@ -29,13 +29,13 @@ impl Server {
             Some(title) => format!("{FILE_PREFIX}-{}.org", slugify(title)),
             None => format!("{FILE_PREFIX}.org"),
         };
-        Some(roam.buffer_directory.join(name))
+        Some(roam.buffer_directory.path().join(name))
     }
 
     /// Whether `uri` is a file of the org-roam buffer.
     pub(in crate::server) fn is_roam_buffer(&self, uri: &Uri) -> bool {
         let (Some(roam), Some(path)) = (self.roam.as_ref(), uri::to_path(uri)) else { return false };
-        path.parent() == Some(roam.buffer_directory.as_path())
+        roam.buffer_directory.made().is_some_and(|directory| path.parent() == Some(directory))
     }
 
     /// The buffer's text for the node `id`: its sections, as
