@@ -59,8 +59,11 @@ vim.api.nvim_create_autocmd('LspAttach', {
   to schedule) says /PROMPT: answer with a rename at the cursor/: run the
   editor's rename (~grn~ in Neovim) and type the answer as the new name.
 - The agenda :: A file, ~Agenda.org~, that the editor opens as an Org file:
-  colored, and its code actions move it through time (later, earlier,
-  today), change its span, open the menu, and change the line's entry. The
+  colored, and with every command its keys have in Emacs as a code action:
+  on an entry's line the entry's first (its TODO state, dates, tags,
+  clocking, archiving, marks for a bulk action), then the view's (later,
+  earlier, today, the span, filters, log and entry text modes, the menu).
+  Follow mode and column view are left out: they need the editor's code. The
   server changes the open buffer with edits (~workspace/applyEdit~) when it
   moves or when the files change, so the editor counts the buffer as
   changed: save it (~:w~ writes the same text) or leave without saving

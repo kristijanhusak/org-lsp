@@ -1587,8 +1587,10 @@ A client that announces ~workspace.textDocumentContent~ (LSP 3.18) is shown
 ~Agenda.org-agenda~ in a temporary directory, which the server rewrites and
 removes when it stops. A client without org-lsp's editor code (~org_client~)
 gets ~Agenda.org~ instead, which it opens as an Org file with the server
-attached: colored, and with the agenda's commands (later, earlier, the span,
-the menu) and the line's entry's as code actions.
+attached: colored, and with every command of the agenda's as a code action
+(those with an agenda key in the manifest, and those that work on an agenda
+line), the line's entry's first; not follow mode, column view or going to
+the entry in another window, which need the editor's code.
 
 Opening a view goes like this:
 

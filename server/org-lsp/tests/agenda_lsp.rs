@@ -4017,22 +4017,43 @@ fn a_plain_client_gets_standard_tokens_prompts_and_an_org_agenda() {
     let tokens =
         client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": agenda_uri } })).unwrap();
     assert!(!tokens["data"].as_array().unwrap().is_empty());
-    // On its lines, its own commands and the entry's.
-    let line = agenda_text.lines().position(|line| line.contains("Write report")).unwrap() as u32;
-    let actions = client
-        .request(
-            "textDocument/codeAction",
-            json!({
-                "textDocument": { "uri": agenda_uri },
-                "range": { "start": { "line": line, "character": 0 }, "end": { "line": line, "character": 0 } },
-                "context": { "diagnostics": [] }
-            }),
-        )
-        .unwrap();
-    let kinds: Vec<&str> = actions.as_array().unwrap().iter().map(|action| action["kind"].as_str().unwrap()).collect();
-    for kind in ["org.todo.next", "org.schedule", "org.agenda.later", "org.agenda.dispatch"] {
-        assert!(kinds.contains(&kind), "{kind} in {kinds:?}");
+    // On its lines, every command of the agenda's: the entry's first.
+    let kinds = |client: &mut Client, line: usize| -> Vec<String> {
+        let actions = client
+            .request(
+                "textDocument/codeAction",
+                json!({
+                    "textDocument": { "uri": agenda_uri },
+                    "range": { "start": { "line": line, "character": 0 }, "end": { "line": line, "character": 0 } },
+                    "context": { "diagnostics": [] }
+                }),
+            )
+            .unwrap();
+        actions.as_array().unwrap().iter().map(|action| action["kind"].as_str().unwrap().to_string()).collect()
+    };
+    let line = agenda_text.lines().position(|line| line.contains("Write report")).unwrap();
+    let on_entry = kinds(&mut client, line);
+    for kind in [
+        "org.todo",
+        "org.schedule",
+        "org.tags.set",
+        "org.agenda.bulk.mark",
+        "org.agenda.later",
+        "org.agenda.filter",
+        "org.agenda.dispatch",
+    ] {
+        assert!(on_entry.iter().any(|offered| offered == kind), "{kind} in {on_entry:?}");
     }
+    let position = |kind: &str| on_entry.iter().position(|offered| offered == kind).unwrap();
+    assert!(position("org.todo") < position("org.agenda.later"), "{on_entry:?}");
+    // Not those that need the editor's code.
+    for kind in ["org.agenda.follow", "org.agenda.columns", "org.agenda.goto.other"] {
+        assert!(!on_entry.iter().any(|offered| offered == kind), "{kind} in {on_entry:?}");
+    }
+    // Off an entry, the view's alone.
+    let on_header = kinds(&mut client, 0);
+    assert!(on_header.iter().any(|offered| offered == "org.agenda.later"), "{on_header:?}");
+    assert!(!on_header.iter().any(|offered| offered == "org.todo"), "{on_header:?}");
     client.shutdown();
 }
 
