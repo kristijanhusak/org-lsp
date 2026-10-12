@@ -259,7 +259,7 @@ Where editors fall short:
 - ✅ Archives mode
 - ✅ Inactive timestamps in the agenda once (~[~, ~v [~: ~org-agenda-include-inactive-timestamps~)
 - ✅ Changing an entry from the agenda: state, priority, tags, dates, notes, refile, archive, clock
-- ✅ Lines formatted as Org formats them (~org-agenda-prefix-format~ and the rest)
+- ✅ Lines formatted as Org formats them (~org-agenda-prefix-format~ and the rest); ~%(…)~ in the format run by Emacs on each entry (through Emacs)
 - ✅ The time grid
 - ✅ Habits (~org-habit~): the consistency graph, ~K~
 - ✅ Groups of org-super-agenda (~org_super_agenda_mode~, ~org_super_agenda_groups~): its selectors, automatic groups and options, for each day and each view; not the selectors that run Lisp

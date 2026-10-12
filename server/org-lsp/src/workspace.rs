@@ -132,28 +132,34 @@ fn org_files_below(directory: &Path, depth: usize, out: &mut Vec<PathBuf>) {
 }
 
 /// The paths matching the glob components `parts` below `base`.
-fn glob(base: &Path, parts: &[&str], out: &mut Vec<PathBuf>) {
+/// `seen`: the directories each `**` went into (by how much of the
+/// pattern is left), through their links, so that a link to a directory
+/// above is not followed round and round.
+fn glob(base: &Path, parts: &[&str], out: &mut Vec<PathBuf>, seen: &mut std::collections::HashSet<(PathBuf, usize)>) {
     let Some((part, rest)) = parts.split_first() else {
         out.push(base.to_path_buf());
         return;
     };
     if *part == "**" {
-        // Zero or more directories.
-        glob(base, rest, out);
+        // Zero or more directories, each once.
+        if !seen.insert((std::fs::canonicalize(base).unwrap_or_else(|_| base.to_path_buf()), parts.len())) {
+            return;
+        }
+        glob(base, rest, out, seen);
         for path in sorted_entries(base) {
             if path.is_dir() && !is_hidden(&path) {
-                glob(&path, parts, out);
+                glob(&path, parts, out, seen);
             }
         }
     } else if has_wildcard(part) {
         for path in sorted_entries(base) {
             let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
             if matches(part, &name) && (part.starts_with('.') || !name.starts_with('.')) {
-                glob(&path, rest, out);
+                glob(&path, rest, out, seen);
             }
         }
     } else {
-        glob(&base.join(part), rest, out);
+        glob(&base.join(part), rest, out, seen);
     }
 }
 
@@ -225,7 +231,7 @@ impl Workspace {
         let parts: Vec<&str> = rest.split('/').filter(|part| !part.is_empty() && *part != ".").collect();
         let mut out = Vec::new();
         for base in bases {
-            glob(&base, &parts, &mut out);
+            glob(&base, &parts, &mut out, &mut std::collections::HashSet::new());
         }
         out
     }
@@ -297,6 +303,12 @@ mod tests {
         assert_eq!(files(vec![at("sub/**/d*")], vec![]), ["sub/deep/d.org"]);
         // Relative patterns resolve in the workspace folders; no duplicates.
         assert_eq!(files(vec!["sub".to_string(), "sub/*.org".to_string()], vec![root.clone()]), ["sub/c.org"]);
+        // A link to a directory above: each file once.
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(&root, root.join("sub/up")).unwrap();
+            assert_eq!(files(vec![at("**/*.org")], vec![]), ["a.org", "sub/c.org", "sub/deep/d.org"]);
+        }
         std::fs::remove_dir_all(root).unwrap();
     }
 

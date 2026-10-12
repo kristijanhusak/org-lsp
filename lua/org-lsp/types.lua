@@ -193,7 +193,7 @@
 ---@field org_agenda_search_view_force_full_words? boolean The words of a Boolean search match whole words only, as a search string starting with `:` asks. (`org-agenda-search-view-force-full-words`)
 ---@field org_agenda_search_view_max_outline_level? integer The search view shows headlines down to this level, a match below one counting for the headline above: 0 for every level. (`org-agenda-search-view-max-outline-level`)
 ---@field org_agenda_text_search_extra_files? string[] Files the search view (`s`) searches besides the agenda files, after them, as `org_agenda_files` names them. `agenda-archives` first adds the files the agenda files archive to. A file listed twice is searched at its last place. (`org-agenda-text-search-extra-files`)
----@field org_agenda_prefix_format? table What comes before the headline on a line of the agenda (`agenda`), the TODO list (`todo`), tags searches (`tags`) and text searches (`search`): `%c` the category, `%t` the time, `%s` the leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty. (`org-agenda-prefix-format`)
+---@field org_agenda_prefix_format? table What comes before the headline on a line of the agenda (`agenda`), the TODO list (`todo`), tags searches (`tags`) and text searches (`search`): `%c` the category, `%t` the time, `%s` the leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a value that is not empty (`%-12:c`). `%(…)` is Emacs Lisp, run by Emacs (the `emacs` option) on the entry's headline with `category`, `extra`, `level` … bound, as Org runs it: `%(org-entry-get nil "X")`, or a function of `emacs_config`. Without Emacs it is empty. (`org-agenda-prefix-format`)
 ---@field org_agenda_todo_keyword_format? string How a TODO keyword is written in the agenda: `%-4s` pads it to four columns, so that the titles line up; an empty format leaves keywords out. (`org-agenda-todo-keyword-format`)
 ---@field org_agenda_scheduled_leaders? string[] The leader of a scheduled entry on its day, and on today when its day has passed (`%d`: the days since). (`org-agenda-scheduled-leaders`)
 ---@field org_agenda_deadline_leaders? string[] The leader of a deadline on its day, on today before it (`%d`: the days left), and on today after it (`%d`: the days since). (`org-agenda-deadline-leaders`)
@@ -251,14 +251,14 @@
 ---@class org_lsp.AgendaCommand
 ---@field key string The keys that pick the command in the agenda menu
 ---@field description string What the menu shows
----@field type? 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo'|'search' The view
+---@field type? 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo'|'search'|'stuck' The view
 ---@field match? string For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY="A")
 ---@field header? string Replaces the view's header; empty for none
 ---@field settings? table Agenda options for this command: org_agenda_span, org_agenda_start_day…
 ---@field blocks? org_lsp.AgendaBlock[] Views shown one after the other
 
 ---@class org_lsp.AgendaBlock
----@field type 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo'|'search' The view
+---@field type 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo'|'search'|'stuck' The view
 ---@field match? string For todo, keywords; for tags, a match string
 ---@field header? string Replaces the view's header; empty for none
 ---@field settings? table Agenda options for this block: org_agenda_span, org_agenda_start_day…

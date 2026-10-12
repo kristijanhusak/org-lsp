@@ -1701,7 +1701,10 @@ org_agenda_text_search_extra_files = []
 # (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right,
 # `%12c` on the left), `.N` cuts, `%?` leaves out an empty field, and a
 # character before the letter follows a value that is not empty (`%-12:c`).
-# `%(…)` (Emacs Lisp) is left empty. (org-agenda-prefix-format)
+# `%(…)` is Emacs Lisp, run by Emacs (the `emacs` option) on the entry's
+# headline with `category`, `extra`, `level` … bound, as Org runs it:
+# `%(org-entry-get nil "X")`, or a function of `emacs_config`. Without Emacs
+# it is empty. (org-agenda-prefix-format)
 org_agenda_prefix_format = { agenda = " %i %-12:c%?-12t% s", search = " %i %-12:c", tags = " %i %-12:c", todo = " %i %-12:c" }
 
 # How a TODO keyword is written in the agenda: `%-4s` pads it to four columns,
@@ -2710,7 +2713,10 @@ org_agenda_custom_commands = []
   // above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the
   // right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty field,
   // and a character before the letter follows a value that is not empty
-  // (`%-12:c`). `%(…)` (Emacs Lisp) is left empty. (org-agenda-prefix-format)
+  // (`%-12:c`). `%(…)` is Emacs Lisp, run by Emacs (the `emacs` option) on
+  // the entry's headline with `category`, `extra`, `level` … bound, as Org
+  // runs it: `%(org-entry-get nil "X")`, or a function of `emacs_config`.
+  // Without Emacs it is empty. (org-agenda-prefix-format)
   "org_agenda_prefix_format": { "agenda": " %i %-12:c%?-12t% s", "search": " %i %-12:c", "tags": " %i %-12:c", "todo": " %i %-12:c" },
 
   // How a TODO keyword is written in the agenda: `%-4s` pads it to four

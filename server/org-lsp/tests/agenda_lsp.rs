@@ -2148,6 +2148,97 @@ fn diary_sexps_go_to_emacs() {
     client.shutdown();
 }
 
+/// The `%(…)` of `org-agenda-prefix-format` are Emacs's to evaluate, in
+/// the entry's file as the editor has it, with the format's variables
+/// bound. The lines are those of Emacs's `org-todo-list` with the same file
+/// and format. A form that fails, which stops Org's agenda, is said, and
+/// its field left empty.
+#[test]
+fn prefix_forms_go_to_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("prefix_forms_go_to_emacs: no Emacs, skipped");
+        return;
+    }
+    let mut options = clock();
+    let mut config = String::new();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        config.push_str(&format!("(add-to-list 'load-path {dir:?})"));
+    }
+    config.push_str(
+        r#"(defun my/x () (if (org-entry-get nil "FAIL") (error "No X here") (concat "<" (org-entry-get nil "X") ">")))"#,
+    );
+    options["emacs_config"] = json!(config);
+    options["org_agenda_prefix_format"] =
+        json!({ "todo": r#" %-8:c%-5(org-entry-get nil "X")|%(concat category "/" level)|%(my/x)| "# });
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/work.org";
+    let text = "* TODO Write report\n:PROPERTIES:\n:X: 7\n:END:\n** TODO Sub task\n";
+    client.open(uri, text);
+    client.command("org.agenda.todos", uri, 0);
+    expect![[r#"
+        Global list of TODO items of type: ALL
+         work:   7    |work/ |<7>| TODO Write report
+         work:   nil  |work/  |<>| TODO Sub task
+    "#]]
+    .assert_eq(&client.view_text(VIEW));
+
+    // An edit the editor has not saved: Emacs sees it, and the form that
+    // fails is said, once.
+    client.notify(
+        "textDocument/didChange",
+        json!({
+            "textDocument": { "uri": uri, "version": 2 },
+            "contentChanges": [{ "text": text.replace(":X: 7", ":X: 8\n:FAIL: t") }],
+        }),
+    );
+    client.command("org.agenda.todos", uri, 0);
+    client.command("org.agenda.todos", uri, 0);
+    expect![[r#"
+        Global list of TODO items of type: ALL
+         work:   8    |work/ || TODO Write report
+         work:   nil  |work/  |<>| TODO Sub task
+    "#]]
+    .assert_eq(&client.view_text(VIEW));
+    let said: Vec<&str> = client
+        .notifications
+        .iter()
+        .filter(|notification| notification.method == "window/showMessage")
+        .filter_map(|notification| notification.params["message"].as_str())
+        .collect();
+    assert_eq!(said, ["No X here"]);
+    client.shutdown();
+}
+
+/// Without Emacs, the `%(…)` of the prefix formats stay empty, their
+/// width kept, and the agenda says why once.
+#[test]
+fn prefix_forms_without_emacs_stay_empty() {
+    let mut options = clock();
+    options["emacs"] = json!("/nonexistent/emacs");
+    options["org_agenda_prefix_format"] = json!({ "todo": r#" %-8:c%-5(org-entry-get nil "X")|"# });
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/work.org";
+    client.open(uri, "* TODO Write report\n");
+    client.command("org.agenda.todos", uri, 0);
+    client.command("org.agenda.todos", uri, 0);
+    expect![[r#"
+        Global list of TODO items of type: ALL
+         work:        |TODO Write report
+    "#]]
+    .assert_eq(&client.view_text(VIEW));
+    let said: Vec<&str> = client
+        .notifications
+        .iter()
+        .filter(|notification| notification.method == "window/showMessage")
+        .filter_map(|notification| notification.params["message"].as_str())
+        .collect();
+    assert_eq!(said.len(), 1, "{said:?}");
+    assert!(said[0].starts_with("org-agenda-prefix-format: "), "{said:?}");
+    client.shutdown();
+}
+
 /// `org-agenda-to-appt`: Emacs's `appt.el` takes today's entries with a
 /// time, those done aside, from the files as the editor has them, and the
 /// server checks them each minute as its timer would, saying what the
@@ -2721,6 +2812,24 @@ fn workspace(label: &str) -> PathBuf {
     std::fs::write(root.join("sub/home.org"), HOME).unwrap();
     std::fs::write(root.join("notes.txt"), "* TODO not an Org file\n").unwrap();
     root
+}
+
+/// The folder reached through a link, the file opened by its own path:
+/// the agenda takes the editor's text of it, unsaved entry and all.
+#[cfg(unix)]
+#[test]
+fn knows_an_open_file_reached_through_a_link() {
+    let root = workspace("linked");
+    let link = root.with_file_name(format!("{}-link", root.file_name().unwrap().to_string_lossy()));
+    let _ = std::fs::remove_file(&link);
+    std::os::unix::fs::symlink(&root, &link).unwrap();
+    let mut client = Client::editor(clock(), Some(&format!("file://{}", link.display())));
+    client.open(&format!("file://{}/work.org", root.display()), &format!("{WORK}* TODO Unsaved\n"));
+    client.command("org.agenda.todos", VIEW, 0);
+    let listed = client.view_text(VIEW);
+    assert!(listed.contains("TODO Unsaved"), "{listed}");
+    client.shutdown();
+    std::fs::remove_file(link).unwrap();
 }
 
 #[test]
@@ -4216,7 +4325,7 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     client.received.clear();
     org_lsp::port::send(&[address.clone(), token.clone(), "org.agenda.goto".into()]).unwrap();
     let mut shown = None;
-    for _ in 0..200 {
+    for _ in 0..2000 {
         client.settle();
         shown = client.received.iter().find(|request| request.method == "window/showDocument").cloned();
         if shown.is_some() {
@@ -4229,7 +4338,7 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     // the server applies what the command does there, as Zed does nothing
     // with a command's result; `key:` runs what Org's key does there.
     let port_requests = |client: &mut Client, method: &str| {
-        for _ in 0..200 {
+        for _ in 0..2000 {
             client.settle();
             if let Some(found) = client.received.iter().find(|request| request.method == method) {
                 return Some(found.clone());
@@ -4279,7 +4388,7 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     org_lsp::port::send(&[address.clone(), token, "org.agenda.later".into(), "1".into(), "1".into()]).unwrap();
     // The port's command comes on a channel of its own: wait for it.
     let mut later = agenda_text.clone();
-    for _ in 0..200 {
+    for _ in 0..2000 {
         client.settle();
         later = std::fs::read_to_string(&agenda_path).unwrap();
         if later != agenda_text {
@@ -4344,7 +4453,7 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     let mut client = Client::start(capabilities, options, None);
     // It opens its port once it has answered `initialize`.
     let mut taken = sent_to(&script_path);
-    for _ in 0..200 {
+    for _ in 0..2000 {
         if taken.0 != address {
             break;
         }
@@ -4363,7 +4472,7 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
         json!({ "textDocument": { "uri": agenda, "version": 2 }, "contentChanges": [{ "text": rebuilt }] }),
     );
     let port_wait = |client: &mut Client, before: &str| {
-        for _ in 0..200 {
+        for _ in 0..2000 {
             client.settle();
             let now = std::fs::read_to_string(&agenda_path).unwrap_or_default();
             if now != before {
@@ -4381,7 +4490,7 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     client.received.clear();
     org_lsp::port::send(&[new_address, token, "org.agenda.todos".into()]).unwrap();
     let mut shown = None;
-    for _ in 0..200 {
+    for _ in 0..2000 {
         client.settle();
         shown = client.received.iter().find(|request| request.method == "window/showDocument").cloned();
         if shown.is_some() {
@@ -6171,6 +6280,14 @@ fn links_are_document_links_with_hover() {
         )
         .unwrap();
     assert_eq!(hover["contents"]["value"], "`LINK: https://orgmode.org`");
+
+    // `./` and `../` taken out of a file's path; a URL with what a URI
+    // cannot hold, encoded.
+    let other = "file:///org/sub/c.org";
+    client.open(other, "[[./../b.org]] [[https://example.com/é]]\n");
+    let links = client.request("textDocument/documentLink", json!({ "textDocument": { "uri": other } })).unwrap();
+    let targets: Vec<Value> = links.as_array().unwrap().iter().map(|link| link["target"].clone()).collect();
+    assert_eq!(targets, [json!("file:///org/b.org"), json!("https://example.com/%C3%A9")]);
 }
 
 /// Backlinks (`textDocument/references`) of an entry: links by its ID,
@@ -7097,6 +7214,114 @@ fn acts_on_marked_entries_with_the_same_headline() {
     let (_, changes) = edits_of(edit);
     work = apply(&work, &changes);
     assert_eq!(work.matches("SCHEDULED: <2026-05-20 Wed>").count(), 2, "{work}");
+    client.shutdown();
+}
+
+/// With `org_agenda_persistent_marks`, the marks stay on their entries
+/// once the editor has applied the bulk action, so a second one acts on
+/// all of them, two with the same headline included.
+#[test]
+fn keeps_bulk_marks_on_their_entries() {
+    let mut options = clock();
+    options["org_agenda_persistent_marks"] = json!(true);
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/work.org";
+    let mut work = "* TODO Review\n* TODO Review\n* TODO Gamma\n".to_string();
+    client.open(uri, &work);
+    let run = |client: &mut Client, command: &str, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    run(&mut client, "org.agenda.todos", json!({})).unwrap();
+    client.show_view();
+    run(&mut client, "org.agenda.bulk.mark.all", json!({})).unwrap();
+    for (version, (key, date)) in [("s", "2026-05-20"), ("d", "2026-05-22")].into_iter().enumerate() {
+        let asked = run(&mut client, "org.agenda.bulk.action", json!({ "step": "action", "input": key })).unwrap();
+        let done = run(
+            &mut client,
+            "org.agenda.bulk.action",
+            json!({ "step": key, "input": date, "answers": asked["input"]["context"]["answers"] }),
+        )
+        .unwrap();
+        assert_eq!(done["message"], "Acted on 3 entries (kept marked)");
+        let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+        let (_, changes) = edits_of(edit);
+        work = apply(&work, &changes);
+        client.notify(
+            "textDocument/didChange",
+            json!({ "textDocument": { "uri": uri, "version": version + 2 }, "contentChanges": [{ "text": work }] }),
+        );
+        client.settle();
+        client.show_view();
+    }
+    assert_eq!(work.matches("SCHEDULED: <2026-05-20 Wed>").count(), 3, "{work}");
+    assert_eq!(work.matches("DEADLINE: <2026-05-22 Fri>").count(), 3, "{work}");
+    client.shutdown();
+}
+
+/// A capture with `:clock-in :clock-keep` refiled to another file: the
+/// clock runs there, and clocking out finds it.
+#[test]
+fn keeps_the_capture_clock_where_it_was_refiled() {
+    let (notes, other) = ("file:///org/notes.org", "file:///org/other.org");
+    let mut options = clock();
+    options["org_capture_templates"] = json!([{ "key": "m", "description": "Meeting",
+        "target": ["file+headline", "/org/notes.org", "Inbox"], "template": "* Meeting",
+        "clock_in": true, "clock_keep": true }]);
+    options["org_refile_targets"] = json!([{ "files": "agenda", "level": 1 }]);
+    let mut client = Client::editor(options, None);
+    let mut texts = vec![(notes, "* Inbox\n".to_string()), (other, "* Elsewhere\n".to_string())];
+    for (uri, text) in &texts {
+        client.open(uri, text);
+    }
+    // The editor applies every file's edits and says so.
+    let apply_all = |client: &mut Client, texts: &mut Vec<(&str, String)>| {
+        for request in std::mem::take(&mut client.received) {
+            if request.method != "workspace/applyEdit" {
+                continue;
+            }
+            for change in request.params["edit"]["documentChanges"].as_array().unwrap() {
+                let uri = change["textDocument"]["uri"].as_str().unwrap();
+                let Some((_, text)) = texts.iter_mut().find(|(known, _)| *known == uri) else { continue };
+                *text = apply(text, change["edits"].as_array().unwrap());
+                client.file_version += 1;
+                client.notify(
+                    "textDocument/didChange",
+                    json!({ "textDocument": { "uri": uri, "version": client.file_version },
+                            "contentChanges": [{ "text": text.clone() }] }),
+                );
+            }
+        }
+        client.settle();
+    };
+    let context = json!({ "textDocument": { "uri": notes }, "position": { "line": 0, "character": 0 }, "input": "m" });
+    client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [context] })).unwrap();
+    client.settle();
+    let buffer =
+        client.received.iter().find(|request| request.method == "window/showDocument").unwrap().params["uri"].clone();
+    client.received.clear();
+    let context =
+        json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 }, "input": "Elsewhere" });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.capture.refile", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    apply_all(&mut client, &mut texts);
+    assert!(texts[1].1.contains("** Meeting\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n"), "{}", texts[1].1);
+    client.notify("org-lsp/setClock", json!({ "today": "2026-05-18", "now": "10:45" }));
+    let context = json!({ "textDocument": { "uri": other }, "position": { "line": 0, "character": 0 } });
+    let result =
+        client.request("workspace/executeCommand", json!({ "command": "org.clock.out", "arguments": [context] }));
+    client.settle();
+    assert!(result.is_ok(), "{result:?}");
+    apply_all(&mut client, &mut texts);
+    assert!(texts[1].1.contains("CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:45] =>  0:15"), "{}", texts[1].1);
     client.shutdown();
 }
 

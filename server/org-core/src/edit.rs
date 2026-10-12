@@ -292,7 +292,17 @@ pub fn run(
             let outline = crate::outline::Outline::new(parse, text, "");
             let entry = outline.entry_at(offset);
             let property = |name: &str| outline.entry_property(entry, name, true);
-            match tblfm::recalculate(text, offset, *mode, &property) {
+            // A Windows file's lines, without their `\r`s and with them
+            // again after.
+            let crlf = crate::text::crlf(text);
+            let recalculated = if crlf {
+                let (lf, offset) = crate::text::to_lf(text, offset);
+                tblfm::recalculate(&lf, offset, *mode, &property)
+                    .map(|done| tblfm::Recalculated { text: crate::text::from_lf(&done.text, 0).0, ..done })
+            } else {
+                tblfm::recalculate(text, offset, *mode, &property)
+            };
+            match recalculated {
                 Ok(recalculated) => {
                     Ok(Outcome { text: recalculated.text, cursor: None, note: None, message: recalculated.message })
                 }

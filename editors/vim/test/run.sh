@@ -23,7 +23,8 @@ for client in "$@"; do
   session="org-lsp-vim-$client-$$"
   tmux new-session -d -s "$session" -x 200 -y 50 \
     "ORG_LSP_TEST_FILE=${ORG_LSP_TEST_FILE:-} ORG_LSP_TEST_PLUGIN=${ORG_LSP_TEST_PLUGIN:-} ORG_LSP_TEST_RELEASES=${ORG_LSP_TEST_RELEASES:-} ORG_LSP_TEST_CLIENT=$client ORG_LSP_TEST_WORK=$work ORG_LSP_TEST_CLIENTS=$clients ORG_LSP_TEST_RESULT=$result ORG_LSP_BIN=$server ORG_LSP_CONFIG=/nonexistent/config.toml HOME=$work $vim -N -u $here/vimrc -i NONE; sleep 1"
-  for _ in $(seq 1 1200); do
+  # Up to five minutes: the tests wait for the server many times over.
+  for _ in $(seq 1 3000); do
     [ -f "$result" ] && break
     sleep 0.1
   done

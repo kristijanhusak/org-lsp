@@ -83,7 +83,25 @@ pub fn at_table(text: &str, at: usize) -> bool {
 
 /// Run `command` with the cursor at byte `at`, which is on a table line.
 pub fn run(text: &str, at: usize, command: Command) -> Result<Done, String> {
+    run_with(text, at, command, &|_| None)
+}
+
+/// [`run`], `property` reading an Org property at the table for the
+/// `$PROP_name` of a line recalculated on the way (a row marked `#`).
+pub fn run_with(
+    text: &str,
+    at: usize,
+    command: Command,
+    property: &dyn Fn(&str) -> Option<String>,
+) -> Result<Done, String> {
+    if crate::text::crlf(text) {
+        let (lf, at) = crate::text::to_lf(text, at);
+        let done = run_with(&lf, at, command, property)?;
+        let (text, cursor) = crate::text::from_lf(&done.text, done.cursor);
+        return Ok(Done { text, cursor, killed: done.killed });
+    }
     let mut buffer = Buffer::new(text, at);
+    buffer.property = property;
     if !buffer.at_table() {
         return Err("Not at a table".to_string());
     }
@@ -115,7 +133,7 @@ pub fn run(text: &str, at: usize, command: Command) -> Result<Done, String> {
 
 /// The text and the point, edited as Emacs edits a buffer, with the
 /// markers a command keeps.
-struct Buffer {
+struct Buffer<'a> {
     text: String,
     point: usize,
     markers: Vec<usize>,
@@ -125,6 +143,9 @@ struct Buffer {
     /// which take no columns: the text of the document is fontified, what
     /// a command inserts is not until it aligns the table again.
     hidden: Vec<(usize, usize)>,
+    /// Reads an Org property at the table, for the formulas of a line
+    /// recalculated on the way.
+    property: &'a dyn Fn(&str) -> Option<String>,
 }
 
 /// `org-link-bracket-re`
@@ -155,14 +176,15 @@ fn hidden_parts(text: &str, start: usize, end: usize) -> Vec<(usize, usize)> {
 static DATA_LINE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?m)^[ \t]*\|[^-]").unwrap());
 static HLINE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?m)^[ \t]*\|-").unwrap());
 
-impl Buffer {
-    fn new(text: &str, point: usize) -> Buffer {
+impl Buffer<'_> {
+    fn new(text: &str, point: usize) -> Buffer<'static> {
         Buffer {
             text: text.to_string(),
             point,
             markers: Vec::new(),
             may_need_update: true,
             hidden: hidden_parts(text, 0, text.len()),
+            property: &|_| None,
         }
     }
 
@@ -666,12 +688,24 @@ impl Buffer {
     }
 
     /// `org-table-maybe-recalculate-line`: a line marked `#` is
-    /// recalculated, which org-lsp refuses here.
-    fn maybe_recalculate_line(&self) -> Result<(), String> {
+    /// recalculated (`org-table-recalculate` on it), point staying in its
+    /// field.
+    fn maybe_recalculate_line(&mut self) -> Result<(), String> {
         static MARKED: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[ \t]*\| *# *(\||$)").unwrap());
-        if MARKED.is_match(self.line()) {
-            return Err("Recalculate the marked line with org.table.recalculate.line".to_string());
+        if !MARKED.is_match(self.line()) {
+            return Ok(());
         }
+        let line = self.text[..self.bol()].matches('\n').count();
+        let column = self.table_column();
+        let recalculated = crate::tblfm::recalculate(&self.text, self.point, crate::tblfm::Mode::Line, self.property)?;
+        self.text = recalculated.text;
+        self.hidden = hidden_parts(&self.text, 0, self.text.len());
+        self.markers.clear();
+        self.point = match line.checked_sub(1) {
+            Some(before) => self.text.match_indices('\n').nth(before).map_or(self.text.len(), |(at, _)| at + 1),
+            None => 0,
+        };
+        self.goto_column(column, false, false);
         Ok(())
     }
 

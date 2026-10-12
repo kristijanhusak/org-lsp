@@ -73,7 +73,8 @@ enum TimeValue {
     Now,
     Today(i64),
     Hours(i64),
-    Days(i64),
+    /// Minutes from the start of today.
+    Minutes(i64),
     At(Option<i64>),
 }
 
@@ -302,12 +303,14 @@ fn time_operand(value: &str) -> Option<TimeValue> {
                 let unit = rest.chars().last()?;
                 let number: i64 = rest[..rest.len() - unit.len_utf8()].parse().ok()?;
                 let number = if inner.starts_with('-') { -number } else { number };
+                // `org-matcher-time`: a month is 31 days, a year 365.25.
+                let minutes = |per: i64| Some(TimeValue::Minutes(number.saturating_mul(per)));
                 match unit {
                     'h' => Some(TimeValue::Hours(number)),
-                    'd' => Some(TimeValue::Days(number)),
-                    'w' => Some(TimeValue::Days(number.saturating_mul(7))),
-                    'm' => Some(TimeValue::Days(number.saturating_mul(30))),
-                    'y' => Some(TimeValue::Days(number.saturating_mul(365))),
+                    'd' => minutes(1440),
+                    'w' => minutes(10_080),
+                    'm' => minutes(44_640),
+                    'y' => minutes(525_960),
                     _ => None,
                 }
             });
@@ -328,7 +331,8 @@ impl TimeValue {
         let today = clock.today * 1440;
         match self {
             TimeValue::Now => (today + clock.minute) as f64,
-            TimeValue::Today(days) | TimeValue::Days(days) => today.saturating_add(days.saturating_mul(1440)) as f64,
+            TimeValue::Today(days) => today.saturating_add(days.saturating_mul(1440)) as f64,
+            TimeValue::Minutes(minutes) => today.saturating_add(*minutes) as f64,
             TimeValue::Hours(hours) => (today + clock.minute).saturating_add(hours.saturating_mul(60)) as f64,
             // `org-matcher-time` gives 0 for what it cannot read.
             TimeValue::At(minutes) => minutes.unwrap_or(0) as f64,
@@ -426,10 +430,21 @@ fn property_value(index: usize, outline: &Outline, name: &str) -> Option<String>
         "LEVEL" => Some(entry.level.to_string()),
         "CATEGORY" => Some(entry.category.clone()),
         "TODO" => entry.todo.clone(),
+        // The cookie's text (`org-priority-regexp`), or the default as
+        // `org-priority-to-string` writes it.
         "PRIORITY" => {
-            let default = outline.priorities.unwrap_or_default().default;
-            let value = cookie(&entry.head).unwrap_or(default);
-            Some(char::from_u32(value as u32).map(String::from).unwrap_or_else(|| value.to_string()))
+            static COOKIE: std::sync::LazyLock<Regex> =
+                std::sync::LazyLock::new(|| Regex::new(r"\[#([A-Z0-9]+)\]").unwrap());
+            Some(match COOKIE.captures(&entry.head) {
+                Some(found) => found[1].to_string(),
+                None => {
+                    let default = outline.priorities.unwrap_or_default().default;
+                    match u32::try_from(default).ok().filter(|value| *value > 64).and_then(char::from_u32) {
+                        Some(letter) => letter.to_string(),
+                        None => default.to_string(),
+                    }
+                }
+            })
         }
         "SCHEDULED" => stamp(&entry.scheduled),
         "DEADLINE" => stamp(&entry.deadline),
@@ -441,13 +456,6 @@ fn property_value(index: usize, outline: &Outline, name: &str) -> Option<String>
         "ITEM" => Some(item_title(entry)),
         _ => outline.property(index, name),
     }
-}
-
-/// The priority cookie right after the keyword, as a value.
-fn cookie(head: &str) -> Option<i64> {
-    let rest = head.find("[#").map(|at| &head[at + 2..])?;
-    let end = rest.find(']')?;
-    crate::priority::value(&rest[..end])
 }
 
 /// The headline without its keyword, priority and tags.
@@ -718,6 +726,10 @@ mod tests {
         assert_eq!(matched(FILE, "OWNER={^b}"), ["d :home:"]);
         assert_eq!(matched(FILE, "LEVEL>1"), ["NEXT b :phone:"]);
         assert_eq!(matched(FILE, "PRIORITY=\"A\""), ["TODO [#A] a :work:"]);
+        // Numbers are the cookie's text; without one, the default.
+        let numbers = "#+PRIORITIES: 1 9 5\n* TODO [#5] five\n* TODO none\n* TODO [#10] ten\n";
+        assert_eq!(matched(numbers, "PRIORITY=\"5\""), ["TODO [#5] five", "TODO none"]);
+        assert_eq!(matched(numbers, "PRIORITY=\"10\""), ["TODO [#10] ten"]);
         assert_eq!(matched(FILE, "TODO=\"NEXT\""), ["NEXT b :phone:"]);
         assert_eq!(matched(FILE, "ITEM=\"a\""), ["TODO [#A] a :work:"]);
         assert_eq!(matched(FILE, "home+OWNER<>\"bob\""), ["DONE c :work:home:"]);
@@ -748,6 +760,18 @@ mod tests {
         assert_eq!(matched("SCHEDULED=\"<2026-10-09>\""), ["b"]);
         // Org's `org-time<>` is `=`.
         assert_eq!(matched("SCHEDULED<>\"<2026-10-09>\""), ["b"]);
+        // `org-matcher-time`: a month is 31 days, so `<-1m>` is
+        // 2026-09-04, not 09-05; a year 365.25 days, from midnight: 2025-10-04
+        // at 18:00.
+        let file = "* a\nSCHEDULED: <2026-09-04 Fri>\n* b\nSCHEDULED: <2025-10-04 Sat>\n* c\n";
+        let outline = super::tests::outline(file);
+        let matched = |text: &str| -> Vec<&str> {
+            let matcher = Matcher::new(text);
+            (0..3).filter(|index| matcher.matches(&outline, *index, false, clock)).map(|i| ["a", "b", "c"][i]).collect()
+        };
+        assert_eq!(matched("SCHEDULED<\"<-1m>\""), ["b"]);
+        assert_eq!(matched("SCHEDULED>=\"<-1m>\""), ["a"]);
+        assert_eq!(matched("SCHEDULED<\"<-1y>\""), ["b"]);
     }
 
     #[test]

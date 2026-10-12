@@ -244,7 +244,13 @@ fn class(scope: &Scope, first: (i64, i64, i64), last: (i64, i64, i64), dayname: 
     let (start, end) = (absolute(first.1, first.2, first.0), absolute(last.1, last.2, last.0));
     let week = crate::date::iso_week(scope.day).0;
     let skipped = skip.contains(&Value::Int(week));
-    entry(scope, start <= scope.day && scope.day <= end && weekday(scope.day) as i64 == dayname && !skipped)
+    // The entry itself, a string, which `org-diary-sexp-entry` splits at
+    // `; ` as it splits any string.
+    if start <= scope.day && scope.day <= end && weekday(scope.day) as i64 == dayname && !skipped {
+        Value::Str(scope.entry.to_string())
+    } else {
+        Value::Nil
+    }
 }
 
 fn evaluate(form: &Value, scope: &Scope) -> Option<Value> {
@@ -431,6 +437,11 @@ mod tests {
         );
         assert_eq!(shown("(org-class 2026 5 1 2026 6 30 1 21)", "Class", "2026-05-18"), None);
         assert_eq!(shown("(org-class 2026 5 1 2026 6 30 1)", "Class", "2026-05-18"), Some(vec!["Class".to_string()]));
+        // A string, which `org-diary-sexp-entry` splits.
+        assert_eq!(
+            shown("(org-class 2026 5 1 2026 6 30 1)", "Lecture; Room 5", "2026-05-18"),
+            Some(vec!["Lecture".to_string(), "Room 5".to_string()])
+        );
         assert_eq!(shown("(my-own-function)", "x", "2026-05-18"), None);
         assert_eq!(shown("\"a; b\"", "x", "2026-05-18"), Some(vec!["a".to_string(), "b".to_string()]));
     }

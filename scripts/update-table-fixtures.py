@@ -48,6 +48,12 @@ CASES += [
     # Formulas follow the columns and rows they name.
     {"text": "| a | b¦ | c |\n#+TBLFM: $3=$1+$2::@1$2=5\n", "key": "M-S-<left>"},
     {"text": "| a | b |\n| c¦ | d |\n#+TBLFM: @2$1=1::$2=remote(t,@2$1)\n", "key": "M-S-<up>"},
+    # A row marked `#` is recalculated on the way (`org-table-maybe-recalculate-line`).
+    {"text": "| # | 1¦ |  |\n#+TBLFM: $3=$2*2\n", "key": "TAB"},
+    {"text": "| # | 1 | ¦ |\n| # | 3 |  |\n#+TBLFM: $3=$2*2\n", "key": "<backtab>"},
+    {"text": "| a | b | c |\n| # | 2¦ |  |\n#+TBLFM: $3=$2*2\n", "key": "C-c RET"},
+    {"text": "| a | b | c |\n| # | 2¦ |  |\n#+TBLFM: $3=$2*2\n", "key": "C-c C-c"},
+    {"text": "| a | b | c |\n| # | 20¦ | 1 |\n| # | 3 |  |\n#+TBLFM: $3=$2*2\n", "key": "TAB"},
 ]
 rng = random.Random(0)
 CASES += [fuzz.case(rng) for _ in range(300)]

@@ -138,6 +138,7 @@ its sections says what it should look like.
 - [ ] Later, earlier, today; day, week, month views; going to a date: the code action /Agenda: go forward in time/, the code action /Agenda: go backward in time/, the code action /Agenda: go to today/, the code action /Agenda: day view/, the code action /Agenda: week view/, the code action /Agenda: month view/, the code action /Agenda: go to a date/
 - [ ] The TODO list, a tag search (~work+urgent~), a word search: the code action /Agenda commands/
 - [ ] With ~org_super_agenda_mode~ on and ~org_super_agenda_groups~ set (~[{ name = "Today", time-grid = true }, { auto-category = true }]~), each day of the agenda is in groups under their headers, and the TODO list too: the code action /Agenda for the current week or day/
+- [ ] With ~org_agenda_prefix_format~ ~{ todo = " %-12:c%-4(org-entry-get nil "EFFORT") " }~, the TODO list shows each entry's effort after its category, ~nil~ without one (needs Emacs): the code action /List of all TODO entries/
 - [ ] Going to the line's entry in another window, and where the agenda is: the code action /Agenda: go to the entry in another window/, the code action /Agenda: go to the entry/
 - [ ] Changing the line's TODO state and priority; the line follows: the code action /Change the TODO state/, the code action /Raise the priority/
 - [ ] Scheduling the line's entry and setting its deadline: the code action /Schedule the entry/, the code action /Set the deadline of the entry/
@@ -206,7 +207,6 @@ its sections says what it should look like.
 
 - [ ] With ~org_journal_enabled~ on, a new entry makes today's file in ~org_journal_dir~ (a file without an extension, opened as Org) with today's date and an entry with the time, the cursor after it: the code action /Journal: new entry/
 - [ ] With a journal file of yesterday holding a TODO entry, the first new entry of today moves it to today's file: the code action /Journal: new entry/
-- [ ] The other entries of the file are folded; the new one shows: the code action /Journal: new entry/
 - [ ] In a journal file, the previous entry goes to the day before; on the first, it says /No journal entry before this one/: the code action /Journal: previous entry/
 - [ ] With ~org_journal_enable_agenda_integration~, the TODO entries of today's journal file are in the week view: the code action /Agenda for the current week or day/
 - [ ] A search asks for the string, then the first and the last day; the results list each line found under its day, which links to the line: the code action /Journal: search between two dates/
@@ -327,10 +327,9 @@ its sections says what it should look like.
 
 *Partly:* A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
 
-- [ ] Adding a note: a note buffer opens, and finishing writes it in the entry's log: the code action /Add a note to the entry/
+- [ ] Adding a note: it is asked for, and goes in the entry's log: the code action /Add a note to the entry/
 - [ ] With ~LOG_INTO_DRAWER~, the note goes in ~:LOGBOOK:~: the code action /Add a note to the entry/
 - [ ] Adding a note from the agenda: the code action /Add a note to the entry/
-- [ ] With ~org_log_reschedule~ ~"time"~ (or ~#+STARTUP: logreschedule~), rescheduling logs ~Rescheduled from "[…]" on […]~; with ~"note"~ a note buffer opens for it: the code action /Schedule the entry/
 
 * Completion and editing helpers
 

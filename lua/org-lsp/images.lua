@@ -153,7 +153,8 @@ local function remember(key, file)
 end
 
 --- Remove the images ImageMagick made that no preview asked for in a
---- month, once a session.
+--- month, once a session: each one's time is set when it is shown, as
+--- access times are not kept everywhere (`noatime`).
 local pruned = false
 ---@param directory string
 local function prune(directory)
@@ -165,7 +166,7 @@ local function prune(directory)
   for name, kind in vim.fs.dir(directory) do
     local file = vim.fs.joinpath(directory, name)
     local stat = kind == 'file' and name:match('%.png$') and vim.uv.fs_stat(file)
-    if stat and stat.atime.sec < old and stat.mtime.sec < old then
+    if stat and stat.mtime.sec < old then
       os.remove(file)
     end
   end
@@ -192,17 +193,23 @@ local function load(path)
     vim.fn.mkdir(directory, 'p')
     prune(directory)
     png = vim.fs.joinpath(directory, vim.fn.sha256(key) .. '.png')
-    if not vim.uv.fs_stat(png) then
+    if vim.uv.fs_stat(png) then
+      local now = os.time()
+      vim.uv.fs_utime(png, now, now)
+    else
       -- Read as what its extension says (`svg:pic.svg`), not as what
       -- ImageMagick makes of its bytes, and within limits: the editor
       -- waits for it.
       local extension = (path:match('%.(%w+)$') or ''):lower()
       local input = (coders[extension] and extension .. ':' or '') .. path .. '[0]'
       local limits = { '-limit', 'memory', '256MiB', '-limit', 'area', '128MP', '-limit', 'time', '10' }
-      local made = vim.system(vim.list_extend({ converter, unpack(limits) }, { input, png }), { timeout = 10000 }):wait()
-      if made.code ~= 0 then
+      -- Made beside, then renamed: a Neovim stopped meanwhile leaves no
+      -- half an image to be taken for one.
+      local part = png .. '.part'
+      local made = vim.system(vim.list_extend({ converter, unpack(limits) }, { input, 'png:' .. part }), { timeout = 10000 }):wait()
+      if made.code ~= 0 or not os.rename(part, png) then
         -- Not kept as no image: the next preview tries again.
-        os.remove(png)
+        os.remove(part)
         return nil
       end
     end

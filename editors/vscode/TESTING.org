@@ -155,6 +155,7 @@ its sections says what it should look like.
 - [ ] Later, earlier, today; day, week, month views; going to a date: ~f~, ~b~, ~.~, ~v d~, ~v w~, ~v m~, ~J~
 - [ ] The TODO list, a tag search (~work+urgent~), a word search: ~Ctrl+C a~
 - [ ] With ~org_super_agenda_mode~ on and ~org_super_agenda_groups~ set (~[{ name = "Today", time-grid = true }, { auto-category = true }]~), each day of the agenda is in groups under their headers, and the TODO list too: /Org: Agenda for the current week or day/
+- [ ] With ~org_agenda_prefix_format~ ~{ todo = " %-12:c%-4(org-entry-get nil "EFFORT") " }~, the TODO list shows each entry's effort after its category, ~nil~ without one (needs Emacs): /Org: List of all TODO entries/
 - [ ] Column view in the agenda covers each entry's line with its columns and sums the efforts on the header; ~e~ on an effort changes it in the entry's file; ~q~ turns it off (needs Emacs): ~Ctrl+C Ctrl+X Ctrl+C~
 - [ ] Going to the line's entry in another window, and where the agenda is: ~Tab~, ~Enter~
 - [ ] Changing the line's TODO state and priority; the line follows: ~t~, ~+~ or ~Shift+Up~

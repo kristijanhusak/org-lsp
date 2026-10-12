@@ -196,7 +196,9 @@ fn announces_capabilities() {
             "org.clock.out",
             "org.clock.cancel",
             "org.checkbox.toggle",
-            "org.table.recalculate"
+            "org.table.recalculate",
+            "org",
+            "quickfix"
         ])
     );
     let legend = &capabilities["semanticTokensProvider"]["legend"];
@@ -539,6 +541,34 @@ fn formats_tables_and_tags() {
         [(0, 9, "* Ünï            :t:"), (1, 6, "| a   | bb |"), (2, 2, "|-----+----|"), (3, 8, "| ccc | 12 |"),]
     );
     assert!(edits.iter().all(|edit| edit.range.start.character == 0 && edit.range.end.line == edit.range.start.line));
+
+    // A Windows file's lines the same, their `\r`s kept.
+    client.notify::<lsp_types::notification::DidChangeTextDocument>(lsp_types::DidChangeTextDocumentParams {
+        text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri(), version: 2 },
+        content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+            range: None,
+            range_length: None,
+            text: "* Ünï :t:\r\n|a|bb|\r\n|-\r\n|ccc|12|\r\nText\r\n".to_string(),
+        }],
+    });
+    let edits = client
+        .request::<lsp_types::request::Formatting>(lsp_types::DocumentFormattingParams {
+            text_document: identifier(),
+            options: lsp_types::FormattingOptions { tab_size: 8, insert_spaces: true, ..Default::default() },
+            work_done_progress_params: Default::default(),
+        })
+        .unwrap();
+    let changed: Vec<(u32, u32, &str)> =
+        edits.iter().map(|edit| (edit.range.start.line, edit.range.end.character, edit.new_text.as_str())).collect();
+    assert_eq!(
+        changed,
+        [
+            (0, 10, "* Ünï            :t:\r"),
+            (1, 7, "| a   | bb |\r"),
+            (2, 3, "|-----+----|\r"),
+            (3, 9, "| ccc | 12 |\r"),
+        ]
+    );
 }
 
 #[test]
@@ -2706,6 +2736,44 @@ fn takes_back_an_edit_the_editor_does_not_make() {
     // No clock runs: the file has none.
     let out = run(&mut client, "org.clock.out");
     assert_eq!(out.response_result.unwrap_err().message, "No active clock");
+    // Nor was it ever clocked, for clocking in again on the last task.
+    let last = run(&mut client, "org.clock.in.last");
+    assert_eq!(last.response_result.unwrap()["message"], "No last clock");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// What was said of a file goes when it is closed: an empty list of
+/// diagnostics for it.
+#[test]
+fn clears_the_diagnostics_of_a_closed_file() {
+    let client = Client::start(json!({}), json!({}));
+    client.open(&uri(), "* Note\nSee [[*Missing]].\n");
+    let published = client.notification("textDocument/publishDiagnostics");
+    assert!(!published["diagnostics"].as_array().unwrap().is_empty(), "{published}");
+    client.notify::<lsp_types::notification::DidCloseTextDocument>(lsp_types::DidCloseTextDocumentParams {
+        text_document: identifier(),
+    });
+    let published = client.notification("textDocument/publishDiagnostics");
+    assert_eq!(published["uri"], uri().as_str());
+    assert_eq!(published["diagnostics"], json!([]));
+}
+
+/// After `shutdown`, a request is refused (`InvalidRequest`) and a
+/// notification dropped, until `exit` ends the server as it should.
+#[test]
+fn refuses_requests_after_shutdown() {
+    let mut client = Client::start(json!({}), json!({}));
+    client.open(&uri(), "* Note\n");
+    client.request::<lsp_types::request::Shutdown>(());
+    let refused = client.raw_request("textDocument/foldingRange", json!({ "textDocument": { "uri": uri().as_str() } }));
+    assert_eq!(
+        refused.response_result.err().map(|error| error.code),
+        Some(lsp_server::ErrorCode::InvalidRequest as i32)
+    );
+    client.notify::<lsp_types::notification::DidCloseTextDocument>(lsp_types::DidCloseTextDocumentParams {
+        text_document: identifier(),
+    });
+    client.notify::<lsp_types::notification::Exit>(());
+    client.server.take().unwrap().join().expect("the server ends cleanly");
 }

@@ -1539,7 +1539,9 @@ pub const SETTINGS: &[Setting] = &[
          leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the \
          headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on \
          the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a \
-         value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty.",
+         value that is not empty (`%-12:c`). `%(…)` is Emacs Lisp, run by Emacs (the `emacs` option) on the \
+         entry's headline with `category`, `extra`, `level` … bound, as Org runs it: \
+         `%(org-entry-get nil \"X\")`, or a function of `emacs_config`. Without Emacs it is empty.",
     ),
     setting(
         "org_agenda_todo_keyword_format",
@@ -2113,12 +2115,12 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaCommand", "required": ["key", "description"], "additionalProperties": false, "properties": {
             "key": { "type": "string", "description": "The keys that pick the command in the agenda menu" },
             "description": { "type": "string", "description": "What the menu shows" },
-            "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo", "search"], "description": "The view" },
+            "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo", "search", "stuck"], "description": "The view" },
             "match": { "type": "string", "description": "For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY=\"A\")" },
             "header": { "type": "string", "description": "Replaces the view's header; empty for none" },
             "settings": { "type": "object", "description": "Agenda options for this command: org_agenda_span, org_agenda_start_day…" },
             "blocks": { "type": "array", "description": "Views shown one after the other", "items": { "type": "object", "x-lua-class": "org_lsp.AgendaBlock", "required": ["type"], "additionalProperties": false, "properties": {
-                "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo", "search"], "description": "The view" },
+                "type": { "enum": ["agenda", "alltodo", "todo", "tags", "tags-todo", "search", "stuck"], "description": "The view" },
                 "match": { "type": "string", "description": "For todo, keywords; for tags, a match string" },
                 "header": { "type": "string", "description": "Replaces the view's header; empty for none" },
                 "settings": { "type": "object", "description": "Agenda options for this block: org_agenda_span, org_agenda_start_day…" }

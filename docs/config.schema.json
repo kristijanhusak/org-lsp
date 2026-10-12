@@ -1700,7 +1700,7 @@
           "type": "string"
         }
       },
-      "description": "What comes before the headline on a line of the agenda (`agenda`), the TODO list (`todo`), tags searches (`tags`) and text searches (`search`): `%c` the category, `%t` the time, `%s` the leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a value that is not empty (`%-12:c`). `%(…)` (Emacs Lisp) is left empty. (`org-agenda-prefix-format`)",
+      "description": "What comes before the headline on a line of the agenda (`agenda`), the TODO list (`todo`), tags searches (`tags`) and text searches (`search`): `%c` the category, `%t` the time, `%s` the leader (`Scheduled: `), `%e` the effort, `%l` a blank per level, `%T` the last tag, `%b` the headlines above (breadcrumbs), `%i` the icon (none). A width pads (`%-12c` on the right, `%12c` on the left), `.N` cuts, `%?` leaves out an empty field, and a character before the letter follows a value that is not empty (`%-12:c`). `%(…)` is Emacs Lisp, run by Emacs (the `emacs` option) on the entry's headline with `category`, `extra`, `level` … bound, as Org runs it: `%(org-entry-get nil \"X\")`, or a function of `emacs_config`. Without Emacs it is empty. (`org-agenda-prefix-format`)",
       "default": {
         "agenda": " %i %-12:c%?-12t% s",
         "todo": " %i %-12:c",
@@ -1894,7 +1894,8 @@
               "todo",
               "tags",
               "tags-todo",
-              "search"
+              "search",
+              "stuck"
             ],
             "description": "The view"
           },
@@ -1927,7 +1928,8 @@
                     "todo",
                     "tags",
                     "tags-todo",
-                    "search"
+                    "search",
+                    "stuck"
                   ],
                   "description": "The view"
                 },
