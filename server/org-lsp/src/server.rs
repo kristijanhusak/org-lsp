@@ -496,7 +496,18 @@ struct CaptureClock {
     keep: bool,
     resume: bool,
     /// The entry whose clock the capture stopped.
-    interrupted: Option<(Uri, String)>,
+    interrupted: Option<ClockTask>,
+}
+
+/// An entry the clock knows (`org-clock-history`, the interrupted and
+/// default tasks), as Emacs keeps a marker: its file, where its headline
+/// was, and its title. It is found again at that place if the title there
+/// is the same, else at the nearest entry with that title.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ClockTask {
+    uri: Uri,
+    offset: usize,
+    title: String,
 }
 
 /// A clock that runs: the file of its `CLOCK:` line, and when it started.
@@ -507,6 +518,17 @@ struct RunningClock {
     /// The headline of its entry, after the stars: two clocks may start
     /// in the same minute.
     head: String,
+}
+
+/// Where the entry with `title` starts in `outline`: at `offset` if that
+/// entry has it, else at the nearest entry that has.
+fn task_in(outline: &Outline, offset: usize, title: &str) -> Option<usize> {
+    outline
+        .entries
+        .iter()
+        .filter(|entry| org_core::agenda::report::plain_heading(&entry.head, entry.todo.as_deref()) == title)
+        .min_by_key(|entry| entry.offset.abs_diff(offset))
+        .map(|entry| entry.offset)
 }
 
 /// The clocks that run in `text`: where each line starts, when it
@@ -853,6 +875,9 @@ struct Server {
     all_agenda_tags: bool,
     /// The files to save once the edit request with this id is applied.
     saving: HashMap<RequestId, Vec<Uri>>,
+    /// The documents each `workspace/applyEdit` changes, by request: if
+    /// the editor does not apply it, the server forgets the change.
+    applying: HashMap<RequestId, Vec<String>>,
     todo: TodoKeywords,
     agenda: AgendaConfig,
     /// The `agenda` options as given, for the custom commands' own.
@@ -878,7 +903,7 @@ struct Server {
     /// How many captures there were.
     captures: u32,
     /// Where the capture and note buffers go, one directory each.
-    capture_directory: PathBuf,
+    capture_directory: Private,
     /// Emacs, for export (`emacs`); it starts when first asked.
     emacs: crate::emacs::Emacs,
     /// The export menu, the publishing projects and the structure
@@ -895,7 +920,7 @@ struct Server {
     /// The parts of Org files edited in files of their own, and where
     /// those files are.
     special_edits: Vec<SpecialEdit>,
-    special_directory: PathBuf,
+    special_directory: Private,
     /// Narrowed files widened and asked closed: removed again when the
     /// editor closes them, as some save a file before closing it.
     widened: Vec<PathBuf>,
@@ -923,7 +948,7 @@ struct Server {
     /// What Emacs is doing, by tag.
     emacs_jobs: HashMap<u64, EmacsJob>,
     /// Where exports to a buffer are written to be shown.
-    export_directory: PathBuf,
+    export_directory: Private,
     next_export: u64,
     /// Where the agenda's file goes, for a client that cannot fetch it.
     view_directory: PathBuf,
@@ -1001,7 +1026,7 @@ struct Server {
     last_clocked: Option<(Uri, String)>,
     /// `org-clock-history`: the entries clocked into, the last first, by
     /// file and title; at most `org-clock-history-length`.
-    clock_history: Vec<(Uri, String)>,
+    clock_history: Vec<ClockTask>,
     clock_history_length: usize,
     /// `org-stored-links`: the links `org.link.store` keeps for
     /// `org.link.insert`, the last first.
@@ -1009,10 +1034,10 @@ struct Server {
     /// The options of the link commands.
     link_settings: org_core::link::Settings,
     /// `org-clock-default-task`, marked by clocking in with `C-u C-u`.
-    clock_default_task: Option<(Uri, String)>,
+    clock_default_task: Option<ClockTask>,
     /// `org-clock-interrupted-task`: the entry whose clock the last
     /// clock-in stopped.
-    clock_interrupted: Option<(Uri, String)>,
+    clock_interrupted: Option<ClockTask>,
     /// `org-clock-out-time`: when the last clock stopped.
     clock_out_time: Option<DateTime>,
     /// `org-clock-idle-time`: after how many minutes without a message
@@ -1063,7 +1088,7 @@ struct Server {
     /// on with: its id and its context so far.
     journal_state: Option<(String, Value)>,
     /// The directory of the journal's search results and schedule.
-    journal_views: PathBuf,
+    journal_views: Private,
     /// `org-clock-display`: by document, the lines of headlines and the
     /// minutes clocked under them, shown as inlay hints until the
     /// document changes.
@@ -1282,6 +1307,7 @@ pub fn run(connection: Connection) -> Result<()> {
             emphasis: options.hide_emphasis_markers.unwrap_or(false),
         },
         saving: HashMap::new(),
+        applying: HashMap::new(),
         todo,
         agenda,
         agenda_options: options.agenda.clone(),
@@ -1296,7 +1322,7 @@ pub fn run(connection: Connection) -> Result<()> {
         capture: None,
         note: None,
         captures: 0,
-        capture_directory: server_directory("capture"),
+        capture_directory: Private::new("capture"),
         emacs,
         export_menu: None,
         structure_templates: None,
@@ -1305,7 +1331,7 @@ pub fn run(connection: Connection) -> Result<()> {
         appt_check: None,
         special_edits: Vec::new(),
         widened: Vec::new(),
-        special_directory: server_directory("edit"),
+        special_directory: Private::new("edit"),
         special_tick: crossbeam_channel::tick(std::time::Duration::from_millis(500)),
         appt_minute: std::time::Duration::from_secs_f64(
             options.clock.as_ref().and_then(|clock| clock.minute).unwrap_or(60.0),
@@ -1316,7 +1342,7 @@ pub fn run(connection: Connection) -> Result<()> {
         publish_projects: None,
         emacs_jobs: HashMap::new(),
         export_stack: Vec::new(),
-        export_directory: server_directory("export"),
+        export_directory: Private::new("export"),
         next_export: 0,
         view_directory,
         prompt_uri,
@@ -1382,7 +1408,7 @@ pub fn run(connection: Connection) -> Result<()> {
         roam: options.roam().map(roam::Roam::new),
         journal: options.journal(),
         journal_state: None,
-        journal_views: server_directory("journal"),
+        journal_views: Private::new("journal"),
         clock_display: HashMap::new(),
         clock_display_range: options.clock_display_default_range.clone().unwrap_or_else(|| "thisyear".to_string()),
         refile_current: None,
@@ -1472,12 +1498,13 @@ pub fn run(connection: Connection) -> Result<()> {
     if !server.client.zed_agenda() {
         server.remove_view_file();
     }
-    // The server's temporary directories, made when it started.
-    let roam = server.roam.as_ref().map(|roam| roam.buffer_directory.clone());
+    // The server's temporary directories that were made.
+    let roam = server.roam.as_ref().map(|roam| &roam.buffer_directory);
     for directory in [&server.capture_directory, &server.export_directory, &server.special_directory]
         .into_iter()
         .chain([&server.journal_views])
-        .chain(roam.as_ref())
+        .chain(roam)
+        .filter_map(Private::made)
     {
         let _ = std::fs::remove_dir_all(directory);
     }
@@ -1779,6 +1806,30 @@ fn agenda_directory(client: &Client, folders: &[PathBuf]) -> Option<PathBuf> {
     Some(client.command_script.as_ref()?.parent()?.join("agenda").join(format!("{hash:016x}")))
 }
 
+/// A private directory of the server ([`server_directory`]), made the first
+/// time it is needed: a server that never captures leaves no capture
+/// directory behind.
+pub(crate) struct Private {
+    kind: &'static str,
+    path: std::cell::OnceCell<PathBuf>,
+}
+
+impl Private {
+    pub(crate) fn new(kind: &'static str) -> Private {
+        Private { kind, path: std::cell::OnceCell::new() }
+    }
+
+    /// The directory, made now if it is not yet.
+    pub(crate) fn path(&self) -> &Path {
+        self.path.get_or_init(|| server_directory(self.kind))
+    }
+
+    /// The directory, if it was made.
+    pub(crate) fn made(&self) -> Option<&Path> {
+        self.path.get().map(PathBuf::as_path)
+    }
+}
+
 /// A directory for the capture buffers or the agenda file of a server:
 /// one of its own, also when a process runs more than one (the tests).
 /// It is made at once, the user's alone (mode 0700) and under a name no one
@@ -2061,16 +2112,26 @@ fn planning_command(id: &str) -> Option<PlanningCommand> {
 /// a write cut short leaves the old file whole.
 pub(crate) fn write_whole(path: &Path, text: &str) -> std::result::Result<(), String> {
     let refused = |error: &dyn std::fmt::Display| format!("Cannot write {}: {error}", path.display());
-    let permissions = match std::fs::read(path) {
+    match std::fs::read(path) {
         Ok(bytes) if std::str::from_utf8(&bytes).is_err() => {
             return Err(refused(&"it is not UTF-8 text, and is left as it is"));
         }
-        Ok(_) => std::fs::metadata(path).ok().map(|metadata| metadata.permissions()),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(refused(&error)),
-    };
+    }
+    replace_whole(path, text.as_bytes()).map_err(|error| refused(&error))
+}
+
+/// Write `bytes` to `path` at once: to a file beside it, then renamed over
+/// it, keeping its permissions. A link is written through, to the file it
+/// leads to, as Emacs writes it.
+fn replace_whole(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    let target = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let path = target.as_path();
+    let permissions = std::fs::metadata(path).ok().map(|metadata| metadata.permissions());
     let directory = path.parent().filter(|parent| !parent.as_os_str().is_empty()).unwrap_or(Path::new("."));
-    std::fs::create_dir_all(directory).map_err(|error| refused(&error))?;
+    std::fs::create_dir_all(directory)?;
     let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
     let temporary = directory.join(format!(".{name}.org-lsp-{}", port::token()));
     let written = std::fs::OpenOptions::new()
@@ -2079,16 +2140,15 @@ pub(crate) fn write_whole(path: &Path, text: &str) -> std::result::Result<(), St
         .open(&temporary)
         .and_then(|mut file| {
             use std::io::Write;
-            file.write_all(text.as_bytes())?;
+            file.write_all(bytes)?;
             file.sync_all()
         })
         .and_then(|()| permissions.map_or(Ok(()), |permissions| std::fs::set_permissions(&temporary, permissions)))
         .and_then(|()| std::fs::rename(&temporary, path));
-    if let Err(error) = written {
+    if written.is_err() {
         let _ = std::fs::remove_file(&temporary);
-        return Err(refused(&error));
     }
-    Ok(())
+    written
 }
 
 /// Write a tangled file as `org-babel-tangle` writes it: only when its text
@@ -2102,7 +2162,7 @@ fn write_tangled(file: &org_core::tangle::File) -> std::io::Result<()> {
             std::fs::create_dir_all(parent)?;
         }
     }
-    std::fs::write(&file.path, &file.text)?;
+    replace_whole(&file.path, file.text.as_bytes())?;
     #[cfg(unix)]
     if let Some(mode) = file.mode {
         use std::os::unix::fs::PermissionsExt;
@@ -2236,12 +2296,14 @@ impl Server {
             (_, Some(changes)) => changes.keys().cloned().collect(),
             _ => Vec::new(),
         };
+        let changed: Vec<String> = files.iter().map(|uri| uri.as_str().to_string()).collect();
         files.retain(|uri| Some(uri.as_str()) != self.origin.as_deref() && !is_view_uri(uri));
         let request = self.new_request(
             ApplyWorkspaceEdit::METHOD,
             serde_json::to_value(params).unwrap_or(Value::Null),
             Some(pending),
         );
+        self.applying.insert(request.id.clone(), changed);
         if self.auto_save && !files.is_empty() {
             self.saving.insert(request.id.clone(), files);
         }
@@ -2270,6 +2332,32 @@ impl Server {
     }
 
     fn response(&mut self, response: Response) {
+        // An edit the editor did not apply: the server takes back what it
+        // expected of it.
+        if let Some(files) = self.applying.remove(&response.id) {
+            let result = response.response_result.as_ref();
+            let refused =
+                result.is_err() || result.ok().and_then(|result| result.get("applied")?.as_bool()) == Some(false);
+            if refused {
+                for file in &files {
+                    self.edited.remove(file);
+                }
+                self.clock_pending = false;
+                let running = self.find_running();
+                if running.as_ref().map(|clock| (&clock.uri, clock.start))
+                    != self.running.as_ref().map(|clock| (&clock.uri, clock.start))
+                {
+                    self.running = running;
+                    self.publish_clock();
+                }
+                let reason = result.ok().and_then(|result| result.get("failureReason")?.as_str().map(str::to_string));
+                let message = match reason {
+                    Some(reason) => format!("The editor did not make the change: {reason}"),
+                    None => "The editor did not make the change".to_string(),
+                };
+                self.show_message(MessageType::WARNING, message);
+            }
+        }
         // An edit to save, now that the editor has applied it.
         if let Some(files) = self.saving.remove(&response.id) {
             let applied = response.response_result.as_ref().ok().and_then(|result| result.get("applied")?.as_bool());
@@ -2552,12 +2640,29 @@ impl Server {
                     .flatten();
                 let changed_lines = changed_lines(&params.content_changes);
                 if let Some(document) = self.documents.get_mut(key) {
-                    document.apply(
+                    let changes = document.apply(
                         params.content_changes,
                         params.text_document.version,
                         self.client.encoding,
                         &self.todo,
                     );
+                    // The agenda's entries in this file follow the text,
+                    // until the agenda is built again: a command on one of
+                    // its lines finds its timestamp where it is now.
+                    let follow = |entry: &mut views::EntryRef| {
+                        if entry.uri.as_str() == key {
+                            for change in &changes {
+                                entry.offset = change.moved(entry.offset);
+                                entry.marker = entry.marker.map(|marker| change.moved(marker));
+                            }
+                        }
+                    };
+                    if let Some(open) = self.view.as_mut() {
+                        for view in std::iter::once(&mut open.view).chain(open.shown.as_mut()) {
+                            view.lines.iter_mut().filter_map(|line| line.entry.as_mut()).for_each(follow);
+                        }
+                    }
+                    self.agenda_marks.iter_mut().for_each(follow);
                 }
                 if let Some(old) = shrunk_before {
                     self.shrunk_after_change(key, &old, changed_lines);
@@ -5279,6 +5384,18 @@ impl Server {
             commands::CAPTURE_ABORT => {
                 let capture = self.capture.take().ok_or("No capture is going on")?;
                 self.message = Some("Capture process aborted and target buffer cleaned up".to_string());
+                // `org-capture-kill` finalizes too: with `:clock-resume`,
+                // the clock the capture stopped starts again, `:clock-keep`
+                // or not.
+                let interrupted =
+                    capture.clock.as_ref().filter(|clock| clock.resume).and_then(|clock| clock.interrupted.clone());
+                if let Some(task) = interrupted {
+                    if let Some(at) = self.find_task(&task) {
+                        let time = self.date_time();
+                        self.clock_in_at(task.uri, at, time)?;
+                        self.message = Some("Interrupted clock has been resumed".to_string());
+                    }
+                }
                 Ok(json!({ "close": capture.uri }))
             }
             commands::CAPTURE_REFILE => {
@@ -6253,7 +6370,7 @@ impl Server {
         if let Some(directory) = path.parent() {
             let _ = std::fs::create_dir_all(directory);
         }
-        std::fs::write(&path, text)
+        replace_whole(&path, text.as_bytes())
             .map_err(|error| format!("Cannot write agenda to file {}: {error}", path.display()))?;
         self.show_message(MessageType::INFO, format!("{done} {}", path.display()));
         Ok(Value::Null)
@@ -7481,7 +7598,7 @@ impl Server {
     /// the capture places in its target, with the cursor where `%?` was.
     fn show_capture(&mut self, target_uri: &Uri, placed: &capture::Placed) -> std::result::Result<Uri, Refusal> {
         self.captures += 1;
-        let directory = self.capture_directory.join(self.captures.to_string());
+        let directory = self.capture_directory.path().join(self.captures.to_string());
         std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
         // It is an Org buffer whatever the target is called (Org's default
         // notes file is `~/.notes`), and editors tell that by the name.
@@ -7582,7 +7699,7 @@ impl Server {
         wanted: org_core::todo::WantedNote,
     ) -> std::result::Result<Value, Refusal> {
         self.captures += 1;
-        let directory = self.capture_directory.join(self.captures.to_string());
+        let directory = self.capture_directory.path().join(self.captures.to_string());
         std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
         let buffer = directory.join(format!("{CAPTURE_PREFIX}Note.org"));
         // The note goes on the third line, as in Emacs; an editor that takes
@@ -7920,12 +8037,13 @@ impl Server {
     }
 
     /// The target file once the capture buffer's text goes in: where the
-    /// template was placed, or placed again when the file has changed.
+    /// template was placed, or placed again when the file has changed;
+    /// and where the captured text starts in it.
     fn captured(
         &mut self,
         capture: &Capturing,
         given: Option<String>,
-    ) -> std::result::Result<(String, Option<i32>, String), Refusal> {
+    ) -> std::result::Result<(String, Option<i32>, String, usize), Refusal> {
         let edited = self.capture_text(capture, given);
         let (now, version, keywords) = self
             .with_source(&capture.target, |text, _, parse, _, version| {
@@ -7934,8 +8052,8 @@ impl Server {
             .unwrap_or_else(|| (String::new(), None, self.todo.clone()));
         let (todo, time) = (&self.edit_settings.todo, self.date_time());
         // A buffer that shows the whole file stands for all of it.
-        let done = if now == capture.snapshot || (capture.unnarrowed && capture.roam.is_none()) {
-            capture.placed.finalize(&edited, &keywords, todo, time)
+        let (done, begin) = if now == capture.snapshot || (capture.unnarrowed && capture.roam.is_none()) {
+            (capture.placed.finalize(&edited, &keywords, todo, time), capture.placed.begin)
         } else if capture.roam.is_some() {
             // org-roam's target has the node's `ID` and head besides.
             return Err("The target file has changed since the capture began".into());
@@ -7943,9 +8061,9 @@ impl Server {
             let (target, kind, properties) = &capture.spec;
             let levels = refile::Settings { adapt: self.adapt_in(&now), ..self.refile.2 };
             let placed = capture::place(&now, &keywords, target, *kind, &edited, properties, &levels)?;
-            placed.finalize(placed.shown(), &keywords, todo, time)
+            (placed.finalize(placed.shown(), &keywords, todo, time), placed.begin)
         };
-        Ok((now, version, done))
+        Ok((now, version, done, begin))
     }
 
     /// Ask the editor to turn `now` into `done` in the target file. A file
@@ -7978,7 +8096,7 @@ impl Server {
     /// the user to save.
     fn finish_capture(&mut self, text: Option<String>) -> std::result::Result<Value, Refusal> {
         let capture = self.capture.take().ok_or("No capture is going on")?;
-        let (now, version, done) = match self.captured(&capture, text) {
+        let (now, version, done, start) = match self.captured(&capture, text) {
             Ok(captured) => captured,
             Err(refusal) => {
                 self.capture = Some(capture);
@@ -7986,7 +8104,6 @@ impl Server {
             }
         };
         let keywords = org_syntax::parse(&done, &self.todo).todo_keywords().clone();
-        let start = capture.placed.begin;
         let filed = capture.roam.is_some().then(|| done.clone());
         self.file_capture(
             &capture.target,
@@ -8008,17 +8125,48 @@ impl Server {
     /// the change to its file, for the caller to send, and its entry, to
     /// start it again with `:clock-resume`.
     #[allow(clippy::type_complexity)]
-    fn stop_clock_for_capture(&mut self) -> Option<((Uri, Option<i32>, String, String), (Uri, String))> {
+    fn stop_clock_for_capture(&mut self) -> Option<((Uri, Option<i32>, String, String), ClockTask)> {
         let running = self.running.clone()?;
         let (text, version, line) = self.clock_line(&running)?;
         let heading = Self::heading_above(&text, line)?;
-        let title = self.entry_title(&running.uri, heading)?;
+        let task = self.clock_task(&running.uri, heading)?;
         let now = self.date_time();
         let out = clock::clock_out(&text, line, now, &self.clock_settings).ok()?;
         self.clock_out_time = Some(now);
         self.running = None;
         self.publish_clock();
-        Some(((running.uri.clone(), version, text, out.text), (running.uri, title)))
+        Some(((running.uri, version, text, out.text), task))
+    }
+
+    /// The clock of a capture with `:clock-in` on the entry at `heading` of
+    /// `done`: stopped now unless `:clock-keep`; and with `:clock-resume`,
+    /// the entry whose clock the capture stopped, to start it again.
+    fn clock_capture(
+        &mut self,
+        target: &Uri,
+        done: String,
+        heading: usize,
+        keywords: &TodoKeywords,
+        clock: Option<&CaptureClock>,
+    ) -> std::result::Result<(String, Option<ClockTask>), Refusal> {
+        let Some(clock) = clock else { return Ok((done, None)) };
+        let time = self.date_time();
+        let (mut done, _) = clock::clock_in(&done, keywords, heading, &self.clock_settings, clock.start)?;
+        if clock.keep {
+            let head = done[heading..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();
+            self.running = Some(RunningClock { uri: target.clone(), start: clock.start, head: head.clone() });
+            self.last_clocked = Some((target.clone(), head));
+            self.clock_pending = true;
+            return Ok((done, None));
+        }
+        let line = running_lines(&done)
+            .into_iter()
+            .find(|(line, start, _)| *start == clock.start && Self::heading_above(&done, *line) == Some(heading))
+            .map(|(line, ..)| line);
+        if let Some(line) = line {
+            done = clock::clock_out(&done, line, time, &self.clock_settings)?.text;
+        }
+        Ok((done, clock.interrupted.clone().filter(|_| clock.resume)))
     }
 
     /// The captured text goes to its target (`org-capture-finalize`): with
@@ -8040,53 +8188,29 @@ impl Server {
     ) -> std::result::Result<Value, Refusal> {
         let start = start.min(done.len());
         let heading = start + done[start..].len() - done[start..].trim_start_matches(['\n', ' ', '\t']).len();
-        let mut done = done;
-        let mut resume = None;
-        if let Some(clock) = clock {
-            let time = self.date_time();
-            let (clocked, _) = clock::clock_in(&done, keywords, heading, &self.clock_settings, clock.start)?;
-            done = clocked;
-            if clock.keep {
-                let head = done[heading..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();
-                self.running = Some(RunningClock { uri: target.clone(), start: clock.start, head: head.clone() });
-                self.last_clocked = Some((target.clone(), head));
-                self.clock_pending = true;
-            } else {
-                let line = running_lines(&done)
-                    .into_iter()
-                    .find(|(line, start, _)| {
-                        *start == clock.start && Self::heading_above(&done, *line) == Some(heading)
-                    })
-                    .map(|(line, ..)| line);
-                if let Some(line) = line {
-                    done = clock::clock_out(&done, line, time, &self.clock_settings)?.text;
-                }
-                if clock.resume {
-                    resume = clock.interrupted.clone();
-                }
-            }
-        }
+        let (done, resume) = self.clock_capture(target, done, heading, keywords, clock)?;
         let position = LineIndex::new(&done).position(&done, heading, self.client.encoding);
         match resume {
-            Some((uri, title)) => {
+            Some(task) => {
                 // The clock the capture stopped starts again, in the same
-                // edit as the capture when it is in the same file.
-                let found = if uri == *target {
-                    org_core::outline::Outline::new(&org_syntax::parse(&done, &self.todo), &done, "")
-                        .entries
-                        .iter()
-                        .find(|entry| {
-                            org_core::agenda::report::plain_heading(&entry.head, entry.todo.as_deref()) == title
-                        })
-                        .map(|entry| entry.offset)
+                // edit as the capture when it is in the same file, where
+                // the capture moved its entry by what it added before it.
+                let found = if task.uri == *target {
+                    let moved = if task.offset >= start {
+                        task.offset + done.len().saturating_sub(now.len())
+                    } else {
+                        task.offset
+                    };
+                    let outline = org_core::outline::Outline::new(&org_syntax::parse(&done, &self.todo), &done, "");
+                    task_in(&outline, moved, &task.title)
                 } else {
-                    self.find_title(&uri, &title)
+                    self.find_task(&task)
                 };
                 let change = (target.clone(), version, now.to_string(), done.clone());
                 match found {
                     Some(at) => {
                         let time = self.date_time();
-                        self.clock_in_after(uri, at, time, vec![change])?;
+                        self.clock_in_after(task.uri, at, time, vec![change])?;
                     }
                     None => self.send_texts(vec![change]),
                 }
@@ -8108,15 +8232,17 @@ impl Server {
         Ok(Value::Null)
     }
 
-    /// `org-capture-refile` (`C-c C-w`): the entry goes to its target, and
-    /// from there under a refile target.
+    /// `org-capture-refile` (`C-c C-w`): the entry is filed as
+    /// `org-capture-finalize` files it, with its clock, then goes from
+    /// there under a refile target; the clock the capture stopped starts
+    /// again with `:clock-resume`. Every file changes in one edit.
     fn refile_capture(&mut self, answer: Option<&str>, text: Option<String>) -> std::result::Result<Value, Refusal> {
         let capture = self.capture.take().ok_or("No capture is going on")?;
         if capture.spec.1 != capture::Kind::Entry {
             self.capture = Some(capture);
             return Err("Refiling from a capture buffer makes only sense for `entry'-type templates".into());
         }
-        let (_, _, done) = match self.captured(&capture, text) {
+        let (_, _, done, begin) = match self.captured(&capture, text) {
             Ok(captured) => captured,
             Err(refusal) => {
                 self.capture = Some(capture);
@@ -8124,21 +8250,42 @@ impl Server {
             }
         };
         // The entry starts where the template went in, after any blank lines.
-        let begin = capture.placed.begin.min(done.len());
+        let begin = begin.min(done.len());
         let start = begin + done[begin..].len() - done[begin..].trim_start_matches(['\n', ' ', '\t']).len();
         let uri = capture.uri.clone();
         let target = capture.target.clone();
-        let result = self.refile_from(target, start, None, Some(done), false, answer, RefileMode::Move);
-        match result {
-            // Still asking where to: the capture stays.
-            Ok(value) if value.get("input").is_some() => {
-                self.capture = Some(capture);
-                Ok(value)
-            }
-            Ok(_) => Ok(json!({ "close": uri })),
+        // The clock of the capture, only when the entry is filed: a refile
+        // that still asks where to changes nothing yet.
+        let running = self.running.clone();
+        let keywords = org_syntax::parse(&done, &self.todo).todo_keywords().clone();
+        let clocked = self.clock_capture(&target, done, start, &keywords, capture.clock.as_ref());
+        let (done, resume) = match clocked {
+            Ok(clocked) => clocked,
             Err(refusal) => {
                 self.capture = Some(capture);
-                Err(refusal)
+                return Err(refusal);
+            }
+        };
+        self.staging = Some(bulk::Staging::new());
+        let result = self.refile_from(target, start, None, Some(done), false, answer, RefileMode::Move);
+        match result {
+            Ok(value) if value.get("input").is_none() => {
+                if let Some(task) = resume {
+                    if let Some(at) = self.find_task(&task) {
+                        let time = self.date_time();
+                        self.clock_in_at(task.uri, at, time)?;
+                    }
+                }
+                self.finish_staging();
+                Ok(json!({ "close": uri }))
+            }
+            // Still asking where to, or refused: the capture stays.
+            other => {
+                self.staging = None;
+                self.running = running;
+                self.clock_pending = false;
+                self.capture = Some(capture);
+                other
             }
         }
     }
@@ -9211,6 +9358,10 @@ impl Server {
                     Some(Pending::EmacsQuestion(answer)),
                 );
             }
+            // As Emacs's echo area shows a question and its answer.
+            crate::emacs::Event::Declined { prompt } => {
+                self.show_message(MessageType::INFO, format!("{prompt} (y or n) n"));
+            }
             crate::emacs::Event::Done { tag, result } => match (self.emacs_jobs.remove(&tag), result) {
                 (Some(EmacsJob::Export(label)), Err(error)) => {
                     self.show_message(MessageType::ERROR, format!("{label}: {error}"));
@@ -9624,8 +9775,8 @@ impl Server {
             match version {
                 Some(version) => documents.push((file_uri.clone(), Some(*version), self.text_edits(old, text))),
                 None => {
-                    if let Err(error) = std::fs::write(file, text) {
-                        self.show_message(MessageType::ERROR, format!("Cannot write {file}: {error}"));
+                    if let Err(error) = write_whole(Path::new(file), text) {
+                        self.show_message(MessageType::ERROR, error);
                     }
                 }
             }
@@ -9819,7 +9970,7 @@ impl Server {
             self.send_request::<ShowDocument>(params, None);
             return Ok(Value::Null);
         }
-        let directory = self.special_directory.join(self.special_edits.len().to_string());
+        let directory = self.special_directory.path().join(self.special_edits.len().to_string());
         let suffix = if new.kind == SpecialKind::Region { "narrowed" } else { "edit" };
         let file = directory.join(format!("{}-{suffix}.{}", new.stem, new.extension));
         std::fs::create_dir_all(&directory)
@@ -10923,8 +11074,9 @@ impl Server {
         if let Some(text) = result.get("text").and_then(Value::as_str) {
             let name = result.get("name").and_then(Value::as_str).unwrap_or("Org Export").trim_matches('*');
             let extension = result.get("extension").and_then(Value::as_str).unwrap_or("txt");
-            let file = self.export_directory.join(format!("{name}.{extension}"));
-            let written = std::fs::create_dir_all(&self.export_directory).and_then(|()| std::fs::write(&file, text));
+            let directory = self.export_directory.path();
+            let file = directory.join(format!("{name}.{extension}"));
+            let written = std::fs::create_dir_all(directory).and_then(|()| std::fs::write(&file, text));
             if let Err(error) = written {
                 self.show_message(MessageType::ERROR, format!("Cannot write {}: {error}", file.display()));
                 return;
@@ -12427,7 +12579,7 @@ impl Server {
         let (file, heading) = self.clock_target(context)?;
         // `C-u C-u`: the entry becomes the default task.
         if count == 16 {
-            self.clock_default_task = self.entry_title(&file, heading).map(|title| (file.clone(), title));
+            self.clock_default_task = self.clock_task(&file, heading);
         }
         // `C-u C-u C-u`: from when the last clock stopped.
         let now = self.date_time();
@@ -12445,16 +12597,15 @@ impl Server {
         .flatten()
     }
 
-    /// Where the entry with `title` starts in `uri`.
-    fn find_title(&mut self, uri: &Uri, title: &str) -> Option<usize> {
-        self.with_source(uri, |_, _, _, outline, _| {
-            outline
-                .entries
-                .iter()
-                .find(|entry| org_core::agenda::report::plain_heading(&entry.head, entry.todo.as_deref()) == title)
-                .map(|entry| entry.offset)
-        })
-        .flatten()
+    /// The entry at `heading` of `uri`, as the clock keeps it.
+    fn clock_task(&mut self, uri: &Uri, heading: usize) -> Option<ClockTask> {
+        let title = self.entry_title(uri, heading)?;
+        Some(ClockTask { uri: uri.clone(), offset: heading, title })
+    }
+
+    /// Where the entry of `task` starts now in its file.
+    fn find_task(&mut self, task: &ClockTask) -> Option<usize> {
+        self.with_source(&task.uri, |_, _, _, outline, _| task_in(outline, task.offset, &task.title)).flatten()
     }
 
     /// Note a message from the editor: one after `org-clock-idle-time`
@@ -12604,7 +12755,7 @@ impl Server {
     /// pick from; asked as a choice, then clocked into.
     fn clock_in_selected(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
         // The history without repeats in a row.
-        let mut recent: Vec<(Uri, String)> = Vec::new();
+        let mut recent: Vec<ClockTask> = Vec::new();
         for task in &self.clock_history {
             if recent.last() != Some(task) {
                 recent.push(task.clone());
@@ -12613,32 +12764,33 @@ impl Server {
         if recent.is_empty() {
             return Err("No recent clock".into());
         }
-        let mut tasks: Vec<(String, Uri, String)> = Vec::new();
-        if let Some((uri, title)) = self.clock_default_task.clone() {
-            tasks.push(("d".to_string(), uri, title));
+        let mut tasks: Vec<(String, ClockTask)> = Vec::new();
+        if let Some(task) = self.clock_default_task.clone() {
+            tasks.push(("d".to_string(), task));
         }
-        if let Some((uri, title)) = self.clock_interrupted.clone() {
-            tasks.push(("i".to_string(), uri, title));
+        if let Some(task) = self.clock_interrupted.clone() {
+            tasks.push(("i".to_string(), task));
         }
         if let Some(running) = self.running.clone() {
-            if let Some(title) = self
+            if let Some(task) = self
                 .clock_line(&running)
                 .and_then(|(text, _, line)| Self::heading_above(&text, line))
-                .and_then(|heading| self.entry_title(&running.uri, heading))
+                .and_then(|heading| self.clock_task(&running.uri, heading))
             {
-                tasks.push(("c".to_string(), running.uri, title));
+                tasks.push(("c".to_string(), task));
             }
         }
         let mut number = 0;
-        for (uri, title) in recent {
+        for task in recent {
             number += 1;
             let key = if number < 10 { char::from(b'0' + number as u8) } else { char::from(b'A' + number as u8 - 10) };
-            tasks.push((key.to_string(), uri, title));
+            tasks.push((key.to_string(), task));
         }
         // What each line shows: the category and the headline.
         let mut found: Vec<(String, Uri, usize, String)> = Vec::new();
-        for (key, uri, title) in tasks {
-            let Some(heading) = self.find_title(&uri, &title) else { continue };
+        for (key, task) in tasks {
+            let Some(heading) = self.find_task(&task) else { continue };
+            let uri = task.uri;
             let label = self
                 .with_source(&uri, |_, _, _, outline, _| {
                     let entry = &outline.entries[outline.entry_at(heading)?];
@@ -12681,11 +12833,12 @@ impl Server {
         if count == 4 {
             return self.clock_in_selected(context);
         }
-        let Some((uri, title)) = self.clock_history.first().cloned() else {
+        let Some(task) = self.clock_history.first().cloned() else {
             self.message = Some("No last clock".to_string());
             return Ok(Value::Null);
         };
-        let heading = self.find_title(&uri, &title).ok_or("The entry clocked last is gone")?;
+        let heading = self.find_task(&task).ok_or("The entry clocked last is gone")?;
+        let ClockTask { uri, title, .. } = task;
         let now = self.date_time();
         let start = if count == 16 { self.clock_out_time.unwrap_or(now) } else { now };
         let already = self.running.is_some();
@@ -12740,7 +12893,7 @@ impl Server {
         let now = self.date_time();
         let mut changes = changes;
         let mut heading = heading;
-        let title = self.entry_title(&file, heading);
+        let task = self.clock_task(&file, heading);
         let mut interrupted = None;
         if let Some(running) = self.running.clone() {
             // Its line, in the text a change before made of its file.
@@ -12769,8 +12922,7 @@ impl Server {
                     return Ok(Value::Null);
                 }
                 interrupted = Self::heading_above(&text, line)
-                    .and_then(|running_heading| self.entry_title(&running.uri, running_heading))
-                    .map(|title| (running.uri.clone(), title));
+                    .and_then(|running_heading| self.clock_task(&running.uri, running_heading));
                 let out = clock::clock_out(&text, line, now, &self.clock_settings)?;
                 self.clock_out_time = Some(now);
                 let out_text = match Self::heading_above(&text, line) {
@@ -12815,12 +12967,20 @@ impl Server {
         self.send_texts(changes);
         self.running = Some(RunningClock { uri: file.clone(), start, head: head.clone() });
         self.clock_interrupted = interrupted;
-        // `org-clock-history-push`
-        if let Some(title) = title {
-            let task = (file.clone(), title);
-            self.clock_history.retain(|other| *other != task);
-            self.clock_history.truncate(self.clock_history_length - 1);
-            self.clock_history.insert(0, task);
+        // `org-clock-history-push`: the entry once, first.
+        if let Some(task) = task {
+            let history = std::mem::take(&mut self.clock_history);
+            let mut kept = Vec::new();
+            for other in history {
+                let same =
+                    other.uri == task.uri && other.title == task.title && self.find_task(&other) == Some(heading);
+                if !same {
+                    kept.push(other);
+                }
+            }
+            kept.truncate(self.clock_history_length - 1);
+            kept.insert(0, task);
+            self.clock_history = kept;
         }
         self.last_clocked = Some((file, head));
         let shown = if repeat { "showing task time since last repeat." } else { "showing entire task time." };
@@ -13031,6 +13191,15 @@ mod tests {
             std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o600)).unwrap();
             write_whole(&file, "* three\n").unwrap();
             assert_eq!(std::fs::metadata(&file).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+        // A link stays a link: the file it leads to is written.
+        #[cfg(unix)]
+        {
+            let link = directory.join("linked.org_archive");
+            std::os::unix::fs::symlink(&file, &link).unwrap();
+            write_whole(&link, "* four\n").unwrap();
+            assert!(std::fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+            assert_eq!(std::fs::read_to_string(&file).unwrap(), "* four\n");
         }
         std::fs::remove_dir_all(directory).unwrap();
     }

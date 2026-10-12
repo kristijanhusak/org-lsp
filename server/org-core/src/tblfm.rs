@@ -1003,9 +1003,18 @@ fn eval_formula(
     // read again, so fields that refer to each other would go on for
     // ever: Emacs leaves that to `C-g`, the server stops on its own.
     let mut replaced = 0;
+    // The forms the formula took, without the parentheses each reference
+    // read adds: one it takes again goes round in circles.
+    let mut seen = std::collections::HashSet::new();
+    let hashing = std::collections::hash_map::RandomState::new();
+    let mut again = |form: &str| {
+        use std::hash::BuildHasher;
+        let bare: String = form.chars().filter(|c| !matches!(c, '(' | ')' | ' ')).collect();
+        !seen.insert((bare.len(), hashing.hash_one(&bare)))
+    };
     while let Some(found) = RANGE.find(&form).filter(|found| found.len() > 1) {
         replaced += 1;
-        if replaced > REFERENCES_MAX || form.len() > FORMULA_MAX {
+        if replaced > REFERENCES_MAX || form.len() > FORMULA_MAX || again(&form) {
             return Err(format!("Spreadsheet error: invalid reference \"{formula}\""));
         }
         let read = get_range(found.as_str(), line, column, table, analysis, false)?;

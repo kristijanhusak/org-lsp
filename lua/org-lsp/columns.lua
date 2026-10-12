@@ -177,8 +177,8 @@ end
 --- What the server says column view shows (`org-lsp/columns`).
 ---@param params table
 function M.show(params)
-  local bufnr = vim.uri_to_bufnr(params.uri)
-  if not vim.api.nvim_buf_is_loaded(bufnr) then
+  local bufnr = require('org-lsp.buffers').of(params.uri)
+  if not bufnr then
     return
   end
   if params.lines == nil or params.lines == vim.NIL then

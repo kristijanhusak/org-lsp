@@ -5,6 +5,44 @@ use org_syntax::{Parse, SyntaxNode, TodoKeywords};
 
 use crate::line_index::{Encoding, LineIndex};
 
+/// A change to a text: the bytes from `start` to `end` became `length`
+/// bytes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Change {
+    pub start: usize,
+    pub end: usize,
+    pub length: usize,
+}
+
+impl Change {
+    /// The change from `old` to `new`, a whole text an editor sent: from
+    /// where they start to differ to where they end the same.
+    pub fn between(old: &str, new: &str) -> Change {
+        let mut prefix = old.bytes().zip(new.bytes()).take_while(|(a, b)| a == b).count();
+        while !old.is_char_boundary(prefix) || !new.is_char_boundary(prefix) {
+            prefix -= 1;
+        }
+        let most = old.len().min(new.len()) - prefix;
+        let mut suffix = old.bytes().rev().zip(new.bytes().rev()).take(most).take_while(|(a, b)| a == b).count();
+        while !old.is_char_boundary(old.len() - suffix) || !new.is_char_boundary(new.len() - suffix) {
+            suffix -= 1;
+        }
+        Change { start: prefix, end: old.len() - suffix, length: new.len() - prefix - suffix }
+    }
+
+    /// Where `offset` is after the change: a place in the bytes that
+    /// changed goes to where they started.
+    pub fn moved(&self, offset: usize) -> usize {
+        if self.end <= offset {
+            offset - (self.end - self.start) + self.length
+        } else if self.start < offset {
+            self.start
+        } else {
+            offset
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Document {
     pub version: i32,
@@ -25,26 +63,43 @@ impl Document {
     }
 
     /// Apply the changes of one `didChange` notification, in order, then reparse.
+    ///
+    /// The text, its index, version and parse change together: a parser
+    /// that fails on the new text leaves an empty parse, not the old one,
+    /// so the text and version still agree with the editor's.
+    ///
+    /// What changed, in order, each in the text the ones before left: the
+    /// bytes from `start` to `end` became `length` bytes.
     pub fn apply(
         &mut self,
         changes: Vec<TextDocumentContentChangeEvent>,
         version: i32,
         encoding: Encoding,
         todo: &TodoKeywords,
-    ) {
+    ) -> Vec<Change> {
+        let mut text = self.text.clone();
+        let mut index = self.index.clone();
+        let mut changed = Vec::new();
         for change in changes {
             match change.range {
                 Some(range) => {
-                    let range = self.index.text_range(&self.text, range, encoding);
-                    self.text.replace_range(usize::from(range.start())..usize::from(range.end()), &change.text);
+                    let range = index.text_range(&text, range, encoding);
+                    let (start, end) = (usize::from(range.start()), usize::from(range.end()));
+                    changed.push(Change { start, end, length: change.text.len() });
+                    text.replace_range(start..end, &change.text);
                 }
-                None => self.text = change.text,
+                None => {
+                    changed.push(Change::between(&text, &change.text));
+                    text = change.text;
+                }
             }
             // Later changes in the same notification refer to the new text.
-            self.index = LineIndex::new(&self.text);
+            index = LineIndex::new(&text);
         }
-        self.version = version;
-        self.parse = org_syntax::parse(&self.text, todo);
+        let parse = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| org_syntax::parse(&text, todo)))
+            .unwrap_or_else(|_| org_syntax::parse("", todo));
+        *self = Document { version, text, index, parse };
+        changed
     }
 }
 
@@ -60,6 +115,20 @@ mod tests {
             range_length: None,
             text: text.to_string(),
         }
+    }
+
+    #[test]
+    fn narrows_a_whole_text_to_what_changed() {
+        assert_eq!(
+            Change::between("* a\nlong body\n* b\n", "* a\nbody\n* b\n"),
+            Change { start: 4, end: 9, length: 0 }
+        );
+        let change = Change::between("* é\n* b\n", "* è\n* b\n");
+        assert_eq!(change, Change { start: 2, end: 4, length: 2 });
+        // The second headline stays where it is, the first too.
+        assert_eq!(change.moved(5), 5);
+        assert_eq!(change.moved(0), 0);
+        assert_eq!(Change::between("same", "same"), Change { start: 4, end: 4, length: 0 });
     }
 
     #[test]

@@ -318,7 +318,7 @@
       "additionalProperties": {
         "type": "string"
       },
-      "description": "Link abbreviations: `[[gh:org-lsp]]` with `{ \"gh\": \"https://github.com/%s\" }` follows `https://github.com/org-lsp`. `%s` stands for what follows the colon, `%h` for it URL-encoded; without either it goes at the end. A file's `#+LINK:` lines come first. A function (`%(…)`) is not supported. (`org-link-abbrev-alist`)",
+      "description": "Link abbreviations: `[[gh:org-lsp]]` with `{ \"gh\": \"https://github.com/%s\" }` follows `https://github.com/org-lsp`. `%s` stands for what follows the colon, `%h` for it URL-encoded; without either it goes at the end. A file's `#+LINK:` lines come first. `%(my-function)` calls an Emacs function with what follows the colon (through Emacs). (`org-link-abbrev-alist`)",
       "default": {}
     },
     "org_tag_alist": {

@@ -388,7 +388,7 @@ pub const SETTINGS: &[Setting] = &[
         "org-link-abbrev-alist",
         "Link abbreviations: `[[gh:org-lsp]]` with `{ \"gh\": \"https://github.com/%s\" }` follows \
          `https://github.com/org-lsp`. `%s` stands for what follows the colon, `%h` for it URL-encoded; without \
-         either it goes at the end. A file's `#+LINK:` lines come first. A function (`%(…)`) is not supported.",
+         either it goes at the end. A file's `#+LINK:` lines come first. `%(my-function)` calls an Emacs function with what follows the colon (through Emacs).",
     ),
     setting(
         "org_tag_alist",

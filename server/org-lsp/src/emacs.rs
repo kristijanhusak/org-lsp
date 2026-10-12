@@ -13,6 +13,7 @@
 use std::collections::VecDeque;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -44,14 +45,36 @@ pub enum Event {
     Done { tag: u64, result: Result<Value, String> },
     /// Emacs asks a yes-or-no question; the answer goes to `answer`.
     Ask { prompt: String, answer: Sender<bool> },
+    /// Emacs asked a question while the server waited for it, which could
+    /// not be put to the user: it was answered no.
+    Declined { prompt: String },
 }
 
 struct Job {
     method: String,
     params: Value,
     reply: Reply,
-    /// When the server stops waiting for a job it waits for (`Reply::Now`).
-    deadline: Option<Instant>,
+    /// How long Emacs may take over a job the server waits for
+    /// (`Reply::Now`), from when the job is sent to it: the time Emacs
+    /// takes to start is not the job's.
+    timeout: Option<Duration>,
+    /// When the job was sent to Emacs, for the server that waits.
+    begun: Arc<Mutex<Option<Instant>>>,
+    /// The server stopped waiting before the job was sent to Emacs.
+    abandoned: Arc<AtomicBool>,
+}
+
+impl Job {
+    fn new(method: &str, params: Value, reply: Reply, timeout: Option<Duration>) -> Job {
+        Job {
+            method: method.to_string(),
+            params,
+            reply,
+            timeout,
+            begun: Arc::new(Mutex::new(None)),
+            abandoned: Arc::new(AtomicBool::new(false)),
+        }
+    }
 }
 
 enum Reply {
@@ -63,16 +86,19 @@ enum Reply {
 pub struct Emacs {
     jobs: Sender<Job>,
     events: Receiver<Event>,
+    starting: Arc<AtomicBool>,
 }
 
 impl Emacs {
     pub fn new(settings: Settings) -> Emacs {
         let (jobs, job_receiver) = crossbeam_channel::unbounded::<Job>();
         let (event_sender, events) = crossbeam_channel::unbounded();
+        let starting = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&starting);
         let _ = std::thread::Builder::new()
             .name("org-lsp-emacs".to_string())
-            .spawn(move || serve(&settings, &job_receiver, &event_sender));
-        Emacs { jobs, events }
+            .spawn(move || serve(&settings, &job_receiver, &event_sender, &flag));
+        Emacs { jobs, events, starting }
     }
 
     /// What the server's loop listens to.
@@ -80,29 +106,21 @@ impl Emacs {
         &self.events
     }
 
-    /// Run `method` and wait for its answer, at most `timeout`.
+    /// Run `method` and wait for its answer: at most `timeout` once Emacs
+    /// has it, and while Emacs starts, until it has started.
     pub fn call(&self, method: &str, params: Value, timeout: Duration) -> Result<Value, String> {
-        let (sender, receiver) = crossbeam_channel::bounded(1);
-        self.jobs
-            .send(Job {
-                method: method.to_string(),
-                params,
-                reply: Reply::Now(sender),
-                deadline: Some(Instant::now() + timeout),
-            })
-            .map_err(|_| "Emacs is not running".to_string())?;
-        receiver.recv_timeout(timeout).map_err(|_| "Emacs did not answer in time".to_string())?
+        self.caller().call(method, params, timeout)
     }
 
     /// A handle that runs methods and waits for them, as [`Emacs::call`],
     /// for those that hold no reference to the server.
     pub fn caller(&self) -> Caller {
-        Caller { jobs: self.jobs.clone() }
+        Caller { jobs: self.jobs.clone(), starting: Arc::clone(&self.starting) }
     }
 
     /// Run `method`; its answer comes as [`Event::Done`] with `tag`.
     pub fn start(&self, tag: u64, method: &str, params: Value) {
-        let _ = self.jobs.send(Job { method: method.to_string(), params, reply: Reply::Later(tag), deadline: None });
+        let _ = self.jobs.send(Job::new(method, params, Reply::Later(tag), None));
     }
 }
 
@@ -110,21 +128,39 @@ impl Emacs {
 #[derive(Clone)]
 pub struct Caller {
     jobs: Sender<Job>,
+    starting: Arc<AtomicBool>,
 }
 
 impl Caller {
     /// [`Emacs::call`]
     pub fn call(&self, method: &str, params: Value, timeout: Duration) -> Result<Value, String> {
         let (sender, receiver) = crossbeam_channel::bounded(1);
-        self.jobs
-            .send(Job {
-                method: method.to_string(),
-                params,
-                reply: Reply::Now(sender),
-                deadline: Some(Instant::now() + timeout),
-            })
-            .map_err(|_| "Emacs is not running".to_string())?;
-        receiver.recv_timeout(timeout).map_err(|_| "Emacs did not answer in time".to_string())?
+        let job = Job::new(method, params, Reply::Now(sender), Some(timeout));
+        let (begun, abandoned) = (Arc::clone(&job.begun), Arc::clone(&job.abandoned));
+        self.jobs.send(job).map_err(|_| "Emacs is not running".to_string())?;
+        let asked = Instant::now();
+        let mut until = asked + timeout;
+        loop {
+            match receiver.recv_deadline(until) {
+                Ok(result) => return result,
+                Err(crossbeam_channel::RecvTimeoutError::Disconnected) => return Err(STOPPED.to_string()),
+                Err(crossbeam_channel::RecvTimeoutError::Timeout) => {}
+            }
+            let now = Instant::now();
+            let sent = begun.lock().ok().and_then(|begun| *begun);
+            match sent {
+                // Emacs has the job: it has its own time from then on.
+                Some(sent) if sent + timeout > now => until = sent + timeout,
+                // Emacs is starting: its start is not the job's time.
+                None if self.starting.load(Ordering::SeqCst) && now < asked + SETUP_TIME => {
+                    until = now + Duration::from_millis(50);
+                }
+                _ => {
+                    abandoned.store(true, Ordering::SeqCst);
+                    return Err(LATE.to_string());
+                }
+            }
+        }
     }
 }
 
@@ -146,25 +182,39 @@ impl Drop for Process {
 
 /// The thread: run each job in Emacs, which starts with the first one and
 /// again after it stopped.
-fn serve(settings: &Settings, jobs: &Receiver<Job>, events: &Sender<Event>) {
+fn serve(settings: &Settings, jobs: &Receiver<Job>, events: &Sender<Event>, starting: &AtomicBool) {
     let mut process: Option<Process> = None;
     for job in jobs {
         // A job the server no longer waits for, behind a long one.
-        if job.deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+        if job.abandoned.load(Ordering::SeqCst) {
             answer(job.reply, Err(LATE.to_string()), events);
             continue;
         }
         if process.is_none() {
-            match start(settings, events) {
+            starting.store(true, Ordering::SeqCst);
+            let started = start(settings, events);
+            starting.store(false, Ordering::SeqCst);
+            match started {
                 Ok(started) => process = Some(started),
                 Err(error) => {
                     answer(job.reply, Err(error), events);
                     continue;
                 }
             }
+            // The server stopped waiting while Emacs started: Emacs stays,
+            // for the next job.
+            if job.abandoned.load(Ordering::SeqCst) {
+                answer(job.reply, Err(LATE.to_string()), events);
+                continue;
+            }
         }
         let Some(running) = process.as_mut() else { continue };
-        let result = request(running, &job.method, job.params, events, job.deadline);
+        let now = Instant::now();
+        if let Ok(mut begun) = job.begun.lock() {
+            *begun = Some(now);
+        }
+        let deadline = job.timeout.map(|timeout| now + timeout);
+        let result = request(running, &job.method, job.params, events, deadline);
         // An Emacs that stopped, or that is stuck past the time the server
         // waits (a question no one answers, a loop): the next job starts
         // a new one, and this one goes with `process`.
@@ -280,9 +330,13 @@ fn request(
             // While the server waits for this job it cannot ask the user:
             // no. Otherwise the user is asked, and no answer is no.
             let (sender, receiver) = crossbeam_channel::bounded(1);
-            let answer = deadline.is_none()
-                && events.send(Event::Ask { prompt, answer: sender }).is_ok()
-                && receiver.recv_timeout(QUESTION_TIME).unwrap_or(false);
+            let answer = if deadline.is_none() {
+                events.send(Event::Ask { prompt, answer: sender }).is_ok()
+                    && receiver.recv_timeout(QUESTION_TIME).unwrap_or(false)
+            } else {
+                let _ = events.send(Event::Declined { prompt });
+                false
+            };
             let reply = ascii_json(&json!({ "answer": answer }));
             if writeln!(process.stdin, "{reply}").and_then(|()| process.stdin.flush()).is_err() {
                 return Err(stopped(process));
@@ -354,6 +408,34 @@ done
         // The stuck Emacs is gone: a new one answers.
         let again = emacs.call("ping", Value::Null, second).unwrap();
         assert_ne!(first, again);
+        drop(emacs);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    /// An Emacs that takes `seconds` to start, then answers as
+    /// `fake_emacs` does.
+    #[cfg(unix)]
+    fn slow_emacs(directory: &std::path::Path, seconds: f64) -> String {
+        use std::os::unix::fs::PermissionsExt;
+        let fast = fake_emacs(directory);
+        let path = directory.join("slow-emacs");
+        std::fs::write(&path, format!("#!/bin/sh\nsleep {seconds}\nexec {fast}\n")).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        path.display().to_string()
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn does_not_count_the_start_of_emacs_against_a_call() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-slow-emacs-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let emacs = Emacs::new(Settings { program: slow_emacs(&directory, 1.0), ..Settings::default() });
+        // Emacs takes a second to start; the call has half a second of its
+        // own once it has started.
+        let first = emacs.call("ping", Value::Null, Duration::from_millis(500)).unwrap();
+        let again = emacs.call("ping", Value::Null, Duration::from_millis(500)).unwrap();
+        assert_eq!(first, again, "the same Emacs answers both");
         drop(emacs);
         std::fs::remove_dir_all(directory).unwrap();
     }

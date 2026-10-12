@@ -44,7 +44,7 @@ its sections says what it should look like.
 
 * Headings and structure
 
-*Partly:* Cloning is left out: it asks for text, and Zed cannot ask for text on a server's behalf. A command on a selection acts on the cursor's line: Zed tells a server no selection. The rest goes through the keys of keymap.json (Zed's tasks).
+*Partly:* A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
 
 - [ ] On a headline, a new heading of the same level goes below: the code action /New heading, item or table row/
 - [ ] A new TODO heading: the code action /New TODO heading, or item with a checkbox/
@@ -59,8 +59,9 @@ its sections says what it should look like.
 - [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: the code action /Move to the next heading of the same level/, the code action /Move to the previous heading of the same level/
 - [ ] Moving to the parent heading; on a top heading Org says it is at the top level: the code action /Move to the parent heading/
 - [ ] Going to a heading picked by its outline path (~A/B/~): the code action /Go to a heading of the file/
-- [ ] Off a table, turning a line into a heading and back (needs Emacs): the code action /Recalculate the table's current line/
+- [ ] Off a table, turning a line into a heading and back (needs Emacs): the code action /Turn the line into a heading, or the heading into a line/
 - [ ] Toggling ~COMMENT~ on the heading (needs Emacs): the code action /Toggle the COMMENT keyword of the heading/
+- [ ] Cloning the subtree twice a week apart (~+1w~): the copies follow it with their dates moved (needs Emacs): the code action /Clone the subtree, shifting its dates/
 - [ ] The outline lists the headings nested, also in pickers that filter symbols by kind: the outline panel
 
 * Lists and checkboxes
@@ -77,13 +78,14 @@ its sections says what it should look like.
 
 * TODO keywords
 
-*Partly:* A note for a state change (~@~) cannot be typed: Zed cannot ask for text on a server's behalf. States are picked with buttons. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.
+*Partly:* States are picked with buttons; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.
 
 - [ ] With ~org_enforce_todo_dependencies~, a parent with a child not done cannot be done: the change is refused with ~blocked (by "TODO Child")~; with ~org_enforce_todo_checkbox_dependencies~, an entry with an unchecked box cannot either: the code action /Change the TODO state/
 - [ ] Those tasks are dimmed in the agenda and the TODO list
 - [ ] Changing the TODO state of a headline (with ~org_todo_keywords~ keys, picked by key): the code action /Change the TODO state/
 - [ ] Cycling to the next and previous state: the code action /Cycle TODO state forward/, the code action /Cycle TODO state backward/
 - [ ] Done with ~org_log_done = "time"~ writes ~CLOSED: [...]~ below the headline: the code action /Change the TODO state/
+- [ ] A state with ~@~ (~WAIT(w@)~) asks for a note, written below the headline: the code action /Change the TODO state/
 - [ ] Done on a repeating entry (~<2026-01-01 Thu +1w>~) moves its date a week on and keeps it TODO: the code action /Change the TODO state/
 - [ ] The parent's ~[1/2]~ cookie is recounted: the code action /Change the TODO state/
 - [ ] A ~#+TODO: A B | C~ line in the file is used instead of the settings: the code action /Change the TODO state/
@@ -98,39 +100,47 @@ its sections says what it should look like.
 
 * Tags
 
-*Partly:* Setting tags is left out: it needs keys pressed in turn, or typed tags, and Zed cannot ask for text on a server's behalf. Completion and renaming work.
+*Partly:* Tags are typed, not set with keys pressed in turn: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Completion and renaming work.
 
+- [ ] Typing tags when none have keys; they are sorted and aligned to ~org_tags_column~: the code action /Set the tags of the headline/
 - [ ] Tags are completed after ~:~ at the end of a headline
 - [ ] Renaming a tag renames it in every headline and ~#+FILETAGS:~: ~F2~ on the tag
 
 * Properties and column view
 
-*Partly:* Setting a property or the effort is left out: they are typed, and Zed cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines.
+*Partly:* A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines.
 
+- [ ] Setting a property: the name and the value are asked for: the code action /Set a property of the entry/
 - [ ] On a property line with ~NAME_ALL~, cycling through its values: the code action /Move the date a day later, or cycle the TODO state or the list's bullets forward/, the code action /Move the date a day earlier, or cycle the TODO state or the list's bullets backward/
 - [ ] Deleting a property from the entry, and from the whole file: the code action /Delete a property of the entry/, the code action /Delete a property from every entry of the file/
+- [ ] Setting the effort: the code action /Set the effort of the entry/
 - [ ] Toggling ~ORDERED~: the code action /Toggle whether subtasks must be done in order (ORDERED)/
 - [ ] Property names are completed in a drawer
 
 * Dates and times
 
-*Partly:* Scheduling, deadlines and new timestamps are left out: they ask for a date, and Zed cannot ask for text on a server's behalf. Changing a timestamp works.
+*Partly:* Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Changing a timestamp works.
 
+- [ ] Scheduling with ~+2d~: ~SCHEDULED: <…>~ goes below the headline: the code action /Schedule the entry/
+- [ ] A deadline on ~fri 10:00~: the code action /Set the deadline of the entry/
 - [ ] Removing the scheduled date and the deadline: the code action /Remove the scheduled date of the entry/, the code action /Remove the deadline of the entry/
+- [ ] Inserting an active and an inactive timestamp; a second one right after makes a range: the code action /Insert or change a timestamp/, the code action /Insert or change an inactive timestamp/
 - [ ] On a timestamp, changing the day, month, year, hour and minute under the cursor; with a count: the code action /Increase the part of the timestamp at the cursor/, the code action /Decrease the part of the timestamp at the cursor/
 - [ ] Moving a timestamp by days: the code action /Move the date one day later/, the code action /Move the date one day earlier/
 - [ ] A repeater (~+1w~) and a warning (~-2d~) are kept as the date changes
 
 * Agenda
 
-*Partly:* The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension). Column view in the agenda is left out: it draws over the lines.
+*Partly:* The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode is left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.
 
 - [ ] The agenda menu lists the views and the custom commands: the code action /Agenda commands/
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: the code action /Agenda for the current week or day/
 - [ ] Later, earlier, today; day, week, month views; going to a date: the code action /Agenda: go forward in time/, the code action /Agenda: go backward in time/, the code action /Agenda: go to today/, the code action /Agenda: day view/, the code action /Agenda: week view/, the code action /Agenda: month view/, the code action /Agenda: go to a date/
+- [ ] The TODO list, a tag search (~work+urgent~), a word search: the code action /Agenda commands/
 - [ ] With ~org_super_agenda_mode~ on and ~org_super_agenda_groups~ set (~[{ name = "Today", time-grid = true }, { auto-category = true }]~), each day of the agenda is in groups under their headers, and the TODO list too: the code action /Agenda for the current week or day/
 - [ ] Going to the line's entry in another window, and where the agenda is: the code action /Agenda: go to the entry in another window/, the code action /Agenda: go to the entry/
 - [ ] Changing the line's TODO state and priority; the line follows: the code action /Change the TODO state/, the code action /Raise the priority/
+- [ ] Scheduling the line's entry and setting its deadline: the code action /Schedule the entry/, the code action /Set the deadline of the entry/
 - [ ] Marking lines and a bulk action on them: the code action /Agenda: mark the entry for a bulk action/, the code action /Agenda: an action on the marked entries/
 - [ ] Entry text, log mode, the clock report, archives mode: the code action /Agenda: entry text mode, some text of each entry under its line/, the code action /Agenda: log mode, what was closed and clocked/, the code action /Agenda: the clock report/, the code action /Agenda: include archived trees/
 - [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: the code action /Agenda: search for another word, or show inactive timestamps/, the code action /Agenda: show inactive timestamps once/, the code action /Agenda: rebuild/
@@ -160,10 +170,11 @@ its sections says what it should look like.
 
 * Capture
 
-*Partly:* Templates with prompts are left out: Zed cannot ask for text on a server's behalf. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.
+*Partly:* For a template's prompts, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.
 
 - [ ] The menu lists the templates by key: the code action /Capture/
 - [ ] An entry template opens the capture buffer with the cursor at ~%?~: the code action /Capture/
+- [ ] A ~%^{Name}~ prompt asks for text: the code action /Capture/
 - [ ] Finishing puts the entry under its target: the code action /Capture: finish/
 - [ ] Aborting leaves the target unchanged: the code action /Capture: abort/
 - [ ] A date tree target files under year, month and day: the code action /Capture/
@@ -174,16 +185,31 @@ its sections says what it should look like.
 
 * Notes (org-roam)
 
-*Not in Zed:* Zed cannot ask for text on a server's behalf, and the commands ask for a node; nor would the org-roam buffer follow the cursor: Zed reports no cursor moves to an extension.
+*Partly:* A node's title is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension.
+
+- [ ] With ~org_roam_enabled~ on and ~org_roam_directory~ set, finding a node offers the titles and aliases of its files and visits the one picked: the code action /Roam: find a node/
+- [ ] Inserting a node puts ~[[id:…][title]]~ at the cursor; on a selection, the selection is typed first and the link takes its place: the code action /Roam: insert a link to a node/
+- [ ] A title no node has opens a capture buffer with the new file's ~ID~ and ~#+title:~; finishing writes the file and, from insert, puts the link in: the code action /Roam: insert a link to a node/
+- [ ] A random node is visited: the code action /Roam: visit a random node/
+- [ ] Adding an alias puts it in the node's ~ROAM_ALIASES~; removing it offers the aliases and takes the one picked out: the code action /Roam: add an alias/, the code action /Roam: remove an alias/
+- [ ] Adding tags to a file's node writes ~#+filetags:~; on a headline's node, its tags: the code action /Roam: add tags/
+- [ ] Following ~[[roam:Title]]~ visits the node and turns the link into ~[[id:…][Title]]~; saving does it for the others: the code action /Open the link or thing at the cursor/
+- [ ] Typing ~[[roam:~ or ~[[id:~ offers the titles of the nodes; the one picked becomes an ~id:~ link
+- [ ] Toggling the org-roam buffer in a node another links to shows it beside, the cursor staying in the note, with /Backlinks (1)/ and the linking node's heading and text; toggling again hides it: the code action /Roam: show or hide the org-roam buffer/
+- [ ] Following an item of the buffer visits the line of the link: the code action /Open the link or thing at the cursor/
+- [ ] A dedicated buffer for a node asked for opens in a file of its own and stays on that node: the code action /Roam: show the org-roam buffer of a node/
+- [ ] With ~"unlinked-references"~ in ~org_roam_mode_sections~, a line naming the node's title without a link is listed under /Unlinked References/: the code action /Roam: refresh the org-roam buffer/
 
 * A journal (org-journal)
 
-*Partly:* The date commands, the searches and rescheduling are left out: Zed cannot ask for text on a server's behalf. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
+*Partly:* For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
 
 - [ ] With ~org_journal_enabled~ on, a new entry makes today's file in ~org_journal_dir~ (a file without an extension, opened as Org) with today's date and an entry with the time, the cursor after it: the code action /Journal: new entry/
 - [ ] With a journal file of yesterday holding a TODO entry, the first new entry of today moves it to today's file: the code action /Journal: new entry/
+- [ ] The other entries of the file are folded; the new one shows: the code action /Journal: new entry/
 - [ ] In a journal file, the previous entry goes to the day before; on the first, it says /No journal entry before this one/: the code action /Journal: previous entry/
 - [ ] With ~org_journal_enable_agenda_integration~, the TODO entries of today's journal file are in the week view: the code action /Agenda for the current week or day/
+- [ ] A search asks for the string, then the first and the last day; the results list each line found under its day, which links to the line: the code action /Journal: search between two dates/
 - [ ] Searching the TODO entries to come lists those of the days after today: the code action /Journal: the TODO entries to come/
 - [ ] The schedule lists the entries to come with a timestamp, under their days: the code action /Journal: the entries to come with a date/
 
@@ -198,13 +224,17 @@ its sections says what it should look like.
 
 * Links
 
-*Partly:* Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition, for links inside Org files and to files.
+*Partly:* A link's target is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Following works through go to definition, for links inside Org files and to files.
 
 - [ ] A ~#+LINK: gh https://github.com/%s~ line makes ~[[gh:org-lsp]]~ follow ~https://github.com/org-lsp~; ~org_link_abbrev_alist~ does the same from the settings: the code action /Open the link or thing at the cursor/
 - [ ] Following a link to a headline, a custom ID and a ~<<target>>~: the code action /Open the link or thing at the cursor/
 - [ ] Following a ~file:~ link with a search (~file:notes.org::*Heading~) and an ~id:~ link: the code action /Open the link or thing at the cursor/
+- [ ] Following a URL opens the browser; a timestamp opens its day's agenda: the code action /Open the link or thing at the cursor/
 - [ ] Go to definition on a link does the same: ~F12~
+- [ ] Storing a link to a headline and inserting it elsewhere with a description: the code action /Store a link to the place at the cursor/, the code action /Insert a link, or edit the one at the cursor/
+- [ ] Inserting a link on an existing link edits it: the code action /Insert a link, or edit the one at the cursor/
 - [ ] Creating an ID for the entry: the code action /Create an ID for the entry/
+- [ ] Moving to the next and previous link; after the last, again from the start of the file: the code action /Move to the next link/, the code action /Move to the previous link/
 - [ ] In ~[[~, file names, headlines and custom IDs are completed
 - [ ] Hovering a link shows where it leads
 - [ ] References on a headline list the links to it, in every file
@@ -213,14 +243,14 @@ its sections says what it should look like.
 
 * Footnotes
 
-*Partly:* Making footnotes and their menu are left out: they are not among Zed's code actions. Following them works.
-
 - [ ] Following ~[fn:1]~ goes to its definition, and from the definition back to the reference: the code action /Open the link or thing at the cursor/
 - [ ] A reference without a definition is reported
+- [ ] A new footnote (needs Emacs): ~[fn:1]~ at the cursor, its definition in the ~Footnotes~ section, the cursor there: the code action /Make a footnote, or go between a footnote and its definition/
+- [ ] On a reference without a definition, Emacs asks whether to make one, in the editor: the code action /Make a footnote, or go between a footnote and its definition/
 
 * Tables
 
-*Partly:* Moving between fields with ~TAB~ and copying down (~S-RET~) are left out: those keys stay Zed's own. Creating a table is left out: it asks for its size, and Zed cannot ask for text on a server's behalf. A shrunk column shows its whole text and ~…~: Zed lets no server hide text.
+*Partly:* Moving between fields with ~TAB~ and copying down (~S-RET~) are left out: those keys stay Zed's own. For a new table's size, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. A shrunk column shows its whole text and ~…~: Zed lets no server hide text.
 
 - [ ] Shrinking a column with a ~<5>~ cookie puts ~…~ after each of its fields, their text left whole; again, the ~…~ go; a file with ~#+STARTUP: shrink~ opens with them: the code action /Shrink or expand the table column/
 - [ ] Formatting the file aligns the tables: editor: format
@@ -229,6 +259,7 @@ its sections says what it should look like.
 - [ ] A rule below the row; a rule and a move to the row below: the code action /Insert a rule below the table row/, the code action /Insert a rule below the table row and go below it/
 - [ ] Blanking the field: the code action /Blank the table field/
 - [ ] The sum of the column and the field's references are shown as messages (needs Emacs): the code action /Sum the numbers of the table column/, the code action /Show the references of the table field/
+- [ ] Creating a table asks for its size (~3x2~; empty for Org's default) (needs Emacs): the code action /Insert an empty table/
 - [ ] Sorting the rows by the cursor's column: the code action /Sort the entries, the items or the table rows/
 - [ ] The ~#+TBLFM:~ line follows a moved column
 
@@ -242,26 +273,37 @@ its sections says what it should look like.
 - [ ] Iterating until the table is stable: the code action /Recalculate the table until it does not change/
 - [ ] An Emacs Lisp formula ~$3='(+ $1 $2);N~ and a remote reference ~remote(name,@1$1)~ are computed by Emacs (needs Emacs): the code action /Recalculate the table/
 - [ ] With the formula debugger on, recalculating shows each formula's substitution history and asks whether to go on (needs Emacs): the code action /Turn the formula debugger on or off/
+- [ ] Editing the formulas in a file of their own: saving it writes them to the ~#+TBLFM:~ line (needs Emacs): the code action /Edit the block in a file of its own/
+- [ ] Editing a field in a file of its own: saving it puts the text back on one line and realigns the table (needs Emacs): the code action /Edit the table field in a file of its own/
 
 * Code blocks (Babel)
 
-*Partly:* Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server.
-
+- [ ] Adding the file's named blocks to the Library of Babel; a ~#+CALL:~ in another file runs one (needs Emacs): the code action /Add the file's named code blocks to the Library of Babel/
 - [ ] Tangling writes each block to its ~:tangle~ file, ~:mkdirp~ and ~:shebang~ applied: the code action /Tangle the file's code blocks/
 - [ ] A ~:tangle (concat "out" ".el")~ block is tangled by Emacs to ~out.el~ (needs Emacs): the code action /Tangle the file's code blocks/
 - [ ] After tangling a block with ~:comments link~ and changing its code in the tangled file, detangling puts the new code back into the block (needs Emacs): the code action /Put the code of a tangled file back into its blocks/
 - [ ] Evaluating an ~emacs-lisp~ block asks first (yes or no), then puts ~#+RESULTS:~ below it (needs Emacs): the code action /Evaluate the code block or call at the cursor through Emacs/
 - [ ] ~src_emacs-lisp{(* 6 7)}~ gets ~{{{results(=42=)}}}~; a ~#+CALL:~ line its results: the code action /Evaluate the code block or call at the cursor through Emacs/
+- [ ] Evaluating the file's and the subtree's blocks: the code action /Evaluate the file's code blocks through Emacs/, the code action /Evaluate the subtree's code blocks through Emacs/
+- [ ] Removing a block's results: the code action /Remove the results of the code block at the cursor/
+- [ ] Moving to the next and previous code block, and to any block (needs Emacs): the code action /Move to the next code block/, the code action /Move to the previous code block/, the code action /Move to the next block/, the code action /Move to the previous block/
+- [ ] Going to a named code block, picked from the names (needs Emacs): the code action /Go to a named code block/
 - [ ] Typing in the file while a slow block runs: the results are dropped with a warning
 - [ ] Editing a code block in a file of its own: the file has the language's extension, its lines unindented and ~,*~ unescaped; saving it writes the block back and saves the Org file; the same block again shows the same file (needs Emacs): the code action /Edit the block in a file of its own/
+- [ ] The same at a footnote reference (its definition, the label kept), a LaTeX fragment and an export block; at ~#+INCLUDE:~ the file included is shown (needs Emacs): the code action /Edit the block in a file of its own/
 
 * Export and publishing
 
-*Not in Zed:* Not offered as a code action yet; its menu would come as buttons.
+- [ ] ~#~ in the export menu inserts the options template of the backend picked (~default~ for all): the code action /Export the file through Emacs/
+- [ ] The menu shows Emacs's backends, ~C-b~, ~C-s~ and ~C-f~ toggle the options (needs Emacs): the code action /Export the file through Emacs/
+- [ ] To an HTML file: the file is written next to the Org file and announced: the code action /Export the file through Emacs/
+- [ ] To an HTML file and opened: the browser opens it: the code action /Export the file through Emacs/
+- [ ] The subtree at the cursor as UTF-8 text in a buffer: a file of it is shown: the code action /Export the file through Emacs/
+- [ ] Unsaved changes are in the export: the code action /Export the file through Emacs/
+- [ ] ~&~ in the export menu lists what the exports made, the last first; picking one shows it again: the code action /Export the file through Emacs/
+- [ ] ~emacs_config~ adds Markdown (~org-export-backends~): it is in the menu after a restart
 
 * Citations
-
-*Partly:* Inserting citations is not offered as a code action yet. Completion, hover and following work.
 
 - [ ] Keys are completed after ~[cite:@~
 - [ ] Hovering a key shows its entry; following it opens the bibliography there
@@ -283,29 +325,38 @@ its sections says what it should look like.
 
 * Notes and logging
 
-*Not in Zed:* A note is typed text: Zed cannot ask for text on a server's behalf.
+*Partly:* A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+
+- [ ] Adding a note: a note buffer opens, and finishing writes it in the entry's log: the code action /Add a note to the entry/
+- [ ] With ~LOG_INTO_DRAWER~, the note goes in ~:LOGBOOK:~: the code action /Add a note to the entry/
+- [ ] Adding a note from the agenda: the code action /Add a note to the entry/
+- [ ] With ~org_log_reschedule~ ~"time"~ (or ~#+STARTUP: logreschedule~), rescheduling logs ~Rescheduled from "[…]" on […]~; with ~"note"~ a note buffer opens for it: the code action /Schedule the entry/
 
 * Completion and editing helpers
-
-*Partly:* Structure templates, emphasis and drawers are not among Zed's code actions.
 
 - [ ] At the start of a headline, TODO keywords are completed
 - [ ] ~#+~ keywords, and the values after ~#+STARTUP:~
 - [ ] Block names after ~#+begin_~, drawer names after ~:~
 - [ ] Entities after ~\~ (~\alp~ → ~\alpha~)
+- [ ] A block from the structure templates (~s~ for a source block) (needs Emacs): the code action /Insert a block (structure template)/
+- [ ] Emphasis markers around the cursor, ~*~ for bold (needs Emacs): the code action /Insert emphasis markers/
+- [ ] A drawer, its name completed from the file's (needs Emacs): the code action /Insert a drawer/
 
 * Timers
 
-*Partly:* A countdown that asks for its length is left out: Zed cannot ask for text on a server's behalf. No timer in the status line: Zed has no place there for an extension's text.
+*Partly:* For a countdown's length, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. No timer in the status line: Zed has no place there for an extension's text.
 
 - [ ] Starting the timer says when it started (needs Emacs): the code action /Start the relative timer/
 - [ ] Inserting the timer's value (~0:00:12~) and a timer item (~- 0:00:15 ::~): the code action /Insert the timer's value/, the code action /Insert a list item with the timer's value/
 - [ ] Pausing and continuing; stopping: the code action /Pause or continue the timer/, the code action /Stop the timer/
+- [ ] A countdown asks for its length (~1~ for a minute); when it ends, ~Heading: time out~ is shown: the code action /Set a countdown timer/
+- [ ] On an entry with an effort the countdown takes it, without asking: the code action /Set a countdown timer/
 
 * Attachments
 
-*Partly:* ~attachment:~ links open; attaching a file is left out: it asks for the file, and Zed cannot ask for text on a server's behalf.
+*Partly:* ~attachment:~ links open; the dispatcher's keys come as buttons, and for the file to attach, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
 
+- [ ] Attaching a file by copying it: the entry gets an ID and the ~ATTACH~ tag, the file goes in its directory (needs Emacs): the code action /Attachments of the entry/
 - [ ] An ~attachment:~ link opens the attached file (needs Emacs): the code action /Open the link or thing at the cursor/
 
 * Encryption

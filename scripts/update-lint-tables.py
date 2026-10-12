@@ -40,6 +40,8 @@ def main():
             capture_output=True,
             text=True,
             env=dict(os.environ, HOME=home),
+            # A question in batch mode waits for ever: fail instead.
+            timeout=1200,
         ).stdout
     tables = json.loads(out)
     lines = [

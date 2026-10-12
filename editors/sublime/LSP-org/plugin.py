@@ -478,10 +478,12 @@ image_keys = [0]
 
 def image_size(path: str):
     """The width and height of the PNG, GIF or JPEG image at `path`, which
-    Sublime Text's HTML can show, from its header; None for others."""
+    Sublime Text's HTML can show, from its header; None for others. Only
+    the start of the file is read: a JPEG's size comes after its metadata,
+    a thumbnail at most."""
     try:
         with open(path, 'rb') as image:
-            data = image.read()
+            data = image.read(1 << 18)
     except OSError:
         return None
     if data[:8] == b'\x89PNG\r\n\x1a\n' and len(data) >= 24:

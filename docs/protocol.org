@@ -144,6 +144,15 @@ And these notifications:
   show are left out. Sent after the file opens and after every change while
   it shows so, and once with no lines when it stops. Only for the version
   given.
+- ~org-lsp/display~ :: For a client that announces
+  ~experimental.orgDisplay: true~: what shows in place of hidden text, the
+  entities and sub- and superscripts of ~org_pretty_entities~ (~α~, ~x²~)
+  and the shrunk table columns (~org-table-shrink~). ~{ "uri", "version",
+  "items" }~, each item ~[line, character, endLine, endCharacter, shown]~:
+  the range hidden and the text shown in its place. Sent after every change
+  while there are some, and once with no items when there are none. Only
+  for the version given. A client that does not announce it gets the same
+  as inlay hints.
 - ~org-lsp/images~ :: For a client that announces
   ~experimental.orgImages: true~ (or sets the option ~images~): the images
   of the LaTeX fragments ~org.latex.preview~ asked for, once Emacs has made
@@ -268,7 +277,7 @@ Each option with its type, its default and what it means:
 - ~org_link_keep_stored_after_insertion~ :: boolean, ~false~. Stored links stay stored once inserted. (~org-link-keep-stored-after-insertion~)
 - ~org_complete_tags_always_offer_all_agenda_tags~ :: boolean, ~false~. Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. Setting tags offers them too. (~org-complete-tags-always-offer-all-agenda-tags~)
 - ~org_cite_global_bibliography~ :: string[], ~[]~. Bibliography files for the citations of every document (~[cite:@key]~), after those its ~#+BIBLIOGRAPHY:~ lines name: BibTeX (~.bib~, ~.bibtex~) or CSL-JSON (~.json~). Their entries are completed after ~@~, shown over a key, and where following a key goes; a key none has is marked. (~org-cite-global-bibliography~)
-- ~org_link_abbrev_alist~ :: { [abbreviation]: string }, ~{  }~. Link abbreviations: ~[[gh:org-lsp]]~ with ~{ "gh": "https://github.com/%s" }~ follows ~https://github.com/org-lsp~. ~%s~ stands for what follows the colon, ~%h~ for it URL-encoded; without either it goes at the end. A file's ~#+LINK:~ lines come first. A function (~%(…)~) is not supported. (~org-link-abbrev-alist~)
+- ~org_link_abbrev_alist~ :: { [abbreviation]: string }, ~{  }~. Link abbreviations: ~[[gh:org-lsp]]~ with ~{ "gh": "https://github.com/%s" }~ follows ~https://github.com/org-lsp~. ~%s~ stands for what follows the colon, ~%h~ for it URL-encoded; without either it goes at the end. A file's ~#+LINK:~ lines come first. ~%(my-function)~ calls an Emacs function with what follows the colon (through Emacs). (~org-link-abbrev-alist~)
 - ~org_tag_alist~ :: string, string[], ~""~. The tags offered when setting tags in a file without a ~#+TAGS:~ line, written like one: ~"work(w) home(h) { @office(o) @home(m) } [ GTD : Control Persp ]"~ gives ~work~ the key ~w~, makes ~@office~ and ~@home~ exclusive, and groups ~Control~ and ~Persp~ under ~GTD~; ~\n~ starts a new line. A list of these words does as well. Unset, the tags used in the file are offered. (~org-tag-alist~)
 - ~org_tag_persistent_alist~ :: string, string[], ~""~. Tags offered in every file, before those of ~#+TAGS:~ or ~org_tag_alist~, written the same way. (~org-tag-persistent-alist~)
 - ~org_group_tags~ :: boolean, ~true~. A group tag (~[ GTD : Control Persp ]~, ~{ Context : @home @office }~ in ~#+TAGS:~ or ~org_tag_alist~) in the match string of a tags view stands for itself and the tags of its group. (~org-group-tags~)
@@ -490,6 +499,12 @@ text selected (~org-link-precise-link-target~, no description), and inserts
 a link with the text selected as its description, in its place. An empty
 range is no selection. Code actions requested over a selection carry it in
 their commands, unless it is a single character (Helix's cursor).
+
+~folded~, for the commands marked ~"folds": true~ in the manifest
+(~org.export.dispatch~, whose ~C-v~ exports only what shows), is the
+editor's closed folds in the window, ~[[first, last]…]~, each the first and
+last line of a fold, from 0. ~clipboard~, for those marked
+~"clipboard": true~, is the text of the editor's clipboard.
 
 A command's result may carry ~"message"~: what Emacs says in the echo area
 when it is done, for the editor to show the same way (Neovim's messages, VS
@@ -1522,6 +1537,21 @@ time.
         { "key": "cit", "in": "org", "preset": "vim" },
         { "key": "t", "in": "agenda", "preset": "vim" }
       ]
+    },
+    {
+      "command": "org.paste.subtree",
+      "title": "Paste the subtree",
+      "edits": true,
+      "keys": [{ "key": "C-c C-x C-y", "in": "org", "preset": "emacs" }],
+      "clipboard": true
+    },
+    {
+      "command": "org.export.dispatch",
+      "title": "Export the file through Emacs",
+      "edits": false,
+      "keys": [{ "key": "C-c C-e", "in": "org", "preset": "emacs" }],
+      "input": { "kind": "key", "prompt": "Export command" },
+      "folds": true
     }
   ],
   "agenda": {
@@ -1557,7 +1587,11 @@ time.
   typed in insert mode (~<CR>~ of ~org.return~); the others in normal mode.
   One with ~"mode": "append"~ (~<Leader><CR>~ of ~org.meta.return~) runs with
   ~"below": true~ in the context, and leaves the editor in insert mode where
-  the command put the cursor.
+  the command put the cursor. A command that asks for something has
+  ~input~ (~kind~ and ~prompt~; see [[#commands][Commands]]). The context of a command
+  with ~"clipboard": true~ carries the editor's clipboard, one with
+  ~"region": true~ the selection, one with ~"folds": true~ the closed folds
+  (~clipboard~, ~range~ and ~folded~; see [[#commands][Commands]]).
 - ~agenda~, ~datePrompt~ :: How the agenda and date prompt documents are
   named; see below.
 - ~capture~, ~roamBuffer~ :: How the files of capture buffers and of the

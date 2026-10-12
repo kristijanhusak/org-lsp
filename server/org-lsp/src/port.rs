@@ -187,12 +187,23 @@ fn on_path(name: &str) -> Option<PathBuf> {
 
 /// Read one command, and answer whether it is taken.
 fn receive(mut stream: TcpStream, token: &str) -> Option<Command> {
-    // The port takes one command at a time: one that never comes must
-    // not keep the others out.
-    stream.set_read_timeout(Some(std::time::Duration::from_secs(2))).ok()?;
-    let mut line = String::new();
-    BufReader::new(Read::by_ref(&mut stream).take(4096)).read_line(&mut line).ok()?;
-    let sent: Option<Sent> = serde_json::from_str(&line).ok();
+    // The port takes one command at a time: one that never comes, or
+    // comes a byte at a time, must not keep the others out. The whole
+    // line has two seconds.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    let mut line = Vec::new();
+    let mut chunk = [0u8; 512];
+    while !line.contains(&b'\n') && line.len() < 4096 {
+        let left = deadline.checked_duration_since(std::time::Instant::now()).filter(|left| !left.is_zero())?;
+        stream.set_read_timeout(Some(left)).ok()?;
+        let read = stream.read(&mut chunk).ok()?;
+        if read == 0 {
+            break;
+        }
+        line.extend_from_slice(&chunk[..read]);
+    }
+    let line = line.split(|byte| *byte == b'\n').next().unwrap_or_default();
+    let sent: Option<Sent> = serde_json::from_slice(line).ok();
     let command = sent.filter(|sent| sent.token == token).map(|sent| Command {
         command: sent.command,
         position: sent.line.zip(sent.character),

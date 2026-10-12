@@ -11,19 +11,48 @@ commands there. [[file:../helix.org][helix.org]] says how to set Helix up.
 Press ~Space a~ (~code_action~) in an Org file to see the changes that apply
 at the cursor:
 
-| Action               | What it does                                              |
-|----------------------+-----------------------------------------------------------|
-| ~org.todo.next~      | Cycle the TODO state forward                              |
-| ~org.todo.previous~  | Cycle the TODO state backward                             |
-| ~org.priority.up~    | Raise the priority                                        |
-| ~org.priority.down~  | Lower the priority                                        |
-| ~org.timestamp.up~   | Increase the part of the timestamp at the cursor          |
-| ~org.timestamp.down~ | Decrease the part of the timestamp at the cursor          |
-| ~org.date.later~     | Move the date one day later                               |
-| ~org.date.earlier~   | Move the date one day earlier                             |
-| ~org.clock.in~       | Clock in on the entry (a clock that runs elsewhere stops) |
-| ~org.clock.out~      | Clock out, while a clock runs                             |
-| ~org.clock.cancel~   | Cancel the clock, while one runs                          |
+| Action                  | What it does                                              |
+|-------------------------+-----------------------------------------------------------|
+| ~org.todo.next~         | Cycle the TODO state forward                              |
+| ~org.todo.previous~     | Cycle the TODO state backward                             |
+| ~org.priority.up~       | Raise the priority                                        |
+| ~org.priority.down~     | Lower the priority                                        |
+| ~org.timestamp.up~      | Increase the part of the timestamp at the cursor          |
+| ~org.timestamp.down~    | Decrease the part of the timestamp at the cursor          |
+| ~org.date.later~        | Move the date one day later                               |
+| ~org.date.earlier~      | Move the date one day earlier                             |
+| ~org.clock.in~          | Clock in on the entry (a clock that runs elsewhere stops) |
+| ~org.clock.out~         | Clock out, while a clock runs                             |
+| ~org.clock.cancel~      | Cancel the clock, while one runs                          |
+| ~org.checkbox.toggle~   | Toggle the checkbox                                       |
+| ~org.table.recalculate~ | Recalculate the table                                     |
+
+More where they apply: on a headline, a list item or a table, in a code
+block, and in an entry:
+
+| Action                          | What it does                                                                     |
+|---------------------------------+----------------------------------------------------------------------------------|
+| ~org.meta.left~                 | Promote the heading; outdent the item; move the table column left                |
+| ~org.meta.right~                | Demote the heading; indent the item; move the table column right                 |
+| ~org.shiftmeta.left~            | Promote the subtree; outdent the item with its children; delete the table column |
+| ~org.shiftmeta.right~           | Demote the subtree; indent the item with its children; insert a table column     |
+| ~org.meta.up~                   | Move the subtree, the item or the table row up                                   |
+| ~org.meta.down~                 | Move the subtree, the item or the table row down                                 |
+| ~org.shiftmeta.up~              | Delete the table row                                                             |
+| ~org.shiftmeta.down~            | Insert a table row above                                                         |
+| ~org.table.insert.row.below~    | Insert a table row below                                                         |
+| ~org.table.hline~               | Insert a rule below the table row                                                |
+| ~org.table.hline.above~         | Insert a rule above the table row                                                |
+| ~org.table.blank.field~         | Blank the table field                                                            |
+| ~org.table.toggle.column.width~ | Shrink or expand the table column                                                |
+| ~org.babel.tangle~              | Tangle the file's code blocks (in a code block)                                  |
+| ~org.babel.execute~             | Evaluate the code block through Emacs                                            |
+| ~org.edit.special~              | Edit the block in a file of its own                                              |
+| ~org.archive.subtree~           | Archive the subtree                                                              |
+| ~org.archive.sibling~           | Archive the subtree under its Archive sibling                                    |
+| ~org.archive.tag~               | Toggle the ARCHIVE tag                                                           |
+
+An unknown citation key also offers the keys close to it (/Replace with @key/).
 
 The menu shows only those that would change something. Helix has no
 status line for the clock; ~org-lsp agenda --log~ in a terminal shows what

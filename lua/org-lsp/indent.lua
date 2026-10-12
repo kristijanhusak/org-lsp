@@ -83,9 +83,9 @@ end
 --- `lines` of `[line, prefix, wrap, hidden stars]`, for its `version`.
 ---@param params { uri: string, version: integer, lines: integer[][] }
 function M.virtual(params)
-  local bufnr = vim.uri_to_bufnr(params.uri)
+  local bufnr = require('org-lsp.buffers').of(params.uri)
   -- For older text than the buffer has: newer prefixes are on their way.
-  if not vim.api.nvim_buf_is_loaded(bufnr) or vim.lsp.util.buf_versions[bufnr] ~= params.version then
+  if not bufnr or vim.lsp.util.buf_versions[bufnr] ~= params.version then
     return
   end
   -- An entry in a float (`K` in the agenda) is shown as it is: indented,

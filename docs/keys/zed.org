@@ -18,10 +18,12 @@ Bind ~editor::ToggleCodeActions~ to a key of your own if the menu is too far
 away.
 
 What a command asks for is asked with buttons: a TODO state, a priority, a
-refile target, a capture template, yes or no. Zed has no way to ask for
-typed text, so the commands that want a date (schedule, deadline) or text
-(a template's ~%^{…}~ prompts, a tags search) say so and do nothing; set
-those dates in the file itself, where completion helps.
+refile target, a capture template, yes or no. Zed has no box of its own
+for a server to ask for typed text, so the commands that want a date
+(schedule, deadline) or text (a template's ~%^{…}~ prompts, a tags search)
+say what they ask for and /answer with a rename at the cursor/: rename at
+the cursor (~F2~) and type the answer (~+2d~, ~fri 10:00~, a search) for
+the new name. Until then a rename answers the question, not renames.
 
 [[file:../zed.org][zed.org]] says how to install and set up the extension.
 

@@ -66,10 +66,10 @@ its sections says what it should look like.
 - [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: ~]]~, ~[[~
 - [ ] Moving to the parent heading; on a top heading Org says it is at the top level: ~g{~
 - [ ] Going to a heading picked by its outline path (~A/B/~): ~<Leader>oj~
-- [ ] Off a table, turning a line into a heading and back (needs Emacs): ~:Org table recalculate line~
+- [ ] Off a table, turning a line into a heading and back (needs Emacs): ~:Org toggle heading~
 - [ ] Toggling ~COMMENT~ on the heading (needs Emacs): ~<Leader>o;~
 - [ ] Cloning the subtree twice a week apart (~+1w~): the copies follow it with their dates moved (needs Emacs): ~<Leader>osc~
-- [ ] On a selection of whole lines: two headlines demoted together; lines turned into headings (needs Emacs): ~>>~, ~:Org table recalculate line~
+- [ ] On a selection of whole lines: two headlines demoted together; lines turned into headings (needs Emacs): ~>>~, ~:Org toggle heading~
 - [ ] The outline lists the headings nested, also in pickers that filter symbols by kind: ~:lua vim.lsp.buf.document_symbol()~ or a picker such as snacks.nvim's ~lsp_symbols~
 
 * Lists and checkboxes
