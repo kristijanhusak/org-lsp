@@ -765,7 +765,7 @@ fn single_block(
         if noweb.split_whitespace().any(|value| value == "strip-tangle") {
             strip_references(&block.body)
         } else {
-            let mut expander = Expander { text, outline, blocks, path, file, by_ref: None };
+            let mut expander = Expander { text, outline, blocks, path, file, by_ref: None, expanding: Vec::new() };
             expander.expand(index, Context::Tangle)?
         }
     } else {
@@ -935,11 +935,25 @@ struct Expander<'a> {
     file: &'a Path,
     /// The blocks by `:noweb-ref`, once looked for.
     by_ref: Option<HashMap<String, Vec<usize>>>,
+    /// The blocks being expanded, outermost first: a block met again
+    /// among them refers to itself.
+    expanding: Vec<usize>,
 }
 
 impl Expander<'_> {
     /// `org-babel-expand-noweb-references` on the block `index`.
     fn expand(&mut self, index: usize, context: Context) -> Result<String, String> {
+        // Emacs recurses until its Lisp stack is full, and says so.
+        if self.expanding.contains(&index) {
+            return Err("Lisp nesting exceeds `max-lisp-eval-depth'".to_string());
+        }
+        self.expanding.push(index);
+        let expanded = self.expand_references(index, context);
+        self.expanding.pop();
+        expanded
+    }
+
+    fn expand_references(&mut self, index: usize, context: Context) -> Result<String, String> {
         let block = &self.blocks[index];
         let params = &block.params;
         let comment = param(params, ":comments") == Some("noweb");

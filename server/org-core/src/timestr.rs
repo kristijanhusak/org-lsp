@@ -135,7 +135,9 @@ pub fn closest_date(start: &str, current: Day, prefer: Prefer) -> Option<Day> {
     if current <= sday {
         return Some(sday);
     }
-    let value = interval.value;
+    // A repeater longer than any calendar holds (`+999999999999y`)
+    // repeats no more often than this one, and keeps the sums in range.
+    let value = interval.value.clamp(1, 10_000_000);
     let target = Date::from_day(current);
     let (n1, n2) = match interval.unit {
         b'h' => {
@@ -521,5 +523,13 @@ mod tests {
         assert_eq!(stamp_time_range("<2026-10-06 Tue 9:00>"), None);
         assert_eq!(stamp_time_range("<2026-10-06 14:00>"), None);
         assert_eq!(stamp_time_range("[2026-10-06 Tue 14:00]"), None);
+    }
+
+    #[test]
+    fn repeats_by_a_repeater_too_long_for_any_calendar() {
+        for unit in ["h", "d", "w", "m", "y"] {
+            let start = format!("<2026-01-01 Thu +999999999999999999{unit}>");
+            let _ = closest_date(&start, Date::new(2026, 10, 12).to_day(), Prefer::Nearest);
+        }
     }
 }

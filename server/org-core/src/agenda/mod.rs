@@ -34,6 +34,10 @@ use crate::outline::{Entry, LogKind, Outline};
 use crate::priority::Priorities;
 use crate::timestr::{closest_date, time_string_to_day, warning_days, Prefer};
 
+/// The most days an agenda of days covers, about ten years: each day is
+/// a block, and a span of centuries would hold the server for minutes.
+pub const DAYS_MAX: i64 = 3660;
+
 /// How many days the agenda covers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Span {
@@ -52,7 +56,7 @@ impl Span {
             1 => Span::Day,
             7 => Span::Week,
             14 => Span::Fortnight,
-            days => Span::Days(days.max(1)),
+            days => Span::Days(days.clamp(1, DAYS_MAX)),
         }
     }
 
@@ -90,12 +94,12 @@ impl Span {
     pub fn shift(self, start: Day, steps: i64) -> Day {
         let date = Date::from_day(start);
         match self {
-            Span::Day => start + steps,
-            Span::Week => start + 7 * steps,
-            Span::Fortnight => start + 14 * steps,
-            Span::Days(days) => start + days * steps,
-            Span::Month => Date::new(date.year, date.month + steps, date.day).to_day(),
-            Span::Year => Date::new(date.year + steps, date.month, date.day).to_day(),
+            Span::Day => start.saturating_add(steps),
+            Span::Week => start.saturating_add(steps.saturating_mul(7)),
+            Span::Fortnight => start.saturating_add(steps.saturating_mul(14)),
+            Span::Days(days) => start.saturating_add(steps.saturating_mul(days)),
+            Span::Month => Date::new(date.year, date.month.saturating_add(steps), date.day).to_day(),
+            Span::Year => Date::new(date.year.saturating_add(steps), date.month, date.day).to_day(),
         }
     }
 }
@@ -1595,4 +1599,19 @@ pub(crate) fn effort(entry: &Entry) -> Option<&str> {
 /// The entry an agenda line was made from.
 pub fn entry<'a>(files: &[&'a Outline], source: Source) -> &'a Entry {
     &files[source.file].entries[source.entry]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn moves_by_any_count_without_overflowing() {
+        let today = Date::new(2026, 10, 12).to_day();
+        for span in [Span::Day, Span::Week, Span::Fortnight, Span::Days(3), Span::Month, Span::Year] {
+            let _ = span.shift(today, 100_000);
+            let _ = span.shift(today, -100_000);
+        }
+        assert_eq!(Span::from_days(i64::MAX), Span::Days(DAYS_MAX));
+    }
 }

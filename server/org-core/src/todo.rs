@@ -1275,7 +1275,12 @@ impl<'a> Editor<'a> {
             let mut point = repeater_end;
             let stamp = self.text[start..repeater_end].to_string();
             let Some((kind, count, unit)) = repeater_parts(&stamp) else { continue };
-            let (count, unit) = if unit == 'w' { (count * 7, 'd') } else { (count, unit) };
+            let (count, unit) = if unit == 'w' { (count.saturating_mul(7), 'd') } else { (count, unit) };
+            // A repeater of 0 leaves its timestamp where it is: shifting by
+            // nothing would never land in the future.
+            if count == 0 {
+                continue;
+            }
             if unit == 'h' && !has_clock_time(&stamp) {
                 return Err(format!("Cannot repeat in {count} hour(s) because no hour has been set"));
             }
@@ -1302,6 +1307,11 @@ impl<'a> Editor<'a> {
                         };
                         if shifts > 0 && !behind {
                             break;
+                        }
+                        // Emacs asks whether to go on after ten shifts;
+                        // this many are a timestamp far in the past.
+                        if shifts == 100_000 {
+                            return Err("Abort".to_string());
                         }
                         shifts += 1;
                         point = self.shift_timestamp(point, count, unit, false)?.cursor;
@@ -1898,5 +1908,17 @@ mod tests {
             Some("Entry repeats: Plain: <2026-10-12 Mon 10:00 ++1w> Plain: <2026-10-07 Wed +1d>")
         );
         assert_eq!(message("* TODO Once\nSCHEDULED: <2026-10-05 Mon>\n"), None);
+    }
+
+    #[test]
+    fn leaves_a_zero_repeater_where_it_is() {
+        let keywords = TodoKeywords::default();
+        let settings = Settings { log_done: None, log_repeat: None, ..Settings::default() };
+        let now = DateTime::new(crate::date::Date::new(2026, 10, 7), 10, 0);
+        let done = Target::State(Some("DONE".to_string()));
+        let text = "* TODO a\nSCHEDULED: <2026-01-01 Thu +1w>\nbody <2020-01-01 Wed ++0d>\n";
+        let changed = change_state_noted(text, &keywords, 0, &done, &settings, now, NoteText::Skip).unwrap();
+        assert!(changed.text.contains("body <2020-01-01 Wed ++0d>"), "{}", changed.text);
+        assert!(changed.text.contains("SCHEDULED: <2026-01-08 Thu +1w>"), "{}", changed.text);
     }
 }

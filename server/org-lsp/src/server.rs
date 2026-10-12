@@ -337,13 +337,22 @@ enum DimBlocked {
     Hide,
 }
 
+/// The largest count a command takes, either way.
+const COUNT_MAX: i64 = 100_000;
+
+fn bounded_count<'de, D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Option<i64>, D::Error> {
+    Ok(Option::<i64>::deserialize(deserializer)?.map(|count| count.clamp(-COUNT_MAX, COUNT_MAX)))
+}
+
 /// Where a command was invoked: a document and a place in it.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Context {
     text_document: lsp_types::TextDocumentIdentifier,
     position: Position,
-    /// The count the user typed before the key, if any.
+    /// The count the user typed before the key, if any, within
+    /// `COUNT_MAX` either way: the commands repeat a step that many times.
+    #[serde(default, deserialize_with = "bounded_count")]
     count: Option<i64>,
     /// The answer to what the command asked for.
     input: Option<String>,
@@ -1409,27 +1418,34 @@ pub fn run(connection: Connection) -> Result<()> {
                     if connection.handle_shutdown(&request)? {
                         break;
                     }
-                    let response = server.request(request);
+                    let (id, method) = (request.id.clone(), request.method.clone());
+                    let response = guarded(&mut server, &method, |server| server.request(request))
+                        .unwrap_or_else(|message| Response::new_err(id, ErrorCode::InternalError as i32, message));
                     connection.sender.send(Message::Response(response))?;
                 }
-                Ok(Message::Notification(notification)) => server.notification(notification),
-                Ok(Message::Response(response)) => server.response(response),
+                Ok(Message::Notification(notification)) => {
+                    let method = notification.method.clone();
+                    let _ = guarded(&mut server, &method, |server| server.notification(notification));
+                }
+                Ok(Message::Response(response)) => {
+                    let _ = guarded(&mut server, "a response", |server| server.response(response));
+                }
                 Err(_) => break,
             },
             recv(port_receiver) -> command => {
                 if let Ok(command) = command {
-                    server.run_from_port(command);
+                    let _ = guarded(&mut server, &command.command.clone(), |server| server.run_from_port(command));
                 }
             }
             recv(emacs_events) -> event => {
                 if let Ok(event) = event {
-                    server.emacs_event(event);
+                    let _ = guarded(&mut server, "Emacs's answer", |server| server.emacs_event(event));
                 }
             }
-            recv(alarm) -> _ => server.countdown_done(),
-            recv(overrun) -> _ => server.overrun_done(),
-            recv(appt) -> _ => server.appt_check(),
-            recv(special) -> _ => server.check_special_edits(),
+            recv(alarm) -> _ => { let _ = guarded(&mut server, "the timer", Server::countdown_done); }
+            recv(overrun) -> _ => { let _ = guarded(&mut server, "the clock", Server::overrun_done); }
+            recv(appt) -> _ => { let _ = guarded(&mut server, "the appointments", Server::appt_check); }
+            recv(special) -> _ => { let _ = guarded(&mut server, "the edit buffers", Server::check_special_edits); }
         }
     }
     if let Some(port) = &server.port {
@@ -1810,6 +1826,22 @@ fn set_writable(file: &Path) -> std::io::Result<()> {
     #[allow(clippy::permissions_set_readonly_false)]
     permissions.set_readonly(false);
     std::fs::set_permissions(file, permissions)
+}
+
+/// Run `work`, the handling of one message, on the server: a panic in it
+/// is a bug of the server's, which ends that message's handling with an
+/// error the user sees, not the server and the editor's session with it.
+fn guarded<T>(server: &mut Server, what: &str, work: impl FnOnce(&mut Server) -> T) -> std::result::Result<T, String> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| work(server))).map_err(|panic| {
+        let reason = panic
+            .downcast_ref::<&str>()
+            .map(|reason| reason.to_string())
+            .or_else(|| panic.downcast_ref::<String>().cloned())
+            .unwrap_or_default();
+        let message = format!("org-lsp: {what} failed, a bug of the server's: {reason}");
+        server.show_message(MessageType::ERROR, message.clone());
+        message
+    })
 }
 
 /// What the server does. `inlay_hints`: show `org-indent-mode`'s prefixes
@@ -12841,4 +12873,26 @@ fn column_ranges(input: &str, count: usize) -> std::collections::BTreeSet<usize>
         out.extend(from.max(1)..=to.min(count));
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn keeps_a_count_within_bounds() {
+        let context = |count: Value| {
+            serde_json::from_value::<Context>(json!({
+                "textDocument": { "uri": "file:///a.org" },
+                "position": { "line": 0, "character": 0 },
+                "count": count,
+            }))
+            .unwrap()
+            .count
+        };
+        assert_eq!(context(json!(4)), Some(4));
+        assert_eq!(context(json!(4_000_000_000_i64)), Some(COUNT_MAX));
+        assert_eq!(context(json!(i64::MIN)), Some(-COUNT_MAX));
+        assert_eq!(context(Value::Null), None);
+    }
 }
