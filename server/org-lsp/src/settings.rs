@@ -1774,9 +1774,10 @@ pub const SETTINGS: &[Setting] = &[
              script (`command_script`) that runs `SCRIPT COMMAND [ROW COLUMN]` in the agenda, where the cursor \
              is when no row is given (the server follows the cursor through the document highlights the client \
              asks for), for the editor's keys to call; with no agenda open, the commands that need none (the \
-             agenda, the TODO list, the agenda menu, capture). The agenda's file is beside the script, the same \
-             one for the same folders, and the server takes over the one the editor opens again when it starts. \
-             The Zed extension sets it.",
+             agenda, the TODO list, the agenda menu, capture). With org-lsp's editor code (`org_client`), the \
+             agenda's commands are not code actions and its file is beside the script, the same one for the same \
+             folders, and the server takes over the one the editor opens again when it starts. The Zed extension \
+             sets it; a client without the editor code needs none of it.",
         )
     },
     Setting {

@@ -127,8 +127,20 @@ struct Client {
     /// More commands as code actions, and the agenda's through the
     /// command port (`command_actions`).
     command_actions: bool,
+    /// The client has org-lsp's editor code (`org_client`).
+    org_client: bool,
     /// Where the command port's script goes (`command_script`).
     command_script: Option<PathBuf>,
+}
+
+impl Client {
+    /// The agenda as Zed has it (`command_actions` with org-lsp's
+    /// extension): its keys go through the command port, not code
+    /// actions, and its file stays for the tab Zed opens again. A client
+    /// without the extension gets the agenda of any other.
+    fn zed_agenda(&self) -> bool {
+        self.command_actions && self.org_client
+    }
 }
 
 /// An outgoing request whose answer the server acts on.
@@ -1142,7 +1154,7 @@ pub fn run(connection: Connection) -> Result<()> {
         message_prompts: options.message_prompts.unwrap_or(!org_client),
         standard_tokens: !org_client,
         view_file_name: if org_client { views::FILE_NAME } else { views::PLAIN_FILE_NAME },
-        edit_view: !org_client && !options.command_actions.unwrap_or(false),
+        edit_view: !org_client,
         // Not for a client that cannot ask the questions they bring
         // (`window/showMessageRequest`), such as Helix, unless told it can.
         more_actions: options.command_actions.unwrap_or(false)
@@ -1150,6 +1162,7 @@ pub fn run(connection: Connection) -> Result<()> {
                 && (window.and_then(|window| window.show_message.as_ref()).is_some()
                     || options.message_prompts == Some(true))),
         command_actions: options.command_actions.unwrap_or(false),
+        org_client,
         command_script: options
             .command_script
             .as_deref()
@@ -1424,7 +1437,7 @@ pub fn run(connection: Connection) -> Result<()> {
     }
     // Zed opens the agenda's tab again when it starts; the file stays for
     // it, and the next server takes it over.
-    if !server.client.command_actions {
+    if !server.client.zed_agenda() {
         server.remove_view_file();
     }
     if server.captures > 0 {
@@ -1720,7 +1733,7 @@ fn span_name(span: Span) -> String {
 /// each time, beside the port's script, so that the tab it opens again
 /// finds the file, and the next server takes it over.
 fn agenda_directory(client: &Client, folders: &[PathBuf]) -> Option<PathBuf> {
-    if !client.command_actions {
+    if !client.zed_agenda() {
         return None;
     }
     // FNV-1a: a name that stays the same from one run to the next.
@@ -2859,7 +2872,7 @@ impl Server {
         };
         // What an editor runs from keys, for one that has none.
         let more = self.client.more_actions;
-        if self.is_view(uri) && self.client.command_actions {
+        if self.is_view(uri) && self.client.zed_agenda() {
             // The agenda's file is read-only, where Zed runs no code
             // action; its keys go through the command port instead.
             return Some(Vec::new());

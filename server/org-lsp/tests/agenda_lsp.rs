@@ -4057,6 +4057,46 @@ fn a_plain_client_gets_standard_tokens_prompts_and_an_org_agenda() {
     client.shutdown();
 }
 
+/// `command_actions` left on in a client without org-lsp's editor code:
+/// the agenda is still an Org file in a place of its own, with its
+/// commands as code actions; Zed's way (the keys through the command
+/// port) is for Zed's extension.
+#[test]
+fn command_actions_leave_a_plain_client_its_agenda_actions() {
+    let mut options = clock();
+    options["command_actions"] = json!(true);
+    let state = std::env::temp_dir().join(format!("org-lsp-plain-state-{}", std::process::id()));
+    options["command_script"] = json!(state.join("agenda-command"));
+    let capabilities = json!({
+        "experimental": { "orgClient": false },
+        "window": { "showDocument": { "support": true }, "showMessage": {} },
+    });
+    let mut client = Client::start(capabilities, options, None);
+    const WORK_URI: &str = "file:///org/work.org";
+    client.open(WORK_URI, WORK);
+    let requests = client.command("org.agenda.list", WORK_URI, 1);
+    let shown = requests.iter().find(|request| request.method == "window/showDocument").expect("the agenda shown");
+    let agenda_uri = shown.params["uri"].as_str().unwrap().to_string();
+    assert!(agenda_uri.ends_with("/Agenda.org"), "{agenda_uri}");
+    assert!(!agenda_uri.contains("org-lsp-plain-state"), "{agenda_uri}");
+    let agenda_text = std::fs::read_to_string(agenda_uri.trim_start_matches("file://")).unwrap();
+    client.open(&agenda_uri, &agenda_text);
+    let actions = client
+        .request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": agenda_uri },
+                "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 0, "character": 0 } },
+                "context": { "diagnostics": [] }
+            }),
+        )
+        .unwrap();
+    let kinds: Vec<&str> = actions.as_array().unwrap().iter().filter_map(|action| action["kind"].as_str()).collect();
+    assert!(kinds.contains(&"org.agenda.later"), "{kinds:?}");
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(state);
+}
+
 #[test]
 fn offers_commands_as_actions_and_asks_with_buttons() {
     let mut options = clock();
