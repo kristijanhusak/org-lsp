@@ -1,6 +1,6 @@
 //! Parse configuration: the TODO keywords that are valid in a document.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// Whether a state change is recorded, as the keyword's definition asks:
 /// `WAIT(w@/!)` records a note on entering and a time on leaving.
@@ -45,7 +45,7 @@ struct Keyword {
 pub struct TodoKeywords {
     keywords: Vec<Keyword>,
     /// Where each keyword is in `keywords`: looked up for every headline.
-    index: HashMap<String, usize>,
+    index: BTreeMap<String, usize>,
 }
 
 impl Default for TodoKeywords {
@@ -91,7 +91,7 @@ impl TodoKeywords {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let mut out = TodoKeywords { keywords: Vec::new(), index: HashMap::new() };
+        let mut out = TodoKeywords { keywords: Vec::new(), index: BTreeMap::new() };
         out.push_sequence(Interpretation::Sequence, words);
         out
     }
@@ -103,7 +103,7 @@ impl TodoKeywords {
         W: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let mut out = TodoKeywords { keywords: Vec::new(), index: HashMap::new() };
+        let mut out = TodoKeywords { keywords: Vec::new(), index: BTreeMap::new() };
         for (interpretation, words) in sequences {
             out.push_sequence(interpretation, words);
         }
@@ -145,7 +145,7 @@ impl TodoKeywords {
     /// Keywords declared in the document itself (`#+TODO:`, `#+SEQ_TODO:`,
     /// `#+TYP_TODO:`), or `None` when the document declares none.
     pub fn from_document(text: &str) -> Option<Self> {
-        let mut out = TodoKeywords { keywords: Vec::new(), index: HashMap::new() };
+        let mut out = TodoKeywords { keywords: Vec::new(), index: BTreeMap::new() };
         let mut found = false;
         for line in text.lines() {
             let line = line.trim_start();

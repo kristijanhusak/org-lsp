@@ -325,7 +325,8 @@ impl Server {
             .filter(|name| journal::is_journal_file(name, &journal.core))
             // A daily file's day is in its name: its text is not read.
             .filter_map(|name| {
-                let text = if journal.core.daily() { String::new() } else { self.journal_read(&directory.join(&name))? };
+                let text =
+                    if journal.core.daily() { String::new() } else { self.journal_read(&directory.join(&name))? };
                 Some((name, text))
             })
             .collect();
