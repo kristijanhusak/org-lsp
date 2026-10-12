@@ -1,0 +1,3 @@
+Headlines with TAGS match: SCHEDULED>="<today>"
+  dates:      TODO Meeting today
+  dates:      TODO Scheduled tomorrow

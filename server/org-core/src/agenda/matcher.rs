@@ -374,9 +374,14 @@ impl Test {
                     Value::Text(text) => compare_text(&got, *op, text),
                     Value::Number(number) => compare(string_to_number(&got), *op, *number),
                     Value::Time(time) => {
-                        // `org-2ft`: what is not a timestamp is 0.
+                        // `org-2ft`: what is not a timestamp is 0, and
+                        // `org-time<` and the others hold only when both
+                        // sides are times. Org's `org-time<>` is written
+                        // `(\= a b)`, which is `=`: the same here.
                         let got = stamp_minutes(got.trim_matches(['<', '>', '[', ']'])).unwrap_or(0) as f64;
-                        compare(got, *op, time.minutes(clock))
+                        let wanted = time.minutes(clock);
+                        let op = if *op == Op::NotEqual { Op::Equal } else { *op };
+                        got > 0.0 && wanted > 0.0 && compare(got, op, wanted)
                     }
                 }
             }
@@ -736,10 +741,13 @@ mod tests {
             let matcher = Matcher::new(text);
             (0..3).filter(|index| matcher.matches(&outline, *index, false, clock)).map(|i| ["a", "b", "c"][i]).collect()
         };
-        assert_eq!(matched("SCHEDULED<\"<today>\""), ["a", "c"]);
+        // Without a SCHEDULED, `c` is no time: no comparison holds.
+        assert_eq!(matched("SCHEDULED<\"<today>\""), ["a"]);
         assert_eq!(matched("SCHEDULED>=\"<today>\""), ["b"]);
         assert_eq!(matched("SCHEDULED<*\"<+1w>\""), ["a", "b"]);
         assert_eq!(matched("SCHEDULED=\"<2026-10-09>\""), ["b"]);
+        // Org's `org-time<>` is `=`.
+        assert_eq!(matched("SCHEDULED<>\"<2026-10-09>\""), ["b"]);
     }
 
     #[test]
