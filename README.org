@@ -175,4 +175,6 @@ area; [[file:PLAN.org][PLAN.org]] says in what order it comes.
 
 * Licence
 
-MIT, see [[file:LICENSE][LICENSE]].
+MIT, see [[file:LICENSE][LICENSE]]. The website's logo, [[file:site/assets/logo.svg][site/assets/logo.svg]], is Org mode's
+unicorn by Christophe Bataillon and, as Org mode, under the GNU GPL version
+3 or later.
