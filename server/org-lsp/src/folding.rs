@@ -153,7 +153,8 @@ pub fn startup_folds(
     };
     let folds = folds(root, text, index, separator_lines);
     let mut closed = vec![false; folds.len()];
-    let places: HashMap<&SyntaxNode, usize> = folds.iter().enumerate().map(|(index, (node, _))| (node, index)).collect();
+    let places: HashMap<&SyntaxNode, usize> =
+        folds.iter().enumerate().map(|(index, (node, _))| (node, index)).collect();
     let at = |node: &SyntaxNode| places.get(node).copied();
     let headlines: Vec<Headline> = root.descendants().filter_map(Headline::cast).collect();
     let leaf = |headline: &Headline| headline.children().next().is_none();

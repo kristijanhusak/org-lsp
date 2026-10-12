@@ -439,22 +439,26 @@ pub fn entry_days(files: &BTreeMap<String, String>, settings: &Settings) -> Vec<
     emacs.list_dates().map(|dates| dates.iter().map(|date| date.time().day).collect()).unwrap_or_default()
 }
 
+/// A pattern of `org-journal-created-property-timestamp-format` and its
+/// regexp.
+type Created = (std::rc::Rc<Pattern>, Option<Regex>);
+
 /// The pattern of `org-journal-created-property-timestamp-format` and its
 /// regexp, built once for each format: every entry of a file asks for it.
-fn created_pattern(format: &str) -> (std::rc::Rc<Pattern>, Option<Regex>) {
+fn created_pattern(format: &str) -> Created {
     thread_local! {
-        static LAST: std::cell::RefCell<Option<(String, std::rc::Rc<Pattern>, Option<Regex>)>> =
+        static LAST: std::cell::RefCell<Option<(String, Created)>> =
             const { std::cell::RefCell::new(None) };
     }
     LAST.with_borrow_mut(|last| {
-        if let Some((built, pattern, regex)) = last {
+        if let Some((built, created)) = last {
             if built == format {
-                return (pattern.clone(), regex.clone());
+                return created.clone();
             }
         }
         let pattern = std::rc::Rc::new(Pattern::new(format));
         let regex = RegexBuilder::new(&pattern.regex).case_insensitive(true).build().ok();
-        *last = Some((format.to_string(), pattern.clone(), regex.clone()));
+        *last = Some((format.to_string(), (pattern.clone(), regex.clone())));
         (pattern, regex)
     })
 }

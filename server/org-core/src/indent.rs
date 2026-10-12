@@ -892,7 +892,8 @@ impl Pass {
     /// The parse of the part of the text `line` is in, as it is now.
     fn window(&mut self, line: usize) -> &Window {
         let top = |text: &String| is_heading_line(text);
-        let first = (0..=line.min(self.lines.len().saturating_sub(1))).rev().find(|at| top(&self.lines[*at])).unwrap_or(0);
+        let first =
+            (0..=line.min(self.lines.len().saturating_sub(1))).rev().find(|at| top(&self.lines[*at])).unwrap_or(0);
         let end = (first + 1..self.lines.len()).find(|at| top(&self.lines[*at])).unwrap_or(self.lines.len());
         #[cfg(test)]
         let (first, end) = if self.whole { (0, self.lines.len()) } else { (first, end) };
@@ -1178,8 +1179,7 @@ fn region_in_parts(text: &str, start: usize, end: usize, settings: &Settings, pa
     let _ = parts;
     let first = text[..start.min(text.len())].matches('\n').count();
     let end_at = end.min(text.len());
-    let last = text[..end_at].matches('\n').count()
-        + usize::from(end_at > 0 && text.as_bytes()[end_at - 1] != b'\n');
+    let last = text[..end_at].matches('\n').count() + usize::from(end_at > 0 && text.as_bytes()[end_at - 1] != b'\n');
     // The empty line after a final newline is the end of the buffer,
     // where `org-indent-region` stops.
     let lines = pass.lines.len() - usize::from(text.ends_with('\n'));
