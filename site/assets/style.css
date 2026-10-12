@@ -270,22 +270,16 @@ kbd {
   height: 19px;
 }
 
-.theme .moon,
-:root[data-theme="dark"] .theme .sun {
+/* The theme picked: the system's (a screen), light (a sun) or dark (a
+   moon). */
+.theme svg {
   display: none;
 }
 
+:root:not([data-theme]) .theme .system,
+:root[data-theme="light"] .theme .sun,
 :root[data-theme="dark"] .theme .moon {
   display: block;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .theme .sun {
-    display: none;
-  }
-  :root:not([data-theme="light"]) .theme .moon {
-    display: block;
-  }
 }
 
 .menu {
