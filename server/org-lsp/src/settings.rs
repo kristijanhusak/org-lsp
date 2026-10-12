@@ -1674,13 +1674,30 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
-            "message_prompts",
+            "org_client",
             "boolean",
             "false",
             "",
-            "Ask what commands ask for (a key, one of a list) with `window/showMessageRequest`, and say what \
-             they have to say with `window/showMessage`, for a client that does nothing with a command's result. \
-             The Zed extension sets it.",
+            "The client has org-lsp's editor code: it knows the server's own token types and does what a \
+             command's result asks. A client that can announce it does so with `experimental.orgClient`; the \
+             Vim, Sublime Text and Zed plugins set this. Without it, the server sends the standard token types \
+             of LSP, which editors color without being told, `message_prompts` is on, and so are more code actions \
+             when the client shows message requests (`window.showMessage`) or `message_prompts` is set.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "true for a client without org-lsp's editor code (`org_client`)",
+        integration: true,
+        ..setting(
+            "message_prompts",
+            "boolean",
+            "",
+            "",
+            "Ask what commands ask for with `window/showMessageRequest` (a key, one of a list) or, for text and \
+             dates, through a rename at the cursor (`textDocument/rename`, whose new name is the answer), and say \
+             what they have to say with `window/showMessage`, for a client that does nothing with a command's \
+             result.",
         )
     },
     Setting {
@@ -2109,6 +2126,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("virtual_documents", BOOLEAN),
     ("show_document", BOOLEAN),
+    ("org_client", BOOLEAN),
     ("message_prompts", BOOLEAN),
     ("line_highlights", BOOLEAN),
     ("images", BOOLEAN),

@@ -151,7 +151,195 @@ pub fn legend() -> SemanticTokensLegend {
     }
 }
 
-/// One highlighted range. It may span several lines; `encode` splits it.
+/// The token types and modifiers of the LSP specification, which every
+/// editor colors without being told: what a client gets that does not know
+/// org-lsp's own (`experimental.orgClient`). Org's tokens become the
+/// standard ones whose colors come closest to Emacs's faces, the heading
+/// levels the faces of `outline-1` and on; what has no standard kind (bold,
+/// italic, a habit's graph) is left out.
+pub mod standard {
+    use super::{modifier, SemanticToken, SemanticTokenModifier, SemanticTokenType, SemanticTokensLegend, TokenType};
+
+    /// The standard types used, in legend order.
+    const TYPES: &[&str] = &[
+        "namespace",
+        "type",
+        "function",
+        "method",
+        "property",
+        "variable",
+        "parameter",
+        "enumMember",
+        "keyword",
+        "string",
+        "number",
+        "comment",
+        "operator",
+        "decorator",
+        "macro",
+    ];
+    /// `deprecated`, which editors strike through: struck-through text.
+    const DEPRECATED: u32 = 1;
+
+    pub fn legend() -> SemanticTokensLegend {
+        SemanticTokensLegend {
+            token_types: TYPES.iter().map(|name| SemanticTokenType::new(name)).collect(),
+            token_modifiers: vec![SemanticTokenModifier::DEPRECATED],
+        }
+    }
+
+    fn index(name: &str) -> u32 {
+        TYPES.iter().position(|known| *known == name).expect("a standard type") as u32
+    }
+
+    /// The headline faces of Emacs (`org-level-N`, from `outline-N`):
+    /// function name, variable name, keyword, comment, type, constant,
+    /// builtin, string. A variable is seldom colored, so level 2 is a
+    /// property.
+    fn level(modifiers: u32) -> &'static str {
+        const LEVELS: [&str; 8] =
+            ["function", "property", "keyword", "comment", "type", "enumMember", "macro", "string"];
+        (0..8).find(|level| modifiers & (1 << level) != 0).map_or("function", |level| LEVELS[level])
+    }
+
+    /// The standard type and modifiers of an Org token; `None` for one
+    /// that has none.
+    fn map(ty: TokenType, modifiers: u32) -> Option<(&'static str, u32)> {
+        let has = |bit: u32| modifiers & bit != 0;
+        let struck = if has(modifier::STRIKETHROUGH) { DEPRECATED } else { 0 };
+        // Link brackets, emphasis markers: what Org hides, faded.
+        if has(modifier::HIDDEN) {
+            return Some(("comment", 0));
+        }
+        let name = match ty {
+            TokenType::Headline | TokenType::Stars if has(modifier::ARCHIVED) => "comment",
+            TokenType::Headline | TokenType::Stars => level(modifiers),
+            TokenType::TodoKeyword if has(modifier::DONE) => "string",
+            TokenType::TodoKeyword | TokenType::Planning => "keyword",
+            TokenType::Priority | TokenType::Cookie => "number",
+            TokenType::Tag => "decorator",
+            TokenType::Timestamp if has(modifier::INACTIVE) => "comment",
+            TokenType::Timestamp => "enumMember",
+            TokenType::Drawer | TokenType::Latex | TokenType::Entity | TokenType::Macro => "macro",
+            TokenType::Property => "property",
+            // `org-meta-line` and `org-block-begin-line` are comments.
+            TokenType::Keyword | TokenType::Block | TokenType::Comment => "comment",
+            TokenType::Bullet | TokenType::Checkbox | TokenType::TableDelimiter => "operator",
+            TokenType::Link | TokenType::Target => "namespace",
+            TokenType::Code | TokenType::Verbatim => "string",
+            TokenType::Footnote => "parameter",
+            // Bold, italic and underline have no standard kind.
+            TokenType::Text if struck != 0 => "variable",
+            TokenType::Text => return None,
+            TokenType::AgendaStructure | TokenType::CalendarHeader => "namespace",
+            TokenType::AgendaDate if has(modifier::TODAY) => "keyword",
+            TokenType::AgendaDate if has(modifier::WEEKEND) => "type",
+            TokenType::AgendaDate => "function",
+            TokenType::AgendaScheduled if has(modifier::PAST) => "number",
+            TokenType::AgendaScheduled => "string",
+            TokenType::AgendaDeadline if has(modifier::IMMINENT) => "keyword",
+            TokenType::AgendaDeadline if has(modifier::DISTANT) => "variable",
+            TokenType::AgendaDeadline => "enumMember",
+            TokenType::AgendaEvent => "variable",
+            TokenType::AgendaDone | TokenType::AgendaTimeGrid | TokenType::AgendaDimmed => "comment",
+            TokenType::AgendaClocking => "decorator",
+            TokenType::AgendaHabit => return None,
+            TokenType::CalendarWeekday => "comment",
+            TokenType::CalendarSelected | TokenType::CalendarPrompt => "keyword",
+            TokenType::CalendarJournal => "string",
+        };
+        Some((name, struck))
+    }
+
+    /// `tokens`, encoded with Org's legend, in the standard one: each
+    /// token renamed, those without a standard kind left out, and the
+    /// positions of the rest made relative again.
+    pub fn convert(tokens: Vec<SemanticToken>) -> Vec<SemanticToken> {
+        let mut out = Vec::with_capacity(tokens.len());
+        let (mut line, mut column) = (0u32, 0u32);
+        let mut previous = (0u32, 0u32);
+        for token in tokens {
+            line += token.delta_line;
+            column = if token.delta_line == 0 { column + token.delta_start } else { token.delta_start };
+            let Some(ty) = TokenType::ALL.get(token.token_type as usize) else { continue };
+            let Some((name, modifiers)) = map(*ty, token.token_modifiers_bitset) else { continue };
+            out.push(SemanticToken {
+                delta_line: line - previous.0,
+                delta_start: if line == previous.0 { column - previous.1 } else { column },
+                length: token.length,
+                token_type: index(name),
+                token_modifiers_bitset: modifiers,
+            });
+            previous = (line, column);
+        }
+        out
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        fn token(delta_line: u32, delta_start: u32, ty: TokenType, modifiers: u32) -> SemanticToken {
+            SemanticToken {
+                delta_line,
+                delta_start,
+                length: 3,
+                token_type: ty as u32,
+                token_modifiers_bitset: modifiers,
+            }
+        }
+
+        #[test]
+        fn org_tokens_become_standard_ones() {
+            let tokens = vec![
+                token(0, 0, TokenType::Stars, modifier::level(3)),
+                token(0, 2, TokenType::TodoKeyword, 0),
+                token(0, 5, TokenType::Text, modifier::BOLD),
+                token(0, 4, TokenType::Tag, 0),
+                token(1, 2, TokenType::Text, modifier::STRIKETHROUGH),
+                token(0, 4, TokenType::TodoKeyword, modifier::DONE),
+            ];
+            let names: Vec<(u32, u32, &str, u32)> = convert(tokens)
+                .iter()
+                .map(|token| {
+                    (
+                        token.delta_line,
+                        token.delta_start,
+                        TYPES[token.token_type as usize],
+                        token.token_modifiers_bitset,
+                    )
+                })
+                .collect();
+            // The bold text is left out; the tag after it is placed from the
+            // keyword before it.
+            assert_eq!(
+                names,
+                [
+                    (0, 0, "keyword", 0),
+                    (0, 2, "keyword", 0),
+                    (0, 9, "decorator", 0),
+                    (1, 2, "variable", DEPRECATED),
+                    (0, 4, "string", 0),
+                ]
+            );
+        }
+
+        #[test]
+        fn every_org_token_has_its_place() {
+            for ty in TokenType::ALL {
+                if let Some((name, _)) = map(*ty, 0) {
+                    assert!(TYPES.contains(&name), "{ty:?} → {name}");
+                }
+            }
+            for level in 1..=8 {
+                assert!(TYPES.contains(&super::level(modifier::level(level))));
+            }
+        }
+    }
+}
+
+/// One highlighted range. It may span several lines; `encode` splits it."""
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token {
     pub range: TextRange,
