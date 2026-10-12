@@ -1815,6 +1815,15 @@ pub fn by_key(key: &str, scopes: &[Scope]) -> Option<&'static str> {
     })
 }
 
+/// The commands of the agenda, in the table's order: those with a key
+/// there, and those that work on an agenda line.
+pub fn in_agenda() -> impl Iterator<Item = &'static str> {
+    COMMANDS
+        .iter()
+        .filter(|command| command.in_agenda || command.emacs.iter().any(|key| key.scope == Scope::Agenda))
+        .map(|command| command.id)
+}
+
 pub fn title(id: &str) -> &'static str {
     COMMANDS.iter().find(|command| command.id == id).map_or("", |command| command.title)
 }

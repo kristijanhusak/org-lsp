@@ -2883,27 +2883,41 @@ impl Server {
                 commands::AGENDA_GOTO,
                 commands::AGENDA_GOTO_OTHER,
             ];
-            // For a client without keys: what they do in the agenda.
-            let more_on_entry = [commands::TODO, commands::SCHEDULE, commands::DEADLINE, commands::SET_TAGS];
-            let on_view = [
-                commands::AGENDA_LATER,
-                commands::AGENDA_EARLIER,
-                commands::AGENDA_TODAY,
-                commands::AGENDA_DAY,
-                commands::AGENDA_WEEK,
-                commands::AGENDA_MONTH,
-                commands::AGENDA_REDO,
-                commands::AGENDA_DISPATCH,
-            ];
-            let entry_ids = entry.is_some().then_some(on_entry.iter()).into_iter().flatten();
-            let more_entry_ids = (entry.is_some() && more).then_some(more_on_entry.iter()).into_iter().flatten();
-            let view_ids = more.then_some(on_view.iter()).into_iter().flatten();
-            let actions = entry_ids
-                .chain(more_entry_ids)
-                .chain(view_ids)
-                .copied()
+            // For a client without keys, every command of the agenda's:
+            // the line's entry's first, then the view's. Not those that
+            // need the editor's code: follow mode is told where the cursor
+            // goes, column view draws over the lines, and another window
+            // is the editor's to pick.
+            let ids: Vec<&str> = if more {
+                let needs_entry = |id: &str| {
+                    !id.starts_with("org.agenda.")
+                        || matches!(
+                            id,
+                            commands::AGENDA_GOTO
+                                | commands::AGENDA_BULK_MARK
+                                | commands::AGENDA_BULK_UNMARK
+                                | commands::AGENDA_BULK_TOGGLE
+                                | commands::AGENDA_FILTER_CATEGORY
+                                | commands::AGENDA_FILTER_TOP_HEADLINE
+                        )
+                };
+                let offered = commands::in_agenda().filter(|id| {
+                    !matches!(*id, commands::AGENDA_FOLLOW | commands::AGENDA_COLUMNS | commands::AGENDA_GOTO_OTHER)
+                });
+                let (on_entry, on_view): (Vec<&str>, Vec<&str>) = offered.partition(|id| needs_entry(id));
+                let on_entry = if entry.is_some() { on_entry } else { Vec::new() };
+                on_entry.into_iter().chain(on_view).chain([commands::AGENDA_DISPATCH]).collect()
+            } else {
+                if entry.is_some() {
+                    on_entry.to_vec()
+                } else {
+                    Vec::new()
+                }
+            };
+            let actions = ids
+                .into_iter()
                 .filter(|id| dated || !matches!(*id, commands::DATE_LATER | commands::DATE_EARLIER))
-                .filter(|id| running || *id != commands::CLOCK_OUT)
+                .filter(|id| running || !matches!(*id, commands::CLOCK_OUT | commands::CLOCK_CANCEL))
                 .filter(|id| actions::requested(id, only))
                 .map(as_action)
                 .collect();
