@@ -7046,3 +7046,172 @@ fn writes_journal_entries() {
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }
+
+/// `org-clock-in-last`: the entry clocked last, not the first one with the
+/// same title.
+#[test]
+fn clocks_in_last_on_the_entry_it_clocked() {
+    let uri = "file:///org/review.org";
+    let mut client = Client::editor(clock(), None);
+    let mut text = "* Project A\n** TODO Review\n* Project B\n** TODO Review\n".to_string();
+    client.open(uri, &text);
+    run_applying(&mut client, uri, &mut text, "org.clock.in", 3, json!({}));
+    run_applying(&mut client, uri, &mut text, "org.clock.out", 3, json!({}));
+    run_applying(&mut client, uri, &mut text, "org.clock.in.last", 0, json!({}));
+    let second = text.find("* Project B").unwrap();
+    assert!(!text[..second].contains("CLOCK"), "{text}");
+    assert_eq!(text[second..].matches("CLOCK:").count(), 2, "{text}");
+    client.shutdown();
+}
+
+/// `org-agenda-bulk-action` on entries with the same headline: each gets
+/// the action, also when the one before grew.
+#[test]
+fn acts_on_marked_entries_with_the_same_headline() {
+    let mut client = Client::editor(clock(), None);
+    let uri = "file:///org/work.org";
+    let mut work = "* TODO Review\n* TODO Review\n".to_string();
+    client.open(uri, &work);
+    let run = |client: &mut Client, command: &str, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    run(&mut client, "org.agenda.todos", json!({})).unwrap();
+    client.show_view();
+    run(&mut client, "org.agenda.bulk.mark.all", json!({})).unwrap();
+    let asked = run(&mut client, "org.agenda.bulk.action", json!({ "step": "action", "input": "s" })).unwrap();
+    let done = run(
+        &mut client,
+        "org.agenda.bulk.action",
+        json!({ "step": "s", "input": "2026-05-20", "answers": asked["input"]["context"]["answers"] }),
+    )
+    .unwrap();
+    assert_eq!(done["message"], "Acted on 2 entries");
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, changes) = edits_of(edit);
+    work = apply(&work, &changes);
+    assert_eq!(work.matches("SCHEDULED: <2026-05-20 Wed>").count(), 2, "{work}");
+    client.shutdown();
+}
+
+/// `org-capture-kill` with `:clock-in :clock-resume`: the clock the
+/// capture stopped runs again.
+#[test]
+fn resumes_the_clock_when_a_capture_is_aborted() {
+    let uri = "file:///org/notes.org";
+    let mut options = clock();
+    options["org_capture_templates"] = json!([{ "key": "m", "description": "Meeting",
+        "target": ["file+headline", "/org/notes.org", "Inbox"], "template": "* Meeting",
+        "clock_in": true, "clock_resume": true }]);
+    let mut client = Client::editor(options, None);
+    let mut text = "* Work\n* Inbox\n".to_string();
+    client.open(uri, &text);
+    run_applying(&mut client, uri, &mut text, "org.clock.in", 0, json!({}));
+    client.notify("org-lsp/setClock", json!({ "today": "2026-05-18", "now": "10:40" }));
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "input": "m" });
+    client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [context] })).unwrap();
+    client.settle();
+    let buffer =
+        client.received.iter().find(|request| request.method == "window/showDocument").unwrap().params["uri"].clone();
+    apply_received(&mut client, uri, &mut text);
+    assert!(!text.contains("CLOCK: [2026-05-18 Mon 10:30]\n"), "the capture stopped the clock: {text}");
+    run_applying(&mut client, uri, &mut text, "org.capture.abort", 0, json!({ "textDocument": { "uri": buffer } }));
+    assert!(text.contains("CLOCK: [2026-05-18 Mon 10:40]\n"), "the clock runs again: {text}");
+    assert!(!text.contains("Meeting"), "{text}");
+    client.shutdown();
+}
+
+/// A capture whose target changed meanwhile: the clock and the jump go to
+/// the captured entry where it is now.
+#[test]
+fn clocks_the_captured_entry_where_it_went() {
+    let uri = "file:///org/notes.org";
+    let mut options = clock();
+    options["org_capture_templates"] = json!([{ "key": "m", "description": "Meeting",
+        "target": ["file+headline", "/org/notes.org", "Inbox"], "template": "* Meeting",
+        "clock_in": true, "jump_to_captured": true }]);
+    let mut client = Client::editor(options, None);
+    let mut text = "* Inbox\n* Other\n".to_string();
+    client.open(uri, &text);
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "input": "m" });
+    client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [context] })).unwrap();
+    client.settle();
+    let buffer =
+        client.received.iter().find(|request| request.method == "window/showDocument").unwrap().params["uri"].clone();
+    // Meanwhile, two headlines go in at the top.
+    text = format!("* Added one\n* Added two\n{text}");
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+    );
+    client.settle();
+    run_applying(&mut client, uri, &mut text, "org.capture.finish", 0, json!({ "textDocument": { "uri": buffer } }));
+    assert!(text.starts_with("* Added one\n* Added two\n* Inbox\n** Meeting\n:LOGBOOK:\nCLOCK:"), "{text}");
+    client.shutdown();
+}
+
+/// `org-agenda-date-later` on a line whose entry was edited and not saved
+/// since the agenda was built: the line's own timestamp changes.
+#[test]
+fn shifts_the_line_timestamp_after_an_unsaved_edit() {
+    let uri = "file:///org/work.org";
+    let mut client = Client::editor(clock(), None);
+    let mut text = "* Meeting\nNotes that got much longer\n<2026-05-19 Tue>\n<2026-05-25 Mon>\n".to_string();
+    client.open(uri, &text);
+    client.command("org.agenda.list", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Meeting")).unwrap() as u32;
+    // The body gets shorter, unsaved.
+    text = text.replace("Notes that got much longer", "Notes");
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+    );
+    client.settle();
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    client.request("workspace/executeCommand", json!({ "command": "org.date.later", "arguments": [context] })).unwrap();
+    client.settle();
+    apply_received(&mut client, uri, &mut text);
+    assert_eq!(text, "* Meeting\nNotes\n<2026-05-20 Wed>\n<2026-05-25 Mon>\n");
+    client.shutdown();
+}
+
+/// `org-capture-refile` with `:clock-in`: the entry is filed with its clock,
+/// then refiled.
+#[test]
+fn refiles_a_capture_with_its_clock() {
+    let uri = "file:///org/notes.org";
+    let mut options = clock();
+    options["org_capture_templates"] = json!([{ "key": "m", "description": "Meeting",
+        "target": ["file+headline", "/org/notes.org", "Inbox"], "template": "* Meeting", "clock_in": true }]);
+    let mut client = Client::editor(options, None);
+    let mut text = "* Inbox\n* Other\n".to_string();
+    client.open(uri, &text);
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "input": "m" });
+    client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [context] })).unwrap();
+    client.settle();
+    let buffer =
+        client.received.iter().find(|request| request.method == "window/showDocument").unwrap().params["uri"].clone();
+    run_applying(
+        &mut client,
+        uri,
+        &mut text,
+        "org.capture.refile",
+        0,
+        json!({ "textDocument": { "uri": buffer }, "input": "Other" }),
+    );
+    assert!(text.starts_with("* Inbox\n* Other\n** Meeting\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--"), "{text}");
+    client.shutdown();
+}
