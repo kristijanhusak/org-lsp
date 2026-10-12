@@ -3769,7 +3769,7 @@ impl Server {
         let mut out = Vec::new();
         for link in open::links(&text, &parse, &self.link_abbreviations) {
             let (target, data) = match &link.open {
-                Ok(Open::External(url)) => (uri::from_url(&url), None),
+                Ok(Open::External(url)) => (uri::from_url(url), None),
                 Ok(Open::File { path, search: None, .. }) => {
                     (self.link_path(&uri, path).and_then(|path| uri::from_path(&path)), None)
                 }
@@ -4196,7 +4196,7 @@ impl Server {
         }
         match &opened {
             Open::External(url) => {
-                let target = uri::from_url(&url).ok_or_else(|| format!("Cannot open {url}"))?;
+                let target = uri::from_url(url).ok_or_else(|| format!("Cannot open {url}"))?;
                 self.show_external(target);
             }
             Open::File { path, system: true, .. } => {
