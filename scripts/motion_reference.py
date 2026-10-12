@@ -110,6 +110,7 @@ def reference(cases):
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=1200,
         )
         for case, target in outputs:
             with open(target, encoding="utf-8") as handle:

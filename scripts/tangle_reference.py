@@ -92,6 +92,7 @@ def reference(cases):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             env=dict(os.environ, HOME=directory, TZ="UTC"),
+            timeout=1200,
         )
         for case, folder, before, out in runs:
             with open(out, encoding="utf-8") as handle:

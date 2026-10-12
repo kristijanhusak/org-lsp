@@ -65,7 +65,7 @@ pub struct Section {
 
 /// The body of `page`, and its sections for the search.
 pub fn render(page: &Page, links: &mut Links) -> (String, Vec<Section>) {
-    let mut renderer = Renderer { page, links, out: String::new(), sections: Vec::new() };
+    let mut renderer = Renderer { page, links, out: String::new(), sections: Vec::new(), resolved: None };
     for child in page.root.children() {
         match child.kind() {
             SECTION => {
@@ -84,6 +84,9 @@ struct Renderer<'a, 'b> {
     links: &'a mut Links<'b>,
     out: String,
     sections: Vec<Section>,
+    /// A link its paragraph resolved already, which is not resolved again
+    /// (a broken one would be reported twice).
+    resolved: Option<(SyntaxNode, Target)>,
 }
 
 impl Renderer<'_, '_> {
@@ -106,8 +109,9 @@ impl Renderer<'_, '_> {
         for tag in headline.tags() {
             title.push_str(&format!(" <span class=\"tag\">{}</span>", escape(&tag)));
         }
+        let anchor = escape(&id);
         self.out.push_str(&format!(
-            "<h{level} id=\"{id}\">{title}<a class=\"anchor\" href=\"#{id}\" aria-label=\"Link to this heading\">#</a></h{level}>\n"
+            "<h{level} id=\"{anchor}\">{title}<a class=\"anchor\" href=\"#{anchor}\" aria-label=\"Link to this heading\">#</a></h{level}>\n"
         ));
         let text = heading.as_ref().map(|heading| heading.text.clone());
         for child in node.children() {
@@ -228,7 +232,8 @@ impl Renderer<'_, '_> {
         // A link to an image alone in its paragraph is a figure.
         if let [SyntaxElement::Node(link)] = content.as_slice() {
             if link.kind() == LINK && !has_description(link) {
-                if let Target::Image(src) = self.links.resolve(&link_path(link)) {
+                let target = self.links.resolve(&link_path(link));
+                if let Target::Image(src) = target {
                     // The caption is the text an image stands for, unless
                     // `#+ATTR_HTML:` gives one.
                     let alt = match attributes.contains(" alt=\"") {
@@ -244,9 +249,11 @@ impl Renderer<'_, '_> {
                     ));
                     return;
                 }
+                self.resolved = Some((link.clone(), target));
             }
         }
         let body = self.objects(node);
+        self.resolved = None;
         let body = body.trim();
         if !body.is_empty() {
             self.out.push_str(&format!("<p>{body}</p>\n"));
@@ -489,7 +496,11 @@ impl Renderer<'_, '_> {
     fn link(&mut self, node: &SyntaxNode) -> String {
         let path = link_path(node);
         if !has_description(node) {
-            return match self.links.resolve(&path) {
+            let target = match self.resolved.take() {
+                Some((link, target)) if link == *node => target,
+                _ => self.links.resolve(&path),
+            };
+            return match target {
                 Target::Image(src) => format!("<img src=\"{}\" alt=\"\" loading=\"lazy\">", escape(&src)),
                 Target::Href(href) => format!("<a href=\"{}\">{}</a>", escape(&href), escape(&shown_path(&path))),
             };
@@ -607,7 +618,10 @@ fn block_contents(node: &SyntaxNode) -> String {
     let mut out: Vec<String> = lines
         .iter()
         .map(|line| {
-            let line = if line.len() >= indent { &line[indent..] } else { line.trim_start() };
+            // The shared spaces and tabs, or the fewer a blank line has:
+            // its other blanks (a no-break space) may be wider than a byte.
+            let blanks = line.len() - line.trim_start_matches([' ', '\t']).len();
+            let line = &line[blanks.min(indent)..];
             let content = line.trim_start();
             let lead = &line[..line.len() - content.len()];
             match content.strip_prefix(',') {
@@ -739,6 +753,14 @@ mod tests {
     fn blocks_lose_their_shared_indentation_and_commas() {
         assert_eq!(contents("  #+begin_src org\n  ,* a\n    b\n  #+end_src\n"), "* a\n  b");
         assert_eq!(contents("#+begin_example\nx\n\n#+end_example\n"), "x");
+    }
+
+    #[test]
+    fn blank_lines_of_wider_blanks_keep_them() {
+        // A line of a no-break space is blank, so it does not count for
+        // the indentation, and its two bytes are not cut in the middle.
+        assert_eq!(contents("#+begin_example\n x\n\u{a0}\n y\n#+end_example\n"), "x\n\u{a0}\ny");
+        assert_eq!(contents("#+begin_example\n  x\n \u{a0}\n  y\n#+end_example\n"), "x\n\u{a0}\ny");
     }
 
     #[test]

@@ -358,6 +358,7 @@ def reference(directories):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 env=dict(os.environ, TZ="UTC"),
+                timeout=1200,
             )
         finally:
             os.unlink(driver.name)

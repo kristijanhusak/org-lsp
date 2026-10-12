@@ -23,73 +23,19 @@
 # command is `code`; CODE names another (codium, code-insiders, cursor).
 # Downloads that need a GitHub login, as from a private repository, go
 # through the GitHub CLI (`gh`) when it is installed.
+#
+# Only functions are defined until the last line, which runs `main`: a
+# download cut short (`curl | bash`) does nothing.
 set -euo pipefail
 
 repo=kristijanhusak/org-lsp
 releases=${ORG_LSP_RELEASES:-https://github.com/$repo/releases/download}
-release=nightly
-source=false
-editor=
 usage() { sed -n '2,25s/^# \{0,1\}//p' "${BASH_SOURCE[0]}"; }
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --release)
-      release=${2:?--release needs a release, such as v0.2.0}
-      shift
-      ;;
-    --release=*) release=${1#*=} ;;
-    --source) source=true ;;
-    -h | --help)
-      usage
-      exit 0
-      ;;
-    vscode | sublime | zed | helix | server) editor=$1 ;;
-    *)
-      echo "Unknown argument: $1 (see --help)" >&2
-      exit 2
-      ;;
-  esac
-  shift
-done
-if [ -z "$editor" ]; then
-  usage >&2
-  exit 2
-fi
-
 say() { printf '%s\n' "$*"; }
 fail() {
   printf '%s\n' "$*" >&2
   exit 1
 }
-
-# The checkout this script is in, if it is in one.
-root=
-if [ -f "${BASH_SOURCE[0]:-}" ]; then
-  dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-  [ -f "$dir/server/org-lsp/Cargo.toml" ] && root=$dir
-fi
-if $source && [ -z "$root" ]; then
-  fail "--source needs a checkout of the repository: run the script from it."
-fi
-
-# This platform, as the release names its files.
-case "$(uname -s)" in
-  Linux) os=linux ;;
-  Darwin) os=macos ;;
-  MINGW* | MSYS* | CYGWIN*) os=windows ;;
-  *) os=unknown ;;
-esac
-case "$(uname -m)" in
-  x86_64 | amd64) arch=x86_64 ;;
-  arm64 | aarch64) arch=arm64 ;;
-  *) arch=unknown ;;
-esac
-platform=$os-$arch
-exe=org-lsp
-[ "$os" = windows ] && exe=org-lsp.exe
-
-work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT
 
 # Download the release's file `name` into `dest`, checked against the
 # release's SHA256SUMS when it has them.
@@ -106,24 +52,29 @@ fetch() {
       fail "Could not download $name from the $release release ($releases/$release). Releases: https://github.com/$repo/releases"
     fi
   fi
-  if [ ! -f "$work/SHA256SUMS" ]; then
+  # A release without SHA256SUMS is not checked; `SHA256SUMS.none` says
+  # it has none, so that it is asked once.
+  if [ ! -f "$work/SHA256SUMS" ] && [ ! -f "$work/SHA256SUMS.none" ]; then
     curl -fsSL -o "$work/SHA256SUMS" "$releases/$release/SHA256SUMS" 2> /dev/null ||
       { command -v gh > /dev/null && gh release download "$release" --repo "$repo" --pattern SHA256SUMS --dir "$work" --clobber 2> /dev/null; } ||
-      : > "$work/SHA256SUMS"
+      { rm -f "$work/SHA256SUMS" && : > "$work/SHA256SUMS.none"; }
   fi
+  [ -f "$work/SHA256SUMS" ] || return 0
   local sum
   sum=$(awk -v name="$name" '$2 == name || $2 == "*" name { print $1 }' "$work/SHA256SUMS")
-  if [ -n "$sum" ]; then
-    local actual
-    if command -v sha256sum > /dev/null; then
-      actual=$(sha256sum "$dest" | awk '{ print $1 }')
-    elif command -v shasum > /dev/null; then
-      actual=$(shasum -a 256 "$dest" | awk '{ print $1 }')
-    else
-      return 0
-    fi
-    [ "$actual" = "$sum" ] || fail "$name does not match its checksum in SHA256SUMS: the download is broken."
+  # The files built together are all in SHA256SUMS: one that is not is
+  # left from an older build (a platform whose build failed).
+  [ -n "$sum" ] ||
+    fail "$name is not in the SHA256SUMS of the $release release: it is not from the same build, so it is not installed. Releases: https://github.com/$repo/releases"
+  local actual
+  if command -v sha256sum > /dev/null; then
+    actual=$(sha256sum "$dest" | awk '{ print $1 }')
+  elif command -v shasum > /dev/null; then
+    actual=$(shasum -a 256 "$dest" | awk '{ print $1 }')
+  else
+    return 0
   fi
+  [ "$actual" = "$sum" ] || fail "$name does not match its checksum in SHA256SUMS: the download is broken."
 }
 
 # Unpack the archive `file` into the directory `dest`.
@@ -418,10 +369,72 @@ install_helix() {
   say "Added Org to $file"
 }
 
-case "$editor" in
-  vscode) install_vscode ;;
-  sublime) install_sublime ;;
-  zed) install_zed ;;
-  helix) install_helix ;;
-  server) install_server_on_path ;;
-esac
+main() {
+  release=nightly
+  source=false
+  editor=
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --release)
+        release=${2:?--release needs a release, such as v0.2.0}
+        shift
+        ;;
+      --release=*) release=${1#*=} ;;
+      --source) source=true ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      vscode | sublime | zed | helix | server) editor=$1 ;;
+      *)
+        echo "Unknown argument: $1 (see --help)" >&2
+        exit 2
+        ;;
+    esac
+    shift
+  done
+  if [ -z "$editor" ]; then
+    usage >&2
+    exit 2
+  fi
+
+  # The checkout this script is in, if it is in one.
+  root=
+  if [ -f "${BASH_SOURCE[0]:-}" ]; then
+    local dir
+    dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+    [ -f "$dir/server/org-lsp/Cargo.toml" ] && root=$dir
+  fi
+  if $source && [ -z "$root" ]; then
+    fail "--source needs a checkout of the repository: run the script from it."
+  fi
+
+  # This platform, as the release names its files.
+  case "$(uname -s)" in
+    Linux) os=linux ;;
+    Darwin) os=macos ;;
+    MINGW* | MSYS* | CYGWIN*) os=windows ;;
+    *) os=unknown ;;
+  esac
+  case "$(uname -m)" in
+    x86_64 | amd64) arch=x86_64 ;;
+    arm64 | aarch64) arch=arm64 ;;
+    *) arch=unknown ;;
+  esac
+  platform=$os-$arch
+  exe=org-lsp
+  [ "$os" = windows ] && exe=org-lsp.exe
+
+  work=$(mktemp -d)
+  trap 'rm -rf "$work"' EXIT
+
+  case "$editor" in
+    vscode) install_vscode ;;
+    sublime) install_sublime ;;
+    zed) install_zed ;;
+    helix) install_helix ;;
+    server) install_server_on_path ;;
+  esac
+}
+
+main "$@"
