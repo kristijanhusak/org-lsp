@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["server/org-syntax", "server/org-core", "server/org-lsp"]
+members = ["server/org-syntax", "server/org-core", "server/org-lsp", "site"]
 
 [workspace.package]
 version = "0.1.0"

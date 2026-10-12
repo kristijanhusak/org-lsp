@@ -1,0 +1,55 @@
+name: Docs
+
+# The documentation website (site/), written from the Org docs and
+# published on GitHub Pages. It runs when they change on main, or by hand
+# (Actions > Docs > Run workflow). Pages' source must be "GitHub Actions"
+# (Settings > Pages).
+on:
+  push:
+    branches: [main]
+    paths:
+      - README.org
+      - docs/**
+      - site/**
+      - server/org-syntax/**
+      - .github/workflows/docs.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: site-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+      # Fails on a link to a file or a heading that is not there.
+      - run: cargo run --release -p org-site -- --check --out _site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

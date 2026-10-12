@@ -304,6 +304,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "org-site"
+version = "0.1.0"
+dependencies = [
+ "org-syntax",
+]
+
+[[package]]
 name = "org-syntax"
 version = "0.1.0"
 dependencies = [
