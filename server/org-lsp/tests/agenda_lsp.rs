@@ -4194,7 +4194,10 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     let sent_to = |script: &std::path::Path| {
         let text = std::fs::read_to_string(script).unwrap();
         let words: Vec<String> = text.lines().last().unwrap().split_whitespace().map(str::to_string).collect();
-        (words[words.len() - 3].clone(), words[words.len() - 2].clone())
+        // The token is in the script's environment, off the command line.
+        assert_eq!(words[words.len() - 2], "-");
+        let token = text.split_whitespace().find_map(|word| word.strip_prefix("ORG_LSP_TOKEN=")).unwrap();
+        (words[words.len() - 3].clone(), token.to_string())
     };
     let (address, token) = sent_to(&script_path);
     // The agenda's file is in a place of its own beside the script, the

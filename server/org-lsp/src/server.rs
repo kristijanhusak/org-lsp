@@ -1456,12 +1456,17 @@ pub fn run(connection: Connection) -> Result<()> {
     if !server.client.zed_agenda() {
         server.remove_view_file();
     }
-    if server.captures > 0 {
-        let _ = std::fs::remove_dir_all(&server.capture_directory);
+    // The server's temporary directories, made when it started.
+    let roam = server.roam.as_ref().map(|roam| roam.buffer_directory.clone());
+    for directory in [&server.capture_directory, &server.export_directory, &server.special_directory]
+        .into_iter()
+        .chain([&server.journal_views])
+        .chain(roam.as_ref())
+    {
+        let _ = std::fs::remove_dir_all(directory);
     }
-    let _ = std::fs::remove_dir_all(&server.export_directory);
-    if !server.special_edits.is_empty() {
-        let _ = std::fs::remove_dir_all(&server.special_directory);
+    if !server.client.zed_agenda() {
+        let _ = std::fs::remove_dir(&server.view_directory);
     }
     Ok(())
 }
@@ -1742,8 +1747,6 @@ fn span_name(span: Span) -> String {
     }
 }
 
-/// A directory for the capture buffers or the agenda file of a server:
-/// one of its own, also when a process runs more than one (the tests).
 /// Where the agenda's file goes for a client that keeps its tabs across
 /// restarts (`command_actions`, Zed): the same place for the same folders
 /// each time, beside the port's script, so that the tab it opens again
@@ -1760,10 +1763,36 @@ fn agenda_directory(client: &Client, folders: &[PathBuf]) -> Option<PathBuf> {
     Some(client.command_script.as_ref()?.parent()?.join("agenda").join(format!("{hash:016x}")))
 }
 
+/// A directory for the capture buffers or the agenda file of a server:
+/// one of its own, also when a process runs more than one (the tests).
+/// It is made at once, the user's alone (mode 0700) and under a name no one
+/// can guess, and it must be new: on a machine others use, no one else can
+/// read the notes and exports in it, nor put a file or a link there for the
+/// server to write through or read back.
 fn server_directory(kind: &str) -> PathBuf {
-    static SERVERS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-    let server = SERVERS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    temp_dir().join(format!("org-lsp-{kind}-{}-{server}", std::process::id()))
+    let temp = temp_dir();
+    for _ in 0..16 {
+        let directory = temp.join(format!("org-lsp-{kind}-{}-{}", std::process::id(), &port::token()[..16]));
+        match create_new_private_dir(&directory) {
+            Ok(()) => return directory,
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(_) => break,
+        }
+    }
+    // A temporary directory the server cannot write in: the commands that
+    // need one say so when they fail to write there.
+    temp.join(format!("org-lsp-{kind}-{}-{}", std::process::id(), port::token()))
+}
+
+#[cfg(unix)]
+fn create_new_private_dir(directory: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::DirBuilderExt;
+    std::fs::DirBuilder::new().mode(0o700).create(directory)
+}
+
+#[cfg(not(unix))]
+fn create_new_private_dir(directory: &Path) -> std::io::Result<()> {
+    std::fs::create_dir(directory)
 }
 
 /// The directory for temporary files, with its links resolved. Editors
@@ -2006,6 +2035,44 @@ fn planning_command(id: &str) -> Option<PlanningCommand> {
         commands::TIMESTAMP_CHANGE => Some(PlanningCommand::Timestamp { inactive: false }),
         _ => None,
     }
+}
+
+/// Write `text` as the whole of the file at `path`, an archive or journal
+/// file no editor has open, making its directory. A file there that the
+/// server could not read (not UTF-8, not readable) was taken for a missing
+/// one, so it is left alone and the write refused. The text goes to a new
+/// file renamed over the old one, with the old one's permissions, so that
+/// a write cut short leaves the old file whole.
+pub(crate) fn write_whole(path: &Path, text: &str) -> std::result::Result<(), String> {
+    let refused = |error: &dyn std::fmt::Display| format!("Cannot write {}: {error}", path.display());
+    let permissions = match std::fs::read(path) {
+        Ok(bytes) if std::str::from_utf8(&bytes).is_err() => {
+            return Err(refused(&"it is not UTF-8 text, and is left as it is"));
+        }
+        Ok(_) => std::fs::metadata(path).ok().map(|metadata| metadata.permissions()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(refused(&error)),
+    };
+    let directory = path.parent().filter(|parent| !parent.as_os_str().is_empty()).unwrap_or(Path::new("."));
+    std::fs::create_dir_all(directory).map_err(|error| refused(&error))?;
+    let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+    let temporary = directory.join(format!(".{name}.org-lsp-{}", port::token()));
+    let written = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)
+        .and_then(|mut file| {
+            use std::io::Write;
+            file.write_all(text.as_bytes())?;
+            file.sync_all()
+        })
+        .and_then(|()| permissions.map_or(Ok(()), |permissions| std::fs::set_permissions(&temporary, permissions)))
+        .and_then(|()| std::fs::rename(&temporary, path));
+    if let Err(error) = written {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(refused(&error));
+    }
+    Ok(())
 }
 
 /// Write a tangled file as `org-babel-tangle` writes it: only when its text
@@ -6729,13 +6796,7 @@ impl Server {
             });
             match open {
                 Some((uri, version, now)) => documents.push((uri, Some(version), self.text_edits(&now, &written.text))),
-                None => {
-                    if let Some(directory) = written.path.parent() {
-                        let _ = std::fs::create_dir_all(directory);
-                    }
-                    std::fs::write(&written.path, &written.text)
-                        .map_err(|error| format!("Cannot write {}: {error}", written.path.display()))?;
-                }
+                None => write_whole(&written.path, &written.text)?,
             }
         }
         documents.retain(|(_, _, edits)| !edits.is_empty());
@@ -12878,6 +12939,43 @@ fn column_ranges(input: &str, count: usize) -> std::collections::BTreeSet<usize>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn makes_temporary_directories_no_one_else_can_enter() {
+        use std::os::unix::fs::PermissionsExt;
+        let (one, two) = (server_directory("test"), server_directory("test"));
+        assert_ne!(one, two);
+        for directory in [&one, &two] {
+            assert_eq!(std::fs::metadata(directory).unwrap().permissions().mode() & 0o777, 0o700);
+            std::fs::remove_dir(directory).unwrap();
+        }
+    }
+
+    #[test]
+    fn writes_a_file_whole_and_never_over_one_it_cannot_read() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-write-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        let file = directory.join("sub").join("a.org_archive");
+        write_whole(&file, "* one\n").unwrap();
+        write_whole(&file, "* two\n").unwrap();
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "* two\n");
+        // Only the file: no temporary one left beside it.
+        assert_eq!(std::fs::read_dir(file.parent().unwrap()).unwrap().count(), 1);
+        // A Latin-1 archive from years ago stays as it is.
+        let latin = directory.join("old.org_archive");
+        std::fs::write(&latin, b"* caf\xe9\n").unwrap();
+        assert!(write_whole(&latin, "* new\n").unwrap_err().contains("not UTF-8"));
+        assert_eq!(std::fs::read(&latin).unwrap(), b"* caf\xe9\n");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o600)).unwrap();
+            write_whole(&file, "* three\n").unwrap();
+            assert_eq!(std::fs::metadata(&file).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn keeps_a_count_within_bounds() {

@@ -370,13 +370,7 @@ impl Server {
                                 documents.push((uri, Some(version), edits));
                             }
                         }
-                        None => {
-                            if let Some(parent) = path.parent() {
-                                let _ = std::fs::create_dir_all(parent);
-                            }
-                            std::fs::write(&path, text)
-                                .map_err(|error| format!("Cannot write {}: {error}", path.display()))?;
-                        }
+                        None => super::write_whole(&path, text)?,
                     }
                 }
                 None => {

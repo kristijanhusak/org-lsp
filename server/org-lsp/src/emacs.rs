@@ -14,7 +14,7 @@ use std::collections::VecDeque;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crossbeam_channel::{Receiver, Sender};
 use serde_json::{json, Value};
@@ -50,6 +50,8 @@ struct Job {
     method: String,
     params: Value,
     reply: Reply,
+    /// When the server stops waiting for a job it waits for (`Reply::Now`).
+    deadline: Option<Instant>,
 }
 
 enum Reply {
@@ -82,7 +84,12 @@ impl Emacs {
     pub fn call(&self, method: &str, params: Value, timeout: Duration) -> Result<Value, String> {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         self.jobs
-            .send(Job { method: method.to_string(), params, reply: Reply::Now(sender) })
+            .send(Job {
+                method: method.to_string(),
+                params,
+                reply: Reply::Now(sender),
+                deadline: Some(Instant::now() + timeout),
+            })
             .map_err(|_| "Emacs is not running".to_string())?;
         receiver.recv_timeout(timeout).map_err(|_| "Emacs did not answer in time".to_string())?
     }
@@ -95,7 +102,7 @@ impl Emacs {
 
     /// Run `method`; its answer comes as [`Event::Done`] with `tag`.
     pub fn start(&self, tag: u64, method: &str, params: Value) {
-        let _ = self.jobs.send(Job { method: method.to_string(), params, reply: Reply::Later(tag) });
+        let _ = self.jobs.send(Job { method: method.to_string(), params, reply: Reply::Later(tag), deadline: None });
     }
 }
 
@@ -110,7 +117,12 @@ impl Caller {
     pub fn call(&self, method: &str, params: Value, timeout: Duration) -> Result<Value, String> {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         self.jobs
-            .send(Job { method: method.to_string(), params, reply: Reply::Now(sender) })
+            .send(Job {
+                method: method.to_string(),
+                params,
+                reply: Reply::Now(sender),
+                deadline: Some(Instant::now() + timeout),
+            })
             .map_err(|_| "Emacs is not running".to_string())?;
         receiver.recv_timeout(timeout).map_err(|_| "Emacs did not answer in time".to_string())?
     }
@@ -137,6 +149,11 @@ impl Drop for Process {
 fn serve(settings: &Settings, jobs: &Receiver<Job>, events: &Sender<Event>) {
     let mut process: Option<Process> = None;
     for job in jobs {
+        // A job the server no longer waits for, behind a long one.
+        if job.deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            answer(job.reply, Err(LATE.to_string()), events);
+            continue;
+        }
         if process.is_none() {
             match start(settings, events) {
                 Ok(started) => process = Some(started),
@@ -147,8 +164,11 @@ fn serve(settings: &Settings, jobs: &Receiver<Job>, events: &Sender<Event>) {
             }
         }
         let Some(running) = process.as_mut() else { continue };
-        let result = request(running, &job.method, job.params, events);
-        if result.as_ref().is_err_and(|error| error.starts_with(STOPPED)) {
+        let result = request(running, &job.method, job.params, events, job.deadline);
+        // An Emacs that stopped, or that is stuck past the time the server
+        // waits (a question no one answers, a loop): the next job starts
+        // a new one, and this one goes with `process`.
+        if result.as_ref().is_err_and(|error| error.starts_with(STOPPED) || error == LATE) {
             process = None;
         }
         answer(job.reply, result, events);
@@ -167,6 +187,12 @@ fn answer(reply: Reply, result: Result<Value, String>, events: &Sender<Event>) {
 }
 
 const STOPPED: &str = "Emacs stopped";
+const LATE: &str = "Emacs did not answer in time";
+
+/// The longest Emacs may take to start and load Org and the user's
+/// configuration, and to answer a question the user is asked.
+const SETUP_TIME: Duration = Duration::from_secs(120);
+const QUESTION_TIME: Duration = Duration::from_secs(600);
 
 /// Start Emacs and set it up: the user's configuration, then Org.
 fn start(settings: &Settings, events: &Sender<Event>) -> Result<Process, String> {
@@ -207,14 +233,20 @@ fn start(settings: &Settings, events: &Sender<Event>) -> Result<Process, String>
     });
     let mut process = Process { child, stdin, lines, stderr: kept, next_id: 0 };
     let params = json!({ "config_file": settings.config_file, "config": settings.config });
-    request(&mut process, "setup", params, events)
+    request(&mut process, "setup", params, events, Some(Instant::now() + SETUP_TIME))
         .map_err(|error| format!("Emacs could not load Org with your configuration: {error}"))?;
     Ok(process)
 }
 
-/// Send one request and wait for its answer, passing on the questions
-/// Emacs asks meanwhile.
-fn request(process: &mut Process, method: &str, params: Value, events: &Sender<Event>) -> Result<Value, String> {
+/// Send one request and wait for its answer, until `deadline` if the
+/// server waits for it, passing on the questions Emacs asks meanwhile.
+fn request(
+    process: &mut Process,
+    method: &str,
+    params: Value,
+    events: &Sender<Event>,
+    deadline: Option<Instant>,
+) -> Result<Value, String> {
     process.next_id += 1;
     let id = process.next_id;
     let line = ascii_json(&json!({ "id": id, "method": method, "params": params }));
@@ -231,16 +263,26 @@ fn request(process: &mut Process, method: &str, params: Value, events: &Sender<E
         return Err(stopped(process));
     }
     loop {
-        let Ok(line) = process.lines.recv() else { return Err(stopped(process)) };
+        let line = match deadline {
+            Some(deadline) => match process.lines.recv_deadline(deadline) {
+                Ok(line) => line,
+                Err(crossbeam_channel::RecvTimeoutError::Timeout) => return Err(LATE.to_string()),
+                Err(crossbeam_channel::RecvTimeoutError::Disconnected) => return Err(stopped(process)),
+            },
+            None => match process.lines.recv() {
+                Ok(line) => line,
+                Err(_) => return Err(stopped(process)),
+            },
+        };
         let Ok(message) = serde_json::from_str::<Value>(&line) else { continue };
         if let Some(question) = message.get("ask") {
             let prompt = question.get("prompt").and_then(Value::as_str).unwrap_or("").to_string();
+            // While the server waits for this job it cannot ask the user:
+            // no. Otherwise the user is asked, and no answer is no.
             let (sender, receiver) = crossbeam_channel::bounded(1);
-            let answer = if events.send(Event::Ask { prompt, answer: sender }).is_ok() {
-                receiver.recv().unwrap_or(false)
-            } else {
-                false
-            };
+            let answer = deadline.is_none()
+                && events.send(Event::Ask { prompt, answer: sender }).is_ok()
+                && receiver.recv_timeout(QUESTION_TIME).unwrap_or(false);
             let reply = ascii_json(&json!({ "answer": answer }));
             if writeln!(process.stdin, "{reply}").and_then(|()| process.stdin.flush()).is_err() {
                 return Err(stopped(process));
@@ -278,6 +320,43 @@ fn ascii_json(value: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// An Emacs that answers each request with its process id, and never
+    /// answers `hang`.
+    #[cfg(unix)]
+    fn fake_emacs(directory: &std::path::Path) -> String {
+        use std::os::unix::fs::PermissionsExt;
+        let path = directory.join("emacs");
+        let script = r#"#!/bin/sh
+while IFS= read -r line; do
+  id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9]*\).*/\1/p')
+  case "$line" in
+    *'"method":"hang"'*) ;;
+    *) printf '\036org-lsp {"id":%s,"result":%s}\n' "$id" "$$" ;;
+  esac
+done
+"#;
+        std::fs::write(&path, script).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        path.display().to_string()
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn starts_emacs_again_after_one_that_does_not_answer() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-fake-emacs-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let emacs = Emacs::new(Settings { program: fake_emacs(&directory), ..Settings::default() });
+        let second = Duration::from_secs(5);
+        let first = emacs.call("ping", Value::Null, second).unwrap();
+        assert_eq!(emacs.call("hang", Value::Null, Duration::from_millis(300)), Err(LATE.to_string()));
+        // The stuck Emacs is gone: a new one answers.
+        let again = emacs.call("ping", Value::Null, second).unwrap();
+        assert_ne!(first, again);
+        drop(emacs);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn escapes_beyond_ascii() {
