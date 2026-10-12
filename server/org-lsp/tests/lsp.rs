@@ -2747,7 +2747,7 @@ fn takes_back_an_edit_the_editor_does_not_make() {
 /// diagnostics for it.
 #[test]
 fn clears_the_diagnostics_of_a_closed_file() {
-    let mut client = Client::start(json!({}), json!({}));
+    let client = Client::start(json!({}), json!({}));
     client.open(&uri(), "* Note\nSee [[*Missing]].\n");
     let published = client.notification("textDocument/publishDiagnostics");
     assert!(!published["diagnostics"].as_array().unwrap().is_empty(), "{published}");
