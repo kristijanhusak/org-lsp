@@ -1554,8 +1554,7 @@ do
     return not vim.api.nvim_win_is_valid(roam_win)
   end)
   -- Completing a node in a link whose `]]` a closing pair typed, with
-  -- Neovim's own completion: the link has one `]]`, and one `id:`. A
-  -- title of one word: before 0.12 it cuts a completion at a space.
+  -- Neovim's own completion: the link has one `]]`, and one `id:`.
   local links = roam_dir .. '/links.org'
   vim.fn.writefile({ '#+title: Links', '', 'See [[]]', 'See [[id:]]' }, links)
   vim.cmd.edit(links)

@@ -2,7 +2,7 @@
 #+options: ^:{} toc:nil
 
 The Neovim plugin is the repository itself (~plugin/~, ~lua/~), for Neovim
-0.11 or newer. It sets its keys in Org buffers, so it is meant to be used
+0.12 or newer. It sets its keys in Org buffers, so it is meant to be used
 instead of nvim-orgmode for them, not next to it.
 
 * Installing
@@ -123,7 +123,7 @@ calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
 | [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
 | [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 83% | ✅ |  |
 | [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ |  |
-| [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ | Completion needs an LSP completion plugin (or ~vim.lsp.completion~, which before Neovim 0.12 cuts what it inserts at the first space). |
+| [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ | Completion needs an LSP completion plugin (or ~vim.lsp.completion~). |
 | [[file:parity.org::#timers][Timers]] | 100% | ✅ |  |
 | [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
