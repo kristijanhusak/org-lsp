@@ -128,6 +128,14 @@ local function png_size(data)
   return number(17), number(21)
 end
 
+--- The extensions of the image files the server previews that are not PNG
+--- (`image-file-name-extensions`), each the name of ImageMagick's coder
+--- for its files.
+local coders = {}
+for _, extension in ipairs({ 'jpeg', 'jpg', 'gif', 'tiff', 'tif', 'xbm', 'xpm', 'pbm', 'pgm', 'ppm', 'pnm', 'svg', 'webp' }) do
+  coders[extension] = true
+end
+
 --- The image of `path` as PNG: as it is, or made a PNG with ImageMagick,
 --- which Neovim can show.
 ---@param path string
@@ -149,7 +157,16 @@ local function load(path)
     vim.fn.mkdir(directory, 'p')
     png = vim.fs.joinpath(directory, vim.fn.sha256(key) .. '.png')
     if not vim.uv.fs_stat(png) then
-      vim.system({ converter, path .. '[0]', png }):wait()
+      -- Read as what its extension says (`svg:pic.svg`), not as what
+      -- ImageMagick makes of its bytes, and within limits: the editor
+      -- waits for it.
+      local extension = (path:match('%.(%w+)$') or ''):lower()
+      local input = (coders[extension] and extension .. ':' or '') .. path .. '[0]'
+      local limits = { '-limit', 'memory', '256MiB', '-limit', 'area', '128MP', '-limit', 'time', '10' }
+      local made = vim.system(vim.list_extend({ converter, unpack(limits) }, { input, png }), { timeout = 10000 }):wait()
+      if made.code ~= 0 then
+        os.remove(png)
+      end
     end
   end
   local ok, data = pcall(vim.fn.readblob, png)

@@ -70,7 +70,10 @@ beside it:
 
 Without ~org_agenda_files~, the agenda is built from the Org files in the
 workspace folders. When ~org-lsp.settings~ changes, the extension restarts
-the server, so the change applies at once.
+the server, so the change applies at once. A folder's
+~.vscode/settings.json~ may set them too, but only once VS Code trusts the
+folder: in /restricted mode/, ~org-lsp.settings~ and ~org-lsp.server.path~
+come from the user's settings alone, as they name programs the server runs.
 
 The server also reads [[file:configuration.org::#the-shared-configuration-file][the shared configuration file]],
 =~/.config/org-lsp/config.toml=, which every editor shares;

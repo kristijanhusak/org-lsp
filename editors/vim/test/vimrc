@@ -1,6 +1,8 @@
 " The configuration the tests run Vim with: the plugin, one LSP client
 " ($ORG_LSP_TEST_CLIENT) and the tests.
 set nocompatible
+" As in a UTF-8 locale, which the terminal the tests run in may not have.
+set encoding=utf-8
 let s:here = expand('<sfile>:p:h')
 let s:clients = $ORG_LSP_TEST_CLIENTS
 let s:client = $ORG_LSP_TEST_CLIENT

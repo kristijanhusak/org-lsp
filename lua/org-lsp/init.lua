@@ -304,7 +304,8 @@ function M.run(name, opts)
       local input = type(result) == 'table' and result.input or nil
       if input then
         local function answered(answer)
-          if answer then
+          -- (The buffer may be gone while the question was open.)
+          if answer and vim.api.nvim_buf_is_valid(bufnr) then
             -- What the server asked to have back, and the answer.
             for key, value in pairs(input.context or {}) do
               context[key] = value
@@ -404,6 +405,9 @@ local sparse_namespace = vim.api.nvim_create_namespace('org_lsp_sparse')
 ---@param sparse { lines: integer[], highlights: table[], keep: boolean?, unfold: integer[]? }
 ---@param client vim.lsp.Client
 function M.show_sparse(bufnr, sparse, client)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return
+  end
   if sparse.keep then
     for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
       if vim.wo[win].foldenable then
@@ -722,6 +726,10 @@ end
 ---@param client vim.lsp.Client
 ---@return boolean # whether the cursor goes at the end of its line
 function M.apply_carried(result, bufnr, client)
+  -- The answer may come after the buffer is gone.
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return false
+  end
   vim.lsp.util.apply_text_edits(result.edits, bufnr, client.offset_encoding)
   local cursor = result.cursor
   if cursor and vim.api.nvim_get_current_buf() == bufnr then

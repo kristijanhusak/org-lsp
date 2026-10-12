@@ -268,15 +268,34 @@ endfunction
 
 " ----- positions and URIs
 
+" The URI of buffer `bufnr`'s file, as the LSP client writes it: the
+" server knows a document by the URI the client opened it with. Each byte
+" of the UTF-8 name is percent-encoded (`file:///tmp/caf%C3%A9.org`), and
+" on Windows the drive follows with forward slashes
+" (`file:///C:/notes/a.org`). A client that spells it otherwise (ALE
+" writes `%c3`, vim-lsp leaves `@` as it is) is asked for its own.
 function! org_lsp#uri(bufnr) abort
   let path = fnamemodify(bufname(a:bufnr), ':p')
-  let encoded = substitute(path, '\([^A-Za-z0-9_.~/:-]\)', '\=printf("%%%02X", char2nr(submatch(1)))', 'g')
+  if !empty(org_lsp#adapter()) && exists('*org_lsp#adapter#' . org_lsp#adapter() . '#uri')
+    return s:call('uri', path)
+  endif
+  if has('win32')
+    let path = tr(path, '\', '/')
+  endif
+  let encoded = substitute(path, '[^A-Za-z0-9_.~/:-]', '\=s:percent(submatch(0))', 'g')
   return 'file://' . (encoded[0] ==# '/' ? '' : '/') . encoded
 endfunction
 
+" Character `char` as the percent-encoding of its bytes.
+function! s:percent(char) abort
+  return join(map(range(len(a:char)), {_, i -> printf('%%%02X', char2nr(a:char[i]))}), '')
+endfunction
+
+" The file of `uri`: its bytes decoded one by one (`%C3%A9` is the two
+" bytes of `é`), so that the name comes back as it was.
 function! org_lsp#uri_to_path(uri) abort
   let path = substitute(a:uri, '^file://', '', '')
-  let path = substitute(path, '%\(\x\x\)', '\=nr2char(str2nr(submatch(1), 16))', 'g')
+  let path = substitute(path, '%\(\x\x\)', '\=printf("%c", str2nr(submatch(1), 16))', 'g')
   if has('win32') && path =~# '^/\a:'
     let path = path[1:]
   endif
@@ -1651,7 +1670,9 @@ function! s:open_external(uri) abort
     execute 'Open' fnameescape(a:uri)
     return
   endif
-  let opener = has('mac') ? ['open'] : has('win32') ? ['cmd', '/c', 'start', ''] : ['xdg-open']
+  " On Windows, the URL's handler without cmd.exe, which would read `&`,
+  " `|` and `%VAR%` in it.
+  let opener = has('mac') ? ['open'] : has('win32') ? ['rundll32', 'url.dll,FileProtocolHandler'] : ['xdg-open']
   call job_start(opener + [a:uri], {'stoponexit': ''})
 endfunction
 
