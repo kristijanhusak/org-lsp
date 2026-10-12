@@ -456,6 +456,7 @@ impl Server {
         persist: bool,
     ) -> std::result::Result<Value, Refusal> {
         let mut marks = self.sorted_marks();
+        let original = marks.clone();
         let mut lines = self.view_lines();
         // A date read once for all of them: from the day of the cursor's
         // line when it is a date line, else from today. A `++` answer is
@@ -563,21 +564,35 @@ impl Server {
                 }
             }
         }
-        // The marks that stay, on their entries as they are now.
+        // The marks that stay, on their entries with their headlines as
+        // they are now. An open document is changed when the editor applies
+        // the edit, and its `didChange` moves the marks: there they keep
+        // their places in the text before; a closed file is written now.
         let kept: Vec<EntryRef> = if persist {
-            self.agenda_marks
-                .clone()
-                .into_iter()
-                .filter_map(|mark| {
-                    let uri = mark.uri.clone();
-                    self.with_source(&uri, |_, _, _, outline, _| {
-                        let entry = &outline.entries[views::resolve(&mark, outline)?];
-                        Some(EntryRef {
-                            uri: mark.uri.clone(),
-                            offset: entry.offset,
-                            head: entry.head.clone(),
-                            marker: mark.marker.map(|marker| entry.offset + marker.saturating_sub(mark.offset)),
-                        })
+            original
+                .iter()
+                .zip(&marks)
+                .filter_map(|(before, mark)| {
+                    let open = self.documents.contains_key(mark.uri.as_str());
+                    self.with_source(&mark.uri, |_, _, _, outline, _| {
+                        // The mark followed the edits, so its entry starts
+                        // where it says, though its headline may have changed
+                        // (a new TODO state); unless the action took entries
+                        // away, when another may start there now.
+                        let moves = matches!(key, "$" | "A" | "r" | "w");
+                        let index = outline
+                            .entries
+                            .iter()
+                            .position(|entry| entry.offset == mark.offset)
+                            .filter(|_| !moves)
+                            .or_else(|| views::resolve(mark, outline))?;
+                        let entry = &outline.entries[index];
+                        let (offset, marker) = if open {
+                            (before.offset, before.marker)
+                        } else {
+                            (entry.offset, mark.marker.map(|marker| entry.offset + marker.saturating_sub(mark.offset)))
+                        };
+                        Some(EntryRef { uri: mark.uri.clone(), offset, head: entry.head.clone(), marker })
                     })
                     .flatten()
                 })

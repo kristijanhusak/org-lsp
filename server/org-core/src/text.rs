@@ -131,3 +131,40 @@ mod tests {
         assert!(!word_end(" x", 0));
     }
 }
+
+/// Whether every line of `text` ends with `\r\n`, as a Windows file's
+/// do. Org reads lines ended by `\n`: such a text is worked on without its
+/// `\r`s ([`to_lf`]), which go back on what comes of it ([`from_lf`]). A
+/// text with both endings is left as it is.
+pub fn crlf(text: &str) -> bool {
+    text.contains("\r\n") && text.matches('\n').count() == text.matches("\r\n").count()
+}
+
+/// `text` of [`crlf`] lines without their `\r`s, and where byte `offset`
+/// is in it.
+pub fn to_lf(text: &str, offset: usize) -> (String, usize) {
+    let offset = offset.min(text.len());
+    (text.replace("\r\n", "\n"), offset - text[..offset].matches("\r\n").count())
+}
+
+/// The reverse of [`to_lf`]: the `\r`s back, and where byte `offset` of
+/// `text` is then.
+pub fn from_lf(text: &str, offset: usize) -> (String, usize) {
+    let offset = offset.min(text.len());
+    (text.replace('\n', "\r\n"), offset + text[..offset].matches('\n').count())
+}
+
+#[cfg(test)]
+mod line_end_tests {
+    use super::*;
+
+    #[test]
+    fn takes_the_returns_out_and_puts_them_back() {
+        assert!(crlf("a\r\nb\r\n"));
+        assert!(!crlf("a\r\nb\n"));
+        assert!(!crlf("a\nb\n"));
+        let (lf, at) = to_lf("ab\r\ncd\r\n", 5);
+        assert_eq!((lf.as_str(), at), ("ab\ncd\n", 4));
+        assert_eq!(from_lf(&lf, at), ("ab\r\ncd\r\n".to_string(), 5));
+    }
+}

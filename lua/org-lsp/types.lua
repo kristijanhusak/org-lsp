@@ -251,14 +251,14 @@
 ---@class org_lsp.AgendaCommand
 ---@field key string The keys that pick the command in the agenda menu
 ---@field description string What the menu shows
----@field type? 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo'|'search' The view
+---@field type? 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo'|'search'|'stuck' The view
 ---@field match? string For todo, keywords (NEXT|WAIT); for tags, a match string (work-home, PRIORITY="A")
 ---@field header? string Replaces the view's header; empty for none
 ---@field settings? table Agenda options for this command: org_agenda_span, org_agenda_start_day…
 ---@field blocks? org_lsp.AgendaBlock[] Views shown one after the other
 
 ---@class org_lsp.AgendaBlock
----@field type 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo'|'search' The view
+---@field type 'agenda'|'alltodo'|'todo'|'tags'|'tags-todo'|'search'|'stuck' The view
 ---@field match? string For todo, keywords; for tags, a match string
 ---@field header? string Replaces the view's header; empty for none
 ---@field settings? table Agenda options for this block: org_agenda_span, org_agenda_start_day…

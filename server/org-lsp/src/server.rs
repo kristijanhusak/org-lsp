@@ -518,6 +518,17 @@ struct ClockTask {
     title: String,
 }
 
+/// What the server knows of the clock, as a command found it: given back
+/// when the editor does not make the command's edit.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ClockState {
+    running: Option<RunningClock>,
+    last_clocked: Option<(Uri, String)>,
+    history: Vec<ClockTask>,
+    interrupted: Option<ClockTask>,
+    out_time: Option<DateTime>,
+}
+
 /// A clock that runs: the file of its `CLOCK:` line, and when it started.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct RunningClock {
@@ -885,7 +896,12 @@ struct Server {
     saving: HashMap<RequestId, Vec<Uri>>,
     /// The documents each `workspace/applyEdit` changes, by request: if
     /// the editor does not apply it, the server forgets the change.
-    applying: HashMap<RequestId, Vec<String>>,
+    applying: HashMap<RequestId, (Vec<String>, Option<ClockState>)>,
+    /// The clock as the command being run found it.
+    clock_before: Option<ClockState>,
+    /// The paths of files through their symbolic links, as known: the
+    /// editor and the agenda's folders may reach a file by different ones.
+    canonical: std::cell::RefCell<HashMap<PathBuf, PathBuf>>,
     todo: TodoKeywords,
     agenda: AgendaConfig,
     /// The `%(…)` of the prefix formats, shared with `agenda`'s evaluator.
@@ -964,7 +980,7 @@ struct Server {
     export_directory: Private,
     next_export: u64,
     /// Where the agenda's file goes, for a client that cannot fetch it.
-    view_directory: PathBuf,
+    view_directory: Private,
     /// The date prompt's document: [`prompt::URI`], or the file it is
     /// written to for a client that cannot fetch it (`prompt_file`).
     prompt_uri: Uri,
@@ -1244,8 +1260,13 @@ pub fn run(connection: Connection) -> Result<()> {
         None => params.root_uri.as_ref().and_then(uri::to_path).into_iter().collect(),
     };
 
-    let view_directory = agenda_directory(&client, &folders).unwrap_or_else(|| server_directory("view"));
-    let prompt_file = (!client.virtual_documents).then(|| view_directory.join(prompt::FILE_NAME));
+    // Made when the agenda or the date prompt is first written to a file,
+    // which a client that fetches them never needs.
+    let view_directory = match agenda_directory(&client, &folders) {
+        Some(directory) => Private::at("view", directory),
+        None => Private::new("view"),
+    };
+    let prompt_file = (!client.virtual_documents).then(|| view_directory.path().join(prompt::FILE_NAME));
     let prompt_uri =
         prompt_file.as_deref().and_then(uri::from_path).unwrap_or_else(|| prompt::URI.parse().expect("valid URI"));
 
@@ -1334,6 +1355,8 @@ pub fn run(connection: Connection) -> Result<()> {
         },
         saving: HashMap::new(),
         applying: HashMap::new(),
+        clock_before: None,
+        canonical: std::cell::RefCell::new(HashMap::new()),
         todo,
         agenda,
         prefix_forms,
@@ -1475,6 +1498,10 @@ pub fn run(connection: Connection) -> Result<()> {
     // without one open (`org.agenda.list`).
     server.open_port();
     let emacs_events = server.emacs.events().clone();
+    // After `shutdown`, requests are refused and notifications dropped
+    // until `exit`, which ends the server; an `exit` before it ends it as
+    // having failed.
+    let (mut shut_down, mut exited) = (false, false);
     loop {
         let alarm = server.countdown.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
         let appt = server.appt_check.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
@@ -1485,8 +1512,16 @@ pub fn run(connection: Connection) -> Result<()> {
         crossbeam_channel::select! {
             recv(connection.receiver) -> message => match message {
                 Ok(Message::Request(request)) => {
-                    if connection.handle_shutdown(&request)? {
-                        break;
+                    if shut_down || request.method == lsp_types::request::Shutdown::METHOD {
+                        let response = if shut_down {
+                            let message = "The server is shutting down".to_string();
+                            Response::new_err(request.id, ErrorCode::InvalidRequest as i32, message)
+                        } else {
+                            Response::new_ok(request.id, Value::Null)
+                        };
+                        shut_down = true;
+                        connection.sender.send(Message::Response(response))?;
+                        continue;
                     }
                     let (id, method) = (request.id.clone(), request.method.clone());
                     let response = guarded(&mut server, &method, |server| server.request(request))
@@ -1494,6 +1529,13 @@ pub fn run(connection: Connection) -> Result<()> {
                     connection.sender.send(Message::Response(response))?;
                 }
                 Ok(Message::Notification(notification)) => {
+                    if notification.method == lsp_types::notification::Exit::METHOD {
+                        exited = true;
+                        break;
+                    }
+                    if shut_down {
+                        continue;
+                    }
                     let method = notification.method.clone();
                     let _ = guarded(&mut server, &method, |server| server.notification(notification));
                 }
@@ -1536,8 +1578,11 @@ pub fn run(connection: Connection) -> Result<()> {
     {
         let _ = std::fs::remove_dir_all(directory);
     }
-    if !server.client.zed_agenda() {
-        let _ = std::fs::remove_dir(&server.view_directory);
+    if let Some(directory) = server.view_directory.made().filter(|_| !server.client.zed_agenda()) {
+        let _ = std::fs::remove_dir(directory);
+    }
+    if exited && !shut_down {
+        return Err("the client asked to exit before shutting the server down".into());
     }
     Ok(())
 }
@@ -1847,6 +1892,11 @@ impl Private {
         Private { kind, path: std::cell::OnceCell::new() }
     }
 
+    /// A directory chosen ahead, made by those who write in it.
+    pub(crate) fn at(kind: &'static str, path: PathBuf) -> Private {
+        Private { kind, path: std::cell::OnceCell::from(path) }
+    }
+
     /// The directory, made now if it is not yet.
     pub(crate) fn path(&self) -> &Path {
         self.path.get_or_init(|| server_directory(self.kind))
@@ -2032,7 +2082,16 @@ fn capabilities(
             ..Default::default()
         }),
         code_action_provider: Some(CodeActionProviderCapability::Options(CodeActionOptions {
-            code_action_kinds: Some(actions::KINDS.iter().map(|kind| CodeActionKind::new(kind)).collect()),
+            // The kinds of the actions on every line, then `org`, whose
+            // kinds are all the commands' (`org.meta.right` …), and the
+            // fixes of citation keys.
+            code_action_kinds: Some(
+                actions::KINDS
+                    .iter()
+                    .map(|kind| CodeActionKind::new(kind))
+                    .chain([CodeActionKind::new("org"), CodeActionKind::QUICKFIX])
+                    .collect(),
+            ),
             ..Default::default()
         })),
         execute_command_provider: Some(ExecuteCommandOptions { commands: commands::ids(), ..Default::default() }),
@@ -2155,8 +2214,17 @@ pub(crate) fn write_whole(path: &Path, text: &str) -> std::result::Result<(), St
 /// it, keeping its permissions. A link is written through, to the file it
 /// leads to, as Emacs writes it.
 fn replace_whole(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    let target = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let target = written_path(path);
     let path = target.as_path();
+    // A file with other names (a hard link) is written in place, as Emacs
+    // writes it: a new file renamed over it would leave the others behind.
+    #[cfg(unix)]
+    if std::fs::metadata(path).is_ok_and(|metadata| std::os::unix::fs::MetadataExt::nlink(&metadata) > 1) {
+        use std::io::Write;
+        let mut file = std::fs::OpenOptions::new().write(true).truncate(true).open(path)?;
+        file.write_all(bytes)?;
+        return file.sync_all();
+    }
     let permissions = std::fs::metadata(path).ok().map(|metadata| metadata.permissions());
     let directory = path.parent().filter(|parent| !parent.as_os_str().is_empty()).unwrap_or(Path::new("."));
     std::fs::create_dir_all(directory)?;
@@ -2177,6 +2245,26 @@ fn replace_whole(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
         let _ = std::fs::remove_file(&temporary);
     }
     written
+}
+
+/// The file a write to `path` changes: through its symbolic links, also
+/// one whose target does not exist yet, and its directories' links.
+fn written_path(path: &Path) -> PathBuf {
+    let mut path = path.to_path_buf();
+    for _ in 0..40 {
+        let Ok(link) = std::fs::read_link(&path) else { break };
+        path = match path.parent() {
+            Some(parent) if link.is_relative() => parent.join(link),
+            _ => link,
+        };
+    }
+    if let Ok(target) = std::fs::canonicalize(&path) {
+        return target;
+    }
+    match (path.parent().and_then(|parent| std::fs::canonicalize(parent).ok()), path.file_name()) {
+        (Some(parent), Some(name)) => parent.join(name),
+        _ => path,
+    }
 }
 
 /// Write a tangled file as `org-babel-tangle` writes it: only when its text
@@ -2331,7 +2419,7 @@ impl Server {
             serde_json::to_value(params).unwrap_or(Value::Null),
             Some(pending),
         );
-        self.applying.insert(request.id.clone(), changed);
+        self.applying.insert(request.id.clone(), (changed, self.clock_before.clone()));
         if self.auto_save && !files.is_empty() {
             self.saving.insert(request.id.clone(), files);
         }
@@ -2362,7 +2450,7 @@ impl Server {
     fn response(&mut self, response: Response) {
         // An edit the editor did not apply: the server takes back what it
         // expected of it.
-        if let Some(files) = self.applying.remove(&response.id) {
+        if let Some((files, clock_before)) = self.applying.remove(&response.id) {
             let result = response.response_result.as_ref();
             let refused =
                 result.is_err() || result.ok().and_then(|result| result.get("applied")?.as_bool()) == Some(false);
@@ -2370,12 +2458,14 @@ impl Server {
                 for file in &files {
                     self.edited.remove(file);
                 }
-                self.clock_pending = false;
-                let running = self.find_running();
-                if running.as_ref().map(|clock| (&clock.uri, clock.start))
-                    != self.running.as_ref().map(|clock| (&clock.uri, clock.start))
-                {
-                    self.running = running;
+                // The clock as the command found it, if it changed it.
+                if let Some(before) = clock_before.filter(|before| *before != self.clock_state()) {
+                    self.clock_pending = false;
+                    self.running = before.running;
+                    self.last_clocked = before.last_clocked;
+                    self.clock_history = before.history;
+                    self.clock_interrupted = before.interrupted;
+                    self.clock_out_time = before.out_time;
                     self.publish_clock();
                 }
                 let reason = result.ok().and_then(|result| result.get("failureReason")?.as_str().map(str::to_string));
@@ -2589,6 +2679,7 @@ impl Server {
             DidOpenTextDocument::METHOD | DidSaveTextDocument::METHOD | DidCloseTextDocument::METHOD
         ) {
             self.ids_on_disk = None;
+            self.canonical.borrow_mut().clear();
         }
         match notification.method.as_str() {
             AGENDA_WIDTH => self.agenda_width(&notification.params),
@@ -2605,7 +2696,9 @@ impl Server {
                 // The agenda's file of an earlier server, which the client
                 // opens again as it starts: the agenda once more.
                 if self.view.is_none()
-                    && uri::to_path(&document.uri) == Some(self.view_directory.join(self.client.view_file_name))
+                    && self.view_directory.made().is_some_and(|directory| {
+                        uri::to_path(&document.uri) == Some(directory.join(self.client.view_file_name))
+                    })
                 {
                     self.set_view(Query::Agenda { start: self.start_day(), span: self.agenda.span });
                     if let Some(open) = self.view.as_mut().filter(|open| open.uri == document.uri) {
@@ -2734,6 +2827,21 @@ impl Server {
                     return;
                 }
                 self.documents.remove(params.text_document.uri.as_str());
+                // What was said of the file goes with it: the problems an
+                // editor lists are those of open files.
+                if self.diagnosed.remove(params.text_document.uri.as_str()) {
+                    let params = lsp_types::PublishDiagnosticsParams {
+                        uri: params.text_document.uri.clone(),
+                        diagnostics: Vec::new(),
+                        version: None,
+                    };
+                    let notification = lsp_server::Notification::new(
+                        <lsp_types::notification::PublishDiagnostics as lsp_types::notification::Notification>::METHOD
+                            .to_string(),
+                        params,
+                    );
+                    let _ = self.sender.send(Message::Notification(notification));
+                }
                 self.virtually_indented.remove(params.text_document.uri.as_str());
                 self.displayed.remove(params.text_document.uri.as_str());
                 if let Some(path) = uri::to_path(&params.text_document.uri) {
@@ -3074,7 +3182,7 @@ impl Server {
         let script_directory = self.client.command_script.as_ref().and_then(|script| script.parent());
         if path.starts_with(temp_dir())
             || script_directory.is_some_and(|directory| path.starts_with(directory))
-            || path.starts_with(&self.view_directory)
+            || self.view_directory.made().is_some_and(|directory| path.starts_with(directory))
             || self.port_start.file.as_ref() == Some(&path)
         {
             return;
@@ -3445,9 +3553,18 @@ impl Server {
         let settings = org_core::format::Settings { tags_column: self.refile.2.tags_column };
         let indent = self.indent_in(&self.document(&params.text_document.uri)?.text.clone());
         let document = self.document(&params.text_document.uri)?;
-        let (text, index) = (&document.text, &document.index);
-        let start = index.offset(text, params.range.start, encoding);
-        let end = index.offset(text, params.range.end, encoding);
+        let (original, index) = (&document.text, &document.index);
+        let start = index.offset(original, params.range.start, encoding);
+        let end = index.offset(original, params.range.end, encoding);
+        // A Windows file's lines, without their `\r`s and with them again.
+        let crlf = org_core::text::crlf(original);
+        let (lf, start, end) = if crlf {
+            let (lf, start) = org_core::text::to_lf(original, start);
+            (lf, start, org_core::text::to_lf(original, end).1)
+        } else {
+            (original.clone(), start, end)
+        };
+        let text = &lf;
         let indented = org_core::indent::apply(text, &org_core::indent::indent_region(text, start, end, &indent));
         // A range that ends at the start of a line leaves that line out.
         let first = text[..start].matches('\n').count();
@@ -3460,7 +3577,8 @@ impl Server {
             first..=last.max(first),
         );
         let formatted = org_core::format::apply(&indented, &changes);
-        Some(line_edits(text, index, encoding, &formatted))
+        let formatted = if crlf { org_core::text::from_lf(&formatted, 0).0 } else { formatted };
+        Some(line_edits(original, index, encoding, &formatted))
     }
 
     /// Every table aligned (`org-table-align`) and every headline's tags
@@ -3469,10 +3587,14 @@ impl Server {
         let encoding = self.client.encoding;
         let settings = org_core::format::Settings { tags_column: self.refile.2.tags_column };
         let document = self.document(&params.text_document.uri)?;
-        let (text, index) = (&document.text, &document.index);
+        let (original, index) = (&document.text, &document.index);
+        // A Windows file's lines, without their `\r`s and with them again.
+        let crlf = org_core::text::crlf(original);
+        let text = &if crlf { org_core::text::to_lf(original, 0).0 } else { original.clone() };
         let changes = org_core::format::format(text, document.parse.todo_keywords(), &settings);
         let formatted = org_core::format::apply(text, &changes);
-        Some(line_edits(text, index, encoding, &formatted))
+        let formatted = if crlf { org_core::text::from_lf(&formatted, 0).0 } else { formatted };
+        Some(line_edits(original, index, encoding, &formatted))
     }
 
     fn completion(&mut self, params: lsp_types::CompletionParams) -> Option<lsp_types::CompletionResponse> {
@@ -3647,7 +3769,7 @@ impl Server {
         let mut out = Vec::new();
         for link in open::links(&text, &parse, &self.link_abbreviations) {
             let (target, data) = match &link.open {
-                Ok(Open::External(url)) => (url.parse::<Uri>().ok(), None),
+                Ok(Open::External(url)) => (uri::from_url(&url), None),
                 Ok(Open::File { path, search: None, .. }) => {
                     (self.link_path(&uri, path).and_then(|path| uri::from_path(&path)), None)
                 }
@@ -4074,7 +4196,7 @@ impl Server {
         }
         match &opened {
             Open::External(url) => {
-                let target = url.parse::<Uri>().map_err(|_| format!("Cannot open {url}"))?;
+                let target = uri::from_url(&url).ok_or_else(|| format!("Cannot open {url}"))?;
                 self.show_external(target);
             }
             Open::File { path, system: true, .. } => {
@@ -4154,23 +4276,50 @@ impl Server {
     /// A link's path as a file: relative to the file `from`, `~` for the
     /// home directory.
     fn link_path(&self, from: &Uri, path: &str) -> Option<PathBuf> {
+        let home = || std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
         let path = match path.strip_prefix('~') {
-            Some(rest) => PathBuf::from(std::env::var_os("HOME")?).join(rest.trim_start_matches('/')),
+            // `~/`, the user's home; `~name/`, the home of `name`, beside it.
+            Some(rest) => match rest.split_once('/').unwrap_or((rest, "")) {
+                ("", rest) => home()?.join(rest),
+                (name, rest) => home()?.parent()?.join(name).join(rest),
+            },
             None => PathBuf::from(path),
         };
-        if path.is_absolute() {
-            return Some(path);
+        let path = if path.is_absolute() { path } else { uri::to_path(from)?.parent()?.join(path) };
+        // `./` and `../` taken out, as `expand-file-name` does, links kept.
+        let mut normal = PathBuf::new();
+        for component in path.components() {
+            match component {
+                std::path::Component::CurDir => {}
+                std::path::Component::ParentDir => {
+                    normal.pop();
+                }
+                other => normal.push(other),
+            }
         }
-        Some(uri::to_path(from)?.parent()?.join(path))
+        Some(normal)
+    }
+
+    /// `path` through its symbolic links, remembered; as it is when it
+    /// cannot be read.
+    fn canonical(&self, path: &Path) -> PathBuf {
+        if let Some(known) = self.canonical.borrow().get(path) {
+            return known.clone();
+        }
+        let canonical = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        self.canonical.borrow_mut().insert(path.to_path_buf(), canonical.clone());
+        canonical
     }
 
     /// The text of the file at `path`: as the editor has it when open
     /// there, else from disk.
     fn file_text(&self, path: &Path) -> Option<(Uri, String)> {
-        let open = self
-            .documents
-            .iter()
-            .find(|(key, _)| key.parse::<Uri>().ok().and_then(|key| uri::to_path(&key)).is_some_and(|key| key == path));
+        let open = self.documents.iter().find(|(key, _)| {
+            key.parse::<Uri>()
+                .ok()
+                .and_then(|key| uri::to_path(&key))
+                .is_some_and(|key| key == path || self.canonical(&key) == self.canonical(path))
+        });
         if let Some((key, document)) = open {
             return Some((key.parse().ok()?, document.text.clone()));
         }
@@ -4370,12 +4519,16 @@ impl Server {
                 .collect();
             return self.with_journal_files(files);
         }
-        // Open documents by path: the client may spell a URI differently.
-        let by_path: HashMap<PathBuf, &String> =
-            self.documents.keys().filter_map(|key| Some((uri::to_path(&key.parse::<Uri>().ok()?)?, key))).collect();
+        // Open documents by path, through links: the client may spell a
+        // URI differently, or reach the file by another link.
+        let by_path: HashMap<PathBuf, &String> = self
+            .documents
+            .keys()
+            .filter_map(|key| Some((self.canonical(&uri::to_path(&key.parse::<Uri>().ok()?)?), key)))
+            .collect();
         let mut files = Vec::new();
         for path in self.workspace.files() {
-            if let Some(key) = by_path.get(&path) {
+            if let Some(key) = by_path.get(&self.canonical(&path)) {
                 if let Ok(uri) = key.parse::<Uri>() {
                     files.push((uri.clone(), open(&self.documents[*key], &uri)));
                 }
@@ -4824,7 +4977,7 @@ impl Server {
             }
             None => {
                 // The client cannot fetch the view, so it gets a file.
-                let directory = self.view_directory.clone();
+                let directory = self.view_directory.path().to_path_buf();
                 let file = directory.join(self.client.view_file_name);
                 if std::fs::create_dir_all(&directory).is_ok() {
                     // This server's agenda: its keys come here.
@@ -5175,8 +5328,20 @@ impl Server {
             .first()
             .and_then(|argument| argument.pointer("/textDocument/uri")?.as_str())
             .map(str::to_string);
-        let value = self.execute_command(params)?;
-        Ok(with_message(value, self.message.take()))
+        self.clock_before = Some(self.clock_state());
+        let value = self.execute_command(params);
+        self.clock_before = None;
+        Ok(with_message(value?, self.message.take()))
+    }
+
+    fn clock_state(&self) -> ClockState {
+        ClockState {
+            running: self.running.clone(),
+            last_clocked: self.last_clocked.clone(),
+            history: self.clock_history.clone(),
+            interrupted: self.clock_interrupted.clone(),
+            out_time: self.clock_out_time,
+        }
     }
 
     /// For a client that does nothing with a command's result
@@ -8425,7 +8590,27 @@ impl Server {
                         self.clock_in_at(task.uri, at, time)?;
                     }
                 }
+                // A clock the capture keeps running went with the entry,
+                // perhaps to another file.
+                let kept = self.running.clone().filter(|clock| running.as_ref() != Some(clock));
+                if let Some(clock) = kept {
+                    let went = self.staging.as_ref().and_then(|staging| {
+                        staging.values().find_map(|file| {
+                            running_lines(&file.text)
+                                .iter()
+                                .any(|(_, start, head)| *start == clock.start && *head == clock.head)
+                                .then(|| file.uri.clone())
+                        })
+                    });
+                    if let Some(went) = went.filter(|went| *went != clock.uri) {
+                        self.last_clocked = Some((went.clone(), clock.head.clone()));
+                        self.running = Some(RunningClock { uri: went, ..clock });
+                    }
+                }
                 self.finish_staging();
+                if self.running != running {
+                    self.publish_clock();
+                }
                 Ok(json!({ "close": uri }))
             }
             // Still asking where to, or refused: the capture stays.
@@ -11350,7 +11535,12 @@ impl Server {
         if !at_org_table(&text, &document.parse.syntax(), offset) {
             return Err(Refusal::NotHere("Not at a table".to_string()));
         }
-        let done = match table::run(&text, offset, command) {
+        // A row marked `#` is recalculated on the way, its `$PROP_name`
+        // read from the entry the table is in.
+        let outline = Outline::new(&document.parse, &text, "");
+        let entry = outline.entry_at(offset);
+        let property = |name: &str| outline.entry_property(entry, name, true);
+        let done = match table::run_with(&text, offset, command, &property) {
             Ok(done) => done,
             // `C-c C-c` at the start of the table.
             Err(error) if error == table::RECALCULATE => {
@@ -13349,6 +13539,17 @@ mod tests {
             write_whole(&link, "* four\n").unwrap();
             assert!(std::fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
             assert_eq!(std::fs::read_to_string(&file).unwrap(), "* four\n");
+            // One whose file is not there yet makes it.
+            let dangling = directory.join("dangling.org");
+            std::os::unix::fs::symlink("made.org", &dangling).unwrap();
+            write_whole(&dangling, "* five\n").unwrap();
+            assert!(std::fs::symlink_metadata(&dangling).unwrap().file_type().is_symlink());
+            assert_eq!(std::fs::read_to_string(directory.join("made.org")).unwrap(), "* five\n");
+            // A file with two names is written under both.
+            let other = directory.join("other-name.org");
+            std::fs::hard_link(&file, &other).unwrap();
+            write_whole(&file, "* six\n").unwrap();
+            assert_eq!(std::fs::read_to_string(&other).unwrap(), "* six\n");
         }
         std::fs::remove_dir_all(directory).unwrap();
     }

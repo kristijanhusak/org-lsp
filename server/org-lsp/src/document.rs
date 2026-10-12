@@ -30,6 +30,23 @@ impl Change {
         Change { start: prefix, end: old.len() - suffix, length: new.len() - prefix - suffix }
     }
 
+    /// The changes from `old` to `new`, a whole text an editor sent: each
+    /// run of lines that differ, the last first, so that each is in the
+    /// text the ones before left. Places between them keep their entries
+    /// (a whole text replaced at once would move them all to its start).
+    pub fn all_between(old: &str, new: &str) -> Vec<Change> {
+        let mut changes: Vec<Change> = crate::actions::edits_between(old, new)
+            .into_iter()
+            .map(|edit| Change {
+                start: usize::from(edit.range.start()),
+                end: usize::from(edit.range.end()),
+                length: edit.new_text.len(),
+            })
+            .collect();
+        changes.reverse();
+        changes
+    }
+
     /// Where `offset` is after the change: a place in the bytes that
     /// changed goes to where they started.
     pub fn moved(&self, offset: usize) -> usize {
@@ -89,7 +106,7 @@ impl Document {
                     text.replace_range(start..end, &change.text);
                 }
                 None => {
-                    changed.push(Change::between(&text, &change.text));
+                    changed.extend(Change::all_between(&text, &change.text));
                     text = change.text;
                 }
             }
@@ -129,6 +146,16 @@ mod tests {
         assert_eq!(change.moved(5), 5);
         assert_eq!(change.moved(0), 0);
         assert_eq!(Change::between("same", "same"), Change { start: 4, end: 4, length: 0 });
+    }
+
+    #[test]
+    fn splits_a_whole_text_into_the_lines_that_changed() {
+        let old = "* A\n* B\n* C\n";
+        let new = "* A\nS\n* B\nS\n* C\nS\n";
+        let changes = Change::all_between(old, new);
+        let moved = |offset: usize| changes.iter().fold(offset, |offset, change| change.moved(offset));
+        // Each headline, where it is now.
+        assert_eq!([moved(0), moved(4), moved(8)], [0, 6, 12]);
     }
 
     #[test]

@@ -3387,7 +3387,8 @@
                       "todo",
                       "tags",
                       "tags-todo",
-                      "search"
+                      "search",
+                      "stuck"
                     ],
                     "description": "The view"
                   },
@@ -3420,7 +3421,8 @@
                             "todo",
                             "tags",
                             "tags-todo",
-                            "search"
+                            "search",
+                            "stuck"
                           ],
                           "description": "The view"
                         },
