@@ -13,6 +13,7 @@
 //!   above an element belong to that element.
 
 use rowan::{GreenNode, GreenNodeBuilder};
+use std::collections::HashMap;
 
 use crate::config::TodoKeywords;
 use crate::kind::SyntaxKind::{self, *};
@@ -259,6 +260,7 @@ fn block_name(text: &str) -> Option<&str> {
     (len > 0).then_some(&rest[..len])
 }
 
+#[cfg(test)]
 fn is_block_end(text: &str, name: &str) -> bool {
     let text = trim(text);
     starts_with_ignore_case(text, "#+end_") && text[6..].eq_ignore_ascii_case(name)
@@ -437,8 +439,14 @@ enum Top {
 }
 
 pub(crate) fn parse(src: &str, todo: &TodoKeywords) -> GreenNode {
-    let mut parser =
-        Parser { src, todo, builder: GreenNodeBuilder::new(), affiliated: Vec::new(), depth: 0, unclosed: Vec::new() };
+    let mut parser = Parser {
+        src,
+        todo,
+        builder: GreenNodeBuilder::new(),
+        affiliated: Vec::new(),
+        depth: 0,
+        closings: HashMap::new(),
+    };
     let lines = split_lines(src);
     parser.document(&lines);
     parser.builder.finish()
@@ -452,13 +460,23 @@ struct Parser<'a> {
     affiliated: Vec<Line>,
     /// How many containers (blocks, drawers, items …) enclose the current lines.
     depth: usize,
-    /// Byte ranges in which the closing line for an opener is known to be
-    /// missing, so that many unclosed openers do not each rescan the rest.
-    unclosed: Vec<(Closer, usize, usize)>,
+    /// The closing lines of the ranges of lines searched, by the byte
+    /// where each range ends: an opener's closing line is looked up there
+    /// rather than searched for, which keeps documents full of unclosed
+    /// openers from being rescanned for each one.
+    closings: HashMap<usize, Closings>,
+}
+
+/// The lines that close something in a range of lines that ends at a
+/// given byte, from `start` on.
+struct Closings {
+    start: usize,
+    /// The start of each line that each closer matches, in order.
+    lines: HashMap<Closer, Vec<usize>>,
 }
 
 /// What kind of closing line an opener needs.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 enum Closer {
     /// `#+END_NAME`, with the name in lower case.
     Block(String),
@@ -473,6 +491,33 @@ enum Closer {
 }
 
 impl Closer {
+    /// Every closer `line` matches: what `matches` says yes to.
+    fn all_matching(line: &str) -> Vec<Closer> {
+        let mut closers = Vec::new();
+        let trimmed = trim(line);
+        if starts_with_ignore_case(trimmed, "#+end_") {
+            closers.push(Closer::Block(trimmed[6..].to_ascii_lowercase()));
+        }
+        if is_dynamic_block_end(line) {
+            closers.push(Closer::DynamicBlock);
+        }
+        if trimmed.eq_ignore_ascii_case("#+end:") {
+            closers.push(Closer::DynamicBlockStrict);
+        }
+        if is_drawer_end(line) {
+            closers.push(Closer::Drawer);
+        }
+        if let Some(body) = trim_end(line).strip_suffix('}') {
+            for (at, _) in body.match_indices("\\end{") {
+                closers.push(Closer::Latex(body[at + 5..].to_string()));
+            }
+        }
+        closers
+    }
+
+    /// Whether `line` closes what needs this closer: `all_matching` says
+    /// the same of every line, and the tests hold it to that.
+    #[cfg(test)]
     fn matches(&self, line: &str) -> bool {
         match self {
             Closer::Block(name) => is_block_end(line, name),
@@ -550,29 +595,32 @@ impl<'a> Parser<'a> {
 
     /// First line at or after `from` that matches `closer`.
     ///
-    /// A failed search is remembered by the byte range it covered: a later
-    /// search inside that range fails without looking, which keeps documents
-    /// full of unclosed openers from being rescanned for each one.
+    /// The closing lines of `lines` are found once, for every closer, and
+    /// kept by where `lines` ends; a range that starts earlier, with the
+    /// same end, adds the lines before.
     fn find_closing(&mut self, lines: &[Line], from: usize, closer: Closer) -> Option<usize> {
-        let end = lines.last()?.next;
-        let start = lines.get(from).map_or(end, |line| line.start);
-        if self
-            .unclosed
-            .iter()
-            .any(|(known, known_start, known_end)| *known == closer && *known_start <= start && end <= *known_end)
-        {
-            return None;
-        }
-        let found = lines[from..].iter().position(|line| closer.matches(self.text(*line))).map(|offset| from + offset);
-        if found.is_none() {
-            let inside = |entry: &&mut (Closer, usize, usize)| entry.0 == closer && start <= entry.1 && entry.2 <= end;
-            match self.unclosed.iter_mut().find(inside) {
-                // Widen a known range rather than piling up one entry per opener.
-                Some(entry) => (entry.1, entry.2) = (start, end),
-                None => self.unclosed.push((closer, start, end)),
+        let (first, end) = (lines.first()?.start, lines.last()?.next);
+        let known = self.closings.get(&end).map_or(end, |closings| closings.start);
+        if first < known {
+            let src = self.src;
+            let mut added: HashMap<Closer, Vec<usize>> = HashMap::new();
+            for line in lines.iter().take_while(|line| line.start < known) {
+                for matching in Closer::all_matching(&src[line.start..line.end]) {
+                    added.entry(matching).or_default().push(line.start);
+                }
             }
+            let closings = self.closings.entry(end).or_insert_with(|| Closings { start: end, lines: HashMap::new() });
+            for (matching, mut starts) in added {
+                let known = closings.lines.entry(matching).or_default();
+                starts.append(known);
+                *known = starts;
+            }
+            closings.start = first;
         }
-        found
+        let start = lines.get(from)?.start;
+        let starts = self.closings.get(&end)?.lines.get(&closer)?;
+        let found = *starts.get(starts.partition_point(|line| *line < start))?;
+        Some(lines.partition_point(|line| line.start < found))
     }
 
     /// The line closing the block or drawer that opens at `lines[i]`, by the
@@ -608,7 +656,7 @@ impl<'a> Parser<'a> {
             self.start(SECTION);
             self.elements(&lines[..first], false, true);
             self.finish();
-            self.unclosed.clear();
+            self.closings.clear();
         }
         let mut open: Vec<usize> = Vec::new();
         let mut i = first;
@@ -726,7 +774,7 @@ impl<'a> Parser<'a> {
         self.finish();
         // Searches never cross a headline, so what was learned about this
         // section is of no use to the next one.
-        self.unclosed.clear();
+        self.closings.clear();
     }
 
     fn planning(&mut self, line: Line) {
@@ -735,19 +783,32 @@ impl<'a> Parser<'a> {
         let indent = indent_len(text);
         let body = trim_end(&text[indent..]);
         self.token(WHITESPACE, &text[..indent]);
-        let mut rest = body;
-        while !rest.is_empty() {
+        // Where each keyword comes next, from where it was last looked
+        // for: a keyword missing from the rest of the line is not looked
+        // for again after each timestamp.
+        let mut next_at: [Option<Option<usize>>; 3] = [None; 3];
+        let mut at = 0;
+        while at < body.len() {
+            let rest = &body[at..];
             if let Some(keyword) = PLANNING_KEYWORDS.iter().find(|keyword| rest.starts_with(**keyword)) {
                 self.token(PLANNING_KEYWORD, keyword);
-                rest = &rest[keyword.len()..];
+                at += keyword.len();
                 continue;
             }
-            let next = PLANNING_KEYWORDS.iter().filter_map(|keyword| rest.find(keyword)).min().unwrap_or(rest.len());
-            let chunk = &rest[..next];
+            let mut next = body.len();
+            for (keyword, known) in PLANNING_KEYWORDS.iter().zip(&mut next_at) {
+                let found = match *known {
+                    Some(found) if found.is_none_or(|found| found >= at) => found,
+                    _ => rest.find(keyword).map(|offset| at + offset),
+                };
+                *known = Some(found);
+                next = next.min(found.unwrap_or(body.len()));
+            }
+            let chunk = &body[at..next];
             let space = indent_len(chunk);
             self.token(WHITESPACE, &chunk[..space]);
             self.objects(&chunk[space..], Mode::TIMESTAMPS_ONLY);
-            rest = &rest[next..];
+            at = next;
         }
         self.token(WHITESPACE, &text[indent + body.len()..]);
         self.newline(line);
@@ -810,6 +871,10 @@ impl<'a> Parser<'a> {
         if inline_first && !lines.is_empty() {
             i = self.paragraph(lines, 0);
         }
+        // Where a run of affiliated keywords known to attach to nothing
+        // ends: its lines are keywords of their own, and the run is not
+        // looked over again from each of them.
+        let mut orphaned_until = 0;
         while i < lines.len() {
             let text = self.text(lines[i]);
             if lines[i].blank {
@@ -841,7 +906,7 @@ impl<'a> Parser<'a> {
             // follows is a blank line, a comment, a clock line or the end
             // of the container.
             let mut at = i;
-            while at < lines.len() && is_affiliated(self.text(lines[at])) {
+            while i >= orphaned_until && at < lines.len() && is_affiliated(self.text(lines[at])) {
                 at += 1;
             }
             let orphaned = at == lines.len() || lines[at].blank || {
@@ -851,6 +916,7 @@ impl<'a> Parser<'a> {
             if at > i && !orphaned {
                 self.affiliated = lines[i..at].to_vec();
             } else {
+                orphaned_until = orphaned_until.max(at);
                 at = i;
             }
             i = match self.element_at(lines, at) {
@@ -1366,5 +1432,46 @@ impl<'a> Parser<'a> {
         self.item_contents(&lines[i..end], pos);
         self.finish();
         end
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn finds_the_closers_each_line_matches() {
+        let lines = [
+            "#+end_src",
+            "  #+END_Quote  ",
+            "#+end:",
+            "#+END",
+            ":end:",
+            "\\end{equation}",
+            "x \\end{a\\end{b}",
+            "#+end_",
+            "#+ending",
+            "text",
+            "\\end{}",
+            ":END: x",
+        ];
+        let closers = [
+            Closer::Block("src".to_string()),
+            Closer::Block("quote".to_string()),
+            Closer::Block(String::new()),
+            Closer::DynamicBlock,
+            Closer::DynamicBlockStrict,
+            Closer::Drawer,
+            Closer::Latex("equation".to_string()),
+            Closer::Latex("b".to_string()),
+            Closer::Latex("a\\end{b".to_string()),
+            Closer::Latex(String::new()),
+        ];
+        for line in lines {
+            let all = Closer::all_matching(line);
+            for closer in &closers {
+                assert_eq!(all.contains(closer), closer.matches(line), "{line:?}");
+            }
+        }
     }
 }

@@ -1,5 +1,7 @@
 //! Folding ranges: subtrees, drawers, blocks and multi-line list items.
 
+use std::collections::HashMap;
+
 use lsp_types::FoldingRange;
 use org_syntax::{ast::Headline, SyntaxKind::*, SyntaxNode};
 
@@ -151,7 +153,8 @@ pub fn startup_folds(
     };
     let folds = folds(root, text, index, separator_lines);
     let mut closed = vec![false; folds.len()];
-    let at = |node: &SyntaxNode| folds.iter().position(|(other, _)| other == node);
+    let places: HashMap<&SyntaxNode, usize> = folds.iter().enumerate().map(|(index, (node, _))| (node, index)).collect();
+    let at = |node: &SyntaxNode| places.get(node).copied();
     let headlines: Vec<Headline> = root.descendants().filter_map(Headline::cast).collect();
     let leaf = |headline: &Headline| headline.children().next().is_none();
     // `org-cycle-content`: the headlines up to `levels` show, those below

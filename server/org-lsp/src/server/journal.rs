@@ -323,7 +323,11 @@ impl Server {
         let files: BTreeMap<String, String> = names
             .into_iter()
             .filter(|name| journal::is_journal_file(name, &journal.core))
-            .filter_map(|name| Some((name.clone(), self.journal_read(&directory.join(&name))?)))
+            // A daily file's day is in its name: its text is not read.
+            .filter_map(|name| {
+                let text = if journal.core.daily() { String::new() } else { self.journal_read(&directory.join(&name))? };
+                Some((name, text))
+            })
             .collect();
         journal::entry_days(&files, &journal.core)
     }

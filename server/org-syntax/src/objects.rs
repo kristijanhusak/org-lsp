@@ -6,6 +6,8 @@
 //! plain text can be flushed before an object is opened.
 
 use rowan::GreenNodeBuilder;
+use std::cell::Cell;
+use std::thread::LocalKey;
 
 use crate::entities::{ENTITIES, MAX_SPACE_ENTITY};
 use crate::kind::SyntaxKind::{self, *};
@@ -143,6 +145,10 @@ const MAX_DEPTH: usize = 64;
 
 /// Parse `text` into object nodes and `TEXT` tokens, appending to `builder`.
 pub(crate) fn parse_objects(builder: &mut GreenNodeBuilder<'static>, text: &str, mode: Mode) {
+    // What the scans of another text found is nothing to this one, even
+    // at the same address.
+    LAST_CLOSER.set(Scan::NONE);
+    LAST_DIARY_CLOSER.set(Scan::NONE);
     parse_nested(builder, text, mode, 0);
 }
 
@@ -892,14 +898,43 @@ fn match_single_timestamp(text: &str, i: usize) -> Option<usize> {
 }
 
 fn first_closer(bytes: &[u8], from: usize) -> Option<usize> {
-    for (offset, b) in bytes.get(from..)?.iter().enumerate() {
-        match b {
-            b'\n' => return None,
-            b'>' | b']' => return Some(from + offset + 1),
-            _ => {}
-        }
+    let stop = scan_to(&LAST_CLOSER, bytes, from, |b| matches!(b, b'\n' | b'>' | b']'))?;
+    (bytes[stop] != b'\n').then_some(stop + 1)
+}
+
+thread_local! {
+    /// The last searches for a timestamp's closing bracket, and for the
+    /// end of a diary timestamp, in the text being parsed.
+    static LAST_CLOSER: Cell<Scan> = const { Cell::new(Scan::NONE) };
+    static LAST_DIARY_CLOSER: Cell<Scan> = const { Cell::new(Scan::NONE) };
+}
+
+/// A search that stopped at byte `stop` of the text at `text` (its address
+/// and length), having started at `from`.
+#[derive(Clone, Copy)]
+struct Scan {
+    text: (usize, usize),
+    from: usize,
+    stop: Option<usize>,
+}
+
+impl Scan {
+    const NONE: Scan = Scan { text: (0, 0), from: usize::MAX, stop: None };
+}
+
+/// The first byte at or after `from` where `stops`, remembering the last
+/// search in `last`: a search that starts within the stretch the last one
+/// went over stops where it stopped. A line of many unclosed openers is
+/// then gone over once, not once for each.
+fn scan_to(last: &'static LocalKey<Cell<Scan>>, bytes: &[u8], from: usize, stops: fn(u8) -> bool) -> Option<usize> {
+    let text = (bytes.as_ptr() as usize, bytes.len());
+    let known = last.get();
+    if known.text == text && known.from <= from && known.stop.is_none_or(|stop| from <= stop) {
+        return known.stop;
     }
-    None
+    let stop = bytes.get(from..)?.iter().position(|b| stops(*b)).map(|offset| from + offset);
+    last.set(Scan { text, from, stop });
+    stop
 }
 
 /// `<%%(SEXP)…>`: a diary timestamp. The object ends at the first closing
@@ -907,7 +942,7 @@ fn first_closer(bytes: &[u8], from: usize) -> Option<usize> {
 fn match_diary_timestamp(text: &str, i: usize) -> Option<usize> {
     let bytes = text.as_bytes();
     let inner_start = i + text[i..].starts_with("<%%(").then_some(4)?;
-    let close = inner_start + bytes[inner_start..].iter().position(|b| matches!(b, b'>' | b'\n'))?;
+    let close = scan_to(&LAST_DIARY_CLOSER, bytes, inner_start, |b| matches!(b, b'>' | b'\n'))?;
     let closes_sexp = bytes[inner_start..close].iter().skip(1).any(|b| *b == b')');
     if bytes[close] != b'>' || !closes_sexp {
         return None;
