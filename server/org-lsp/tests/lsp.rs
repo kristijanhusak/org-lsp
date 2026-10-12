@@ -49,6 +49,11 @@ impl Client {
         if let Some(fields) = options.as_object_mut() {
             fields.entry("config_file").or_insert(json!(false));
         }
+        // An editor with org-lsp's plugin, unless the test says otherwise.
+        let mut capabilities = capabilities;
+        if capabilities.pointer("/experimental/orgClient").is_none() {
+            capabilities["experimental"]["orgClient"] = json!(true);
+        }
         let (server_side, client_side) = Connection::memory();
         let server = std::thread::spawn(move || org_lsp::run(server_side).expect("server runs"));
         let mut client = Client {

@@ -38,6 +38,7 @@ const NAV: &[(&str, &[(&str, &str)])] = &[
             ("docs/sublime.org", "Sublime Text"),
             ("docs/zed.org", "Zed"),
             ("docs/helix.org", "Helix"),
+            ("docs/any-editor.org", "Any other editor"),
         ],
     ),
     (

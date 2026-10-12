@@ -55,6 +55,11 @@ impl Client {
         if let Some(fields) = options.as_object_mut() {
             fields.entry("config_file").or_insert(json!(false));
         }
+        // An editor with org-lsp's plugin, unless the test says otherwise.
+        let mut capabilities = capabilities;
+        if capabilities.pointer("/experimental/orgClient").is_none() {
+            capabilities["experimental"]["orgClient"] = json!(true);
+        }
         let (server_side, client_side) = Connection::memory();
         let server = std::thread::spawn(move || org_lsp::run(server_side).expect("server runs"));
         let mut client = Client {
@@ -3974,6 +3979,63 @@ fn archives_subtrees() {
 /// command's result (Zed): with `commandActions` the commands are code
 /// actions, the agenda among them, and with `messagePrompts` what they ask
 /// is asked with `window/showMessageRequest`, a button a choice.
+/// A client without org-lsp's editor code (a plain LSP client: Neovim's
+/// own, Helix): the standard token types, which editors color unasked;
+/// questions asked with buttons; the agenda an Org file, with its
+/// commands as code actions.
+#[test]
+fn a_plain_client_gets_standard_tokens_prompts_and_an_org_agenda() {
+    let capabilities = json!({
+        "experimental": { "orgClient": false },
+        "window": { "showDocument": { "support": true }, "showMessage": {} },
+    });
+    let mut client = Client::start(capabilities, clock(), None);
+    let legend = client.initialize["capabilities"]["semanticTokensProvider"]["legend"].clone();
+    let types: Vec<&str> = legend["tokenTypes"].as_array().unwrap().iter().map(|ty| ty.as_str().unwrap()).collect();
+    assert!(types.contains(&"keyword") && types.contains(&"function") && !types.contains(&"headline"), "{types:?}");
+    const WORK_URI: &str = "file:///org/work.org";
+    client.open(WORK_URI, WORK);
+    let tokens =
+        client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": WORK_URI } })).unwrap();
+    let data = tokens["data"].as_array().unwrap();
+    assert!(data.chunks(5).all(|token| (token[3].as_u64().unwrap() as usize) < types.len()));
+    // `* TODO`: the stars of a level 1 headline, as `outline-1`, and the
+    // keyword.
+    let (stars, todo) = (&data[5..10], &data[10..15]);
+    assert_eq!(types[stars[3].as_u64().unwrap() as usize], "function");
+    assert_eq!(types[todo[3].as_u64().unwrap() as usize], "keyword");
+
+    // The agenda menu asks with buttons; the agenda is an Org file.
+    client.choice = Some("Agenda for the current week or day [a]".to_string());
+    let requests = client.command("org.agenda.dispatch", WORK_URI, 1);
+    assert!(requests.iter().any(|request| request.method == "window/showMessageRequest"), "{requests:?}");
+    let shown = requests.iter().find(|request| request.method == "window/showDocument").expect("the agenda shown");
+    let agenda_uri = shown.params["uri"].as_str().unwrap().to_string();
+    assert!(agenda_uri.ends_with("/Agenda.org"), "{agenda_uri}");
+    let agenda_text = std::fs::read_to_string(agenda_uri.trim_start_matches("file://")).unwrap();
+    client.open(&agenda_uri, &agenda_text);
+    let tokens =
+        client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": agenda_uri } })).unwrap();
+    assert!(!tokens["data"].as_array().unwrap().is_empty());
+    // On its lines, its own commands and the entry's.
+    let line = agenda_text.lines().position(|line| line.contains("Write report")).unwrap() as u32;
+    let actions = client
+        .request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": agenda_uri },
+                "range": { "start": { "line": line, "character": 0 }, "end": { "line": line, "character": 0 } },
+                "context": { "diagnostics": [] }
+            }),
+        )
+        .unwrap();
+    let kinds: Vec<&str> = actions.as_array().unwrap().iter().map(|action| action["kind"].as_str().unwrap()).collect();
+    for kind in ["org.todo.next", "org.schedule", "org.agenda.later", "org.agenda.dispatch"] {
+        assert!(kinds.contains(&kind), "{kind} in {kinds:?}");
+    }
+    client.shutdown();
+}
+
 #[test]
 fn offers_commands_as_actions_and_asks_with_buttons() {
     let mut options = clock();
@@ -4167,12 +4229,26 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     assert_eq!(std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&agenda_path).unwrap()), inode);
     assert!(std::fs::metadata(&agenda_path).unwrap().permissions().readonly());
 
-    // A question that wants typed text cannot be asked: the editor is told.
+    // A question that wants typed text is answered with a rename: its new
+    // name is the date, and the command goes on with it.
     client.notifications.clear();
     client.request("workspace/executeCommand", json!({ "command": "org.deadline", "arguments": [context] })).unwrap();
     client.settle();
     assert!(client.notifications.iter().any(|notification| notification.method == "window/showMessage"
-        && notification.params["message"].as_str().unwrap().contains("cannot ask for text")));
+        && notification.params["message"] == "Deadline: answer with a rename at the cursor"));
+    let place = json!({ "textDocument": { "uri": WORK_URI }, "position": { "line": 1, "character": 4 } });
+    let prepared = client.request("textDocument/prepareRename", place.clone()).unwrap();
+    assert_eq!(prepared["placeholder"], "");
+    client.received.clear();
+    let mut rename = place.clone();
+    rename["newName"] = json!("2026-05-25");
+    assert_eq!(client.request("textDocument/rename", rename.clone()).unwrap(), json!({}));
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    assert!(apply(&text, &edits).contains("DEADLINE: <2026-05-25 Mon>"), "{edits:?}");
+    // Answered, the question is gone: a rename is a rename again.
+    assert_eq!(client.request("textDocument/prepareRename", place).unwrap()["placeholder"], "Write report");
 
     // The keys that insert a heading are actions too, which the server
     // applies, the cursor then moved to the new heading.

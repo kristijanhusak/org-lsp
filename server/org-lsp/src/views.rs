@@ -20,6 +20,10 @@ pub const SCHEME: &str = "org-agenda";
 pub const VIRTUAL_URI: &str = "org-agenda:/Org%20Agenda";
 /// The file name used when the client cannot show virtual documents.
 pub const FILE_NAME: &str = "Agenda.org-agenda";
+/// The same for a client without org-lsp's editor code: an Org file's
+/// name, so that the editor attaches the server to it, which colors it
+/// and offers its commands.
+pub const PLAIN_FILE_NAME: &str = "Agenda.org";
 /// The language of the view document, by which editors tell it from Org files.
 pub const LANGUAGE: &str = "org-agenda";
 

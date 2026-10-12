@@ -217,6 +217,8 @@ class OrgLsp(AbstractPlugin):
             configuration.command[0] = found
         # This package shows the documents the server asks it to.
         options = configuration.init_options
+        # org-lsp's own client: its token types, a command's result.
+        options.set('org_client', True)
         options.set('show_document', True)
         # `org-indent-mode`'s prefixes, as phantoms (`org-lsp/virtualIndent`).
         options.set('virtual_indent', True)

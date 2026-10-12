@@ -572,6 +572,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     fillClientCapabilities(capabilities) {
       capabilities.experimental = {
         ...(capabilities.experimental ?? {}),
+        // org-lsp's own client: its token types, a command's result.
+        orgClient: true,
         orgDatePrompt: true,
         orgVirtualIndent: true,
         orgDisplay: true,

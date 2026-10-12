@@ -430,7 +430,8 @@ Each option with its type, its default and what it means:
 - ~org_agenda_custom_commands~ :: object[], ~[]~. Commands of the agenda menu. Each has a ~key~ and a ~description~, and either a ~type~ (~agenda~, ~alltodo~, ~todo~, ~tags~ or ~tags-todo~) with a ~match~ (keywords such as ~NEXT|WAIT~ for ~todo~, a match string such as ~work-home~ or ~PRIORITY="A"~ for ~tags~), or ~blocks~, a list of such views shown one after the other. ~header~ replaces a view's header (empty: none), and ~settings~ holds agenda options for the command or a block (~org_agenda_span~, ~org_agenda_start_day~ …). A command with only a key and a description groups the commands whose keys start with its key. (~org-agenda-custom-commands~)
 - ~virtual_documents~ :: boolean, from the client's capabilities. Whether the client fetches the agenda with ~workspace/textDocumentContent~. A client that announces that capability need not set this.
 - ~show_document~ :: boolean, from the client's capabilities. Whether the client shows the documents the server asks it to show (~window/showDocument~): the agenda, capture buffers, an entry's file. A client that announces that capability need not set this; the Vim plugin does, for the LSP clients that leave the request to it.
-- ~message_prompts~ :: boolean, ~false~. Ask what commands ask for (a key, one of a list) with ~window/showMessageRequest~, and say what they have to say with ~window/showMessage~, for a client that does nothing with a command's result. The Zed extension sets it.
+- ~org_client~ :: boolean, ~false~. The client has org-lsp's editor code: it knows the server's own token types and does what a command's result asks. A client that can announce it does so with ~experimental.orgClient~; the Vim, Sublime Text and Zed plugins set this. Without it, the server sends the standard token types of LSP, which editors color without being told, ~message_prompts~ is on, and so are more code actions when the client shows message requests (~window.showMessage~) or ~message_prompts~ is set.
+- ~message_prompts~ :: boolean, true for a client without org-lsp's editor code (~org_client~). Ask what commands ask for with ~window/showMessageRequest~ (a key, one of a list) or, for text and dates, through a rename at the cursor (~textDocument/rename~, whose new name is the answer), and say what they have to say with ~window/showMessage~, for a client that does nothing with a command's result.
 - ~line_highlights~ :: boolean, ~false~. Whether the client highlights lines of the agenda from edge to edge as the server sends them (~org-lsp/lineHighlights~): the entry the clock runs on. As a client announcing ~experimental.orgLineHighlights~ does: for the Vim plugin and the Sublime Text package.
 - ~images~ :: boolean, ~false~. Whether the client shows images in place of links to image files and of LaTeX fragments (~org.link.preview~, ~org.latex.preview~, ~org-lsp/images~). As a client announcing ~experimental.orgImages~ does: for the Sublime Text package.
 - ~view_changed~ :: boolean, ~false~. Whether the server says when it has written the agenda's or the date prompt's file anew (~org-lsp/viewChanged~ ~{ uri }~), for a client that does not see the file change on disk and reads it again when told: the Vim plugin.
@@ -1378,6 +1379,16 @@ asks with its own input box and runs the command again with the answer as
 { "textDocument": { "uri": "…" }, "position": { … }, "input": "fri 10:00" }
 #+end_src
 
+A client that does nothing with a command's result (~message_prompts~, on
+for a client without org-lsp's editor code) is asked by the server itself.
+A choice comes as ~window/showMessageRequest~, a button a choice, and the one
+picked runs the command again. LSP has no request for text, so for text and
+dates the server says /PROMPT: answer with a rename at the cursor/ (with
+~window/showMessage~) and the next rename answers: ~textDocument/prepareRename~
+offers ~value~ as the placeholder, and the new name of ~textDocument/rename~ is
+the answer, the rename itself an empty edit. Another command first drops the
+question, and rename renames again.
+
 An input may say more:
 
 - ~"choices": [{ "key": "t", "label": "TODO" }, …]~ with kind ~key~: the
@@ -1574,7 +1585,10 @@ A client that announces ~workspace.textDocumentContent~ (LSP 3.18) is shown
 ~org-agenda:/Org%20Agenda~ and fetches its text with
 ~workspace/textDocumentContent~. Other clients are shown a file,
 ~Agenda.org-agenda~ in a temporary directory, which the server rewrites and
-removes when it stops.
+removes when it stops. A client without org-lsp's editor code (~org_client~)
+gets ~Agenda.org~ instead, which it opens as an Org file with the server
+attached: colored, and with the agenda's commands (later, earlier, the span,
+the menu) and the line's entry's as code actions.
 
 Opening a view goes like this:
 
@@ -1675,6 +1689,34 @@ Tokens never overlap and never span lines. Nested markup is flattened into
 modifiers: in =*bold /both/*= the inner text carries ~bold~ and ~italic~.
 Emphasis markers are part of the token they delimit. The manifest has the
 full legend with descriptions; this is an overview.
+
+For a client without org-lsp's editor code (~org_client~), the server keeps
+to the token types and modifiers of the LSP specification, which editors and
+their color schemes color without being told. Org's tokens become the
+standard ones whose colors come closest to Emacs's faces:
+
+| Org                                                  | Standard                                                      |
+|------------------------------------------------------+---------------------------------------------------------------|
+| headline and stars, levels 1 to 8 (~outline-1~ …)    | ~function~, ~property~, ~keyword~, ~comment~, ~type~, ~enumMember~, ~macro~, ~string~ |
+| TODO keyword, planning keyword                       | ~keyword~                                                     |
+| done keyword                                         | ~string~                                                      |
+| priority, statistics cookie                          | ~number~                                                      |
+| tag                                                  | ~decorator~                                                   |
+| timestamp; inactive                                  | ~enumMember~; ~comment~                                       |
+| ~#+KEY:~, block lines, comment, hidden text, archived | ~comment~                                                     |
+| drawer, LaTeX, entity, macro                         | ~macro~                                                       |
+| property key                                         | ~property~                                                    |
+| bullet, checkbox, table delimiter                    | ~operator~                                                    |
+| link, target                                         | ~namespace~                                                   |
+| code, verbatim                                       | ~string~                                                      |
+| footnote                                             | ~parameter~                                                   |
+| struck-through text                                  | ~variable~ with ~deprecated~                                  |
+
+In the agenda: the title ~namespace~, dates ~function~ (today ~keyword~, a
+weekend ~type~), scheduled entries ~string~ (from earlier days ~number~),
+deadlines ~enumMember~ (today or past ~keyword~), done entries, the time
+grid and dimmed tasks ~comment~. Bold, italic, underlined text and a habit's
+graph have no standard kind and get no token.
 
 ** In Org files
 

@@ -10,10 +10,17 @@ local M = {}
 local notify = require('org-lsp.notify')
 
 --- Tells the server that this client fetches such documents, and shows
---- its date prompt.
+--- its date prompt; and that it is org-lsp's own (its token types, what a
+--- command's result asks for).
 M.capabilities = {
   workspace = { textDocumentContent = { dynamicRegistration = false } },
-  experimental = { orgDatePrompt = true, orgVirtualIndent = true, orgLineHighlights = true, orgDisplay = true },
+  experimental = {
+    orgClient = true,
+    orgDatePrompt = true,
+    orgVirtualIndent = true,
+    orgLineHighlights = true,
+    orgDisplay = true,
+  },
 }
 
 --- The manifest's sections for the documents the server owns, and the

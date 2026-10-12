@@ -110,6 +110,20 @@ struct Client {
     inlay_refresh: bool,
     /// Ask with `window/showMessageRequest` (`message_prompts`).
     message_prompts: bool,
+    /// The standard token types of LSP rather than Org's own: a client
+    /// without org-lsp's editor code (`org_client`).
+    standard_tokens: bool,
+    /// The name of the agenda's file, for a client that cannot fetch it:
+    /// an Org file's for a client without org-lsp's editor code.
+    view_file_name: &'static str,
+    /// The agenda's new text goes to the client as an edit of the file it
+    /// has open (`workspace/applyEdit`): a client without org-lsp's editor
+    /// code, which reads the file once.
+    edit_view: bool,
+    /// More commands as code actions (the agenda, capture, refile…), in
+    /// Org files, capture buffers and the agenda: `command_actions`, or a
+    /// client without org-lsp's editor code.
+    more_actions: bool,
     /// More commands as code actions, and the agenda's through the
     /// command port (`command_actions`).
     command_actions: bool,
@@ -139,6 +153,14 @@ enum Pending {
     /// `window/showMessageRequest` (`message_prompts`); the answer runs it
     /// again.
     Answer { command: String, argument: Value, input: Value },
+}
+
+/// A command waiting for text or a date: what `textDocument/rename`
+/// answers for a client without a way to ask (`message_prompts`).
+struct Question {
+    command: String,
+    argument: Value,
+    input: Value,
 }
 
 /// What a request to Emacs was for.
@@ -882,6 +904,10 @@ struct Server {
     prompt_file: Option<PathBuf>,
     /// The date prompt that waits for an answer, in clients that show it.
     date_prompt: Option<DatePrompt>,
+    /// A command's question that wants text or a date, for a client that
+    /// cannot ask for text (`message_prompts`): the next rename answers
+    /// it, its new name being the answer.
+    question: Option<Question>,
     /// The client's copy of the date prompt document, which it may keep
     /// after a prompt is done.
     prompt_copy: Option<Document>,
@@ -1068,6 +1094,8 @@ pub fn run(connection: Connection) -> Result<()> {
     let options = loaded.options;
     let (port_sender, port_receiver) = crossbeam_channel::unbounded();
 
+    let org_client = raw_params.pointer("/capabilities/experimental/orgClient").and_then(Value::as_bool) == Some(true)
+        || options.org_client == Some(true);
     let general = params.capabilities.general.as_ref();
     let text_document = params.capabilities.text_document.as_ref();
     let window = params.capabilities.window.as_ref();
@@ -1111,7 +1139,16 @@ pub fn run(connection: Connection) -> Result<()> {
             .pointer("/capabilities/workspace/inlayHint/refreshSupport")
             .and_then(Value::as_bool)
             .unwrap_or(false),
-        message_prompts: options.message_prompts.unwrap_or(false),
+        message_prompts: options.message_prompts.unwrap_or(!org_client),
+        standard_tokens: !org_client,
+        view_file_name: if org_client { views::FILE_NAME } else { views::PLAIN_FILE_NAME },
+        edit_view: !org_client && !options.command_actions.unwrap_or(false),
+        // Not for a client that cannot ask the questions they bring
+        // (`window/showMessageRequest`), such as Helix, unless told it can.
+        more_actions: options.command_actions.unwrap_or(false)
+            || (!org_client
+                && (window.and_then(|window| window.show_message.as_ref()).is_some()
+                    || options.message_prompts == Some(true))),
         command_actions: options.command_actions.unwrap_or(false),
         command_script: options
             .command_script
@@ -1139,7 +1176,14 @@ pub fn run(connection: Connection) -> Result<()> {
         prompt_file.as_deref().and_then(uri::from_path).unwrap_or_else(|| prompt::URI.parse().expect("valid URI"));
 
     let result = InitializeResult {
-        capabilities: capabilities(client.encoding, true, client.command_actions, &faces, options.journal().as_ref()),
+        capabilities: capabilities(
+            client.encoding,
+            true,
+            client.command_actions,
+            client.standard_tokens,
+            &faces,
+            options.journal().as_ref(),
+        ),
         server_info: Some(ServerInfo {
             name: "org-lsp".to_string(),
             version: Some(env!("CARGO_PKG_VERSION").to_string()),
@@ -1242,6 +1286,7 @@ pub fn run(connection: Connection) -> Result<()> {
         prompt_uri,
         prompt_file,
         date_prompt: None,
+        question: None,
         prompt_copy: None,
         separator_lines: options.separator_lines(),
         startup: options.startup(),
@@ -1774,6 +1819,7 @@ fn capabilities(
     encoding: Encoding,
     inlay_hints: bool,
     cursor: bool,
+    standard_tokens: bool,
     faces: &Value,
     journal: Option<&crate::config::JournalSettings>,
 ) -> ServerCapabilities {
@@ -1792,7 +1838,7 @@ fn capabilities(
         })),
         semantic_tokens_provider: Some(SemanticTokensServerCapabilities::SemanticTokensOptions(
             SemanticTokensOptions {
-                legend: highlight::legend(),
+                legend: if standard_tokens { highlight::standard::legend() } else { highlight::legend() },
                 full: Some(SemanticTokensFullOptions::Bool(true)),
                 range: Some(true),
                 ..Default::default()
@@ -2309,7 +2355,7 @@ impl Server {
                 // The agenda's file of an earlier server, which the client
                 // opens again as it starts: the agenda once more.
                 if self.view.is_none()
-                    && uri::to_path(&document.uri) == Some(self.view_directory.join(views::FILE_NAME))
+                    && uri::to_path(&document.uri) == Some(self.view_directory.join(self.client.view_file_name))
                 {
                     self.set_view(Query::Agenda { start: self.start_day(), span: self.agenda.span });
                     if let Some(open) = self.view.as_mut().filter(|open| open.uri == document.uri) {
@@ -2324,6 +2370,10 @@ impl Server {
                         open.client = Some(Document::new(document.text, document.version, &self.todo));
                         open.highlighted = None;
                         open.forget_shown();
+                    }
+                    // An older text than the agenda's, read from the file.
+                    if self.client.edit_view {
+                        self.edit_view_in_client();
                     }
                     self.reveal_when_current();
                     return;
@@ -2445,12 +2495,12 @@ impl Server {
             let index = LineIndex::new(&open.text);
             let only = range.map(|range| index.text_range(&open.text, range, encoding));
             let data = highlight::encode(&open.tokens, &open.text, &index, encoding, only);
-            return Some(SemanticTokens { result_id: None, data });
+            return Some(self.client_tokens(data));
         }
         if let Some(view) = self.view_at(uri) {
             let only = range.map(|range| view.index.text_range(&view.text, range, encoding));
             let data = highlight::encode(&view.tokens, &view.text, &view.index, encoding, only);
-            return Some(SemanticTokens { result_id: None, data });
+            return Some(self.client_tokens(data));
         }
         let document = self.document(uri)?;
         let (conceal, _, _) = self.display_of(&document.text);
@@ -2473,7 +2523,14 @@ impl Server {
         let tokens = if hidden.is_empty() { tokens } else { highlight::with_hidden(tokens, &hidden) };
         let only = range.map(|range| document.index.text_range(&document.text, range, encoding));
         let data = highlight::encode(&tokens, &document.text, &document.index, encoding, only);
-        Some(SemanticTokens { result_id: None, data })
+        Some(self.client_tokens(data))
+    }
+
+    /// Tokens as the client reads them: Org's own, or the standard ones
+    /// for a client that does not know Org's (`org_client`).
+    fn client_tokens(&self, data: Vec<lsp_types::SemanticToken>) -> SemanticTokens {
+        let data = if self.client.standard_tokens { highlight::standard::convert(data) } else { data };
+        SemanticTokens { result_id: None, data }
     }
 
     /// What stands in for hidden text of the document `key`, as
@@ -2750,7 +2807,7 @@ impl Server {
         let script_directory = self.client.command_script.as_ref().and_then(|script| script.parent());
         if path.starts_with(temp_dir())
             || script_directory.is_some_and(|directory| path.starts_with(directory))
-            || path.extension().is_some_and(|extension| extension == "org-agenda")
+            || path.starts_with(&self.view_directory)
             || self.port_start.file.as_ref() == Some(&path)
         {
             return;
@@ -2800,9 +2857,9 @@ impl Server {
                 ..Default::default()
             })
         };
-        // With `command_actions`, what an editor runs from keys.
-        let more = self.client.command_actions;
-        if self.is_view(uri) && more {
+        // What an editor runs from keys, for one that has none.
+        let more = self.client.more_actions;
+        if self.is_view(uri) && self.client.command_actions {
             // The agenda's file is read-only, where Zed runs no code
             // action; its keys go through the command port instead.
             return Some(Vec::new());
@@ -2810,11 +2867,10 @@ impl Server {
         if self.is_view(uri) {
             // On an agenda line the actions are commands: the server
             // edits the entry's file and rebuilds the agenda.
-            let (_, line) = self.view_line(uri, params.range.start.line)?;
-            let entry = line.entry.as_ref()?;
-            let dated = entry.marker.is_some();
+            let entry = self.view_line(uri, params.range.start.line).and_then(|(_, line)| line.entry.clone());
+            let dated = entry.as_ref().is_some_and(|entry| entry.marker.is_some());
             let running = self.running.is_some();
-            let ids = [
+            let on_entry = [
                 commands::TODO_NEXT,
                 commands::TODO_PREVIOUS,
                 commands::PRIORITY_UP,
@@ -2827,8 +2883,25 @@ impl Server {
                 commands::AGENDA_GOTO,
                 commands::AGENDA_GOTO_OTHER,
             ];
-            let actions = ids
-                .into_iter()
+            // For a client without keys: what they do in the agenda.
+            let more_on_entry = [commands::TODO, commands::SCHEDULE, commands::DEADLINE, commands::SET_TAGS];
+            let on_view = [
+                commands::AGENDA_LATER,
+                commands::AGENDA_EARLIER,
+                commands::AGENDA_TODAY,
+                commands::AGENDA_DAY,
+                commands::AGENDA_WEEK,
+                commands::AGENDA_MONTH,
+                commands::AGENDA_REDO,
+                commands::AGENDA_DISPATCH,
+            ];
+            let entry_ids = entry.is_some().then_some(on_entry.iter()).into_iter().flatten();
+            let more_entry_ids = (entry.is_some() && more).then_some(more_on_entry.iter()).into_iter().flatten();
+            let view_ids = more.then_some(on_view.iter()).into_iter().flatten();
+            let actions = entry_ids
+                .chain(more_entry_ids)
+                .chain(view_ids)
+                .copied()
                 .filter(|id| dated || !matches!(*id, commands::DATE_LATER | commands::DATE_EARLIER))
                 .filter(|id| running || *id != commands::CLOCK_OUT)
                 .filter(|id| actions::requested(id, only))
@@ -3006,6 +3079,9 @@ impl Server {
         let running = self.running.is_some();
         let in_code = in_src_block(&document.parse.syntax(), offset);
         let in_table = at_org_table(&document.text, &document.parse.syntax(), offset);
+        // The agenda and capture open a document, which the client must
+        // be able to show (Helix cannot).
+        let shows = self.client.show_document;
         for (id, offered) in [
             (commands::TANGLE, in_code),
             (commands::TABLE_TOGGLE_COLUMN_WIDTH, in_table),
@@ -3025,10 +3101,10 @@ impl Server {
             (commands::CLOCK_IN_LAST, more && !self.clock_history.is_empty()),
             (commands::CLOCK_REPORT, more),
             (commands::DBLOCK_UPDATE, more && org_core::clocktable::in_block(&document.text, offset)),
-            (commands::AGENDA_LIST, more),
-            (commands::AGENDA_TODOS, more),
-            (commands::AGENDA_DISPATCH, more),
-            (commands::CAPTURE, more),
+            (commands::AGENDA_LIST, more && shows),
+            (commands::AGENDA_TODOS, more && shows),
+            (commands::AGENDA_DISPATCH, more && shows),
+            (commands::CAPTURE, more && shows),
         ] {
             if offered && actions::requested(id, only) {
                 result.push(as_action(id));
@@ -3460,11 +3536,17 @@ impl Server {
         out
     }
 
-    /// `textDocument/prepareRename`: a tag, or a headline's title.
+    /// `textDocument/prepareRename`: a tag, or a headline's title; or,
+    /// while a command waits for text, what it suggests.
     fn prepare_rename(
         &mut self,
         params: lsp_types::TextDocumentPositionParams,
     ) -> Option<lsp_types::PrepareRenameResponse> {
+        if let Some(question) = &self.question {
+            let placeholder = question.input.get("value").and_then(Value::as_str).unwrap_or("").to_string();
+            let range = Range::new(params.position, params.position);
+            return Some(lsp_types::PrepareRenameResponse::RangeWithPlaceholder { range, placeholder });
+        }
         let encoding = self.client.encoding;
         let document = self.document(&params.text_document.uri)?;
         let offset = document.index.offset(&document.text, params.position, encoding);
@@ -3485,6 +3567,11 @@ impl Server {
     /// or a headline's title, and the links that search for it.
     fn rename(&mut self, params: lsp_types::RenameParams) -> Option<WorkspaceEdit> {
         use org_core::rename::{self, Target};
+        // The answer to a command's question: the command goes on.
+        if let Some(Question { command, argument, input }) = self.question.take() {
+            self.answer_prompt(command, argument, &input, &params.new_name);
+            return Some(WorkspaceEdit::default());
+        }
         let encoding = self.client.encoding;
         let place = params.text_document_position;
         let uri = place.text_document.uri;
@@ -4320,7 +4407,7 @@ impl Server {
             None => {
                 // The client cannot fetch the view, so it gets a file.
                 let directory = self.view_directory.clone();
-                let file = directory.join(views::FILE_NAME);
+                let file = directory.join(self.client.view_file_name);
                 if std::fs::create_dir_all(&directory).is_ok() {
                     // This server's agenda: its keys come here.
                     self.open_port();
@@ -4477,7 +4564,19 @@ impl Server {
         match &open.file {
             Some(file) => {
                 let uri = open.uri.clone();
-                match write_read_only(file, &open.view.text) {
+                // A client that has the file open is sent the text as edits,
+                // and the file is left alone: rewritten under a buffer with
+                // changes of its own, it would make the editor ask which to
+                // keep. That client may save it, the same text.
+                let edited = self.client.edit_view && open.client.is_some();
+                let written = if edited {
+                    Ok(())
+                } else if self.client.edit_view {
+                    set_writable_if_present(file).and_then(|()| std::fs::write(file, &open.view.text))
+                } else {
+                    write_read_only(file, &open.view.text)
+                };
+                match written {
                     Err(error) => self.show_message(MessageType::ERROR, format!("Cannot write the agenda: {error}")),
                     // The client reads it again.
                     Ok(()) if self.client.view_changed => {
@@ -4485,6 +4584,7 @@ impl Server {
                         let notification = lsp_server::Notification::new(VIEW_CHANGED.to_string(), params);
                         let _ = self.sender.send(Message::Notification(notification));
                     }
+                    Ok(()) if self.client.edit_view => self.edit_view_in_client(),
                     Ok(()) => {}
                 }
             }
@@ -4495,6 +4595,31 @@ impl Server {
         }
         // Column view stays on, as `org-agenda-redo` keeps it.
         self.agenda_columns_view();
+    }
+
+    /// The agenda's new text as an edit of the file the client has open
+    /// (`edit_view`): the lines that changed, so that the cursor stays.
+    fn edit_view_in_client(&mut self) {
+        let Some(open) = &self.view else { return };
+        let Some(copy) = &open.client else { return };
+        if copy.text == open.view.text {
+            return;
+        }
+        let (old, new) = (&copy.text, &open.view.text);
+        let old_lines: Vec<&str> = old.split_inclusive('\n').collect();
+        let new_lines: Vec<&str> = new.split_inclusive('\n').collect();
+        let prefix = old_lines.iter().zip(&new_lines).take_while(|(a, b)| a == b).count();
+        let suffix =
+            old_lines[prefix..].iter().rev().zip(new_lines[prefix..].iter().rev()).take_while(|(a, b)| a == b).count();
+        let bytes = |lines: &[&str]| lines.iter().map(|line| line.len()).sum::<usize>();
+        let start = bytes(&old_lines[..prefix]);
+        let end = old.len() - bytes(&old_lines[old_lines.len() - suffix..]);
+        let new_text = new_lines[prefix..new_lines.len() - suffix].concat();
+        let range = org_syntax::TextRange::new((start as u32).into(), (end as u32).into());
+        let range = copy.index.range(old, range, self.client.encoding);
+        let edit = self.workspace_edit(&open.uri, Some(copy.version), vec![TextEdit { range, new_text }]);
+        let params = lsp_types::ApplyWorkspaceEditParams { label: Some("Org Agenda".to_string()), edit };
+        self.send_request::<lsp_types::request::ApplyWorkspaceEdit>(params, None);
     }
 
     /// Ask the client to show the view with the cursor at `position`.
@@ -4625,6 +4750,7 @@ impl Server {
     /// what it has to say.
     fn run_command(&mut self, params: ExecuteCommandParams) -> std::result::Result<Value, Refusal> {
         self.message = None;
+        self.question = None;
         self.date_unit_before = self.date_unit.take();
         self.origin = params
             .arguments
@@ -4647,8 +4773,10 @@ impl Server {
         let prompt = input.get("prompt").and_then(Value::as_str).unwrap_or("").to_string();
         let choices = input.get("choices").and_then(Value::as_array).cloned().unwrap_or_default();
         if choices.is_empty() {
-            let message = format!("{prompt}: this editor cannot ask for text; use a date or text in the file instead");
-            self.show_message(MessageType::WARNING, message);
+            // LSP has no request for text: a rename's new name answers.
+            let prompt = prompt.trim_end().trim_end_matches(':');
+            self.show_message(MessageType::INFO, format!("{prompt}: answer with a rename at the cursor"));
+            self.question = Some(Question { command, argument, input: input.clone() });
             return;
         }
         let actions = choices
@@ -4665,10 +4793,14 @@ impl Server {
     /// run the command again with it, as an editor does.
     fn answer_prompt(&mut self, command: String, argument: Value, input: &Value, picked: &str) {
         let choices = input.get("choices").and_then(Value::as_array).cloned().unwrap_or_default();
-        let Some(key) =
-            choices.iter().find(|choice| prompt_label(choice) == picked).and_then(|choice| choice.get("key"))
-        else {
-            return;
+        let typed = json!(picked);
+        let key = if choices.is_empty() {
+            &typed
+        } else {
+            match choices.iter().find(|choice| prompt_label(choice) == picked).and_then(|choice| choice.get("key")) {
+                Some(key) => key,
+                None => return,
+            }
         };
         let mut argument = match argument {
             Value::Object(fields) => fields,

@@ -118,6 +118,8 @@ impl zed::Extension for OrgLsp {
             _ => serde_json::Map::new(),
         };
         options.insert("virtual_documents".to_string(), serde_json::Value::Bool(false));
+        // Its rules color org-lsp's own token types.
+        options.insert("org_client".to_string(), serde_json::Value::Bool(true));
         // Zed runs no command from a key and does nothing with a command's
         // result: the commands come as code actions, the agenda's through
         // the command port that the extension's tasks call, and what they

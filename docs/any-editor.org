@@ -1,0 +1,80 @@
+#+title: Org in any editor
+#+options: ^:{} toc:nil
+
+The server works in any editor with an LSP client, with no org-lsp plugin
+at all: point the client at ~org-lsp~ for Org files and it talks over
+standard input and output. What the plugins add are keys, windows and
+looks; what an editor does with plain LSP, it does here too.
+
+* Setting it up
+
+Tell the editor's LSP client to run ~org-lsp~ (the whole path, or put it on
+your PATH) for the ~org~ file type (~*.org~). The server's options go in the
+client's /initialization options/, as JSON; [[file:configuration.org][configuration.org]] has [[file:configuration.org::#every-option-at-its-default][every
+option]] with its default, and the server also reads [[file:configuration.org::#the-shared-configuration-file][the shared configuration
+file]], =~/.config/org-lsp/config.toml=.
+
+Neovim without the plugin, for example, with Neovim's own client (0.11 or
+newer):
+
+#+begin_src lua
+vim.lsp.config('org_lsp', {
+  cmd = { 'org-lsp' },
+  filetypes = { 'org' },
+  root_markers = { '.git' },
+  init_options = { org_agenda_files = { '~/org' } },
+})
+vim.lsp.enable('org_lsp')
+
+-- What Neovim's client does not turn on by itself.
+vim.api.nvim_create_autocmd('LspAttach', {
+  callback = function(args)
+    local client = vim.lsp.get_client_by_id(args.data.client_id)
+    if not client or client.name ~= 'org_lsp' then
+      return
+    end
+    vim.wo.foldmethod = 'expr'
+    vim.wo.foldexpr = 'v:lua.vim.lsp.foldexpr()'
+    vim.wo.foldlevel = 99
+    vim.lsp.completion.enable(true, client.id, args.buf, { autotrigger = true })
+    vim.lsp.inlay_hint.enable(true, { bufnr = args.buf })
+  end,
+})
+#+end_src
+
+* What it does
+
+- Colors :: The server sends the token types of the LSP specification
+  (~function~, ~keyword~, ~string~ …), which every color scheme colors, each
+  Org part as the one closest to Emacs's faces: headlines by level as
+  ~outline-1~ and on, TODO keywords as keywords, tags as attributes.
+  [[file:protocol.org::#semantic-tokens][The protocol]] lists them. Bold and italic text get no color of their
+  own: LSP has no standard kind for them.
+- Commands :: As code actions, at the cursor: the TODO state, the priority,
+  the timestamp under the cursor, clocking, archiving, refiling, a new
+  heading, and the agenda, the TODO list, the agenda menu and capture.
+- Questions :: A choice (the agenda menu, a TODO state, a capture template)
+  comes as a list to pick from (~window/showMessageRequest~). LSP has no way
+  to ask for text, so a command that wants text or a date (a search, a date
+  to schedule) says /PROMPT: answer with a rename at the cursor/: run the
+  editor's rename (~grn~ in Neovim) and type the answer as the new name.
+- The agenda :: A file, ~Agenda.org~, that the editor opens as an Org file:
+  colored, and its code actions move it through time (later, earlier,
+  today), change its span, open the menu, and change the line's entry. The
+  server changes the open buffer with edits (~workspace/applyEdit~) when it
+  moves or when the files change, so the editor counts the buffer as
+  changed: save it (~:w~ writes the same text) or leave without saving
+  (~:qa!~).
+- The rest of LSP :: Folding, completion, hover, diagnostics (~org-lint~),
+  formatting (tables, tags), going to a link's target, symbols, renaming a
+  tag or a heading, and inlay hints (~org-indent-mode~, clocked time).
+
+What needs a plugin: keys (~cit~, ~<Leader>oa~), the calendar of the date
+prompt, capture in a window of its own, the agenda in a split, images, and
+everything the editors' pages list beyond LSP.
+
+The commands that ask a question (a TODO state, the agenda, capture,
+refiling) come only to an editor that says it shows the server's lists
+(~window.showMessage~ in its capabilities), or with ~message_prompts~ set to
+true; and the agenda and capture only to one that opens a document the
+server asks it to show (~window/showDocument~). [[file:helix.org][Helix]] does neither.

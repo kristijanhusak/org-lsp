@@ -256,6 +256,10 @@ pub struct Options {
     /// `window/showMessage`: for a client that does nothing with a
     /// command's result (Zed).
     pub message_prompts: Option<bool>,
+    /// The client has org-lsp's editor code: it knows the server's own
+    /// token types, asks what a command's result asks for, binds the keys.
+    /// A client that can announce it says `experimental.orgClient`.
+    pub org_client: Option<bool>,
     /// Offer more commands as code actions (the agenda, capture, refile,
     /// a TODO state or a priority picked from a list, a new heading or
     /// item), and every command, in the agenda and in Org files,
@@ -1577,6 +1581,7 @@ const OLD_NAMES: &[(&str, &str)] = &[
     ("virtualDocuments", "virtual_documents"),
     ("showDocument", "show_document"),
     ("messagePrompts", "message_prompts"),
+    ("orgClient", "org_client"),
     ("lineHighlights", "line_highlights"),
     ("virtualIndent", "virtual_indent"),
     ("commandActions", "command_actions"),

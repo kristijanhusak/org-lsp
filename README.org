@@ -43,9 +43,10 @@ and what works:
 - [[file:docs/zed.org][Zed]].
 - [[file:docs/helix.org][Helix]].
 
-Any other editor: point its LSP client at ~org-lsp~ for the ~org~ file type.
-The server talks over standard input and output; [[file:docs/protocol.org][docs/protocol.org]]
-describes the options, the commands and what an integration has to do.
+Any other editor: point its LSP client at ~org-lsp~ for the ~org~ file type;
+[[file:docs/any-editor.org][docs/any-editor.org]] says what works with no plugin. The server talks over
+standard input and output; [[file:docs/protocol.org][docs/protocol.org]] describes the options, the
+commands and what an integration has to do.
 
 The server is a single binary, ~org-lsp~. CI builds it for Linux (x86_64,
 arm64), macOS (arm64, x86_64) and Windows (x86_64): the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] has

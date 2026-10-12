@@ -102,6 +102,7 @@ endfunction
 " server writes, whatever the client says.
 function! org_lsp#init_options() abort
   return extend(deepcopy(org_lsp#config().settings), {
+        \ 'org_client': v:true,
         \ 'show_document': v:true,
         \ 'view_changed': v:true,
         \ 'date_prompt': org_lsp#config().calendar ? v:true : v:false,
