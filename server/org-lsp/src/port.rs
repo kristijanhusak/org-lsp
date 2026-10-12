@@ -187,6 +187,9 @@ fn on_path(name: &str) -> Option<PathBuf> {
 
 /// Read one command, and answer whether it is taken.
 fn receive(mut stream: TcpStream, token: &str) -> Option<Command> {
+    // The port takes one command at a time: one that never comes must
+    // not keep the others out.
+    stream.set_read_timeout(Some(std::time::Duration::from_secs(2))).ok()?;
     let mut line = String::new();
     BufReader::new(Read::by_ref(&mut stream).take(4096)).read_line(&mut line).ok()?;
     let sent: Option<Sent> = serde_json::from_str(&line).ok();
@@ -201,7 +204,7 @@ fn receive(mut stream: TcpStream, token: &str) -> Option<Command> {
 
 /// A token no other process can guess: the hash keys of the standard
 /// library are random per process.
-fn token() -> String {
+pub(crate) fn token() -> String {
     use std::hash::{BuildHasher, Hasher};
     let part = |salt: u64| {
         let mut hasher = std::collections::hash_map::RandomState::new().build_hasher();
@@ -231,9 +234,11 @@ fn script(address: &SocketAddr, token: &str, start: &Start) -> std::io::Result<S
     let quote = |path: &Path| format!("'{}'", path.display().to_string().replace('\'', r"'\''"));
     let exe = quote(&std::env::current_exe()?);
     let options = start_options(start, quote);
+    // The token goes in the environment, which only the user can read,
+    // not on the command line, which every user can.
     Ok(format!(
         "#!/bin/sh\n# Runs a command of an org-lsp: COMMAND [ROW COLUMN [FILE]].\n\
-         exec {exe} command --script \"$0\" {options}{address} {token} \"$@\"\n"
+         {TOKEN_VARIABLE}={token} exec {exe} command --script \"$0\" {options}{address} - \"$@\"\n"
     ))
 }
 
@@ -244,15 +249,25 @@ fn script(address: &SocketAddr, token: &str, start: &Start) -> std::io::Result<S
     let options = start_options(start, quote);
     Ok(format!(
         "@rem Runs a command of an org-lsp: COMMAND [ROW COLUMN [FILE]].\r\n\
-         @{exe} command --script \"%~f0\" {options}{address} {token} %*\r\n"
+         @set {TOKEN_VARIABLE}={token}\r\n\
+         @{exe} command --script \"%~f0\" {options}{address} - %*\r\n"
     ))
 }
 
+/// Where the script gives `org-lsp command` the token: `-` in its place
+/// on the command line reads it from there.
+const TOKEN_VARIABLE: &str = "ORG_LSP_TOKEN";
+
 /// The address and the token of the server the script `text` sends to:
-/// the last two words before the command's own arguments.
+/// the last two words before the command's own arguments, the token in
+/// `TOKEN_VARIABLE` when the second is `-`.
 fn address_and_token(text: &str) -> Option<(String, String)> {
     let words: Vec<&str> = text.lines().last()?.split_whitespace().collect();
     let [.., address, token, _] = words.as_slice() else { return None };
+    let token = match *token {
+        "-" => text.split_whitespace().find_map(|word| word.strip_prefix(TOKEN_VARIABLE)?.strip_prefix('='))?,
+        token => token,
+    };
     Some((address.to_string(), token.to_string()))
 }
 
@@ -319,6 +334,10 @@ pub fn send(arguments: &[String]) -> Result<(), String> {
     };
     let number =
         |text: &str| text.parse::<u32>().map(|n| n.saturating_sub(1)).map_err(|_| format!("not a number: {text}"));
+    let token = match token.as_str() {
+        "-" => std::env::var(TOKEN_VARIABLE).map_err(|_| format!("{TOKEN_VARIABLE} is not set"))?,
+        token => token.to_string(),
+    };
     let mut sent = json!({ "token": token, "command": command });
     if let [_, _, _, row, column, ..] = rest {
         sent["line"] = json!(number(row)?);
@@ -417,14 +436,21 @@ mod tests {
             Command { command: "org.agenda.later".to_string(), position: Some((1, 4)), file: Some(work) }
         );
         assert!(send(&arguments("guessed", &[])).is_err());
+        // `-` for the token: the one in the environment, as the script runs it.
+        std::env::set_var(TOKEN_VARIABLE, &token);
+        send(&arguments("-", &[])).unwrap();
+        std::env::remove_var(TOKEN_VARIABLE);
+        assert_eq!(receiver.recv().unwrap().command, "org.agenda.later");
         assert!(receiver.try_recv().is_err());
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             assert_eq!(std::fs::metadata(&script).unwrap().permissions().mode() & 0o777, 0o700);
             assert_eq!(std::fs::metadata(script.parent().unwrap()).unwrap().permissions().mode() & 0o777, 0o700);
-            // The script runs `org-lsp command` with its own path and the port.
-            assert!(text.contains(&format!(" command --script \"$0\" {address} {token} \"$@\"")), "{text}");
+            // The script runs `org-lsp command` with its own path and the
+            // port, the token in its environment, off the command line.
+            assert!(text.contains(&format!(" command --script \"$0\" {address} - \"$@\"")), "{text}");
+            assert!(text.contains(&format!("{TOKEN_VARIABLE}={token} exec ")), "{text}");
         }
         std::fs::remove_dir_all(directory).unwrap();
     }
