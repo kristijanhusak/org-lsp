@@ -303,6 +303,28 @@ function M.render(bufnr)
   end
 end
 
+--- What the windows showing buffer `bufnr` show of it: the lines, where
+--- and how high (folds count), and the buffer's version. The images
+--- stay where they are while it stays the same.
+---@param bufnr integer
+---@return string
+local function view_of(bufnr)
+  local parts = { vim.api.nvim_buf_get_changedtick(bufnr) }
+  for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+    local info = vim.fn.getwininfo(win)[1]
+    local height = vim.api.nvim_win_text_height(win, { start_row = info.topline - 1, end_row = info.botline - 1 }).all
+    table.insert(
+      parts,
+      table.concat({ win, info.topline, info.botline, info.winrow, info.wincol, info.width, info.height, info.textoff, height }, ',')
+    )
+  end
+  return table.concat(parts, ';')
+end
+
+--- The view each buffer's images were last put in.
+---@type table<integer, string>
+local rendered = {}
+
 local scheduled = {}
 
 --- Render buffer `bufnr` once Neovim has drawn its windows.
@@ -314,16 +336,30 @@ local function later(bufnr)
   vim.schedule(function()
     scheduled[bufnr] = nil
     M.render(bufnr)
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      rendered[bufnr] = view_of(bufnr)
+    end
   end)
 end
 
 local function watch(bufnr)
   local group = vim.api.nvim_create_augroup('org_lsp_images_' .. bufnr, { clear = true })
-  vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI', 'CursorMoved', 'BufWinEnter' }, {
+  vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI', 'BufWinEnter' }, {
     group = group,
     buffer = bufnr,
     callback = function()
       later(bufnr)
+    end,
+  })
+  -- A move of the cursor moves the images only when it scrolls, opens or
+  -- closes a fold, or changes the text.
+  vim.api.nvim_create_autocmd('CursorMoved', {
+    group = group,
+    buffer = bufnr,
+    callback = function()
+      if shown[bufnr] and next(shown[bufnr]) and rendered[bufnr] ~= view_of(bufnr) then
+        later(bufnr)
+      end
     end,
   })
   vim.api.nvim_create_autocmd({ 'WinScrolled', 'WinResized', 'VimResized', 'WinClosed', 'TabEnter' }, {
@@ -344,6 +380,7 @@ local function watch(bufnr)
     buffer = bufnr,
     callback = function()
       M.clear(bufnr)
+      rendered[bufnr] = nil
     end,
   })
 end

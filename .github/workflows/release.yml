@@ -58,7 +58,7 @@ jobs:
             vscode: win32-x64
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
       - name: Install Rust
@@ -83,7 +83,7 @@ jobs:
           fi
           echo "EXE=$dir/$exe" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
       - name: Package the VS Code extension
@@ -95,7 +95,7 @@ jobs:
           npm run bundle-server -- "../../$EXE"
           npx vsce package --no-dependencies --baseContentUrl https://github.com/kristijanhusak/org-lsp/blob/HEAD/editors/vscode --baseImagesUrl https://github.com/kristijanhusak/org-lsp/raw/HEAD/editors/vscode --target "${{ matrix.vscode }}" --out "../../org-lsp-${{ matrix.vscode }}.vsix"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: org-lsp-${{ matrix.name }}
           path: |
@@ -112,7 +112,7 @@ jobs:
       # installs them.
       ZED_EXTENSION_CLI_SHA: 9ee3c503a4bbbc6b4a0f8a789acca4871d773223
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
       - name: Install Rust
@@ -132,7 +132,7 @@ jobs:
           # Its tasks and keys, which scripts/install.sh adds to Zed's.
           cp editors/zed/tasks.json org-lsp-zed-tasks.json
           cp editors/zed/keymap.json org-lsp-zed-keymap.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: org-lsp-zed
           path: org-lsp-zed*
@@ -148,8 +148,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: dist
           merge-multiple: true

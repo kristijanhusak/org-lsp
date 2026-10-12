@@ -340,6 +340,10 @@ enum DimBlocked {
 /// The largest count a command takes, either way.
 const COUNT_MAX: i64 = 100_000;
 
+/// A file an `#+INCLUDE:` line names: its time of change and size when it
+/// was read, and its text.
+type Included = (Option<std::time::SystemTime>, u64, Option<String>);
+
 /// How long the `ID`s of the files that are not open are taken as they
 /// were last found, for `invalid-id-link`.
 const IDS_FRESH: std::time::Duration = std::time::Duration::from_secs(5);
@@ -981,6 +985,9 @@ struct Server {
     /// The `ID`s of the files that are not open, and when they were
     /// looked for (`known_ids`).
     ids_on_disk: Option<(std::time::Instant, HashSet<String>)>,
+    /// The files `#+INCLUDE:` lines name, as the lint last read them,
+    /// with their time of change and size: read again once those change.
+    included: std::cell::RefCell<HashMap<PathBuf, Included>>,
     /// `org_lint`: Org's linter checks the documents.
     lint: bool,
     /// `org_lint_ignore`: the checkers it leaves out.
@@ -1339,6 +1346,7 @@ pub fn run(connection: Connection) -> Result<()> {
         diagnosed: HashSet::new(),
         id_files: HashMap::new(),
         ids_on_disk: None,
+        included: std::cell::RefCell::new(HashMap::new()),
         lint: options.lint.unwrap_or(true),
         lint_ignore: options.lint_ignore.clone().unwrap_or_default(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
@@ -11903,7 +11911,20 @@ impl Server {
                 _ => path,
             })
         };
-        let read = |name: &str| resolve(name).and_then(|path| std::fs::read_to_string(path).ok());
+        let read = |name: &str| {
+            let path = resolve(name)?;
+            let metadata = std::fs::metadata(&path).ok()?;
+            let stamp = (metadata.modified().ok(), metadata.len());
+            let mut included = self.included.borrow_mut();
+            match included.get(&path) {
+                Some((modified, len, text)) if (*modified, *len) == stamp && stamp.0.is_some() => text.clone(),
+                _ => {
+                    let text = std::fs::read_to_string(&path).ok();
+                    included.insert(path, (stamp.0, stamp.1, text.clone()));
+                    text
+                }
+            }
+        };
         let file_name = || uri::to_path(uri).and_then(|path| Some(path.file_name()?.to_string_lossy().into_owned()));
         let id_known = |id: &str| ids.map(|ids| ids.contains(id));
         let context = org_core::lint::Context {
