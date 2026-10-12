@@ -61,8 +61,8 @@ decides the outcome (see "How the work is checked" in [[file:development.org::#h
 - ✅ Footnotes, targets, macros, entities and LaTeX fragments
 - ✅ Archived subtrees shaded (~org-archived~)
 - ✅ Radio targets turning their words into links: highlighted, followed, document links
-- ✅ Entities shown as their characters (~org-pretty-entities~, ~#+STARTUP: entitiespretty~ or ~entitiesplain~): hidden, the character an inlay hint in their place
-- ✅ Sub- and superscripts raised and lowered (~org-pretty-entities-include-sub-superscripts~, ~org-use-sub-superscripts~): where Org raises them, shown in Unicode (~x²~, ~H₂O~) as an inlay hint in place of the hidden text where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text
+- ✅ Entities shown as their characters (~org-pretty-entities~, ~#+STARTUP: entitiespretty~ or ~entitiesplain~): hidden, the character in their place (drawn by the editor where it can, else an inlay hint)
+- ✅ Sub- and superscripts raised and lowered (~org-pretty-entities-include-sub-superscripts~, ~org-use-sub-superscripts~): where Org raises them, shown in Unicode (~x²~, ~H₂O~) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text
 
 Where editors fall short:
 
@@ -114,7 +114,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: Cloning is left out: it asks for text, and Zed cannot ask for text on a server's behalf. A command on a selection acts on the cursor's line: Zed tells a server no selection. The rest goes through the keys of keymap.json (Zed's tasks).
+- Zed ❓: A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
 - Helix ❓: New headings (~M-RET~ and its relatives), moving between headings and ~org-goto~ are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions.
 
 * Lists and checkboxes
@@ -161,7 +161,7 @@ Where editors fall short:
 Where editors fall short:
 
 - Sublime Text ❓: Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item's kind, the nearest of those Sublime Text has.
-- Zed ❓: A note for a state change (~@~) cannot be typed: Zed cannot ask for text on a server's behalf. States are picked with buttons. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.
+- Zed ❓: States are picked with buttons; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.
 - Helix ❓: A note for a state change (~@~) cannot be typed: Helix cannot ask for text on a server's behalf. Faces of particular keywords and priorities are not shown.
 
 * Priorities
@@ -191,7 +191,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: Setting tags is left out: it needs keys pressed in turn, or typed tags, and Zed cannot ask for text on a server's behalf. Completion and renaming work.
+- Zed ❓: Tags are typed, not set with keys pressed in turn: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Completion and renaming work.
 - Helix ❓: Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work.
 
 * Properties and column view
@@ -212,8 +212,8 @@ Where editors fall short:
 
 - Vim ❓: Column view's header is in the window's status line, shown when the window has one (~laststatus~).
 - VS Code ❓: Column view's header is in the status bar, with the column picked in brackets.
-- Sublime Text ❓: Column view is left out: it draws over the headlines, which Sublime Text cannot.
-- Zed ❓: Setting a property or the effort is left out: they are typed, and Zed cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines.
+- Sublime Text ❓: A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot.
+- Zed ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines.
 - Helix ❓: Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines.
 
 * Dates and times
@@ -235,7 +235,7 @@ Where editors fall short:
 Where editors fall short:
 
 - Sublime Text ❓: Dates are typed, without the calendar: the package asks with an input panel.
-- Zed ❓: Scheduling, deadlines and new timestamps are left out: they ask for a date, and Zed cannot ask for text on a server's behalf. Changing a timestamp works.
+- Zed ❓: Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Changing a timestamp works.
 - Helix ❓: Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works.
 
 * Agenda
@@ -273,7 +273,7 @@ Where editors fall short:
 
 - VS Code ❓: Tags are at column 80, not at the window's edge (~org_agenda_tags_column~ ~"auto"~): VS Code does not tell an extension how many columns an editor shows.
 - Sublime Text ❓: Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.
-- Zed ❓: The agenda is a file, its commands code actions (or keys through Zed's tasks); searches, going to a date and dates asked for are left out (Zed cannot ask for text on a server's behalf), and follow mode (Zed reports no cursor moves to an extension). Column view in the agenda is left out: it draws over the lines.
+- Zed ❓: The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode is left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.
 - Helix ❌: Helix cannot open a document on a server's request. ~org-lsp agenda FILE...~ prints the agenda in a terminal.
 
 * Clocking
@@ -318,7 +318,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: Templates with prompts are left out: Zed cannot ask for text on a server's behalf. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.
+- Zed ❓: For a template's prompts, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.
 - Helix ❌: Helix cannot open the capture buffer, and Helix cannot ask for text on a server's behalf.
 
 * Notes (org-roam)
@@ -339,7 +339,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❌: Zed cannot ask for text on a server's behalf, and the commands ask for a node; nor would the org-roam buffer follow the cursor: Zed reports no cursor moves to an extension.
+- Zed ❓: A node's title is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension.
 - Helix ❌: Helix cannot ask for text on a server's behalf, and the commands ask for a node; nor can Helix open the org-roam buffer on a server's request.
 
 * A journal (org-journal)
@@ -364,7 +364,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: The date commands, the searches and rescheduling are left out: Zed cannot ask for text on a server's behalf. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
+- Zed ❓: For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
 - Helix ❌: Helix cannot open the journal file on a server's request, and Helix cannot ask for text on a server's behalf.
 
 * Refile and archive
@@ -411,7 +411,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: Storing and inserting links are left out: they ask for text, and Zed cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition, for links inside Org files and to files.
+- Zed ❓: A link's target is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Following works through go to definition, for links inside Org files and to files.
 - Helix ❓: Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition.
 
 * Footnotes
@@ -428,7 +428,6 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: Making footnotes and their menu are left out: they are not among Zed's code actions. Following them works.
 - Helix ❓: Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works.
 
 * Tables
@@ -448,7 +447,7 @@ Where editors fall short:
 - ✅ Rectangles: cutting, copying and pasting the cells of a selection (through Emacs)
 - ✅ Copying down (~S-RET~, through Emacs)
 - ✅ Editing a field in a file of its own (~org-table-edit-field~, through Emacs): put back, the table realigned, each time it is saved
-- ✅ Shrunk columns (~<5>~): ~C-c TAB~, ~org-startup-shrink-all-tables~ and ~#+STARTUP: shrink~; the hidden text concealed where the editor can hide it, ~…~ an inlay hint
+- ✅ Shrunk columns (~<5>~): ~C-c TAB~, ~org-startup-shrink-all-tables~ and ~#+STARTUP: shrink~; the hidden text concealed where the editor can hide it, ~…~ drawn in its place or an inlay hint
 - ✅ Creating an empty table (~C-c |~, through Emacs)
 - ✅ Making a table from a region (~C-c |~ on a selection, through Emacs)
 - ✅ Summing (~C-c +~) and field information (~C-c ?~), through Emacs
@@ -460,7 +459,7 @@ Where editors fall short:
 
 - Vim ❓: A shrunk column shows its whole text and ~…~: Vim cannot hide text that has text properties.
 - Sublime Text ❓: A shrunk column shows its whole text and ~…~: Sublime Text cannot hide text in a view.
-- Zed ❓: Moving between fields with ~TAB~ and copying down (~S-RET~) are left out: those keys stay Zed's own. Creating a table is left out: it asks for its size, and Zed cannot ask for text on a server's behalf. A shrunk column shows its whole text and ~…~: Zed lets no server hide text.
+- Zed ❓: Moving between fields with ~TAB~ and copying down (~S-RET~) are left out: those keys stay Zed's own. For a new table's size, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. A shrunk column shows its whole text and ~…~: Zed lets no server hide text.
 - Helix ❓: Moving between fields with ~TAB~, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text.
 
 * Table formulas
@@ -504,7 +503,6 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Zed cannot give a server.
 - Helix ❓: Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Helix cannot give a server.
 
 * Export and publishing
@@ -527,7 +525,6 @@ Where editors fall short:
 Where editors fall short:
 
 - VS Code ❓: VS Code does not tell an extension which folds are closed: with ~C-v~ everything is exported.
-- Zed ❌: Not offered as a code action yet; its menu would come as buttons.
 - Helix ❌: Not offered as a code action yet.
 
 * Citations
@@ -545,7 +542,6 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: Inserting citations is not offered as a code action yet. Completion, hover and following work.
 - Helix ❓: Inserting citations is not offered as a code action yet. Completion, hover and following work.
 
 * Diagnostics (org-lint)
@@ -592,7 +588,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❌: A note is typed text: Zed cannot ask for text on a server's behalf.
+- Zed ❓: A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
 - Helix ❌: A note is typed text: Helix cannot ask for text on a server's behalf.
 
 * Completion and editing helpers
@@ -609,7 +605,6 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: Structure templates, emphasis and drawers are not among Zed's code actions.
 - Helix ❓: Structure templates, emphasis and drawers are not among Helix's code actions.
 
 * Timers
@@ -627,7 +622,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: A countdown that asks for its length is left out: Zed cannot ask for text on a server's behalf. No timer in the status line: Zed has no place there for an extension's text.
+- Zed ❓: For a countdown's length, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. No timer in the status line: Zed has no place there for an extension's text.
 - Helix ❌: Timers are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and they are not among them.
 
 * Attachments
@@ -642,7 +637,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: ~attachment:~ links open; attaching a file is left out: it asks for the file, and Zed cannot ask for text on a server's behalf.
+- Zed ❓: ~attachment:~ links open; the dispatcher's keys come as buttons, and for the file to attach, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
 - Helix ❓: ~attachment:~ links open; the dispatcher (~C-c C-a~) is left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and it is not among them.
 
 * Encryption

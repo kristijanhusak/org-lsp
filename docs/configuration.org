@@ -245,6 +245,8 @@ The views:
 | ~todo~      | entries with these keywords      | ~NEXT¦WAIT~ |
 | ~tags~      | entries the match string matches | ~work-home~ |
 | ~tags-todo~ | the same, open TODO entries only | ~work-home~ |
+| ~search~    | entries with these words         | ~meeting~   |
+| ~stuck~     | stuck projects                   |             |
 
 (In the table, =¦= stands for =|=, which an Org table cannot hold.)
 
@@ -993,8 +995,8 @@ org_cite_global_bibliography = []
 # Link abbreviations: `[[gh:org-lsp]]` with `{ "gh": "https://github.com/%s"
 # }` follows `https://github.com/org-lsp`. `%s` stands for what follows the
 # colon, `%h` for it URL-encoded; without either it goes at the end. A file's
-# `#+LINK:` lines come first. A function (`%(…)`) is not supported.
-# (org-link-abbrev-alist)
+# `#+LINK:` lines come first. `%(my-function)` calls an Emacs function with
+# what follows the colon (through Emacs). (org-link-abbrev-alist)
 org_link_abbrev_alist = {  }
 
 # The tags offered when setting tags in a file without a `#+TAGS:` line,
@@ -1988,8 +1990,9 @@ org_agenda_custom_commands = []
   // Link abbreviations: `[[gh:org-lsp]]` with `{ "gh":
   // "https://github.com/%s" }` follows `https://github.com/org-lsp`. `%s`
   // stands for what follows the colon, `%h` for it URL-encoded; without
-  // either it goes at the end. A file's `#+LINK:` lines come first. A
-  // function (`%(…)`) is not supported. (org-link-abbrev-alist)
+  // either it goes at the end. A file's `#+LINK:` lines come first.
+  // `%(my-function)` calls an Emacs function with what follows the colon
+  // (through Emacs). (org-link-abbrev-alist)
   "org_link_abbrev_alist": {  },
 
   // The tags offered when setting tags in a file without a `#+TAGS:` line,

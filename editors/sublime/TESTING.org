@@ -61,10 +61,10 @@ its sections says what it should look like.
 - [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: ~Ctrl+C Ctrl+F~, ~Ctrl+C Ctrl+B~
 - [ ] Moving to the parent heading; on a top heading Org says it is at the top level: ~Ctrl+C Ctrl+U~
 - [ ] Going to a heading picked by its outline path (~A/B/~): ~Ctrl+C Ctrl+J~
-- [ ] Off a table, turning a line into a heading and back (needs Emacs): ~Ctrl+C *~
+- [ ] Off a table, turning a line into a heading and back (needs Emacs): /Org: Turn the line into a heading, or the heading into a line/
 - [ ] Toggling ~COMMENT~ on the heading (needs Emacs): ~Ctrl+C ;~
 - [ ] Cloning the subtree twice a week apart (~+1w~): the copies follow it with their dates moved (needs Emacs): ~Ctrl+C Ctrl+X c~
-- [ ] On a selection of whole lines: two headlines demoted together; lines turned into headings (needs Emacs): ~Alt+Right~, ~Ctrl+C *~
+- [ ] On a selection of whole lines: two headlines demoted together; lines turned into headings (needs Emacs): ~Alt+Right~, /Org: Turn the line into a heading, or the heading into a line/
 - [ ] The outline lists the headings nested, also in pickers that filter symbols by kind: /Goto Symbol/
 
 * Lists and checkboxes
@@ -112,9 +112,9 @@ its sections says what it should look like.
 
 * Properties and column view
 
-*Partly:* Column view is left out: it draws over the headlines, which Sublime Text cannot.
+*Partly:* A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot.
 
-- [ ] Setting a property: the name and the value are completed, ~NAME_ALL~'s values offered: ~Ctrl+C Ctrl+X p~
+- [ ] Setting a property: the name and the value are asked for: ~Ctrl+C Ctrl+X p~
 - [ ] On a property line with ~NAME_ALL~, cycling through its values: ~Shift+Right~, ~Shift+Left~
 - [ ] Deleting a property from the entry, and from the whole file: /Org: Delete a property of the entry/, /Org: Delete a property from every entry of the file/
 - [ ] ~C-c C-c~ in a property drawer asks what to do with the property: ~Ctrl+C Ctrl+C~
