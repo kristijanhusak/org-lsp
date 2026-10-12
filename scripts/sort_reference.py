@@ -60,7 +60,7 @@ def save(path, cases):
         handle.write("\n")
 
 
-def reference(cases, timeout=None):
+def reference(cases, timeout=1200):
     org_path = ["-L", os.environ["ORG_LISP_DIR"]] if os.environ.get("ORG_LISP_DIR") else []
     with tempfile.TemporaryDirectory() as directory:
         forms = [DRIVER]

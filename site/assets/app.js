@@ -209,7 +209,7 @@
       .map(function (entry, index) {
         return (
           '<li role="option" id="result-' + index + '" aria-selected="' + (index === 0) + '">' +
-          '<a href="' + root + entry.url + '">' +
+          '<a href="' + escapeHtml(root + entry.url) + '">' +
           '<span class="where">' + escapeHtml(entry.page) + '</span>' +
           '<span class="heading">' + highlight(entry.heading, terms) + '</span>' +
           '<span class="snippet">' + highlight(snippet(entry.text, terms), terms) + '</span>' +
