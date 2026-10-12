@@ -1,6 +1,9 @@
 #+title: org-lsp
 #+options: ^:{} toc:nil
 
+#+attr_html: :width 128 :alt org-lsp
+[[file:site/assets/logo.svg]]
+
 A language server for [[https://orgmode.org][Org mode]] documents, so that Org works in any editor
 with an LSP client instead of in one editor at a time.
 
@@ -174,6 +177,10 @@ compare both programs on random documents, are listed in [[file:PLAN.org][PLAN.o
 [[file:docs/parity.org][docs/parity.org]] lists what Emacs Org does that org-lsp does not yet, area by
 area; [[file:PLAN.org][PLAN.org]] says in what order it comes.
 
+org-lsp is written with the help of AI (Claude Code), directed and
+reviewed by its author: each change is a pull request that comes with its
+tests, and what it does is checked against Emacs as above.
+
 * Licence
 
 Copyright (C) 2026 Kristijan Husak
@@ -184,5 +191,5 @@ Software Foundation, either version 3 of the License, or (at your option)
 any later version, as Org mode, whose logic it ports, is. See
 [[file:LICENSE][LICENSE]].
 
-The website's logo, [[file:site/assets/logo.svg][site/assets/logo.svg]], is Org mode's unicorn by
+The logo, [[file:site/assets/logo.svg][site/assets/logo.svg]], is Org mode's unicorn by
 Christophe Bataillon.
