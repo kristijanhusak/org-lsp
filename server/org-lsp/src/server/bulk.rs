@@ -42,6 +42,21 @@ const ACTIONS: &[(&str, &str)] = &[
     ("S", "scatter over the next days"),
 ];
 
+/// Where `offset` of a text is once `edits`, made on it, are applied: a
+/// place in an edit goes to where the edit starts.
+fn moved(edits: &[crate::actions::Edit], offset: usize) -> usize {
+    let mut shift: isize = 0;
+    for edit in edits {
+        let (start, end) = (usize::from(edit.range.start()), usize::from(edit.range.end()));
+        if end <= offset {
+            shift += edit.new_text.len() as isize - (end - start) as isize;
+        } else if start < offset {
+            return (start as isize + shift).max(0) as usize;
+        }
+    }
+    (offset as isize + shift).max(0) as usize
+}
+
 /// Apply `edits`, made for `text`, to it.
 fn apply(text: &str, edits: &[TextEdit], encoding: crate::line_index::Encoding) -> String {
     let index = LineIndex::new(text);
@@ -128,7 +143,7 @@ impl Server {
     }
 
     /// Send what the bulk action staged: an edit for every file it changed.
-    fn finish_staging(&mut self) {
+    pub(super) fn finish_staging(&mut self) {
         let Some(staging) = self.staging.take() else { return };
         let mut files: Vec<Staged> = staging.into_values().collect();
         files.sort_by(|a, b| a.uri.as_str().cmp(b.uri.as_str()));
@@ -440,8 +455,8 @@ impl Server {
         answer: &str,
         persist: bool,
     ) -> std::result::Result<Value, Refusal> {
-        let marks = self.sorted_marks();
-        let lines = self.view_lines();
+        let mut marks = self.sorted_marks();
+        let mut lines = self.view_lines();
         // A date read once for all of them: from the day of the cursor's
         // line when it is a date line, else from today. A `++` answer is
         // read for each entry.
@@ -468,7 +483,10 @@ impl Server {
         self.refile_current = marks.first().map(|mark| mark.uri.clone()).filter(|_| matches!(key, "r" | "w"));
         let (mut processed, mut skipped) = (0, 0);
         let mut failure = None;
-        for (number, mark) in marks.iter().enumerate() {
+        for number in 0..marks.len() {
+            let mark = marks[number].clone();
+            let mark = &mark;
+            let before = self.with_source(&mark.uri, |text, _, _, _, _| text.to_string());
             let Some(line) = lines.iter().position(|line| line.entry.as_ref() == Some(mark)) else {
                 skipped += 1;
                 continue;
@@ -519,6 +537,29 @@ impl Server {
                 Err(refusal) => {
                     failure = Some(refusal);
                     break;
+                }
+            }
+            // The entries after this one in its file moved by what it
+            // changed: the marks still to do, and the view's lines, follow
+            // them, or an entry with the same headline nearer the old place
+            // would be taken for theirs.
+            let after = self.with_source(&mark.uri, |text, _, _, _, _| text.to_string());
+            if let (Some(before), Some(after)) = (before, after) {
+                if before != after {
+                    let edits = crate::actions::edits_between(&before, &after);
+                    let follow = |entry: &mut EntryRef| {
+                        if entry.uri == mark.uri {
+                            entry.offset = moved(&edits, entry.offset);
+                            entry.marker = entry.marker.map(|marker| moved(&edits, marker));
+                        }
+                    };
+                    marks.iter_mut().skip(number + 1).for_each(follow);
+                    if let Some(open) = self.view.as_mut() {
+                        for view in std::iter::once(&mut open.view).chain(open.shown.as_mut()) {
+                            view.lines.iter_mut().filter_map(|line| line.entry.as_mut()).for_each(follow);
+                        }
+                    }
+                    lines = self.view_lines();
                 }
             }
         }

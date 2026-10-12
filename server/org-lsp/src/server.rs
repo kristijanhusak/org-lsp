@@ -496,7 +496,18 @@ struct CaptureClock {
     keep: bool,
     resume: bool,
     /// The entry whose clock the capture stopped.
-    interrupted: Option<(Uri, String)>,
+    interrupted: Option<ClockTask>,
+}
+
+/// An entry the clock knows (`org-clock-history`, the interrupted and
+/// default tasks), as Emacs keeps a marker: its file, where its headline
+/// was, and its title. It is found again at that place if the title there
+/// is the same, else at the nearest entry with that title.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ClockTask {
+    uri: Uri,
+    offset: usize,
+    title: String,
 }
 
 /// A clock that runs: the file of its `CLOCK:` line, and when it started.
@@ -507,6 +518,17 @@ struct RunningClock {
     /// The headline of its entry, after the stars: two clocks may start
     /// in the same minute.
     head: String,
+}
+
+/// Where the entry with `title` starts in `outline`: at `offset` if that
+/// entry has it, else at the nearest entry that has.
+fn task_in(outline: &Outline, offset: usize, title: &str) -> Option<usize> {
+    outline
+        .entries
+        .iter()
+        .filter(|entry| org_core::agenda::report::plain_heading(&entry.head, entry.todo.as_deref()) == title)
+        .min_by_key(|entry| entry.offset.abs_diff(offset))
+        .map(|entry| entry.offset)
 }
 
 /// The clocks that run in `text`: where each line starts, when it
@@ -1004,7 +1026,7 @@ struct Server {
     last_clocked: Option<(Uri, String)>,
     /// `org-clock-history`: the entries clocked into, the last first, by
     /// file and title; at most `org-clock-history-length`.
-    clock_history: Vec<(Uri, String)>,
+    clock_history: Vec<ClockTask>,
     clock_history_length: usize,
     /// `org-stored-links`: the links `org.link.store` keeps for
     /// `org.link.insert`, the last first.
@@ -1012,10 +1034,10 @@ struct Server {
     /// The options of the link commands.
     link_settings: org_core::link::Settings,
     /// `org-clock-default-task`, marked by clocking in with `C-u C-u`.
-    clock_default_task: Option<(Uri, String)>,
+    clock_default_task: Option<ClockTask>,
     /// `org-clock-interrupted-task`: the entry whose clock the last
     /// clock-in stopped.
-    clock_interrupted: Option<(Uri, String)>,
+    clock_interrupted: Option<ClockTask>,
     /// `org-clock-out-time`: when the last clock stopped.
     clock_out_time: Option<DateTime>,
     /// `org-clock-idle-time`: after how many minutes without a message
@@ -2618,12 +2640,29 @@ impl Server {
                     .flatten();
                 let changed_lines = changed_lines(&params.content_changes);
                 if let Some(document) = self.documents.get_mut(key) {
-                    document.apply(
+                    let changes = document.apply(
                         params.content_changes,
                         params.text_document.version,
                         self.client.encoding,
                         &self.todo,
                     );
+                    // The agenda's entries in this file follow the text,
+                    // until the agenda is built again: a command on one of
+                    // its lines finds its timestamp where it is now.
+                    let follow = |entry: &mut views::EntryRef| {
+                        if entry.uri.as_str() == key {
+                            for change in &changes {
+                                entry.offset = change.moved(entry.offset);
+                                entry.marker = entry.marker.map(|marker| change.moved(marker));
+                            }
+                        }
+                    };
+                    if let Some(open) = self.view.as_mut() {
+                        for view in std::iter::once(&mut open.view).chain(open.shown.as_mut()) {
+                            view.lines.iter_mut().filter_map(|line| line.entry.as_mut()).for_each(follow);
+                        }
+                    }
+                    self.agenda_marks.iter_mut().for_each(follow);
                 }
                 if let Some(old) = shrunk_before {
                     self.shrunk_after_change(key, &old, changed_lines);
@@ -5345,6 +5384,18 @@ impl Server {
             commands::CAPTURE_ABORT => {
                 let capture = self.capture.take().ok_or("No capture is going on")?;
                 self.message = Some("Capture process aborted and target buffer cleaned up".to_string());
+                // `org-capture-kill` finalizes too: with `:clock-resume`,
+                // the clock the capture stopped starts again, `:clock-keep`
+                // or not.
+                let interrupted =
+                    capture.clock.as_ref().filter(|clock| clock.resume).and_then(|clock| clock.interrupted.clone());
+                if let Some(task) = interrupted {
+                    if let Some(at) = self.find_task(&task) {
+                        let time = self.date_time();
+                        self.clock_in_at(task.uri, at, time)?;
+                        self.message = Some("Interrupted clock has been resumed".to_string());
+                    }
+                }
                 Ok(json!({ "close": capture.uri }))
             }
             commands::CAPTURE_REFILE => {
@@ -7986,12 +8037,13 @@ impl Server {
     }
 
     /// The target file once the capture buffer's text goes in: where the
-    /// template was placed, or placed again when the file has changed.
+    /// template was placed, or placed again when the file has changed;
+    /// and where the captured text starts in it.
     fn captured(
         &mut self,
         capture: &Capturing,
         given: Option<String>,
-    ) -> std::result::Result<(String, Option<i32>, String), Refusal> {
+    ) -> std::result::Result<(String, Option<i32>, String, usize), Refusal> {
         let edited = self.capture_text(capture, given);
         let (now, version, keywords) = self
             .with_source(&capture.target, |text, _, parse, _, version| {
@@ -8000,8 +8052,8 @@ impl Server {
             .unwrap_or_else(|| (String::new(), None, self.todo.clone()));
         let (todo, time) = (&self.edit_settings.todo, self.date_time());
         // A buffer that shows the whole file stands for all of it.
-        let done = if now == capture.snapshot || (capture.unnarrowed && capture.roam.is_none()) {
-            capture.placed.finalize(&edited, &keywords, todo, time)
+        let (done, begin) = if now == capture.snapshot || (capture.unnarrowed && capture.roam.is_none()) {
+            (capture.placed.finalize(&edited, &keywords, todo, time), capture.placed.begin)
         } else if capture.roam.is_some() {
             // org-roam's target has the node's `ID` and head besides.
             return Err("The target file has changed since the capture began".into());
@@ -8009,9 +8061,9 @@ impl Server {
             let (target, kind, properties) = &capture.spec;
             let levels = refile::Settings { adapt: self.adapt_in(&now), ..self.refile.2 };
             let placed = capture::place(&now, &keywords, target, *kind, &edited, properties, &levels)?;
-            placed.finalize(placed.shown(), &keywords, todo, time)
+            (placed.finalize(placed.shown(), &keywords, todo, time), placed.begin)
         };
-        Ok((now, version, done))
+        Ok((now, version, done, begin))
     }
 
     /// Ask the editor to turn `now` into `done` in the target file. A file
@@ -8044,7 +8096,7 @@ impl Server {
     /// the user to save.
     fn finish_capture(&mut self, text: Option<String>) -> std::result::Result<Value, Refusal> {
         let capture = self.capture.take().ok_or("No capture is going on")?;
-        let (now, version, done) = match self.captured(&capture, text) {
+        let (now, version, done, start) = match self.captured(&capture, text) {
             Ok(captured) => captured,
             Err(refusal) => {
                 self.capture = Some(capture);
@@ -8052,7 +8104,6 @@ impl Server {
             }
         };
         let keywords = org_syntax::parse(&done, &self.todo).todo_keywords().clone();
-        let start = capture.placed.begin;
         let filed = capture.roam.is_some().then(|| done.clone());
         self.file_capture(
             &capture.target,
@@ -8074,17 +8125,48 @@ impl Server {
     /// the change to its file, for the caller to send, and its entry, to
     /// start it again with `:clock-resume`.
     #[allow(clippy::type_complexity)]
-    fn stop_clock_for_capture(&mut self) -> Option<((Uri, Option<i32>, String, String), (Uri, String))> {
+    fn stop_clock_for_capture(&mut self) -> Option<((Uri, Option<i32>, String, String), ClockTask)> {
         let running = self.running.clone()?;
         let (text, version, line) = self.clock_line(&running)?;
         let heading = Self::heading_above(&text, line)?;
-        let title = self.entry_title(&running.uri, heading)?;
+        let task = self.clock_task(&running.uri, heading)?;
         let now = self.date_time();
         let out = clock::clock_out(&text, line, now, &self.clock_settings).ok()?;
         self.clock_out_time = Some(now);
         self.running = None;
         self.publish_clock();
-        Some(((running.uri.clone(), version, text, out.text), (running.uri, title)))
+        Some(((running.uri, version, text, out.text), task))
+    }
+
+    /// The clock of a capture with `:clock-in` on the entry at `heading` of
+    /// `done`: stopped now unless `:clock-keep`; and with `:clock-resume`,
+    /// the entry whose clock the capture stopped, to start it again.
+    fn clock_capture(
+        &mut self,
+        target: &Uri,
+        done: String,
+        heading: usize,
+        keywords: &TodoKeywords,
+        clock: Option<&CaptureClock>,
+    ) -> std::result::Result<(String, Option<ClockTask>), Refusal> {
+        let Some(clock) = clock else { return Ok((done, None)) };
+        let time = self.date_time();
+        let (mut done, _) = clock::clock_in(&done, keywords, heading, &self.clock_settings, clock.start)?;
+        if clock.keep {
+            let head = done[heading..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();
+            self.running = Some(RunningClock { uri: target.clone(), start: clock.start, head: head.clone() });
+            self.last_clocked = Some((target.clone(), head));
+            self.clock_pending = true;
+            return Ok((done, None));
+        }
+        let line = running_lines(&done)
+            .into_iter()
+            .find(|(line, start, _)| *start == clock.start && Self::heading_above(&done, *line) == Some(heading))
+            .map(|(line, ..)| line);
+        if let Some(line) = line {
+            done = clock::clock_out(&done, line, time, &self.clock_settings)?.text;
+        }
+        Ok((done, clock.interrupted.clone().filter(|_| clock.resume)))
     }
 
     /// The captured text goes to its target (`org-capture-finalize`): with
@@ -8106,53 +8188,29 @@ impl Server {
     ) -> std::result::Result<Value, Refusal> {
         let start = start.min(done.len());
         let heading = start + done[start..].len() - done[start..].trim_start_matches(['\n', ' ', '\t']).len();
-        let mut done = done;
-        let mut resume = None;
-        if let Some(clock) = clock {
-            let time = self.date_time();
-            let (clocked, _) = clock::clock_in(&done, keywords, heading, &self.clock_settings, clock.start)?;
-            done = clocked;
-            if clock.keep {
-                let head = done[heading..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();
-                self.running = Some(RunningClock { uri: target.clone(), start: clock.start, head: head.clone() });
-                self.last_clocked = Some((target.clone(), head));
-                self.clock_pending = true;
-            } else {
-                let line = running_lines(&done)
-                    .into_iter()
-                    .find(|(line, start, _)| {
-                        *start == clock.start && Self::heading_above(&done, *line) == Some(heading)
-                    })
-                    .map(|(line, ..)| line);
-                if let Some(line) = line {
-                    done = clock::clock_out(&done, line, time, &self.clock_settings)?.text;
-                }
-                if clock.resume {
-                    resume = clock.interrupted.clone();
-                }
-            }
-        }
+        let (done, resume) = self.clock_capture(target, done, heading, keywords, clock)?;
         let position = LineIndex::new(&done).position(&done, heading, self.client.encoding);
         match resume {
-            Some((uri, title)) => {
+            Some(task) => {
                 // The clock the capture stopped starts again, in the same
-                // edit as the capture when it is in the same file.
-                let found = if uri == *target {
-                    org_core::outline::Outline::new(&org_syntax::parse(&done, &self.todo), &done, "")
-                        .entries
-                        .iter()
-                        .find(|entry| {
-                            org_core::agenda::report::plain_heading(&entry.head, entry.todo.as_deref()) == title
-                        })
-                        .map(|entry| entry.offset)
+                // edit as the capture when it is in the same file, where
+                // the capture moved its entry by what it added before it.
+                let found = if task.uri == *target {
+                    let moved = if task.offset >= start {
+                        task.offset + done.len().saturating_sub(now.len())
+                    } else {
+                        task.offset
+                    };
+                    let outline = org_core::outline::Outline::new(&org_syntax::parse(&done, &self.todo), &done, "");
+                    task_in(&outline, moved, &task.title)
                 } else {
-                    self.find_title(&uri, &title)
+                    self.find_task(&task)
                 };
                 let change = (target.clone(), version, now.to_string(), done.clone());
                 match found {
                     Some(at) => {
                         let time = self.date_time();
-                        self.clock_in_after(uri, at, time, vec![change])?;
+                        self.clock_in_after(task.uri, at, time, vec![change])?;
                     }
                     None => self.send_texts(vec![change]),
                 }
@@ -8174,15 +8232,17 @@ impl Server {
         Ok(Value::Null)
     }
 
-    /// `org-capture-refile` (`C-c C-w`): the entry goes to its target, and
-    /// from there under a refile target.
+    /// `org-capture-refile` (`C-c C-w`): the entry is filed as
+    /// `org-capture-finalize` files it, with its clock, then goes from
+    /// there under a refile target; the clock the capture stopped starts
+    /// again with `:clock-resume`. Every file changes in one edit.
     fn refile_capture(&mut self, answer: Option<&str>, text: Option<String>) -> std::result::Result<Value, Refusal> {
         let capture = self.capture.take().ok_or("No capture is going on")?;
         if capture.spec.1 != capture::Kind::Entry {
             self.capture = Some(capture);
             return Err("Refiling from a capture buffer makes only sense for `entry'-type templates".into());
         }
-        let (_, _, done) = match self.captured(&capture, text) {
+        let (_, _, done, begin) = match self.captured(&capture, text) {
             Ok(captured) => captured,
             Err(refusal) => {
                 self.capture = Some(capture);
@@ -8190,21 +8250,42 @@ impl Server {
             }
         };
         // The entry starts where the template went in, after any blank lines.
-        let begin = capture.placed.begin.min(done.len());
+        let begin = begin.min(done.len());
         let start = begin + done[begin..].len() - done[begin..].trim_start_matches(['\n', ' ', '\t']).len();
         let uri = capture.uri.clone();
         let target = capture.target.clone();
-        let result = self.refile_from(target, start, None, Some(done), false, answer, RefileMode::Move);
-        match result {
-            // Still asking where to: the capture stays.
-            Ok(value) if value.get("input").is_some() => {
-                self.capture = Some(capture);
-                Ok(value)
-            }
-            Ok(_) => Ok(json!({ "close": uri })),
+        // The clock of the capture, only when the entry is filed: a refile
+        // that still asks where to changes nothing yet.
+        let running = self.running.clone();
+        let keywords = org_syntax::parse(&done, &self.todo).todo_keywords().clone();
+        let clocked = self.clock_capture(&target, done, start, &keywords, capture.clock.as_ref());
+        let (done, resume) = match clocked {
+            Ok(clocked) => clocked,
             Err(refusal) => {
                 self.capture = Some(capture);
-                Err(refusal)
+                return Err(refusal);
+            }
+        };
+        self.staging = Some(bulk::Staging::new());
+        let result = self.refile_from(target, start, None, Some(done), false, answer, RefileMode::Move);
+        match result {
+            Ok(value) if value.get("input").is_none() => {
+                if let Some(task) = resume {
+                    if let Some(at) = self.find_task(&task) {
+                        let time = self.date_time();
+                        self.clock_in_at(task.uri, at, time)?;
+                    }
+                }
+                self.finish_staging();
+                Ok(json!({ "close": uri }))
+            }
+            // Still asking where to, or refused: the capture stays.
+            other => {
+                self.staging = None;
+                self.running = running;
+                self.clock_pending = false;
+                self.capture = Some(capture);
+                other
             }
         }
     }
@@ -12498,7 +12579,7 @@ impl Server {
         let (file, heading) = self.clock_target(context)?;
         // `C-u C-u`: the entry becomes the default task.
         if count == 16 {
-            self.clock_default_task = self.entry_title(&file, heading).map(|title| (file.clone(), title));
+            self.clock_default_task = self.clock_task(&file, heading);
         }
         // `C-u C-u C-u`: from when the last clock stopped.
         let now = self.date_time();
@@ -12516,16 +12597,15 @@ impl Server {
         .flatten()
     }
 
-    /// Where the entry with `title` starts in `uri`.
-    fn find_title(&mut self, uri: &Uri, title: &str) -> Option<usize> {
-        self.with_source(uri, |_, _, _, outline, _| {
-            outline
-                .entries
-                .iter()
-                .find(|entry| org_core::agenda::report::plain_heading(&entry.head, entry.todo.as_deref()) == title)
-                .map(|entry| entry.offset)
-        })
-        .flatten()
+    /// The entry at `heading` of `uri`, as the clock keeps it.
+    fn clock_task(&mut self, uri: &Uri, heading: usize) -> Option<ClockTask> {
+        let title = self.entry_title(uri, heading)?;
+        Some(ClockTask { uri: uri.clone(), offset: heading, title })
+    }
+
+    /// Where the entry of `task` starts now in its file.
+    fn find_task(&mut self, task: &ClockTask) -> Option<usize> {
+        self.with_source(&task.uri, |_, _, _, outline, _| task_in(outline, task.offset, &task.title)).flatten()
     }
 
     /// Note a message from the editor: one after `org-clock-idle-time`
@@ -12675,7 +12755,7 @@ impl Server {
     /// pick from; asked as a choice, then clocked into.
     fn clock_in_selected(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
         // The history without repeats in a row.
-        let mut recent: Vec<(Uri, String)> = Vec::new();
+        let mut recent: Vec<ClockTask> = Vec::new();
         for task in &self.clock_history {
             if recent.last() != Some(task) {
                 recent.push(task.clone());
@@ -12684,32 +12764,33 @@ impl Server {
         if recent.is_empty() {
             return Err("No recent clock".into());
         }
-        let mut tasks: Vec<(String, Uri, String)> = Vec::new();
-        if let Some((uri, title)) = self.clock_default_task.clone() {
-            tasks.push(("d".to_string(), uri, title));
+        let mut tasks: Vec<(String, ClockTask)> = Vec::new();
+        if let Some(task) = self.clock_default_task.clone() {
+            tasks.push(("d".to_string(), task));
         }
-        if let Some((uri, title)) = self.clock_interrupted.clone() {
-            tasks.push(("i".to_string(), uri, title));
+        if let Some(task) = self.clock_interrupted.clone() {
+            tasks.push(("i".to_string(), task));
         }
         if let Some(running) = self.running.clone() {
-            if let Some(title) = self
+            if let Some(task) = self
                 .clock_line(&running)
                 .and_then(|(text, _, line)| Self::heading_above(&text, line))
-                .and_then(|heading| self.entry_title(&running.uri, heading))
+                .and_then(|heading| self.clock_task(&running.uri, heading))
             {
-                tasks.push(("c".to_string(), running.uri, title));
+                tasks.push(("c".to_string(), task));
             }
         }
         let mut number = 0;
-        for (uri, title) in recent {
+        for task in recent {
             number += 1;
             let key = if number < 10 { char::from(b'0' + number as u8) } else { char::from(b'A' + number as u8 - 10) };
-            tasks.push((key.to_string(), uri, title));
+            tasks.push((key.to_string(), task));
         }
         // What each line shows: the category and the headline.
         let mut found: Vec<(String, Uri, usize, String)> = Vec::new();
-        for (key, uri, title) in tasks {
-            let Some(heading) = self.find_title(&uri, &title) else { continue };
+        for (key, task) in tasks {
+            let Some(heading) = self.find_task(&task) else { continue };
+            let uri = task.uri;
             let label = self
                 .with_source(&uri, |_, _, _, outline, _| {
                     let entry = &outline.entries[outline.entry_at(heading)?];
@@ -12752,11 +12833,12 @@ impl Server {
         if count == 4 {
             return self.clock_in_selected(context);
         }
-        let Some((uri, title)) = self.clock_history.first().cloned() else {
+        let Some(task) = self.clock_history.first().cloned() else {
             self.message = Some("No last clock".to_string());
             return Ok(Value::Null);
         };
-        let heading = self.find_title(&uri, &title).ok_or("The entry clocked last is gone")?;
+        let heading = self.find_task(&task).ok_or("The entry clocked last is gone")?;
+        let ClockTask { uri, title, .. } = task;
         let now = self.date_time();
         let start = if count == 16 { self.clock_out_time.unwrap_or(now) } else { now };
         let already = self.running.is_some();
@@ -12811,7 +12893,7 @@ impl Server {
         let now = self.date_time();
         let mut changes = changes;
         let mut heading = heading;
-        let title = self.entry_title(&file, heading);
+        let task = self.clock_task(&file, heading);
         let mut interrupted = None;
         if let Some(running) = self.running.clone() {
             // Its line, in the text a change before made of its file.
@@ -12840,8 +12922,7 @@ impl Server {
                     return Ok(Value::Null);
                 }
                 interrupted = Self::heading_above(&text, line)
-                    .and_then(|running_heading| self.entry_title(&running.uri, running_heading))
-                    .map(|title| (running.uri.clone(), title));
+                    .and_then(|running_heading| self.clock_task(&running.uri, running_heading));
                 let out = clock::clock_out(&text, line, now, &self.clock_settings)?;
                 self.clock_out_time = Some(now);
                 let out_text = match Self::heading_above(&text, line) {
@@ -12886,12 +12967,20 @@ impl Server {
         self.send_texts(changes);
         self.running = Some(RunningClock { uri: file.clone(), start, head: head.clone() });
         self.clock_interrupted = interrupted;
-        // `org-clock-history-push`
-        if let Some(title) = title {
-            let task = (file.clone(), title);
-            self.clock_history.retain(|other| *other != task);
-            self.clock_history.truncate(self.clock_history_length - 1);
-            self.clock_history.insert(0, task);
+        // `org-clock-history-push`: the entry once, first.
+        if let Some(task) = task {
+            let history = std::mem::take(&mut self.clock_history);
+            let mut kept = Vec::new();
+            for other in history {
+                let same =
+                    other.uri == task.uri && other.title == task.title && self.find_task(&other) == Some(heading);
+                if !same {
+                    kept.push(other);
+                }
+            }
+            kept.truncate(self.clock_history_length - 1);
+            kept.insert(0, task);
+            self.clock_history = kept;
         }
         self.last_clocked = Some((file, head));
         let shown = if repeat { "showing task time since last repeat." } else { "showing entire task time." };
