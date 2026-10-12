@@ -220,11 +220,15 @@ impl Renderer<'_, '_> {
         if let [SyntaxElement::Node(link)] = content.as_slice() {
             if link.kind() == LINK && !has_description(link) {
                 if let Target::Image(src) = self.links.resolve(&link_path(link)) {
-                    let alt = caption.clone().unwrap_or_default();
+                    // The caption is the text an image stands for, unless
+                    // `#+ATTR_HTML:` gives one.
+                    let alt = match attributes.contains(" alt=\"") {
+                        true => String::new(),
+                        false => format!(" alt=\"{}\"", escape(&caption.clone().unwrap_or_default())),
+                    };
                     self.out.push_str(&format!(
-                        "<figure><img src=\"{}\" alt=\"{}\" loading=\"lazy\"{attributes}>{}</figure>\n",
+                        "<figure><img src=\"{}\"{alt} loading=\"lazy\"{attributes}>{}</figure>\n",
                         escape(&src),
-                        escape(&alt),
                         caption
                             .map(|caption| format!("<figcaption>{}</figcaption>", escape(&caption)))
                             .unwrap_or_default()
