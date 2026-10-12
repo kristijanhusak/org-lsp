@@ -15,6 +15,9 @@ what an editor integration has to do. Read both before larger work.
   method `foo-bar` is the function `org-lsp-bridge-foo-bar`.
 - Neovim at the root (`plugin/`, `lua/`); the other editors in `editors/`
   (`vim`, `vscode`, `sublime`, `zed`, `helix`).
+- `site/`: the documentation website, written from `README.org` and
+  `docs/` with `org-syntax` (no other tools); `.github/workflows/docs.yml`
+  publishes it on GitHub Pages.
 - `scripts/`: generators, Emacs reference scripts, fixtures and fuzzers.
 - `tests/`: committed cases recorded from Emacs, and the Neovim tests.
 
@@ -25,6 +28,7 @@ scripts/regen.sh      # write every generated file again
 scripts/check.sh      # fmt, clippy, cargo test, generated files, VS Code types, Sublime tests
 scripts/test-all.sh   # check.sh, then Neovim, Vim, VS Code end to end
 scripts/screenshots.py  # docs/images: screenshots and animations of Neovim (NVIM)
+scripts/site.sh       # the website into target/site; --serve shows it
 ```
 
 Set `ORG_LISP_DIR` to the `lisp` directory of an Org 9.8.10 checkout: the
@@ -86,7 +90,9 @@ kept by the generator), and every doc outside the generated blocks.
   every option and setting is in `docs/configuration.org`, and the Emacs
   packages ported (org-super-agenda, org-roam, org-journal) are described
   in `docs/plugins.org`; `editors/*/README.org`
-  only points to the editor's page. A link to a heading in another file
+  only points to the editor's page. The website shows them as they are:
+  a new page in `docs/` goes in the sidebar (`NAV` in `site/src/main.rs`),
+  and `check.sh` fails on a link to a file or heading that is not there. A link to a heading in another file
   uses a `CUSTOM_ID` equal to GitHub's anchor of the heading, so it works in
   Emacs and on GitHub. CLAUDE.md and the skills stay Markdown: Claude Code
   reads them.

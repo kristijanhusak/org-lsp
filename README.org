@@ -28,6 +28,9 @@ it), then a date picked in Org's calendar:
 These are Neovim; [[file:scripts/screenshots.py][scripts/screenshots.py]] makes them from the server of the
 checkout. The other editors look as their themes make them.
 
+The documentation is also a website, [[https://kristijanhusak.github.io/org-lsp/][kristijanhusak.github.io/org-lsp]],
+written from these Org files by org-lsp's own parser (~site/~).
+
 * Editors
 
 Each editor's page says how to install org-lsp there, how to set it up,
@@ -144,6 +147,7 @@ editors/sublime/     Sublime Text package (for sublimelsp/LSP)
 editors/zed/         Zed extension
 editors/helix/       Helix configuration
 docs/                each editor's page, configuration, keys, protocol, parity
+site/                the documentation website, written from README.org and docs/
 tests/               Org files and what Emacs makes of them
 scripts/             checks, generators, reference and fuzzing scripts
 #+end_example
@@ -154,6 +158,7 @@ scripts/             checks, generators, reference and fuzzing scripts
 scripts/regen.sh      # write every generated file again
 scripts/check.sh      # the fast checks: fmt, clippy, tests, generated files, VS Code, Sublime
 scripts/test-all.sh   # those, then Neovim, Vim and VS Code end to end
+scripts/site.sh       # the website into target/site (--serve: at localhost:8000)
 #+end_src
 
 Set ~ORG_LISP_DIR~ to the ~lisp~ directory of an Org 9.8.10 checkout for the
