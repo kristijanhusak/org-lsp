@@ -5,10 +5,10 @@ function M.check()
   local health = vim.health
   health.start('org-lsp')
 
-  if vim.fn.has('nvim-0.11') == 1 then
+  if vim.fn.has('nvim-0.12') == 1 then
     health.ok('Neovim ' .. tostring(vim.version()))
   else
-    health.error('Neovim 0.11 or newer is required')
+    health.error('Neovim 0.12 or newer is required')
     return
   end
 

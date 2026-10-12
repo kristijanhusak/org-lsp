@@ -112,6 +112,6 @@ kept by the generator), and every doc outside the generated blocks.
   may be the same document, with no open event.
 - Neovim `vim.ui.img`: never pass both width and height; give one and let
   the image keep its proportions.
-- The Neovim tests run headless against the real server, on 0.11.0 and
+- The Neovim tests run headless against the real server, on 0.12.0 and
   stable; the image tests put a stand-in in place of `vim.ui.img` (0.13),
   and the LaTeX test stand-ins for `latex` and `dvipng`.

@@ -75,7 +75,7 @@ others), as close to Emacs Org mode as it can get.
   | Archiving                                                                                                                         | ~tests/archive/cases.json~        | ~scripts/update-archive-fixtures.py~                                               | ~scripts/fuzz-archive.py~       |
   | ~org-lint~                                                                                                                        | ~tests/lint/cases.json~           | ~scripts/lint_reference.py~ (and ~scripts/update-lint-tables.py~ for Org's tables) | ~scripts/fuzz-lint.py~          |
   | Storing and inserting links (~org-store-link~, ~org-insert-link~ and its relatives, ~org-id-get-create~)                          | ~tests/link/cases.json~           | ~scripts/link_reference.py~                                                        | ~scripts/fuzz-link.py~          |
-- Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.11.0 and
+- Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.12.0 and
   stable. Tests run headless against the real server.
 - VS Code: in ~editors/vscode~, ~npm run generate -- --check~,
   ~npm run check~, ~npm run build~, ~xvfb-run -a npm test~ (VSCodium works locally
@@ -89,7 +89,7 @@ others), as close to Emacs Org mode as it can get.
   ~cargo build --target wasm32-wasip2~ in ~editors/zed~; the queries are compiled against the
   grammar with the tree-sitter CLI. Zed itself cannot run in the
   workspace.
-- CI, started by hand, runs seven jobs: server, Neovim 0.11.0, Neovim stable, VS Code, Vim (with each of its four LSP clients), Sublime Text (generated files, the plugin against stand-ins), Zed (the build, generated rules, queries).
+- CI, started by hand, runs seven jobs: server, Neovim 0.12.0, Neovim stable, VS Code, Vim (with each of its four LSP clients), Sublime Text (generated files, the plugin against stand-ins), Zed (the build, generated rules, queries).
 
 * Setting up the tools
 :PROPERTIES:
