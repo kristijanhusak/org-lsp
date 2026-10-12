@@ -1,9 +1,10 @@
 # org-lsp
 
 Org mode in any editor through one language server, as close to Emacs Org
-mode as it can get. [PLAN.org](PLAN.org) has the goal and rules, where things
-stand and how the work is checked; [docs/protocol.org](docs/protocol.org) is
-what an editor integration has to do. Read both before larger work.
+mode as it can get. [docs/development.org](docs/development.org) has the goal
+and rules and how the work is checked; [docs/protocol.org](docs/protocol.org)
+is what an editor integration has to do; [docs/parity.org](docs/parity.org)
+what Emacs Org does that org-lsp does not yet. Read them before larger work.
 
 ## Layout
 

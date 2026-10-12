@@ -6,7 +6,7 @@
 What Emacs Org (9.8.10) does, area by area, and what org-lsp does of it.
 An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
-decides the outcome (see "How the work is checked" in [[file:../PLAN.org][PLAN.org]]).
+decides the outcome (see "How the work is checked" in [[file:development.org::#how-the-work-is-checked][development.org]]).
 
 *All of Org: 99%*
 
