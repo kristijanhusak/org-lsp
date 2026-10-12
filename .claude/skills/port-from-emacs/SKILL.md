@@ -49,7 +49,7 @@ complete example to copy:
 7. **Wire it into the server** (`server/org-lsp`): the command in
    `commands.rs` with its Emacs key, options in `settings.rs`, the
    handler in `server.rs`; an LSP test in `server/org-lsp/tests/`.
-8. **Record it** in the table of `PLAN.org` ("How the work is checked"), in
+8. **Record it** in the table of `docs/development.org` ("How the work is checked"), in
    `scripts/features.mjs` (Emacs feature, editors' support, manual checks),
    then `scripts/regen.sh`. If editors need code for it, continue with the
    `editor-feature` skill.

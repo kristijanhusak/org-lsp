@@ -60,7 +60,14 @@ const NAV: &[(&str, &[(&str, &str)])] = &[
             ("docs/keys/helix.org", "Helix"),
         ],
     ),
-    ("Developers", &[("docs/protocol.org", "The protocol"), ("docs/parser.org", "The parser")]),
+    (
+        "Developers",
+        &[
+            ("docs/development.org", "Development"),
+            ("docs/protocol.org", "The protocol"),
+            ("docs/parser.org", "The parser"),
+        ],
+    ),
 ];
 
 fn main() {

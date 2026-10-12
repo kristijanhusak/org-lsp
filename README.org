@@ -171,11 +171,11 @@ tests that run Emacs. Everything is checked against Emacs: the files under
 ~org-element-parse-buffer~, agendas from ~org-batch-agenda~, the result of
 each command), and the tests compare against those committed outputs, so
 they need no Emacs. The scripts that record them, and the fuzzers that
-compare both programs on random documents, are listed in [[file:PLAN.org][PLAN.org]] under
-"How the work is checked"; [[file:docs/parser.org][docs/parser.org]] describes the parser.
+compare both programs on random documents, are listed in
+[[file:docs/development.org::#how-the-work-is-checked][docs/development.org]]; [[file:docs/parser.org][docs/parser.org]] describes the parser.
 
 [[file:docs/parity.org][docs/parity.org]] lists what Emacs Org does that org-lsp does not yet, area by
-area; [[file:PLAN.org][PLAN.org]] says in what order it comes.
+area.
 
 org-lsp is written with the help of AI (Claude Code), directed and
 reviewed by its author: each change is a pull request that comes with its
