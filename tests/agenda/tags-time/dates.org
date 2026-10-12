@@ -1,0 +1,32 @@
+* TODO Deadline a month ago
+  DEADLINE: <2026-09-10 Thu>
+* TODO Scheduled ten days ago
+  SCHEDULED: <2026-10-02 Fri>
+* TODO Deadline three days ago
+  DEADLINE: <2026-10-09 Fri>
+* TODO Scheduled four days ago
+  SCHEDULED: <2026-10-08 Thu>
+* TODO Meeting today
+  SCHEDULED: <2026-10-12 Mon 10:00>
+* TODO Due today
+  DEADLINE: <2026-10-12 Mon>
+* Call at noon
+  <2026-10-12 Mon 12:00>
+* TODO Deadline tomorrow
+  DEADLINE: <2026-10-13 Tue 09:00 +1w -16h>
+* TODO Scheduled tomorrow
+  SCHEDULED: <2026-10-13 Tue>
+* TODO Deadline in 3 days
+  DEADLINE: <2026-10-15 Thu>
+* Dentist in 5 days
+  <2026-10-17 Sat 14:00>
+* TODO Deadline in 10 days
+  DEADLINE: <2026-10-22 Thu>
+* TODO Reviewed this month
+  :PROPERTIES:
+  :REVIEWED: <2026-10-01 Thu>
+  :END:
+* TODO Review not a date
+  :PROPERTIES:
+  :REVIEWED: soon
+  :END:

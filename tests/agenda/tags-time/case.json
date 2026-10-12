@@ -1,0 +1,13 @@
+{
+  "today": "2026-10-12",
+  "now": "09:00",
+  "runs": [
+    { "view": "tags-todo", "match": "DEADLINE<\"<-7d>\"" },
+    { "view": "tags-todo", "match": "DEADLINE<\"<-7d>\"|SCHEDULED<\"<-7d>\"" },
+    { "view": "tags-todo", "match": "SCHEDULED>=\"<today>\"" },
+    { "view": "tags-todo", "match": "DEADLINE=\"<2026-10-15>\"" },
+    { "view": "tags-todo", "match": "DEADLINE<>\"<2026-10-15>\"" },
+    { "view": "tags-todo", "match": "REVIEWED<\"<today>\"" },
+    { "view": "tags-todo", "match": "REVIEWED>\"<-1m>\"" }
+  ]
+}
